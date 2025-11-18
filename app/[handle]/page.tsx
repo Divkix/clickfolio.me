@@ -11,6 +11,22 @@ interface PageProps {
   }>
 }
 
+interface PrivacySettings {
+  show_phone: boolean
+  show_address: boolean
+}
+
+/**
+ * Type guard to validate privacy settings
+ */
+function isPrivacySettings(value: unknown): value is PrivacySettings {
+  if (!value || typeof value !== 'object') return false
+  const obj = value as Record<string, unknown>
+  return (
+    typeof obj.show_phone === 'boolean' && typeof obj.show_address === 'boolean'
+  )
+}
+
 /**
  * Fetch user profile and resume data by handle
  * Applies privacy filtering based on user preferences
@@ -55,11 +71,12 @@ async function getResumeData(handle: string) {
   // Deep clone content to avoid mutation
   const content: ResumeContent = JSON.parse(JSON.stringify(siteData.content))
 
-  // Apply privacy filtering
-  const privacySettings = data.privacy_settings || {
-    show_phone: false,
-    show_address: false,
-  }
+  // Apply privacy filtering with type guard
+  const privacySettings: PrivacySettings = isPrivacySettings(
+    data.privacy_settings
+  )
+    ? data.privacy_settings
+    : { show_phone: false, show_address: false }
 
   // Remove phone if privacy setting is false
   if (!privacySettings.show_phone && content.contact?.phone) {

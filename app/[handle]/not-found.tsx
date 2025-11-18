@@ -10,7 +10,7 @@ export default function NotFound() {
             Resume Not Found
           </h1>
           <p className="text-gray-600 text-lg">
-            This resume doesn't exist or hasn't been published yet.
+            This resume doesn&apos;t exist or hasn&apos;t been published yet.
           </p>
         </div>
 
