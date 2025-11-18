@@ -30,8 +30,8 @@ export default async function EditPage() {
     redirect('/dashboard')
   }
 
-  // Type assertion for content
-  const content = siteData.content as ResumeContent
+  // Type assertion for content (safe because we control the schema)
+  const content = siteData.content as unknown as ResumeContent
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -55,7 +55,7 @@ export default async function EditPage() {
       </header>
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <EditResumeFormWrapper initialData={content} siteDataId={siteData.id} />
+        <EditResumeFormWrapper initialData={content} />
       </main>
     </div>
   )

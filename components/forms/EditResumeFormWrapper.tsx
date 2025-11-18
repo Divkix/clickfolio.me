@@ -6,12 +6,10 @@ import { useRouter } from 'next/navigation'
 
 interface EditResumeFormWrapperProps {
   initialData: ResumeContent
-  siteDataId: string
 }
 
 export function EditResumeFormWrapper({
   initialData,
-  siteDataId,
 }: EditResumeFormWrapperProps) {
   const router = useRouter()
 
@@ -35,5 +33,5 @@ export function EditResumeFormWrapper({
     return await response.json()
   }
 
-  return <EditResumeForm initialData={initialData} onSave={handleSave} siteDataId={siteDataId} />
+  return <EditResumeForm initialData={initialData} onSave={handleSave} />
 }

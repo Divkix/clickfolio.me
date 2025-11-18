@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useForm, useFieldArray } from 'react-hook-form'
+import { useState, useEffect, useCallback } from 'react'
+import { useForm, useFieldArray, type FieldPath } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { resumeContentSchema, type ResumeContentFormData } from '@/lib/schemas/resume'
 import type { ResumeContent } from '@/lib/types/database'
@@ -26,10 +26,9 @@ import { Loader2, Plus, Trash2, Save, CheckCircle2 } from 'lucide-react'
 interface EditResumeFormProps {
   initialData: ResumeContent
   onSave: (data: ResumeContent) => Promise<void>
-  siteDataId: string
 }
 
-export function EditResumeForm({ initialData, onSave, siteDataId }: EditResumeFormProps) {
+export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
   const [isSaving, setIsSaving] = useState(false)
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const [autoSaveTimeout, setAutoSaveTimeout] = useState<NodeJS.Timeout | null>(null)
@@ -82,6 +81,24 @@ export function EditResumeForm({ initialData, onSave, siteDataId }: EditResumeFo
     name: 'certifications',
   })
 
+  const handleSave = useCallback(async (data: ResumeContent, isAutoSave = false) => {
+    setIsSaving(true)
+    try {
+      await onSave(data)
+      setLastSaved(new Date())
+      if (!isAutoSave) {
+        toast.success('Resume updated successfully!')
+      }
+    } catch (error) {
+      console.error('Failed to save resume:', error)
+      if (!isAutoSave) {
+        toast.error('Failed to save resume. Please try again.')
+      }
+    } finally {
+      setIsSaving(false)
+    }
+  }, [onSave])
+
   // Auto-save functionality with debounce
   useEffect(() => {
     const subscription = form.watch(() => {
@@ -109,32 +126,14 @@ export function EditResumeForm({ initialData, onSave, siteDataId }: EditResumeFo
         clearTimeout(autoSaveTimeout)
       }
     }
-  }, [form.watch, autoSaveTimeout])
-
-  const handleSave = async (data: ResumeContent, isAutoSave = false) => {
-    setIsSaving(true)
-    try {
-      await onSave(data)
-      setLastSaved(new Date())
-      if (!isAutoSave) {
-        toast.success('Resume updated successfully!')
-      }
-    } catch (error) {
-      console.error('Failed to save resume:', error)
-      if (!isAutoSave) {
-        toast.error('Failed to save resume. Please try again.')
-      }
-    } finally {
-      setIsSaving(false)
-    }
-  }
+  }, [form, handleSave, autoSaveTimeout])
 
   const onSubmit = async (data: ResumeContentFormData) => {
     await handleSave(data as ResumeContent, false)
   }
 
-  const getCharacterCount = (fieldName: string, maxLength: number) => {
-    const value = form.watch(fieldName as any) as string
+  const getCharacterCount = (fieldName: FieldPath<ResumeContentFormData>, maxLength: number) => {
+    const value = form.watch(fieldName) as string | undefined
     const count = value?.length || 0
     return `${count}/${maxLength}`
   }
