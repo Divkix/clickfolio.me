@@ -1,5 +1,5 @@
 create table redirects (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   old_handle text not null,
   new_handle text not null,
   expires_at timestamptz not null,

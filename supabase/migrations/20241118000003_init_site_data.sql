@@ -1,5 +1,5 @@
 create table site_data (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   user_id uuid references profiles(id) on delete cascade not null,
   resume_id uuid references resumes(id) on delete cascade,
   content jsonb not null,

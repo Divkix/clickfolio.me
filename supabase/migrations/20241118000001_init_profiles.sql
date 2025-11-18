@@ -1,5 +1,5 @@
--- Enable UUID extension
-create extension if not exists "uuid-ossp";
+-- Enable UUID extension (pgcrypto provides gen_random_uuid)
+create extension if not exists "pgcrypto";
 
 -- Profiles table
 create table profiles (
