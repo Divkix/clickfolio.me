@@ -170,9 +170,9 @@ export default function Home() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-amber-200 bg-white/50">
+      <footer className="border-t border-slate-200/60 bg-white/80 backdrop-blur-sm shadow-depth-sm mt-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <p className="text-center text-gray-600 text-sm">
+          <p className="text-center text-slate-600 text-sm font-medium">
             Built with Next.js • Powered by Cloudflare • Privacy-first design
           </p>
         </div>
