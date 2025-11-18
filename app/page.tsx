@@ -92,19 +92,78 @@ export default function Home() {
         </div>
 
         {/* Trust Signals */}
-        <div className="mt-20 max-w-4xl mx-auto">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 text-center">
-            <div>
-              <div className="text-3xl font-bold text-amber-600 mb-2">~30s</div>
-              <div className="text-gray-600">Average setup time</div>
+        <div className="mt-20 max-w-5xl mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            {/* Speed Card */}
+            <div className="group bg-white rounded-2xl shadow-depth-sm border border-slate-200/60 p-8 hover:shadow-depth-md hover:-translate-y-0.5 transition-all duration-300">
+              <div className="flex flex-col items-center text-center gap-4">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-gradient-to-r from-orange-400 to-amber-500 rounded-xl blur-lg opacity-20 group-hover:opacity-30 transition-opacity" />
+                  <div className="relative bg-gradient-to-r from-orange-100 to-amber-100 p-3 rounded-xl">
+                    <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none">
+                      <path d="M13 2L3 14h8l-1 8 10-12h-8l1-8z" stroke="url(#speedGradient)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                      <defs>
+                        <linearGradient id="speedGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                          <stop offset="0%" stopColor="#F97316" />
+                          <stop offset="100%" stopColor="#F59E0B" />
+                        </linearGradient>
+                      </defs>
+                    </svg>
+                  </div>
+                </div>
+                <div>
+                  <div className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-amber-600 mb-2">~30s</div>
+                  <div className="text-slate-600 text-sm font-medium">Average setup time</div>
+                </div>
+              </div>
             </div>
-            <div>
-              <div className="text-3xl font-bold text-amber-600 mb-2">AI-Powered</div>
-              <div className="text-gray-600">Smart parsing & formatting</div>
+
+            {/* AI Card */}
+            <div className="group bg-white rounded-2xl shadow-depth-sm border border-slate-200/60 p-8 hover:shadow-depth-md hover:-translate-y-0.5 transition-all duration-300">
+              <div className="flex flex-col items-center text-center gap-4">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl blur-lg opacity-20 group-hover:opacity-30 transition-opacity" />
+                  <div className="relative bg-gradient-to-r from-indigo-100 to-purple-100 p-3 rounded-xl">
+                    <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none">
+                      <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" stroke="url(#aiGradient)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                      <defs>
+                        <linearGradient id="aiGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                          <stop offset="0%" stopColor="#6366F1" />
+                          <stop offset="100%" stopColor="#A855F7" />
+                        </linearGradient>
+                      </defs>
+                    </svg>
+                  </div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 mb-2">AI-Powered</div>
+                  <div className="text-slate-600 text-sm font-medium">Smart parsing & formatting</div>
+                </div>
+              </div>
             </div>
-            <div>
-              <div className="text-3xl font-bold text-amber-600 mb-2">Free</div>
-              <div className="text-gray-600">Always free to create</div>
+
+            {/* Free Card */}
+            <div className="group bg-white rounded-2xl shadow-depth-sm border border-slate-200/60 p-8 hover:shadow-depth-md hover:-translate-y-0.5 transition-all duration-300">
+              <div className="flex flex-col items-center text-center gap-4">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-gradient-to-r from-emerald-400 to-teal-500 rounded-xl blur-lg opacity-20 group-hover:opacity-30 transition-opacity" />
+                  <div className="relative bg-gradient-to-r from-emerald-100 to-teal-100 p-3 rounded-xl">
+                    <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none">
+                      <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="url(#freeGradient)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                      <defs>
+                        <linearGradient id="freeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                          <stop offset="0%" stopColor="#10B981" />
+                          <stop offset="100%" stopColor="#14B8A6" />
+                        </linearGradient>
+                      </defs>
+                    </svg>
+                  </div>
+                </div>
+                <div>
+                  <div className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-teal-600 mb-2">Free</div>
+                  <div className="text-slate-600 text-sm font-medium">Always free to create</div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
