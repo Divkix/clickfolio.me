@@ -9,12 +9,12 @@ export default function Home() {
   const [uploadModalOpen, setUploadModalOpen] = useState(false)
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-amber-50 via-orange-50 to-amber-50">
+    <div className="min-h-screen bg-slate-50">
       <Toaster />
-      <header className="border-b border-amber-200 bg-white/50 backdrop-blur-sm">
+      <header className="sticky top-0 z-50 border-b border-slate-200/60 bg-white/80 backdrop-blur-md shadow-depth-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <div className="text-2xl font-bold text-gray-900">
-            webresume<span className="text-amber-600">.now</span>
+          <div className="text-2xl font-bold text-slate-900">
+            webresume<span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-blue-600">.now</span>
           </div>
           <LoginButton />
         </div>
@@ -22,14 +22,16 @@ export default function Home() {
 
       <main className="flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8 pt-20 pb-32">
         {/* Hero Section */}
-        <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold text-gray-900 mb-6 leading-tight">
+        <div className="max-w-4xl mx-auto text-center animate-fade-in-up">
+          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold text-slate-900 mb-6 leading-[1.1] tracking-tight">
             Your Résumé is
             <br />
-            <span className="text-amber-600">already a Website</span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-500">
+              already a Website
+            </span>
           </h1>
 
-          <p className="text-xl sm:text-2xl text-gray-600 mb-12 max-w-2xl mx-auto">
+          <p className="text-xl sm:text-2xl text-slate-600 mb-12 max-w-2xl mx-auto leading-relaxed font-light">
             Drop your PDF. Get a shareable link. It takes less than a minute.
           </p>
 
