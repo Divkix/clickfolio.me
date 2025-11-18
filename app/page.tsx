@@ -20,7 +20,7 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8 pt-20 pb-32">
+      <main className="flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8 pt-20 pb-20">
         {/* Hero Section */}
         <div className="max-w-4xl mx-auto text-center animate-fade-in-up">
           <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold text-slate-900 mb-6 leading-[1.1] tracking-tight">
@@ -170,7 +170,7 @@ export default function Home() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-slate-200/60 bg-white/80 backdrop-blur-sm shadow-depth-sm mt-20">
+      <footer className="border-t border-slate-200/60 bg-white/80 backdrop-blur-sm shadow-depth-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <p className="text-center text-slate-600 text-sm font-medium">
             Built with Next.js • Powered by Cloudflare • Privacy-first design
