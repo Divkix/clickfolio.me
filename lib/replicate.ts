@@ -156,12 +156,12 @@ const RESUME_EXTRACTION_SCHEMA = {
 
 export interface ParseResumeResult {
   id: string
-  status: 'starting' | 'processing' | 'succeeded' | 'failed' | 'canceled'
+  status: 'starting' | 'processing' | 'succeeded' | 'failed' | 'canceled' | 'aborted'
 }
 
 export interface ParseStatusResult {
   id: string
-  status: 'starting' | 'processing' | 'succeeded' | 'failed' | 'canceled'
+  status: 'starting' | 'processing' | 'succeeded' | 'failed' | 'canceled' | 'aborted'
   output?: {
     extraction_schema_json?: string
     [key: string]: unknown
@@ -188,7 +188,7 @@ export async function parseResume(presignedUrl: string): Promise<ParseResumeResu
 
     return {
       id: prediction.id,
-      status: prediction.status,
+      status: prediction.status as ParseResumeResult['status'],
     }
   } catch (error) {
     console.error('Failed to start Replicate parsing:', error)
@@ -209,7 +209,7 @@ export async function getParseStatus(predictionId: string): Promise<ParseStatusR
 
     return {
       id: prediction.id,
-      status: prediction.status,
+      status: prediction.status as ParseStatusResult['status'],
       output: prediction.output as ParseStatusResult['output'],
       error: prediction.error ? String(prediction.error) : undefined,
       logs: prediction.logs,
@@ -241,8 +241,8 @@ export function normalizeResumeData(extractionJson: string): ResumeContent {
   const validationResult = ResumeContentSchema.safeParse(rawData)
 
   if (!validationResult.success) {
-    console.error('Validation errors:', validationResult.error.errors)
-    throw new Error(`Invalid resume data structure: ${validationResult.error.errors[0]?.message}`)
+    console.error('Validation errors:', validationResult.error.issues)
+    throw new Error(`Invalid resume data structure: ${validationResult.error.issues[0]?.message || 'Validation failed'}`)
   }
 
   const data = validationResult.data

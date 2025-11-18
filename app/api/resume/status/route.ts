@@ -86,11 +86,12 @@ export async function GET(request: Request) {
         const normalizedContent = normalizeResumeData(prediction.output.extraction_schema_json)
 
         // Upsert to site_data (ON CONFLICT user_id DO UPDATE)
+        // TypeScript workaround: JSON parse/stringify to satisfy Json type
         const { error: upsertError } = await supabase.from('site_data').upsert(
           {
             user_id: user.id,
             resume_id: resumeId,
-            content: normalizedContent,
+            content: JSON.parse(JSON.stringify(normalizedContent)),
             theme_id: 'minimalist_creme',
             last_published_at: new Date().toISOString(),
           },
@@ -140,7 +141,7 @@ export async function GET(request: Request) {
           can_retry: resume.retry_count < 2,
         })
       }
-    } else if (prediction.status === 'failed' || prediction.status === 'canceled') {
+    } else if (prediction.status === 'failed' || prediction.status === 'canceled' || prediction.status === 'aborted') {
       // Mark as failed
       const errorMessage = prediction.error || 'AI parsing failed'
 
@@ -164,7 +165,7 @@ export async function GET(request: Request) {
       })
     } else {
       // Still processing or starting
-      const progressMap = {
+      const progressMap: Record<string, number> = {
         starting: 20,
         processing: 50,
       }

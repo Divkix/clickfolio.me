@@ -48,7 +48,9 @@ export type Database = {
           user_id: string
           r2_key: string
           status: string
-          prediction_id: string | null
+          replicate_job_id: string | null
+          parsed_at: string | null
+          retry_count: number
           error_message: string | null
           created_at: string
         }
@@ -57,7 +59,9 @@ export type Database = {
           user_id: string
           r2_key: string
           status?: string
-          prediction_id?: string | null
+          replicate_job_id?: string | null
+          parsed_at?: string | null
+          retry_count?: number
           error_message?: string | null
           created_at?: string
         }
@@ -66,7 +70,9 @@ export type Database = {
           user_id?: string
           r2_key?: string
           status?: string
-          prediction_id?: string | null
+          replicate_job_id?: string | null
+          parsed_at?: string | null
+          retry_count?: number
           error_message?: string | null
           created_at?: string
         }
