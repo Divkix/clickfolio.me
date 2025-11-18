@@ -1,7 +1,7 @@
 import React from 'react';
 import type { TemplateProps } from '@/lib/types/template';
 import { getInitials, formatDateRange, flattenSkills } from '@/lib/templates/helpers';
-import { Mail, MapPin, Linkedin, Github, Globe, Briefcase, GraduationCap, Award, Crown, Code, ArrowUpRight, Layers } from 'lucide-react';
+import { Mail, MapPin, Linkedin, Github, Briefcase, GraduationCap, Award, Crown, Code, ArrowUpRight, Layers } from 'lucide-react';
 
 const BentoGrid: React.FC<TemplateProps> = ({ content, profile }) => {
   const skills = flattenSkills(content.skills).slice(0, 6);

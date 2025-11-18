@@ -2,7 +2,7 @@ import React from 'react';
 import type { TemplateProps } from '@/lib/types/template';
 import type { Project } from '@/lib/types/database';
 import { getInitials, formatDateRange, flattenSkills } from '@/lib/templates/helpers';
-import { Mail, Linkedin, Github, Globe, ArrowUpRight, Star, Briefcase, GraduationCap, Award } from 'lucide-react';
+import { Globe, ArrowUpRight, Star, Briefcase, GraduationCap, Award } from 'lucide-react';
 
 const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
   return (
@@ -117,9 +117,9 @@ const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
             </div>
 
             <div className="grid grid-cols-1 gap-8">
-              {content.experience.map((job, idx: number) => (
+              {content.experience.map((job, _idx: number) => (
                 <div
-                  key={idx}
+                  key={_idx}
                   className="group bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 transition-all duration-200"
                 >
                   <div className="border-b-4 border-black p-3 flex justify-between items-center bg-neutral-100">
@@ -170,9 +170,9 @@ const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {content.projects.map((project: Project, idx: number) => (
+              {content.projects.map((project: Project, _idx: number) => (
                 <div
-                  key={idx}
+                  key={_idx}
                   className="group bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 transition-all duration-200 flex flex-col"
                 >
                   <div className="border-b-4 border-black p-3 flex justify-between items-center bg-neutral-100">

@@ -2,7 +2,7 @@ import React from 'react';
 import type { TemplateProps } from '@/lib/types/template';
 import type { Project } from '@/lib/types/database';
 import { getInitials, formatDateRange, flattenSkills } from '@/lib/templates/helpers';
-import { Mail, MapPin, Linkedin, Github, Globe, ExternalLink, Sparkles, Command, Briefcase, GraduationCap, Award } from 'lucide-react';
+import { Mail, MapPin, Linkedin, Github, Globe, ExternalLink, Command, Briefcase, GraduationCap, Award } from 'lucide-react';
 
 const GlassMorphic: React.FC<TemplateProps> = ({ content, profile }) => {
   return (
@@ -122,8 +122,8 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content, profile }) => {
                   </p>
                   {job.highlights && job.highlights.length > 0 && (
                     <ul className="text-xs text-white/70 space-y-1">
-                      {job.highlights.slice(0, 3).map((highlight, i) => (
-                        <li key={i}>• {highlight}</li>
+                      {job.highlights.slice(0, 3).map((highlight, _i) => (
+                        <li key={_i}>• {highlight}</li>
                       ))}
                     </ul>
                   )}
