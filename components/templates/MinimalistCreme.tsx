@@ -61,17 +61,17 @@ function formatDateRange(startDate: string, endDate?: string | null): string {
 
 export function MinimalistCreme({ content, profile }: MinimalistCremeProps) {
   return (
-    <div className="min-h-screen bg-[#FFFAF5]">
+    <div className="min-h-screen bg-amber-50">
       {/* Header Section */}
-      <header className="bg-gradient-to-br from-amber-50 to-orange-50 border-b border-amber-100">
+      <header className="bg-gradient-to-br from-amber-100 via-orange-100 to-amber-50 border-b border-amber-200">
         <div className="max-w-4xl mx-auto px-6 py-12">
           <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
             {/* Avatar */}
-            <Avatar className="w-32 h-32 border-4 border-white shadow-lg ring-2 ring-amber-200">
+            <Avatar className="w-32 h-32 border-4 border-white shadow-lg ring-4 ring-amber-200">
               <AvatarImage
                 src={profile.avatar_url || undefined}
                 alt={content.full_name}
-                className="object-cover"
+                className="object-cover aspect-square"
               />
               <AvatarFallback className="bg-gradient-to-br from-amber-500 to-orange-600 text-white text-3xl font-semibold">
                 {getInitials(content.full_name)}
@@ -83,7 +83,7 @@ export function MinimalistCreme({ content, profile }: MinimalistCremeProps) {
               <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-3 tracking-tight">
                 {content.full_name}
               </h1>
-              <p className="text-xl text-amber-700 font-medium mb-6">
+              <p className="text-xl text-amber-800 font-medium mb-6">
                 {content.headline}
               </p>
 
@@ -168,7 +168,7 @@ export function MinimalistCreme({ content, profile }: MinimalistCremeProps) {
               {content.experience.map((job, index) => (
                 <Card
                   key={index}
-                  className="border-amber-100 shadow-sm hover:shadow-md transition-shadow duration-200 bg-white"
+                  className="border border-amber-100 shadow-md hover:shadow-lg transition-shadow duration-200 bg-white"
                 >
                   <CardHeader className="pb-3">
                     <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-2 mb-2">
@@ -176,7 +176,7 @@ export function MinimalistCreme({ content, profile }: MinimalistCremeProps) {
                         <h3 className="text-xl font-semibold text-gray-900">
                           {job.title}
                         </h3>
-                        <p className="text-lg text-amber-700 font-medium">
+                        <p className="text-lg text-amber-800 font-medium">
                           {job.company}
                         </p>
                       </div>
@@ -232,7 +232,7 @@ export function MinimalistCreme({ content, profile }: MinimalistCremeProps) {
               {content.education.map((edu, index) => (
                 <Card
                   key={index}
-                  className="border-amber-100 shadow-sm hover:shadow-md transition-shadow duration-200 bg-white"
+                  className="border border-amber-100 shadow-md hover:shadow-lg transition-shadow duration-200 bg-white"
                 >
                   <CardContent className="pt-6">
                     <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-2">
@@ -240,7 +240,7 @@ export function MinimalistCreme({ content, profile }: MinimalistCremeProps) {
                         <h3 className="text-lg font-semibold text-gray-900">
                           {edu.degree}
                         </h3>
-                        <p className="text-amber-700 font-medium">
+                        <p className="text-amber-800 font-medium">
                           {edu.institution}
                         </p>
                         {edu.location && (
@@ -254,7 +254,7 @@ export function MinimalistCreme({ content, profile }: MinimalistCremeProps) {
                           <span>{edu.graduation_date}</span>
                         )}
                         {edu.gpa && (
-                          <span className="text-amber-600 font-medium">
+                          <span className="text-amber-700 font-medium">
                             GPA: {edu.gpa}
                           </span>
                         )}
@@ -283,7 +283,7 @@ export function MinimalistCreme({ content, profile }: MinimalistCremeProps) {
                       <Badge
                         key={sIndex}
                         variant="secondary"
-                        className="bg-amber-50 text-amber-900 border-amber-200 hover:bg-amber-100 transition-colors px-3 py-1 text-sm"
+                        className="bg-amber-100 text-amber-800 border border-amber-200 hover:bg-amber-200 transition-colors px-3 py-1 text-sm"
                       >
                         {skill}
                       </Badge>
@@ -307,7 +307,7 @@ export function MinimalistCreme({ content, profile }: MinimalistCremeProps) {
               {content.certifications.map((cert, index) => (
                 <Card
                   key={index}
-                  className="border-amber-100 shadow-sm hover:shadow-md transition-shadow duration-200 bg-white"
+                  className="border border-amber-100 shadow-md hover:shadow-lg transition-shadow duration-200 bg-white"
                 >
                   <CardContent className="pt-6">
                     <div className="flex items-start justify-between">
@@ -315,7 +315,7 @@ export function MinimalistCreme({ content, profile }: MinimalistCremeProps) {
                         <h3 className="text-lg font-semibold text-gray-900">
                           {cert.name}
                         </h3>
-                        <p className="text-amber-700">{cert.issuer}</p>
+                        <p className="text-amber-800">{cert.issuer}</p>
                         {cert.date && (
                           <p className="text-sm text-gray-500 mt-1">
                             Issued: {cert.date}
@@ -327,7 +327,7 @@ export function MinimalistCreme({ content, profile }: MinimalistCremeProps) {
                           href={cert.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-amber-600 hover:text-amber-700 transition-colors"
+                          className="text-blue-600 hover:text-blue-800 transition-colors"
                         >
                           <ExternalLink className="w-5 h-5" />
                         </a>
@@ -342,13 +342,13 @@ export function MinimalistCreme({ content, profile }: MinimalistCremeProps) {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-amber-100 bg-gradient-to-br from-amber-50 to-orange-50 mt-12">
+      <footer className="border-t border-amber-200 bg-gradient-to-br from-amber-100 via-orange-100 to-amber-50 mt-12">
         <div className="max-w-4xl mx-auto px-6 py-8 text-center">
           <p className="text-sm text-gray-600">
             Built with{' '}
             <a
               href="https://webresume.now"
-              className="text-amber-700 hover:text-amber-800 font-medium transition-colors"
+              className="text-amber-800 hover:text-amber-900 font-medium transition-colors"
             >
               webresume.now
             </a>
