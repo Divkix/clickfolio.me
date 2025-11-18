@@ -60,6 +60,9 @@ export interface Database {
           r2_key: string
           status: 'pending_claim' | 'processing' | 'completed' | 'failed'
           error_message: string | null
+          replicate_job_id: string | null
+          parsed_at: string | null
+          retry_count: number
           created_at: string
         }
         Insert: {
@@ -68,6 +71,9 @@ export interface Database {
           r2_key: string
           status?: 'pending_claim' | 'processing' | 'completed' | 'failed'
           error_message?: string | null
+          replicate_job_id?: string | null
+          parsed_at?: string | null
+          retry_count?: number
           created_at?: string
         }
         Update: {
@@ -76,6 +82,9 @@ export interface Database {
           r2_key?: string
           status?: 'pending_claim' | 'processing' | 'completed' | 'failed'
           error_message?: string | null
+          replicate_job_id?: string | null
+          parsed_at?: string | null
+          retry_count?: number
           created_at?: string
         }
       }
