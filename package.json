@@ -8,7 +8,7 @@
     "build:worker": "next build && bunx opennextjs-cloudflare",
     "start": "next start",
     "lint": "eslint",
-    "preview": "bunx opennextjs-cloudflare build && bunx wrangler pages dev .open-next",
+    "preview": "bunx opennextjs-cloudflare preview",
     "deploy": "bunx opennextjs-cloudflare build && bunx wrangler deploy",
     "db:start": "supabase start",
     "db:stop": "supabase stop",
