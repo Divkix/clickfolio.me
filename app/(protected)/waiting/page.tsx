@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { Suspense, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Loader2, AlertCircle, CheckCircle2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { useResumeStatus } from '@/hooks/useResumeStatus'
 
-export default function WaitingPage() {
+function WaitingContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const resumeId = searchParams.get('resume_id')
@@ -144,5 +144,17 @@ export default function WaitingPage() {
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+export default function WaitingPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    }>
+      <WaitingContent />
+    </Suspense>
   )
 }
