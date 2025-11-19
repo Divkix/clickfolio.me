@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import type { ResumeContent } from '@/lib/types/database'
 import { getTemplate } from '@/lib/templates/theme-registry'
 import { extractCityState } from '@/lib/utils/privacy'
+import { AttributionWidget } from '@/components/AttributionWidget'
 
 interface PageProps {
   params: Promise<{
@@ -172,12 +173,15 @@ export default async function HandlePage({ params }: PageProps) {
   const Template = getTemplate(theme_id)
 
   return (
-    <Template
-      content={content}
-      profile={{
-        avatar_url: profile.avatar_url,
-        handle: profile.handle || handle,
-      }}
-    />
+    <>
+      <Template
+        content={content}
+        profile={{
+          avatar_url: profile.avatar_url,
+          handle: profile.handle || handle,
+        }}
+      />
+      <AttributionWidget theme={theme_id} />
+    </>
   )
 }
