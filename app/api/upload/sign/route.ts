@@ -21,10 +21,14 @@ export async function POST(request: Request) {
       Bucket: R2_BUCKET,
       Key: key,
       ContentType: 'application/pdf',
+      ChecksumAlgorithm: undefined, // Explicitly disable checksums for R2 compatibility
     })
 
     const uploadUrl = await getSignedUrl(r2Client, command, {
       expiresIn: 3600, // 1 hour
+      // Only sign essential headers to avoid CORS issues
+      signableHeaders: new Set(['content-type', 'content-length']),
+      unhoistableHeaders: new Set(['content-length-range']),
     })
 
     return NextResponse.json({ uploadUrl, key })

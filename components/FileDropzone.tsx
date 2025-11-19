@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, DragEvent, ChangeEvent } from 'react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { toast } from 'sonner'
@@ -146,6 +146,9 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps) {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Upload Your Resume</DialogTitle>
+            <DialogDescription>
+              Drop your PDF resume here or click to browse. Maximum file size is 10MB.
+            </DialogDescription>
           </DialogHeader>
 
           {!uploadComplete ? (

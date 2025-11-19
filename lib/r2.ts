@@ -7,6 +7,9 @@ export const r2Client = new S3Client({
     accessKeyId: process.env.R2_ACCESS_KEY_ID!,
     secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
   },
+  // Disable automatic checksum calculation to avoid CORS issues with R2
+  // AWS SDK v3 automatically adds x-amz-checksum-* headers which R2 CORS doesn't allow by default
+  requestChecksumCalculation: 'WHEN_REQUIRED',
 })
 
 export const R2_BUCKET = process.env.R2_BUCKET_NAME!
