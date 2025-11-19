@@ -12,9 +12,9 @@ const ContactSchema = z.object({
   email: z.string().email({ message: 'Invalid email address' }),
   phone: z.string().optional().nullable(),
   location: z.string().optional().nullable(),
-  linkedin: z.union([z.string().url({ message: 'Invalid LinkedIn URL' }), z.literal('')]).optional().nullable(),
-  github: z.union([z.string().url({ message: 'Invalid GitHub URL' }), z.literal('')]).optional().nullable(),
-  website: z.union([z.string().url({ message: 'Invalid website URL' }), z.literal('')]).optional().nullable(),
+  linkedin: z.string().optional().nullable(),
+  github: z.string().optional().nullable(),
+  website: z.string().optional().nullable(),
 })
 
 const ExperienceItemSchema = z.object({
@@ -44,7 +44,7 @@ const CertificationSchema = z.object({
   name: z.string(),
   issuer: z.string(),
   date: z.string().optional().nullable(),
-  url: z.union([z.string().url({ message: 'Invalid certification URL' }), z.literal('')]).optional().nullable(),
+  url: z.string().optional().nullable(),
 })
 
 const ProjectSchema = z.object({
@@ -52,7 +52,7 @@ const ProjectSchema = z.object({
   description: z.string(),
   year: z.string().optional().nullable(),
   technologies: z.array(z.string()).optional().nullable(),
-  url: z.union([z.string().url({ message: 'Invalid project URL' }), z.literal('')]).optional().nullable(),
+  url: z.string().optional().nullable(),
 })
 
 const ResumeContentSchema = z.object({
@@ -264,6 +264,28 @@ export async function getParseStatus(predictionId: string): Promise<ParseStatusR
 }
 
 /**
+ * Sanitize URL strings - add https:// if missing, return undefined if invalid
+ */
+function sanitizeUrl(url: string | null | undefined): string | undefined {
+  if (!url || url === '') return undefined
+
+  // Try to parse as-is
+  try {
+    new URL(url)
+    return url
+  } catch {
+    // Try adding https:// prefix
+    try {
+      new URL(`https://${url}`)
+      return `https://${url}`
+    } catch {
+      // Invalid URL even with prefix - return undefined
+      return undefined
+    }
+  }
+}
+
+/**
  * Normalize and validate Replicate output into ResumeContent
  * @param extractionJson - JSON string from Replicate's extraction_schema_json
  * @returns Validated and normalized ResumeContent
@@ -288,7 +310,7 @@ export function normalizeResumeData(extractionJson: string): ResumeContent {
 
   const data = validationResult.data
 
-  // Apply defaults for nullable fields
+  // Apply defaults for nullable fields and sanitize URLs
   const normalized: ResumeContent = {
     full_name: data.full_name,
     headline: data.headline ?? '',
@@ -297,9 +319,9 @@ export function normalizeResumeData(extractionJson: string): ResumeContent {
       email: data.contact.email,
       phone: data.contact.phone ?? undefined,
       location: data.contact.location ?? undefined,
-      linkedin: data.contact.linkedin === '' || data.contact.linkedin === null ? undefined : data.contact.linkedin,
-      github: data.contact.github === '' || data.contact.github === null ? undefined : data.contact.github,
-      website: data.contact.website === '' || data.contact.website === null ? undefined : data.contact.website,
+      linkedin: sanitizeUrl(data.contact.linkedin),
+      github: sanitizeUrl(data.contact.github),
+      website: sanitizeUrl(data.contact.website),
     },
     experience: data.experience.map((exp) => ({
       title: exp.title,
@@ -316,14 +338,14 @@ export function normalizeResumeData(extractionJson: string): ResumeContent {
       name: cert.name,
       issuer: cert.issuer,
       date: cert.date ?? undefined,
-      url: cert.url === '' || cert.url === null ? undefined : cert.url,
+      url: sanitizeUrl(cert.url),
     })) ?? undefined,
     projects: data.projects?.map((project) => ({
       title: project.title,
       description: project.description,
       year: project.year ?? undefined,
       technologies: project.technologies ?? undefined,
-      url: project.url === '' || project.url === null ? undefined : project.url,
+      url: sanitizeUrl(project.url),
     })) ?? undefined,
   }
 
