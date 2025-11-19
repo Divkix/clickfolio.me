@@ -9,7 +9,7 @@ const replicate = new Replicate({
 
 // Zod schemas for runtime validation
 const ContactSchema = z.object({
-  email: z.string().email({ message: 'Invalid email address' }),
+  email: z.email({ message: 'Invalid email address' }),
   phone: z.string().optional().nullable(),
   location: z.string().optional().nullable(),
   linkedin: z.string().optional().nullable(),
