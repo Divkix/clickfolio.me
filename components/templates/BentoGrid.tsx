@@ -174,7 +174,33 @@ const BentoGrid: React.FC<TemplateProps> = ({ content, profile }) => {
             </div>
           )}
 
-          {/* 8. Certifications/Awards - 1x1 */}
+          {/* 8. Third Project - 1x1 */}
+          {content.projects && content.projects[2] && (
+            <div className="col-span-1 row-span-1 bg-white rounded-3xl p-6 border border-neutral-200/60 flex flex-col justify-between group cursor-pointer hover:shadow-lg transition-all relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-full blur-2xl -mr-8 -mt-8 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              <div className="flex justify-between items-start relative z-10">
+                <div className="p-2 bg-neutral-100 rounded-lg">
+                  <Code size={16} className="text-neutral-600" />
+                </div>
+                {content.projects[2].url && (
+                  <a href={content.projects[2].url} target="_blank" rel="noopener noreferrer">
+                    <ArrowUpRight size={16} className="text-neutral-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </a>
+                )}
+              </div>
+              <div className="relative z-10">
+                {content.projects[2].year && (
+                  <p className="text-neutral-400 text-xs mb-1">{content.projects[2].year}</p>
+                )}
+                <h3 className="text-lg font-bold leading-tight mb-1 line-clamp-2">{content.projects[2].title}</h3>
+                {content.projects[2].description && (
+                  <p className="text-neutral-500 text-xs line-clamp-2">{content.projects[2].description}</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* 9. Certifications/Awards - 1x1 */}
           {content.certifications && content.certifications.length > 0 && (
             <div className="col-span-1 row-span-1 bg-white rounded-3xl p-6 border border-neutral-200/60 flex flex-col justify-between hover:shadow-lg transition-all">
               <Award size={20} className="text-neutral-400 mb-2" />

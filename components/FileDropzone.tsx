@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { toast } from 'sonner'
 import { validatePDF } from '@/lib/utils/validation'
+import { createClient } from '@/lib/supabase/client'
 
 interface FileDropzoneProps {
   open: boolean
@@ -124,10 +125,15 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps) {
     }
   }
 
-  const handleLoginRedirect = () => {
+  const handleLoginRedirect = async () => {
+    const supabase = createClient()
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    })
     onOpenChange(false)
-    // The login button in the header will handle the actual auth flow
-    toast.info('Please log in to save your resume')
   }
 
   const handleClose = () => {

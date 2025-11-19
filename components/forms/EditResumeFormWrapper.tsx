@@ -3,6 +3,7 @@
 import { EditResumeForm } from './EditResumeForm'
 import type { ResumeContent } from '@/lib/types/database'
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 
 interface EditResumeFormWrapperProps {
   initialData: ResumeContent
@@ -14,23 +15,41 @@ export function EditResumeFormWrapper({
   const router = useRouter()
 
   const handleSave = async (data: ResumeContent) => {
-    const response = await fetch('/api/resume/update', {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ content: data }),
-    })
+    try {
+      const response = await fetch('/api/resume/update', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ content: data }),
+      })
 
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.error || 'Failed to update resume')
+      if (!response.ok) {
+        const error = await response.json()
+        const errorMessage = error.error || 'Failed to update resume'
+
+        // Display specific error messages to user
+        if (response.status === 429) {
+          toast.error('Rate limit exceeded. Please try again later.')
+        } else if (response.status === 401) {
+          toast.error('Session expired. Please log in again.')
+        } else {
+          toast.error(errorMessage)
+        }
+
+        throw new Error(errorMessage)
+      }
+
+      const result = await response.json()
+
+      // Refresh the page to get updated data
+      router.refresh()
+
+      return result
+    } catch (error) {
+      // Re-throw the error so it propagates to the form's error handling
+      throw error
     }
-
-    // Refresh the page to get updated data
-    router.refresh()
-
-    return await response.json()
   }
 
   return <EditResumeForm initialData={initialData} onSave={handleSave} />
