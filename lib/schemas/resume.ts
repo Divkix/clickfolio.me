@@ -224,6 +224,51 @@ export const certificationSchema = z.object({
 })
 
 /**
+ * Project schema
+ * Title and description are required
+ * Includes URL validation and technology list support
+ */
+export const projectSchema = z.object({
+  title: z
+    .string()
+    .trim()
+    .min(1, 'Project title is required')
+    .max(200, 'Project title is too long')
+    .refine(noXssPattern, { message: 'Invalid content detected' }),
+  description: z
+    .string()
+    .trim()
+    .min(1, 'Project description is required')
+    .max(2000, 'Project description is too long')
+    .refine(noXssPattern, { message: 'Invalid content detected' }),
+  year: z
+    .string()
+    .trim()
+    .max(50, 'Year is too long')
+    .refine(noXssPattern, { message: 'Invalid content detected' })
+    .optional()
+    .or(z.literal('')),
+  technologies: z
+    .array(
+      z
+        .string()
+        .trim()
+        .min(1, 'Technology cannot be empty')
+        .max(100, 'Technology name is too long')
+        .refine(noXssPattern, { message: 'Invalid content detected' })
+    )
+    .optional(),
+  url: z
+    .string()
+    .trim()
+    .url({ message: 'Invalid project URL' })
+    .max(500, 'Project URL is too long')
+    .transform(sanitizeUrl)
+    .optional()
+    .or(z.literal('')),
+})
+
+/**
  * Full resume content schema
  * Used for validating the entire resume data structure
  * Includes comprehensive sanitization and limits to prevent DoS
@@ -264,6 +309,10 @@ export const resumeContentSchema = z.object({
     .array(certificationSchema)
     .max(20, 'Maximum 20 certifications allowed')
     .optional(),
+  projects: z
+    .array(projectSchema)
+    .max(10, 'Maximum 10 projects allowed')
+    .optional(),
 })
 
 /**
@@ -274,4 +323,5 @@ export type ExperienceFormData = z.infer<typeof experienceSchema>
 export type EducationFormData = z.infer<typeof educationSchema>
 export type SkillFormData = z.infer<typeof skillSchema>
 export type CertificationFormData = z.infer<typeof certificationSchema>
+export type ProjectFormData = z.infer<typeof projectSchema>
 export type ResumeContentFormData = z.infer<typeof resumeContentSchema>
