@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Home, Edit3, Settings, ExternalLink, LogOut, X } from 'lucide-react'
+import { Home, Edit3, Palette, Settings, ExternalLink, LogOut, X } from 'lucide-react'
 import type { User } from '@supabase/supabase-js'
 
 interface SidebarProps {
@@ -81,6 +81,12 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
       name: 'Edit Resume',
       href: '/edit',
       icon: Edit3,
+      exact: false
+    },
+    {
+      name: 'Themes',
+      href: '/themes',
+      icon: Palette,
       exact: false
     },
     {

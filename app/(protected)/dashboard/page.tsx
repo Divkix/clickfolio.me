@@ -22,7 +22,6 @@ import {
   Calendar
 } from 'lucide-react'
 import { CopyLinkButton } from '@/components/dashboard/CopyLinkButton'
-import { ThemeSelector } from '@/components/dashboard/ThemeSelector'
 import type { ResumeContent } from '@/lib/types/database'
 
 /**
@@ -455,17 +454,6 @@ export default async function DashboardPage() {
                     Edit Content
                   </Link>
                 </Button>
-
-                {/* Separator */}
-                <Separator className="my-6" />
-
-                {/* Theme Selector - moved from right column */}
-                {siteData && (
-                  <div>
-                    <h3 className="text-lg font-semibold text-slate-900 mb-4">Choose Theme</h3>
-                    <ThemeSelector initialThemeId={siteData.theme_id} />
-                  </div>
-                )}
               </div>
 
               {/* Right Column - Account Only */}
