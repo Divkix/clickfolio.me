@@ -4,6 +4,7 @@ import {
   createSuccessResponse,
   ERROR_CODES,
 } from '@/lib/utils/security-headers'
+import { revalidatePath } from 'next/cache'
 
 const VALID_THEMES = ['bento', 'glass', 'minimalist_editorial', 'neo_brutalist'] as const
 type ValidTheme = (typeof VALID_THEMES)[number]
@@ -80,6 +81,20 @@ export async function POST(request: Request) {
         ERROR_CODES.DATABASE_ERROR,
         500
       )
+    }
+
+    // Invalidate cache for public resume page
+    // Fetch user's handle to revalidate their public page
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('handle')
+      .eq('id', user.id)
+      .single()
+
+    if (profile?.handle) {
+      // Revalidate the public resume page immediately
+      // Next visitor will see updated theme
+      revalidatePath(`/${profile.handle}`)
     }
 
     return createSuccessResponse({

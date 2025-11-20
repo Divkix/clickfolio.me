@@ -6,6 +6,14 @@ import { getTemplate } from '@/lib/templates/theme-registry'
 import { extractCityState } from '@/lib/utils/privacy'
 import { AttributionWidget } from '@/components/AttributionWidget'
 
+// Enable ISR-like caching: revalidate every hour
+// This reduces DB load by ~99% for high-traffic pages
+// Stale pages are served while revalidating in background
+export const revalidate = 3600 // 1 hour in seconds
+
+// Dynamic params are always allowed (new handles can be created)
+export const dynamicParams = true
+
 interface PageProps {
   params: Promise<{
     handle: string

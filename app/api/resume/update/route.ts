@@ -7,6 +7,7 @@ import {
   createSuccessResponse,
   ERROR_CODES,
 } from '@/lib/utils/security-headers'
+import { revalidatePath } from 'next/cache'
 
 /**
  * PUT /api/resume/update
@@ -103,7 +104,21 @@ export async function PUT(request: Request) {
       )
     }
 
-    // 6. Return success response
+    // 6. Invalidate cache for public resume page
+    // Fetch user's handle to revalidate their public page
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('handle')
+      .eq('id', user.id)
+      .single()
+
+    if (profile?.handle) {
+      // Revalidate the public resume page immediately
+      // Next visitor will see updated content
+      revalidatePath(`/${profile.handle}`)
+    }
+
+    // 7. Return success response
     return createSuccessResponse({
       success: true,
       data: {

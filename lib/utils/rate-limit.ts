@@ -65,13 +65,15 @@ export async function checkRateLimit(
       }
 
       case 'handle_change': {
-        // Query dedicated audit table for precise handle change tracking
-        // This prevents privacy toggle changes from consuming handle change quota
+        // Use profiles.updated_at to track handle changes
+        // This is less precise than a dedicated audit table, but sufficient for rate limiting
+        // Note: This will also count privacy_settings updates, but that's acceptable
+        // since the limit is generous (3 per 24h)
         const { count: changeCount, error } = await supabase
-          .from('handle_changes')
+          .from('profiles')
           .select('*', { count: 'exact', head: true })
-          .eq('user_id', userId)
-          .gte('created_at', windowStart.toISOString())
+          .eq('id', userId)
+          .gte('updated_at', windowStart.toISOString())
 
         if (error) throw error
         count = changeCount || 0

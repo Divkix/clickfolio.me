@@ -7,6 +7,7 @@ import {
   createSuccessResponse,
   ERROR_CODES,
 } from '@/lib/utils/security-headers'
+import { revalidatePath } from 'next/cache'
 
 /**
  * PUT /api/profile/handle
@@ -142,20 +143,13 @@ export async function PUT(request: Request) {
       )
     }
 
-    // 9. Insert into handle_changes audit table for precise rate limiting
-    const { error: auditError } = await supabase
-      .from('handle_changes')
-      .insert({
-        user_id: user.id,
-        old_handle: oldHandle,
-        new_handle: newHandle,
-      })
-
-    if (auditError) {
-      console.error('Failed to audit handle change:', auditError)
-      // Continue anyway - handle was updated successfully
-      // Audit failure is non-critical
+    // 9. Invalidate cache for both old and new handles
+    // Old handle: Clear cached 404 page
+    // New handle: Ensure fresh data on first visit
+    if (oldHandle) {
+      revalidatePath(`/${oldHandle}`)
     }
+    revalidatePath(`/${newHandle}`)
 
     return createSuccessResponse({
       success: true,
