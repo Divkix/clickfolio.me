@@ -9,9 +9,7 @@ import { Switch } from '@/components/ui/switch'
 import { Progress } from '@/components/ui/progress'
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
 import { useResumeStatus } from '@/hooks/useResumeStatus'
-import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
-import type { ResumeContent } from '@/lib/types/database'
 
 function SurveyContent() {
   const router = useRouter()
@@ -34,60 +32,6 @@ function SurveyContent() {
       router.push('/dashboard')
     }
   }, [resumeId, router])
-
-  // Auto-redirect if parsing completes and form is submitted
-  useEffect(() => {
-    const checkRedirect = async () => {
-      if (status === 'completed' && submitting) {
-        // Check if headline and summary exist in content
-        const supabase = createClient()
-
-        const {
-          data: { user },
-        } = await supabase.auth.getUser()
-
-        if (!user) {
-          router.push('/')
-          return
-        }
-
-        // Fetch site_data to check content
-        const { data: siteData, error: fetchError } = await supabase
-          .from('site_data')
-          .select('content')
-          .eq('user_id', user.id)
-          .single()
-
-        if (fetchError || !siteData) {
-          // If error fetching, just go to dashboard
-          router.push('/dashboard')
-          return
-        }
-
-        const content = siteData.content as unknown as ResumeContent
-
-        // Check if wizard is needed
-        const needsWizard =
-          !content.headline ||
-          !content.summary ||
-          content.headline.trim() === '' ||
-          content.summary.trim() === ''
-
-        // Give a moment for the UI to show completion
-        const timeout = setTimeout(() => {
-          if (needsWizard) {
-            router.push('/wizard')
-          } else {
-            router.push('/dashboard')
-          }
-        }, 1000)
-
-        return () => clearTimeout(timeout)
-      }
-    }
-
-    checkRedirect()
-  }, [status, submitting, router])
 
   // Validate handle in real-time
   const validateHandle = (value: string) => {
@@ -159,49 +103,9 @@ function SurveyContent() {
         throw new Error(data.error || 'Failed to save profile')
       }
 
-      // If parsing is already complete, check if wizard is needed
-      if (status === 'completed') {
-        const supabase = createClient()
-
-        const {
-          data: { user },
-        } = await supabase.auth.getUser()
-
-        if (!user) {
-          router.push('/')
-          return
-        }
-
-        // Fetch site_data to check content
-        const { data: siteData, error: fetchError } = await supabase
-          .from('site_data')
-          .select('content')
-          .eq('user_id', user.id)
-          .single()
-
-        if (fetchError || !siteData) {
-          router.push('/dashboard')
-          return
-        }
-
-        const content = siteData.content as unknown as ResumeContent
-
-        // Check if wizard is needed
-        const needsWizard =
-          !content.headline ||
-          !content.summary ||
-          content.headline.trim() === '' ||
-          content.summary.trim() === ''
-
-        if (needsWizard) {
-          router.push('/wizard')
-        } else {
-          router.push('/dashboard')
-        }
-      } else {
-        // Otherwise, show success message and wait for parsing
-        // The useEffect above will redirect when parsing completes
-      }
+      // Always redirect to dashboard - parsing continues in background
+      // Dashboard will show wizard banner if onboarding needs completion
+      router.push('/dashboard')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save profile')
       setSubmitting(false)
