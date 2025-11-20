@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { validateEnvironment } from '@/lib/env'
 import { createClient } from '@/lib/supabase/server'
-import { r2Client, R2_BUCKET } from '@/lib/r2'
+import { getR2Client, getR2Bucket } from '@/lib/r2'
 import { HeadBucketCommand } from '@aws-sdk/client-s3'
 
 export const dynamic = 'force-dynamic'
@@ -41,6 +41,8 @@ export async function GET() {
 
   // Check R2 connection
   try {
+    const r2Client = getR2Client()
+    const R2_BUCKET = getR2Bucket()
     await r2Client.send(new HeadBucketCommand({ Bucket: R2_BUCKET }))
     checks.r2 = true
   } catch (err) {

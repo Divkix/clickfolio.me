@@ -6,7 +6,7 @@ import {
   HeadObjectCommand,
 } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
-import { r2Client, R2_BUCKET } from '@/lib/r2'
+import { getR2Client, getR2Bucket } from '@/lib/r2'
 import { parseResume } from '@/lib/replicate'
 import { enforceRateLimit } from '@/lib/utils/rate-limit'
 import {
@@ -27,6 +27,10 @@ import {
  */
 export async function POST(request: Request) {
   try {
+    // Initialize R2 client and bucket
+    const r2Client = getR2Client()
+    const R2_BUCKET = getR2Bucket()
+
     // 1. Validate request size before parsing (prevent DoS)
     const sizeCheck = validateRequestSize(request)
     if (!sizeCheck.valid) {

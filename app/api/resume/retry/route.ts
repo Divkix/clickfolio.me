@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { GetObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
-import { r2Client, R2_BUCKET } from '@/lib/r2'
+import { getR2Client, getR2Bucket } from '@/lib/r2'
 import { parseResume } from '@/lib/replicate'
 import {
   createErrorResponse,
@@ -81,6 +81,9 @@ export async function POST(request: Request) {
     }
 
     // 5. Generate presigned URL for existing R2 file
+    const r2Client = getR2Client()
+    const R2_BUCKET = getR2Bucket()
+
     const getCommand = new GetObjectCommand({
       Bucket: R2_BUCKET,
       Key: resume.r2_key,

@@ -3,10 +3,17 @@ import Replicate from 'replicate'
 import { z } from 'zod'
 import type { ResumeContent } from '@/lib/types/database'
 
-// Initialize Replicate client
-const replicate = new Replicate({
-  auth: ENV.REPLICATE_API_TOKEN(),
-})
+// Initialize Replicate client lazily
+let _replicate: Replicate | null = null
+
+function getReplicate(): Replicate {
+  if (!_replicate) {
+    _replicate = new Replicate({
+      auth: ENV.REPLICATE_API_TOKEN(),
+    })
+  }
+  return _replicate
+}
 
 // Zod schemas for runtime validation
 const ContactSchema = z.object({
@@ -219,6 +226,7 @@ export interface ParseStatusResult {
  */
 export async function parseResume(presignedUrl: string): Promise<ParseResumeResult> {
   try {
+    const replicate = getReplicate()
     const prediction = await replicate.predictions.create({
       model: 'datalab-to/marker',
       input: {
@@ -247,6 +255,7 @@ export async function parseResume(presignedUrl: string): Promise<ParseResumeResu
  */
 export async function getParseStatus(predictionId: string): Promise<ParseStatusResult> {
   try {
+    const replicate = getReplicate()
     const prediction = await replicate.predictions.get(predictionId)
 
     return {
