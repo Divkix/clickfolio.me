@@ -1,6 +1,10 @@
-import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getParseStatus, normalizeResumeData } from '@/lib/replicate'
+import {
+  createErrorResponse,
+  createSuccessResponse,
+  ERROR_CODES,
+} from '@/lib/utils/security-headers'
 
 export async function GET(request: Request) {
   try {
@@ -13,7 +17,11 @@ export async function GET(request: Request) {
     } = await supabase.auth.getUser()
 
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return createErrorResponse(
+        'You must be logged in to check resume status',
+        ERROR_CODES.UNAUTHORIZED,
+        401
+      )
     }
 
     // 2. Get resume_id from query params
@@ -21,7 +29,11 @@ export async function GET(request: Request) {
     const resumeId = searchParams.get('resume_id')
 
     if (!resumeId) {
-      return NextResponse.json({ error: 'Missing resume_id parameter' }, { status: 400 })
+      return createErrorResponse(
+        'resume_id parameter is required',
+        ERROR_CODES.BAD_REQUEST,
+        400
+      )
     }
 
     // 3. Fetch resume from database
@@ -32,17 +44,25 @@ export async function GET(request: Request) {
       .single()
 
     if (fetchError || !resume) {
-      return NextResponse.json({ error: 'Resume not found' }, { status: 404 })
+      return createErrorResponse(
+        'Resume not found',
+        ERROR_CODES.NOT_FOUND,
+        404
+      )
     }
 
     // 4. Verify ownership
     if (resume.user_id !== user.id) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return createErrorResponse(
+        'You do not have permission to access this resume',
+        ERROR_CODES.FORBIDDEN,
+        403
+      )
     }
 
     // 5. If not processing, return current status
     if (resume.status !== 'processing') {
-      return NextResponse.json({
+      return createSuccessResponse({
         status: resume.status,
         progress_pct: resume.status === 'completed' ? 100 : 0,
         error: resume.error_message,
@@ -52,7 +72,7 @@ export async function GET(request: Request) {
 
     // 6. Check if we have a replicate job ID
     if (!resume.replicate_job_id) {
-      return NextResponse.json({
+      return createSuccessResponse({
         status: 'processing',
         progress_pct: 10,
         error: null,
@@ -67,7 +87,7 @@ export async function GET(request: Request) {
     } catch (error) {
       console.error('Replicate API error:', error)
       // Return processing status on network errors - client will retry
-      return NextResponse.json({
+      return createSuccessResponse({
         status: 'processing',
         progress_pct: 30,
         error: null,
@@ -113,7 +133,7 @@ export async function GET(request: Request) {
 
         if (updateError) throw updateError
 
-        return NextResponse.json({
+        return createSuccessResponse({
           status: 'completed',
           progress_pct: 100,
           error: null,
@@ -134,7 +154,7 @@ export async function GET(request: Request) {
           })
           .eq('id', resumeId)
 
-        return NextResponse.json({
+        return createSuccessResponse({
           status: 'failed',
           progress_pct: 0,
           error: errorMessage,
@@ -157,7 +177,7 @@ export async function GET(request: Request) {
         console.error('Failed to update resume status:', updateError)
       }
 
-      return NextResponse.json({
+      return createSuccessResponse({
         status: 'failed',
         progress_pct: 0,
         error: errorMessage,
@@ -170,7 +190,7 @@ export async function GET(request: Request) {
         processing: 50,
       }
 
-      return NextResponse.json({
+      return createSuccessResponse({
         status: 'processing',
         progress_pct: progressMap[prediction.status] || 30,
         error: null,
@@ -179,9 +199,10 @@ export async function GET(request: Request) {
     }
   } catch (error) {
     console.error('Error checking resume status:', error)
-    return NextResponse.json(
-      { error: 'Failed to check status' },
-      { status: 500 }
+    return createErrorResponse(
+      'An unexpected error occurred while checking status',
+      ERROR_CODES.INTERNAL_ERROR,
+      500
     )
   }
 }

@@ -1,5 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
-import { NextResponse } from 'next/server'
+import {
+  createErrorResponse,
+  createSuccessResponse,
+  ERROR_CODES,
+} from '@/lib/utils/security-headers'
 
 const VALID_THEMES = ['bento', 'glass', 'minimalist_editorial', 'neo_brutalist'] as const
 type ValidTheme = (typeof VALID_THEMES)[number]
@@ -19,7 +23,11 @@ export async function POST(request: Request) {
     } = await supabase.auth.getUser()
 
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return createErrorResponse(
+        'You must be logged in to update theme',
+        ERROR_CODES.UNAUTHORIZED,
+        401
+      )
     }
 
     // Parse request body
@@ -28,40 +36,63 @@ export async function POST(request: Request) {
 
     // Validate theme_id
     if (!theme_id || typeof theme_id !== 'string') {
-      return NextResponse.json({ error: 'theme_id is required' }, { status: 400 })
+      return createErrorResponse(
+        'theme_id is required and must be a string',
+        ERROR_CODES.BAD_REQUEST,
+        400
+      )
     }
 
     if (!isValidTheme(theme_id)) {
-      return NextResponse.json(
-        {
-          error: 'Invalid theme_id',
-          valid_themes: VALID_THEMES,
-        },
-        { status: 400 }
+      return createErrorResponse(
+        'Invalid theme_id provided',
+        ERROR_CODES.VALIDATION_ERROR,
+        400,
+        { valid_themes: VALID_THEMES }
       )
     }
 
     // Update site_data theme_id
-    const { error: updateError } = await supabase
+    const { data, error: updateError } = await supabase
       .from('site_data')
       .update({
         theme_id,
         updated_at: new Date().toISOString(),
       })
       .eq('user_id', user.id)
+      .select('theme_id')
+      .single()
 
     if (updateError) {
       console.error('Failed to update theme:', updateError)
-      return NextResponse.json({ error: 'Failed to update theme' }, { status: 500 })
+
+      // Check if site_data doesn't exist yet
+      if (updateError.code === 'PGRST116') {
+        return createErrorResponse(
+          'Resume data not found. Please upload a resume first.',
+          ERROR_CODES.NOT_FOUND,
+          404
+        )
+      }
+
+      return createErrorResponse(
+        'Failed to update theme. Please try again.',
+        ERROR_CODES.DATABASE_ERROR,
+        500
+      )
     }
 
-    return NextResponse.json({
+    return createSuccessResponse({
       success: true,
-      theme_id,
+      theme_id: data.theme_id,
       message: 'Theme updated successfully',
     })
   } catch (error) {
     console.error('Theme update error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return createErrorResponse(
+      'An unexpected error occurred while updating theme',
+      ERROR_CODES.INTERNAL_ERROR,
+      500
+    )
   }
 }

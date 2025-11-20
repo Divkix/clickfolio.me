@@ -1,9 +1,13 @@
-import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { GetObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { r2Client, R2_BUCKET } from '@/lib/r2'
 import { parseResume } from '@/lib/replicate'
+import {
+  createErrorResponse,
+  createSuccessResponse,
+  ERROR_CODES,
+} from '@/lib/utils/security-headers'
 
 export async function POST(request: Request) {
   try {
@@ -16,13 +20,21 @@ export async function POST(request: Request) {
     } = await supabase.auth.getUser()
 
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return createErrorResponse(
+        'You must be logged in to retry resume parsing',
+        ERROR_CODES.UNAUTHORIZED,
+        401
+      )
     }
 
     const { resume_id } = await request.json()
 
     if (!resume_id) {
-      return NextResponse.json({ error: 'Missing resume_id' }, { status: 400 })
+      return createErrorResponse(
+        'resume_id is required in request body',
+        ERROR_CODES.BAD_REQUEST,
+        400
+      )
     }
 
     // 2. Fetch resume from database
@@ -33,26 +45,38 @@ export async function POST(request: Request) {
       .single()
 
     if (fetchError || !resume) {
-      return NextResponse.json({ error: 'Resume not found' }, { status: 404 })
+      return createErrorResponse(
+        'Resume not found',
+        ERROR_CODES.NOT_FOUND,
+        404
+      )
     }
 
     // 3. Verify ownership
     if (resume.user_id !== user.id) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return createErrorResponse(
+        'You do not have permission to retry this resume',
+        ERROR_CODES.FORBIDDEN,
+        403
+      )
     }
 
     // 4. Verify retry eligibility
     if (resume.status !== 'failed') {
-      return NextResponse.json(
-        { error: 'Can only retry failed resumes' },
-        { status: 400 }
+      return createErrorResponse(
+        'Can only retry failed resumes',
+        ERROR_CODES.VALIDATION_ERROR,
+        400,
+        { current_status: resume.status }
       )
     }
 
     if (resume.retry_count >= 2) {
-      return NextResponse.json(
-        { error: 'Maximum retry limit reached (2 attempts)' },
-        { status: 429 }
+      return createErrorResponse(
+        'Maximum retry limit reached. Please upload a new resume.',
+        ERROR_CODES.RATE_LIMIT_EXCEEDED,
+        429,
+        { max_retries: 2, current_retry_count: resume.retry_count }
       )
     }
 
@@ -72,11 +96,10 @@ export async function POST(request: Request) {
       prediction = await parseResume(presignedUrl)
     } catch (error) {
       console.error('Failed to trigger retry parsing:', error)
-      return NextResponse.json(
-        {
-          error: `Failed to start retry: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        },
-        { status: 500 }
+      return createErrorResponse(
+        `Failed to start retry: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        ERROR_CODES.EXTERNAL_SERVICE_ERROR,
+        500
       )
     }
 
@@ -91,9 +114,16 @@ export async function POST(request: Request) {
       })
       .eq('id', resume_id)
 
-    if (updateError) throw updateError
+    if (updateError) {
+      console.error('Failed to update resume for retry:', updateError)
+      return createErrorResponse(
+        'Failed to update resume status',
+        ERROR_CODES.DATABASE_ERROR,
+        500
+      )
+    }
 
-    return NextResponse.json({
+    return createSuccessResponse({
       resume_id: resume.id,
       status: 'processing',
       prediction_id: prediction.id,
@@ -101,9 +131,10 @@ export async function POST(request: Request) {
     })
   } catch (error) {
     console.error('Error retrying resume parsing:', error)
-    return NextResponse.json(
-      { error: 'Failed to retry parsing' },
-      { status: 500 }
+    return createErrorResponse(
+      'An unexpected error occurred while retrying',
+      ERROR_CODES.INTERNAL_ERROR,
+      500
     )
   }
 }

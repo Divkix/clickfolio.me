@@ -1,15 +1,21 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { validateRequestSize } from '@/lib/utils/validation'
+import {
+  createErrorResponse,
+  createSuccessResponse,
+  ERROR_CODES,
+} from '@/lib/utils/security-headers'
 
 export async function POST(request: NextRequest) {
   try {
     // 1. Validate request size before parsing (prevent DoS)
     const sizeCheck = validateRequestSize(request)
     if (!sizeCheck.valid) {
-      return NextResponse.json(
-        { error: sizeCheck.error || 'Request body too large' },
-        { status: 413 }
+      return createErrorResponse(
+        sizeCheck.error || 'Request body too large',
+        ERROR_CODES.BAD_REQUEST,
+        413
       )
     }
 
@@ -22,18 +28,33 @@ export async function POST(request: NextRequest) {
     } = await supabase.auth.getUser()
 
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return createErrorResponse(
+        'You must be logged in to setup your profile',
+        ERROR_CODES.UNAUTHORIZED,
+        401
+      )
     }
 
     // 3. Parse request body
-    const body = await request.json()
+    let body
+    try {
+      body = await request.json()
+    } catch {
+      return createErrorResponse(
+        'Invalid JSON in request body',
+        ERROR_CODES.BAD_REQUEST,
+        400
+      )
+    }
+
     const { handle, privacy_settings } = body
 
     // 4. Validate handle
     if (!handle || typeof handle !== 'string') {
-      return NextResponse.json(
-        { error: 'Handle is required and must be a string' },
-        { status: 400 }
+      return createErrorResponse(
+        'Handle is required and must be a string',
+        ERROR_CODES.VALIDATION_ERROR,
+        400
       )
     }
 
@@ -41,21 +62,22 @@ export async function POST(request: NextRequest) {
 
     // 5. Validate handle length (min 3 chars per schema)
     if (trimmedHandle.length < 3) {
-      return NextResponse.json(
-        { error: 'Handle must be at least 3 characters' },
-        { status: 400 }
+      return createErrorResponse(
+        'Handle must be at least 3 characters',
+        ERROR_CODES.VALIDATION_ERROR,
+        400,
+        { min_length: 3 }
       )
     }
 
     // 6. Validate handle format (alphanumeric and hyphens only)
     const handleRegex = /^[a-z0-9-]+$/
     if (!handleRegex.test(trimmedHandle)) {
-      return NextResponse.json(
-        {
-          error:
-            'Handle can only contain lowercase letters, numbers, and hyphens',
-        },
-        { status: 400 }
+      return createErrorResponse(
+        'Handle can only contain lowercase letters, numbers, and hyphens',
+        ERROR_CODES.VALIDATION_ERROR,
+        400,
+        { pattern: '^[a-z0-9-]+$' }
       )
     }
 
@@ -81,16 +103,19 @@ export async function POST(request: NextRequest) {
     if (handleCheckError && handleCheckError.code !== 'PGRST116') {
       // PGRST116 = no rows returned (handle is available)
       console.error('Error checking handle:', handleCheckError)
-      return NextResponse.json(
-        { error: 'Failed to validate handle' },
-        { status: 500 }
+      return createErrorResponse(
+        'Failed to validate handle availability',
+        ERROR_CODES.DATABASE_ERROR,
+        500
       )
     }
 
     if (existingHandle && existingHandle.id !== user.id) {
-      return NextResponse.json(
-        { error: 'This handle is already taken' },
-        { status: 409 }
+      return createErrorResponse(
+        'This handle is already taken. Please choose a different one.',
+        ERROR_CODES.CONFLICT,
+        409,
+        { field: 'handle' }
       )
     }
 
@@ -111,27 +136,31 @@ export async function POST(request: NextRequest) {
 
       // Handle unique constraint violation
       if (updateError.code === '23505') {
-        return NextResponse.json(
-          { error: 'This handle is already taken' },
-          { status: 409 }
+        return createErrorResponse(
+          'This handle is already taken. Please choose a different one.',
+          ERROR_CODES.CONFLICT,
+          409,
+          { field: 'handle' }
         )
       }
 
-      return NextResponse.json(
-        { error: 'Failed to update profile' },
-        { status: 500 }
+      return createErrorResponse(
+        'Failed to setup profile. Please try again.',
+        ERROR_CODES.DATABASE_ERROR,
+        500
       )
     }
 
-    return NextResponse.json({
+    return createSuccessResponse({
       success: true,
       profile: updatedProfile,
     })
   } catch (error) {
     console.error('Profile setup error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+    return createErrorResponse(
+      'An unexpected error occurred during profile setup',
+      ERROR_CODES.INTERNAL_ERROR,
+      500
     )
   }
 }
