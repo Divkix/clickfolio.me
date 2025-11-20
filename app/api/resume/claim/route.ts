@@ -3,6 +3,7 @@ import {
   CopyObjectCommand,
   DeleteObjectCommand,
   GetObjectCommand,
+  HeadObjectCommand,
 } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { r2Client, R2_BUCKET } from '@/lib/r2'
@@ -13,6 +14,7 @@ import {
   createSuccessResponse,
   ERROR_CODES,
 } from '@/lib/utils/security-headers'
+import { validatePDFMagicNumber, MAX_FILE_SIZE } from '@/lib/utils/validation'
 
 /**
  * POST /api/resume/claim
@@ -65,7 +67,41 @@ export async function POST(request: Request) {
       return rateLimitResponse
     }
 
-    // 4. Copy object to user's folder
+    // 4. Validate file size (10MB limit)
+    try {
+      const headCommand = new HeadObjectCommand({
+        Bucket: R2_BUCKET,
+        Key: key,
+      })
+      const headResponse = await r2Client.send(headCommand)
+
+      if (headResponse.ContentLength && headResponse.ContentLength > MAX_FILE_SIZE) {
+        return createErrorResponse(
+          `File size exceeds 10MB limit (${Math.round(headResponse.ContentLength / 1024 / 1024)}MB)`,
+          ERROR_CODES.VALIDATION_ERROR,
+          400
+        )
+      }
+    } catch (error) {
+      console.error('File size validation error:', error)
+      return createErrorResponse(
+        'Failed to validate file. The file may have expired.',
+        ERROR_CODES.EXTERNAL_SERVICE_ERROR,
+        500
+      )
+    }
+
+    // 5. Validate PDF magic number before processing
+    const pdfValidation = await validatePDFMagicNumber(r2Client, R2_BUCKET, key)
+    if (!pdfValidation.valid) {
+      return createErrorResponse(
+        pdfValidation.error || 'Invalid PDF file',
+        ERROR_CODES.VALIDATION_ERROR,
+        400
+      )
+    }
+
+    // 6. Copy object to user's folder
     const timestamp = Date.now()
     const filename = key.split('/').pop()
     const newKey = `users/${user.id}/${timestamp}/${filename}`
@@ -87,7 +123,7 @@ export async function POST(request: Request) {
       )
     }
 
-    // 5. Delete temp object
+    // 7. Delete temp object
     try {
       await r2Client.send(
         new DeleteObjectCommand({
@@ -100,7 +136,7 @@ export async function POST(request: Request) {
       // Continue - not critical if temp file cleanup fails
     }
 
-    // 6. Insert into database with pending_claim status first
+    // 8. Insert into database with pending_claim status first
     const { data: resume, error: insertError } = await supabase
       .from('resumes')
       .insert({
@@ -120,7 +156,7 @@ export async function POST(request: Request) {
       )
     }
 
-    // 7. Generate presigned URL for Replicate (7 day expiry)
+    // 9. Generate presigned URL for Replicate (7 day expiry)
     const getCommand = new GetObjectCommand({
       Bucket: R2_BUCKET,
       Key: newKey,
@@ -136,11 +172,11 @@ export async function POST(request: Request) {
       return createErrorResponse(
         'Failed to prepare file for processing',
         ERROR_CODES.EXTERNAL_SERVICE_ERROR,
-        500
+        150
       )
     }
 
-    // 8. Trigger Replicate parsing
+    // 10. Trigger Replicate parsing
     let replicateJobId: string | null = null
     let parseError: string | null = null
 
@@ -153,7 +189,7 @@ export async function POST(request: Request) {
         error instanceof Error ? error.message : 'Failed to start AI parsing'
     }
 
-    // 9. Update resume with replicate job ID or error
+    // 11. Update resume with replicate job ID or error
     const updatePayload: {
       status: 'processing' | 'failed'
       replicate_job_id?: string
