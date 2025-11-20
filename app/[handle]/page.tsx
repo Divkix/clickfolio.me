@@ -69,7 +69,7 @@ async function getResumeData(handle: string) {
   }
 
   // Ensure site_data exists
-  if (!data.site_data || data.site_data.length === 0) {
+  if (!data.site_data) {
     return null
   }
 

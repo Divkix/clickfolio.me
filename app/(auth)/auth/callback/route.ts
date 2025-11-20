@@ -56,16 +56,36 @@ export async function GET(request: Request) {
         finalHandle = `user-${user.id.substring(0, 12)}`
       }
 
-      const { error: profileError } = await supabase.from('profiles').upsert({
-        id: user.id,
-        email: user.email!,
-        avatar_url: user.user_metadata?.avatar_url,
-        handle: finalHandle
-      }, { onConflict: 'id' })
+      // Check if profile already has a handle set
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('handle')
+        .eq('id', user.id)
+        .maybeSingle()
 
-      if (profileError) {
-        console.error('Error creating profile:', profileError)
-        // Don't fail the auth flow - trigger should have handled it
+      if (existingProfile?.handle) {
+        // Profile exists with handle - preserve it, only update avatar
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({ avatar_url: user.user_metadata?.avatar_url })
+          .eq('id', user.id)
+
+        if (profileError) {
+          console.error('Error updating profile avatar:', profileError)
+        }
+      } else {
+        // No handle set yet - safe to upsert with auto-generated handle
+        const { error: profileError } = await supabase.from('profiles').upsert({
+          id: user.id,
+          email: user.email!,
+          avatar_url: user.user_metadata?.avatar_url,
+          handle: finalHandle
+        }, { onConflict: 'id' })
+
+        if (profileError) {
+          console.error('Error creating profile:', profileError)
+          // Don't fail the auth flow - trigger should have handled it
+        }
       }
     }
   }
