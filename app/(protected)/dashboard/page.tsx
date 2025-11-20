@@ -22,6 +22,7 @@ import {
   Calendar
 } from 'lucide-react'
 import { CopyLinkButton } from '@/components/dashboard/CopyLinkButton'
+import { DashboardUploadSection } from '@/components/dashboard/DashboardUploadSection'
 import type { ResumeContent } from '@/lib/types/database'
 
 /**
@@ -467,13 +468,16 @@ export default async function DashboardPage() {
 
                 <Separator className="mb-6" />
 
-                {/* Footer - Edit Button */}
-                <Button asChild className="w-full bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-semibold transition-all duration-300 shadow-depth-sm hover:shadow-depth-md">
-                  <Link href="/edit">
-                    <Edit3 className="h-4 w-4 mr-2" />
-                    Edit Content
-                  </Link>
-                </Button>
+                {/* Footer - Action Buttons */}
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Button asChild className="flex-1 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-semibold transition-all duration-300 shadow-depth-sm hover:shadow-depth-md">
+                    <Link href="/edit">
+                      <Edit3 className="h-4 w-4 mr-2" />
+                      Edit Content
+                    </Link>
+                  </Button>
+                  <DashboardUploadSection />
+                </div>
               </div>
 
               {/* Right Column - Account Only */}

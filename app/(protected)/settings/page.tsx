@@ -5,6 +5,7 @@ import { User } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { PrivacySettingsForm } from '@/components/forms/PrivacySettings'
 import { HandleForm } from '@/components/forms/HandleForm'
+import { ResumeManagementCard } from '@/components/settings/ResumeManagementCard'
 import { isValidPrivacySettings } from '@/lib/utils/privacy'
 
 export default async function SettingsPage() {
@@ -34,6 +35,20 @@ export default async function SettingsPage() {
   const privacySettings = isValidPrivacySettings(profile.privacy_settings)
     ? profile.privacy_settings
     : { show_phone: false, show_address: false }
+
+  // Fetch resume data for management section
+  const { count: resumeCount } = await supabase
+    .from('resumes')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+
+  const { data: latestResume } = await supabase
+    .from('resumes')
+    .select('id, status, created_at')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single()
 
   return (
     <div className="min-h-screen py-8">
@@ -92,6 +107,13 @@ export default async function SettingsPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* Resume Management */}
+        <ResumeManagementCard
+          resumeCount={resumeCount || 0}
+          latestResumeDate={latestResume?.created_at}
+          latestResumeStatus={latestResume?.status}
+        />
 
         {/* Handle Management */}
         {profile.handle && (

@@ -1,12 +1,14 @@
 'use client'
 
-import { useState, useRef, DragEvent, ChangeEvent } from 'react'
+import { useState, useRef, useEffect, DragEvent, ChangeEvent } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { toast } from 'sonner'
 import { validatePDF } from '@/lib/utils/validation'
 import { createClient } from '@/lib/supabase/client'
+import { useRouter } from 'next/navigation'
+import type { User } from '@supabase/supabase-js'
 
 interface FileDropzoneProps {
   open: boolean
@@ -15,13 +17,28 @@ interface FileDropzoneProps {
 
 export function FileDropzone({ open, onOpenChange }: FileDropzoneProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const router = useRouter()
 
+  const [user, setUser] = useState<User | null>(null)
   const [file, setFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [uploadComplete, setUploadComplete] = useState(false)
+  const [claiming, setClaiming] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isDragging, setIsDragging] = useState(false)
+
+  // Check authentication status when component mounts or opens
+  useEffect(() => {
+    if (open) {
+      const checkAuth = async () => {
+        const supabase = createClient()
+        const { data: { user: currentUser } } = await supabase.auth.getUser()
+        setUser(currentUser)
+      }
+      checkAuth()
+    }
+  }, [open])
 
   const handleDragEnter = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault()
@@ -116,12 +133,57 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps) {
 
       setUploadComplete(true)
       toast.success('File uploaded successfully!')
+
+      // Step 4: If user is authenticated, auto-claim the upload
+      if (user) {
+        await claimUpload(key)
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to upload file'
       setError(errorMessage)
       toast.error(errorMessage)
     } finally {
       setUploading(false)
+    }
+  }
+
+  const claimUpload = async (key: string) => {
+    setClaiming(true)
+    setError(null)
+
+    try {
+      const claimResponse = await fetch('/api/resume/claim', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key }),
+      })
+
+      if (!claimResponse.ok) {
+        const data = await claimResponse.json()
+        throw new Error(data.error || 'Failed to claim resume')
+      }
+
+      await claimResponse.json()
+
+      // Clear temp key from localStorage
+      localStorage.removeItem('temp_upload_key')
+
+      toast.success('Resume claimed successfully! Processing...')
+
+      // Redirect to dashboard
+      router.push('/dashboard')
+      router.refresh()
+
+      // Close modal after short delay
+      setTimeout(() => {
+        onOpenChange(false)
+      }, 500)
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to claim resume'
+      setError(errorMessage)
+      toast.error(errorMessage)
+    } finally {
+      setClaiming(false)
     }
   }
 
@@ -137,9 +199,10 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps) {
   }
 
   const handleClose = () => {
-    if (!uploading) {
+    if (!uploading && !claiming) {
       setFile(null)
       setUploadComplete(false)
+      setClaiming(false)
       setError(null)
       setUploadProgress(0)
       onOpenChange(false)
@@ -248,52 +311,108 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps) {
           ) : (
             <div className="space-y-4 py-4">
               {/* Success State */}
-              <div className="flex flex-col items-center gap-4">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full blur-xl opacity-30" />
-                  <div className="relative w-16 h-16 bg-gradient-to-r from-emerald-100 to-teal-100 rounded-full flex items-center justify-center shadow-depth-md">
-                    <svg
-                      className="w-8 h-8"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2.5}
-                        stroke="url(#successGradient)"
-                        d="M5 13l4 4L19 7"
-                      />
-                      <defs>
-                        <linearGradient id="successGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                          <stop offset="0%" stopColor="#10B981" />
-                          <stop offset="100%" stopColor="#14B8A6" />
-                        </linearGradient>
-                      </defs>
-                    </svg>
+              {claiming ? (
+                /* Claiming State - For Authenticated Users */
+                <div className="flex flex-col items-center gap-4">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-blue-500 rounded-full blur-xl opacity-30 animate-pulse" />
+                    <div className="relative w-16 h-16 bg-gradient-to-r from-indigo-100 to-blue-100 rounded-full flex items-center justify-center shadow-depth-md">
+                      <svg
+                        className="w-8 h-8 animate-spin"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="url(#spinnerGradient)"
+                          strokeWidth="4"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="url(#spinnerGradient)"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        />
+                        <defs>
+                          <linearGradient id="spinnerGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stopColor="#4F46E5" />
+                            <stop offset="100%" stopColor="#3B82F6" />
+                          </linearGradient>
+                        </defs>
+                      </svg>
+                    </div>
+                  </div>
+
+                  <div className="text-center">
+                    <h3 className="text-lg font-bold text-slate-900 mb-2">
+                      Processing Your Resume...
+                    </h3>
+                    <p className="text-sm text-slate-600">
+                      Claiming your upload and starting AI analysis
+                    </p>
                   </div>
                 </div>
+              ) : (
+                /* Upload Complete - Show different CTA based on auth status */
+                <div className="flex flex-col items-center gap-4">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full blur-xl opacity-30" />
+                    <div className="relative w-16 h-16 bg-gradient-to-r from-emerald-100 to-teal-100 rounded-full flex items-center justify-center shadow-depth-md">
+                      <svg
+                        className="w-8 h-8"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2.5}
+                          stroke="url(#successGradient)"
+                          d="M5 13l4 4L19 7"
+                        />
+                        <defs>
+                          <linearGradient id="successGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stopColor="#10B981" />
+                            <stop offset="100%" stopColor="#14B8A6" />
+                          </linearGradient>
+                        </defs>
+                      </svg>
+                    </div>
+                  </div>
 
-                <div className="text-center">
-                  <h3 className="text-lg font-bold text-slate-900 mb-2">
-                    Upload Complete!
-                  </h3>
-                  <p className="text-sm text-slate-600 mb-4">
-                    {file?.name} has been uploaded successfully.
-                  </p>
+                  <div className="text-center">
+                    <h3 className="text-lg font-bold text-slate-900 mb-2">
+                      Upload Complete!
+                    </h3>
+                    <p className="text-sm text-slate-600 mb-4">
+                      {file?.name} has been uploaded successfully.
+                    </p>
+                  </div>
+
+                  {user ? (
+                    /* Authenticated user - shouldn't reach here as auto-claim happens */
+                    <p className="text-xs text-slate-500 text-center font-medium">
+                      Redirecting to dashboard...
+                    </p>
+                  ) : (
+                    /* Anonymous user - show login button */
+                    <>
+                      <Button
+                        onClick={handleLoginRedirect}
+                        className="w-full bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-semibold shadow-depth-md hover:shadow-depth-lg transition-all"
+                      >
+                        Log In to Save
+                      </Button>
+
+                      <p className="text-xs text-slate-500 text-center font-medium">
+                        Your upload will be automatically claimed after login
+                      </p>
+                    </>
+                  )}
                 </div>
-
-                <Button
-                  onClick={handleLoginRedirect}
-                  className="w-full bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-semibold shadow-depth-md hover:shadow-depth-lg transition-all"
-                >
-                  Log In to Save
-                </Button>
-
-                <p className="text-xs text-slate-500 text-center font-medium">
-                  Your upload will be automatically claimed after login
-                </p>
-              </div>
+              )}
             </div>
           )}
         </DialogContent>
