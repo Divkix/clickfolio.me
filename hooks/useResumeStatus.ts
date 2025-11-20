@@ -31,9 +31,11 @@ export function useResumeStatus(resumeId: string | null): UseResumeStatusReturn 
   const [isLoading, setIsLoading] = useState(true)
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
+  const abortControllerRef = useRef<AbortController | null>(null)
   const startTimeRef = useRef<number>(Date.now())
   const hasTimedOutRef = useRef(false)
 
+  // Memoize fetchStatus with only resumeId as dependency
   const fetchStatus = useCallback(async () => {
     if (!resumeId) {
       setIsLoading(false)
@@ -41,7 +43,16 @@ export function useResumeStatus(resumeId: string | null): UseResumeStatusReturn 
     }
 
     try {
-      const response = await fetch(`/api/resume/status?resume_id=${resumeId}`)
+      // Cancel previous request if still pending
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
+
+      abortControllerRef.current = new AbortController()
+
+      const response = await fetch(`/api/resume/status?resume_id=${resumeId}`, {
+        signal: abortControllerRef.current.signal
+      })
 
       if (!response.ok) {
         if (response.status === 401) {
@@ -61,7 +72,7 @@ export function useResumeStatus(resumeId: string | null): UseResumeStatusReturn 
       setCanRetry(data.can_retry)
       setIsLoading(false)
 
-      // Stop polling if not processing
+      // Stop polling if terminal state reached
       if (data.status !== 'processing') {
         if (intervalRef.current) {
           clearInterval(intervalRef.current)
@@ -77,6 +88,11 @@ export function useResumeStatus(resumeId: string | null): UseResumeStatusReturn 
         // Don't stop polling - just show warning
       }
     } catch (err) {
+      // Ignore abort errors (expected during cleanup or re-fetch)
+      if (err instanceof Error && err.name === 'AbortError') {
+        return
+      }
+
       console.error('Error fetching resume status:', err)
       setError(err instanceof Error ? err.message : 'Network error. Please try again.')
       setIsLoading(false)
@@ -87,7 +103,7 @@ export function useResumeStatus(resumeId: string | null): UseResumeStatusReturn 
         intervalRef.current = null
       }
     }
-  }, [resumeId])
+  }, [resumeId]) // Only depend on resumeId - this is now stable
 
   // Start polling on mount or when resumeId changes
   useEffect(() => {
@@ -107,14 +123,21 @@ export function useResumeStatus(resumeId: string | null): UseResumeStatusReturn 
     // Poll every 3 seconds
     intervalRef.current = setInterval(fetchStatus, 3000)
 
-    // Cleanup on unmount
+    // Cleanup on unmount or when resumeId changes
     return () => {
+      // Clear interval
       if (intervalRef.current) {
         clearInterval(intervalRef.current)
         intervalRef.current = null
       }
+
+      // Abort pending request
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+        abortControllerRef.current = null
+      }
     }
-  }, [resumeId, fetchStatus])
+  }, [resumeId, fetchStatus]) // fetchStatus is now stable via useCallback
 
   return {
     status,
