@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { handleUpdateSchema } from '@/lib/schemas/profile'
 import { enforceRateLimit } from '@/lib/utils/rate-limit'
+import { validateRequestSize } from '@/lib/utils/validation'
 import {
   createErrorResponse,
   createSuccessResponse,
@@ -14,9 +15,19 @@ import {
  */
 export async function PUT(request: Request) {
   try {
+    // 1. Validate request size before parsing (prevent DoS)
+    const sizeCheck = validateRequestSize(request)
+    if (!sizeCheck.valid) {
+      return createErrorResponse(
+        sizeCheck.error || 'Request body too large',
+        ERROR_CODES.BAD_REQUEST,
+        413
+      )
+    }
+
     const supabase = await createClient()
 
-    // 1. Authenticate user
+    // 2. Authenticate user
     const {
       data: { user },
       error: authError,
@@ -30,13 +41,13 @@ export async function PUT(request: Request) {
       )
     }
 
-    // 2. Check rate limit (3 handle changes per 24 hours)
+    // 3. Check rate limit (3 handle changes per 24 hours)
     const rateLimitResponse = await enforceRateLimit(user.id, 'handle_change')
     if (rateLimitResponse) {
       return rateLimitResponse
     }
 
-    // 3. Parse and validate request body
+    // 4. Parse and validate request body
     let body
     try {
       body = await request.json()
@@ -61,7 +72,7 @@ export async function PUT(request: Request) {
 
     const { handle: newHandle } = validation.data
 
-    // 4. Fetch current profile to get old handle
+    // 5. Fetch current profile to get old handle
     const { data: currentProfile, error: fetchError } = await supabase
       .from('profiles')
       .select('handle')
@@ -78,7 +89,7 @@ export async function PUT(request: Request) {
 
     const oldHandle = currentProfile.handle
 
-    // 5. Check if handle is already the same
+    // 6. Check if handle is already the same
     if (oldHandle === newHandle) {
       return createErrorResponse(
         'Handle is already set to this value',
@@ -87,7 +98,7 @@ export async function PUT(request: Request) {
       )
     }
 
-    // 6. Check if new handle is already taken by another user
+    // 7. Check if new handle is already taken by another user
     const { data: existingProfile, error: checkError } = await supabase
       .from('profiles')
       .select('id')
@@ -111,7 +122,7 @@ export async function PUT(request: Request) {
       )
     }
 
-    // 7. Update handle in profiles table
+    // 8. Update handle in profiles table
     const { data, error: updateError } = await supabase
       .from('profiles')
       .update({
@@ -129,6 +140,21 @@ export async function PUT(request: Request) {
         ERROR_CODES.DATABASE_ERROR,
         500
       )
+    }
+
+    // 9. Insert into handle_changes audit table for precise rate limiting
+    const { error: auditError } = await supabase
+      .from('handle_changes')
+      .insert({
+        user_id: user.id,
+        old_handle: oldHandle,
+        new_handle: newHandle,
+      })
+
+    if (auditError) {
+      console.error('Failed to audit handle change:', auditError)
+      // Continue anyway - handle was updated successfully
+      // Audit failure is non-critical
     }
 
     return createSuccessResponse({

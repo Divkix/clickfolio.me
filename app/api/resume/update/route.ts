@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { resumeContentSchema } from '@/lib/schemas/resume'
 import { enforceRateLimit } from '@/lib/utils/rate-limit'
+import { validateRequestSize } from '@/lib/utils/validation'
 import {
   createErrorResponse,
   createSuccessResponse,
@@ -25,9 +26,19 @@ import {
  */
 export async function PUT(request: Request) {
   try {
+    // 1. Validate request size before parsing (prevent DoS)
+    const sizeCheck = validateRequestSize(request)
+    if (!sizeCheck.valid) {
+      return createErrorResponse(
+        sizeCheck.error || 'Request body too large',
+        ERROR_CODES.BAD_REQUEST,
+        413
+      )
+    }
+
     const supabase = await createClient()
 
-    // 1. Authenticate user
+    // 2. Authenticate user
     const {
       data: { user },
     } = await supabase.auth.getUser()
@@ -40,13 +51,13 @@ export async function PUT(request: Request) {
       )
     }
 
-    // 2. Check rate limit (10 updates per hour)
+    // 3. Check rate limit (10 updates per hour)
     const rateLimitResponse = await enforceRateLimit(user.id, 'resume_update')
     if (rateLimitResponse) {
       return rateLimitResponse
     }
 
-    // 3. Parse and validate request body
+    // 4. Parse and validate request body
     let body
     try {
       body = await request.json()
@@ -71,7 +82,7 @@ export async function PUT(request: Request) {
 
     const content = validation.data
 
-    // 4. Update site_data
+    // 5. Update site_data
     const { data, error } = await supabase
       .from('site_data')
       .update({
@@ -92,7 +103,7 @@ export async function PUT(request: Request) {
       )
     }
 
-    // 5. Return success response
+    // 6. Return success response
     return createSuccessResponse({
       success: true,
       data: {

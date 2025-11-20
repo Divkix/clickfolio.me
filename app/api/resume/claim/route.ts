@@ -14,7 +14,11 @@ import {
   createSuccessResponse,
   ERROR_CODES,
 } from '@/lib/utils/security-headers'
-import { validatePDFMagicNumber, MAX_FILE_SIZE } from '@/lib/utils/validation'
+import {
+  validatePDFMagicNumber,
+  validateRequestSize,
+  MAX_FILE_SIZE,
+} from '@/lib/utils/validation'
 
 /**
  * POST /api/resume/claim
@@ -23,9 +27,19 @@ import { validatePDFMagicNumber, MAX_FILE_SIZE } from '@/lib/utils/validation'
  */
 export async function POST(request: Request) {
   try {
+    // 1. Validate request size before parsing (prevent DoS)
+    const sizeCheck = validateRequestSize(request)
+    if (!sizeCheck.valid) {
+      return createErrorResponse(
+        sizeCheck.error || 'Request body too large',
+        ERROR_CODES.BAD_REQUEST,
+        413
+      )
+    }
+
     const supabase = await createClient()
 
-    // 1. Check authentication
+    // 2. Check authentication
     const {
       data: { user },
       error: authError,
@@ -39,7 +53,7 @@ export async function POST(request: Request) {
       )
     }
 
-    // 2. Parse request body
+    // 3. Parse request body
     let body
     try {
       body = await request.json()
@@ -61,13 +75,13 @@ export async function POST(request: Request) {
       )
     }
 
-    // 3. Rate limiting check (5 uploads per 24 hours)
+    // 4. Rate limiting check (5 uploads per 24 hours)
     const rateLimitResponse = await enforceRateLimit(user.id, 'resume_upload')
     if (rateLimitResponse) {
       return rateLimitResponse
     }
 
-    // 4. Validate file size (10MB limit)
+    // 5. Validate file size (10MB limit)
     try {
       const headCommand = new HeadObjectCommand({
         Bucket: R2_BUCKET,
@@ -75,7 +89,10 @@ export async function POST(request: Request) {
       })
       const headResponse = await r2Client.send(headCommand)
 
-      if (headResponse.ContentLength && headResponse.ContentLength > MAX_FILE_SIZE) {
+      if (
+        headResponse.ContentLength &&
+        headResponse.ContentLength > MAX_FILE_SIZE
+      ) {
         return createErrorResponse(
           `File size exceeds 10MB limit (${Math.round(headResponse.ContentLength / 1024 / 1024)}MB)`,
           ERROR_CODES.VALIDATION_ERROR,
@@ -91,7 +108,7 @@ export async function POST(request: Request) {
       )
     }
 
-    // 5. Validate PDF magic number before processing
+    // 6. Validate PDF magic number before processing
     const pdfValidation = await validatePDFMagicNumber(r2Client, R2_BUCKET, key)
     if (!pdfValidation.valid) {
       return createErrorResponse(
@@ -101,7 +118,7 @@ export async function POST(request: Request) {
       )
     }
 
-    // 6. Copy object to user's folder
+    // 7. Copy object to user's folder
     const timestamp = Date.now()
     const filename = key.split('/').pop()
     const newKey = `users/${user.id}/${timestamp}/${filename}`
@@ -123,7 +140,7 @@ export async function POST(request: Request) {
       )
     }
 
-    // 7. Delete temp object
+    // 8. Delete temp object
     try {
       await r2Client.send(
         new DeleteObjectCommand({
@@ -136,7 +153,7 @@ export async function POST(request: Request) {
       // Continue - not critical if temp file cleanup fails
     }
 
-    // 8. Insert into database with pending_claim status first
+    // 9. Insert into database with pending_claim status first
     const { data: resume, error: insertError } = await supabase
       .from('resumes')
       .insert({
@@ -156,7 +173,7 @@ export async function POST(request: Request) {
       )
     }
 
-    // 9. Generate presigned URL for Replicate (7 day expiry)
+    // 10. Generate presigned URL for Replicate (7 day expiry)
     const getCommand = new GetObjectCommand({
       Bucket: R2_BUCKET,
       Key: newKey,
@@ -176,7 +193,7 @@ export async function POST(request: Request) {
       )
     }
 
-    // 10. Trigger Replicate parsing
+    // 11. Trigger Replicate parsing
     let replicateJobId: string | null = null
     let parseError: string | null = null
 
@@ -189,7 +206,7 @@ export async function POST(request: Request) {
         error instanceof Error ? error.message : 'Failed to start AI parsing'
     }
 
-    // 11. Update resume with replicate job ID or error
+    // 12. Update resume with replicate job ID or error
     const updatePayload: {
       status: 'processing' | 'failed'
       replicate_job_id?: string

@@ -65,17 +65,16 @@ export async function checkRateLimit(
       }
 
       case 'handle_change': {
-        // Count profile updates as a proxy for handle changes
-        // Note: This counts ALL profile updates, not just handle changes
-        // For more accurate tracking, consider adding a dedicated handle_changes audit table
-        const { count: updateCount, error } = await supabase
-          .from('profiles')
+        // Query dedicated audit table for precise handle change tracking
+        // This prevents privacy toggle changes from consuming handle change quota
+        const { count: changeCount, error } = await supabase
+          .from('handle_changes')
           .select('*', { count: 'exact', head: true })
-          .eq('id', userId)
-          .gte('updated_at', windowStart.toISOString())
+          .eq('user_id', userId)
+          .gte('created_at', windowStart.toISOString())
 
         if (error) throw error
-        count = updateCount || 0
+        count = changeCount || 0
         break
       }
 
@@ -111,13 +110,14 @@ export async function checkRateLimit(
   } catch (error) {
     console.error(`Rate limit check failed for ${action}:`, error)
 
-    // On error, allow the action but log the issue
-    // Better to allow legitimate users than block due to infrastructure issues
+    // SECURITY: Fail closed - if we can't verify rate limits, deny the action
+    // This prevents abuse during DB outages at the cost of temporary user friction
     return {
-      allowed: true,
-      remaining: config.limit,
+      allowed: false,
+      remaining: 0,
       resetAt,
-      message: undefined,
+      message:
+        'Rate limiting service temporarily unavailable. Please try again in a few moments.',
     }
   }
 }
