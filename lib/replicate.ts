@@ -1,10 +1,11 @@
+import { ENV } from './env'
 import Replicate from 'replicate'
 import { z } from 'zod'
 import type { ResumeContent } from '@/lib/types/database'
 
 // Initialize Replicate client
 const replicate = new Replicate({
-  auth: process.env.REPLICATE_API_TOKEN!,
+  auth: ENV.REPLICATE_API_TOKEN(),
 })
 
 // Zod schemas for runtime validation
