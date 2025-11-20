@@ -2,7 +2,7 @@
 -- This replaces the imprecise approach of counting all profile updates
 
 CREATE TABLE public.handle_changes (
-  id uuid DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id uuid REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   old_handle text,
   new_handle text NOT NULL,
