@@ -81,84 +81,17 @@ export async function POST(request: Request) {
       return rateLimitResponse
     }
 
-    // 5. Validate file size (10MB limit)
-    try {
-      const headCommand = new HeadObjectCommand({
-        Bucket: R2_BUCKET,
-        Key: key,
-      })
-      const headResponse = await r2Client.send(headCommand)
-
-      if (
-        headResponse.ContentLength &&
-        headResponse.ContentLength > MAX_FILE_SIZE
-      ) {
-        return createErrorResponse(
-          `File size exceeds 10MB limit (${Math.round(headResponse.ContentLength / 1024 / 1024)}MB)`,
-          ERROR_CODES.VALIDATION_ERROR,
-          400
-        )
-      }
-    } catch (error) {
-      console.error('File size validation error:', error)
-      return createErrorResponse(
-        'Failed to validate file. The file may have expired.',
-        ERROR_CODES.EXTERNAL_SERVICE_ERROR,
-        500
-      )
-    }
-
-    // 6. Validate PDF magic number before processing
-    const pdfValidation = await validatePDFMagicNumber(r2Client, R2_BUCKET, key)
-    if (!pdfValidation.valid) {
-      return createErrorResponse(
-        pdfValidation.error || 'Invalid PDF file',
-        ERROR_CODES.VALIDATION_ERROR,
-        400
-      )
-    }
-
-    // 7. Copy object to user's folder
+    // 5. Generate new key and insert DB record FIRST
+    // This ensures we always have a record for tracking, even if R2 operations fail
     const timestamp = Date.now()
     const filename = key.split('/').pop()
     const newKey = `users/${user.id}/${timestamp}/${filename}`
 
-    try {
-      await r2Client.send(
-        new CopyObjectCommand({
-          Bucket: R2_BUCKET,
-          CopySource: `${R2_BUCKET}/${key}`,
-          Key: newKey,
-        })
-      )
-    } catch (error) {
-      console.error('R2 copy error:', error)
-      return createErrorResponse(
-        'Failed to process upload. The file may have expired.',
-        ERROR_CODES.EXTERNAL_SERVICE_ERROR,
-        500
-      )
-    }
-
-    // 8. Delete temp object
-    try {
-      await r2Client.send(
-        new DeleteObjectCommand({
-          Bucket: R2_BUCKET,
-          Key: key,
-        })
-      )
-    } catch (error) {
-      console.error('R2 delete error:', error)
-      // Continue - not critical if temp file cleanup fails
-    }
-
-    // 9. Insert into database with pending_claim status first
     const { data: resume, error: insertError } = await supabase
       .from('resumes')
       .insert({
         user_id: user.id,
-        r2_key: newKey,
+        r2_key: newKey, // Planned key, R2 move will happen next
         status: 'pending_claim',
       })
       .select()
@@ -171,6 +104,90 @@ export async function POST(request: Request) {
         ERROR_CODES.DATABASE_ERROR,
         500
       )
+    }
+
+    // Helper to mark resume as failed and return error
+    const failResume = async (
+      errorMessage: string,
+      errorCode: string,
+      statusCode: number
+    ) => {
+      await supabase
+        .from('resumes')
+        .update({ status: 'failed', error_message: errorMessage })
+        .eq('id', resume.id)
+
+      return createErrorResponse(errorMessage, errorCode, statusCode)
+    }
+
+    // 6. Validate file size (10MB limit)
+    try {
+      const headCommand = new HeadObjectCommand({
+        Bucket: R2_BUCKET,
+        Key: key,
+      })
+      const headResponse = await r2Client.send(headCommand)
+
+      if (
+        headResponse.ContentLength &&
+        headResponse.ContentLength > MAX_FILE_SIZE
+      ) {
+        const sizeInMB = Math.round(headResponse.ContentLength / 1024 / 1024)
+        return await failResume(
+          `File size exceeds 10MB limit (${sizeInMB}MB)`,
+          ERROR_CODES.VALIDATION_ERROR,
+          400
+        )
+      }
+    } catch (error) {
+      console.error('File size validation error:', error)
+      return await failResume(
+        'Failed to validate file. The file may have expired.',
+        ERROR_CODES.EXTERNAL_SERVICE_ERROR,
+        500
+      )
+    }
+
+    // 7. Validate PDF magic number before processing
+    const pdfValidation = await validatePDFMagicNumber(r2Client, R2_BUCKET, key)
+    if (!pdfValidation.valid) {
+      return await failResume(
+        pdfValidation.error || 'Invalid PDF file',
+        ERROR_CODES.VALIDATION_ERROR,
+        400
+      )
+    }
+
+    // 8. Copy object to user's folder
+    try {
+      await r2Client.send(
+        new CopyObjectCommand({
+          Bucket: R2_BUCKET,
+          CopySource: `${R2_BUCKET}/${key}`,
+          Key: newKey,
+        })
+      )
+    } catch (error) {
+      console.error('R2 copy error:', error)
+      return await failResume(
+        'Failed to process upload. The file may have expired.',
+        ERROR_CODES.EXTERNAL_SERVICE_ERROR,
+        500
+      )
+    }
+
+    // 9. Delete temp object (best effort - not critical if fails)
+    // Can be cleaned up by R2 lifecycle rules if this fails
+    try {
+      await r2Client.send(
+        new DeleteObjectCommand({
+          Bucket: R2_BUCKET,
+          Key: key,
+        })
+      )
+    } catch (error) {
+      console.error('R2 delete error:', error)
+      // Continue - temp file cleanup failure is not critical
     }
 
     // 10. Generate presigned URL for Replicate (7 day expiry)
@@ -186,7 +203,7 @@ export async function POST(request: Request) {
       })
     } catch (error) {
       console.error('Presigned URL generation error:', error)
-      return createErrorResponse(
+      return await failResume(
         'Failed to prepare file for processing',
         ERROR_CODES.EXTERNAL_SERVICE_ERROR,
         500
