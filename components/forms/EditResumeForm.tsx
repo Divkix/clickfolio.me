@@ -42,6 +42,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
       education: initialData.education || [],
       skills: initialData.skills || [],
       certifications: initialData.certifications || [],
+      projects: initialData.projects || [],
     },
   })
 
@@ -79,6 +80,15 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
   } = useFieldArray({
     control: form.control,
     name: 'certifications',
+  })
+
+  const {
+    fields: projectFields,
+    append: appendProject,
+    remove: removeProject,
+  } = useFieldArray({
+    control: form.control,
+    name: 'projects',
   })
 
   const handleSave = useCallback(async (data: ResumeContent, isAutoSave = false) => {
@@ -780,6 +790,202 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
               <Plus className="h-4 w-4 mr-2" />
               Add Certification
             </Button>
+          </CardContent>
+        </Card>
+
+        {/* Projects Section */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Projects (Optional)</CardTitle>
+                <CardDescription>
+                  Personal projects, side work, or portfolio pieces (max 10)
+                </CardDescription>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  appendProject({
+                    title: '',
+                    description: '',
+                    year: '',
+                    technologies: [],
+                    url: '',
+                  })
+                }
+                disabled={projectFields.length >= 10}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Project
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-6">
+              {projectFields.map((field, index) => (
+                <div
+                  key={field.id}
+                  className="border border-slate-200 rounded-lg p-6 space-y-4"
+                >
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-sm font-semibold text-slate-900">
+                      Project {index + 1}
+                    </h4>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeProject(index)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Title - Required */}
+                    <FormField
+                      control={form.control}
+                      name={`projects.${index}.title`}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>
+                            Project Title <span className="text-red-500">*</span>
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="My Awesome Project"
+                              {...field}
+                              maxLength={200}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Year - Optional */}
+                    <FormField
+                      control={form.control}
+                      name={`projects.${index}.year`}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Year</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="2024 or 2023-2024"
+                              {...field}
+                              maxLength={50}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  {/* Description - Required, Full Width */}
+                  <FormField
+                    control={form.control}
+                    name={`projects.${index}.description`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          Description <span className="text-red-500">*</span>
+                        </FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Describe the project, your role, and key achievements..."
+                            className="min-h-24 resize-y"
+                            {...field}
+                            maxLength={2000}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          {field.value?.length || 0}/2000 characters
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Technologies - Optional, Full Width */}
+                  <FormField
+                    control={form.control}
+                    name={`projects.${index}.technologies`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Technologies Used</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="React, Node.js, PostgreSQL (comma-separated)"
+                            value={field.value?.join(', ') || ''}
+                            onChange={(e) => {
+                              const technologies = e.target.value
+                                .split(',')
+                                .map((t) => t.trim())
+                                .filter((t) => t !== '')
+                              field.onChange(technologies)
+                            }}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Comma-separated list of technologies, frameworks, or tools
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* URL - Optional, Full Width */}
+                  <FormField
+                    control={form.control}
+                    name={`projects.${index}.url`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Project URL</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="url"
+                            placeholder="https://github.com/username/project"
+                            {...field}
+                            maxLength={500}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Link to live demo, GitHub repo, or portfolio page
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              ))}
+
+              {projectFields.length === 0 && (
+                <div className="text-center py-8 text-slate-500">
+                  <p className="mb-4">No projects added yet</p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() =>
+                      appendProject({
+                        title: '',
+                        description: '',
+                        year: '',
+                        technologies: [],
+                        url: '',
+                      })
+                    }
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Your First Project
+                  </Button>
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
 
