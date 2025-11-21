@@ -8,7 +8,7 @@ import { featureFlags } from './config'
 export const RATE_LIMITS = {
   resume_update: { limit: 10, windowHours: 1 },
   privacy_update: { limit: 20, windowHours: 1 },
-  handle_change: { limit: 3, windowHours: 24 },
+  handle_change: { limit: 5, windowHours: 24 },
   resume_upload: { limit: 5, windowHours: 24 },
 } as const
 
@@ -66,10 +66,9 @@ export async function checkRateLimit(
       }
 
       case 'handle_change': {
-        // Use profiles.updated_at to track handle changes
-        // This is less precise than a dedicated audit table, but sufficient for rate limiting
-        // Note: This will also count privacy_settings updates, but that's acceptable
-        // since the limit is generous (3 per 24h)
+        // TODO: This currently shares counter with privacy_update since both
+        // update profiles.updated_at. Consider adding audit_log table for
+        // precise tracking. For now, limit is set higher to account for overlap.
         const { count: changeCount, error } = await supabase
           .from('profiles')
           .select('*', { count: 'exact', head: true })
