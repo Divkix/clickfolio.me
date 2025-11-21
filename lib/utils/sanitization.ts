@@ -31,7 +31,7 @@ export function sanitizeUrl(input: string): string {
   const trimmed = input.trim()
 
   // Normalize unicode whitespace before protocol checks
-  const normalized = input
+  const normalized = trimmed
     .replace(/[\s\u200B-\u200D\uFEFF\u202F\u00A0]/g, '')
     .toLowerCase()
 
@@ -121,8 +121,9 @@ export function containsXssPattern(input: string): boolean {
     return true
   }
 
-  // Check for base64 encoded data URIs
-  if (/data:.*base64/i.test(input)) return true
+  // Check for base64 encoded data URIs with dangerous MIME types only
+  // Don't flag legitimate image data URIs like data:image/png;base64,...
+  if (/data:(?:text\/html|application\/javascript|text\/javascript|image\/svg\+xml)[^,]*;base64/i.test(input)) return true
 
   // Check for SVG tags (can contain event handlers)
   if (/<svg/i.test(input)) return true
