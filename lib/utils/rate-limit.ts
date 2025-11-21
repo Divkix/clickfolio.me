@@ -66,9 +66,10 @@ export async function checkRateLimit(
       }
 
       case 'handle_change': {
-        // TODO: This currently shares counter with privacy_update since both
-        // update profiles.updated_at. Consider adding audit_log table for
-        // precise tracking. For now, limit is set higher to account for overlap.
+        // TODO: Both handle_change and privacy_update share the same flawed counter
+        // since both update profiles.updated_at. Additionally, the query only returns
+        // 0 or 1 since we filter by unique ID. Consider adding audit_log table for
+        // precise tracking of all profile changes. For now, limit is set higher to account for overlap.
         const { count: changeCount, error } = await supabase
           .from('profiles')
           .select('*', { count: 'exact', head: true })

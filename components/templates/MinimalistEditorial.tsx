@@ -37,7 +37,7 @@ const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile }) => {
             {/* Avatar - only rendered if URL is valid */}
             {isValidImageUrl(profile.avatar_url) && (
               <img
-                src={profile.avatar_url!}
+                src={profile.avatar_url as string}
                 alt={`${content.full_name} avatar`}
                 className="w-24 h-24 rounded-full object-cover mb-8 border border-neutral-200"
               />
