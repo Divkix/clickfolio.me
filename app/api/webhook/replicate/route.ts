@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { normalizeResumeData } from '@/lib/replicate'
 import { verifyReplicateWebhook } from '@/lib/utils/webhook-verification'
 
@@ -23,8 +23,8 @@ export async function POST(request: Request) {
       return new Response('OK', { status: 200 })
     }
 
-    // 4. Find resume by replicate_job_id
-    const supabase = await createClient()
+    // 4. Find resume by replicate_job_id (use admin client to bypass RLS)
+    const supabase = createAdminClient()
     const { data: resume, error: fetchError } = await supabase
       .from('resumes')
       .select('id, user_id, status')
