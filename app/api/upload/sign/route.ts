@@ -4,8 +4,44 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { getR2Client, getR2Bucket } from '@/lib/r2'
 import { generateTempKey } from '@/lib/utils/validation'
 
+// Simple in-memory rate limiter for anonymous uploads
+// Note: Resets on cold starts. For production, use Cloudflare WAF rules.
+const ipRequestCounts = new Map<string, { count: number; resetAt: number }>()
+const RATE_LIMIT = 10 // requests per minute
+const RATE_WINDOW = 60 * 1000 // 1 minute
+
+function checkIpRateLimit(ip: string): boolean {
+  const now = Date.now()
+  const record = ipRequestCounts.get(ip)
+
+  if (!record || now > record.resetAt) {
+    ipRequestCounts.set(ip, { count: 1, resetAt: now + RATE_WINDOW })
+    return true
+  }
+
+  if (record.count >= RATE_LIMIT) {
+    return false
+  }
+
+  record.count++
+  return true
+}
+
 export async function POST(request: Request) {
   try {
+    // Rate limit by IP to prevent abuse
+    const ip =
+      request.headers.get('cf-connecting-ip') ||
+      request.headers.get('x-forwarded-for')?.split(',')[0] ||
+      'unknown'
+
+    if (!checkIpRateLimit(ip)) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        { status: 429, headers: { 'Retry-After': '60' } }
+      )
+    }
+
     const { filename } = await request.json()
 
     if (!filename || typeof filename !== 'string') {
