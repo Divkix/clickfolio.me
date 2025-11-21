@@ -5,23 +5,40 @@
 
 import { ENV } from '@/lib/env'
 
+/**
+ * Constant-time string comparison to prevent timing attacks
+ */
+function constantTimeCompare(a: string, b: string): boolean {
+  if (a.length !== b.length) return false
+  let result = 0
+  for (let i = 0; i < a.length; i++) {
+    result |= a.charCodeAt(i) ^ b.charCodeAt(i)
+  }
+  return result === 0
+}
+
 export async function verifyReplicateWebhook(request: Request): Promise<{ isValid: boolean; body: string }> {
   const webhookId = request.headers.get('webhook-id')
   const webhookTimestamp = request.headers.get('webhook-timestamp')
   const webhookSignature = request.headers.get('webhook-signature')
 
   if (!webhookId || !webhookTimestamp || !webhookSignature) {
-    console.error('Missing webhook headers')
+    const missing = [
+      !webhookId && 'webhook-id',
+      !webhookTimestamp && 'webhook-timestamp',
+      !webhookSignature && 'webhook-signature',
+    ].filter(Boolean)
+    console.error(`Missing webhook headers: ${missing.join(', ')}`)
     return { isValid: false, body: '' }
   }
 
   // Read body
   const body = await request.text()
 
-  // Check timestamp (prevent replay attacks - 5 min tolerance)
+  // Check timestamp (prevent replay attacks - 1 min tolerance)
   const now = Math.floor(Date.now() / 1000)
   const timestamp = parseInt(webhookTimestamp, 10)
-  if (Math.abs(now - timestamp) > 300) {
+  if (Math.abs(now - timestamp) > 60) {
     console.error('Webhook timestamp too old')
     return { isValid: false, body }
   }
@@ -37,11 +54,20 @@ export async function verifyReplicateWebhook(request: Request): Promise<{ isVali
   // Construct signed content
   const signedContent = `${webhookId}.${webhookTimestamp}.${body}`
 
+  // Decode base64 secret
+  let secretBytes: Uint8Array
+  try {
+    secretBytes = Uint8Array.from(atob(secretKey), c => c.charCodeAt(0))
+  } catch (err) {
+    console.error('Failed to decode webhook secret')
+    return { isValid: false, body }
+  }
+
   // Compute HMAC-SHA256
   const encoder = new TextEncoder()
   const key = await crypto.subtle.importKey(
     'raw',
-    Uint8Array.from(atob(secretKey), c => c.charCodeAt(0)),
+    secretBytes,
     { name: 'HMAC', hash: 'SHA-256' },
     false,
     ['sign']
@@ -55,8 +81,8 @@ export async function verifyReplicateWebhook(request: Request): Promise<{ isVali
     return { version, sig }
   })
 
-  // Compare signatures (constant-time would be better but this works)
-  const isValid = signatures.some(({ sig }) => sig === computedSignature)
+  // Compare signatures using constant-time comparison to prevent timing attacks
+  const isValid = signatures.some(({ sig }) => constantTimeCompare(sig, computedSignature))
 
   return { isValid, body }
 }
