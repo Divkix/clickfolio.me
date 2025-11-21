@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { handleUpdateSchema, type HandleUpdate } from '@/lib/schemas/profile'
 import { siteConfig } from '@/lib/config/site'
+import { copyToClipboard } from '@/lib/utils/clipboard'
 
 interface HandleFormProps {
   currentHandle: string
@@ -37,14 +38,14 @@ export function HandleForm({ currentHandle }: HandleFormProps) {
   const newHandle = watch('handle')
   const publicUrl = `${siteConfig.domain}/${newHandle || currentHandle}`
 
-  const copyToClipboard = async () => {
-    try {
-      await navigator.clipboard.writeText(`https://${publicUrl}`)
+  const handleCopy = async () => {
+    const success = await copyToClipboard(`https://${publicUrl}`)
+
+    if (success) {
       setCopied(true)
       toast.success('URL copied to clipboard')
       setTimeout(() => setCopied(false), 2000)
-    } catch (err) {
-      console.error('Copy error:', err)
+    } else {
       toast.error('Failed to copy URL')
     }
   }
@@ -118,7 +119,7 @@ export function HandleForm({ currentHandle }: HandleFormProps) {
                 type="button"
                 variant="outline"
                 size="icon"
-                onClick={copyToClipboard}
+                onClick={handleCopy}
                 className="shrink-0"
               >
                 {copied ? (

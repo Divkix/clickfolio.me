@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Link2, Check } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { copyToClipboard } from '@/lib/utils/clipboard'
 
 interface CopyLinkButtonProps {
   handle: string
@@ -12,44 +13,23 @@ interface CopyLinkButtonProps {
 export function CopyLinkButton({ handle }: CopyLinkButtonProps) {
   const [copied, setCopied] = useState(false)
 
-  const copyToClipboard = async () => {
+  const handleCopy = async () => {
     const url = `${window.location.origin}/${handle}`
 
-    try {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(url)
-        setCopied(true)
-        toast.success('Link copied to clipboard!')
-        setTimeout(() => setCopied(false), 2000)
-      } else {
-        // Fallback for browsers without Clipboard API
-        const textArea = document.createElement('textarea')
-        textArea.value = url
-        textArea.style.position = 'fixed'
-        textArea.style.left = '-999999px'
-        document.body.appendChild(textArea)
-        textArea.focus()
-        textArea.select()
+    const success = await copyToClipboard(url)
 
-        try {
-          document.execCommand('copy')
-          setCopied(true)
-          toast.success('Link copied to clipboard!')
-          setTimeout(() => setCopied(false), 2000)
-        } catch {
-          toast.error('Failed to copy link. Please copy manually.')
-        }
-
-        document.body.removeChild(textArea)
-      }
-    } catch {
-      toast.error('Failed to copy link')
+    if (success) {
+      setCopied(true)
+      toast.success('Link copied to clipboard!')
+      setTimeout(() => setCopied(false), 2000)
+    } else {
+      toast.error('Failed to copy link. Please copy manually.')
     }
   }
 
   return (
     <button
-      onClick={copyToClipboard}
+      onClick={handleCopy}
       className={cn(
         'inline-flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all duration-300',
         copied
