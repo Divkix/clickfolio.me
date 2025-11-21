@@ -7,78 +7,48 @@ import {
 import { validateRequestSize } from '@/lib/utils/validation'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
-import { sanitizeText, containsXssPattern } from '@/lib/utils/sanitization'
-import type { ResumeContent, Json } from '@/lib/types/database'
+
+const VALID_THEMES = ['bento', 'glass', 'minimalist_editorial', 'neo_brutalist'] as const
 
 /**
  * Wizard completion request schema
- * Validates the structure of experience updates and user inputs
+ * Validates handle, privacy settings, and theme selection
  */
-const experienceUpdateSchema = z.object({
-  index: z.number().int().min(0).max(9),
-  description: z
-    .string()
-    .trim()
-    .min(1, 'Description is required')
-    .max(5000, 'Description is too long (max 5000 characters)')
-    .refine(
-      (val) => !containsXssPattern(val),
-      { message: 'Invalid content detected' }
-    ),
-})
-
 const wizardCompleteSchema = z.object({
-  role: z.enum([
-    'student',
-    'recent_graduate',
-    'junior_professional',
-    'mid_level_professional',
-    'senior_professional',
-    'freelancer',
-  ]),
-  headline: z
+  handle: z
     .string()
     .trim()
-    .min(1, 'Headline is required')
-    .max(200, 'Headline is too long')
-    .refine(
-      (val) => !containsXssPattern(val),
-      { message: 'Invalid content detected' }
+    .min(3, 'Handle must be at least 3 characters')
+    .max(30, 'Handle must be at most 30 characters')
+    .regex(
+      /^[a-z0-9-]+$/,
+      'Handle can only contain lowercase letters, numbers, and hyphens'
     )
-    .transform(sanitizeText),
-  summary: z
-    .string()
-    .trim()
-    .min(1, 'Summary is required')
-    .max(10000, 'Summary is too long (max 10000 characters)')
-    .refine(
-      (val) => !containsXssPattern(val),
-      { message: 'Invalid content detected' }
-    )
-    .transform(sanitizeText),
-  experience_updates: z
-    .array(experienceUpdateSchema)
-    .max(10, 'Maximum 10 experience updates allowed')
-    .optional(),
+    .regex(/^[^-].*[^-]$/, 'Handle cannot start or end with a hyphen'),
+  privacy_settings: z.object({
+    show_phone: z.boolean(),
+    show_address: z.boolean(),
+  }),
+  theme_id: z.enum(VALID_THEMES),
 })
 
 type WizardCompleteRequest = z.infer<typeof wizardCompleteSchema>
 
 /**
  * POST /api/wizard/complete
- * Completes the onboarding wizard by updating user profile and site content
+ * Completes the onboarding wizard by setting handle, privacy, and theme
  *
  * Request body:
  * {
- *   role: 'student' | 'recent_graduate' | 'junior_professional' | 'mid_level_professional' | 'senior_professional' | 'freelancer',
- *   headline: string,
- *   summary: string,
- *   experience_updates: [{ index: number, description: string }]
+ *   handle: string,
+ *   privacy_settings: { show_phone: boolean, show_address: boolean },
+ *   theme_id: 'bento' | 'glass' | 'minimalist_editorial' | 'neo_brutalist'
  * }
  *
  * Response:
  * {
- *   success: true
+ *   success: true,
+ *   handle: string
  * }
  */
 export async function POST(request: Request) {
@@ -132,13 +102,38 @@ export async function POST(request: Request) {
       )
     }
 
-    // 4. Update profiles table with role and mark onboarding as completed
+    // 4. Check if handle is available (not already taken)
+    const { data: existingHandle, error: checkError } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('handle', body.handle)
+      .maybeSingle()
+
+    if (checkError) {
+      console.error('Handle check error:', checkError)
+      return createErrorResponse(
+        'Failed to check handle availability. Please try again.',
+        ERROR_CODES.DATABASE_ERROR,
+        500
+      )
+    }
+
+    if (existingHandle && existingHandle.id !== user.id) {
+      return createErrorResponse(
+        'This handle is already taken. Please choose another.',
+        ERROR_CODES.VALIDATION_ERROR,
+        400,
+        { field: 'handle', message: 'Handle already taken' }
+      )
+    }
+
+    // 5. Update profiles table with handle, privacy settings, and mark onboarding as completed
     const { error: profileError } = await supabase
       .from('profiles')
       .update({
-        role: body.role,
+        handle: body.handle,
+        privacy_settings: body.privacy_settings,
         onboarding_completed: true,
-        headline: body.headline,
         updated_at: new Date().toISOString(),
       })
       .eq('id', user.id)
@@ -152,81 +147,30 @@ export async function POST(request: Request) {
       )
     }
 
-    // 5. Fetch current site_data for the user
-    const { data: siteData, error: fetchError } = await supabase
-      .from('site_data')
-      .select('id, content')
-      .eq('user_id', user.id)
-      .single()
-
-    if (fetchError || !siteData) {
-      console.error('Site data fetch error:', fetchError)
-      return createErrorResponse(
-        'Failed to fetch site data. Please try again.',
-        ERROR_CODES.NOT_FOUND,
-        404
-      )
-    }
-
-    // 6. Update content JSON with new headline, summary, and experience descriptions
-    const currentContent = siteData.content as unknown as ResumeContent
-    const updatedContent: ResumeContent = {
-      ...currentContent,
-      headline: body.headline,
-      summary: body.summary,
-    }
-
-    // Apply experience updates if provided
-    if (body.experience_updates && body.experience_updates.length > 0) {
-      const experience = [...(updatedContent.experience || [])]
-
-      for (const update of body.experience_updates) {
-        if (update.index >= 0 && update.index < experience.length) {
-          experience[update.index] = {
-            ...experience[update.index],
-            description: update.description,
-          }
-        }
-      }
-
-      updatedContent.experience = experience
-    }
-
-    // 7. Save updated content back to site_data and update last_published_at
-    const { error: updateError } = await supabase
+    // 6. Update site_data with theme_id
+    const { error: siteDataError } = await supabase
       .from('site_data')
       .update({
-        content: updatedContent as unknown as Json,
+        theme_id: body.theme_id,
         last_published_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })
-      .eq('id', siteData.id)
+      .eq('user_id', user.id)
 
-    if (updateError) {
-      console.error('Site data update error:', updateError)
-      return createErrorResponse(
-        'Failed to update site content. Please try again.',
-        ERROR_CODES.DATABASE_ERROR,
-        500
-      )
+    if (siteDataError) {
+      console.error('Site data update error:', siteDataError)
+      // Don't fail if site_data doesn't exist yet - it will be created when resume is parsed
+      // Just log the error and continue
+      console.warn('Site data update failed, but continuing wizard completion')
     }
 
-    // 8. Revalidate public page cache if handle exists
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('handle')
-      .eq('id', user.id)
-      .single()
+    // 7. Revalidate public page cache with new handle
+    revalidatePath(`/${body.handle}`)
 
-    if (profile?.handle) {
-      // Revalidate the public resume page immediately
-      // Next visitor will see updated content
-      revalidatePath(`/${profile.handle}`)
-    }
-
-    // 9. Return success response
+    // 8. Return success response
     return createSuccessResponse({
       success: true,
+      handle: body.handle,
     })
   } catch (error) {
     console.error('Unexpected error in wizard completion:', error)

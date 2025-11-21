@@ -1,0 +1,205 @@
+'use client'
+
+import { useState, useEffect, useCallback } from 'react'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Button } from '@/components/ui/button'
+import { createClient } from '@/lib/supabase/client'
+import { Check, X, Loader2, User } from 'lucide-react'
+
+interface HandleStepProps {
+  initialHandle?: string
+  onContinue: (handle: string) => void
+}
+
+/**
+ * Step 1: Handle Selection Component
+ * Allows users to choose their unique username/handle
+ */
+export function HandleStep({ initialHandle = '', onContinue }: HandleStepProps) {
+  const [handle, setHandle] = useState(initialHandle)
+  const [isChecking, setIsChecking] = useState(false)
+  const [isAvailable, setIsAvailable] = useState<boolean | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  // Debounced availability check
+  const checkAvailability = useCallback(async (value: string) => {
+    if (!value || value.length < 3) {
+      setIsAvailable(null)
+      return
+    }
+
+    setIsChecking(true)
+    setError(null)
+
+    try {
+      const supabase = createClient()
+      const { data, error: dbError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('handle', value)
+        .maybeSingle()
+
+      if (dbError) throw dbError
+
+      setIsAvailable(!data) // Available if no existing profile found
+    } catch (err) {
+      console.error('Error checking handle availability:', err)
+      setError('Failed to check availability')
+      setIsAvailable(null)
+    } finally {
+      setIsChecking(false)
+    }
+  }, [])
+
+  // Debounce the availability check
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (handle && handle.length >= 3) {
+        checkAvailability(handle)
+      }
+    }, 500)
+
+    return () => clearTimeout(timer)
+  }, [handle, checkAvailability])
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value
+      .toLowerCase()
+      .replace(/[^a-z0-9-]/g, '') // Only allow alphanumeric and hyphens
+      .replace(/^-+|-+$/g, '') // Remove leading/trailing hyphens
+      .replace(/-+/g, '-') // Collapse multiple hyphens
+      .slice(0, 30) // Max 30 characters
+
+    setHandle(value)
+
+    // Reset states while typing
+    setIsAvailable(null)
+    setError(null)
+
+    // Validate length
+    if (value.length > 0 && value.length < 3) {
+      setError('Handle must be at least 3 characters')
+    }
+  }
+
+  const handleSubmit = () => {
+    if (isAvailable && handle.length >= 3) {
+      onContinue(handle)
+    }
+  }
+
+  const canContinue = isAvailable && handle.length >= 3 && !isChecking
+
+  return (
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="text-center">
+        <div className="mx-auto w-16 h-16 bg-gradient-to-r from-indigo-100 to-blue-100 rounded-2xl flex items-center justify-center mb-6">
+          <User className="w-8 h-8 text-indigo-600" />
+        </div>
+        <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-3 leading-tight">
+          Choose Your Handle
+        </h1>
+        <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+          This will be your unique URL. Choose something professional and memorable.
+        </p>
+      </div>
+
+      {/* Handle Input */}
+      <div className="max-w-md mx-auto space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="handle" className="text-sm font-semibold text-slate-700">
+            Your Handle
+          </Label>
+          <div className="relative">
+            <Input
+              id="handle"
+              type="text"
+              value={handle}
+              onChange={handleChange}
+              placeholder="johnsmith"
+              className="pr-10 text-lg"
+              autoFocus
+            />
+            {/* Status Icon */}
+            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+              {isChecking && (
+                <Loader2 className="w-5 h-5 text-slate-400 animate-spin" />
+              )}
+              {!isChecking && isAvailable === true && (
+                <Check className="w-5 h-5 text-green-600" />
+              )}
+              {!isChecking && isAvailable === false && (
+                <X className="w-5 h-5 text-red-600" />
+              )}
+            </div>
+          </div>
+
+          {/* URL Preview */}
+          {handle && (
+            <p className="text-sm text-slate-500 font-medium">
+              Your resume will be at:{' '}
+              <span className="text-indigo-600 font-semibold">
+                webresume.now/{handle}
+              </span>
+            </p>
+          )}
+
+          {/* Error/Success Messages */}
+          {error && (
+            <p className="text-sm text-red-600 font-medium flex items-center gap-1">
+              <X className="w-4 h-4" />
+              {error}
+            </p>
+          )}
+          {!isChecking && isAvailable === false && (
+            <p className="text-sm text-red-600 font-medium flex items-center gap-1">
+              <X className="w-4 h-4" />
+              This handle is already taken
+            </p>
+          )}
+          {!isChecking && isAvailable === true && (
+            <p className="text-sm text-green-600 font-medium flex items-center gap-1">
+              <Check className="w-4 h-4" />
+              This handle is available!
+            </p>
+          )}
+        </div>
+
+        {/* Requirements */}
+        <div className="bg-slate-50 border border-slate-200/60 rounded-xl p-4">
+          <p className="text-xs font-semibold text-slate-700 mb-2">Requirements:</p>
+          <ul className="text-xs text-slate-600 space-y-1">
+            <li className={handle.length >= 3 ? 'text-green-600' : ''}>
+              • At least 3 characters
+            </li>
+            <li className={/^[a-z0-9-]+$/.test(handle) ? 'text-green-600' : ''}>
+              • Only lowercase letters, numbers, and hyphens
+            </li>
+            <li className={!/^-|-$/.test(handle) ? 'text-green-600' : ''}>
+              • Cannot start or end with a hyphen
+            </li>
+          </ul>
+        </div>
+
+        {/* Continue Button */}
+        <Button
+          onClick={handleSubmit}
+          disabled={!canContinue}
+          className="w-full bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-semibold shadow-depth-sm hover:shadow-depth-md transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+          size="lg"
+        >
+          Continue
+        </Button>
+      </div>
+
+      {/* Help Text */}
+      <div className="text-center">
+        <p className="text-sm text-slate-500 font-medium">
+          You can change your handle later in settings.
+        </p>
+      </div>
+    </div>
+  )
+}

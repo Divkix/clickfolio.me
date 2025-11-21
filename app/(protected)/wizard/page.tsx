@@ -4,39 +4,38 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import type { ResumeContent } from '@/lib/types/database'
-import {
-  WizardProgress,
-  Step1Role,
-  Step2Headline,
-  Step3Summary,
-  Step4Experience,
-} from '@/components/wizard'
-import { Loader2, AlertCircle } from 'lucide-react'
+import type { ThemeId } from '@/lib/templates/theme-registry'
+import { HandleStep } from '@/components/wizard/HandleStep'
+import { ReviewStep } from '@/components/wizard/ReviewStep'
+import { PrivacyStep } from '@/components/wizard/PrivacyStep'
+import { ThemeStep } from '@/components/wizard/ThemeStep'
+import { WizardProgress } from '@/components/wizard'
+import { Loader2 } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { toast } from 'sonner'
 
 interface WizardState {
   currentStep: number
   resumeData: ResumeContent | null
-  selectedRole: string | null
-  formData: {
-    headline: string
-    summary: string
-    experience_updates: Array<{ index: number; description: string }>
+  handle: string
+  privacySettings: {
+    show_phone: boolean
+    show_address: boolean
   }
+  themeId: ThemeId
 }
 
 const TOTAL_STEPS = 4
 
 /**
  * Wizard Page - Multi-step onboarding flow
- * Guides users through completing their profile after AI parsing
+ * Guides users through completing their profile setup
  *
  * Steps:
- * 1. Role Selection - Choose career stage
- * 2. Headline Generation - Create professional headline
- * 3. Summary Enhancement - Polish professional summary
- * 4. Experience Polish - Enhance job descriptions
+ * 1. Handle Selection - Choose unique username
+ * 2. Content Review - Verify parsed resume data
+ * 3. Privacy Settings - Configure visibility of sensitive info
+ * 4. Theme Selection - Choose resume template design
  */
 export default function WizardPage() {
   const router = useRouter()
@@ -46,12 +45,12 @@ export default function WizardPage() {
   const [state, setState] = useState<WizardState>({
     currentStep: 1,
     resumeData: null,
-    selectedRole: null,
-    formData: {
-      headline: '',
-      summary: '',
-      experience_updates: [],
+    handle: '',
+    privacySettings: {
+      show_phone: false,
+      show_address: false,
     },
+    themeId: 'minimalist_editorial',
   })
 
   // Fetch resume data on mount + handle upload claiming
@@ -175,41 +174,10 @@ export default function WizardPage() {
 
         const content = siteData.content as unknown as ResumeContent
 
-        // 4. Check if wizard is needed
-        // Skip if all critical fields are complete
-        const hasHeadline = content.headline?.trim().length > 0
-        const hasSummary = content.summary?.trim().length > 0
-        const hasDescriptions = content.experience?.every(
-          (exp) => exp.description?.trim().length > 0
-        )
-
-        if (hasHeadline && hasSummary && hasDescriptions) {
-          // Profile is already complete, mark onboarding as done and redirect
-          try {
-            await supabase
-              .from('profiles')
-              .update({ onboarding_completed: true })
-              .eq('id', user.id)
-
-            toast.success('Your profile is already complete!')
-            router.push('/dashboard')
-          } catch (updateError) {
-            console.error('Failed to mark onboarding complete:', updateError)
-            // Continue to wizard anyway, user can complete it manually
-            toast.info('Please complete the wizard to finalize your profile')
-          }
-          return
-        }
-
-        // 5. Load resume data into state
+        // 4. Load resume data into state
         setState((prev) => ({
           ...prev,
           resumeData: content,
-          formData: {
-            headline: content.headline || '',
-            summary: content.summary || '',
-            experience_updates: [],
-          },
         }))
       } catch (err) {
         console.error('Error initializing wizard:', err)
@@ -222,50 +190,36 @@ export default function WizardPage() {
     initializeWizard()
   }, [router])
 
-  // Handler for role selection (Step 1)
-  const handleRoleSelect = (roleId: string) => {
+  // Handler for handle selection (Step 1)
+  const handleHandleContinue = (handle: string) => {
     setState((prev) => ({
       ...prev,
-      selectedRole: roleId,
+      handle,
       currentStep: 2,
     }))
   }
 
-  // Handler for headline change (Step 2)
-  const handleHeadlineChange = (value: string) => {
-    setState((prev) => ({
-      ...prev,
-      formData: { ...prev.formData, headline: value },
-    }))
-  }
-
-  // Handler for headline next (Step 2)
-  const handleHeadlineNext = () => {
+  // Handler for review continue (Step 2)
+  const handleReviewContinue = () => {
     setState((prev) => ({ ...prev, currentStep: 3 }))
   }
 
-  // Handler for summary change (Step 3)
-  const handleSummaryChange = (value: string) => {
+  // Handler for privacy settings (Step 3)
+  const handlePrivacyContinue = (settings: { show_phone: boolean; show_address: boolean }) => {
     setState((prev) => ({
       ...prev,
-      formData: { ...prev.formData, summary: value },
+      privacySettings: settings,
+      currentStep: 4,
     }))
   }
 
-  // Handler for summary next (Step 3)
-  const handleSummaryNext = () => {
-    setState((prev) => ({ ...prev, currentStep: 4 }))
-  }
-
   // Handler for wizard completion (Step 4)
-  const handleComplete = async (
-    experienceUpdates: Array<{ index: number; description: string }>
-  ) => {
+  const handleThemeContinue = async (themeId: ThemeId) => {
     try {
       // Update local state
       setState((prev) => ({
         ...prev,
-        formData: { ...prev.formData, experience_updates: experienceUpdates },
+        themeId,
       }))
 
       // Call wizard completion API
@@ -273,21 +227,20 @@ export default function WizardPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          role: state.selectedRole,
-          headline: state.formData.headline,
-          summary: state.formData.summary,
-          experience_updates: experienceUpdates,
+          handle: state.handle,
+          privacy_settings: state.privacySettings,
+          theme_id: themeId,
         }),
       })
 
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to save changes')
+        throw new Error(data.error || 'Failed to complete setup')
       }
 
       // Show success message and redirect
-      toast.success('Profile completed successfully!')
+      toast.success('Profile setup completed successfully!')
       router.push('/dashboard')
     } catch (err) {
       console.error('Error completing wizard:', err)
@@ -296,11 +249,6 @@ export default function WizardPage() {
       setError(errorMessage)
       toast.error(errorMessage)
     }
-  }
-
-  // Handler for back navigation
-  const handleBack = (targetStep: number) => {
-    setState((prev) => ({ ...prev, currentStep: targetStep }))
   }
 
   // Calculate progress percentage
@@ -359,50 +307,46 @@ export default function WizardPage() {
       />
 
       {/* Step Content */}
-      <main className="max-w-3xl mx-auto px-4 py-12">
+      <main className="max-w-5xl mx-auto px-4 py-12">
         {/* Error Alert (shown inline for steps 2-4) */}
         {error && state.currentStep > 1 && (
           <Alert className="mb-6 border-red-200 bg-red-50">
-            <AlertCircle className="w-4 h-4 text-red-600" />
             <AlertDescription className="text-red-900">
               {error}
             </AlertDescription>
           </Alert>
         )}
 
-        {/* Step 1: Role Selection */}
+        {/* Step 1: Handle Selection */}
         {state.currentStep === 1 && (
-          <Step1Role onSelect={handleRoleSelect} />
-        )}
-
-        {/* Step 2: Headline Generator */}
-        {state.currentStep === 2 && (
-          <Step2Headline
-            role={state.selectedRole}
-            currentValue={state.formData.headline}
-            onChange={handleHeadlineChange}
-            onNext={handleHeadlineNext}
-            onBack={() => handleBack(1)}
+          <HandleStep
+            initialHandle={state.handle}
+            onContinue={handleHandleContinue}
           />
         )}
 
-        {/* Step 3: Summary Generator */}
-        {state.currentStep === 3 && (
-          <Step3Summary
-            role={state.selectedRole}
-            currentValue={state.formData.summary}
-            onChange={handleSummaryChange}
-            onNext={handleSummaryNext}
-            onBack={() => handleBack(2)}
+        {/* Step 2: Content Review */}
+        {state.currentStep === 2 && state.resumeData && (
+          <ReviewStep
+            content={state.resumeData}
+            onContinue={handleReviewContinue}
           />
         )}
 
-        {/* Step 4: Experience Descriptions */}
+        {/* Step 3: Privacy Settings */}
+        {state.currentStep === 3 && state.resumeData && (
+          <PrivacyStep
+            content={state.resumeData}
+            initialSettings={state.privacySettings}
+            onContinue={handlePrivacyContinue}
+          />
+        )}
+
+        {/* Step 4: Theme Selection */}
         {state.currentStep === 4 && (
-          <Step4Experience
-            experience={state.resumeData?.experience || []}
-            onSave={handleComplete}
-            onBack={() => handleBack(3)}
+          <ThemeStep
+            initialTheme={state.themeId}
+            onContinue={handleThemeContinue}
           />
         )}
       </main>

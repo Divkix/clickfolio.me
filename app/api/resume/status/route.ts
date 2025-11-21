@@ -109,12 +109,12 @@ export async function GET(request: Request) {
 
         // Upsert to site_data (ON CONFLICT user_id DO UPDATE)
         // TypeScript workaround: JSON parse/stringify to satisfy Json type
+        // Note: theme_id will be set by wizard completion, not here
         const { error: upsertError } = await supabase.from('site_data').upsert(
           {
             user_id: user.id,
             resume_id: resumeId,
             content: JSON.parse(JSON.stringify(normalizedContent)),
-            theme_id: 'minimalist_creme',
             last_published_at: new Date().toISOString(),
           },
           {
