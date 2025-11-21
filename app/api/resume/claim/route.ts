@@ -214,7 +214,7 @@ export async function POST(request: Request) {
       // Continue - temp file cleanup failure is not critical
     }
 
-    // 11. Generate presigned URL for Replicate (7 day expiry)
+    // 11. Generate presigned URL for Replicate
     const getCommand = new GetObjectCommand({
       Bucket: R2_BUCKET,
       Key: newKey,
@@ -223,7 +223,7 @@ export async function POST(request: Request) {
     let presignedUrl: string
     try {
       presignedUrl = await getSignedUrl(r2Client, getCommand, {
-        expiresIn: 7 * 24 * 60 * 60, // 7 days
+        expiresIn: 3600, // 1 hour - sufficient for Replicate to fetch
       })
     } catch (error) {
       console.error('Presigned URL generation error:', error)

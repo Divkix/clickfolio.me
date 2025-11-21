@@ -90,7 +90,7 @@ export async function POST(request: Request) {
     })
 
     const presignedUrl = await getSignedUrl(r2Client, getCommand, {
-      expiresIn: 7 * 24 * 60 * 60, // 7 days
+      expiresIn: 3600, // 1 hour - sufficient for Replicate to fetch
     })
 
     // 6. Trigger new Replicate parsing job
