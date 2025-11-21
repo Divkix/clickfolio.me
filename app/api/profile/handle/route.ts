@@ -8,6 +8,7 @@ import {
   ERROR_CODES,
 } from '@/lib/utils/security-headers'
 import { revalidatePath } from 'next/cache'
+import { requireAuthWithMessage } from '@/lib/auth/middleware'
 
 /**
  * PUT /api/profile/handle
@@ -26,21 +27,12 @@ export async function PUT(request: Request) {
       )
     }
 
-    const supabase = await createClient()
-
     // 2. Authenticate user
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
+    const authResult = await requireAuthWithMessage('You must be logged in to update your handle')
+    if (authResult.error) return authResult.error
+    const { user } = authResult
 
-    if (authError || !user) {
-      return createErrorResponse(
-        'You must be logged in to update your handle',
-        ERROR_CODES.UNAUTHORIZED,
-        401
-      )
-    }
+    const supabase = await createClient()
 
     // 3. Check rate limit (3 handle changes per 24 hours)
     const rateLimitResponse = await enforceRateLimit(user.id, 'handle_change')

@@ -6,6 +6,7 @@ import {
   createSuccessResponse,
   ERROR_CODES,
 } from '@/lib/utils/security-headers'
+import { requireAuthWithMessage } from '@/lib/auth/middleware'
 
 /**
  * PUT /api/profile/privacy
@@ -14,21 +15,12 @@ import {
  */
 export async function PUT(request: Request) {
   try {
-    const supabase = await createClient()
-
     // 1. Authenticate user
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
+    const authResult = await requireAuthWithMessage('You must be logged in to update privacy settings')
+    if (authResult.error) return authResult.error
+    const { user } = authResult
 
-    if (authError || !user) {
-      return createErrorResponse(
-        'You must be logged in to update privacy settings',
-        ERROR_CODES.UNAUTHORIZED,
-        401
-      )
-    }
+    const supabase = await createClient()
 
     // 2. Check rate limit (20 updates per hour)
     const rateLimitResponse = await enforceRateLimit(

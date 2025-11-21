@@ -112,7 +112,7 @@
       - [ ] Return `completed` to client.
 
 - [ ] **4.3. The "Waiting Room" UX**
-  - [ ] Build `/onboarding/processing` page.
+  - [ ] Build `/waiting` page.
   - [ ] Logic: `useInterval` to poll status API every 3 seconds.
   - [ ] UI: Simple stepper or loading bar.
   - [ ] Success: When status is `completed`, redirect to `/dashboard`.

@@ -79,46 +79,6 @@ export function sanitizeEmail(input: string): string {
   return trimmed.replace(/[<>'"]/g, '')
 }
 
-/**
- * Sanitizes HTML content while preserving basic formatting
- * Removes dangerous tags and attributes
- * Use sparingly - prefer sanitizeText for most use cases
- */
-export function sanitizeHtml(input: string): string {
-  if (!input) return ''
-
-  // Remove script tags and their content
-  let cleaned = input.replace(
-    /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
-    ''
-  )
-
-  // Remove iframe tags
-  cleaned = cleaned.replace(
-    /<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi,
-    ''
-  )
-
-  // Remove dangerous event handlers
-  cleaned = cleaned.replace(/\s*on\w+\s*=\s*["'][^"']*["']/gi, '')
-  cleaned = cleaned.replace(/\s*on\w+\s*=\s*[^\s>]*/gi, '')
-
-  // Remove style tags (can contain javascript)
-  cleaned = cleaned.replace(
-    /<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi,
-    ''
-  )
-
-  // Remove object and embed tags
-  cleaned = cleaned.replace(/<object\b[^>]*>.*?<\/object>/gi, '')
-  cleaned = cleaned.replace(/<embed\b[^>]*>/gi, '')
-
-  // Remove dangerous attributes
-  cleaned = cleaned.replace(/\s*javascript:/gi, '')
-  cleaned = cleaned.replace(/\s*data:/gi, '')
-
-  return cleaned
-}
 
 /**
  * Validates and sanitizes phone numbers
@@ -131,29 +91,6 @@ export function sanitizePhone(input: string): string {
   return input.replace(/[^0-9\s\-()+ ]/g, '').trim()
 }
 
-/**
- * Sanitizes markdown-like content
- * Removes dangerous HTML while preserving basic markdown
- */
-export function sanitizeMarkdown(input: string): string {
-  if (!input) return ''
-
-  // First sanitize HTML
-  let cleaned = sanitizeHtml(input)
-
-  // Remove any remaining HTML tags except basic formatting
-  const allowedTags = ['p', 'br', 'strong', 'em', 'u', 'code', 'pre']
-  const tagRegex = /<\/?([a-z][a-z0-9]*)\b[^>]*>/gi
-
-  cleaned = cleaned.replace(tagRegex, (match, tagName) => {
-    if (allowedTags.includes(tagName.toLowerCase())) {
-      return match
-    }
-    return ''
-  })
-
-  return cleaned
-}
 
 /**
  * Checks if a string contains potential XSS patterns
@@ -180,52 +117,3 @@ export function containsXssPattern(input: string): boolean {
   return false
 }
 
-/**
- * Truncates text to a maximum length while preserving word boundaries
- */
-export function truncateText(
-  text: string,
-  maxLength: number,
-  ellipsis = '...'
-): string {
-  if (!text || text.length <= maxLength) return text
-
-  const truncated = text.slice(0, maxLength - ellipsis.length)
-  const lastSpace = truncated.lastIndexOf(' ')
-
-  if (lastSpace > 0) {
-    return truncated.slice(0, lastSpace) + ellipsis
-  }
-
-  return truncated + ellipsis
-}
-
-/**
- * Removes null bytes and control characters that could cause issues
- */
-export function removeControlCharacters(input: string): string {
-  if (!input) return ''
-
-  // Remove null bytes and other control characters except newlines and tabs
-  return input.replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, '')
-}
-
-/**
- * Comprehensive sanitization for user-generated content
- * Applies multiple sanitization steps for maximum security
- */
-export function sanitizeUserContent(input: string): string {
-  if (!input) return ''
-
-  let sanitized = input.trim()
-  sanitized = removeControlCharacters(sanitized)
-  sanitized = sanitizeHtml(sanitized)
-
-  // Final check for XSS patterns
-  if (containsXssPattern(sanitized)) {
-    console.warn('XSS pattern detected in user content, returning empty string')
-    return ''
-  }
-
-  return sanitized
-}

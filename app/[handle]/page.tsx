@@ -3,7 +3,7 @@ import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import type { ResumeContent } from '@/lib/types/database'
 import { getTemplate } from '@/lib/templates/theme-registry'
-import { extractCityState } from '@/lib/utils/privacy'
+import { extractCityState, isValidPrivacySettings } from '@/lib/utils/privacy'
 import { AttributionWidget } from '@/components/AttributionWidget'
 import { siteConfig } from '@/lib/config/site'
 
@@ -24,17 +24,6 @@ interface PageProps {
 interface PrivacySettings {
   show_phone: boolean
   show_address: boolean
-}
-
-/**
- * Type guard to validate privacy settings
- */
-function isPrivacySettings(value: unknown): value is PrivacySettings {
-  if (!value || typeof value !== 'object') return false
-  const obj = value as Record<string, unknown>
-  return (
-    typeof obj.show_phone === 'boolean' && typeof obj.show_address === 'boolean'
-  )
 }
 
 /**
@@ -82,7 +71,7 @@ async function getResumeData(handle: string) {
   const content: ResumeContent = JSON.parse(JSON.stringify(siteData.content))
 
   // Apply privacy filtering with type guard
-  const privacySettings: PrivacySettings = isPrivacySettings(
+  const privacySettings: PrivacySettings = isValidPrivacySettings(
     data.privacy_settings
   )
     ? data.privacy_settings

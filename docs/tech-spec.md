@@ -110,8 +110,8 @@ The critical path is the anonymous-to-authenticated handoff.
     *   Key format: `temp/{random_uuid}/{filename}`.
     *   Client uploads file to R2.
     *   Client stores `key` in `localStorage.getItem('pending_resume')`.
-2.  **Auth**: User signs in with Google. Redirected to `/onboarding`.
-3.  **Claim**: On mount, `/onboarding` checks `localStorage`. If key exists:
+2.  **Auth**: User signs in with Google. Redirected to `/wizard`.
+3.  **Claim**: On mount, `/wizard` checks `localStorage`. If key exists:
     *   Calls `POST /api/resume/claim` with `{ key }`.
     *   **Server Logic**:
         1.  Validate `key` format.
@@ -210,7 +210,7 @@ We will execute in 5 strict phases. Do not move to the next phase until the curr
 1.  **Replicate Client**: Create `lib/replicate.ts`.
 2.  **Processing Queue**:
     *   Update `claim` API to trigger Replicate.
-    *   Implement a client-side poller in the "Waiting Room" UI (`/onboarding`):
+    *   Implement a client-side poller in the "Waiting Room" UI (`/waiting`):
         *   Poll `GET /api/resume/status?id=xyz`.
         *   If status `completed`, redirect to Dashboard.
 3.  **Webhook/Callback (Optional for MVP, Polling preferred)**:

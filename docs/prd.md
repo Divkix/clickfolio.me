@@ -34,7 +34,7 @@
    - **UI**: "Great! To save your site, we need to know it's you." -> Button: "Continue with Google".
 4. **Auth & Re-hydration**:
    - User logs in via Supabase Google OAuth.
-   - Redirects to `/onboarding`.
+   - Redirects to `/wizard`.
    - Client reads `temp_upload_id` from storage and calls `POST /api/resume/claim`.
    - Backend moves file from `anon/` to `user/`, triggers Replicate parsing, and deletes the temp key.
 

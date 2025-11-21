@@ -5,31 +5,24 @@ import {
   ERROR_CODES,
 } from '@/lib/utils/security-headers'
 import { revalidatePath } from 'next/cache'
+import { TEMPLATES, type ThemeId } from '@/lib/templates/theme-registry'
+import { requireAuthWithMessage } from '@/lib/auth/middleware'
 
-const VALID_THEMES = ['bento', 'glass', 'minimalist_editorial', 'neo_brutalist'] as const
-type ValidTheme = (typeof VALID_THEMES)[number]
+// Get valid themes from the source of truth
+const VALID_THEMES = Object.keys(TEMPLATES) as ThemeId[]
 
-function isValidTheme(theme: string): theme is ValidTheme {
-  return VALID_THEMES.includes(theme as ValidTheme)
+function isValidTheme(theme: string): theme is ThemeId {
+  return VALID_THEMES.includes(theme as ThemeId)
 }
 
 export async function POST(request: Request) {
   try {
+    // Check authentication
+    const authResult = await requireAuthWithMessage('You must be logged in to update theme')
+    if (authResult.error) return authResult.error
+    const { user } = authResult
+
     const supabase = await createClient()
-
-    // Get authenticated user
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return createErrorResponse(
-        'You must be logged in to update theme',
-        ERROR_CODES.UNAUTHORIZED,
-        401
-      )
-    }
 
     // Parse request body
     const body = await request.json()

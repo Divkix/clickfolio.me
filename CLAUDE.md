@@ -104,7 +104,7 @@ if (user && isProtectedRoute && !profile.onboarding_completed) {
 - Redirects to `/dashboard`
 
 **Exempt Routes** (skip onboarding check):
-- `/wizard`, `/onboarding`, `/survey`, `/auth/callback`
+- `/wizard`, `/auth/callback`
 
 ### 2. Structured AI Extraction
 We use Replicate's `datalab-to/marker` with a **custom JSON schema** to enforce output structure:
