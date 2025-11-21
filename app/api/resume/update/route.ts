@@ -8,6 +8,7 @@ import {
   ERROR_CODES,
 } from '@/lib/utils/security-headers'
 import { revalidatePath } from 'next/cache'
+import { requireAuthWithMessage } from '@/lib/auth/middleware'
 
 /**
  * PUT /api/resume/update
@@ -37,20 +38,12 @@ export async function PUT(request: Request) {
       )
     }
 
-    const supabase = await createClient()
-
     // 2. Authenticate user
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    const authResult = await requireAuthWithMessage('You must be logged in to update your resume')
+    if (authResult.error) return authResult.error
+    const { user } = authResult
 
-    if (!user) {
-      return createErrorResponse(
-        'You must be logged in to update your resume',
-        ERROR_CODES.UNAUTHORIZED,
-        401
-      )
-    }
+    const supabase = await createClient()
 
     // 3. Check rate limit (10 updates per hour)
     const rateLimitResponse = await enforceRateLimit(user.id, 'resume_update')
