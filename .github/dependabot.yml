@@ -62,7 +62,10 @@ updates:
           - "clsx"
     ignore:
       # Ignore major version updates for core frameworks (review manually)
+      # Note: Using @opennextjs/cloudflare which currently only supports Next.js 15
       - dependency-name: "next"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "eslint-config-next"
         update-types: ["version-update:semver-major"]
       - dependency-name: "react"
         update-types: ["version-update:semver-major"]
