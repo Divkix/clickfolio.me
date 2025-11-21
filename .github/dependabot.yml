@@ -1,0 +1,82 @@
+version: 2
+updates:
+  # npm dependencies (works with bun.lockb)
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "chore(deps)"
+    labels:
+      - "dependencies"
+    groups:
+      # Group all minor/patch updates together
+      minor-and-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+      # Group React ecosystem
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react*"
+      # Group Next.js ecosystem
+      nextjs:
+        patterns:
+          - "next"
+          - "@next/*"
+          - "eslint-config-next"
+      # Group TypeScript tooling
+      typescript:
+        patterns:
+          - "typescript"
+          - "@types/*"
+      # Group linting/formatting
+      linting:
+        patterns:
+          - "eslint*"
+          - "prettier*"
+          - "@eslint/*"
+      # Group Supabase
+      supabase:
+        patterns:
+          - "@supabase/*"
+      # Group AWS SDK
+      aws:
+        patterns:
+          - "@aws-sdk/*"
+      # Group shadcn/ui dependencies
+      ui:
+        patterns:
+          - "@radix-ui/*"
+          - "tailwindcss"
+          - "tailwind-merge"
+          - "class-variance-authority"
+          - "clsx"
+    ignore:
+      # Ignore major version updates for core frameworks (review manually)
+      - dependency-name: "next"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-dom"
+        update-types: ["version-update:semver-major"]
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    commit-message:
+      prefix: "chore(ci)"
+    labels:
+      - "ci"
+      - "dependencies"
