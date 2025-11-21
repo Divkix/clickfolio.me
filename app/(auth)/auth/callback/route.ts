@@ -14,7 +14,8 @@ export async function GET(request: Request) {
   const requestOrigin = requestUrl.origin
   if (!allowedOrigins.includes(requestOrigin)) {
     console.error('Invalid redirect origin:', requestOrigin)
-    return NextResponse.redirect(new URL('/?error=invalid_origin', process.env.NEXT_PUBLIC_APP_URL || requestOrigin))
+    const safeOrigin = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    return NextResponse.redirect(new URL('/?error=invalid_origin', safeOrigin))
   }
 
   if (code) {
