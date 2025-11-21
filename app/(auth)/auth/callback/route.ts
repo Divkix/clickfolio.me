@@ -4,15 +4,30 @@ import { NextResponse } from 'next/server'
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
-  const origin = requestUrl.origin
+
+  // Validate redirect origin to prevent open redirect attacks
+  const allowedOrigins = [
+    process.env.NEXT_PUBLIC_APP_URL,
+    'http://localhost:3000', // Development
+  ].filter(Boolean)
+
+  const requestOrigin = requestUrl.origin
+  if (!allowedOrigins.includes(requestOrigin)) {
+    console.error('Invalid redirect origin:', requestOrigin)
+    return NextResponse.redirect(new URL('/?error=invalid_origin', process.env.NEXT_PUBLIC_APP_URL || requestOrigin))
+  }
 
   if (code) {
     const supabase = await createClient()
     const { error } = await supabase.auth.exchangeCodeForSession(code)
 
     if (error) {
-      console.error('Error exchanging code for session:', error)
-      return NextResponse.redirect(`${origin}/?error=auth_failed`)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error exchanging code for session:', error)
+      } else {
+        console.error('Auth exchange failed')
+      }
+      return NextResponse.redirect(`${requestOrigin}/?error=auth_failed`)
     }
 
     // Update profile avatar (database trigger creates profile with temp handle)
@@ -25,7 +40,11 @@ export async function GET(request: Request) {
         .eq('id', user.id)
 
       if (profileError) {
-        console.error('Error updating profile avatar:', profileError)
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Error updating profile avatar:', profileError)
+        } else {
+          console.error('Profile update failed')
+        }
       }
 
       // Check onboarding status to determine redirect
@@ -36,11 +55,11 @@ export async function GET(request: Request) {
         .single()
 
       if (profile?.onboarding_completed) {
-        return NextResponse.redirect(`${origin}/dashboard`)
+        return NextResponse.redirect(`${requestOrigin}/dashboard`)
       }
     }
   }
 
   // Redirect to wizard for new users or if no user found
-  return NextResponse.redirect(`${origin}/wizard`)
+  return NextResponse.redirect(`${requestOrigin}/wizard`)
 }
