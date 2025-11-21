@@ -58,7 +58,7 @@ export async function verifyReplicateWebhook(request: Request): Promise<{ isVali
   let secretBytes: Uint8Array
   try {
     secretBytes = Uint8Array.from(atob(secretKey), c => c.charCodeAt(0))
-  } catch (err) {
+  } catch {
     console.error('Failed to decode webhook secret')
     return { isValid: false, body }
   }
@@ -67,7 +67,7 @@ export async function verifyReplicateWebhook(request: Request): Promise<{ isVali
   const encoder = new TextEncoder()
   const key = await crypto.subtle.importKey(
     'raw',
-    secretBytes,
+    secretBytes.buffer as ArrayBuffer,
     { name: 'HMAC', hash: 'SHA-256' },
     false,
     ['sign']
