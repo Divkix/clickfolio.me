@@ -9,8 +9,25 @@ import { generateTempKey } from '@/lib/utils/validation'
 const ipRequestCounts = new Map<string, { count: number; resetAt: number }>()
 const RATE_LIMIT = 10 // requests per minute
 const RATE_WINDOW = 60 * 1000 // 1 minute
+let lastCleanup = Date.now()
+
+// Clean up expired entries periodically to prevent memory growth
+function cleanupExpiredEntries() {
+  const now = Date.now()
+  // Only cleanup every 60 seconds to avoid overhead
+  if (now - lastCleanup < 60000) return
+
+  lastCleanup = now
+  for (const [ip, record] of ipRequestCounts.entries()) {
+    if (now > record.resetAt) {
+      ipRequestCounts.delete(ip)
+    }
+  }
+}
 
 function checkIpRateLimit(ip: string): boolean {
+  cleanupExpiredEntries() // Periodic cleanup
+
   const now = Date.now()
   const record = ipRequestCounts.get(ip)
 
