@@ -111,5 +111,11 @@ export const ENV = {
 
   // Replicate
   REPLICATE_API_TOKEN: () => getRequiredEnv('REPLICATE_API_TOKEN'),
-  REPLICATE_WEBHOOK_SECRET: () => getEnvVar('REPLICATE_WEBHOOK_SECRET', false), // optional for local dev
+  REPLICATE_WEBHOOK_SECRET: () => {
+    const secret = process.env.REPLICATE_WEBHOOK_SECRET
+    if (!secret && process.env.NODE_ENV === 'production') {
+      throw new Error('REPLICATE_WEBHOOK_SECRET is required in production')
+    }
+    return secret || ''
+  },
 } as const
