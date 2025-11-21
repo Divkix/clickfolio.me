@@ -85,12 +85,32 @@ export async function POST(request: Request) {
       return rateLimitResponse
     }
 
-    // 5. Generate new key and insert DB record FIRST
-    // This ensures we always have a record for tracking, even if R2 operations fail
+    // 5. Generate new key and check for idempotency
     const timestamp = Date.now()
     const filename = key.split('/').pop()
     const newKey = `users/${user.id}/${timestamp}/${filename}`
 
+    // Check if this temp key was already claimed by this user (idempotency)
+    // This prevents race conditions from rapid double-clicks
+    const { data: existingResume } = await supabase
+      .from('resumes')
+      .select('id, status')
+      .eq('user_id', user.id)
+      .like('r2_key', `users/${user.id}/%/${filename}`)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (existingResume) {
+      // Already claimed - return existing resume
+      return createSuccessResponse({
+        resume_id: existingResume.id,
+        status: existingResume.status,
+      })
+    }
+
+    // 6. Insert DB record FIRST
+    // This ensures we always have a record for tracking, even if R2 operations fail
     const { data: resume, error: insertError } = await supabase
       .from('resumes')
       .insert({
@@ -124,7 +144,7 @@ export async function POST(request: Request) {
       return createErrorResponse(errorMessage, errorCode, statusCode)
     }
 
-    // 6. Validate file size (10MB limit)
+    // 7. Validate file size (10MB limit)
     try {
       const headCommand = new HeadObjectCommand({
         Bucket: R2_BUCKET,
@@ -152,7 +172,7 @@ export async function POST(request: Request) {
       )
     }
 
-    // 7. Validate PDF magic number before processing
+    // 8. Validate PDF magic number before processing
     const pdfValidation = await validatePDFMagicNumber(r2Client, R2_BUCKET, key)
     if (!pdfValidation.valid) {
       return await failResume(
@@ -162,7 +182,7 @@ export async function POST(request: Request) {
       )
     }
 
-    // 8. Copy object to user's folder
+    // 9. Copy object to user's folder
     try {
       await r2Client.send(
         new CopyObjectCommand({
@@ -180,7 +200,7 @@ export async function POST(request: Request) {
       )
     }
 
-    // 9. Delete temp object (best effort - not critical if fails)
+    // 10. Delete temp object (best effort - not critical if fails)
     // Can be cleaned up by R2 lifecycle rules if this fails
     try {
       await r2Client.send(
@@ -194,7 +214,7 @@ export async function POST(request: Request) {
       // Continue - temp file cleanup failure is not critical
     }
 
-    // 10. Generate presigned URL for Replicate (7 day expiry)
+    // 11. Generate presigned URL for Replicate (7 day expiry)
     const getCommand = new GetObjectCommand({
       Bucket: R2_BUCKET,
       Key: newKey,
@@ -214,7 +234,7 @@ export async function POST(request: Request) {
       )
     }
 
-    // 11. Trigger Replicate parsing with webhook
+    // 12. Trigger Replicate parsing with webhook
     let replicateJobId: string | null = null
     let parseError: string | null = null
 
@@ -231,7 +251,7 @@ export async function POST(request: Request) {
         error instanceof Error ? error.message : 'Failed to start AI parsing'
     }
 
-    // 12. Update resume with replicate job ID or error
+    // 13. Update resume with replicate job ID or error
     const updatePayload: {
       status: 'processing' | 'failed'
       replicate_job_id?: string
