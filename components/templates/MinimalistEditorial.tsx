@@ -3,6 +3,7 @@ import type { TemplateProps } from '@/lib/types/template'
 import { formatDateRange } from '@/lib/templates/helpers'
 import { Calendar, GraduationCap, Award, ArrowUpRight } from 'lucide-react'
 import { siteConfig } from '@/lib/config/site'
+import { isValidImageUrl } from '@/lib/utils/validation'
 
 const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile }) => {
   // Split name into first and last for editorial layout
@@ -33,6 +34,14 @@ const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile }) => {
         {/* Editorial Header */}
         <header className="mb-32 md:mb-48 grid grid-cols-1 md:grid-cols-12 gap-y-8">
           <div className="md:col-span-8">
+            {/* Avatar - only rendered if URL is valid */}
+            {isValidImageUrl(profile.avatar_url) && (
+              <img
+                src={profile.avatar_url!}
+                alt={`${content.full_name} avatar`}
+                className="w-24 h-24 rounded-full object-cover mb-8 border border-neutral-200"
+              />
+            )}
             <h1 className="font-serif text-6xl md:text-9xl leading-[0.9] tracking-tighter mb-8">
               {firstName}
               {lastName && (

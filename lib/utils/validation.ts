@@ -136,3 +136,17 @@ export function validateRequestSize(
 
   return { valid: true }
 }
+
+/**
+ * Validates that a URL is safe to use as an image source
+ * Returns true only for http/https URLs
+ */
+export function isValidImageUrl(url?: string | null): boolean {
+  if (!url) return false
+  try {
+    const parsed = new URL(url)
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:'
+  } catch {
+    return false
+  }
+}
