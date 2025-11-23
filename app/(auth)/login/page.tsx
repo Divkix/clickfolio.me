@@ -151,6 +151,7 @@ export default function LoginPage() {
                   id="email"
                   type="email"
                   placeholder="you@example.com"
+                  autoComplete="email"
                   {...register('email')}
                   disabled={isLoading}
                   aria-invalid={!!errors.email}
@@ -176,6 +177,7 @@ export default function LoginPage() {
                   id="password"
                   type="password"
                   placeholder="••••••••"
+                  autoComplete="current-password"
                   {...register('password')}
                   disabled={isLoading}
                   aria-invalid={!!errors.password}
@@ -235,7 +237,7 @@ export default function LoginPage() {
 
           {/* Footer Text */}
           <p className="mt-6 text-center text-sm text-slate-600">
-            Don't have an account?{' '}
+            Don&apos;t have an account?{' '}
             <Link
               href="/signup"
               className="text-indigo-600 hover:text-indigo-700 underline font-semibold transition-colors"

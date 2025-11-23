@@ -14,7 +14,8 @@ import { Label } from '@/components/ui/label'
 import { LoginButton } from '@/components/auth/LoginButton'
 import toast from 'react-hot-toast'
 import { Toaster } from '@/components/ui/sonner'
-import { Mail, Check } from 'lucide-react'
+import { Mail, Eye, EyeOff } from 'lucide-react'
+import { evaluatePasswordStrength } from '@/lib/utils/password-strength'
 
 type FormState = 'idle' | 'submitting' | 'success'
 
@@ -23,7 +24,6 @@ export default function SignupPage() {
   const [formState, setFormState] = useState<FormState>('idle')
   const [submittedEmail, setSubmittedEmail] = useState('')
   const [isCheckingAuth, setIsCheckingAuth] = useState(true)
-  const [termsAccepted, setTermsAccepted] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const supabase = createClient()
@@ -66,40 +66,8 @@ export default function SignupPage() {
     checkAuth()
   }, [router, supabase])
 
-  // Calculate password strength
-  const getPasswordStrength = (password: string): number => {
-    if (!password) return 0
-    let strength = 0
-    if (password.length >= 8) strength += 25
-    if (/[A-Z]/.test(password)) strength += 25
-    if (/[a-z]/.test(password)) strength += 25
-    if (/[0-9]/.test(password)) strength += 12.5
-    if (/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) strength += 12.5
-    return Math.min(strength, 100)
-  }
-
-  const getPasswordStrengthLabel = (strength: number): { text: string; color: string } => {
-    if (strength === 0) return { text: '', color: '' }
-    if (strength < 50) return { text: 'Weak', color: 'text-red-600' }
-    if (strength < 75) return { text: 'Fair', color: 'text-orange-600' }
-    if (strength < 100) return { text: 'Good', color: 'text-yellow-600' }
-    return { text: 'Strong', color: 'text-emerald-600' }
-  }
-
-  const getPasswordStrengthColor = (strength: number): string => {
-    if (strength < 50) return 'bg-red-600'
-    if (strength < 75) return 'bg-orange-600'
-    if (strength < 100) return 'bg-yellow-600'
-    return 'bg-emerald-600'
-  }
-
   // Handle email/password signup
   const onSubmit = async (data: SignupFormData) => {
-    if (!termsAccepted) {
-      toast.error('You must accept the Terms of Service and Privacy Policy')
-      return
-    }
-
     setFormState('submitting')
 
     try {
@@ -170,8 +138,7 @@ export default function SignupPage() {
     )
   }
 
-  const passwordStrength = getPasswordStrength(passwordValue || '')
-  const strengthLabel = getPasswordStrengthLabel(passwordStrength)
+  const passwordStrengthResult = evaluatePasswordStrength(passwordValue || '')
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -264,6 +231,7 @@ export default function SignupPage() {
                       id="email"
                       type="email"
                       placeholder="you@example.com"
+                      autoComplete="email"
                       {...register('email')}
                       disabled={formState === 'submitting'}
                       aria-invalid={!!errors.email}
@@ -282,6 +250,7 @@ export default function SignupPage() {
                         id="password"
                         type={showPassword ? 'text' : 'password'}
                         placeholder="Create a strong password"
+                        autoComplete="new-password"
                         {...register('password')}
                         disabled={formState === 'submitting'}
                         aria-invalid={!!errors.password}
@@ -291,16 +260,12 @@ export default function SignupPage() {
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                        aria-label={showPassword ? \'Hide password\' : \'Show password\'}
                       >
                         {showPassword ? (
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                          </svg>
+                          <EyeOff className="w-5 h-5" />
                         ) : (
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                          </svg>
+                          <Eye className="w-5 h-5" />
                         )}
                       </button>
                     </div>
@@ -313,13 +278,13 @@ export default function SignupPage() {
                       <div className="space-y-1">
                         <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
                           <div
-                            className={`h-full transition-all duration-300 ${getPasswordStrengthColor(passwordStrength)}`}
-                            style={{ width: `${passwordStrength}%` }}
+                            className={`h-full transition-all duration-300 ${passwordStrengthResult.barColor}`}
+                            style={{ width: `${passwordStrengthResult.strength}%` }}
                           />
                         </div>
-                        {strengthLabel.text && (
-                          <p className={`text-xs font-medium ${strengthLabel.color}`}>
-                            Password strength: {strengthLabel.text}
+                        {passwordStrengthResult.label && (
+                          <p className={`text-xs font-medium ${passwordStrengthResult.color}`}>
+                            Password strength: {passwordStrengthResult.label}
                           </p>
                         )}
                       </div>
@@ -334,6 +299,7 @@ export default function SignupPage() {
                         id="confirmPassword"
                         type={showConfirmPassword ? 'text' : 'password'}
                         placeholder="Confirm your password"
+                        autoComplete="new-password"
                         {...register('confirmPassword')}
                         disabled={formState === 'submitting'}
                         aria-invalid={!!errors.confirmPassword}
@@ -343,16 +309,12 @@ export default function SignupPage() {
                         type="button"
                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                        aria-label={showConfirmPassword ? \'Hide password\' : \'Show password\'}
                       >
                         {showConfirmPassword ? (
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                          </svg>
+                          <EyeOff className="w-5 h-5" />
                         ) : (
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                          </svg>
+                          <Eye className="w-5 h-5" />
                         )}
                       </button>
                     </div>
@@ -361,32 +323,8 @@ export default function SignupPage() {
                     )}
                   </div>
 
-                  {/* Terms Checkbox */}
-                  <div className="space-y-2">
-                    <div className="flex items-start gap-2">
-                      <input
-                        type="checkbox"
-                        id="terms"
-                        checked={termsAccepted}
-                        onChange={(e) => setTermsAccepted(e.target.checked)}
-                        disabled={formState === 'submitting'}
-                        className="mt-0.5 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-600 focus:ring-offset-0 transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
-                      />
-                      <label htmlFor="terms" className="text-xs text-slate-600 cursor-pointer select-none">
-                        I agree to the{' '}
-                        <a href="#" className="text-indigo-600 hover:text-indigo-700 underline transition-colors">
-                          Terms of Service
-                        </a>
-                        {' '}and{' '}
-                        <a href="#" className="text-indigo-600 hover:text-indigo-700 underline transition-colors">
-                          Privacy Policy
-                        </a>
-                      </label>
-                    </div>
-                    {!termsAccepted && formState === 'submitting' && (
-                      <p className="text-sm text-red-600">You must accept the terms to continue</p>
-                    )}
-                  </div>
+                  {/* TODO: Add Terms of Service and Privacy Policy pages before enabling this checkbox */}
+                  {/* Terms acceptance will be required once legal pages are created */}
 
                   {/* Submit Button */}
                   <Button
