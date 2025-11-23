@@ -46,7 +46,7 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content, profile: _profile }) =
             <span className="text-xs font-medium text-emerald-200 tracking-wide uppercase">Available for hire</span>
           </div>
 
-          <h1 className="text-6xl md:text-8xl font-bold tracking-tight mb-8 bg-clip-text text-transparent bg-gradient-to-b from-white via-white to-white/40">
+          <h1 className="text-6xl md:text-8xl font-bold tracking-tight mb-8 bg-clip-text text-transparent bg-linear-to-b from-white via-white to-white/40">
             {content.full_name}
           </h1>
 
@@ -108,7 +108,7 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content, profile: _profile }) =
               {content.experience.map((job, index) => (
                 <div
                   key={index}
-                  className="group relative rounded-3xl overflow-hidden bg-white/[0.03] border border-white/10 hover:border-white/20 transition-all duration-500 hover:shadow-[0_0_40px_-10px_rgba(255,255,255,0.1)] p-8"
+                  className="group relative rounded-3xl overflow-hidden bg-white/3 border border-white/10 hover:border-white/20 transition-all duration-500 hover:shadow-[0_0_40px_-10px_rgba(255,255,255,0.1)] p-8"
                 >
                   <div className="flex justify-between items-start mb-4">
                     <div>
@@ -155,10 +155,10 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content, profile: _profile }) =
               {content.projects.map((project: Project, i: number) => (
                 <div
                   key={i}
-                  className="group relative rounded-3xl overflow-hidden bg-white/[0.03] border border-white/10 hover:border-white/20 transition-all duration-500 hover:shadow-[0_0_40px_-10px_rgba(255,255,255,0.1)]"
+                  className="group relative rounded-3xl overflow-hidden bg-white/3 border border-white/10 hover:border-white/20 transition-all duration-500 hover:shadow-[0_0_40px_-10px_rgba(255,255,255,0.1)]"
                 >
-                  <div className="aspect-[4/3] overflow-hidden relative bg-gradient-to-br from-indigo-900/50 via-purple-900/50 to-fuchsia-900/50">
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#0f172a] to-transparent opacity-60 z-10"></div>
+                  <div className="aspect-4/3 overflow-hidden relative bg-linear-to-br from-indigo-900/50 via-purple-900/50 to-fuchsia-900/50">
+                    <div className="absolute inset-0 bg-linear-to-t from-[#0f172a] to-transparent opacity-60 z-10"></div>
                     <div className="absolute bottom-4 left-4 z-20">
                       {project.year && (
                         <div className="text-xs font-mono text-fuchsia-300 mb-1">{project.year}</div>
@@ -176,7 +176,7 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content, profile: _profile }) =
                       </a>
                     )}
                   </div>
-                  <div className="p-6 bg-white/[0.02] backdrop-blur-sm">
+                  <div className="p-6 bg-white/2 backdrop-blur-sm">
                     <p className="text-sm text-white/80 line-clamp-2 leading-relaxed mb-4">
                       {project.description}
                     </p>
@@ -206,7 +206,7 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content, profile: _profile }) =
               {content.education.map((edu, index) => (
                 <div
                   key={index}
-                  className="relative rounded-3xl bg-white/[0.03] border border-white/10 p-6"
+                  className="relative rounded-3xl bg-white/3 border border-white/10 p-6"
                 >
                   <div className="flex justify-between items-start mb-3">
                     <h3 className="text-xl font-bold text-white">{edu.degree}</h3>
@@ -238,7 +238,7 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content, profile: _profile }) =
               {content.certifications.map((cert, index) => (
                 <div
                   key={index}
-                  className="relative rounded-2xl bg-white/[0.03] border border-white/10 p-4 hover:bg-white/[0.05] transition-colors"
+                  className="relative rounded-2xl bg-white/3 border border-white/10 p-4 hover:bg-white/5 transition-colors"
                 >
                   <h3 className="text-lg font-bold text-white mb-1">{cert.name}</h3>
                   <p className="text-sm text-white/70">{cert.issuer}</p>

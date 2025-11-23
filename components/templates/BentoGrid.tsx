@@ -15,10 +15,10 @@ const BentoGrid: React.FC<TemplateProps> = ({ content, profile: _profile }) => {
 
           {/* 1. Profile Card (Large) - 2x2 */}
           <div className="col-span-1 sm:col-span-2 row-span-2 bg-white rounded-3xl p-8 shadow-sm border border-neutral-200/60 flex flex-col justify-between group hover:shadow-lg transition-all duration-300 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-50 to-purple-50 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+            <div className="absolute top-0 right-0 w-64 h-64 bg-linear-to-br from-blue-50 to-purple-50 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 
             <div className="relative z-10">
-              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-neutral-900 to-neutral-700 mb-6 shadow-lg flex items-center justify-center text-white font-bold text-3xl">
+              <div className="w-20 h-20 rounded-2xl bg-linear-to-br from-neutral-900 to-neutral-700 mb-6 shadow-lg flex items-center justify-center text-white font-bold text-3xl">
                 {getInitials(content.full_name)}
               </div>
               <h1 className="text-4xl font-bold tracking-tight text-neutral-900 mb-2">{content.full_name}</h1>
@@ -125,8 +125,8 @@ const BentoGrid: React.FC<TemplateProps> = ({ content, profile: _profile }) => {
 
           {/* 6. Featured Project (Main) - 2x2 */}
           {content.projects && content.projects.length > 0 && (
-            <div className="col-span-1 sm:col-span-2 row-span-2 bg-gradient-to-br from-purple-900 via-indigo-900 to-blue-900 rounded-3xl overflow-hidden border border-neutral-200/60 group relative cursor-pointer">
-              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent p-8 flex flex-col justify-end text-white">
+            <div className="col-span-1 sm:col-span-2 row-span-2 bg-linear-to-br from-purple-900 via-indigo-900 to-blue-900 rounded-3xl overflow-hidden border border-neutral-200/60 group relative cursor-pointer">
+              <div className="absolute inset-0 bg-linear-to-t from-black/90 via-black/20 to-transparent p-8 flex flex-col justify-end text-white">
                 <div className="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
                   <div className="flex justify-between items-end">
                     <div>
@@ -159,7 +159,7 @@ const BentoGrid: React.FC<TemplateProps> = ({ content, profile: _profile }) => {
           {/* 7. Secondary Project - 1x2 */}
           {content.projects && content.projects[1] && (
             <div className="col-span-1 row-span-2 bg-neutral-900 rounded-3xl p-6 flex flex-col justify-between text-white group cursor-pointer overflow-hidden relative">
-              <div className="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-blue-500/20 to-transparent"></div>
+              <div className="absolute top-0 left-0 w-full h-1/2 bg-linear-to-b from-blue-500/20 to-transparent"></div>
               <div className="flex justify-between items-start relative z-10">
                 <div className="p-2 bg-white/10 rounded-lg">
                   <Code size={20} />
@@ -185,7 +185,7 @@ const BentoGrid: React.FC<TemplateProps> = ({ content, profile: _profile }) => {
           {/* 8. Third Project - 1x1 */}
           {content.projects && content.projects[2] && (
             <div className="col-span-1 row-span-1 bg-white rounded-3xl p-6 border border-neutral-200/60 flex flex-col justify-between group cursor-pointer hover:shadow-lg transition-all relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-full blur-2xl -mr-8 -mt-8 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              <div className="absolute top-0 right-0 w-32 h-32 bg-linear-to-br from-indigo-50 to-purple-50 rounded-full blur-2xl -mr-8 -mt-8 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
               <div className="flex justify-between items-start relative z-10">
                 <div className="p-2 bg-neutral-100 rounded-lg">
                   <Code size={16} className="text-neutral-600" />

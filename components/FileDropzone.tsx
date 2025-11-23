@@ -214,14 +214,14 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
             group relative bg-white rounded-2xl border border-slate-200/60 p-12 cursor-pointer transition-all duration-300 backdrop-blur-sm overflow-hidden
             ${isModal ? '' : 'shadow-depth-md'}
             ${isDragging
-              ? 'border-indigo-500 bg-gradient-to-br from-indigo-50 to-blue-50 shadow-depth-lg -translate-y-1'
+              ? 'border-indigo-500 bg-linear-to-br from-indigo-50 to-blue-50 shadow-depth-lg -translate-y-1'
               : isModal ? 'hover:border-indigo-300' : 'hover:shadow-depth-lg hover:-translate-y-1'
             }
             ${uploading ? 'pointer-events-none opacity-60' : ''}
           `}
         >
           {/* Subtle gradient overlay on hover */}
-          <div className="absolute inset-0 bg-gradient-to-br from-indigo-50/50 via-transparent to-blue-50/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+          <div className="absolute inset-0 bg-linear-to-br from-indigo-50/50 via-transparent to-blue-50/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
 
           <input
             ref={fileInputRef}

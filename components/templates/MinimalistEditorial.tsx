@@ -28,7 +28,7 @@ const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile }) => {
         )}
       </nav>
 
-      <div className="max-w-screen-xl mx-auto px-6 md:px-12 pt-32 pb-20">
+      <div className="max-w-(--breakpoint-xl) mx-auto px-6 md:px-12 pt-32 pb-20">
 
         {/* Editorial Header */}
         <header className="mb-32 md:mb-48 grid grid-cols-1 md:grid-cols-12 gap-y-8">

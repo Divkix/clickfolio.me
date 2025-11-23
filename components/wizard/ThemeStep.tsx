@@ -150,13 +150,13 @@ export function ThemeStep({ initialTheme = 'minimalist_editorial', onContinue }:
 function getThemePreviewStyle(themeId: ThemeId): string {
   switch (themeId) {
     case 'bento':
-      return 'bg-gradient-to-br from-purple-100 via-pink-50 to-orange-100'
+      return 'bg-linear-to-br from-purple-100 via-pink-50 to-orange-100'
     case 'glass':
-      return 'bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900'
+      return 'bg-linear-to-br from-slate-900 via-slate-800 to-indigo-900'
     case 'minimalist_editorial':
-      return 'bg-gradient-to-br from-slate-50 via-white to-slate-100'
+      return 'bg-linear-to-br from-slate-50 via-white to-slate-100'
     case 'neo_brutalist':
-      return 'bg-gradient-to-br from-yellow-300 via-white to-black'
+      return 'bg-linear-to-br from-yellow-300 via-white to-black'
     default:
       return 'bg-slate-100'
   }
