@@ -16,6 +16,9 @@ import { Mail } from 'lucide-react'
 
 type FormState = 'idle' | 'submitting' | 'success' | 'error'
 
+// Artificial delay for timing attack protection (in milliseconds)
+const SECURITY_DELAY_MS = 1500
+
 export default function ForgotPasswordPage() {
   const [formState, setFormState] = useState<FormState>('idle')
   const [submittedEmail, setSubmittedEmail] = useState('')
@@ -30,39 +33,57 @@ export default function ForgotPasswordPage() {
     mode: 'onBlur',
   })
 
+  // Security: Add artificial delay to prevent timing attacks
+  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+
   // Handle forgot password form submission
   const onSubmit = async (data: ForgotPasswordFormData) => {
     setFormState('submitting')
 
     try {
+      // Record start time for timing normalization
+      const startTime = Date.now()
+
       const { error } = await supabase.auth.resetPasswordForEmail(data.email, {
         redirectTo: `${window.location.origin}/reset-password`,
       })
 
-      if (error) {
-        // Handle specific error cases
-        if (error.message.includes('User not found')) {
-          // For security reasons, show success even if user not found
-          // This prevents email enumeration attacks
-          setSubmittedEmail(data.email)
-          setFormState('success')
-        } else if (error.message.includes('rate limit')) {
-          toast.error('Too many requests. Please try again later.')
-          setFormState('error')
-        } else {
-          toast.error(error.message)
-          setFormState('error')
-        }
-        return
+      // Calculate elapsed time and add delay if needed to normalize response timing
+      const elapsedTime = Date.now() - startTime
+      const remainingDelay = Math.max(0, SECURITY_DELAY_MS - elapsedTime)
+
+      if (remainingDelay > 0) {
+        await delay(remainingDelay)
       }
 
-      // Success - show success state
+      // Security fix: Always show success state regardless of error
+      // This prevents email enumeration attacks via timing or error message differences
+      if (error) {
+        // Log error server-side for debugging (don't expose to user)
+        console.error('Password reset error:', error.message)
+
+        // Only show error for rate limiting (security exception - prevents abuse)
+        if (error.message.includes('rate limit')) {
+          toast.error('Too many requests. Please try again later.')
+          setFormState('error')
+          return
+        }
+
+        // For all other errors (including "User not found"), show success
+        // The user cannot distinguish between "user exists" and "user doesn't exist"
+      }
+
+      // Always show success state to prevent email enumeration
       setSubmittedEmail(data.email)
       setFormState('success')
     } catch (error) {
+      // Unexpected errors (network issues, etc.)
       const errorMessage = error instanceof Error ? error.message : 'Failed to send reset link'
-      toast.error(errorMessage)
-      setFormState('error')
+      console.error('Unexpected password reset error:', errorMessage)
+
+      // Even on unexpected errors, show success to prevent enumeration
+      setSubmittedEmail(data.email)
+      setFormState('success')
     }
   }
 
@@ -104,7 +125,7 @@ export default function ForgotPasswordPage() {
 
                 {/* Message */}
                 <p className="text-slate-600 mb-1">
-                  We sent a password reset link to
+                  If an account exists with
                 </p>
                 <p className="text-indigo-600 font-semibold mb-4">
                   {submittedEmail}
@@ -112,7 +133,7 @@ export default function ForgotPasswordPage() {
 
                 {/* Subtext */}
                 <p className="text-sm text-slate-500 mb-6">
-                  Click the link in your email to reset your password
+                  we sent a password reset link. Check your inbox and spam folder.
                 </p>
 
                 {/* Back to login */}

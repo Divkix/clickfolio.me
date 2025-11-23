@@ -71,15 +71,13 @@ export default function LoginPage() {
       })
 
       if (error) {
-        // Handle specific error cases
-        if (error.message.includes('Invalid login credentials')) {
-          toast.error('Invalid email or password')
-        } else if (error.message.includes('Email not confirmed')) {
+        // Security fix: Use generic error message for login failures to prevent email enumeration
+        // Only distinguish email confirmation errors (which require different user action)
+        if (error.message.includes('Email not confirmed')) {
           toast.error('Please verify your email first')
-        } else if (error.message.includes('User not found')) {
-          toast.error('No account found with this email')
         } else {
-          toast.error(error.message)
+          // Generic error for invalid credentials, user not found, etc.
+          toast.error('Invalid email or password')
         }
         return
       }
