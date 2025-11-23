@@ -1,96 +1,99 @@
-'use client'
+"use client";
 
-import { useState, useEffect, useCallback } from 'react'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Button } from '@/components/ui/button'
-import { createClient } from '@/lib/supabase/client'
-import { Check, X, Loader2, User } from 'lucide-react'
-import { siteConfig } from '@/lib/config/site'
+import { useState, useEffect, useCallback } from "react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { createClient } from "@/lib/supabase/client";
+import { Check, X, Loader2, User } from "lucide-react";
+import { siteConfig } from "@/lib/config/site";
 
 interface HandleStepProps {
-  initialHandle?: string
-  onContinue: (handle: string) => void
+  initialHandle?: string;
+  onContinue: (handle: string) => void;
 }
 
 /**
  * Step 1: Handle Selection Component
  * Allows users to choose their unique username/handle
  */
-export function HandleStep({ initialHandle = '', onContinue }: HandleStepProps) {
-  const [handle, setHandle] = useState(initialHandle)
-  const [isChecking, setIsChecking] = useState(false)
-  const [isAvailable, setIsAvailable] = useState<boolean | null>(null)
-  const [error, setError] = useState<string | null>(null)
+export function HandleStep({
+  initialHandle = "",
+  onContinue,
+}: HandleStepProps) {
+  const [handle, setHandle] = useState(initialHandle);
+  const [isChecking, setIsChecking] = useState(false);
+  const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   // Debounced availability check
   const checkAvailability = useCallback(async (value: string) => {
     if (!value || value.length < 3) {
-      setIsAvailable(null)
-      return
+      setIsAvailable(null);
+      return;
     }
 
-    setIsChecking(true)
-    setError(null)
+    setIsChecking(true);
+    setError(null);
 
     try {
-      const supabase = createClient()
+      const supabase = createClient();
       const { data, error: dbError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('handle', value)
-        .maybeSingle()
+        .from("profiles")
+        .select("id")
+        .eq("handle", value)
+        .maybeSingle();
 
-      if (dbError) throw dbError
+      if (dbError) throw dbError;
 
-      setIsAvailable(!data) // Available if no existing profile found
+      setIsAvailable(!data); // Available if no existing profile found
     } catch (err) {
-      console.error('Error checking handle availability:', err)
-      setError('Failed to check availability')
-      setIsAvailable(null)
+      console.error("Error checking handle availability:", err);
+      setError("Failed to check availability");
+      setIsAvailable(null);
     } finally {
-      setIsChecking(false)
+      setIsChecking(false);
     }
-  }, [])
+  }, []);
 
   // Debounce the availability check
   useEffect(() => {
     const timer = setTimeout(() => {
       if (handle && handle.length >= 3) {
-        checkAvailability(handle)
+        checkAvailability(handle);
       }
-    }, 500)
+    }, 500);
 
-    return () => clearTimeout(timer)
-  }, [handle, checkAvailability])
+    return () => clearTimeout(timer);
+  }, [handle, checkAvailability]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
       .toLowerCase()
-      .replace(/[^a-z0-9-]/g, '') // Only allow alphanumeric and hyphens
-      .replace(/^-+|-+$/g, '') // Remove leading/trailing hyphens
-      .replace(/-+/g, '-') // Collapse multiple hyphens
-      .slice(0, 30) // Max 30 characters
+      .replace(/[^a-z0-9-]/g, "") // Only allow alphanumeric and hyphens
+      .replace(/^-+|-+$/g, "") // Remove leading/trailing hyphens
+      .replace(/-+/g, "-") // Collapse multiple hyphens
+      .slice(0, 30); // Max 30 characters
 
-    setHandle(value)
+    setHandle(value);
 
     // Reset states while typing
-    setIsAvailable(null)
-    setError(null)
+    setIsAvailable(null);
+    setError(null);
 
     // Validate length
     if (value.length > 0 && value.length < 3) {
-      setError('Handle must be at least 3 characters')
+      setError("Handle must be at least 3 characters");
     }
-  }
+  };
 
   const handleSubmit = () => {
     if (isAvailable && handle.length >= 3) {
-      onContinue(handle)
+      onContinue(handle);
     }
-  }
+  };
 
-  const canContinue = isAvailable && handle.length >= 3 && !isChecking
+  const canContinue = isAvailable && handle.length >= 3 && !isChecking;
 
   return (
     <div className="space-y-8">
@@ -103,14 +106,18 @@ export function HandleStep({ initialHandle = '', onContinue }: HandleStepProps) 
           Choose Your Handle
         </h1>
         <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-          This will be your unique URL. Choose something professional and memorable.
+          This will be your unique URL. Choose something professional and
+          memorable.
         </p>
       </div>
 
       {/* Handle Input */}
       <div className="max-w-md mx-auto space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="handle" className="text-sm font-semibold text-slate-700">
+          <Label
+            htmlFor="handle"
+            className="text-sm font-semibold text-slate-700"
+          >
             Your Handle
           </Label>
           <div className="relative">
@@ -140,7 +147,7 @@ export function HandleStep({ initialHandle = '', onContinue }: HandleStepProps) 
           {/* URL Preview */}
           {handle && (
             <p className="text-sm text-slate-500 font-medium">
-              Your resume will be at:{' '}
+              Your resume will be at:{" "}
               <span className="text-indigo-600 font-semibold">
                 {siteConfig.domain}/{handle}
               </span>
@@ -170,15 +177,17 @@ export function HandleStep({ initialHandle = '', onContinue }: HandleStepProps) 
 
         {/* Requirements */}
         <div className="bg-slate-50 border border-slate-200/60 rounded-xl p-4">
-          <p className="text-xs font-semibold text-slate-700 mb-2">Requirements:</p>
+          <p className="text-xs font-semibold text-slate-700 mb-2">
+            Requirements:
+          </p>
           <ul className="text-xs text-slate-600 space-y-1">
-            <li className={handle.length >= 3 ? 'text-green-600' : ''}>
+            <li className={handle.length >= 3 ? "text-green-600" : ""}>
               • At least 3 characters
             </li>
-            <li className={/^[a-z0-9-]+$/.test(handle) ? 'text-green-600' : ''}>
+            <li className={/^[a-z0-9-]+$/.test(handle) ? "text-green-600" : ""}>
               • Only lowercase letters, numbers, and hyphens
             </li>
-            <li className={!/^-|-$/.test(handle) ? 'text-green-600' : ''}>
+            <li className={!/^-|-$/.test(handle) ? "text-green-600" : ""}>
               • Cannot start or end with a hyphen
             </li>
           </ul>
@@ -202,5 +211,5 @@ export function HandleStep({ initialHandle = '', onContinue }: HandleStepProps) 
         </p>
       </div>
     </div>
-  )
+  );
 }

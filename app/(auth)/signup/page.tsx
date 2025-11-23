@@ -1,35 +1,35 @@
-'use client'
+"use client";
 
-export const dynamic = 'force-dynamic'
+export const dynamic = "force-dynamic";
 
-import { useState, useEffect } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
-import { createClient } from '@/lib/supabase/client'
-import { signupSchema, type SignupFormData } from '@/lib/schemas/auth'
-import { Brand } from '@/components/Brand'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { LoginButton } from '@/components/auth/LoginButton'
-import toast from 'react-hot-toast'
-import { Toaster } from '@/components/ui/sonner'
-import { Mail, Eye, EyeOff } from 'lucide-react'
-import { evaluatePasswordStrength } from '@/lib/utils/password-strength'
+import { useState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
+import { signupSchema, type SignupFormData } from "@/lib/schemas/auth";
+import { Brand } from "@/components/Brand";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { LoginButton } from "@/components/auth/LoginButton";
+import toast from "react-hot-toast";
+import { Toaster } from "@/components/ui/sonner";
+import { Mail, Eye, EyeOff } from "lucide-react";
+import { evaluatePasswordStrength } from "@/lib/utils/password-strength";
 
-type FormState = 'idle' | 'submitting' | 'success'
+type FormState = "idle" | "submitting" | "success";
 
 export default function SignupPage() {
-  const router = useRouter()
-  const [formState, setFormState] = useState<FormState>('idle')
-  const [submittedEmail, setSubmittedEmail] = useState('')
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true)
-  const [showPassword, setShowPassword] = useState(false)
-  const [isResending, setIsResending] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const supabase = createClient()
+  const router = useRouter();
+  const [formState, setFormState] = useState<FormState>("idle");
+  const [submittedEmail, setSubmittedEmail] = useState("");
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [showPassword, setShowPassword] = useState(false);
+  const [isResending, setIsResending] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const supabase = createClient();
 
   const {
     register,
@@ -38,40 +38,42 @@ export default function SignupPage() {
     formState: { errors },
   } = useForm<SignupFormData>({
     resolver: zodResolver(signupSchema),
-    mode: 'onBlur',
-  })
+    mode: "onBlur",
+  });
 
   // Watch password field for strength indicator
-  const passwordValue = watch('password')
+  const passwordValue = watch("password");
 
   // Check if user is already authenticated
   useEffect(() => {
     const checkAuth = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (user) {
         // User is already logged in, check onboarding status
         const { data: profile } = await supabase
-          .from('profiles')
-          .select('onboarding_completed')
-          .eq('id', user.id)
-          .single()
+          .from("profiles")
+          .select("onboarding_completed")
+          .eq("id", user.id)
+          .single();
 
         if (profile?.onboarding_completed) {
-          router.push('/dashboard')
+          router.push("/dashboard");
         } else {
-          router.push('/wizard')
+          router.push("/wizard");
         }
       } else {
-        setIsCheckingAuth(false)
+        setIsCheckingAuth(false);
       }
-    }
+    };
 
-    checkAuth()
-  }, [router, supabase])
+    checkAuth();
+  }, [router, supabase]);
 
   // Handle email/password signup
   const onSubmit = async (data: SignupFormData) => {
-    setIsResending(true)
+    setIsResending(true);
 
     try {
       const { error } = await supabase.auth.signUp({
@@ -80,57 +82,61 @@ export default function SignupPage() {
         options: {
           emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
-      })
+      });
 
       if (error) {
         // Handle specific error cases
-        if (error.message.includes('already registered')) {
-          toast.error('An account with this email already exists')
-        } else if (error.message.includes('Password')) {
-          toast.error("Password doesn't meet requirements")
-        } else if (error.message.includes('Invalid email')) {
-          toast.error('Please enter a valid email address')
+        if (error.message.includes("already registered")) {
+          toast.error("An account with this email already exists");
+        } else if (error.message.includes("Password")) {
+          toast.error("Password doesn't meet requirements");
+        } else if (error.message.includes("Invalid email")) {
+          toast.error("Please enter a valid email address");
         } else {
-          toast.error(error.message)
+          toast.error(error.message);
         }
-        setFormState('idle')
-        return
+        setFormState("idle");
+        return;
       }
 
       // Success - show success state
-      setSubmittedEmail(data.email)
-      setIsResending(false)
+      setSubmittedEmail(data.email);
+      setIsResending(false);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'An error occurred during signup'
-      toast.error(errorMessage)
-      setFormState('idle')
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "An error occurred during signup";
+      toast.error(errorMessage);
+      setFormState("idle");
     }
-  }
+  };
 
   // Handle resend confirmation email
   const handleResendEmail = async () => {
-    if (!submittedEmail) return
+    if (!submittedEmail) return;
 
-    setIsResending(true)
+    setIsResending(true);
 
     try {
       const { error } = await supabase.auth.resend({
-        type: 'signup',
+        type: "signup",
         email: submittedEmail,
-      })
+      });
 
       if (error) {
-        toast.error(error.message)
+        toast.error(error.message);
       } else {
-        toast.success('Confirmation email resent!')
+        toast.success("Confirmation email resent!");
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to resend email'
-      toast.error(errorMessage)
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to resend email";
+      toast.error(errorMessage);
     } finally {
-      setIsResending(false)
+      setIsResending(false);
     }
-  }
+  };
 
   // Show loading state while checking auth
   if (isCheckingAuth) {
@@ -138,10 +144,10 @@ export default function SignupPage() {
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-slate-600">Loading...</div>
       </div>
-    )
+    );
   }
 
-  const passwordStrengthResult = evaluatePasswordStrength(passwordValue || '')
+  const passwordStrengthResult = evaluatePasswordStrength(passwordValue || "");
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -161,7 +167,7 @@ export default function SignupPage() {
         <div className="w-full max-w-md">
           {/* Card Container */}
           <div className="bg-white border border-slate-200/60 rounded-2xl shadow-depth-md p-8">
-            {formState === 'success' ? (
+            {formState === "success" ? (
               /* Success State */
               <div className="text-center">
                 {/* Icon */}
@@ -199,7 +205,7 @@ export default function SignupPage() {
                   variant="outline"
                   className="w-full transition-all duration-300"
                 >
-                  {isResending ? 'Sending...' : 'Resend email'}
+                  {isResending ? "Sending..." : "Resend email"}
                 </Button>
 
                 {/* Back to login */}
@@ -226,7 +232,10 @@ export default function SignupPage() {
                 </div>
 
                 {/* Email/Password Form */}
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 mb-4">
+                <form
+                  onSubmit={handleSubmit(onSubmit)}
+                  className="space-y-4 mb-4"
+                >
                   {/* Email Input */}
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
@@ -235,13 +244,15 @@ export default function SignupPage() {
                       type="email"
                       placeholder="you@example.com"
                       autoComplete="email"
-                      {...register('email')}
+                      {...register("email")}
                       disabled={isResending}
                       aria-invalid={!!errors.email}
                       className="transition-all duration-300"
                     />
                     {errors.email && (
-                      <p className="text-sm text-red-600">{errors.email.message}</p>
+                      <p className="text-sm text-red-600">
+                        {errors.email.message}
+                      </p>
                     )}
                   </div>
 
@@ -251,10 +262,10 @@ export default function SignupPage() {
                     <div className="relative">
                       <Input
                         id="password"
-                        type={showPassword ? 'text' : 'password'}
+                        type={showPassword ? "text" : "password"}
                         placeholder="Create a strong password"
                         autoComplete="new-password"
-                        {...register('password')}
+                        {...register("password")}
                         disabled={isResending}
                         aria-invalid={!!errors.password}
                         className="transition-all duration-300 pr-10"
@@ -263,7 +274,9 @@ export default function SignupPage() {
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
-                        aria-label={showPassword ? 'Hide password' : 'Show password'}
+                        aria-label={
+                          showPassword ? "Hide password" : "Show password"
+                        }
                       >
                         {showPassword ? (
                           <EyeOff className="w-5 h-5" />
@@ -273,7 +286,9 @@ export default function SignupPage() {
                       </button>
                     </div>
                     {errors.password && (
-                      <p className="text-sm text-red-600">{errors.password.message}</p>
+                      <p className="text-sm text-red-600">
+                        {errors.password.message}
+                      </p>
                     )}
 
                     {/* Password Strength Indicator */}
@@ -282,11 +297,15 @@ export default function SignupPage() {
                         <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
                           <div
                             className={`h-full transition-all duration-300 ${passwordStrengthResult.barColor}`}
-                            style={{ width: `${passwordStrengthResult.strength}%` }}
+                            style={{
+                              width: `${passwordStrengthResult.strength}%`,
+                            }}
                           />
                         </div>
                         {passwordStrengthResult.label && (
-                          <p className={`text-xs font-medium ${passwordStrengthResult.color}`}>
+                          <p
+                            className={`text-xs font-medium ${passwordStrengthResult.color}`}
+                          >
                             Password strength: {passwordStrengthResult.label}
                           </p>
                         )}
@@ -300,19 +319,25 @@ export default function SignupPage() {
                     <div className="relative">
                       <Input
                         id="confirmPassword"
-                        type={showConfirmPassword ? 'text' : 'password'}
+                        type={showConfirmPassword ? "text" : "password"}
                         placeholder="Confirm your password"
                         autoComplete="new-password"
-                        {...register('confirmPassword')}
+                        {...register("confirmPassword")}
                         disabled={isResending}
                         aria-invalid={!!errors.confirmPassword}
                         className="transition-all duration-300 pr-10"
                       />
                       <button
                         type="button"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        onClick={() =>
+                          setShowConfirmPassword(!showConfirmPassword)
+                        }
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
-                        aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                        aria-label={
+                          showConfirmPassword
+                            ? "Hide password"
+                            : "Show password"
+                        }
                       >
                         {showConfirmPassword ? (
                           <EyeOff className="w-5 h-5" />
@@ -322,7 +347,9 @@ export default function SignupPage() {
                       </button>
                     </div>
                     {errors.confirmPassword && (
-                      <p className="text-sm text-red-600">{errors.confirmPassword.message}</p>
+                      <p className="text-sm text-red-600">
+                        {errors.confirmPassword.message}
+                      </p>
                     )}
                   </div>
 
@@ -335,7 +362,9 @@ export default function SignupPage() {
                     disabled={isResending}
                     className="w-full bg-linear-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white shadow-depth-sm hover:shadow-depth-md transition-all duration-300"
                   >
-                    {formState === 'submitting' ? 'Creating account...' : 'Create account'}
+                    {formState === "submitting"
+                      ? "Creating account..."
+                      : "Create account"}
                   </Button>
                 </form>
 
@@ -365,9 +394,9 @@ export default function SignupPage() {
           </div>
 
           {/* Footer Text */}
-          {formState !== 'success' && (
+          {formState !== "success" && (
             <p className="mt-6 text-center text-sm text-slate-600">
-              Already have an account?{' '}
+              Already have an account?{" "}
               <Link
                 href="/login"
                 className="text-indigo-600 hover:text-indigo-700 underline font-semibold transition-colors"
@@ -379,5 +408,5 @@ export default function SignupPage() {
         </div>
       </main>
     </div>
-  )
+  );
 }

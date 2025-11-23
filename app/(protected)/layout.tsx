@@ -1,20 +1,23 @@
-import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
-import { SidebarLayoutClient } from './SidebarLayoutClient'
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { SidebarLayoutClient } from "./SidebarLayoutClient";
 
 export default async function ProtectedLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
-  const supabase = await createClient()
+  const supabase = await createClient();
 
   // Check authentication
-  const { data: { user }, error } = await supabase.auth.getUser()
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
 
   if (error || !user) {
-    redirect('/')
+    redirect("/");
   }
 
-  return <SidebarLayoutClient>{children}</SidebarLayoutClient>
+  return <SidebarLayoutClient>{children}</SidebarLayoutClient>;
 }

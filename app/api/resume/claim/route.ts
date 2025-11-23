@@ -1,24 +1,24 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from "@/lib/supabase/server";
 import {
   CopyObjectCommand,
   DeleteObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
-} from '@aws-sdk/client-s3'
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
-import { getR2Client, getR2Bucket } from '@/lib/r2'
-import { parseResume } from '@/lib/replicate'
-import { enforceRateLimit } from '@/lib/utils/rate-limit'
+} from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { getR2Client, getR2Bucket } from "@/lib/r2";
+import { parseResume } from "@/lib/replicate";
+import { enforceRateLimit } from "@/lib/utils/rate-limit";
 import {
   createErrorResponse,
   createSuccessResponse,
   ERROR_CODES,
-} from '@/lib/utils/security-headers'
+} from "@/lib/utils/security-headers";
 import {
   validatePDFMagicNumber,
   validateRequestSize,
   MAX_FILE_SIZE,
-} from '@/lib/utils/validation'
+} from "@/lib/utils/validation";
 
 /**
  * POST /api/resume/claim
@@ -28,138 +28,142 @@ import {
 export async function POST(request: Request) {
   try {
     // Initialize R2 client and bucket
-    const r2Client = getR2Client()
-    const R2_BUCKET = getR2Bucket()
+    const r2Client = getR2Client();
+    const R2_BUCKET = getR2Bucket();
 
     // 1. Validate request size before parsing (prevent DoS)
-    const sizeCheck = validateRequestSize(request)
+    const sizeCheck = validateRequestSize(request);
     if (!sizeCheck.valid) {
       return createErrorResponse(
-        sizeCheck.error || 'Request body too large',
+        sizeCheck.error || "Request body too large",
         ERROR_CODES.BAD_REQUEST,
-        413
-      )
+        413,
+      );
     }
 
-    const supabase = await createClient()
+    const supabase = await createClient();
 
     // 2. Check authentication
     const {
       data: { user },
       error: authError,
-    } = await supabase.auth.getUser()
+    } = await supabase.auth.getUser();
 
     if (authError || !user) {
       return createErrorResponse(
-        'You must be logged in to claim a resume',
+        "You must be logged in to claim a resume",
         ERROR_CODES.UNAUTHORIZED,
-        401
-      )
+        401,
+      );
     }
 
     // 3. Parse request body
-    let body
+    let body;
     try {
-      body = await request.json()
+      body = await request.json();
     } catch {
       return createErrorResponse(
-        'Invalid JSON in request body',
+        "Invalid JSON in request body",
         ERROR_CODES.BAD_REQUEST,
-        400
-      )
+        400,
+      );
     }
 
-    const { key } = body
+    const { key } = body;
 
-    if (!key || !key.startsWith('temp/')) {
+    if (!key || !key.startsWith("temp/")) {
       return createErrorResponse(
-        'Invalid upload key. Must be a temporary upload.',
+        "Invalid upload key. Must be a temporary upload.",
         ERROR_CODES.VALIDATION_ERROR,
-        400
-      )
+        400,
+      );
     }
 
     // 4. Rate limiting check (5 uploads per 24 hours)
-    const rateLimitResponse = await enforceRateLimit(user.id, 'resume_upload')
+    const rateLimitResponse = await enforceRateLimit(user.id, "resume_upload");
     if (rateLimitResponse) {
-      return rateLimitResponse
+      return rateLimitResponse;
     }
 
     // 5. Generate new key and insert DB record FIRST
     // This ensures we always have a record for tracking, even if R2 operations fail
-    const timestamp = Date.now()
-    const filename = key.split('/').pop()
-    const newKey = `users/${user.id}/${timestamp}/${filename}`
+    const timestamp = Date.now();
+    const filename = key.split("/").pop();
+    const newKey = `users/${user.id}/${timestamp}/${filename}`;
 
     const { data: resume, error: insertError } = await supabase
-      .from('resumes')
+      .from("resumes")
       .insert({
         user_id: user.id,
         r2_key: newKey, // Planned key, R2 move will happen next
-        status: 'pending_claim',
+        status: "pending_claim",
       })
       .select()
-      .single()
+      .single();
 
     if (insertError) {
-      console.error('Database insert error:', insertError)
+      console.error("Database insert error:", insertError);
       return createErrorResponse(
-        'Failed to create resume record. Please try again.',
+        "Failed to create resume record. Please try again.",
         ERROR_CODES.DATABASE_ERROR,
-        500
-      )
+        500,
+      );
     }
 
     // Helper to mark resume as failed and return error
     const failResume = async (
       errorMessage: string,
       errorCode: string,
-      statusCode: number
+      statusCode: number,
     ) => {
       await supabase
-        .from('resumes')
-        .update({ status: 'failed', error_message: errorMessage })
-        .eq('id', resume.id)
+        .from("resumes")
+        .update({ status: "failed", error_message: errorMessage })
+        .eq("id", resume.id);
 
-      return createErrorResponse(errorMessage, errorCode, statusCode)
-    }
+      return createErrorResponse(errorMessage, errorCode, statusCode);
+    };
 
     // 6. Validate file size (10MB limit)
     try {
       const headCommand = new HeadObjectCommand({
         Bucket: R2_BUCKET,
         Key: key,
-      })
-      const headResponse = await r2Client.send(headCommand)
+      });
+      const headResponse = await r2Client.send(headCommand);
 
       if (
         headResponse.ContentLength &&
         headResponse.ContentLength > MAX_FILE_SIZE
       ) {
-        const sizeInMB = Math.round(headResponse.ContentLength / 1024 / 1024)
+        const sizeInMB = Math.round(headResponse.ContentLength / 1024 / 1024);
         return await failResume(
           `File size exceeds 10MB limit (${sizeInMB}MB)`,
           ERROR_CODES.VALIDATION_ERROR,
-          400
-        )
+          400,
+        );
       }
     } catch (error) {
-      console.error('File size validation error:', error)
+      console.error("File size validation error:", error);
       return await failResume(
-        'Failed to validate file. The file may have expired.',
+        "Failed to validate file. The file may have expired.",
         ERROR_CODES.EXTERNAL_SERVICE_ERROR,
-        500
-      )
+        500,
+      );
     }
 
     // 7. Validate PDF magic number before processing
-    const pdfValidation = await validatePDFMagicNumber(r2Client, R2_BUCKET, key)
+    const pdfValidation = await validatePDFMagicNumber(
+      r2Client,
+      R2_BUCKET,
+      key,
+    );
     if (!pdfValidation.valid) {
       return await failResume(
-        pdfValidation.error || 'Invalid PDF file',
+        pdfValidation.error || "Invalid PDF file",
         ERROR_CODES.VALIDATION_ERROR,
-        400
-      )
+        400,
+      );
     }
 
     // 8. Copy object to user's folder
@@ -169,15 +173,15 @@ export async function POST(request: Request) {
           Bucket: R2_BUCKET,
           CopySource: `${R2_BUCKET}/${key}`,
           Key: newKey,
-        })
-      )
+        }),
+      );
     } catch (error) {
-      console.error('R2 copy error:', error)
+      console.error("R2 copy error:", error);
       return await failResume(
-        'Failed to process upload. The file may have expired.',
+        "Failed to process upload. The file may have expired.",
         ERROR_CODES.EXTERNAL_SERVICE_ERROR,
-        500
-      )
+        500,
+      );
     }
 
     // 9. Delete temp object (best effort - not critical if fails)
@@ -187,10 +191,10 @@ export async function POST(request: Request) {
         new DeleteObjectCommand({
           Bucket: R2_BUCKET,
           Key: key,
-        })
-      )
+        }),
+      );
     } catch (error) {
-      console.error('R2 delete error:', error)
+      console.error("R2 delete error:", error);
       // Continue - temp file cleanup failure is not critical
     }
 
@@ -198,74 +202,74 @@ export async function POST(request: Request) {
     const getCommand = new GetObjectCommand({
       Bucket: R2_BUCKET,
       Key: newKey,
-    })
+    });
 
-    let presignedUrl: string
+    let presignedUrl: string;
     try {
       presignedUrl = await getSignedUrl(r2Client, getCommand, {
         expiresIn: 7 * 24 * 60 * 60, // 7 days
-      })
+      });
     } catch (error) {
-      console.error('Presigned URL generation error:', error)
+      console.error("Presigned URL generation error:", error);
       return await failResume(
-        'Failed to prepare file for processing',
+        "Failed to prepare file for processing",
         ERROR_CODES.EXTERNAL_SERVICE_ERROR,
-        500
-      )
+        500,
+      );
     }
 
     // 11. Trigger Replicate parsing with webhook
-    let replicateJobId: string | null = null
-    let parseError: string | null = null
+    let replicateJobId: string | null = null;
+    let parseError: string | null = null;
 
     // Build webhook URL for Replicate to call when done
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL
-    const webhookUrl = appUrl ? `${appUrl}/api/webhook/replicate` : undefined
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+    const webhookUrl = appUrl ? `${appUrl}/api/webhook/replicate` : undefined;
 
     try {
-      const prediction = await parseResume(presignedUrl, webhookUrl)
-      replicateJobId = prediction.id
+      const prediction = await parseResume(presignedUrl, webhookUrl);
+      replicateJobId = prediction.id;
     } catch (error) {
-      console.error('Failed to trigger Replicate parsing:', error)
+      console.error("Failed to trigger Replicate parsing:", error);
       parseError =
-        error instanceof Error ? error.message : 'Failed to start AI parsing'
+        error instanceof Error ? error.message : "Failed to start AI parsing";
     }
 
     // 12. Update resume with replicate job ID or error
     const updatePayload: {
-      status: 'processing' | 'failed'
-      replicate_job_id?: string
-      error_message?: string
+      status: "processing" | "failed";
+      replicate_job_id?: string;
+      error_message?: string;
     } = replicateJobId
       ? {
-          status: 'processing',
+          status: "processing",
           replicate_job_id: replicateJobId,
         }
       : {
-          status: 'failed',
-          error_message: parseError || 'Unknown error',
-        }
+          status: "failed",
+          error_message: parseError || "Unknown error",
+        };
 
     const { error: updateError } = await supabase
-      .from('resumes')
+      .from("resumes")
       .update(updatePayload)
-      .eq('id', resume.id)
+      .eq("id", resume.id);
 
     if (updateError) {
-      console.error('Failed to update resume with replicate job:', updateError)
+      console.error("Failed to update resume with replicate job:", updateError);
       // Continue anyway - status endpoint will handle it
     }
 
     return createSuccessResponse({
       resume_id: resume.id,
       status: updatePayload.status,
-    })
+    });
   } catch (error) {
-    console.error('Error claiming resume:', error)
+    console.error("Error claiming resume:", error);
     return createErrorResponse(
-      'An unexpected error occurred while claiming your resume',
+      "An unexpected error occurred while claiming your resume",
       ERROR_CODES.INTERNAL_ERROR,
-      500
-    )
+      500,
+    );
   }
 }

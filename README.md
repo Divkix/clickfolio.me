@@ -295,20 +295,17 @@ Follow the comprehensive checklist in `docs/testing-checklist.md` to test all fl
 ### Running Tests Locally
 
 1. **Test upload flow**
-
    - Visit `http://localhost:3000`
    - Upload a PDF resume (use a real 1-2 page resume)
    - Log in with Google
    - Verify claim and parsing
 
 2. **Test editing**
-
    - Navigate to `/edit`
    - Make changes to content
    - Verify auto-save (3-second debounce)
 
 3. **Test privacy controls**
-
    - Go to `/settings`
    - Toggle "Show phone" and "Show address"
    - Visit public profile to verify filtering
@@ -328,21 +325,27 @@ Follow the comprehensive checklist in `docs/testing-checklist.md` to test all fl
 ## Roadmap
 
 ### Phase 1 (Completed)
+
 - Skeleton & plumbing (Next.js + Supabase + Cloudflare)
 
 ### Phase 2 (Completed)
+
 - Drop & claim loop (R2 upload + claim check pattern)
 
 ### Phase 3 (Completed)
+
 - Public viewer with mock data
 
 ### Phase 4 (Completed)
+
 - AI integration (Replicate parsing)
 
 ### Phase 5 (Completed)
+
 - Polish & launch (edit, settings, final touches)
 
 ### Future Enhancements
+
 - Multiple templates (Modern, Classic, Creative)
 - Custom domains support
 - Analytics dashboard (profile views, link clicks)
@@ -382,6 +385,7 @@ Contributions welcome! Please follow these guidelines:
 **Error**: Infinite redirect after Google login
 
 **Solution**:
+
 1. Verify `NEXT_PUBLIC_SUPABASE_URL` includes `https://`
 2. Check redirect URLs in Supabase Dashboard match your domain
 3. Clear browser cookies and try again
@@ -393,6 +397,7 @@ Contributions welcome! Please follow these guidelines:
 **Error**: CORS error or 403 Forbidden
 
 **Solution**:
+
 1. Check R2 CORS policy includes your domain
 2. Verify R2 API token has Read & Write permissions
 3. Ensure `R2_BUCKET_NAME` matches actual bucket name
@@ -404,6 +409,7 @@ Contributions welcome! Please follow these guidelines:
 **Error**: Resume stuck in "processing" status
 
 **Solution**:
+
 1. Check Replicate API token is valid
 2. Verify PDF is not corrupted (try re-uploading)
 3. Use retry button on waiting room page

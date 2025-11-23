@@ -18,11 +18,9 @@ export const siteConfig = {
   fullName: `${name}${tld}`,
   /** Marketing tagline */
   tagline:
-    process.env.NEXT_PUBLIC_SITE_TAGLINE ||
-    "Turn your resume into a website",
+    process.env.NEXT_PUBLIC_SITE_TAGLINE || "Turn your resume into a website",
   /** Support email address */
-  supportEmail:
-    process.env.NEXT_PUBLIC_SUPPORT_EMAIL || `support@${domain}`,
+  supportEmail: process.env.NEXT_PUBLIC_SUPPORT_EMAIL || `support@${domain}`,
   /** Full URL with protocol */
   url: `https://${domain}`,
 } as const;

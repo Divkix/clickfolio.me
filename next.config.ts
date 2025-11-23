@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
-  allowedDevOrigins: ['*.ngrok-free.app'],
+  allowedDevOrigins: ["*.ngrok-free.app"],
 
   // Disable Next.js Image optimization (not compatible with Cloudflare Workers)
   images: {
@@ -12,7 +12,7 @@ const nextConfig: NextConfig = {
   // Configure for Cloudflare deployment
   experimental: {
     serverActions: {
-      bodySizeLimit: '10mb',
+      bodySizeLimit: "10mb",
     },
   },
 };

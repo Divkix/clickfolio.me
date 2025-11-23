@@ -15,6 +15,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Target Audience**: Job seekers, students, and career switchers who need a clean URL but hate building websites.
 
 **Success Metrics (MVP)**:
+
 - Conversion: >60% of users who upload complete Google Auth
 - Activation: >80% of authenticated users publish a live handle
 - TTFIS (Time to First Interactive Site): <60 seconds
@@ -24,6 +25,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Tech Stack & Infrastructure
 
 ### Core Technologies
+
 - **Framework**: Next.js 15 (App Router) deployed via `@opennextjs/cloudflare`
 - **Runtime**: Cloudflare Workers with Node.js Compatibility Mode
 - **Database**: Supabase (Postgres + Auth) — NO Supabase Edge Functions
@@ -32,6 +34,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Package Manager**: **bun** (NOT npm/yarn/pnpm)
 
 ### Deployment Architecture
+
 ```
 User → Cloudflare Workers (Next.js 15) → Supabase (Postgres + Auth)
                 ↓                              ↓
@@ -61,6 +64,7 @@ User → Cloudflare Workers (Next.js 15) → Supabase (Postgres + Auth)
 ## Architectural Patterns
 
 ### 1. The "Claim Check" Pattern (Critical)
+
 Anonymous users can upload files before authentication. The handoff works like this:
 
 ```typescript
@@ -78,35 +82,41 @@ POST /api/resume/claim with { key }
 ```
 
 **Implementation Rules**:
+
 - Store `temp_upload_id` in `localStorage` immediately after upload
 - Clear `localStorage` after successful claim
 - R2 key format: `temp/{uuid}/{filename}` → `users/{user_id}/{filename}`
 
 ### 1b. Onboarding Wizard Flow (Post-Auth)
+
 After successful authentication, users are guided through a multi-step wizard to complete their profile:
 
 ```typescript
 // Middleware checks onboarding_completed flag
 if (user && isProtectedRoute && !profile.onboarding_completed) {
-  redirect('/wizard')
+  redirect("/wizard");
 }
 ```
 
 **Wizard Steps** (`/wizard` route):
+
 1. **Handle Selection**: User picks a unique username (3+ chars, alphanumeric + hyphens)
 2. **Content Review**: Shows parsed resume content (read-only preview)
 3. **Privacy Settings**: Toggle phone/address visibility (default: hidden)
 4. **Theme Selection**: Choose from available templates (default: MinimalistEditorial)
 
 **Onboarding Completion**:
+
 - Sets `profiles.onboarding_completed = true`
 - Creates `site_data` record with chosen theme
 - Redirects to `/dashboard`
 
 **Exempt Routes** (skip onboarding check):
+
 - `/wizard`, `/auth/callback`
 
 ### 2. Structured AI Extraction
+
 We use Replicate's `datalab-to/marker` with a **custom JSON schema** to enforce output structure:
 
 ```json
@@ -129,6 +139,7 @@ We use Replicate's `datalab-to/marker` with a **custom JSON schema** to enforce 
 **Normalization Rule**: If `experience` has >5 items, slice to top 5. If `summary` >500 chars, truncate.
 
 **Retry Mechanism**:
+
 - `resumes.retry_count` tracks parsing attempts (max 2)
 - `resumes.replicate_job_id` stores prediction ID for status polling
 - If parsing fails, user can retry via `/api/resume/retry` endpoint
@@ -136,6 +147,7 @@ We use Replicate's `datalab-to/marker` with a **custom JSON schema** to enforce 
 - Status transitions: `pending_claim` → `processing` → `completed`/`failed`
 
 ### 3. Privacy Filtering (ALWAYS Enforce)
+
 Before rendering public pages (`/[handle]`):
 
 ```typescript
@@ -154,6 +166,7 @@ if (!profile.privacy_settings.show_address) {
 ### Schema Overview
 
 **profiles**
+
 - `id` (uuid, FK to auth.users)
 - `handle` (text, unique, min 3 chars, alphanumeric + hyphens)
 - `email`, `avatar_url`, `headline`
@@ -162,6 +175,7 @@ if (!profile.privacy_settings.show_address) {
 - `created_at`, `updated_at`
 
 **resumes**
+
 - `id`, `user_id` (FK to profiles)
 - `r2_key` (path in bucket)
 - `status`: `pending_claim`, `processing`, `completed`, `failed`
@@ -172,12 +186,14 @@ if (!profile.privacy_settings.show_address) {
 - `created_at`
 
 **site_data**
+
 - `id`, `user_id` (FK to profiles), `resume_id`
 - `content` (jsonb): Render-ready resume JSON
 - `theme_id` (text): Template identifier (see Available Templates below)
 - `last_published_at`, `created_at`, `updated_at`
 
 ### RLS Policies (Required)
+
 - `profiles`: Public read (handle lookup), user update own
 - `resumes`: User read/create own only
 - `site_data`: Public read, user update own
@@ -187,8 +203,10 @@ if (!profile.privacy_settings.show_address) {
 ## Development Guidelines
 
 ### Code Standards
+
 - **Spacing**: Use spaces, NOT tabs
 - **Commits**: Conventional format with detailed descriptions
+
   ```
   feat(upload): implement presigned R2 upload with claim check pattern
 
@@ -197,19 +215,23 @@ if (!profile.privacy_settings.show_address) {
   - Enforce 10MB limit via content-length-range
   - Store key in localStorage for post-auth claim
   ```
+
 - **Dependencies**: ALWAYS use `bun install`, `bun add`, `bun run`
 - **Documentation**: ALWAYS use context7 MCP for library docs
 
 ### Phase-Based Vertical Slicing (STRICT)
+
 **DO NOT skip phases. Deploy and verify each phase before proceeding.**
 
 **Phase 1: Skeleton & Plumbing** (Days 1-3)
+
 - Initialize Next.js 15 + OpenNext Cloudflare adapter
 - Configure Supabase (tables + RLS + Google OAuth)
 - Deploy to Cloudflare Workers
 - ✅ Checkpoint: Login/Logout works on live URL
 
 **Phase 2: Drop & Claim Loop** (Days 4-6)
+
 - Create R2 bucket + CORS config
 - Implement presigned upload API
 - Build FileDropzone component + localStorage logic
@@ -217,12 +239,14 @@ if (!profile.privacy_settings.show_address) {
 - ✅ Checkpoint: Anonymous upload → Auth → DB row created
 
 **Phase 3: The Viewer (Mocked)** (Days 7-9)
+
 - Create `[handle]/page.tsx` dynamic route
 - Manually seed `site_data` with test JSON
 - Build "Minimalist Crème" template component
 - ✅ Checkpoint: `webresume.now/testhandle` renders mock data
 
 **Phase 4: The Brain (AI Integration)** (Days 10-13)
+
 - Integrate Replicate client
 - Update claim API to trigger parsing job
 - Build polling UI ("Waiting Room")
@@ -230,6 +254,7 @@ if (!profile.privacy_settings.show_address) {
 - ✅ Checkpoint: Real PDF → AI parse → Dashboard
 
 **Phase 5: Polish & Launch** (Days 14-15)
+
 - Build edit form (survey UI)
 - Add privacy toggles (show_phone, show_address)
 - Implement rate limiting (5/24h)
@@ -243,6 +268,7 @@ if (!profile.privacy_settings.show_address) {
 ### Security & Validation
 
 **File Upload Security**:
+
 ```typescript
 // ALWAYS validate PDF magic number before R2
 const isPDF = buffer[0] === 0x25 && buffer[1] === 0x50; // %PDF
@@ -250,15 +276,21 @@ const isPDF = buffer[0] === 0x25 && buffer[1] === 0x50; // %PDF
 // ALWAYS enforce file size in presigned URL (10MB max)
 const presignedUrl = await getSignedUrl(s3Client, putCommand, {
   expiresIn: 3600,
-  signableHeaders: new Set(['content-length']),
-  unhoistableHeaders: new Set(['content-length-range'])
+  signableHeaders: new Set(["content-length"]),
+  unhoistableHeaders: new Set(["content-length-range"]),
 });
 ```
 
 **XSS Prevention** (Critical):
 All user input MUST pass through Zod schemas in `lib/schemas/resume.ts`:
+
 ```typescript
-import { sanitizeText, sanitizeUrl, sanitizeEmail, containsXssPattern } from '@/lib/utils/sanitization'
+import {
+  sanitizeText,
+  sanitizeUrl,
+  sanitizeEmail,
+  containsXssPattern,
+} from "@/lib/utils/sanitization";
 
 // All text fields use sanitization transforms
 const resumeSchema = z.object({
@@ -266,21 +298,24 @@ const resumeSchema = z.object({
   headline: z.string().refine(noXssPattern).transform(sanitizeText),
   summary: z.string().refine(noXssPattern).transform(sanitizeText),
   // ... all fields sanitized
-})
+});
 ```
 
 **Sanitization Functions** (`lib/utils/sanitization.ts`):
+
 - `sanitizeText()`: Strips HTML tags, encodes special chars
 - `sanitizeUrl()`: Validates URL format, removes javascript: protocols
 - `sanitizeEmail()`: Validates email format, prevents injection
 - `containsXssPattern()`: Detects common XSS patterns (script tags, event handlers, data URIs)
 
 **Rate Limiting**:
+
 - Upload: 5 resumes per user per 24 hours (enforced in `/api/resume/claim`)
 - Update: 10 content updates per user per hour (enforced in `/api/resume/update`)
 - Check via SQL: `SELECT count(*) FROM resumes WHERE user_id = $1 AND created_at > now() - interval '1 day'`
 
 ### Image Handling
+
 ```tsx
 // ❌ NEVER use Next.js Image component
 <Image src="..." alt="..." /> // WRONG - breaks on Cloudflare
@@ -294,16 +329,18 @@ const resumeSchema = z.object({
 ```
 
 ### Storage Patterns
+
 ```typescript
 // R2 Key Structure
-temp/{uuid}/{filename}           // Anonymous uploads
-users/{user_id}/{timestamp}/{filename}  // Claimed uploads
+temp / { uuid } / { filename }; // Anonymous uploads
+users / { user_id } / { timestamp } / { filename }; // Claimed uploads
 
 // NEVER write to filesystem
-fs.writeFileSync('...') // WRONG - not available on Workers
+fs.writeFileSync("..."); // WRONG - not available on Workers
 ```
 
 ### Rate Limiting
+
 ```sql
 -- Check upload quota in API
 SELECT count(*) FROM resumes
@@ -429,16 +466,19 @@ open-next.config.ts                  # OpenNext Cloudflare adapter config
 ### Key Routing Patterns
 
 **Route Groups** (folders with parentheses don't affect URL structure):
+
 - `(auth)` → `/auth/callback`
 - `(public)` → `/` and `/[handle]`
 - `(protected)` → `/dashboard`, `/edit`, `/settings`, `/wizard`
 
 **Dynamic Routes**:
+
 - `/[handle]` → Public resume viewer (e.g., `/johnsmith`)
 - Server-side rendered with Supabase data fetch
 - Applies privacy filtering before rendering
 
 **API Routes**:
+
 - All in `/api` directory
 - Use Next.js Route Handlers (App Router)
 - Return JSON responses with proper error handling
@@ -534,12 +574,14 @@ bun run db:studio                # Open Supabase Studio (database UI)
 The application includes multiple professionally designed resume templates, each located in `components/templates/`:
 
 ### 1. **MinimalistEditorial** (Default)
+
 - Clean serif typography with editorial magazine aesthetic
 - Neutral color palette with subtle accents
 - Perfect for traditional industries and professional roles
 - File: `components/templates/MinimalistEditorial.tsx`
 
 ### 2. **NeoBrutalist**
+
 - Bold, high-contrast design with thick borders
 - Black-and-white base with vibrant accent colors
 - Heavy sans-serif typography
@@ -547,6 +589,7 @@ The application includes multiple professionally designed resume templates, each
 - File: `components/templates/NeoBrutalist.tsx`
 
 ### 3. **GlassMorphic**
+
 - Modern glassmorphism effects with backdrop blur
 - Translucent cards with soft shadows
 - Dark background with colorful gradients
@@ -554,6 +597,7 @@ The application includes multiple professionally designed resume templates, each
 - File: `components/templates/GlassMorphic.tsx`
 
 ### 4. **BentoGrid**
+
 - Mosaic-style layout inspired by Apple's Bento design
 - Asymmetric grid with varying card sizes
 - Visual hierarchy through layout variation
@@ -561,6 +605,7 @@ The application includes multiple professionally designed resume templates, each
 - File: `components/templates/BentoGrid.tsx`
 
 ### Template Selection
+
 - Users choose their template during the wizard onboarding flow (Step 4)
 - Default template is `MinimalistEditorial`
 - Theme can be changed later via `/settings` (updates `site_data.theme_id`)
@@ -568,6 +613,7 @@ The application includes multiple professionally designed resume templates, each
 - Templates are rendered server-side at `/[handle]` route
 
 ### Template Development Guidelines
+
 - Each template receives `content` (ResumeContent) and `profile` (ProfileData) props
 - Must respect privacy settings (check `profile.privacy_settings`)
 - Should handle missing/optional fields gracefully
@@ -580,9 +626,11 @@ The application includes multiple professionally designed resume templates, each
 ## Design System: Soft Depth Theme (Landing Page Only)
 
 ### Overview
+
 The landing page uses the "Soft Depth" theme—a modern, professional aesthetic inspired by Apple and Stripe's design languages, with enhanced visual richness through layered shadows and gradient accents.
 
 ### Core Principles
+
 1. **Calm Professionalism**: Light, airy backgrounds (slate-50) create a calming workspace
 2. **Layered Depth**: Multi-layer shadows create visual hierarchy without heavy borders
 3. **Gradient Accents**: Indigo→Blue gradients add sophistication without overwhelming
@@ -591,17 +639,20 @@ The landing page uses the "Soft Depth" theme—a modern, professional aesthetic 
 ### Color Palette
 
 **Primary Colors:**
+
 - Background: `slate-50` (#F8FAFC)
 - Text Primary: `slate-900` (#0F172A)
 - Text Secondary: `slate-600` (#475569)
 - Border: `slate-200/60` (with 60% opacity)
 
 **Gradient Accents:**
+
 - Primary Gradient: `indigo-600` (#4F46E5) → `blue-600` (#3B82F6) → `cyan-500` (#06B6D4)
 - Button Gradient: `indigo-600` → `blue-600`
 - Logo Gradient: `indigo-600` → `blue-600`
 
 **Feature Card Gradients:**
+
 - Speed: `orange-500` (#F97316) → `amber-600` (#D97706)
 - AI: `indigo-600` → `purple-600` (#9333EA)
 - Free: `emerald-500` (#10B981) → `teal-600` (#0D9488)
@@ -612,12 +663,16 @@ Custom layered shadows for depth perception:
 
 ```css
 --shadow-depth-sm: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
---shadow-depth-md: 0 2px 8px rgba(0, 0, 0, 0.04), 0 8px 32px rgba(0, 0, 0, 0.08);
---shadow-depth-lg: 0 4px 16px rgba(0, 0, 0, 0.06), 0 16px 64px rgba(0, 0, 0, 0.12);
---shadow-depth-xl: 0 8px 24px rgba(0, 0, 0, 0.08), 0 24px 96px rgba(0, 0, 0, 0.16);
+--shadow-depth-md:
+  0 2px 8px rgba(0, 0, 0, 0.04), 0 8px 32px rgba(0, 0, 0, 0.08);
+--shadow-depth-lg:
+  0 4px 16px rgba(0, 0, 0, 0.06), 0 16px 64px rgba(0, 0, 0, 0.12);
+--shadow-depth-xl:
+  0 8px 24px rgba(0, 0, 0, 0.08), 0 24px 96px rgba(0, 0, 0, 0.16);
 ```
 
 **Usage:**
+
 - Header/Footer: `shadow-depth-sm`
 - Upload zone (default): `shadow-depth-md`
 - Upload zone (hover): `shadow-depth-lg`
@@ -628,33 +683,39 @@ Custom layered shadows for depth perception:
 All animations defined in `app/globals.css`:
 
 **1. Fade In Up** (`animate-fade-in-up`)
+
 - Duration: 0.6s ease-out
 - Used on: Hero section
 - Transform: translateY(20px) → translateY(0)
 - Opacity: 0 → 1
 
 **2. Float** (`animate-float`)
+
 - Duration: 6s ease-in-out infinite
 - Used on: (reserved for future use)
 - Transform: translateY(0) → translateY(-10px) → translateY(0)
 
 **3. Gradient Shift** (`animate-gradient-shift`)
+
 - Duration: 8s ease infinite
 - Used on: Gradient backgrounds
 - Background position: 0% → 100% → 0%
 
 **4. Shimmer** (`animate-shimmer`)
+
 - Duration: 2s linear infinite
 - Used on: LoginButton hover overlay
 - Background position: -200% → 200%
 
 **Accessibility:**
+
 - All animations respect `prefers-reduced-motion: reduce`
 - Animations are disabled for users who request reduced motion
 
 ### Component Patterns
 
 **1. Elevated Cards**
+
 - White background (`bg-white`)
 - Border: `border border-slate-200/60`
 - Shadow: `shadow-depth-sm` (default), `shadow-depth-md` (hover)
@@ -662,6 +723,7 @@ All animations defined in `app/globals.css`:
 - Padding: `p-8` (32px)
 
 **2. Gradient Buttons**
+
 - Background: `bg-linear-to-r from-indigo-600 to-blue-600`
 - Text: `text-white font-semibold`
 - Hover: Darker gradient (`from-indigo-700 to-blue-700`)
@@ -669,6 +731,7 @@ All animations defined in `app/globals.css`:
 - Transition: `transition-all duration-300`
 
 **3. Icon Containers**
+
 - Background: Gradient (e.g., `from-indigo-100 to-blue-100`)
 - Glow effect: Blurred gradient overlay (`blur-xl opacity-20`)
 - Border radius: `rounded-xl` (12px)
@@ -676,6 +739,7 @@ All animations defined in `app/globals.css`:
 
 **4. SVG Gradients**
 All icons use gradient strokes/fills defined inline:
+
 ```tsx
 <defs>
   <linearGradient id="iconGradient" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -688,16 +752,19 @@ All icons use gradient strokes/fills defined inline:
 ### Typography
 
 **Headings:**
+
 - Hero H1: `text-5xl sm:text-6xl lg:text-7xl font-extrabold leading-[1.1] tracking-tight`
 - Card Headlines: `text-2xl font-bold` or `text-3xl font-bold`
 - Subheadings: `text-lg font-semibold`
 
 **Body Text:**
+
 - Hero subtitle: `text-xl sm:text-2xl font-light leading-relaxed`
 - Card descriptions: `text-sm font-medium`
 - Helper text: `text-xs font-medium`
 
 **Font Weights:**
+
 - Light: 300 (hero subtitle)
 - Medium: 500 (body text, labels)
 - Semibold: 600 (buttons, card titles)
@@ -707,11 +774,13 @@ All icons use gradient strokes/fills defined inline:
 ### Hover Effects
 
 **Standard Lift Pattern:**
+
 ```tsx
 hover:-translate-y-0.5 hover:shadow-depth-md transition-all duration-300
 ```
 
 **Upload Zone Special:**
+
 - Default: `shadow-depth-md`
 - Hover: `shadow-depth-lg` + `-translate-y-1`
 - Gradient overlay fades in: `opacity-0` → `opacity-100`
@@ -720,11 +789,13 @@ hover:-translate-y-0.5 hover:shadow-depth-md transition-all duration-300
 ### Responsive Breakpoints
 
 Follow Tailwind defaults:
+
 - `sm:` 640px (tablets)
 - `md:` 768px (small laptops)
 - `lg:` 1024px (desktops)
 
 **Mobile-First Approach:**
+
 - Base styles for mobile
 - Add `sm:`, `lg:` modifiers for larger screens
 - Grid: `grid-cols-1 sm:grid-cols-3` for feature cards
@@ -740,12 +811,14 @@ Follow Tailwind defaults:
 ### Design Conflicts to Avoid
 
 **DO NOT** make landing page look like existing templates:
+
 - ❌ Editorial serif typography (MinimalistEditorial)
 - ❌ Dark backgrounds with noise overlays (GlassMorphic)
 - ❌ Thick black borders with hard shadows (NeoBrutalist)
 - ❌ Bento grid mosaic layouts (BentoGrid)
 
 **Landing page should:**
+
 - ✅ Use light backgrounds (slate-50, not dark)
 - ✅ Use soft shadows (not hard drops or glassmorphism)
 - ✅ Use indigo/blue gradients (not template-specific colors)
@@ -768,6 +841,7 @@ Follow Tailwind defaults:
 Understanding the full user experience is critical for debugging and feature development:
 
 ### 1. Anonymous Upload (Homepage)
+
 - User visits `/` (homepage)
 - Drags PDF onto `FileDropzone` component OR clicks to browse
 - Client requests presigned URL: `POST /api/upload/sign`
@@ -776,9 +850,11 @@ Understanding the full user experience is critical for debugging and feature dev
 - `LoginButton` appears prompting Google OAuth
 
 ### 2. Authentication
+
 Users have multiple authentication options:
 
 **Option A: Email/Password**
+
 - User clicks "Create Account" → redirected to `/login` → clicks "Sign up" → `/signup`
 - User enters email, password (8+ chars, uppercase, lowercase, digit, special)
 - System sends confirmation email via Supabase
@@ -786,12 +862,14 @@ Users have multiple authentication options:
 - Profile created via database trigger during signup
 
 **Option B: Magic Link (Passwordless)**
+
 - User enters email on `/login` page
 - Clicks "Send Magic Link" button
 - User clicks link in email → redirected to `/auth/callback` → `/wizard` or `/dashboard`
 - No password required
 
 **Option C: Google OAuth**
+
 - User clicks "Continue with Google" on `/login` page
 - Redirects to Google OAuth consent screen
 - On success, callback to `/auth/callback`
@@ -800,6 +878,7 @@ Users have multiple authentication options:
 - User redirected to `/wizard` or `/dashboard` based on onboarding status
 
 **Callback Handler** (`/auth/callback`):
+
 - Handles OAuth code, email confirmation tokens, and magic link tokens
 - Detects auth type via `user.app_metadata.provider` (google/email)
 - Updates avatar only for OAuth providers
@@ -807,38 +886,46 @@ Users have multiple authentication options:
 - Redirects to `/wizard` if incomplete, `/dashboard` if complete
 
 **Password Reset Flow**:
+
 - User goes to `/forgot-password` → enters email → receives reset link
 - User clicks link → redirected to `/reset-password` with token
 - User enters new password → updates via Supabase → redirected to `/login`
 
 ### 3. Wizard Onboarding (4 Steps)
+
 Located at `/wizard`, managed by `components/wizard/*`:
 
 **Step 1: Handle** (`HandleStep.tsx`)
+
 - User enters desired username (3+ chars, alphanumeric + hyphens)
 - Real-time availability check against `profiles.handle`
 - Validation: Must be unique, no special chars
 
 **Step 2: Review** (`ReviewStep.tsx`)
+
 - Shows AI-parsed resume content (read-only)
 - User can see what will be published
 - Background: Claim API already triggered parsing
 
 **Step 3: Privacy** (`PrivacyStep.tsx`)
+
 - Toggle: "Show phone number" (default OFF)
 - Toggle: "Show full address" (default OFF)
 - Updates `profiles.privacy_settings` jsonb
 
 **Step 4: Theme** (`ThemeStep.tsx`)
+
 - User selects from 4 templates (MinimalistEditorial default)
 - Live preview of each template
 - Sets `site_data.theme_id`
 
 On completion:
+
 - `POST /api/wizard/complete` sets `onboarding_completed = true`
 - User redirected to `/dashboard`
 
 ### 4. AI Parsing (Background)
+
 Triggered by claim API, tracked in `/waiting`:
 
 - Status: `pending_claim` → `processing`
@@ -849,6 +936,7 @@ Triggered by claim API, tracked in `/waiting`:
 - On failure: `status = failed`, user can retry (max 2 attempts)
 
 ### 5. Dashboard (`/dashboard`)
+
 Post-onboarding landing page:
 
 - Shows current handle: `webresume.now/{handle}`
@@ -857,6 +945,7 @@ Post-onboarding landing page:
 - `Sidebar` component for navigation
 
 ### 6. Editing (`/edit`)
+
 Content editor with auto-save:
 
 - `EditResumeForm` component with react-hook-form
@@ -866,6 +955,7 @@ Content editor with auto-save:
 - Success toast notification on save
 
 ### 7. Settings (`/settings`)
+
 Privacy and profile management:
 
 - Update privacy toggles (phone/address visibility)
@@ -874,6 +964,7 @@ Privacy and profile management:
 - Delete account option (future)
 
 ### 8. Public Profile (`/[handle]`)
+
 The actual published resume:
 
 - Server-side rendered (SSR)
@@ -884,6 +975,7 @@ The actual published resume:
 - Cache-Control headers for edge caching
 
 ### Error States
+
 - **Upload fails**: Show error message, allow retry
 - **Parsing fails**: Redirect to `/waiting` with retry button
 - **Handle taken**: Inline validation error in wizard

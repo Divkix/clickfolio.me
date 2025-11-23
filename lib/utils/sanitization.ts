@@ -8,15 +8,15 @@
  * Prevents XSS attacks by encoding special characters
  */
 export function sanitizeText(input: string): string {
-  if (!input) return ''
+  if (!input) return "";
 
   return input
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#x27;')
-    .replace(/\//g, '&#x2F;')
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#x27;")
+    .replace(/\//g, "&#x2F;");
 }
 
 /**
@@ -25,39 +25,39 @@ export function sanitizeText(input: string): string {
  * Blocks javascript:, data:, and other dangerous protocols
  */
 export function sanitizeUrl(input: string): string {
-  if (!input) return ''
+  if (!input) return "";
 
   // Trim and lowercase the protocol check
-  const trimmed = input.trim()
-  const lower = trimmed.toLowerCase()
+  const trimmed = input.trim();
+  const lower = trimmed.toLowerCase();
 
   // Block dangerous protocols
   const dangerousProtocols = [
-    'javascript:',
-    'data:',
-    'vbscript:',
-    'file:',
-    'about:',
-  ]
+    "javascript:",
+    "data:",
+    "vbscript:",
+    "file:",
+    "about:",
+  ];
 
   for (const protocol of dangerousProtocols) {
     if (lower.startsWith(protocol)) {
-      return ''
+      return "";
     }
   }
 
   // Allow only safe protocols
-  const safeProtocols = ['http://', 'https://', 'mailto:']
+  const safeProtocols = ["http://", "https://", "mailto:"];
   const hasProtocol = safeProtocols.some((protocol) =>
-    lower.startsWith(protocol)
-  )
+    lower.startsWith(protocol),
+  );
 
   if (!hasProtocol) {
     // If no protocol, assume https://
-    return `https://${trimmed}`
+    return `https://${trimmed}`;
   }
 
-  return trimmed
+  return trimmed;
 }
 
 /**
@@ -65,55 +65,52 @@ export function sanitizeUrl(input: string): string {
  * Basic format check and special character encoding
  */
 export function sanitizeEmail(input: string): string {
-  if (!input) return ''
+  if (!input) return "";
 
-  const trimmed = input.trim().toLowerCase()
+  const trimmed = input.trim().toLowerCase();
 
   // Basic email format validation
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(trimmed)) {
-    return ''
+    return "";
   }
 
   // Remove any dangerous characters
-  return trimmed.replace(/[<>'"]/g, '')
+  return trimmed.replace(/[<>'"]/g, "");
 }
-
 
 /**
  * Validates and sanitizes phone numbers
  * Allows only digits, spaces, hyphens, parentheses, and plus sign
  */
 export function sanitizePhone(input: string): string {
-  if (!input) return ''
+  if (!input) return "";
 
   // Allow only valid phone number characters
-  return input.replace(/[^0-9\s\-()+ ]/g, '').trim()
+  return input.replace(/[^0-9\s\-()+ ]/g, "").trim();
 }
-
 
 /**
  * Checks if a string contains potential XSS patterns
  * Returns true if suspicious content is detected
  */
 export function containsXssPattern(input: string): boolean {
-  if (!input) return false
+  if (!input) return false;
 
   // Check for script tags
-  if (/<script/i.test(input)) return true
+  if (/<script/i.test(input)) return true;
 
   // Check for javascript: protocol
-  if (/javascript:/i.test(input)) return true
+  if (/javascript:/i.test(input)) return true;
 
   // Check for event handlers
-  if (/\s*on\w+\s*=/i.test(input)) return true
+  if (/\s*on\w+\s*=/i.test(input)) return true;
 
   // Check for data: protocol (can be used for XSS)
-  if (/data:text\/html/i.test(input)) return true
+  if (/data:text\/html/i.test(input)) return true;
 
   // Check for iframe tags
-  if (/<iframe/i.test(input)) return true
+  if (/<iframe/i.test(input)) return true;
 
-  return false
+  return false;
 }
-

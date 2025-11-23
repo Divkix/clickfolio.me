@@ -1,6 +1,6 @@
-import { Card, CardContent, CardHeader } from '@/components/ui/card'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Separator } from '@/components/ui/separator'
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Separator } from "@/components/ui/separator";
 
 /**
  * Loading skeleton for dashboard page
@@ -129,5 +129,5 @@ export function DashboardSkeleton() {
         </Card>
       </main>
     </div>
-  )
+  );
 }

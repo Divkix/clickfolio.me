@@ -34,11 +34,11 @@ graph TD
 
 ### 1.2 Infrastructure Decisions
 
-*   **Runtime:** We will use the **Node.js Compatibility Mode** on Cloudflare Workers provided by `@opennextjs/cloudflare`. This avoids the strict limitations of the "Edge" runtime (e.g., `jose` encryption issues for Auth) while still running globally.
-*   **Rendering Strategy:**
-    *   **Dashboard (`/dashboard`)**: Dynamic, server-rendered (SSR), protected.
-    *   **Public Profile (`/[handle]`)**: Dynamic, highly cached (ISR-like behavior via `Cache-Control` headers managed by Next.js).
-*   **Parsing Strategy:** We will use **Datalab Marker's "Structured Extraction"** mode via Replicate. Instead of parsing raw markdown, we will inject a JSON Schema into the prompt to force the AI to return structured data (`experience`, `education`, `skills`) immediately.
+- **Runtime:** We will use the **Node.js Compatibility Mode** on Cloudflare Workers provided by `@opennextjs/cloudflare`. This avoids the strict limitations of the "Edge" runtime (e.g., `jose` encryption issues for Auth) while still running globally.
+- **Rendering Strategy:**
+  - **Dashboard (`/dashboard`)**: Dynamic, server-rendered (SSR), protected.
+  - **Public Profile (`/[handle]`)**: Dynamic, highly cached (ISR-like behavior via `Cache-Control` headers managed by Next.js).
+- **Parsing Strategy:** We will use **Datalab Marker's "Structured Extraction"** mode via Replicate. Instead of parsing raw markdown, we will inject a JSON Schema into the prompt to force the AI to return structured data (`experience`, `education`, `skills`) immediately.
 
 ---
 
@@ -103,28 +103,30 @@ create index idx_redirects_old_handle on redirects(old_handle);
 ## 3. API & Logic Specifications
 
 ### 3.1 Authentication & The "Claim Check"
+
 The critical path is the anonymous-to-authenticated handoff.
 
 1.  **Anonymous Upload**: User calls `POST /api/upload/sign`.
-    *   Server returns `{ uploadUrl, key }` (Presigned PUT).
-    *   Key format: `temp/{random_uuid}/{filename}`.
-    *   Client uploads file to R2.
-    *   Client stores `key` in `localStorage.getItem('pending_resume')`.
+    - Server returns `{ uploadUrl, key }` (Presigned PUT).
+    - Key format: `temp/{random_uuid}/{filename}`.
+    - Client uploads file to R2.
+    - Client stores `key` in `localStorage.getItem('pending_resume')`.
 2.  **Auth**: User signs in with Google. Redirected to `/wizard`.
 3.  **Claim**: On mount, `/wizard` checks `localStorage`. If key exists:
-    *   Calls `POST /api/resume/claim` with `{ key }`.
-    *   **Server Logic**:
-        1.  Validate `key` format.
-        2.  Create `resumes` row with `status: 'processing'` and `user_id: current_user`.
-        3.  Trigger Replicate Job (Async).
-        4.  Return `resume_id`.
-    *   Client clears `localStorage`.
+    - Calls `POST /api/resume/claim` with `{ key }`.
+    - **Server Logic**:
+      1.  Validate `key` format.
+      2.  Create `resumes` row with `status: 'processing'` and `user_id: current_user`.
+      3.  Trigger Replicate Job (Async).
+      4.  Return `resume_id`.
+    - Client clears `localStorage`.
 
 ### 3.2 Resume Parsing (The "Brain")
 
 We use `datalab-to/marker` on Replicate. We utilize the `page_schema` parameter to enforce output structure.
 
 **Input Schema (passed to Replicate):**
+
 ```json
 {
   "file": "https://r2-bucket.../file.pdf",
@@ -133,7 +135,10 @@ We use `datalab-to/marker` on Replicate. We utilize the `page_schema` parameter 
     "type": "object",
     "properties": {
       "full_name": { "type": "string" },
-      "headline": { "type": "string", "description": "A 10-word professional summary" },
+      "headline": {
+        "type": "string",
+        "description": "A 10-word professional summary"
+      },
       "summary": { "type": "string", "maxLength": 500 },
       "contact": {
         "type": "object",
@@ -162,18 +167,19 @@ We use `datalab-to/marker` on Replicate. We utilize the `page_schema` parameter 
 ```
 
 ### 3.3 Public Page Rendering
-*   **Path**: `/[handle]/page.tsx`
-*   **Logic**:
-    1.  `SELECT * FROM profiles WHERE handle = params.handle`.
-    2.  If not found, check `redirects` table.
-    3.  If found, `SELECT content FROM site_data WHERE user_id = profile.id`.
-    4.  **Privacy Filter**:
-        ```typescript
-        if (!profile.privacy_settings.show_phone) {
-          delete content.contact.phone;
-        }
-        ```
-    5.  Render JSX.
+
+- **Path**: `/[handle]/page.tsx`
+- **Logic**:
+  1.  `SELECT * FROM profiles WHERE handle = params.handle`.
+  2.  If not found, check `redirects` table.
+  3.  If found, `SELECT content FROM site_data WHERE user_id = profile.id`.
+  4.  **Privacy Filter**:
+      ```typescript
+      if (!profile.privacy_settings.show_phone) {
+        delete content.contact.phone;
+      }
+      ```
+  5.  Render JSX.
 
 ---
 
@@ -182,23 +188,29 @@ We use `datalab-to/marker` on Replicate. We utilize the `page_schema` parameter 
 We will execute in 5 strict phases. Do not move to the next phase until the current one is deployed to Cloudflare and verified.
 
 ### Phase 1: The Skeleton & Plumbing
+
 **Goal**: A deployed Next.js app on Cloudflare with Database connection and Google Auth.
+
 1.  **Setup**: Initialize Next.js 15. Install `@opennextjs/cloudflare`.
 2.  **Infra**: Set up Supabase Project & Cloudflare R2 Bucket.
 3.  **Auth**: Implement `@supabase/ssr` Google OAuth flow.
 4.  **Deploy**: Push to Cloudflare Workers. Verify "Hello World" and Login/Logout work on the live URL.
 
 ### Phase 2: The "Drop & Claim" Loop
+
 **Goal**: User can upload a file, log in, and see the file record in the database.
+
 1.  **R2 Integration**: Create `POST /api/upload/sign`. Implement `S3Client` (AWS SDK v3) for presigning.
 2.  **Frontend Upload**: Build the Drag-and-Drop zone. Implement `localStorage` logic for the temp key.
 3.  **Claim API**: Create `POST /api/resume/claim`.
-    *   *Logic*: Insert into `resumes` table.
-    *   *Note*: Do NOT implement Replicate yet. Just mock the status as `processing` -> `completed`.
+    - _Logic_: Insert into `resumes` table.
+    - _Note_: Do NOT implement Replicate yet. Just mock the status as `processing` -> `completed`.
 4.  **Validation**: Verify a file dropped by an anon user ends up linked to the authenticated user's ID in Supabase.
 
 ### Phase 3: The Viewer (Mocked)
+
 **Goal**: A public profile page that renders data from the DB.
+
 1.  **Seed Data**: Manually insert a JSON blob into `site_data` for your test user.
 2.  **Route**: Create `app/[handle]/page.tsx`.
 3.  **Fetching**: Implement `getByHandle` query. Handle 404s.
@@ -206,19 +218,23 @@ We will execute in 5 strict phases. Do not move to the next phase until the curr
 5.  **Validation**: Visit `webresume.now/mytest` and see the manual JSON rendered nicely.
 
 ### Phase 4: The Brain (AI Integration)
+
 **Goal**: Replace the mock with actual AI parsing.
+
 1.  **Replicate Client**: Create `lib/replicate.ts`.
 2.  **Processing Queue**:
-    *   Update `claim` API to trigger Replicate.
-    *   Implement a client-side poller in the "Waiting Room" UI (`/waiting`):
-        *   Poll `GET /api/resume/status?id=xyz`.
-        *   If status `completed`, redirect to Dashboard.
+    - Update `claim` API to trigger Replicate.
+    - Implement a client-side poller in the "Waiting Room" UI (`/waiting`):
+      - Poll `GET /api/resume/status?id=xyz`.
+      - If status `completed`, redirect to Dashboard.
 3.  **Webhook/Callback (Optional for MVP, Polling preferred)**:
-    *   For MVP, the `status` API can proactively check Replicate API if the DB status is still `processing`. If Replicate is done, update DB and return result.
+    - For MVP, the `status` API can proactively check Replicate API if the DB status is still `processing`. If Replicate is done, update DB and return result.
 4.  **Normalization**: Map Replicate's `extraction_schema_json` -> `site_data` table.
 
 ### Phase 5: Polish & Launch
+
 **Goal**: The "Edit" loop and Domain handling.
+
 1.  **Survey UI**: Build the form to edit the JSON data (Polishing step).
 2.  **Privacy Toggles**: Connect the UI toggles to `profiles.privacy_settings`.
 3.  **Rate Limiting**: Add a simple check in `/api/upload/sign`: `SELECT count(*) FROM resumes WHERE user_id = ... AND created_at > now() - interval '1 day'`.
@@ -228,12 +244,12 @@ We will execute in 5 strict phases. Do not move to the next phase until the curr
 
 ## 5. Engineer's Checklist (Pre-Code)
 
-*   [ ] **Env Vars**: Ensure `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `REPLICATE_API_TOKEN` are in Cloudflare Worker secrets (not just `.env.local`).
-*   [ ] **Bucket CORS**: Configure R2 CORS to allow PUT from your production domain and localhost.
-*   [ ] **Supabase RLS**: Enable RLS.
-    *   `profiles`: Public read (handle lookup). User update own.
-    *   `resumes`: User read/create own.
-    *   `site_data`: Public read. User update own.
-*   [ ] **PDF Size Limit**: Enforce 10MB limit in the Presigned URL generation (`content-length-range`).
+- [ ] **Env Vars**: Ensure `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `REPLICATE_API_TOKEN` are in Cloudflare Worker secrets (not just `.env.local`).
+- [ ] **Bucket CORS**: Configure R2 CORS to allow PUT from your production domain and localhost.
+- [ ] **Supabase RLS**: Enable RLS.
+  - `profiles`: Public read (handle lookup). User update own.
+  - `resumes`: User read/create own.
+  - `site_data`: Public read. User update own.
+- [ ] **PDF Size Limit**: Enforce 10MB limit in the Presigned URL generation (`content-length-range`).
 
 **Let's build Slice 1.**

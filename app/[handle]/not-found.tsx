@@ -1,4 +1,4 @@
-import Link from 'next/link'
+import Link from "next/link";
 
 export default function NotFound() {
   return (
@@ -26,8 +26,11 @@ export default function NotFound() {
             </Link>
 
             <p className="text-sm text-slate-500">
-              Want to create your own resume?{' '}
-              <Link href="/" className="text-transparent bg-clip-text bg-linear-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 font-medium transition-all duration-300">
+              Want to create your own resume?{" "}
+              <Link
+                href="/"
+                className="text-transparent bg-clip-text bg-linear-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 font-medium transition-all duration-300"
+              >
                 Get started
               </Link>
             </p>
@@ -35,5 +38,5 @@ export default function NotFound() {
         </div>
       </div>
     </div>
-  )
+  );
 }

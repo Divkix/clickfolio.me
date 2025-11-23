@@ -1,27 +1,30 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
-import { THEME_METADATA, type ThemeId } from '@/lib/templates/theme-registry'
-import { Palette, CheckCircle2 } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { THEME_METADATA, type ThemeId } from "@/lib/templates/theme-registry";
+import { Palette, CheckCircle2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface ThemeStepProps {
-  initialTheme?: ThemeId
-  onContinue: (themeId: ThemeId) => void
+  initialTheme?: ThemeId;
+  onContinue: (themeId: ThemeId) => void;
 }
 
 /**
  * Step 4: Theme Selection Component
  * Allows users to choose their resume template design
  */
-export function ThemeStep({ initialTheme = 'minimalist_editorial', onContinue }: ThemeStepProps) {
-  const [selectedTheme, setSelectedTheme] = useState<ThemeId>(initialTheme)
+export function ThemeStep({
+  initialTheme = "minimalist_editorial",
+  onContinue,
+}: ThemeStepProps) {
+  const [selectedTheme, setSelectedTheme] = useState<ThemeId>(initialTheme);
 
   const handleContinue = () => {
-    onContinue(selectedTheme)
-  }
+    onContinue(selectedTheme);
+  };
 
   return (
     <div className="space-y-8">
@@ -34,7 +37,8 @@ export function ThemeStep({ initialTheme = 'minimalist_editorial', onContinue }:
           Choose Your Template
         </h1>
         <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-          Select a design that best represents your professional style. You can change this anytime.
+          Select a design that best represents your professional style. You can
+          change this anytime.
         </p>
       </div>
 
@@ -46,11 +50,11 @@ export function ThemeStep({ initialTheme = 'minimalist_editorial', onContinue }:
               key={id}
               onClick={() => setSelectedTheme(id as ThemeId)}
               className={cn(
-                'group relative cursor-pointer overflow-hidden transition-all duration-300 p-6',
-                'border-2 shadow-depth-sm hover:shadow-depth-lg hover:-translate-y-1',
+                "group relative cursor-pointer overflow-hidden transition-all duration-300 p-6",
+                "border-2 shadow-depth-sm hover:shadow-depth-lg hover:-translate-y-1",
                 selectedTheme === id
-                  ? 'border-indigo-600 ring-2 ring-indigo-100 bg-indigo-50/50'
-                  : 'border-slate-200/60 hover:border-indigo-300 bg-white'
+                  ? "border-indigo-600 ring-2 ring-indigo-100 bg-indigo-50/50"
+                  : "border-slate-200/60 hover:border-indigo-300 bg-white",
               )}
             >
               {/* Selected Indicator */}
@@ -69,10 +73,10 @@ export function ThemeStep({ initialTheme = 'minimalist_editorial', onContinue }:
                 <div>
                   <span
                     className={cn(
-                      'inline-block text-xs uppercase tracking-wide font-bold px-2 py-1 rounded',
+                      "inline-block text-xs uppercase tracking-wide font-bold px-2 py-1 rounded",
                       selectedTheme === id
-                        ? 'bg-indigo-200 text-indigo-900'
-                        : 'bg-slate-100 text-slate-600'
+                        ? "bg-indigo-200 text-indigo-900"
+                        : "bg-slate-100 text-slate-600",
                     )}
                   >
                     {meta.category}
@@ -82,8 +86,10 @@ export function ThemeStep({ initialTheme = 'minimalist_editorial', onContinue }:
                 {/* Theme Name */}
                 <h3
                   className={cn(
-                    'text-xl font-bold transition-colors',
-                    selectedTheme === id ? 'text-indigo-900' : 'text-slate-900 group-hover:text-indigo-600'
+                    "text-xl font-bold transition-colors",
+                    selectedTheme === id
+                      ? "text-indigo-900"
+                      : "text-slate-900 group-hover:text-indigo-600",
                   )}
                 >
                   {meta.name}
@@ -92,8 +98,8 @@ export function ThemeStep({ initialTheme = 'minimalist_editorial', onContinue }:
                 {/* Description */}
                 <p
                   className={cn(
-                    'text-sm leading-relaxed',
-                    selectedTheme === id ? 'text-slate-700' : 'text-slate-600'
+                    "text-sm leading-relaxed",
+                    selectedTheme === id ? "text-slate-700" : "text-slate-600",
                   )}
                 >
                   {meta.description}
@@ -103,9 +109,11 @@ export function ThemeStep({ initialTheme = 'minimalist_editorial', onContinue }:
                 <div className="pt-2">
                   <div
                     className={cn(
-                      'h-20 rounded-lg border-2 transition-all',
+                      "h-20 rounded-lg border-2 transition-all",
                       getThemePreviewStyle(id as ThemeId),
-                      selectedTheme === id ? 'border-indigo-400' : 'border-slate-200'
+                      selectedTheme === id
+                        ? "border-indigo-400"
+                        : "border-slate-200",
                     )}
                   />
                 </div>
@@ -117,8 +125,10 @@ export function ThemeStep({ initialTheme = 'minimalist_editorial', onContinue }:
         {/* Selected Theme Info */}
         <div className="mt-6 text-center">
           <p className="text-sm text-slate-600">
-            Currently selected:{' '}
-            <span className="font-bold text-indigo-600">{THEME_METADATA[selectedTheme].name}</span>
+            Currently selected:{" "}
+            <span className="font-bold text-indigo-600">
+              {THEME_METADATA[selectedTheme].name}
+            </span>
           </p>
         </div>
 
@@ -141,7 +151,7 @@ export function ThemeStep({ initialTheme = 'minimalist_editorial', onContinue }:
         </p>
       </div>
     </div>
-  )
+  );
 }
 
 /**
@@ -149,15 +159,15 @@ export function ThemeStep({ initialTheme = 'minimalist_editorial', onContinue }:
  */
 function getThemePreviewStyle(themeId: ThemeId): string {
   switch (themeId) {
-    case 'bento':
-      return 'bg-linear-to-br from-purple-100 via-pink-50 to-orange-100'
-    case 'glass':
-      return 'bg-linear-to-br from-slate-900 via-slate-800 to-indigo-900'
-    case 'minimalist_editorial':
-      return 'bg-linear-to-br from-slate-50 via-white to-slate-100'
-    case 'neo_brutalist':
-      return 'bg-linear-to-br from-yellow-300 via-white to-black'
+    case "bento":
+      return "bg-linear-to-br from-purple-100 via-pink-50 to-orange-100";
+    case "glass":
+      return "bg-linear-to-br from-slate-900 via-slate-800 to-indigo-900";
+    case "minimalist_editorial":
+      return "bg-linear-to-br from-slate-50 via-white to-slate-100";
+    case "neo_brutalist":
+      return "bg-linear-to-br from-yellow-300 via-white to-black";
     default:
-      return 'bg-slate-100'
+      return "bg-slate-100";
   }
 }

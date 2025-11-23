@@ -1,19 +1,19 @@
-'use client'
+"use client";
 
-import { Progress } from '@/components/ui/progress'
+import { Progress } from "@/components/ui/progress";
 
 interface WizardProgressProps {
-  currentStep: number
-  totalSteps: number
-  progress: number
+  currentStep: number;
+  totalSteps: number;
+  progress: number;
 }
 
 const STEP_TITLES = [
-  'Choose Your Role',
-  'Craft Your Headline',
-  'Polish Your Summary',
-  'Enhance Experience',
-]
+  "Choose Your Role",
+  "Craft Your Headline",
+  "Polish Your Summary",
+  "Enhance Experience",
+];
 
 /**
  * WizardProgress Component
@@ -24,7 +24,7 @@ export function WizardProgress({
   totalSteps,
   progress,
 }: WizardProgressProps) {
-  const stepTitle = STEP_TITLES[currentStep - 1] || 'Unknown Step'
+  const stepTitle = STEP_TITLES[currentStep - 1] || "Unknown Step";
 
   return (
     <div className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-slate-200/60 shadow-depth-sm">
@@ -46,11 +46,8 @@ export function WizardProgress({
         </div>
 
         {/* Progress Bar */}
-        <Progress
-          value={progress}
-          className="h-2 bg-slate-100"
-        />
+        <Progress value={progress} className="h-2 bg-slate-100" />
       </div>
     </div>
-  )
+  );
 }

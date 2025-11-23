@@ -1,56 +1,56 @@
-'use client'
+"use client";
 
-import { EditResumeForm } from './EditResumeForm'
-import type { ResumeContent } from '@/lib/types/database'
-import { useRouter } from 'next/navigation'
-import { toast } from 'sonner'
+import { EditResumeForm } from "./EditResumeForm";
+import type { ResumeContent } from "@/lib/types/database";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 interface EditResumeFormWrapperProps {
-  initialData: ResumeContent
+  initialData: ResumeContent;
 }
 
 export function EditResumeFormWrapper({
   initialData,
 }: EditResumeFormWrapperProps) {
-  const router = useRouter()
+  const router = useRouter();
 
   const handleSave = async (data: ResumeContent) => {
     try {
-      const response = await fetch('/api/resume/update', {
-        method: 'PUT',
+      const response = await fetch("/api/resume/update", {
+        method: "PUT",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ content: data }),
-      })
+      });
 
       if (!response.ok) {
-        const error = await response.json()
-        const errorMessage = error.error || 'Failed to update resume'
+        const error = await response.json();
+        const errorMessage = error.error || "Failed to update resume";
 
         // Display specific error messages to user
         if (response.status === 429) {
-          toast.error('Rate limit exceeded. Please try again later.')
+          toast.error("Rate limit exceeded. Please try again later.");
         } else if (response.status === 401) {
-          toast.error('Session expired. Please log in again.')
+          toast.error("Session expired. Please log in again.");
         } else {
-          toast.error(errorMessage)
+          toast.error(errorMessage);
         }
 
-        throw new Error(errorMessage)
+        throw new Error(errorMessage);
       }
 
-      const result = await response.json()
+      const result = await response.json();
 
       // Refresh the page to get updated data
-      router.refresh()
+      router.refresh();
 
-      return result
+      return result;
     } catch (error) {
       // Re-throw the error so it propagates to the form's error handling
-      throw error
+      throw error;
     }
-  }
+  };
 
-  return <EditResumeForm initialData={initialData} onSave={handleSave} />
+  return <EditResumeForm initialData={initialData} onSave={handleSave} />;
 }

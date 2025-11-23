@@ -1,13 +1,21 @@
-'use client'
+"use client";
 
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
-import { ResumeContent } from '@/lib/types/database'
-import { FileCheck, Mail, Phone, MapPin, Linkedin, Github, Globe } from 'lucide-react'
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { ResumeContent } from "@/lib/types/database";
+import {
+  FileCheck,
+  Mail,
+  Phone,
+  MapPin,
+  Linkedin,
+  Github,
+  Globe,
+} from "lucide-react";
 
 interface ReviewStepProps {
-  content: ResumeContent
-  onContinue: () => void
+  content: ResumeContent;
+  onContinue: () => void;
 }
 
 /**
@@ -26,7 +34,8 @@ export function ReviewStep({ content, onContinue }: ReviewStepProps) {
           Review Your Information
         </h1>
         <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-          We&apos;ve extracted this from your resume. You can edit it later in your dashboard.
+          We&apos;ve extracted this from your resume. You can edit it later in
+          your dashboard.
         </p>
       </div>
 
@@ -36,8 +45,12 @@ export function ReviewStep({ content, onContinue }: ReviewStepProps) {
         <Card className="p-6 border-2 border-slate-200/60 shadow-depth-sm">
           <div className="space-y-4">
             <div>
-              <h2 className="text-2xl font-bold text-slate-900">{content.full_name}</h2>
-              <p className="text-lg text-indigo-600 font-semibold">{content.headline}</p>
+              <h2 className="text-2xl font-bold text-slate-900">
+                {content.full_name}
+              </h2>
+              <p className="text-lg text-indigo-600 font-semibold">
+                {content.headline}
+              </p>
             </div>
 
             {/* Contact Info */}
@@ -63,24 +76,32 @@ export function ReviewStep({ content, onContinue }: ReviewStepProps) {
             </div>
 
             {/* Social Links */}
-            {(content.contact.linkedin || content.contact.github || content.contact.website) && (
+            {(content.contact.linkedin ||
+              content.contact.github ||
+              content.contact.website) && (
               <div className="flex flex-wrap gap-3">
                 {content.contact.linkedin && (
                   <div className="flex items-center gap-1 text-sm text-slate-600">
                     <Linkedin className="w-4 h-4" />
-                    <span className="truncate max-w-[200px]">{content.contact.linkedin}</span>
+                    <span className="truncate max-w-[200px]">
+                      {content.contact.linkedin}
+                    </span>
                   </div>
                 )}
                 {content.contact.github && (
                   <div className="flex items-center gap-1 text-sm text-slate-600">
                     <Github className="w-4 h-4" />
-                    <span className="truncate max-w-[200px]">{content.contact.github}</span>
+                    <span className="truncate max-w-[200px]">
+                      {content.contact.github}
+                    </span>
                   </div>
                 )}
                 {content.contact.website && (
                   <div className="flex items-center gap-1 text-sm text-slate-600">
                     <Globe className="w-4 h-4" />
-                    <span className="truncate max-w-[200px]">{content.contact.website}</span>
+                    <span className="truncate max-w-[200px]">
+                      {content.contact.website}
+                    </span>
                   </div>
                 )}
               </div>
@@ -92,24 +113,30 @@ export function ReviewStep({ content, onContinue }: ReviewStepProps) {
         {content.summary && (
           <Card className="p-6 border-2 border-slate-200/60 shadow-depth-sm">
             <h3 className="text-lg font-bold text-slate-900 mb-3">Summary</h3>
-            <p className="text-sm text-slate-700 leading-relaxed">{content.summary}</p>
+            <p className="text-sm text-slate-700 leading-relaxed">
+              {content.summary}
+            </p>
           </Card>
         )}
 
         {/* Experience */}
         {content.experience && content.experience.length > 0 && (
           <Card className="p-6 border-2 border-slate-200/60 shadow-depth-sm">
-            <h3 className="text-lg font-bold text-slate-900 mb-4">Experience</h3>
+            <h3 className="text-lg font-bold text-slate-900 mb-4">
+              Experience
+            </h3>
             <div className="space-y-4">
               {content.experience.slice(0, 3).map((exp, index) => (
                 <div key={index} className="border-l-2 border-indigo-200 pl-4">
                   <div className="flex justify-between items-start mb-1">
                     <div>
-                      <h4 className="font-semibold text-slate-900">{exp.title}</h4>
+                      <h4 className="font-semibold text-slate-900">
+                        {exp.title}
+                      </h4>
                       <p className="text-sm text-slate-600">{exp.company}</p>
                     </div>
                     <span className="text-xs text-slate-500 font-medium whitespace-nowrap">
-                      {exp.start_date} - {exp.end_date || 'Present'}
+                      {exp.start_date} - {exp.end_date || "Present"}
                     </span>
                   </div>
                   {exp.description && (
@@ -138,7 +165,9 @@ export function ReviewStep({ content, onContinue }: ReviewStepProps) {
                   <h4 className="font-semibold text-slate-900">{edu.degree}</h4>
                   <p className="text-sm text-slate-600">{edu.institution}</p>
                   {edu.graduation_date && (
-                    <p className="text-xs text-slate-500">{edu.graduation_date}</p>
+                    <p className="text-xs text-slate-500">
+                      {edu.graduation_date}
+                    </p>
                   )}
                 </div>
               ))}
@@ -191,5 +220,5 @@ export function ReviewStep({ content, onContinue }: ReviewStepProps) {
         </p>
       </div>
     </div>
-  )
+  );
 }

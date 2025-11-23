@@ -1,20 +1,23 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
-import { Switch } from '@/components/ui/switch'
-import { Label } from '@/components/ui/label'
-import { Shield, Eye, EyeOff, Phone, MapPin, Info } from 'lucide-react'
-import { ResumeContent } from '@/lib/types/database'
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Shield, Eye, EyeOff, Phone, MapPin, Info } from "lucide-react";
+import { ResumeContent } from "@/lib/types/database";
 
 interface PrivacyStepProps {
-  content: ResumeContent
+  content: ResumeContent;
   initialSettings?: {
-    show_phone: boolean
-    show_address: boolean
-  }
-  onContinue: (settings: { show_phone: boolean; show_address: boolean }) => void
+    show_phone: boolean;
+    show_address: boolean;
+  };
+  onContinue: (settings: {
+    show_phone: boolean;
+    show_address: boolean;
+  }) => void;
 }
 
 /**
@@ -26,26 +29,26 @@ export function PrivacyStep({
   initialSettings = { show_phone: false, show_address: false },
   onContinue,
 }: PrivacyStepProps) {
-  const [showPhone, setShowPhone] = useState(initialSettings.show_phone)
-  const [showAddress, setShowAddress] = useState(initialSettings.show_address)
+  const [showPhone, setShowPhone] = useState(initialSettings.show_phone);
+  const [showAddress, setShowAddress] = useState(initialSettings.show_address);
 
   const handleContinue = () => {
     onContinue({
       show_phone: showPhone,
       show_address: showAddress,
-    })
-  }
+    });
+  };
 
   // Extract city/state from full address for preview
   const getCityState = (location?: string) => {
-    if (!location) return ''
+    if (!location) return "";
     // Simple heuristic: take last 2 comma-separated parts (City, State)
-    const parts = location.split(',').map((p) => p.trim())
+    const parts = location.split(",").map((p) => p.trim());
     if (parts.length >= 2) {
-      return parts.slice(-2).join(', ')
+      return parts.slice(-2).join(", ");
     }
-    return location
-  }
+    return location;
+  };
 
   return (
     <div className="space-y-8">
@@ -58,7 +61,8 @@ export function PrivacyStep({
           Privacy Settings
         </h1>
         <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-          Control what information is visible on your public resume. You can change this anytime.
+          Control what information is visible on your public resume. You can
+          change this anytime.
         </p>
       </div>
 
@@ -73,7 +77,8 @@ export function PrivacyStep({
                 Your email is always visible to potential employers.
               </p>
               <p className="text-xs text-blue-700 mt-1">
-                We recommend keeping phone and address hidden for privacy, showing only city/state.
+                We recommend keeping phone and address hidden for privacy,
+                showing only city/state.
               </p>
             </div>
           </div>
@@ -86,7 +91,10 @@ export function PrivacyStep({
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-2">
                   <Phone className="w-5 h-5 text-slate-600" />
-                  <Label htmlFor="show-phone" className="text-base font-semibold text-slate-900">
+                  <Label
+                    htmlFor="show-phone"
+                    className="text-base font-semibold text-slate-900"
+                  >
                     Show Phone Number
                   </Label>
                 </div>
@@ -94,11 +102,15 @@ export function PrivacyStep({
                   Display your phone number on your public resume
                 </p>
                 <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
-                  <p className="text-xs font-medium text-slate-500 mb-1">Preview:</p>
+                  <p className="text-xs font-medium text-slate-500 mb-1">
+                    Preview:
+                  </p>
                   {showPhone ? (
                     <div className="flex items-center gap-2 text-sm text-slate-900">
                       <Eye className="w-4 h-4 text-green-600" />
-                      <span className="font-medium">{content.contact.phone}</span>
+                      <span className="font-medium">
+                        {content.contact.phone}
+                      </span>
                     </div>
                   ) : (
                     <div className="flex items-center gap-2 text-sm text-slate-500">
@@ -125,25 +137,37 @@ export function PrivacyStep({
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-2">
                   <MapPin className="w-5 h-5 text-slate-600" />
-                  <Label htmlFor="show-address" className="text-base font-semibold text-slate-900">
+                  <Label
+                    htmlFor="show-address"
+                    className="text-base font-semibold text-slate-900"
+                  >
                     Show Full Address
                   </Label>
                 </div>
                 <p className="text-sm text-slate-600 mb-3">
-                  Display your full street address instead of just city and state
+                  Display your full street address instead of just city and
+                  state
                 </p>
                 <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
-                  <p className="text-xs font-medium text-slate-500 mb-1">Preview:</p>
+                  <p className="text-xs font-medium text-slate-500 mb-1">
+                    Preview:
+                  </p>
                   {showAddress ? (
                     <div className="flex items-center gap-2 text-sm text-slate-900">
                       <Eye className="w-4 h-4 text-green-600" />
-                      <span className="font-medium">{content.contact.location}</span>
+                      <span className="font-medium">
+                        {content.contact.location}
+                      </span>
                     </div>
                   ) : (
                     <div className="flex items-center gap-2 text-sm text-slate-900">
                       <EyeOff className="w-4 h-4 text-blue-600" />
-                      <span className="font-medium">{getCityState(content.contact.location)}</span>
-                      <span className="text-xs text-slate-500">(City/State only)</span>
+                      <span className="font-medium">
+                        {getCityState(content.contact.location)}
+                      </span>
+                      <span className="text-xs text-slate-500">
+                        (City/State only)
+                      </span>
                     </div>
                   )}
                 </div>
@@ -165,7 +189,9 @@ export function PrivacyStep({
             <p className="text-slate-600">
               No phone number or address found in your resume.
               <br />
-              <span className="text-sm">You can add these later in your dashboard.</span>
+              <span className="text-sm">
+                You can add these later in your dashboard.
+              </span>
             </p>
           </Card>
         )}
@@ -189,5 +215,5 @@ export function PrivacyStep({
         </p>
       </div>
     </div>
-  )
+  );
 }

@@ -1,27 +1,33 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { toast } from 'sonner'
-import { useRouter } from 'next/navigation'
-import { Loader2, Link2, Copy, CheckCircle2 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { handleUpdateSchema, type HandleUpdate } from '@/lib/schemas/profile'
-import { siteConfig } from '@/lib/config/site'
-import { copyToClipboard } from '@/lib/utils/clipboard'
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import { Loader2, Link2, Copy, CheckCircle2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { handleUpdateSchema, type HandleUpdate } from "@/lib/schemas/profile";
+import { siteConfig } from "@/lib/config/site";
+import { copyToClipboard } from "@/lib/utils/clipboard";
 
 interface HandleFormProps {
-  currentHandle: string
+  currentHandle: string;
 }
 
 export function HandleForm({ currentHandle }: HandleFormProps) {
-  const [isSaving, setIsSaving] = useState(false)
-  const [copied, setCopied] = useState(false)
-  const router = useRouter()
+  const [isSaving, setIsSaving] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const router = useRouter();
 
   const {
     register,
@@ -33,63 +39,61 @@ export function HandleForm({ currentHandle }: HandleFormProps) {
     defaultValues: {
       handle: currentHandle,
     },
-  })
+  });
 
-  const newHandle = watch('handle')
-  const publicUrl = `${siteConfig.domain}/${newHandle || currentHandle}`
+  const newHandle = watch("handle");
+  const publicUrl = `${siteConfig.domain}/${newHandle || currentHandle}`;
 
   const handleCopy = async () => {
-    const success = await copyToClipboard(`https://${publicUrl}`)
+    const success = await copyToClipboard(`https://${publicUrl}`);
 
     if (success) {
-      setCopied(true)
-      toast.success('URL copied to clipboard')
-      setTimeout(() => setCopied(false), 2000)
+      setCopied(true);
+      toast.success("URL copied to clipboard");
+      setTimeout(() => setCopied(false), 2000);
     } else {
-      toast.error('Failed to copy URL')
+      toast.error("Failed to copy URL");
     }
-  }
+  };
 
   const onSubmit = async (data: HandleUpdate) => {
     // Don't submit if handle hasn't changed
     if (data.handle === currentHandle) {
-      toast.info('Handle is already set to this value')
-      return
+      toast.info("Handle is already set to this value");
+      return;
     }
 
-    setIsSaving(true)
+    setIsSaving(true);
 
     try {
-      const response = await fetch('/api/profile/handle', {
-        method: 'PUT',
+      const response = await fetch("/api/profile/handle", {
+        method: "PUT",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(data),
-      })
+      });
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || 'Failed to update handle')
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to update handle");
       }
 
-      await response.json()
+      await response.json();
 
-      toast.success('Handle updated successfully!')
+      toast.success("Handle updated successfully!");
 
       // Refresh the page to update the UI with new handle
-      router.refresh()
+      router.refresh();
     } catch (err) {
-      console.error('Handle update error:', err)
+      console.error("Handle update error:", err);
       toast.error(
-        err instanceof Error
-          ? err.message
-          : 'Failed to update handle'
-      )
+        err instanceof Error ? err.message : "Failed to update handle",
+      );
     } finally {
-      setIsSaving(false)
+      setIsSaving(false);
     }
-  }
+  };
 
   return (
     <Card>
@@ -113,7 +117,9 @@ export function HandleForm({ currentHandle }: HandleFormProps) {
               <div className="flex-1 flex items-center gap-2 px-3 py-2 rounded-md border border-gray-300 bg-gray-50 font-mono text-sm">
                 <Link2 className="h-4 w-4 text-gray-400" />
                 <span className="text-gray-900">{siteConfig.domain}/</span>
-                <span className="font-semibold text-blue-600">{currentHandle}</span>
+                <span className="font-semibold text-blue-600">
+                  {currentHandle}
+                </span>
               </div>
               <Button
                 type="button"
@@ -133,23 +139,25 @@ export function HandleForm({ currentHandle }: HandleFormProps) {
 
           {/* New Handle Input */}
           <div className="space-y-2">
-            <Label htmlFor="handle">
-              Change Handle
-            </Label>
+            <Label htmlFor="handle">Change Handle</Label>
             <div className="flex items-start gap-2">
               <div className="flex-1 space-y-1">
                 <div className="flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2">
-                  <span className="text-sm text-gray-500">{siteConfig.domain}/</span>
+                  <span className="text-sm text-gray-500">
+                    {siteConfig.domain}/
+                  </span>
                   <Input
                     id="handle"
-                    {...register('handle')}
+                    {...register("handle")}
                     placeholder="your-handle"
                     className="border-0 p-0 h-auto focus-visible:ring-0 font-mono text-sm"
                     disabled={isSaving}
                   />
                 </div>
                 {errors.handle && (
-                  <p className="text-sm text-red-600">{errors.handle.message}</p>
+                  <p className="text-sm text-red-600">
+                    {errors.handle.message}
+                  </p>
                 )}
               </div>
             </div>
@@ -161,7 +169,9 @@ export function HandleForm({ currentHandle }: HandleFormProps) {
           {/* URL Preview */}
           {isDirty && newHandle !== currentHandle && !errors.handle && (
             <div className="rounded-lg bg-blue-50 border border-blue-200 p-3">
-              <p className="text-xs font-medium text-blue-900 mb-1">New URL Preview:</p>
+              <p className="text-xs font-medium text-blue-900 mb-1">
+                New URL Preview:
+              </p>
               <p className="font-mono text-sm text-blue-700">
                 https://{publicUrl}
               </p>
@@ -181,12 +191,12 @@ export function HandleForm({ currentHandle }: HandleFormProps) {
                   Updating Handle...
                 </>
               ) : (
-                'Update Handle'
+                "Update Handle"
               )}
             </Button>
           </div>
         </form>
       </CardContent>
     </Card>
-  )
+  );
 }

@@ -1,28 +1,28 @@
-'use client'
+"use client";
 
-export const dynamic = 'force-dynamic'
+export const dynamic = "force-dynamic";
 
-import { useState, useEffect } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
-import { createClient } from '@/lib/supabase/client'
-import { loginSchema, type LoginFormData } from '@/lib/schemas/auth'
-import { Brand } from '@/components/Brand'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { LoginButton } from '@/components/auth/LoginButton'
-import { MagicLinkButton } from '@/components/auth/MagicLinkButton'
-import toast from 'react-hot-toast'
-import { Toaster } from '@/components/ui/sonner'
+import { useState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
+import { loginSchema, type LoginFormData } from "@/lib/schemas/auth";
+import { Brand } from "@/components/Brand";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { LoginButton } from "@/components/auth/LoginButton";
+import { MagicLinkButton } from "@/components/auth/MagicLinkButton";
+import toast from "react-hot-toast";
+import { Toaster } from "@/components/ui/sonner";
 
 export default function LoginPage() {
-  const router = useRouter()
-  const [isLoading, setIsLoading] = useState(false)
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true)
-  const supabase = createClient()
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const supabase = createClient();
 
   const {
     register,
@@ -31,81 +31,88 @@ export default function LoginPage() {
     formState: { errors },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
-    mode: 'onBlur',
-  })
+    mode: "onBlur",
+  });
 
   // Watch email field for MagicLinkButton
-  const emailValue = watch('email')
+  const emailValue = watch("email");
 
   // Check if user is already authenticated
   useEffect(() => {
     const checkAuth = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (user) {
         // User is already logged in, check onboarding status
         const { data: profile } = await supabase
-          .from('profiles')
-          .select('onboarding_completed')
-          .eq('id', user.id)
-          .single()
+          .from("profiles")
+          .select("onboarding_completed")
+          .eq("id", user.id)
+          .single();
 
         if (profile?.onboarding_completed) {
-          router.push('/dashboard')
+          router.push("/dashboard");
         } else {
-          router.push('/wizard')
+          router.push("/wizard");
         }
       } else {
-        setIsCheckingAuth(false)
+        setIsCheckingAuth(false);
       }
-    }
+    };
 
-    checkAuth()
-  }, [router, supabase])
+    checkAuth();
+  }, [router, supabase]);
 
   // Handle email/password login
   const onSubmit = async (data: LoginFormData) => {
-    setIsLoading(true)
+    setIsLoading(true);
 
     try {
       const { error } = await supabase.auth.signInWithPassword({
         email: data.email,
         password: data.password,
-      })
+      });
 
       if (error) {
         // Security fix: Use generic error message for login failures to prevent email enumeration
         // Only distinguish email confirmation errors (which require different user action)
-        if (error.message.includes('Email not confirmed')) {
-          toast.error('Please verify your email first')
+        if (error.message.includes("Email not confirmed")) {
+          toast.error("Please verify your email first");
         } else {
           // Generic error for invalid credentials, user not found, etc.
-          toast.error('Invalid email or password')
+          toast.error("Invalid email or password");
         }
-        return
+        return;
       }
 
       // Success - check onboarding status
-      const { data: { user } } = await supabase.auth.getUser()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (user) {
         const { data: profile } = await supabase
-          .from('profiles')
-          .select('onboarding_completed')
-          .eq('id', user.id)
-          .single()
+          .from("profiles")
+          .select("onboarding_completed")
+          .eq("id", user.id)
+          .single();
 
         if (profile?.onboarding_completed) {
-          router.push('/dashboard')
+          router.push("/dashboard");
         } else {
-          router.push('/wizard')
+          router.push("/wizard");
         }
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'An error occurred during login'
-      toast.error(errorMessage)
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "An error occurred during login";
+      toast.error(errorMessage);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   // Show loading state while checking auth
   if (isCheckingAuth) {
@@ -113,7 +120,7 @@ export default function LoginPage() {
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-slate-600">Loading...</div>
       </div>
-    )
+    );
   }
 
   return (
@@ -139,9 +146,7 @@ export default function LoginPage() {
               <h1 className="text-3xl font-bold text-slate-900 mb-2">
                 Welcome back
               </h1>
-              <p className="text-sm text-slate-600">
-                Sign in to your account
-              </p>
+              <p className="text-sm text-slate-600">Sign in to your account</p>
             </div>
 
             {/* Email/Password Form */}
@@ -154,7 +159,7 @@ export default function LoginPage() {
                   type="email"
                   placeholder="you@example.com"
                   autoComplete="email"
-                  {...register('email')}
+                  {...register("email")}
                   disabled={isLoading}
                   aria-invalid={!!errors.email}
                   className="transition-all duration-300"
@@ -180,13 +185,15 @@ export default function LoginPage() {
                   type="password"
                   placeholder="••••••••"
                   autoComplete="current-password"
-                  {...register('password')}
+                  {...register("password")}
                   disabled={isLoading}
                   aria-invalid={!!errors.password}
                   className="transition-all duration-300"
                 />
                 {errors.password && (
-                  <p className="text-sm text-red-600">{errors.password.message}</p>
+                  <p className="text-sm text-red-600">
+                    {errors.password.message}
+                  </p>
                 )}
               </div>
 
@@ -196,20 +203,20 @@ export default function LoginPage() {
                 disabled={isLoading}
                 className="w-full bg-linear-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white shadow-depth-sm hover:shadow-depth-md transition-all duration-300"
               >
-                {isLoading ? 'Signing in...' : 'Sign in'}
+                {isLoading ? "Signing in..." : "Sign in"}
               </Button>
             </form>
 
             {/* Magic Link Button */}
             <div className="mb-4">
               <MagicLinkButton
-                email={emailValue || ''}
+                email={emailValue || ""}
                 disabled={isLoading}
                 onSuccess={() => {
                   // Email will be sent, user will be redirected after clicking link
                 }}
                 onError={(error) => {
-                  console.error('Magic link error:', error)
+                  console.error("Magic link error:", error);
                 }}
               />
             </div>
@@ -239,7 +246,7 @@ export default function LoginPage() {
 
           {/* Footer Text */}
           <p className="mt-6 text-center text-sm text-slate-600">
-            Don&apos;t have an account?{' '}
+            Don&apos;t have an account?{" "}
             <Link
               href="/signup"
               className="text-indigo-600 hover:text-indigo-700 underline font-semibold transition-colors"
@@ -250,5 +257,5 @@ export default function LoginPage() {
         </div>
       </main>
     </div>
-  )
+  );
 }

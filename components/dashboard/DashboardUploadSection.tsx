@@ -1,12 +1,12 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { FileDropzone } from '@/components/FileDropzone'
-import { Upload } from 'lucide-react'
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { FileDropzone } from "@/components/FileDropzone";
+import { Upload } from "lucide-react";
 
 export function DashboardUploadSection() {
-  const [uploadModalOpen, setUploadModalOpen] = useState(false)
+  const [uploadModalOpen, setUploadModalOpen] = useState(false);
 
   return (
     <>
@@ -19,10 +19,7 @@ export function DashboardUploadSection() {
         Upload New Resume
       </Button>
 
-      <FileDropzone
-        open={uploadModalOpen}
-        onOpenChange={setUploadModalOpen}
-      />
+      <FileDropzone open={uploadModalOpen} onOpenChange={setUploadModalOpen} />
     </>
-  )
+  );
 }

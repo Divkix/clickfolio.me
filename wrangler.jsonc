@@ -1,52 +1,52 @@
 {
-    "main": ".open-next/worker.js",
-    "name": "webresume-now",
-    // Fix __name is not defined error with next-themes and other libraries
-    // See: https://opennext.js.org/cloudflare/howtos/keep_names
-    "build": {
-        "keep_names": false
+  "main": ".open-next/worker.js",
+  "name": "webresume-now",
+  // Fix __name is not defined error with next-themes and other libraries
+  // See: https://opennext.js.org/cloudflare/howtos/keep_names
+  "build": {
+    "keep_names": false,
+  },
+  "compatibility_date": "2025-10-21",
+  "compatibility_flags": [
+    // Enable Node.js API
+    // see https://developers.cloudflare.com/workers/configuration/compatibility-flags/#nodejs-compatibility-flag
+    "nodejs_compat",
+    // Allow to fetch URLs in your app
+    // see https://developers.cloudflare.com/workers/configuration/compatibility-flags/#global-fetch-strictly-public
+    "global_fetch_strictly_public",
+  ],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS",
+  },
+  "placement": {
+    "mode": "smart",
+  },
+  // "routes": [
+  //     {
+  //         "pattern": "pickmyclass.app",
+  //         "custom_domain": true
+  //     }
+  // ],
+  // IMPORTANT: Cron triggers require explicit deployment via 'wrangler triggers deploy'
+  // This is automatically included in 'bun run deploy' script
+  // Schedule: Every 30 minutes at :00 (even class numbers) and :30 (odd class numbers)
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1,
+    "logs": {
+      "enabled": true,
+      "head_sampling_rate": 1,
+      "persist": true,
+      "invocation_logs": true,
     },
-    "compatibility_date": "2025-10-21",
-    "compatibility_flags": [
-        // Enable Node.js API
-        // see https://developers.cloudflare.com/workers/configuration/compatibility-flags/#nodejs-compatibility-flag
-        "nodejs_compat",
-        // Allow to fetch URLs in your app
-        // see https://developers.cloudflare.com/workers/configuration/compatibility-flags/#global-fetch-strictly-public
-        "global_fetch_strictly_public"
-    ],
-    "assets": {
-        "directory": ".open-next/assets",
-        "binding": "ASSETS"
-    },
-    "placement": {
-        "mode": "smart"
-    },
-    // "routes": [
-    //     {
-    //         "pattern": "pickmyclass.app",
-    //         "custom_domain": true
-    //     }
-    // ],
-    // IMPORTANT: Cron triggers require explicit deployment via 'wrangler triggers deploy'
-    // This is automatically included in 'bun run deploy' script
-    // Schedule: Every 30 minutes at :00 (even class numbers) and :30 (odd class numbers)
-    "observability": {
-        "enabled": true,
-        "head_sampling_rate": 1,
-        "logs": {
-            "enabled": true,
-            "head_sampling_rate": 1,
-            "persist": true,
-            "invocation_logs": true
-        }
-    },
-    "vars": {
-        "MAX_WATCHES_PER_USER": "10",
-        "SCRAPER_BATCH_SIZE": "3",
-        "NOTIFICATION_FROM_EMAIL": "notifications@webresume.now",
-        "NEXT_PUBLIC_SITE_URL": "https://webresume.now",
-        "NEXT_PUBLIC_SUPABASE_URL": "https://civmyypbwgycsctodywc.supabase.co",
-        "NODE_ENV": "production"
-    }
+  },
+  "vars": {
+    "MAX_WATCHES_PER_USER": "10",
+    "SCRAPER_BATCH_SIZE": "3",
+    "NOTIFICATION_FROM_EMAIL": "notifications@webresume.now",
+    "NEXT_PUBLIC_SITE_URL": "https://webresume.now",
+    "NEXT_PUBLIC_SUPABASE_URL": "https://civmyypbwgycsctodywc.supabase.co",
+    "NODE_ENV": "production",
+  },
 }

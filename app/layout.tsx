@@ -5,7 +5,8 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: `${siteConfig.fullName} - ${siteConfig.tagline}`,
-  description: "Drop your PDF résumé and get a shareable website in seconds. Free, fast, and AI-powered.",
+  description:
+    "Drop your PDF résumé and get a shareable website in seconds. Free, fast, and AI-powered.",
 };
 
 export default function RootLayout({

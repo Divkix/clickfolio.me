@@ -1,46 +1,47 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import { Sidebar } from '@/components/dashboard/Sidebar'
-import { Menu } from 'lucide-react'
+import { useState, useEffect } from "react";
+import { Sidebar } from "@/components/dashboard/Sidebar";
+import { Menu } from "lucide-react";
 
-export function SidebarLayoutClient({ children }: { children: React.ReactNode }) {
-  const [sidebarOpen, setSidebarOpen] = useState(false)
+export function SidebarLayoutClient({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Close sidebar on Escape key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setSidebarOpen(false)
+      if (e.key === "Escape") {
+        setSidebarOpen(false);
       }
-    }
+    };
 
     if (sidebarOpen) {
-      document.addEventListener('keydown', handleEscape)
-      return () => document.removeEventListener('keydown', handleEscape)
+      document.addEventListener("keydown", handleEscape);
+      return () => document.removeEventListener("keydown", handleEscape);
     }
-  }, [sidebarOpen])
+  }, [sidebarOpen]);
 
   // Prevent body scroll when mobile sidebar is open
   useEffect(() => {
     if (sidebarOpen) {
-      document.body.style.overflow = 'hidden'
+      document.body.style.overflow = "hidden";
     } else {
-      document.body.style.overflow = 'unset'
+      document.body.style.overflow = "unset";
     }
 
     return () => {
-      document.body.style.overflow = 'unset'
-    }
-  }, [sidebarOpen])
+      document.body.style.overflow = "unset";
+    };
+  }, [sidebarOpen]);
 
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Sidebar - Desktop: always visible, Mobile: controlled by state */}
-      <Sidebar
-        isOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-      />
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       {/* Mobile hamburger button */}
       <button
@@ -56,5 +57,5 @@ export function SidebarLayoutClient({ children }: { children: React.ReactNode })
         {children}
       </main>
     </div>
-  )
+  );
 }

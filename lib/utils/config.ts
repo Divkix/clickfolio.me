@@ -9,46 +9,46 @@
  * Check if running in production environment
  */
 export function isProduction(): boolean {
-  return process.env.NODE_ENV === 'production'
+  return process.env.NODE_ENV === "production";
 }
 
 /**
  * Check if running in development environment
  */
 export function isDevelopment(): boolean {
-  return process.env.NODE_ENV === 'development'
+  return process.env.NODE_ENV === "development";
 }
 
 /**
  * Check if running in test environment
  */
 export function isTest(): boolean {
-  return process.env.NODE_ENV === 'test'
+  return process.env.NODE_ENV === "test";
 }
 
 /**
  * Required environment variables for the application
  */
 const REQUIRED_ENV_VARS = [
-  'NEXT_PUBLIC_SUPABASE_URL',
-  'NEXT_PUBLIC_SUPABASE_ANON_KEY',
-  'SUPABASE_SERVICE_ROLE_KEY',
-  'R2_ENDPOINT',
-  'R2_ACCESS_KEY_ID',
-  'R2_SECRET_ACCESS_KEY',
-  'R2_BUCKET_NAME',
-  'REPLICATE_API_TOKEN',
-] as const
+  "NEXT_PUBLIC_SUPABASE_URL",
+  "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+  "SUPABASE_SERVICE_ROLE_KEY",
+  "R2_ENDPOINT",
+  "R2_ACCESS_KEY_ID",
+  "R2_SECRET_ACCESS_KEY",
+  "R2_BUCKET_NAME",
+  "REPLICATE_API_TOKEN",
+] as const;
 
 /**
  * Optional environment variables with defaults
  */
 const OPTIONAL_ENV_VARS = {
-  NEXT_PUBLIC_APP_URL: 'http://localhost:3000',
-  MAX_UPLOAD_SIZE_MB: '10',
-  RATE_LIMIT_UPLOADS_PER_DAY: '5',
-  RATE_LIMIT_UPDATES_PER_HOUR: '10',
-} as const
+  NEXT_PUBLIC_APP_URL: "http://localhost:3000",
+  MAX_UPLOAD_SIZE_MB: "10",
+  RATE_LIMIT_UPLOADS_PER_DAY: "5",
+  RATE_LIMIT_UPDATES_PER_HOUR: "10",
+} as const;
 
 /**
  * Type-safe configuration object
@@ -56,37 +56,37 @@ const OPTIONAL_ENV_VARS = {
 export interface AppConfig {
   // Supabase
   supabase: {
-    url: string
-    anonKey: string
-    serviceRoleKey: string
-  }
+    url: string;
+    anonKey: string;
+    serviceRoleKey: string;
+  };
   // Cloudflare R2
   r2: {
-    endpoint: string
-    accessKeyId: string
-    secretAccessKey: string
-    bucketName: string
-  }
+    endpoint: string;
+    accessKeyId: string;
+    secretAccessKey: string;
+    bucketName: string;
+  };
   // Replicate AI
   replicate: {
-    apiToken: string
-  }
+    apiToken: string;
+  };
   // App settings
   app: {
-    url: string
-    maxUploadSizeMb: number
-  }
+    url: string;
+    maxUploadSizeMb: number;
+  };
   // Rate limits
   rateLimit: {
-    uploadsPerDay: number
-    updatesPerHour: number
-  }
+    uploadsPerDay: number;
+    updatesPerHour: number;
+  };
   // Environment
   env: {
-    isProduction: boolean
-    isDevelopment: boolean
-    isTest: boolean
-  }
+    isProduction: boolean;
+    isDevelopment: boolean;
+    isTest: boolean;
+  };
 }
 
 /**
@@ -94,19 +94,19 @@ export interface AppConfig {
  * @throws Error if any required variables are missing
  */
 function validateRequiredEnvVars(): void {
-  const missing: string[] = []
+  const missing: string[] = [];
 
   for (const varName of REQUIRED_ENV_VARS) {
     if (!process.env[varName]) {
-      missing.push(varName)
+      missing.push(varName);
     }
   }
 
   if (missing.length > 0) {
     throw new Error(
-      `Missing required environment variables:\n${missing.map(v => `  - ${v}`).join('\n')}\n\n` +
-      'Please check your .env.local file and ensure all required variables are set.'
-    )
+      `Missing required environment variables:\n${missing.map((v) => `  - ${v}`).join("\n")}\n\n` +
+        "Please check your .env.local file and ensure all required variables are set.",
+    );
   }
 }
 
@@ -114,28 +114,30 @@ function validateRequiredEnvVars(): void {
  * Get environment variable value with fallback
  */
 function getEnvVar(name: string, fallback?: string): string {
-  const value = process.env[name]
+  const value = process.env[name];
   if (!value) {
     if (fallback !== undefined) {
-      return fallback
+      return fallback;
     }
-    throw new Error(`Missing required environment variable: ${name}`)
+    throw new Error(`Missing required environment variable: ${name}`);
   }
-  return value
+  return value;
 }
 
 /**
  * Parse integer from environment variable
  */
 function parseEnvInt(name: string, fallback: number): number {
-  const value = process.env[name]
-  if (!value) return fallback
-  const parsed = parseInt(value, 10)
+  const value = process.env[name];
+  if (!value) return fallback;
+  const parsed = parseInt(value, 10);
   if (isNaN(parsed)) {
-    console.warn(`Invalid integer value for ${name}: ${value}, using fallback: ${fallback}`)
-    return fallback
+    console.warn(
+      `Invalid integer value for ${name}: ${value}, using fallback: ${fallback}`,
+    );
+    return fallback;
   }
-  return parsed
+  return parsed;
 }
 
 /**
@@ -144,44 +146,47 @@ function parseEnvInt(name: string, fallback: number): number {
  */
 export function getConfig(): AppConfig {
   // Validate required variables first
-  validateRequiredEnvVars()
+  validateRequiredEnvVars();
 
   return {
     supabase: {
-      url: getEnvVar('NEXT_PUBLIC_SUPABASE_URL'),
-      anonKey: getEnvVar('NEXT_PUBLIC_SUPABASE_ANON_KEY'),
-      serviceRoleKey: getEnvVar('SUPABASE_SERVICE_ROLE_KEY'),
+      url: getEnvVar("NEXT_PUBLIC_SUPABASE_URL"),
+      anonKey: getEnvVar("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
+      serviceRoleKey: getEnvVar("SUPABASE_SERVICE_ROLE_KEY"),
     },
     r2: {
-      endpoint: getEnvVar('R2_ENDPOINT'),
-      accessKeyId: getEnvVar('R2_ACCESS_KEY_ID'),
-      secretAccessKey: getEnvVar('R2_SECRET_ACCESS_KEY'),
-      bucketName: getEnvVar('R2_BUCKET_NAME'),
+      endpoint: getEnvVar("R2_ENDPOINT"),
+      accessKeyId: getEnvVar("R2_ACCESS_KEY_ID"),
+      secretAccessKey: getEnvVar("R2_SECRET_ACCESS_KEY"),
+      bucketName: getEnvVar("R2_BUCKET_NAME"),
     },
     replicate: {
-      apiToken: getEnvVar('REPLICATE_API_TOKEN'),
+      apiToken: getEnvVar("REPLICATE_API_TOKEN"),
     },
     app: {
-      url: getEnvVar('NEXT_PUBLIC_APP_URL', OPTIONAL_ENV_VARS.NEXT_PUBLIC_APP_URL),
-      maxUploadSizeMb: parseEnvInt('MAX_UPLOAD_SIZE_MB', 10),
+      url: getEnvVar(
+        "NEXT_PUBLIC_APP_URL",
+        OPTIONAL_ENV_VARS.NEXT_PUBLIC_APP_URL,
+      ),
+      maxUploadSizeMb: parseEnvInt("MAX_UPLOAD_SIZE_MB", 10),
     },
     rateLimit: {
-      uploadsPerDay: parseEnvInt('RATE_LIMIT_UPLOADS_PER_DAY', 5),
-      updatesPerHour: parseEnvInt('RATE_LIMIT_UPDATES_PER_HOUR', 10),
+      uploadsPerDay: parseEnvInt("RATE_LIMIT_UPLOADS_PER_DAY", 5),
+      updatesPerHour: parseEnvInt("RATE_LIMIT_UPDATES_PER_HOUR", 10),
     },
     env: {
       isProduction: isProduction(),
       isDevelopment: isDevelopment(),
       isTest: isTest(),
     },
-  }
+  };
 }
 
 /**
  * Lazy-loaded config instance
  * Only validated when first accessed
  */
-let configInstance: AppConfig | null = null
+let configInstance: AppConfig | null = null;
 
 /**
  * Get the singleton config instance
@@ -189,9 +194,9 @@ let configInstance: AppConfig | null = null
  */
 export function config(): AppConfig {
   if (!configInstance) {
-    configInstance = getConfig()
+    configInstance = getConfig();
   }
-  return configInstance
+  return configInstance;
 }
 
 /**
@@ -212,4 +217,4 @@ export const featureFlags = {
 
   // Enable error reporting (production only)
   errorReporting: isProduction(),
-} as const
+} as const;

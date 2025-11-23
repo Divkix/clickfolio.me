@@ -1,8 +1,8 @@
-'use client'
+"use client";
 
-import { useEffect } from 'react'
-import Link from 'next/link'
-import { siteConfig } from '@/lib/config/site'
+import { useEffect } from "react";
+import Link from "next/link";
+import { siteConfig } from "@/lib/config/site";
 
 /**
  * Protected Routes Error Boundary
@@ -13,14 +13,14 @@ export default function ProtectedError({
   error,
   reset,
 }: {
-  error: Error & { digest?: string }
-  reset: () => void
+  error: Error & { digest?: string };
+  reset: () => void;
 }) {
   useEffect(() => {
-    console.error('Protected route error:', error)
+    console.error("Protected route error:", error);
 
     // TODO: Log to monitoring service with auth context
-  }, [error])
+  }, [error]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
@@ -51,7 +51,7 @@ export default function ProtectedError({
           We encountered an error while loading this page. Your data is safe.
         </p>
 
-        {process.env.NODE_ENV === 'development' && (
+        {process.env.NODE_ENV === "development" && (
           <div className="mb-6 p-4 bg-red-50 rounded-lg border border-red-200">
             <p className="text-sm font-semibold text-red-800 mb-2">
               Development Error Details:
@@ -85,7 +85,7 @@ export default function ProtectedError({
 
         <div className="mt-6 pt-6 border-t border-gray-200">
           <p className="text-sm text-gray-500 text-center">
-            Need help?{' '}
+            Need help?{" "}
             <a
               href={`mailto:${siteConfig.supportEmail}`}
               className="text-gray-900 hover:underline"
@@ -96,5 +96,5 @@ export default function ProtectedError({
         </div>
       </div>
     </div>
-  )
+  );
 }

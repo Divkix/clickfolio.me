@@ -11,16 +11,16 @@ export const PASSWORD_REGEX = {
   lowercase: /[a-z]/,
   number: /[0-9]/,
   special: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/,
-}
+};
 
 /**
  * Password strength result type
  */
 export interface PasswordStrength {
-  strength: number
-  label: string
-  color: string
-  barColor: string
+  strength: number;
+  label: string;
+  color: string;
+  barColor: string;
 }
 
 /**
@@ -37,17 +37,17 @@ export interface PasswordStrength {
  * @returns Strength score from 0 to 100
  */
 export function calculatePasswordStrength(password: string): number {
-  if (!password) return 0
+  if (!password) return 0;
 
-  let strength = 0
+  let strength = 0;
 
-  if (password.length >= 8) strength += 25
-  if (PASSWORD_REGEX.uppercase.test(password)) strength += 25
-  if (PASSWORD_REGEX.lowercase.test(password)) strength += 25
-  if (PASSWORD_REGEX.number.test(password)) strength += 12.5
-  if (PASSWORD_REGEX.special.test(password)) strength += 12.5
+  if (password.length >= 8) strength += 25;
+  if (PASSWORD_REGEX.uppercase.test(password)) strength += 25;
+  if (PASSWORD_REGEX.lowercase.test(password)) strength += 25;
+  if (PASSWORD_REGEX.number.test(password)) strength += 12.5;
+  if (PASSWORD_REGEX.special.test(password)) strength += 12.5;
 
-  return Math.min(strength, 100)
+  return Math.min(strength, 100);
 }
 
 /**
@@ -67,45 +67,45 @@ export function getPasswordStrengthLabel(strength: number): PasswordStrength {
   if (strength === 0) {
     return {
       strength,
-      label: '',
-      color: '',
-      barColor: '',
-    }
+      label: "",
+      color: "",
+      barColor: "",
+    };
   }
 
   if (strength < 50) {
     return {
       strength,
-      label: 'Weak',
-      color: 'text-red-600',
-      barColor: 'bg-red-600',
-    }
+      label: "Weak",
+      color: "text-red-600",
+      barColor: "bg-red-600",
+    };
   }
 
   if (strength < 75) {
     return {
       strength,
-      label: 'Fair',
-      color: 'text-orange-600',
-      barColor: 'bg-orange-600',
-    }
+      label: "Fair",
+      color: "text-orange-600",
+      barColor: "bg-orange-600",
+    };
   }
 
   if (strength < 100) {
     return {
       strength,
-      label: 'Good',
-      color: 'text-yellow-600',
-      barColor: 'bg-yellow-600',
-    }
+      label: "Good",
+      color: "text-yellow-600",
+      barColor: "bg-yellow-600",
+    };
   }
 
   return {
     strength,
-    label: 'Strong',
-    color: 'text-emerald-600',
-    barColor: 'bg-emerald-600',
-  }
+    label: "Strong",
+    color: "text-emerald-600",
+    barColor: "bg-emerald-600",
+  };
 }
 
 /**
@@ -116,6 +116,6 @@ export function getPasswordStrengthLabel(strength: number): PasswordStrength {
  * @returns Complete password strength object
  */
 export function evaluatePasswordStrength(password: string): PasswordStrength {
-  const strength = calculatePasswordStrength(password)
-  return getPasswordStrengthLabel(strength)
+  const strength = calculatePasswordStrength(password);
+  return getPasswordStrengthLabel(strength);
 }

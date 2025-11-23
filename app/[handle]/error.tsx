@@ -1,8 +1,8 @@
-'use client'
+"use client";
 
-import { useEffect } from 'react'
-import Link from 'next/link'
-import { siteConfig } from '@/lib/config/site'
+import { useEffect } from "react";
+import Link from "next/link";
+import { siteConfig } from "@/lib/config/site";
 
 /**
  * Public Profile Error Boundary
@@ -13,14 +13,14 @@ export default function ProfileError({
   error,
   reset,
 }: {
-  error: Error & { digest?: string }
-  reset: () => void
+  error: Error & { digest?: string };
+  reset: () => void;
 }) {
   useEffect(() => {
-    console.error('Public profile error:', error)
+    console.error("Public profile error:", error);
 
     // TODO: Log to monitoring service
-  }, [error])
+  }, [error]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-white px-4">
@@ -48,11 +48,11 @@ export default function ProfileError({
         </h1>
 
         <p className="text-lg text-gray-600 mb-8">
-          We couldn&apos;t load this resume. The page may not exist or there
-          was a temporary error.
+          We couldn&apos;t load this resume. The page may not exist or there was
+          a temporary error.
         </p>
 
-        {process.env.NODE_ENV === 'development' && (
+        {process.env.NODE_ENV === "development" && (
           <div className="mb-6 p-4 bg-gray-50 rounded-lg text-left">
             <p className="text-xs font-mono text-gray-600 break-all">
               {error.message}
@@ -78,7 +78,7 @@ export default function ProfileError({
 
         <div className="mt-12 pt-8 border-t border-gray-200">
           <p className="text-sm text-gray-500">
-            Powered by{' '}
+            Powered by{" "}
             <Link
               href="/"
               className="text-gray-900 hover:underline font-medium"
@@ -89,5 +89,5 @@ export default function ProfileError({
         </div>
       </div>
     </div>
-  )
+  );
 }

@@ -1,7 +1,7 @@
-'use client'
+"use client";
 
-import { useEffect } from 'react'
-import Link from 'next/link'
+import { useEffect } from "react";
+import Link from "next/link";
 
 /**
  * Global Error Boundary
@@ -12,16 +12,16 @@ export default function GlobalError({
   error,
   reset,
 }: {
-  error: Error & { digest?: string }
-  reset: () => void
+  error: Error & { digest?: string };
+  reset: () => void;
 }) {
   useEffect(() => {
     // Log error to console for debugging
-    console.error('Global error boundary caught:', error)
+    console.error("Global error boundary caught:", error);
 
     // TODO: In production, send to monitoring service (e.g., Sentry)
     // Example: Sentry.captureException(error)
-  }, [error])
+  }, [error]);
 
   return (
     <html>
@@ -55,7 +55,7 @@ export default function GlobalError({
               the dashboard.
             </p>
 
-            {process.env.NODE_ENV === 'development' && (
+            {process.env.NODE_ENV === "development" && (
               <div className="mb-6 p-4 bg-gray-50 rounded-lg text-left">
                 <p className="text-xs font-mono text-gray-700 break-all">
                   {error.message}
@@ -90,5 +90,5 @@ export default function GlobalError({
         </div>
       </body>
     </html>
-  )
+  );
 }

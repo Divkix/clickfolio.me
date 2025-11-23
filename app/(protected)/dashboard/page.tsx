@@ -1,10 +1,10 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
-import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
-import { Alert, AlertDescription } from '@/components/ui/alert'
+import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Loader2,
   AlertCircle,
@@ -19,155 +19,168 @@ import {
   Clock,
   Mail,
   Link as LinkIcon,
-  Calendar
-} from 'lucide-react'
-import { CopyLinkButton } from '@/components/dashboard/CopyLinkButton'
-import { DashboardUploadSection } from '@/components/dashboard/DashboardUploadSection'
-import { RealtimeStatusListener } from '@/components/dashboard/RealtimeStatusListener'
-import type { ResumeContent } from '@/lib/types/database'
-import { siteConfig } from '@/lib/config/site'
+  Calendar,
+} from "lucide-react";
+import { CopyLinkButton } from "@/components/dashboard/CopyLinkButton";
+import { DashboardUploadSection } from "@/components/dashboard/DashboardUploadSection";
+import { RealtimeStatusListener } from "@/components/dashboard/RealtimeStatusListener";
+import type { ResumeContent } from "@/lib/types/database";
+import { siteConfig } from "@/lib/config/site";
 
 /**
  * Calculate profile completeness score based on available data
  */
 function calculateCompleteness(content: ResumeContent): number {
-  let score = 0
-  let total = 0
+  let score = 0;
+  let total = 0;
 
   // Full name (required) - 10%
-  total += 10
-  if (content.full_name?.trim()) score += 10
+  total += 10;
+  if (content.full_name?.trim()) score += 10;
 
   // Headline (required) - 10%
-  total += 10
-  if (content.headline?.trim()) score += 10
+  total += 10;
+  if (content.headline?.trim()) score += 10;
 
   // Summary (required) - 15%
-  total += 15
-  if (content.summary?.trim()) score += 15
+  total += 15;
+  if (content.summary?.trim()) score += 15;
 
   // Contact (required) - 10%
-  total += 10
-  if (content.contact?.email) score += 10
+  total += 10;
+  if (content.contact?.email) score += 10;
 
   // Experience (required) - 20%
-  total += 20
-  if (content.experience?.length > 0) score += 20
+  total += 20;
+  if (content.experience?.length > 0) score += 20;
 
   // Education - 15%
-  total += 15
-  if (content.education && content.education.length > 0) score += 15
+  total += 15;
+  if (content.education && content.education.length > 0) score += 15;
 
   // Skills - 10%
-  total += 10
-  if (content.skills && content.skills.length > 0) score += 10
+  total += 10;
+  if (content.skills && content.skills.length > 0) score += 10;
 
   // Certifications - 10%
-  total += 10
-  if (content.certifications && content.certifications.length > 0) score += 10
+  total += 10;
+  if (content.certifications && content.certifications.length > 0) score += 10;
 
-  return Math.round((score / total) * 100)
+  return Math.round((score / total) * 100);
 }
 
 /**
  * Get suggestions for improving profile
  */
 function getProfileSuggestions(content: ResumeContent): string[] {
-  const suggestions: string[] = []
+  const suggestions: string[] = [];
 
   if (!content.education || content.education.length === 0) {
-    suggestions.push('Add your education background')
+    suggestions.push("Add your education background");
   }
 
   if (!content.skills || content.skills.length === 0) {
-    suggestions.push('List your technical skills')
+    suggestions.push("List your technical skills");
   }
 
   if (!content.certifications || content.certifications.length === 0) {
-    suggestions.push('Add certifications to stand out')
+    suggestions.push("Add certifications to stand out");
   }
 
   if (content.experience.length < 2) {
-    suggestions.push('Add more work experience entries')
+    suggestions.push("Add more work experience entries");
   }
 
   if (!content.contact.linkedin && !content.contact.github) {
-    suggestions.push('Link your professional social profiles')
+    suggestions.push("Link your professional social profiles");
   }
 
-  return suggestions
+  return suggestions;
 }
 
 /**
  * Format relative time (e.g., "2 days ago") - deterministic to avoid hydration mismatch
  */
 function formatRelativeTime(dateString: string): string {
-  const date = new Date(dateString)
-  const now = new Date()
-  const diffMs = now.getTime() - date.getTime()
-  const diffMins = Math.floor(diffMs / 60000)
-  const diffHours = Math.floor(diffMs / 3600000)
-  const diffDays = Math.floor(diffMs / 86400000)
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
 
-  if (diffMins < 1) return 'Just now'
-  if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`
-  if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`
-  if (diffDays < 30) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`
+  if (diffMins < 1) return "Just now";
+  if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? "s" : ""} ago`;
+  if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
+  if (diffDays < 30) return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
 
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-  return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`
+  const months = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
+  return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
 }
 
 /**
  * Truncate text with ellipsis
  */
 function truncateText(text: string, maxLength: number): string {
-  if (text.length <= maxLength) return text
-  return text.slice(0, maxLength).trim() + '...'
+  if (text.length <= maxLength) return text;
+  return text.slice(0, maxLength).trim() + "...";
 }
 
 export default async function DashboardPage() {
-  const supabase = await createClient()
+  const supabase = await createClient();
 
   const {
     data: { user },
-  } = await supabase.auth.getUser()
+  } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect('/')
+    redirect("/");
   }
 
   // Fetch user profile with onboarding status
   const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single()
+    .from("profiles")
+    .select("*")
+    .eq("id", user.id)
+    .single();
 
   // Fetch most recent resume
   const { data: resume } = await supabase
-    .from('resumes')
-    .select('id, status, error_message, created_at, replicate_job_id')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
+    .from("resumes")
+    .select("id, status, error_message, created_at, replicate_job_id")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false })
     .limit(1)
-    .maybeSingle()
+    .maybeSingle();
 
   // Fetch site data if available - include theme_id
   const { data: siteData } = await supabase
-    .from('site_data')
-    .select('id, content, theme_id, last_published_at, created_at')
-    .eq('user_id', user.id)
-    .maybeSingle()
+    .from("site_data")
+    .select("id, content, theme_id, last_published_at, created_at")
+    .eq("user_id", user.id)
+    .maybeSingle();
 
   // Determine resume state
-  const hasResume = !!resume
-  const hasPublishedSite = !!siteData
-  const content = siteData?.content as ResumeContent | null
+  const hasResume = !!resume;
+  const hasPublishedSite = !!siteData;
+  const content = siteData?.content as ResumeContent | null;
 
   // Calculate profile metrics
-  const completeness = content ? calculateCompleteness(content) : 0
-  const suggestions = content ? getProfileSuggestions(content) : []
+  const completeness = content ? calculateCompleteness(content) : 0;
+  const suggestions = content ? getProfileSuggestions(content) : [];
 
   // Empty State - No Resume
   if (!hasResume) {
@@ -181,11 +194,17 @@ export default async function DashboardPage() {
                 <Upload className="w-12 h-12 text-indigo-600 mx-auto" />
               </div>
             </div>
-            <h2 className="text-2xl font-bold text-slate-900 mb-3">No Resume Yet</h2>
+            <h2 className="text-2xl font-bold text-slate-900 mb-3">
+              No Resume Yet
+            </h2>
             <p className="text-slate-600 mb-6">
-              Upload your first PDF to get started and create your professional web resume in minutes.
+              Upload your first PDF to get started and create your professional
+              web resume in minutes.
             </p>
-            <Button asChild className="w-full bg-linear-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-semibold transition-all duration-300 shadow-depth-sm hover:shadow-depth-md">
+            <Button
+              asChild
+              className="w-full bg-linear-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-semibold transition-all duration-300 shadow-depth-sm hover:shadow-depth-md"
+            >
               <Link href="/">
                 <Upload className="h-4 w-4 mr-2" />
                 Upload Your Resume
@@ -194,7 +213,7 @@ export default async function DashboardPage() {
           </div>
         </main>
       </div>
-    )
+    );
   }
 
   return (
@@ -206,7 +225,8 @@ export default async function DashboardPage() {
             <AlertCircle className="w-4 h-4 text-amber-600" />
             <AlertDescription className="flex items-center justify-between">
               <span className="text-amber-900 font-medium">
-                Your profile is incomplete. Complete the wizard to improve your resume.
+                Your profile is incomplete. Complete the wizard to improve your
+                resume.
               </span>
               <Button
                 asChild
@@ -221,45 +241,71 @@ export default async function DashboardPage() {
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-
           {/* Row 1: Hero Stats - Full Width */}
           <div className="col-span-full">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-
               {/* Resume Status Mini Card */}
               <div className="bg-white rounded-2xl shadow-depth-sm border border-slate-200/60 p-4 hover:shadow-depth-md hover:-translate-y-0.5 transition-all duration-300">
                 <div className="flex items-start gap-3">
                   <div className="relative shrink-0">
-                    <div className={`absolute inset-0 rounded-xl blur-lg opacity-20 ${
-                      resume.status === 'completed' ? 'bg-linear-to-r from-green-500 to-emerald-500' :
-                      resume.status === 'processing' ? 'bg-linear-to-r from-blue-500 to-cyan-500' :
-                      resume.status === 'failed' ? 'bg-linear-to-r from-red-500 to-orange-500' :
-                      'bg-linear-to-r from-slate-500 to-gray-500'
-                    }`} />
-                    <div className={`relative p-2 rounded-xl ${
-                      resume.status === 'completed' ? 'bg-linear-to-r from-green-100 to-emerald-100' :
-                      resume.status === 'processing' ? 'bg-linear-to-r from-blue-100 to-cyan-100' :
-                      resume.status === 'failed' ? 'bg-linear-to-r from-red-100 to-orange-100' :
-                      'bg-linear-to-r from-slate-100 to-gray-100'
-                    }`}>
-                      {resume.status === 'completed' && <CheckCircle2 className="w-5 h-5 text-green-600" />}
-                      {resume.status === 'processing' && <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />}
-                      {resume.status === 'failed' && <AlertCircle className="w-5 h-5 text-red-600" />}
-                      {resume.status === 'pending_claim' && <Loader2 className="w-5 h-5 text-slate-600 animate-spin" />}
+                    <div
+                      className={`absolute inset-0 rounded-xl blur-lg opacity-20 ${
+                        resume.status === "completed"
+                          ? "bg-linear-to-r from-green-500 to-emerald-500"
+                          : resume.status === "processing"
+                            ? "bg-linear-to-r from-blue-500 to-cyan-500"
+                            : resume.status === "failed"
+                              ? "bg-linear-to-r from-red-500 to-orange-500"
+                              : "bg-linear-to-r from-slate-500 to-gray-500"
+                      }`}
+                    />
+                    <div
+                      className={`relative p-2 rounded-xl ${
+                        resume.status === "completed"
+                          ? "bg-linear-to-r from-green-100 to-emerald-100"
+                          : resume.status === "processing"
+                            ? "bg-linear-to-r from-blue-100 to-cyan-100"
+                            : resume.status === "failed"
+                              ? "bg-linear-to-r from-red-100 to-orange-100"
+                              : "bg-linear-to-r from-slate-100 to-gray-100"
+                      }`}
+                    >
+                      {resume.status === "completed" && (
+                        <CheckCircle2 className="w-5 h-5 text-green-600" />
+                      )}
+                      {resume.status === "processing" && (
+                        <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
+                      )}
+                      {resume.status === "failed" && (
+                        <AlertCircle className="w-5 h-5 text-red-600" />
+                      )}
+                      {resume.status === "pending_claim" && (
+                        <Loader2 className="w-5 h-5 text-slate-600 animate-spin" />
+                      )}
                     </div>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-slate-600 mb-1">Resume Status</p>
-                    <Badge className={
-                      resume.status === 'completed' ? 'bg-green-100 text-green-800' :
-                      resume.status === 'processing' ? 'bg-blue-100 text-blue-800' :
-                      resume.status === 'failed' ? 'bg-red-100 text-red-800' :
-                      'bg-slate-100 text-slate-800'
-                    }>
-                      {resume.status === 'completed' ? 'Published' :
-                       resume.status === 'processing' ? 'Processing' :
-                       resume.status === 'failed' ? 'Failed' :
-                       'Pending'}
+                    <p className="text-xs font-medium text-slate-600 mb-1">
+                      Resume Status
+                    </p>
+                    <Badge
+                      className={
+                        resume.status === "completed"
+                          ? "bg-green-100 text-green-800"
+                          : resume.status === "processing"
+                            ? "bg-blue-100 text-blue-800"
+                            : resume.status === "failed"
+                              ? "bg-red-100 text-red-800"
+                              : "bg-slate-100 text-slate-800"
+                      }
+                    >
+                      {resume.status === "completed"
+                        ? "Published"
+                        : resume.status === "processing"
+                          ? "Processing"
+                          : resume.status === "failed"
+                            ? "Failed"
+                            : "Pending"}
                     </Badge>
                   </div>
                 </div>
@@ -270,32 +316,50 @@ export default async function DashboardPage() {
                 <div className="bg-white rounded-2xl shadow-depth-sm border border-slate-200/60 p-4 hover:shadow-depth-md hover:-translate-y-0.5 transition-all duration-300">
                   <div className="flex items-start gap-3">
                     <div className="relative shrink-0">
-                      <div className={`absolute inset-0 rounded-xl blur-lg opacity-20 ${
-                        completeness >= 90 ? 'bg-linear-to-r from-green-500 to-emerald-500' :
-                        completeness >= 70 ? 'bg-linear-to-r from-blue-500 to-cyan-500' :
-                        'bg-linear-to-r from-yellow-500 to-amber-500'
-                      }`} />
-                      <div className={`relative p-2 rounded-xl ${
-                        completeness >= 90 ? 'bg-linear-to-r from-green-100 to-emerald-100' :
-                        completeness >= 70 ? 'bg-linear-to-r from-blue-100 to-cyan-100' :
-                        'bg-linear-to-r from-yellow-100 to-amber-100'
-                      }`}>
-                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center text-[10px] font-bold ${
-                          completeness >= 90 ? 'border-green-600 text-green-600' :
-                          completeness >= 70 ? 'border-blue-600 text-blue-600' :
-                          'border-yellow-600 text-yellow-600'
-                        }`}>
+                      <div
+                        className={`absolute inset-0 rounded-xl blur-lg opacity-20 ${
+                          completeness >= 90
+                            ? "bg-linear-to-r from-green-500 to-emerald-500"
+                            : completeness >= 70
+                              ? "bg-linear-to-r from-blue-500 to-cyan-500"
+                              : "bg-linear-to-r from-yellow-500 to-amber-500"
+                        }`}
+                      />
+                      <div
+                        className={`relative p-2 rounded-xl ${
+                          completeness >= 90
+                            ? "bg-linear-to-r from-green-100 to-emerald-100"
+                            : completeness >= 70
+                              ? "bg-linear-to-r from-blue-100 to-cyan-100"
+                              : "bg-linear-to-r from-yellow-100 to-amber-100"
+                        }`}
+                      >
+                        <div
+                          className={`w-5 h-5 rounded-full border-2 flex items-center justify-center text-[10px] font-bold ${
+                            completeness >= 90
+                              ? "border-green-600 text-green-600"
+                              : completeness >= 70
+                                ? "border-blue-600 text-blue-600"
+                                : "border-yellow-600 text-yellow-600"
+                          }`}
+                        >
                           {Math.round(completeness / 10)}
                         </div>
                       </div>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-slate-600 mb-1">Completeness</p>
-                      <p className={`text-lg font-bold ${
-                        completeness >= 90 ? 'text-green-600' :
-                        completeness >= 70 ? 'text-blue-600' :
-                        'text-yellow-600'
-                      }`}>
+                      <p className="text-xs font-medium text-slate-600 mb-1">
+                        Completeness
+                      </p>
+                      <p
+                        className={`text-lg font-bold ${
+                          completeness >= 90
+                            ? "text-green-600"
+                            : completeness >= 70
+                              ? "text-blue-600"
+                              : "text-yellow-600"
+                        }`}
+                      >
                         {completeness}%
                       </p>
                     </div>
@@ -314,7 +378,9 @@ export default async function DashboardPage() {
                       </div>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-slate-600 mb-1">Last Updated</p>
+                      <p className="text-xs font-medium text-slate-600 mb-1">
+                        Last Updated
+                      </p>
                       <p className="text-sm font-semibold text-slate-900 truncate">
                         {formatRelativeTime(siteData.last_published_at)}
                       </p>
@@ -334,7 +400,9 @@ export default async function DashboardPage() {
                       </div>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-slate-600 mb-1">Your Resume</p>
+                      <p className="text-xs font-medium text-slate-600 mb-1">
+                        Your Resume
+                      </p>
                       <Link
                         href={`/${profile.handle}`}
                         className="text-sm font-semibold text-indigo-600 hover:text-indigo-700 truncate block"
@@ -344,25 +412,28 @@ export default async function DashboardPage() {
                     </div>
                   </div>
                 </div>
-              ) : content && (
-                <div className="bg-white rounded-2xl shadow-depth-sm border border-slate-200/60 p-4 hover:shadow-depth-md hover:-translate-y-0.5 transition-all duration-300">
-                  <div className="flex items-start gap-3">
-                    <div className="relative shrink-0">
-                      <div className="absolute inset-0 bg-linear-to-r from-indigo-500 to-blue-500 rounded-xl blur-lg opacity-20" />
-                      <div className="relative bg-linear-to-r from-indigo-100 to-blue-100 p-2 rounded-xl">
-                        <Briefcase className="w-5 h-5 text-indigo-600" />
+              ) : (
+                content && (
+                  <div className="bg-white rounded-2xl shadow-depth-sm border border-slate-200/60 p-4 hover:shadow-depth-md hover:-translate-y-0.5 transition-all duration-300">
+                    <div className="flex items-start gap-3">
+                      <div className="relative shrink-0">
+                        <div className="absolute inset-0 bg-linear-to-r from-indigo-500 to-blue-500 rounded-xl blur-lg opacity-20" />
+                        <div className="relative bg-linear-to-r from-indigo-100 to-blue-100 p-2 rounded-xl">
+                          <Briefcase className="w-5 h-5 text-indigo-600" />
+                        </div>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium text-slate-600 mb-1">
+                          Experience
+                        </p>
+                        <p className="text-lg font-bold text-slate-900">
+                          {content.experience?.length || 0}
+                        </p>
                       </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-slate-600 mb-1">Experience</p>
-                      <p className="text-lg font-bold text-slate-900">
-                        {content.experience?.length || 0}
-                      </p>
-                    </div>
                   </div>
-                </div>
+                )
               )}
-
             </div>
           </div>
 
@@ -370,7 +441,8 @@ export default async function DashboardPage() {
           {hasPublishedSite && content ? (
             <>
               {/* Show RealtimeStatusListener when a new resume is processing */}
-              {(resume.status === 'processing' || resume.status === 'pending_claim') && (
+              {(resume.status === "processing" ||
+                resume.status === "pending_claim") && (
                 <div className="col-span-full">
                   <RealtimeStatusListener
                     resumeId={resume.id}
@@ -381,21 +453,35 @@ export default async function DashboardPage() {
               )}
 
               {/* Show error message when resume processing failed */}
-              {resume.status === 'failed' && (
+              {resume.status === "failed" && (
                 <div className="col-span-full">
                   <div className="rounded-lg border border-red-200 bg-red-50 p-4 mb-4">
                     <div className="flex items-start gap-3">
                       <AlertCircle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
                       <div className="flex-1">
-                        <h3 className="font-semibold text-red-900">Processing Failed</h3>
+                        <h3 className="font-semibold text-red-900">
+                          Processing Failed
+                        </h3>
                         <p className="mt-1 text-sm text-red-700">
-                          {resume.error_message || 'An error occurred while processing your resume.'}
+                          {resume.error_message ||
+                            "An error occurred while processing your resume."}
                         </p>
                         <div className="mt-3 flex gap-2">
-                          <Button asChild size="sm" className="bg-red-600 hover:bg-red-700 text-white">
-                            <Link href={`/waiting?resume_id=${resume.id}`}>Retry</Link>
+                          <Button
+                            asChild
+                            size="sm"
+                            className="bg-red-600 hover:bg-red-700 text-white"
+                          >
+                            <Link href={`/waiting?resume_id=${resume.id}`}>
+                              Retry
+                            </Link>
                           </Button>
-                          <Button asChild size="sm" variant="outline" className="border-red-200 text-red-700 hover:bg-red-100">
+                          <Button
+                            asChild
+                            size="sm"
+                            variant="outline"
+                            className="border-red-200 text-red-700 hover:bg-red-100"
+                          >
                             <Link href="/">Upload New</Link>
                           </Button>
                         </div>
@@ -422,11 +508,16 @@ export default async function DashboardPage() {
                 {/* Summary */}
                 {content.summary && (
                   <div className="mb-6">
-                    <h3 className="text-sm font-semibold text-slate-700 mb-2">Summary</h3>
+                    <h3 className="text-sm font-semibold text-slate-700 mb-2">
+                      Summary
+                    </h3>
                     <p className="text-sm text-slate-600 leading-relaxed">
                       {truncateText(content.summary, 200)}
                       {content.summary.length > 200 && (
-                        <Link href="/edit" className="text-indigo-600 hover:text-indigo-700 ml-1 font-medium">
+                        <Link
+                          href="/edit"
+                          className="text-indigo-600 hover:text-indigo-700 ml-1 font-medium"
+                        >
                           Read more
                         </Link>
                       )}
@@ -448,7 +539,7 @@ export default async function DashboardPage() {
                         {content.experience?.length || 0}
                       </p>
                       <p className="text-xs text-slate-600">
-                        Position{content.experience?.length !== 1 ? 's' : ''}
+                        Position{content.experience?.length !== 1 ? "s" : ""}
                       </p>
                     </div>
                   </div>
@@ -480,7 +571,7 @@ export default async function DashboardPage() {
                         {content.skills?.length || 0}
                       </p>
                       <p className="text-xs text-slate-600">
-                        Skill{content.skills?.length !== 1 ? 's' : ''}
+                        Skill{content.skills?.length !== 1 ? "s" : ""}
                       </p>
                     </div>
                   </div>
@@ -505,7 +596,10 @@ export default async function DashboardPage() {
 
                 {/* Footer - Action Buttons */}
                 <div className="flex flex-col sm:flex-row gap-3">
-                  <Button asChild className="flex-1 bg-linear-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-semibold transition-all duration-300 shadow-depth-sm hover:shadow-depth-md">
+                  <Button
+                    asChild
+                    className="flex-1 bg-linear-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-semibold transition-all duration-300 shadow-depth-sm hover:shadow-depth-md"
+                  >
                     <Link href="/edit">
                       <Edit3 className="h-4 w-4 mr-2" />
                       Edit Content
@@ -519,7 +613,9 @@ export default async function DashboardPage() {
               <div>
                 {/* Account Info Card */}
                 <div className="bg-white rounded-2xl shadow-depth-sm border border-slate-200/60 p-6 hover:shadow-depth-md hover:-translate-y-0.5 transition-all duration-300">
-                  <h3 className="text-lg font-semibold text-slate-900 mb-4">Account</h3>
+                  <h3 className="text-lg font-semibold text-slate-900 mb-4">
+                    Account
+                  </h3>
                   <div className="space-y-4">
                     {/* Email */}
                     <div className="flex items-start gap-3">
@@ -530,8 +626,12 @@ export default async function DashboardPage() {
                         </div>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-slate-600 mb-1">Email</p>
-                        <p className="text-sm text-slate-900 truncate">{user.email}</p>
+                        <p className="text-xs font-medium text-slate-600 mb-1">
+                          Email
+                        </p>
+                        <p className="text-sm text-slate-900 truncate">
+                          {user.email}
+                        </p>
                       </div>
                     </div>
 
@@ -547,7 +647,9 @@ export default async function DashboardPage() {
                             </div>
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-xs font-medium text-slate-600 mb-1">Handle</p>
+                            <p className="text-xs font-medium text-slate-600 mb-1">
+                              Handle
+                            </p>
                             <div className="flex items-center gap-2">
                               <Link
                                 href={`/${profile.handle}`}
@@ -576,7 +678,9 @@ export default async function DashboardPage() {
                             </div>
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-xs font-medium text-slate-600 mb-1">Member since</p>
+                            <p className="text-xs font-medium text-slate-600 mb-1">
+                              Member since
+                            </p>
                             <p className="text-sm text-slate-900">
                               {formatRelativeTime(profile.created_at)}
                             </p>
@@ -592,7 +696,8 @@ export default async function DashboardPage() {
             /* Show processing/failed state in main content area */
             <div className="col-span-full">
               <div className="bg-white rounded-2xl shadow-depth-sm border border-slate-200/60 p-8 hover:shadow-depth-md hover:-translate-y-0.5 transition-all duration-300">
-                {(resume.status === 'processing' || resume.status === 'pending_claim') && (
+                {(resume.status === "processing" ||
+                  resume.status === "pending_claim") && (
                   <div>
                     <RealtimeStatusListener
                       resumeId={resume.id}
@@ -602,7 +707,7 @@ export default async function DashboardPage() {
                   </div>
                 )}
 
-                {resume.status === 'failed' && (
+                {resume.status === "failed" && (
                   <div className="space-y-6">
                     <div className="flex items-center gap-4">
                       <AlertCircle className="h-8 w-8 text-red-600 shrink-0" />
@@ -611,12 +716,16 @@ export default async function DashboardPage() {
                           Processing failed
                         </h3>
                         <p className="text-red-700">
-                          {resume.error_message || 'Unknown error occurred. Please try uploading again.'}
+                          {resume.error_message ||
+                            "Unknown error occurred. Please try uploading again."}
                         </p>
                       </div>
                     </div>
                     <div className="flex flex-col sm:flex-row gap-3">
-                      <Button asChild className="flex-1 bg-linear-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-semibold transition-all duration-300 shadow-depth-sm hover:shadow-depth-md">
+                      <Button
+                        asChild
+                        className="flex-1 bg-linear-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-semibold transition-all duration-300 shadow-depth-sm hover:shadow-depth-md"
+                      >
                         <Link href={`/waiting?resume_id=${resume.id}`}>
                           Try Again
                         </Link>
@@ -631,14 +740,16 @@ export default async function DashboardPage() {
                   </div>
                 )}
 
-                {resume.status === 'pending_claim' && (
+                {resume.status === "pending_claim" && (
                   <div className="flex items-center gap-4">
                     <Loader2 className="h-8 w-8 animate-spin text-slate-600 shrink-0" />
                     <div className="flex-1">
                       <h3 className="text-xl font-bold text-slate-900 mb-1">
                         Claiming your resume...
                       </h3>
-                      <p className="text-slate-600">Please wait while we process your upload.</p>
+                      <p className="text-slate-600">
+                        Please wait while we process your upload.
+                      </p>
                     </div>
                   </div>
                 )}
@@ -647,48 +758,61 @@ export default async function DashboardPage() {
           )}
 
           {/* Row 3: Profile Completeness Suggestions (Conditional, Full Width) */}
-          {hasPublishedSite && content && completeness < 100 && suggestions.length > 0 && (
-            <div className="col-span-full">
-              <Alert className="border-blue-200 bg-blue-50 rounded-2xl shadow-depth-sm hover:shadow-depth-md transition-all duration-300">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-3">
-                      <CheckCircle2 className="h-5 w-5 text-blue-600" />
-                      <h3 className="font-semibold text-blue-900">Complete Your Profile</h3>
-                    </div>
+          {hasPublishedSite &&
+            content &&
+            completeness < 100 &&
+            suggestions.length > 0 && (
+              <div className="col-span-full">
+                <Alert className="border-blue-200 bg-blue-50 rounded-2xl shadow-depth-sm hover:shadow-depth-md transition-all duration-300">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-3">
+                        <CheckCircle2 className="h-5 w-5 text-blue-600" />
+                        <h3 className="font-semibold text-blue-900">
+                          Complete Your Profile
+                        </h3>
+                      </div>
 
-                    {/* Progress Bar */}
-                    <div className="w-full bg-blue-200 rounded-full h-2 mb-4">
-                      <div
-                        className="h-2 rounded-full bg-linear-to-r from-indigo-600 to-blue-600 transition-all duration-500"
-                        style={{ width: `${completeness}%` }}
-                      />
-                    </div>
+                      {/* Progress Bar */}
+                      <div className="w-full bg-blue-200 rounded-full h-2 mb-4">
+                        <div
+                          className="h-2 rounded-full bg-linear-to-r from-indigo-600 to-blue-600 transition-all duration-500"
+                          style={{ width: `${completeness}%` }}
+                        />
+                      </div>
 
-                    <AlertDescription className="text-blue-900">
-                      <p className="text-sm font-medium mb-2">
-                        Your profile is {completeness}% complete. Add these to reach 100%:
-                      </p>
-                      <ul className="space-y-1.5">
-                        {suggestions.map((suggestion, index) => (
-                          <li key={index} className="text-sm flex items-start gap-2">
-                            <span className="text-blue-600 mt-0.5">•</span>
-                            <span>{suggestion}</span>
-                          </li>
-                        ))}
-                      </ul>
-                      <Button asChild size="sm" className="mt-4 bg-linear-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-semibold">
-                        <Link href="/edit">
-                          <Edit3 className="h-3 w-3 mr-2" />
-                          Complete Now
-                        </Link>
-                      </Button>
-                    </AlertDescription>
+                      <AlertDescription className="text-blue-900">
+                        <p className="text-sm font-medium mb-2">
+                          Your profile is {completeness}% complete. Add these to
+                          reach 100%:
+                        </p>
+                        <ul className="space-y-1.5">
+                          {suggestions.map((suggestion, index) => (
+                            <li
+                              key={index}
+                              className="text-sm flex items-start gap-2"
+                            >
+                              <span className="text-blue-600 mt-0.5">•</span>
+                              <span>{suggestion}</span>
+                            </li>
+                          ))}
+                        </ul>
+                        <Button
+                          asChild
+                          size="sm"
+                          className="mt-4 bg-linear-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-semibold"
+                        >
+                          <Link href="/edit">
+                            <Edit3 className="h-3 w-3 mr-2" />
+                            Complete Now
+                          </Link>
+                        </Button>
+                      </AlertDescription>
+                    </div>
                   </div>
-                </div>
-              </Alert>
-            </div>
-          )}
+                </Alert>
+              </div>
+            )}
 
           {/* Row 3: Success Alert (when completeness = 100) */}
           {hasPublishedSite && completeness === 100 && (
@@ -697,15 +821,15 @@ export default async function DashboardPage() {
                 <div className="flex items-center gap-3">
                   <CheckCircle2 className="h-5 w-5 text-green-600" />
                   <AlertDescription className="text-green-900 font-medium">
-                    Your profile is complete! Your resume looks professional and ready to share.
+                    Your profile is complete! Your resume looks professional and
+                    ready to share.
                   </AlertDescription>
                 </div>
               </Alert>
             </div>
           )}
-
         </div>
       </main>
     </div>
-  )
+  );
 }

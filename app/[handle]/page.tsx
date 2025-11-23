@@ -1,29 +1,29 @@
-import { notFound } from 'next/navigation'
-import type { Metadata } from 'next'
-import { createClient } from '@/lib/supabase/server'
-import type { ResumeContent } from '@/lib/types/database'
-import { getTemplate } from '@/lib/templates/theme-registry'
-import { extractCityState, isValidPrivacySettings } from '@/lib/utils/privacy'
-import { AttributionWidget } from '@/components/AttributionWidget'
-import { siteConfig } from '@/lib/config/site'
+import { notFound } from "next/navigation";
+import type { Metadata } from "next";
+import { createClient } from "@/lib/supabase/server";
+import type { ResumeContent } from "@/lib/types/database";
+import { getTemplate } from "@/lib/templates/theme-registry";
+import { extractCityState, isValidPrivacySettings } from "@/lib/utils/privacy";
+import { AttributionWidget } from "@/components/AttributionWidget";
+import { siteConfig } from "@/lib/config/site";
 
 // Enable ISR-like caching: revalidate every hour
 // This reduces DB load by ~99% for high-traffic pages
 // Stale pages are served while revalidating in background
-export const revalidate = 3600 // 1 hour in seconds
+export const revalidate = 3600; // 1 hour in seconds
 
 // Dynamic params are always allowed (new handles can be created)
-export const dynamicParams = true
+export const dynamicParams = true;
 
 interface PageProps {
   params: Promise<{
-    handle: string
-  }>
+    handle: string;
+  }>;
 }
 
 interface PrivacySettings {
-  show_phone: boolean
-  show_address: boolean
+  show_phone: boolean;
+  show_address: boolean;
 }
 
 /**
@@ -31,11 +31,11 @@ interface PrivacySettings {
  * Applies privacy filtering based on user preferences
  */
 async function getResumeData(handle: string) {
-  const supabase = await createClient()
+  const supabase = await createClient();
 
   // Fetch profile with site_data in a single query
   const { data, error } = await supabase
-    .from('profiles')
+    .from("profiles")
     .select(
       `
       id,
@@ -49,42 +49,42 @@ async function getResumeData(handle: string) {
         theme_id,
         last_published_at
       )
-    `
+    `,
     )
-    .eq('handle', handle)
-    .single()
+    .eq("handle", handle)
+    .single();
 
   if (error || !data) {
-    return null
+    return null;
   }
 
   // Ensure site_data exists
   if (!data.site_data) {
-    return null
+    return null;
   }
 
   const siteData = Array.isArray(data.site_data)
     ? data.site_data[0]
-    : data.site_data
+    : data.site_data;
 
   // Deep clone content to avoid mutation
-  const content: ResumeContent = JSON.parse(JSON.stringify(siteData.content))
+  const content: ResumeContent = JSON.parse(JSON.stringify(siteData.content));
 
   // Apply privacy filtering with type guard
   const privacySettings: PrivacySettings = isValidPrivacySettings(
-    data.privacy_settings
+    data.privacy_settings,
   )
     ? data.privacy_settings
-    : { show_phone: false, show_address: false }
+    : { show_phone: false, show_address: false };
 
   // Remove phone if privacy setting is false
   if (!privacySettings.show_phone && content.contact?.phone) {
-    delete content.contact.phone
+    delete content.contact.phone;
   }
 
   // Filter address to city/state only if privacy setting is false
   if (!privacySettings.show_address && content.contact?.location) {
-    content.contact.location = extractCityState(content.contact.location)
+    content.contact.location = extractCityState(content.contact.location);
   }
 
   return {
@@ -97,7 +97,7 @@ async function getResumeData(handle: string) {
     },
     content,
     theme_id: siteData.theme_id,
-  }
+  };
 }
 
 /**
@@ -106,23 +106,23 @@ async function getResumeData(handle: string) {
 export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
-  const { handle } = await params
-  const data = await getResumeData(handle)
+  const { handle } = await params;
+  const data = await getResumeData(handle);
 
   if (!data) {
     return {
-      title: 'Resume Not Found',
-      description: 'The requested resume could not be found.',
-    }
+      title: "Resume Not Found",
+      description: "The requested resume could not be found.",
+    };
   }
 
-  const { content, profile } = data
+  const { content, profile } = data;
 
   // Truncate summary to 160 characters for meta description
   const description = content.summary
     ? content.summary.slice(0, 157) +
-      (content.summary.length > 157 ? '...' : '')
-    : `View ${content.full_name}'s professional resume and experience.`
+      (content.summary.length > 157 ? "..." : "")
+    : `View ${content.full_name}'s professional resume and experience.`;
 
   return {
     title: `${content.full_name}'s Resume — ${siteConfig.fullName}`,
@@ -130,7 +130,7 @@ export async function generateMetadata({
     openGraph: {
       title: `${content.full_name} — ${content.headline}`,
       description,
-      type: 'profile',
+      type: "profile",
       url: `${siteConfig.url}/${handle}`,
       images: profile.avatar_url
         ? [
@@ -144,12 +144,12 @@ export async function generateMetadata({
         : undefined,
     },
     twitter: {
-      card: 'summary',
+      card: "summary",
       title: `${content.full_name} — ${content.headline}`,
       description,
       images: profile.avatar_url ? [profile.avatar_url] : undefined,
     },
-  }
+  };
 }
 
 /**
@@ -157,18 +157,18 @@ export async function generateMetadata({
  * Renders user's resume with privacy filtering applied
  */
 export default async function HandlePage({ params }: PageProps) {
-  const { handle } = await params
-  const data = await getResumeData(handle)
+  const { handle } = await params;
+  const data = await getResumeData(handle);
 
   // Return 404 if profile or site_data not found
   if (!data) {
-    notFound()
+    notFound();
   }
 
-  const { content, profile, theme_id } = data
+  const { content, profile, theme_id } = data;
 
   // Dynamically select template based on theme_id
-  const Template = getTemplate(theme_id)
+  const Template = getTemplate(theme_id);
 
   return (
     <>
@@ -181,5 +181,5 @@ export default async function HandlePage({ params }: PageProps) {
       />
       <AttributionWidget theme={theme_id} />
     </>
-  )
+  );
 }

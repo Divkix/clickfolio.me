@@ -1,30 +1,33 @@
-'use client'
+"use client";
 
-export const dynamic = 'force-dynamic'
+export const dynamic = "force-dynamic";
 
-import { useState } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import Link from 'next/link'
-import { createClient } from '@/lib/supabase/client'
-import { forgotPasswordSchema, type ForgotPasswordFormData } from '@/lib/schemas/auth'
-import { Brand } from '@/components/Brand'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import toast from 'react-hot-toast'
-import { Toaster } from '@/components/ui/sonner'
-import { Mail } from 'lucide-react'
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
+import {
+  forgotPasswordSchema,
+  type ForgotPasswordFormData,
+} from "@/lib/schemas/auth";
+import { Brand } from "@/components/Brand";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import toast from "react-hot-toast";
+import { Toaster } from "@/components/ui/sonner";
+import { Mail } from "lucide-react";
 
-type FormState = 'idle' | 'submitting' | 'success' | 'error'
+type FormState = "idle" | "submitting" | "success" | "error";
 
 // Artificial delay for timing attack protection (in milliseconds)
-const SECURITY_DELAY_MS = 1500
+const SECURITY_DELAY_MS = 1500;
 
 export default function ForgotPasswordPage() {
-  const [formState, setFormState] = useState<FormState>('idle')
-  const [submittedEmail, setSubmittedEmail] = useState('')
-  const supabase = createClient()
+  const [formState, setFormState] = useState<FormState>("idle");
+  const [submittedEmail, setSubmittedEmail] = useState("");
+  const supabase = createClient();
 
   const {
     register,
@@ -32,43 +35,44 @@ export default function ForgotPasswordPage() {
     formState: { errors },
   } = useForm<ForgotPasswordFormData>({
     resolver: zodResolver(forgotPasswordSchema),
-    mode: 'onBlur',
-  })
+    mode: "onBlur",
+  });
 
   // Security: Add artificial delay to prevent timing attacks
-  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+  const delay = (ms: number) =>
+    new Promise((resolve) => setTimeout(resolve, ms));
 
   // Handle forgot password form submission
   const onSubmit = async (data: ForgotPasswordFormData) => {
-    setFormState('submitting')
+    setFormState("submitting");
 
     try {
       // Record start time for timing normalization
-      const startTime = Date.now()
+      const startTime = Date.now();
 
       const { error } = await supabase.auth.resetPasswordForEmail(data.email, {
         redirectTo: `${window.location.origin}/reset-password`,
-      })
+      });
 
       // Calculate elapsed time and add delay if needed to normalize response timing
-      const elapsedTime = Date.now() - startTime
-      const remainingDelay = Math.max(0, SECURITY_DELAY_MS - elapsedTime)
+      const elapsedTime = Date.now() - startTime;
+      const remainingDelay = Math.max(0, SECURITY_DELAY_MS - elapsedTime);
 
       if (remainingDelay > 0) {
-        await delay(remainingDelay)
+        await delay(remainingDelay);
       }
 
       // Security fix: Always show success state regardless of error
       // This prevents email enumeration attacks via timing or error message differences
       if (error) {
         // Log error server-side for debugging (don't expose to user)
-        console.error('Password reset error:', error.message)
+        console.error("Password reset error:", error.message);
 
         // Only show error for rate limiting (security exception - prevents abuse)
-        if (error.message.includes('rate limit')) {
-          toast.error('Too many requests. Please try again later.')
-          setFormState('error')
-          return
+        if (error.message.includes("rate limit")) {
+          toast.error("Too many requests. Please try again later.");
+          setFormState("error");
+          return;
         }
 
         // For all other errors (including "User not found"), show success
@@ -76,18 +80,19 @@ export default function ForgotPasswordPage() {
       }
 
       // Always show success state to prevent email enumeration
-      setSubmittedEmail(data.email)
-      setFormState('success')
+      setSubmittedEmail(data.email);
+      setFormState("success");
     } catch (error) {
       // Unexpected errors (network issues, etc.)
-      const errorMessage = error instanceof Error ? error.message : 'Failed to send reset link'
-      console.error('Unexpected password reset error:', errorMessage)
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to send reset link";
+      console.error("Unexpected password reset error:", errorMessage);
 
       // Even on unexpected errors, show success to prevent enumeration
-      setSubmittedEmail(data.email)
-      setFormState('success')
+      setSubmittedEmail(data.email);
+      setFormState("success");
     }
-  }
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -107,7 +112,7 @@ export default function ForgotPasswordPage() {
         <div className="w-full max-w-md">
           {/* Card Container */}
           <div className="bg-white border border-slate-200/60 rounded-2xl shadow-depth-md p-8">
-            {formState === 'success' ? (
+            {formState === "success" ? (
               /* Success State */
               <div className="text-center">
                 {/* Icon */}
@@ -126,16 +131,15 @@ export default function ForgotPasswordPage() {
                 </h1>
 
                 {/* Message */}
-                <p className="text-slate-600 mb-1">
-                  If an account exists with
-                </p>
+                <p className="text-slate-600 mb-1">If an account exists with</p>
                 <p className="text-indigo-600 font-semibold mb-4">
                   {submittedEmail}
                 </p>
 
                 {/* Subtext */}
                 <p className="text-sm text-slate-500 mb-6">
-                  we sent a password reset link. Check your inbox and spam folder.
+                  we sent a password reset link. Check your inbox and spam
+                  folder.
                 </p>
 
                 {/* Back to login */}
@@ -162,7 +166,10 @@ export default function ForgotPasswordPage() {
                 </div>
 
                 {/* Email Form */}
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 mb-6">
+                <form
+                  onSubmit={handleSubmit(onSubmit)}
+                  className="space-y-4 mb-6"
+                >
                   {/* Email Input */}
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
@@ -170,30 +177,34 @@ export default function ForgotPasswordPage() {
                       id="email"
                       type="email"
                       placeholder="you@example.com"
-                      {...register('email')}
-                      disabled={formState === 'submitting'}
+                      {...register("email")}
+                      disabled={formState === "submitting"}
                       aria-invalid={!!errors.email}
                       className="transition-all duration-300"
                       autoFocus
                     />
                     {errors.email && (
-                      <p className="text-sm text-red-600">{errors.email.message}</p>
+                      <p className="text-sm text-red-600">
+                        {errors.email.message}
+                      </p>
                     )}
                   </div>
 
                   {/* Submit Button */}
                   <Button
                     type="submit"
-                    disabled={formState === 'submitting'}
+                    disabled={formState === "submitting"}
                     className="w-full bg-linear-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white shadow-depth-sm hover:shadow-depth-md transition-all duration-300"
                   >
-                    {formState === 'submitting' ? 'Sending reset link...' : 'Send reset link'}
+                    {formState === "submitting"
+                      ? "Sending reset link..."
+                      : "Send reset link"}
                   </Button>
                 </form>
 
                 {/* Back to login link */}
                 <p className="text-center text-sm text-slate-600">
-                  Remember your password?{' '}
+                  Remember your password?{" "}
                   <Link
                     href="/login"
                     className="text-indigo-600 hover:text-indigo-700 underline font-semibold transition-colors"
@@ -207,5 +218,5 @@ export default function ForgotPasswordPage() {
         </div>
       </main>
     </div>
-  )
+  );
 }

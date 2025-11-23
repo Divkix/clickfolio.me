@@ -1,26 +1,26 @@
-'use client'
+"use client";
 
-import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
-import { LogOut } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { createClient } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
+import { LogOut } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface LogoutButtonProps {
-  variant?: 'default' | 'ghost' | 'sidebar'
+  variant?: "default" | "ghost" | "sidebar";
 }
 
-export function LogoutButton({ variant = 'default' }: LogoutButtonProps) {
-  const router = useRouter()
+export function LogoutButton({ variant = "default" }: LogoutButtonProps) {
+  const router = useRouter();
 
   const handleLogout = async () => {
-    const supabase = createClient()
-    await supabase.auth.signOut()
-    router.push('/')
-    router.refresh()
-  }
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/");
+    router.refresh();
+  };
 
   // Sidebar variant for navigation
-  if (variant === 'sidebar' || variant === 'ghost') {
+  if (variant === "sidebar" || variant === "ghost") {
     return (
       <Button
         onClick={handleLogout}
@@ -30,7 +30,7 @@ export function LogoutButton({ variant = 'default' }: LogoutButtonProps) {
         <LogOut className="w-5 h-5 mr-3" />
         Sign Out
       </Button>
-    )
+    );
   }
 
   // Default button variant
@@ -41,5 +41,5 @@ export function LogoutButton({ variant = 'default' }: LogoutButtonProps) {
     >
       Sign out
     </button>
-  )
+  );
 }

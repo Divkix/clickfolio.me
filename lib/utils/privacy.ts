@@ -23,89 +23,89 @@
  * // Returns: "New York, NY"
  */
 export function extractCityState(location: string | undefined): string {
-  if (!location || location.trim() === '') {
-    return ''
+  if (!location || location.trim() === "") {
+    return "";
   }
 
   // Trim and normalize whitespace
-  const normalized = location.trim().replace(/\s+/g, ' ')
+  const normalized = location.trim().replace(/\s+/g, " ");
 
   // Pattern 1: Full address with ZIP (e.g., "123 Main St, San Francisco, CA 94102")
   // Extract the city and state before the ZIP code
-  const fullAddressWithZip = /,\s*([^,]+),\s*([A-Z]{2})\s+\d{5}(-\d{4})?$/
-  const matchWithZip = normalized.match(fullAddressWithZip)
+  const fullAddressWithZip = /,\s*([^,]+),\s*([A-Z]{2})\s+\d{5}(-\d{4})?$/;
+  const matchWithZip = normalized.match(fullAddressWithZip);
   if (matchWithZip) {
-    return `${matchWithZip[1]}, ${matchWithZip[2]}`
+    return `${matchWithZip[1]}, ${matchWithZip[2]}`;
   }
 
   // Pattern 2: Full address without ZIP (e.g., "123 Main St, San Francisco, CA")
   // Take the last two comma-separated parts
-  const parts = normalized.split(',').map(p => p.trim())
+  const parts = normalized.split(",").map((p) => p.trim());
   if (parts.length >= 3) {
     // Assume last two parts are city and state
-    const state = parts[parts.length - 1]
-    const city = parts[parts.length - 2]
+    const state = parts[parts.length - 1];
+    const city = parts[parts.length - 2];
 
     // Validate state code (2 uppercase letters)
     if (/^[A-Z]{2}$/.test(state)) {
-      return `${city}, ${state}`
+      return `${city}, ${state}`;
     }
   }
 
   // Pattern 3: Already city/state format (e.g., "San Francisco, CA")
   // Validate and return as-is
-  const cityStatePattern = /^([^,]+),\s*([A-Z]{2})$/
-  const matchCityState = normalized.match(cityStatePattern)
+  const cityStatePattern = /^([^,]+),\s*([A-Z]{2})$/;
+  const matchCityState = normalized.match(cityStatePattern);
   if (matchCityState) {
-    return normalized
+    return normalized;
   }
 
   // Pattern 4: City, State ZIP (e.g., "San Francisco, CA 94102")
-  const cityStateZip = /^([^,]+),\s*([A-Z]{2})\s+\d{5}(-\d{4})?$/
-  const matchCityStateZip = normalized.match(cityStateZip)
+  const cityStateZip = /^([^,]+),\s*([A-Z]{2})\s+\d{5}(-\d{4})?$/;
+  const matchCityStateZip = normalized.match(cityStateZip);
   if (matchCityStateZip) {
-    return `${matchCityStateZip[1]}, ${matchCityStateZip[2]}`
+    return `${matchCityStateZip[1]}, ${matchCityStateZip[2]}`;
   }
 
   // Pattern 5: City only (no state detected)
   // Return as-is if it doesn't look like a street address
-  const hasStreetNumber = /^\d+\s/.test(normalized)
+  const hasStreetNumber = /^\d+\s/.test(normalized);
   if (!hasStreetNumber && parts.length === 1) {
-    return normalized
+    return normalized;
   }
 
   // If all else fails and we have multiple parts, try to extract meaningful location
   // Assume the last comma-separated part might be state/country
   if (parts.length >= 2) {
-    const last = parts[parts.length - 1]
-    const secondLast = parts[parts.length - 2]
+    const last = parts[parts.length - 1];
+    const secondLast = parts[parts.length - 2];
 
     // If last part is a 2-letter code, it's likely a state
     if (/^[A-Z]{2}$/.test(last)) {
-      return `${secondLast}, ${last}`
+      return `${secondLast}, ${last}`;
     }
 
     // Otherwise, return last two parts (might be city, country)
-    return `${secondLast}, ${last}`
+    return `${secondLast}, ${last}`;
   }
 
   // Fallback: return the original if we can't parse it
   // Better to show something than nothing
-  return normalized
+  return normalized;
 }
 
 /**
  * Type guard to check if privacy settings are valid
  */
 export function isValidPrivacySettings(
-  settings: unknown
+  settings: unknown,
 ): settings is { show_phone: boolean; show_address: boolean } {
   return (
-    typeof settings === 'object' &&
+    typeof settings === "object" &&
     settings !== null &&
-    'show_phone' in settings &&
-    'show_address' in settings &&
-    typeof (settings as { show_phone: unknown }).show_phone === 'boolean' &&
-    typeof (settings as { show_address: unknown }).show_address === 'boolean'
-  )
+    "show_phone" in settings &&
+    "show_address" in settings &&
+    typeof (settings as { show_phone: unknown }).show_phone === "boolean" &&
+    typeof (settings as { show_address: unknown }).show_address === "boolean"
+  );
 }

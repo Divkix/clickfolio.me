@@ -1,9 +1,9 @@
-import type { ResumeContent } from './database'
+import type { ResumeContent } from "./database";
 
 export interface TemplateProps {
-  content: ResumeContent
+  content: ResumeContent;
   profile: {
-    avatar_url: string | null
-    handle: string
-  }
+    avatar_url: string | null;
+    handle: string;
+  };
 }

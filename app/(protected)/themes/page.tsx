@@ -1,33 +1,33 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
-import { ThemeSelector } from '@/components/dashboard/ThemeSelector'
-import { siteConfig } from '@/lib/config/site'
+import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
+import { ThemeSelector } from "@/components/dashboard/ThemeSelector";
+import { siteConfig } from "@/lib/config/site";
 
 export const metadata = {
   title: `Themes | ${siteConfig.fullName}`,
-  description: 'Choose your resume theme',
-}
+  description: "Choose your resume theme",
+};
 
 export default async function ThemesPage() {
-  const supabase = await createClient()
+  const supabase = await createClient();
 
   // Get current user
   const {
     data: { user },
-  } = await supabase.auth.getUser()
+  } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect('/auth/login')
+    redirect("/auth/login");
   }
 
   // Fetch user's current theme
   const { data: siteData } = await supabase
-    .from('site_data')
-    .select('theme_id')
-    .eq('user_id', user.id)
-    .single()
+    .from("site_data")
+    .select("theme_id")
+    .eq("user_id", user.id)
+    .single();
 
-  const currentThemeId = siteData?.theme_id || 'minimalist_editorial'
+  const currentThemeId = siteData?.theme_id || "minimalist_editorial";
 
   return (
     <div className="min-h-screen bg-slate-50 p-6">
@@ -38,7 +38,8 @@ export default async function ThemesPage() {
             Choose Your Theme
           </h1>
           <p className="text-lg text-slate-600 leading-relaxed">
-            Customize how your resume appears to visitors. Each theme offers a unique visual style.
+            Customize how your resume appears to visitors. Each theme offers a
+            unique visual style.
           </p>
         </div>
 
@@ -46,5 +47,5 @@ export default async function ThemesPage() {
         <ThemeSelector initialThemeId={currentThemeId} />
       </div>
     </div>
-  )
+  );
 }

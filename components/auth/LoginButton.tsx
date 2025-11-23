@@ -1,36 +1,36 @@
-'use client'
+"use client";
 
-import { createClient } from '@/lib/supabase/client'
-import { cn } from '@/lib/utils'
-import type { VariantProps } from 'class-variance-authority'
-import { buttonVariants } from '@/components/ui/button'
+import { createClient } from "@/lib/supabase/client";
+import { cn } from "@/lib/utils";
+import type { VariantProps } from "class-variance-authority";
+import { buttonVariants } from "@/components/ui/button";
 
 interface LoginButtonProps {
-  variant?: VariantProps<typeof buttonVariants>['variant']
-  size?: VariantProps<typeof buttonVariants>['size']
-  className?: string
-  text?: string
+  variant?: VariantProps<typeof buttonVariants>["variant"];
+  size?: VariantProps<typeof buttonVariants>["size"];
+  className?: string;
+  text?: string;
 }
 
 export function LoginButton({
   variant,
   size,
   className,
-  text = 'Continue with Google'
+  text = "Continue with Google",
 }: LoginButtonProps) {
   const handleLogin = async () => {
-    const supabase = createClient()
+    const supabase = createClient();
     const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
+      provider: "google",
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
       },
-    })
+    });
 
     if (error) {
-      console.error('Error logging in:', error)
+      console.error("Error logging in:", error);
     }
-  }
+  };
 
   // If variant/size props are provided, use the Button component style
   // Otherwise, use the original homepage styling
@@ -38,11 +38,7 @@ export function LoginButton({
     return (
       <button
         onClick={handleLogin}
-        className={cn(
-          buttonVariants({ variant, size }),
-          'gap-2',
-          className
-        )}
+        className={cn(buttonVariants({ variant, size }), "gap-2", className)}
       >
         <svg className="w-5 h-5" viewBox="0 0 24 24">
           <path
@@ -64,7 +60,7 @@ export function LoginButton({
         </svg>
         {text}
       </button>
-    )
+    );
   }
 
   // Default homepage styling
@@ -72,8 +68,8 @@ export function LoginButton({
     <button
       onClick={handleLogin}
       className={cn(
-        'group relative px-6 py-3 bg-linear-to-r from-indigo-600 to-blue-600 text-white rounded-lg font-semibold shadow-depth-sm hover:shadow-depth-md hover:from-indigo-700 hover:to-blue-700 transition-all duration-300 flex items-center gap-2 overflow-hidden',
-        className
+        "group relative px-6 py-3 bg-linear-to-r from-indigo-600 to-blue-600 text-white rounded-lg font-semibold shadow-depth-sm hover:shadow-depth-md hover:from-indigo-700 hover:to-blue-700 transition-all duration-300 flex items-center gap-2 overflow-hidden",
+        className,
       )}
     >
       {/* Shimmer effect overlay */}
@@ -99,5 +95,5 @@ export function LoginButton({
       </svg>
       <span className="relative z-10">{text}</span>
     </button>
-  )
+  );
 }

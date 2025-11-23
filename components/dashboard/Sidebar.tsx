@@ -1,108 +1,119 @@
-'use client'
+"use client";
 
-import { useEffect, useState } from 'react'
-import { usePathname, useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
-import { Home, Edit3, Palette, Settings, ExternalLink, LogOut, X } from 'lucide-react'
-import type { User } from '@supabase/supabase-js'
+import { useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+import {
+  Home,
+  Edit3,
+  Palette,
+  Settings,
+  ExternalLink,
+  LogOut,
+  X,
+} from "lucide-react";
+import type { User } from "@supabase/supabase-js";
 
 interface SidebarProps {
-  isOpen?: boolean
-  onClose?: () => void
+  isOpen?: boolean;
+  onClose?: () => void;
 }
 
 interface Profile {
-  handle: string | null
+  handle: string | null;
 }
 
 export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
-  const pathname = usePathname()
-  const router = useRouter()
-  const supabase = createClient()
+  const pathname = usePathname();
+  const router = useRouter();
+  const supabase = createClient();
 
-  const [user, setUser] = useState<User | null>(null)
-  const [profile, setProfile] = useState<Profile | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadUserData() {
       try {
-        const { data: { user: userData }, error: userError } = await supabase.auth.getUser()
+        const {
+          data: { user: userData },
+          error: userError,
+        } = await supabase.auth.getUser();
 
         if (userError || !userData) {
-          setLoading(false)
-          return
+          setLoading(false);
+          return;
         }
 
-        setUser(userData)
+        setUser(userData);
 
         // Fetch profile to get handle
         const { data: profileData } = await supabase
-          .from('profiles')
-          .select('handle')
-          .eq('id', userData.id)
-          .single()
+          .from("profiles")
+          .select("handle")
+          .eq("id", userData.id)
+          .single();
 
-        setProfile(profileData)
+        setProfile(profileData);
       } catch (error) {
-        console.error('Error loading user data:', error)
+        console.error("Error loading user data:", error);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
     }
 
-    loadUserData()
-  }, [supabase])
+    loadUserData();
+  }, [supabase]);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut()
-    router.push('/')
-    router.refresh()
-  }
+    await supabase.auth.signOut();
+    router.push("/");
+    router.refresh();
+  };
 
   // Get user initials for avatar fallback
   const getInitials = () => {
-    if (!user?.user_metadata?.full_name) return '?'
-    const names = user.user_metadata.full_name.split(' ')
+    if (!user?.user_metadata?.full_name) return "?";
+    const names = user.user_metadata.full_name.split(" ");
     if (names.length >= 2) {
-      return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase()
+      return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase();
     }
-    return names[0][0].toUpperCase()
-  }
+    return names[0][0].toUpperCase();
+  };
 
   const navItems = [
     {
-      name: 'Overview',
-      href: '/dashboard',
+      name: "Overview",
+      href: "/dashboard",
       icon: Home,
-      exact: true
+      exact: true,
     },
     {
-      name: 'Edit Resume',
-      href: '/edit',
+      name: "Edit Resume",
+      href: "/edit",
       icon: Edit3,
-      exact: false
+      exact: false,
     },
     {
-      name: 'Themes',
-      href: '/themes',
+      name: "Themes",
+      href: "/themes",
       icon: Palette,
-      exact: false
+      exact: false,
     },
     {
-      name: 'Settings',
-      href: '/settings',
+      name: "Settings",
+      href: "/settings",
       icon: Settings,
-      exact: false
-    }
-  ]
+      exact: false,
+    },
+  ];
 
   const isActive = (href: string, exact: boolean) => {
     if (exact) {
-      return pathname === href
+      return pathname === href;
     }
-    return pathname?.startsWith(href)
-  }
+    return pathname?.startsWith(href);
+  };
 
   return (
     <>
@@ -120,7 +131,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
         className={`
           fixed top-0 left-0 h-full w-60 bg-white border-r border-slate-200/60 shadow-depth-sm
           flex flex-col z-50 transition-transform duration-300
-          ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+          ${isOpen ? "translate-x-0" : "-translate-x-full"}
           md:translate-x-0
         `}
         aria-label="Main navigation"
@@ -153,7 +164,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={user.user_metadata.avatar_url}
-                    alt={user.user_metadata?.full_name || 'User avatar'}
+                    alt={user.user_metadata?.full_name || "User avatar"}
                     className="relative w-10 h-10 rounded-full object-cover"
                   />
                 </div>
@@ -164,7 +175,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
               )}
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-slate-900 truncate">
-                  {user.user_metadata?.full_name || 'User'}
+                  {user.user_metadata?.full_name || "User"}
                 </p>
               </div>
             </div>
@@ -174,33 +185,34 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
         {/* Navigation Menu */}
         <nav className="flex-1 p-4 space-y-1">
           {navItems.map((item) => {
-            const Icon = item.icon
-            const active = isActive(item.href, item.exact)
+            const Icon = item.icon;
+            const active = isActive(item.href, item.exact);
 
             return (
               <button
                 key={item.href}
                 onClick={() => {
-                  router.push(item.href)
-                  onClose?.()
+                  router.push(item.href);
+                  onClose?.();
                 }}
                 className={`
                   w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium
                   transition-all duration-300
-                  ${active
-                    ? 'bg-linear-to-r from-indigo-600 to-blue-600 text-white shadow-depth-sm'
-                    : 'text-slate-700 hover:bg-slate-100'
+                  ${
+                    active
+                      ? "bg-linear-to-r from-indigo-600 to-blue-600 text-white shadow-depth-sm"
+                      : "text-slate-700 hover:bg-slate-100"
                   }
                 `}
               >
                 <Icon
                   size={20}
-                  className={active ? 'stroke-[url(#iconGradient)]' : ''}
-                  style={active ? { stroke: 'currentColor' } : undefined}
+                  className={active ? "stroke-[url(#iconGradient)]" : ""}
+                  style={active ? { stroke: "currentColor" } : undefined}
                 />
                 <span>{item.name}</span>
               </button>
-            )
+            );
           })}
 
           {/* View Site Link */}
@@ -232,7 +244,13 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
         {/* SVG Gradient Definition for Active Icons */}
         <svg width="0" height="0" className="absolute">
           <defs>
-            <linearGradient id="iconGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <linearGradient
+              id="iconGradient"
+              x1="0%"
+              y1="0%"
+              x2="100%"
+              y2="100%"
+            >
               <stop offset="0%" stopColor="#4F46E5" />
               <stop offset="100%" stopColor="#3B82F6" />
             </linearGradient>
@@ -240,5 +258,5 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
         </svg>
       </aside>
     </>
-  )
+  );
 }

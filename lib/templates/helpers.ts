@@ -4,10 +4,10 @@
  */
 export function getInitials(name: string): string {
   return name
-    .split(' ')
-    .map(part => part.charAt(0).toUpperCase())
+    .split(" ")
+    .map((part) => part.charAt(0).toUpperCase())
     .slice(0, 2)
-    .join('')
+    .join("");
 }
 
 /**
@@ -15,28 +15,33 @@ export function getInitials(name: string): string {
  * Example: ("2020-01-01", "2023-06-01") -> "Jan 2020 — Jun 2023"
  * Example: ("2020-01-01", null) -> "Jan 2020 — Present"
  */
-export function formatDateRange(startDate: string, endDate?: string | null): string {
-  const start = new Date(startDate).toLocaleDateString('en-US', {
-    month: 'short',
-    year: 'numeric'
-  })
+export function formatDateRange(
+  startDate: string,
+  endDate?: string | null,
+): string {
+  const start = new Date(startDate).toLocaleDateString("en-US", {
+    month: "short",
+    year: "numeric",
+  });
 
-  if (!endDate) return `${start} — Present`
+  if (!endDate) return `${start} — Present`;
 
-  const end = new Date(endDate).toLocaleDateString('en-US', {
-    month: 'short',
-    year: 'numeric'
-  })
+  const end = new Date(endDate).toLocaleDateString("en-US", {
+    month: "short",
+    year: "numeric",
+  });
 
-  return `${start} — ${end}`
+  return `${start} — ${end}`;
 }
 
 /**
  * Flatten skills from categorized structure to simple array
  * Example: [{category: "Frontend", items: ["React", "Vue"]}] -> ["React", "Vue"]
  */
-export function flattenSkills(skills?: Array<{ category: string; items: string[] }>): string[] {
-  return skills?.flatMap(s => s.items) || []
+export function flattenSkills(
+  skills?: Array<{ category: string; items: string[] }>,
+): string[] {
+  return skills?.flatMap((s) => s.items) || [];
 }
 
 /**
@@ -45,14 +50,14 @@ export function flattenSkills(skills?: Array<{ category: string; items: string[]
  * Example: "123 Main St, San Francisco, CA 94102" -> "San Francisco, CA"
  */
 export function extractCityState(location?: string | null): string {
-  if (!location) return ''
+  if (!location) return "";
 
   // Try to extract city, state pattern
-  const parts = location.split(',').map(p => p.trim())
+  const parts = location.split(",").map((p) => p.trim());
   if (parts.length >= 2) {
     // Return last two parts (typically city, state)
-    return parts.slice(-2).join(', ')
+    return parts.slice(-2).join(", ");
   }
 
-  return location
+  return location;
 }

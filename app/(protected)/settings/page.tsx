@@ -1,61 +1,69 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
-import Link from 'next/link'
-import { User } from 'lucide-react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { PrivacySettingsForm } from '@/components/forms/PrivacySettings'
-import { HandleForm } from '@/components/forms/HandleForm'
-import { ResumeManagementCard } from '@/components/settings/ResumeManagementCard'
-import { isValidPrivacySettings } from '@/lib/utils/privacy'
+import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
+import Link from "next/link";
+import { User } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { PrivacySettingsForm } from "@/components/forms/PrivacySettings";
+import { HandleForm } from "@/components/forms/HandleForm";
+import { ResumeManagementCard } from "@/components/settings/ResumeManagementCard";
+import { isValidPrivacySettings } from "@/lib/utils/privacy";
 
 export default async function SettingsPage() {
-  const supabase = await createClient()
+  const supabase = await createClient();
 
   const {
     data: { user },
-  } = await supabase.auth.getUser()
+  } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect('/')
+    redirect("/");
   }
 
   // Fetch user profile
   const { data: profile, error } = await supabase
-    .from('profiles')
-    .select('id, handle, email, avatar_url, headline, privacy_settings')
-    .eq('id', user.id)
-    .single()
+    .from("profiles")
+    .select("id, handle, email, avatar_url, headline, privacy_settings")
+    .eq("id", user.id)
+    .single();
 
   if (error || !profile) {
-    console.error('Failed to fetch profile:', error)
-    redirect('/dashboard')
+    console.error("Failed to fetch profile:", error);
+    redirect("/dashboard");
   }
 
   // Validate and normalize privacy settings
   const privacySettings = isValidPrivacySettings(profile.privacy_settings)
     ? profile.privacy_settings
-    : { show_phone: false, show_address: false }
+    : { show_phone: false, show_address: false };
 
   // Fetch resume data for management section
   const { count: resumeCount } = await supabase
-    .from('resumes')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', user.id)
+    .from("resumes")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", user.id);
 
   const { data: latestResume } = await supabase
-    .from('resumes')
-    .select('id, status, created_at, error_message')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
+    .from("resumes")
+    .select("id, status, created_at, error_message")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false })
     .limit(1)
-    .single()
+    .single();
 
   return (
     <div className="min-h-screen py-8">
       <div className="max-w-5xl mx-auto px-4 lg:px-6 space-y-6">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-slate-900">Settings</h1>
-          <p className="text-slate-600 mt-2">Manage your account and privacy settings</p>
+          <p className="text-slate-600 mt-2">
+            Manage your account and privacy settings
+          </p>
         </div>
 
         {/* Profile Overview */}
@@ -119,9 +127,7 @@ export default async function SettingsPage() {
         />
 
         {/* Handle Management */}
-        {profile.handle && (
-          <HandleForm currentHandle={profile.handle} />
-        )}
+        {profile.handle && <HandleForm currentHandle={profile.handle} />}
 
         {/* Privacy Settings */}
         <PrivacySettingsForm
@@ -147,5 +153,5 @@ export default async function SettingsPage() {
         </Card>
       </div>
     </div>
-  )
+  );
 }

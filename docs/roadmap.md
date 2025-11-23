@@ -1,6 +1,7 @@
 # 🛠️ webresume.now MVP — Implementation Roadmap
 
 ## 🟢 Phase 1: The "Walking Skeleton" (Infra & Auth)
+
 **Goal**: A deployed Next.js 15 app on Cloudflare Workers that connects to Supabase and allows Google Login.
 
 - [ ] **1.1. Project Initialization**
@@ -33,6 +34,7 @@
 ---
 
 ## 🔵 Phase 2: The "Drop & Claim" Loop (Input Handling)
+
 **Goal**: An anonymous user can upload a PDF, log in, and the system "claims" that PDF for their account.
 
 - [ ] **2.1. Storage Infrastructure (R2)**
@@ -65,6 +67,7 @@
 ---
 
 ## 🟣 Phase 3: The "Viewer" (Output Rendering)
+
 **Goal**: A high-performance public page that renders resume data (mocked for now).
 
 - [ ] **3.1. Mock Data Setup**
@@ -89,6 +92,7 @@
 ---
 
 ## 🟠 Phase 4: The "Brain" (AI Integration)
+
 **Goal**: Replace the mock data with real data extracted from the PDF via Replicate.
 
 - [ ] **4.1. Replicate Integration**
@@ -121,6 +125,7 @@
 ---
 
 ## 🔴 Phase 5: Polish & Dashboard (The User Loop)
+
 **Goal**: Allow users to edit their data, set handles, and control privacy.
 
 - [ ] **5.1. Dashboard UI**

@@ -1,67 +1,101 @@
-import { ENV } from './env'
-import Replicate from 'replicate'
-import { z } from 'zod'
-import type { ResumeContent } from '@/lib/types/database'
+import { ENV } from "./env";
+import Replicate from "replicate";
+import { z } from "zod";
+import type { ResumeContent } from "@/lib/types/database";
 
 // Initialize Replicate client lazily
-let _replicate: Replicate | null = null
+let _replicate: Replicate | null = null;
 
 function getReplicate(): Replicate {
   if (!_replicate) {
     _replicate = new Replicate({
       auth: ENV.REPLICATE_API_TOKEN(),
-    })
+    });
   }
-  return _replicate
+  return _replicate;
 }
 
 // Zod schemas for runtime validation
 const ContactSchema = z.object({
-  email: z.email({ message: 'Invalid email address' }),
+  email: z.email({ message: "Invalid email address" }),
   phone: z.string().optional().nullable(),
   location: z.string().optional().nullable(),
   linkedin: z.string().optional().nullable(),
   github: z.string().optional().nullable(),
   website: z.string().optional().nullable(),
-})
+});
 
 const ExperienceItemSchema = z.object({
-  title: z.string().nullable().transform(val => val ?? 'Position Not Specified'),
-  company: z.string().nullable().transform(val => val ?? 'Company Not Specified'),
+  title: z
+    .string()
+    .nullable()
+    .transform((val) => val ?? "Position Not Specified"),
+  company: z
+    .string()
+    .nullable()
+    .transform((val) => val ?? "Company Not Specified"),
   location: z.string().optional().nullable(),
-  start_date: z.string().nullable().transform(val => val ?? 'Date Not Specified'),
+  start_date: z
+    .string()
+    .nullable()
+    .transform((val) => val ?? "Date Not Specified"),
   end_date: z.string().optional().nullable(),
-  description: z.string().optional().nullable().transform(val => val ?? ''),
+  description: z
+    .string()
+    .optional()
+    .nullable()
+    .transform((val) => val ?? ""),
   highlights: z.array(z.string()).optional().nullable(),
-})
+});
 
 const EducationItemSchema = z.object({
-  degree: z.string().nullable().transform(val => val ?? 'Degree Not Specified'),
-  institution: z.string().nullable().transform(val => val ?? 'Institution Not Specified'),
+  degree: z
+    .string()
+    .nullable()
+    .transform((val) => val ?? "Degree Not Specified"),
+  institution: z
+    .string()
+    .nullable()
+    .transform((val) => val ?? "Institution Not Specified"),
   location: z.string().optional().nullable(),
   graduation_date: z.string().optional().nullable(),
   gpa: z.string().optional().nullable(),
-})
+});
 
 const SkillCategorySchema = z.object({
-  category: z.string().nullable().transform(val => val ?? 'Uncategorized'),
+  category: z
+    .string()
+    .nullable()
+    .transform((val) => val ?? "Uncategorized"),
   items: z.array(z.string()),
-})
+});
 
 const CertificationSchema = z.object({
-  name: z.string().nullable().transform(val => val ?? 'Certification Not Specified'),
-  issuer: z.string().nullable().transform(val => val ?? 'Issuer Not Specified'),
+  name: z
+    .string()
+    .nullable()
+    .transform((val) => val ?? "Certification Not Specified"),
+  issuer: z
+    .string()
+    .nullable()
+    .transform((val) => val ?? "Issuer Not Specified"),
   date: z.string().optional().nullable(),
   url: z.string().optional().nullable(),
-})
+});
 
 const ProjectSchema = z.object({
-  title: z.string().nullable().transform(val => val ?? 'Project Title Not Specified'),
-  description: z.string().nullable().transform(val => val ?? ''),
+  title: z
+    .string()
+    .nullable()
+    .transform((val) => val ?? "Project Title Not Specified"),
+  description: z
+    .string()
+    .nullable()
+    .transform((val) => val ?? ""),
   year: z.string().optional().nullable(),
   technologies: z.array(z.string()).optional().nullable(),
   url: z.string().optional().nullable(),
-})
+});
 
 const ResumeContentSchema = z.object({
   full_name: z.string(),
@@ -73,150 +107,173 @@ const ResumeContentSchema = z.object({
   skills: z.array(SkillCategorySchema).optional().nullable(),
   certifications: z.array(CertificationSchema).optional().nullable(),
   projects: z.array(ProjectSchema).optional().nullable(),
-})
+});
 
 // JSON schema for Replicate model
 const RESUME_EXTRACTION_SCHEMA = {
-  type: 'object',
-  required: ['full_name', 'headline', 'summary', 'contact', 'experience'],
+  type: "object",
+  required: ["full_name", "headline", "summary", "contact", "experience"],
   properties: {
     full_name: {
-      type: 'string',
-      description: 'Full name of the person',
+      type: "string",
+      description: "Full name of the person",
     },
     headline: {
-      type: 'string',
-      description: 'A concise 10-word professional headline/title',
+      type: "string",
+      description: "A concise 10-word professional headline/title",
       maxLength: 100,
     },
     summary: {
-      type: 'string',
-      description: 'Professional summary or objective statement',
+      type: "string",
+      description: "Professional summary or objective statement",
       maxLength: 500,
     },
     contact: {
-      type: 'object',
-      required: ['email'],
+      type: "object",
+      required: ["email"],
       properties: {
-        email: { type: 'string', format: 'email' },
-        phone: { type: 'string' },
-        location: { type: 'string', description: 'City, State format preferred' },
-        linkedin: { type: 'string', format: 'uri' },
-        github: { type: 'string', format: 'uri' },
-        website: { type: 'string', format: 'uri' },
+        email: { type: "string", format: "email" },
+        phone: { type: "string" },
+        location: {
+          type: "string",
+          description: "City, State format preferred",
+        },
+        linkedin: { type: "string", format: "uri" },
+        github: { type: "string", format: "uri" },
+        website: { type: "string", format: "uri" },
       },
     },
     experience: {
-      type: 'array',
-      description: 'Work experience in reverse chronological order',
+      type: "array",
+      description: "Work experience in reverse chronological order",
       items: {
-        type: 'object',
-        required: ['title', 'company', 'start_date', 'description'],
+        type: "object",
+        required: ["title", "company", "start_date", "description"],
         properties: {
-          title: { type: 'string' },
-          company: { type: 'string' },
-          location: { type: 'string' },
-          start_date: { type: 'string', description: 'Format: YYYY-MM or Month YYYY' },
-          end_date: {
-            type: 'string',
-            description: 'Format: YYYY-MM or Month YYYY. Omit for current role.',
+          title: { type: "string" },
+          company: { type: "string" },
+          location: { type: "string" },
+          start_date: {
+            type: "string",
+            description: "Format: YYYY-MM or Month YYYY",
           },
-          description: { type: 'string' },
+          end_date: {
+            type: "string",
+            description:
+              "Format: YYYY-MM or Month YYYY. Omit for current role.",
+          },
+          description: { type: "string" },
           highlights: {
-            type: 'array',
-            items: { type: 'string' },
-            description: 'Key achievements or responsibilities',
+            type: "array",
+            items: { type: "string" },
+            description: "Key achievements or responsibilities",
           },
         },
       },
     },
     education: {
-      type: 'array',
+      type: "array",
       items: {
-        type: 'object',
-        required: ['degree'],
+        type: "object",
+        required: ["degree"],
         properties: {
-          degree: { type: 'string' },
-          institution: { type: 'string' },
-          location: { type: 'string' },
-          graduation_date: { type: 'string' },
-          gpa: { type: 'string' },
+          degree: { type: "string" },
+          institution: { type: "string" },
+          location: { type: "string" },
+          graduation_date: { type: "string" },
+          gpa: { type: "string" },
         },
       },
     },
     skills: {
-      type: 'array',
+      type: "array",
       items: {
-        type: 'object',
-        required: ['category', 'items'],
+        type: "object",
+        required: ["category", "items"],
         properties: {
-          category: { type: 'string', description: 'Skill category (e.g., Languages, Frameworks)' },
-          items: { type: 'array', items: { type: 'string' } },
+          category: {
+            type: "string",
+            description: "Skill category (e.g., Languages, Frameworks)",
+          },
+          items: { type: "array", items: { type: "string" } },
         },
       },
     },
     certifications: {
-      type: 'array',
+      type: "array",
       items: {
-        type: 'object',
-        required: ['name'],
+        type: "object",
+        required: ["name"],
         properties: {
-          name: { type: 'string' },
-          issuer: { type: 'string' },
-          date: { type: 'string' },
-          url: { type: 'string', format: 'uri' },
+          name: { type: "string" },
+          issuer: { type: "string" },
+          date: { type: "string" },
+          url: { type: "string", format: "uri" },
         },
       },
     },
     projects: {
-      type: 'array',
-      description: 'Personal projects, side work, portfolio pieces, or notable work mentioned in the resume',
+      type: "array",
+      description:
+        "Personal projects, side work, portfolio pieces, or notable work mentioned in the resume",
       items: {
-        type: 'object',
-        required: ['title', 'description'],
+        type: "object",
+        required: ["title", "description"],
         properties: {
           title: {
-            type: 'string',
-            description: 'Project name or title',
+            type: "string",
+            description: "Project name or title",
           },
           description: {
-            type: 'string',
+            type: "string",
             maxLength: 200,
-            description: 'Brief description of the project and its impact',
+            description: "Brief description of the project and its impact",
           },
           year: {
-            type: 'string',
-            description: 'Year completed or date range',
+            type: "string",
+            description: "Year completed or date range",
           },
           technologies: {
-            type: 'array',
-            items: { type: 'string' },
-            description: 'Technologies, frameworks, or tools used',
+            type: "array",
+            items: { type: "string" },
+            description: "Technologies, frameworks, or tools used",
           },
           url: {
-            type: 'string',
-            description: 'Project URL or demo link if available',
+            type: "string",
+            description: "Project URL or demo link if available",
           },
         },
       },
     },
   },
-}
+};
 
 export interface ParseResumeResult {
-  id: string
-  status: 'starting' | 'processing' | 'succeeded' | 'failed' | 'canceled' | 'aborted'
+  id: string;
+  status:
+    | "starting"
+    | "processing"
+    | "succeeded"
+    | "failed"
+    | "canceled"
+    | "aborted";
 }
 
 export interface ParseStatusResult {
-  id: string
-  status: 'starting' | 'processing' | 'succeeded' | 'failed' | 'canceled' | 'aborted'
+  id: string;
+  status:
+    | "starting"
+    | "processing"
+    | "succeeded"
+    | "failed"
+    | "canceled"
+    | "aborted";
   output?: {
-    extraction_schema_json?: string
-    [key: string]: unknown
-  }
-  error?: string
-  logs?: string
+    extraction_schema_json?: string;
+    [key: string]: unknown;
+  };
+  error?: string;
+  logs?: string;
 }
 
 /**
@@ -227,12 +284,12 @@ export interface ParseStatusResult {
  */
 export async function parseResume(
   presignedUrl: string,
-  webhookUrl?: string
+  webhookUrl?: string,
 ): Promise<ParseResumeResult> {
   try {
-    const replicate = getReplicate()
+    const replicate = getReplicate();
     const prediction = await replicate.predictions.create({
-      model: 'datalab-to/marker',
+      model: "datalab-to/marker",
       input: {
         file: presignedUrl,
         use_llm: true,
@@ -240,19 +297,19 @@ export async function parseResume(
       },
       ...(webhookUrl && {
         webhook: webhookUrl,
-        webhook_events_filter: ['completed'],
+        webhook_events_filter: ["completed"],
       }),
-    })
+    });
 
     return {
       id: prediction.id,
-      status: prediction.status as ParseResumeResult['status'],
-    }
+      status: prediction.status as ParseResumeResult["status"],
+    };
   } catch (error) {
-    console.error('Failed to start Replicate parsing:', error)
+    console.error("Failed to start Replicate parsing:", error);
     throw new Error(
-      `Replicate API error: ${error instanceof Error ? error.message : 'Unknown error'}`
-    )
+      `Replicate API error: ${error instanceof Error ? error.message : "Unknown error"}`,
+    );
   }
 }
 
@@ -261,23 +318,25 @@ export async function parseResume(
  * @param predictionId - Replicate prediction ID
  * @returns Status result with output if completed
  */
-export async function getParseStatus(predictionId: string): Promise<ParseStatusResult> {
+export async function getParseStatus(
+  predictionId: string,
+): Promise<ParseStatusResult> {
   try {
-    const replicate = getReplicate()
-    const prediction = await replicate.predictions.get(predictionId)
+    const replicate = getReplicate();
+    const prediction = await replicate.predictions.get(predictionId);
 
     return {
       id: prediction.id,
-      status: prediction.status as ParseStatusResult['status'],
-      output: prediction.output as ParseStatusResult['output'],
+      status: prediction.status as ParseStatusResult["status"],
+      output: prediction.output as ParseStatusResult["output"],
       error: prediction.error ? String(prediction.error) : undefined,
       logs: prediction.logs,
-    }
+    };
   } catch (error) {
-    console.error('Failed to get Replicate status:', error)
+    console.error("Failed to get Replicate status:", error);
     throw new Error(
-      `Replicate API error: ${error instanceof Error ? error.message : 'Unknown error'}`
-    )
+      `Replicate API error: ${error instanceof Error ? error.message : "Unknown error"}`,
+    );
   }
 }
 
@@ -285,20 +344,20 @@ export async function getParseStatus(predictionId: string): Promise<ParseStatusR
  * Sanitize URL strings - add https:// if missing, return undefined if invalid
  */
 function sanitizeUrl(url: string | null | undefined): string | undefined {
-  if (!url || url === '') return undefined
+  if (!url || url === "") return undefined;
 
   // Try to parse as-is
   try {
-    new URL(url)
-    return url
+    new URL(url);
+    return url;
   } catch {
     // Try adding https:// prefix
     try {
-      new URL(`https://${url}`)
-      return `https://${url}`
+      new URL(`https://${url}`);
+      return `https://${url}`;
     } catch {
       // Invalid URL even with prefix - return undefined
-      return undefined
+      return undefined;
     }
   }
 }
@@ -309,38 +368,47 @@ function sanitizeUrl(url: string | null | undefined): string | undefined {
  * @returns Validated and normalized ResumeContent
  */
 export function normalizeResumeData(extractionJson: string): ResumeContent {
-  let rawData: unknown
+  let rawData: unknown;
 
   // Parse JSON string
   try {
-    rawData = JSON.parse(extractionJson)
+    rawData = JSON.parse(extractionJson);
   } catch (error) {
-    throw new Error(`Invalid JSON from Replicate: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    throw new Error(
+      `Invalid JSON from Replicate: ${error instanceof Error ? error.message : "Unknown error"}`,
+    );
   }
 
   // Validate against schema
-  const validationResult = ResumeContentSchema.safeParse(rawData)
+  const validationResult = ResumeContentSchema.safeParse(rawData);
 
   if (!validationResult.success) {
-    console.error('Validation errors:', validationResult.error.issues)
-    throw new Error(`Invalid resume data structure: ${validationResult.error.issues[0]?.message || 'Validation failed'}`)
+    console.error("Validation errors:", validationResult.error.issues);
+    throw new Error(
+      `Invalid resume data structure: ${validationResult.error.issues[0]?.message || "Validation failed"}`,
+    );
   }
 
-  const data = validationResult.data
+  const data = validationResult.data;
 
   // Log if AI returned null values that were replaced with defaults
   const hasDefaults = data.experience.some(
-    exp => exp.title.includes('Not Specified') || exp.company.includes('Not Specified') || exp.start_date.includes('Not Specified')
-  )
+    (exp) =>
+      exp.title.includes("Not Specified") ||
+      exp.company.includes("Not Specified") ||
+      exp.start_date.includes("Not Specified"),
+  );
   if (hasDefaults) {
-    console.warn('AI parsing returned null values - defaults applied to experience entries')
+    console.warn(
+      "AI parsing returned null values - defaults applied to experience entries",
+    );
   }
 
   // Apply defaults for nullable fields and sanitize URLs
   const normalized: ResumeContent = {
     full_name: data.full_name,
-    headline: data.headline ?? '',
-    summary: data.summary ?? '',
+    headline: data.headline ?? "",
+    summary: data.summary ?? "",
     contact: {
       email: data.contact.email,
       phone: data.contact.phone ?? undefined,
@@ -358,38 +426,41 @@ export function normalizeResumeData(extractionJson: string): ResumeContent {
       description: exp.description,
       highlights: exp.highlights ?? undefined,
     })),
-    education: data.education?.map((edu) => ({
-      degree: edu.degree,
-      institution: edu.institution,
-      location: edu.location ?? undefined,
-      graduation_date: edu.graduation_date ?? undefined,
-      gpa: edu.gpa ?? undefined,
-    })) ?? undefined,
+    education:
+      data.education?.map((edu) => ({
+        degree: edu.degree,
+        institution: edu.institution,
+        location: edu.location ?? undefined,
+        graduation_date: edu.graduation_date ?? undefined,
+        gpa: edu.gpa ?? undefined,
+      })) ?? undefined,
     skills: data.skills ?? undefined,
-    certifications: data.certifications?.map((cert) => ({
-      name: cert.name,
-      issuer: cert.issuer,
-      date: cert.date ?? undefined,
-      url: sanitizeUrl(cert.url),
-    })) ?? undefined,
-    projects: data.projects?.map((project) => ({
-      title: project.title,
-      description: project.description,
-      year: project.year ?? undefined,
-      technologies: project.technologies ?? undefined,
-      url: sanitizeUrl(project.url),
-    })) ?? undefined,
-  }
+    certifications:
+      data.certifications?.map((cert) => ({
+        name: cert.name,
+        issuer: cert.issuer,
+        date: cert.date ?? undefined,
+        url: sanitizeUrl(cert.url),
+      })) ?? undefined,
+    projects:
+      data.projects?.map((project) => ({
+        title: project.title,
+        description: project.description,
+        year: project.year ?? undefined,
+        technologies: project.technologies ?? undefined,
+        url: sanitizeUrl(project.url),
+      })) ?? undefined,
+  };
 
   // Normalize: Truncate summary to 500 chars
   if (normalized.summary && normalized.summary.length > 500) {
-    normalized.summary = normalized.summary.substring(0, 497) + '...'
+    normalized.summary = normalized.summary.substring(0, 497) + "...";
   }
 
   // Normalize: Limit experience to top 5 items
   if (normalized.experience.length > 5) {
-    normalized.experience = normalized.experience.slice(0, 5)
+    normalized.experience = normalized.experience.slice(0, 5);
   }
 
-  return normalized
+  return normalized;
 }

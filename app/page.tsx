@@ -1,10 +1,10 @@
-'use client'
+"use client";
 
-import Link from 'next/link'
-import { FileDropzone } from '@/components/FileDropzone'
-import { Brand } from '@/components/Brand'
-import { Toaster } from '@/components/ui/sonner'
-import { ArrowRight } from 'lucide-react'
+import Link from "next/link";
+import { FileDropzone } from "@/components/FileDropzone";
+import { Brand } from "@/components/Brand";
+import { Toaster } from "@/components/ui/sonner";
+import { ArrowRight } from "lucide-react";
 
 export default function Home() {
   return (
@@ -59,9 +59,21 @@ export default function Home() {
                   <div className="absolute inset-0 bg-linear-to-r from-orange-400 to-amber-500 rounded-xl blur-lg opacity-20 group-hover:opacity-30 transition-opacity" />
                   <div className="relative bg-linear-to-r from-orange-100 to-amber-100 p-3 rounded-xl">
                     <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none">
-                      <path d="M13 2L3 14h8l-1 8 10-12h-8l1-8z" stroke="url(#speedGradient)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                      <path
+                        d="M13 2L3 14h8l-1 8 10-12h-8l1-8z"
+                        stroke="url(#speedGradient)"
+                        strokeWidth={2}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
                       <defs>
-                        <linearGradient id="speedGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <linearGradient
+                          id="speedGradient"
+                          x1="0%"
+                          y1="0%"
+                          x2="100%"
+                          y2="100%"
+                        >
                           <stop offset="0%" stopColor="#F97316" />
                           <stop offset="100%" stopColor="#F59E0B" />
                         </linearGradient>
@@ -70,8 +82,12 @@ export default function Home() {
                   </div>
                 </div>
                 <div>
-                  <div className="text-3xl font-bold text-transparent bg-clip-text bg-linear-to-r from-orange-500 to-amber-600 mb-2">~30s</div>
-                  <div className="text-slate-600 text-sm font-medium">Average setup time</div>
+                  <div className="text-3xl font-bold text-transparent bg-clip-text bg-linear-to-r from-orange-500 to-amber-600 mb-2">
+                    ~30s
+                  </div>
+                  <div className="text-slate-600 text-sm font-medium">
+                    Average setup time
+                  </div>
                 </div>
               </div>
             </div>
@@ -83,9 +99,21 @@ export default function Home() {
                   <div className="absolute inset-0 bg-linear-to-r from-indigo-500 to-purple-500 rounded-xl blur-lg opacity-20 group-hover:opacity-30 transition-opacity" />
                   <div className="relative bg-linear-to-r from-indigo-100 to-purple-100 p-3 rounded-xl">
                     <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none">
-                      <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" stroke="url(#aiGradient)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                      <path
+                        d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"
+                        stroke="url(#aiGradient)"
+                        strokeWidth={2}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
                       <defs>
-                        <linearGradient id="aiGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <linearGradient
+                          id="aiGradient"
+                          x1="0%"
+                          y1="0%"
+                          x2="100%"
+                          y2="100%"
+                        >
                           <stop offset="0%" stopColor="#6366F1" />
                           <stop offset="100%" stopColor="#A855F7" />
                         </linearGradient>
@@ -94,8 +122,12 @@ export default function Home() {
                   </div>
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-transparent bg-clip-text bg-linear-to-r from-indigo-600 to-purple-600 mb-2">AI-Powered</div>
-                  <div className="text-slate-600 text-sm font-medium">Smart parsing & formatting</div>
+                  <div className="text-2xl font-bold text-transparent bg-clip-text bg-linear-to-r from-indigo-600 to-purple-600 mb-2">
+                    AI-Powered
+                  </div>
+                  <div className="text-slate-600 text-sm font-medium">
+                    Smart parsing & formatting
+                  </div>
                 </div>
               </div>
             </div>
@@ -107,9 +139,21 @@ export default function Home() {
                   <div className="absolute inset-0 bg-linear-to-r from-emerald-400 to-teal-500 rounded-xl blur-lg opacity-20 group-hover:opacity-30 transition-opacity" />
                   <div className="relative bg-linear-to-r from-emerald-100 to-teal-100 p-3 rounded-xl">
                     <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none">
-                      <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="url(#freeGradient)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                      <path
+                        d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z"
+                        stroke="url(#freeGradient)"
+                        strokeWidth={2}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
                       <defs>
-                        <linearGradient id="freeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <linearGradient
+                          id="freeGradient"
+                          x1="0%"
+                          y1="0%"
+                          x2="100%"
+                          y2="100%"
+                        >
                           <stop offset="0%" stopColor="#10B981" />
                           <stop offset="100%" stopColor="#14B8A6" />
                         </linearGradient>
@@ -118,8 +162,12 @@ export default function Home() {
                   </div>
                 </div>
                 <div>
-                  <div className="text-3xl font-bold text-transparent bg-clip-text bg-linear-to-r from-emerald-500 to-teal-600 mb-2">Free</div>
-                  <div className="text-slate-600 text-sm font-medium">Always free to create</div>
+                  <div className="text-3xl font-bold text-transparent bg-clip-text bg-linear-to-r from-emerald-500 to-teal-600 mb-2">
+                    Free
+                  </div>
+                  <div className="text-slate-600 text-sm font-medium">
+                    Always free to create
+                  </div>
                 </div>
               </div>
             </div>
@@ -136,5 +184,5 @@ export default function Home() {
         </div>
       </footer>
     </div>
-  )
+  );
 }
