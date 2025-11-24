@@ -1,7 +1,7 @@
 "use client";
 
+import { Check, Link2 } from "lucide-react";
 import { useState } from "react";
-import { Link2, Check } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { copyToClipboard } from "@/lib/utils/clipboard";
@@ -29,6 +29,7 @@ export function CopyLinkButton({ handle }: CopyLinkButtonProps) {
 
   return (
     <button
+      type="button"
       onClick={handleCopy}
       className={cn(
         "inline-flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all duration-300",

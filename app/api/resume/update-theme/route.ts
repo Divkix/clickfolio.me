@@ -1,12 +1,12 @@
+import { revalidatePath } from "next/cache";
+import { requireAuthWithMessage } from "@/lib/auth/middleware";
 import { createClient } from "@/lib/supabase/server";
+import { TEMPLATES, type ThemeId } from "@/lib/templates/theme-registry";
 import {
   createErrorResponse,
   createSuccessResponse,
   ERROR_CODES,
 } from "@/lib/utils/security-headers";
-import { revalidatePath } from "next/cache";
-import { TEMPLATES, type ThemeId } from "@/lib/templates/theme-registry";
-import { requireAuthWithMessage } from "@/lib/auth/middleware";
 
 // Get valid themes from the source of truth
 const VALID_THEMES = Object.keys(TEMPLATES) as ThemeId[];
@@ -18,9 +18,7 @@ function isValidTheme(theme: string): theme is ThemeId {
 export async function POST(request: Request) {
   try {
     // Check authentication
-    const authResult = await requireAuthWithMessage(
-      "You must be logged in to update theme",
-    );
+    const authResult = await requireAuthWithMessage("You must be logged in to update theme");
     if (authResult.error) return authResult.error;
     const { user } = authResult;
 
@@ -40,12 +38,9 @@ export async function POST(request: Request) {
     }
 
     if (!isValidTheme(theme_id)) {
-      return createErrorResponse(
-        "Invalid theme_id provided",
-        ERROR_CODES.VALIDATION_ERROR,
-        400,
-        { valid_themes: VALID_THEMES },
-      );
+      return createErrorResponse("Invalid theme_id provided", ERROR_CODES.VALIDATION_ERROR, 400, {
+        valid_themes: VALID_THEMES,
+      });
     }
 
     // Update site_data theme_id

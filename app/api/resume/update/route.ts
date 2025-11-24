@@ -1,14 +1,14 @@
-import { createClient } from "@/lib/supabase/server";
+import { revalidatePath } from "next/cache";
+import { requireAuthWithMessage } from "@/lib/auth/middleware";
 import { resumeContentSchema } from "@/lib/schemas/resume";
+import { createClient } from "@/lib/supabase/server";
 import { enforceRateLimit } from "@/lib/utils/rate-limit";
-import { validateRequestSize } from "@/lib/utils/validation";
 import {
   createErrorResponse,
   createSuccessResponse,
   ERROR_CODES,
 } from "@/lib/utils/security-headers";
-import { revalidatePath } from "next/cache";
-import { requireAuthWithMessage } from "@/lib/auth/middleware";
+import { validateRequestSize } from "@/lib/utils/validation";
 
 /**
  * PUT /api/resume/update
@@ -39,9 +39,7 @@ export async function PUT(request: Request) {
     }
 
     // 2. Authenticate user
-    const authResult = await requireAuthWithMessage(
-      "You must be logged in to update your resume",
-    );
+    const authResult = await requireAuthWithMessage("You must be logged in to update your resume");
     if (authResult.error) return authResult.error;
     const { user } = authResult;
 
@@ -58,11 +56,7 @@ export async function PUT(request: Request) {
     try {
       body = await request.json();
     } catch {
-      return createErrorResponse(
-        "Invalid JSON in request body",
-        ERROR_CODES.BAD_REQUEST,
-        400,
-      );
+      return createErrorResponse("Invalid JSON in request body", ERROR_CODES.BAD_REQUEST, 400);
     }
 
     const validation = resumeContentSchema.safeParse(body.content);

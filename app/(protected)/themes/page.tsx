@@ -1,7 +1,7 @@
-import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { ThemeSelector } from "@/components/dashboard/ThemeSelector";
 import { siteConfig } from "@/lib/config/site";
+import { createClient } from "@/lib/supabase/server";
 
 export const metadata = {
   title: `Themes | ${siteConfig.fullName}`,
@@ -38,8 +38,7 @@ export default async function ThemesPage() {
             Choose Your Theme
           </h1>
           <p className="text-lg text-slate-600 leading-relaxed">
-            Customize how your resume appears to visitors. Each theme offers a
-            unique visual style.
+            Customize how your resume appears to visitors. Each theme offers a unique visual style.
           </p>
         </div>
 

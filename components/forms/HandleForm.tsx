@@ -1,23 +1,17 @@
 "use client";
 
+import { zodResolver } from "@hookform/resolvers/zod";
+import { CheckCircle2, Copy, Link2, Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
-import { Loader2, Link2, Copy, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { handleUpdateSchema, type HandleUpdate } from "@/lib/schemas/profile";
 import { siteConfig } from "@/lib/config/site";
+import { type HandleUpdate, handleUpdateSchema } from "@/lib/schemas/profile";
 import { copyToClipboard } from "@/lib/utils/clipboard";
 
 interface HandleFormProps {
@@ -87,9 +81,7 @@ export function HandleForm({ currentHandle }: HandleFormProps) {
       router.refresh();
     } catch (err) {
       console.error("Handle update error:", err);
-      toast.error(
-        err instanceof Error ? err.message : "Failed to update handle",
-      );
+      toast.error(err instanceof Error ? err.message : "Failed to update handle");
     } finally {
       setIsSaving(false);
     }
@@ -102,9 +94,7 @@ export function HandleForm({ currentHandle }: HandleFormProps) {
           <Link2 className="h-5 w-5" />
           Public Handle
         </CardTitle>
-        <CardDescription>
-          Your unique URL for sharing your resume
-        </CardDescription>
+        <CardDescription>Your unique URL for sharing your resume</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -117,9 +107,7 @@ export function HandleForm({ currentHandle }: HandleFormProps) {
               <div className="flex-1 flex items-center gap-2 px-3 py-2 rounded-md border border-gray-300 bg-gray-50 font-mono text-sm">
                 <Link2 className="h-4 w-4 text-gray-400" />
                 <span className="text-gray-900">{siteConfig.domain}/</span>
-                <span className="font-semibold text-blue-600">
-                  {currentHandle}
-                </span>
+                <span className="font-semibold text-blue-600">{currentHandle}</span>
               </div>
               <Button
                 type="button"
@@ -143,9 +131,7 @@ export function HandleForm({ currentHandle }: HandleFormProps) {
             <div className="flex items-start gap-2">
               <div className="flex-1 space-y-1">
                 <div className="flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2">
-                  <span className="text-sm text-gray-500">
-                    {siteConfig.domain}/
-                  </span>
+                  <span className="text-sm text-gray-500">{siteConfig.domain}/</span>
                   <Input
                     id="handle"
                     {...register("handle")}
@@ -154,11 +140,7 @@ export function HandleForm({ currentHandle }: HandleFormProps) {
                     disabled={isSaving}
                   />
                 </div>
-                {errors.handle && (
-                  <p className="text-sm text-red-600">
-                    {errors.handle.message}
-                  </p>
-                )}
+                {errors.handle && <p className="text-sm text-red-600">{errors.handle.message}</p>}
               </div>
             </div>
             <p className="text-xs text-gray-500">
@@ -169,12 +151,8 @@ export function HandleForm({ currentHandle }: HandleFormProps) {
           {/* URL Preview */}
           {isDirty && newHandle !== currentHandle && !errors.handle && (
             <div className="rounded-lg bg-blue-50 border border-blue-200 p-3">
-              <p className="text-xs font-medium text-blue-900 mb-1">
-                New URL Preview:
-              </p>
-              <p className="font-mono text-sm text-blue-700">
-                https://{publicUrl}
-              </p>
+              <p className="text-xs font-medium text-blue-900 mb-1">New URL Preview:</p>
+              <p className="font-mono text-sm text-blue-700">https://{publicUrl}</p>
             </div>
           )}
 

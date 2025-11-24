@@ -1,11 +1,11 @@
-import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { createClient } from "@/lib/supabase/server";
-import type { ResumeContent } from "@/lib/types/database";
-import { getTemplate } from "@/lib/templates/theme-registry";
-import { extractCityState, isValidPrivacySettings } from "@/lib/utils/privacy";
+import { notFound } from "next/navigation";
 import { AttributionWidget } from "@/components/AttributionWidget";
 import { siteConfig } from "@/lib/config/site";
+import { createClient } from "@/lib/supabase/server";
+import { getTemplate } from "@/lib/templates/theme-registry";
+import type { ResumeContent } from "@/lib/types/database";
+import { extractCityState, isValidPrivacySettings } from "@/lib/utils/privacy";
 
 // Enable ISR-like caching: revalidate every hour
 // This reduces DB load by ~99% for high-traffic pages
@@ -63,17 +63,13 @@ async function getResumeData(handle: string) {
     return null;
   }
 
-  const siteData = Array.isArray(data.site_data)
-    ? data.site_data[0]
-    : data.site_data;
+  const siteData = Array.isArray(data.site_data) ? data.site_data[0] : data.site_data;
 
   // Deep clone content to avoid mutation
   const content: ResumeContent = JSON.parse(JSON.stringify(siteData.content));
 
   // Apply privacy filtering with type guard
-  const privacySettings: PrivacySettings = isValidPrivacySettings(
-    data.privacy_settings,
-  )
+  const privacySettings: PrivacySettings = isValidPrivacySettings(data.privacy_settings)
     ? data.privacy_settings
     : { show_phone: false, show_address: false };
 
@@ -103,9 +99,7 @@ async function getResumeData(handle: string) {
 /**
  * Generate dynamic metadata for SEO
  */
-export async function generateMetadata({
-  params,
-}: PageProps): Promise<Metadata> {
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { handle } = await params;
   const data = await getResumeData(handle);
 
@@ -120,8 +114,7 @@ export async function generateMetadata({
 
   // Truncate summary to 160 characters for meta description
   const description = content.summary
-    ? content.summary.slice(0, 157) +
-      (content.summary.length > 157 ? "..." : "")
+    ? content.summary.slice(0, 157) + (content.summary.length > 157 ? "..." : "")
     : `View ${content.full_name}'s professional resume and experience.`;
 
   return {

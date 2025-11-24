@@ -1,18 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
-import type { ResumeContent } from "@/lib/types/database";
-import type { ThemeId } from "@/lib/templates/theme-registry";
-import { HandleStep } from "@/components/wizard/HandleStep";
-import { ReviewStep } from "@/components/wizard/ReviewStep";
-import { PrivacyStep } from "@/components/wizard/PrivacyStep";
-import { ThemeStep } from "@/components/wizard/ThemeStep";
-import { WizardProgress } from "@/components/wizard";
 import { Loader2 } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { WizardProgress } from "@/components/wizard";
+import { HandleStep } from "@/components/wizard/HandleStep";
+import { PrivacyStep } from "@/components/wizard/PrivacyStep";
+import { ReviewStep } from "@/components/wizard/ReviewStep";
+import { ThemeStep } from "@/components/wizard/ThemeStep";
+import { createClient } from "@/lib/supabase/client";
+import type { ThemeId } from "@/lib/templates/theme-registry";
+import type { ResumeContent } from "@/lib/types/database";
 
 interface WizardState {
   currentStep: number;
@@ -125,8 +125,7 @@ export default function WizardPage() {
                       channel.unsubscribe();
                       supabase.removeChannel(channel);
                       setError(
-                        payload.new?.error_message ||
-                          "Resume parsing failed. Please try again.",
+                        payload.new?.error_message || "Resume parsing failed. Please try again.",
                       );
                       setTimeout(() => router.push("/dashboard"), 3000);
                       resolve(false);
@@ -149,11 +148,7 @@ export default function WizardPage() {
             }
           } catch (claimError) {
             console.error("Claim error:", claimError);
-            setError(
-              claimError instanceof Error
-                ? claimError.message
-                : "Failed to claim resume",
-            );
+            setError(claimError instanceof Error ? claimError.message : "Failed to claim resume");
             localStorage.removeItem("temp_upload_key");
             setTimeout(() => router.push("/dashboard"), 3000);
             return;
@@ -227,10 +222,7 @@ export default function WizardPage() {
   };
 
   // Handler for privacy settings (Step 3)
-  const handlePrivacyContinue = (settings: {
-    show_phone: boolean;
-    show_address: boolean;
-  }) => {
+  const handlePrivacyContinue = (settings: { show_phone: boolean; show_address: boolean }) => {
     setState((prev) => ({
       ...prev,
       privacySettings: settings,
@@ -269,8 +261,7 @@ export default function WizardPage() {
       router.push("/dashboard");
     } catch (err) {
       console.error("Error completing wizard:", err);
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to complete setup";
+      const errorMessage = err instanceof Error ? err.message : "Failed to complete setup";
       setError(errorMessage);
       toast.error(errorMessage);
     }
@@ -314,9 +305,7 @@ export default function WizardPage() {
               />
             </svg>
           </div>
-          <h2 className="text-2xl font-bold text-slate-900 mb-3">
-            Something Went Wrong
-          </h2>
+          <h2 className="text-2xl font-bold text-slate-900 mb-3">Something Went Wrong</h2>
           <p className="text-slate-600">{error}</p>
         </div>
       </div>
@@ -338,26 +327,18 @@ export default function WizardPage() {
         {/* Error Alert (shown inline for steps 2-4) */}
         {error && state.currentStep > 1 && (
           <Alert className="mb-6 border-red-200 bg-red-50">
-            <AlertDescription className="text-red-900">
-              {error}
-            </AlertDescription>
+            <AlertDescription className="text-red-900">{error}</AlertDescription>
           </Alert>
         )}
 
         {/* Step 1: Handle Selection */}
         {state.currentStep === 1 && (
-          <HandleStep
-            initialHandle={state.handle}
-            onContinue={handleHandleContinue}
-          />
+          <HandleStep initialHandle={state.handle} onContinue={handleHandleContinue} />
         )}
 
         {/* Step 2: Content Review */}
         {state.currentStep === 2 && state.resumeData && (
-          <ReviewStep
-            content={state.resumeData}
-            onContinue={handleReviewContinue}
-          />
+          <ReviewStep content={state.resumeData} onContinue={handleReviewContinue} />
         )}
 
         {/* Step 3: Privacy Settings */}
@@ -371,10 +352,7 @@ export default function WizardPage() {
 
         {/* Step 4: Theme Selection */}
         {state.currentStep === 4 && (
-          <ThemeStep
-            initialTheme={state.themeId}
-            onContinue={handleThemeContinue}
-          />
+          <ThemeStep initialTheme={state.themeId} onContinue={handleThemeContinue} />
         )}
       </main>
     </div>

@@ -1,16 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { THEME_METADATA, type ThemeId } from "@/lib/templates/theme-registry";
 import { CheckCircle2, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { THEME_METADATA, type ThemeId } from "@/lib/templates/theme-registry";
 import { cn } from "@/lib/utils";
 
 interface ThemeSelectorProps {
@@ -57,9 +51,7 @@ export function ThemeSelector({ initialThemeId }: ThemeSelectorProps) {
       }, 3000);
     } catch (error) {
       console.error("Failed to update theme:", error);
-      setErrorMessage(
-        error instanceof Error ? error.message : "Failed to update theme",
-      );
+      setErrorMessage(error instanceof Error ? error.message : "Failed to update theme");
     } finally {
       setIsUpdating(false);
     }
@@ -92,6 +84,7 @@ export function ThemeSelector({ initialThemeId }: ThemeSelectorProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {Object.entries(THEME_METADATA).map(([id, meta]) => (
             <button
+              type="button"
               key={id}
               onClick={() => handleThemeChange(id as ThemeId)}
               disabled={isUpdating}
@@ -102,15 +95,12 @@ export function ThemeSelector({ initialThemeId }: ThemeSelectorProps) {
                 selectedTheme === id
                   ? "border-indigo-600 ring-2 ring-indigo-100"
                   : "border-slate-200/60 hover:border-slate-300",
-                isUpdating &&
-                  "opacity-50 cursor-not-allowed hover:translate-y-0",
+                isUpdating && "opacity-50 cursor-not-allowed hover:translate-y-0",
               )}
             >
               <div className="flex items-start justify-between mb-3">
                 <div>
-                  <h3 className="font-bold text-lg text-slate-900">
-                    {meta.name}
-                  </h3>
+                  <h3 className="font-bold text-lg text-slate-900">{meta.name}</h3>
                   <span className="text-xs uppercase tracking-wide text-slate-500 font-medium">
                     {meta.category}
                   </span>
@@ -120,9 +110,7 @@ export function ThemeSelector({ initialThemeId }: ThemeSelectorProps) {
                     {isUpdating ? (
                       <Loader2 className="h-4 w-4 animate-spin text-indigo-600" />
                     ) : (
-                      <span className="text-indigo-600 text-sm font-bold">
-                        Active
-                      </span>
+                      <span className="text-indigo-600 text-sm font-bold">Active</span>
                     )}
                   </div>
                 )}

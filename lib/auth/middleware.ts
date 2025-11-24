@@ -3,9 +3,9 @@
  * Provides reusable authentication helpers to reduce code duplication
  */
 
+import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { createErrorResponse, ERROR_CODES } from "@/lib/utils/security-headers";
-import type { User } from "@supabase/supabase-js";
 
 /**
  * Helper to require authentication with custom error message
@@ -35,11 +35,7 @@ export async function requireAuthWithMessage(
     console.error("Authentication middleware error:", error);
     return {
       user: null,
-      error: createErrorResponse(
-        "Authentication failed",
-        ERROR_CODES.INTERNAL_ERROR,
-        500,
-      ),
+      error: createErrorResponse("Authentication failed", ERROR_CODES.INTERNAL_ERROR, 500),
     };
   }
 }

@@ -1,8 +1,8 @@
-import { createClient } from "@/lib/supabase/server";
 import { GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { getR2Client, getR2Bucket } from "@/lib/r2";
+import { getR2Bucket, getR2Client } from "@/lib/r2";
 import { parseResume } from "@/lib/replicate";
+import { createClient } from "@/lib/supabase/server";
 import {
   createErrorResponse,
   createSuccessResponse,
@@ -45,11 +45,7 @@ export async function POST(request: Request) {
       .single();
 
     if (fetchError || !resume) {
-      return createErrorResponse(
-        "Resume not found",
-        ERROR_CODES.NOT_FOUND,
-        404,
-      );
+      return createErrorResponse("Resume not found", ERROR_CODES.NOT_FOUND, 404);
     }
 
     // 3. Verify ownership
@@ -119,11 +115,7 @@ export async function POST(request: Request) {
 
     if (updateError) {
       console.error("Failed to update resume for retry:", updateError);
-      return createErrorResponse(
-        "Failed to update resume status",
-        ERROR_CODES.DATABASE_ERROR,
-        500,
-      );
+      return createErrorResponse("Failed to update resume status", ERROR_CODES.DATABASE_ERROR, 500);
     }
 
     return createSuccessResponse({

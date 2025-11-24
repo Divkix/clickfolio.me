@@ -1,14 +1,14 @@
-import { createClient } from "@/lib/supabase/server";
+import { revalidatePath } from "next/cache";
+import { requireAuthWithMessage } from "@/lib/auth/middleware";
 import { handleUpdateSchema } from "@/lib/schemas/profile";
+import { createClient } from "@/lib/supabase/server";
 import { enforceRateLimit } from "@/lib/utils/rate-limit";
-import { validateRequestSize } from "@/lib/utils/validation";
 import {
   createErrorResponse,
   createSuccessResponse,
   ERROR_CODES,
 } from "@/lib/utils/security-headers";
-import { revalidatePath } from "next/cache";
-import { requireAuthWithMessage } from "@/lib/auth/middleware";
+import { validateRequestSize } from "@/lib/utils/validation";
 
 /**
  * PUT /api/profile/handle
@@ -28,9 +28,7 @@ export async function PUT(request: Request) {
     }
 
     // 2. Authenticate user
-    const authResult = await requireAuthWithMessage(
-      "You must be logged in to update your handle",
-    );
+    const authResult = await requireAuthWithMessage("You must be logged in to update your handle");
     if (authResult.error) return authResult.error;
     const { user } = authResult;
 
@@ -47,11 +45,7 @@ export async function PUT(request: Request) {
     try {
       body = await request.json();
     } catch {
-      return createErrorResponse(
-        "Invalid JSON in request body",
-        ERROR_CODES.BAD_REQUEST,
-        400,
-      );
+      return createErrorResponse("Invalid JSON in request body", ERROR_CODES.BAD_REQUEST, 400);
     }
 
     const validation = handleUpdateSchema.safeParse(body);

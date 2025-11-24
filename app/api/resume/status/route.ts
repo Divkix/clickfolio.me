@@ -1,5 +1,5 @@
-import { createClient } from "@/lib/supabase/server";
 import { getParseStatus, normalizeResumeData } from "@/lib/replicate";
+import { createClient } from "@/lib/supabase/server";
 import {
   createErrorResponse,
   createSuccessResponse,
@@ -29,28 +29,18 @@ export async function GET(request: Request) {
     const resumeId = searchParams.get("resume_id");
 
     if (!resumeId) {
-      return createErrorResponse(
-        "resume_id parameter is required",
-        ERROR_CODES.BAD_REQUEST,
-        400,
-      );
+      return createErrorResponse("resume_id parameter is required", ERROR_CODES.BAD_REQUEST, 400);
     }
 
     // 3. Fetch resume from database
     const { data: resume, error: fetchError } = await supabase
       .from("resumes")
-      .select(
-        "id, user_id, status, replicate_job_id, error_message, retry_count",
-      )
+      .select("id, user_id, status, replicate_job_id, error_message, retry_count")
       .eq("id", resumeId)
       .single();
 
     if (fetchError || !resume) {
-      return createErrorResponse(
-        "Resume not found",
-        ERROR_CODES.NOT_FOUND,
-        404,
-      );
+      return createErrorResponse("Resume not found", ERROR_CODES.NOT_FOUND, 404);
     }
 
     // 4. Verify ownership
@@ -105,9 +95,7 @@ export async function GET(request: Request) {
           throw new Error("Missing extraction_schema_json in Replicate output");
         }
 
-        const normalizedContent = normalizeResumeData(
-          prediction.output.extraction_schema_json,
-        );
+        const normalizedContent = normalizeResumeData(prediction.output.extraction_schema_json);
 
         // Upsert to site_data (ON CONFLICT user_id DO UPDATE)
         // TypeScript workaround: JSON parse/stringify to satisfy Json type
@@ -125,10 +113,7 @@ export async function GET(request: Request) {
         );
 
         if (upsertError) {
-          console.error(
-            "Failed to save resume data to site_data:",
-            upsertError,
-          );
+          console.error("Failed to save resume data to site_data:", upsertError);
           throw new Error(`Database save failed: ${upsertError.message}`);
         }
 
@@ -142,10 +127,7 @@ export async function GET(request: Request) {
           .eq("id", resumeId);
 
         if (updateError) {
-          console.error(
-            "Failed to update resume status to completed:",
-            updateError,
-          );
+          console.error("Failed to update resume status to completed:", updateError);
           // Don't throw - data is already saved, just log the issue
           // The next poll will retry the status update
         }

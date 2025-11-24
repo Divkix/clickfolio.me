@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useCallback, useState, useMemo } from "react";
+import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 
 interface RealtimeStatusListenerProps {
   resumeId: string;
@@ -29,24 +29,21 @@ export function RealtimeStatusListener({
     status: "processing",
   });
 
-  const handleStatusChange = useCallback(
-    (newStatus: string, errorMessage?: string) => {
-      if (hasRefreshedRef.current) return;
-      if (newStatus === "completed" || newStatus === "failed") {
-        hasRefreshedRef.current = true;
+  const handleStatusChange = useCallback((newStatus: string, errorMessage?: string) => {
+    if (hasRefreshedRef.current) return;
+    if (newStatus === "completed" || newStatus === "failed") {
+      hasRefreshedRef.current = true;
 
-        setDetected({
-          status: newStatus as "completed" | "failed",
-          errorMessage,
-        });
+      setDetected({
+        status: newStatus as "completed" | "failed",
+        errorMessage,
+      });
 
-        setTimeout(() => {
-          window.location.reload();
-        }, 800);
-      }
-    },
-    [],
-  );
+      setTimeout(() => {
+        window.location.reload();
+      }, 800);
+    }
+  }, []);
 
   useEffect(() => {
     // Set up Realtime subscription
@@ -99,7 +96,7 @@ export function RealtimeStatusListener({
         clearInterval(pollIntervalRef.current);
       }
     };
-  }, [resumeId, userId, currentStatus, handleStatusChange, supabase]);
+  }, [resumeId, currentStatus, handleStatusChange, supabase]);
 
   if (detected.status === "completed") {
     return (
@@ -107,9 +104,7 @@ export function RealtimeStatusListener({
         <div className="flex items-start gap-3">
           <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0" />
           <div className="flex-1">
-            <h3 className="font-semibold text-green-900">
-              Processing Complete!
-            </h3>
+            <h3 className="font-semibold text-green-900">Processing Complete!</h3>
             <p className="mt-1 text-sm text-green-700">
               Your resume has been processed. Refreshing page...
             </p>
@@ -127,8 +122,7 @@ export function RealtimeStatusListener({
           <div className="flex-1">
             <h3 className="font-semibold text-red-900">Processing Failed</h3>
             <p className="mt-1 text-sm text-red-700">
-              {detected.errorMessage ||
-                "An error occurred while processing your resume."}
+              {detected.errorMessage || "An error occurred while processing your resume."}
             </p>
             <p className="mt-2 text-xs text-red-600">Refreshing page...</p>
           </div>
@@ -142,9 +136,7 @@ export function RealtimeStatusListener({
       <div className="flex items-start gap-3">
         <Loader2 className="h-5 w-5 animate-spin text-blue-600 shrink-0" />
         <div className="flex-1">
-          <h3 className="font-semibold text-blue-900">
-            Processing Your Resume
-          </h3>
+          <h3 className="font-semibold text-blue-900">Processing Your Resume</h3>
           <p className="mt-1 text-sm text-blue-700">
             Our AI is analyzing your resume. This usually takes 30-40 seconds.
           </p>

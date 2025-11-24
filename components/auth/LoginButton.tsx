@@ -19,6 +19,7 @@ export function LoginButton() {
 
   return (
     <button
+      type="button"
       onClick={handleLogin}
       className="group relative px-6 py-3 bg-linear-to-r from-indigo-600 to-blue-600 text-white rounded-lg font-semibold shadow-depth-sm hover:shadow-depth-md hover:from-indigo-700 hover:to-blue-700 transition-all duration-300 flex items-center gap-2 overflow-hidden"
     >

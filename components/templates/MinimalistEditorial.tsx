@@ -1,8 +1,8 @@
-import React from "react";
-import type { TemplateProps } from "@/lib/types/template";
-import { formatDateRange } from "@/lib/templates/helpers";
-import { Calendar, GraduationCap, Award, ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, Award, Calendar, GraduationCap } from "lucide-react";
+import type React from "react";
 import { siteConfig } from "@/lib/config/site";
+import { formatDateRange } from "@/lib/templates/helpers";
+import type { TemplateProps } from "@/lib/types/template";
 
 const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile }) => {
   // Split name into first and last for editorial layout
@@ -36,9 +36,7 @@ const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile }) => {
               {lastName && (
                 <>
                   <br />
-                  <span className="italic font-light ml-12 md:ml-24">
-                    {lastName}
-                  </span>
+                  <span className="italic font-light ml-12 md:ml-24">{lastName}</span>
                 </>
               )}
             </h1>
@@ -66,9 +64,7 @@ const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile }) => {
         {content.experience && content.experience.length > 0 && (
           <section className="mb-32">
             <div className="flex items-end justify-between mb-12 border-b border-neutral-200 pb-4">
-              <h2 className="text-xs font-bold uppercase tracking-widest">
-                Experience
-              </h2>
+              <h2 className="text-xs font-bold uppercase tracking-widest">Experience</h2>
               <span className="text-xs font-bold uppercase tracking-widest">
                 ({content.experience.length})
               </span>
@@ -86,13 +82,9 @@ const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile }) => {
                     <h3 className="text-3xl md:text-4xl font-serif italic font-light group-hover:not-italic transition-all duration-300">
                       {job.title}
                     </h3>
-                    <p className="text-amber-800 font-medium mt-1">
-                      {job.company}
-                    </p>
+                    <p className="text-amber-800 font-medium mt-1">{job.company}</p>
                     {job.location && (
-                      <p className="text-xs text-neutral-500 mt-1">
-                        {job.location}
-                      </p>
+                      <p className="text-xs text-neutral-500 mt-1">{job.location}</p>
                     )}
                   </div>
                   <div className="md:w-4/12 mt-2 md:mt-0">
@@ -136,9 +128,7 @@ const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile }) => {
         {content.projects && content.projects.length > 0 && (
           <section className="mb-32">
             <div className="flex items-end justify-between mb-12 border-b border-neutral-200 pb-4">
-              <h2 className="text-xs font-bold uppercase tracking-widest">
-                Selected Works
-              </h2>
+              <h2 className="text-xs font-bold uppercase tracking-widest">Selected Works</h2>
               <span className="text-xs font-bold uppercase tracking-widest">
                 ({content.projects.length})
               </span>
@@ -164,21 +154,18 @@ const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile }) => {
                     <p className="text-sm text-neutral-500 group-hover:text-neutral-900 max-w-xs transition-colors">
                       {project.description}
                     </p>
-                    {project.technologies &&
-                      project.technologies.length > 0 && (
-                        <div className="flex gap-2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                          {project.technologies
-                            .slice(0, 2)
-                            .map((tech: string, i: number) => (
-                              <span
-                                key={i}
-                                className="text-[10px] uppercase tracking-wider text-neutral-400"
-                              >
-                                {tech}
-                              </span>
-                            ))}
-                        </div>
-                      )}
+                    {project.technologies && project.technologies.length > 0 && (
+                      <div className="flex gap-2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                        {project.technologies.slice(0, 2).map((tech: string, i: number) => (
+                          <span
+                            key={i}
+                            className="text-[10px] uppercase tracking-wider text-neutral-400"
+                          >
+                            {tech}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   <div className="md:w-2/12 flex justify-end mt-4 md:mt-0">
                     <div className="w-10 h-10 rounded-full border border-neutral-200 flex items-center justify-center group-hover:bg-black group-hover:text-white transition-all duration-300 transform group-hover:rotate-45">
@@ -195,9 +182,7 @@ const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile }) => {
         {content.education && content.education.length > 0 && (
           <section className="mb-32">
             <div className="flex items-end justify-between mb-12 border-b border-neutral-200 pb-4">
-              <h2 className="text-xs font-bold uppercase tracking-widest">
-                Education
-              </h2>
+              <h2 className="text-xs font-bold uppercase tracking-widest">Education</h2>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {content.education.map((edu, index) => (
@@ -213,22 +198,10 @@ const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile }) => {
                       </span>
                     )}
                   </div>
-                  <h3 className="text-xl font-serif italic mb-1">
-                    {edu.degree}
-                  </h3>
-                  <p className="text-sm text-neutral-600 font-medium">
-                    {edu.institution}
-                  </p>
-                  {edu.location && (
-                    <p className="text-xs text-neutral-500 mt-1">
-                      {edu.location}
-                    </p>
-                  )}
-                  {edu.gpa && (
-                    <p className="text-xs text-neutral-500 mt-2">
-                      GPA: {edu.gpa}
-                    </p>
-                  )}
+                  <h3 className="text-xl font-serif italic mb-1">{edu.degree}</h3>
+                  <p className="text-sm text-neutral-600 font-medium">{edu.institution}</p>
+                  {edu.location && <p className="text-xs text-neutral-500 mt-1">{edu.location}</p>}
+                  {edu.gpa && <p className="text-xs text-neutral-500 mt-2">GPA: {edu.gpa}</p>}
                 </div>
               ))}
             </div>
@@ -239,9 +212,7 @@ const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile }) => {
         {content.skills && content.skills.length > 0 && (
           <section className="mb-32">
             <div className="flex items-end justify-between mb-12 border-b border-neutral-200 pb-4">
-              <h2 className="text-xs font-bold uppercase tracking-widest">
-                Skills
-              </h2>
+              <h2 className="text-xs font-bold uppercase tracking-widest">Skills</h2>
             </div>
             <div className="space-y-6">
               {content.skills.map((skillGroup, index) => (
@@ -269,9 +240,7 @@ const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile }) => {
         {content.certifications && content.certifications.length > 0 && (
           <section className="mb-32">
             <div className="flex items-end justify-between mb-12 border-b border-neutral-200 pb-4">
-              <h2 className="text-xs font-bold uppercase tracking-widest">
-                Certifications
-              </h2>
+              <h2 className="text-xs font-bold uppercase tracking-widest">Certifications</h2>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {content.certifications.map((cert, index) => (

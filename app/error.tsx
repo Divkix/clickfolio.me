@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
 import Link from "next/link";
+import { useEffect } from "react";
 
 /**
  * Global Error Boundary
@@ -24,7 +24,7 @@ export default function GlobalError({
   }, [error]);
 
   return (
-    <html>
+    <html lang="en">
       <body>
         <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-gray-50 to-gray-100 px-4">
           <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
@@ -46,30 +46,24 @@ export default function GlobalError({
               </div>
             </div>
 
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">
-              Something went wrong
-            </h1>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Something went wrong</h1>
 
             <p className="text-gray-600 mb-6">
-              We encountered an unexpected error. Please try again or go back to
-              the dashboard.
+              We encountered an unexpected error. Please try again or go back to the dashboard.
             </p>
 
             {process.env.NODE_ENV === "development" && (
               <div className="mb-6 p-4 bg-gray-50 rounded-lg text-left">
-                <p className="text-xs font-mono text-gray-700 break-all">
-                  {error.message}
-                </p>
+                <p className="text-xs font-mono text-gray-700 break-all">{error.message}</p>
                 {error.digest && (
-                  <p className="text-xs text-gray-500 mt-2">
-                    Error ID: {error.digest}
-                  </p>
+                  <p className="text-xs text-gray-500 mt-2">Error ID: {error.digest}</p>
                 )}
               </div>
             )}
 
             <div className="flex flex-col sm:flex-row gap-3">
               <button
+                type="button"
                 onClick={reset}
                 className="flex-1 px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors"
               >

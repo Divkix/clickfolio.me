@@ -1,4 +1,3 @@
-import { createClient } from "@/lib/supabase/server";
 import {
   CopyObjectCommand,
   DeleteObjectCommand,
@@ -6,19 +5,16 @@ import {
   HeadObjectCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { getR2Client, getR2Bucket } from "@/lib/r2";
+import { getR2Bucket, getR2Client } from "@/lib/r2";
 import { parseResume } from "@/lib/replicate";
+import { createClient } from "@/lib/supabase/server";
 import { enforceRateLimit } from "@/lib/utils/rate-limit";
 import {
   createErrorResponse,
   createSuccessResponse,
   ERROR_CODES,
 } from "@/lib/utils/security-headers";
-import {
-  validatePDFMagicNumber,
-  validateRequestSize,
-  MAX_FILE_SIZE,
-} from "@/lib/utils/validation";
+import { MAX_FILE_SIZE, validatePDFMagicNumber, validateRequestSize } from "@/lib/utils/validation";
 
 /**
  * POST /api/resume/claim
@@ -62,11 +58,7 @@ export async function POST(request: Request) {
     try {
       body = await request.json();
     } catch {
-      return createErrorResponse(
-        "Invalid JSON in request body",
-        ERROR_CODES.BAD_REQUEST,
-        400,
-      );
+      return createErrorResponse("Invalid JSON in request body", ERROR_CODES.BAD_REQUEST, 400);
     }
 
     const { key } = body;
@@ -111,11 +103,7 @@ export async function POST(request: Request) {
     }
 
     // Helper to mark resume as failed and return error
-    const failResume = async (
-      errorMessage: string,
-      errorCode: string,
-      statusCode: number,
-    ) => {
+    const failResume = async (errorMessage: string, errorCode: string, statusCode: number) => {
       await supabase
         .from("resumes")
         .update({ status: "failed", error_message: errorMessage })
@@ -132,10 +120,7 @@ export async function POST(request: Request) {
       });
       const headResponse = await r2Client.send(headCommand);
 
-      if (
-        headResponse.ContentLength &&
-        headResponse.ContentLength > MAX_FILE_SIZE
-      ) {
+      if (headResponse.ContentLength && headResponse.ContentLength > MAX_FILE_SIZE) {
         const sizeInMB = Math.round(headResponse.ContentLength / 1024 / 1024);
         return await failResume(
           `File size exceeds 10MB limit (${sizeInMB}MB)`,
@@ -153,11 +138,7 @@ export async function POST(request: Request) {
     }
 
     // 7. Validate PDF magic number before processing
-    const pdfValidation = await validatePDFMagicNumber(
-      r2Client,
-      R2_BUCKET,
-      key,
-    );
+    const pdfValidation = await validatePDFMagicNumber(r2Client, R2_BUCKET, key);
     if (!pdfValidation.valid) {
       return await failResume(
         pdfValidation.error || "Invalid PDF file",
@@ -231,8 +212,7 @@ export async function POST(request: Request) {
       replicateJobId = prediction.id;
     } catch (error) {
       console.error("Failed to trigger Replicate parsing:", error);
-      parseError =
-        error instanceof Error ? error.message : "Failed to start AI parsing";
+      parseError = error instanceof Error ? error.message : "Failed to start AI parsing";
     }
 
     // 12. Update resume with replicate job ID or error

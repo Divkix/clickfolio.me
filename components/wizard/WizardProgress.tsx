@@ -19,11 +19,7 @@ const STEP_TITLES = [
  * WizardProgress Component
  * Displays the current step progress in the wizard flow
  */
-export function WizardProgress({
-  currentStep,
-  totalSteps,
-  progress,
-}: WizardProgressProps) {
+export function WizardProgress({ currentStep, totalSteps, progress }: WizardProgressProps) {
   const stepTitle = STEP_TITLES[currentStep - 1] || "Unknown Step";
 
   return (
@@ -36,13 +32,9 @@ export function WizardProgress({
               Step {currentStep} of {totalSteps}
             </span>
             <span className="hidden sm:block text-sm text-slate-400">•</span>
-            <span className="hidden sm:block text-sm font-medium text-slate-900">
-              {stepTitle}
-            </span>
+            <span className="hidden sm:block text-sm font-medium text-slate-900">{stepTitle}</span>
           </div>
-          <span className="text-sm font-semibold text-slate-600">
-            {Math.round(progress)}%
-          </span>
+          <span className="text-sm font-semibold text-slate-600">{Math.round(progress)}%</span>
         </div>
 
         {/* Progress Bar */}

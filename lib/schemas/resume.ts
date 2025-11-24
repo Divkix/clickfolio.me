@@ -1,10 +1,10 @@
 import { z } from "zod";
 import {
-  sanitizeText,
-  sanitizeUrl,
+  containsXssPattern,
   sanitizeEmail,
   sanitizePhone,
-  containsXssPattern,
+  sanitizeText,
+  sanitizeUrl,
 } from "@/lib/utils/sanitization";
 
 /**
@@ -116,13 +116,7 @@ const experienceSchema = z.object({
     .max(5000, "Description is too long (max 5000 characters)")
     .refine(noXssPattern, { message: "Invalid content detected" }),
   highlights: z
-    .array(
-      z
-        .string()
-        .trim()
-        .max(500)
-        .refine(noXssPattern, { message: "Invalid content detected" }),
-    )
+    .array(z.string().trim().max(500).refine(noXssPattern, { message: "Invalid content detected" }))
     .optional(),
 });
 
@@ -297,22 +291,13 @@ export const resumeContentSchema = z.object({
     .array(experienceSchema)
     .min(1, "At least one experience entry is required")
     .max(10, "Maximum 10 experience entries allowed"),
-  education: z
-    .array(educationSchema)
-    .max(10, "Maximum 10 education entries allowed")
-    .optional(),
-  skills: z
-    .array(skillSchema)
-    .max(20, "Maximum 20 skill categories allowed")
-    .optional(),
+  education: z.array(educationSchema).max(10, "Maximum 10 education entries allowed").optional(),
+  skills: z.array(skillSchema).max(20, "Maximum 20 skill categories allowed").optional(),
   certifications: z
     .array(certificationSchema)
     .max(20, "Maximum 20 certifications allowed")
     .optional(),
-  projects: z
-    .array(projectSchema)
-    .max(10, "Maximum 10 projects allowed")
-    .optional(),
+  projects: z.array(projectSchema).max(10, "Maximum 10 projects allowed").optional(),
 });
 
 /**

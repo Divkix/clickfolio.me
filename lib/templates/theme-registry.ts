@@ -19,9 +19,7 @@ const DEFAULT_THEME: ThemeId = "minimalist_editorial";
  * Get template component by theme ID
  * Falls back to default theme if ID is invalid
  */
-export function getTemplate(
-  themeId: string | null | undefined,
-): React.FC<TemplateProps> {
+export function getTemplate(themeId: string | null | undefined): React.FC<TemplateProps> {
   if (!themeId) return TEMPLATES[DEFAULT_THEME];
   return TEMPLATES[themeId as ThemeId] || TEMPLATES[DEFAULT_THEME];
 }

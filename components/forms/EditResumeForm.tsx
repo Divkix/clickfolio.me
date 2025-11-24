@@ -1,25 +1,13 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { useForm, useFieldArray, type FieldPath } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  resumeContentSchema,
-  type ResumeContentFormData,
-} from "@/lib/schemas/resume";
-import type { ResumeContent } from "@/lib/types/database";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Separator } from "@/components/ui/separator";
+import { CheckCircle2, Loader2, Plus, Save, Trash2 } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { type FieldPath, useFieldArray, useForm } from "react-hook-form";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Form,
   FormControl,
@@ -29,8 +17,11 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { toast } from "sonner";
-import { Loader2, Plus, Trash2, Save, CheckCircle2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
+import { type ResumeContentFormData, resumeContentSchema } from "@/lib/schemas/resume";
+import type { ResumeContent } from "@/lib/types/database";
 
 interface EditResumeFormProps {
   initialData: ResumeContent;
@@ -40,9 +31,7 @@ interface EditResumeFormProps {
 export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
-  const [autoSaveTimeout, setAutoSaveTimeout] = useState<NodeJS.Timeout | null>(
-    null,
-  );
+  const [autoSaveTimeout, setAutoSaveTimeout] = useState<NodeJS.Timeout | null>(null);
 
   const form = useForm<ResumeContentFormData>({
     resolver: zodResolver(resumeContentSchema),
@@ -156,10 +145,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
     await handleSave(data as ResumeContent, false);
   };
 
-  const getCharacterCount = (
-    fieldName: FieldPath<ResumeContentFormData>,
-    maxLength: number,
-  ) => {
+  const getCharacterCount = (fieldName: FieldPath<ResumeContentFormData>, maxLength: number) => {
     const value = form.watch(fieldName) as string | undefined;
     const count = value?.length || 0;
     return `${count}/${maxLength}`;
@@ -193,9 +179,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
         <Card>
           <CardHeader>
             <CardTitle>Basic Information</CardTitle>
-            <CardDescription>
-              Your name, headline, and professional summary
-            </CardDescription>
+            <CardDescription>Your name, headline, and professional summary</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <FormField
@@ -244,8 +228,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
                     />
                   </FormControl>
                   <FormDescription>
-                    Highlight your key skills and experience (
-                    {getCharacterCount("summary", 1000)})
+                    Highlight your key skills and experience ({getCharacterCount("summary", 1000)})
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -268,11 +251,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input
-                      type="email"
-                      placeholder="john@example.com"
-                      {...field}
-                    />
+                    <Input type="email" placeholder="john@example.com" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -286,15 +265,9 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
                 <FormItem>
                   <FormLabel>Phone Number (Optional)</FormLabel>
                   <FormControl>
-                    <Input
-                      type="tel"
-                      placeholder="+1 (555) 123-4567"
-                      {...field}
-                    />
+                    <Input type="tel" placeholder="+1 (555) 123-4567" {...field} />
                   </FormControl>
-                  <FormDescription>
-                    Visibility controlled in privacy settings
-                  </FormDescription>
+                  <FormDescription>Visibility controlled in privacy settings</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -309,9 +282,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
                   <FormControl>
                     <Input placeholder="San Francisco, CA" {...field} />
                   </FormControl>
-                  <FormDescription>
-                    Visibility controlled in privacy settings
-                  </FormDescription>
+                  <FormDescription>Visibility controlled in privacy settings</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -326,11 +297,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
                 <FormItem>
                   <FormLabel>LinkedIn (Optional)</FormLabel>
                   <FormControl>
-                    <Input
-                      type="url"
-                      placeholder="https://linkedin.com/in/johndoe"
-                      {...field}
-                    />
+                    <Input type="url" placeholder="https://linkedin.com/in/johndoe" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -344,11 +311,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
                 <FormItem>
                   <FormLabel>GitHub (Optional)</FormLabel>
                   <FormControl>
-                    <Input
-                      type="url"
-                      placeholder="https://github.com/johndoe"
-                      {...field}
-                    />
+                    <Input type="url" placeholder="https://github.com/johndoe" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -362,11 +325,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
                 <FormItem>
                   <FormLabel>Personal Website (Optional)</FormLabel>
                   <FormControl>
-                    <Input
-                      type="url"
-                      placeholder="https://johndoe.com"
-                      {...field}
-                    />
+                    <Input type="url" placeholder="https://johndoe.com" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -383,10 +342,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
           </CardHeader>
           <CardContent className="space-y-6">
             {experienceFields.map((field, index) => (
-              <div
-                key={field.id}
-                className="space-y-4 p-4 border rounded-lg relative"
-              >
+              <div key={field.id} className="space-y-4 p-4 border rounded-lg relative">
                 <div className="flex items-center justify-between">
                   <Badge variant="outline">Position {index + 1}</Badge>
                   {experienceFields.length > 1 && (
@@ -409,10 +365,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
                       <FormItem>
                         <FormLabel>Job Title</FormLabel>
                         <FormControl>
-                          <Input
-                            placeholder="Senior Software Engineer"
-                            {...field}
-                          />
+                          <Input placeholder="Senior Software Engineer" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -491,9 +444,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
                           {...field}
                         />
                       </FormControl>
-                      <FormDescription>
-                        {field.value?.length || 0}/2000 characters
-                      </FormDescription>
+                      <FormDescription>{field.value?.length || 0}/2000 characters</FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -531,15 +482,10 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
           </CardHeader>
           <CardContent className="space-y-6">
             {educationFields.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No education entries yet.
-              </p>
+              <p className="text-sm text-muted-foreground">No education entries yet.</p>
             ) : (
               educationFields.map((field, index) => (
-                <div
-                  key={field.id}
-                  className="space-y-4 p-4 border rounded-lg relative"
-                >
+                <div key={field.id} className="space-y-4 p-4 border rounded-lg relative">
                   <div className="flex items-center justify-between">
                     <Badge variant="outline">Education {index + 1}</Badge>
                     <Button
@@ -560,10 +506,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
                         <FormItem>
                           <FormLabel>Degree</FormLabel>
                           <FormControl>
-                            <Input
-                              placeholder="Bachelor of Science"
-                              {...field}
-                            />
+                            <Input placeholder="Bachelor of Science" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -577,10 +520,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
                         <FormItem>
                           <FormLabel>Institution</FormLabel>
                           <FormControl>
-                            <Input
-                              placeholder="University of Example"
-                              {...field}
-                            />
+                            <Input placeholder="University of Example" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -660,21 +600,14 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
         <Card>
           <CardHeader>
             <CardTitle>Skills</CardTitle>
-            <CardDescription>
-              Your technical and professional skills
-            </CardDescription>
+            <CardDescription>Your technical and professional skills</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             {skillFields.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No skills added yet.
-              </p>
+              <p className="text-sm text-muted-foreground">No skills added yet.</p>
             ) : (
               skillFields.map((field, index) => (
-                <div
-                  key={field.id}
-                  className="space-y-4 p-4 border rounded-lg relative"
-                >
+                <div key={field.id} className="space-y-4 p-4 border rounded-lg relative">
                   <div className="flex items-center justify-between">
                     <Badge variant="outline">Skill Category {index + 1}</Badge>
                     <Button
@@ -694,10 +627,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
                       <FormItem>
                         <FormLabel>Category</FormLabel>
                         <FormControl>
-                          <Input
-                            placeholder="Programming Languages"
-                            {...field}
-                          />
+                          <Input placeholder="Programming Languages" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -723,9 +653,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
                             }}
                           />
                         </FormControl>
-                        <FormDescription>
-                          Separate each skill with a comma
-                        </FormDescription>
+                        <FormDescription>Separate each skill with a comma</FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -756,21 +684,14 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
         <Card>
           <CardHeader>
             <CardTitle>Certifications (Optional)</CardTitle>
-            <CardDescription>
-              Professional certifications and credentials
-            </CardDescription>
+            <CardDescription>Professional certifications and credentials</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             {certificationFields.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No certifications added yet.
-              </p>
+              <p className="text-sm text-muted-foreground">No certifications added yet.</p>
             ) : (
               certificationFields.map((field, index) => (
-                <div
-                  key={field.id}
-                  className="space-y-4 p-4 border rounded-lg relative"
-                >
+                <div key={field.id} className="space-y-4 p-4 border rounded-lg relative">
                   <div className="flex items-center justify-between">
                     <Badge variant="outline">Certification {index + 1}</Badge>
                     <Button
@@ -791,10 +712,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
                         <FormItem>
                           <FormLabel>Certification Name</FormLabel>
                           <FormControl>
-                            <Input
-                              placeholder="AWS Certified Solutions Architect"
-                              {...field}
-                            />
+                            <Input placeholder="AWS Certified Solutions Architect" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -808,10 +726,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
                         <FormItem>
                           <FormLabel>Issuer</FormLabel>
                           <FormControl>
-                            <Input
-                              placeholder="Amazon Web Services"
-                              {...field}
-                            />
+                            <Input placeholder="Amazon Web Services" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -909,14 +824,9 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
           <CardContent>
             <div className="space-y-6">
               {projectFields.map((field, index) => (
-                <div
-                  key={field.id}
-                  className="border border-slate-200 rounded-lg p-6 space-y-4"
-                >
+                <div key={field.id} className="border border-slate-200 rounded-lg p-6 space-y-4">
                   <div className="flex items-center justify-between mb-4">
-                    <h4 className="text-sm font-semibold text-slate-900">
-                      Project {index + 1}
-                    </h4>
+                    <h4 className="text-sm font-semibold text-slate-900">Project {index + 1}</h4>
                     <Button
                       type="button"
                       variant="ghost"
@@ -935,15 +845,10 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>
-                            Project Title{" "}
-                            <span className="text-red-500">*</span>
+                            Project Title <span className="text-red-500">*</span>
                           </FormLabel>
                           <FormControl>
-                            <Input
-                              placeholder="My Awesome Project"
-                              {...field}
-                              maxLength={200}
-                            />
+                            <Input placeholder="My Awesome Project" {...field} maxLength={200} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -958,11 +863,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
                         <FormItem>
                           <FormLabel>Year</FormLabel>
                           <FormControl>
-                            <Input
-                              placeholder="2024 or 2023-2024"
-                              {...field}
-                              maxLength={50}
-                            />
+                            <Input placeholder="2024 or 2023-2024" {...field} maxLength={50} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -1016,8 +917,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
                           />
                         </FormControl>
                         <FormDescription>
-                          Comma-separated list of technologies, frameworks, or
-                          tools
+                          Comma-separated list of technologies, frameworks, or tools
                         </FormDescription>
                         <FormMessage />
                       </FormItem>

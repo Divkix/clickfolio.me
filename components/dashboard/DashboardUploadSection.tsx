@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { FileDropzone } from "@/components/FileDropzone";
 import { Upload } from "lucide-react";
+import { useState } from "react";
+import { FileDropzone } from "@/components/FileDropzone";
+import { Button } from "@/components/ui/button";
 
 export function DashboardUploadSection() {
   const [uploadModalOpen, setUploadModalOpen] = useState(false);

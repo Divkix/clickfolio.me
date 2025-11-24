@@ -1,7 +1,7 @@
-import { ENV } from "./env";
 import Replicate from "replicate";
 import { z } from "zod";
 import type { ResumeContent } from "@/lib/types/database";
+import { ENV } from "./env";
 
 // Initialize Replicate client lazily
 let _replicate: Replicate | null = null;
@@ -159,8 +159,7 @@ const RESUME_EXTRACTION_SCHEMA = {
           },
           end_date: {
             type: "string",
-            description:
-              "Format: YYYY-MM or Month YYYY. Omit for current role.",
+            description: "Format: YYYY-MM or Month YYYY. Omit for current role.",
           },
           description: { type: "string" },
           highlights: {
@@ -250,24 +249,12 @@ const RESUME_EXTRACTION_SCHEMA = {
 
 interface ParseResumeResult {
   id: string;
-  status:
-    | "starting"
-    | "processing"
-    | "succeeded"
-    | "failed"
-    | "canceled"
-    | "aborted";
+  status: "starting" | "processing" | "succeeded" | "failed" | "canceled" | "aborted";
 }
 
 interface ParseStatusResult {
   id: string;
-  status:
-    | "starting"
-    | "processing"
-    | "succeeded"
-    | "failed"
-    | "canceled"
-    | "aborted";
+  status: "starting" | "processing" | "succeeded" | "failed" | "canceled" | "aborted";
   output?: {
     extraction_schema_json?: string;
     [key: string]: unknown;
@@ -318,9 +305,7 @@ export async function parseResume(
  * @param predictionId - Replicate prediction ID
  * @returns Status result with output if completed
  */
-export async function getParseStatus(
-  predictionId: string,
-): Promise<ParseStatusResult> {
+export async function getParseStatus(predictionId: string): Promise<ParseStatusResult> {
   try {
     const replicate = getReplicate();
     const prediction = await replicate.predictions.get(predictionId);
@@ -399,9 +384,7 @@ export function normalizeResumeData(extractionJson: string): ResumeContent {
       exp.start_date.includes("Not Specified"),
   );
   if (hasDefaults) {
-    console.warn(
-      "AI parsing returned null values - defaults applied to experience entries",
-    );
+    console.warn("AI parsing returned null values - defaults applied to experience entries");
   }
 
   // Apply defaults for nullable fields and sanitize URLs
@@ -454,7 +437,7 @@ export function normalizeResumeData(extractionJson: string): ResumeContent {
 
   // Normalize: Truncate summary to 500 chars
   if (normalized.summary && normalized.summary.length > 500) {
-    normalized.summary = normalized.summary.substring(0, 497) + "...";
+    normalized.summary = `${normalized.summary.substring(0, 497)}...`;
   }
 
   // Normalize: Limit experience to top 5 items

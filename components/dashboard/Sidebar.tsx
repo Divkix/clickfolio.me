@@ -1,18 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
-import {
-  Home,
-  Edit3,
-  Palette,
-  Settings,
-  ExternalLink,
-  LogOut,
-  X,
-} from "lucide-react";
 import type { User } from "@supabase/supabase-js";
+import { Edit3, ExternalLink, Home, LogOut, Palette, Settings, X } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 
 interface SidebarProps {
   isOpen?: boolean;
@@ -139,6 +131,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
         {/* Mobile close button */}
         {onClose && (
           <button
+            type="button"
             onClick={onClose}
             className="absolute top-4 right-4 p-2 text-slate-600 hover:text-slate-900 md:hidden transition-colors duration-300"
             aria-label="Close navigation"
@@ -190,6 +183,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
 
             return (
               <button
+                type="button"
                 key={item.href}
                 onClick={() => {
                   router.push(item.href);
@@ -233,6 +227,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
         {/* Logout Button */}
         <div className="p-4 border-t border-slate-200/60 mt-auto">
           <button
+            type="button"
             onClick={handleLogout}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-slate-700 hover:text-red-600 hover:bg-red-50 transition-all duration-300"
           >
@@ -244,13 +239,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
         {/* SVG Gradient Definition for Active Icons */}
         <svg width="0" height="0" className="absolute">
           <defs>
-            <linearGradient
-              id="iconGradient"
-              x1="0%"
-              y1="0%"
-              x2="100%"
-              y2="100%"
-            >
+            <linearGradient id="iconGradient" x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stopColor="#4F46E5" />
               <stop offset="100%" stopColor="#3B82F6" />
             </linearGradient>

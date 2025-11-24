@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
-import { SECURITY_HEADERS } from "./security-headers";
 import { featureFlags } from "./config";
+import { SECURITY_HEADERS } from "./security-headers";
 
 /**
  * Rate limiting configuration for different actions
@@ -25,10 +25,7 @@ interface RateLimitResult {
  * Checks if a user has exceeded the rate limit for a specific action
  * Uses Supabase to count actions in the time window
  */
-async function checkRateLimit(
-  userId: string,
-  action: RateLimitAction,
-): Promise<RateLimitResult> {
+async function checkRateLimit(userId: string, action: RateLimitAction): Promise<RateLimitResult> {
   const config = RATE_LIMITS[action];
   const windowMs = config.windowHours * 60 * 60 * 1000;
   const windowStart = new Date(Date.now() - windowMs);
@@ -119,8 +116,7 @@ async function checkRateLimit(
       allowed: false,
       remaining: 0,
       resetAt,
-      message:
-        "Rate limiting service temporarily unavailable. Please try again in a few moments.",
+      message: "Rate limiting service temporarily unavailable. Please try again in a few moments.",
     };
   }
 }
@@ -160,9 +156,7 @@ export async function enforceRateLimit(
           "X-RateLimit-Limit": String(RATE_LIMITS[action].limit),
           "X-RateLimit-Remaining": String(result.remaining),
           "X-RateLimit-Reset": result.resetAt.toISOString(),
-          "Retry-After": String(
-            Math.ceil((result.resetAt.getTime() - Date.now()) / 1000),
-          ),
+          "Retry-After": String(Math.ceil((result.resetAt.getTime() - Date.now()) / 1000)),
         },
       },
     );

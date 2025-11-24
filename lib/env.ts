@@ -94,9 +94,7 @@ export function validateEnvironment(): void {
     },
   ];
 
-  const missing = requiredVars.filter(
-    (v) => v.required && (!v.value || v.value.trim() === ""),
-  );
+  const missing = requiredVars.filter((v) => v.required && (!v.value || v.value.trim() === ""));
 
   if (missing.length > 0) {
     const missingKeys = missing.map((v) => `  - ${v.key}`).join("\n");

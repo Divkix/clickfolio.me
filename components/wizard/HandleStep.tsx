@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { Check, Loader2, User, X } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { createClient } from "@/lib/supabase/client";
-import { Check, X, Loader2, User } from "lucide-react";
 import { siteConfig } from "@/lib/config/site";
+import { createClient } from "@/lib/supabase/client";
 
 interface HandleStepProps {
   initialHandle?: string;
@@ -17,10 +17,7 @@ interface HandleStepProps {
  * Step 1: Handle Selection Component
  * Allows users to choose their unique username/handle
  */
-export function HandleStep({
-  initialHandle = "",
-  onContinue,
-}: HandleStepProps) {
+export function HandleStep({ initialHandle = "", onContinue }: HandleStepProps) {
   const [handle, setHandle] = useState(initialHandle);
   const [isChecking, setIsChecking] = useState(false);
   const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
@@ -106,18 +103,14 @@ export function HandleStep({
           Choose Your Handle
         </h1>
         <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-          This will be your unique URL. Choose something professional and
-          memorable.
+          This will be your unique URL. Choose something professional and memorable.
         </p>
       </div>
 
       {/* Handle Input */}
       <div className="max-w-md mx-auto space-y-4">
         <div className="space-y-2">
-          <Label
-            htmlFor="handle"
-            className="text-sm font-semibold text-slate-700"
-          >
+          <Label htmlFor="handle" className="text-sm font-semibold text-slate-700">
             Your Handle
           </Label>
           <div className="relative">
@@ -132,15 +125,9 @@ export function HandleStep({
             />
             {/* Status Icon */}
             <div className="absolute right-3 top-1/2 -translate-y-1/2">
-              {isChecking && (
-                <Loader2 className="w-5 h-5 text-slate-400 animate-spin" />
-              )}
-              {!isChecking && isAvailable === true && (
-                <Check className="w-5 h-5 text-green-600" />
-              )}
-              {!isChecking && isAvailable === false && (
-                <X className="w-5 h-5 text-red-600" />
-              )}
+              {isChecking && <Loader2 className="w-5 h-5 text-slate-400 animate-spin" />}
+              {!isChecking && isAvailable === true && <Check className="w-5 h-5 text-green-600" />}
+              {!isChecking && isAvailable === false && <X className="w-5 h-5 text-red-600" />}
             </div>
           </div>
 
@@ -177,13 +164,9 @@ export function HandleStep({
 
         {/* Requirements */}
         <div className="bg-slate-50 border border-slate-200/60 rounded-xl p-4">
-          <p className="text-xs font-semibold text-slate-700 mb-2">
-            Requirements:
-          </p>
+          <p className="text-xs font-semibold text-slate-700 mb-2">Requirements:</p>
           <ul className="text-xs text-slate-600 space-y-1">
-            <li className={handle.length >= 3 ? "text-green-600" : ""}>
-              • At least 3 characters
-            </li>
+            <li className={handle.length >= 3 ? "text-green-600" : ""}>• At least 3 characters</li>
             <li className={/^[a-z0-9-]+$/.test(handle) ? "text-green-600" : ""}>
               • Only lowercase letters, numbers, and hyphens
             </li>

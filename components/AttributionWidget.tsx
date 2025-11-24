@@ -3,11 +3,7 @@
 import Link from "next/link";
 import { siteConfig } from "@/lib/config/site";
 
-type ThemeId =
-  | "minimalist_editorial"
-  | "glassmorphic"
-  | "neo_brutalist"
-  | "bento_grid";
+type ThemeId = "minimalist_editorial" | "glassmorphic" | "neo_brutalist" | "bento_grid";
 
 interface AttributionWidgetProps {
   theme: string;
@@ -46,14 +42,12 @@ export function AttributionWidget({ theme }: AttributionWidgetProps) {
       container: "bg-yellow-300 border-4 border-black text-black font-bold",
       accent: "text-pink-500",
       shimmer: "from-transparent via-white/40 to-transparent",
-      shadow:
-        "shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]",
+      shadow: "shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]",
     },
     bento_grid: {
       container:
         "bg-white/95 sm:bg-white border border-slate-200/60 text-slate-600 hover:text-slate-900",
-      accent:
-        "bg-linear-to-r from-indigo-600 to-blue-600 bg-clip-text text-transparent",
+      accent: "bg-linear-to-r from-indigo-600 to-blue-600 bg-clip-text text-transparent",
       shimmer: "from-transparent via-indigo-200/30 to-transparent",
       shadow: "shadow-depth-sm hover:shadow-depth-md",
     },
@@ -65,9 +59,7 @@ export function AttributionWidget({ theme }: AttributionWidgetProps) {
   };
 
   // Use theme if valid, otherwise default to bento_grid
-  const currentTheme = isValidTheme(theme)
-    ? themeStyles[theme]
-    : themeStyles.bento_grid;
+  const currentTheme = isValidTheme(theme) ? themeStyles[theme] : themeStyles.bento_grid;
 
   return (
     <Link

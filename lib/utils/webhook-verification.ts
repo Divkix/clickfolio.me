@@ -48,14 +48,8 @@ export async function verifyReplicateWebhook(
     false,
     ["sign"],
   );
-  const signatureBuffer = await crypto.subtle.sign(
-    "HMAC",
-    key,
-    encoder.encode(signedContent),
-  );
-  const computedSignature = btoa(
-    String.fromCharCode(...new Uint8Array(signatureBuffer)),
-  );
+  const signatureBuffer = await crypto.subtle.sign("HMAC", key, encoder.encode(signedContent));
+  const computedSignature = btoa(String.fromCharCode(...new Uint8Array(signatureBuffer)));
 
   // Parse webhook-signature header (format: "v1,signature v1,signature2")
   const signatures = webhookSignature.split(" ").map((s) => {

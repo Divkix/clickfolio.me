@@ -15,10 +15,7 @@ export function getInitials(name: string): string {
  * Example: ("2020-01-01", "2023-06-01") -> "Jan 2020 — Jun 2023"
  * Example: ("2020-01-01", null) -> "Jan 2020 — Present"
  */
-export function formatDateRange(
-  startDate: string,
-  endDate?: string | null,
-): string {
+export function formatDateRange(startDate: string, endDate?: string | null): string {
   const start = new Date(startDate).toLocaleDateString("en-US", {
     month: "short",
     year: "numeric",
@@ -38,8 +35,6 @@ export function formatDateRange(
  * Flatten skills from categorized structure to simple array
  * Example: [{category: "Frontend", items: ["React", "Vue"]}] -> ["React", "Vue"]
  */
-export function flattenSkills(
-  skills?: Array<{ category: string; items: string[] }>,
-): string[] {
+export function flattenSkills(skills?: Array<{ category: string; items: string[] }>): string[] {
   return skills?.flatMap((s) => s.items) || [];
 }

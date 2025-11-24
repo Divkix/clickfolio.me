@@ -1,6 +1,6 @@
-import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { EditResumeFormWrapper } from "@/components/forms/EditResumeFormWrapper";
+import { createClient } from "@/lib/supabase/server";
 import type { ResumeContent } from "@/lib/types/database";
 
 export default async function EditPage() {
@@ -35,9 +35,7 @@ export default async function EditPage() {
       <div className="max-w-6xl mx-auto px-4 lg:px-6">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-slate-900">Edit Resume</h1>
-          <p className="text-slate-600 mt-2">
-            Update your resume content and publish changes
-          </p>
+          <p className="text-slate-600 mt-2">Update your resume content and publish changes</p>
         </div>
         <EditResumeFormWrapper initialData={content} />
       </div>

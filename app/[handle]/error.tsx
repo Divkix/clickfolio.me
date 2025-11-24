@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
 import Link from "next/link";
+import { useEffect } from "react";
 import { siteConfig } from "@/lib/config/site";
 
 /**
@@ -43,25 +43,21 @@ export default function ProfileError({
           </div>
         </div>
 
-        <h1 className="text-3xl font-bold text-gray-900 mb-3">
-          Something went wrong
-        </h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-3">Something went wrong</h1>
 
         <p className="text-lg text-gray-600 mb-8">
-          We couldn&apos;t load this resume. The page may not exist or there was
-          a temporary error.
+          We couldn&apos;t load this resume. The page may not exist or there was a temporary error.
         </p>
 
         {process.env.NODE_ENV === "development" && (
           <div className="mb-6 p-4 bg-gray-50 rounded-lg text-left">
-            <p className="text-xs font-mono text-gray-600 break-all">
-              {error.message}
-            </p>
+            <p className="text-xs font-mono text-gray-600 break-all">{error.message}</p>
           </div>
         )}
 
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <button
+            type="button"
             onClick={reset}
             className="px-6 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors"
           >
@@ -79,10 +75,7 @@ export default function ProfileError({
         <div className="mt-12 pt-8 border-t border-gray-200">
           <p className="text-sm text-gray-500">
             Powered by{" "}
-            <Link
-              href="/"
-              className="text-gray-900 hover:underline font-medium"
-            >
+            <Link href="/" className="text-gray-900 hover:underline font-medium">
               {siteConfig.fullName}
             </Link>
           </p>

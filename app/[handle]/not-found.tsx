@@ -9,9 +9,7 @@ export default function NotFound() {
             <div className="text-8xl font-extrabold mb-4 text-transparent bg-clip-text bg-linear-to-r from-indigo-600 to-blue-600">
               404
             </div>
-            <h1 className="text-3xl font-bold text-slate-900 mb-2">
-              Resume Not Found
-            </h1>
+            <h1 className="text-3xl font-bold text-slate-900 mb-2">Resume Not Found</h1>
             <p className="text-slate-600 text-lg">
               This resume doesn&apos;t exist or hasn&apos;t been published yet.
             </p>

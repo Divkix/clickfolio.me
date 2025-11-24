@@ -32,13 +32,7 @@ export function sanitizeUrl(input: string): string {
   const lower = trimmed.toLowerCase();
 
   // Block dangerous protocols
-  const dangerousProtocols = [
-    "javascript:",
-    "data:",
-    "vbscript:",
-    "file:",
-    "about:",
-  ];
+  const dangerousProtocols = ["javascript:", "data:", "vbscript:", "file:", "about:"];
 
   for (const protocol of dangerousProtocols) {
     if (lower.startsWith(protocol)) {
@@ -48,9 +42,7 @@ export function sanitizeUrl(input: string): string {
 
   // Allow only safe protocols
   const safeProtocols = ["http://", "https://", "mailto:"];
-  const hasProtocol = safeProtocols.some((protocol) =>
-    lower.startsWith(protocol),
-  );
+  const hasProtocol = safeProtocols.some((protocol) => lower.startsWith(protocol));
 
   if (!hasProtocol) {
     // If no protocol, assume https://

@@ -1,3 +1,5 @@
+import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import {
   createErrorResponse,
@@ -5,15 +7,8 @@ import {
   ERROR_CODES,
 } from "@/lib/utils/security-headers";
 import { validateRequestSize } from "@/lib/utils/validation";
-import { revalidatePath } from "next/cache";
-import { z } from "zod";
 
-const VALID_THEMES = [
-  "bento",
-  "glass",
-  "minimalist_editorial",
-  "neo_brutalist",
-] as const;
+const VALID_THEMES = ["bento", "glass", "minimalist_editorial", "neo_brutalist"] as const;
 
 /**
  * Wizard completion request schema
@@ -25,10 +20,7 @@ const wizardCompleteSchema = z.object({
     .trim()
     .min(3, "Handle must be at least 3 characters")
     .max(30, "Handle must be at most 30 characters")
-    .regex(
-      /^[a-z0-9-]+$/,
-      "Handle can only contain lowercase letters, numbers, and hyphens",
-    )
+    .regex(/^[a-z0-9-]+$/, "Handle can only contain lowercase letters, numbers, and hyphens")
     .regex(/^[^-].*[^-]$/, "Handle cannot start or end with a hyphen"),
   privacy_settings: z.object({
     show_phone: z.boolean(),
@@ -100,11 +92,7 @@ export async function POST(request: Request) {
 
       body = validation.data;
     } catch {
-      return createErrorResponse(
-        "Invalid JSON in request body",
-        ERROR_CODES.BAD_REQUEST,
-        400,
-      );
+      return createErrorResponse("Invalid JSON in request body", ERROR_CODES.BAD_REQUEST, 400);
     }
 
     // 4. Check if handle is available (not already taken)

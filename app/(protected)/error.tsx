@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
 import Link from "next/link";
+import { useEffect } from "react";
 import { siteConfig } from "@/lib/config/site";
 
 /**
@@ -53,22 +53,15 @@ export default function ProtectedError({
 
         {process.env.NODE_ENV === "development" && (
           <div className="mb-6 p-4 bg-red-50 rounded-lg border border-red-200">
-            <p className="text-sm font-semibold text-red-800 mb-2">
-              Development Error Details:
-            </p>
-            <p className="text-xs font-mono text-red-700 break-all">
-              {error.message}
-            </p>
-            {error.digest && (
-              <p className="text-xs text-red-600 mt-2">
-                Digest: {error.digest}
-              </p>
-            )}
+            <p className="text-sm font-semibold text-red-800 mb-2">Development Error Details:</p>
+            <p className="text-xs font-mono text-red-700 break-all">{error.message}</p>
+            {error.digest && <p className="text-xs text-red-600 mt-2">Digest: {error.digest}</p>}
           </div>
         )}
 
         <div className="space-y-3">
           <button
+            type="button"
             onClick={reset}
             className="w-full px-4 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-medium"
           >
@@ -86,10 +79,7 @@ export default function ProtectedError({
         <div className="mt-6 pt-6 border-t border-gray-200">
           <p className="text-sm text-gray-500 text-center">
             Need help?{" "}
-            <a
-              href={`mailto:${siteConfig.supportEmail}`}
-              className="text-gray-900 hover:underline"
-            >
+            <a href={`mailto:${siteConfig.supportEmail}`} className="text-gray-900 hover:underline">
               Contact Support
             </a>
           </p>

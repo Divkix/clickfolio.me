@@ -1,10 +1,10 @@
 "use client";
 
+import { CheckCircle2, Palette } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { THEME_METADATA, type ThemeId } from "@/lib/templates/theme-registry";
-import { Palette, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ThemeStepProps {
@@ -16,10 +16,7 @@ interface ThemeStepProps {
  * Step 4: Theme Selection Component
  * Allows users to choose their resume template design
  */
-export function ThemeStep({
-  initialTheme = "minimalist_editorial",
-  onContinue,
-}: ThemeStepProps) {
+export function ThemeStep({ initialTheme = "minimalist_editorial", onContinue }: ThemeStepProps) {
   const [selectedTheme, setSelectedTheme] = useState<ThemeId>(initialTheme);
 
   const handleContinue = () => {
@@ -37,8 +34,7 @@ export function ThemeStep({
           Choose Your Template
         </h1>
         <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-          Select a design that best represents your professional style. You can
-          change this anytime.
+          Select a design that best represents your professional style. You can change this anytime.
         </p>
       </div>
 
@@ -111,9 +107,7 @@ export function ThemeStep({
                     className={cn(
                       "h-20 rounded-lg border-2 transition-all",
                       getThemePreviewStyle(id as ThemeId),
-                      selectedTheme === id
-                        ? "border-indigo-400"
-                        : "border-slate-200",
+                      selectedTheme === id ? "border-indigo-400" : "border-slate-200",
                     )}
                   />
                 </div>
@@ -126,9 +120,7 @@ export function ThemeStep({
         <div className="mt-6 text-center">
           <p className="text-sm text-slate-600">
             Currently selected:{" "}
-            <span className="font-bold text-indigo-600">
-              {THEME_METADATA[selectedTheme].name}
-            </span>
+            <span className="font-bold text-indigo-600">{THEME_METADATA[selectedTheme].name}</span>
           </p>
         </div>
 

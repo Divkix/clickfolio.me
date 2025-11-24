@@ -1,19 +1,14 @@
 "use client";
 
-import { useState, useRef, useEffect, DragEvent, ChangeEvent } from "react";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { toast } from "sonner";
-import { validatePDF } from "@/lib/utils/validation";
-import { createClient } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
+import { useRouter } from "next/navigation";
+import { type ChangeEvent, type DragEvent, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Progress } from "@/components/ui/progress";
+import { createClient } from "@/lib/supabase/client";
+import { validatePDF } from "@/lib/utils/validation";
 
 interface FileDropzoneProps {
   open?: boolean;
@@ -145,8 +140,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
         await claimUpload(key);
       }
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to upload file";
+      const errorMessage = err instanceof Error ? err.message : "Failed to upload file";
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -186,8 +180,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
       router.push("/dashboard");
       router.refresh();
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to claim resume";
+      const errorMessage = err instanceof Error ? err.message : "Failed to claim resume";
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -259,13 +252,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
             >
               <svg className="w-12 h-12" viewBox="0 0 24 24" fill="none">
                 <defs>
-                  <linearGradient
-                    id="uploadGradient"
-                    x1="0%"
-                    y1="0%"
-                    x2="100%"
-                    y2="100%"
-                  >
+                  <linearGradient id="uploadGradient" x1="0%" y1="0%" x2="100%" y2="100%">
                     <stop offset="0%" stopColor="#4F46E5" />
                     <stop offset="100%" stopColor="#3B82F6" />
                   </linearGradient>
@@ -285,9 +272,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
             <p className="text-lg font-semibold text-slate-900 mb-1">
               {file ? file.name : "Drop your PDF résumé here"}
             </p>
-            <p className="text-sm text-slate-500">
-              or click to browse • Max 10MB
-            </p>
+            <p className="text-sm text-slate-500">or click to browse • Max 10MB</p>
           </div>
         </div>
       </div>
@@ -312,8 +297,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
       {/* Info Text - only show when not in modal mode */}
       {!uploading && !error && !isModal && (
         <p className="text-sm text-slate-500 text-center">
-          Upload anonymously. No account needed until you&apos;re ready to
-          publish.
+          Upload anonymously. No account needed until you&apos;re ready to publish.
         </p>
       )}
     </div>
@@ -331,11 +315,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
             <div className="relative">
               <div className="absolute inset-0 bg-linear-to-r from-indigo-500 to-blue-500 rounded-full blur-xl opacity-30 animate-pulse" />
               <div className="relative w-16 h-16 bg-linear-to-r from-indigo-100 to-blue-100 rounded-full flex items-center justify-center shadow-depth-md">
-                <svg
-                  className="w-8 h-8 animate-spin"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                >
+                <svg className="w-8 h-8 animate-spin" viewBox="0 0 24 24" fill="none">
                   <circle
                     className="opacity-25"
                     cx="12"
@@ -350,13 +330,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                   />
                   <defs>
-                    <linearGradient
-                      id="spinnerGradient"
-                      x1="0%"
-                      y1="0%"
-                      x2="100%"
-                      y2="100%"
-                    >
+                    <linearGradient id="spinnerGradient" x1="0%" y1="0%" x2="100%" y2="100%">
                       <stop offset="0%" stopColor="#4F46E5" />
                       <stop offset="100%" stopColor="#3B82F6" />
                     </linearGradient>
@@ -366,9 +340,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
             </div>
 
             <div className="text-center">
-              <h3 className="text-lg font-bold text-slate-900 mb-2">
-                Processing Your Resume...
-              </h3>
+              <h3 className="text-lg font-bold text-slate-900 mb-2">Processing Your Resume...</h3>
               <p className="text-sm text-slate-600">
                 Claiming your upload and starting AI analysis
               </p>
@@ -389,13 +361,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
                     d="M5 13l4 4L19 7"
                   />
                   <defs>
-                    <linearGradient
-                      id="successGradient"
-                      x1="0%"
-                      y1="0%"
-                      x2="100%"
-                      y2="100%"
-                    >
+                    <linearGradient id="successGradient" x1="0%" y1="0%" x2="100%" y2="100%">
                       <stop offset="0%" stopColor="#10B981" />
                       <stop offset="100%" stopColor="#14B8A6" />
                     </linearGradient>
@@ -405,9 +371,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
             </div>
 
             <div className="text-center">
-              <h3 className="text-lg font-bold text-slate-900 mb-2">
-                Upload Complete!
-              </h3>
+              <h3 className="text-lg font-bold text-slate-900 mb-2">Upload Complete!</h3>
               <p className="text-sm text-slate-600 mb-4">
                 {file?.name} has been uploaded successfully.
               </p>
@@ -433,6 +397,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
                 </p>
 
                 <button
+                  type="button"
                   onClick={handleReset}
                   className="text-xs text-slate-400 hover:text-slate-600 transition-colors"
                 >

@@ -1,14 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Sidebar } from "@/components/dashboard/Sidebar";
 import { Menu } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Sidebar } from "@/components/dashboard/Sidebar";
 
-export function SidebarLayoutClient({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export function SidebarLayoutClient({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Close sidebar on Escape key
@@ -45,6 +41,7 @@ export function SidebarLayoutClient({
 
       {/* Mobile hamburger button */}
       <button
+        type="button"
         onClick={() => setSidebarOpen(true)}
         className="fixed top-4 right-4 z-50 p-3 bg-white border border-slate-200/60 rounded-lg shadow-depth-sm md:hidden hover:shadow-depth-md transition-all duration-300"
         aria-label="Open navigation menu"
@@ -53,9 +50,7 @@ export function SidebarLayoutClient({
       </button>
 
       {/* Main content area */}
-      <main className="md:ml-60 min-h-screen transition-all duration-300">
-        {children}
-      </main>
+      <main className="md:ml-60 min-h-screen transition-all duration-300">{children}</main>
     </div>
   );
 }

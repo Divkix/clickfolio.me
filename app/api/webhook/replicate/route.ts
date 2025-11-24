@@ -1,5 +1,5 @@
-import { createAdminClient } from "@/lib/supabase/admin";
 import { normalizeResumeData } from "@/lib/replicate";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { verifyReplicateWebhook } from "@/lib/utils/webhook-verification";
 
 /**
@@ -16,18 +16,13 @@ function makeUserFriendlyError(rawMessage: string): string {
     return "The GitHub URL in your resume couldn't be parsed correctly. Please ensure it's a complete URL.";
   }
   if (rawMessage.includes("is required")) {
-    const match = rawMessage.match(
-      /Invalid resume data structure: (.+) is required/,
-    );
+    const match = rawMessage.match(/Invalid resume data structure: (.+) is required/);
     if (match) {
       return `We couldn't find the ${match[1].toLowerCase()} in your resume. Please ensure it's clearly visible.`;
     }
   }
   // Default: strip technical prefix and return
-  return rawMessage.replace(
-    "Invalid resume data structure: ",
-    "Parsing issue: ",
-  );
+  return rawMessage.replace("Invalid resume data structure: ", "Parsing issue: ");
 }
 
 export async function POST(request: Request) {
@@ -47,11 +42,7 @@ export async function POST(request: Request) {
     console.log(`Webhook received: job=${replicateJobId}, status=${status}`);
 
     // 3. Only process completed events
-    if (
-      status !== "succeeded" &&
-      status !== "failed" &&
-      status !== "canceled"
-    ) {
+    if (status !== "succeeded" && status !== "failed" && status !== "canceled") {
       return new Response("OK", { status: 200 });
     }
 

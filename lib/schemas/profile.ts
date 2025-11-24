@@ -34,10 +34,7 @@ const handleSchema = z
   .trim()
   .min(3, "Handle must be at least 3 characters")
   .max(30, "Handle must not exceed 30 characters")
-  .regex(
-    /^[a-z0-9-]+$/,
-    "Handle can only contain lowercase letters, numbers, and hyphens",
-  )
+  .regex(/^[a-z0-9-]+$/, "Handle can only contain lowercase letters, numbers, and hyphens")
   .regex(/^[a-z0-9]/, "Handle must start with a letter or number")
   .regex(/[a-z0-9]$/, "Handle must end with a letter or number")
   .regex(/^(?!.*--)/, "Handle cannot contain consecutive hyphens")

@@ -1,17 +1,11 @@
-import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
-import Link from "next/link";
 import { User } from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { PrivacySettingsForm } from "@/components/forms/PrivacySettings";
+import Link from "next/link";
+import { redirect } from "next/navigation";
 import { HandleForm } from "@/components/forms/HandleForm";
+import { PrivacySettingsForm } from "@/components/forms/PrivacySettings";
 import { ResumeManagementCard } from "@/components/settings/ResumeManagementCard";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { createClient } from "@/lib/supabase/server";
 import { isValidPrivacySettings } from "@/lib/utils/privacy";
 
 export default async function SettingsPage() {
@@ -61,9 +55,7 @@ export default async function SettingsPage() {
       <div className="max-w-5xl mx-auto px-4 lg:px-6 space-y-6">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-slate-900">Settings</h1>
-          <p className="text-slate-600 mt-2">
-            Manage your account and privacy settings
-          </p>
+          <p className="text-slate-600 mt-2">Manage your account and privacy settings</p>
         </div>
 
         {/* Profile Overview */}
@@ -130,10 +122,7 @@ export default async function SettingsPage() {
         {profile.handle && <HandleForm currentHandle={profile.handle} />}
 
         {/* Privacy Settings */}
-        <PrivacySettingsForm
-          initialSettings={privacySettings}
-          userHandle={profile.handle}
-        />
+        <PrivacySettingsForm initialSettings={privacySettings} userHandle={profile.handle} />
 
         {/* Danger Zone */}
         <Card className="shadow-depth-sm border-red-200 hover:shadow-depth-md transition-all duration-300">

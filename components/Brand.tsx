@@ -20,18 +20,13 @@ const sizeClasses: Record<BrandSize, string> = {
   lg: "text-2xl",
 };
 
-const defaultAccent =
-  "text-transparent bg-clip-text bg-linear-to-r from-indigo-600 to-blue-600";
+const defaultAccent = "text-transparent bg-clip-text bg-linear-to-r from-indigo-600 to-blue-600";
 
 /**
  * Brand logo component with configurable two-tone styling
  * Uses site config for name/tld values
  */
-export function Brand({
-  size = "lg",
-  accentClass,
-  className = "",
-}: BrandProps) {
+export function Brand({ size = "lg", accentClass, className = "" }: BrandProps) {
   return (
     <span className={`font-bold ${sizeClasses[size]} ${className}`}>
       {siteConfig.name}

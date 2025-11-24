@@ -1,31 +1,31 @@
-import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
-  Loader2,
   AlertCircle,
-  CheckCircle2,
-  Edit3,
-  Upload,
-  ExternalLink,
-  Briefcase,
-  GraduationCap,
   Award,
-  Wrench,
-  Clock,
-  Mail,
-  Link as LinkIcon,
+  Briefcase,
   Calendar,
+  CheckCircle2,
+  Clock,
+  Edit3,
+  ExternalLink,
+  GraduationCap,
+  Link as LinkIcon,
+  Loader2,
+  Mail,
+  Upload,
+  Wrench,
 } from "lucide-react";
+import Link from "next/link";
+import { redirect } from "next/navigation";
 import { CopyLinkButton } from "@/components/dashboard/CopyLinkButton";
 import { DashboardUploadSection } from "@/components/dashboard/DashboardUploadSection";
 import { RealtimeStatusListener } from "@/components/dashboard/RealtimeStatusListener";
-import type { ResumeContent } from "@/lib/types/database";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import { siteConfig } from "@/lib/config/site";
+import { createClient } from "@/lib/supabase/server";
+import type { ResumeContent } from "@/lib/types/database";
 
 /**
  * Calculate profile completeness score based on available data
@@ -136,7 +136,7 @@ function formatRelativeTime(dateString: string): string {
  */
 function truncateText(text: string, maxLength: number): string {
   if (text.length <= maxLength) return text;
-  return text.slice(0, maxLength).trim() + "...";
+  return `${text.slice(0, maxLength).trim()}...`;
 }
 
 export default async function DashboardPage() {
@@ -151,11 +151,7 @@ export default async function DashboardPage() {
   }
 
   // Fetch user profile with onboarding status
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .single();
+  const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single();
 
   // Fetch most recent resume
   const { data: resume } = await supabase
@@ -194,12 +190,10 @@ export default async function DashboardPage() {
                 <Upload className="w-12 h-12 text-indigo-600 mx-auto" />
               </div>
             </div>
-            <h2 className="text-2xl font-bold text-slate-900 mb-3">
-              No Resume Yet
-            </h2>
+            <h2 className="text-2xl font-bold text-slate-900 mb-3">No Resume Yet</h2>
             <p className="text-slate-600 mb-6">
-              Upload your first PDF to get started and create your professional
-              web resume in minutes.
+              Upload your first PDF to get started and create your professional web resume in
+              minutes.
             </p>
             <Button
               asChild
@@ -225,8 +219,7 @@ export default async function DashboardPage() {
             <AlertCircle className="w-4 h-4 text-amber-600" />
             <AlertDescription className="flex items-center justify-between">
               <span className="text-amber-900 font-medium">
-                Your profile is incomplete. Complete the wizard to improve your
-                resume.
+                Your profile is incomplete. Complete the wizard to improve your resume.
               </span>
               <Button
                 asChild
@@ -285,9 +278,7 @@ export default async function DashboardPage() {
                     </div>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-slate-600 mb-1">
-                      Resume Status
-                    </p>
+                    <p className="text-xs font-medium text-slate-600 mb-1">Resume Status</p>
                     <Badge
                       className={
                         resume.status === "completed"
@@ -348,9 +339,7 @@ export default async function DashboardPage() {
                       </div>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-slate-600 mb-1">
-                        Completeness
-                      </p>
+                      <p className="text-xs font-medium text-slate-600 mb-1">Completeness</p>
                       <p
                         className={`text-lg font-bold ${
                           completeness >= 90
@@ -378,9 +367,7 @@ export default async function DashboardPage() {
                       </div>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-slate-600 mb-1">
-                        Last Updated
-                      </p>
+                      <p className="text-xs font-medium text-slate-600 mb-1">Last Updated</p>
                       <p className="text-sm font-semibold text-slate-900 truncate">
                         {formatRelativeTime(siteData.last_published_at)}
                       </p>
@@ -400,9 +387,7 @@ export default async function DashboardPage() {
                       </div>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-slate-600 mb-1">
-                        Your Resume
-                      </p>
+                      <p className="text-xs font-medium text-slate-600 mb-1">Your Resume</p>
                       <Link
                         href={`/${profile.handle}`}
                         className="text-sm font-semibold text-indigo-600 hover:text-indigo-700 truncate block"
@@ -423,9 +408,7 @@ export default async function DashboardPage() {
                         </div>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-slate-600 mb-1">
-                          Experience
-                        </p>
+                        <p className="text-xs font-medium text-slate-600 mb-1">Experience</p>
                         <p className="text-lg font-bold text-slate-900">
                           {content.experience?.length || 0}
                         </p>
@@ -441,8 +424,7 @@ export default async function DashboardPage() {
           {hasPublishedSite && content ? (
             <>
               {/* Show RealtimeStatusListener when a new resume is processing */}
-              {(resume.status === "processing" ||
-                resume.status === "pending_claim") && (
+              {(resume.status === "processing" || resume.status === "pending_claim") && (
                 <div className="col-span-full">
                   <RealtimeStatusListener
                     resumeId={resume.id}
@@ -459,9 +441,7 @@ export default async function DashboardPage() {
                     <div className="flex items-start gap-3">
                       <AlertCircle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
                       <div className="flex-1">
-                        <h3 className="font-semibold text-red-900">
-                          Processing Failed
-                        </h3>
+                        <h3 className="font-semibold text-red-900">Processing Failed</h3>
                         <p className="mt-1 text-sm text-red-700">
                           {resume.error_message ||
                             "An error occurred while processing your resume."}
@@ -472,9 +452,7 @@ export default async function DashboardPage() {
                             size="sm"
                             className="bg-red-600 hover:bg-red-700 text-white"
                           >
-                            <Link href={`/waiting?resume_id=${resume.id}`}>
-                              Retry
-                            </Link>
+                            <Link href={`/waiting?resume_id=${resume.id}`}>Retry</Link>
                           </Button>
                           <Button
                             asChild
@@ -495,12 +473,8 @@ export default async function DashboardPage() {
               <div className="lg:col-span-2 bg-white rounded-2xl shadow-depth-sm border border-slate-200/60 p-8 hover:shadow-depth-md hover:-translate-y-0.5 transition-all duration-300">
                 {/* Header */}
                 <div className="mb-6">
-                  <h2 className="text-2xl font-bold text-slate-900">
-                    {content.full_name}
-                  </h2>
-                  <p className="text-base text-slate-600 mt-1">
-                    {content.headline}
-                  </p>
+                  <h2 className="text-2xl font-bold text-slate-900">{content.full_name}</h2>
+                  <p className="text-base text-slate-600 mt-1">{content.headline}</p>
                 </div>
 
                 <Separator className="mb-6" />
@@ -508,9 +482,7 @@ export default async function DashboardPage() {
                 {/* Summary */}
                 {content.summary && (
                   <div className="mb-6">
-                    <h3 className="text-sm font-semibold text-slate-700 mb-2">
-                      Summary
-                    </h3>
+                    <h3 className="text-sm font-semibold text-slate-700 mb-2">Summary</h3>
                     <p className="text-sm text-slate-600 leading-relaxed">
                       {truncateText(content.summary, 200)}
                       {content.summary.length > 200 && (
@@ -613,9 +585,7 @@ export default async function DashboardPage() {
               <div>
                 {/* Account Info Card */}
                 <div className="bg-white rounded-2xl shadow-depth-sm border border-slate-200/60 p-6 hover:shadow-depth-md hover:-translate-y-0.5 transition-all duration-300">
-                  <h3 className="text-lg font-semibold text-slate-900 mb-4">
-                    Account
-                  </h3>
+                  <h3 className="text-lg font-semibold text-slate-900 mb-4">Account</h3>
                   <div className="space-y-4">
                     {/* Email */}
                     <div className="flex items-start gap-3">
@@ -626,12 +596,8 @@ export default async function DashboardPage() {
                         </div>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-slate-600 mb-1">
-                          Email
-                        </p>
-                        <p className="text-sm text-slate-900 truncate">
-                          {user.email}
-                        </p>
+                        <p className="text-xs font-medium text-slate-600 mb-1">Email</p>
+                        <p className="text-sm text-slate-900 truncate">{user.email}</p>
                       </div>
                     </div>
 
@@ -647,9 +613,7 @@ export default async function DashboardPage() {
                             </div>
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-xs font-medium text-slate-600 mb-1">
-                              Handle
-                            </p>
+                            <p className="text-xs font-medium text-slate-600 mb-1">Handle</p>
                             <div className="flex items-center gap-2">
                               <Link
                                 href={`/${profile.handle}`}
@@ -678,9 +642,7 @@ export default async function DashboardPage() {
                             </div>
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-xs font-medium text-slate-600 mb-1">
-                              Member since
-                            </p>
+                            <p className="text-xs font-medium text-slate-600 mb-1">Member since</p>
                             <p className="text-sm text-slate-900">
                               {formatRelativeTime(profile.created_at)}
                             </p>
@@ -696,8 +658,7 @@ export default async function DashboardPage() {
             /* Show processing/failed state in main content area */
             <div className="col-span-full">
               <div className="bg-white rounded-2xl shadow-depth-sm border border-slate-200/60 p-8 hover:shadow-depth-md hover:-translate-y-0.5 transition-all duration-300">
-                {(resume.status === "processing" ||
-                  resume.status === "pending_claim") && (
+                {(resume.status === "processing" || resume.status === "pending_claim") && (
                   <div>
                     <RealtimeStatusListener
                       resumeId={resume.id}
@@ -712,9 +673,7 @@ export default async function DashboardPage() {
                     <div className="flex items-center gap-4">
                       <AlertCircle className="h-8 w-8 text-red-600 shrink-0" />
                       <div className="flex-1">
-                        <h3 className="text-xl font-bold text-red-900 mb-1">
-                          Processing failed
-                        </h3>
+                        <h3 className="text-xl font-bold text-red-900 mb-1">Processing failed</h3>
                         <p className="text-red-700">
                           {resume.error_message ||
                             "Unknown error occurred. Please try uploading again."}
@@ -726,9 +685,7 @@ export default async function DashboardPage() {
                         asChild
                         className="flex-1 bg-linear-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-semibold transition-all duration-300 shadow-depth-sm hover:shadow-depth-md"
                       >
-                        <Link href={`/waiting?resume_id=${resume.id}`}>
-                          Try Again
-                        </Link>
+                        <Link href={`/waiting?resume_id=${resume.id}`}>Try Again</Link>
                       </Button>
                       <Button asChild variant="outline" className="flex-1">
                         <Link href="/">
@@ -747,9 +704,7 @@ export default async function DashboardPage() {
                       <h3 className="text-xl font-bold text-slate-900 mb-1">
                         Claiming your resume...
                       </h3>
-                      <p className="text-slate-600">
-                        Please wait while we process your upload.
-                      </p>
+                      <p className="text-slate-600">Please wait while we process your upload.</p>
                     </div>
                   </div>
                 )}
@@ -758,61 +713,52 @@ export default async function DashboardPage() {
           )}
 
           {/* Row 3: Profile Completeness Suggestions (Conditional, Full Width) */}
-          {hasPublishedSite &&
-            content &&
-            completeness < 100 &&
-            suggestions.length > 0 && (
-              <div className="col-span-full">
-                <Alert className="border-blue-200 bg-blue-50 rounded-2xl shadow-depth-sm hover:shadow-depth-md transition-all duration-300">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-3">
-                        <CheckCircle2 className="h-5 w-5 text-blue-600" />
-                        <h3 className="font-semibold text-blue-900">
-                          Complete Your Profile
-                        </h3>
-                      </div>
-
-                      {/* Progress Bar */}
-                      <div className="w-full bg-blue-200 rounded-full h-2 mb-4">
-                        <div
-                          className="h-2 rounded-full bg-linear-to-r from-indigo-600 to-blue-600 transition-all duration-500"
-                          style={{ width: `${completeness}%` }}
-                        />
-                      </div>
-
-                      <AlertDescription className="text-blue-900">
-                        <p className="text-sm font-medium mb-2">
-                          Your profile is {completeness}% complete. Add these to
-                          reach 100%:
-                        </p>
-                        <ul className="space-y-1.5">
-                          {suggestions.map((suggestion, index) => (
-                            <li
-                              key={index}
-                              className="text-sm flex items-start gap-2"
-                            >
-                              <span className="text-blue-600 mt-0.5">•</span>
-                              <span>{suggestion}</span>
-                            </li>
-                          ))}
-                        </ul>
-                        <Button
-                          asChild
-                          size="sm"
-                          className="mt-4 bg-linear-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-semibold"
-                        >
-                          <Link href="/edit">
-                            <Edit3 className="h-3 w-3 mr-2" />
-                            Complete Now
-                          </Link>
-                        </Button>
-                      </AlertDescription>
+          {hasPublishedSite && content && completeness < 100 && suggestions.length > 0 && (
+            <div className="col-span-full">
+              <Alert className="border-blue-200 bg-blue-50 rounded-2xl shadow-depth-sm hover:shadow-depth-md transition-all duration-300">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-3">
+                      <CheckCircle2 className="h-5 w-5 text-blue-600" />
+                      <h3 className="font-semibold text-blue-900">Complete Your Profile</h3>
                     </div>
+
+                    {/* Progress Bar */}
+                    <div className="w-full bg-blue-200 rounded-full h-2 mb-4">
+                      <div
+                        className="h-2 rounded-full bg-linear-to-r from-indigo-600 to-blue-600 transition-all duration-500"
+                        style={{ width: `${completeness}%` }}
+                      />
+                    </div>
+
+                    <AlertDescription className="text-blue-900">
+                      <p className="text-sm font-medium mb-2">
+                        Your profile is {completeness}% complete. Add these to reach 100%:
+                      </p>
+                      <ul className="space-y-1.5">
+                        {suggestions.map((suggestion, index) => (
+                          <li key={index} className="text-sm flex items-start gap-2">
+                            <span className="text-blue-600 mt-0.5">•</span>
+                            <span>{suggestion}</span>
+                          </li>
+                        ))}
+                      </ul>
+                      <Button
+                        asChild
+                        size="sm"
+                        className="mt-4 bg-linear-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-semibold"
+                      >
+                        <Link href="/edit">
+                          <Edit3 className="h-3 w-3 mr-2" />
+                          Complete Now
+                        </Link>
+                      </Button>
+                    </AlertDescription>
                   </div>
-                </Alert>
-              </div>
-            )}
+                </div>
+              </Alert>
+            </div>
+          )}
 
           {/* Row 3: Success Alert (when completeness = 100) */}
           {hasPublishedSite && completeness === 100 && (
@@ -821,8 +767,7 @@ export default async function DashboardPage() {
                 <div className="flex items-center gap-3">
                   <CheckCircle2 className="h-5 w-5 text-green-600" />
                   <AlertDescription className="text-green-900 font-medium">
-                    Your profile is complete! Your resume looks professional and
-                    ready to share.
+                    Your profile is complete! Your resume looks professional and ready to share.
                   </AlertDescription>
                 </div>
               </Alert>

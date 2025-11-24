@@ -1,7 +1,7 @@
-import { NextResponse } from "next/server";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { getR2Client, getR2Bucket } from "@/lib/r2";
+import { NextResponse } from "next/server";
+import { getR2Bucket, getR2Client } from "@/lib/r2";
 import { generateTempKey } from "@/lib/utils/validation";
 
 export async function POST(request: Request) {
@@ -9,10 +9,7 @@ export async function POST(request: Request) {
     const { filename } = await request.json();
 
     if (!filename || typeof filename !== "string") {
-      return NextResponse.json(
-        { error: "Filename is required" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Filename is required" }, { status: 400 });
     }
 
     if (filename.length > 255) {
@@ -44,9 +41,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ uploadUrl, key });
   } catch (error) {
     console.error("Error generating presigned URL:", error);
-    return NextResponse.json(
-      { error: "Failed to generate upload URL" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Failed to generate upload URL" }, { status: 500 });
   }
 }

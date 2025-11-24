@@ -1,17 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { FileDropzone } from "@/components/FileDropzone";
-import { Upload, FileText, Calendar, AlertCircle } from "lucide-react";
+import { AlertCircle, Calendar, FileText, Upload } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
+import { FileDropzone } from "@/components/FileDropzone";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface ResumeManagementCardProps {
   resumeCount: number;
@@ -103,16 +97,12 @@ export function ResumeManagementCard({
           {/* Resume Stats */}
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1">
-              <p className="text-sm font-medium text-slate-700">
-                Total Uploads
-              </p>
+              <p className="text-sm font-medium text-slate-700">Total Uploads</p>
               <p className="text-2xl font-bold text-slate-900">{resumeCount}</p>
             </div>
             {latestResumeStatus && (
               <div className="space-y-1">
-                <p className="text-sm font-medium text-slate-700">
-                  Current Status
-                </p>
+                <p className="text-sm font-medium text-slate-700">Current Status</p>
                 <span
                   className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${getStatusColor(latestResumeStatus)}`}
                 >
@@ -128,9 +118,7 @@ export function ResumeManagementCard({
               <div className="flex items-start gap-3">
                 <AlertCircle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
                 <div className="flex-1 space-y-2">
-                  <p className="text-sm font-semibold text-red-900">
-                    Processing Failed
-                  </p>
+                  <p className="text-sm font-semibold text-red-900">Processing Failed</p>
                   <p className="text-sm text-red-700">{latestResumeError}</p>
                 </div>
               </div>
@@ -141,9 +129,7 @@ export function ResumeManagementCard({
                   variant="outline"
                   className="w-full border-red-200 text-red-700 hover:bg-red-100"
                 >
-                  <Link href={`/waiting?resume_id=${latestResumeId}`}>
-                    Retry Processing
-                  </Link>
+                  <Link href={`/waiting?resume_id=${latestResumeId}`}>Retry Processing</Link>
                 </Button>
               )}
             </div>
@@ -154,13 +140,9 @@ export function ResumeManagementCard({
             <div className="rounded-lg bg-slate-50 border border-slate-200/60 p-4 space-y-2">
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-slate-600" />
-                <p className="text-sm font-medium text-slate-700">
-                  Latest Upload
-                </p>
+                <p className="text-sm font-medium text-slate-700">Latest Upload</p>
               </div>
-              <p className="text-sm text-slate-600">
-                {formatDate(latestResumeDate)}
-              </p>
+              <p className="text-sm text-slate-600">{formatDate(latestResumeDate)}</p>
             </div>
           )}
 
@@ -175,8 +157,7 @@ export function ResumeManagementCard({
 
           {/* Info Text */}
           <p className="text-xs text-slate-500 text-center">
-            Rate limit: 5 uploads per 24 hours. All uploads are kept for
-            history.
+            Rate limit: 5 uploads per 24 hours. All uploads are kept for history.
           </p>
         </CardContent>
       </Card>

@@ -1,20 +1,9 @@
-import React from "react";
-import type { TemplateProps } from "@/lib/types/template";
-import type { Project } from "@/lib/types/database";
-import {
-  getInitials,
-  formatDateRange,
-  flattenSkills,
-} from "@/lib/templates/helpers";
-import {
-  Globe,
-  ArrowUpRight,
-  Star,
-  Briefcase,
-  GraduationCap,
-  Award,
-} from "lucide-react";
+import { ArrowUpRight, Award, Briefcase, Globe, GraduationCap, Star } from "lucide-react";
+import type React from "react";
 import { siteConfig } from "@/lib/config/site";
+import { flattenSkills, formatDateRange, getInitials } from "@/lib/templates/helpers";
+import type { Project } from "@/lib/types/database";
+import type { TemplateProps } from "@/lib/types/template";
 
 const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
   return (
@@ -28,26 +17,17 @@ const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
           </div>
           <div className="hidden md:flex gap-6 font-bold text-sm uppercase">
             {content.experience && content.experience.length > 0 && (
-              <a
-                href="#experience"
-                className="hover:bg-[#FF90E8] px-2 transition-colors"
-              >
+              <a href="#experience" className="hover:bg-[#FF90E8] px-2 transition-colors">
                 Experience
               </a>
             )}
             {content.projects && content.projects.length > 0 && (
-              <a
-                href="#work"
-                className="hover:bg-[#22CCEE] px-2 transition-colors"
-              >
+              <a href="#work" className="hover:bg-[#22CCEE] px-2 transition-colors">
                 Work
               </a>
             )}
             {content.education && content.education.length > 0 && (
-              <a
-                href="#education"
-                className="hover:bg-[#FFDE00] px-2 transition-colors"
-              >
+              <a href="#education" className="hover:bg-[#FFDE00] px-2 transition-colors">
                 Education
               </a>
             )}
@@ -65,10 +45,7 @@ const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
               <br />
               {content.headline.split(" ").slice(2).join(" ")}
               <br />
-              <span
-                className="text-white"
-                style={{ WebkitTextStroke: "2px black" }}
-              >
+              <span className="text-white" style={{ WebkitTextStroke: "2px black" }}>
                 Portfolio
               </span>
             </h1>
@@ -90,14 +67,10 @@ const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <span className="text-4xl font-black">
-                    {getInitials(content.full_name)}
-                  </span>
+                  <span className="text-4xl font-black">{getInitials(content.full_name)}</span>
                 )}
               </div>
-              <h2 className="font-black text-2xl uppercase">
-                {content.full_name}
-              </h2>
+              <h2 className="font-black text-2xl uppercase">{content.full_name}</h2>
               <div className="mt-2 inline-block bg-green-400 border-2 border-black px-3 py-1 text-xs font-bold uppercase rounded-full animate-pulse">
                 Open for Work
               </div>
@@ -161,10 +134,7 @@ const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
                 </span>
               ))}
               {flattenSkills(content.skills).map((skill: string, i: number) => (
-                <span
-                  key={`dup-${i}`}
-                  className="mx-6 inline-flex items-center"
-                >
+                <span key={`dup-${i}`} className="mx-6 inline-flex items-center">
                   {skill} <Star className="w-6 h-6 ml-6 fill-black" />
                 </span>
               ))}
@@ -203,12 +173,8 @@ const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
                   <div className="p-6">
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex-1">
-                        <h3 className="text-3xl font-black uppercase mb-1">
-                          {job.title}
-                        </h3>
-                        <p className="font-bold text-lg text-neutral-600">
-                          {job.company}
-                        </p>
+                        <h3 className="text-3xl font-black uppercase mb-1">{job.title}</h3>
+                        <p className="font-bold text-lg text-neutral-600">{job.company}</p>
                       </div>
                       <Briefcase className="w-8 h-8 border-2 border-black p-1 bg-white" />
                     </div>
@@ -218,13 +184,11 @@ const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
                       </p>
                     ) : job.highlights && job.highlights.length > 0 ? (
                       <ul className="font-medium text-sm mb-4 border-l-4 border-black pl-5 space-y-2 list-disc">
-                        {job.highlights
-                          .slice(0, 3)
-                          .map((highlight: string, i: number) => (
-                            <li key={i} className="font-bold">
-                              {highlight}
-                            </li>
-                          ))}
+                        {job.highlights.slice(0, 3).map((highlight: string, i: number) => (
+                          <li key={i} className="font-bold">
+                            {highlight}
+                          </li>
+                        ))}
                       </ul>
                     ) : null}
                     {job.description &&
@@ -232,16 +196,14 @@ const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
                       job.highlights &&
                       job.highlights.length > 0 && (
                         <div className="flex flex-wrap gap-2 mt-4">
-                          {job.highlights
-                            .slice(0, 3)
-                            .map((highlight: string, i: number) => (
-                              <span
-                                key={i}
-                                className="px-2 py-1 bg-[#22CCEE] border-2 border-black text-xs font-bold uppercase"
-                              >
-                                • {highlight}
-                              </span>
-                            ))}
+                          {job.highlights.slice(0, 3).map((highlight: string, i: number) => (
+                            <span
+                              key={i}
+                              className="px-2 py-1 bg-[#22CCEE] border-2 border-black text-xs font-bold uppercase"
+                            >
+                              • {highlight}
+                            </span>
+                          ))}
                         </div>
                       )}
                   </div>
@@ -298,21 +260,18 @@ const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
                         {project.description}
                       </p>
                     )}
-                    {project.technologies &&
-                      project.technologies.length > 0 && (
-                        <div className="mt-auto flex flex-wrap gap-2">
-                          {project.technologies.map(
-                            (tech: string, i: number) => (
-                              <span
-                                key={i}
-                                className="px-2 py-1 bg-[#FF90E8] border-2 border-black text-xs font-bold uppercase"
-                              >
-                                {tech}
-                              </span>
-                            ),
-                          )}
-                        </div>
-                      )}
+                    {project.technologies && project.technologies.length > 0 && (
+                      <div className="mt-auto flex flex-wrap gap-2">
+                        {project.technologies.map((tech: string, i: number) => (
+                          <span
+                            key={i}
+                            className="px-2 py-1 bg-[#FF90E8] border-2 border-black text-xs font-bold uppercase"
+                          >
+                            {tech}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -345,9 +304,7 @@ const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
                       </span>
                     )}
                   </div>
-                  <h3 className="text-2xl font-black uppercase mb-2">
-                    {edu.degree}
-                  </h3>
+                  <h3 className="text-2xl font-black uppercase mb-2">{edu.degree}</h3>
                   <p className="font-bold text-sm">{edu.institution}</p>
                   {edu.gpa && (
                     <p className="text-xs font-bold mt-2 bg-green-300 border-2 border-black inline-block px-2 py-1">
@@ -380,12 +337,8 @@ const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
                   <div className="flex items-start gap-3">
                     <Award className="w-6 h-6 border-2 border-black p-1 bg-[#FF90E8]" />
                     <div className="flex-1">
-                      <h3 className="font-black text-lg uppercase">
-                        {cert.name}
-                      </h3>
-                      <p className="font-bold text-sm text-neutral-600">
-                        {cert.issuer}
-                      </p>
+                      <h3 className="font-black text-lg uppercase">{cert.name}</h3>
+                      <p className="font-bold text-sm text-neutral-600">{cert.issuer}</p>
                       {cert.date && (
                         <p className="text-xs font-bold mt-1">
                           {new Date(cert.date).toLocaleDateString("en-US", {
@@ -416,10 +369,7 @@ const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
         <footer className="mt-16 text-center pb-8">
           <p className="font-bold text-sm">
             Built with{" "}
-            <a
-              href={siteConfig.url}
-              className="underline decoration-4 decoration-[#FFDE00]"
-            >
+            <a href={siteConfig.url} className="underline decoration-4 decoration-[#FFDE00]">
               {siteConfig.fullName}
             </a>
           </p>

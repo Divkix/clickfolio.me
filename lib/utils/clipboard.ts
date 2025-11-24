@@ -11,7 +11,7 @@
 export async function copyToClipboard(text: string): Promise<boolean> {
   try {
     // Modern clipboard API (preferred)
-    if (navigator.clipboard && navigator.clipboard.writeText) {
+    if (navigator.clipboard?.writeText) {
       await navigator.clipboard.writeText(text);
       return true;
     }

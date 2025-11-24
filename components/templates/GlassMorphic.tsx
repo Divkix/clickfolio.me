@@ -1,20 +1,20 @@
-import React from "react";
-import type { TemplateProps } from "@/lib/types/template";
-import type { Project } from "@/lib/types/database";
-import { formatDateRange, flattenSkills } from "@/lib/templates/helpers";
 import {
-  Mail,
-  MapPin,
-  Linkedin,
+  Award,
+  Briefcase,
+  Command,
+  ExternalLink,
   Github,
   Globe,
-  ExternalLink,
-  Command,
-  Briefcase,
   GraduationCap,
-  Award,
+  Linkedin,
+  Mail,
+  MapPin,
 } from "lucide-react";
+import type React from "react";
 import { siteConfig } from "@/lib/config/site";
+import { flattenSkills, formatDateRange } from "@/lib/templates/helpers";
+import type { Project } from "@/lib/types/database";
+import type { TemplateProps } from "@/lib/types/template";
 
 const GlassMorphic: React.FC<TemplateProps> = ({ content }) => {
   return (
@@ -154,9 +154,7 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content }) => {
           <section id="experience" className="space-y-8 mb-20">
             <div className="flex items-center gap-3 mb-12">
               <Briefcase className="w-6 h-6 text-white/40" />
-              <h2 className="text-2xl font-semibold text-white/90">
-                Experience
-              </h2>
+              <h2 className="text-2xl font-semibold text-white/90">Experience</h2>
             </div>
 
             <div className="grid grid-cols-1 gap-6">
@@ -167,9 +165,7 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content }) => {
                 >
                   <div className="flex justify-between items-start mb-4">
                     <div>
-                      <h3 className="text-2xl font-bold text-white mb-1">
-                        {job.title}
-                      </h3>
+                      <h3 className="text-2xl font-bold text-white mb-1">{job.title}</h3>
                       <p className="text-white/70 font-medium">{job.company}</p>
                     </div>
                     <span className="text-xs font-mono text-fuchsia-300">
@@ -208,9 +204,7 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content }) => {
           <section id="projects" className="space-y-8 mb-20">
             <div className="flex items-center gap-3 mb-12">
               <Command className="w-6 h-6 text-white/40" />
-              <h2 className="text-2xl font-semibold text-white/90">
-                Selected Projects
-              </h2>
+              <h2 className="text-2xl font-semibold text-white/90">Selected Projects</h2>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -227,9 +221,7 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content }) => {
                           {project.year}
                         </div>
                       )}
-                      <h3 className="text-2xl font-bold text-white">
-                        {project.title}
-                      </h3>
+                      <h3 className="text-2xl font-bold text-white">{project.title}</h3>
                     </div>
                     {project.url && (
                       <a
@@ -246,19 +238,18 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content }) => {
                     <p className="text-sm text-white/80 line-clamp-2 leading-relaxed mb-4">
                       {project.description}
                     </p>
-                    {project.technologies &&
-                      project.technologies.length > 0 && (
-                        <div className="flex flex-wrap gap-2">
-                          {project.technologies.map((tech: string) => (
-                            <span
-                              key={tech}
-                              className="text-[10px] uppercase tracking-widest text-white/50"
-                            >
-                              #{tech}
-                            </span>
-                          ))}
-                        </div>
-                      )}
+                    {project.technologies && project.technologies.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {project.technologies.map((tech: string) => (
+                          <span
+                            key={tech}
+                            className="text-[10px] uppercase tracking-widest text-white/50"
+                          >
+                            #{tech}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -271,9 +262,7 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content }) => {
           <section className="space-y-8 mb-20">
             <div className="flex items-center gap-3 mb-12">
               <GraduationCap className="w-6 h-6 text-white/40" />
-              <h2 className="text-2xl font-semibold text-white/90">
-                Education
-              </h2>
+              <h2 className="text-2xl font-semibold text-white/90">Education</h2>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -283,9 +272,7 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content }) => {
                   className="relative rounded-3xl bg-white/3 border border-white/10 p-6"
                 >
                   <div className="flex justify-between items-start mb-3">
-                    <h3 className="text-xl font-bold text-white">
-                      {edu.degree}
-                    </h3>
+                    <h3 className="text-xl font-bold text-white">{edu.degree}</h3>
                     {edu.graduation_date && (
                       <span className="text-xs font-mono text-fuchsia-300">
                         {new Date(edu.graduation_date).getFullYear()}
@@ -293,9 +280,7 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content }) => {
                     )}
                   </div>
                   <p className="text-white/70">{edu.institution}</p>
-                  {edu.gpa && (
-                    <p className="text-xs text-white/50 mt-2">GPA: {edu.gpa}</p>
-                  )}
+                  {edu.gpa && <p className="text-xs text-white/50 mt-2">GPA: {edu.gpa}</p>}
                 </div>
               ))}
             </div>
@@ -307,9 +292,7 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content }) => {
           <section className="space-y-8 mb-20">
             <div className="flex items-center gap-3 mb-12">
               <Award className="w-6 h-6 text-white/40" />
-              <h2 className="text-2xl font-semibold text-white/90">
-                Certifications
-              </h2>
+              <h2 className="text-2xl font-semibold text-white/90">Certifications</h2>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -318,9 +301,7 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content }) => {
                   key={index}
                   className="relative rounded-2xl bg-white/3 border border-white/10 p-4 hover:bg-white/5 transition-colors"
                 >
-                  <h3 className="text-lg font-bold text-white mb-1">
-                    {cert.name}
-                  </h3>
+                  <h3 className="text-lg font-bold text-white mb-1">{cert.name}</h3>
                   <p className="text-sm text-white/70">{cert.issuer}</p>
                   {cert.date && (
                     <p className="text-xs text-white/50 mt-1">
@@ -346,10 +327,7 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content }) => {
           </section>
         )}
 
-        <footer
-          id="contact"
-          className="mt-32 border-t border-white/10 pt-12 pb-6 text-center"
-        >
+        <footer id="contact" className="mt-32 border-t border-white/10 pt-12 pb-6 text-center">
           <p className="text-white/40 text-sm">
             Built with{" "}
             <a href={siteConfig.url} className="hover:underline text-white/60">

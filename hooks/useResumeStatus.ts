@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 interface ResumeStatus {
   status: "pending_claim" | "processing" | "completed" | "failed";
@@ -23,9 +23,7 @@ interface UseResumeStatusReturn {
  * @param resumeId - Resume ID to check status for (null to disable polling)
  * @returns Status state and refetch function
  */
-export function useResumeStatus(
-  resumeId: string | null,
-): UseResumeStatusReturn {
+export function useResumeStatus(resumeId: string | null): UseResumeStatusReturn {
   const [status, setStatus] = useState<ResumeStatus["status"] | null>(null);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -84,15 +82,9 @@ export function useResumeStatus(
 
       // Check for timeout (90 seconds)
       const elapsed = Date.now() - startTimeRef.current;
-      if (
-        elapsed > 90000 &&
-        data.status === "processing" &&
-        !hasTimedOutRef.current
-      ) {
+      if (elapsed > 90000 && data.status === "processing" && !hasTimedOutRef.current) {
         hasTimedOutRef.current = true;
-        setError(
-          "Processing is taking longer than expected. Please check back in a moment.",
-        );
+        setError("Processing is taking longer than expected. Please check back in a moment.");
         // Don't stop polling - just show warning
       }
     } catch (err) {
@@ -102,9 +94,7 @@ export function useResumeStatus(
       }
 
       console.error("Error fetching resume status:", err);
-      setError(
-        err instanceof Error ? err.message : "Network error. Please try again.",
-      );
+      setError(err instanceof Error ? err.message : "Network error. Please try again.");
       setIsLoading(false);
 
       // Stop polling on errors

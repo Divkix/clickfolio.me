@@ -1,6 +1,6 @@
-import { GetObjectCommand } from "@aws-sdk/client-s3";
+import type { Readable } from "node:stream";
 import type { S3Client } from "@aws-sdk/client-s3";
-import type { Readable } from "stream";
+import { GetObjectCommand } from "@aws-sdk/client-s3";
 
 export const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
@@ -36,7 +36,7 @@ function sanitizeFilename(filename: string): string {
     safe = "resume.pdf";
   }
   if (!safe.endsWith(".pdf")) {
-    safe = safe + ".pdf";
+    safe = `${safe}.pdf`;
   }
   return safe;
 }
@@ -122,7 +122,7 @@ export function validateRequestSize(
 
   const size = parseInt(contentLength, 10);
 
-  if (isNaN(size)) {
+  if (Number.isNaN(size)) {
     return { valid: false, error: "Invalid content-length header" };
   }
 

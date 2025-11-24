@@ -1,12 +1,12 @@
-import { createClient } from "@/lib/supabase/server";
+import { requireAuthWithMessage } from "@/lib/auth/middleware";
 import { privacySettingsSchema } from "@/lib/schemas/profile";
+import { createClient } from "@/lib/supabase/server";
 import { enforceRateLimit } from "@/lib/utils/rate-limit";
 import {
   createErrorResponse,
   createSuccessResponse,
   ERROR_CODES,
 } from "@/lib/utils/security-headers";
-import { requireAuthWithMessage } from "@/lib/auth/middleware";
 
 /**
  * PUT /api/profile/privacy
@@ -35,11 +35,7 @@ export async function PUT(request: Request) {
     try {
       body = await request.json();
     } catch {
-      return createErrorResponse(
-        "Invalid JSON in request body",
-        ERROR_CODES.BAD_REQUEST,
-        400,
-      );
+      return createErrorResponse("Invalid JSON in request body", ERROR_CODES.BAD_REQUEST, 400);
     }
 
     const validation = privacySettingsSchema.safeParse(body);

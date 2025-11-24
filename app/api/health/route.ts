@@ -1,8 +1,8 @@
+import { HeadBucketCommand } from "@aws-sdk/client-s3";
 import { NextResponse } from "next/server";
 import { validateEnvironment } from "@/lib/env";
+import { getR2Bucket, getR2Client } from "@/lib/r2";
 import { createClient } from "@/lib/supabase/server";
-import { getR2Client, getR2Bucket } from "@/lib/r2";
-import { HeadBucketCommand } from "@aws-sdk/client-s3";
 
 export const dynamic = "force-dynamic";
 
