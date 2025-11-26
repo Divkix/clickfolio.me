@@ -1,11 +1,15 @@
 "use client";
 
+import { useState } from "react";
 import { LoginButton } from "@/components/auth/LoginButton";
 import { Brand } from "@/components/Brand";
 import { FileDropzone } from "@/components/FileDropzone";
+import { TemplatePreviewModal } from "@/components/templates/TemplatePreviewModal";
 import { Toaster } from "@/components/ui/sonner";
+import { DEMO_PROFILES } from "@/lib/templates/demo-data";
 
 export default function Home() {
+  const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   return (
     <div className="min-h-screen bg-slate-50">
       <Toaster />
@@ -141,59 +145,31 @@ export default function Home() {
           <div className="mb-10">
             <p className="text-sm font-medium text-slate-500 mb-4">See live examples</p>
             <div className="flex flex-wrap justify-center gap-3">
-              {/* Example 1 */}
-              <div
-                className="group flex items-center gap-3 px-4 py-3 bg-white rounded-2xl border border-slate-200/60 shadow-depth-sm hover:shadow-depth-md hover:-translate-y-0.5 transition-all duration-300 cursor-pointer"
-                role="button"
-                tabIndex={0}
-              >
-                <div className="w-10 h-10 rounded-full bg-linear-to-r from-indigo-400 to-blue-500 flex items-center justify-center text-white font-bold text-sm">
-                  SC
+              {DEMO_PROFILES.map((profile, index) => (
+                <div
+                  key={profile.id}
+                  className="group flex items-center gap-3 px-4 py-3 bg-white rounded-2xl border border-slate-200/60 shadow-depth-sm hover:shadow-depth-md hover:-translate-y-0.5 transition-all duration-300 cursor-pointer"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setPreviewIndex(index)}
+                  onKeyDown={(e) => e.key === "Enter" && setPreviewIndex(index)}
+                >
+                  <div
+                    className={`w-10 h-10 rounded-full bg-linear-to-r ${profile.avatarGradient} flex items-center justify-center text-white font-bold text-sm`}
+                  >
+                    {profile.initials}
+                  </div>
+                  <div className="text-left">
+                    <div className="text-sm font-semibold text-slate-900">{profile.name}</div>
+                    <div className="text-xs text-slate-500">{profile.role}</div>
+                  </div>
+                  <div
+                    className={`ml-2 px-2 py-0.5 ${profile.badgeBgColor} rounded text-xs font-medium ${profile.badgeTextColor}`}
+                  >
+                    {profile.badgeLabel}
+                  </div>
                 </div>
-                <div className="text-left">
-                  <div className="text-sm font-semibold text-slate-900">Sarah Chen</div>
-                  <div className="text-xs text-slate-500">Product Designer</div>
-                </div>
-                <div className="ml-2 px-2 py-0.5 bg-indigo-50 rounded text-xs font-medium text-indigo-600">
-                  Editorial
-                </div>
-              </div>
-
-              {/* Example 2 */}
-              <div
-                className="group flex items-center gap-3 px-4 py-3 bg-white rounded-2xl border border-slate-200/60 shadow-depth-sm hover:shadow-depth-md hover:-translate-y-0.5 transition-all duration-300 cursor-pointer"
-                role="button"
-                tabIndex={0}
-              >
-                <div className="w-10 h-10 rounded-full bg-linear-to-r from-emerald-400 to-teal-500 flex items-center justify-center text-white font-bold text-sm">
-                  JS
-                </div>
-                <div className="text-left">
-                  <div className="text-sm font-semibold text-slate-900">John Smith</div>
-                  <div className="text-xs text-slate-500">Software Engineer</div>
-                </div>
-                <div className="ml-2 px-2 py-0.5 bg-emerald-50 rounded text-xs font-medium text-emerald-600">
-                  Brutalist
-                </div>
-              </div>
-
-              {/* Example 3 */}
-              <div
-                className="group flex items-center gap-3 px-4 py-3 bg-white rounded-2xl border border-slate-200/60 shadow-depth-sm hover:shadow-depth-md hover:-translate-y-0.5 transition-all duration-300 cursor-pointer"
-                role="button"
-                tabIndex={0}
-              >
-                <div className="w-10 h-10 rounded-full bg-linear-to-r from-purple-400 to-pink-500 flex items-center justify-center text-white font-bold text-sm">
-                  MR
-                </div>
-                <div className="text-left">
-                  <div className="text-sm font-semibold text-slate-900">Maria Rodriguez</div>
-                  <div className="text-xs text-slate-500">Marketing Lead</div>
-                </div>
-                <div className="ml-2 px-2 py-0.5 bg-purple-50 rounded text-xs font-medium text-purple-600">
-                  Bento
-                </div>
-              </div>
+              ))}
             </div>
           </div>
 
@@ -212,6 +188,14 @@ export default function Home() {
           </p>
         </div>
       </footer>
+
+      {/* Template Preview Modal */}
+      <TemplatePreviewModal
+        isOpen={previewIndex !== null}
+        onClose={() => setPreviewIndex(null)}
+        selectedIndex={previewIndex ?? 0}
+        onNavigate={setPreviewIndex}
+      />
     </div>
   );
 }
