@@ -57,7 +57,7 @@ const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
           </div>
 
           <div className="lg:col-span-4 flex flex-col gap-6">
-            <div className="bg-[#22CCEE] border-4 border-black p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] flex-1 flex flex-col justify-center items-center text-center hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all cursor-pointer">
+            <div className="bg-[#22CCEE] border-4 border-black p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] flex-1 flex flex-col justify-center items-center text-center hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all cursor-pointer">
               <div className="w-24 h-24 bg-white border-4 border-black rounded-full mb-4 overflow-hidden flex items-center justify-center">
                 {profile.avatar_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -332,7 +332,7 @@ const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
               {content.certifications.map((cert, index) => (
                 <div
                   key={index}
-                  className="bg-white border-4 border-black p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
+                  className="bg-white border-4 border-black p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-0.5over:translate-y-0.5 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
                 >
                   <div className="flex items-start gap-3">
                     <Award className="w-6 h-6 border-2 border-black p-1 bg-[#FF90E8]" />

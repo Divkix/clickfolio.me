@@ -151,7 +151,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
             <div className="flex items-center gap-3">
               {user.user_metadata?.avatar_url ? (
                 <div className="relative">
-                  <div className="absolute inset-0 rounded-full bg-linear-to-r from-indigo-600 to-blue-600 p-[2px]">
+                  <div className="absolute inset-0 rounded-full bg-linear-to-r from-indigo-600 to-blue-600 p-0.5">
                     <div className="w-full h-full rounded-full bg-white" />
                   </div>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
