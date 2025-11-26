@@ -122,9 +122,7 @@ export function TemplatePreviewModal({
 
             {/* Title */}
             <div className="text-center">
-              <h2 className="text-sm font-semibold">
-                {metadata.name}
-              </h2>
+              <h2 className="text-sm font-semibold">{metadata.name}</h2>
               <DialogPrimitive.Description className="sr-only">
                 Preview of the {metadata.name} resume template
               </DialogPrimitive.Description>
