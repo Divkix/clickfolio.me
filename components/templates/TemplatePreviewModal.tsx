@@ -121,6 +121,9 @@ export function TemplatePreviewModal({
               <DialogPrimitive.Title id="template-preview-title" className="text-sm font-semibold">
                 {metadata.name}
               </DialogPrimitive.Title>
+              <DialogPrimitive.Description className="sr-only">
+                Preview of the {metadata.name} resume template
+              </DialogPrimitive.Description>
               <p className={cn("text-xs", isDark ? "text-slate-400" : "text-slate-500")}>
                 {selectedIndex + 1} of {DEMO_PROFILES.length}
               </p>
