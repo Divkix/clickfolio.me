@@ -189,9 +189,7 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content }) => {
                     </span>
                   </div>
                   {job.description && job.description.trim() !== "" ? (
-                    <p className="text-sm text-white/80 leading-relaxed mb-4">
-                      {job.description}
-                    </p>
+                    <p className="text-sm text-white/80 leading-relaxed mb-4">{job.description}</p>
                   ) : job.highlights && job.highlights.length > 0 ? (
                     <ul className="text-sm text-white/80 space-y-2 list-disc pl-5 mb-4 leading-relaxed">
                       {job.highlights.slice(0, 3).map((highlight, i) => (

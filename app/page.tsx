@@ -75,7 +75,10 @@ export default function Home() {
                 </svg>
               </div>
               <span className="text-sm font-medium text-slate-600">
-                <span className="font-bold text-transparent bg-clip-text bg-linear-to-r from-orange-500 to-amber-600">~30s</span> setup
+                <span className="font-bold text-transparent bg-clip-text bg-linear-to-r from-orange-500 to-amber-600">
+                  ~30s
+                </span>{" "}
+                setup
               </span>
             </div>
 
@@ -99,7 +102,10 @@ export default function Home() {
                 </svg>
               </div>
               <span className="text-sm font-medium text-slate-600">
-                <span className="font-bold text-transparent bg-clip-text bg-linear-to-r from-indigo-600 to-purple-600">AI-Powered</span> parsing
+                <span className="font-bold text-transparent bg-clip-text bg-linear-to-r from-indigo-600 to-purple-600">
+                  AI-Powered
+                </span>{" "}
+                parsing
               </span>
             </div>
 
@@ -123,7 +129,10 @@ export default function Home() {
                 </svg>
               </div>
               <span className="text-sm font-medium text-slate-600">
-                <span className="font-bold text-transparent bg-clip-text bg-linear-to-r from-emerald-600 to-teal-600">Free</span> forever
+                <span className="font-bold text-transparent bg-clip-text bg-linear-to-r from-emerald-600 to-teal-600">
+                  Free
+                </span>{" "}
+                forever
               </span>
             </div>
           </div>

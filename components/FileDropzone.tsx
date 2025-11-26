@@ -352,8 +352,8 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
                 ? "Uploading file..."
                 : uploadProgress < 100
                   ? "Finalizing..."
-                  : "Complete!"}
-            {" "}{uploadProgress}%
+                  : "Complete!"}{" "}
+            {uploadProgress}%
           </p>
         </div>
       )}
@@ -431,9 +431,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
               <p className="text-sm text-slate-600 mb-1" aria-live="polite">
                 Extracting your experience, skills, and achievements
               </p>
-              <p className="text-xs text-slate-400 font-medium">
-                This typically takes ~30 seconds
-              </p>
+              <p className="text-xs text-slate-400 font-medium">This typically takes ~30 seconds</p>
             </div>
 
             {/* Subtle animated progress indicator */}
@@ -449,7 +447,12 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
             <div className="relative">
               <div className="absolute inset-0 bg-red-500 rounded-full blur-xl opacity-20" />
               <div className="relative w-16 h-16 bg-red-100 rounded-full flex items-center justify-center shadow-depth-md">
-                <svg className="w-8 h-8 text-red-500" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <svg
+                  className="w-8 h-8 text-red-500"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  aria-hidden="true"
+                >
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
