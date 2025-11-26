@@ -88,8 +88,12 @@ export function TemplatePreviewModal({
             "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
             "duration-200",
           )}
-          aria-labelledby="template-preview-title"
         >
+          {/* Accessible title for screen readers */}
+          <DialogPrimitive.Title className="sr-only">
+            {metadata.name} template preview
+          </DialogPrimitive.Title>
+
           {/* Header */}
           <div
             className={cn(
@@ -118,9 +122,9 @@ export function TemplatePreviewModal({
 
             {/* Title */}
             <div className="text-center">
-              <DialogPrimitive.Title id="template-preview-title" className="text-sm font-semibold">
+              <h2 className="text-sm font-semibold">
                 {metadata.name}
-              </DialogPrimitive.Title>
+              </h2>
               <DialogPrimitive.Description className="sr-only">
                 Preview of the {metadata.name} resume template
               </DialogPrimitive.Description>
