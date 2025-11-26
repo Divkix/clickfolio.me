@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 
 export function LoginButton() {
@@ -14,6 +15,21 @@ export function LoginButton() {
 
     if (error) {
       console.error("Error logging in:", error);
+
+      // Show user-friendly error message
+      let message = "Sign in failed. Please try again.";
+      if (error.message?.toLowerCase().includes("popup")) {
+        message = "Popup blocked. Please allow popups for this site.";
+      } else if (
+        error.message?.toLowerCase().includes("network") ||
+        error.message?.toLowerCase().includes("fetch")
+      ) {
+        message = "Network error. Check your connection.";
+      } else if (error.message?.toLowerCase().includes("cancel")) {
+        message = "Sign in was cancelled.";
+      }
+
+      toast.error(message);
     }
   };
 

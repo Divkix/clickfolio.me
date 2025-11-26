@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { classifyError, getErrorMessage, showErrorToast } from "@/lib/utils/errors";
 
 interface ResumeStatus {
   status: "pending_claim" | "processing" | "completed" | "failed";
@@ -34,6 +35,7 @@ export function useResumeStatus(resumeId: string | null): UseResumeStatusReturn 
   const abortControllerRef = useRef<AbortController | null>(null);
   const startTimeRef = useRef<number>(Date.now());
   const hasTimedOutRef = useRef(false);
+  const retryCountRef = useRef(0);
 
   // Memoize fetchStatus with only resumeId as dependency
   const fetchStatus = useCallback(async () => {
@@ -93,14 +95,35 @@ export function useResumeStatus(resumeId: string | null): UseResumeStatusReturn 
         return;
       }
 
-      console.error("Error fetching resume status:", err);
-      setError(err instanceof Error ? err.message : "Network error. Please try again.");
-      setIsLoading(false);
+      // Extract status code if available
+      const status =
+        (err as { status?: number })?.status || (err instanceof Response ? err.status : 0);
+      const category = classifyError(status);
 
-      // Stop polling on errors
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
+      console.error("Error fetching resume status:", err);
+
+      if (category === "fatal" || category === "auth") {
+        // Stop polling on fatal/auth errors
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+          intervalRef.current = null;
+        }
+        setError(getErrorMessage(status, "checking resume status"));
+        showErrorToast(status, "checking resume status");
+        setIsLoading(false);
+      } else {
+        // Transient error - continue polling but track retries
+        retryCountRef.current++;
+        if (retryCountRef.current >= 5) {
+          setError("Unable to check status. Please refresh the page.");
+          showErrorToast(0, "checking resume status");
+          if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
+          }
+          setIsLoading(false);
+        }
+        // Polling continues automatically on transient errors
       }
     }
   }, [resumeId]); // Only depend on resumeId - this is now stable
@@ -115,6 +138,7 @@ export function useResumeStatus(resumeId: string | null): UseResumeStatusReturn 
     // Reset state
     startTimeRef.current = Date.now();
     hasTimedOutRef.current = false;
+    retryCountRef.current = 0;
     setIsLoading(true);
 
     // Fetch immediately

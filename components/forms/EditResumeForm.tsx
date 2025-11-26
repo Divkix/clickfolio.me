@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CheckCircle2, Loader2, Plus, Save, Trash2 } from "lucide-react";
+import { Plus, Save, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { type FieldPath, useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -18,6 +18,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { SaveIndicator, type SaveStatus } from "@/components/ui/save-indicator";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { type ResumeContentFormData, resumeContentSchema } from "@/lib/schemas/resume";
@@ -29,9 +30,21 @@ interface EditResumeFormProps {
 }
 
 export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
-  const [isSaving, setIsSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [autoSaveTimeout, setAutoSaveTimeout] = useState<NodeJS.Timeout | null>(null);
+
+  // Warn user about unsaved changes when navigating away
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (saveStatus === "saving") {
+        e.preventDefault();
+        e.returnValue = "Changes are being saved. Leave anyway?";
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [saveStatus]);
 
   const form = useForm<ResumeContentFormData>({
     resolver: zodResolver(resumeContentSchema),
@@ -93,20 +106,22 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
 
   const handleSave = useCallback(
     async (data: ResumeContent, isAutoSave = false) => {
-      setIsSaving(true);
+      setSaveStatus("saving");
       try {
         await onSave(data);
         setLastSaved(new Date());
+        setSaveStatus("saved");
         if (!isAutoSave) {
           toast.success("Resume updated successfully!");
         }
       } catch (error) {
         console.error("Failed to save resume:", error);
+        setSaveStatus("error");
         if (!isAutoSave) {
           toast.error("Failed to save resume. Please try again.");
+        } else {
+          toast.error("Auto-save failed. Your changes may not be saved.");
         }
-      } finally {
-        setIsSaving(false);
       }
     },
     [onSave],
@@ -127,6 +142,12 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
 
         if (result.success) {
           handleSave(result.data, true);
+        } else {
+          // Show validation errors to user
+          const fieldErrors = result.error.issues.map((i) => i.path.join(".")).slice(0, 3);
+          toast.warning(`Fix validation errors: ${fieldErrors.join(", ")}`, {
+            duration: 5000,
+          });
         }
       }, 3000);
 
@@ -155,24 +176,14 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
         {/* Save Status Indicator */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            {isSaving ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Saving...</span>
-              </>
-            ) : lastSaved ? (
-              <>
-                <CheckCircle2 className="h-4 w-4 text-green-600" />
-                <span>Last saved {lastSaved.toLocaleTimeString()}</span>
-              </>
-            ) : null}
+        <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm py-3 -mx-4 px-4 border-b mb-4">
+          <div className="flex items-center justify-between">
+            <SaveIndicator status={saveStatus} lastSaved={lastSaved} />
+            <Button type="submit" disabled={saveStatus === "saving"}>
+              <Save className="h-4 w-4 mr-2" />
+              Publish Changes
+            </Button>
           </div>
-          <Button type="submit" disabled={isSaving}>
-            <Save className="h-4 w-4 mr-2" />
-            Publish Changes
-          </Button>
         </div>
 
         {/* Basic Information Section */}
@@ -351,6 +362,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
                       variant="ghost"
                       size="sm"
                       onClick={() => removeExperience(index)}
+                      aria-label={`Remove experience ${index + 1}`}
                     >
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
@@ -493,6 +505,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
                       variant="ghost"
                       size="sm"
                       onClick={() => removeEducation(index)}
+                      aria-label={`Remove education ${index + 1}`}
                     >
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
@@ -615,6 +628,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
                       variant="ghost"
                       size="sm"
                       onClick={() => removeSkill(index)}
+                      aria-label={`Remove skill group ${index + 1}`}
                     >
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
@@ -699,6 +713,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
                       variant="ghost"
                       size="sm"
                       onClick={() => removeCertification(index)}
+                      aria-label={`Remove certification ${index + 1}`}
                     >
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
@@ -832,6 +847,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
                       variant="ghost"
                       size="sm"
                       onClick={() => removeProject(index)}
+                      aria-label={`Remove project ${index + 1}`}
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
@@ -976,7 +992,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
 
         {/* Submit Button */}
         <div className="flex justify-end">
-          <Button type="submit" size="lg" disabled={isSaving}>
+          <Button type="submit" size="lg" disabled={saveStatus === "saving"}>
             <Save className="h-4 w-4 mr-2" />
             Publish Changes
           </Button>

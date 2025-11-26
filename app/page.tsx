@@ -18,13 +18,16 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8 pt-20 pb-20">
+      <main
+        id="main-content"
+        className="flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8 pt-20 pb-20"
+      >
         {/* Hero Section */}
         <div className="max-w-4xl mx-auto text-center animate-fade-in-up">
           <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold text-slate-900 mb-6 leading-[1.1] tracking-tight">
             Your Résumé is
             <br />
-            <span className="text-transparent bg-clip-text bg-linear-to-r from-indigo-600 via-blue-600 to-cyan-500">
+            <span className="text-transparent bg-clip-text bg-linear-to-r from-indigo-600 via-blue-600 to-cyan-600">
               already a Website
             </span>
           </h1>
@@ -48,7 +51,7 @@ export default function Home() {
                 <div className="relative">
                   <div className="absolute inset-0 bg-linear-to-r from-orange-400 to-amber-500 rounded-xl blur-lg opacity-20 group-hover:opacity-30 transition-opacity" />
                   <div className="relative bg-linear-to-r from-orange-100 to-amber-100 p-3 rounded-xl">
-                    <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none">
+                    <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                       <path
                         d="M13 2L3 14h8l-1 8 10-12h-8l1-8z"
                         stroke="url(#speedGradient)"
@@ -80,7 +83,7 @@ export default function Home() {
                 <div className="relative">
                   <div className="absolute inset-0 bg-linear-to-r from-indigo-500 to-purple-500 rounded-xl blur-lg opacity-20 group-hover:opacity-30 transition-opacity" />
                   <div className="relative bg-linear-to-r from-indigo-100 to-purple-100 p-3 rounded-xl">
-                    <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none">
+                    <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                       <path
                         d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"
                         stroke="url(#aiGradient)"
@@ -114,7 +117,7 @@ export default function Home() {
                 <div className="relative">
                   <div className="absolute inset-0 bg-linear-to-r from-emerald-400 to-teal-500 rounded-xl blur-lg opacity-20 group-hover:opacity-30 transition-opacity" />
                   <div className="relative bg-linear-to-r from-emerald-100 to-teal-100 p-3 rounded-xl">
-                    <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none">
+                    <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                       <path
                         d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z"
                         stroke="url(#freeGradient)"
@@ -132,7 +135,7 @@ export default function Home() {
                   </div>
                 </div>
                 <div>
-                  <div className="text-3xl font-bold text-transparent bg-clip-text bg-linear-to-r from-emerald-500 to-teal-600 mb-2">
+                  <div className="text-3xl font-bold text-transparent bg-clip-text bg-linear-to-r from-emerald-600 to-teal-600 mb-2">
                     Free
                   </div>
                   <div className="text-slate-600 text-sm font-medium">Always free to create</div>

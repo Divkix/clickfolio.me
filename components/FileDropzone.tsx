@@ -140,7 +140,28 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
         await claimUpload(key);
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Failed to upload file";
+      let errorMessage = "Failed to upload file";
+
+      // Differentiate error types by status code
+      if (err instanceof Response || (err as { status?: number })?.status) {
+        const status = err instanceof Response ? err.status : (err as { status?: number }).status;
+        if (status === 429) {
+          errorMessage = "Upload limit reached (5 per day). Try again tomorrow.";
+        } else if (status === 413) {
+          errorMessage = "File too large. Maximum size is 10MB.";
+        } else if (status === 401) {
+          errorMessage = "Session expired. Please sign in again.";
+        } else if (status === 409) {
+          errorMessage = "This file was already uploaded.";
+        }
+      } else if (err instanceof Error) {
+        if (err.message.includes("network") || err.message.includes("Network")) {
+          errorMessage = "Network error. Check your connection.";
+        } else if (err.message) {
+          errorMessage = err.message;
+        }
+      }
+
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -180,7 +201,28 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
       router.push("/dashboard");
       router.refresh();
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Failed to claim resume";
+      let errorMessage = "Failed to claim resume";
+
+      // Differentiate error types by status code
+      if (err instanceof Response || (err as { status?: number })?.status) {
+        const status = err instanceof Response ? err.status : (err as { status?: number }).status;
+        if (status === 429) {
+          errorMessage = "Upload limit reached (5 per day). Try again tomorrow.";
+        } else if (status === 401) {
+          errorMessage = "Session expired. Please sign in again.";
+        } else if (status === 404) {
+          errorMessage = "Upload not found. Please try uploading again.";
+        } else if (status === 409) {
+          errorMessage = "This resume was already claimed.";
+        }
+      } else if (err instanceof Error) {
+        if (err.message.includes("network") || err.message.includes("Network")) {
+          errorMessage = "Network error. Check your connection.";
+        } else if (err.message) {
+          errorMessage = err.message;
+        }
+      }
+
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -216,6 +258,15 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
         onDragOver={handleDragOver}
         onDrop={handleDrop}
         onClick={() => fileInputRef.current?.click()}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            fileInputRef.current?.click();
+          }
+        }}
+        role="button"
+        tabIndex={0}
+        aria-label="Drop your PDF resume here or click to browse files"
         className={`
             group relative bg-white rounded-2xl border border-slate-200/60 p-12 cursor-pointer transition-all duration-300 backdrop-blur-sm overflow-hidden
             ${isModal ? "" : "shadow-depth-md"}
@@ -239,6 +290,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
           onChange={handleFileSelect}
           className="hidden"
           disabled={uploading}
+          tabIndex={-1}
         />
 
         <div className="relative z-10 flex flex-col items-center gap-4">
@@ -250,7 +302,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
             <div
               className={`relative bg-linear-to-r from-indigo-100 to-blue-100 p-4 rounded-2xl transition-transform duration-300 ${isDragging ? "scale-110" : "group-hover:scale-110"}`}
             >
-              <svg className="w-12 h-12" viewBox="0 0 24 24" fill="none">
+              <svg className="w-12 h-12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <defs>
                   <linearGradient id="uploadGradient" x1="0%" y1="0%" x2="100%" y2="100%">
                     <stop offset="0%" stopColor="#4F46E5" />
@@ -270,7 +322,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
 
           <div className="text-center">
             <p className="text-lg font-semibold text-slate-900 mb-1">
-              {file ? file.name : "Drop your PDF résumé here"}
+              {file ? file.name : "Drop your PDF resume here"}
             </p>
             <p className="text-sm text-slate-500">or click to browse • Max 10MB</p>
           </div>
@@ -280,8 +332,12 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
       {/* Progress Bar */}
       {uploading && (
         <div className="space-y-2">
-          <Progress value={uploadProgress} className="h-2" />
-          <p className="text-xs text-center text-slate-500 font-medium">
+          <Progress
+            value={uploadProgress}
+            className="h-2"
+            aria-label={`Upload progress: ${uploadProgress}%`}
+          />
+          <p className="text-xs text-center text-slate-500 font-medium" aria-live="polite">
             Uploading... {uploadProgress}%
           </p>
         </div>
@@ -289,7 +345,10 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
 
       {/* Error Message */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-3 shadow-depth-sm">
+        <div
+          className="bg-red-50 border border-red-200 rounded-xl p-3 shadow-depth-sm"
+          role="alert"
+        >
           <p className="text-sm text-red-800 font-medium">{error}</p>
         </div>
       )}
@@ -315,7 +374,12 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
             <div className="relative">
               <div className="absolute inset-0 bg-linear-to-r from-indigo-500 to-blue-500 rounded-full blur-xl opacity-30 animate-pulse" />
               <div className="relative w-16 h-16 bg-linear-to-r from-indigo-100 to-blue-100 rounded-full flex items-center justify-center shadow-depth-md">
-                <svg className="w-8 h-8 animate-spin" viewBox="0 0 24 24" fill="none">
+                <svg
+                  className="w-8 h-8 animate-spin"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  aria-hidden="true"
+                >
                   <circle
                     className="opacity-25"
                     cx="12"
@@ -341,7 +405,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
 
             <div className="text-center">
               <h3 className="text-lg font-bold text-slate-900 mb-2">Processing Your Resume...</h3>
-              <p className="text-sm text-slate-600">
+              <p className="text-sm text-slate-600" aria-live="polite">
                 Claiming your upload and starting AI analysis
               </p>
             </div>
@@ -352,7 +416,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
             <div className="relative">
               <div className="absolute inset-0 bg-linear-to-r from-emerald-500 to-teal-500 rounded-full blur-xl opacity-30" />
               <div className="relative w-16 h-16 bg-linear-to-r from-emerald-100 to-teal-100 rounded-full flex items-center justify-center shadow-depth-md">
-                <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none">
+                <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -379,7 +443,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
 
             {user ? (
               /* Authenticated user - shouldn't reach here as auto-claim happens */
-              <p className="text-xs text-slate-500 text-center font-medium">
+              <p className="text-xs text-slate-500 text-center font-medium" aria-live="polite">
                 Redirecting to dashboard...
               </p>
             ) : (

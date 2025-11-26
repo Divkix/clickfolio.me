@@ -25,6 +25,7 @@ export function RealtimeStatusListener({
 
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const hasRefreshedRef = useRef(false);
+  const refreshDebounceRef = useRef<NodeJS.Timeout | null>(null);
   const [detected, setDetected] = useState<DetectedState>({
     status: "processing",
   });
@@ -32,16 +33,21 @@ export function RealtimeStatusListener({
   const handleStatusChange = useCallback((newStatus: string, errorMessage?: string) => {
     if (hasRefreshedRef.current) return;
     if (newStatus === "completed" || newStatus === "failed") {
-      hasRefreshedRef.current = true;
+      // Debounce to prevent race condition between realtime and polling
+      if (refreshDebounceRef.current) {
+        clearTimeout(refreshDebounceRef.current);
+      }
 
       setDetected({
         status: newStatus as "completed" | "failed",
         errorMessage,
       });
 
-      setTimeout(() => {
+      refreshDebounceRef.current = setTimeout(() => {
+        if (hasRefreshedRef.current) return;
+        hasRefreshedRef.current = true;
         window.location.reload();
-      }, 800);
+      }, 200);
     }
   }, []);
 
@@ -94,6 +100,9 @@ export function RealtimeStatusListener({
       supabase.removeChannel(channel);
       if (pollIntervalRef.current) {
         clearInterval(pollIntervalRef.current);
+      }
+      if (refreshDebounceRef.current) {
+        clearTimeout(refreshDebounceRef.current);
       }
     };
   }, [resumeId, currentStatus, handleStatusChange, supabase]);

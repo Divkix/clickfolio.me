@@ -187,7 +187,7 @@ export default async function DashboardPage() {
             <div className="relative inline-block mb-6">
               <div className="absolute inset-0 bg-linear-to-r from-indigo-500 to-blue-500 rounded-xl blur-xl opacity-20" />
               <div className="relative bg-linear-to-r from-indigo-100 to-blue-100 p-6 rounded-xl">
-                <Upload className="w-12 h-12 text-indigo-600 mx-auto" />
+                <Upload className="w-12 h-12 text-indigo-600 mx-auto" aria-hidden="true" />
               </div>
             </div>
             <h2 className="text-2xl font-bold text-slate-900 mb-3">No Resume Yet</h2>
@@ -200,7 +200,7 @@ export default async function DashboardPage() {
               className="w-full bg-linear-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-semibold transition-all duration-300 shadow-depth-sm hover:shadow-depth-md"
             >
               <Link href="/">
-                <Upload className="h-4 w-4 mr-2" />
+                <Upload className="h-4 w-4 mr-2" aria-hidden="true" />
                 Upload Your Resume
               </Link>
             </Button>
@@ -216,7 +216,7 @@ export default async function DashboardPage() {
         {/* Onboarding Incomplete Banner */}
         {profile && !profile.onboarding_completed && (
           <Alert className="mb-6 border-amber-200 bg-amber-50">
-            <AlertCircle className="w-4 h-4 text-amber-600" />
+            <AlertCircle className="w-4 h-4 text-amber-600" aria-hidden="true" />
             <AlertDescription className="flex items-center justify-between">
               <span className="text-amber-900 font-medium">
                 Your profile is incomplete. Complete the wizard to improve your resume.
@@ -264,16 +264,22 @@ export default async function DashboardPage() {
                       }`}
                     >
                       {resume.status === "completed" && (
-                        <CheckCircle2 className="w-5 h-5 text-green-600" />
+                        <CheckCircle2 className="w-5 h-5 text-green-600" aria-hidden="true" />
                       )}
                       {resume.status === "processing" && (
-                        <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
+                        <Loader2
+                          className="w-5 h-5 text-blue-600 animate-spin"
+                          aria-hidden="true"
+                        />
                       )}
                       {resume.status === "failed" && (
-                        <AlertCircle className="w-5 h-5 text-red-600" />
+                        <AlertCircle className="w-5 h-5 text-red-600" aria-hidden="true" />
                       )}
                       {resume.status === "pending_claim" && (
-                        <Loader2 className="w-5 h-5 text-slate-600 animate-spin" />
+                        <Loader2
+                          className="w-5 h-5 text-slate-600 animate-spin"
+                          aria-hidden="true"
+                        />
                       )}
                     </div>
                   </div>
@@ -326,6 +332,8 @@ export default async function DashboardPage() {
                         }`}
                       >
                         <div
+                          role="img"
+                          aria-label={`Profile completeness: ${completeness}%`}
                           className={`w-5 h-5 rounded-full border-2 flex items-center justify-center text-[10px] font-bold ${
                             completeness >= 90
                               ? "border-green-600 text-green-600"
@@ -334,7 +342,7 @@ export default async function DashboardPage() {
                                 : "border-yellow-600 text-yellow-600"
                           }`}
                         >
-                          {Math.round(completeness / 10)}
+                          <span aria-hidden="true">{Math.round(completeness / 10)}</span>
                         </div>
                       </div>
                     </div>
@@ -363,7 +371,7 @@ export default async function DashboardPage() {
                     <div className="relative shrink-0">
                       <div className="absolute inset-0 bg-linear-to-r from-indigo-500 to-blue-500 rounded-xl blur-lg opacity-20" />
                       <div className="relative bg-linear-to-r from-indigo-100 to-blue-100 p-2 rounded-xl">
-                        <Clock className="w-5 h-5 text-indigo-600" />
+                        <Clock className="w-5 h-5 text-indigo-600" aria-hidden="true" />
                       </div>
                     </div>
                     <div className="flex-1 min-w-0">
@@ -383,7 +391,7 @@ export default async function DashboardPage() {
                     <div className="relative shrink-0">
                       <div className="absolute inset-0 bg-linear-to-r from-indigo-500 to-blue-500 rounded-xl blur-lg opacity-20" />
                       <div className="relative bg-linear-to-r from-indigo-100 to-blue-100 p-2 rounded-xl">
-                        <ExternalLink className="w-5 h-5 text-indigo-600" />
+                        <ExternalLink className="w-5 h-5 text-indigo-600" aria-hidden="true" />
                       </div>
                     </div>
                     <div className="flex-1 min-w-0">
@@ -404,7 +412,7 @@ export default async function DashboardPage() {
                       <div className="relative shrink-0">
                         <div className="absolute inset-0 bg-linear-to-r from-indigo-500 to-blue-500 rounded-xl blur-lg opacity-20" />
                         <div className="relative bg-linear-to-r from-indigo-100 to-blue-100 p-2 rounded-xl">
-                          <Briefcase className="w-5 h-5 text-indigo-600" />
+                          <Briefcase className="w-5 h-5 text-indigo-600" aria-hidden="true" />
                         </div>
                       </div>
                       <div className="flex-1 min-w-0">
@@ -439,7 +447,10 @@ export default async function DashboardPage() {
                 <div className="col-span-full">
                   <div className="rounded-lg border border-red-200 bg-red-50 p-4 mb-4">
                     <div className="flex items-start gap-3">
-                      <AlertCircle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
+                      <AlertCircle
+                        className="h-5 w-5 text-red-600 shrink-0 mt-0.5"
+                        aria-hidden="true"
+                      />
                       <div className="flex-1">
                         <h3 className="font-semibold text-red-900">Processing Failed</h3>
                         <p className="mt-1 text-sm text-red-700">
@@ -503,7 +514,7 @@ export default async function DashboardPage() {
                     <div className="relative shrink-0">
                       <div className="absolute inset-0 bg-linear-to-r from-indigo-500 to-blue-500 rounded-lg blur-md opacity-20" />
                       <div className="relative bg-linear-to-r from-indigo-100 to-blue-100 p-2 rounded-lg">
-                        <Briefcase className="h-4 w-4 text-indigo-600" />
+                        <Briefcase className="h-4 w-4 text-indigo-600" aria-hidden="true" />
                       </div>
                     </div>
                     <div>
@@ -520,7 +531,7 @@ export default async function DashboardPage() {
                     <div className="relative shrink-0">
                       <div className="absolute inset-0 bg-linear-to-r from-purple-500 to-pink-500 rounded-lg blur-md opacity-20" />
                       <div className="relative bg-linear-to-r from-purple-100 to-pink-100 p-2 rounded-lg">
-                        <GraduationCap className="h-4 w-4 text-purple-600" />
+                        <GraduationCap className="h-4 w-4 text-purple-600" aria-hidden="true" />
                       </div>
                     </div>
                     <div>
@@ -535,7 +546,7 @@ export default async function DashboardPage() {
                     <div className="relative shrink-0">
                       <div className="absolute inset-0 bg-linear-to-r from-emerald-500 to-teal-500 rounded-lg blur-md opacity-20" />
                       <div className="relative bg-linear-to-r from-emerald-100 to-teal-100 p-2 rounded-lg">
-                        <Wrench className="h-4 w-4 text-emerald-600" />
+                        <Wrench className="h-4 w-4 text-emerald-600" aria-hidden="true" />
                       </div>
                     </div>
                     <div>
@@ -552,7 +563,7 @@ export default async function DashboardPage() {
                     <div className="relative shrink-0">
                       <div className="absolute inset-0 bg-linear-to-r from-orange-500 to-amber-500 rounded-lg blur-md opacity-20" />
                       <div className="relative bg-linear-to-r from-orange-100 to-amber-100 p-2 rounded-lg">
-                        <Award className="h-4 w-4 text-orange-600" />
+                        <Award className="h-4 w-4 text-orange-600" aria-hidden="true" />
                       </div>
                     </div>
                     <div>
@@ -573,7 +584,7 @@ export default async function DashboardPage() {
                     className="flex-1 bg-linear-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-semibold transition-all duration-300 shadow-depth-sm hover:shadow-depth-md"
                   >
                     <Link href="/edit">
-                      <Edit3 className="h-4 w-4 mr-2" />
+                      <Edit3 className="h-4 w-4 mr-2" aria-hidden="true" />
                       Edit Content
                     </Link>
                   </Button>
@@ -592,7 +603,7 @@ export default async function DashboardPage() {
                       <div className="relative shrink-0 mt-0.5">
                         <div className="absolute inset-0 bg-linear-to-r from-indigo-500 to-blue-500 rounded-lg blur-md opacity-20" />
                         <div className="relative bg-linear-to-r from-indigo-100 to-blue-100 p-2 rounded-lg">
-                          <Mail className="w-4 h-4 text-indigo-600" />
+                          <Mail className="w-4 h-4 text-indigo-600" aria-hidden="true" />
                         </div>
                       </div>
                       <div className="flex-1 min-w-0">
@@ -609,7 +620,7 @@ export default async function DashboardPage() {
                           <div className="relative shrink-0 mt-0.5">
                             <div className="absolute inset-0 bg-linear-to-r from-indigo-500 to-blue-500 rounded-lg blur-md opacity-20" />
                             <div className="relative bg-linear-to-r from-indigo-100 to-blue-100 p-2 rounded-lg">
-                              <LinkIcon className="w-4 h-4 text-indigo-600" />
+                              <LinkIcon className="w-4 h-4 text-indigo-600" aria-hidden="true" />
                             </div>
                           </div>
                           <div className="flex-1 min-w-0">
@@ -638,7 +649,7 @@ export default async function DashboardPage() {
                           <div className="relative shrink-0 mt-0.5">
                             <div className="absolute inset-0 bg-linear-to-r from-indigo-500 to-blue-500 rounded-lg blur-md opacity-20" />
                             <div className="relative bg-linear-to-r from-indigo-100 to-blue-100 p-2 rounded-lg">
-                              <Calendar className="w-4 h-4 text-indigo-600" />
+                              <Calendar className="w-4 h-4 text-indigo-600" aria-hidden="true" />
                             </div>
                           </div>
                           <div className="flex-1 min-w-0">
@@ -671,7 +682,7 @@ export default async function DashboardPage() {
                 {resume.status === "failed" && (
                   <div className="space-y-6">
                     <div className="flex items-center gap-4">
-                      <AlertCircle className="h-8 w-8 text-red-600 shrink-0" />
+                      <AlertCircle className="h-8 w-8 text-red-600 shrink-0" aria-hidden="true" />
                       <div className="flex-1">
                         <h3 className="text-xl font-bold text-red-900 mb-1">Processing failed</h3>
                         <p className="text-red-700">
@@ -689,7 +700,7 @@ export default async function DashboardPage() {
                       </Button>
                       <Button asChild variant="outline" className="flex-1">
                         <Link href="/">
-                          <Upload className="h-4 w-4 mr-2" />
+                          <Upload className="h-4 w-4 mr-2" aria-hidden="true" />
                           Upload New Resume
                         </Link>
                       </Button>
@@ -699,7 +710,10 @@ export default async function DashboardPage() {
 
                 {resume.status === "pending_claim" && (
                   <div className="flex items-center gap-4">
-                    <Loader2 className="h-8 w-8 animate-spin text-slate-600 shrink-0" />
+                    <Loader2
+                      className="h-8 w-8 animate-spin text-slate-600 shrink-0"
+                      aria-hidden="true"
+                    />
                     <div className="flex-1">
                       <h3 className="text-xl font-bold text-slate-900 mb-1">
                         Claiming your resume...
@@ -719,12 +733,19 @@ export default async function DashboardPage() {
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-3">
-                      <CheckCircle2 className="h-5 w-5 text-blue-600" />
+                      <CheckCircle2 className="h-5 w-5 text-blue-600" aria-hidden="true" />
                       <h3 className="font-semibold text-blue-900">Complete Your Profile</h3>
                     </div>
 
                     {/* Progress Bar */}
-                    <div className="w-full bg-blue-200 rounded-full h-2 mb-4">
+                    <div
+                      role="progressbar"
+                      aria-valuenow={completeness}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-label={`Profile completeness: ${completeness}%`}
+                      className="w-full bg-blue-200 rounded-full h-2 mb-4"
+                    >
                       <div
                         className="h-2 rounded-full bg-linear-to-r from-indigo-600 to-blue-600 transition-all duration-500"
                         style={{ width: `${completeness}%` }}
@@ -738,7 +759,9 @@ export default async function DashboardPage() {
                       <ul className="space-y-1.5">
                         {suggestions.map((suggestion, index) => (
                           <li key={index} className="text-sm flex items-start gap-2">
-                            <span className="text-blue-600 mt-0.5">•</span>
+                            <span className="text-blue-600 mt-0.5" aria-hidden="true">
+                              •
+                            </span>
                             <span>{suggestion}</span>
                           </li>
                         ))}
@@ -749,7 +772,7 @@ export default async function DashboardPage() {
                         className="mt-4 bg-linear-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-semibold"
                       >
                         <Link href="/edit">
-                          <Edit3 className="h-3 w-3 mr-2" />
+                          <Edit3 className="h-3 w-3 mr-2" aria-hidden="true" />
                           Complete Now
                         </Link>
                       </Button>
@@ -765,7 +788,7 @@ export default async function DashboardPage() {
             <div className="col-span-full">
               <Alert className="border-green-200 bg-green-50 rounded-2xl shadow-depth-sm hover:shadow-depth-md transition-all duration-300">
                 <div className="flex items-center gap-3">
-                  <CheckCircle2 className="h-5 w-5 text-green-600" />
+                  <CheckCircle2 className="h-5 w-5 text-green-600" aria-hidden="true" />
                   <AlertDescription className="text-green-900 font-medium">
                     Your profile is complete! Your resume looks professional and ready to share.
                   </AlertDescription>
