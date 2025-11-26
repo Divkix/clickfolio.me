@@ -6,6 +6,18 @@ import type { Project } from "@/lib/types/database";
 import type { TemplateProps } from "@/lib/types/template";
 
 const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
+  const safeHeadline =
+    content.headline && content.headline.trim() !== "" ? content.headline : content.full_name;
+  const headlineWords = safeHeadline.split(/\s+/);
+  const heroFirstLine = headlineWords.slice(0, 2).join(" ");
+  const heroSecondLine = headlineWords.slice(2).join(" ");
+  const projectsHook =
+    content.projects && content.projects.length > 0
+      ? `${content.projects[0]?.title ?? "Featured projects"}${
+          content.projects.length > 1 ? ` + ${content.projects.length - 1} more` : ""
+        }`
+      : null;
+
   return (
     <div className="min-h-screen bg-[#FFFDF5] font-mono p-4 md:p-6 overflow-y-auto selection:bg-[#FF90E8] selection:text-black">
       <div className="max-w-6xl mx-auto space-y-8 pb-20">
@@ -41,14 +53,26 @@ const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
               <Globe size={200} strokeWidth={1.5} />
             </div>
             <h1 className="text-5xl md:text-7xl font-black uppercase leading-[0.85] tracking-tighter relative z-10">
-              {content.headline.split(" ").slice(0, 2).join(" ")}
-              <br />
-              {content.headline.split(" ").slice(2).join(" ")}
+              {heroFirstLine}
+              {heroSecondLine && (
+                <>
+                  <br />
+                  {heroSecondLine}
+                </>
+              )}
               <br />
               <span className="text-white" style={{ WebkitTextStroke: "2px black" }}>
-                Portfolio
+                Featured Projects
               </span>
             </h1>
+            {projectsHook && (
+              <a
+                href="#work"
+                className="mt-6 inline-block bg-black text-white border-2 md:border-4 border-black px-4 py-2 text-sm md:text-base font-black uppercase tracking-tight shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform"
+              >
+                See {projectsHook}
+              </a>
+            )}
             {content.summary && (
               <p className="mt-8 font-bold text-xl md:text-2xl max-w-lg border-l-2 md:border-l-4 border-black pl-6">
                 {content.summary}

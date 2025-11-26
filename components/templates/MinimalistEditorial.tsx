@@ -280,62 +280,53 @@ const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile }) => {
         )}
 
         {/* Footer / Contact */}
-        <footer className="grid grid-cols-1 md:grid-cols-2 gap-12 border-t border-neutral-900 pt-12">
-          <div>
-            <p className="text-3xl font-serif italic">
-              Professional portfolio
-              <br />
-              powered by AI.
-            </p>
-          </div>
-          <div className="flex flex-col items-start md:items-end justify-between h-full">
-            <div className="flex gap-8 flex-wrap">
-              {content.contact.email && (
-                <a
-                  href={`mailto:${content.contact.email}`}
-                  className="text-sm uppercase tracking-widest hover:line-through decoration-1"
-                >
-                  Email
-                </a>
-              )}
-              {content.contact.linkedin && (
-                <a
-                  href={content.contact.linkedin}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm uppercase tracking-widest hover:line-through decoration-1"
-                >
-                  LinkedIn
-                </a>
-              )}
-              {content.contact.github && (
-                <a
-                  href={content.contact.github}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm uppercase tracking-widest hover:line-through decoration-1"
-                >
-                  GitHub
-                </a>
-              )}
-              {content.contact.website && (
-                <a
-                  href={content.contact.website}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm uppercase tracking-widest hover:line-through decoration-1"
-                >
-                  Website
-                </a>
-              )}
-            </div>
-            <p className="text-xs text-neutral-400 mt-8 md:mt-0">
-              Built with{" "}
-              <a href={siteConfig.url} className="hover:underline">
-                {siteConfig.fullName}
+        <footer className="flex flex-col md:flex-row md:items-center md:justify-between gap-8 border-t border-neutral-900 pt-12">
+          <div className="flex gap-8 flex-wrap">
+            {content.contact.email && (
+              <a
+                href={`mailto:${content.contact.email}`}
+                className="text-sm uppercase tracking-widest hover:line-through decoration-1"
+              >
+                Email
               </a>
-            </p>
+            )}
+            {content.contact.linkedin && (
+              <a
+                href={content.contact.linkedin}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm uppercase tracking-widest hover:line-through decoration-1"
+              >
+                LinkedIn
+              </a>
+            )}
+            {content.contact.github && (
+              <a
+                href={content.contact.github}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm uppercase tracking-widest hover:line-through decoration-1"
+              >
+                GitHub
+              </a>
+            )}
+            {content.contact.website && (
+              <a
+                href={content.contact.website}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm uppercase tracking-widest hover:line-through decoration-1"
+              >
+                Website
+              </a>
+            )}
           </div>
+          <p className="text-xs text-neutral-400">
+            Built with{" "}
+            <a href={siteConfig.url} className="hover:underline">
+              {siteConfig.fullName}
+            </a>
+          </p>
         </footer>
       </div>
     </div>
