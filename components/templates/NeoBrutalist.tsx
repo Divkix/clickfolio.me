@@ -332,7 +332,7 @@ const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
               {content.certifications.map((cert, index) => (
                 <div
                   key={index}
-                  className="bg-white border-2 md:border-4 border-black p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-0.5over:translate-y-0.5 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
+                  className="bg-white border-2 md:border-4 border-black p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
                 >
                   <div className="flex items-start gap-3">
                     <Award className="w-6 h-6 border-2 border-black p-1 bg-[#FF90E8]" />

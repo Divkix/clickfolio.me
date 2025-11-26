@@ -185,14 +185,29 @@ export function TemplatePreviewModal({
           >
             <span className="hidden sm:inline">
               Use{" "}
-              <kbd className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-mono text-[10px]">
+              <kbd
+                className={cn(
+                  "px-1.5 py-0.5 rounded font-mono text-[10px]",
+                  isDark ? "bg-slate-800 text-slate-300" : "bg-slate-100 text-slate-600",
+                )}
+              >
                 ←
               </kbd>{" "}
-              <kbd className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-mono text-[10px]">
+              <kbd
+                className={cn(
+                  "px-1.5 py-0.5 rounded font-mono text-[10px]",
+                  isDark ? "bg-slate-800 text-slate-300" : "bg-slate-100 text-slate-600",
+                )}
+              >
                 →
               </kbd>{" "}
               to navigate,{" "}
-              <kbd className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-mono text-[10px]">
+              <kbd
+                className={cn(
+                  "px-1.5 py-0.5 rounded font-mono text-[10px]",
+                  isDark ? "bg-slate-800 text-slate-300" : "bg-slate-100 text-slate-600",
+                )}
+              >
                 Esc
               </kbd>{" "}
               to close
