@@ -6,21 +6,40 @@ interface WizardProgressProps {
   currentStep: number;
   totalSteps: number;
   progress: number;
+  hasUploadStep?: boolean;
 }
 
-const STEP_TITLES = [
-  "Choose Your Role",
-  "Craft Your Headline",
-  "Polish Your Summary",
-  "Enhance Experience",
-];
+const getStepTitle = (step: number, hasUploadStep: boolean): string => {
+  const uploadStepTitles = [
+    "Upload Resume", // Step 1
+    "Choose Handle", // Step 2
+    "Review Content", // Step 3
+    "Privacy Settings", // Step 4
+    "Select Theme", // Step 5
+  ];
+
+  const normalStepTitles = [
+    "Choose Handle", // Step 1
+    "Review Content", // Step 2
+    "Privacy Settings", // Step 3
+    "Select Theme", // Step 4
+  ];
+
+  const titles = hasUploadStep ? uploadStepTitles : normalStepTitles;
+  return titles[step - 1] || "Unknown Step";
+};
 
 /**
  * WizardProgress Component
  * Displays the current step progress in the wizard flow
  */
-export function WizardProgress({ currentStep, totalSteps, progress }: WizardProgressProps) {
-  const stepTitle = STEP_TITLES[currentStep - 1] || "Unknown Step";
+export function WizardProgress({
+  currentStep,
+  totalSteps,
+  progress,
+  hasUploadStep,
+}: WizardProgressProps) {
+  const stepTitle = getStepTitle(currentStep, hasUploadStep ?? false);
 
   return (
     <div className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-slate-200/60 shadow-depth-sm">

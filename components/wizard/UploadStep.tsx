@@ -182,7 +182,7 @@ export function UploadStep({ onContinue }: UploadStepProps) {
                 setUploadState("error");
                 resolve(null);
               }
-            }
+            },
           )
           .subscribe();
 
