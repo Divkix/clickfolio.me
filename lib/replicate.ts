@@ -6,10 +6,38 @@ import { ENV } from "./env";
 // Initialize Replicate client lazily
 let _replicate: Replicate | null = null;
 
+/**
+ * Creates a custom fetch function for Cloudflare AI Gateway with BYOK.
+ * - Strips the SDK's Authorization header (BYOK injects Replicate token)
+ * - Adds cf-aig-authorization header for gateway authentication
+ */
+function createGatewayFetch(cfAuthToken: string) {
+  return async (
+    url: RequestInfo | URL,
+    init?: RequestInit,
+  ): Promise<Response> => {
+    const headers = new Headers(init?.headers);
+
+    // Remove SDK's Authorization header (BYOK injects Replicate token from Secrets Store)
+    headers.delete("Authorization");
+
+    // Add Cloudflare AI Gateway auth
+    headers.set("cf-aig-authorization", `Bearer ${cfAuthToken}`);
+
+    return fetch(url, { ...init, headers });
+  };
+}
+
 function getReplicate(): Replicate {
   if (!_replicate) {
+    const accountId = ENV.CF_AI_GATEWAY_ACCOUNT_ID();
+    const gatewayId = ENV.CF_AI_GATEWAY_ID();
+    const cfAuthToken = ENV.CF_AIG_AUTH_TOKEN();
+
     _replicate = new Replicate({
-      auth: ENV.REPLICATE_API_TOKEN(),
+      auth: "unused", // SDK requires auth, but we strip the header via custom fetch
+      baseUrl: `https://gateway.ai.cloudflare.com/v1/${accountId}/${gatewayId}/replicate`,
+      fetch: createGatewayFetch(cfAuthToken),
     });
   }
   return _replicate;

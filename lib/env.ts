@@ -86,10 +86,20 @@ export function validateEnvironment(): void {
       required: true,
     },
 
-    // Replicate
+    // Cloudflare AI Gateway (BYOK - Replicate token stored in CF Secrets Store)
     {
-      key: "REPLICATE_API_TOKEN",
-      value: process.env.REPLICATE_API_TOKEN,
+      key: "CF_AI_GATEWAY_ACCOUNT_ID",
+      value: process.env.CF_AI_GATEWAY_ACCOUNT_ID,
+      required: true,
+    },
+    {
+      key: "CF_AI_GATEWAY_ID",
+      value: process.env.CF_AI_GATEWAY_ID,
+      required: true,
+    },
+    {
+      key: "CF_AIG_AUTH_TOKEN",
+      value: process.env.CF_AIG_AUTH_TOKEN,
       required: true,
     },
   ];
@@ -118,7 +128,11 @@ export const ENV = {
   R2_SECRET_ACCESS_KEY: () => getRequiredEnv("R2_SECRET_ACCESS_KEY"),
   R2_BUCKET_NAME: () => getRequiredEnv("R2_BUCKET_NAME"),
 
-  // Replicate
-  REPLICATE_API_TOKEN: () => getRequiredEnv("REPLICATE_API_TOKEN"),
-  REPLICATE_WEBHOOK_SECRET: () => getEnvVar("REPLICATE_WEBHOOK_SECRET", false), // optional for local dev
+  // Cloudflare AI Gateway (BYOK)
+  CF_AI_GATEWAY_ACCOUNT_ID: () => getRequiredEnv("CF_AI_GATEWAY_ACCOUNT_ID"),
+  CF_AI_GATEWAY_ID: () => getRequiredEnv("CF_AI_GATEWAY_ID"),
+  CF_AIG_AUTH_TOKEN: () => getRequiredEnv("CF_AIG_AUTH_TOKEN"),
+
+  // Replicate webhook (still needed - webhooks come directly from Replicate)
+  REPLICATE_WEBHOOK_SECRET: () => getEnvVar("REPLICATE_WEBHOOK_SECRET", false),
 } as const;
