@@ -73,11 +73,7 @@ export async function POST(request: Request) {
 
     // Validate hash format if provided (64 hex chars for SHA-256)
     if (file_hash && !/^[a-f0-9]{64}$/i.test(file_hash)) {
-      return createErrorResponse(
-        "Invalid file hash format",
-        ERROR_CODES.VALIDATION_ERROR,
-        400,
-      );
+      return createErrorResponse("Invalid file hash format", ERROR_CODES.VALIDATION_ERROR, 400);
     }
 
     // 4. Rate limiting check (5 uploads per 24 hours)
@@ -111,13 +107,15 @@ export async function POST(request: Request) {
       );
     }
 
-    // 5b. Check for cached parse result (same file uploaded before)
+    // 5b. Check for cached parse result (same file uploaded before BY THIS USER)
     // NOTE: We read parsed_content from resumes table, NOT site_data
     // because site_data gets overwritten on each new upload (onConflict: "user_id")
+    // SECURITY: Only look up cache for current user's own resumes to prevent cross-user data access
     if (file_hash) {
       const { data: cached } = await supabase
         .from("resumes")
         .select("id, parsed_content")
+        .eq("user_id", user.id) // CRITICAL: Only access current user's cached resumes
         .eq("file_hash", file_hash)
         .eq("status", "completed")
         .not("parsed_content", "is", null) // Must have cached content
@@ -176,16 +174,23 @@ export async function POST(request: Request) {
                   Key: key,
                 }),
               );
+
+              // R2 operations succeeded - return cached result
+              return createSuccessResponse({
+                resume_id: resume.id,
+                status: "completed",
+                cached: true,
+              });
             } catch (error) {
               console.error("R2 operations failed for cached resume:", error);
-              // Non-critical - resume is still valid
+              // SECURITY FIX: R2 failure means file isn't properly moved
+              // Reset status and fall through to normal processing instead of returning success
+              await supabase
+                .from("resumes")
+                .update({ status: "pending_claim", parsed_at: null, parsed_content: null })
+                .eq("id", resume.id);
+              // Fall through to normal processing path
             }
-
-            return createSuccessResponse({
-              resume_id: resume.id,
-              status: "completed",
-              cached: true,
-            });
           }
         }
       }
@@ -193,10 +198,12 @@ export async function POST(request: Request) {
 
     // 5c. Check if another resume with same hash is currently processing
     // If so, wait for it instead of triggering duplicate parsing
+    // SECURITY: Only look for processing resumes from the same user
     if (file_hash) {
       const { data: processing } = await supabase
         .from("resumes")
         .select("id")
+        .eq("user_id", user.id) // CRITICAL: Only access current user's resumes
         .eq("file_hash", file_hash)
         .eq("status", "processing")
         .neq("id", resume.id)
@@ -204,7 +211,7 @@ export async function POST(request: Request) {
         .maybeSingle();
 
       if (processing) {
-        // Another user is already parsing this file - wait for their result
+        // This user is already parsing this file - wait for that result
         const { error: waitError } = await supabase
           .from("resumes")
           .update({
@@ -278,6 +285,41 @@ export async function POST(request: Request) {
         ERROR_CODES.EXTERNAL_SERVICE_ERROR,
         500,
       );
+    }
+
+    // 6b. Server-side hash verification (prevent hash poisoning attacks)
+    // If client provided a hash, verify it matches the actual file content
+    if (file_hash) {
+      try {
+        const getCommand = new GetObjectCommand({
+          Bucket: R2_BUCKET,
+          Key: key,
+        });
+        const response = await r2Client.send(getCommand);
+        const fileBuffer = await response.Body?.transformToByteArray();
+
+        if (fileBuffer) {
+          // Create a new ArrayBuffer to ensure type compatibility with crypto.subtle.digest
+          const arrayBuffer = new ArrayBuffer(fileBuffer.byteLength);
+          new Uint8Array(arrayBuffer).set(fileBuffer);
+          const hashBuffer = await crypto.subtle.digest("SHA-256", arrayBuffer);
+          const computedHash = Array.from(new Uint8Array(hashBuffer))
+            .map((b) => b.toString(16).padStart(2, "0"))
+            .join("");
+
+          if (computedHash !== file_hash.toLowerCase()) {
+            return await failResume(
+              "File hash mismatch - file may be corrupted",
+              ERROR_CODES.VALIDATION_ERROR,
+              400,
+            );
+          }
+        }
+      } catch (error) {
+        console.error("Hash verification error:", error);
+        // If we can't verify the hash, continue without caching benefits
+        // The file will still be processed, just won't use/populate cache
+      }
     }
 
     // 7. Validate PDF magic number before processing
