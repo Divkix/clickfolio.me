@@ -103,73 +103,68 @@ export async function POST(request: Request) {
     }
 
     // 5b. Check for cached parse result (same file uploaded before)
+    // NOTE: We read parsed_content from resumes table, NOT site_data
+    // because site_data gets overwritten on each new upload (onConflict: "user_id")
     if (file_hash) {
       const { data: cached } = await supabase
         .from("resumes")
-        .select("id")
+        .select("id, parsed_content")
         .eq("file_hash", file_hash)
         .eq("status", "completed")
+        .not("parsed_content", "is", null) // Must have cached content
         .neq("id", resume.id) // Exclude current resume
         .limit(1)
         .maybeSingle();
 
-      if (cached) {
-        // Get the cached site_data content
-        const { data: cachedSiteData } = await supabase
-          .from("site_data")
-          .select("content")
-          .eq("resume_id", cached.id)
-          .single();
-
-        if (cachedSiteData) {
-          // Update new resume to completed (skip Replicate entirely)
-          await supabase
-            .from("resumes")
-            .update({
-              status: "completed",
-              file_hash,
-              parsed_at: new Date().toISOString(),
-            })
-            .eq("id", resume.id);
-
-          // Copy content to new user's site_data
-          await supabase.from("site_data").upsert(
-            {
-              user_id: user.id,
-              resume_id: resume.id,
-              content: cachedSiteData.content,
-              last_published_at: new Date().toISOString(),
-            },
-            { onConflict: "user_id" },
-          );
-
-          // Still need to move the file from temp to user folder
-          // (but we skip the expensive Replicate API call)
-          try {
-            await r2Client.send(
-              new CopyObjectCommand({
-                Bucket: R2_BUCKET,
-                CopySource: `${R2_BUCKET}/${key}`,
-                Key: newKey,
-              }),
-            );
-            await r2Client.send(
-              new DeleteObjectCommand({
-                Bucket: R2_BUCKET,
-                Key: key,
-              }),
-            );
-          } catch (error) {
-            console.error("R2 operations failed for cached resume:", error);
-            // Non-critical - resume is still valid
-          }
-
-          return createSuccessResponse({
-            resume_id: resume.id,
+      if (cached?.parsed_content) {
+        // Update new resume to completed with cached content (skip Replicate entirely)
+        await supabase
+          .from("resumes")
+          .update({
             status: "completed",
-            cached: true,
-          });
+            file_hash,
+            parsed_at: new Date().toISOString(),
+            parsed_content: cached.parsed_content, // Copy cached content
+          })
+          .eq("id", resume.id);
+
+        // Copy content to user's site_data for publishing
+        await supabase.from("site_data").upsert(
+          {
+            user_id: user.id,
+            resume_id: resume.id,
+            content: cached.parsed_content,
+            last_published_at: new Date().toISOString(),
+          },
+          { onConflict: "user_id" },
+        );
+
+        // Still need to move the file from temp to user folder
+        // (but we skip the expensive Replicate API call)
+        try {
+          await r2Client.send(
+            new CopyObjectCommand({
+              Bucket: R2_BUCKET,
+              CopySource: `${R2_BUCKET}/${key}`,
+              Key: newKey,
+            }),
+          );
+          await r2Client.send(
+            new DeleteObjectCommand({
+              Bucket: R2_BUCKET,
+              Key: key,
+            }),
+          );
+        } catch (error) {
+          console.error("R2 operations failed for cached resume:", error);
+          // Non-critical - resume is still valid
         }
+
+        return createSuccessResponse({
+          resume_id: resume.id,
+          status: "completed",
+          cached: true,
+        });
       }
     }
 

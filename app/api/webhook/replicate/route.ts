@@ -128,12 +128,13 @@ export async function POST(request: Request) {
         return new Response("OK", { status: 200 });
       }
 
-      // Update resume status
+      // Update resume status and store parsed content for caching
       await supabase
         .from("resumes")
         .update({
           status: "completed",
           parsed_at: new Date().toISOString(),
+          parsed_content: JSON.parse(JSON.stringify(normalizedContent)), // Store for file hash cache
         })
         .eq("id", resume.id);
 
