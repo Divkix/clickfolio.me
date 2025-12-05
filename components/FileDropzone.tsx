@@ -115,6 +115,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
         localStorage.setItem("temp_file_hash", fileHash);
       } catch {
         // Fallback: proceed without hash (older browsers without crypto.subtle)
+        localStorage.removeItem("temp_file_hash");
         console.warn("Could not compute file hash, proceeding without cache");
       }
       setUploadProgress(20);
