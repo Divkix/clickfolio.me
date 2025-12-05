@@ -112,10 +112,11 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
       let fileHash: string | undefined;
       try {
         fileHash = await computeFileHash(fileToUpload);
-        localStorage.setItem("temp_file_hash", fileHash);
+        // Use sessionStorage for file hash to avoid multi-tab race conditions
+        sessionStorage.setItem("temp_file_hash", fileHash);
       } catch {
         // Fallback: proceed without hash (older browsers without crypto.subtle)
-        localStorage.removeItem("temp_file_hash");
+        sessionStorage.removeItem("temp_file_hash");
         console.warn("Could not compute file hash, proceeding without cache");
       }
       setUploadProgress(20);
@@ -186,6 +187,10 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
         }
       }
 
+      // Clean up temp storage on error
+      localStorage.removeItem("temp_upload_key");
+      sessionStorage.removeItem("temp_file_hash");
+
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -198,8 +203,8 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
     setError(null);
 
     try {
-      // Include file hash for deduplication caching
-      const fileHash = localStorage.getItem("temp_file_hash");
+      // Include file hash for deduplication caching (from sessionStorage)
+      const fileHash = sessionStorage.getItem("temp_file_hash");
 
       const claimResponse = await fetch("/api/resume/claim", {
         method: "POST",
@@ -214,9 +219,9 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
 
       await claimResponse.json();
 
-      // Clear temp data from localStorage
+      // Clear temp data from localStorage and sessionStorage
       localStorage.removeItem("temp_upload_key");
-      localStorage.removeItem("temp_file_hash");
+      sessionStorage.removeItem("temp_file_hash");
 
       toast.success("Resume claimed successfully! Processing...");
 
@@ -250,6 +255,10 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
           errorMessage = err.message;
         }
       }
+
+      // Clean up temp storage on error
+      localStorage.removeItem("temp_upload_key");
+      sessionStorage.removeItem("temp_file_hash");
 
       setError(errorMessage);
       toast.error(errorMessage);

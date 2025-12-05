@@ -84,7 +84,8 @@ export default function WizardPage() {
         const tempKey = localStorage.getItem("temp_upload_key");
         if (tempKey) {
           // Claim the upload (include file_hash for deduplication caching)
-          const fileHash = localStorage.getItem("temp_file_hash");
+          // Use sessionStorage for file_hash to avoid multi-tab race conditions
+          const fileHash = sessionStorage.getItem("temp_file_hash");
           setLoading(true);
           try {
             const claimResponse = await fetch("/api/resume/claim", {
@@ -99,12 +100,17 @@ export default function WizardPage() {
               throw new Error(claimData.error || "Failed to claim resume");
             }
 
+            // Validate that resume_id was returned
+            if (!claimData?.resume_id) {
+              throw new Error("Server error: No resume ID returned");
+            }
+
             // Get resume_id from claim response
             const resumeId = claimData.resume_id;
 
-            // Clear localStorage after successful claim
+            // Clear localStorage and sessionStorage after successful claim
             localStorage.removeItem("temp_upload_key");
-            localStorage.removeItem("temp_file_hash");
+            sessionStorage.removeItem("temp_file_hash");
 
             // If not cached, wait for Realtime updates (parsing in progress)
             if (!claimData.cached) {
@@ -166,7 +172,7 @@ export default function WizardPage() {
             console.error("Claim error:", claimError);
             setError(claimError instanceof Error ? claimError.message : "Failed to claim resume");
             localStorage.removeItem("temp_upload_key");
-            localStorage.removeItem("temp_file_hash");
+            sessionStorage.removeItem("temp_file_hash");
             setTimeout(() => router.push("/dashboard"), 3000);
             return;
           }
