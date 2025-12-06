@@ -8,5 +8,5 @@
     "open-next.config.ts"
   ],
   "ignore": ["app/globals.css"],
-  "ignoreBinaries": ["supabase"]
+  "ignoreBinaries": []
 }

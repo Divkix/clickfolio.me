@@ -23,7 +23,6 @@ interface ResumeStatusResponse {
 
 /**
  * Status listener component that polls the API for resume status changes.
- * Replaces the previous Supabase Realtime implementation with HTTP polling.
  */
 export function RealtimeStatusListener({
   resumeId,

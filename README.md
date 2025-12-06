@@ -27,7 +27,8 @@ webresume.now transforms your PDF resume into a beautiful, shareable web portfol
 
 - **Framework**: [Next.js 15](https://nextjs.org) (App Router)
 - **Runtime**: Cloudflare Workers (Node.js compatibility)
-- **Database**: [Supabase](https://supabase.com) (PostgreSQL + Auth)
+- **Database**: Cloudflare D1 (SQLite) with [Drizzle ORM](https://orm.drizzle.team)
+- **Authentication**: [Better Auth](https://better-auth.com) (Google OAuth)
 - **Storage**: Cloudflare R2 (S3-compatible)
 - **AI Parsing**: [Replicate](https://replicate.com) (datalab-to/marker)
 - **Styling**: [Tailwind CSS 4](https://tailwindcss.com)
@@ -41,9 +42,9 @@ webresume.now transforms your PDF resume into a beautiful, shareable web portfol
 ### Prerequisites
 
 - [Bun](https://bun.sh) installed
-- [Supabase](https://supabase.com) account
-- [Cloudflare](https://cloudflare.com) account with R2 enabled
+- [Cloudflare](https://cloudflare.com) account with R2 and D1 enabled
 - [Replicate](https://replicate.com) account
+- [Google Cloud Console](https://console.cloud.google.com) project for OAuth
 
 ### Installation
 
@@ -70,13 +71,23 @@ webresume.now transforms your PDF resume into a beautiful, shareable web portfol
 
    Fill in your credentials (see [Environment Variables](#environment-variables) below).
 
-4. **Set up Supabase database**
+4. **Set up D1 database**
 
-   Run the SQL schema from `docs/deployment-guide.md` in your Supabase SQL Editor.
+   Run migrations locally:
+
+   ```bash
+   bun run db:migrate
+   ```
+
+   Run migrations for production:
+
+   ```bash
+   bun run db:migrate:prod
+   ```
 
 5. **Configure Google OAuth**
 
-   Follow instructions in `docs/deployment-guide.md` to set up Google OAuth.
+   Follow instructions in `docs/deployment-guide.md` to set up Google OAuth in Google Cloud Console.
 
 6. **Run development server**
 
@@ -93,10 +104,13 @@ webresume.now transforms your PDF resume into a beautiful, shareable web portfol
 Required environment variables (see `.env.example` for full template):
 
 ```bash
-# Supabase
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+# Better Auth
+BETTER_AUTH_SECRET=your-random-secret-key
+BETTER_AUTH_URL=http://localhost:3000
+
+# Google OAuth
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
 
 # Cloudflare R2
 R2_ENDPOINT=https://your-account.r2.cloudflarestorage.com
@@ -139,7 +153,8 @@ components/
 └── ui/                  # Reusable UI components
 
 lib/
-├── supabase/            # Supabase client/server
+├── db/                  # D1 database client and Drizzle schema
+├── auth/                # Better Auth configuration
 ├── types/               # TypeScript types
 └── utils/               # Utility functions
 ```
@@ -152,7 +167,7 @@ lib/
 
 Allows anonymous users to upload before authentication:
 
-1. Anonymous user uploads PDF → R2 with temp key
+1. Anonymous user uploads PDF to R2 with temp key
 2. User logs in with Google OAuth
 3. Claim API links upload to authenticated user
 4. AI parsing triggered automatically
@@ -194,12 +209,11 @@ bun run deploy           # Deploy to Cloudflare Workers
 # Linting & Quality
 bun run lint             # Run ESLint
 
-# Database (Supabase)
-bun run db:start         # Start local Supabase
-bun run db:stop          # Stop local Supabase
-bun run db:reset         # Reset local database
-bun run db:types         # Generate TypeScript types
-bun run db:studio        # Open Supabase Studio
+# Database (D1 with Drizzle)
+bun run db:migrate       # Run migrations locally
+bun run db:migrate:prod  # Run migrations for production
+bun run db:generate      # Generate migrations from schema
+bun run db:studio        # Open Drizzle Studio
 ```
 
 ---
@@ -236,7 +250,7 @@ For detailed deployment instructions, see `docs/deployment-guide.md`.
 
 ## Security
 
-- **Row-Level Security (RLS)**: Enabled on all Supabase tables
+- **Application-Level Authorization**: All data access controlled in application code
 - **Rate Limiting**: 5 uploads/day, 10 updates/hour per user
 - **Input Validation**: Zod schemas on all forms
 - **XSS Protection**: React sanitization (default)
@@ -325,7 +339,7 @@ Follow the comprehensive checklist in `docs/testing-checklist.md` to test all fl
 
 ### Phase 1 (Completed)
 
-- Skeleton & plumbing (Next.js + Supabase + Cloudflare)
+- Skeleton & plumbing (Next.js + D1 + Better Auth + Cloudflare)
 
 ### Phase 2 (Completed)
 
@@ -384,8 +398,8 @@ Contributions welcome! Please follow these guidelines:
 
 **Solution**:
 
-1. Verify `NEXT_PUBLIC_SUPABASE_URL` includes `https://`
-2. Check redirect URLs in Supabase Dashboard match your domain
+1. Verify `BETTER_AUTH_URL` includes `https://` for production
+2. Check redirect URLs in Google Cloud Console match your domain
 3. Clear browser cookies and try again
 
 ---
@@ -432,8 +446,9 @@ MIT License - see [LICENSE](LICENSE) file for details.
 ## Acknowledgments
 
 - [Next.js](https://nextjs.org) for the incredible framework
-- [Supabase](https://supabase.com) for backend and auth
-- [Cloudflare](https://cloudflare.com) for Workers and R2
+- [Better Auth](https://better-auth.com) for authentication
+- [Drizzle ORM](https://orm.drizzle.team) for type-safe database access
+- [Cloudflare](https://cloudflare.com) for Workers, D1, and R2
 - [Replicate](https://replicate.com) for AI parsing
 - [Radix UI](https://radix-ui.com) for accessible components
 - [Tailwind CSS](https://tailwindcss.com) for styling

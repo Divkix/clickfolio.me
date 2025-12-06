@@ -101,8 +101,9 @@ POST /api/resume/claim with { key }
 After successful authentication, users are guided through a multi-step wizard to complete their profile:
 
 ```typescript
-// Middleware checks onboarding_completed flag
-if (user && isProtectedRoute && !profile.onboarding_completed) {
+// Page component checks onboardingCompleted flag
+// (Note: Moved from middleware to page components because Edge middleware cannot make D1 database calls)
+if (user && !user.onboardingCompleted) {
   redirect("/wizard");
 }
 ```
@@ -116,7 +117,7 @@ if (user && isProtectedRoute && !profile.onboarding_completed) {
 
 **Onboarding Completion**:
 
-- Sets `profiles.onboarding_completed = true`
+- Sets `user.onboardingCompleted = 1`
 - Creates `site_data` record with chosen theme
 - Redirects to `/dashboard`
 
@@ -160,7 +161,7 @@ We use Replicate's `datalab-to/marker` with a **custom JSON schema** to enforce 
 Before rendering public pages (`/[handle]`):
 
 ```typescript
-const privacySettings = JSON.parse(profile.privacy_settings);
+const privacySettings = JSON.parse(user.privacySettings || "{}");
 if (!privacySettings.show_phone) {
   delete content.contact.phone; // Remove from DOM entirely
 }
@@ -181,26 +182,31 @@ All tables defined in `lib/db/schema.ts` using Drizzle ORM.
 
 - JSON fields stored as TEXT (use `JSON.parse()`/`JSON.stringify()`)
 - UUIDs generated in application code (`crypto.randomUUID()`)
-- Timestamps stored as INTEGER (Unix epoch) or TEXT (ISO string)
+- Timestamps stored as TEXT (ISO string format)
 - No row-level security — authorization enforced in application code
 
-**user** (Better Auth managed)
+**user** (Better Auth managed + custom profile fields)
 
 - `id` (text, primary key) — generated UUID
 - `email` (text, unique)
 - `name` (text)
 - `image` (text) — avatar URL
 - `emailVerified` (integer) — boolean as 0/1
-- `createdAt`, `updatedAt` (integer) — Unix timestamps
+- `handle` (text, unique) — user's public username (3+ chars, alphanumeric + hyphens)
+- `headline` (text) — profile headline
+- `privacySettings` (text) — JSON string `{"show_phone":false,"show_address":false}`
+- `onboardingCompleted` (integer) — 0/1 boolean
+- `role` (text) — user role
+- `createdAt`, `updatedAt` (text) — ISO timestamps
 
 **session** (Better Auth managed)
 
 - `id` (text, primary key)
 - `userId` (text, FK to user)
 - `token` (text, unique)
-- `expiresAt` (integer)
+- `expiresAt` (text) — ISO timestamp
 - `ipAddress`, `userAgent` (text)
-- `createdAt`, `updatedAt` (integer)
+- `createdAt`, `updatedAt` (text) — ISO timestamps
 
 **account** (Better Auth managed)
 
@@ -209,46 +215,35 @@ All tables defined in `lib/db/schema.ts` using Drizzle ORM.
 - `providerId` (text) — e.g., "google"
 - `accountId` (text) — provider's user ID
 - `accessToken`, `refreshToken` (text)
-- `accessTokenExpiresAt`, `refreshTokenExpiresAt` (integer)
+- `accessTokenExpiresAt`, `refreshTokenExpiresAt` (text) — ISO timestamps
 
 **verification** (Better Auth managed)
 
 - `id` (text, primary key)
 - `identifier` (text)
 - `value` (text)
-- `expiresAt` (integer)
-
-**profiles**
-
-- `id` (text, primary key) — same as user.id
-- `handle` (text, unique, min 3 chars, alphanumeric + hyphens)
-- `email` (text)
-- `avatar_url` (text)
-- `headline` (text)
-- `privacy_settings` (text): JSON string `{ "show_phone": false, "show_address": false }`
-- `onboarding_completed` (integer): 0 or 1
-- `created_at`, `updated_at` (integer)
+- `expiresAt` (text) — ISO timestamp
 
 **resumes**
 
 - `id` (text, primary key)
-- `user_id` (text, FK to profiles)
+- `user_id` (text, FK to user)
 - `r2_key` (text) — path in bucket
 - `status` (text): `pending_claim`, `processing`, `completed`, `failed`
 - `error_message` (text) — stores parsing error details
 - `replicate_job_id` (text) — prediction ID for tracking
 - `retry_count` (integer, default 0) — max 2 retries allowed
-- `parsed_at` (integer) — when AI parsing completed
-- `created_at` (integer)
+- `parsed_at` (text) — ISO timestamp when AI parsing completed
+- `created_at` (text) — ISO timestamp
 
 **site_data**
 
 - `id` (text, primary key)
-- `user_id` (text, FK to profiles)
+- `user_id` (text, FK to user)
 - `resume_id` (text, FK to resumes)
 - `content` (text): JSON string of render-ready resume data
 - `theme_id` (text): Template identifier (see Available Templates below)
-- `last_published_at`, `created_at`, `updated_at` (integer)
+- `last_published_at`, `created_at`, `updated_at` (text) — ISO timestamps
 
 ### Authorization (Application-Level)
 
@@ -486,7 +481,7 @@ const resumeSchema = z.object({
 - Check via Drizzle:
 
 ```typescript
-const oneDayAgo = Math.floor(Date.now() / 1000) - 86400;
+const oneDayAgo = new Date(Date.now() - 86400000).toISOString();
 const count = await db
   .select({ count: sql<number>`count(*)` })
   .from(resumes)
@@ -526,16 +521,16 @@ fs.writeFileSync("..."); // WRONG - not available on Workers
 
 ```typescript
 // Reading JSON fields
-const profile = await db.select().from(profiles).where(eq(profiles.id, userId)).get();
-const privacySettings = JSON.parse(profile.privacy_settings || "{}");
+const user = await db.select().from(users).where(eq(users.id, userId)).get();
+const privacySettings = JSON.parse(user.privacySettings || "{}");
 
 // Writing JSON fields
-await db.update(profiles)
+await db.update(users)
   .set({
-    privacy_settings: JSON.stringify({ show_phone: false, show_address: false }),
-    updated_at: Math.floor(Date.now() / 1000),
+    privacySettings: JSON.stringify({ show_phone: false, show_address: false }),
+    updatedAt: new Date().toISOString(),
   })
-  .where(eq(profiles.id, userId));
+  .where(eq(users.id, userId));
 ```
 
 ---
@@ -638,7 +633,7 @@ drizzle/
 │   └── meta/
 └── drizzle.config.ts                # Drizzle configuration
 
-middleware.ts                        # Next.js middleware (auth + onboarding check)
+middleware.ts                        # Next.js middleware (auth only - no D1 access in Edge)
 wrangler.toml                        # Cloudflare Workers config (includes D1 binding)
 open-next.config.ts                  # OpenNext Cloudflare adapter config
 ```
@@ -663,6 +658,12 @@ open-next.config.ts                  # OpenNext Cloudflare adapter config
 - Use Next.js Route Handlers (App Router)
 - Return JSON responses with proper error handling
 - Protected endpoints check authentication via Better Auth session
+
+**Important: Middleware Limitations**:
+
+- Edge middleware cannot make D1 database calls
+- Onboarding check moved from middleware to page components
+- Middleware handles auth session refresh only
 
 ---
 
@@ -760,6 +761,11 @@ bunx wrangler d1 migrations apply DB                                 # Apply mig
    - Ensure cookies are being sent (check `credentials: 'include'` on fetch)
    - Verify `BETTER_AUTH_SECRET` is set in production
 
+9. **Middleware cannot access D1**
+   - Edge middleware runs in a different runtime than Workers
+   - D1 bindings are not available in Edge middleware
+   - Move database checks to page components or API routes
+
 ---
 
 ## Available Templates
@@ -807,8 +813,8 @@ The application includes multiple professionally designed resume templates, each
 
 ### Template Development Guidelines
 
-- Each template receives `content` (ResumeContent) and `profile` (ProfileData) props
-- Must respect privacy settings (check `profile.privacy_settings`)
+- Each template receives `content` (ResumeContent) and `user` (UserData) props
+- Must respect privacy settings (check `user.privacySettings`)
 - Should handle missing/optional fields gracefully
 - Use consistent spacing: Tailwind's spacing scale (p-4, p-6, p-8, etc.)
 - Avoid Next.js `<Image />` component (use `<img>` with CSS)
@@ -1048,8 +1054,7 @@ Understanding the full user experience is critical for debugging and feature dev
 - Better Auth initiates OAuth flow via `signIn.social({ provider: "google" })`
 - Redirects to Google OAuth consent screen
 - On success, callback to `/api/auth/callback/google`
-- Better Auth creates `user` row, `account` row, and `session`
-- Application creates `profiles` row (via API or middleware)
+- Better Auth creates `user` row (with profile fields), `account` row, and `session`
 - User redirected based on state:
   - If `temp_upload_id` exists → `/wizard` (claim upload)
   - If no upload → `/dashboard`
@@ -1061,7 +1066,7 @@ Located at `/wizard`, managed by `components/wizard/*`:
 **Step 1: Handle** (`HandleStep.tsx`)
 
 - User enters desired username (3+ chars, alphanumeric + hyphens)
-- Real-time availability check against `profiles.handle`
+- Real-time availability check against `user.handle`
 - Validation: Must be unique, no special chars
 
 **Step 2: Review** (`ReviewStep.tsx`)
@@ -1074,7 +1079,7 @@ Located at `/wizard`, managed by `components/wizard/*`:
 
 - Toggle: "Show phone number" (default OFF)
 - Toggle: "Show full address" (default OFF)
-- Updates `profiles.privacy_settings` JSON
+- Updates `user.privacySettings` JSON
 
 **Step 4: Theme** (`ThemeStep.tsx`)
 
@@ -1084,7 +1089,7 @@ Located at `/wizard`, managed by `components/wizard/*`:
 
 On completion:
 
-- `POST /api/wizard/complete` sets `onboarding_completed = 1`
+- `POST /api/wizard/complete` sets `user.onboardingCompleted = 1`
 - User redirected to `/dashboard`
 
 ### 4. AI Parsing (Background)
@@ -1131,7 +1136,7 @@ Privacy and profile management:
 The actual published resume:
 
 - Server-side rendered (SSR)
-- Fetches `profiles` + `site_data` by handle from D1
+- Fetches `user` + `site_data` by handle from D1
 - Applies privacy filtering before render
 - Renders chosen template with user content
 - SEO metadata: title, description, OG tags
@@ -1142,8 +1147,8 @@ The actual published resume:
 - **Upload fails**: Show error message, allow retry
 - **Parsing fails**: Redirect to `/waiting` with retry button
 - **Handle taken**: Inline validation error in wizard
-- **Not authenticated**: Middleware redirects to `/`
-- **Onboarding incomplete**: Middleware redirects to `/wizard`
+- **Not authenticated**: Redirect to `/`
+- **Onboarding incomplete**: Page component redirects to `/wizard`
 - **404 handle**: Custom 404 page matching Soft Depth theme
 
 ---
@@ -1160,4 +1165,4 @@ When using context7 MCP, these are the library IDs to fetch docs:
 
 ---
 
-**Last Updated**: 2025-12-06 (D1 + Better Auth migration)
+**Last Updated**: 2025-12-06 (Schema and auth documentation fixes)

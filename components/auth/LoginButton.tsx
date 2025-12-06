@@ -8,7 +8,7 @@ export function LoginButton() {
     try {
       await signIn.social({
         provider: "google",
-        callbackURL: "/auth/callback",
+        callbackURL: "/wizard",
       });
     } catch (error) {
       console.error("Error logging in:", error);
