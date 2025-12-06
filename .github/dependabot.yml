@@ -44,10 +44,6 @@ updates:
           - "eslint*"
           - "prettier*"
           - "@eslint/*"
-      # Group Supabase
-      supabase:
-        patterns:
-          - "@supabase/*"
       # Group AWS SDK
       aws:
         patterns:
