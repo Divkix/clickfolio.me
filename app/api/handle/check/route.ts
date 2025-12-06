@@ -26,11 +26,19 @@ export async function GET(request: Request) {
     const normalizedHandle = handle.toLowerCase().trim();
 
     if (normalizedHandle.length < 3) {
-      return createErrorResponse("Handle must be at least 3 characters", ERROR_CODES.BAD_REQUEST, 400);
+      return createErrorResponse(
+        "Handle must be at least 3 characters",
+        ERROR_CODES.BAD_REQUEST,
+        400,
+      );
     }
 
     if (normalizedHandle.length > 30) {
-      return createErrorResponse("Handle must be at most 30 characters", ERROR_CODES.BAD_REQUEST, 400);
+      return createErrorResponse(
+        "Handle must be at most 30 characters",
+        ERROR_CODES.BAD_REQUEST,
+        400,
+      );
     }
 
     if (!/^[a-z0-9-]+$/.test(normalizedHandle)) {

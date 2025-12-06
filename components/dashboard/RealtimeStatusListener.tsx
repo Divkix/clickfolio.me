@@ -24,15 +24,13 @@ interface ResumeStatusResponse {
 /**
  * Status listener component that polls the API for resume status changes.
  */
-export function RealtimeStatusListener({
-  resumeId,
-  currentStatus,
-}: RealtimeStatusListenerProps) {
+export function RealtimeStatusListener({ resumeId, currentStatus }: RealtimeStatusListenerProps) {
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const hasRefreshedRef = useRef(false);
   const refreshDebounceRef = useRef<NodeJS.Timeout | null>(null);
   const [detected, setDetected] = useState<DetectedState>({
-    status: currentStatus === "processing" ? "processing" : (currentStatus as DetectedState["status"]),
+    status:
+      currentStatus === "processing" ? "processing" : (currentStatus as DetectedState["status"]),
   });
 
   const handleStatusChange = useCallback((newStatus: string, errorMessage?: string) => {
