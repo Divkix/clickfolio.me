@@ -18,6 +18,42 @@ import type { CloudflareEnv } from "@/lib/cloudflare-env";
 import * as schema from "@/lib/db/schema";
 
 /**
+ * Wraps a D1Database to automatically convert Date objects to ISO strings.
+ *
+ * This is a workaround for Better Auth's drizzle adapter bug where the
+ * `supportsDates: false` option is accepted but never passed to the
+ * underlying adapter factory. D1 doesn't accept Date objects directly,
+ * so we intercept and convert them before they reach D1.
+ */
+function wrapD1WithDateSerialization(d1: D1Database): D1Database {
+  return new Proxy(d1, {
+    get(target, prop, receiver) {
+      if (prop === "prepare") {
+        return (query: string) => {
+          const stmt = target.prepare(query);
+          return new Proxy(stmt, {
+            get(stmtTarget, stmtProp, stmtReceiver) {
+              if (stmtProp === "bind") {
+                return (...args: unknown[]) => {
+                  const serializedArgs = args.map((arg) =>
+                    arg instanceof Date ? arg.toISOString() : arg
+                  );
+                  return stmtTarget.bind(...serializedArgs);
+                };
+              }
+              const value = Reflect.get(stmtTarget, stmtProp, stmtReceiver);
+              return typeof value === "function" ? value.bind(stmtTarget) : value;
+            },
+          });
+        };
+      }
+      const value = Reflect.get(target, prop, receiver);
+      return typeof value === "function" ? value.bind(target) : value;
+    },
+  });
+}
+
+/**
  * Get env value with Cloudflare binding fallback to process.env
  */
 function getEnvValue(env: Partial<CloudflareEnv>, key: keyof CloudflareEnv): string {
@@ -55,7 +91,9 @@ function getEnvValue(env: Partial<CloudflareEnv>, key: keyof CloudflareEnv): str
 export async function getAuth() {
   const { env } = await getCloudflareContext({ async: true });
   const typedEnv = env as Partial<CloudflareEnv>;
-  const db = drizzle(env.DB, { schema });
+  // Wrap D1 to serialize Date objects to ISO strings (workaround for Better Auth bug)
+  const wrappedD1 = wrapD1WithDateSerialization(env.DB);
+  const db = drizzle(wrappedD1, { schema });
 
   // Get secrets from Cloudflare env with fallback to process.env
   const baseURL = getEnvValue(typedEnv, "BETTER_AUTH_URL");
@@ -72,7 +110,6 @@ export async function getAuth() {
         account: schema.account,
         verification: schema.verification,
       },
-      supportsDates: false, // D1/SQLite doesn't accept Date objects directly
     }),
     baseURL,
     secret,

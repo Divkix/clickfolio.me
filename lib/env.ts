@@ -98,10 +98,13 @@ export function validateEnvironment(): void {
     "R2_SECRET_ACCESS_KEY",
     "R2_BUCKET_NAME",
 
-    // Cloudflare AI Gateway (BYOK)
+    // Cloudflare AI Gateway
     "CF_AI_GATEWAY_ACCOUNT_ID",
     "CF_AI_GATEWAY_ID",
     "CF_AIG_AUTH_TOKEN",
+
+    // Replicate
+    "REPLICATE_API_TOKEN",
   ];
 
   const missing = requiredVars.filter((key) => {
@@ -138,12 +141,13 @@ export const ENV = {
   R2_SECRET_ACCESS_KEY: () => getRequiredEnv("R2_SECRET_ACCESS_KEY"),
   R2_BUCKET_NAME: () => getRequiredEnv("R2_BUCKET_NAME"),
 
-  // Cloudflare AI Gateway (BYOK)
+  // Cloudflare AI Gateway
   CF_AI_GATEWAY_ACCOUNT_ID: () => getRequiredEnv("CF_AI_GATEWAY_ACCOUNT_ID"),
   CF_AI_GATEWAY_ID: () => getRequiredEnv("CF_AI_GATEWAY_ID"),
   CF_AIG_AUTH_TOKEN: () => getRequiredEnv("CF_AIG_AUTH_TOKEN"),
 
-  // Optional - Replicate webhook (webhooks come directly from Replicate)
+  // Replicate
+  REPLICATE_API_TOKEN: () => getRequiredEnv("REPLICATE_API_TOKEN"),
   REPLICATE_WEBHOOK_SECRET: () => getEnvVar("REPLICATE_WEBHOOK_SECRET", false),
 
   // Optional - Public app URL

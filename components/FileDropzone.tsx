@@ -160,8 +160,15 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
 
       setUploadProgress(100);
 
-      // Step 3: Save key to localStorage
-      localStorage.setItem("temp_upload_key", key);
+      // Step 3: Save key to sessionStorage with expiry (30 min window)
+      sessionStorage.setItem(
+        "temp_upload",
+        JSON.stringify({
+          key,
+          timestamp: Date.now(),
+          expiresAt: Date.now() + 30 * 60 * 1000, // 30 minute expiry
+        }),
+      );
 
       setUploadComplete(true);
       toast.success("File uploaded successfully!");
@@ -194,7 +201,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
       }
 
       // Clean up temp storage on error
-      localStorage.removeItem("temp_upload_key");
+      sessionStorage.removeItem("temp_upload");
       sessionStorage.removeItem("temp_file_hash");
 
       setError(errorMessage);
@@ -225,8 +232,8 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
 
       await claimResponse.json();
 
-      // Clear temp data from localStorage and sessionStorage
-      localStorage.removeItem("temp_upload_key");
+      // Clear temp data from sessionStorage
+      sessionStorage.removeItem("temp_upload");
       sessionStorage.removeItem("temp_file_hash");
 
       toast.success("Resume claimed successfully! Processing...");
@@ -263,7 +270,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
       }
 
       // Clean up temp storage on error
-      localStorage.removeItem("temp_upload_key");
+      sessionStorage.removeItem("temp_upload");
       sessionStorage.removeItem("temp_file_hash");
 
       setError(errorMessage);

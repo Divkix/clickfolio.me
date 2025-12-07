@@ -13,7 +13,7 @@ let _lastGatewayId: string | null = null;
  */
 function getEnvValue(
   env: Partial<CloudflareEnv> | undefined,
-  key: "CF_AI_GATEWAY_ACCOUNT_ID" | "CF_AI_GATEWAY_ID" | "CF_AIG_AUTH_TOKEN",
+  key: "CF_AI_GATEWAY_ACCOUNT_ID" | "CF_AI_GATEWAY_ID" | "REPLICATE_API_TOKEN",
 ): string {
   if (env) {
     const cfValue = env[key];
@@ -26,25 +26,6 @@ function getEnvValue(
 }
 
 /**
- * Creates a custom fetch function for Cloudflare AI Gateway with BYOK.
- * - Strips the SDK's Authorization header (BYOK injects Replicate token)
- * - Adds cf-aig-authorization header for gateway authentication
- */
-function createGatewayFetch(cfAuthToken: string) {
-  return async (url: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
-    const headers = new Headers(init?.headers);
-
-    // Remove SDK's Authorization header (BYOK injects Replicate token from Secrets Store)
-    headers.delete("Authorization");
-
-    // Add Cloudflare AI Gateway auth
-    headers.set("cf-aig-authorization", `Bearer ${cfAuthToken}`);
-
-    return fetch(url, { ...init, headers });
-  };
-}
-
-/**
  * Get Replicate client instance
  *
  * @param env - Optional Cloudflare env bindings (from getCloudflareContext)
@@ -53,7 +34,7 @@ function createGatewayFetch(cfAuthToken: string) {
 function getReplicate(env?: Partial<CloudflareEnv>): Replicate {
   const accountId = getEnvValue(env, "CF_AI_GATEWAY_ACCOUNT_ID");
   const gatewayId = getEnvValue(env, "CF_AI_GATEWAY_ID");
-  const cfAuthToken = getEnvValue(env, "CF_AIG_AUTH_TOKEN");
+  const replicateToken = getEnvValue(env, "REPLICATE_API_TOKEN");
 
   // Invalidate cache if gateway changed
   if (_replicate && _lastGatewayId !== gatewayId) {
@@ -62,9 +43,8 @@ function getReplicate(env?: Partial<CloudflareEnv>): Replicate {
 
   if (!_replicate) {
     _replicate = new Replicate({
-      auth: "unused", // SDK requires auth, but we strip the header via custom fetch
+      auth: replicateToken,
       baseUrl: `https://gateway.ai.cloudflare.com/v1/${accountId}/${gatewayId}/replicate`,
-      fetch: createGatewayFetch(cfAuthToken),
     });
     _lastGatewayId = gatewayId;
   }

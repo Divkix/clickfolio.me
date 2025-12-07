@@ -35,7 +35,8 @@ export interface CloudflareEnv {
   CF_AI_GATEWAY_ID: string;
   CF_AIG_AUTH_TOKEN: string;
 
-  // Optional secrets
+  // Replicate API
+  REPLICATE_API_TOKEN: string;
   REPLICATE_WEBHOOK_SECRET?: string;
 
   // Public app URL (optional)
@@ -60,6 +61,7 @@ export function isCloudflareEnvKey(key: string): key is keyof CloudflareEnv {
     "CF_AI_GATEWAY_ACCOUNT_ID",
     "CF_AI_GATEWAY_ID",
     "CF_AIG_AUTH_TOKEN",
+    "REPLICATE_API_TOKEN",
     "REPLICATE_WEBHOOK_SECRET",
     "NEXT_PUBLIC_APP_URL",
   ];

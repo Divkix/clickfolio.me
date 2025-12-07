@@ -179,11 +179,33 @@ export default function WizardPage() {
       try {
         setLoading(true);
 
-        // Check for pending upload claim
-        const tempKey = localStorage.getItem("temp_upload_key");
+        // Check for pending upload claim (with expiry validation)
+        let tempKey: string | null = null;
+        const tempUploadStr = sessionStorage.getItem("temp_upload");
+        if (tempUploadStr) {
+          try {
+            const tempUpload = JSON.parse(tempUploadStr) as {
+              key: string;
+              timestamp: number;
+              expiresAt: number;
+            };
+            // Only use if not expired (30 min window)
+            if (tempUpload.expiresAt > Date.now()) {
+              tempKey = tempUpload.key;
+            } else {
+              // Expired - clean up stale data
+              sessionStorage.removeItem("temp_upload");
+              sessionStorage.removeItem("temp_file_hash");
+              console.log("Cleared expired temp upload data");
+            }
+          } catch {
+            // Invalid JSON - clean up
+            sessionStorage.removeItem("temp_upload");
+          }
+        }
+
         if (tempKey) {
           // Claim the upload (include file_hash for deduplication caching)
-          // Use sessionStorage for file_hash to avoid multi-tab race conditions
           const fileHash = sessionStorage.getItem("temp_file_hash");
           setLoading(true);
           try {
@@ -207,8 +229,8 @@ export default function WizardPage() {
             // Get resume_id from claim response
             const resumeId = claimData.resume_id;
 
-            // Clear localStorage and sessionStorage after successful claim
-            localStorage.removeItem("temp_upload_key");
+            // Clear sessionStorage after successful claim
+            sessionStorage.removeItem("temp_upload");
             sessionStorage.removeItem("temp_file_hash");
 
             // If not cached, poll for status updates (parsing in progress)
@@ -223,7 +245,7 @@ export default function WizardPage() {
           } catch (claimError) {
             console.error("Claim error:", claimError);
             setError(claimError instanceof Error ? claimError.message : "Failed to claim resume");
-            localStorage.removeItem("temp_upload_key");
+            sessionStorage.removeItem("temp_upload");
             sessionStorage.removeItem("temp_file_hash");
             setTimeout(() => router.push("/dashboard"), 3000);
             return;
