@@ -12,6 +12,7 @@
     "format": "biome format .",
     "format:fix": "biome format --write .",
     "check": "biome check --write .",
+    "db:generate": "drizzle-kit generate",
     "preview": "bunx opennextjs-cloudflare build && bunx opennextjs-cloudflare preview",
     "deploy": "bunx opennextjs-cloudflare build && bunx wrangler deploy",
     "db:migrate": "wrangler d1 migrations apply webresume-db --local",
