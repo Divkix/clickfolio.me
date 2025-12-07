@@ -6,71 +6,37 @@ import { ENV } from "./env";
 
 // Singleton client cache
 let _replicate: Replicate | null = null;
-let _lastGatewayId: string | null = null;
-let _lastGatewayToken: string | null = null;
 
 /**
- * Get env value with Cloudflare binding fallback to ENV helpers
- *
- * Note: CF_AIG_AUTH_TOKEN is required for Cloudflare AI Gateway's "Authenticated Gateway" feature.
- * The gateway requires TWO auth headers:
- * - Authorization: Bearer {REPLICATE_API_TOKEN} - for the upstream Replicate API
- * - cf-aig-authorization: Bearer {CF_AIG_AUTH_TOKEN} - for the gateway itself
- * See: https://developers.cloudflare.com/ai-gateway/configuration/authentication/
+ * Get Replicate API token from Cloudflare env bindings or process.env
  */
-function getEnvValue(
-  env: Partial<CloudflareEnv> | undefined,
-  key:
-    | "CF_AI_GATEWAY_ACCOUNT_ID"
-    | "CF_AI_GATEWAY_ID"
-    | "CF_AIG_AUTH_TOKEN"
-    | "REPLICATE_API_TOKEN",
-): string {
-  if (env) {
-    const cfValue = env[key];
-    if (typeof cfValue === "string" && cfValue.trim() !== "") {
-      return cfValue;
+function getReplicateToken(env?: Partial<CloudflareEnv>): string {
+  if (env?.REPLICATE_API_TOKEN) {
+    const token = env.REPLICATE_API_TOKEN;
+    if (typeof token === "string" && token.trim() !== "") {
+      return token;
     }
   }
-  // Fall back to ENV helper (which uses process.env)
-  return ENV[key]();
+  return ENV.REPLICATE_API_TOKEN();
 }
 
 /**
  * Get Replicate client instance
  *
+ * Note: We bypass Cloudflare AI Gateway and call Replicate directly.
+ * AI Gateway has known issues with Replicate GET requests (status polling)
+ * that cause 500 errors (code 2002). Direct API calls are more reliable.
+ * See: https://community.cloudflare.com/t/cloudflare-ai-gateway-is-broken/749831
+ *
  * @param env - Optional Cloudflare env bindings (from getCloudflareContext)
- * @returns Configured Replicate client routed through AI Gateway
+ * @returns Configured Replicate client
  */
 function getReplicate(env?: Partial<CloudflareEnv>): Replicate {
-  const accountId = getEnvValue(env, "CF_AI_GATEWAY_ACCOUNT_ID");
-  const gatewayId = getEnvValue(env, "CF_AI_GATEWAY_ID");
-  const gatewayToken = getEnvValue(env, "CF_AIG_AUTH_TOKEN");
-  const replicateToken = getEnvValue(env, "REPLICATE_API_TOKEN");
-
-  // Invalidate cache if gateway config changed
-  if (
-    _replicate &&
-    (_lastGatewayId !== gatewayId || _lastGatewayToken !== gatewayToken)
-  ) {
-    _replicate = null;
-  }
-
   if (!_replicate) {
     _replicate = new Replicate({
-      auth: replicateToken,
-      baseUrl: `https://gateway.ai.cloudflare.com/v1/${accountId}/${gatewayId}/replicate`,
-      // Inject cf-aig-authorization header for Cloudflare AI Gateway authentication
-      fetch: (url, options) => {
-        const headers = new Headers(options?.headers);
-        headers.set("cf-aig-authorization", `Bearer ${gatewayToken}`);
-        return fetch(url, { ...options, headers });
-      },
+      auth: getReplicateToken(env),
     });
-    _lastGatewayId = gatewayId;
-    _lastGatewayToken = gatewayToken;
   }
-
   return _replicate;
 }
 
@@ -79,8 +45,6 @@ function getReplicate(env?: Partial<CloudflareEnv>): Replicate {
  */
 export function clearReplicateClient(): void {
   _replicate = null;
-  _lastGatewayId = null;
-  _lastGatewayToken = null;
 }
 
 /**

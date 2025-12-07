@@ -36,7 +36,7 @@ function wrapD1WithDateSerialization(d1: D1Database): D1Database {
               if (stmtProp === "bind") {
                 return (...args: unknown[]) => {
                   const serializedArgs = args.map((arg) =>
-                    arg instanceof Date ? arg.toISOString() : arg
+                    arg instanceof Date ? arg.toISOString() : arg,
                   );
                   return stmtTarget.bind(...serializedArgs);
                 };
