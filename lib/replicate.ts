@@ -7,13 +7,24 @@ import { ENV } from "./env";
 // Singleton client cache
 let _replicate: Replicate | null = null;
 let _lastGatewayId: string | null = null;
+let _lastGatewayToken: string | null = null;
 
 /**
  * Get env value with Cloudflare binding fallback to ENV helpers
+ *
+ * Note: CF_AIG_AUTH_TOKEN is required for Cloudflare AI Gateway's "Authenticated Gateway" feature.
+ * The gateway requires TWO auth headers:
+ * - Authorization: Bearer {REPLICATE_API_TOKEN} - for the upstream Replicate API
+ * - cf-aig-authorization: Bearer {CF_AIG_AUTH_TOKEN} - for the gateway itself
+ * See: https://developers.cloudflare.com/ai-gateway/configuration/authentication/
  */
 function getEnvValue(
   env: Partial<CloudflareEnv> | undefined,
-  key: "CF_AI_GATEWAY_ACCOUNT_ID" | "CF_AI_GATEWAY_ID" | "REPLICATE_API_TOKEN",
+  key:
+    | "CF_AI_GATEWAY_ACCOUNT_ID"
+    | "CF_AI_GATEWAY_ID"
+    | "CF_AIG_AUTH_TOKEN"
+    | "REPLICATE_API_TOKEN",
 ): string {
   if (env) {
     const cfValue = env[key];
@@ -34,10 +45,14 @@ function getEnvValue(
 function getReplicate(env?: Partial<CloudflareEnv>): Replicate {
   const accountId = getEnvValue(env, "CF_AI_GATEWAY_ACCOUNT_ID");
   const gatewayId = getEnvValue(env, "CF_AI_GATEWAY_ID");
+  const gatewayToken = getEnvValue(env, "CF_AIG_AUTH_TOKEN");
   const replicateToken = getEnvValue(env, "REPLICATE_API_TOKEN");
 
-  // Invalidate cache if gateway changed
-  if (_replicate && _lastGatewayId !== gatewayId) {
+  // Invalidate cache if gateway config changed
+  if (
+    _replicate &&
+    (_lastGatewayId !== gatewayId || _lastGatewayToken !== gatewayToken)
+  ) {
     _replicate = null;
   }
 
@@ -45,8 +60,15 @@ function getReplicate(env?: Partial<CloudflareEnv>): Replicate {
     _replicate = new Replicate({
       auth: replicateToken,
       baseUrl: `https://gateway.ai.cloudflare.com/v1/${accountId}/${gatewayId}/replicate`,
+      // Inject cf-aig-authorization header for Cloudflare AI Gateway authentication
+      fetch: (url, options) => {
+        const headers = new Headers(options?.headers);
+        headers.set("cf-aig-authorization", `Bearer ${gatewayToken}`);
+        return fetch(url, { ...options, headers });
+      },
     });
     _lastGatewayId = gatewayId;
+    _lastGatewayToken = gatewayToken;
   }
 
   return _replicate;
@@ -58,6 +80,7 @@ function getReplicate(env?: Partial<CloudflareEnv>): Replicate {
 export function clearReplicateClient(): void {
   _replicate = null;
   _lastGatewayId = null;
+  _lastGatewayToken = null;
 }
 
 /**
