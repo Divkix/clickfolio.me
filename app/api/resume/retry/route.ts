@@ -5,8 +5,8 @@ import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { getAuth } from "@/lib/auth";
 import type { CloudflareEnv } from "@/lib/cloudflare-env";
-import { getDb } from "@/lib/db";
 import { resumes } from "@/lib/db/schema";
+import { getSessionDb } from "@/lib/db/session";
 import { getR2Bucket, getR2Client } from "@/lib/r2";
 import { parseResume } from "@/lib/replicate";
 import {
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
     // 1. Get D1 database binding and typed env for R2/Replicate
     const { env } = await getCloudflareContext({ async: true });
     const typedEnv = env as Partial<CloudflareEnv>;
-    const db = getDb(env.DB);
+    const { db, captureBookmark } = await getSessionDb(env.DB);
 
     // 2. Check authentication via Better Auth
     const auth = await getAuth();
@@ -140,6 +140,8 @@ export async function POST(request: Request) {
       console.error("Failed to update resume for retry");
       return createErrorResponse("Failed to update resume status", ERROR_CODES.DATABASE_ERROR, 500);
     }
+
+    await captureBookmark();
 
     return createSuccessResponse({
       resume_id: resume.id,

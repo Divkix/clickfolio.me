@@ -2,8 +2,8 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { eq } from "drizzle-orm";
 import { revalidateTag } from "next/cache";
 import { getResumeCacheTag } from "@/lib/data/resume";
-import { getDb } from "@/lib/db";
 import { resumes, siteData, user } from "@/lib/db/schema";
+import { getSessionDbForWebhook } from "@/lib/db/session";
 import { normalizeResumeData } from "@/lib/replicate";
 import { verifyReplicateWebhook } from "@/lib/utils/webhook-verification";
 
@@ -53,7 +53,7 @@ export async function POST(request: Request) {
 
     // 4. Get database connection (no auth session, webhook uses signature verification)
     const { env } = await getCloudflareContext({ async: true });
-    const db = getDb(env.DB);
+    const { db } = getSessionDbForWebhook(env.DB);
 
     // 5. Find resume by replicate_job_id
     const resumeResult = await db

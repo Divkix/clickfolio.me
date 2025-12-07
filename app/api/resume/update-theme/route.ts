@@ -4,8 +4,8 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { headers } from "next/headers";
 import { getAuth } from "@/lib/auth";
 import { getResumeCacheTag } from "@/lib/data/resume";
-import { getDb } from "@/lib/db";
 import { siteData, user } from "@/lib/db/schema";
+import { getSessionDb } from "@/lib/db/session";
 import { TEMPLATES, type ThemeId } from "@/lib/templates/theme-registry";
 import {
   createErrorResponse,
@@ -28,7 +28,7 @@ export async function POST(request: Request) {
   try {
     // 1. Get D1 database binding
     const { env } = await getCloudflareContext({ async: true });
-    const db = getDb(env.DB);
+    const { db, captureBookmark } = await getSessionDb(env.DB);
 
     // 2. Check authentication via Better Auth
     const auth = await getAuth();
@@ -99,6 +99,8 @@ export async function POST(request: Request) {
       revalidateTag(getResumeCacheTag(profile.handle));
       revalidatePath(`/${profile.handle}`);
     }
+
+    await captureBookmark();
 
     return createSuccessResponse({
       success: true,

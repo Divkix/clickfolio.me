@@ -5,8 +5,8 @@ import { headers } from "next/headers";
 import { z } from "zod";
 import { getAuth } from "@/lib/auth";
 import { getResumeCacheTag } from "@/lib/data/resume";
-import { getDb } from "@/lib/db";
 import { siteData, user } from "@/lib/db/schema";
+import { getSessionDb } from "@/lib/db/session";
 import {
   createErrorResponse,
   createSuccessResponse,
@@ -85,7 +85,7 @@ export async function POST(request: Request) {
 
     // 3. Get database connection
     const { env } = await getCloudflareContext({ async: true });
-    const db = getDb(env.DB);
+    const { db, captureBookmark } = await getSessionDb(env.DB);
 
     // 4. Parse and validate request body
     let body: WizardCompleteRequest;
@@ -161,7 +161,10 @@ export async function POST(request: Request) {
     revalidateTag(getResumeCacheTag(body.handle));
     revalidatePath(`/${body.handle}`);
 
-    // 9. Return success response
+    // 9. Capture bookmark before returning success
+    await captureBookmark();
+
+    // 10. Return success response
     return createSuccessResponse({
       success: true,
       handle: body.handle,

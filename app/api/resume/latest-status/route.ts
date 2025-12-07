@@ -2,8 +2,8 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { desc, eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { getAuth } from "@/lib/auth";
-import { getDb } from "@/lib/db";
 import { resumes } from "@/lib/db/schema";
+import { getSessionDb } from "@/lib/db/session";
 import {
   createErrorResponse,
   createSuccessResponse,
@@ -18,7 +18,7 @@ export async function GET() {
   try {
     // 1. Get D1 database binding
     const { env } = await getCloudflareContext({ async: true });
-    const db = getDb(env.DB);
+    const { db } = await getSessionDb(env.DB);
 
     // 2. Check authentication via Better Auth
     const auth = await getAuth();

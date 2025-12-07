@@ -1,8 +1,8 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { eq } from "drizzle-orm";
 import { requireAuthWithMessage } from "@/lib/auth/middleware";
-import { getDb } from "@/lib/db";
 import { user } from "@/lib/db/schema";
+import { getSessionDb } from "@/lib/db/session";
 import { privacySettingsSchema } from "@/lib/schemas/profile";
 import {
   createErrorResponse,
@@ -26,7 +26,7 @@ export async function PUT(request: Request) {
 
     // 2. Get database connection
     const { env } = await getCloudflareContext({ async: true });
-    const db = getDb(env.DB);
+    const { db, captureBookmark } = await getSessionDb(env.DB);
 
     // 3. Parse and validate request body
     let body;
@@ -63,6 +63,7 @@ export async function PUT(request: Request) {
       })
       .where(eq(user.id, authUser.id));
 
+    await captureBookmark();
     return createSuccessResponse({
       success: true,
       privacy_settings: {

@@ -10,8 +10,8 @@ import { and, eq, isNotNull, ne } from "drizzle-orm";
 import { headers } from "next/headers";
 import { getAuth } from "@/lib/auth";
 import type { CloudflareEnv } from "@/lib/cloudflare-env";
-import { getDb } from "@/lib/db";
 import { resumes, siteData } from "@/lib/db/schema";
+import { getSessionDb } from "@/lib/db/session";
 import { getR2Bucket, getR2Client } from "@/lib/r2";
 import { parseResume } from "@/lib/replicate";
 import { enforceRateLimit } from "@/lib/utils/rate-limit";
@@ -67,7 +67,7 @@ export async function POST(request: Request) {
     const userId = session.user.id;
 
     // Get D1 database connection (env already retrieved above)
-    const db = getDb(env.DB);
+    const { db, captureBookmark } = await getSessionDb(env.DB);
 
     // 3. Parse request body
     let body: ClaimRequestBody;
@@ -202,6 +202,7 @@ export async function POST(request: Request) {
             );
 
             // R2 operations succeeded - return cached result
+            await captureBookmark();
             return createSuccessResponse({
               resume_id: resumeId,
               status: "completed",
@@ -271,6 +272,7 @@ export async function POST(request: Request) {
             console.error("R2 operations failed for waiting resume:", error);
           }
 
+          await captureBookmark();
           return createSuccessResponse({
             resume_id: resumeId,
             status: "processing", // Client sees "processing" and subscribes to realtime
@@ -455,6 +457,7 @@ export async function POST(request: Request) {
       // Continue anyway - status endpoint will handle it
     }
 
+    await captureBookmark();
     return createSuccessResponse({
       resume_id: resumeId,
       status: updatePayload.status,

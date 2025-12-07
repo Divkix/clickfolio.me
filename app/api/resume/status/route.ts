@@ -3,8 +3,8 @@ import { and, eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { getAuth } from "@/lib/auth";
 import type { CloudflareEnv } from "@/lib/cloudflare-env";
-import { getDb } from "@/lib/db";
 import { resumes, siteData } from "@/lib/db/schema";
+import { getSessionDb } from "@/lib/db/session";
 import { getParseStatus, normalizeResumeData } from "@/lib/replicate";
 import {
   createErrorResponse,
@@ -17,7 +17,7 @@ export async function GET(request: Request) {
     // 1. Get D1 database binding and typed env for Replicate
     const { env } = await getCloudflareContext({ async: true });
     const typedEnv = env as Partial<CloudflareEnv>;
-    const db = getDb(env.DB);
+    const { db, captureBookmark } = await getSessionDb(env.DB);
 
     // 2. Check authentication via Better Auth
     const auth = await getAuth();
@@ -236,6 +236,7 @@ export async function GET(request: Request) {
           }
         }
 
+        await captureBookmark();
         return createSuccessResponse({
           status: "completed",
           progress_pct: 100,
@@ -260,6 +261,7 @@ export async function GET(request: Request) {
           .where(eq(resumes.id, resumeId));
 
         // Return failed status (not error - allows UI to show retry)
+        await captureBookmark();
         return createSuccessResponse({
           status: "failed",
           progress_pct: 0,
@@ -283,6 +285,7 @@ export async function GET(request: Request) {
         })
         .where(eq(resumes.id, resumeId));
 
+      await captureBookmark();
       return createSuccessResponse({
         status: "failed",
         progress_pct: 0,

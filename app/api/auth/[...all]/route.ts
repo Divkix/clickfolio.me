@@ -14,8 +14,6 @@
 import { toNextJsHandler } from "better-auth/next-js";
 import { getAuth } from "@/lib/auth";
 
-export const runtime = "edge";
-
 /**
  * GET handler for auth endpoints
  * Handles: session retrieval, OAuth redirects, callback processing

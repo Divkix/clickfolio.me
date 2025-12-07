@@ -2,8 +2,8 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { and, eq, ne } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { requireAuthWithMessage } from "@/lib/auth/middleware";
-import { getDb } from "@/lib/db";
 import { handleChanges, user } from "@/lib/db/schema";
+import { getSessionDb } from "@/lib/db/session";
 import { handleUpdateSchema } from "@/lib/schemas/profile";
 import {
   createErrorResponse,
@@ -36,7 +36,7 @@ export async function PUT(request: Request) {
 
     // 3. Get database connection
     const { env } = await getCloudflareContext({ async: true });
-    const db = getDb(env.DB);
+    const { db, captureBookmark } = await getSessionDb(env.DB);
 
     // 4. Check rate limit (3 handle changes per 24 hours)
     const windowStart = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
@@ -144,6 +144,8 @@ export async function PUT(request: Request) {
       revalidatePath(`/${oldHandle}`);
     }
     revalidatePath(`/${newHandle}`);
+
+    await captureBookmark();
 
     return createSuccessResponse({
       success: true,
