@@ -1,5 +1,5 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq, gte, ne, sql } from "drizzle-orm";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { requireAuthWithMessage } from "@/lib/auth/middleware";
 import { getResumeCacheTag } from "@/lib/data/resume";
@@ -40,17 +40,20 @@ export async function PUT(request: Request) {
     const { db, captureBookmark } = await getSessionDb(env.DB);
 
     // 4. Check rate limit (3 handle changes per 24 hours)
-    const windowStart = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const windowStart = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-    // Fetch all handle changes for the user and filter in JS
-    const changeCount = await db
-      .select({ id: handleChanges.id, createdAt: handleChanges.createdAt })
+    // Count changes in SQL instead of fetching all rows
+    const result = await db
+      .select({ count: sql<number>`count(*)` })
       .from(handleChanges)
-      .where(eq(handleChanges.userId, authUser.id));
+      .where(
+        and(
+          eq(handleChanges.userId, authUser.id),
+          gte(handleChanges.createdAt, windowStart.toISOString()),
+        ),
+      );
 
-    const changesIn24h = changeCount.filter(
-      (c) => new Date(c.createdAt) >= new Date(windowStart),
-    ).length;
+    const changesIn24h = result[0]?.count ?? 0;
 
     if (changesIn24h >= 3) {
       return createErrorResponse(

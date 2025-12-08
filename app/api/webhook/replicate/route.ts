@@ -1,5 +1,5 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { revalidateTag } from "next/cache";
 import { getResumeCacheTag } from "@/lib/data/resume";
 import { resumes, siteData, user } from "@/lib/db/schema";
@@ -179,6 +179,17 @@ export async function POST(request: Request) {
         );
 
         if (resumesToUpdate.length > 0) {
+          // Batch-fetch ALL siteData records for waiting users in ONE query
+          // This eliminates the N+1 query pattern
+          const userIds = resumesToUpdate.map((r) => r.userId);
+          const allSiteData = await db
+            .select({ userId: siteData.userId, id: siteData.id })
+            .from(siteData)
+            .where(inArray(siteData.userId, userIds));
+
+          // Create a Map for O(1) lookups
+          const siteDataMap = new Map(allSiteData.map((sd) => [sd.userId, sd.id]));
+
           const updatePromises = resumesToUpdate.map(async (waiting) => {
             try {
               // Update resume status
@@ -191,14 +202,10 @@ export async function POST(request: Request) {
                 })
                 .where(eq(resumes.id, waiting.id));
 
-              // Upsert site_data for waiting user
-              const existingWaitingSiteData = await db
-                .select({ id: siteData.id })
-                .from(siteData)
-                .where(eq(siteData.userId, waiting.userId))
-                .limit(1);
+              // Upsert site_data for waiting user using the pre-fetched map
+              const existingSiteDataId = siteDataMap.get(waiting.userId);
 
-              if (existingWaitingSiteData.length > 0) {
+              if (existingSiteDataId) {
                 await db
                   .update(siteData)
                   .set({

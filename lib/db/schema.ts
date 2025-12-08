@@ -103,6 +103,9 @@ export const resumes = sqliteTable(
     index("resumes_user_id_idx").on(table.userId),
     index("resumes_file_hash_idx").on(table.fileHash),
     index("resumes_replicate_job_id_idx").on(table.replicateJobId),
+    index("resumes_file_hash_status_idx").on(table.fileHash, table.status),
+    index("resumes_user_id_created_at_idx").on(table.userId, table.createdAt),
+    index("resumes_status_idx").on(table.status),
   ],
 );
 
@@ -137,7 +140,10 @@ export const handleChanges = sqliteTable(
     newHandle: text("new_handle").notNull(),
     createdAt: text("created_at").notNull(),
   },
-  (table) => [index("handle_changes_user_id_idx").on(table.userId)],
+  (table) => [
+    index("handle_changes_user_id_idx").on(table.userId),
+    index("handle_changes_user_created_idx").on(table.userId, table.createdAt),
+  ],
 );
 
 export const uploadRateLimits = sqliteTable(
@@ -147,7 +153,10 @@ export const uploadRateLimits = sqliteTable(
     ipHash: text("ip_hash").notNull(),
     createdAt: text("created_at").notNull(),
   },
-  (table) => [index("upload_rate_limits_ip_hash_idx").on(table.ipHash)],
+  (table) => [
+    index("upload_rate_limits_ip_hash_idx").on(table.ipHash),
+    index("upload_rate_limits_ip_created_idx").on(table.ipHash, table.createdAt),
+  ],
 );
 
 // =============================================================================

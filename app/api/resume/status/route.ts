@@ -1,5 +1,5 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { headers } from "next/headers";
 import { getAuth } from "@/lib/auth";
 import type { CloudflareEnv } from "@/lib/cloudflare-env";
@@ -212,6 +212,17 @@ export async function GET(request: Request) {
           });
 
           if (waitingResumes.length > 0) {
+            // Batch-fetch ALL siteData records for waiting users in ONE query
+            // This fixes the N+1 query pattern
+            const waitingUserIds = waitingResumes.map((r) => r.userId);
+            const allWaitingSiteData = await db
+              .select({ userId: siteData.userId, id: siteData.id })
+              .from(siteData)
+              .where(inArray(siteData.userId, waitingUserIds));
+
+            // Create a Map for O(1) lookup
+            const siteDataMap = new Map(allWaitingSiteData.map((sd) => [sd.userId, sd.id]));
+
             const updatePromises = waitingResumes.map(async (waiting) => {
               try {
                 await db
@@ -223,13 +234,10 @@ export async function GET(request: Request) {
                   })
                   .where(eq(resumes.id, waiting.id));
 
-                // Check if site_data exists for waiting user
-                const waitingSiteData = await db.query.siteData.findFirst({
-                  where: eq(siteData.userId, waiting.userId),
-                  columns: { id: true },
-                });
+                // Use the pre-fetched siteData map instead of querying DB
+                const existingSiteDataId = siteDataMap.get(waiting.userId);
 
-                if (waitingSiteData) {
+                if (existingSiteDataId) {
                   await db
                     .update(siteData)
                     .set({

@@ -15,6 +15,13 @@
       "when": 1765133358686,
       "tag": "0001_open_captain_cross",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1765152077199,
+      "tag": "0002_parched_the_professor",
+      "breakpoints": true
     }
   ]
 }
