@@ -15,6 +15,64 @@ import {
 // 10 minute timeout for waiting_for_cache status
 const WAITING_FOR_CACHE_TIMEOUT_MS = 10 * 60 * 1000;
 
+/**
+ * Upsert site_data with UNIQUE constraint handling
+ * Handles race conditions where another request may have inserted between SELECT and INSERT
+ */
+async function upsertSiteData(
+  db: Awaited<ReturnType<typeof getSessionDb>>["db"],
+  userId: string,
+  resumeId: string,
+  content: string,
+  now: string,
+): Promise<void> {
+  // First try to update existing record
+  const existingSiteData = await db.query.siteData.findFirst({
+    where: eq(siteData.userId, userId),
+    columns: { id: true },
+  });
+
+  if (existingSiteData) {
+    await db
+      .update(siteData)
+      .set({
+        resumeId,
+        content,
+        lastPublishedAt: now,
+        updatedAt: now,
+      })
+      .where(eq(siteData.userId, userId));
+  } else {
+    // Try to insert, handle UNIQUE constraint race condition
+    try {
+      await db.insert(siteData).values({
+        id: crypto.randomUUID(),
+        userId,
+        resumeId,
+        content,
+        lastPublishedAt: now,
+        createdAt: now,
+        updatedAt: now,
+      });
+    } catch (error) {
+      if (error instanceof Error && error.message.includes("UNIQUE constraint failed")) {
+        // Another request inserted between our SELECT and INSERT, update instead
+        await db
+          .update(siteData)
+          .set({
+            resumeId,
+            content,
+            lastPublishedAt: now,
+            updatedAt: now,
+          })
+          .where(eq(siteData.userId, userId));
+      } else {
+        throw error;
+      }
+    }
+  }
+}
+
 export async function GET(request: Request) {
   try {
     // 1. Get D1 database binding and typed env for Replicate
@@ -160,35 +218,8 @@ export async function GET(request: Request) {
         const contentAsJson = JSON.parse(JSON.stringify(normalizedContent));
         const now = new Date().toISOString();
 
-        // Check if site_data exists for this user
-        const existingSiteData = await db.query.siteData.findFirst({
-          where: eq(siteData.userId, userId),
-          columns: { id: true },
-        });
-
-        if (existingSiteData) {
-          // Update existing site_data
-          await db
-            .update(siteData)
-            .set({
-              resumeId: resumeId,
-              content: JSON.stringify(contentAsJson),
-              lastPublishedAt: now,
-              updatedAt: now,
-            })
-            .where(eq(siteData.userId, userId));
-        } else {
-          // Insert new site_data
-          await db.insert(siteData).values({
-            id: crypto.randomUUID(),
-            userId: userId,
-            resumeId: resumeId,
-            content: JSON.stringify(contentAsJson),
-            lastPublishedAt: now,
-            createdAt: now,
-            updatedAt: now,
-          });
-        }
+        // Upsert site_data with race condition handling
+        await upsertSiteData(db, userId, resumeId, JSON.stringify(contentAsJson), now);
 
         // Update resume status to completed WITH parsed_content for cache lookup
         // Use optimistic locking (only update if still processing) to prevent race conditions
@@ -248,15 +279,35 @@ export async function GET(request: Request) {
                     })
                     .where(eq(siteData.userId, waiting.userId));
                 } else {
-                  await db.insert(siteData).values({
-                    id: crypto.randomUUID(),
-                    userId: waiting.userId,
-                    resumeId: waiting.id,
-                    content: JSON.stringify(contentAsJson),
-                    lastPublishedAt: now,
-                    createdAt: now,
-                    updatedAt: now,
-                  });
+                  // Handle UNIQUE constraint race condition in fan-out
+                  try {
+                    await db.insert(siteData).values({
+                      id: crypto.randomUUID(),
+                      userId: waiting.userId,
+                      resumeId: waiting.id,
+                      content: JSON.stringify(contentAsJson),
+                      lastPublishedAt: now,
+                      createdAt: now,
+                      updatedAt: now,
+                    });
+                  } catch (insertError) {
+                    if (
+                      insertError instanceof Error &&
+                      insertError.message.includes("UNIQUE constraint failed")
+                    ) {
+                      await db
+                        .update(siteData)
+                        .set({
+                          resumeId: waiting.id,
+                          content: JSON.stringify(contentAsJson),
+                          lastPublishedAt: now,
+                          updatedAt: now,
+                        })
+                        .where(eq(siteData.userId, waiting.userId));
+                    } else {
+                      throw insertError;
+                    }
+                  }
                 }
 
                 return { success: true, id: waiting.id };

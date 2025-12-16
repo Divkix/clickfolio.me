@@ -28,6 +28,65 @@ interface ClaimRequestBody {
 }
 
 /**
+ * Upsert site_data with UNIQUE constraint handling
+ * Handles race conditions where another request may have inserted between SELECT and INSERT
+ */
+async function upsertSiteData(
+  db: Awaited<ReturnType<typeof getSessionDb>>["db"],
+  userId: string,
+  resumeId: string,
+  content: string,
+  now: string,
+): Promise<void> {
+  // First try to update existing record
+  const existingSiteData = await db
+    .select({ id: siteData.id })
+    .from(siteData)
+    .where(eq(siteData.userId, userId))
+    .limit(1);
+
+  if (existingSiteData[0]) {
+    await db
+      .update(siteData)
+      .set({
+        resumeId,
+        content,
+        lastPublishedAt: now,
+        updatedAt: now,
+      })
+      .where(eq(siteData.userId, userId));
+  } else {
+    // Try to insert, handle UNIQUE constraint race condition
+    try {
+      await db.insert(siteData).values({
+        id: crypto.randomUUID(),
+        userId,
+        resumeId,
+        content,
+        lastPublishedAt: now,
+        createdAt: now,
+        updatedAt: now,
+      });
+    } catch (error) {
+      if (error instanceof Error && error.message.includes("UNIQUE constraint failed")) {
+        // Another request inserted between our SELECT and INSERT, update instead
+        await db
+          .update(siteData)
+          .set({
+            resumeId,
+            content,
+            lastPublishedAt: now,
+            updatedAt: now,
+          })
+          .where(eq(siteData.userId, userId));
+      } else {
+        throw error;
+      }
+    }
+  }
+}
+
+/**
  * POST /api/resume/claim
  * Claims an anonymous upload and triggers AI parsing
  * Rate limit: 5 uploads per 24 hours
@@ -178,34 +237,8 @@ export async function POST(request: Request) {
           // Parse the cached content for site_data
           const parsedContent = JSON.parse(cached[0].parsedContent);
 
-          // Copy content to user's site_data for publishing (upsert)
-          const existingSiteData = await db
-            .select({ id: siteData.id })
-            .from(siteData)
-            .where(eq(siteData.userId, userId))
-            .limit(1);
-
-          if (existingSiteData[0]) {
-            await db
-              .update(siteData)
-              .set({
-                resumeId,
-                content: JSON.stringify(parsedContent),
-                lastPublishedAt: now,
-                updatedAt: now,
-              })
-              .where(eq(siteData.userId, userId));
-          } else {
-            await db.insert(siteData).values({
-              id: crypto.randomUUID(),
-              userId,
-              resumeId,
-              content: JSON.stringify(parsedContent),
-              lastPublishedAt: now,
-              createdAt: now,
-              updatedAt: now,
-            });
-          }
+          // Copy content to user's site_data for publishing (upsert with race condition handling)
+          await upsertSiteData(db, userId, resumeId, JSON.stringify(parsedContent), now);
 
           // R2 and DB both succeeded - return cached result
           await captureBookmark();

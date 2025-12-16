@@ -4,6 +4,7 @@ import { unstable_cache } from "next/cache";
 import { getDb } from "@/lib/db";
 import type { PrivacySettings } from "@/lib/db/schema";
 import { user } from "@/lib/db/schema";
+import { resumeContentSchema } from "@/lib/schemas/resume";
 import type { ResumeContent } from "@/lib/types/database";
 import { extractCityState, isValidPrivacySettings } from "@/lib/utils/privacy";
 
@@ -55,8 +56,23 @@ async function fetchResumeDataRaw(handle: string): Promise<ResumeData | null> {
     return null;
   }
 
-  // Parse content JSON (stored as text in D1)
-  const content: ResumeContent = JSON.parse(userData.siteData.content);
+  // Parse and validate content JSON (stored as text in D1)
+  let content: ResumeContent;
+  try {
+    const rawContent = JSON.parse(userData.siteData.content);
+
+    // Validate with Zod schema to ensure data integrity and XSS prevention
+    const parseResult = resumeContentSchema.safeParse(rawContent);
+    if (!parseResult.success) {
+      console.error("Invalid site_data content for handle:", handle, parseResult.error.format());
+      return null;
+    }
+
+    content = parseResult.data as ResumeContent;
+  } catch (error) {
+    console.error("Failed to parse site_data content for handle:", handle, error);
+    return null;
+  }
 
   // Parse privacy settings from JSON string
   const parsedPrivacySettings = userData.privacySettings

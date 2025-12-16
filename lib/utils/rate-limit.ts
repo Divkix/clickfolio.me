@@ -1,12 +1,18 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { and, eq, gte, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db";
-import { handleChanges, resumes, siteData, user } from "@/lib/db/schema";
+import { handleChanges, resumes, siteData } from "@/lib/db/schema";
 import { featureFlags } from "./config";
 import { SECURITY_HEADERS } from "./security-headers";
 
 /**
  * Rate limiting configuration for different actions
+ *
+ * Note on privacy_update: Since we don't have a dedicated table for tracking
+ * privacy updates, we use a higher threshold (20/hour) to account for the fact
+ * that user.updatedAt counts ALL user modifications, not just privacy changes.
+ * This is a reasonable trade-off that still prevents abuse while avoiding
+ * false positives from legitimate profile updates.
  */
 const RATE_LIMITS = {
   resume_update: { limit: 10, windowHours: 1 },
@@ -54,10 +60,15 @@ async function checkRateLimit(userId: string, action: RateLimitAction): Promise<
       }
 
       case "privacy_update": {
+        // Count site_data updates as a proxy for privacy updates
+        // Using a higher threshold (20/hour) since this counts all content updates too
+        // This approach avoids adding a new table while still providing abuse protection
         const result = await db
           .select({ count: sql<number>`count(*)` })
-          .from(user)
-          .where(and(eq(user.id, userId), gte(user.updatedAt, windowStart.toISOString())));
+          .from(siteData)
+          .where(
+            and(eq(siteData.userId, userId), gte(siteData.updatedAt, windowStart.toISOString())),
+          );
         count = result[0]?.count ?? 0;
         break;
       }

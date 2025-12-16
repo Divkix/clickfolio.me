@@ -128,30 +128,27 @@ export async function POST(request: Request) {
       }
     }
 
-    // 8. Delete database records in correct order (respecting FK constraints)
-    // D1 has CASCADE defined in schema but we delete explicitly for clarity and control
+    // 8. Delete database records in a transaction using batch
+    // D1 supports atomic transactions via db.batch() - all operations succeed or all fail
+    // This prevents orphaned records if deletion fails midway
 
     try {
-      // 8a. Delete siteData (depends on resumeId)
-      await db.delete(siteData).where(eq(siteData.userId, userId));
-
-      // 8b. Delete resumes
-      await db.delete(resumes).where(eq(resumes.userId, userId));
-
-      // 8c. Delete handleChanges
-      await db.delete(handleChanges).where(eq(handleChanges.userId, userId));
-
-      // 8d. Delete sessions (all sessions for this user)
-      await db.delete(session).where(eq(session.userId, userId));
-
-      // 8e. Delete accounts (OAuth providers)
-      await db.delete(account).where(eq(account.userId, userId));
-
-      // 8f. Delete verification records (by email identifier)
-      await db.delete(verification).where(eq(verification.identifier, userEmail));
-
-      // 8g. Delete user (last)
-      await db.delete(user).where(eq(user.id, userId));
+      await db.batch([
+        // 8a. Delete siteData (depends on resumeId)
+        db.delete(siteData).where(eq(siteData.userId, userId)),
+        // 8b. Delete resumes
+        db.delete(resumes).where(eq(resumes.userId, userId)),
+        // 8c. Delete handleChanges
+        db.delete(handleChanges).where(eq(handleChanges.userId, userId)),
+        // 8d. Delete sessions (all sessions for this user)
+        db.delete(session).where(eq(session.userId, userId)),
+        // 8e. Delete accounts (OAuth providers)
+        db.delete(account).where(eq(account.userId, userId)),
+        // 8f. Delete verification records (by email identifier)
+        db.delete(verification).where(eq(verification.identifier, userEmail)),
+        // 8g. Delete user (last)
+        db.delete(user).where(eq(user.id, userId)),
+      ]);
     } catch (dbError) {
       console.error("Database deletion error:", dbError);
       return createErrorResponse(
@@ -180,11 +177,23 @@ export async function POST(request: Request) {
       // Don't block deletion on email failure
     }
 
-    // 10. Return success response
-    return createSuccessResponse({
+    // 10. Return success response with cookie cleared
+    // Clear the session cookie to fully log out the user
+    const response = createSuccessResponse({
       success: true,
       message: "Your account has been permanently deleted",
       warnings: warnings.length > 0 ? warnings : undefined,
+    });
+
+    // Clone the response to add headers (createSuccessResponse returns immutable Response)
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: {
+        ...Object.fromEntries(response.headers.entries()),
+        "Set-Cookie":
+          "better-auth.session_token=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=Lax",
+      },
     });
   } catch (error) {
     console.error("Account deletion error:", error);

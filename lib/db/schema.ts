@@ -98,6 +98,7 @@ export const resumes = sqliteTable(
     fileHash: text("file_hash"),
     parsedContent: text("parsed_content"),
     createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at"),
   },
   (table) => [
     index("resumes_user_id_idx").on(table.userId),
@@ -106,6 +107,7 @@ export const resumes = sqliteTable(
     index("resumes_file_hash_status_idx").on(table.fileHash, table.status),
     index("resumes_user_id_created_at_idx").on(table.userId, table.createdAt),
     index("resumes_status_idx").on(table.status),
+    index("resumes_replicate_job_status_idx").on(table.replicateJobId, table.status),
   ],
 );
 

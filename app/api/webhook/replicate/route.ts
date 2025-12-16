@@ -30,6 +30,65 @@ function makeUserFriendlyError(rawMessage: string): string {
   return rawMessage.replace("Invalid resume data structure: ", "Parsing issue: ");
 }
 
+/**
+ * Upsert site_data with UNIQUE constraint handling
+ * Handles race conditions where another request may have inserted between SELECT and INSERT
+ */
+async function upsertSiteData(
+  db: ReturnType<typeof getSessionDbForWebhook>["db"],
+  userId: string,
+  resumeId: string,
+  content: string,
+  now: string,
+): Promise<void> {
+  // First check if record exists
+  const existingSiteData = await db
+    .select({ id: siteData.id })
+    .from(siteData)
+    .where(eq(siteData.userId, userId))
+    .limit(1);
+
+  if (existingSiteData.length > 0) {
+    await db
+      .update(siteData)
+      .set({
+        resumeId,
+        content,
+        lastPublishedAt: now,
+        updatedAt: now,
+      })
+      .where(eq(siteData.userId, userId));
+  } else {
+    // Try to insert, handle UNIQUE constraint race condition
+    try {
+      await db.insert(siteData).values({
+        id: crypto.randomUUID(),
+        userId,
+        resumeId,
+        content,
+        lastPublishedAt: now,
+        createdAt: now,
+        updatedAt: now,
+      });
+    } catch (error) {
+      if (error instanceof Error && error.message.includes("UNIQUE constraint failed")) {
+        // Another request inserted between our SELECT and INSERT, update instead
+        await db
+          .update(siteData)
+          .set({
+            resumeId,
+            content,
+            lastPublishedAt: now,
+            updatedAt: now,
+          })
+          .where(eq(siteData.userId, userId));
+      } else {
+        throw error;
+      }
+    }
+  }
+}
+
 export async function POST(request: Request) {
   try {
     // 1. Verify webhook signature
@@ -122,37 +181,10 @@ export async function POST(request: Request) {
 
       // Serialize content to JSON string for D1
       const contentJson = JSON.stringify(normalizedContent);
+      const now = new Date().toISOString();
 
-      // Check if site_data exists for this user
-      const existingSiteData = await db
-        .select({ id: siteData.id })
-        .from(siteData)
-        .where(eq(siteData.userId, resume.userId))
-        .limit(1);
-
-      if (existingSiteData.length > 0) {
-        // Update existing site_data
-        await db
-          .update(siteData)
-          .set({
-            resumeId: resume.id,
-            content: contentJson,
-            lastPublishedAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          })
-          .where(eq(siteData.userId, resume.userId));
-      } else {
-        // Insert new site_data
-        await db.insert(siteData).values({
-          id: crypto.randomUUID(),
-          userId: resume.userId,
-          resumeId: resume.id,
-          content: contentJson,
-          lastPublishedAt: new Date().toISOString(),
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        });
-      }
+      // Upsert site_data with race condition handling
+      await upsertSiteData(db, resume.userId, resume.id, contentJson, now);
 
       // Update resume status with optimistic lock to prevent race conditions
       // Only update if status is still "processing" - another process may have completed it
@@ -161,7 +193,7 @@ export async function POST(request: Request) {
         .update(resumes)
         .set({
           status: "completed",
-          parsedAt: new Date().toISOString(),
+          parsedAt: now,
           parsedContent: contentJson,
         })
         .where(and(eq(resumes.id, resume.id), eq(resumes.status, "processing")));
@@ -197,7 +229,7 @@ export async function POST(request: Request) {
                 .update(resumes)
                 .set({
                   status: "completed",
-                  parsedAt: new Date().toISOString(),
+                  parsedAt: now,
                   parsedContent: contentJson,
                 })
                 .where(eq(resumes.id, waiting.id));
@@ -211,20 +243,40 @@ export async function POST(request: Request) {
                   .set({
                     resumeId: waiting.id,
                     content: contentJson,
-                    lastPublishedAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString(),
+                    lastPublishedAt: now,
+                    updatedAt: now,
                   })
                   .where(eq(siteData.userId, waiting.userId));
               } else {
-                await db.insert(siteData).values({
-                  id: crypto.randomUUID(),
-                  userId: waiting.userId,
-                  resumeId: waiting.id,
-                  content: contentJson,
-                  lastPublishedAt: new Date().toISOString(),
-                  createdAt: new Date().toISOString(),
-                  updatedAt: new Date().toISOString(),
-                });
+                // Handle UNIQUE constraint race condition in fan-out
+                try {
+                  await db.insert(siteData).values({
+                    id: crypto.randomUUID(),
+                    userId: waiting.userId,
+                    resumeId: waiting.id,
+                    content: contentJson,
+                    lastPublishedAt: now,
+                    createdAt: now,
+                    updatedAt: now,
+                  });
+                } catch (insertError) {
+                  if (
+                    insertError instanceof Error &&
+                    insertError.message.includes("UNIQUE constraint failed")
+                  ) {
+                    await db
+                      .update(siteData)
+                      .set({
+                        resumeId: waiting.id,
+                        content: contentJson,
+                        lastPublishedAt: now,
+                        updatedAt: now,
+                      })
+                      .where(eq(siteData.userId, waiting.userId));
+                  } else {
+                    throw insertError;
+                  }
+                }
               }
 
               return { success: true, id: waiting.id };
