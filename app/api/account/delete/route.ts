@@ -135,19 +135,33 @@ export async function POST(request: Request) {
     try {
       await db.batch([
         // 8a. Delete siteData (depends on resumeId)
-        db.delete(siteData).where(eq(siteData.userId, userId)),
+        db
+          .delete(siteData)
+          .where(eq(siteData.userId, userId)),
         // 8b. Delete resumes
-        db.delete(resumes).where(eq(resumes.userId, userId)),
+        db
+          .delete(resumes)
+          .where(eq(resumes.userId, userId)),
         // 8c. Delete handleChanges
-        db.delete(handleChanges).where(eq(handleChanges.userId, userId)),
+        db
+          .delete(handleChanges)
+          .where(eq(handleChanges.userId, userId)),
         // 8d. Delete sessions (all sessions for this user)
-        db.delete(session).where(eq(session.userId, userId)),
+        db
+          .delete(session)
+          .where(eq(session.userId, userId)),
         // 8e. Delete accounts (OAuth providers)
-        db.delete(account).where(eq(account.userId, userId)),
+        db
+          .delete(account)
+          .where(eq(account.userId, userId)),
         // 8f. Delete verification records (by email identifier)
-        db.delete(verification).where(eq(verification.identifier, userEmail)),
+        db
+          .delete(verification)
+          .where(eq(verification.identifier, userEmail)),
         // 8g. Delete user (last)
-        db.delete(user).where(eq(user.id, userId)),
+        db
+          .delete(user)
+          .where(eq(user.id, userId)),
       ]);
     } catch (dbError) {
       console.error("Database deletion error:", dbError);
