@@ -130,5 +130,3 @@ const link = {
   color: "#4f46e5",
   textDecoration: "underline",
 };
-
-export default AccountDeletedEmail;
