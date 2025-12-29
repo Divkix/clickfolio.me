@@ -9,7 +9,6 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { and, gte, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { uploadRateLimits } from "@/lib/db/schema";
-import { featureFlags } from "./config";
 
 const HOURLY_LIMIT = 10;
 const DAILY_LIMIT = 50;
@@ -62,7 +61,7 @@ export function getClientIP(request: Request): string {
  */
 export async function checkIPRateLimit(ip: string): Promise<IPRateLimitResult> {
   // Skip in development
-  if (!featureFlags.rateLimiting) {
+  if (process.env.NODE_ENV !== "production") {
     return {
       allowed: true,
       remaining: { hourly: HOURLY_LIMIT, daily: DAILY_LIMIT },

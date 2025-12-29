@@ -12,7 +12,3 @@ export const deleteAccountSchema = z.object({
     .email({ message: "Invalid email address" }),
 });
 
-/**
- * Type inference for account deletion request
- */
-export type DeleteAccountRequest = z.infer<typeof deleteAccountSchema>;

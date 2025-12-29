@@ -69,7 +69,7 @@ export async function createSignedCookieValue(
 /**
  * Parse result from signed cookie
  */
-export interface ParsedPendingUpload {
+interface ParsedPendingUpload {
   tempKey: string;
   fileHash: string | null;
 }

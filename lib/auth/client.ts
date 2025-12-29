@@ -13,7 +13,7 @@ import { createAuthClient } from "better-auth/react";
  * Automatically detects the base URL from the browser's location.
  * Falls back to empty string for SSR contexts (will be hydrated on client).
  */
-export const authClient = createAuthClient({
+const authClient = createAuthClient({
   baseURL: typeof window !== "undefined" ? window.location.origin : "",
 });
 
@@ -58,13 +58,3 @@ export const { signOut } = authClient;
  * ```
  */
 export const { useSession } = authClient;
-
-/**
- * Type-safe session type derived from the auth client
- */
-export type Session = typeof authClient.$Infer.Session;
-
-/**
- * Type-safe user type with custom fields
- */
-export type User = Session["user"];

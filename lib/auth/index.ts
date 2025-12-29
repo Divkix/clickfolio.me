@@ -162,8 +162,3 @@ export async function getAuth() {
   });
 }
 
-/**
- * Type export for the auth instance
- * Useful for typing auth-related utilities
- */
-export type Auth = Awaited<ReturnType<typeof getAuth>>;

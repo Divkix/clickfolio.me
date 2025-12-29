@@ -11,7 +11,7 @@ import { createErrorResponse, ERROR_CODES } from "@/lib/utils/security-headers";
 /**
  * User type with Better Auth custom fields
  */
-export interface AuthUser {
+interface AuthUser {
   id: string;
   email: string;
   name: string | null;
@@ -26,7 +26,7 @@ export interface AuthUser {
 /**
  * Session type returned by Better Auth
  */
-export interface AuthSession {
+interface AuthSession {
   user: AuthUser;
   session: {
     id: string;
@@ -42,7 +42,7 @@ export interface AuthSession {
  *
  * @returns The session if authenticated, null otherwise
  */
-export async function getSession(): Promise<AuthSession | null> {
+async function getSession(): Promise<AuthSession | null> {
   try {
     const auth = await getAuth();
     const headersList = await headers();
@@ -96,31 +96,3 @@ export async function requireAuthWithMessage(
   }
 }
 
-/**
- * Helper to require authentication, returning the full session
- *
- * @param errorMessage Custom error message for unauthorized access
- * @returns Promise containing either the authenticated session or an error response
- */
-export async function requireSessionWithMessage(
-  errorMessage: string,
-): Promise<{ session: AuthSession; error: null } | { session: null; error: Response }> {
-  try {
-    const session = await getSession();
-
-    if (!session) {
-      return {
-        session: null,
-        error: createErrorResponse(errorMessage, ERROR_CODES.UNAUTHORIZED, 401),
-      };
-    }
-
-    return { session, error: null };
-  } catch (error) {
-    console.error("Authentication middleware error:", error);
-    return {
-      session: null,
-      error: createErrorResponse("Authentication failed", ERROR_CODES.INTERNAL_ERROR, 500),
-    };
-  }
-}

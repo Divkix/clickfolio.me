@@ -5,7 +5,7 @@ import * as schema from "./schema";
 const D1_BOOKMARK_COOKIE = "d1-session-bookmark";
 const BOOKMARK_COOKIE_MAX_AGE = 30; // seconds
 
-export interface SessionDbResult {
+interface SessionDbResult {
   db: ReturnType<typeof drizzle<typeof schema>>;
   captureBookmark: () => Promise<void>;
 }

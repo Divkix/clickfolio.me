@@ -63,13 +63,6 @@ export function getResendClient(env?: Partial<CloudflareEnv>): Resend {
   return _resendClient;
 }
 
-/**
- * Clear cached Resend client (useful for testing)
- */
-export function clearResendClient(): void {
-  _resendClient = null;
-  _lastApiKey = null;
-}
 
 /**
  * Default sender email for transactional emails

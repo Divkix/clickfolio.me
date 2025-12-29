@@ -40,12 +40,6 @@ function getReplicate(env?: Partial<CloudflareEnv>): Replicate {
   return _replicate;
 }
 
-/**
- * Clear cached Replicate client (useful for testing)
- */
-export function clearReplicateClient(): void {
-  _replicate = null;
-}
 
 /**
  * Clean email extracted from AI parsing

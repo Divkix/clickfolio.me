@@ -46,28 +46,3 @@ export interface CloudflareEnv {
   NEXT_PUBLIC_APP_URL?: string;
 }
 
-/**
- * Type guard to check if a key exists in CloudflareEnv
- */
-export function isCloudflareEnvKey(key: string): key is keyof CloudflareEnv {
-  const envKeys: Array<keyof CloudflareEnv> = [
-    "DB",
-    "ASSETS",
-    "BETTER_AUTH_SECRET",
-    "BETTER_AUTH_URL",
-    "GOOGLE_CLIENT_ID",
-    "GOOGLE_CLIENT_SECRET",
-    "R2_ENDPOINT",
-    "R2_ACCESS_KEY_ID",
-    "R2_SECRET_ACCESS_KEY",
-    "R2_BUCKET_NAME",
-    "CF_AI_GATEWAY_ACCOUNT_ID",
-    "CF_AI_GATEWAY_ID",
-    "CF_AIG_AUTH_TOKEN",
-    "REPLICATE_API_TOKEN",
-    "REPLICATE_WEBHOOK_SECRET",
-    "RESEND_API_KEY",
-    "NEXT_PUBLIC_APP_URL",
-  ];
-  return envKeys.includes(key as keyof CloudflareEnv);
-}

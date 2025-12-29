@@ -87,11 +87,3 @@ export function getR2Bucket(env?: Partial<CloudflareEnv>): string {
   return _r2Bucket;
 }
 
-/**
- * Clear cached R2 client (useful for testing)
- */
-export function clearR2Client(): void {
-  _r2Client = null;
-  _r2Bucket = null;
-  _lastEndpoint = null;
-}

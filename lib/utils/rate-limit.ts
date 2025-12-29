@@ -2,7 +2,6 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { and, eq, gte, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { handleChanges, resumes, siteData } from "@/lib/db/schema";
-import { featureFlags } from "./config";
 import { SECURITY_HEADERS } from "./security-headers";
 
 /**
@@ -139,7 +138,7 @@ export async function enforceRateLimit(
   action: RateLimitAction,
 ): Promise<Response | null> {
   // Skip rate limiting in development
-  if (!featureFlags.rateLimiting) {
+  if (process.env.NODE_ENV !== "production") {
     return null;
   }
 
