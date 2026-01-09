@@ -1,3 +1,4 @@
+import { Github } from "lucide-react";
 import Link from "next/link";
 import { Brand } from "@/components/Brand";
 
@@ -31,8 +32,17 @@ export function Footer() {
             </Link>
           </nav>
         </div>
-        <p className="text-center text-slate-500 text-xs font-medium mt-4">
-          Built with Next.js | Powered by Cloudflare | Privacy-first design
+        <p className="text-center text-slate-500 text-xs font-medium mt-4 flex items-center justify-center gap-1">
+          Built with Next.js | Powered by Cloudflare |{" "}
+          <a
+            href="https://github.com/divkix/webresume.now"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 hover:text-indigo-600 transition-colors"
+          >
+            <Github className="h-3 w-3" />
+            Open Source
+          </a>
         </p>
       </div>
     </footer>
