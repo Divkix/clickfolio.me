@@ -39,7 +39,6 @@ function getReplicate(env?: Partial<CloudflareEnv>): Replicate {
   return _replicate;
 }
 
-
 /**
  * Clean email extracted from AI parsing
  * Handles common OCR artifacts and formatting issues

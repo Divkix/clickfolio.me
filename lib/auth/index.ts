@@ -160,4 +160,3 @@ export async function getAuth() {
     trustedOrigins: [baseURL].filter(Boolean),
   });
 }
-

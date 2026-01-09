@@ -11,4 +11,3 @@ export const deleteAccountSchema = z.object({
     .min(1, "Email confirmation is required")
     .email({ message: "Invalid email address" }),
 });
-

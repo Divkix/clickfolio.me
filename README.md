@@ -1,39 +1,65 @@
 # webresume.now
 
-The fastest way to turn a static resume into a hosted, shareable web portfolio. Drop a PDF, get a link.
+**Turn your PDF resume into a hosted web portfolio in under 60 seconds.**
 
-**Status**: Production Ready
-**Version**: 1.0.0
-**License**: MIT
+Upload a PDF. AI parses it. Get a shareable link.
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Cloudflare Workers](https://img.shields.io/badge/Deployed%20on-Cloudflare%20Workers-F38020)](https://workers.cloudflare.com/)
+[![Next.js 15](https://img.shields.io/badge/Next.js-15-black)](https://nextjs.org/)
 
 ---
 
-## What is webresume.now?
+## Features
 
-webresume.now transforms your PDF resume into a beautiful, shareable web portfolio in under 60 seconds. No design skills, no coding, no hassle.
-
-### Core Features
-
-- **Upload & Parse**: Drop a PDF, AI extracts your information
-- **Instant Publishing**: Get a clean URL immediately (webresume.now/yourname)
-- **Privacy Controls**: Show/hide phone and address with one click
-- **Professional Templates**: Clean, ATS-friendly design
-- **Mobile Responsive**: Looks great on all devices
-- **SEO Optimized**: Metadata, Open Graph tags, fast loading
+- **Instant PDF Parsing** - AI extracts your information automatically
+- **Clean Public URLs** - Get `yoursite.com/yourname` immediately
+- **Privacy Controls** - Show/hide phone numbers and addresses
+- **Multiple Templates** - Professional, modern designs
+- **Mobile Responsive** - Looks great on all devices
+- **SEO Optimized** - Proper metadata, Open Graph tags
 
 ---
 
 ## Tech Stack
 
-- **Framework**: [Next.js 15](https://nextjs.org) (App Router)
-- **Runtime**: Cloudflare Workers (Node.js compatibility)
-- **Database**: Cloudflare D1 (SQLite) with [Drizzle ORM](https://orm.drizzle.team)
-- **Authentication**: [Better Auth](https://better-auth.com) (Google OAuth)
-- **Storage**: Cloudflare R2 (S3-compatible)
-- **AI Parsing**: [Replicate](https://replicate.com) (datalab-to/marker)
-- **Styling**: [Tailwind CSS 4](https://tailwindcss.com)
-- **UI Components**: [Radix UI](https://radix-ui.com)
-- **Package Manager**: [Bun](https://bun.sh)
+| Layer | Technology |
+|-------|------------|
+| **Framework** | [Next.js 15](https://nextjs.org) (App Router) |
+| **Runtime** | [Cloudflare Workers](https://workers.cloudflare.com) |
+| **Database** | [Cloudflare D1](https://developers.cloudflare.com/d1/) (SQLite) + [Drizzle ORM](https://orm.drizzle.team) |
+| **Auth** | [Better Auth](https://better-auth.com) (Google OAuth) |
+| **Storage** | [Cloudflare R2](https://developers.cloudflare.com/r2/) (S3-compatible) |
+| **AI Parsing** | [Replicate](https://replicate.com) (datalab-to/marker) |
+| **Styling** | [Tailwind CSS 4](https://tailwindcss.com) + [Radix UI](https://radix-ui.com) |
+
+---
+
+## Why Cloudflare Workers?
+
+We chose Cloudflare Workers over traditional hosting for several reasons:
+
+### Performance
+- **Edge Computing**: Code runs in 300+ data centers worldwide, closest to your users
+- **Cold Start**: ~0ms cold starts vs. 200-500ms on traditional serverless
+- **Latency**: Sub-50ms response times globally
+
+### Cost Efficiency
+- **Free Tier**: 100,000 requests/day free
+- **D1 Database**: 5GB free, built-in SQLite
+- **R2 Storage**: 10GB free, no egress fees
+- **Total**: A production app can run free for most use cases
+
+### Developer Experience
+- **No Container Management**: Just deploy code
+- **Automatic Scaling**: From 0 to millions of requests
+- **Integrated Stack**: D1, R2, and Workers work seamlessly together
+
+### Trade-offs
+- **No `fs` Module**: Must use R2 for file operations
+- **No Native Next.js Image**: Use `<img>` with CSS instead
+- **Edge Middleware Limits**: No D1 access in middleware
+- **Bundle Size**: Keep dependencies minimal
 
 ---
 
@@ -41,121 +67,202 @@ webresume.now transforms your PDF resume into a beautiful, shareable web portfol
 
 ### Prerequisites
 
-- [Bun](https://bun.sh) installed
-- [Cloudflare](https://cloudflare.com) account with R2 and D1 enabled
-- [Replicate](https://replicate.com) account
+- [Bun](https://bun.sh) v1.0+ (package manager)
+- [Cloudflare Account](https://cloudflare.com) with R2 and D1 enabled
 - [Google Cloud Console](https://console.cloud.google.com) project for OAuth
+- [Replicate](https://replicate.com) account for AI parsing
 
 ### Installation
 
-1. **Clone the repository**
+```bash
+# Clone the repository
+git clone https://github.com/divkix/webresume.now.git
+cd webresume.now
 
-   ```bash
-   git clone https://github.com/yourusername/webresume.now.git
-   cd webresume.now
-   ```
+# Install dependencies
+bun install
 
-2. **Install dependencies**
+# Copy environment template
+cp .env.example .env.local
 
-   ```bash
-   bun install
-   ```
+# Set up local database
+bun run db:migrate
 
-3. **Set up environment variables**
+# Start development server
+bun run dev
+```
 
-   Copy `.env.example` to `.env.local`:
-
-   ```bash
-   cp .env.example .env.local
-   ```
-
-   Fill in your credentials (see [Environment Variables](#environment-variables) below).
-
-4. **Set up D1 database**
-
-   Run migrations locally:
-
-   ```bash
-   bun run db:migrate
-   ```
-
-   Run migrations for production:
-
-   ```bash
-   bun run db:migrate:prod
-   ```
-
-5. **Configure Google OAuth**
-
-   Follow instructions in `docs/deployment-guide.md` to set up Google OAuth in Google Cloud Console.
-
-6. **Run development server**
-
-   ```bash
-   bun run dev
-   ```
-
-   Open [http://localhost:3000](http://localhost:3000)
+Open [http://localhost:3000](http://localhost:3000)
 
 ---
 
-## Environment Variables
+## Self-Hosting Guide
 
-Required environment variables (see `.env.example` for full template):
+### Step 1: Cloudflare Setup
+
+1. **Create a Cloudflare account** at [cloudflare.com](https://cloudflare.com)
+
+2. **Create D1 Database**
+   ```bash
+   bunx wrangler d1 create webresume-db
+   ```
+   Copy the `database_id` to `wrangler.jsonc`
+
+3. **Create R2 Bucket**
+   - Go to Cloudflare Dashboard > R2
+   - Create bucket named `webresume-uploads`
+   - Generate API token with Read & Write permissions
+   - Note your Account ID and Access Keys
+
+4. **Configure R2 CORS**
+   Add CORS policy in R2 bucket settings:
+   ```json
+   [
+     {
+       "AllowedOrigins": ["http://localhost:3000", "https://your-domain.com"],
+       "AllowedMethods": ["GET", "PUT", "POST"],
+       "AllowedHeaders": ["*"],
+       "MaxAgeSeconds": 3000
+     }
+   ]
+   ```
+
+### Step 2: Google OAuth Setup
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com)
+2. Create a new project (or select existing)
+3. Enable **Google+ API** and **People API**
+4. Go to **APIs & Services > Credentials**
+5. Create **OAuth 2.0 Client ID** (Web application type)
+6. Add authorized redirect URIs:
+   - Development: `http://localhost:3000/api/auth/callback/google`
+   - Production: `https://your-domain.com/api/auth/callback/google`
+7. Copy Client ID and Client Secret
+
+### Step 3: Replicate Setup
+
+1. Create account at [replicate.com](https://replicate.com)
+2. Go to **Account Settings > API Tokens**
+3. Create new token and copy it
+
+**Optional: Cloudflare AI Gateway (BYOK)**
+For enhanced reliability and caching:
+1. Go to Cloudflare Dashboard > AI > AI Gateway
+2. Create a gateway
+3. Store your Replicate token in Cloudflare Secrets Store
+4. Use `CF_AI_GATEWAY_*` environment variables
+
+### Step 4: Environment Variables
+
+Create `.env.local` for development:
 
 ```bash
-# Better Auth
-BETTER_AUTH_SECRET=your-random-secret-key
+# Generate a secure secret
+openssl rand -base64 32
+
+# Copy to .env.local
+BETTER_AUTH_SECRET=your-generated-secret
 BETTER_AUTH_URL=http://localhost:3000
 
-# Google OAuth
-GOOGLE_CLIENT_ID=your-google-client-id
-GOOGLE_CLIENT_SECRET=your-google-client-secret
+GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your-client-secret
 
-# Cloudflare R2
-R2_ENDPOINT=https://your-account.r2.cloudflarestorage.com
+R2_ENDPOINT=https://your-account-id.r2.cloudflarestorage.com
 R2_ACCESS_KEY_ID=your-access-key
 R2_SECRET_ACCESS_KEY=your-secret-key
 R2_BUCKET_NAME=webresume-uploads
 
-# Replicate AI
-REPLICATE_API_TOKEN=your-replicate-token
+REPLICATE_API_TOKEN=r8_your-token
+REPLICATE_WEBHOOK_SECRET=whsec_your-webhook-secret
 
-# App Config
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
+See `.env.example` for complete template with all options.
+
+### Step 5: Deploy to Cloudflare
+
+1. **Apply database migrations**
+   ```bash
+   bun run db:migrate:prod
+   ```
+
+2. **Set production secrets**
+   ```bash
+   bunx wrangler secret put BETTER_AUTH_SECRET
+   bunx wrangler secret put BETTER_AUTH_URL
+   bunx wrangler secret put GOOGLE_CLIENT_ID
+   bunx wrangler secret put GOOGLE_CLIENT_SECRET
+   bunx wrangler secret put R2_ENDPOINT
+   bunx wrangler secret put R2_ACCESS_KEY_ID
+   bunx wrangler secret put R2_SECRET_ACCESS_KEY
+   bunx wrangler secret put R2_BUCKET_NAME
+   bunx wrangler secret put REPLICATE_API_TOKEN
+   bunx wrangler secret put REPLICATE_WEBHOOK_SECRET
+   bunx wrangler secret put NEXT_PUBLIC_APP_URL
+   ```
+
+3. **Deploy**
+   ```bash
+   bun run deploy
+   ```
+
+4. **Configure custom domain** (optional)
+   - In Cloudflare Dashboard > Workers & Pages > Your Worker
+   - Add custom domain in Settings > Domains & Routes
+
 ---
 
-## Project Structure
+## Development
+
+### Available Scripts
+
+```bash
+# Development
+bun run dev              # Start dev server at localhost:3000
+bun run lint             # Biome linting
+bun run fix              # Biome auto-fix
+bun run type-check       # TypeScript check
+
+# Build & Deploy
+bun run build            # Next.js production build
+bun run build:worker     # OpenNext Cloudflare bundle
+bun run preview          # Local Cloudflare preview
+bun run deploy           # Build and deploy to Cloudflare Workers
+
+# Database (D1 + Drizzle)
+bun run db:generate      # Generate migrations from schema
+bun run db:migrate       # Apply migrations locally
+bun run db:migrate:prod  # Apply migrations to production
+bun run db:studio        # Drizzle Studio UI (port 4984)
+bun run db:reset         # Wipe local D1 and re-migrate
+
+# Quality
+bun run ci               # type-check + lint + build
+```
+
+### Project Structure
 
 ```
 app/
-├── (auth)/              # Authentication routes
-├── (public)/            # Public-facing pages
-│   ├── [handle]/        # Dynamic resume viewer
-│   └── page.tsx         # Homepage with upload
-├── (protected)/         # Auth-required pages
-│   ├── dashboard/       # User dashboard
-│   ├── edit/            # Resume editor
-│   ├── settings/        # User settings
-│   ├── onboarding/      # Post-auth onboarding
-│   └── waiting/         # AI processing waiting room
-└── api/                 # API routes
-    ├── upload/          # R2 presigned URLs
-    ├── resume/          # Resume operations
-    └── profile/         # Profile updates
+├── (auth)/              # /api/auth/* - Better Auth handlers
+├── (public)/            # / and /[handle] - no auth required
+│   ├── page.tsx         # Homepage with upload dropzone
+│   └── [handle]/        # Public resume viewer (SSR)
+└── (protected)/         # Auth required pages
+    ├── dashboard/       # User dashboard
+    ├── edit/            # Content editor with auto-save
+    ├── settings/        # Privacy toggles, theme selection
+    └── waiting/         # AI parsing status polling
 
 components/
-├── auth/                # Auth components
-├── dashboard/           # Dashboard components
-├── templates/           # Resume templates
-└── ui/                  # Reusable UI components
+├── templates/           # Resume templates (MinimalistEditorial, etc.)
+└── ui/                  # Reusable UI components (shadcn/ui)
 
 lib/
-├── db/                  # D1 database client and Drizzle schema
 ├── auth/                # Better Auth configuration
-├── types/               # TypeScript types
+├── db/                  # Drizzle schema and client
+├── schemas/             # Zod validation schemas
 └── utils/               # Utility functions
 ```
 
@@ -163,298 +270,114 @@ lib/
 
 ## Architecture
 
-### The "Claim Check" Pattern
+### The Claim Check Pattern
 
-Allows anonymous users to upload before authentication:
+Allows anonymous users to upload before authenticating:
 
-1. Anonymous user uploads PDF to R2 with temp key
-2. User logs in with Google OAuth
-3. Claim API links upload to authenticated user
-4. AI parsing triggered automatically
-
-### Privacy by Default
-
-- Phone numbers: HIDDEN by default
-- Addresses: City/State only (full address hidden)
-- Email: PUBLIC (uses mailto: links)
-- User can toggle visibility in settings
-
-### AI Parsing
-
-Uses Replicate's `datalab-to/marker` model with structured JSON schema to extract:
-
-- Full name, headline, summary
-- Work experience (max 5 entries)
-- Education, skills, certifications
-- Contact information
-
-Typical parsing time: 30-40 seconds for a 2-page resume.
-
----
-
-## Available Scripts
-
-```bash
-# Development
-bun run dev              # Start dev server
-
-# Building
-bun run build            # Build for production
-bun run build:worker     # Build with Cloudflare adapter
-bun run preview          # Preview Cloudflare build locally
-
-# Deployment
-bun run deploy           # Deploy to Cloudflare Workers
-
-# Linting & Quality
-bun run lint             # Run ESLint
-
-# Database (D1 with Drizzle)
-bun run db:migrate       # Run migrations locally
-bun run db:migrate:prod  # Run migrations for production
-bun run db:generate      # Generate migrations from schema
-bun run db:studio        # Open Drizzle Studio
+```
+1. POST /api/upload/sign    → Get presigned R2 URL
+2. Client uploads to R2     → Store temp key in localStorage
+3. User authenticates       → Google OAuth
+4. POST /api/resume/claim   → Link upload to user, trigger parsing
+5. Poll /api/resume/status  → Wait for AI parsing (~30-40s)
 ```
 
+### Privacy Filtering
+
+Before rendering public profiles:
+- Phone numbers: Hidden by default
+- Addresses: City/State only (full address hidden)
+- Email: Public (for contact)
+- User controls visibility in settings
+
 ---
 
-## Deployment
+## Resume Templates
 
-### Deploy to Cloudflare Workers
+Four built-in templates in `components/templates/`:
 
-1. **Build the application**
+| Template | Description |
+|----------|-------------|
+| **MinimalistEditorial** | Serif fonts, editorial aesthetic (default) |
+| **NeoBrutalist** | Bold borders, high contrast |
+| **GlassMorphic** | Blur effects, dark background |
+| **BentoGrid** | Mosaic grid layout |
 
-   ```bash
-   bun run build
-   ```
-
-2. **Generate Cloudflare Workers bundle**
-
-   ```bash
-   bunx opennextjs-cloudflare
-   ```
-
-3. **Deploy with Wrangler**
-
-   ```bash
-   bunx wrangler deploy
-   ```
-
-4. **Set environment variables**
-
-   In Cloudflare Dashboard > Workers & Pages > Your Worker > Settings > Variables, add all environment variables from `.env.example`.
-
-For detailed deployment instructions, see `docs/deployment-guide.md`.
+All templates receive `content` (ResumeContent) and `user` props, respect privacy settings, and are mobile-responsive.
 
 ---
 
 ## Security
 
-- **Application-Level Authorization**: All data access controlled in application code
+- **Application-Level Authorization**: All data access controlled in code
 - **Rate Limiting**: 5 uploads/day, 10 updates/hour per user
-- **Input Validation**: Zod schemas on all forms
-- **XSS Protection**: React sanitization (default)
-- **Middleware Protection**: Auth required for all protected routes
-- **Encrypted Secrets**: Sensitive env vars encrypted in Cloudflare
+- **Input Validation**: Zod schemas on all endpoints
+- **XSS Protection**: React's default sanitization
+- **Encrypted Secrets**: All secrets encrypted in Cloudflare
 
----
-
-## Performance
-
-- **Build Time**: ~1.1 seconds
-- **Bundle Size**: 102 kB shared, <220 kB largest page
-- **TTFIS** (Time to First Interactive Site): <60 seconds
-- **Page Load**: <2 seconds (homepage, public profile)
-
----
-
-## Browser Support
-
-- Chrome/Edge (latest)
-- Firefox (latest)
-- Safari (latest)
-- Mobile browsers (iOS Safari, Chrome Android)
-
----
-
-## Documentation
-
-Comprehensive documentation in `/docs`:
-
-- **CLAUDE.md**: AI development context and guidelines
-- **deployment-guide.md**: Complete deployment instructions
-- **phase5-completion.md**: Feature completion report
-- **testing-checklist.md**: Manual testing checklist
-- **prd.md**: Product requirements document
-- **tech-spec.md**: Technical specification
-- **roadmap.md**: Development roadmap
-
----
-
-## Testing
-
-### Manual Testing
-
-Follow the comprehensive checklist in `docs/testing-checklist.md` to test all flows:
-
-- Anonymous upload flow
-- Google OAuth authentication
-- AI parsing and waiting room
-- Dashboard and content preview
-- Edit form with auto-save
-- Settings and privacy controls
-- Public profile rendering
-- Security and rate limiting
-
-### Running Tests Locally
-
-1. **Test upload flow**
-   - Visit `http://localhost:3000`
-   - Upload a PDF resume (use a real 1-2 page resume)
-   - Log in with Google
-   - Verify claim and parsing
-
-2. **Test editing**
-   - Navigate to `/edit`
-   - Make changes to content
-   - Verify auto-save (3-second debounce)
-
-3. **Test privacy controls**
-   - Go to `/settings`
-   - Toggle "Show phone" and "Show address"
-   - Visit public profile to verify filtering
-
----
-
-## Known Limitations (MVP)
-
-1. **Single Template**: Only "Minimalist Creme" available (more coming)
-2. **No Image Optimization**: Using native `<img>` tags (Cloudflare Workers constraint)
-3. **No Custom Domains**: Users get `webresume.now/{handle}` only
-4. **No PDF Export**: Can't export web resume back to PDF (future feature)
-
----
-
-## Roadmap
-
-### Phase 1 (Completed)
-
-- Skeleton & plumbing (Next.js + D1 + Better Auth + Cloudflare)
-
-### Phase 2 (Completed)
-
-- Drop & claim loop (R2 upload + claim check pattern)
-
-### Phase 3 (Completed)
-
-- Public viewer with mock data
-
-### Phase 4 (Completed)
-
-- AI integration (Replicate parsing)
-
-### Phase 5 (Completed)
-
-- Polish & launch (edit, settings, final touches)
-
-### Future Enhancements
-
-- Multiple templates (Modern, Classic, Creative)
-- Custom domains support
-- PDF export from web resume
-- Social sharing with OG images
-- Theme customization (colors, fonts)
-- Portfolio projects section
-- ATS compatibility scoring
+See [SECURITY.md](SECURITY.md) for security policy and vulnerability reporting.
 
 ---
 
 ## Contributing
 
-Contributions welcome! Please follow these guidelines:
+Contributions welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+### Quick Contribution Guide
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Use conventional commits (`feat:`, `fix:`, `docs:`, etc.)
-4. Run `bun run lint` before committing
-5. Ensure TypeScript builds without errors (`bun run build`)
-6. Submit a pull request
+2. Create a feature branch (`git checkout -b feat/amazing-feature`)
+3. Use conventional commits (`feat:`, `fix:`, `docs:`)
+4. Run quality checks (`bun run ci`)
+5. Submit a pull request
 
 ---
 
 ## Troubleshooting
 
-### Build Fails
-
-**Error**: TypeScript compilation errors
-
-**Solution**: Run `bun run build` and fix all type errors. Check `tsconfig.json` is properly configured.
-
----
+### Build Fails with TypeScript Errors
+```bash
+bun run type-check  # See all errors
+bun run build       # Fix errors and rebuild
+```
 
 ### OAuth Redirect Loop
-
-**Error**: Infinite redirect after Google login
-
-**Solution**:
-
 1. Verify `BETTER_AUTH_URL` includes `https://` for production
-2. Check redirect URLs in Google Cloud Console match your domain
-3. Clear browser cookies and try again
-
----
+2. Check redirect URIs match in Google Cloud Console
+3. Clear browser cookies
 
 ### R2 Upload Fails
-
-**Error**: CORS error or 403 Forbidden
-
-**Solution**:
-
-1. Check R2 CORS policy includes your domain
+1. Check R2 CORS includes your domain
 2. Verify R2 API token has Read & Write permissions
-3. Ensure `R2_BUCKET_NAME` matches actual bucket name
+3. Confirm `R2_BUCKET_NAME` matches actual bucket
 
----
-
-### Parsing Stuck
-
-**Error**: Resume stuck in "processing" status
-
-**Solution**:
-
-1. Check Replicate API token is valid
-2. Verify PDF is not corrupted (try re-uploading)
-3. Use retry button on waiting room page
+### Parsing Stuck in "Processing"
+1. Verify Replicate API token is valid
+2. Check PDF isn't corrupted
+3. Use retry button (max 2 retries)
 4. Check Replicate dashboard for job status
 
----
-
-## Support
-
-- **Issues**: [GitHub Issues](https://github.com/yourusername/webresume.now/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/webresume.now/discussions)
-- **Email**: support@webresume.now
+### "Cannot find module 'fs'"
+You're on Cloudflare Workers. Use R2 presigned URLs for file operations.
 
 ---
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) file for details.
+MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 
 ## Acknowledgments
 
-- [Next.js](https://nextjs.org) for the incredible framework
-- [Better Auth](https://better-auth.com) for authentication
-- [Drizzle ORM](https://orm.drizzle.team) for type-safe database access
-- [Cloudflare](https://cloudflare.com) for Workers, D1, and R2
-- [Replicate](https://replicate.com) for AI parsing
-- [Radix UI](https://radix-ui.com) for accessible components
-- [Tailwind CSS](https://tailwindcss.com) for styling
+- [Next.js](https://nextjs.org) - React framework
+- [Better Auth](https://better-auth.com) - Authentication
+- [Drizzle ORM](https://orm.drizzle.team) - Type-safe database
+- [Cloudflare](https://cloudflare.com) - Edge infrastructure
+- [Replicate](https://replicate.com) - AI inference
+- [Radix UI](https://radix-ui.com) - Accessible components
+- [Tailwind CSS](https://tailwindcss.com) - Styling
 
 ---
 
-**Built with TypeScript, deployed on the edge, designed for speed.**
-
-webresume.now - Your resume, reimagined.
+**Built with TypeScript. Deployed on the edge. Designed for speed.**

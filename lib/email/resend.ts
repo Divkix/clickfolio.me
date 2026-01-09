@@ -62,7 +62,6 @@ export function getResendClient(env?: Partial<CloudflareEnv>): Resend {
   return _resendClient;
 }
 
-
 /**
  * Default sender email for transactional emails
  */

@@ -14,8 +14,7 @@ class EnvironmentError extends Error {
 }
 
 // Cache for Cloudflare env (set once per request context)
-let _cfEnv: Partial<CloudflareEnv> | null = null;
-
+const _cfEnv: Partial<CloudflareEnv> | null = null;
 
 /**
  * Get env value from Cloudflare binding or process.env
