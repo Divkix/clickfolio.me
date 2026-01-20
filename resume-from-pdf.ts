@@ -483,6 +483,8 @@ IMPORTANT:
     // Responses API uses text.format for structured outputs.  [oai_citation:2‡OpenAI Platform](https://platform.openai.com/docs/guides/structured-outputs)
     const resp = await client.responses.create({
       model,
+      temperature: 0,
+      max_output_tokens: 4096,
       input: [
         { role: "system", content: system },
         {
@@ -507,6 +509,8 @@ IMPORTANT:
   // Chat Completions supports response_format json_schema.  [oai_citation:3‡OpenAI Platform](https://platform.openai.com/docs/api-reference/chat)
   const resp = await client.chat.completions.create({
     model,
+    temperature: 0,
+    max_tokens: 4096,
     messages: [
       { role: "system", content: system },
       {
