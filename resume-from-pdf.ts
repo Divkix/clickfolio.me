@@ -174,13 +174,43 @@ function parseArgs(argv: string[]): Args {
     const a = args[i];
     const next = args[i + 1];
 
-    if (a === "--provider" && next) out.provider = next as Provider;
-    if (a === "--api" && next) out.api = next as "responses" | "chat";
+    if (a === "--provider" && next) {
+      const validProviders = ["openai", "openrouter", "custom"];
+      if (!validProviders.includes(next)) {
+        console.error(
+          `Invalid --provider value: ${next}. Must be one of: ${validProviders.join(", ")}`,
+        );
+        process.exit(1);
+      }
+      out.provider = next as Provider;
+    }
+    if (a === "--api" && next) {
+      const validApis = ["responses", "chat"];
+      if (!validApis.includes(next)) {
+        console.error(`Invalid --api value: ${next}. Must be one of: ${validApis.join(", ")}`);
+        process.exit(1);
+      }
+      out.api = next as "responses" | "chat";
+    }
     if (a === "--model" && next) out.model = next;
     if (a === "--base-url" && next) out.baseURL = next;
     if (a === "--out" && next) out.outPath = next;
-    if (a === "--mode" && next) out.mode = next as OutputMode;
-    if (a === "--max-chars" && next) out.maxChars = Number(next);
+    if (a === "--mode" && next) {
+      const validModes = ["json", "pretty"];
+      if (!validModes.includes(next)) {
+        console.error(`Invalid --mode value: ${next}. Must be one of: ${validModes.join(", ")}`);
+        process.exit(1);
+      }
+      out.mode = next as OutputMode;
+    }
+    if (a === "--max-chars" && next) {
+      const parsed = Number(next);
+      if (!Number.isFinite(parsed) || parsed <= 0) {
+        console.error(`Invalid --max-chars value: ${next}. Must be a positive number.`);
+        process.exit(1);
+      }
+      out.maxChars = parsed;
+    }
 
     if (
       a === "--provider" ||
@@ -269,10 +299,7 @@ function transformResumeOutput(raw: any): any {
   // 1. Normalize contact - move website to linkedin if it contains linkedin.com
   if (result.contact) {
     // If website contains linkedin.com and linkedin is not set, move it
-    if (
-      result.contact.website?.includes("linkedin.com") &&
-      !result.contact.linkedin
-    ) {
+    if (result.contact.website?.includes("linkedin.com") && !result.contact.linkedin) {
       result.contact.linkedin = result.contact.website;
       delete result.contact.website;
     }
@@ -480,7 +507,7 @@ IMPORTANT:
 - Return ONLY valid JSON matching the schema`;
 
   if (api === "responses") {
-    // Responses API uses text.format for structured outputs.  [oai_citation:2‡OpenAI Platform](https://platform.openai.com/docs/guides/structured-outputs)
+    // Responses API uses text.format for structured outputs.
     const resp = await client.responses.create({
       model,
       temperature: 0,
@@ -506,7 +533,7 @@ IMPORTANT:
     return safeJsonParse(raw);
   }
 
-  // Chat Completions supports response_format json_schema.  [oai_citation:3‡OpenAI Platform](https://platform.openai.com/docs/api-reference/chat)
+  // Chat Completions supports response_format json_schema.
   const resp = await client.chat.completions.create({
     model,
     temperature: 0,
@@ -566,7 +593,12 @@ async function main() {
   }
 }
 
-main().catch((e) => {
-  console.error(e?.message ?? e);
+main().catch((e: unknown) => {
+  if (e instanceof Error) {
+    console.error(e.message);
+    if (e.stack) console.error(e.stack);
+  } else {
+    console.error(String(e));
+  }
   process.exit(1);
 });
