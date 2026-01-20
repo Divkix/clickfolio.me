@@ -163,9 +163,9 @@ function parseArgs(argv: string[]): Args {
 
   const out: Args = {
     pdfPath: args[0]!,
-    provider: "openai",
-    api: "responses",
-    model: "gpt-5.2",
+    provider: "openrouter",
+    api: "chat",
+    model: "google/gemini-2.5-flash-lite",
     mode: "json",
     maxChars: 60000,
   };
@@ -292,14 +292,14 @@ function transformResumeOutput(raw: any): any {
     }
   }
 
-  // 2. Normalize project years ("2023-2023" → "2023")
+  // 2. Normalize project years to just the starting year
+  // Handles: "2023-2023" → "2023", "2023-12" → "2023", "Aug 2023 – Dec 2023" → "2023"
   if (Array.isArray(result.projects)) {
     for (const project of result.projects) {
       if (project.year) {
-        // Match patterns like "2023-2023" or "2024-2024"
-        const match = project.year.match(/^(\d{4})-\1$/);
-        if (match) {
-          project.year = match[1];
+        const yearMatch = project.year.match(/(\d{4})/);
+        if (yearMatch) {
+          project.year = yearMatch[1];
         }
       }
     }
@@ -314,16 +314,45 @@ function transformResumeOutput(raw: any): any {
     }
   }
 
-  // 4. Remove empty location strings from education
+  // 4. Remove empty strings from education (location, gpa)
   if (Array.isArray(result.education)) {
     for (const edu of result.education) {
-      if (edu.location === "") {
-        delete edu.location;
-      }
+      if (edu.location === "") delete edu.location;
+      if (edu.gpa === "") delete edu.gpa;
     }
   }
 
+  // 5. Remove empty arrays
+  for (const key of ["skills", "certifications", "projects", "education"]) {
+    if (Array.isArray(result[key]) && result[key].length === 0) {
+      delete result[key];
+    }
+  }
+
+  // 6. Remove duplicate website if same as linkedin
+  if (result.contact?.website === result.contact?.linkedin) {
+    delete result.contact.website;
+  }
+
+  // 7. Trim whitespace from all string fields (recursive)
+  trimStrings(result);
+
   return result;
+}
+
+function trimStrings(obj: any): void {
+  if (obj === null || obj === undefined) return;
+  if (Array.isArray(obj)) {
+    for (const item of obj) trimStrings(item);
+  } else if (typeof obj === "object") {
+    for (const key of Object.keys(obj)) {
+      if (typeof obj[key] === "string") {
+        obj[key] = obj[key].trim();
+      } else {
+        trimStrings(obj[key]);
+      }
+    }
+  }
 }
 
 function renderPretty(resume: any) {
@@ -430,10 +459,25 @@ async function toSchemaJson({
   model: string;
   resumeText: string;
 }) {
-  const system =
-    "You are an expert resume parser. Extract data from the resume text into the provided JSON Schema. " +
-    "Return ONLY valid JSON that matches the schema. If a field is unknown, omit it unless required. " +
-    "For required fields: use best-effort extraction; use empty string/empty array only if absolutely necessary.";
+  const system = `You are an expert resume parser. Extract ALL available information from the resume into the JSON schema.
+
+EXTRACTION RULES:
+1. Be thorough - extract every piece of information, even for optional fields
+2. Dates: Use YYYY-MM format (e.g., 2023-08 for August 2023)
+3. URLs: Include full URLs with https:// prefix
+4. Locations: Use "City, State" format when possible
+
+SECTION HINTS:
+- certifications: Look for Certifications, Licenses, Courses, Awards, Achievements, Honors, Competitions
+- projects: Extract technologies/tools mentioned in project descriptions into the technologies array
+- education: Always include graduation_date (expected or completed)
+- skills: Group into logical categories (e.g., Programming Languages, Frameworks, Tools)
+
+IMPORTANT:
+- Do NOT omit optional sections if data exists in the resume
+- If unsure about a field, make a best-effort extraction rather than omitting
+- Only use empty arrays for truly absent sections
+- Return ONLY valid JSON matching the schema`;
 
   if (api === "responses") {
     // Responses API uses text.format for structured outputs.  [oai_citation:2‡OpenAI Platform](https://platform.openai.com/docs/guides/structured-outputs)
@@ -443,7 +487,7 @@ async function toSchemaJson({
         { role: "system", content: system },
         {
           role: "user",
-          content: `Resume text:\n\n${resumeText}\n\nExtract into the schema exactly.`,
+          content: `Resume text:\n\n${resumeText}\n\nExtract ALL information thoroughly. Do not skip any sections.`,
         },
       ],
       text: {
@@ -467,7 +511,7 @@ async function toSchemaJson({
       { role: "system", content: system },
       {
         role: "user",
-        content: `Resume text:\n\n${resumeText}\n\nExtract into the schema exactly.`,
+        content: `Resume text:\n\n${resumeText}\n\nExtract ALL information thoroughly. Do not skip any sections.`,
       },
     ],
     response_format: {
