@@ -91,8 +91,6 @@ export const resumes = sqliteTable(
     })
       .notNull()
       .default("pending_claim"),
-    // Repurposed for Gemini background task tracking
-    replicateJobId: text("replicate_job_id"),
     errorMessage: text("error_message"),
     parsedAt: text("parsed_at"),
     retryCount: integer("retry_count").notNull().default(0),
@@ -104,11 +102,9 @@ export const resumes = sqliteTable(
   (table) => [
     index("resumes_user_id_idx").on(table.userId),
     index("resumes_file_hash_idx").on(table.fileHash),
-    index("resumes_replicate_job_id_idx").on(table.replicateJobId),
     index("resumes_file_hash_status_idx").on(table.fileHash, table.status),
     index("resumes_user_id_created_at_idx").on(table.userId, table.createdAt),
     index("resumes_status_idx").on(table.status),
-    index("resumes_replicate_job_status_idx").on(table.replicateJobId, table.status),
   ],
 );
 

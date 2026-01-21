@@ -529,13 +529,11 @@ export async function POST(request: Request) {
       }
     })();
 
-    const backgroundTaskId = (ctx.waitUntil(parsePromise) as unknown as string | null) ?? null;
+    ctx.waitUntil(parsePromise);
 
-    // 12. Update resume with background task ID (include file_hash for future caching)
-    const updatePayload: Partial<NewResume> & { backgroundTaskId?: string | null } = {
+    // 12. Update resume status to processing (include file_hash for future caching)
+    const updatePayload: Partial<NewResume> = {
       status: "processing",
-      replicateJobId: null,
-      backgroundTaskId,
       ...(file_hash && { fileHash: file_hash }),
     };
 

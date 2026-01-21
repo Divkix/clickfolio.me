@@ -52,7 +52,6 @@
     //   wrangler secret put CF_AI_GATEWAY_ID
     //   wrangler secret put CF_AIG_AUTH_TOKEN
     //   wrangler secret put GEMINI_API_KEY
-    //   wrangler secret put REPLICATE_WEBHOOK_SECRET
     //   wrangler secret put NEXT_PUBLIC_APP_URL
     //
     // Optional secrets:

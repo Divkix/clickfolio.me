@@ -201,17 +201,28 @@ export default function PrivacyPolicyPage() {
                   </div>
 
                   <div className="bg-slate-50 border border-slate-200/60 rounded-lg p-4">
-                    <h4 className="font-semibold text-slate-800 mb-1">Replicate AI</h4>
+                    <h4 className="font-semibold text-slate-800 mb-1">
+                      Google Gemini (via OpenRouter)
+                    </h4>
                     <p className="text-slate-600 text-sm mb-2">
                       Used for AI-powered PDF parsing and data extraction
                     </p>
                     <a
-                      href="https://replicate.com/privacy"
+                      href="https://openrouter.ai/privacy"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-indigo-600 hover:text-indigo-700 text-sm font-medium transition-colors duration-300"
                     >
-                      View Privacy Policy
+                      View OpenRouter Privacy Policy
+                    </a>
+                    <span className="mx-2 text-slate-400">|</span>
+                    <a
+                      href="https://policies.google.com/privacy"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-indigo-600 hover:text-indigo-700 text-sm font-medium transition-colors duration-300"
+                    >
+                      View Google Privacy Policy
                     </a>
                   </div>
 

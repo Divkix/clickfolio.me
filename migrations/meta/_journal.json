@@ -29,6 +29,13 @@
       "when": 1765854258753,
       "tag": "0003_empty_cerebro",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1769017233969,
+      "tag": "0004_ordinary_leo",
+      "breakpoints": true
     }
   ]
 }

@@ -181,9 +181,9 @@ export default function TermsOfServicePage() {
                 </h2>
                 <p className="text-slate-600 leading-relaxed">
                   Your uploaded PDF resumes are processed using artificial intelligence
-                  (specifically, Replicate AI services) to extract structured information such as
-                  your name, contact details, work experience, education, and skills. By using the
-                  Service, you explicitly consent to this automated processing. The AI may
+                  (specifically, Google Gemini via OpenRouter) to extract structured information
+                  such as your name, contact details, work experience, education, and skills. By
+                  using the Service, you explicitly consent to this automated processing. The AI may
                   occasionally make errors in extraction; you have the ability to review and edit
                   all extracted information before publishing.
                 </p>

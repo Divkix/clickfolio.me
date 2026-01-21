@@ -140,45 +140,7 @@ export async function GET(request: Request) {
       });
     }
 
-    const backgroundTaskId =
-      (resume as { backgroundTaskId?: string | null }).backgroundTaskId ?? null;
-
-    if (!backgroundTaskId) {
-      return createSuccessResponse({
-        status: "processing",
-        progress_pct: 50,
-        error: null,
-        can_retry: false,
-      });
-    }
-
-    const latestResume = await db.query.resumes.findFirst({
-      where: eq(resumes.id, resumeId),
-      columns: {
-        status: true,
-        parsedContent: true,
-        errorMessage: true,
-        retryCount: true,
-      },
-    });
-
-    if (!latestResume) {
-      return createErrorResponse("Resume not found", ERROR_CODES.NOT_FOUND, 404);
-    }
-
-    if (latestResume.status === "completed") {
-      return buildCompletedResponse((latestResume.parsedContent as string | null) ?? null);
-    }
-
-    if (latestResume.status === "failed") {
-      return createSuccessResponse({
-        status: "failed",
-        progress_pct: 0,
-        error: latestResume.errorMessage ?? null,
-        can_retry: (latestResume.retryCount as number) < 2,
-      });
-    }
-
+    // Resume is in processing state - return progress indicator
     return createSuccessResponse({
       status: "processing",
       progress_pct: 50,

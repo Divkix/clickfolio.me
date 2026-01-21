@@ -253,12 +253,10 @@ export async function POST(request: Request) {
       }
     })();
 
-    const backgroundTaskId = (ctx.waitUntil(parsePromise) as unknown as string | null) ?? null;
+    ctx.waitUntil(parsePromise);
 
-    const updatePayload: Partial<NewResume> & { backgroundTaskId?: string | null } = {
+    const updatePayload: Partial<NewResume> = {
       status: "processing",
-      replicateJobId: null,
-      backgroundTaskId,
       errorMessage: null,
       retryCount: (resume.retryCount as number) + 1,
     };
