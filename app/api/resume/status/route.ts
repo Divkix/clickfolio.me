@@ -60,7 +60,7 @@ export async function GET(request: Request) {
 
     // 6. Handle waiting_for_cache status with timeout check
     if (resume.status === "waiting_for_cache") {
-      const createdAt = new Date(resume.createdAt);
+      const createdAt = new Date(resume.createdAt as string);
       const waitingTime = Date.now() - createdAt.getTime();
 
       if (waitingTime > WAITING_FOR_CACHE_TIMEOUT_MS) {
@@ -79,7 +79,7 @@ export async function GET(request: Request) {
           status: "failed",
           progress_pct: 0,
           error: "Parsing timed out while waiting for cached result. Please try uploading again.",
-          can_retry: resume.retryCount < 2,
+          can_retry: (resume.retryCount as number) < 2,
         });
       }
 
@@ -119,15 +119,15 @@ export async function GET(request: Request) {
     };
 
     if (resume.status === "completed") {
-      return buildCompletedResponse(resume.parsedContent ?? null);
+      return buildCompletedResponse((resume.parsedContent as string | null) ?? null);
     }
 
     if (resume.status === "failed") {
       return createSuccessResponse({
         status: "failed",
         progress_pct: 0,
-        error: resume.errorMessage ?? null,
-        can_retry: resume.retryCount < 2,
+        error: (resume.errorMessage as string | undefined | null) ?? null,
+        can_retry: (resume.retryCount as number) < 2,
       });
     }
 
@@ -167,7 +167,7 @@ export async function GET(request: Request) {
     }
 
     if (latestResume.status === "completed") {
-      return buildCompletedResponse(latestResume.parsedContent ?? null);
+      return buildCompletedResponse((latestResume.parsedContent as string | null) ?? null);
     }
 
     if (latestResume.status === "failed") {
@@ -175,7 +175,7 @@ export async function GET(request: Request) {
         status: "failed",
         progress_pct: 0,
         error: latestResume.errorMessage ?? null,
-        can_retry: latestResume.retryCount < 2,
+        can_retry: (latestResume.retryCount as number) < 2,
       });
     }
 

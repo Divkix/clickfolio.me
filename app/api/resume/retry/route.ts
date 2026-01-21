@@ -137,12 +137,12 @@ export async function POST(request: Request) {
       );
     }
 
-    if (resume.retryCount >= 2) {
+    if ((resume.retryCount as number) >= 2) {
       return createErrorResponse(
         "Maximum retry limit reached. Please upload a new resume.",
         ERROR_CODES.RATE_LIMIT_EXCEEDED,
         429,
-        { max_retries: 2, current_retry_count: resume.retryCount },
+        { max_retries: 2, current_retry_count: resume.retryCount as number },
       );
     }
 
@@ -154,7 +154,7 @@ export async function POST(request: Request) {
     try {
       const getCommand = new GetObjectCommand({
         Bucket: R2_BUCKET,
-        Key: resume.r2Key,
+        Key: resume.r2Key as string,
       });
       const response = await r2Client.send(getCommand);
       const fileBuffer = await response.Body?.transformToByteArray();
@@ -201,7 +201,7 @@ export async function POST(request: Request) {
               status: "failed",
               errorMessage,
             })
-            .where(eq(resumes.id, resume.id));
+            .where(eq(resumes.id, resume.id as string));
           await captureBackgroundBookmark();
           return;
         }
@@ -221,14 +221,14 @@ export async function POST(request: Request) {
               status: "failed",
               errorMessage,
             })
-            .where(eq(resumes.id, resume.id));
+            .where(eq(resumes.id, resume.id as string));
           await captureBackgroundBookmark();
           return;
         }
 
         const now = new Date().toISOString();
 
-        await upsertSiteData(backgroundDb, userId, resume.id, parsedContent, now);
+        await upsertSiteData(backgroundDb, userId, resume.id as string, parsedContent, now);
 
         await backgroundDb
           .update(resumes)
@@ -237,7 +237,7 @@ export async function POST(request: Request) {
             parsedAt: now,
             parsedContent,
           })
-          .where(eq(resumes.id, resume.id));
+          .where(eq(resumes.id, resume.id as string));
 
         await captureBackgroundBookmark();
       } catch (error) {
@@ -248,7 +248,7 @@ export async function POST(request: Request) {
             status: "failed",
             errorMessage,
           })
-          .where(eq(resumes.id, resume.id));
+          .where(eq(resumes.id, resume.id as string));
         await captureBackgroundBookmark();
       }
     })();
@@ -260,7 +260,7 @@ export async function POST(request: Request) {
       replicateJobId: null,
       backgroundTaskId,
       errorMessage: null,
-      retryCount: resume.retryCount + 1,
+      retryCount: (resume.retryCount as number) + 1,
     };
 
     const updateResult = await db
@@ -277,9 +277,9 @@ export async function POST(request: Request) {
     await captureBookmark();
 
     return createSuccessResponse({
-      resume_id: resume.id,
+      resume_id: resume.id as string,
       status: "processing",
-      retry_count: resume.retryCount + 1,
+      retry_count: (resume.retryCount as number) + 1,
     });
   } catch (error) {
     console.error("Error retrying resume parsing:", error);

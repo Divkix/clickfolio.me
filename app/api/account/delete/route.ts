@@ -113,7 +113,7 @@ export async function POST(request: Request) {
           await r2Client.send(
             new DeleteObjectCommand({
               Bucket: R2_BUCKET,
-              Key: resume.r2Key,
+              Key: resume.r2Key as string,
             }),
           );
         } catch (r2Error) {

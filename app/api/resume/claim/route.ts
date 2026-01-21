@@ -234,7 +234,7 @@ export async function POST(request: Request) {
             .where(eq(resumes.id, resumeId));
 
           // Parse the cached content for site_data
-          const parsedContent = JSON.parse(cached[0].parsedContent);
+          const parsedContent = JSON.parse(cached[0].parsedContent as string);
 
           // Copy content to user's site_data for publishing (upsert with race condition handling)
           await upsertSiteData(db, userId, resumeId, JSON.stringify(parsedContent), now);

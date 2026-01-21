@@ -123,10 +123,10 @@ export default async function SettingsPage() {
         {/* Resume Management */}
         <ResumeManagementCard
           resumeCount={resumeCount}
-          latestResumeDate={latestResume?.createdAt ?? undefined}
-          latestResumeStatus={latestResume?.status}
-          latestResumeError={latestResume?.errorMessage ?? undefined}
-          latestResumeId={latestResume?.id}
+          latestResumeDate={(latestResume?.createdAt as string | undefined) ?? undefined}
+          latestResumeStatus={latestResume?.status as string | undefined | null}
+          latestResumeError={(latestResume?.errorMessage as string | undefined | null) ?? undefined}
+          latestResumeId={latestResume?.id as string}
         />
 
         {/* Handle Management */}

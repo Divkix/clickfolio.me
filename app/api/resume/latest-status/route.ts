@@ -55,11 +55,11 @@ export async function GET() {
     const resume = latestResume[0];
 
     return createSuccessResponse({
-      id: resume.id,
+      id: resume.id as string,
       status: resume.status,
       error: resume.errorMessage,
-      can_retry: resume.status === "failed" && resume.retryCount < 2,
-      createdAt: resume.createdAt,
+      can_retry: resume.status === "failed" && (resume.retryCount as number) < 2,
+      createdAt: resume.createdAt as string,
     });
   } catch (err) {
     console.error("Error fetching latest resume status:", err);

@@ -6,6 +6,65 @@ import { ENV } from "@/lib/env";
 const structuredClone = (nodeUtil as unknown as { structuredClone: <T>(value: T) => T })
   .structuredClone;
 
+type ResumeContact = {
+  email: string;
+  phone?: string;
+  location?: string;
+  linkedin?: string;
+  github?: string;
+  website?: string;
+};
+
+type ResumeExperience = {
+  title: string;
+  company: string;
+  location?: string;
+  start_date: string;
+  end_date?: string;
+  description: string;
+  highlights?: string[];
+};
+
+type ResumeEducation = {
+  degree: string;
+  institution?: string;
+  location?: string;
+  graduation_date?: string;
+  gpa?: string;
+};
+
+type ResumeSkill = {
+  category: string;
+  items: string[];
+};
+
+type ResumeCertification = {
+  name: string;
+  issuer?: string;
+  date?: string;
+  url?: string;
+};
+
+type ResumeProject = {
+  title: string;
+  description: string;
+  year?: string;
+  technologies?: string[];
+  url?: string;
+};
+
+type ResumeSchema = {
+  full_name: string;
+  headline: string;
+  summary: string;
+  contact: ResumeContact;
+  experience: ResumeExperience[];
+  education?: ResumeEducation[];
+  skills?: ResumeSkill[];
+  certifications?: ResumeCertification[];
+  projects?: ResumeProject[];
+};
+
 const RESUME_EXTRACTION_SCHEMA = {
   type: "object",
   required: ["full_name", "headline", "summary", "contact", "experience"],
@@ -174,23 +233,25 @@ function getGeminiClient(): OpenAI {
   });
 }
 
-function transformGeminiOutput(raw: any): any {
+function transformGeminiOutput(raw: ResumeSchema): ResumeSchema {
   const result = structuredClone(raw);
 
-  const trimStrings = (obj: any): void => {
+  const trimStrings = (obj: Record<string, unknown>): void => {
     if (obj === null || obj === undefined) return;
     if (Array.isArray(obj)) {
       for (const item of obj) {
-        trimStrings(item);
+        if (typeof item === "object" && item !== null) {
+          trimStrings(item as Record<string, unknown>);
+        }
       }
       return;
     }
     if (typeof obj === "object") {
       for (const key of Object.keys(obj)) {
         if (typeof obj[key] === "string") {
-          obj[key] = obj[key].trim();
-        } else {
-          trimStrings(obj[key]);
+          obj[key] = (obj[key] as string).trim();
+        } else if (typeof obj[key] === "object" && obj[key] !== null) {
+          trimStrings(obj[key] as Record<string, unknown>);
         }
       }
     }
@@ -205,8 +266,8 @@ function transformGeminiOutput(raw: any): any {
 
   if (result.contact) {
     for (const key of Object.keys(result.contact)) {
-      if (result.contact[key] === "") {
-        delete result.contact[key];
+      if ((result.contact as Record<string, unknown>)[key] === "") {
+        delete (result.contact as Record<string, unknown>)[key];
       }
     }
   }

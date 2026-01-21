@@ -91,7 +91,8 @@ export const resumes = sqliteTable(
     })
       .notNull()
       .default("pending_claim"),
-    replicateJobId: text("replicate_job_id").$type<"background_task_id">, // Repurposed for Gemini background task tracking
+    // Repurposed for Gemini background task tracking
+    replicateJobId: text("replicate_job_id"),
     errorMessage: text("error_message"),
     parsedAt: text("parsed_at"),
     retryCount: integer("retry_count").notNull().default(0),

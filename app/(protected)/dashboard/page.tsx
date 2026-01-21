@@ -29,7 +29,7 @@ import { Separator } from "@/components/ui/separator";
 import { getAuth } from "@/lib/auth";
 import { siteConfig } from "@/lib/config/site";
 import { getDb } from "@/lib/db";
-import { resumes, siteData, user } from "@/lib/db/schema";
+import { type Resume, resumes, siteData, user } from "@/lib/db/schema";
 import type { ResumeContent } from "@/lib/types/database";
 
 /**
@@ -163,15 +163,15 @@ export default async function DashboardPage() {
   });
 
   // Fetch most recent resume
-  const resume = await db.query.resumes.findFirst({
+  const resume = (await db.query.resumes.findFirst({
     where: eq(resumes.userId, session.user.id),
     orderBy: [desc(resumes.createdAt)],
-  });
+  })) as Resume | null;
 
   // Fetch site data if available
-  const siteDataResult = await db.query.siteData.findFirst({
+  const siteDataResult = (await db.query.siteData.findFirst({
     where: eq(siteData.userId, session.user.id),
-  });
+  })) as typeof siteData.$inferSelect | null;
 
   // Determine resume state
   const hasResume = !!resume;
@@ -441,7 +441,7 @@ export default async function DashboardPage() {
               {(resume.status === "processing" || resume.status === "pending_claim") && (
                 <div className="col-span-full">
                   <RealtimeStatusListener
-                    resumeId={resume.id}
+                    resumeId={resume.id as string}
                     userId={session.user.id}
                     currentStatus={resume.status}
                   />
@@ -460,7 +460,8 @@ export default async function DashboardPage() {
                       <div className="flex-1">
                         <h3 className="font-semibold text-red-900">Processing Failed</h3>
                         <p className="mt-1 text-sm text-red-700">
-                          {resume.errorMessage || "An error occurred while processing your resume."}
+                          {(resume.errorMessage as string | undefined | null) ||
+                            "An error occurred while processing your resume."}
                         </p>
                         <div className="mt-3 flex gap-2">
                           <Button
@@ -677,7 +678,7 @@ export default async function DashboardPage() {
                 {(resume.status === "processing" || resume.status === "pending_claim") && (
                   <div>
                     <RealtimeStatusListener
-                      resumeId={resume.id}
+                      resumeId={resume.id as string}
                       userId={session.user.id}
                       currentStatus={resume.status}
                     />
@@ -691,7 +692,7 @@ export default async function DashboardPage() {
                       <div className="flex-1">
                         <h3 className="text-xl font-bold text-red-900 mb-1">Processing failed</h3>
                         <p className="text-red-700">
-                          {resume.errorMessage ||
+                          {(resume.errorMessage as string | undefined | null) ||
                             "Unknown error occurred. Please try uploading again."}
                         </p>
                       </div>
