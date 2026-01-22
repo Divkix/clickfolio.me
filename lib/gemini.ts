@@ -236,11 +236,12 @@ function getGeminiClient(): OpenAI {
   const gatewayToken = ENV.CF_AIG_AUTH_TOKEN();
 
   return new OpenAI({
-    apiKey: gatewayToken,
+    // Empty string prevents SDK from setting Authorization header
+    // BYOK in Cloudflare AI Gateway injects the OpenRouter key server-side
+    apiKey: "",
     baseURL: buildGatewayUrl(),
     defaultHeaders: {
-      // Clear default Authorization header - gateway uses cf-aig-authorization
-      Authorization: undefined as unknown as string,
+      // Gateway authentication
       "cf-aig-authorization": `Bearer ${gatewayToken}`,
     },
   });
