@@ -1,19 +1,12 @@
 /**
- * Resend email client for transactional emails
+ * Email client using Resend API with native fetch
  *
- * Supports hybrid environment loading:
- * - Production: Pass env from getCloudflareContext()
- * - Development: Falls back to process.env
+ * Replaces the Resend SDK to reduce bundle size
+ * Uses direct HTTP calls to the Resend API
  */
 
-import { Resend } from "resend";
-
-// Singleton client
-let _resendClient: Resend | null = null;
-let _lastApiKey: string | null = null;
-
 /**
- * Get env value with Cloudflare binding fallback to process.env
+ * Get API key from Cloudflare binding or process.env
  */
 function getApiKey(env?: Partial<CloudflareEnv>): string {
   if (env) {
@@ -33,36 +26,82 @@ function getApiKey(env?: Partial<CloudflareEnv>): string {
 }
 
 /**
- * Get Resend client instance
- *
- * @param env - Optional Cloudflare env bindings (from getCloudflareContext)
- * @returns Configured Resend client
- *
- * @example
- * ```ts
- * // In API route with Cloudflare context
- * const { env } = await getCloudflareContext({ async: true });
- * const resend = getResendClient(env);
- * await resend.emails.send({ ... });
- * ```
- */
-export function getResendClient(env?: Partial<CloudflareEnv>): Resend {
-  const apiKey = getApiKey(env);
-
-  // Invalidate cache if API key changed
-  if (_resendClient && _lastApiKey !== apiKey) {
-    _resendClient = null;
-  }
-
-  if (!_resendClient) {
-    _resendClient = new Resend(apiKey);
-    _lastApiKey = apiKey;
-  }
-
-  return _resendClient;
-}
-
-/**
  * Default sender email for transactional emails
  */
 export const DEFAULT_FROM_EMAIL = "webresume.now <noreply@webresume.now>";
+
+/**
+ * Email options for sending
+ */
+interface SendEmailOptions {
+  from: string;
+  to: string | string[];
+  subject: string;
+  html?: string;
+  text?: string;
+  reply_to?: string;
+}
+
+/**
+ * Resend API response
+ */
+interface ResendResponse {
+  id?: string;
+  error?: {
+    message: string;
+    name?: string;
+  };
+}
+
+/**
+ * Send an email using Resend API with native fetch
+ *
+ * @param options - Email options
+ * @param env - Optional Cloudflare env bindings
+ * @returns Promise with the response from Resend API
+ *
+ * @example
+ * ```ts
+ * await sendEmail({
+ *   from: DEFAULT_FROM_EMAIL,
+ *   to: "user@example.com",
+ *   subject: "Welcome!",
+ *   html: "<p>Hello world</p>",
+ * }, env);
+ * ```
+ */
+export async function sendEmail(
+  options: SendEmailOptions,
+  env?: Partial<CloudflareEnv>,
+): Promise<{ id: string }> {
+  const apiKey = getApiKey(env);
+
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from: options.from,
+      to: Array.isArray(options.to) ? options.to : [options.to],
+      subject: options.subject,
+      html: options.html,
+      text: options.text,
+      reply_to: options.reply_to,
+    }),
+  });
+
+  const data = (await response.json()) as ResendResponse;
+
+  if (!response.ok) {
+    const errorMessage = data.error?.message || `HTTP ${response.status}: Failed to send email`;
+    throw new Error(errorMessage);
+  }
+
+  if (!data.id) {
+    throw new Error("Resend API did not return an email ID");
+  }
+
+  return { id: data.id };
+}

@@ -1,4 +1,3 @@
-import { DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
@@ -13,9 +12,9 @@ import {
   user,
   verification,
 } from "@/lib/db/schema";
-import { DEFAULT_FROM_EMAIL, getResendClient } from "@/lib/email/resend";
+import { DEFAULT_FROM_EMAIL, sendEmail } from "@/lib/email/resend";
 import { accountDeletedEmailHtml } from "@/lib/email/templates/account-deleted";
-import { getR2Bucket, getR2Client } from "@/lib/r2";
+import { getR2Binding, R2 } from "@/lib/r2";
 import { deleteAccountSchema } from "@/lib/schemas/account";
 import {
   createErrorResponse,
@@ -50,6 +49,16 @@ export async function POST(request: Request) {
     // 1. Get Cloudflare env bindings
     const { env } = await getCloudflareContext({ async: true });
     const typedEnv = env as Partial<CloudflareEnv>;
+
+    // Get R2 binding for direct operations
+    const r2Binding = getR2Binding(typedEnv);
+    if (!r2Binding) {
+      return createErrorResponse(
+        "Storage service unavailable",
+        ERROR_CODES.EXTERNAL_SERVICE_ERROR,
+        500,
+      );
+    }
 
     // 2. Check authentication
     const auth = await getAuth();
@@ -95,10 +104,8 @@ export async function POST(request: Request) {
       );
     }
 
-    // 5. Initialize database and R2 client
+    // 5. Initialize database
     const db = getDb(env.DB);
-    const r2Client = getR2Client(typedEnv);
-    const R2_BUCKET = getR2Bucket(typedEnv);
 
     // 6. Fetch all resume R2 keys before deletion
     const userResumes = await db
@@ -110,12 +117,7 @@ export async function POST(request: Request) {
     for (const resume of userResumes) {
       if (resume.r2Key) {
         try {
-          await r2Client.send(
-            new DeleteObjectCommand({
-              Bucket: R2_BUCKET,
-              Key: resume.r2Key as string,
-            }),
-          );
+          await R2.delete(r2Binding, resume.r2Key as string);
         } catch (r2Error) {
           console.error(`Failed to delete R2 file ${resume.r2Key}:`, r2Error);
           warnings.push({
@@ -174,13 +176,15 @@ export async function POST(request: Request) {
 
     // 9. Send confirmation email (best effort - don't block on failure)
     try {
-      const resend = getResendClient(typedEnv);
-      await resend.emails.send({
-        from: DEFAULT_FROM_EMAIL,
-        to: userEmail,
-        subject: "Your webresume.now account has been deleted",
-        html: accountDeletedEmailHtml({ email: userEmail }),
-      });
+      await sendEmail(
+        {
+          from: DEFAULT_FROM_EMAIL,
+          to: userEmail,
+          subject: "Your webresume.now account has been deleted",
+          html: accountDeletedEmailHtml({ email: userEmail }),
+        },
+        typedEnv,
+      );
     } catch (emailError) {
       console.error("Failed to send deletion confirmation email:", emailError);
       warnings.push({

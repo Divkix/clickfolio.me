@@ -1,4 +1,3 @@
-import { GetObjectCommand } from "@aws-sdk/client-s3";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
@@ -7,7 +6,7 @@ import type { NewResume } from "@/lib/db/schema";
 import { resumes, siteData } from "@/lib/db/schema";
 import { getSessionDb } from "@/lib/db/session";
 import { parseResumeWithGemini } from "@/lib/gemini";
-import { getR2Bucket, getR2Client } from "@/lib/r2";
+import { getR2Binding, R2 } from "@/lib/r2";
 import {
   createErrorResponse,
   createSuccessResponse,
@@ -76,6 +75,16 @@ export async function POST(request: Request) {
     const { env, ctx } = await getCloudflareContext({ async: true });
     const typedEnv = env as Partial<CloudflareEnv>;
     const { db, captureBookmark } = await getSessionDb(env.DB);
+
+    // Get R2 binding for direct operations
+    const r2Binding = getR2Binding(typedEnv);
+    if (!r2Binding) {
+      return createErrorResponse(
+        "Storage service unavailable",
+        ERROR_CODES.EXTERNAL_SERVICE_ERROR,
+        500,
+      );
+    }
 
     // 2. Check authentication via Better Auth
     const auth = await getAuth();
@@ -146,18 +155,10 @@ export async function POST(request: Request) {
       );
     }
 
-    const r2Client = getR2Client(typedEnv);
-    const R2_BUCKET = getR2Bucket(typedEnv);
-
     let pdfBuffer: Uint8Array;
 
     try {
-      const getCommand = new GetObjectCommand({
-        Bucket: R2_BUCKET,
-        Key: resume.r2Key as string,
-      });
-      const response = await r2Client.send(getCommand);
-      const fileBuffer = await response.Body?.transformToByteArray();
+      const fileBuffer = await R2.getAsUint8Array(r2Binding, resume.r2Key as string);
 
       if (!fileBuffer) {
         return createErrorResponse(
@@ -167,7 +168,7 @@ export async function POST(request: Request) {
         );
       }
 
-      pdfBuffer = new Uint8Array(fileBuffer);
+      pdfBuffer = fileBuffer;
     } catch (error) {
       console.error("R2 download error:", error);
       return createErrorResponse(

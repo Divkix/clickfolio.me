@@ -1,6 +1,4 @@
-import type { Readable } from "node:stream";
-import type { S3Client } from "@aws-sdk/client-s3";
-import { GetObjectCommand } from "@aws-sdk/client-s3";
+import { R2 } from "@/lib/r2";
 
 export const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
@@ -50,42 +48,29 @@ export function generateTempKey(filename: string): string {
 /**
  * Validates PDF file by checking magic number (%PDF)
  * Downloads first 5 bytes from R2 to verify file signature
+ * Uses R2 binding directly instead of AWS SDK
  */
 export async function validatePDFMagicNumber(
-  r2Client: S3Client,
-  bucket: string,
+  r2Binding: R2Bucket,
   key: string,
 ): Promise<{ valid: boolean; error?: string }> {
   try {
     // Download only first 5 bytes to check for %PDF signature
-    const command = new GetObjectCommand({
-      Bucket: bucket,
-      Key: key,
-      Range: "bytes=0-4", // Get first 5 bytes
-    });
+    const buffer = await R2.getPartial(r2Binding, key, 0, 5);
 
-    const response = await r2Client.send(command);
-    const body = response.Body;
-
-    if (!body) {
+    if (!buffer) {
       return { valid: false, error: "Could not read file" };
     }
 
-    // Convert stream to buffer
-    const chunks: Uint8Array[] = [];
-    const stream = body as Readable;
-    for await (const chunk of stream) {
-      chunks.push(chunk as Uint8Array);
-    }
-    const buffer = Buffer.concat(chunks);
+    const bytes = new Uint8Array(buffer);
 
     // Check for PDF magic number: 0x25 0x50 0x44 0x46 = %PDF
     if (
-      buffer.length >= 4 &&
-      buffer[0] === 0x25 && // %
-      buffer[1] === 0x50 && // P
-      buffer[2] === 0x44 && // D
-      buffer[3] === 0x46 // F
+      bytes.length >= 4 &&
+      bytes[0] === 0x25 && // %
+      bytes[1] === 0x50 && // P
+      bytes[2] === 0x44 && // D
+      bytes[3] === 0x46 // F
     ) {
       return { valid: true };
     }

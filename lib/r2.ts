@@ -1,87 +1,236 @@
 /**
  * Cloudflare R2 storage client
  *
- * Supports hybrid environment loading:
- * - Production: Pass env from getCloudflareContext()
- * - Development: Falls back to process.env via ENV helpers
+ * Uses R2 binding for direct operations (get, put, delete, copy, head)
+ * Uses aws4fetch for presigned URL generation (client uploads)
+ *
+ * This replaces the heavy @aws-sdk/client-s3 with lightweight alternatives
  */
 
-import { S3Client } from "@aws-sdk/client-s3";
+import { AwsClient } from "aws4fetch";
 import { ENV } from "./env";
 
-// Singleton clients (cached per endpoint/credentials combo)
-let _r2Client: S3Client | null = null;
-let _r2Bucket: string | null = null;
-let _lastEndpoint: string | null = null;
-
 /**
- * Get env value with Cloudflare binding fallback to ENV helpers
+ * Get R2 binding from Cloudflare env
+ * Used for direct R2 operations (get, put, delete, copy, head)
  */
-function getEnvValue(
-  env: Partial<CloudflareEnv> | undefined,
-  key: "R2_ENDPOINT" | "R2_ACCESS_KEY_ID" | "R2_SECRET_ACCESS_KEY" | "R2_BUCKET_NAME",
-): string {
-  if (env) {
-    const cfValue = env[key];
-    if (typeof cfValue === "string" && cfValue.trim() !== "") {
-      return cfValue;
-    }
-  }
-  // Fall back to ENV helper (which uses process.env)
-  return ENV[key]();
+export function getR2Binding(env: Partial<CloudflareEnv>): R2Bucket | null {
+  return env.R2_BUCKET ?? null;
 }
 
 /**
- * Get R2 client instance
- *
- * @param env - Optional Cloudflare env bindings (from getCloudflareContext)
- * @returns Configured S3Client for R2
- *
- * @example
- * ```ts
- * // In API route with Cloudflare context
- * const { env } = await getCloudflareContext({ async: true });
- * const r2Client = getR2Client(env);
- *
- * // In development (uses process.env)
- * const r2Client = getR2Client();
- * ```
+ * Get R2 bucket name from environment
  */
-export function getR2Client(env?: Partial<CloudflareEnv>): S3Client {
-  const endpoint = getEnvValue(env, "R2_ENDPOINT");
+export function getR2BucketName(env?: Partial<CloudflareEnv>): string {
+  if (env?.R2_BUCKET_NAME) {
+    return env.R2_BUCKET_NAME;
+  }
+  return ENV.R2_BUCKET_NAME();
+}
 
-  // Invalidate cache if endpoint changed (shouldn't happen in practice)
-  if (_r2Client && _lastEndpoint !== endpoint) {
-    _r2Client = null;
+// Singleton AWS client for presigned URL generation
+let _awsClient: AwsClient | null = null;
+let _lastCredentials: string | null = null;
+
+/**
+ * Get AWS client for presigned URL generation
+ * Uses aws4fetch which is much lighter than @aws-sdk/client-s3
+ */
+function getAwsClient(env?: Partial<CloudflareEnv>): AwsClient {
+  const accessKeyId = env?.R2_ACCESS_KEY_ID || ENV.R2_ACCESS_KEY_ID();
+  const secretAccessKey = env?.R2_SECRET_ACCESS_KEY || ENV.R2_SECRET_ACCESS_KEY();
+  const credentialsKey = `${accessKeyId}:${secretAccessKey}`;
+
+  // Invalidate cache if credentials changed
+  if (_awsClient && _lastCredentials !== credentialsKey) {
+    _awsClient = null;
   }
 
-  if (!_r2Client) {
-    _r2Client = new S3Client({
+  if (!_awsClient) {
+    _awsClient = new AwsClient({
+      accessKeyId,
+      secretAccessKey,
+      service: "s3",
       region: "auto",
-      endpoint,
-      credentials: {
-        accessKeyId: getEnvValue(env, "R2_ACCESS_KEY_ID"),
-        secretAccessKey: getEnvValue(env, "R2_SECRET_ACCESS_KEY"),
-      },
-      // Disable automatic checksum calculation to avoid CORS issues with R2
-      // AWS SDK v3 automatically adds x-amz-checksum-* headers which R2 CORS doesn't allow by default
-      requestChecksumCalculation: "WHEN_REQUIRED",
     });
-    _lastEndpoint = endpoint;
+    _lastCredentials = credentialsKey;
   }
 
-  return _r2Client;
+  return _awsClient;
 }
 
 /**
- * Get R2 bucket name
- *
- * @param env - Optional Cloudflare env bindings (from getCloudflareContext)
- * @returns Configured bucket name
+ * Get R2 endpoint URL
  */
-export function getR2Bucket(env?: Partial<CloudflareEnv>): string {
-  if (!_r2Bucket) {
-    _r2Bucket = getEnvValue(env, "R2_BUCKET_NAME");
-  }
-  return _r2Bucket;
+function getR2Endpoint(env?: Partial<CloudflareEnv>): string {
+  return env?.R2_ENDPOINT || ENV.R2_ENDPOINT();
 }
+
+/**
+ * Generate a presigned PUT URL for client uploads
+ *
+ * @param key - The R2 object key
+ * @param contentType - The content type of the file
+ * @param contentLength - The expected file size in bytes
+ * @param expiresIn - URL expiration time in seconds (default: 3600)
+ * @param env - Optional Cloudflare env bindings
+ * @returns Presigned URL for PUT operation
+ */
+export async function generatePresignedPutUrl(
+  key: string,
+  contentType: string,
+  contentLength: number,
+  expiresIn: number = 3600,
+  env?: Partial<CloudflareEnv>,
+): Promise<string> {
+  const awsClient = getAwsClient(env);
+  const endpoint = getR2Endpoint(env);
+  const bucket = getR2BucketName(env);
+
+  // Build the URL for the object
+  const url = new URL(`${endpoint}/${bucket}/${key}`);
+
+  // Add query parameters for presigned URL
+  url.searchParams.set("X-Amz-Expires", String(expiresIn));
+
+  // Create the presigned request
+  const signedRequest = await awsClient.sign(
+    new Request(url.toString(), {
+      method: "PUT",
+      headers: {
+        "Content-Type": contentType,
+        "Content-Length": String(contentLength),
+      },
+    }),
+    {
+      aws: { signQuery: true },
+    },
+  );
+
+  return signedRequest.url;
+}
+
+/**
+ * R2 helper functions that wrap the R2 binding
+ * These provide a consistent interface similar to S3 commands
+ */
+export const R2 = {
+  /**
+   * Get an object from R2
+   */
+  async get(
+    binding: R2Bucket,
+    key: string,
+  ): Promise<{ body: ReadableStream | null; contentLength: number | undefined } | null> {
+    const object = await binding.get(key);
+    if (!object) return null;
+    return {
+      body: object.body,
+      contentLength: object.size,
+    };
+  },
+
+  /**
+   * Get object as ArrayBuffer
+   */
+  async getAsArrayBuffer(binding: R2Bucket, key: string): Promise<ArrayBuffer | null> {
+    const object = await binding.get(key);
+    if (!object) return null;
+    return object.arrayBuffer();
+  },
+
+  /**
+   * Get object as Uint8Array
+   */
+  async getAsUint8Array(binding: R2Bucket, key: string): Promise<Uint8Array | null> {
+    const arrayBuffer = await R2.getAsArrayBuffer(binding, key);
+    if (!arrayBuffer) return null;
+    return new Uint8Array(arrayBuffer);
+  },
+
+  /**
+   * Get partial object (range request)
+   */
+  async getPartial(
+    binding: R2Bucket,
+    key: string,
+    offset: number,
+    length: number,
+  ): Promise<ArrayBuffer | null> {
+    const object = await binding.get(key, {
+      range: { offset, length },
+    });
+    if (!object) return null;
+    return object.arrayBuffer();
+  },
+
+  /**
+   * Put an object to R2
+   */
+  async put(
+    binding: R2Bucket,
+    key: string,
+    body: ArrayBuffer | Uint8Array | ReadableStream | string,
+    options?: {
+      contentType?: string;
+      customMetadata?: Record<string, string>;
+    },
+  ): Promise<R2Object> {
+    return binding.put(key, body, {
+      httpMetadata: options?.contentType ? { contentType: options.contentType } : undefined,
+      customMetadata: options?.customMetadata,
+    });
+  },
+
+  /**
+   * Delete an object from R2
+   */
+  async delete(binding: R2Bucket, key: string): Promise<void> {
+    await binding.delete(key);
+  },
+
+  /**
+   * Check if an object exists and get its metadata
+   */
+  async head(
+    binding: R2Bucket,
+    key: string,
+  ): Promise<{ exists: boolean; size?: number; etag?: string } | null> {
+    const object = await binding.head(key);
+    if (!object) return { exists: false };
+    return {
+      exists: true,
+      size: object.size,
+      etag: object.etag,
+    };
+  },
+
+  /**
+   * Copy an object within R2
+   * Note: R2 binding doesn't have native copy, so we get + put
+   */
+  async copy(binding: R2Bucket, sourceKey: string, destinationKey: string): Promise<boolean> {
+    const object = await binding.get(sourceKey);
+    if (!object) return false;
+
+    const body = await object.arrayBuffer();
+    await binding.put(destinationKey, body, {
+      httpMetadata: object.httpMetadata,
+      customMetadata: object.customMetadata,
+    });
+    return true;
+  },
+
+  /**
+   * Check if bucket is accessible (health check)
+   */
+  async healthCheck(binding: R2Bucket): Promise<boolean> {
+    try {
+      // List with limit 1 to verify bucket access
+      await binding.list({ limit: 1 });
+      return true;
+    } catch {
+      return false;
+    }
+  },
+};

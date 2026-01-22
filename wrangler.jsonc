@@ -25,6 +25,13 @@
       "database_id": "069a2b89-6c0a-4016-8795-790a916e2c7b"
     }
   ],
+  // R2 bucket binding for direct access (replaces AWS SDK for most operations)
+  "r2_buckets": [
+    {
+      "binding": "R2_BUCKET",
+      "bucket_name": "webresume-bucket"
+    }
+  ],
   "observability": {
     "enabled": true,
     "head_sampling_rate": 1,

@@ -1,5 +1,4 @@
 import * as nodeUtil from "node:util";
-import OpenAI from "openai";
 import { extractText, getDocumentProxy } from "unpdf";
 import { ENV } from "@/lib/env";
 
@@ -232,19 +231,75 @@ function buildGatewayUrl(): string {
   return `https://gateway.ai.cloudflare.com/v1/${accountId}/${gatewayId}/openrouter`;
 }
 
-function getGeminiClient(): OpenAI {
+/**
+ * OpenRouter-compatible chat completion request type
+ */
+interface ChatCompletionRequest {
+  model: string;
+  messages: Array<{
+    role: "system" | "user" | "assistant";
+    content: string;
+  }>;
+  response_format?: {
+    type: "json_schema";
+    json_schema: {
+      name: string;
+      strict: boolean;
+      schema: typeof RESUME_EXTRACTION_SCHEMA;
+    };
+  };
+  temperature?: number;
+  max_tokens?: number;
+  provider?: {
+    require_parameters?: boolean;
+    allow_fallbacks?: boolean;
+  };
+}
+
+/**
+ * OpenRouter-compatible chat completion response type
+ */
+interface ChatCompletionResponse {
+  id: string;
+  choices: Array<{
+    index: number;
+    message: {
+      role: string;
+      content: string | null;
+    };
+    finish_reason: string;
+  }>;
+  usage?: {
+    prompt_tokens: number;
+    completion_tokens: number;
+    total_tokens: number;
+  };
+}
+
+/**
+ * Call OpenRouter API via Cloudflare AI Gateway using native fetch
+ * Replaces OpenAI SDK to reduce bundle size
+ */
+async function callOpenRouter(request: ChatCompletionRequest): Promise<ChatCompletionResponse> {
+  const gatewayUrl = buildGatewayUrl();
   const gatewayToken = ENV.CF_AIG_AUTH_TOKEN();
 
-  return new OpenAI({
-    // Empty string prevents SDK from setting Authorization header
-    // BYOK in Cloudflare AI Gateway injects the OpenRouter key server-side
-    apiKey: "",
-    baseURL: buildGatewayUrl(),
-    defaultHeaders: {
-      // Gateway authentication
+  const response = await fetch(`${gatewayUrl}/chat/completions`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      // Gateway authentication - BYOK injects OpenRouter key server-side
       "cf-aig-authorization": `Bearer ${gatewayToken}`,
     },
+    body: JSON.stringify(request),
   });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`OpenRouter API error (${response.status}): ${errorText}`);
+  }
+
+  return (await response.json()) as ChatCompletionResponse;
 }
 
 function transformGeminiOutput(raw: ResumeSchema): ResumeSchema {
@@ -344,16 +399,7 @@ export async function parseResumeWithGemini(
       throw new Error("Extracted resume text is empty.");
     }
 
-    const client = getGeminiClient();
-
-    type OpenRouterRequest = OpenAI.ChatCompletionCreateParams & {
-      provider?: {
-        require_parameters?: boolean;
-        allow_fallbacks?: boolean;
-      };
-    };
-
-    const request: OpenRouterRequest = {
+    const request: ChatCompletionRequest = {
       model: "google/gemini-2.5-flash-lite",
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
@@ -366,7 +412,7 @@ export async function parseResumeWithGemini(
           strict: true,
           schema: RESUME_EXTRACTION_SCHEMA,
         },
-      } as unknown as OpenAI.ChatCompletionCreateParams["response_format"],
+      },
       temperature: 0,
       max_tokens: 4096,
       provider: {
@@ -375,7 +421,7 @@ export async function parseResumeWithGemini(
       },
     };
 
-    const response = await client.chat.completions.create(request);
+    const response = await callOpenRouter(request);
 
     const parsedContent = response.choices[0]?.message?.content;
 
@@ -397,4 +443,4 @@ export async function parseResumeWithGemini(
   }
 }
 
-export { getGeminiClient, RESUME_EXTRACTION_SCHEMA, transformGeminiOutput };
+export { RESUME_EXTRACTION_SCHEMA, transformGeminiOutput };

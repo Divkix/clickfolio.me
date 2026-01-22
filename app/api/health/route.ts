@@ -1,10 +1,9 @@
-import { HeadBucketCommand } from "@aws-sdk/client-s3";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { user } from "@/lib/db/schema";
 import { validateEnvironment } from "@/lib/env";
-import { getR2Bucket, getR2Client } from "@/lib/r2";
+import { getR2Binding, R2 } from "@/lib/r2";
 
 export const dynamic = "force-dynamic";
 
@@ -43,12 +42,15 @@ export async function GET() {
     console.error("Database health check failed:", err);
   }
 
-  // Check R2 connection
+  // Check R2 connection using R2 binding
   try {
-    const r2Client = getR2Client();
-    const R2_BUCKET = getR2Bucket();
-    await r2Client.send(new HeadBucketCommand({ Bucket: R2_BUCKET }));
-    checks.r2 = true;
+    const { env } = await getCloudflareContext({ async: true });
+    const typedEnv = env as Partial<CloudflareEnv>;
+    const r2Binding = getR2Binding(typedEnv);
+
+    if (r2Binding) {
+      checks.r2 = await R2.healthCheck(r2Binding);
+    }
   } catch (err) {
     console.error("R2 health check failed:", err);
   }

@@ -1,8 +1,6 @@
-import { PutObjectCommand } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { NextResponse } from "next/server";
-import { getR2Bucket, getR2Client } from "@/lib/r2";
+import { generatePresignedPutUrl } from "@/lib/r2";
 import { checkIPRateLimit, getClientIP } from "@/lib/utils/ip-rate-limit";
 import { generateTempKey, MAX_FILE_SIZE } from "@/lib/utils/validation";
 
@@ -72,26 +70,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "File appears to be empty or corrupted" }, { status: 400 });
     }
 
-    // 6. Generate temp key and presigned URL (pass env for R2 credentials)
+    // 6. Generate temp key and presigned URL using aws4fetch (lightweight presigner)
     const key = generateTempKey(filename);
-    const r2Client = getR2Client(typedEnv);
-    const R2_BUCKET = getR2Bucket(typedEnv);
 
-    const command = new PutObjectCommand({
-      Bucket: R2_BUCKET,
-      Key: key,
-      ContentType: "application/pdf",
-      ContentLength: contentLength, // Bind the expected size to the presigned URL
-      ChecksumAlgorithm: undefined, // Explicitly disable checksums for R2 compatibility
-    });
-
-    const uploadUrl = await getSignedUrl(r2Client, command, {
-      expiresIn: 3600, // 1 hour
-      // Sign content-type and content-length to enforce validation
-      signableHeaders: new Set(["content-type", "content-length"]),
-      // Prevent hoisting of content-length to enable client-side enforcement
-      unhoistableHeaders: new Set(["content-length"]),
-    });
+    const uploadUrl = await generatePresignedPutUrl(
+      key,
+      "application/pdf",
+      contentLength,
+      3600, // 1 hour
+      typedEnv,
+    );
 
     // 7. Return success with rate limit info
     return NextResponse.json(
