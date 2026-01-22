@@ -222,13 +222,26 @@ IMPORTANT:
 - Only use empty arrays for truly absent sections
 - Return ONLY valid JSON matching the schema`;
 
+/**
+ * Build Cloudflare AI Gateway URL for OpenRouter
+ * Format: https://gateway.ai.cloudflare.com/v1/{account_id}/{gateway_id}/openrouter
+ */
+function buildGatewayUrl(): string {
+  const accountId = ENV.CF_AI_GATEWAY_ACCOUNT_ID();
+  const gatewayId = ENV.CF_AI_GATEWAY_ID();
+  return `https://gateway.ai.cloudflare.com/v1/${accountId}/${gatewayId}/openrouter`;
+}
+
 function getGeminiClient(): OpenAI {
+  const gatewayToken = ENV.CF_AIG_AUTH_TOKEN();
+
   return new OpenAI({
-    apiKey: ENV.GEMINI_API_KEY(),
-    baseURL: "https://openrouter.ai/api/v1",
+    apiKey: gatewayToken,
+    baseURL: buildGatewayUrl(),
     defaultHeaders: {
-      "HTTP-Referer": process.env.OPENROUTER_HTTP_REFERER || "",
-      "X-Title": process.env.OPENROUTER_APP_TITLE || "",
+      // Clear default Authorization header - gateway uses cf-aig-authorization
+      Authorization: undefined as unknown as string,
+      "cf-aig-authorization": `Bearer ${gatewayToken}`,
     },
   });
 }
@@ -331,19 +344,37 @@ export async function parseResumeWithGemini(
     }
 
     const client = getGeminiClient();
-    const response = await client.chat.completions.create({
+
+    type OpenRouterRequest = OpenAI.ChatCompletionCreateParams & {
+      provider?: {
+        require_parameters?: boolean;
+        allow_fallbacks?: boolean;
+      };
+    };
+
+    const request: OpenRouterRequest = {
       model: "google/gemini-2.5-flash-lite",
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
         { role: "user", content: resumeText },
       ],
       response_format: {
-        type: "json_object",
-        json_schema: RESUME_EXTRACTION_SCHEMA,
+        type: "json_schema",
+        json_schema: {
+          name: "resume_extraction",
+          strict: true,
+          schema: RESUME_EXTRACTION_SCHEMA,
+        },
       } as unknown as OpenAI.ChatCompletionCreateParams["response_format"],
       temperature: 0,
       max_tokens: 4096,
-    });
+      provider: {
+        require_parameters: true,
+        allow_fallbacks: false,
+      },
+    };
+
+    const response = await client.chat.completions.create(request);
 
     const parsedContent = response.choices[0]?.message?.content;
 

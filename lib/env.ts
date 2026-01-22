@@ -81,12 +81,10 @@ export function validateEnvironment(): void {
     "R2_SECRET_ACCESS_KEY",
     "R2_BUCKET_NAME",
 
-    // Cloudflare AI Gateway
+    // Cloudflare AI Gateway (routes to OpenRouter)
     "CF_AI_GATEWAY_ACCOUNT_ID",
     "CF_AI_GATEWAY_ID",
     "CF_AIG_AUTH_TOKEN",
-
-    "GEMINI_API_KEY",
   ];
 
   const missing = requiredVars.filter((key) => {
@@ -123,13 +121,10 @@ export const ENV = {
   R2_SECRET_ACCESS_KEY: () => getRequiredEnv("R2_SECRET_ACCESS_KEY"),
   R2_BUCKET_NAME: () => getRequiredEnv("R2_BUCKET_NAME"),
 
-  // Cloudflare AI Gateway
+  // Cloudflare AI Gateway (routes to OpenRouter)
   CF_AI_GATEWAY_ACCOUNT_ID: () => getRequiredEnv("CF_AI_GATEWAY_ACCOUNT_ID"),
   CF_AI_GATEWAY_ID: () => getRequiredEnv("CF_AI_GATEWAY_ID"),
   CF_AIG_AUTH_TOKEN: () => getRequiredEnv("CF_AIG_AUTH_TOKEN"),
-
-  // Gemini
-  GEMINI_API_KEY: () => getRequiredEnv("GEMINI_API_KEY"),
 
   // Optional - Public app URL
   NEXT_PUBLIC_APP_URL: () => getEnvVar("NEXT_PUBLIC_APP_URL", false),
