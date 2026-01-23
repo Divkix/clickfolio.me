@@ -2,6 +2,10 @@
 	"main": ".open-next/worker.js",
 	"name": "webresume-now",
 	"compatibility_date": "2026-01-22",
+	// Explicitly enable workers.dev subdomain (set to false if using custom domain only)
+	"workers_dev": true,
+	// Disable preview URLs to avoid confusion
+	"preview_urls": false,
 	// Minify to reduce bundle size (saves ~400KB gzipped)
 	"minify": true,
 	"compatibility_flags": [
