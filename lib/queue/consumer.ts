@@ -1,9 +1,9 @@
 import { and, eq, isNotNull } from "drizzle-orm";
 import { revalidatePath, revalidateTag } from "next/cache";
-import { resumes, siteData } from "@/lib/db/schema";
-import { getSessionDb } from "@/lib/db/session";
-import { parseResumeWithGemini } from "@/lib/gemini";
-import { getR2Binding, R2 } from "@/lib/r2";
+import { resumes, siteData } from "../db/schema";
+import { getSessionDb } from "../db/session";
+import { parseResumeWithGemini } from "../gemini";
+import { getR2Binding, R2 } from "../r2";
 import type { CacheInvalidationMessage, QueueMessage, ResumeParseMessage } from "./types";
 
 /**
