@@ -1,10 +1,8 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { and, eq, ne } from "drizzle-orm";
-import { headers } from "next/headers";
 import { z } from "zod";
-import { getAuth } from "@/lib/auth";
+import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
 import { siteData, user } from "@/lib/db/schema";
-import { getSessionDb } from "@/lib/db/session";
 import {
   createErrorResponse,
   createSuccessResponse,
@@ -64,26 +62,15 @@ export async function POST(request: Request) {
       );
     }
 
-    // 2. Authenticate user
-    const auth = await getAuth();
-    const headersList = await headers();
-    const session = await auth.api.getSession({
-      headers: headersList,
-    });
-
-    if (!session?.user) {
-      return createErrorResponse(
-        "You must be logged in to complete onboarding",
-        ERROR_CODES.UNAUTHORIZED,
-        401,
-      );
-    }
-
-    const authUser = session.user;
-
-    // 3. Get database connection
+    // 2. Authenticate user and validate existence in database
     const { env } = await getCloudflareContext({ async: true });
-    const { db, captureBookmark } = await getSessionDb(env.DB);
+    const {
+      user: authUser,
+      db,
+      captureBookmark,
+      error: authError,
+    } = await requireAuthWithUserValidation("You must be logged in to complete onboarding", env.DB);
+    if (authError) return authError;
 
     // 4. Parse and validate request body
     let body: WizardCompleteRequest;

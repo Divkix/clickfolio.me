@@ -1,11 +1,9 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { eq } from "drizzle-orm";
 import { revalidatePath, revalidateTag } from "next/cache";
-import { headers } from "next/headers";
-import { getAuth } from "@/lib/auth";
+import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
 import { getResumeCacheTag } from "@/lib/data/resume";
-import { siteData, user } from "@/lib/db/schema";
-import { getSessionDb } from "@/lib/db/session";
+import { siteData } from "@/lib/db/schema";
 import { TEMPLATES, type ThemeId } from "@/lib/templates/theme-registry";
 import {
   createErrorResponse,
@@ -26,32 +24,19 @@ interface ThemeUpdateRequestBody {
 
 export async function POST(request: Request) {
   try {
-    // 1. Get D1 database binding
+    // 1. Authenticate user and validate existence in database
     const { env } = await getCloudflareContext({ async: true });
-    const { db, captureBookmark } = await getSessionDb(env.DB);
+    const {
+      user: authUser,
+      db,
+      captureBookmark,
+      dbUser,
+      error: authError,
+    } = await requireAuthWithUserValidation("You must be logged in to update theme", env.DB);
+    if (authError) return authError;
 
-    // 2. Check authentication via Better Auth
-    const auth = await getAuth();
-    const session = await auth.api.getSession({ headers: await headers() });
-
-    if (!session?.user) {
-      return createErrorResponse(
-        "You must be logged in to update theme",
-        ERROR_CODES.UNAUTHORIZED,
-        401,
-      );
-    }
-
-    const userId = session.user.id;
-
-    // 3. Fetch user's handle early for later cache invalidation
-    const userProfile = await db
-      .select({ handle: user.handle })
-      .from(user)
-      .where(eq(user.id, userId))
-      .limit(1);
-
-    const userHandle = userProfile[0]?.handle;
+    const userId = authUser.id;
+    const userHandle = dbUser.handle;
 
     // 4. Parse request body
     const body = (await request.json()) as ThemeUpdateRequestBody;

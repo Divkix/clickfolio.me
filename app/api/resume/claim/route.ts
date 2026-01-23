@@ -1,10 +1,9 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { and, eq, isNotNull, ne } from "drizzle-orm";
-import { headers } from "next/headers";
-import { getAuth } from "@/lib/auth";
+import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
 import type { NewResume } from "@/lib/db/schema";
 import { resumes, siteData } from "@/lib/db/schema";
-import { getSessionDb } from "@/lib/db/session";
+import type { getSessionDb } from "@/lib/db/session";
 import { publishResumeParse } from "@/lib/queue/resume-parse";
 import { getR2Binding, R2 } from "@/lib/r2";
 import { enforceRateLimit } from "@/lib/utils/rate-limit";
@@ -109,22 +108,16 @@ export async function POST(request: Request) {
       );
     }
 
-    // 2. Check authentication using Better Auth
-    const auth = await getAuth();
-    const session = await auth.api.getSession({ headers: await headers() });
+    // 2. Check authentication and validate user exists in database
+    const {
+      user: authUser,
+      db,
+      captureBookmark,
+      error: authError,
+    } = await requireAuthWithUserValidation("You must be logged in to claim a resume", env.DB);
+    if (authError) return authError;
 
-    if (!session?.user) {
-      return createErrorResponse(
-        "You must be logged in to claim a resume",
-        ERROR_CODES.UNAUTHORIZED,
-        401,
-      );
-    }
-
-    const userId = session.user.id;
-
-    // Get D1 database connection (env already retrieved above)
-    const { db, captureBookmark } = await getSessionDb(env.DB);
+    const userId = authUser.id;
 
     // 3. Parse request body
     let body: ClaimRequestBody;

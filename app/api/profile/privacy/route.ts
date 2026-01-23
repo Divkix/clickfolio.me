@@ -1,11 +1,10 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { eq } from "drizzle-orm";
 import { revalidatePath, revalidateTag } from "next/cache";
-import { requireAuthWithMessage } from "@/lib/auth/middleware";
+import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
 import { purgeResumeCache } from "@/lib/cloudflare-cache-purge";
 import { getResumeCacheTag } from "@/lib/data/resume";
 import { user } from "@/lib/db/schema";
-import { getSessionDb } from "@/lib/db/session";
 import { privacySettingsSchema } from "@/lib/schemas/profile";
 import { enforceRateLimit } from "@/lib/utils/rate-limit";
 import {
@@ -21,31 +20,27 @@ import {
  */
 export async function PUT(request: Request) {
   try {
-    // 1. Authenticate user
-    const authResult = await requireAuthWithMessage(
+    // 1. Authenticate user and validate existence in database
+    const { env } = await getCloudflareContext({ async: true });
+    const {
+      user: authUser,
+      db,
+      captureBookmark,
+      dbUser,
+      error: authError,
+    } = await requireAuthWithUserValidation(
       "You must be logged in to update privacy settings",
+      env.DB,
     );
-    if (authResult.error) return authResult.error;
-    const { user: authUser } = authResult;
+    if (authError) return authError;
+
+    const userHandle = dbUser.handle;
 
     // 2. Rate limit check (20 updates per hour)
     const rateLimitResponse = await enforceRateLimit(authUser.id, "privacy_update");
     if (rateLimitResponse) {
       return rateLimitResponse;
     }
-
-    // 3. Get database connection
-    const { env } = await getCloudflareContext({ async: true });
-    const { db, captureBookmark } = await getSessionDb(env.DB);
-
-    // 4. Fetch user's handle for cache invalidation
-    const userRecord = await db
-      .select({ handle: user.handle })
-      .from(user)
-      .where(eq(user.id, authUser.id))
-      .limit(1);
-
-    const userHandle = userRecord[0]?.handle;
 
     // 5. Parse and validate request body
     let body;
