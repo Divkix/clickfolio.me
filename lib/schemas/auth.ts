@@ -18,7 +18,7 @@ const emailSchema = z
   .string()
   .trim()
   .min(1, "Email is required")
-  .email({ message: "Invalid email address" })
+  .email({ error: "Invalid email address" })
   .max(255, "Email is too long");
 
 /**
@@ -28,11 +28,7 @@ const emailSchema = z
  * Name is required for Better Auth user creation.
  */
 export const signUpSchema = z.object({
-  name: z
-    .string()
-    .trim()
-    .min(1, "Name is required")
-    .max(100, "Name is too long"),
+  name: z.string().trim().min(1, "Name is required").max(100, "Name is too long"),
   email: emailSchema,
   password: passwordSchema,
 });
@@ -47,10 +43,7 @@ export type SignUpFormData = z.infer<typeof signUpSchema>;
  */
 export const signInSchema = z.object({
   email: emailSchema,
-  password: z
-    .string()
-    .trim()
-    .min(1, "Password is required"),
+  password: z.string().trim().min(1, "Password is required"),
 });
 
 export type SignInFormData = z.infer<typeof signInSchema>;
