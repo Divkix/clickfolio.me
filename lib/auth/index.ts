@@ -158,5 +158,13 @@ export async function getAuth() {
       },
     },
     trustedOrigins: [baseURL].filter(Boolean),
+    emailAndPassword: {
+      enabled: true,
+      sendResetPassword: async ({ user, url }) => {
+        // TODO: Replace with Resend email in Phase 2
+        console.log(`[AUTH] Password reset requested for ${user.email}`);
+        console.log(`[AUTH] Reset URL: ${url}`);
+      },
+    },
   });
 }
