@@ -98,6 +98,108 @@ Open [http://localhost:3000](http://localhost:3000)
 
 ## Self-Hosting Guide
 
+### Beginner-Friendly Deployment (copy/paste)
+
+If you are not technical, follow this exact checklist. You only need a terminal and browser.
+
+**What you need**
+- A Cloudflare account (free is fine)
+- A Google Cloud account (for Google Sign-In)
+- An OpenRouter account (for AI parsing)
+- Bun installed (copy/paste this in Terminal):
+  ```bash
+  curl -fsSL https://bun.sh/install | bash
+  ```
+
+**Step 0: Get the code**
+1. Download the repo ZIP from GitHub and unzip it, **or** use:
+   ```bash
+   git clone https://github.com/divkix/webresume.now.git
+   cd webresume.now
+   ```
+2. Install dependencies:
+   ```bash
+   bun install
+   ```
+
+**Step 1: Create Cloudflare D1 database**
+1. In Terminal:
+   ```bash
+   bunx wrangler d1 create webresume-db
+   ```
+2. Copy the `database_id` printed in the terminal.
+3. Open `wrangler.jsonc` and replace the `database_id` value.
+
+**Step 2: Create Cloudflare R2 bucket**
+1. Go to Cloudflare Dashboard → R2 → Create bucket.
+2. Name it **`webresume-bucket`**.
+3. Generate R2 API tokens (Read + Write).
+4. Keep **Account ID**, **Access Key**, **Secret Key**.
+
+**Step 3: Configure R2 CORS**
+In Cloudflare R2 bucket settings → CORS, paste:
+```json
+[
+  {
+    "AllowedOrigins": ["http://localhost:3000", "https://your-domain.com"],
+    "AllowedMethods": ["GET", "PUT", "POST"],
+    "AllowedHeaders": ["*"],
+    "MaxAgeSeconds": 3000
+  }
+]
+```
+
+**Step 4: Set up Google OAuth**
+1. Go to Google Cloud Console.
+2. Create project → APIs & Services → Credentials.
+3. Create OAuth Client ID (Web app).
+4. Add redirect URIs:
+   - `http://localhost:3000/api/auth/callback/google`
+   - `https://your-domain.com/api/auth/callback/google`
+5. Copy **Client ID** and **Client Secret**.
+
+**Step 5: Set up OpenRouter**
+1. Create OpenRouter account → API Keys.
+2. Copy your API key.
+
+**Step 6: Add secrets to Cloudflare (production)**
+Run each command and paste the value when prompted:
+```bash
+bunx wrangler secret put BETTER_AUTH_SECRET
+bunx wrangler secret put BETTER_AUTH_URL
+bunx wrangler secret put GOOGLE_CLIENT_ID
+bunx wrangler secret put GOOGLE_CLIENT_SECRET
+bunx wrangler secret put R2_ENDPOINT
+bunx wrangler secret put R2_ACCESS_KEY_ID
+bunx wrangler secret put R2_SECRET_ACCESS_KEY
+bunx wrangler secret put R2_BUCKET_NAME
+bunx wrangler secret put CF_AI_GATEWAY_ACCOUNT_ID
+bunx wrangler secret put CF_AI_GATEWAY_ID
+bunx wrangler secret put CF_AIG_AUTH_TOKEN
+bunx wrangler secret put GEMINI_API_KEY
+bunx wrangler secret put NEXT_PUBLIC_APP_URL
+```
+
+**Step 7: Deploy**
+```bash
+bun run db:migrate:prod
+bun run deploy
+```
+
+**Step 8: Add your domain**
+Cloudflare Dashboard → Workers & Pages → your worker → Settings → Domains & Routes.
+
+**Important:** After domain is connected, **update these two secrets**:
+- `BETTER_AUTH_URL` = `https://your-domain.com`
+- `NEXT_PUBLIC_APP_URL` = `https://your-domain.com`
+
+Then redeploy:
+```bash
+bun run deploy
+```
+
+If you followed the steps above, the site should be live at your domain.
+
 ### Step 1: Cloudflare Setup
 
 1. **Create a Cloudflare account** at [cloudflare.com](https://cloudflare.com)
@@ -140,19 +242,19 @@ Open [http://localhost:3000](http://localhost:3000)
    - Production: `https://your-domain.com/api/auth/callback/google`
 7. Copy Client ID and Client Secret
 
-### Step 3: OpenRouter Setup
+### Step 3: OpenRouter + Cloudflare AI Gateway (required)
 
 1. Create account at [openrouter.ai](https://openrouter.ai)
 2. Go to **API Keys**
 3. Create new API key and copy it
 4. Get your OpenRouter HTTP Referer and App Title from the dashboard
 
-**Optional: Cloudflare AI Gateway (BYOK)**
-For enhanced reliability and caching:
+**Cloudflare AI Gateway**
+This project uses Cloudflare AI Gateway for Gemini calls.
 1. Go to Cloudflare Dashboard > AI > AI Gateway
 2. Create a gateway
 3. Store your OpenRouter token in Cloudflare Secrets Store
-4. Use `CF_AI_GATEWAY_*` environment variables
+4. You will use `CF_AI_GATEWAY_*` environment variables
 
 ### Step 4: Environment Variables
 
@@ -214,14 +316,14 @@ If you already deployed a non-SQLite DO with the same class name, you must creat
    bunx wrangler secret put GOOGLE_CLIENT_ID
    bunx wrangler secret put GOOGLE_CLIENT_SECRET
    bunx wrangler secret put R2_ENDPOINT
-    bunx wrangler secret put R2_ACCESS_KEY_ID
-    bunx wrangler secret put R2_SECRET_ACCESS_KEY
-    bunx wrangler secret put R2_BUCKET_NAME
-    bunx wrangler secret put CF_AI_GATEWAY_ACCOUNT_ID
-    bunx wrangler secret put CF_AI_GATEWAY_ID
-    bunx wrangler secret put CF_AIG_AUTH_TOKEN
-    bunx wrangler secret put GEMINI_API_KEY
-    bunx wrangler secret put NEXT_PUBLIC_APP_URL
+   bunx wrangler secret put R2_ACCESS_KEY_ID
+   bunx wrangler secret put R2_SECRET_ACCESS_KEY
+   bunx wrangler secret put R2_BUCKET_NAME
+   bunx wrangler secret put CF_AI_GATEWAY_ACCOUNT_ID
+   bunx wrangler secret put CF_AI_GATEWAY_ID
+   bunx wrangler secret put CF_AIG_AUTH_TOKEN
+   bunx wrangler secret put GEMINI_API_KEY
+   bunx wrangler secret put NEXT_PUBLIC_APP_URL
    ```
 
 3. **Deploy**
