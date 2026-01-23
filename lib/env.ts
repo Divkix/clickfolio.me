@@ -76,9 +76,6 @@ export function validateEnvironment(): void {
     "GOOGLE_CLIENT_SECRET",
 
     // R2
-    "R2_ENDPOINT",
-    "R2_ACCESS_KEY_ID",
-    "R2_SECRET_ACCESS_KEY",
     "R2_BUCKET_NAME",
 
     // Cloudflare AI Gateway (routes to OpenRouter)
@@ -116,9 +113,6 @@ export const ENV = {
   GOOGLE_CLIENT_SECRET: () => getRequiredEnv("GOOGLE_CLIENT_SECRET"),
 
   // R2
-  R2_ENDPOINT: () => getRequiredEnv("R2_ENDPOINT"),
-  R2_ACCESS_KEY_ID: () => getRequiredEnv("R2_ACCESS_KEY_ID"),
-  R2_SECRET_ACCESS_KEY: () => getRequiredEnv("R2_SECRET_ACCESS_KEY"),
   R2_BUCKET_NAME: () => getRequiredEnv("R2_BUCKET_NAME"),
 
   // Cloudflare AI Gateway (routes to OpenRouter)

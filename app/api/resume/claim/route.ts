@@ -331,7 +331,7 @@ export async function POST(request: Request) {
       return createErrorResponse(errorMessage, errorCode, statusCode);
     };
 
-    // 6. Validate file size (10MB limit)
+    // 6. Validate file size (5MB limit)
     try {
       const headResult = await R2.head(r2Binding, key);
 
@@ -346,7 +346,7 @@ export async function POST(request: Request) {
       if (headResult.size && headResult.size > MAX_FILE_SIZE) {
         const sizeInMB = Math.round(headResult.size / 1024 / 1024);
         return await failResume(
-          `File size exceeds 10MB limit (${sizeInMB}MB)`,
+          `File size exceeds 5MB limit (${sizeInMB}MB)`,
           ERROR_CODES.VALIDATION_ERROR,
           400,
         );

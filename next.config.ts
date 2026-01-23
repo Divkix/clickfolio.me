@@ -12,7 +12,7 @@ const nextConfig: NextConfig = {
   // Configure for Cloudflare deployment
   experimental: {
     serverActions: {
-      bodySizeLimit: "10mb",
+      bodySizeLimit: "5mb",
     },
   },
 

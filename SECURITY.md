@@ -77,7 +77,7 @@ The application includes built-in rate limiting:
 ### Cloudflare Workers Environment
 
 - No filesystem access (by design)
-- All file operations use R2 presigned URLs
+- All file operations use R2 bindings
 - Secrets are injected at runtime, not bundled
 
 ### OAuth Flow

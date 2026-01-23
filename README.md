@@ -133,8 +133,7 @@ If you are not technical, follow this exact checklist. You only need a terminal 
 **Step 2: Create Cloudflare R2 bucket**
 1. Go to Cloudflare Dashboard → R2 → Create bucket.
 2. Name it **`webresume-bucket`**.
-3. Generate R2 API tokens (Read + Write).
-4. Keep **Account ID**, **Access Key**, **Secret Key**.
+3. The bucket is accessed via binding in wrangler.jsonc - no API tokens needed.
 
 **Step 3: Configure R2 CORS**
 In Cloudflare R2 bucket settings → CORS, paste:
@@ -169,10 +168,6 @@ bunx wrangler secret put BETTER_AUTH_SECRET
 bunx wrangler secret put BETTER_AUTH_URL
 bunx wrangler secret put GOOGLE_CLIENT_ID
 bunx wrangler secret put GOOGLE_CLIENT_SECRET
-bunx wrangler secret put R2_ENDPOINT
-bunx wrangler secret put R2_ACCESS_KEY_ID
-bunx wrangler secret put R2_SECRET_ACCESS_KEY
-bunx wrangler secret put R2_BUCKET_NAME
 bunx wrangler secret put CF_AI_GATEWAY_ACCOUNT_ID
 bunx wrangler secret put CF_AI_GATEWAY_ID
 bunx wrangler secret put CF_AIG_AUTH_TOKEN
@@ -213,8 +208,7 @@ If you followed the steps above, the site should be live at your domain.
 3. **Create R2 Bucket**
    - Go to Cloudflare Dashboard > R2
    - Create bucket named `webresume-bucket`
-   - Generate API token with Read & Write permissions
-   - Note your Account ID and Access Keys
+   - The bucket is accessed via binding in `wrangler.jsonc` - no API tokens needed
    - This bucket is also used for OpenNext incremental cache
 
 4. **Configure R2 CORS**
@@ -271,11 +265,6 @@ BETTER_AUTH_URL=http://localhost:3000
 GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=your-client-secret
 
-R2_ENDPOINT=https://your-account-id.r2.cloudflarestorage.com
-R2_ACCESS_KEY_ID=your-access-key
-R2_SECRET_ACCESS_KEY=your-secret-key
-R2_BUCKET_NAME=webresume-bucket
-
 # Cloudflare AI Gateway (BYOK)
 CF_AI_GATEWAY_ACCOUNT_ID=your-account-id
 CF_AI_GATEWAY_ID=your-gateway-id
@@ -315,10 +304,6 @@ If you already deployed a non-SQLite DO with the same class name, you must creat
    bunx wrangler secret put BETTER_AUTH_URL
    bunx wrangler secret put GOOGLE_CLIENT_ID
    bunx wrangler secret put GOOGLE_CLIENT_SECRET
-   bunx wrangler secret put R2_ENDPOINT
-   bunx wrangler secret put R2_ACCESS_KEY_ID
-   bunx wrangler secret put R2_SECRET_ACCESS_KEY
-   bunx wrangler secret put R2_BUCKET_NAME
    bunx wrangler secret put CF_AI_GATEWAY_ACCOUNT_ID
    bunx wrangler secret put CF_AI_GATEWAY_ID
    bunx wrangler secret put CF_AIG_AUTH_TOKEN
@@ -399,8 +384,8 @@ lib/
 Allows anonymous users to upload before authenticating:
 
 ```
-1. POST /api/upload/sign    → Get presigned R2 URL
-2. Client uploads to R2     → Store temp key in localStorage
+1. POST /api/upload         → Upload file directly to Worker
+2. Worker stores in R2      → Store temp key in localStorage
 3. User authenticates       → Google OAuth
 4. POST /api/resume/claim   → Link upload to user, trigger parsing
 5. Poll /api/resume/status  → Wait for AI parsing (~30-40s)
@@ -472,8 +457,8 @@ bun run build       # Fix errors and rebuild
 
 ### R2 Upload Fails
 1. Check R2 CORS includes your domain
-2. Verify R2 API token has Read & Write permissions
-3. Confirm `R2_BUCKET_NAME` matches actual bucket
+2. Verify R2 bucket binding is configured in `wrangler.jsonc`
+3. Confirm bucket name in binding matches actual bucket
 
 ### Parsing Stuck in "Processing"
 1. Verify Gemini API key is valid
@@ -481,7 +466,7 @@ bun run build       # Fix errors and rebuild
 3. Use retry button (max 2 retries)
 
 ### "Cannot find module 'fs'"
-You're on Cloudflare Workers. Use R2 presigned URLs for file operations.
+You're on Cloudflare Workers. Use R2 bindings for file operations.
 
 ---
 

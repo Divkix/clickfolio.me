@@ -2,12 +2,8 @@
  * Cloudflare R2 storage client
  *
  * Uses R2 binding for direct operations (get, put, delete, copy, head)
- * Uses aws4fetch for presigned URL generation (client uploads)
- *
- * This replaces the heavy @aws-sdk/client-s3 with lightweight alternatives
  */
 
-import { AwsClient } from "aws4fetch";
 import { ENV } from "./env";
 
 /**
@@ -26,88 +22,6 @@ export function getR2BucketName(env?: Partial<CloudflareEnv>): string {
     return env.R2_BUCKET_NAME;
   }
   return ENV.R2_BUCKET_NAME();
-}
-
-// Singleton AWS client for presigned URL generation
-let _awsClient: AwsClient | null = null;
-let _lastCredentials: string | null = null;
-
-/**
- * Get AWS client for presigned URL generation
- * Uses aws4fetch which is much lighter than @aws-sdk/client-s3
- */
-function getAwsClient(env?: Partial<CloudflareEnv>): AwsClient {
-  const accessKeyId = env?.R2_ACCESS_KEY_ID || ENV.R2_ACCESS_KEY_ID();
-  const secretAccessKey = env?.R2_SECRET_ACCESS_KEY || ENV.R2_SECRET_ACCESS_KEY();
-  const credentialsKey = `${accessKeyId}:${secretAccessKey}`;
-
-  // Invalidate cache if credentials changed
-  if (_awsClient && _lastCredentials !== credentialsKey) {
-    _awsClient = null;
-  }
-
-  if (!_awsClient) {
-    _awsClient = new AwsClient({
-      accessKeyId,
-      secretAccessKey,
-      service: "s3",
-      region: "auto",
-    });
-    _lastCredentials = credentialsKey;
-  }
-
-  return _awsClient;
-}
-
-/**
- * Get R2 endpoint URL
- */
-function getR2Endpoint(env?: Partial<CloudflareEnv>): string {
-  return env?.R2_ENDPOINT || ENV.R2_ENDPOINT();
-}
-
-/**
- * Generate a presigned PUT URL for client uploads
- *
- * @param key - The R2 object key
- * @param contentType - The content type of the file
- * @param contentLength - The expected file size in bytes
- * @param expiresIn - URL expiration time in seconds (default: 3600)
- * @param env - Optional Cloudflare env bindings
- * @returns Presigned URL for PUT operation
- */
-export async function generatePresignedPutUrl(
-  key: string,
-  contentType: string,
-  contentLength: number,
-  expiresIn: number = 3600,
-  env?: Partial<CloudflareEnv>,
-): Promise<string> {
-  const awsClient = getAwsClient(env);
-  const endpoint = getR2Endpoint(env);
-  const bucket = getR2BucketName(env);
-
-  // Build the URL for the object
-  const url = new URL(`${endpoint}/${bucket}/${key}`);
-
-  // Add query parameters for presigned URL
-  url.searchParams.set("X-Amz-Expires", String(expiresIn));
-
-  // Create the presigned request
-  const signedRequest = await awsClient.sign(
-    new Request(url.toString(), {
-      method: "PUT",
-      headers: {
-        "Content-Type": contentType,
-        "Content-Length": String(contentLength),
-      },
-    }),
-    {
-      aws: { signQuery: true },
-    },
-  );
-
-  return signedRequest.url;
 }
 
 /**

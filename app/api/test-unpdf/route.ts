@@ -1,6 +1,6 @@
 import { extractText, getDocumentProxy } from "unpdf";
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
 export async function POST(request: Request) {
   try {

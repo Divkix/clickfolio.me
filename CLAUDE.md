@@ -41,7 +41,7 @@ bun run ci               # type-check + lint + build
 ## Critical Constraints
 
 ### Cloudflare Workers Limitations
-- **No `fs` module** — use R2 presigned URLs for file operations
+- **No `fs` module** — use R2 bindings for file operations
 - **No Next.js `<Image />`** — use `<img>` with CSS (`aspect-ratio`, `object-fit`)
 - **No middleware D1 access** — Edge middleware can't call D1; move DB checks to page components/API routes
 
@@ -70,8 +70,8 @@ app/
 
 ### The Claim Check Pattern
 Anonymous users upload before auth:
-1. `POST /api/upload/sign` → presigned R2 URL with temp key `temp/{uuid}/{filename}`
-2. Client uploads to R2, stores key in `localStorage` as `temp_upload_id`
+1. `POST /api/upload` → Upload file directly to Worker, stored in R2 via binding
+2. Worker returns temp key, stored in `localStorage` as `temp_upload_id`
 3. User authenticates via Google OAuth
 4. `POST /api/resume/claim` → links upload to user, triggers Gemini parsing
 5. Status polling at `/api/resume/status` (3s intervals, ~30-40s parse time)
@@ -146,14 +146,15 @@ Required in `.env.local` (dev) and Cloudflare secrets (prod):
 ```
 BETTER_AUTH_SECRET, BETTER_AUTH_URL
 GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
-R2_ENDPOINT, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME
 GEMINI_API_KEY (or CF_AI_GATEWAY_* for gateway)
 NEXT_PUBLIC_APP_URL
 ```
 
+Note: R2 is accessed via binding in `wrangler.jsonc` - no API credentials needed.
+
 ## Gotchas
 
-1. **"Cannot find module 'fs'"** — You're on Workers, use R2 presigned URLs
+1. **"Cannot find module 'fs'"** — You're on Workers, use R2 bindings for file operations
 2. **Auth redirect loop** — Check `BETTER_AUTH_URL` matches deployment URL exactly
 3. **R2 CORS errors** — Add localhost:3000 AND production URL to R2 CORS config
 4. **Parsing stuck** — Check Gemini API key, use retry button (max 2 retries)

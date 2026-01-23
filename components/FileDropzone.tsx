@@ -10,17 +10,6 @@ import { signIn, useSession } from "@/lib/auth/client";
 import { validatePDF } from "@/lib/utils/validation";
 
 /**
- * Compute SHA-256 hash of a file for deduplication caching.
- * Uses Web Crypto API (available in all modern browsers).
- */
-async function computeFileHash(file: File): Promise<string> {
-  const buffer = await file.arrayBuffer();
-  const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-/**
  * Set pending upload cookie via API (primary storage)
  * Falls back silently if API call fails - sessionStorage remains as backup
  */
@@ -53,9 +42,10 @@ interface FileDropzoneProps {
   onOpenChange?: (open: boolean) => void;
 }
 
-interface UploadSignResponse {
-  uploadUrl: string;
+interface UploadResponse {
   key: string;
+  file_hash: string;
+  remaining: { hourly: number; daily: number };
   error?: string;
   message?: string;
 }
@@ -134,79 +124,57 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
     setError(null);
 
     try {
-      // Step 1: Compute file hash for deduplication caching
+      // Step 1: Upload directly to Worker
       setUploadProgress(10);
-      let fileHash: string | undefined;
-      try {
-        fileHash = await computeFileHash(fileToUpload);
-        // Use sessionStorage for file hash as fallback (migration period)
-        sessionStorage.setItem("temp_file_hash", fileHash);
-      } catch {
-        // Fallback: proceed without hash (older browsers without crypto.subtle)
-        sessionStorage.removeItem("temp_file_hash");
-        console.warn("Could not compute file hash, proceeding without cache");
-      }
-      setUploadProgress(20);
 
-      // Step 2: Get presigned URL (include file size for server-side validation)
-      const signResponse = await fetch("/api/upload/sign", {
+      const uploadResponse = await fetch("/api/upload", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          filename: fileToUpload.name,
-          contentLength: fileToUpload.size,
-        }),
-      });
-
-      if (!signResponse.ok) {
-        const data = (await signResponse.json()) as UploadSignResponse;
-        // Handle rate limiting specifically
-        if (signResponse.status === 429) {
-          throw new Error(data.message || "Too many upload attempts. Please wait and try again.");
-        }
-        throw new Error(data.error || "Failed to get upload URL");
-      }
-
-      const { uploadUrl, key } = (await signResponse.json()) as UploadSignResponse;
-
-      // Step 3: Upload to R2 - progress reflects actual stages
-      setUploadProgress(50); // Got presigned URL, ready to upload
-
-      const uploadResponse = await fetch(uploadUrl, {
-        method: "PUT",
         headers: {
           "Content-Type": "application/pdf",
+          "Content-Length": String(fileToUpload.size),
+          "X-Filename": fileToUpload.name,
         },
         body: fileToUpload,
       });
 
-      setUploadProgress(90); // Upload complete, finalizing
+      setUploadProgress(70);
 
       if (!uploadResponse.ok) {
-        throw new Error("Failed to upload file");
+        const data = (await uploadResponse.json()) as UploadResponse;
+        // Handle rate limiting specifically
+        if (uploadResponse.status === 429) {
+          throw new Error(data.message || "Too many upload attempts. Please wait and try again.");
+        }
+        throw new Error(data.error || "Failed to upload file");
       }
 
-      setUploadProgress(100);
+      const { key, file_hash } = (await uploadResponse.json()) as UploadResponse;
 
-      // Step 4a: Save key to sessionStorage with expiry (30 min window) - FALLBACK
-      // Kept for migration period - remove after 30 days
+      setUploadProgress(90);
+
+      // Step 2a: Save key to sessionStorage with expiry (30 min window) - FALLBACK
       sessionStorage.setItem(
         "temp_upload",
         JSON.stringify({
           key,
           timestamp: Date.now(),
-          expiresAt: Date.now() + 30 * 60 * 1000, // 30 minute expiry
+          expiresAt: Date.now() + 30 * 60 * 1000,
         }),
       );
 
-      // Step 4b: Set HTTP-only cookie via API - PRIMARY storage
-      // This is the preferred method as it works across tabs and survives browser restart
-      await setPendingUploadCookie(key, fileHash || null);
+      // Store file hash in sessionStorage for claim
+      if (file_hash) {
+        sessionStorage.setItem("temp_file_hash", file_hash);
+      }
 
+      // Step 2b: Set HTTP-only cookie via API - PRIMARY storage
+      await setPendingUploadCookie(key, file_hash || null);
+
+      setUploadProgress(100);
       setUploadComplete(true);
       toast.success("File uploaded successfully!");
 
-      // Step 5: If user is authenticated, auto-claim the upload
+      // Step 3: If user is authenticated, auto-claim the upload
       if (user) {
         await claimUpload(key);
       }
@@ -219,7 +187,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
         if (status === 429) {
           errorMessage = "Upload limit reached (5 per day). Try again tomorrow.";
         } else if (status === 413) {
-          errorMessage = "File too large. Maximum size is 10MB.";
+          errorMessage = "File too large. Maximum size is 5MB.";
         } else if (status === 401) {
           errorMessage = "Session expired. Please sign in again.";
         } else if (status === 409) {
@@ -424,7 +392,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
           </div>
 
           {/* Secondary text below */}
-          <p className="text-sm text-slate-500">or click to browse - Max 10MB</p>
+          <p className="text-sm text-slate-500">or click to browse - Max 5MB</p>
         </div>
       </div>
 

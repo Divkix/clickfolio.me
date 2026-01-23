@@ -15,9 +15,10 @@ interface UploadStepProps {
 type UploadState = "idle" | "uploading" | "claiming" | "parsing" | "error";
 
 // API Response types
-interface SignResponse {
-  uploadUrl: string;
+interface UploadResponse {
   key: string;
+  file_hash: string;
+  remaining: number;
   error?: string;
   message?: string;
 }
@@ -184,48 +185,36 @@ export function UploadStep({ onContinue }: UploadStepProps) {
     setError(null);
 
     try {
-      // Step 1: Get presigned URL (include file size for server-side validation)
-      const signResponse = await fetch("/api/upload/sign", {
+      // Step 1: Upload directly to Worker
+      setUploadProgress(10);
+
+      const uploadResponse = await fetch("/api/upload", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          filename: fileToUpload.name,
-          contentLength: fileToUpload.size,
-        }),
-      });
-
-      if (!signResponse.ok) {
-        const data = (await signResponse.json()) as SignResponse;
-        // Handle rate limiting specifically
-        if (signResponse.status === 429) {
-          throw new Error(data.message || "Too many upload attempts. Please wait and try again.");
-        }
-        throw new Error(data.error || "Failed to get upload URL");
-      }
-
-      const signData = (await signResponse.json()) as SignResponse;
-      const { uploadUrl, key } = signData;
-      setUploadProgress(20);
-
-      // Step 2: Upload to R2
-      const uploadResponse = await fetch(uploadUrl, {
-        method: "PUT",
-        headers: { "Content-Type": "application/pdf" },
+        headers: {
+          "Content-Type": "application/pdf",
+          "Content-Length": String(fileToUpload.size),
+          "X-Filename": fileToUpload.name,
+        },
         body: fileToUpload,
       });
 
       if (!uploadResponse.ok) {
-        throw new Error("Failed to upload file");
+        const data = (await uploadResponse.json()) as UploadResponse;
+        if (uploadResponse.status === 429) {
+          throw new Error(data.message || "Too many upload attempts. Please wait and try again.");
+        }
+        throw new Error(data.error || "Failed to upload file");
       }
 
-      setUploadProgress(50);
+      const { key, file_hash } = (await uploadResponse.json()) as UploadResponse;
+      setUploadProgress(40);
       setUploadState("claiming");
 
-      // Step 3: Claim the upload
+      // Step 2: Claim the upload (include file_hash for caching)
       const claimResponse = await fetch("/api/resume/claim", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key }),
+        body: JSON.stringify({ key, file_hash }),
       });
 
       if (!claimResponse.ok) {
@@ -239,7 +228,7 @@ export function UploadStep({ onContinue }: UploadStepProps) {
       setUploadProgress(70);
       setUploadState("parsing");
 
-      // Step 4: If cached, we already have the content; otherwise poll for status
+      // Step 3: If cached, we already have the content; otherwise poll for status
       if (cached) {
         // Fetch site_data directly since it's already populated
         const siteDataResponse = await fetch("/api/site-data");
@@ -270,7 +259,7 @@ export function UploadStep({ onContinue }: UploadStepProps) {
         if (err.message.includes("429") || err.message.includes("limit")) {
           errorMessage = "Upload limit reached (5 per day). Try again tomorrow.";
         } else if (err.message.includes("413") || err.message.includes("large")) {
-          errorMessage = "File too large. Maximum size is 10MB.";
+          errorMessage = "File too large. Maximum size is 5MB.";
         } else if (err.message.includes("401") || err.message.includes("expired")) {
           errorMessage = "Session expired. Please refresh the page.";
         } else if (err.message) {
@@ -457,7 +446,7 @@ export function UploadStep({ onContinue }: UploadStepProps) {
               </p>
 
               {/* Secondary text */}
-              <p className="text-sm text-slate-500">or click to browse - Max 10MB</p>
+              <p className="text-sm text-slate-500">or click to browse - Max 5MB</p>
             </div>
           </div>
         )}
@@ -467,9 +456,9 @@ export function UploadStep({ onContinue }: UploadStepProps) {
           <div className="bg-slate-50 border border-slate-200/60 rounded-xl p-4">
             <p className="text-xs font-semibold text-slate-700 mb-2">Supported formats:</p>
             <ul className="text-xs text-slate-600 space-y-1">
-              <li>• PDF files only</li>
-              <li>• Maximum file size: 10MB</li>
-              <li>• Best results with text-based PDFs (not scanned images)</li>
+              <li>* PDF files only</li>
+              <li>* Maximum file size: 5MB</li>
+              <li>* Best results with text-based PDFs (not scanned images)</li>
             </ul>
           </div>
         )}

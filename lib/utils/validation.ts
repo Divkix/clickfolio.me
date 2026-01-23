@@ -1,10 +1,10 @@
 import { R2 } from "@/lib/r2";
 
-export const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+export const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
 export function validatePDF(file: File): { valid: boolean; error?: string } {
   if (file.size > MAX_FILE_SIZE) {
-    return { valid: false, error: "File size must be less than 10MB" };
+    return { valid: false, error: "File size must be less than 5MB" };
   }
   if (file.type !== "application/pdf") {
     return { valid: false, error: "Only PDF files are allowed" };
@@ -86,16 +86,40 @@ export async function validatePDFMagicNumber(
 }
 
 /**
+ * Validates PDF buffer by checking magic number (%PDF)
+ * Used for server-side validation before storing to R2
+ */
+export function validatePDFBuffer(buffer: ArrayBuffer): { valid: boolean; error?: string } {
+  const bytes = new Uint8Array(buffer);
+
+  // Check for PDF magic number: 0x25 0x50 0x44 0x46 = %PDF
+  if (
+    bytes.length >= 4 &&
+    bytes[0] === 0x25 && // %
+    bytes[1] === 0x50 && // P
+    bytes[2] === 0x44 && // D
+    bytes[3] === 0x46 // F
+  ) {
+    return { valid: true };
+  }
+
+  return {
+    valid: false,
+    error: "File is not a valid PDF (invalid magic number)",
+  };
+}
+
+/**
  * Validates request body size before parsing
  * Prevents DoS attacks with massive JSON payloads
  *
  * @param request - The incoming HTTP request
- * @param maxSizeBytes - Maximum allowed size in bytes (default: 10MB)
+ * @param maxSizeBytes - Maximum allowed size in bytes (default: 5MB)
  * @returns Validation result with optional error message
  */
 export function validateRequestSize(
   request: Request,
-  maxSizeBytes: number = 10_000_000, // 10MB default
+  maxSizeBytes: number = 5_000_000, // 5MB default
 ): { valid: boolean; error?: string } {
   const contentLength = request.headers.get("content-length");
 
