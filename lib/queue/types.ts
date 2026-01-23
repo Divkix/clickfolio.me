@@ -24,19 +24,9 @@ export interface CacheInvalidationMessage {
 }
 
 /**
- * Message for notification queue
- */
-export interface NotificationMessage {
-  type: "email";
-  template: "account-deleted" | "parse-complete";
-  to: string;
-  data: Record<string, unknown>;
-}
-
-/**
  * Union type for all queue messages
  */
-export type QueueMessage = ResumeParseMessage | CacheInvalidationMessage | NotificationMessage;
+export type QueueMessage = ResumeParseMessage | CacheInvalidationMessage;
 
 /**
  * Dead letter queue message wrapper

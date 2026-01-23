@@ -73,8 +73,7 @@
 	"queues": {
 		"producers": [
 			{ "binding": "RESUME_PARSE_QUEUE", "queue": "resume-parse-queue" },
-			{ "binding": "CACHE_INVALIDATION_QUEUE", "queue": "cache-invalidation-queue" },
-			{ "binding": "NOTIFICATION_QUEUE", "queue": "notification-queue" }
+			{ "binding": "CACHE_INVALIDATION_QUEUE", "queue": "cache-invalidation-queue" }
 		],
 		"consumers": [
 			{
@@ -85,11 +84,6 @@
 			},
 			{
 				"queue": "cache-invalidation-queue",
-				"max_batch_size": 10,
-				"max_retries": 5
-			},
-			{
-				"queue": "notification-queue",
 				"max_batch_size": 10,
 				"max_retries": 5
 			},

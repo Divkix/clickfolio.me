@@ -4,12 +4,7 @@ import { resumes, siteData } from "@/lib/db/schema";
 import { getSessionDb } from "@/lib/db/session";
 import { parseResumeWithGemini } from "@/lib/gemini";
 import { getR2Binding, R2 } from "@/lib/r2";
-import type {
-  CacheInvalidationMessage,
-  NotificationMessage,
-  QueueMessage,
-  ResumeParseMessage,
-} from "./types";
+import type { CacheInvalidationMessage, QueueMessage, ResumeParseMessage } from "./types";
 
 /**
  * Get cache tag for a resume handle (matches lib/utils/cache.ts pattern)
@@ -213,17 +208,6 @@ async function handleCacheInvalidation(message: CacheInvalidationMessage): Promi
 }
 
 /**
- * Handle notification from queue (placeholder for future implementation)
- */
-async function handleNotification(
-  message: NotificationMessage,
-  _env: CloudflareEnv,
-): Promise<void> {
-  // TODO: Implement email sending via Resend or other provider
-  console.log("Notification queued:", message.template, message.to);
-}
-
-/**
  * Main queue consumer handler
  * Export this from the worker entry point
  */
@@ -234,9 +218,6 @@ export async function handleQueueMessage(message: QueueMessage, env: CloudflareE
       break;
     case "invalidate":
       await handleCacheInvalidation(message);
-      break;
-    case "email":
-      await handleNotification(message, env);
       break;
     default: {
       const _exhaustive: never = message;
