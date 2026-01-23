@@ -12,8 +12,6 @@ import {
   user,
   verification,
 } from "@/lib/db/schema";
-import { DEFAULT_FROM_EMAIL, sendEmail } from "@/lib/email/resend";
-import { accountDeletedEmailHtml } from "@/lib/email/templates/account-deleted";
 import { getR2Binding, R2 } from "@/lib/r2";
 import { deleteAccountSchema } from "@/lib/schemas/account";
 import {
@@ -23,7 +21,7 @@ import {
 } from "@/lib/utils/security-headers";
 
 interface DeletionWarning {
-  type: "r2" | "email";
+  type: "r2";
   message: string;
 }
 
@@ -40,7 +38,6 @@ interface DeletionWarning {
  * 6. account
  * 7. verification (by email identifier)
  * 8. user (last)
- * 9. Send confirmation email (best effort)
  */
 export async function POST(request: Request) {
   const warnings: DeletionWarning[] = [];
@@ -174,27 +171,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // 9. Send confirmation email (best effort - don't block on failure)
-    try {
-      await sendEmail(
-        {
-          from: DEFAULT_FROM_EMAIL,
-          to: userEmail,
-          subject: "Your webresume.now account has been deleted",
-          html: accountDeletedEmailHtml({ email: userEmail }),
-        },
-        typedEnv,
-      );
-    } catch (emailError) {
-      console.error("Failed to send deletion confirmation email:", emailError);
-      warnings.push({
-        type: "email",
-        message: "Failed to send confirmation email",
-      });
-      // Don't block deletion on email failure
-    }
-
-    // 10. Return success response with cookie cleared
+    // 9. Return success response with cookie cleared
     // Clear the session cookie to fully log out the user
     const response = createSuccessResponse({
       success: true,

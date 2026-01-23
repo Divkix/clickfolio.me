@@ -244,21 +244,6 @@ export default function PrivacyPolicyPage() {
                       View Privacy Policy
                     </a>
                   </div>
-
-                  <div className="bg-slate-50 border border-slate-200/60 rounded-lg p-4">
-                    <h4 className="font-semibold text-slate-800 mb-1">Resend</h4>
-                    <p className="text-slate-600 text-sm mb-2">
-                      Used for transactional email delivery
-                    </p>
-                    <a
-                      href="https://resend.com/legal/privacy-policy"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-indigo-600 hover:text-indigo-700 text-sm font-medium transition-colors duration-300"
-                    >
-                      View Privacy Policy
-                    </a>
-                  </div>
                 </div>
               </section>
 
