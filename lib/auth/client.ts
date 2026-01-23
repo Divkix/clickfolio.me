@@ -18,16 +18,35 @@ const authClient = createAuthClient({
 });
 
 /**
- * Sign in with a social provider
+ * Sign in with email/password or social provider
  *
  * @example
  * ```tsx
- * <button onClick={() => signIn.social({ provider: "google" })}>
- *   Sign in with Google
- * </button>
+ * // Email sign in
+ * const { data, error } = await signIn.email({
+ *   email: "user@example.com",
+ *   password: "password123",
+ * });
+ *
+ * // Social sign in
+ * signIn.social({ provider: "google" });
  * ```
  */
 export const { signIn } = authClient;
+
+/**
+ * Sign up with email/password
+ *
+ * @example
+ * ```tsx
+ * const { data, error } = await signUp.email({
+ *   name: "John Doe",
+ *   email: "john@example.com",
+ *   password: "password123",
+ * });
+ * ```
+ */
+export const { signUp } = authClient;
 
 /**
  * Sign out the current user
@@ -38,6 +57,35 @@ export const { signIn } = authClient;
  * ```
  */
 export const { signOut } = authClient;
+
+/**
+ * Request password reset email
+ *
+ * Aliased from Better Auth's `requestPasswordReset` to `forgetPassword`
+ * for semantic clarity.
+ *
+ * @example
+ * ```tsx
+ * const { data, error } = await forgetPassword({
+ *   email: "user@example.com",
+ *   redirectTo: "/reset-password",
+ * });
+ * ```
+ */
+export const forgetPassword = authClient.requestPasswordReset;
+
+/**
+ * Reset password with token from email link
+ *
+ * @example
+ * ```tsx
+ * const { data, error } = await resetPassword({
+ *   newPassword: "newpassword123",
+ *   token: tokenFromUrl,
+ * });
+ * ```
+ */
+export const { resetPassword } = authClient;
 
 /**
  * React hook to access the current session
