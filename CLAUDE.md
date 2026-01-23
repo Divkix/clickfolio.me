@@ -111,6 +111,41 @@ if (!settings.show_phone) delete content.contact.phone;
 if (!settings.show_address) content.contact.location = extractCityState(...);
 ```
 
+### Caching Architecture
+
+Three-layer caching strategy optimized for Cloudflare Workers:
+
+**Layer 1: Cloudflare Edge Cache (CDN)**
+- Configured via `Cache-Control` headers in `next.config.ts`
+- Serves cached responses at edge (~5ms latency) without hitting Worker
+- Public resumes: 1hr TTL, 24hr stale-while-revalidate
+- Static pages (/privacy, /terms): 1 week TTL
+- Homepage: 5min TTL (client component)
+
+**Layer 2: OpenNext Incremental Cache (R2)**
+- ISR snapshots stored in `webresume-bucket/incremental-cache/*`
+- Configured in `open-next.config.ts` via `r2IncrementalCache`
+- Fallback revalidation: 1 hour (`export const revalidate = 3600`)
+
+**Layer 3: Tag-based Invalidation (Durable Objects)**
+- Tracks cache tags for granular invalidation
+- Configured via `doShardedTagCache` in `open-next.config.ts`
+- Strong consistency for immediate invalidation
+
+**Cache Invalidation Pattern:**
+```typescript
+// In API routes (update, update-theme, handle change, privacy toggle)
+revalidateTag(getResumeCacheTag(handle));  // Purges DO tag cache
+revalidatePath(`/${handle}`);               // Purges R2 route cache
+// Edge cache serves stale-while-revalidate, refreshes in background
+```
+
+**Why this setup:**
+- Edge cache handles 90%+ of requests at ~5ms (free tier)
+- R2 + DO only hit on cache misses (~$0.15-0.50/million requests)
+- Durable Objects chosen over KV for strong consistency on invalidation
+- `stale-while-revalidate` provides instant responses even during revalidation
+
 ## Code Standards
 
 - **Package manager**: bun only (never npm/yarn/pnpm)
