@@ -18,7 +18,7 @@ import type { TemplateProps } from "@/lib/types/template";
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const BentoGrid: React.FC<TemplateProps> = ({ content, profile: _profile }) => {
-  const skills = flattenSkills(content.skills).slice(0, 6);
+  const skills = flattenSkills(content.skills);
 
   return (
     <div className="min-h-screen bg-neutral-100 text-gray-900 font-sans p-4 md:p-8 overflow-y-auto">
@@ -96,9 +96,9 @@ const BentoGrid: React.FC<TemplateProps> = ({ content, profile: _profile }) => {
             </div>
           </div>
 
-          {/* 3. Tech Stack - 1x1 */}
+          {/* 3. Tech Stack - 1x2 (taller to show all skills) */}
           {skills.length > 0 && (
-            <div className="col-span-1 row-span-1 bg-white rounded-3xl p-6 border border-neutral-200/60 overflow-hidden flex flex-col">
+            <div className="col-span-1 row-span-2 bg-white rounded-3xl p-6 border border-neutral-200/60 overflow-hidden flex flex-col">
               <div className="flex items-center gap-2 mb-4 text-neutral-400">
                 <Layers size={18} />
                 <span className="text-xs font-bold uppercase tracking-wider">Stack</span>
