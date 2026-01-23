@@ -47,7 +47,7 @@
   "migrations": [
     {
       "tag": "v1",
-      "new_classes": ["DOShardedTagCache"]
+      "new_sqlite_classes": ["DOShardedTagCache"]
     }
   ],
   "observability": {
