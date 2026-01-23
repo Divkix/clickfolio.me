@@ -59,9 +59,33 @@ export default function Home() {
                   overflow-hidden
                 "
               >
-                {/* Corner accent */}
-                <div className="absolute top-0 right-0 w-16 h-16 bg-coral" />
-                <div className="absolute top-0 right-0 w-0 h-0 border-l-64 border-l-transparent border-t-64 border-t-white" />
+                {/* Folded corner effect */}
+                <div className="absolute top-0 right-0 w-16 h-16">
+                  {/* Shadow under the fold */}
+                  <div
+                    className="absolute top-0 right-0 w-0 h-0"
+                    style={{
+                      borderLeft: "64px solid transparent",
+                      borderTop: "64px solid rgba(0,0,0,0.06)",
+                    }}
+                  />
+                  {/* The fold crease - subtle white */}
+                  <div
+                    className="absolute top-0 right-0 w-0 h-0"
+                    style={{
+                      borderLeft: "60px solid transparent",
+                      borderTop: "60px solid #ffffff",
+                    }}
+                  />
+                  {/* Underside of fold (coral accent) */}
+                  <div
+                    className="absolute bottom-0 left-0 w-0 h-0"
+                    style={{
+                      borderRight: "64px solid transparent",
+                      borderBottom: "64px solid #FF6B6B",
+                    }}
+                  />
+                </div>
 
                 <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-ink leading-[1.1] tracking-tight mb-6">
                   Your Resume
