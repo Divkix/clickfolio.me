@@ -171,7 +171,6 @@ bunx wrangler secret put GOOGLE_CLIENT_SECRET
 bunx wrangler secret put CF_AI_GATEWAY_ACCOUNT_ID
 bunx wrangler secret put CF_AI_GATEWAY_ID
 bunx wrangler secret put CF_AIG_AUTH_TOKEN
-bunx wrangler secret put GEMINI_API_KEY
 bunx wrangler secret put NEXT_PUBLIC_APP_URL
 ```
 
@@ -265,13 +264,10 @@ BETTER_AUTH_URL=http://localhost:3000
 GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=your-client-secret
 
-# Cloudflare AI Gateway (BYOK)
+# Cloudflare AI Gateway (BYOK - OpenRouter key stored in CF Secrets Store)
 CF_AI_GATEWAY_ACCOUNT_ID=your-account-id
 CF_AI_GATEWAY_ID=your-gateway-id
 CF_AIG_AUTH_TOKEN=your-gateway-auth-token
-
-# Gemini API Key (or use Cloudflare AI Gateway above)
-GEMINI_API_KEY=your-gemini-api-key-here
 
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 
@@ -307,7 +303,6 @@ If you already deployed a non-SQLite DO with the same class name, you must creat
    bunx wrangler secret put CF_AI_GATEWAY_ACCOUNT_ID
    bunx wrangler secret put CF_AI_GATEWAY_ID
    bunx wrangler secret put CF_AIG_AUTH_TOKEN
-   bunx wrangler secret put GEMINI_API_KEY
    bunx wrangler secret put NEXT_PUBLIC_APP_URL
    ```
 
@@ -461,7 +456,7 @@ bun run build       # Fix errors and rebuild
 3. Confirm bucket name in binding matches actual bucket
 
 ### Parsing Stuck in "Processing"
-1. Verify Gemini API key is valid
+1. Verify CF AI Gateway config and OpenRouter BYOK setup
 2. Check PDF isn't corrupted
 3. Use retry button (max 2 retries)
 

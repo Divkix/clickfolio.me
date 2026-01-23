@@ -146,16 +146,17 @@ Required in `.env.local` (dev) and Cloudflare secrets (prod):
 ```
 BETTER_AUTH_SECRET, BETTER_AUTH_URL
 GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
-GEMINI_API_KEY (or CF_AI_GATEWAY_* for gateway)
+CF_AI_GATEWAY_ACCOUNT_ID, CF_AI_GATEWAY_ID, CF_AIG_AUTH_TOKEN
 NEXT_PUBLIC_APP_URL
 ```
 
 Note: R2 is accessed via binding in `wrangler.jsonc` - no API credentials needed.
+Note: OpenRouter API key is configured in Cloudflare AI Gateway via BYOK (Secrets Store), not as an env var.
 
 ## Gotchas
 
 1. **"Cannot find module 'fs'"** — You're on Workers, use R2 bindings for file operations
 2. **Auth redirect loop** — Check `BETTER_AUTH_URL` matches deployment URL exactly
 3. **R2 CORS errors** — Add localhost:3000 AND production URL to R2 CORS config
-4. **Parsing stuck** — Check Gemini API key, use retry button (max 2 retries)
+4. **Parsing stuck** — Check CF AI Gateway config and OpenRouter BYOK setup, use retry button (max 2 retries)
 5. **D1 JSON returning strings** — Always parse TEXT fields with JSON.parse()
