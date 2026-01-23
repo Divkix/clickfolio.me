@@ -75,13 +75,8 @@ export function validateEnvironment(): void {
     "GOOGLE_CLIENT_ID",
     "GOOGLE_CLIENT_SECRET",
 
-    // R2
-    "R2_BUCKET_NAME",
-
-    // Cloudflare AI Gateway (routes to OpenRouter)
-    "CF_AI_GATEWAY_ACCOUNT_ID",
-    "CF_AI_GATEWAY_ID",
-    "CF_AIG_AUTH_TOKEN",
+    // Note: AI Gateway vars are now in ai-parser-worker, not here
+    // Note: R2 is accessed via binding (R2_BUCKET), no env var needed
   ];
 
   const missing = requiredVars.filter((key) => {
@@ -111,14 +106,6 @@ export const ENV = {
   // Google OAuth
   GOOGLE_CLIENT_ID: () => getRequiredEnv("GOOGLE_CLIENT_ID"),
   GOOGLE_CLIENT_SECRET: () => getRequiredEnv("GOOGLE_CLIENT_SECRET"),
-
-  // R2
-  R2_BUCKET_NAME: () => getRequiredEnv("R2_BUCKET_NAME"),
-
-  // Cloudflare AI Gateway (routes to OpenRouter)
-  CF_AI_GATEWAY_ACCOUNT_ID: () => getRequiredEnv("CF_AI_GATEWAY_ACCOUNT_ID"),
-  CF_AI_GATEWAY_ID: () => getRequiredEnv("CF_AI_GATEWAY_ID"),
-  CF_AIG_AUTH_TOKEN: () => getRequiredEnv("CF_AIG_AUTH_TOKEN"),
 
   // Optional - Public app URL
   NEXT_PUBLIC_APP_URL: () => getEnvVar("NEXT_PUBLIC_APP_URL", false),

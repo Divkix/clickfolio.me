@@ -1,9 +1,18 @@
-import * as nodeUtil from "node:util";
-import { extractText, getDocumentProxy } from "unpdf";
-import { ENV } from "@/lib/env";
+/**
+ * Response types for utility workers
+ */
+interface PdfExtractResponse {
+  success: boolean;
+  text: string;
+  pageCount: number;
+  error?: string;
+}
 
-const structuredClone = (nodeUtil as unknown as { structuredClone: <T>(value: T) => T })
-  .structuredClone;
+interface AiParseResponse {
+  success: boolean;
+  data: unknown;
+  error?: string;
+}
 
 type ResumeContact = {
   email: string;
@@ -222,84 +231,62 @@ IMPORTANT:
 - Return ONLY valid JSON matching the schema`;
 
 /**
- * Build Cloudflare AI Gateway URL for OpenRouter
- * Format: https://gateway.ai.cloudflare.com/v1/{account_id}/{gateway_id}/openrouter
+ * Extract text from PDF using pdf-text-worker
  */
-function buildGatewayUrl(): string {
-  const accountId = ENV.CF_AI_GATEWAY_ACCOUNT_ID();
-  const gatewayId = ENV.CF_AI_GATEWAY_ID();
-  return `https://gateway.ai.cloudflare.com/v1/${accountId}/${gatewayId}/openrouter`;
-}
+async function extractPdfText(
+  pdfBuffer: Uint8Array,
+  env: Partial<CloudflareEnv>,
+): Promise<PdfExtractResponse> {
+  const worker = env.PDF_TEXT_WORKER;
+  if (!worker) {
+    return { success: false, text: "", pageCount: 0, error: "PDF worker not available" };
+  }
 
-/**
- * OpenRouter-compatible chat completion request type
- */
-interface ChatCompletionRequest {
-  model: string;
-  messages: Array<{
-    role: "system" | "user" | "assistant";
-    content: string;
-  }>;
-  response_format?: {
-    type: "json_schema";
-    json_schema: {
-      name: string;
-      strict: boolean;
-      schema: typeof RESUME_EXTRACTION_SCHEMA;
-    };
-  };
-  temperature?: number;
-  max_tokens?: number;
-  provider?: {
-    require_parameters?: boolean;
-    allow_fallbacks?: boolean;
-  };
-}
+  // Convert Uint8Array to a standard ArrayBuffer to satisfy BodyInit type
+  const arrayBuffer = pdfBuffer.buffer.slice(
+    pdfBuffer.byteOffset,
+    pdfBuffer.byteOffset + pdfBuffer.byteLength,
+  ) as ArrayBuffer;
 
-/**
- * OpenRouter-compatible chat completion response type
- */
-interface ChatCompletionResponse {
-  id: string;
-  choices: Array<{
-    index: number;
-    message: {
-      role: string;
-      content: string | null;
-    };
-    finish_reason: string;
-  }>;
-  usage?: {
-    prompt_tokens: number;
-    completion_tokens: number;
-    total_tokens: number;
-  };
-}
-
-/**
- * Call OpenRouter API via Cloudflare AI Gateway using native fetch
- * Replaces OpenAI SDK to reduce bundle size
- */
-async function callOpenRouter(request: ChatCompletionRequest): Promise<ChatCompletionResponse> {
-  const gatewayUrl = buildGatewayUrl();
-  const gatewayToken = ENV.CF_AIG_AUTH_TOKEN();
-
-  const response = await fetch(`${gatewayUrl}/chat/completions`, {
+  const response = await worker.fetch("https://internal/extract", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      // Gateway authentication - BYOK injects OpenRouter key server-side
-      "cf-aig-authorization": `Bearer ${gatewayToken}`,
-    },
-    body: JSON.stringify(request),
+    body: arrayBuffer,
   });
 
   if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`OpenRouter API error (${response.status}): ${errorText}`);
+    const error = await response.text();
+    return { success: false, text: "", pageCount: 0, error };
   }
 
-  return (await response.json()) as ChatCompletionResponse;
+  return response.json() as Promise<PdfExtractResponse>;
+}
+
+/**
+ * Parse text with AI using ai-parser-worker
+ */
+async function parseWithAi(text: string, env: Partial<CloudflareEnv>): Promise<AiParseResponse> {
+  const worker = env.AI_PARSER_WORKER;
+  if (!worker) {
+    return { success: false, data: null, error: "AI parser not available" };
+  }
+
+  const response = await worker.fetch("https://internal/parse", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      text,
+      schema: RESUME_EXTRACTION_SCHEMA,
+      systemPrompt: SYSTEM_PROMPT,
+      model: "google/gemini-2.5-flash-lite",
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    return { success: false, data: null, error };
+  }
+
+  return response.json() as Promise<AiParseResponse>;
 }
 
 function transformGeminiOutput(raw: ResumeSchema): ResumeSchema {
@@ -388,57 +375,51 @@ export async function parseResumeWithGemini(
   pdfBuffer: Uint8Array,
   env: Partial<CloudflareEnv>,
 ): Promise<{ success: boolean; parsedContent: string; error?: string }> {
-  void env;
-
   try {
-    const pdf = await getDocumentProxy(new Uint8Array(pdfBuffer));
-    const { text } = await extractText(pdf, { mergePages: true });
-    const resumeText = (text ?? "").slice(0, 60000);
+    // Step 1: Extract text from PDF
+    const extractResult = await extractPdfText(pdfBuffer, env);
+
+    if (!extractResult.success || !extractResult.text) {
+      return {
+        success: false,
+        parsedContent: "",
+        error: extractResult.error || "PDF extraction failed",
+      };
+    }
+
+    const resumeText = extractResult.text.slice(0, 60000);
 
     if (!resumeText.trim()) {
-      throw new Error("Extracted resume text is empty.");
+      return {
+        success: false,
+        parsedContent: "",
+        error: "Extracted resume text is empty",
+      };
     }
 
-    const request: ChatCompletionRequest = {
-      model: "google/gemini-2.5-flash-lite",
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: resumeText },
-      ],
-      response_format: {
-        type: "json_schema",
-        json_schema: {
-          name: "resume_extraction",
-          strict: true,
-          schema: RESUME_EXTRACTION_SCHEMA,
-        },
-      },
-      temperature: 0,
-      max_tokens: 4096,
-      provider: {
-        require_parameters: true,
-        allow_fallbacks: false,
-      },
-    };
+    // Step 2: Parse with AI
+    const parseResult = await parseWithAi(resumeText, env);
 
-    const response = await callOpenRouter(request);
-
-    const parsedContent = response.choices[0]?.message?.content;
-
-    if (!parsedContent) {
-      throw new Error("Gemini response did not include JSON content.");
+    if (!parseResult.success || !parseResult.data) {
+      return {
+        success: false,
+        parsedContent: "",
+        error: parseResult.error || "AI parsing failed",
+      };
     }
+
+    // Step 3: Transform and return
+    const transformed = transformGeminiOutput(parseResult.data as ResumeSchema);
 
     return {
       success: true,
-      parsedContent,
+      parsedContent: JSON.stringify(transformed),
     };
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
     return {
       success: false,
       parsedContent: "",
-      error: message,
+      error: error instanceof Error ? error.message : "Unknown error",
     };
   }
 }

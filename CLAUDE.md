@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **webresume.now** — Turn a PDF resume into a hosted web portfolio. Upload → AI Parse → Publish.
 
-**Stack**: Next.js 16 (App Router) on Cloudflare Workers, D1 (SQLite) via Drizzle ORM, Better Auth (Google OAuth), R2 storage, Gemini AI parsing via OpenRouter.
+**Stack**: Next.js 16 (App Router) on Cloudflare Workers, D1 (SQLite) via Drizzle ORM, Better Auth (Google OAuth), R2 storage, AI parsing via utility workers (pdf-text-worker + ai-parser-worker).
 
 ## Commands
 
@@ -134,8 +134,8 @@ All receive `content` (ResumeContent) and `user` props, must respect privacy set
 - `lib/db/schema.ts` — Drizzle schema definitions
 - `lib/auth/index.ts` — Better Auth server config
 - `lib/auth/client.ts` — Client hooks (useSession, signIn, signOut)
-- `lib/r2.ts` — AWS S3 client for R2
-- `lib/gemini.ts` — AI parsing client
+- `lib/r2.ts` — R2 binding wrapper functions
+- `lib/gemini.ts` — AI parsing client (uses pdf-text-worker and ai-parser-worker via service bindings)
 - `lib/schemas/resume.ts` — Zod validation with XSS sanitization
 - `wrangler.jsonc` — Cloudflare Workers config (D1 binding: `DB`)
 - `drizzle.config.ts` — Drizzle config pointing to local D1
@@ -146,17 +146,16 @@ Required in `.env.local` (dev) and Cloudflare secrets (prod):
 ```
 BETTER_AUTH_SECRET, BETTER_AUTH_URL
 GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
-CF_AI_GATEWAY_ACCOUNT_ID, CF_AI_GATEWAY_ID, CF_AIG_AUTH_TOKEN
 NEXT_PUBLIC_APP_URL
 ```
 
 Note: R2 is accessed via binding in `wrangler.jsonc` - no API credentials needed.
-Note: OpenRouter API key is configured in Cloudflare AI Gateway via BYOK (Secrets Store), not as an env var.
+Note: AI parsing is handled by utility workers (pdf-text-worker, ai-parser-worker) via service bindings. AI Gateway config is in ai-parser-worker.
 
 ## Gotchas
 
 1. **"Cannot find module 'fs'"** — You're on Workers, use R2 bindings for file operations
 2. **Auth redirect loop** — Check `BETTER_AUTH_URL` matches deployment URL exactly
 3. **R2 CORS errors** — Add localhost:3000 AND production URL to R2 CORS config
-4. **Parsing stuck** — Check CF AI Gateway config and OpenRouter BYOK setup, use retry button (max 2 retries)
+4. **Parsing stuck** — Check utility workers are deployed (pdf-text-worker, ai-parser-worker), use retry button (max 2 retries)
 5. **D1 JSON returning strings** — Always parse TEXT fields with JSON.parse()

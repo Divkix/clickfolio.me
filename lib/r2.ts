@@ -4,24 +4,12 @@
  * Uses R2 binding for direct operations (get, put, delete, copy, head)
  */
 
-import { ENV } from "./env";
-
 /**
  * Get R2 binding from Cloudflare env
  * Used for direct R2 operations (get, put, delete, copy, head)
  */
 export function getR2Binding(env: Partial<CloudflareEnv>): R2Bucket | null {
   return env.R2_BUCKET ?? null;
-}
-
-/**
- * Get R2 bucket name from environment
- */
-export function getR2BucketName(env?: Partial<CloudflareEnv>): string {
-  if (env?.R2_BUCKET_NAME) {
-    return env.R2_BUCKET_NAME;
-  }
-  return ENV.R2_BUCKET_NAME();
 }
 
 /**
