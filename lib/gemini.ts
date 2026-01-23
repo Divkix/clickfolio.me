@@ -295,6 +295,35 @@ async function parseWithAi(text: string, env: Partial<CloudflareEnv>): Promise<A
   return response.json() as Promise<AiParseResponse>;
 }
 
+/**
+ * Normalize raw AI response to ensure required fields have valid defaults
+ * This runs BEFORE Zod validation to handle incomplete AI responses
+ */
+function normalizeAiResponse(raw: unknown): unknown {
+  if (!raw || typeof raw !== "object") {
+    return raw;
+  }
+
+  const data = raw as Record<string, unknown>;
+
+  // Ensure contact is an object with at least an email placeholder
+  if (!data.contact || typeof data.contact !== "object") {
+    data.contact = { email: "unknown@example.com" };
+  } else {
+    const contact = data.contact as Record<string, unknown>;
+    if (!contact.email || typeof contact.email !== "string" || !contact.email.trim()) {
+      contact.email = "unknown@example.com";
+    }
+  }
+
+  // Ensure experience is an array (even if empty)
+  if (!Array.isArray(data.experience)) {
+    data.experience = [];
+  }
+
+  return data;
+}
+
 function transformGeminiOutput(raw: ResumeSchema): ResumeSchema {
   const result = structuredClone(raw);
 
@@ -414,8 +443,10 @@ export async function parseResumeWithGemini(
       };
     }
 
-    // Step 2.5: Validate AI response against schema
-    const validationResult = resumeContentSchema.safeParse(parseResult.data);
+    // Step 2.5: Normalize and validate AI response against schema
+    // Normalization ensures required fields have valid defaults before validation
+    const normalizedData = normalizeAiResponse(parseResult.data);
+    const validationResult = resumeContentSchema.safeParse(normalizedData);
     if (!validationResult.success) {
       // Log validation errors for debugging
       console.error("AI response validation failed:", validationResult.error.flatten());

@@ -97,3 +97,39 @@ export function getSessionDbForWebhook(d1: D1Database): Pick<SessionDbResult, "d
 
   return { db };
 }
+
+/**
+ * Get a database instance with primary-first consistency for authenticated endpoints
+ * that need immediate consistency after user creation (e.g., claim endpoint).
+ *
+ * Uses "first-primary" to ensure reads/writes go to primary, avoiding FK constraint
+ * failures when user record hasn't replicated to all replicas yet.
+ *
+ * Usage:
+ * ```typescript
+ * const { db, captureBookmark } = await getSessionDbWithPrimaryFirst(env.DB);
+ * await db.insert(resumes).values({ userId: user.id, ... });
+ * await captureBookmark();
+ * ```
+ */
+export async function getSessionDbWithPrimaryFirst(d1: D1Database): Promise<SessionDbResult> {
+  // Use "first-primary" to ensure reads/writes go to primary
+  // This handles the case where user was just created and hasn't replicated
+  // biome-ignore lint/suspicious/noExplicitAny: D1 session API not typed
+  const session = (d1 as any).withSession("first-primary");
+  const db = drizzle(session, { schema });
+
+  const captureBookmark = async (): Promise<void> => {
+    try {
+      // biome-ignore lint/suspicious/noExplicitAny: D1 session API not typed
+      const bookmark = (session as any).getBookmark?.();
+      if (bookmark && typeof bookmark === "string") {
+        await setBookmarkCookie(bookmark);
+      }
+    } catch (error) {
+      console.warn("[D1 Session] Failed to capture bookmark:", error);
+    }
+  };
+
+  return { db, captureBookmark };
+}

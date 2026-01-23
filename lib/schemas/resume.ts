@@ -290,10 +290,7 @@ export const resumeContentSchema = z.object({
     .max(10000, "Summary is too long (max 10000 characters)")
     .refine(noXssPattern, { message: "Invalid content detected" }),
   contact: contactSchema,
-  experience: z
-    .array(experienceSchema)
-    .min(1, "At least one experience entry is required")
-    .max(10, "Maximum 10 experience entries allowed"),
+  experience: z.array(experienceSchema).max(10, "Maximum 10 experience entries allowed"),
   education: z.array(educationSchema).max(10, "Maximum 10 education entries allowed").optional(),
   skills: z.array(skillSchema).max(20, "Maximum 20 skill categories allowed").optional(),
   certifications: z

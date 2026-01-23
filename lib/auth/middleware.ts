@@ -8,7 +8,7 @@ import { headers } from "next/headers";
 import { getAuth } from "@/lib/auth";
 import type { User as SchemaUser } from "@/lib/db/schema";
 import { user as userTable } from "@/lib/db/schema";
-import { getSessionDb } from "@/lib/db/session";
+import { getSessionDbWithPrimaryFirst } from "@/lib/db/session";
 import { createErrorResponse, ERROR_CODES } from "@/lib/utils/security-headers";
 
 /**
@@ -141,7 +141,7 @@ export async function requireAuthWithUserValidation(
 ): Promise<
   | {
       user: AuthUser;
-      db: Awaited<ReturnType<typeof getSessionDb>>["db"];
+      db: Awaited<ReturnType<typeof getSessionDbWithPrimaryFirst>>["db"];
       captureBookmark: () => Promise<void>;
       dbUser: DbUser;
       error: null;
@@ -166,8 +166,10 @@ export async function requireAuthWithUserValidation(
     };
   }
 
-  // Create session db with bookmark tracking
-  const { db, captureBookmark } = await getSessionDb(dbBinding);
+  // Create session db with primary-first consistency
+  // This ensures reads/writes go to primary, avoiding FK constraint failures
+  // when user record hasn't replicated to all replicas yet (post-auth flow)
+  const { db, captureBookmark } = await getSessionDbWithPrimaryFirst(dbBinding);
 
   // Validate user exists in database (protects against stale sessions)
   const userRecord = await db
