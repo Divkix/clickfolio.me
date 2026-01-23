@@ -119,7 +119,7 @@ export function ThemeSelector({ initialThemeId }: ThemeSelectorProps) {
                 )}
               >
                 {/* Thumbnail Preview */}
-                <div className="aspect-[16/10] bg-slate-100 rounded-lg mb-3 overflow-hidden">
+                <div className="aspect-16/10 bg-slate-100 rounded-lg mb-3 overflow-hidden">
                   <img
                     src={meta.preview}
                     alt={`${meta.name} preview`}
