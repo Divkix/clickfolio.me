@@ -407,6 +407,29 @@ function normalizeString(value: unknown, defaultVal = ""): string {
  * Basic transforms for AI output - no strict validation
  * Lenient parsing that always produces usable output.
  * XSS sanitization + URL validation (with garbage detection) + null handling
+ *
+ * ## Design Rationale for AI Output Validation
+ *
+ * ### 1. No `sanitizeText()` on AI output
+ * We intentionally avoid HTML-encoding text fields (like names, descriptions) at parse time.
+ * React already escapes text content during render, so pre-encoding causes double-encoding:
+ * - AI returns: "AT&T Corporation"
+ * - sanitizeText(): "AT&amp;T Corporation" (stored in DB)
+ * - React render: "AT&amp;amp;T Corporation" (visible in UI)
+ *
+ * ### 2. Model upgrades don't fix hallucination
+ * All Gemini models (Flash-Lite, Flash, Pro) hallucinate URLs and data at similar rates.
+ * Testing showed Pro costs 25x more than Flash-Lite for only ~5-15% improvement in accuracy.
+ * URL hallucination is a fundamental LLM limitation, not a model quality issue.
+ *
+ * ### 3. Correct pattern: defensive validation + edit-time sanitization
+ * - **Parse-time (here)**: Validate structure, filter garbage entries, validate URLs
+ *   (with garbage pattern detection like repeating segments), sanitize emails
+ * - **Edit-time (/api/resume/update)**: Full XSS sanitization via Zod schema in
+ *   `lib/schemas/resume.ts` when users modify content through the editor
+ *
+ * This split ensures AI-generated content displays correctly while user-edited
+ * content is properly sanitized before storage.
  */
 function transformAiResponse(raw: unknown): unknown {
   if (!raw || typeof raw !== "object") {
