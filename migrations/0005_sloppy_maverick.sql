@@ -1,0 +1,1 @@
+CREATE INDEX `user_handle_idx` ON `user` (`handle`);

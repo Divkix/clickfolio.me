@@ -5,34 +5,41 @@ import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 // Better Auth Core Tables
 // =============================================================================
 
-export const user = sqliteTable("user", {
-  id: text("id").primaryKey(),
-  name: text("name").notNull(),
-  email: text("email").notNull().unique(),
-  emailVerified: integer("email_verified", { mode: "boolean" }),
-  image: text("image"),
-  createdAt: text("created_at").notNull(),
-  updatedAt: text("updated_at").notNull(),
-  // Custom fields
-  handle: text("handle").unique(),
-  headline: text("headline"),
-  privacySettings: text("privacy_settings")
-    .notNull()
-    .default('{"show_phone":false,"show_address":false}'),
-  onboardingCompleted: integer("onboarding_completed", { mode: "boolean" })
-    .notNull()
-    .default(false),
-  role: text("role", {
-    enum: [
-      "student",
-      "recent_graduate",
-      "junior_professional",
-      "mid_level_professional",
-      "senior_professional",
-      "freelancer",
-    ],
-  }),
-});
+export const user = sqliteTable(
+  "user",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    email: text("email").notNull().unique(),
+    emailVerified: integer("email_verified", { mode: "boolean" }),
+    image: text("image"),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+    // Custom fields
+    handle: text("handle").unique(),
+    headline: text("headline"),
+    privacySettings: text("privacy_settings")
+      .notNull()
+      .default('{"show_phone":false,"show_address":false}'),
+    onboardingCompleted: integer("onboarding_completed", { mode: "boolean" })
+      .notNull()
+      .default(false),
+    role: text("role", {
+      enum: [
+        "student",
+        "recent_graduate",
+        "junior_professional",
+        "mid_level_professional",
+        "senior_professional",
+        "freelancer",
+      ],
+    }),
+  },
+  (table) => [
+    // Index for sitemap queries (WHERE handle IS NOT NULL ORDER BY handle)
+    index("user_handle_idx").on(table.handle),
+  ],
+);
 
 export const session = sqliteTable("session", {
   id: text("id").primaryKey(),
