@@ -1,3 +1,5 @@
+import { sanitizeEmail } from "@/lib/utils/sanitization";
+
 /**
  * Response types for utility workers
  */
@@ -341,6 +343,58 @@ function normalizeUrl(value: unknown): string {
 }
 
 /**
+ * Validate URL with garbage pattern detection
+ * Detects pathological patterns like repeating path segments (divkix.me/divkix.me/divkix.me)
+ */
+function validateUrl(url: unknown): string {
+  if (!url || typeof url !== "string") return "";
+  const trimmed = url.trim();
+  if (!trimmed) return "";
+
+  // Max length check - URLs shouldn't be this long
+  if (trimmed.length > 500) return "";
+
+  // Detect repeating path segments (the divkix.me/divkix.me/divkix.me pattern)
+  // Match any segment that repeats consecutively: /foo/foo/ or /bar/bar/
+  const repeatingSegmentPattern = /\/([^/]+)\/\1(?:\/|$)/;
+  if (repeatingSegmentPattern.test(trimmed)) return "";
+
+  // Check for excessive path depth (more than 10 segments is suspicious)
+  const pathSegments = trimmed.split("/").filter(Boolean);
+  if (pathSegments.length > 12) return "";
+
+  // Normalize first
+  const normalized = normalizeUrl(trimmed);
+  if (!normalized) return "";
+
+  // Validate URL structure
+  try {
+    const urlObj = new URL(normalized);
+
+    // Must have a valid TLD (contains at least one dot in hostname)
+    if (!urlObj.hostname.includes(".")) return "";
+
+    // Hostname shouldn't be excessively long
+    if (urlObj.hostname.length > 253) return "";
+
+    // Re-check for repeating patterns in the final normalized URL
+    if (repeatingSegmentPattern.test(urlObj.pathname)) return "";
+
+    return normalized;
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * Truncate string to max length with ellipsis
+ */
+function truncateString(value: string, maxLength: number): string {
+  if (value.length <= maxLength) return value;
+  return `${value.slice(0, maxLength - 3)}...`;
+}
+
+/**
  * Normalize string - convert null/undefined to empty string, trim
  */
 function normalizeString(value: unknown, defaultVal = ""): string {
@@ -352,7 +406,7 @@ function normalizeString(value: unknown, defaultVal = ""): string {
 /**
  * Basic transforms for AI output - no strict validation
  * Lenient parsing that always produces usable output.
- * XSS sanitization + URL normalization + null handling
+ * XSS sanitization + URL validation (with garbage detection) + null handling
  */
 function transformAiResponse(raw: unknown): unknown {
   if (!raw || typeof raw !== "object") {
@@ -367,41 +421,123 @@ function transformAiResponse(raw: unknown): unknown {
 
   const data = raw as Record<string, unknown>;
 
-  // Top-level fields - use empty strings as defaults (lenient)
-  data.full_name = normalizeString(data.full_name, "Unknown");
-  data.headline = normalizeString(data.headline, "Professional");
-  data.summary = normalizeString(data.summary);
+  // Top-level fields - use empty strings as defaults (lenient) with max length
+  data.full_name = truncateString(normalizeString(data.full_name, "Unknown"), 100);
+  data.headline = truncateString(normalizeString(data.headline, "Professional"), 150);
+  data.summary = truncateString(normalizeString(data.summary), 2000);
 
-  // Contact - normalize URLs, use empty strings for missing
+  // Contact - validate URLs (with garbage detection), sanitize email
   if (data.contact && typeof data.contact === "object") {
     const c = data.contact as Record<string, unknown>;
-    c.email = normalizeString(c.email);
-    c.phone = normalizeString(c.phone);
-    c.location = normalizeString(c.location);
-    c.linkedin = normalizeUrl(c.linkedin);
-    c.github = normalizeUrl(c.github);
-    c.website = normalizeUrl(c.website);
+    c.email = sanitizeEmail(normalizeString(c.email));
+    c.phone = truncateString(normalizeString(c.phone), 30);
+    c.location = truncateString(normalizeString(c.location), 100);
+    c.linkedin = validateUrl(c.linkedin);
+    c.github = validateUrl(c.github);
+    c.website = validateUrl(c.website);
   } else {
     data.contact = { email: "" };
   }
 
-  // Arrays - ensure they exist
-  if (!Array.isArray(data.experience)) data.experience = [];
+  // Experience - filter out garbage entries (must have title and company)
+  if (Array.isArray(data.experience)) {
+    data.experience = data.experience.filter((exp) => {
+      if (!exp || typeof exp !== "object") return false;
+      const e = exp as Record<string, unknown>;
+      // Must have title and company as non-empty strings
+      return (
+        e.title &&
+        typeof e.title === "string" &&
+        e.title.trim().length > 0 &&
+        e.company &&
+        typeof e.company === "string" &&
+        e.company.trim().length > 0
+      );
+    });
+    // Truncate text fields in experience
+    for (const exp of data.experience as Record<string, unknown>[]) {
+      exp.title = truncateString(normalizeString(exp.title), 150);
+      exp.company = truncateString(normalizeString(exp.company), 150);
+      exp.location = truncateString(normalizeString(exp.location), 100);
+      exp.description = truncateString(normalizeString(exp.description), 2000);
+      if (Array.isArray(exp.highlights)) {
+        exp.highlights = exp.highlights
+          .filter((h): h is string => typeof h === "string" && h.trim().length > 0)
+          .map((h) => truncateString(h.trim(), 500));
+      }
+    }
+  } else {
+    data.experience = [];
+  }
 
-  // Normalize URLs in certifications
-  if (Array.isArray(data.certifications)) {
-    for (const cert of data.certifications) {
-      if (cert && typeof cert === "object") {
-        (cert as Record<string, unknown>).url = normalizeUrl((cert as Record<string, unknown>).url);
+  // Education - filter out garbage entries (must have degree)
+  if (Array.isArray(data.education)) {
+    data.education = data.education.filter((edu) => {
+      if (!edu || typeof edu !== "object") return false;
+      const e = edu as Record<string, unknown>;
+      return e.degree && typeof e.degree === "string" && e.degree.trim().length > 0;
+    });
+    // Truncate text fields in education
+    for (const edu of data.education as Record<string, unknown>[]) {
+      edu.degree = truncateString(normalizeString(edu.degree), 150);
+      edu.institution = truncateString(normalizeString(edu.institution), 150);
+      edu.location = truncateString(normalizeString(edu.location), 100);
+    }
+  }
+
+  // Skills - filter out garbage entries (must have category and items array)
+  if (Array.isArray(data.skills)) {
+    data.skills = data.skills.filter((skill) => {
+      if (!skill || typeof skill !== "object") return false;
+      const s = skill as Record<string, unknown>;
+      return (
+        s.category &&
+        typeof s.category === "string" &&
+        s.category.trim().length > 0 &&
+        Array.isArray(s.items) &&
+        s.items.length > 0
+      );
+    });
+    // Truncate text fields in skills
+    for (const skill of data.skills as Record<string, unknown>[]) {
+      skill.category = truncateString(normalizeString(skill.category), 100);
+      if (Array.isArray(skill.items)) {
+        skill.items = skill.items
+          .filter((i): i is string => typeof i === "string" && i.trim().length > 0)
+          .map((i) => truncateString(i.trim(), 100));
       }
     }
   }
 
-  // Normalize URLs in projects
+  // Certifications - filter garbage, validate URLs
+  if (Array.isArray(data.certifications)) {
+    data.certifications = data.certifications.filter((cert) => {
+      if (!cert || typeof cert !== "object") return false;
+      const c = cert as Record<string, unknown>;
+      return c.name && typeof c.name === "string" && c.name.trim().length > 0;
+    });
+    for (const cert of data.certifications as Record<string, unknown>[]) {
+      cert.name = truncateString(normalizeString(cert.name), 150);
+      cert.issuer = truncateString(normalizeString(cert.issuer), 150);
+      cert.url = validateUrl(cert.url);
+    }
+  }
+
+  // Projects - filter garbage, validate URLs
   if (Array.isArray(data.projects)) {
-    for (const proj of data.projects) {
-      if (proj && typeof proj === "object") {
-        (proj as Record<string, unknown>).url = normalizeUrl((proj as Record<string, unknown>).url);
+    data.projects = data.projects.filter((proj) => {
+      if (!proj || typeof proj !== "object") return false;
+      const p = proj as Record<string, unknown>;
+      return p.title && typeof p.title === "string" && p.title.trim().length > 0;
+    });
+    for (const proj of data.projects as Record<string, unknown>[]) {
+      proj.title = truncateString(normalizeString(proj.title), 150);
+      proj.description = truncateString(normalizeString(proj.description), 1000);
+      proj.url = validateUrl(proj.url);
+      if (Array.isArray(proj.technologies)) {
+        proj.technologies = proj.technologies
+          .filter((t): t is string => typeof t === "string" && t.trim().length > 0)
+          .map((t) => truncateString(t.trim(), 50));
       }
     }
   }
