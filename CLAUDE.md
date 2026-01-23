@@ -142,9 +142,14 @@ revalidatePath(`/${handle}`);               // Purges R2 route cache
 
 **Why this setup:**
 - Edge cache handles 90%+ of requests at ~5ms (free tier)
-- R2 + DO only hit on cache misses (~$0.15-0.50/million requests)
+- R2 + DO only hit on cache misses
 - Durable Objects chosen over KV for strong consistency on invalidation
 - `stale-while-revalidate` provides instant responses even during revalidation
+
+**Cost comparison (R2 + DO is cheaper than KV at scale):**
+- DO requests: $0.15/million vs KV reads: $0.50/million (3x cheaper)
+- R2 reads: $0.36/million vs KV reads: $0.50/million
+- At 10M views/month: R2+DO ~$5 vs KV+KV ~$10
 
 ## Code Standards
 
