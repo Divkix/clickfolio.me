@@ -3,9 +3,9 @@ import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { getAuth } from "@/lib/auth";
 import type { NewResume } from "@/lib/db/schema";
-import { resumes, siteData } from "@/lib/db/schema";
+import { resumes } from "@/lib/db/schema";
 import { getSessionDb } from "@/lib/db/session";
-import { parseResumeWithGemini } from "@/lib/gemini";
+import { publishResumeParse } from "@/lib/queue/resume-parse";
 import { getR2Binding, R2 } from "@/lib/r2";
 import {
   createErrorResponse,
@@ -17,62 +17,10 @@ interface RetryRequestBody {
   resume_id?: string;
 }
 
-async function upsertSiteData(
-  db: Awaited<ReturnType<typeof getSessionDb>>["db"],
-  userId: string,
-  resumeId: string,
-  content: string,
-  now: string,
-): Promise<void> {
-  const existingSiteData = await db
-    .select({ id: siteData.id })
-    .from(siteData)
-    .where(eq(siteData.userId, userId))
-    .limit(1);
-
-  if (existingSiteData[0]) {
-    await db
-      .update(siteData)
-      .set({
-        resumeId,
-        content,
-        lastPublishedAt: now,
-        updatedAt: now,
-      })
-      .where(eq(siteData.userId, userId));
-  } else {
-    try {
-      await db.insert(siteData).values({
-        id: crypto.randomUUID(),
-        userId,
-        resumeId,
-        content,
-        lastPublishedAt: now,
-        createdAt: now,
-        updatedAt: now,
-      });
-    } catch (error) {
-      if (error instanceof Error && error.message.includes("UNIQUE constraint failed")) {
-        await db
-          .update(siteData)
-          .set({
-            resumeId,
-            content,
-            lastPublishedAt: now,
-            updatedAt: now,
-          })
-          .where(eq(siteData.userId, userId));
-      } else {
-        throw error;
-      }
-    }
-  }
-}
-
 export async function POST(request: Request) {
   try {
     // 1. Get D1 database binding and typed env for R2/Replicate
-    const { env, ctx } = await getCloudflareContext({ async: true });
+    const { env } = await getCloudflareContext({ async: true });
     const typedEnv = env as Partial<CloudflareEnv>;
     const { db, captureBookmark } = await getSessionDb(env.DB);
 
@@ -178,86 +126,33 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!ctx?.waitUntil) {
-      return createErrorResponse(
-        "Background processing is unavailable",
-        ERROR_CODES.INTERNAL_ERROR,
-        500,
-      );
+    // Get file hash for the queue message
+    // Create a proper ArrayBuffer from the Uint8Array for crypto.subtle.digest
+    const bufferCopy = pdfBuffer.buffer.slice(
+      pdfBuffer.byteOffset,
+      pdfBuffer.byteOffset + pdfBuffer.byteLength,
+    ) as ArrayBuffer;
+    const hashBuffer = await crypto.subtle.digest("SHA-256", bufferCopy);
+    const fileHash = Array.from(new Uint8Array(hashBuffer))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+
+    // Publish to queue for background processing
+    const queue = typedEnv.RESUME_PARSE_QUEUE;
+    if (!queue) {
+      return createErrorResponse("Queue service unavailable", ERROR_CODES.INTERNAL_ERROR, 500);
     }
 
-    const parsePromise = (async () => {
-      const { db: backgroundDb, captureBookmark: captureBackgroundBookmark } = await getSessionDb(
-        env.DB,
-      );
-
-      try {
-        const parseResult = await parseResumeWithGemini(pdfBuffer, typedEnv);
-
-        if (!parseResult.success) {
-          const errorMessage = `Gemini API error: ${parseResult.error || "Unknown error"}`;
-          await backgroundDb
-            .update(resumes)
-            .set({
-              status: "failed",
-              errorMessage,
-            })
-            .where(eq(resumes.id, resume.id as string));
-          await captureBackgroundBookmark();
-          return;
-        }
-
-        let parsedContent = parseResult.parsedContent;
-
-        try {
-          const parsedJson = JSON.parse(parsedContent) as Record<string, unknown>;
-          parsedContent = JSON.stringify(parsedJson);
-        } catch (error) {
-          const errorMessage = `Gemini API error: ${
-            error instanceof Error ? error.message : "Invalid JSON response"
-          }`;
-          await backgroundDb
-            .update(resumes)
-            .set({
-              status: "failed",
-              errorMessage,
-            })
-            .where(eq(resumes.id, resume.id as string));
-          await captureBackgroundBookmark();
-          return;
-        }
-
-        const now = new Date().toISOString();
-
-        await upsertSiteData(backgroundDb, userId, resume.id as string, parsedContent, now);
-
-        await backgroundDb
-          .update(resumes)
-          .set({
-            status: "completed",
-            parsedAt: now,
-            parsedContent,
-          })
-          .where(eq(resumes.id, resume.id as string));
-
-        await captureBackgroundBookmark();
-      } catch (error) {
-        const errorMessage = `Gemini API error: ${error instanceof Error ? error.message : "Unknown error"}`;
-        await backgroundDb
-          .update(resumes)
-          .set({
-            status: "failed",
-            errorMessage,
-          })
-          .where(eq(resumes.id, resume.id as string));
-        await captureBackgroundBookmark();
-      }
-    })();
-
-    ctx.waitUntil(parsePromise);
+    await publishResumeParse(queue, {
+      resumeId: resume.id as string,
+      userId,
+      r2Key: resume.r2Key as string,
+      fileHash,
+      attempt: (resume.retryCount as number) + 1,
+    });
 
     const updatePayload: Partial<NewResume> = {
-      status: "processing",
+      status: "queued",
       errorMessage: null,
       retryCount: (resume.retryCount as number) + 1,
     };
@@ -277,7 +172,7 @@ export async function POST(request: Request) {
 
     return createSuccessResponse({
       resume_id: resume.id as string,
-      status: "processing",
+      status: "queued",
       retry_count: (resume.retryCount as number) + 1,
     });
   } catch (error) {

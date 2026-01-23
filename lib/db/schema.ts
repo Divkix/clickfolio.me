@@ -117,7 +117,7 @@ export const resumes = sqliteTable(
       .references(() => user.id, { onDelete: "cascade" }),
     r2Key: text("r2_key").notNull(),
     status: text("status", {
-      enum: ["pending_claim", "processing", "completed", "failed", "waiting_for_cache"],
+      enum: ["pending_claim", "queued", "processing", "completed", "failed", "waiting_for_cache"],
     })
       .notNull()
       .default("pending_claim"),
@@ -287,6 +287,7 @@ export type PrivacySettings = {
 // Resume status enum type
 export type ResumeStatus =
   | "pending_claim"
+  | "queued"
   | "processing"
   | "completed"
   | "failed"

@@ -5,7 +5,7 @@ import { getAuth } from "@/lib/auth";
 import type { NewResume } from "@/lib/db/schema";
 import { resumes, siteData } from "@/lib/db/schema";
 import { getSessionDb } from "@/lib/db/session";
-import { parseResumeWithGemini } from "@/lib/gemini";
+import { publishResumeParse } from "@/lib/queue/resume-parse";
 import { getR2Binding, R2 } from "@/lib/r2";
 import { enforceRateLimit } from "@/lib/utils/rate-limit";
 import {
@@ -86,7 +86,7 @@ async function upsertSiteData(
 export async function POST(request: Request) {
   try {
     // Get Cloudflare env bindings for R2/Gemini secrets
-    const { env, ctx } = await getCloudflareContext({ async: true });
+    const { env } = await getCloudflareContext({ async: true });
     const typedEnv = env as Partial<CloudflareEnv>;
 
     // Get R2 binding for direct operations
@@ -376,103 +376,37 @@ export async function POST(request: Request) {
       // Continue - temp file cleanup failure is not critical
     }
 
-    // 8. Convert buffer for Gemini parsing (reuse already-fetched buffer)
-    const pdfBuffer = new Uint8Array(fileBuffer);
-
-    if (!ctx?.waitUntil) {
-      return await failResume(
-        "Background processing is unavailable",
-        ERROR_CODES.INTERNAL_ERROR,
-        500,
-      );
+    // 8. Publish to queue for background processing
+    const queue = typedEnv.RESUME_PARSE_QUEUE;
+    if (!queue) {
+      return await failResume("Queue service unavailable", ERROR_CODES.INTERNAL_ERROR, 500);
     }
 
-    // 11. Trigger Gemini parsing in background
-    const parsePromise = (async () => {
-      const { db: backgroundDb, captureBookmark: captureBackgroundBookmark } = await getSessionDb(
-        env.DB,
-      );
+    await publishResumeParse(queue, {
+      resumeId,
+      userId,
+      r2Key: newKey,
+      fileHash: computedFileHash,
+      attempt: 1,
+    });
 
-      try {
-        const parseResult = await parseResumeWithGemini(pdfBuffer, typedEnv);
-
-        if (!parseResult.success) {
-          const errorMessage = `Gemini API error: ${parseResult.error || "Unknown error"}`;
-          await backgroundDb
-            .update(resumes)
-            .set({
-              status: "failed",
-              errorMessage,
-            })
-            .where(eq(resumes.id, resumeId));
-          await captureBackgroundBookmark();
-          return;
-        }
-
-        let parsedContent = parseResult.parsedContent;
-
-        try {
-          const parsedJson = JSON.parse(parsedContent) as Record<string, unknown>;
-          parsedContent = JSON.stringify(parsedJson);
-        } catch (error) {
-          const errorMessage = `Gemini API error: ${error instanceof Error ? error.message : "Invalid JSON response"}`;
-          await backgroundDb
-            .update(resumes)
-            .set({
-              status: "failed",
-              errorMessage,
-            })
-            .where(eq(resumes.id, resumeId));
-          await captureBackgroundBookmark();
-          return;
-        }
-
-        const now = new Date().toISOString();
-
-        await upsertSiteData(backgroundDb, userId, resumeId, parsedContent, now);
-
-        await backgroundDb
-          .update(resumes)
-          .set({
-            status: "completed",
-            parsedAt: now,
-            parsedContent,
-          })
-          .where(eq(resumes.id, resumeId));
-
-        await captureBackgroundBookmark();
-      } catch (error) {
-        const errorMessage = `Gemini API error: ${error instanceof Error ? error.message : "Unknown error"}`;
-        await backgroundDb
-          .update(resumes)
-          .set({
-            status: "failed",
-            errorMessage,
-          })
-          .where(eq(resumes.id, resumeId));
-        await captureBackgroundBookmark();
-      }
-    })();
-
-    ctx.waitUntil(parsePromise);
-
-    // 9. Update resume status to processing (include hash for future caching)
+    // 9. Update resume status to queued (include hash for future caching)
     const updatePayload: Partial<NewResume> = {
-      status: "processing",
+      status: "queued",
       fileHash: computedFileHash,
     };
 
     try {
       await db.update(resumes).set(updatePayload).where(eq(resumes.id, resumeId));
     } catch (updateError) {
-      console.error("Failed to update resume with Gemini task:", updateError);
+      console.error("Failed to update resume with queued status:", updateError);
       // Continue anyway - status endpoint will handle it
     }
 
     await captureBookmark();
     return createSuccessResponse({
       resume_id: resumeId,
-      status: "processing",
+      status: "queued",
     });
   } catch (error) {
     console.error("Error claiming resume:", error);

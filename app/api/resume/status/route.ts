@@ -93,6 +93,17 @@ export async function GET(request: Request) {
       });
     }
 
+    // Handle queued status - show as processing with early progress
+    if (resume.status === "queued") {
+      return createSuccessResponse({
+        status: "processing",
+        progress_pct: 25,
+        error: null,
+        can_retry: false,
+        queued: true,
+      });
+    }
+
     const buildCompletedResponse = (parsedContent: string | null) => {
       let parsedJson: unknown = null;
 
