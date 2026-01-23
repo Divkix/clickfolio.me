@@ -61,8 +61,8 @@ export const { signOut } = authClient;
 /**
  * Request password reset email
  *
- * Aliased from Better Auth's `requestPasswordReset` to `forgetPassword`
- * for semantic clarity.
+ * Sends a password reset email to the user. The email contains a link
+ * with a token that can be used with `resetPassword` to set a new password.
  *
  * @example
  * ```tsx
@@ -72,7 +72,37 @@ export const { signOut } = authClient;
  * });
  * ```
  */
-export const forgetPassword = authClient.requestPasswordReset;
+export async function forgetPassword(params: {
+  email: string;
+  redirectTo?: string;
+}): Promise<{ data: { message: string } | null; error: Error | null }> {
+  try {
+    const baseURL = typeof window !== "undefined" ? window.location.origin : "";
+    const response = await fetch(`${baseURL}/api/auth/request-password-reset`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(params),
+    });
+
+    if (!response.ok) {
+      const errorData = (await response.json().catch(() => ({}))) as {
+        message?: string;
+      };
+      return {
+        data: null,
+        error: new Error(errorData.message || `Request failed with status ${response.status}`),
+      };
+    }
+
+    const data = (await response.json()) as { message: string };
+    return { data, error: null };
+  } catch (err) {
+    return {
+      data: null,
+      error: err instanceof Error ? err : new Error("Unknown error"),
+    };
+  }
+}
 
 /**
  * Reset password with token from email link
