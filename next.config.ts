@@ -40,6 +40,71 @@ const nextConfig: NextConfig = {
       "./node_modules/@img/**/*",
     ],
   },
+
+  // Edge caching headers for Cloudflare CDN
+  // These enable Cloudflare's edge cache to serve responses without hitting the Worker
+  async headers() {
+    return [
+      {
+        // Public resume pages - cache at edge for 1 hour, stale-while-revalidate for 1 day
+        // Invalidation still works via revalidateTag/revalidatePath (purges origin cache)
+        // Edge cache will serve stale while origin revalidates
+        source: "/:handle((?!api|_next|dashboard|edit|settings|waiting|wizard|privacy|terms)[^/]+)",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, s-maxage=3600, stale-while-revalidate=86400",
+          },
+          {
+            key: "CDN-Cache-Control",
+            value: "public, max-age=3600, stale-while-revalidate=86400",
+          },
+        ],
+      },
+      {
+        // Static legal pages - cache aggressively (1 week), these rarely change
+        source: "/privacy",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, s-maxage=604800, stale-while-revalidate=2592000",
+          },
+          {
+            key: "CDN-Cache-Control",
+            value: "public, max-age=604800, stale-while-revalidate=2592000",
+          },
+        ],
+      },
+      {
+        source: "/terms",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, s-maxage=604800, stale-while-revalidate=2592000",
+          },
+          {
+            key: "CDN-Cache-Control",
+            value: "public, max-age=604800, stale-while-revalidate=2592000",
+          },
+        ],
+      },
+      {
+        // Homepage - shorter cache since it has dynamic elements
+        // Cache shell for 5 minutes, stale-while-revalidate for 1 hour
+        source: "/",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, s-maxage=300, stale-while-revalidate=3600",
+          },
+          {
+            key: "CDN-Cache-Control",
+            value: "public, max-age=300, stale-while-revalidate=3600",
+          },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;
