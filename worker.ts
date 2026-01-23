@@ -1,9 +1,16 @@
 /**
  * Custom worker entry point that wraps OpenNext's generated handler
  * and adds Cloudflare Queue consumer support.
+ *
+ * Note: This file is excluded from Next.js tsconfig because it imports
+ * .open-next/worker.js which only exists after OpenNext build.
+ * Wrangler handles bundling and type resolution separately.
  */
-import { handleQueueMessage } from "@/lib/queue/consumer";
-import type { QueueMessage } from "@/lib/queue/types";
+/// <reference types="@cloudflare/workers-types" />
+/// <reference path="./lib/cloudflare-env.d.ts" />
+
+import { handleQueueMessage } from "./lib/queue/consumer";
+import type { QueueMessage } from "./lib/queue/types";
 import opennextHandler from "./.open-next/worker.js";
 
 export default {
