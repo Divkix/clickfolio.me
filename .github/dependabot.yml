@@ -7,7 +7,7 @@ updates:
       interval: "weekly"
       day: "monday"
       time: "09:00"
-      timezone: "UTC"
+      timezone: "America/Phoenix"
     open-pull-requests-limit: 10
     commit-message:
       prefix: "chore(deps)"
@@ -58,7 +58,7 @@ updates:
           - "clsx"
     ignore:
       # Ignore major version updates for core frameworks (review manually)
-      # Note: Using @opennextjs/cloudflare which currently only supports Next.js 15
+      # Note: Using @opennextjs/cloudflare which currently only supports Next.js 16
       - dependency-name: "next"
         update-types: ["version-update:semver-major"]
       - dependency-name: "eslint-config-next"
