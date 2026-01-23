@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Brand } from "@/components/Brand";
 import { Footer } from "@/components/Footer";
+import { Logo } from "@/components/Logo";
 import { siteConfig } from "@/lib/config/site";
 
 export const metadata: Metadata = {
@@ -15,8 +15,12 @@ export default function TermsOfServicePage() {
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-slate-200/60 bg-white/80 backdrop-blur-md shadow-depth-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <Link href="/" className="text-slate-900 hover:opacity-80 transition-opacity">
-            <Brand size="lg" />
+          <Link
+            href="/"
+            className="hover:opacity-80 transition-opacity"
+            aria-label="webresume.now home"
+          >
+            <Logo size="sm" />
           </Link>
           <Link
             href="/"

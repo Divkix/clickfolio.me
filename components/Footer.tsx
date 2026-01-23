@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Brand } from "@/components/Brand";
+import { Logo } from "@/components/Logo";
 
 /**
  * Footer component with neubrutalist styling
@@ -13,7 +13,7 @@ export function Footer() {
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2 text-sm text-ink">
             <span className="font-mono">&copy; {currentYear}</span>
-            <Brand size="sm" />
+            <Logo size="xs" />
           </div>
           <nav className="flex items-center gap-6" aria-label="Footer navigation">
             <Link
