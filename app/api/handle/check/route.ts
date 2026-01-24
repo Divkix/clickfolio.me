@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { user } from "@/lib/db/schema";
 import { getSessionDb } from "@/lib/db/session";
 import { RESERVED_HANDLES } from "@/lib/utils/handle-validation";
-import { checkIPRateLimit, getClientIP } from "@/lib/utils/ip-rate-limit";
+import { checkHandleRateLimit, getClientIP } from "@/lib/utils/ip-rate-limit";
 import {
   createErrorResponse,
   createSuccessResponse,
@@ -18,8 +18,9 @@ import {
 export async function GET(request: Request) {
   try {
     // 0. IP-based rate limiting to prevent username enumeration
+    // Uses separate limit (100/hr) from uploads (10/hr) since this is a cheap read
     const clientIP = getClientIP(request);
-    const rateLimitResult = await checkIPRateLimit(clientIP);
+    const rateLimitResult = await checkHandleRateLimit(clientIP);
 
     if (!rateLimitResult.allowed) {
       return createErrorResponse(

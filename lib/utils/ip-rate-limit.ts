@@ -12,6 +12,7 @@ import { uploadRateLimits } from "@/lib/db/schema";
 
 const HOURLY_LIMIT = 10;
 const DAILY_LIMIT = 50;
+const HANDLE_CHECK_HOURLY_LIMIT = 100;
 
 interface IPRateLimitResult {
   allowed: boolean;
@@ -146,6 +147,87 @@ export async function checkIPRateLimit(ip: string): Promise<IPRateLimitResult> {
     // Rationale: False negatives (blocking legitimate users) are worse than
     // false positives (allowing some abuse) for anonymous onboarding.
     // The claim endpoint has authenticated rate limiting as a second layer.
+    return {
+      allowed: true,
+      remaining: { hourly: 1, daily: 1 },
+    };
+  }
+}
+
+/**
+ * Check and record IP-based rate limit for handle availability checks
+ * Higher limit (100/hour) since it's a cheap read operation
+ * Uses separate action type to not share quota with uploads
+ *
+ * Protects against:
+ * - Handle enumeration attacks (100/hour is still limiting for scraping)
+ * - DoS via rapid checks
+ */
+export async function checkHandleRateLimit(ip: string): Promise<IPRateLimitResult> {
+  // Skip in development
+  if (process.env.NODE_ENV !== "production") {
+    return {
+      allowed: true,
+      remaining: { hourly: HANDLE_CHECK_HOURLY_LIMIT, daily: 1000 },
+    };
+  }
+
+  const ipHash = await hashIP(ip);
+  const now = new Date();
+  const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000).toISOString();
+
+  try {
+    const { env } = await getCloudflareContext({ async: true });
+    const db = getDb(env.DB);
+
+    // Count handle checks in the last hour
+    const result = await db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(uploadRateLimits)
+      .where(
+        and(
+          eq(uploadRateLimits.ipHash, ipHash),
+          eq(uploadRateLimits.actionType, "handle_check"),
+          gte(uploadRateLimits.createdAt, oneHourAgo),
+        ),
+      );
+
+    const count = result[0]?.count ?? 0;
+
+    if (count >= HANDLE_CHECK_HOURLY_LIMIT) {
+      return {
+        allowed: false,
+        remaining: { hourly: 0, daily: 0 },
+        message: "Too many handle checks. Please try again later.",
+      };
+    }
+
+    // Record this check (separate from uploads)
+    try {
+      const expiresAt = new Date(now.getTime() + 60 * 60 * 1000).toISOString(); // 1hr TTL
+      await db.insert(uploadRateLimits).values({
+        id: crypto.randomUUID(),
+        ipHash,
+        actionType: "handle_check",
+        createdAt: now.toISOString(),
+        expiresAt,
+      });
+    } catch (insertError) {
+      console.error("Failed to record handle check rate limit:", insertError);
+      // Continue anyway - fail open for legitimate users
+    }
+
+    return {
+      allowed: true,
+      remaining: {
+        hourly: HANDLE_CHECK_HOURLY_LIMIT - count - 1,
+        daily: 1000,
+      },
+    };
+  } catch (error) {
+    console.error("Handle rate limit check failed:", error);
+
+    // SECURITY: Fail OPEN - same rationale as upload rate limiting
     return {
       allowed: true,
       remaining: { hourly: 1, daily: 1 },

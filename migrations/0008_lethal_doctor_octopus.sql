@@ -1,0 +1,2 @@
+ALTER TABLE `upload_rate_limits` ADD `action_type` text DEFAULT 'upload' NOT NULL;--> statement-breakpoint
+CREATE INDEX `upload_rate_limits_ip_action_idx` ON `upload_rate_limits` (`ip_hash`,`action_type`,`created_at`);

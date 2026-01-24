@@ -186,6 +186,9 @@ export const uploadRateLimits = sqliteTable(
   {
     id: text("id").primaryKey(),
     ipHash: text("ip_hash").notNull(),
+    actionType: text("action_type", { enum: ["upload", "handle_check"] })
+      .notNull()
+      .default("upload"),
     createdAt: text("created_at").notNull(),
     expiresAt: text("expires_at").notNull(), // TTL: createdAt + 24h for automatic cleanup
   },
@@ -193,6 +196,7 @@ export const uploadRateLimits = sqliteTable(
     index("upload_rate_limits_ip_hash_idx").on(table.ipHash),
     index("upload_rate_limits_ip_created_idx").on(table.ipHash, table.createdAt),
     index("upload_rate_limits_expires_idx").on(table.expiresAt), // Index for cleanup queries
+    index("upload_rate_limits_ip_action_idx").on(table.ipHash, table.actionType, table.createdAt),
   ],
 );
 
