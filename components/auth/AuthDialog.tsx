@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ForgotPasswordForm } from "./ForgotPasswordForm";
 import { GoogleButton } from "./GoogleButton";
 import { SignInForm } from "./SignInForm";
 import { SignUpForm } from "./SignUpForm";
@@ -134,25 +135,7 @@ export function AuthDialog({ open, onOpenChange, defaultMode = "signin" }: AuthD
                 Enter your email address and we'll send you a link to reset your password.
               </p>
 
-              {/* Placeholder for ForgotPasswordForm - will be added in task 2.3 */}
-              <div className="text-center py-8 text-ink/50 text-sm">Password reset coming soon</div>
-
-              <button
-                type="button"
-                onClick={handleBackToSignIn}
-                className="
-                  w-full
-                  text-sm
-                  font-medium
-                  text-ink/70
-                  hover:text-ink
-                  underline
-                  underline-offset-2
-                  transition-colors
-                "
-              >
-                Back to sign in
-              </button>
+              <ForgotPasswordForm onBackToSignIn={handleBackToSignIn} />
             </div>
           )}
         </div>
