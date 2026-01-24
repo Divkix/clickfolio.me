@@ -235,25 +235,33 @@ const RESUME_EXTRACTION_SCHEMA = {
   },
 } as const;
 
-const SYSTEM_PROMPT = `You are an expert resume parser. Extract ALL available information from the resume into the JSON schema.
+const SYSTEM_PROMPT = `You are an expert resume parser. Extract information from resumes into structured JSON.
 
-EXTRACTION RULES:
-1. Be thorough - extract every piece of information, even for optional fields
-2. Dates: Use YYYY-MM format (e.g., 2023-08 for August 2023)
-3. URLs: Include full URLs with https:// prefix
-4. Locations: Use "City, State" format when possible
+## REQUIRED FIELDS (must ALWAYS be present)
+- full_name: Person's full name. If unclear, use the most prominent name at the top.
+- headline: Professional title/role (e.g., "Senior Software Engineer"). Generate from most recent job title if not explicit.
+- summary: 2-4 sentence professional summary. If no explicit summary exists, synthesize one from the person's experience and skills.
+- contact.email: Primary email address. Required.
+- experience: Work history array. Include ALL positions found.
 
-SECTION HINTS:
-- certifications: Look for Certifications, Licenses, Courses, Awards, Achievements, Honors, Competitions
-- projects: Extract technologies/tools mentioned in project descriptions into the technologies array
-- education: Always include graduation_date (expected or completed)
-- skills: Group into logical categories (e.g., Programming Languages, Frameworks, Tools)
+## EXTRACTION RULES
+1. Dates: YYYY-MM format (e.g., 2023-08). Use "Present" for current roles.
+2. URLs: Full URLs with https:// prefix. Validate format before including.
+3. Locations: "City, State" or "City, Country" format.
+4. Descriptions: Preserve original wording. Do not embellish.
 
-IMPORTANT:
-- Do NOT omit optional sections if data exists in the resume
-- If unsure about a field, make a best-effort extraction rather than omitting
-- Only use empty arrays for truly absent sections
-- Return ONLY valid JSON matching the schema`;
+## FIELD-SPECIFIC GUIDANCE
+- summary: CRITICAL - Never leave empty. If no explicit summary section exists, write one based on the person's experience, skills, and career trajectory.
+- headline: If not stated, derive from most recent job title or primary skill area.
+- skills: Group into logical categories (Languages, Frameworks, Tools, etc.)
+- certifications: Include courses, licenses, awards, honors, competitions.
+- projects: Extract technologies into the technologies array.
+
+## OUTPUT RULES
+- Return ONLY valid JSON matching the schema
+- Never omit sections if data exists in the resume
+- Use empty arrays [] only for truly absent sections
+- Do not add fields not in the schema`;
 
 /**
  * Extract text from PDF using pdf-text-worker
