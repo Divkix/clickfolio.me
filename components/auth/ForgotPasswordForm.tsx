@@ -73,7 +73,8 @@ export function ForgotPasswordForm({ onBackToSignIn }: ForgotPasswordFormProps) 
           <button
             type="button"
             onClick={onBackToSignIn}
-            className="
+            disabled={isSubmitting}
+            className={`
               text-sm
               font-medium
               text-ink/70
@@ -81,7 +82,8 @@ export function ForgotPasswordForm({ onBackToSignIn }: ForgotPasswordFormProps) 
               underline
               underline-offset-2
               transition-colors
-            "
+              ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}
+            `}
           >
             Back to sign in
           </button>
@@ -178,7 +180,8 @@ export function ForgotPasswordForm({ onBackToSignIn }: ForgotPasswordFormProps) 
         <button
           type="button"
           onClick={onBackToSignIn}
-          className="
+          disabled={isSubmitting}
+          className={`
             w-full
             text-sm
             font-medium
@@ -187,7 +190,8 @@ export function ForgotPasswordForm({ onBackToSignIn }: ForgotPasswordFormProps) 
             underline
             underline-offset-2
             transition-colors
-          "
+            ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}
+          `}
         >
           Back to sign in
         </button>

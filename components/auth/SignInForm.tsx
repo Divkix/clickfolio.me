@@ -115,7 +115,17 @@ export function SignInForm({ onSuccess, onForgotPassword }: SignInFormProps) {
             <button
               type="button"
               onClick={onForgotPassword}
-              className="text-sm font-medium text-ink/70 hover:text-ink underline underline-offset-2 transition-colors"
+              disabled={isSubmitting}
+              className={`
+                text-sm
+                font-medium
+                text-ink/70
+                hover:text-ink
+                underline
+                underline-offset-2
+                transition-colors
+                ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}
+              `}
             >
               Forgot password?
             </button>
