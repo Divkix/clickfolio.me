@@ -99,6 +99,10 @@ export default function WizardPage() {
   const [needsUpload, setNeedsUpload] = useState(false);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Refs to prevent race conditions during wizard initialization
+  const initializingRef = useRef(false);
+  const hasClaimedRef = useRef(false);
+
   const [state, setState] = useState<WizardState>({
     currentStep: 1,
     resumeData: null,
@@ -184,6 +188,9 @@ export default function WizardPage() {
   // Fetch resume data on mount + handle upload claiming
   useEffect(() => {
     const initializeWizard = async () => {
+      // Prevent concurrent initialization (race condition fix)
+      if (initializingRef.current) return;
+
       // Wait for session to load
       if (sessionLoading) return;
 
@@ -192,6 +199,9 @@ export default function WizardPage() {
         router.push("/");
         return;
       }
+
+      // Mark as initializing to prevent re-entry
+      initializingRef.current = true;
 
       try {
         setLoading(true);
@@ -243,7 +253,10 @@ export default function WizardPage() {
           }
         }
 
-        if (tempKey) {
+        if (tempKey && !hasClaimedRef.current) {
+          // Mark as claimed to prevent double-claiming on useEffect re-run
+          hasClaimedRef.current = true;
+
           // Claim the upload (include file_hash for deduplication caching)
           setLoading(true);
           try {
@@ -292,6 +305,9 @@ export default function WizardPage() {
             sessionStorage.removeItem("temp_file_hash");
             await clearPendingUploadCookie();
 
+            // Reset claim ref on error to allow retry
+            hasClaimedRef.current = false;
+
             setTimeout(() => router.push("/dashboard"), 3000);
             return;
           }
@@ -333,6 +349,9 @@ export default function WizardPage() {
         console.error("Error initializing wizard:", err);
         setError("Failed to load resume data. Please try again.");
         setLoading(false);
+      } finally {
+        // Reset initializing flag when done (success or failure)
+        initializingRef.current = false;
       }
     };
 

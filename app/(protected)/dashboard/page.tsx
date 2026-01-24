@@ -185,6 +185,12 @@ export default async function DashboardPage() {
   const resume = (userData?.resumes?.[0] ?? null) as Resume | null;
   const siteDataResult = (userData?.siteData ?? null) as typeof siteData.$inferSelect | null;
 
+  // Safety net: Redirect to wizard if onboarding is incomplete
+  // This catches edge cases where users bypass the wizard flow
+  if (profile && !profile.onboardingCompleted) {
+    redirect("/wizard");
+  }
+
   // Determine resume state
   const hasResume = !!resume;
   const hasPublishedSite = !!siteDataResult;

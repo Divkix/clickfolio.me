@@ -42,11 +42,12 @@ function WaitingContent() {
   }, [resumeId, router]);
 
   // Auto-redirect on completion with delay for user feedback
+  // Redirect to /wizard to complete remaining onboarding steps (handle, privacy, theme)
   useEffect(() => {
     if (status !== "completed") return;
 
     const timeout = setTimeout(() => {
-      router.push("/dashboard");
+      router.push("/wizard");
     }, 2000);
 
     return () => clearTimeout(timeout);
