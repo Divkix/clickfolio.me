@@ -98,7 +98,7 @@ const BentoGrid: React.FC<TemplateProps> = ({ content, profile: _profile }) => {
 
           {/* 3. Tech Stack - 1x2 (taller to show all skills) */}
           {skills.length > 0 && (
-            <div className="col-span-1 row-span-2 bg-white rounded-3xl p-6 border border-neutral-200/60 overflow-hidden flex flex-col">
+            <div className="col-span-1 row-span-2 bg-white rounded-3xl p-6 border border-neutral-200/60 overflow-y-auto flex flex-col">
               <div className="flex items-center gap-2 mb-4 text-neutral-400">
                 <Layers size={18} />
                 <span className="text-xs font-bold uppercase tracking-wider">Stack</span>

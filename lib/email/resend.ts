@@ -8,6 +8,18 @@
 import { Resend } from "resend";
 
 /**
+ * Escape HTML special characters to prevent XSS in email templates
+ */
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+/**
  * Lazy-initialized Resend client
  * API key is read from environment at call time for Workers compatibility
  */
@@ -72,7 +84,11 @@ export async function sendPasswordResetEmail({
 }: SendPasswordResetEmailParams): Promise<{ success: boolean; error?: string }> {
   try {
     const resend = getResendClient();
-    const greeting = userName ? `Hi ${userName},` : "Hi,";
+    // Escape user-controlled values for HTML safety
+    const safeUserName = userName ? escapeHtml(userName) : null;
+    const greeting = safeUserName ? `Hi ${safeUserName},` : "Hi,";
+    // Encode URL to prevent injection via URL parameters
+    const safeResetUrl = encodeURI(resetUrl);
 
     const { data, error } = await resend.emails.send({
       from: getFromEmail(),
@@ -83,7 +99,7 @@ export async function sendPasswordResetEmail({
 You requested to reset your password for your WebResume account.
 
 Click the link below to set a new password:
-${resetUrl}
+${safeResetUrl}
 
 This link will expire in 1 hour.
 
@@ -105,7 +121,7 @@ If you didn't request this, you can safely ignore this email. Your password won'
 
     <p style="margin: 0 0 24px 0;">You requested to reset your password for your WebResume account.</p>
 
-    <a href="${resetUrl}" style="display: inline-block; background: #1a1a1a; color: #fffef5; padding: 12px 24px; text-decoration: none; font-weight: 600; border: 3px solid #1a1a1a; box-shadow: 4px 4px 0 #1a1a1a;">
+    <a href="${safeResetUrl}" style="display: inline-block; background: #1a1a1a; color: #fffef5; padding: 12px 24px; text-decoration: none; font-weight: 600; border: 3px solid #1a1a1a; box-shadow: 4px 4px 0 #1a1a1a;">
       Reset Password
     </a>
 

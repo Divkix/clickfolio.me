@@ -333,7 +333,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
           ${
             isDragging
               ? "bg-amber/20 border-solid border-coral translate-x-[-2px] translate-y-[-2px] shadow-brutal-md"
-              : "hover:bg-amber/10 hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-brutal-sm"
+              : "hover:bg-amber/10 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-brutal-sm"
           }
           ${uploading ? "pointer-events-none opacity-60" : ""}
         `}
@@ -542,8 +542,8 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
                 border-3
                 border-ink
                 shadow-brutal-sm
-                hover:translate-x-[-2px]
-                hover:translate-y-[-2px]
+                hover:-translate-x-0.5
+                hover:-translate-y-0.5
                 hover:shadow-brutal-md
                 active:translate-x-0
                 active:translate-y-0
@@ -612,8 +612,8 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
                     border-3
                     border-ink
                     shadow-brutal-sm
-                    hover:translate-x-[-2px]
-                    hover:translate-y-[-2px]
+                    hover:-translate-x-0.5
+                    hover:-translate-y-0.5
                     hover:shadow-brutal-md
                     active:translate-x-0
                     active:translate-y-0

@@ -66,13 +66,13 @@ export const { signOut } = authClient;
  *
  * @example
  * ```tsx
- * const { data, error } = await forgetPassword({
+ * const { data, error } = await requestPasswordReset({
  *   email: "user@example.com",
  *   redirectTo: "/reset-password",
  * });
  * ```
  */
-export async function forgetPassword(params: {
+export async function requestPasswordReset(params: {
   email: string;
   redirectTo?: string;
 }): Promise<{ data: { message: string } | null; error: Error | null }> {

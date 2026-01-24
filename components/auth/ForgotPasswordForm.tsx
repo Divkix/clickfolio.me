@@ -5,7 +5,7 @@ import { CheckCircle, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { forgetPassword } from "@/lib/auth/client";
+import { requestPasswordReset } from "@/lib/auth/client";
 import { type ForgotPasswordFormData, forgotPasswordSchema } from "@/lib/schemas/auth";
 
 interface ForgotPasswordFormProps {
@@ -32,7 +32,7 @@ export function ForgotPasswordForm({ onBackToSignIn }: ForgotPasswordFormProps) 
     setIsSubmitting(true);
 
     try {
-      const { error } = await forgetPassword({
+      const { error } = await requestPasswordReset({
         email: data.email,
         redirectTo: "/reset-password",
       });
@@ -146,8 +146,8 @@ export function ForgotPasswordForm({ onBackToSignIn }: ForgotPasswordFormProps) 
           border-3
           border-ink
           shadow-brutal-sm
-          hover:translate-x-[-2px]
-          hover:translate-y-[-2px]
+          hover:-translate-x-0.5
+          hover:-translate-y-0.5
           hover:shadow-brutal-md
           active:translate-x-0
           active:translate-y-0

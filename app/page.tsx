@@ -430,8 +430,8 @@ export default function Home() {
                     border-3
                     border-cream
                     shadow-[5px_5px_0px_#FDF8F3]
-                    hover:translate-x-[-2px]
-                    hover:translate-y-[-2px]
+                    hover:-translate-x-0.5
+                    hover:-translate-y-0.5
                     hover:shadow-[7px_7px_0px_#FDF8F3]
                     active:translate-x-0
                     active:translate-y-0

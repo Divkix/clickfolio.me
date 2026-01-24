@@ -172,6 +172,8 @@ export async function getAuth() {
           email: user.email,
           resetUrl: url,
           userName: user.name,
+        }).catch((err) => {
+          console.error("[AUTH] Failed to send reset email:", err);
         });
       },
     },

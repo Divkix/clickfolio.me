@@ -22,8 +22,8 @@ export function LoginButton() {
           border-3
           border-ink
           shadow-brutal-sm
-          hover:translate-x-[-2px]
-          hover:translate-y-[-2px]
+          hover:-translate-x-0.5
+          hover:-translate-y-0.5
           hover:shadow-brutal-md
           active:translate-x-0
           active:translate-y-0

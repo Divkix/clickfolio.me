@@ -7,7 +7,6 @@ import { z } from "zod";
  */
 const passwordSchema = z
   .string()
-  .trim()
   .min(8, "Password must be at least 8 characters")
   .max(128, "Password is too long");
 
@@ -18,7 +17,7 @@ const emailSchema = z
   .string()
   .trim()
   .min(1, "Email is required")
-  .email({ error: "Invalid email address" })
+  .email({ message: "Invalid email address" })
   .max(255, "Email is too long");
 
 /**
@@ -43,7 +42,7 @@ export type SignUpFormData = z.infer<typeof signUpSchema>;
  */
 export const signInSchema = z.object({
   email: emailSchema,
-  password: z.string().trim().min(1, "Password is required"),
+  password: z.string().min(1, "Password is required"),
 });
 
 export type SignInFormData = z.infer<typeof signInSchema>;
@@ -69,7 +68,7 @@ export type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
 export const resetPasswordSchema = z
   .object({
     newPassword: passwordSchema,
-    confirmPassword: z.string().trim().min(1, "Please confirm your password"),
+    confirmPassword: z.string().min(1, "Please confirm your password"),
   })
   .refine((data) => data.newPassword === data.confirmPassword, {
     message: "Passwords do not match",
