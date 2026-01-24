@@ -14,6 +14,8 @@ const HOURLY_LIMIT = 10;
 const DAILY_LIMIT = 50;
 const HANDLE_CHECK_HOURLY_LIMIT = 100;
 
+const LOCAL_IPS = new Set(["127.0.0.1", "::1", "localhost", "unknown"]);
+
 interface IPRateLimitResult {
   allowed: boolean;
   remaining: {
@@ -63,6 +65,14 @@ export function getClientIP(request: Request): string {
 export async function checkIPRateLimit(ip: string): Promise<IPRateLimitResult> {
   // Skip in development
   if (process.env.NODE_ENV !== "production") {
+    return {
+      allowed: true,
+      remaining: { hourly: HOURLY_LIMIT, daily: DAILY_LIMIT },
+    };
+  }
+
+  // Skip for localhost IPs (local preview runs in production mode)
+  if (LOCAL_IPS.has(ip)) {
     return {
       allowed: true,
       remaining: { hourly: HOURLY_LIMIT, daily: DAILY_LIMIT },
@@ -166,6 +176,14 @@ export async function checkIPRateLimit(ip: string): Promise<IPRateLimitResult> {
 export async function checkHandleRateLimit(ip: string): Promise<IPRateLimitResult> {
   // Skip in development
   if (process.env.NODE_ENV !== "production") {
+    return {
+      allowed: true,
+      remaining: { hourly: HANDLE_CHECK_HOURLY_LIMIT, daily: 1000 },
+    };
+  }
+
+  // Skip for localhost IPs (local preview runs in production mode)
+  if (LOCAL_IPS.has(ip)) {
     return {
       allowed: true,
       remaining: { hourly: HANDLE_CHECK_HOURLY_LIMIT, daily: 1000 },
