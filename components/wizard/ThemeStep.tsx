@@ -105,11 +105,17 @@ export function ThemeStep({ initialTheme = "minimalist_editorial", onContinue }:
                 <div className="pt-2">
                   <div
                     className={cn(
-                      "h-20 rounded-lg border-2 transition-all",
-                      getThemePreviewStyle(id as ThemeId),
+                      "aspect-16/10 rounded-lg overflow-hidden border-2 transition-all",
                       selectedTheme === id ? "border-indigo-400" : "border-slate-200",
                     )}
-                  />
+                  >
+                    <img
+                      src={meta.preview}
+                      alt={`${meta.name} preview`}
+                      className="w-full h-full object-cover object-top"
+                      loading="lazy"
+                    />
+                  </div>
                 </div>
               </div>
             </Card>
@@ -144,22 +150,4 @@ export function ThemeStep({ initialTheme = "minimalist_editorial", onContinue }:
       </div>
     </div>
   );
-}
-
-/**
- * Get preview style classes for each theme
- */
-function getThemePreviewStyle(themeId: ThemeId): string {
-  switch (themeId) {
-    case "bento":
-      return "bg-linear-to-br from-purple-100 via-pink-50 to-orange-100";
-    case "glass":
-      return "bg-linear-to-br from-slate-900 via-slate-800 to-indigo-900";
-    case "minimalist_editorial":
-      return "bg-linear-to-br from-slate-50 via-white to-slate-100";
-    case "neo_brutalist":
-      return "bg-linear-to-br from-yellow-300 via-white to-black";
-    default:
-      return "bg-slate-100";
-  }
 }
