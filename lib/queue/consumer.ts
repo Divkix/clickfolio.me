@@ -1,6 +1,6 @@
 import { and, eq, isNotNull } from "drizzle-orm";
 import { resumes, siteData, user } from "../db/schema";
-import { getSessionDb } from "../db/session";
+import { getSessionDbForWebhook } from "../db/session";
 import { parseResumeWithGemini } from "../gemini";
 import { getR2Binding, R2 } from "../r2";
 import { classifyQueueError } from "./errors";
@@ -44,7 +44,7 @@ async function invalidateResumeCache(handle: string, env: CloudflareEnv): Promis
  * Upsert site_data with UNIQUE constraint handling
  */
 async function upsertSiteData(
-  db: Awaited<ReturnType<typeof getSessionDb>>["db"],
+  db: ReturnType<typeof getSessionDbForWebhook>["db"],
   userId: string,
   resumeId: string,
   content: string,
@@ -99,7 +99,7 @@ async function upsertSiteData(
  * Handle resume parsing from queue
  */
 async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv): Promise<void> {
-  const { db, captureBookmark } = await getSessionDb(env.DB);
+  const { db } = getSessionDbForWebhook(env.DB);
   const r2Binding = getR2Binding(env);
 
   if (!r2Binding) {
@@ -160,7 +160,6 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
       await invalidateResumeCache(userRecord[0].handle, env);
     }
 
-    await captureBookmark();
     return;
   }
 
@@ -216,7 +215,6 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
       await invalidateResumeCache(userRecord[0].handle, env);
     }
 
-    await captureBookmark();
     return;
   }
 
@@ -247,7 +245,6 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
         lastAttemptError: errorMessage,
       })
       .where(eq(resumes.id, message.resumeId));
-    await captureBookmark();
     throw new Error(errorMessage);
   }
 
@@ -266,7 +263,6 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
         lastAttemptError: errorMessage,
       })
       .where(eq(resumes.id, message.resumeId));
-    await captureBookmark();
     throw new Error(errorMessage);
   }
 
@@ -337,8 +333,6 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
       await invalidateResumeCache(waitingUserRecord[0].handle, env);
     }
   }
-
-  await captureBookmark();
 }
 
 /**
@@ -346,7 +340,7 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
  * Export this from the worker entry point
  */
 export async function handleQueueMessage(message: QueueMessage, env: CloudflareEnv): Promise<void> {
-  const { db } = await getSessionDb(env.DB);
+  const { db } = getSessionDbForWebhook(env.DB);
 
   try {
     // Currently only supporting parse messages
