@@ -5,10 +5,6 @@ import type { MetadataRoute } from "next";
 import { getDb } from "@/lib/db";
 import { siteData, user } from "@/lib/db/schema";
 
-// Cache sitemap for 6 hours - search engines crawl sitemaps infrequently
-// 6hrs = 4 regenerations/day, ~40k reads/day for 10k users (well under D1 free tier)
-export const revalidate = 21600;
-
 const URLS_PER_SITEMAP = 50000; // Google's limit
 
 function getBaseUrl(): string {

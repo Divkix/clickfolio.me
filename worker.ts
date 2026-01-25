@@ -47,6 +47,3 @@ export default {
     }
   },
 } satisfies ExportedHandler<CloudflareEnv>;
-
-// Re-export Durable Objects classes for OpenNext cache system
-export { DOShardedTagCache } from "./.open-next/worker.js";

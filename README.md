@@ -206,7 +206,6 @@ If you followed the steps above, the site should be live at your domain.
    - Go to Cloudflare Dashboard > R2
    - Create bucket named `webresume-bucket`
    - The bucket is accessed via binding in `wrangler.jsonc` - no API tokens needed
-   - This bucket is also used for OpenNext incremental cache
 
 4. **Configure R2 CORS**
    Add CORS policy in R2 bucket settings:
@@ -267,23 +266,11 @@ CF_AI_GATEWAY_ACCOUNT_ID=your-account-id
 CF_AI_GATEWAY_ID=your-gateway-id
 CF_AIG_AUTH_TOKEN=your-gateway-auth-token
 
-# OpenNext incremental cache prefix (optional)
-NEXT_INC_CACHE_R2_PREFIX=incremental-cache
 ```
 
 See `.env.example` for complete template with all options.
 
 ### Step 5: Deploy to Cloudflare
-
-**OpenNext cache + tag cache setup**
-- `open-next.config.ts` uses R2 incremental cache and a sharded Durable Object tag cache.
-- `wrangler.jsonc` includes:
-  - `NEXT_INC_CACHE_R2_BUCKET` binding (can point to the same R2 bucket)
-  - `NEXT_TAG_CACHE_DO_SHARDED` DO binding + SQLite migration
-  - `NEXT_INC_CACHE_R2_PREFIX` var (optional)
-
-If you are deploying the tag-cache DO for the first time, the included migration is correct.
-If you already deployed a non-SQLite DO with the same class name, you must create a new class name + binding.
 
 1. **Apply database migrations**
    ```bash

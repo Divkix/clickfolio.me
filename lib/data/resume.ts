@@ -1,6 +1,5 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { eq } from "drizzle-orm";
-import { unstable_cache } from "next/cache";
 import { getDb } from "@/lib/db";
 import type { PrivacySettings } from "@/lib/db/schema";
 import { user } from "@/lib/db/schema";
@@ -28,18 +27,9 @@ export interface ResumeMetadata {
 }
 
 /**
- * Cache tag format for resume pages.
- * Used for on-demand revalidation via revalidateTag.
- */
-export function getResumeCacheTag(handle: string): string {
-  return `resume:${handle}`;
-}
-
-/**
  * Fetch resume data from D1 via Drizzle WITHOUT using cookies.
- * This is the raw fetcher that gets wrapped by unstable_cache.
  *
- * Privacy filtering is applied at cache time, so cached content
+ * Privacy filtering is applied during fetch, so returned content
  * is already privacy-filtered.
  */
 async function fetchResumeDataRaw(handle: string): Promise<ResumeData | null> {
@@ -175,43 +165,19 @@ async function fetchResumeMetadataRaw(handle: string): Promise<ResumeMetadata | 
 }
 
 /**
- * Cached resume data fetcher.
- *
- * Cache behavior:
- * - Keyed by handle (unique per user)
- * - Tagged with `resume:{handle}` for on-demand invalidation
- * - Revalidates every 3600 seconds (1 hour) as a fallback
- * - Invalidated immediately via revalidateTag when user updates content
- *
- * This function does NOT call cookies() or headers(), so it can be used
- * in static/ISR contexts without forcing dynamic rendering.
+ * Resume data fetcher.
+ * Queries D1 directly - edge cache handles most traffic.
  *
  * @param handle - The user's unique handle
- * @returns Cached resume data or null if not found
+ * @returns Resume data or null if not found
  */
 export const getResumeData = (handle: string) => {
-  // Local preview can have broken tag cache invalidation; allow disabling cache explicitly.
-  if (process.env.DISABLE_RESUME_CACHE === "true") {
-    return fetchResumeDataRaw(handle);
-  }
-
-  return unstable_cache(() => fetchResumeDataRaw(handle), ["resume-data", handle], {
-    tags: [getResumeCacheTag(handle), "resumes"],
-    revalidate: 3600, // 1 hour fallback
-  })();
+  return fetchResumeDataRaw(handle);
 };
 
 /**
- * Cached metadata fetcher.
- * Uses same tags for consistent invalidation behavior.
+ * Metadata fetcher for SEO.
  */
 export const getResumeMetadata = (handle: string) => {
-  if (process.env.DISABLE_RESUME_CACHE === "true") {
-    return fetchResumeMetadataRaw(handle);
-  }
-
-  return unstable_cache(() => fetchResumeMetadataRaw(handle), ["resume-metadata", handle], {
-    tags: [getResumeCacheTag(handle), "resumes"],
-    revalidate: 3600,
-  })();
+  return fetchResumeMetadataRaw(handle);
 };

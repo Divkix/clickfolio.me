@@ -1,9 +1,7 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { eq } from "drizzle-orm";
-import { revalidatePath, revalidateTag } from "next/cache";
 import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
 import { purgeResumeCache } from "@/lib/cloudflare-cache-purge";
-import { getResumeCacheTag } from "@/lib/data/resume";
 import { user } from "@/lib/db/schema";
 import { privacySettingsSchema } from "@/lib/schemas/profile";
 import { enforceRateLimit } from "@/lib/utils/rate-limit";
@@ -77,12 +75,9 @@ export async function PUT(request: Request) {
       })
       .where(eq(user.id, authUser.id));
 
-    // 7. Invalidate cache for public page so privacy changes reflect immediately
-    // This prevents PII exposure through stale ISR cache
+    // 7. Purge edge cache for privacy changes to reflect immediately
+    // This prevents PII exposure through stale edge cache
     if (userHandle) {
-      revalidateTag(getResumeCacheTag(userHandle), "max");
-      revalidatePath(`/${userHandle}`);
-
       // Purge Cloudflare edge cache immediately (privacy-sensitive change)
       const cfZoneId = (env as CloudflareEnv).CF_ZONE_ID;
       const cfApiToken = (env as CloudflareEnv).CF_CACHE_PURGE_API_TOKEN;

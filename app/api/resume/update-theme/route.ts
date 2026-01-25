@@ -1,8 +1,6 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { eq } from "drizzle-orm";
-import { revalidatePath, revalidateTag } from "next/cache";
 import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
-import { getResumeCacheTag } from "@/lib/data/resume";
 import { siteData } from "@/lib/db/schema";
 import { TEMPLATES, type ThemeId } from "@/lib/templates/theme-registry";
 import {
@@ -30,13 +28,11 @@ export async function POST(request: Request) {
       user: authUser,
       db,
       captureBookmark,
-      dbUser,
       error: authError,
     } = await requireAuthWithUserValidation("You must be logged in to update theme", env.DB);
     if (authError) return authError;
 
     const userId = authUser.id;
-    const userHandle = dbUser.handle;
 
     // 4. Parse request body
     const body = (await request.json()) as ThemeUpdateRequestBody;
@@ -79,12 +75,6 @@ export async function POST(request: Request) {
     }
 
     const data = updateResult[0];
-
-    // 7. Invalidate cache for public resume page
-    if (userHandle) {
-      revalidateTag(getResumeCacheTag(userHandle), "max");
-      revalidatePath(`/${userHandle}`);
-    }
 
     await captureBookmark();
 

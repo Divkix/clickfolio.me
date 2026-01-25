@@ -1,8 +1,6 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { eq } from "drizzle-orm";
-import { revalidatePath, revalidateTag } from "next/cache";
 import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
-import { getResumeCacheTag } from "@/lib/data/resume";
 import { siteData } from "@/lib/db/schema";
 import { resumeContentSchemaStrict } from "@/lib/schemas/resume";
 import type { ResumeContent } from "@/lib/types/database";
@@ -52,13 +50,11 @@ export async function PUT(request: Request) {
       user: authUser,
       db,
       captureBookmark,
-      dbUser,
       error: authError,
     } = await requireAuthWithUserValidation("You must be logged in to update your resume", env.DB);
     if (authError) return authError;
 
     const userId = authUser.id;
-    const userHandle = dbUser.handle;
 
     // 5. Check rate limit (10 updates per hour)
     const rateLimitResponse = await enforceRateLimit(userId, "resume_update");
@@ -113,13 +109,7 @@ export async function PUT(request: Request) {
 
     const data = updateResult[0];
 
-    // 8. Invalidate cache for public resume page synchronously
-    if (userHandle) {
-      revalidateTag(getResumeCacheTag(userHandle), "max");
-      revalidatePath(`/${userHandle}`);
-    }
-
-    // 9. Return success response
+    // 8. Return success response
     await captureBookmark();
     return createSuccessResponse({
       success: true,

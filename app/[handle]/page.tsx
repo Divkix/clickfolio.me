@@ -6,11 +6,6 @@ import { getResumeData, getResumeMetadata } from "@/lib/data/resume";
 import { getTemplate } from "@/lib/templates/theme-registry";
 import { isValidHandleFormat } from "@/lib/utils/handle-validation";
 
-// Enable ISR-like caching: revalidate every hour as fallback
-// Primary invalidation happens via revalidateTag in update APIs
-// This now actually works because we use unstable_cache instead of cookies()
-export const revalidate = 3600; // 1 hour in seconds
-
 // Dynamic params are always allowed (new handles can be created)
 export const dynamicParams = true;
 
@@ -83,9 +78,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
  * Public resume viewer page
  * Renders user's resume with privacy filtering applied
  *
- * Caching: This page uses unstable_cache for data fetching (in lib/data/resume.ts),
- * allowing ISR-like behavior on Cloudflare Workers.
- * Cache is invalidated via revalidateTag when content updates.
+ * Caching: Cloudflare edge cache handles most traffic via Cache-Control headers.
+ * Privacy-sensitive changes purge edge cache immediately via Cloudflare API.
  */
 export default async function HandlePage({ params }: PageProps) {
   const { handle } = await params;

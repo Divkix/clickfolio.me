@@ -7,8 +7,4 @@ declare module "*.open-next/worker.js" {
     fetch: ExportedHandlerFetchHandler<CloudflareEnv>;
   };
   export default handler;
-  export class DOShardedTagCache implements DurableObject {
-    constructor(state: DurableObjectState, env: CloudflareEnv);
-    fetch(request: Request): Promise<Response>;
-  }
 }

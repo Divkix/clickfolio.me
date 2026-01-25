@@ -1,10 +1,8 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { and, eq, isNotNull, ne } from "drizzle-orm";
-import { revalidatePath, revalidateTag } from "next/cache";
 import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
-import { getResumeCacheTag } from "@/lib/data/resume";
 import type { NewResume } from "@/lib/db/schema";
-import { resumes, siteData, user } from "@/lib/db/schema";
+import { resumes, siteData } from "@/lib/db/schema";
 import type { getSessionDb } from "@/lib/db/session";
 import { publishResumeParse } from "@/lib/queue/resume-parse";
 import { getR2Binding, R2 } from "@/lib/r2";
@@ -267,18 +265,6 @@ export async function POST(request: Request) {
 
           // Copy content to user's site_data for publishing (upsert with race condition handling)
           await upsertSiteData(db, userId, resumeId, JSON.stringify(parsedContent), now);
-
-          // Invalidate cache for user's handle (critical: prevents stale 404s)
-          const userForCache = await db
-            .select({ handle: user.handle })
-            .from(user)
-            .where(eq(user.id, userId))
-            .limit(1);
-
-          if (userForCache[0]?.handle) {
-            revalidateTag(getResumeCacheTag(userForCache[0].handle), "max");
-            revalidatePath(`/${userForCache[0].handle}`);
-          }
 
           // R2 and DB both succeeded - return cached result
           await captureBookmark();

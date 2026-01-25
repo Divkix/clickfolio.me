@@ -1,46 +1,10 @@
 import { and, eq, isNotNull } from "drizzle-orm";
-import { resumes, siteData, user } from "../db/schema";
+import { resumes, siteData } from "../db/schema";
 import { getSessionDbForWebhook } from "../db/session";
 import { parseResumeWithGemini } from "../gemini";
 import { getR2Binding, R2 } from "../r2";
 import { classifyQueueError } from "./errors";
 import type { QueueMessage, ResumeParseMessage } from "./types";
-
-/**
- * Invalidate cache for a user's resume page
- * Best-effort - failures are logged but don't throw
- */
-async function invalidateResumeCache(handle: string, _env: CloudflareEnv): Promise<void> {
-  // Use process.env for portability - works in both dev and preview modes
-  // With nodejs_compat + compat date ≥ 2025-04-01, process.env is populated from bindings
-  const appUrl = process.env.BETTER_AUTH_URL;
-  const token = process.env.INTERNAL_CACHE_INVALIDATION_TOKEN;
-
-  if (!appUrl || !token) {
-    console.warn(
-      "Cache invalidation skipped - missing BETTER_AUTH_URL or INTERNAL_CACHE_INVALIDATION_TOKEN",
-    );
-    return;
-  }
-
-  try {
-    const response = await fetch(`${appUrl}/api/internal/cache/invalidate`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-internal-auth": token,
-      },
-      body: JSON.stringify({ handle }),
-    });
-
-    if (!response.ok) {
-      console.error(`Cache invalidation failed: ${response.status}`);
-    }
-  } catch (error) {
-    console.error("Cache invalidation error:", error);
-    // Don't throw - cache invalidation is best-effort
-  }
-}
 
 /**
  * Upsert site_data with UNIQUE constraint handling
@@ -151,17 +115,6 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
       now,
     );
 
-    // Invalidate cache for the user's resume page
-    const userRecord = await db
-      .select({ handle: user.handle })
-      .from(user)
-      .where(eq(user.id, message.userId))
-      .limit(1);
-
-    if (userRecord[0]?.handle) {
-      await invalidateResumeCache(userRecord[0].handle, env);
-    }
-
     return;
   }
 
@@ -205,17 +158,6 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
       cached[0].parsedContent as string,
       now,
     );
-
-    // Invalidate cache for the user's resume page
-    const userRecord = await db
-      .select({ handle: user.handle })
-      .from(user)
-      .where(eq(user.id, message.userId))
-      .limit(1);
-
-    if (userRecord[0]?.handle) {
-      await invalidateResumeCache(userRecord[0].handle, env);
-    }
 
     return;
   }
@@ -290,18 +232,7 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
 
   await upsertSiteData(db, message.userId, message.resumeId, parsedContent, now);
 
-  // Invalidate cache for the user's resume page
-  const userRecord = await db
-    .select({ handle: user.handle })
-    .from(user)
-    .where(eq(user.id, message.userId))
-    .limit(1);
-
-  if (userRecord[0]?.handle) {
-    await invalidateResumeCache(userRecord[0].handle, env);
-  }
-
-  // FIX: Notify ALL resumes waiting for this fileHash
+  // Notify ALL resumes waiting for this fileHash
   const waitingResumes = await db
     .select({ id: resumes.id, userId: resumes.userId })
     .from(resumes)
@@ -320,20 +251,9 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
       .where(and(eq(resumes.fileHash, message.fileHash), eq(resumes.status, "waiting_for_cache")));
   }
 
-  // Still need individual site data upserts and cache invalidation
+  // Still need individual site data upserts for waiting resumes
   for (const waiting of waitingResumes) {
     await upsertSiteData(db, waiting.userId as string, waiting.id as string, parsedContent, now);
-
-    // Invalidate cache for this user's handle
-    const waitingUserRecord = await db
-      .select({ handle: user.handle })
-      .from(user)
-      .where(eq(user.id, waiting.userId as string))
-      .limit(1);
-
-    if (waitingUserRecord[0]?.handle) {
-      await invalidateResumeCache(waitingUserRecord[0].handle, env);
-    }
   }
 }
 

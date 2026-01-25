@@ -1,10 +1,8 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { eq } from "drizzle-orm";
-import { revalidatePath, revalidateTag } from "next/cache";
 import { headers } from "next/headers";
 import { getAuth } from "@/lib/auth";
 import { purgeResumeCache } from "@/lib/cloudflare-cache-purge";
-import { getResumeCacheTag } from "@/lib/data/resume";
 import { getDb } from "@/lib/db";
 import {
   account,
@@ -174,12 +172,8 @@ export async function POST(request: Request) {
           .where(eq(user.id, userId)),
       ]);
 
-      // Invalidate cache for deleted user's public page
+      // Purge edge cache for deleted user's public page
       if (userHandle) {
-        // Purge Next.js ISR cache
-        revalidateTag(getResumeCacheTag(userHandle), "max");
-        revalidatePath(`/${userHandle}`);
-
         // Purge Cloudflare edge cache immediately (privacy-sensitive deletion)
         const cfZoneId = (typedEnv as CloudflareEnv).CF_ZONE_ID;
         const cfApiToken = (typedEnv as CloudflareEnv).CF_CACHE_PURGE_API_TOKEN;
