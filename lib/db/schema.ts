@@ -181,6 +181,28 @@ export const handleChanges = sqliteTable(
   ],
 );
 
+export const pageViews = sqliteTable(
+  "page_views",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    visitorHash: text("visitor_hash").notNull(),
+    referrer: text("referrer"),
+    country: text("country"),
+    deviceType: text("device_type", {
+      enum: ["mobile", "tablet", "desktop"],
+    }),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [
+    index("page_views_user_created_idx").on(table.userId, table.createdAt),
+    index("page_views_dedup_idx").on(table.visitorHash, table.userId, table.createdAt),
+    index("page_views_created_idx").on(table.createdAt),
+  ],
+);
+
 export const uploadRateLimits = sqliteTable(
   "upload_rate_limits",
   {
@@ -210,6 +232,7 @@ export const userRelations = relations(user, ({ many, one }) => ({
   resumes: many(resumes),
   siteData: one(siteData),
   handleChanges: many(handleChanges),
+  pageViews: many(pageViews),
 }));
 
 export const sessionRelations = relations(session, ({ one }) => ({
@@ -252,6 +275,13 @@ export const handleChangesRelations = relations(handleChanges, ({ one }) => ({
   }),
 }));
 
+export const pageViewsRelations = relations(pageViews, ({ one }) => ({
+  user: one(user, {
+    fields: [pageViews.userId],
+    references: [user.id],
+  }),
+}));
+
 // =============================================================================
 // Type Exports
 // =============================================================================
@@ -283,6 +313,10 @@ export type NewSiteData = typeof siteData.$inferInsert;
 // HandleChanges types
 export type HandleChange = typeof handleChanges.$inferSelect;
 export type NewHandleChange = typeof handleChanges.$inferInsert;
+
+// PageViews types
+export type PageView = typeof pageViews.$inferSelect;
+export type NewPageView = typeof pageViews.$inferInsert;
 
 // UploadRateLimits types
 export type UploadRateLimit = typeof uploadRateLimits.$inferSelect;

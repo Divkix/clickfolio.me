@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { AttributionWidget } from "@/components/AttributionWidget";
+import { AnalyticsBeacon } from "@/components/analytics/AnalyticsBeacon";
 import { siteConfig } from "@/lib/config/site";
 import { getResumeData, getResumeMetadata } from "@/lib/data/resume";
 import { getTemplate } from "@/lib/templates/theme-registry";
@@ -111,6 +112,7 @@ export default async function HandlePage({ params }: PageProps) {
           handle: profile.handle || handle,
         }}
       />
+      <AnalyticsBeacon handle={handle} />
       <AttributionWidget theme={theme_id ?? "minimalist_editorial"} />
     </>
   );

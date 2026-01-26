@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { AnalyticsCard } from "@/components/dashboard/AnalyticsCard";
 import { CopyLinkButton } from "@/components/dashboard/CopyLinkButton";
 import { DashboardUploadSection } from "@/components/dashboard/DashboardUploadSection";
 import { RealtimeStatusListener } from "@/components/dashboard/RealtimeStatusListener";
@@ -613,8 +614,8 @@ export default async function DashboardPage() {
                 </div>
               </div>
 
-              {/* Right Column - Account Only */}
-              <div>
+              {/* Right Column - Account + Analytics */}
+              <div className="space-y-4">
                 {/* Account Info Card */}
                 <div className="bg-white rounded-2xl shadow-depth-sm border border-slate-200/60 p-6 hover:shadow-depth-md hover:-translate-y-0.5 transition-all duration-300">
                   <h3 className="text-lg font-semibold text-slate-900 mb-4">Account</h3>
@@ -684,6 +685,9 @@ export default async function DashboardPage() {
                     )}
                   </div>
                 </div>
+
+                {/* Analytics Card */}
+                <AnalyticsCard />
               </div>
             </>
           ) : (
