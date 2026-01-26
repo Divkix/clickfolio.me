@@ -12,7 +12,6 @@ import {
   Menu,
 } from "lucide-react";
 import type React from "react";
-import { PoweredByBadge } from "@/components/PoweredByBadge";
 import {
   flattenSkills,
   formatDateRange,
@@ -346,10 +345,6 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content }) => {
             </div>
           </section>
         )}
-
-        <footer id="contact" className="mt-32 border-t border-white/10 pt-12 pb-6 text-center">
-          <PoweredByBadge variant="glassmorphic" />
-        </footer>
       </div>
 
       <style>{`

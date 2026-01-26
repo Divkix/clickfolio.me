@@ -1,6 +1,5 @@
 import { ArrowUpRight, Award, Calendar, GraduationCap } from "lucide-react";
 import type React from "react";
-import { PoweredByBadge } from "@/components/PoweredByBadge";
 import { formatDateRange, formatShortDate, formatYear } from "@/lib/templates/helpers";
 import type { TemplateProps } from "@/lib/types/template";
 
@@ -318,7 +317,6 @@ const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile }) => {
               </a>
             )}
           </div>
-          <PoweredByBadge variant="minimalist_editorial" />
         </footer>
       </div>
     </div>

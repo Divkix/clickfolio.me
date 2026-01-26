@@ -12,7 +12,6 @@ import {
   Mail,
 } from "lucide-react";
 import type React from "react";
-import { PoweredByBadge } from "@/components/PoweredByBadge";
 import { flattenSkills, formatDateRange, formatYear, getInitials } from "@/lib/templates/helpers";
 import type { TemplateProps } from "@/lib/types/template";
 
@@ -294,11 +293,6 @@ const BentoGrid: React.FC<TemplateProps> = ({ content, profile: _profile }) => {
             </div>
           )}
         </div>
-      </div>
-
-      {/* Footer Branding */}
-      <div className="max-w-6xl mx-auto mt-12 text-center">
-        <PoweredByBadge variant="bento_grid" />
       </div>
 
       <style>{`

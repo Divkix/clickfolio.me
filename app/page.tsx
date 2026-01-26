@@ -244,100 +244,93 @@ export default function Home() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {DEMO_PROFILES.map((profile, index) => (
-                <button
-                  key={profile.id}
-                  type="button"
-                  onClick={() => setPreviewIndex(index)}
-                  className={`
-                    group
-                    bg-white
-                    border-3
-                    border-ink
-                    p-4
-                    shadow-brutal-sm
-                    hover-brutal-shift
-                    text-left
-                    animate-fade-in-up
-                    focus:outline-none
-                    focus:ring-4
-                    focus:ring-coral
-                  `}
-                  style={{ animationDelay: `${(index + 4) * 100}ms` }}
-                >
-                  <div className="flex items-center gap-3 mb-3">
+              {DEMO_PROFILES.map((profile, index) => {
+                const cardColors = [
+                  { avatar: "bg-coral text-white", badge: "bg-coral/10 text-coral" },
+                  { avatar: "bg-mint text-ink", badge: "bg-mint/10 text-ink" },
+                  { avatar: "bg-lavender text-white", badge: "bg-lavender/10 text-lavender" },
+                  { avatar: "bg-amber text-ink", badge: "bg-amber/10 text-ink" },
+                ];
+                const color = cardColors[index % cardColors.length];
+                return (
+                  <button
+                    key={profile.id}
+                    type="button"
+                    onClick={() => setPreviewIndex(index)}
+                    className={`
+                      group
+                      bg-white
+                      border-3
+                      border-ink
+                      p-4
+                      shadow-brutal-sm
+                      hover-brutal-shift
+                      text-left
+                      animate-fade-in-up
+                      focus:outline-none
+                      focus:ring-4
+                      focus:ring-coral
+                    `}
+                    style={{ animationDelay: `${(index + 4) * 100}ms` }}
+                  >
+                    <div className="flex items-center gap-3 mb-3">
+                      <div
+                        className={`
+                          w-12
+                          h-12
+                          rounded-full
+                          border-3
+                          border-ink
+                          flex
+                          items-center
+                          justify-center
+                          font-black
+                          text-sm
+                          ${color.avatar}
+                        `}
+                      >
+                        {profile.initials}
+                      </div>
+                      <div>
+                        <div className="font-bold text-ink">{profile.name}</div>
+                        <div className="font-mono text-xs text-[#6B6B6B]">{profile.role}</div>
+                      </div>
+                    </div>
                     <div
                       className={`
-                        w-12
-                        h-12
-                        rounded-full
-                        border-3
+                        inline-block
+                        px-2
+                        py-1
+                        border-2
                         border-ink
-                        flex
-                        items-center
-                        justify-center
-                        font-black
-                        text-sm
-                        ${
-                          index === 0
-                            ? "bg-coral text-white"
-                            : index === 1
-                              ? "bg-mint text-ink"
-                              : index === 2
-                                ? "bg-lavender text-white"
-                                : "bg-amber text-ink"
-                        }
+                        font-mono
+                        text-xs
+                        uppercase
+                        tracking-wide
+                        ${color.badge}
                       `}
                     >
-                      {profile.initials}
+                      {profile.badgeLabel}
                     </div>
-                    <div>
-                      <div className="font-bold text-ink">{profile.name}</div>
-                      <div className="font-mono text-xs text-[#6B6B6B]">{profile.role}</div>
+                    <div className="mt-3 flex items-center gap-2 text-[#6B6B6B] group-hover:text-ink transition-colors">
+                      <span className="font-mono text-xs">View template</span>
+                      <svg
+                        className="w-4 h-4 transform group-hover:translate-x-1 transition-transform"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M17 8l4 4m0 0l-4 4m4-4H3"
+                        />
+                      </svg>
                     </div>
-                  </div>
-                  <div
-                    className={`
-                      inline-block
-                      px-2
-                      py-1
-                      border-2
-                      border-ink
-                      font-mono
-                      text-xs
-                      uppercase
-                      tracking-wide
-                      ${
-                        index === 0
-                          ? "bg-coral/10 text-coral"
-                          : index === 1
-                            ? "bg-mint/10 text-ink"
-                            : index === 2
-                              ? "bg-lavender/10 text-lavender"
-                              : "bg-amber/10 text-ink"
-                      }
-                    `}
-                  >
-                    {profile.badgeLabel}
-                  </div>
-                  <div className="mt-3 flex items-center gap-2 text-[#6B6B6B] group-hover:text-ink transition-colors">
-                    <span className="font-mono text-xs">View template</span>
-                    <svg
-                      className="w-4 h-4 transform group-hover:translate-x-1 transition-transform"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M17 8l4 4m0 0l-4 4m4-4H3"
-                      />
-                    </svg>
-                  </div>
-                </button>
-              ))}
+                  </button>
+                );
+              })}
             </div>
           </section>
 

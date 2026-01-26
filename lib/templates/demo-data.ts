@@ -59,6 +59,36 @@ export const DEMO_PROFILES: DemoProfile[] = [
     badgeBgColor: "bg-cyan-50",
     badgeTextColor: "text-cyan-600",
   },
+  {
+    id: "spotlight",
+    name: "Emma Torres",
+    role: "Creative Director",
+    initials: "ET",
+    avatarGradient: "from-amber-400 to-orange-500",
+    badgeLabel: "Spotlight",
+    badgeBgColor: "bg-amber-50",
+    badgeTextColor: "text-amber-600",
+  },
+  {
+    id: "midnight",
+    name: "Raj Patel",
+    role: "Data Scientist",
+    initials: "RP",
+    avatarGradient: "from-yellow-400 to-amber-500",
+    badgeLabel: "Midnight",
+    badgeBgColor: "bg-yellow-50",
+    badgeTextColor: "text-yellow-600",
+  },
+  {
+    id: "bold_corporate",
+    name: "Diana Walsh",
+    role: "VP of Engineering",
+    initials: "DW",
+    avatarGradient: "from-slate-400 to-gray-600",
+    badgeLabel: "Corporate",
+    badgeBgColor: "bg-slate-50",
+    badgeTextColor: "text-slate-600",
+  },
 ];
 
 /**
@@ -300,6 +330,95 @@ export const DEMO_RESUME_CONTENT: Record<ThemeId, ResumeContent> = {
     ],
   },
 
+  bold_corporate: {
+    full_name: "Diana Walsh",
+    headline: "VP of Engineering scaling distributed systems",
+    summary:
+      "Engineering executive with 15+ years leading high-performance teams at Fortune 500 companies. Expert in platform engineering, organizational scaling, and technical strategy.",
+    contact: {
+      email: "diana@example.com",
+      location: "Chicago, IL",
+      linkedin: "linkedin.com/in/dianawalsh",
+      website: "dianawalsh.io",
+    },
+    experience: [
+      {
+        title: "VP of Engineering",
+        company: "Datadog",
+        location: "New York, NY",
+        start_date: "2022-01",
+        end_date: undefined,
+        description:
+          "Leading platform engineering org of 120+ engineers across infrastructure, reliability, and developer experience.",
+        highlights: [
+          "Scaled engineering org from 60 to 120 engineers",
+          "Reduced P0 incidents by 70% through reliability program",
+          "Launched internal developer platform used by 500+ engineers",
+        ],
+      },
+      {
+        title: "Senior Director of Engineering",
+        company: "Twilio",
+        location: "San Francisco, CA",
+        start_date: "2018-06",
+        end_date: "2021-12",
+        description: "Directed messaging platform serving 10M+ API calls/day.",
+        highlights: [
+          "Led migration to microservices architecture",
+          "Built and mentored 8 engineering managers",
+        ],
+      },
+      {
+        title: "Engineering Manager",
+        company: "Amazon",
+        location: "Seattle, WA",
+        start_date: "2014-03",
+        end_date: "2018-05",
+        description: "Managed AWS Lambda compute infrastructure team.",
+      },
+    ],
+    education: [
+      {
+        degree: "MS in Computer Science",
+        institution: "Stanford University",
+        location: "Stanford, CA",
+        graduation_date: "2013-06",
+      },
+      {
+        degree: "BS in Electrical Engineering",
+        institution: "MIT",
+        location: "Cambridge, MA",
+        graduation_date: "2011-05",
+      },
+    ],
+    skills: [
+      { category: "Leadership", items: ["Org Design", "Technical Strategy", "M&A Due Diligence"] },
+      { category: "Technical", items: ["Distributed Systems", "Kubernetes", "Go", "Python"] },
+      { category: "Platforms", items: ["AWS", "GCP", "Terraform", "Datadog"] },
+    ],
+    certifications: [
+      {
+        name: "AWS Solutions Architect Professional",
+        issuer: "Amazon Web Services",
+        date: "2020-03",
+      },
+      {
+        name: "Engineering Leadership Certificate",
+        issuer: "Stanford GSB",
+        date: "2022-06",
+      },
+    ],
+    projects: [
+      {
+        title: "Platform Engineering Blueprint",
+        description: "Open-source framework for building internal developer platforms",
+        year: "2023",
+        technologies: ["Go", "Kubernetes", "Terraform"],
+        url: "github.com/dianawalsh/platform-blueprint",
+      },
+    ],
+  },
+
   glass: {
     full_name: "Alex Kim",
     headline: "Full-Stack Developer building modern web apps",
@@ -380,14 +499,189 @@ export const DEMO_RESUME_CONTENT: Record<ThemeId, ResumeContent> = {
       },
     ],
   },
+
+  midnight: {
+    full_name: "Raj Patel",
+    headline: "Data Scientist turning complexity into clarity",
+    summary:
+      "Data scientist with 7+ years building ML pipelines and predictive models for healthcare and fintech. Published researcher with a focus on NLP and time-series forecasting.",
+    contact: {
+      email: "raj@example.com",
+      location: "Boston, MA",
+      github: "github.com/rajpatel",
+      linkedin: "linkedin.com/in/rajpatel",
+      website: "rajpatel.dev",
+    },
+    experience: [
+      {
+        title: "Senior Data Scientist",
+        company: "Moderna",
+        location: "Cambridge, MA",
+        start_date: "2022-03",
+        end_date: undefined,
+        description: "Building ML models for drug discovery and clinical trial optimization.",
+        highlights: [
+          "Developed NLP pipeline processing 50k+ research papers",
+          "Reduced trial patient matching time by 60%",
+          "Led team of 4 data scientists",
+        ],
+      },
+      {
+        title: "Data Scientist",
+        company: "Capital One",
+        location: "McLean, VA",
+        start_date: "2019-06",
+        end_date: "2022-02",
+        description: "Built fraud detection models processing 100M+ daily transactions.",
+        highlights: [
+          "Improved fraud detection accuracy by 25%",
+          "Shipped real-time scoring API with <10ms latency",
+        ],
+      },
+      {
+        title: "ML Engineer",
+        company: "Two Sigma",
+        location: "New York, NY",
+        start_date: "2017-08",
+        end_date: "2019-05",
+        description: "Developed time-series forecasting models for quantitative trading.",
+      },
+    ],
+    education: [
+      {
+        degree: "PhD in Statistics",
+        institution: "MIT",
+        location: "Cambridge, MA",
+        graduation_date: "2017-05",
+      },
+      {
+        degree: "BS in Mathematics",
+        institution: "UC Berkeley",
+        location: "Berkeley, CA",
+        graduation_date: "2013-05",
+        gpa: "3.9",
+      },
+    ],
+    skills: [
+      { category: "ML/AI", items: ["PyTorch", "TensorFlow", "Scikit-learn", "Hugging Face"] },
+      { category: "Data", items: ["Python", "SQL", "Spark", "dbt"] },
+      { category: "Tools", items: ["MLflow", "Airflow", "Databricks", "AWS SageMaker"] },
+    ],
+    certifications: [
+      {
+        name: "AWS Machine Learning Specialty",
+        issuer: "Amazon Web Services",
+        date: "2023-01",
+      },
+    ],
+    projects: [
+      {
+        title: "TimeSeries Toolkit",
+        description: "Open-source library for time-series forecasting with transformer models",
+        year: "2023",
+        technologies: ["Python", "PyTorch"],
+        url: "github.com/rajpatel/ts-toolkit",
+      },
+    ],
+  },
+
+  spotlight: {
+    full_name: "Emma Torres",
+    headline: "Creative Director shaping brand identities",
+    summary:
+      "Award-winning creative director with 12+ years crafting brand experiences for startups and global brands. Expert in visual storytelling, design systems, and creative strategy.",
+    contact: {
+      email: "emma@example.com",
+      location: "Los Angeles, CA",
+      linkedin: "linkedin.com/in/emmatorres",
+      website: "emmatorres.co",
+    },
+    experience: [
+      {
+        title: "Creative Director",
+        company: "Airbnb",
+        location: "San Francisco, CA",
+        start_date: "2021-04",
+        end_date: undefined,
+        description:
+          "Leading brand design for Airbnb Experiences, overseeing a team of 15 designers and art directors.",
+        highlights: [
+          "Rebranded Airbnb Experiences increasing engagement by 40%",
+          "Won 3 D&AD Awards for campaign work",
+          "Built creative team from 6 to 15 people",
+        ],
+      },
+      {
+        title: "Senior Art Director",
+        company: "Spotify",
+        location: "New York, NY",
+        start_date: "2017-09",
+        end_date: "2021-03",
+        description: "Directed visual identity for Spotify Wrapped and editorial campaigns.",
+        highlights: [
+          "Led Spotify Wrapped 2020 campaign with 60M+ shares",
+          "Established brand illustration system",
+        ],
+      },
+      {
+        title: "Art Director",
+        company: "Pentagram",
+        location: "New York, NY",
+        start_date: "2014-06",
+        end_date: "2017-08",
+        description: "Designed brand identities for Fortune 500 clients.",
+      },
+    ],
+    education: [
+      {
+        degree: "MFA in Graphic Design",
+        institution: "Yale School of Art",
+        location: "New Haven, CT",
+        graduation_date: "2014-05",
+      },
+      {
+        degree: "BFA in Visual Communication",
+        institution: "Parsons School of Design",
+        location: "New York, NY",
+        graduation_date: "2012-05",
+      },
+    ],
+    skills: [
+      {
+        category: "Design",
+        items: ["Brand Strategy", "Art Direction", "Typography", "Motion Design"],
+      },
+      { category: "Tools", items: ["Figma", "After Effects", "Cinema 4D", "Illustrator"] },
+      { category: "Leadership", items: ["Team Building", "Creative Strategy", "Client Relations"] },
+    ],
+    certifications: [
+      {
+        name: "D&AD Professional Member",
+        issuer: "D&AD",
+        date: "2021-01",
+      },
+    ],
+    projects: [
+      {
+        title: "Brand Playbook",
+        description: "Open-source brand guidelines template used by 200+ startups",
+        year: "2023",
+        technologies: ["Figma"],
+        url: "figma.com/emmatorres/brand-playbook",
+      },
+    ],
+  },
 };
 
 /**
  * Template background configuration for modal display
  */
 export const TEMPLATE_BACKGROUNDS: Record<ThemeId, { bg: string; isDark: boolean }> = {
+  bento: { bg: "bg-neutral-100", isDark: false },
+  bold_corporate: { bg: "bg-white", isDark: false },
+  glass: { bg: "bg-[#0f172a]", isDark: true },
+  midnight: { bg: "bg-[#0a0a0a]", isDark: true },
   minimalist_editorial: { bg: "bg-[#fdfbf9]", isDark: false },
   neo_brutalist: { bg: "bg-[#FFFDF5]", isDark: false },
-  bento: { bg: "bg-neutral-100", isDark: false },
-  glass: { bg: "bg-[#0f172a]", isDark: true },
+  spotlight: { bg: "bg-[#fdfbf7]", isDark: false },
 };

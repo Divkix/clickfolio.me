@@ -1,6 +1,5 @@
 import { ArrowUpRight, Award, Briefcase, Globe, GraduationCap, Star } from "lucide-react";
 import type React from "react";
-import { PoweredByBadge } from "@/components/PoweredByBadge";
 import {
   flattenSkills,
   formatDateRange,
@@ -394,11 +393,6 @@ const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
             </div>
           </div>
         )}
-
-        {/* Footer */}
-        <footer className="mt-16 text-center pb-8">
-          <PoweredByBadge variant="neo_brutalist" />
-        </footer>
       </div>
 
       <style>{`
