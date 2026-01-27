@@ -517,7 +517,7 @@ const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => {
 
           {/* Decorative Name */}
           <div className="overflow-hidden mb-8">
-            <p className="text-8xl md:text-[10rem] font-black text-neutral-100 leading-none tracking-tighter select-none whitespace-nowrap">
+            <p className="text-8xl md:text-[10rem] font-black text-neutral-100 leading-none tracking-tighter select-none uppercase wrap-break-word">
               {content.full_name}
             </p>
           </div>
