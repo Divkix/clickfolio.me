@@ -4,6 +4,7 @@ import { getSessionDbForWebhook } from "../db/session";
 import { parseResumeWithGemini } from "../gemini";
 import { getR2Binding, R2 } from "../r2";
 import { classifyQueueError } from "./errors";
+import { notifyStatusChange, notifyStatusChangeBatch } from "./notify-status";
 import type { QueueMessage, ResumeParseMessage } from "./types";
 
 /**
@@ -115,6 +116,7 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
       now,
     );
 
+    await notifyStatusChange({ resumeId: message.resumeId, status: "completed", env });
     return;
   }
 
@@ -159,11 +161,13 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
       now,
     );
 
+    await notifyStatusChange({ resumeId: message.resumeId, status: "completed", env });
     return;
   }
 
   // Update status to processing
   await db.update(resumes).set({ status: "processing" }).where(eq(resumes.id, message.resumeId));
+  await notifyStatusChange({ resumeId: message.resumeId, status: "processing", env });
 
   // Fetch PDF from R2
   const pdfBuffer = await R2.getAsUint8Array(r2Binding, message.r2Key);
@@ -189,6 +193,12 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
         lastAttemptError: errorMessage,
       })
       .where(eq(resumes.id, message.resumeId));
+    await notifyStatusChange({
+      resumeId: message.resumeId,
+      status: "failed",
+      error: errorMessage,
+      env,
+    });
     throw new Error(errorMessage);
   }
 
@@ -207,6 +217,12 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
         lastAttemptError: errorMessage,
       })
       .where(eq(resumes.id, message.resumeId));
+    await notifyStatusChange({
+      resumeId: message.resumeId,
+      status: "failed",
+      error: errorMessage,
+      env,
+    });
     throw new Error(errorMessage);
   }
 
@@ -231,6 +247,7 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
     .where(eq(resumes.id, message.resumeId));
 
   await upsertSiteData(db, message.userId, message.resumeId, parsedContent, now);
+  await notifyStatusChange({ resumeId: message.resumeId, status: "completed", env });
 
   // Notify ALL resumes waiting for this fileHash
   const waitingResumes = await db
@@ -254,6 +271,15 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
   // Still need individual site data upserts for waiting resumes
   for (const waiting of waitingResumes) {
     await upsertSiteData(db, waiting.userId as string, waiting.id as string, parsedContent, now);
+  }
+
+  // Notify waiting resumes via WebSocket
+  if (waitingResumes.length > 0) {
+    await notifyStatusChangeBatch(
+      waitingResumes.map((r) => r.id as string),
+      "completed",
+      env,
+    );
   }
 }
 

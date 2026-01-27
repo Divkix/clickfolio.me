@@ -1,6 +1,6 @@
 /**
  * Custom worker entry point that wraps OpenNext's generated handler
- * and adds Cloudflare Queue consumer support.
+ * and adds Cloudflare Queue consumer support and Durable Object exports.
  *
  * Note: This file is excluded from Next.js tsconfig because it imports
  * .open-next/worker.js which only exists after OpenNext build.
@@ -14,9 +14,38 @@ import { handleDLQMessage } from "./lib/queue/dlq-consumer";
 import { isRetryableError } from "./lib/queue/errors";
 import type { QueueMessage } from "./lib/queue/types";
 
+// Re-export Durable Object class for Wrangler to discover
+export { ResumeStatusDO } from "./lib/durable-objects/resume-status";
+
 export default {
-  // Re-use the OpenNext fetch handler
-  fetch: opennextHandler.fetch,
+  async fetch(request: Request, env: CloudflareEnv, ctx: ExecutionContext): Promise<Response> {
+    const url = new URL(request.url);
+
+    // Intercept WebSocket upgrade requests for resume status
+    if (
+      url.pathname === "/ws/resume-status" &&
+      request.headers.get("Upgrade")?.toLowerCase() === "websocket"
+    ) {
+      const resumeId = url.searchParams.get("resume_id");
+      if (!resumeId) {
+        return new Response("Missing resume_id query parameter", { status: 400 });
+      }
+
+      // Route to the Durable Object keyed by resumeId
+      if (!env.RESUME_STATUS_DO) {
+        return new Response("WebSocket not available", { status: 503 });
+      }
+
+      const doId = env.RESUME_STATUS_DO.idFromName(resumeId);
+      const stub = env.RESUME_STATUS_DO.get(doId);
+
+      // Forward the WebSocket upgrade request to the DO
+      return stub.fetch(request);
+    }
+
+    // All other requests go to the OpenNext handler
+    return opennextHandler.fetch(request, env, ctx);
+  },
 
   // Cloudflare Queue consumer handler
   async queue(batch: MessageBatch<unknown>, env: CloudflareEnv): Promise<void> {

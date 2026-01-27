@@ -71,6 +71,15 @@
 			}
 		]
 	},
+	// Durable Objects for real-time WebSocket notifications
+	"durable_objects": {
+		"bindings": [
+			{ "name": "RESUME_STATUS_DO", "class_name": "ResumeStatusDO" }
+		]
+	},
+	"migrations": [
+		{ "tag": "v1", "new_classes": ["ResumeStatusDO"] }
+	],
 	"observability": {
 		"enabled": true,
 		"head_sampling_rate": 0.1,

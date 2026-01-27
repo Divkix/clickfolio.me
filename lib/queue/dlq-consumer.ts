@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { resumes } from "../db/schema";
 import { getSessionDbForWebhook } from "../db/session";
 import { QueueErrorType } from "./errors";
+import { notifyStatusChange } from "./notify-status";
 import type { DeadLetterMessage, QueueMessage } from "./types";
 
 /**
@@ -123,6 +124,14 @@ export async function handleDLQMessage(
       updatedAt: new Date().toISOString(),
     })
     .where(eq(resumes.id, originalMessage.resumeId));
+
+  // Notify connected WebSocket clients of permanent failure
+  await notifyStatusChange({
+    resumeId: originalMessage.resumeId,
+    status: "failed",
+    error: errorMsg,
+    env,
+  });
 
   // Cast env to AlertEnv for optional alert properties
   const alertEnv = env as AlertEnv;

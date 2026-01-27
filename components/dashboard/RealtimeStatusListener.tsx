@@ -1,7 +1,8 @@
 "use client";
 
 import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
+import { useResumeWebSocket } from "@/hooks/useResumeWebSocket";
 
 interface RealtimeStatusListenerProps {
   resumeId: string;
@@ -14,18 +15,11 @@ type DetectedState = {
   errorMessage?: string;
 };
 
-interface ResumeStatusResponse {
-  status: "pending_claim" | "processing" | "completed" | "failed";
-  progress_pct?: number;
-  error?: string | null;
-  can_retry?: boolean;
-}
-
 /**
- * Status listener component that polls the API for resume status changes.
+ * Status listener component that uses WebSocket for real-time resume status changes.
+ * Falls back to polling automatically via useResumeWebSocket.
  */
 export function RealtimeStatusListener({ resumeId, currentStatus }: RealtimeStatusListenerProps) {
-  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const hasRefreshedRef = useRef(false);
   const refreshDebounceRef = useRef<NodeJS.Timeout | null>(null);
   const [detected, setDetected] = useState<DetectedState>({
@@ -36,7 +30,6 @@ export function RealtimeStatusListener({ resumeId, currentStatus }: RealtimeStat
   const handleStatusChange = useCallback((newStatus: string, errorMessage?: string) => {
     if (hasRefreshedRef.current) return;
     if (newStatus === "completed" || newStatus === "failed") {
-      // Debounce to prevent race condition
       if (refreshDebounceRef.current) {
         clearTimeout(refreshDebounceRef.current);
       }
@@ -54,42 +47,11 @@ export function RealtimeStatusListener({ resumeId, currentStatus }: RealtimeStat
     }
   }, []);
 
-  useEffect(() => {
-    // Only poll if status is processing
-    if (currentStatus !== "processing") {
-      return;
-    }
-
-    // Poll status via API
-    const pollStatus = async () => {
-      if (hasRefreshedRef.current) return;
-      try {
-        const response = await fetch(`/api/resume/status?resume_id=${resumeId}`);
-        if (!response.ok) return;
-
-        const data = (await response.json()) as ResumeStatusResponse;
-
-        if (data.status && data.status !== currentStatus) {
-          handleStatusChange(data.status, data.error ?? undefined);
-        }
-      } catch {
-        // Ignore polling errors
-      }
-    };
-
-    // Poll immediately, then every 3 seconds
-    pollStatus();
-    pollIntervalRef.current = setInterval(pollStatus, 3000);
-
-    return () => {
-      if (pollIntervalRef.current) {
-        clearInterval(pollIntervalRef.current);
-      }
-      if (refreshDebounceRef.current) {
-        clearTimeout(refreshDebounceRef.current);
-      }
-    };
-  }, [resumeId, currentStatus, handleStatusChange]);
+  // Connect WebSocket only when currently processing
+  useResumeWebSocket({
+    resumeId: currentStatus === "processing" ? resumeId : null,
+    onStatusChange: handleStatusChange,
+  });
 
   if (detected.status === "completed") {
     return (

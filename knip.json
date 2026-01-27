@@ -11,5 +11,5 @@
   ],
   "ignore": ["app/globals.css"],
   "ignoreBinaries": [],
-  "ignoreDependencies": []
+  "ignoreDependencies": ["cloudflare"]
 }

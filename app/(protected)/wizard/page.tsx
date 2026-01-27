@@ -14,15 +14,9 @@ import { UploadStep } from "@/components/wizard/UploadStep";
 import { useSession } from "@/lib/auth/client";
 import type { ThemeId } from "@/lib/templates/theme-registry";
 import type { ResumeContent } from "@/lib/types/database";
+import { waitForResumeCompletion } from "@/lib/utils/wait-for-completion";
 
 // Type definitions for API responses
-interface ResumeStatusResponse {
-  status: "pending_claim" | "processing" | "completed" | "failed";
-  progress_pct?: number;
-  error?: string | null;
-  can_retry?: boolean;
-}
-
 interface ClaimResponse {
   resume_id: string;
   cached?: boolean;
@@ -98,7 +92,6 @@ export default function WizardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [needsUpload, setNeedsUpload] = useState(false);
-  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Refs to prevent race conditions during wizard initialization
   const initializingRef = useRef(false);
@@ -118,70 +111,19 @@ export default function WizardPage() {
   // Compute total steps based on whether upload is needed
   const totalSteps = needsUpload ? 5 : 4;
 
-  // Function to poll resume status
-  const pollResumeStatus = useCallback(
+  // Wait for resume completion via WebSocket (with polling fallback)
+  const awaitResumeComplete = useCallback(
     async (resumeId: string): Promise<boolean> => {
-      return new Promise((resolve) => {
-        let attempts = 0;
-        const maxAttempts = 30; // 30 attempts * 3 seconds = 90 seconds max
+      const result = await waitForResumeCompletion(resumeId);
 
-        const checkStatus = async () => {
-          try {
-            const response = await fetch(`/api/resume/status?resume_id=${resumeId}`);
-            if (!response.ok) {
-              throw new Error("Failed to check status");
-            }
+      if (result.status === "completed") {
+        return true;
+      }
 
-            const data = (await response.json()) as ResumeStatusResponse;
-
-            if (data.status === "completed") {
-              if (pollingIntervalRef.current) {
-                clearInterval(pollingIntervalRef.current);
-                pollingIntervalRef.current = null;
-              }
-              resolve(true);
-              return;
-            }
-
-            if (data.status === "failed") {
-              if (pollingIntervalRef.current) {
-                clearInterval(pollingIntervalRef.current);
-                pollingIntervalRef.current = null;
-              }
-              setError(data.error || "Resume parsing failed. Please try again.");
-              setTimeout(() => router.push("/dashboard"), 3000);
-              resolve(false);
-              return;
-            }
-
-            attempts++;
-            if (attempts >= maxAttempts) {
-              if (pollingIntervalRef.current) {
-                clearInterval(pollingIntervalRef.current);
-                pollingIntervalRef.current = null;
-              }
-              router.push(`/waiting?resume_id=${resumeId}`);
-              resolve(false);
-            }
-          } catch (err) {
-            console.error("Error polling status:", err);
-            attempts++;
-            if (attempts >= maxAttempts) {
-              if (pollingIntervalRef.current) {
-                clearInterval(pollingIntervalRef.current);
-                pollingIntervalRef.current = null;
-              }
-              router.push(`/waiting?resume_id=${resumeId}`);
-              resolve(false);
-            }
-          }
-        };
-
-        // Start polling every 3 seconds
-        pollingIntervalRef.current = setInterval(checkStatus, 3000);
-        // Check immediately as well
-        checkStatus();
-      });
+      // Failed
+      setError(result.error || "Resume parsing failed. Please try again.");
+      setTimeout(() => router.push("/dashboard"), 3000);
+      return false;
     },
     [router],
   );
@@ -288,9 +230,9 @@ export default function WizardPage() {
             // Clear HTTP-only cookie after successful claim
             await clearPendingUploadCookie();
 
-            // If not cached, poll for status updates (parsing in progress)
+            // If not cached, wait for status updates (WS-first with polling fallback)
             if (!claimData.cached) {
-              const parsingComplete = await pollResumeStatus(resumeId);
+              const parsingComplete = await awaitResumeComplete(resumeId);
 
               if (!parsingComplete) {
                 return;
@@ -357,15 +299,8 @@ export default function WizardPage() {
     };
 
     initializeWizard();
-
-    // Cleanup polling on unmount
-    return () => {
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current);
-        pollingIntervalRef.current = null;
-      }
-    };
-  }, [router, userId, sessionLoading, pollResumeStatus]);
+    // No cleanup needed — waitForResumeCompletion handles its own cleanup internally
+  }, [router, userId, sessionLoading, awaitResumeComplete]);
 
   // Handler for upload completion (Step 1 for login-first users)
   // Note: We keep needsUpload=true to maintain correct step numbering throughout the session
