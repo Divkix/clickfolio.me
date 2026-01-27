@@ -217,7 +217,11 @@ export default function WizardPage() {
                 throw new Error(claimData.error || "Failed to claim resume");
               }
 
-              toast.success("Resume uploaded! Processing in background.");
+              if (claimData.cached) {
+                toast.success("Resume updated successfully!");
+              } else {
+                toast.success("Resume uploaded! Processing in background.");
+              }
             } catch (claimError) {
               console.error("Returning user claim error:", claimError);
               toast.error(
