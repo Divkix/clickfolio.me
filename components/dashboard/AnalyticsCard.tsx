@@ -1,16 +1,9 @@
 "use client";
 
 import { Eye, Globe, Monitor, Smartphone, Tablet, Users } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { useCallback, useEffect, useRef, useState } from "react";
+import uPlot from "uplot";
+import "uplot/dist/uPlot.min.css";
 import { Skeleton } from "@/components/ui/skeleton";
 
 type Period = "7d" | "30d" | "90d";
@@ -37,6 +30,215 @@ const DEVICE_ICONS: Record<string, typeof Monitor> = {
   mobile: Smartphone,
   tablet: Tablet,
 };
+
+const SHORT_MONTHS = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
+
+function toUPlotData(viewsByDay: Array<{ date: string; views: number }>): [number[], number[]] {
+  const timestamps: number[] = [];
+  const views: number[] = [];
+  for (const entry of viewsByDay) {
+    timestamps.push(new Date(`${entry.date}T00:00:00`).getTime() / 1000);
+    views.push(entry.views);
+  }
+  return [timestamps, views];
+}
+
+function buildChartOpts(width: number, height: number): uPlot.Options {
+  return {
+    width,
+    height,
+    padding: [12, 8, 0, 0],
+    legend: { show: false },
+    cursor: {
+      x: true,
+      y: false,
+      drag: { x: false, y: false, setScale: false },
+    },
+    series: [
+      {},
+      {
+        stroke: "#6366f1",
+        width: 2,
+        fill: (self: uPlot) => {
+          const ctx = self.ctx;
+          const gradient = ctx.createLinearGradient(0, 0, 0, self.bbox.height / devicePixelRatio);
+          gradient.addColorStop(0, "#6366f180");
+          gradient.addColorStop(1, "#6366f100");
+          return gradient;
+        },
+        paths: uPlot.paths.spline?.() ?? undefined,
+      },
+    ],
+    axes: [
+      {
+        stroke: "#94a3b8",
+        font: "10px system-ui, sans-serif",
+        grid: {
+          stroke: "rgba(255,255,255,0.06)",
+          dash: [2, 4],
+          width: 1,
+        },
+        ticks: { show: false },
+        values: (_self: uPlot, ticks: number[]) =>
+          ticks.map((t) => {
+            const d = new Date(t * 1000);
+            return `${d.getMonth() + 1}/${d.getDate()}`;
+          }),
+      },
+      {
+        stroke: "#94a3b8",
+        font: "10px system-ui, sans-serif",
+        grid: {
+          stroke: "rgba(255,255,255,0.06)",
+          dash: [2, 4],
+          width: 1,
+        },
+        ticks: { show: false },
+        values: (_self: uPlot, ticks: number[]) =>
+          ticks.map((v) => (Number.isInteger(v) ? String(v) : "")),
+      },
+    ],
+  };
+}
+
+function tooltipPlugin(): uPlot.Plugin {
+  let tooltip: HTMLDivElement | null = null;
+  let dateLine: HTMLDivElement | null = null;
+  let viewsLine: HTMLDivElement | null = null;
+
+  function init(u: uPlot) {
+    tooltip = document.createElement("div");
+    tooltip.style.cssText = [
+      "display:none",
+      "position:absolute",
+      "pointer-events:none",
+      "background:#0f172a",
+      "color:#fff",
+      "font-size:12px",
+      "border-radius:8px",
+      "padding:6px 10px",
+      "box-shadow:0 4px 12px rgba(0,0,0,0.25)",
+      "z-index:100",
+      "white-space:nowrap",
+    ].join(";");
+
+    dateLine = document.createElement("div");
+    dateLine.style.fontWeight = "500";
+    tooltip.appendChild(dateLine);
+
+    viewsLine = document.createElement("div");
+    viewsLine.style.color = "#cbd5e1";
+    tooltip.appendChild(viewsLine);
+
+    u.over.appendChild(tooltip);
+  }
+
+  function setCursor(u: uPlot) {
+    if (!tooltip || !dateLine || !viewsLine) return;
+    const idx = u.cursor.idx;
+    if (idx == null || idx < 0) {
+      tooltip.style.display = "none";
+      return;
+    }
+
+    const ts = u.data[0][idx];
+    const val = u.data[1][idx];
+    if (ts == null || val == null) {
+      tooltip.style.display = "none";
+      return;
+    }
+
+    const d = new Date(ts * 1000);
+    const dateStr = `${SHORT_MONTHS[d.getMonth()]} ${d.getDate()}`;
+    const viewLabel = val === 1 ? "view" : "views";
+
+    dateLine.textContent = dateStr;
+    viewsLine.textContent = `${val} ${viewLabel}`;
+    tooltip.style.display = "block";
+
+    const left = u.cursor.left ?? 0;
+    const top = u.cursor.top ?? 0;
+    const tooltipW = tooltip.offsetWidth;
+    const overW = u.over.offsetWidth;
+
+    let posX = left + 10;
+    if (posX + tooltipW > overW) {
+      posX = left - tooltipW - 10;
+    }
+
+    tooltip.style.left = `${posX}px`;
+    tooltip.style.top = `${Math.max(0, top - 40)}px`;
+  }
+
+  return {
+    hooks: {
+      init,
+      setCursor,
+    },
+  };
+}
+
+function UPlotChart({ viewsByDay }: { viewsByDay: Array<{ date: string; views: number }> }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const chartRef = useRef<uPlot | null>(null);
+  const [width, setWidth] = useState(0);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const cr = entry.contentRect;
+        if (cr.width > 0) {
+          setWidth(Math.floor(cr.width));
+        }
+      }
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || width <= 0 || viewsByDay.length === 0) return;
+
+    if (chartRef.current) {
+      chartRef.current.destroy();
+      chartRef.current = null;
+    }
+
+    const opts: uPlot.Options = {
+      ...buildChartOpts(width, 160),
+      plugins: [tooltipPlugin()],
+    };
+    const data = toUPlotData(viewsByDay);
+
+    chartRef.current = new uPlot(opts, data, el);
+
+    return () => {
+      if (chartRef.current) {
+        chartRef.current.destroy();
+        chartRef.current = null;
+      }
+    };
+  }, [width, viewsByDay]);
+
+  return <div ref={containerRef} className="w-full" style={{ height: 160 }} />;
+}
 
 export function AnalyticsCard() {
   const [stats, setStats] = useState<AnalyticsStats | null>(null);
@@ -140,39 +342,7 @@ function StatsContent({ stats }: { stats: AnalyticsStats }) {
 
       {/* Area Chart */}
       <div className="h-[160px] -mx-2">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={stats.viewsByDay} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-            <defs>
-              <linearGradient id="viewsGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-            <XAxis
-              dataKey="date"
-              tickFormatter={(d: string) => formatChartDate(d)}
-              tick={{ fontSize: 10, fill: "#94a3b8" }}
-              axisLine={false}
-              tickLine={false}
-            />
-            <YAxis
-              tick={{ fontSize: 10, fill: "#94a3b8" }}
-              axisLine={false}
-              tickLine={false}
-              allowDecimals={false}
-            />
-            <Tooltip content={<CustomTooltip />} />
-            <Area
-              type="monotone"
-              dataKey="views"
-              stroke="#6366f1"
-              strokeWidth={2}
-              fillOpacity={1}
-              fill="url(#viewsGradient)"
-            />
-          </AreaChart>
-        </ResponsiveContainer>
+        <UPlotChart viewsByDay={stats.viewsByDay} />
       </div>
 
       {/* Traffic Sources */}
@@ -223,27 +393,6 @@ function StatsContent({ stats }: { stats: AnalyticsStats }) {
   );
 }
 
-function CustomTooltip({
-  active,
-  payload,
-  label,
-}: {
-  active?: boolean;
-  payload?: Array<{ value: number }>;
-  label?: string;
-}) {
-  if (!active || !payload?.length || !label) return null;
-
-  return (
-    <div className="bg-slate-900 text-white text-xs rounded-lg px-3 py-2 shadow-lg">
-      <p className="font-medium">{formatTooltipDate(label)}</p>
-      <p className="text-slate-300">
-        {payload[0].value} view{payload[0].value !== 1 ? "s" : ""}
-      </p>
-    </div>
-  );
-}
-
 function EmptyState() {
   return (
     <div className="text-center py-8">
@@ -279,17 +428,4 @@ function LoadingSkeleton() {
 function formatNumber(n: number): string {
   if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
   return n.toString();
-}
-
-function formatChartDate(dateStr: string): string {
-  const [, month, day] = dateStr.split("-");
-  return `${Number.parseInt(month, 10)}/${Number.parseInt(day, 10)}`;
-}
-
-function formatTooltipDate(dateStr: string): string {
-  const date = new Date(`${dateStr}T00:00:00`);
-  return date.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-  });
 }
