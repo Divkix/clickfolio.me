@@ -294,7 +294,7 @@ async function extractPdfText(
   return response.json() as Promise<PdfExtractResponse>;
 }
 
-const DEFAULT_AI_MODEL = "google/gemini-2.5-flash-lite";
+const DEFAULT_AI_MODEL = "openai/gpt-oss-20b";
 
 /**
  * Parse text with AI using ai-parser-worker
@@ -426,8 +426,8 @@ function normalizeString(value: unknown, defaultVal = ""): string {
  * - React render: "AT&amp;amp;T Corporation" (visible in UI)
  *
  * ### 2. Model upgrades don't fix hallucination
- * All Gemini models (Flash-Lite, Flash, Pro) hallucinate URLs and data at similar rates.
- * Testing showed Pro costs 25x more than Flash-Lite for only ~5-15% improvement in accuracy.
+ * All LLMs hallucinate URLs and data at similar rates regardless of model or provider.
+ * More expensive models show only marginal improvement in extraction accuracy.
  * URL hallucination is a fundamental LLM limitation, not a model quality issue.
  *
  * ### 3. Correct pattern: defensive validation + edit-time sanitization
