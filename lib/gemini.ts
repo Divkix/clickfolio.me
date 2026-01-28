@@ -264,6 +264,47 @@ const SYSTEM_PROMPT = `You are an expert resume parser. Extract information from
 - Do not add fields not in the schema`;
 
 /**
+ * Sanitize raw error responses from service bindings into human-readable messages.
+ * Service workers can return raw HTML (e.g. 504 gateway pages) or JSON error bodies
+ * that should never be shown to users.
+ */
+function sanitizeServiceError(responseText: string, status: number): string {
+  // HTTP status-specific friendly messages
+  if (status === 504) return "Service timed out. Please try again.";
+  if (status === 502) return "Service temporarily unavailable. Please try again.";
+  if (status === 429) return "AI service rate limited. Please wait a moment and try again.";
+
+  const text = responseText.trim();
+  if (!text) return "An unexpected error occurred. Please try again.";
+
+  // Detect HTML responses (raw gateway error pages)
+  if (text.startsWith("<") || text.toLowerCase().includes("<html")) {
+    return "Resume parsing service unavailable. Please try again.";
+  }
+
+  // Detect JSON responses — extract the .error field if present
+  if (text.startsWith("{")) {
+    try {
+      const parsed = JSON.parse(text);
+      if (typeof parsed.error === "string" && parsed.error.trim()) {
+        // Truncate extracted error to 200 chars
+        const msg = parsed.error.trim();
+        return msg.length > 200 ? `${msg.slice(0, 200)}...` : msg;
+      }
+    } catch {
+      // Not valid JSON, fall through
+    }
+  }
+
+  // Truncate any remaining raw text to 200 chars
+  if (text.length > 200) {
+    return `${text.slice(0, 200)}...`;
+  }
+
+  return text;
+}
+
+/**
  * Extract text from PDF using pdf-text-worker
  */
 async function extractPdfText(
@@ -287,7 +328,7 @@ async function extractPdfText(
   });
 
   if (!response.ok) {
-    const error = await response.text();
+    const error = sanitizeServiceError(await response.text(), response.status);
     return { success: false, text: "", pageCount: 0, error };
   }
 
@@ -319,7 +360,7 @@ async function parseWithAi(text: string, env: Partial<CloudflareEnv>): Promise<A
   });
 
   if (!response.ok) {
-    const error = await response.text();
+    const error = sanitizeServiceError(await response.text(), response.status);
     return { success: false, data: null, error };
   }
 

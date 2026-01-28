@@ -487,14 +487,7 @@ export default async function DashboardPage() {
                           >
                             <Link href={`/waiting?resume_id=${resume.id}`}>Retry</Link>
                           </Button>
-                          <Button
-                            asChild
-                            size="sm"
-                            variant="outline"
-                            className="border-red-200 text-red-700 hover:bg-red-100"
-                          >
-                            <Link href="/">Upload New</Link>
-                          </Button>
+                          <DashboardUploadSection />
                         </div>
                       </div>
                     </div>
@@ -723,12 +716,7 @@ export default async function DashboardPage() {
                       >
                         <Link href={`/waiting?resume_id=${resume.id}`}>Try Again</Link>
                       </Button>
-                      <Button asChild variant="outline" className="flex-1">
-                        <Link href="/">
-                          <Upload className="h-4 w-4 mr-2" aria-hidden="true" />
-                          Upload New Resume
-                        </Link>
-                      </Button>
+                      <DashboardUploadSection />
                     </div>
                   </div>
                 )}

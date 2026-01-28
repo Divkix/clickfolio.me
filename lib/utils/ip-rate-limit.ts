@@ -14,7 +14,25 @@ const HOURLY_LIMIT = 10;
 const DAILY_LIMIT = 50;
 const HANDLE_CHECK_HOURLY_LIMIT = 100;
 
-const LOCAL_IPS = new Set(["127.0.0.1", "::1", "localhost", "unknown"]);
+const LOCAL_IPS = new Set([
+  "127.0.0.1",
+  "::1",
+  "localhost",
+  "unknown",
+  "0.0.0.0",
+  "::ffff:127.0.0.1",
+]);
+
+/**
+ * Detect local environment via BETTER_AUTH_URL.
+ * More robust than IP matching since wrangler preview can present
+ * unexpected IP variants, but BETTER_AUTH_URL is always set and
+ * reliably indicates local vs production.
+ */
+function isLocalEnvironment(): boolean {
+  const authUrl = process.env.BETTER_AUTH_URL || "";
+  return authUrl.includes("localhost") || authUrl.includes("127.0.0.1");
+}
 
 interface IPRateLimitResult {
   allowed: boolean;
@@ -71,8 +89,8 @@ export async function checkIPRateLimit(ip: string): Promise<IPRateLimitResult> {
     };
   }
 
-  // Skip for localhost IPs (local preview runs in production mode)
-  if (LOCAL_IPS.has(ip)) {
+  // Skip for localhost IPs or local environment (local preview runs in production mode)
+  if (LOCAL_IPS.has(ip) || isLocalEnvironment()) {
     return {
       allowed: true,
       remaining: { hourly: HOURLY_LIMIT, daily: DAILY_LIMIT },
@@ -182,8 +200,8 @@ export async function checkHandleRateLimit(ip: string): Promise<IPRateLimitResul
     };
   }
 
-  // Skip for localhost IPs (local preview runs in production mode)
-  if (LOCAL_IPS.has(ip)) {
+  // Skip for localhost IPs or local environment (local preview runs in production mode)
+  if (LOCAL_IPS.has(ip) || isLocalEnvironment()) {
     return {
       allowed: true,
       remaining: { hourly: HANDLE_CHECK_HOURLY_LIMIT, daily: 1000 },
