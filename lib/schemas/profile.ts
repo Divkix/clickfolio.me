@@ -22,6 +22,9 @@ export const privacySettingsSchema = z.object({
   show_address: z.boolean({
     message: "Address visibility setting must be a boolean",
   }),
+  hide_from_search: z.boolean({
+    message: "Search visibility setting must be a boolean",
+  }),
 });
 
 /**

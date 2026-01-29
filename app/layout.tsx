@@ -11,6 +11,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
+  metadataBase: new URL(siteConfig.url),
   title: `${siteConfig.fullName} - ${siteConfig.tagline}`,
   description:
     "Drop your PDF résumé and get a shareable website in seconds. Free, fast, and AI-powered.",

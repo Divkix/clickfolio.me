@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2, Search, SearchX } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -31,6 +31,7 @@ export function PrivacySettingsForm({ initialSettings, userHandle }: PrivacySett
 
   const showPhone = watch("show_phone");
   const showAddress = watch("show_address");
+  const hideFromSearch = watch("hide_from_search");
 
   const onSubmit = async (data: PrivacySettings) => {
     setIsSaving(true);
@@ -66,6 +67,7 @@ export function PrivacySettingsForm({ initialSettings, userHandle }: PrivacySett
     const newSettings = {
       show_phone: field === "show_phone" ? value : showPhone,
       show_address: field === "show_address" ? value : showAddress,
+      hide_from_search: field === "hide_from_search" ? value : (hideFromSearch ?? false),
     };
 
     await onSubmit(newSettings);
@@ -139,6 +141,42 @@ export function PrivacySettingsForm({ initialSettings, userHandle }: PrivacySett
           </div>
         </div>
 
+        {/* Search Engine Visibility Toggle */}
+        <div
+          className={`flex items-start justify-between gap-4 rounded-lg border p-4 ${
+            hideFromSearch ? "border-amber-300 bg-amber-50" : "border-gray-200"
+          }`}
+        >
+          <div className="flex-1 space-y-1">
+            <Label
+              htmlFor="hide_from_search"
+              className="text-base font-medium cursor-pointer flex items-center gap-2"
+            >
+              {hideFromSearch ? (
+                <SearchX className="h-4 w-4 text-amber-600" />
+              ) : (
+                <Search className="h-4 w-4 text-gray-600" />
+              )}
+              Hide from search engines
+            </Label>
+            <p className={`text-sm ${hideFromSearch ? "text-amber-700" : "text-gray-500"}`}>
+              {hideFromSearch
+                ? "Your resume will not be indexed by Google or other search engines"
+                : "Your resume can be discovered through search engines with rich snippets"}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {isSaving && <Loader2 className="h-4 w-4 animate-spin text-gray-500" />}
+            <Switch
+              id="hide_from_search"
+              checked={hideFromSearch ?? false}
+              onCheckedChange={(checked) => handleToggleChange("hide_from_search", checked)}
+              disabled={isSaving}
+              aria-label="Toggle search engine visibility"
+            />
+          </div>
+        </div>
+
         {/* Privacy Notice */}
         <div className="rounded-lg bg-blue-50 border border-blue-200 p-4">
           <div className="flex gap-3">
@@ -174,6 +212,14 @@ export function PrivacySettingsForm({ initialSettings, userHandle }: PrivacySett
             >
               Address:{" "}
               <span className="font-medium">{showAddress ? "Full" : "City/State only"}</span>
+            </span>
+            <span
+              className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs ${
+                hideFromSearch ? "bg-amber-100 text-amber-700" : "bg-green-100 text-green-700"
+              }`}
+            >
+              Search:{" "}
+              <span className="font-medium">{hideFromSearch ? "Hidden" : "Discoverable"}</span>
             </span>
           </div>
         </div>
