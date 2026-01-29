@@ -427,7 +427,7 @@ export default async function DashboardPage() {
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium text-slate-600 mb-1">Your Resume</p>
                       <Link
-                        href={`/${profile.handle}`}
+                        href={`/@${profile.handle}`}
                         className="text-sm font-semibold text-indigo-600 hover:text-indigo-700 truncate block"
                       >
                         View Site
@@ -650,10 +650,10 @@ export default async function DashboardPage() {
                             <p className="text-xs font-medium text-slate-600 mb-1">Handle</p>
                             <div className="flex items-center gap-2">
                               <Link
-                                href={`/${profile.handle}`}
+                                href={`/@${profile.handle}`}
                                 className="text-sm text-indigo-600 hover:text-indigo-700 font-medium truncate block"
                               >
-                                {siteConfig.domain}/{profile.handle}
+                                {siteConfig.domain}/@{profile.handle}
                               </Link>
                             </div>
                             <div className="mt-2">

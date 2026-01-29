@@ -10,9 +10,8 @@ import { ResumeManagementCard } from "@/components/settings/ResumeManagementCard
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getServerSession } from "@/lib/auth/session";
 import { getDb } from "@/lib/db";
-import type { PrivacySettings } from "@/lib/db/schema";
 import { resumes, user } from "@/lib/db/schema";
-import { isValidPrivacySettings } from "@/lib/utils/privacy";
+import { isValidPrivacySettings, normalizePrivacySettings } from "@/lib/utils/privacy";
 
 export default async function SettingsPage() {
   // Use cached session helper to deduplicate auth calls within request
@@ -56,14 +55,21 @@ export default async function SettingsPage() {
   }
 
   // Parse privacy settings from JSON string
-  const parsedPrivacySettings = profile.privacySettings
-    ? (JSON.parse(profile.privacySettings) as PrivacySettings)
-    : null;
+  let parsedPrivacySettings: {
+    show_phone: boolean;
+    show_address: boolean;
+    hide_from_search?: boolean;
+  } | null = null;
+  try {
+    parsedPrivacySettings = profile.privacySettings ? JSON.parse(profile.privacySettings) : null;
+  } catch {
+    parsedPrivacySettings = null;
+  }
 
-  // Validate and normalize privacy settings
-  const privacySettings = isValidPrivacySettings(parsedPrivacySettings)
-    ? parsedPrivacySettings
-    : { show_phone: false, show_address: false };
+  // Validate and normalize privacy settings (with backward compatibility)
+  const privacySettings = normalizePrivacySettings(
+    isValidPrivacySettings(parsedPrivacySettings) ? parsedPrivacySettings : null,
+  );
 
   const resumeCount = resumeData[0]?.count ?? 0;
 
@@ -111,7 +117,7 @@ export default async function SettingsPage() {
                 <div className="space-y-1">
                   <p className="text-sm font-medium text-slate-700">Handle</p>
                   <Link
-                    href={`/${profile.handle}`}
+                    href={`/@${profile.handle}`}
                     className="text-sm text-indigo-600 hover:text-indigo-700 hover:underline font-mono transition-colors duration-300"
                   >
                     @{profile.handle}
