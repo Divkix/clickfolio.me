@@ -1,5 +1,6 @@
 import { ArrowUpRight, Award, Briefcase, Globe, GraduationCap, Star } from "lucide-react";
 import type React from "react";
+import { ShareBar } from "@/components/ShareBar";
 import {
   flattenSkills,
   formatDateRange,
@@ -151,6 +152,14 @@ const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
                     Website
                   </a>
                 )}
+              </div>
+              <div className="mt-4 pt-4 border-t-2 border-black">
+                <ShareBar
+                  handle={profile.handle}
+                  title={`${content.full_name}'s Portfolio`}
+                  name={content.full_name}
+                  variant="neo-brutalist"
+                />
               </div>
             </div>
           </div>

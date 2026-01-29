@@ -4,6 +4,7 @@ import { Eye, Globe, Monitor, Smartphone, Tablet, Users } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import uPlot from "uplot";
 import "uplot/dist/uPlot.min.css";
+import { MilestoneToasts } from "@/components/dashboard/MilestoneToasts";
 import { Skeleton } from "@/components/ui/skeleton";
 
 type Period = "7d" | "30d" | "90d";
@@ -301,7 +302,10 @@ export function AnalyticsCard() {
       ) : stats && stats.totalViews === 0 ? (
         <EmptyState />
       ) : stats ? (
-        <StatsContent stats={stats} />
+        <>
+          <MilestoneToasts totalViews={stats.totalViews} />
+          <StatsContent stats={stats} />
+        </>
       ) : null}
     </div>
   );

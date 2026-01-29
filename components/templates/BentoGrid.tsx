@@ -12,11 +12,11 @@ import {
   Mail,
 } from "lucide-react";
 import type React from "react";
+import { ShareBar } from "@/components/ShareBar";
 import { flattenSkills, formatDateRange, formatYear, getInitials } from "@/lib/templates/helpers";
 import type { TemplateProps } from "@/lib/types/template";
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const BentoGrid: React.FC<TemplateProps> = ({ content, profile: _profile }) => {
+const BentoGrid: React.FC<TemplateProps> = ({ content, profile }) => {
   const skills = flattenSkills(content.skills);
 
   return (
@@ -77,6 +77,14 @@ const BentoGrid: React.FC<TemplateProps> = ({ content, profile: _profile }) => {
                     <Globe size={18} />
                   </a>
                 )}
+              </div>
+              <div className="mt-4">
+                <ShareBar
+                  handle={profile.handle}
+                  title={`${content.full_name}'s Portfolio`}
+                  name={content.full_name}
+                  variant="bento-grid"
+                />
               </div>
             </div>
           </div>

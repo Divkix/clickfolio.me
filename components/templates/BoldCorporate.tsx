@@ -2,6 +2,7 @@
 
 import { Github, Globe, Linkedin, Mail, MapPin } from "lucide-react";
 import type React from "react";
+import { ShareBar } from "@/components/ShareBar";
 import { flattenSkills, formatDateRange, formatYear, getInitials } from "@/lib/templates/helpers";
 import type { TemplateProps } from "@/lib/types/template";
 
@@ -159,6 +160,14 @@ const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => {
                 Website
               </a>
             )}
+          </div>
+          <div className="mt-4">
+            <ShareBar
+              handle={profile.handle}
+              title={`${content.full_name}'s Portfolio`}
+              name={content.full_name}
+              variant="bold-corporate"
+            />
           </div>
         </section>
 

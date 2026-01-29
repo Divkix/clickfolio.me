@@ -34,6 +34,8 @@ export const user = sqliteTable(
         "freelancer",
       ],
     }),
+    // Referral tracking: stores user ID of referrer
+    referredBy: text("referred_by"),
   },
   (table) => [
     // Index for sitemap queries (WHERE handle IS NOT NULL ORDER BY handle)

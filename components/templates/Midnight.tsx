@@ -1,5 +1,6 @@
 import { Github, Globe, Linkedin, Mail, MapPin } from "lucide-react";
 import type React from "react";
+import { ShareBar } from "@/components/ShareBar";
 import { flattenSkills, formatDateRange, formatYear, getInitials } from "@/lib/templates/helpers";
 import type { TemplateProps } from "@/lib/types/template";
 
@@ -287,6 +288,14 @@ const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
                 <Globe className="w-4 h-4" />
               </a>
             )}
+          </div>
+          <div className="mt-6 flex justify-center">
+            <ShareBar
+              handle={profile.handle}
+              title={`${content.full_name}'s Portfolio`}
+              name={content.full_name}
+              variant="midnight"
+            />
           </div>
         </section>
       </div>

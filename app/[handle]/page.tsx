@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { AttributionWidget } from "@/components/AttributionWidget";
 import { AnalyticsBeacon } from "@/components/analytics/AnalyticsBeacon";
+import { CreateYoursCTA } from "@/components/CreateYoursCTA";
 import { siteConfig } from "@/lib/config/site";
 import { getResumeData, getResumeMetadata } from "@/lib/data/resume";
 import { getTemplate } from "@/lib/templates/theme-registry";
@@ -103,6 +104,16 @@ export default async function HandlePage({ params }: PageProps) {
   // Dynamically select template based on theme_id
   const Template = await getTemplate(theme_id);
 
+  // Map theme_id to CTA variant (use underscore format for CTA)
+  const ctaVariant = (theme_id ?? "minimalist_editorial") as
+    | "minimalist_editorial"
+    | "neo_brutalist"
+    | "glass_morphic"
+    | "bento_grid"
+    | "spotlight"
+    | "midnight"
+    | "bold_corporate";
+
   return (
     <>
       <Template
@@ -113,6 +124,7 @@ export default async function HandlePage({ params }: PageProps) {
         }}
       />
       <AnalyticsBeacon handle={handle} />
+      <CreateYoursCTA handle={handle} variant={ctaVariant} />
       <AttributionWidget theme={theme_id ?? "minimalist_editorial"} />
     </>
   );

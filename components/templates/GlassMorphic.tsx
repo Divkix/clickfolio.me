@@ -12,6 +12,7 @@ import {
   Menu,
 } from "lucide-react";
 import type React from "react";
+import { ShareBar } from "@/components/ShareBar";
 import {
   flattenSkills,
   formatDateRange,
@@ -21,7 +22,7 @@ import {
 import type { Project } from "@/lib/types/database";
 import type { TemplateProps } from "@/lib/types/template";
 
-const GlassMorphic: React.FC<TemplateProps> = ({ content }) => {
+const GlassMorphic: React.FC<TemplateProps> = ({ content, profile }) => {
   // Cache flattened skills to avoid re-computation
   const flatSkills = content.skills ? flattenSkills(content.skills).slice(0, 8) : [];
   return (
@@ -166,6 +167,14 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content }) => {
                     <Globe size={20} />
                   </a>
                 )}
+              </div>
+              <div className="mt-4">
+                <ShareBar
+                  handle={profile.handle}
+                  title={`${content.full_name}'s Portfolio`}
+                  name={content.full_name}
+                  variant="glass-morphic"
+                />
               </div>
             </div>
           </div>

@@ -1,5 +1,6 @@
 import { ArrowUpRight, Award, Calendar, GraduationCap } from "lucide-react";
 import type React from "react";
+import { ShareBar } from "@/components/ShareBar";
 import { formatDateRange, formatShortDate, formatYear } from "@/lib/templates/helpers";
 import type { TemplateProps } from "@/lib/types/template";
 
@@ -55,6 +56,14 @@ const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile }) => {
                   {content.contact.location}
                 </span>
               )}
+            </div>
+            <div className="mt-6">
+              <ShareBar
+                handle={profile.handle}
+                title={`${content.full_name}'s Portfolio`}
+                name={content.full_name}
+                variant="minimalist-editorial"
+              />
             </div>
           </div>
         </header>

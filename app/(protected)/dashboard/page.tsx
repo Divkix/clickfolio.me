@@ -1,5 +1,5 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, sql } from "drizzle-orm";
 import {
   AlertCircle,
   Award,
@@ -22,6 +22,7 @@ import { AnalyticsCard } from "@/components/dashboard/AnalyticsCard";
 import { CopyLinkButton } from "@/components/dashboard/CopyLinkButton";
 import { DashboardUploadSection } from "@/components/dashboard/DashboardUploadSection";
 import { RealtimeStatusListener } from "@/components/dashboard/RealtimeStatusListener";
+import { ReferralStats } from "@/components/dashboard/ReferralStats";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -182,6 +183,13 @@ export default async function DashboardPage() {
   const profile = userData ?? null;
   const resume = (userData?.resumes?.[0] ?? null) as Resume | null;
   const siteDataResult = (userData?.siteData ?? null) as typeof siteData.$inferSelect | null;
+
+  // Get referral count
+  const referralCountResult = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(user)
+    .where(eq(user.referredBy, session.user.id));
+  const referralCount = referralCountResult[0]?.count ?? 0;
 
   // Safety net: Redirect to wizard if onboarding is incomplete
   // This catches edge cases where users bypass the wizard flow
@@ -681,6 +689,11 @@ export default async function DashboardPage() {
 
                 {/* Analytics Card */}
                 <AnalyticsCard />
+
+                {/* Referral Stats Card */}
+                {profile?.handle && (
+                  <ReferralStats referralCount={referralCount} handle={profile.handle} />
+                )}
               </div>
             </>
           ) : (

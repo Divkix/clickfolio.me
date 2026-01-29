@@ -1,0 +1,1 @@
+ALTER TABLE `user` ADD `referred_by` text;

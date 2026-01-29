@@ -4,6 +4,7 @@ import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { Confetti } from "@/components/Confetti";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { WizardProgress } from "@/components/wizard";
 import { HandleStep } from "@/components/wizard/HandleStep";
@@ -11,6 +12,7 @@ import { PrivacyStep } from "@/components/wizard/PrivacyStep";
 import { ReviewStep } from "@/components/wizard/ReviewStep";
 import { ThemeStep } from "@/components/wizard/ThemeStep";
 import { UploadStep } from "@/components/wizard/UploadStep";
+import { YouAreLiveModal } from "@/components/YouAreLiveModal";
 import { useSession } from "@/lib/auth/client";
 import type { ThemeId } from "@/lib/templates/theme-ids";
 import type { ResumeContent } from "@/lib/types/database";
@@ -92,6 +94,8 @@ export default function WizardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [needsUpload, setNeedsUpload] = useState(false);
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [showLiveModal, setShowLiveModal] = useState(false);
 
   // Refs to prevent race conditions during wizard initialization
   const initializingRef = useRef(false);
@@ -404,14 +408,22 @@ export default function WizardPage() {
         throw new Error(data.error || "Failed to complete setup");
       }
 
-      // Show success message and redirect
-      toast.success("Profile setup completed successfully!");
-      router.push("/dashboard");
+      // Show celebration! 🎉
+      setShowCelebration(true);
+      setShowLiveModal(true);
     } catch (err) {
       console.error("Error completing wizard:", err);
       const errorMessage = err instanceof Error ? err.message : "Failed to complete setup";
       setError(errorMessage);
       toast.error(errorMessage);
+    }
+  };
+
+  // Handle modal close - redirect to dashboard
+  const handleLiveModalClose = (open: boolean) => {
+    setShowLiveModal(open);
+    if (!open) {
+      router.push("/dashboard");
     }
   };
 
@@ -463,6 +475,14 @@ export default function WizardPage() {
   // Main wizard UI
   return (
     <div className="min-h-screen bg-linear-to-br from-indigo-50 via-blue-50 to-cyan-50">
+      {/* Celebration Effects */}
+      {showCelebration && <Confetti />}
+      <YouAreLiveModal
+        open={showLiveModal}
+        onOpenChange={handleLiveModalClose}
+        handle={state.handle}
+      />
+
       {/* Progress Indicator */}
       <WizardProgress
         currentStep={state.currentStep}
