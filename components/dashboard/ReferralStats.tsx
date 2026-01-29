@@ -1,6 +1,6 @@
 "use client";
 
-import { Copy, Share2, Users } from "lucide-react";
+import { Copy, Gift, Share2 } from "lucide-react";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -14,11 +14,12 @@ interface ReferralStatsProps {
 }
 
 /**
- * Display referral stats and share referral link
+ * Horizontal referral CTA card for dashboard left column
  *
- * Shows:
- * - How many people signed up via referral link
- * - Button to copy referral link
+ * Features:
+ * - Benefit-focused copy ("Help friends land jobs")
+ * - Visible referral count when > 0
+ * - Prominent copy button with focus ring
  */
 export function ReferralStats({ referralCount, handle }: ReferralStatsProps) {
   const [copied, setCopied] = useState(false);
@@ -40,41 +41,44 @@ export function ReferralStats({ referralCount, handle }: ReferralStatsProps) {
   }, [referralUrl]);
 
   return (
-    <div className="bg-white rounded-2xl shadow-depth-sm border border-slate-200/60 p-6 hover:shadow-depth-md hover:-translate-y-0.5 transition-all duration-300">
-      <div className="flex items-start gap-3 mb-4">
-        <div className="relative shrink-0">
-          <div className="absolute inset-0 bg-linear-to-r from-purple-500 to-pink-500 rounded-xl blur-lg opacity-20" />
-          <div className="relative bg-linear-to-r from-purple-100 to-pink-100 p-2 rounded-xl">
-            <Users className="w-5 h-5 text-purple-600" aria-hidden="true" />
-          </div>
-        </div>
+    <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl border border-purple-200/60 p-6 shadow-depth-sm hover:shadow-depth-md transition-shadow duration-300">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex-1">
-          <h3 className="text-lg font-semibold text-slate-900">Referrals</h3>
-          <p className="text-sm text-slate-500">
-            {referralCount > 0
-              ? `${referralCount} ${referralCount === 1 ? "person" : "people"} signed up via your link`
-              : "Share your link to invite others"}
+          <div className="flex items-center gap-2 mb-1">
+            <Gift className="w-5 h-5 text-purple-600" aria-hidden="true" />
+            <h3 className="font-semibold text-slate-900">Help friends land jobs</h3>
+          </div>
+          <p className="text-sm text-slate-600">
+            Know someone job hunting? Share webresume.now with them.
           </p>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-2">
-        <div className="flex-1 bg-slate-50 rounded-lg px-3 py-2 text-sm text-slate-600 truncate font-mono">
-          webresume.now/?ref={handle}
-        </div>
-        <Button variant="outline" size="sm" onClick={handleCopyLink} className="shrink-0">
-          {copied ? (
-            <>
-              <Share2 className="w-4 h-4 mr-1" />
-              Copied!
-            </>
-          ) : (
-            <>
-              <Copy className="w-4 h-4 mr-1" />
-              Copy
-            </>
+          {referralCount > 0 && (
+            <p className="text-xs text-purple-600 font-medium mt-1">
+              {referralCount} {referralCount === 1 ? "person" : "people"} joined via your link
+            </p>
           )}
-        </Button>
+        </div>
+        <div className="flex items-center gap-2">
+          <code className="bg-white/80 px-3 py-2 rounded-lg text-sm font-mono text-slate-600 hidden sm:block">
+            webresume.now/?ref={handle}
+          </code>
+          <Button
+            variant="default"
+            onClick={handleCopyLink}
+            className="shrink-0 bg-purple-600 hover:bg-purple-700 focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-2"
+          >
+            {copied ? (
+              <>
+                <Share2 className="w-4 h-4 mr-2" aria-hidden="true" />
+                Copied!
+              </>
+            ) : (
+              <>
+                <Copy className="w-4 h-4 mr-2" aria-hidden="true" />
+                Copy Link
+              </>
+            )}
+          </Button>
+        </div>
       </div>
     </div>
   );
