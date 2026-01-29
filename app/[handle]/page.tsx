@@ -22,7 +22,10 @@ interface PageProps {
  * Generate dynamic metadata for SEO
  */
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { handle: rawHandle } = await params;
+  const { handle: rawHandleEncoded } = await params;
+
+  // Decode URL-encoded characters (@ becomes %40 in route params)
+  const rawHandle = decodeURIComponent(rawHandleEncoded);
 
   // Handle must start with @ (new URL format: /@username)
   // Old URLs without @ are redirected via next.config.ts
@@ -110,7 +113,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
  * Privacy-sensitive changes purge edge cache immediately via Cloudflare API.
  */
 export default async function HandlePage({ params }: PageProps) {
-  const { handle: rawHandle } = await params;
+  const { handle: rawHandleEncoded } = await params;
+
+  // Decode URL-encoded characters (@ becomes %40 in route params)
+  const rawHandle = decodeURIComponent(rawHandleEncoded);
 
   // Handle must start with @ (new URL format: /@username)
   // Old URLs without @ are redirected via next.config.ts

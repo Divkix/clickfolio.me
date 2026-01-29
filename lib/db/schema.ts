@@ -232,7 +232,10 @@ export const userRelations = relations(user, ({ many, one }) => ({
   sessions: many(session),
   accounts: many(account),
   resumes: many(resumes),
-  siteData: one(siteData),
+  siteData: one(siteData, {
+    fields: [user.id],
+    references: [siteData.userId],
+  }),
   handleChanges: many(handleChanges),
   pageViews: many(pageViews),
 }));

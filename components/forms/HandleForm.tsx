@@ -41,7 +41,7 @@ export function HandleForm({ currentHandle }: HandleFormProps) {
   });
 
   const newHandle = watch("handle");
-  const publicUrl = `${siteConfig.domain}/${newHandle || currentHandle}`;
+  const publicUrl = `${siteConfig.domain}/@${newHandle || currentHandle}`;
 
   const handleCopy = async () => {
     const success = await copyToClipboard(`https://${publicUrl}`);
@@ -111,7 +111,7 @@ export function HandleForm({ currentHandle }: HandleFormProps) {
             <div className="flex gap-2">
               <div className="flex-1 flex items-center gap-2 px-3 py-2 rounded-md border border-gray-300 bg-gray-50 font-mono text-sm">
                 <Link2 className="h-4 w-4 text-gray-400" />
-                <span className="text-gray-900">{siteConfig.domain}/</span>
+                <span className="text-gray-900">{siteConfig.domain}/@</span>
                 <span className="font-semibold text-blue-600">{currentHandle}</span>
               </div>
               <Button
@@ -136,7 +136,7 @@ export function HandleForm({ currentHandle }: HandleFormProps) {
             <div className="flex items-start gap-2">
               <div className="flex-1 space-y-1">
                 <div className="flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2">
-                  <span className="text-sm text-gray-500">{siteConfig.domain}/</span>
+                  <span className="text-sm text-gray-500">{siteConfig.domain}/@</span>
                   <Input
                     id="handle"
                     {...register("handle")}
