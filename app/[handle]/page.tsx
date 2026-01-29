@@ -7,6 +7,7 @@ import { siteConfig } from "@/lib/config/site";
 import { getResumeData, getResumeMetadata } from "@/lib/data/resume";
 import { getTemplate } from "@/lib/templates/theme-registry";
 import { isValidHandleFormat } from "@/lib/utils/handle-validation";
+import { generateResumeJsonLd, serializeJsonLd } from "@/lib/utils/json-ld";
 
 // Dynamic params are always allowed (new handles can be created)
 export const dynamicParams = true;
@@ -21,7 +22,19 @@ interface PageProps {
  * Generate dynamic metadata for SEO
  */
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { handle } = await params;
+  const { handle: rawHandle } = await params;
+
+  // Handle must start with @ (new URL format: /@username)
+  // Old URLs without @ are redirected via next.config.ts
+  if (!rawHandle.startsWith("@")) {
+    return {
+      title: "Not Found",
+      description: "Page not found.",
+    };
+  }
+
+  // Strip @ prefix for DB lookup
+  const handle = rawHandle.slice(1);
 
   // Early reject invalid formats — skips DB query for bot probes, missing files, malformed paths
   // See: lib/utils/handle-validation.ts for why this exists
@@ -41,21 +54,34 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     };
   }
 
-  const { full_name, headline, summary, avatar_url } = data;
+  const { full_name, headline, summary, avatar_url, hide_from_search } = data;
 
   // Truncate summary to 160 characters for meta description
   const description = summary
     ? summary.slice(0, 157) + (summary.length > 157 ? "..." : "")
     : `View ${full_name}'s professional resume and experience.`;
 
+  const profileUrl = `${siteConfig.url}/@${handle}`;
+
   return {
     title: `${full_name}'s Resume — ${siteConfig.fullName}`,
     description,
+    // Canonical URL for proper SEO
+    alternates: {
+      canonical: profileUrl,
+    },
+    // Conditional noindex when user opts out of search indexing
+    ...(hide_from_search && {
+      robots: {
+        index: false,
+        follow: false,
+      },
+    }),
     openGraph: {
       title: `${full_name} — ${headline ?? "Resume"}`,
       description,
       type: "profile",
-      url: `${siteConfig.url}/${handle}`,
+      url: profileUrl,
       images: avatar_url
         ? [
             {
@@ -84,7 +110,16 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
  * Privacy-sensitive changes purge edge cache immediately via Cloudflare API.
  */
 export default async function HandlePage({ params }: PageProps) {
-  const { handle } = await params;
+  const { handle: rawHandle } = await params;
+
+  // Handle must start with @ (new URL format: /@username)
+  // Old URLs without @ are redirected via next.config.ts
+  if (!rawHandle.startsWith("@")) {
+    notFound();
+  }
+
+  // Strip @ prefix for DB lookup
+  const handle = rawHandle.slice(1);
 
   // Early reject invalid formats — skips DB query for bot probes, missing files, malformed paths
   // See: lib/utils/handle-validation.ts for why this exists
@@ -99,7 +134,7 @@ export default async function HandlePage({ params }: PageProps) {
     notFound();
   }
 
-  const { content, profile, theme_id } = data;
+  const { content, profile, theme_id, privacy_settings } = data;
 
   // Dynamically select template based on theme_id
   const Template = await getTemplate(theme_id);
@@ -114,8 +149,31 @@ export default async function HandlePage({ params }: PageProps) {
     | "midnight"
     | "bold_corporate";
 
+  // Generate JSON-LD structured data for SEO (skip if user opted out)
+  const profileUrl = `${siteConfig.url}/@${handle}`;
+  const jsonLd = !privacy_settings.hide_from_search
+    ? generateResumeJsonLd(content, {
+        profileUrl,
+        avatarUrl: profile.avatar_url,
+      })
+    : null;
+
+  // JSON-LD is safe to inject:
+  // - Content is validated at write time (/api/resume/update)
+  // - JSON.stringify properly escapes special characters
+  // - Data is from trusted D1 database, not user input
+  const jsonLdScript = jsonLd ? serializeJsonLd(jsonLd) : null;
+
   return (
     <>
+      {/* JSON-LD structured data for rich search results */}
+      {jsonLdScript && (
+        <script
+          type="application/ld+json"
+          // biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD from trusted DB, JSON.stringify escapes special chars
+          dangerouslySetInnerHTML={{ __html: jsonLdScript }}
+        />
+      )}
       <Template
         content={content}
         profile={{

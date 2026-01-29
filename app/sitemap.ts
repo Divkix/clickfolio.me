@@ -1,9 +1,21 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
-import { count, isNotNull, sql } from "drizzle-orm";
+import { and, count, isNotNull, or, sql } from "drizzle-orm";
 import type { MetadataRoute } from "next";
 
 import { getDb } from "@/lib/db";
 import { siteData, user } from "@/lib/db/schema";
+
+/**
+ * Filter condition for users who haven't opted out of search indexing.
+ * Uses json_extract to check the hide_from_search field in privacySettings.
+ * Returns true for users who:
+ * - Have hide_from_search = false
+ * - Don't have the hide_from_search field (backward compatibility)
+ */
+const notHiddenFromSearch = or(
+  sql`json_extract(${user.privacySettings}, '$.hide_from_search') IS NULL`,
+  sql`json_extract(${user.privacySettings}, '$.hide_from_search') = false`,
+);
 
 const URLS_PER_SITEMAP = 50000; // Google's limit
 
@@ -20,8 +32,11 @@ export async function generateSitemaps(): Promise<Array<{ id: number }>> {
     const { env } = await getCloudflareContext({ async: true });
     const db = getDb(env.DB);
 
-    // Count users with handles (completed onboarding)
-    const [result] = await db.select({ count: count() }).from(user).where(isNotNull(user.handle));
+    // Count users with handles (completed onboarding) who haven't opted out of search
+    const [result] = await db
+      .select({ count: count() })
+      .from(user)
+      .where(and(isNotNull(user.handle), notHiddenFromSearch));
 
     const userCount = result?.count ?? 0;
 
@@ -82,7 +97,7 @@ export default async function sitemap(props: {
     const offset = id * URLS_PER_SITEMAP;
     const limit = URLS_PER_SITEMAP;
 
-    // Query users with handles, join siteData for lastModified
+    // Query users with handles who haven't opted out of search, join siteData for lastModified
     // Only select necessary fields for efficiency
     const users = await db
       .select({
@@ -92,7 +107,7 @@ export default async function sitemap(props: {
       })
       .from(user)
       .leftJoin(siteData, sql`${siteData.userId} = ${user.id}`)
-      .where(isNotNull(user.handle))
+      .where(and(isNotNull(user.handle), notHiddenFromSearch))
       .orderBy(user.handle) // Consistent ordering for pagination
       .limit(limit)
       .offset(offset);
@@ -105,7 +120,7 @@ export default async function sitemap(props: {
       const lastMod = u.siteUpdatedAt || u.userUpdatedAt;
 
       entries.push({
-        url: `${baseUrl}/${u.handle}`,
+        url: `${baseUrl}/@${u.handle}`,
         lastModified: lastMod ? new Date(lastMod) : new Date(),
         changeFrequency: "weekly",
         priority: 0.8,
