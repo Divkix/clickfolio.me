@@ -1,8 +1,15 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { cache } from "react";
 import { getDb } from "@/lib/db";
 import { user } from "@/lib/db/schema";
+import {
+  DEFAULT_THEME,
+  isThemeUnlocked,
+  isValidThemeId,
+  THEME_METADATA,
+  type ThemeId,
+} from "@/lib/templates/theme-ids";
 import type { ResumeContent } from "@/lib/types/database";
 import {
   extractCityState,
@@ -45,6 +52,16 @@ async function fetchResumeDataRaw(handle: string): Promise<ResumeData | null> {
   // Fetch user by handle with siteData relation
   const userData = await db.query.user.findFirst({
     where: eq(user.handle, handle),
+    columns: {
+      id: true,
+      name: true,
+      email: true,
+      handle: true,
+      headline: true,
+      image: true,
+      privacySettings: true,
+      isPro: true,
+    },
     with: {
       siteData: true,
     },
@@ -87,6 +104,33 @@ async function fetchResumeDataRaw(handle: string): Promise<ResumeData | null> {
     isValidPrivacySettings(parsedPrivacySettings) ? parsedPrivacySettings : null,
   );
 
+  // Defense-in-depth: Validate theme is unlocked before returning
+  // This catches edge cases where theme was set directly in DB or via API bypass
+  let themeId = userData.siteData.themeId;
+
+  if (themeId && isValidThemeId(themeId)) {
+    const themeMetadata = THEME_METADATA[themeId as ThemeId];
+
+    // Only check referral count if theme requires referrals
+    if (themeMetadata.referralsRequired > 0) {
+      const referralCountResult = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(user)
+        .where(eq(user.referredBy, userData.id));
+      const referralCount = referralCountResult[0]?.count ?? 0;
+      const isPro = userData.isPro ?? false;
+
+      if (!isThemeUnlocked(themeId as ThemeId, referralCount, isPro)) {
+        console.warn(
+          `[theme-defense] User ${userData.id} has locked theme ${themeId}. Falling back to default.`,
+        );
+        themeId = DEFAULT_THEME;
+      }
+    }
+  } else {
+    themeId = DEFAULT_THEME;
+  }
+
   // Create defensive copy of contact to avoid mutating parsed JSON
   if (content.contact) {
     content = {
@@ -114,7 +158,7 @@ async function fetchResumeDataRaw(handle: string): Promise<ResumeData | null> {
       headline: userData.headline,
     },
     content,
-    theme_id: userData.siteData.themeId,
+    theme_id: themeId,
     privacy_settings: privacySettings,
   };
 }
