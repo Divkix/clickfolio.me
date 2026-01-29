@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { signOut } from "@/lib/auth/client";
@@ -21,16 +20,6 @@ interface DeleteApiResponse {
   warnings?: Array<{ type: string; message: string }>;
 }
 
-/**
- * DeleteAccountCard - Danger zone component for permanent account deletion
- *
- * Features:
- * - Red "Danger Zone" styling
- * - Confirmation dialog requiring email input
- * - Loading state during deletion
- * - Automatic sign out and redirect on success
- * - Error handling with toast notifications
- */
 export function DeleteAccountCard({ userEmail }: DeleteAccountCardProps) {
   const router = useRouter();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -38,7 +27,6 @@ export function DeleteAccountCard({ userEmail }: DeleteAccountCardProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Check if email matches (case-insensitive)
   const emailMatches = confirmation.toLowerCase() === userEmail.toLowerCase();
 
   const handleDelete = async () => {
@@ -66,24 +54,18 @@ export function DeleteAccountCard({ userEmail }: DeleteAccountCardProps) {
         return;
       }
 
-      // Show warnings if any
       if (data.warnings && data.warnings.length > 0) {
         data.warnings.forEach((warning) => {
           toast.warning(`Warning: ${warning.message}`);
         });
       }
 
-      // Success - sign out and redirect
       toast.success("Your account has been deleted");
-
-      // Close dialog before sign out
       setIsDialogOpen(false);
 
-      // Sign out the user
       await signOut({
         fetchOptions: {
           onSuccess: () => {
-            // Redirect to homepage after sign out
             router.push("/");
             router.refresh();
           },
@@ -100,7 +82,7 @@ export function DeleteAccountCard({ userEmail }: DeleteAccountCardProps) {
   };
 
   const handleDialogClose = () => {
-    if (isDeleting) return; // Prevent closing during deletion
+    if (isDeleting) return;
     setIsDialogOpen(false);
     setConfirmation("");
     setError(null);
@@ -108,32 +90,28 @@ export function DeleteAccountCard({ userEmail }: DeleteAccountCardProps) {
 
   return (
     <>
-      <Card className="shadow-depth-sm border-red-200 hover:shadow-depth-md transition-all duration-300">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-red-900">
-            <AlertTriangle className="h-5 w-5 text-red-600" />
-            Danger Zone
-          </CardTitle>
-          <CardDescription className="text-red-700">
-            Irreversible actions for your account
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="rounded-lg border border-red-200 bg-red-50 p-4 space-y-4">
-            <div>
-              <h3 className="font-medium text-red-900">Delete Account</h3>
-              <p className="text-sm text-red-700 mt-1">
-                Permanently delete your account and all associated data. This action cannot be
-                undone.
-              </p>
+      {/* Compact inline danger zone row */}
+      <div className="rounded-2xl border border-red-200 bg-red-50/50 p-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="shrink-0 rounded-lg bg-red-100 p-2">
+              <AlertTriangle className="h-5 w-5 text-red-600" />
             </div>
-            <Button variant="destructive" onClick={() => setIsDialogOpen(true)} className="gap-2">
-              <Trash2 className="h-4 w-4" />
-              Delete Account
-            </Button>
+            <div className="min-w-0">
+              <h3 className="font-semibold text-red-900">Danger Zone</h3>
+              <p className="text-sm text-red-700">Delete your account and all data permanently</p>
+            </div>
           </div>
-        </CardContent>
-      </Card>
+          <Button
+            variant="destructive"
+            onClick={() => setIsDialogOpen(true)}
+            className="shrink-0 gap-2"
+          >
+            <Trash2 className="h-4 w-4" />
+            Delete Account
+          </Button>
+        </div>
+      </div>
 
       <Dialog open={isDialogOpen} onOpenChange={handleDialogClose}>
         <DialogContent className="sm:max-w-md">

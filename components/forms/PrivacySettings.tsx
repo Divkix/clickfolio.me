@@ -1,14 +1,12 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Eye, EyeOff, Loader2, Search, SearchX } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import { Eye, Loader2, MapPin, Phone, Search, SearchX } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { siteConfig } from "@/lib/config/site";
 import { type PrivacySettings, privacySettingsSchema } from "@/lib/schemas/profile";
 
 interface PrivacySettingsFormProps {
@@ -21,8 +19,65 @@ interface ErrorResponse {
   message?: string;
 }
 
-export function PrivacySettingsForm({ initialSettings, userHandle }: PrivacySettingsFormProps) {
+interface ToggleCardProps {
+  icon: LucideIcon;
+  label: string;
+  description: string;
+  checked: boolean;
+  onCheckedChange: (checked: boolean) => void;
+  disabled: boolean;
+  variant?: "default" | "warning";
+}
+
+function ToggleCard({
+  icon: Icon,
+  label,
+  description,
+  checked,
+  onCheckedChange,
+  disabled,
+  variant = "default",
+}: ToggleCardProps) {
+  const isWarning = variant === "warning" && checked;
+
+  return (
+    <div
+      className={`relative rounded-xl border p-4 transition-all duration-200 ${
+        isWarning
+          ? "border-amber-200 bg-amber-50/50"
+          : "border-slate-200/60 bg-slate-50/50 hover:border-slate-300"
+      }`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <div
+            className={`shrink-0 rounded-lg p-2 ${
+              isWarning ? "bg-amber-100 text-amber-600" : "bg-indigo-100 text-indigo-600"
+            }`}
+          >
+            <Icon className="h-4 w-4" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-slate-900 truncate">{label}</p>
+            <p className={`text-xs mt-0.5 ${isWarning ? "text-amber-700" : "text-slate-500"}`}>
+              {description}
+            </p>
+          </div>
+        </div>
+        <Switch
+          checked={checked}
+          onCheckedChange={onCheckedChange}
+          disabled={disabled}
+          className="shrink-0"
+        />
+      </div>
+    </div>
+  );
+}
+
+export function PrivacySettingsForm({ initialSettings }: PrivacySettingsFormProps) {
   const [isSaving, setIsSaving] = useState(false);
+  const [savingField, setSavingField] = useState<string | null>(null);
 
   const { watch, setValue } = useForm<PrivacySettings>({
     resolver: zodResolver(privacySettingsSchema),
@@ -50,20 +105,20 @@ export function PrivacySettingsForm({ initialSettings, userHandle }: PrivacySett
         throw new Error(errorData.message || "Failed to update privacy settings");
       }
 
-      toast.success("Privacy settings updated successfully");
+      toast.success("Privacy settings updated");
     } catch (err) {
       console.error("Privacy update error:", err);
       toast.error(err instanceof Error ? err.message : "Failed to update privacy settings");
     } finally {
       setIsSaving(false);
+      setSavingField(null);
     }
   };
 
-  // Auto-save on toggle change
   const handleToggleChange = async (field: keyof PrivacySettings, value: boolean) => {
     setValue(field, value, { shouldValidate: true });
+    setSavingField(field);
 
-    // Trigger save with new value
     const newSettings = {
       show_phone: field === "show_phone" ? value : showPhone,
       show_address: field === "show_address" ? value : showAddress,
@@ -74,156 +129,76 @@ export function PrivacySettingsForm({ initialSettings, userHandle }: PrivacySett
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Eye className="h-5 w-5" />
-          Privacy Settings
-        </CardTitle>
-        <CardDescription>
-          Control what information is visible on your public resume page
-          {userHandle && (
-            <span className="block mt-1 text-xs">
-              Preview at:{" "}
-              <span className="font-mono">
-                {siteConfig.domain}/{userHandle}
-              </span>
-            </span>
-          )}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Phone Number Toggle */}
-        <div className="flex items-start justify-between gap-4 rounded-lg border border-gray-200 p-4">
-          <div className="flex-1 space-y-1">
-            <Label htmlFor="show_phone" className="text-base font-medium cursor-pointer">
-              Show phone number
-            </Label>
-            <p className="text-sm text-gray-500">
-              {showPhone
-                ? "Your phone number will be visible on your public resume"
-                : "Your phone number will be hidden from your public resume"}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            {isSaving && <Loader2 className="h-4 w-4 animate-spin text-gray-500" />}
-            <Switch
-              id="show_phone"
-              checked={showPhone}
-              onCheckedChange={(checked) => handleToggleChange("show_phone", checked)}
-              disabled={isSaving}
-              aria-label="Toggle phone number visibility"
-            />
-          </div>
+    <div className="bg-white rounded-2xl shadow-depth-sm border border-slate-200/60 p-6">
+      <div className="flex items-center justify-between gap-4 mb-4">
+        <div className="flex items-center gap-2">
+          <Eye className="h-5 w-5 text-indigo-600" />
+          <h3 className="text-lg font-semibold text-slate-900">Privacy</h3>
         </div>
-
-        {/* Address Toggle */}
-        <div className="flex items-start justify-between gap-4 rounded-lg border border-gray-200 p-4">
-          <div className="flex-1 space-y-1">
-            <Label htmlFor="show_address" className="text-base font-medium cursor-pointer">
-              Show full address
-            </Label>
-            <p className="text-sm text-gray-500">
-              {showAddress
-                ? "Your full street address will be shown on your public resume"
-                : "Only your city and state will be shown (street address hidden)"}
-            </p>
+        {isSaving && (
+          <div className="flex items-center gap-2 text-sm text-slate-500">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span>Saving...</span>
           </div>
-          <div className="flex items-center gap-2">
-            {isSaving && <Loader2 className="h-4 w-4 animate-spin text-gray-500" />}
-            <Switch
-              id="show_address"
-              checked={showAddress}
-              onCheckedChange={(checked) => handleToggleChange("show_address", checked)}
-              disabled={isSaving}
-              aria-label="Toggle address visibility"
-            />
-          </div>
-        </div>
+        )}
+      </div>
 
-        {/* Search Engine Visibility Toggle */}
-        <div
-          className={`flex items-start justify-between gap-4 rounded-lg border p-4 ${
-            hideFromSearch ? "border-amber-300 bg-amber-50" : "border-gray-200"
+      {/* Compact toggle grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+        <ToggleCard
+          icon={Phone}
+          label="Phone"
+          description={showPhone ? "Visible" : "Hidden"}
+          checked={showPhone}
+          onCheckedChange={(checked) => handleToggleChange("show_phone", checked)}
+          disabled={isSaving && savingField === "show_phone"}
+        />
+        <ToggleCard
+          icon={MapPin}
+          label="Address"
+          description={showAddress ? "Full address" : "City only"}
+          checked={showAddress}
+          onCheckedChange={(checked) => handleToggleChange("show_address", checked)}
+          disabled={isSaving && savingField === "show_address"}
+        />
+        <ToggleCard
+          icon={hideFromSearch ? SearchX : Search}
+          label="Search"
+          description={hideFromSearch ? "Hidden" : "Indexed"}
+          checked={hideFromSearch ?? false}
+          onCheckedChange={(checked) => handleToggleChange("hide_from_search", checked)}
+          disabled={isSaving && savingField === "hide_from_search"}
+          variant="warning"
+        />
+      </div>
+
+      {/* Inline status badges */}
+      <div className="flex flex-wrap gap-2 text-xs">
+        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-slate-100 text-slate-600">
+          Email: <span className="font-medium">Always visible</span>
+        </span>
+        <span
+          className={`inline-flex items-center gap-1 px-2 py-1 rounded-md ${
+            showPhone ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-600"
           }`}
         >
-          <div className="flex-1 space-y-1">
-            <Label
-              htmlFor="hide_from_search"
-              className="text-base font-medium cursor-pointer flex items-center gap-2"
-            >
-              {hideFromSearch ? (
-                <SearchX className="h-4 w-4 text-amber-600" />
-              ) : (
-                <Search className="h-4 w-4 text-gray-600" />
-              )}
-              Hide from search engines
-            </Label>
-            <p className={`text-sm ${hideFromSearch ? "text-amber-700" : "text-gray-500"}`}>
-              {hideFromSearch
-                ? "Your resume will not be indexed by Google or other search engines"
-                : "Your resume can be discovered through search engines with rich snippets"}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            {isSaving && <Loader2 className="h-4 w-4 animate-spin text-gray-500" />}
-            <Switch
-              id="hide_from_search"
-              checked={hideFromSearch ?? false}
-              onCheckedChange={(checked) => handleToggleChange("hide_from_search", checked)}
-              disabled={isSaving}
-              aria-label="Toggle search engine visibility"
-            />
-          </div>
-        </div>
-
-        {/* Privacy Notice */}
-        <div className="rounded-lg bg-blue-50 border border-blue-200 p-4">
-          <div className="flex gap-3">
-            <EyeOff className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
-            <div className="text-sm text-blue-900">
-              <p className="font-medium mb-1">Privacy by Default</p>
-              <p className="text-blue-700">
-                Your email is always visible (using secure mailto: links). We hide sensitive contact
-                information by default to protect your privacy.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Current Status Summary */}
-        <div className="pt-4 border-t border-gray-200">
-          <p className="text-xs font-medium text-gray-700 mb-2">Current Privacy Status:</p>
-          <div className="flex flex-wrap gap-2">
-            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs bg-gray-100 text-gray-700">
-              Email: <span className="font-medium">Always visible</span>
-            </span>
-            <span
-              className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs ${
-                showPhone ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"
-              }`}
-            >
-              Phone: <span className="font-medium">{showPhone ? "Visible" : "Hidden"}</span>
-            </span>
-            <span
-              className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs ${
-                showAddress ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"
-              }`}
-            >
-              Address:{" "}
-              <span className="font-medium">{showAddress ? "Full" : "City/State only"}</span>
-            </span>
-            <span
-              className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs ${
-                hideFromSearch ? "bg-amber-100 text-amber-700" : "bg-green-100 text-green-700"
-              }`}
-            >
-              Search:{" "}
-              <span className="font-medium">{hideFromSearch ? "Hidden" : "Discoverable"}</span>
-            </span>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+          Phone: <span className="font-medium">{showPhone ? "Visible" : "Hidden"}</span>
+        </span>
+        <span
+          className={`inline-flex items-center gap-1 px-2 py-1 rounded-md ${
+            showAddress ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-600"
+          }`}
+        >
+          Address: <span className="font-medium">{showAddress ? "Full" : "City only"}</span>
+        </span>
+        <span
+          className={`inline-flex items-center gap-1 px-2 py-1 rounded-md ${
+            hideFromSearch ? "bg-amber-100 text-amber-700" : "bg-green-100 text-green-700"
+          }`}
+        >
+          Search: <span className="font-medium">{hideFromSearch ? "Hidden" : "Indexed"}</span>
+        </span>
+      </div>
+    </div>
   );
 }
