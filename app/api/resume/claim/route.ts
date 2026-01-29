@@ -6,6 +6,7 @@ import { resumes, siteData } from "@/lib/db/schema";
 import type { getSessionDb } from "@/lib/db/session";
 import { publishResumeParse } from "@/lib/queue/resume-parse";
 import { getR2Binding, R2 } from "@/lib/r2";
+import { writeReferral } from "@/lib/referral";
 import { enforceRateLimit } from "@/lib/utils/rate-limit";
 import {
   createErrorResponse,
@@ -16,6 +17,7 @@ import { MAX_FILE_SIZE, validateRequestSize } from "@/lib/utils/validation";
 
 interface ClaimRequestBody {
   key?: string;
+  referral_handle?: string;
 }
 
 /**
@@ -210,6 +212,19 @@ export async function POST(request: Request) {
         ERROR_CODES.DATABASE_ERROR,
         500,
       );
+    }
+
+    // 5a. Link referral if provided (best effort - don't fail claim on referral errors)
+    if (body.referral_handle) {
+      try {
+        const referralResult = await writeReferral(userId, body.referral_handle);
+        if (!referralResult.success) {
+          console.log(`Referral not linked: ${referralResult.reason}`);
+        }
+      } catch (referralError) {
+        console.error("Referral linking error:", referralError);
+        // Don't fail the claim for referral errors
+      }
     }
 
     // 5b. Check for cached parse result (same file uploaded before BY THIS USER)

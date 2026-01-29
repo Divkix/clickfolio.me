@@ -27,7 +27,7 @@ import { Separator } from "@/components/ui/separator";
 import { getServerSession } from "@/lib/auth/session";
 import { siteConfig } from "@/lib/config/site";
 import { getDb } from "@/lib/db";
-import { type Resume, resumes, type siteData, user } from "@/lib/db/schema";
+import { type Resume, referralClicks, resumes, type siteData, user } from "@/lib/db/schema";
 import type { ResumeContent } from "@/lib/types/database";
 
 /**
@@ -181,12 +181,19 @@ export default async function DashboardPage() {
   const resume = (userData?.resumes?.[0] ?? null) as Resume | null;
   const siteDataResult = (userData?.siteData ?? null) as typeof siteData.$inferSelect | null;
 
-  // Get referral count
-  const referralCountResult = await db
-    .select({ count: sql<number>`count(*)` })
-    .from(user)
-    .where(eq(user.referredBy, session.user.id));
+  // Get referral stats (conversions and clicks) in parallel
+  const [referralCountResult, clickCountResult] = await Promise.all([
+    db
+      .select({ count: sql<number>`count(*)` })
+      .from(user)
+      .where(eq(user.referredBy, session.user.id)),
+    db
+      .select({ count: sql<number>`count(*)` })
+      .from(referralClicks)
+      .where(eq(referralClicks.referrerUserId, session.user.id)),
+  ]);
   const referralCount = referralCountResult[0]?.count ?? 0;
+  const clickCount = clickCountResult[0]?.count ?? 0;
 
   // Safety net: Redirect to wizard if onboarding is incomplete
   // This catches edge cases where users bypass the wizard flow
@@ -501,7 +508,11 @@ export default async function DashboardPage() {
 
                 {/* Referral CTA - Now prominent in left column */}
                 {profile?.handle && (
-                  <ReferralStats referralCount={referralCount} handle={profile.handle} />
+                  <ReferralStats
+                    referralCount={referralCount}
+                    clickCount={clickCount}
+                    handle={profile.handle}
+                  />
                 )}
               </div>
 

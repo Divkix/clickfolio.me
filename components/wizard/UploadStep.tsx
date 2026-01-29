@@ -5,6 +5,7 @@ import { type ChangeEvent, type DragEvent, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { clearStoredReferralHandle, getStoredReferralHandle } from "@/lib/referral";
 import type { ResumeContent } from "@/lib/types/database";
 import { validatePDF } from "@/lib/utils/validation";
 import { waitForResumeCompletion } from "@/lib/utils/wait-for-completion";
@@ -149,10 +150,14 @@ export function UploadStep({ onContinue }: UploadStepProps) {
       setUploadState("claiming");
 
       // Step 2: Claim the upload (hash computed server-side)
+      const referralHandle = getStoredReferralHandle();
       const claimResponse = await fetch("/api/resume/claim", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key }),
+        body: JSON.stringify({
+          key,
+          referral_handle: referralHandle || undefined,
+        }),
       });
 
       if (!claimResponse.ok) {
@@ -174,6 +179,7 @@ export function UploadStep({ onContinue }: UploadStepProps) {
           const siteData = (await siteDataResponse.json()) as SiteDataResponse | null;
           if (siteData?.content) {
             setUploadProgress(100);
+            clearStoredReferralHandle();
             toast.success("Resume parsed successfully!");
             onContinue(siteData.content);
             return;
@@ -187,6 +193,7 @@ export function UploadStep({ onContinue }: UploadStepProps) {
 
       if (parsingResult) {
         setUploadProgress(100);
+        clearStoredReferralHandle();
         toast.success("Resume parsed successfully!");
         onContinue(parsingResult);
       }

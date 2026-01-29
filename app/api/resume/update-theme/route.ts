@@ -1,8 +1,14 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
-import { siteData } from "@/lib/db/schema";
-import { isValidThemeId, THEME_IDS } from "@/lib/templates/theme-ids";
+import { siteData, user } from "@/lib/db/schema";
+import {
+  getThemeReferralRequirement,
+  isThemeUnlocked,
+  isValidThemeId,
+  THEME_IDS,
+  type ThemeId,
+} from "@/lib/templates/theme-ids";
 import {
   createErrorResponse,
   createSuccessResponse,
@@ -44,6 +50,26 @@ export async function POST(request: Request) {
       return createErrorResponse("Invalid theme_id provided", ERROR_CODES.VALIDATION_ERROR, 400, {
         valid_themes: [...THEME_IDS],
       });
+    }
+
+    // 5b. Check if theme is locked behind referral requirement
+    const referralCountResult = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(user)
+      .where(eq(user.referredBy, userId));
+    const referralCount = referralCountResult[0]?.count ?? 0;
+
+    if (!isThemeUnlocked(theme_id as ThemeId, referralCount)) {
+      const required = getThemeReferralRequirement(theme_id as ThemeId);
+      return createErrorResponse(
+        `This theme requires ${required} referral${required === 1 ? "" : "s"} to unlock. You have ${referralCount}.`,
+        ERROR_CODES.FORBIDDEN,
+        403,
+        {
+          required_referrals: required,
+          current_referrals: referralCount,
+        },
+      );
     }
 
     const now = new Date().toISOString();

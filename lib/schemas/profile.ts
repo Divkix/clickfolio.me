@@ -25,6 +25,9 @@ export const privacySettingsSchema = z.object({
   hide_from_search: z.boolean({
     message: "Search visibility setting must be a boolean",
   }),
+  show_in_directory: z.boolean({
+    message: "Directory visibility setting must be a boolean",
+  }),
 });
 
 /**

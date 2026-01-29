@@ -1,11 +1,12 @@
 "use client";
 
-import { CheckCircle2, Loader2 } from "lucide-react";
+import { CheckCircle2, Gift, Loader2, Lock } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { TEMPLATE_BACKGROUNDS } from "@/lib/templates/demo-data";
 import {
   DYNAMIC_TEMPLATES,
+  isThemeUnlocked,
   THEME_IDS,
   THEME_METADATA,
   type ThemeId,
@@ -20,13 +21,20 @@ interface ThemeSelectorProps {
     handle: string;
     avatar_url: string | null;
   };
+  /** User's current referral count for theme unlock status */
+  referralCount: number;
 }
 
 interface ErrorResponse {
   error?: string;
 }
 
-export function ThemeSelector({ initialThemeId, initialContent, profile }: ThemeSelectorProps) {
+export function ThemeSelector({
+  initialThemeId,
+  initialContent,
+  profile,
+  referralCount,
+}: ThemeSelectorProps) {
   const router = useRouter();
   const [savedTheme, setSavedTheme] = useState<ThemeId>(initialThemeId as ThemeId);
   const [selectedTheme, setSelectedTheme] = useState<ThemeId>(initialThemeId as ThemeId);
@@ -148,6 +156,8 @@ export function ThemeSelector({ initialThemeId, initialContent, profile }: Theme
             const meta = THEME_METADATA[themeId];
             const isSelected = selectedTheme === themeId;
             const isActive = savedTheme === themeId;
+            const isUnlocked = isThemeUnlocked(themeId, referralCount);
+            const requiredReferrals = meta.referralsRequired;
 
             return (
               <button
@@ -155,40 +165,66 @@ export function ThemeSelector({ initialThemeId, initialContent, profile }: Theme
                 type="button"
                 role="option"
                 aria-selected={isSelected}
-                onClick={() => setSelectedTheme(themeId)}
+                aria-disabled={!isUnlocked}
+                onClick={() => isUnlocked && setSelectedTheme(themeId)}
                 className={cn(
                   "relative flex-shrink-0 w-28 md:w-36 rounded-lg overflow-hidden transition-all duration-200",
                   "border-2 bg-white",
                   "focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2",
-                  isSelected
-                    ? "border-indigo-600 ring-2 ring-indigo-100 shadow-lg"
-                    : "border-slate-200 hover:border-slate-300 hover:shadow-md",
+                  isUnlocked
+                    ? isSelected
+                      ? "border-indigo-600 ring-2 ring-indigo-100 shadow-lg"
+                      : "border-slate-200 hover:border-slate-300 hover:shadow-md cursor-pointer"
+                    : "border-slate-200 opacity-75 cursor-not-allowed",
                 )}
               >
                 {/* Thumbnail Image */}
-                <div className="aspect-[4/3] bg-slate-100 overflow-hidden">
+                <div className="aspect-[4/3] bg-slate-100 overflow-hidden relative">
                   <img
                     src={meta.preview}
                     alt={`${meta.name} preview`}
-                    className="w-full h-full object-cover object-top"
+                    className={cn(
+                      "w-full h-full object-cover object-top",
+                      !isUnlocked && "blur-[2px] grayscale",
+                    )}
                     loading="lazy"
                   />
+                  {/* Lock Overlay for locked themes */}
+                  {!isUnlocked && (
+                    <div className="absolute inset-0 bg-slate-900/40 flex flex-col items-center justify-center">
+                      <Lock className="w-5 h-5 text-white mb-1" />
+                      <span className="text-[10px] text-white font-semibold">
+                        {requiredReferrals} referrals
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Theme Name */}
                 <div className="p-2 text-center">
-                  <span className="text-xs md:text-sm font-semibold text-slate-900 truncate block">
+                  <span
+                    className={cn(
+                      "text-xs md:text-sm font-semibold truncate block",
+                      isUnlocked ? "text-slate-900" : "text-slate-500",
+                    )}
+                  >
                     {meta.name}
                   </span>
-                  {isActive && (
+                  {isActive && isUnlocked && (
                     <span className="inline-block mt-1 text-[10px] md:text-xs font-bold text-indigo-600 uppercase tracking-wide">
                       Active
+                    </span>
+                  )}
+                  {!isUnlocked && (
+                    <span className="inline-flex items-center gap-1 mt-1 text-[10px] md:text-xs font-medium text-amber-600">
+                      <Gift className="w-3 h-3" />
+                      Locked
                     </span>
                   )}
                 </div>
 
                 {/* Selection Indicator */}
-                {isSelected && (
+                {isSelected && isUnlocked && (
                   <div className="absolute top-2 right-2 w-5 h-5 bg-indigo-600 rounded-full flex items-center justify-center">
                     <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
                       <title>Selected</title>

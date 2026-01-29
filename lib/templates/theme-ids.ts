@@ -27,6 +27,7 @@ export function isValidThemeId(id: string): id is ThemeId {
 
 /**
  * Theme metadata for UI display
+ * referralsRequired: 0 = free, >0 = requires N referrals to unlock
  */
 export const THEME_METADATA: Record<
   ThemeId,
@@ -35,6 +36,7 @@ export const THEME_METADATA: Record<
     readonly description: string;
     readonly category: string;
     readonly preview: string;
+    readonly referralsRequired: number;
   }
 > = {
   bento: {
@@ -42,41 +44,70 @@ export const THEME_METADATA: Record<
     description: "Modern mosaic layout with colorful cards",
     category: "Modern",
     preview: "/previews/bento.png",
+    referralsRequired: 0, // Free
   },
   bold_corporate: {
     name: "Bold Corporate",
     description: "Executive typography with bold numbered sections",
     category: "Professional",
     preview: "/previews/bold-corporate.png",
+    referralsRequired: 10, // Premium - 10 referrals
   },
   glass: {
     name: "Glass Morphic",
     description: "Dark theme with frosted glass effects",
     category: "Modern",
     preview: "/previews/glass.png",
+    referralsRequired: 3, // Premium - 3 referrals
   },
   midnight: {
     name: "Midnight",
     description: "Dark minimal with serif headings and gold accents",
     category: "Modern",
     preview: "/previews/midnight.png",
+    referralsRequired: 5, // Premium - 5 referrals
   },
   minimalist_editorial: {
     name: "Minimalist Editorial",
     description: "Clean magazine-style layout with serif typography",
     category: "Professional",
     preview: "/previews/minimalist.png",
+    referralsRequired: 0, // Free (default)
   },
   neo_brutalist: {
     name: "Neo Brutalist",
     description: "Bold design with thick borders and loud colors",
     category: "Creative",
     preview: "/previews/brutalist.png",
+    referralsRequired: 0, // Free
   },
   spotlight: {
     name: "Spotlight",
     description: "Warm creative portfolio with animated sections",
     category: "Creative",
     preview: "/previews/spotlight.png",
+    referralsRequired: 3, // Premium - 3 referrals
   },
 } as const;
+
+/**
+ * Check if a theme is unlocked for a user based on their referral count
+ */
+export function isThemeUnlocked(themeId: ThemeId, referralCount: number): boolean {
+  const metadata = THEME_METADATA[themeId];
+  return referralCount >= metadata.referralsRequired;
+}
+
+/**
+ * Get the referral requirement for a theme
+ */
+export function getThemeReferralRequirement(themeId: ThemeId): number {
+  return THEME_METADATA[themeId].referralsRequired;
+}
+
+/**
+ * Get all unlocked themes for a user
+ */
+export function getUnlockedThemes(referralCount: number): ThemeId[] {
+  return THEME_IDS.filter((id) => isThemeUnlocked(id, referralCount));
+}

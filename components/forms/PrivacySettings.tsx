@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { LucideIcon } from "lucide-react";
-import { Eye, Loader2, MapPin, Phone, Search, SearchX } from "lucide-react";
+import { Eye, Globe, Loader2, MapPin, Phone, Search, SearchX, Users } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -87,6 +87,7 @@ export function PrivacySettingsForm({ initialSettings }: PrivacySettingsFormProp
   const showPhone = watch("show_phone");
   const showAddress = watch("show_address");
   const hideFromSearch = watch("hide_from_search");
+  const showInDirectory = watch("show_in_directory");
 
   const onSubmit = async (data: PrivacySettings) => {
     setIsSaving(true);
@@ -123,6 +124,7 @@ export function PrivacySettingsForm({ initialSettings }: PrivacySettingsFormProp
       show_phone: field === "show_phone" ? value : showPhone,
       show_address: field === "show_address" ? value : showAddress,
       hide_from_search: field === "hide_from_search" ? value : (hideFromSearch ?? false),
+      show_in_directory: field === "show_in_directory" ? value : (showInDirectory ?? false),
     };
 
     await onSubmit(newSettings);
@@ -144,7 +146,7 @@ export function PrivacySettingsForm({ initialSettings }: PrivacySettingsFormProp
       </div>
 
       {/* Compact toggle grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
         <ToggleCard
           icon={Phone}
           label="Phone"
@@ -169,6 +171,14 @@ export function PrivacySettingsForm({ initialSettings }: PrivacySettingsFormProp
           onCheckedChange={(checked) => handleToggleChange("hide_from_search", checked)}
           disabled={isSaving && savingField === "hide_from_search"}
           variant="warning"
+        />
+        <ToggleCard
+          icon={showInDirectory ? Users : Globe}
+          label="Directory"
+          description={showInDirectory ? "Listed on /explore" : "Not listed"}
+          checked={showInDirectory ?? false}
+          onCheckedChange={(checked) => handleToggleChange("show_in_directory", checked)}
+          disabled={isSaving && savingField === "show_in_directory"}
         />
       </div>
 
@@ -197,6 +207,14 @@ export function PrivacySettingsForm({ initialSettings }: PrivacySettingsFormProp
           }`}
         >
           Search: <span className="font-medium">{hideFromSearch ? "Hidden" : "Indexed"}</span>
+        </span>
+        <span
+          className={`inline-flex items-center gap-1 px-2 py-1 rounded-md ${
+            showInDirectory ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-600"
+          }`}
+        >
+          Directory:{" "}
+          <span className="font-medium">{showInDirectory ? "Listed" : "Not listed"}</span>
         </span>
       </div>
     </div>

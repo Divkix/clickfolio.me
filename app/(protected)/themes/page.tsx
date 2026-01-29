@@ -1,5 +1,5 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { ThemeSelector } from "@/components/dashboard/ThemeSelector";
 import { getServerSession } from "@/lib/auth/session";
@@ -25,8 +25,8 @@ export default async function ThemesPage() {
   const { env } = await getCloudflareContext({ async: true });
   const db = getDb(env.DB);
 
-  // 3. Fetch user's site data (theme + content) and profile info in parallel
-  const [userSiteData, userProfile] = await Promise.all([
+  // 3. Fetch user's site data (theme + content), profile info, and referral count in parallel
+  const [userSiteData, userProfile, referralCountResult] = await Promise.all([
     db.query.siteData.findFirst({
       where: eq(siteData.userId, session.user.id),
       columns: { themeId: true, content: true },
@@ -35,7 +35,13 @@ export default async function ThemesPage() {
       where: eq(user.id, session.user.id),
       columns: { handle: true, image: true },
     }),
+    db
+      .select({ count: sql<number>`count(*)` })
+      .from(user)
+      .where(eq(user.referredBy, session.user.id)),
   ]);
+
+  const referralCount = referralCountResult[0]?.count ?? 0;
 
   // Redirect to dashboard if no resume has been uploaded/parsed yet
   if (!userSiteData?.content) {
@@ -57,6 +63,7 @@ export default async function ThemesPage() {
           initialThemeId={currentThemeId}
           initialContent={parsedContent}
           profile={profile}
+          referralCount={referralCount}
         />
       </div>
     </div>

@@ -9,9 +9,9 @@
  */
 
 import { getCloudflareContext } from "@opennextjs/cloudflare";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db";
-import { user } from "@/lib/db/schema";
+import { referralClicks, user } from "@/lib/db/schema";
 
 const REFERRAL_KEY = "referral_handle";
 
@@ -118,6 +118,23 @@ export async function writeReferral(
 
   // Write referral
   await db.update(user).set({ referredBy: referrerId }).where(eq(user.id, userId));
+
+  // Mark any unconverted clicks from this referrer as converted
+  // (best effort - don't fail if this doesn't work)
+  try {
+    await db
+      .update(referralClicks)
+      .set({
+        converted: true,
+        convertedUserId: userId,
+      })
+      .where(
+        and(eq(referralClicks.referrerUserId, referrerId), eq(referralClicks.converted, false)),
+      );
+  } catch (error) {
+    console.error("Failed to mark referral clicks as converted:", error);
+    // Don't fail the referral write
+  }
 
   return { success: true };
 }
