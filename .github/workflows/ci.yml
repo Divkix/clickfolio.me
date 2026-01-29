@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   ci:
-    name: Type Check, Lint, Knip, Build
+    name: Type Check, Lint, Test, Knip, Build
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -42,6 +42,9 @@ jobs:
 
       - name: Lint
         run: bun run lint
+
+      - name: Test
+        run: bun run test
 
       - name: Check unused code
         run: bunx knip
