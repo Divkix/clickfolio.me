@@ -14,10 +14,16 @@ import { SECURITY_HEADERS } from "./security-headers";
  * false positives from legitimate profile updates.
  */
 const RATE_LIMITS = {
-  resume_update: { limit: 10, windowHours: 1 },
+  resume_update: {
+    limit: Number(process.env.RATE_LIMIT_UPDATES_PER_HOUR) || 10,
+    windowHours: 1,
+  },
   privacy_update: { limit: 20, windowHours: 1 },
   handle_change: { limit: 3, windowHours: 24 },
-  resume_upload: { limit: 5, windowHours: 24 },
+  resume_upload: {
+    limit: Number(process.env.RATE_LIMIT_UPLOADS_PER_DAY) || 5,
+    windowHours: 24,
+  },
 } as const;
 
 type RateLimitAction = keyof typeof RATE_LIMITS;

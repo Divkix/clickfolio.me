@@ -17,7 +17,7 @@ const nextConfig: NextConfig = {
   // Configure for Cloudflare deployment
   experimental: {
     serverActions: {
-      bodySizeLimit: "5mb",
+      bodySizeLimit: `${process.env.MAX_UPLOAD_SIZE_MB || "5"}mb` as `${number}mb`,
     },
   },
 
