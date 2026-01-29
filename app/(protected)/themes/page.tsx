@@ -33,7 +33,7 @@ export default async function ThemesPage() {
     }),
     db.query.user.findFirst({
       where: eq(user.id, session.user.id),
-      columns: { handle: true, image: true },
+      columns: { handle: true, image: true, isPro: true },
     }),
     db
       .select({ count: sql<number>`count(*)` })
@@ -42,6 +42,7 @@ export default async function ThemesPage() {
   ]);
 
   const referralCount = referralCountResult[0]?.count ?? 0;
+  const isPro = userProfile?.isPro ?? false;
 
   // Redirect to dashboard if no resume has been uploaded/parsed yet
   if (!userSiteData?.content) {
@@ -64,6 +65,7 @@ export default async function ThemesPage() {
           initialContent={parsedContent}
           profile={profile}
           referralCount={referralCount}
+          isPro={isPro}
         />
       </div>
     </div>

@@ -58,7 +58,7 @@ export const THEME_METADATA: Record<
     description: "Dark theme with frosted glass effects",
     category: "Modern",
     preview: "/previews/glass.png",
-    referralsRequired: 3, // Premium - 3 referrals
+    referralsRequired: 0, // Free
   },
   midnight: {
     name: "Midnight",
@@ -92,8 +92,12 @@ export const THEME_METADATA: Record<
 
 /**
  * Check if a theme is unlocked for a user based on their referral count
+ * @param themeId - The theme ID to check
+ * @param referralCount - User's current referral count
+ * @param isPro - Whether user has pro status (unlocks all themes)
  */
-export function isThemeUnlocked(themeId: ThemeId, referralCount: number): boolean {
+export function isThemeUnlocked(themeId: ThemeId, referralCount: number, isPro = false): boolean {
+  if (isPro) return true;
   const metadata = THEME_METADATA[themeId];
   return referralCount >= metadata.referralsRequired;
 }
@@ -107,7 +111,9 @@ export function getThemeReferralRequirement(themeId: ThemeId): number {
 
 /**
  * Get all unlocked themes for a user
+ * @param referralCount - User's current referral count
+ * @param isPro - Whether user has pro status (unlocks all themes)
  */
-export function getUnlockedThemes(referralCount: number): ThemeId[] {
-  return THEME_IDS.filter((id) => isThemeUnlocked(id, referralCount));
+export function getUnlockedThemes(referralCount: number, isPro = false): ThemeId[] {
+  return THEME_IDS.filter((id) => isThemeUnlocked(id, referralCount, isPro));
 }

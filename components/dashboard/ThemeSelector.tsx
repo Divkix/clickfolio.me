@@ -23,6 +23,8 @@ interface ThemeSelectorProps {
   };
   /** User's current referral count for theme unlock status */
   referralCount: number;
+  /** Whether user has pro status (unlocks all themes) */
+  isPro: boolean;
 }
 
 interface ErrorResponse {
@@ -34,6 +36,7 @@ export function ThemeSelector({
   initialContent,
   profile,
   referralCount,
+  isPro,
 }: ThemeSelectorProps) {
   const router = useRouter();
   const [savedTheme, setSavedTheme] = useState<ThemeId>(initialThemeId as ThemeId);
@@ -156,7 +159,7 @@ export function ThemeSelector({
             const meta = THEME_METADATA[themeId];
             const isSelected = selectedTheme === themeId;
             const isActive = savedTheme === themeId;
-            const isUnlocked = isThemeUnlocked(themeId, referralCount);
+            const isUnlocked = isThemeUnlocked(themeId, referralCount, isPro);
             const requiredReferrals = meta.referralsRequired;
 
             return (

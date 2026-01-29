@@ -36,6 +36,8 @@ export const user = sqliteTable(
     }),
     // Referral tracking: stores user ID of referrer
     referredBy: text("referred_by"),
+    // Pro flag: unlocks all themes
+    isPro: integer("is_pro", { mode: "boolean" }).notNull().default(false),
   },
   (table) => [
     // Index for sitemap queries (WHERE handle IS NOT NULL ORDER BY handle)

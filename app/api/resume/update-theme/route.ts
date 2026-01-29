@@ -53,13 +53,14 @@ export async function POST(request: Request) {
     }
 
     // 5b. Check if theme is locked behind referral requirement
-    const referralCountResult = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(user)
-      .where(eq(user.referredBy, userId));
+    const [referralCountResult, userProStatus] = await Promise.all([
+      db.select({ count: sql<number>`count(*)` }).from(user).where(eq(user.referredBy, userId)),
+      db.select({ isPro: user.isPro }).from(user).where(eq(user.id, userId)),
+    ]);
     const referralCount = referralCountResult[0]?.count ?? 0;
+    const isPro = userProStatus[0]?.isPro ?? false;
 
-    if (!isThemeUnlocked(theme_id as ThemeId, referralCount)) {
+    if (!isThemeUnlocked(theme_id as ThemeId, referralCount, isPro)) {
       const required = getThemeReferralRequirement(theme_id as ThemeId);
       return createErrorResponse(
         `This theme requires ${required} referral${required === 1 ? "" : "s"} to unlock. You have ${referralCount}.`,

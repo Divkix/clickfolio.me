@@ -85,6 +85,13 @@
       "when": 1769660256681,
       "tag": "0011_flippant_earthquake",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1769661897217,
+      "tag": "0012_lonely_satana",
+      "breakpoints": true
     }
   ]
 }
