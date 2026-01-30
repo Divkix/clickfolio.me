@@ -88,4 +88,45 @@ export default {
       }
     }
   },
+
+  // Cloudflare Cron trigger handler
+  async scheduled(controller: ScheduledController, env: CloudflareEnv): Promise<void> {
+    const baseUrl = env.BETTER_AUTH_URL || "https://webresume-now.divkix.workers.dev";
+
+    let endpoint: string;
+    switch (controller.cron) {
+      case "0 3 * * *":
+        endpoint = "/api/cron/cleanup";
+        break;
+      case "*/15 * * * *":
+        endpoint = "/api/cron/recover-orphaned";
+        break;
+      default:
+        console.error(`Unknown cron trigger: ${controller.cron}`);
+        return;
+    }
+
+    const headers: HeadersInit = {};
+    // CRON_SECRET is optional - routes skip auth check if not set
+    const cronSecret = process.env.CRON_SECRET;
+    if (cronSecret) {
+      headers.Authorization = `Bearer ${cronSecret}`;
+    }
+
+    try {
+      const response = await fetch(`${baseUrl}${endpoint}`, {
+        method: "GET",
+        headers,
+      });
+
+      const result = await response.json();
+      console.log(`Cron ${controller.cron} completed:`, result);
+
+      if (!response.ok) {
+        console.error(`Cron ${controller.cron} failed with status ${response.status}`);
+      }
+    } catch (error) {
+      console.error(`Cron ${controller.cron} error:`, error);
+    }
+  },
 } satisfies ExportedHandler<CloudflareEnv>;
