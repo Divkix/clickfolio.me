@@ -43,6 +43,18 @@ export default {
       return stub.fetch(request);
     }
 
+    // Serve static assets from ASSETS binding
+    // The ASSETS binding serves files from .open-next/assets/ which contains /public/* files
+    const staticFilePattern =
+      /\.(ico|png|svg|webp|jpg|jpeg|gif|webmanifest|xml|txt|woff|woff2|ttf|eot|css|js|json)$/i;
+    if (staticFilePattern.test(url.pathname) && env.ASSETS) {
+      const assetResponse = await env.ASSETS.fetch(request);
+      // Return asset if found, otherwise fall through to OpenNext for dynamically generated files
+      if (assetResponse.status !== 404) {
+        return assetResponse;
+      }
+    }
+
     // All other requests go to the OpenNext handler
     // Cast needed: wrapper function receives CfProperties but opennextHandler expects IncomingRequestCfProperties
     return opennextHandler.fetch(request as Parameters<typeof opennextHandler.fetch>[0], env, ctx);
