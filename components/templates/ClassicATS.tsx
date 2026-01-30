@@ -91,6 +91,28 @@ const ClassicATS: React.FC<TemplateProps> = ({ content, profile }) => {
                 <span className="hidden print:inline">{content.contact.website}</span>
               </a>
             )}
+            {content.contact.behance && (
+              <a
+                href={content.contact.behance}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 hover:text-gray-900 hover:underline"
+              >
+                <span className="print:hidden">Bē</span>
+                <span className="hidden print:inline">{content.contact.behance}</span>
+              </a>
+            )}
+            {content.contact.dribbble && (
+              <a
+                href={content.contact.dribbble}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 hover:text-gray-900 hover:underline"
+              >
+                <span className="print:hidden">Dr</span>
+                <span className="hidden print:inline">{content.contact.dribbble}</span>
+              </a>
+            )}
           </div>
         </header>
 

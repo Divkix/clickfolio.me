@@ -1,3 +1,4 @@
+import { MapPin, Phone } from "lucide-react";
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
 import { formatDateRange } from "@/lib/templates/helpers";
@@ -304,6 +305,43 @@ const DesignFolio: React.FC<TemplateProps> = ({ content, profile }) => {
                   className="text-[#888] hover:text-[#CCFF00] transition-colors"
                 >
                   Website
+                </a>
+              )}
+              {contact.phone && (
+                <a
+                  href={`tel:${contact.phone}`}
+                  className="text-[#888] hover:text-[#CCFF00] transition-colors flex items-center gap-2"
+                >
+                  <Phone size={18} />
+                  {contact.phone}
+                </a>
+              )}
+              {contact.location && (
+                <div className="text-[#888] flex items-center gap-2">
+                  <MapPin size={18} />
+                  {contact.location}
+                </div>
+              )}
+              {contact.behance && (
+                <a
+                  href={contact.behance}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="transition-colors flex items-center gap-2 hover:text-[#1769FF]"
+                  style={{ color: "#1769FF" }}
+                >
+                  <span className="font-bold">Bē</span>
+                </a>
+              )}
+              {contact.dribbble && (
+                <a
+                  href={contact.dribbble}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="transition-colors flex items-center gap-2 hover:text-[#EA4C89]"
+                  style={{ color: "#EA4C89" }}
+                >
+                  <span className="font-bold">Dr</span>
                 </a>
               )}
             </div>

@@ -10,7 +10,9 @@ import {
   GraduationCap,
   Linkedin,
   Mail,
+  MapPin,
   Menu,
+  Phone,
 } from "lucide-react";
 import type React from "react";
 import { useEffect, useState } from "react";
@@ -110,12 +112,25 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content, profile }) => {
                 </p>
               </div>
 
+              {/* Location */}
+              {content.contact.location && (
+                <div className="flex items-center gap-2 text-slate-400">
+                  <MapPin size={16} />
+                  <span className="text-sm">{content.contact.location}</span>
+                </div>
+              )}
+
               {/* Social Links Row */}
               <div className="flex flex-wrap gap-3">
                 {[
                   { icon: Github, link: content.contact.github, label: "GitHub" },
                   { icon: Linkedin, link: content.contact.linkedin, label: "LinkedIn" },
                   { icon: Mail, link: `mailto:${content.contact.email}`, label: "Email" },
+                  {
+                    icon: Phone,
+                    link: content.contact.phone ? `tel:${content.contact.phone}` : null,
+                    label: "Phone",
+                  },
                   { icon: Globe, link: content.contact.website, label: "Website" },
                 ].map(
                   (social, idx) =>
@@ -123,7 +138,7 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content, profile }) => {
                       <a
                         key={idx}
                         href={social.link}
-                        target="_blank"
+                        target={social.icon === Phone ? undefined : "_blank"}
                         rel="noopener noreferrer"
                         className="group flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 rounded-lg transition-all duration-300"
                       >
@@ -136,6 +151,34 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content, profile }) => {
                         </span>
                       </a>
                     ),
+                )}
+                {/* Behance */}
+                {content.contact.behance && (
+                  <a
+                    href={content.contact.behance}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group flex items-center gap-2 px-4 py-2 bg-[#1769FF]/10 hover:bg-[#1769FF]/20 border border-[#1769FF]/20 hover:border-[#1769FF]/40 rounded-lg transition-all duration-300"
+                  >
+                    <span className="text-sm font-bold text-[#1769FF]">Bē</span>
+                    <span className="text-sm font-medium text-slate-400 group-hover:text-white transition-colors">
+                      Behance
+                    </span>
+                  </a>
+                )}
+                {/* Dribbble */}
+                {content.contact.dribbble && (
+                  <a
+                    href={content.contact.dribbble}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group flex items-center gap-2 px-4 py-2 bg-[#EA4C89]/10 hover:bg-[#EA4C89]/20 border border-[#EA4C89]/20 hover:border-[#EA4C89]/40 rounded-lg transition-all duration-300"
+                  >
+                    <span className="text-sm font-bold text-[#EA4C89]">Dr</span>
+                    <span className="text-sm font-medium text-slate-400 group-hover:text-white transition-colors">
+                      Dribbble
+                    </span>
+                  </a>
                 )}
               </div>
 

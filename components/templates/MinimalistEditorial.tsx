@@ -1,4 +1,4 @@
-import { ArrowUpRight, Award, Mail, MapPin } from "lucide-react";
+import { ArrowUpRight, Award, Github, Globe, Mail, MapPin, Phone } from "lucide-react";
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
 import { formatDateRange, formatShortDate } from "@/lib/templates/helpers";
@@ -69,6 +69,59 @@ const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile }) => {
             >
               <ArrowUpRight className="w-4 h-4 text-neutral-600 group-hover:text-black" />
               <span className="sr-only">LinkedIn</span>
+            </a>
+          )}
+          {contact.github && (
+            <a
+              href={contact.github}
+              target="_blank"
+              rel="noreferrer"
+              className="group relative p-2 rounded-full hover:bg-neutral-100 transition-colors"
+            >
+              <Github className="w-4 h-4 text-neutral-600 group-hover:text-black" />
+              <span className="sr-only">GitHub</span>
+            </a>
+          )}
+          {contact.website && (
+            <a
+              href={contact.website}
+              target="_blank"
+              rel="noreferrer"
+              className="group relative p-2 rounded-full hover:bg-neutral-100 transition-colors"
+            >
+              <Globe className="w-4 h-4 text-neutral-600 group-hover:text-black" />
+              <span className="sr-only">Website</span>
+            </a>
+          )}
+          {contact.phone && (
+            <a
+              href={`tel:${contact.phone}`}
+              className="group relative p-2 rounded-full hover:bg-neutral-100 transition-colors"
+            >
+              <Phone className="w-4 h-4 text-neutral-600 group-hover:text-black" />
+              <span className="sr-only">Phone</span>
+            </a>
+          )}
+          {contact.behance && (
+            <a
+              href={contact.behance}
+              target="_blank"
+              rel="noreferrer"
+              className="group relative p-2 rounded-full hover:bg-neutral-100 transition-colors"
+            >
+              <span className="text-xs font-bold text-neutral-600 group-hover:text-black">Bē</span>
+              <span className="sr-only">Behance</span>
+            </a>
+          )}
+          {contact.dribbble && (
+            <a
+              href={contact.dribbble}
+              target="_blank"
+              rel="noreferrer"
+              className="group relative p-2 rounded-full hover:bg-neutral-100 transition-colors"
+            >
+              <span className="text-xs font-bold text-neutral-600 group-hover:text-black">Dr</span>
+              <span className="sr-only">Dribbble</span>
             </a>
           )}
         </div>

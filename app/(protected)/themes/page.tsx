@@ -6,6 +6,7 @@ import { getServerSession } from "@/lib/auth/session";
 import { siteConfig } from "@/lib/config/site";
 import { getDb } from "@/lib/db";
 import { siteData, user } from "@/lib/db/schema";
+import { DEFAULT_THEME } from "@/lib/templates/theme-ids";
 import type { ResumeContent } from "@/lib/types/database";
 
 export const metadata = {
@@ -49,7 +50,7 @@ export default async function ThemesPage() {
     redirect("/dashboard");
   }
 
-  const currentThemeId = userSiteData.themeId || "minimalist_editorial";
+  const currentThemeId = userSiteData.themeId || DEFAULT_THEME;
   const parsedContent = JSON.parse(userSiteData.content) as ResumeContent;
   const profile = {
     handle: userProfile?.handle || session.user.name || "user",

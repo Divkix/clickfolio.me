@@ -20,6 +20,8 @@ export interface ResumeContent {
     linkedin?: string;
     github?: string;
     website?: string;
+    behance?: string;
+    dribbble?: string;
   };
   experience: Array<{
     title: string;

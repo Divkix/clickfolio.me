@@ -5,6 +5,7 @@ import { AnalyticsBeacon } from "@/components/analytics/AnalyticsBeacon";
 import { CreateYoursCTA } from "@/components/CreateYoursCTA";
 import { siteConfig } from "@/lib/config/site";
 import { getResumeData, getResumeMetadata } from "@/lib/data/resume";
+import { DEFAULT_THEME } from "@/lib/templates/theme-ids";
 import { getTemplate } from "@/lib/templates/theme-registry";
 import { isValidHandleFormat } from "@/lib/utils/handle-validation";
 import { generateResumeJsonLd, serializeJsonLd } from "@/lib/utils/json-ld";
@@ -146,7 +147,7 @@ export default async function HandlePage({ params }: PageProps) {
   const Template = await getTemplate(theme_id);
 
   // Map theme_id to CTA variant (use underscore format for CTA)
-  const ctaVariant = (theme_id ?? "minimalist_editorial") as
+  const ctaVariant = (theme_id ?? DEFAULT_THEME) as
     | "minimalist_editorial"
     | "neo_brutalist"
     | "glass_morphic"
@@ -190,7 +191,7 @@ export default async function HandlePage({ params }: PageProps) {
       />
       <AnalyticsBeacon handle={handle} />
       <CreateYoursCTA handle={handle} variant={ctaVariant} />
-      <AttributionWidget theme={theme_id ?? "minimalist_editorial"} />
+      <AttributionWidget theme={theme_id ?? DEFAULT_THEME} />
     </>
   );
 }

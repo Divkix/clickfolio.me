@@ -60,7 +60,12 @@ export async function GET() {
     const profile = userRecord[0];
 
     // 4. Parse privacy settings JSON
-    let privacySettings = { show_phone: false, show_address: false };
+    let privacySettings = {
+      show_phone: false,
+      show_address: false,
+      hide_from_search: false,
+      show_in_directory: false,
+    };
     if (profile.privacySettings) {
       try {
         privacySettings =

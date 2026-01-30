@@ -78,6 +78,22 @@ const createContactSchema = (emailRegex: RegExp, emailErrorMessage: string) =>
       .transform(sanitizeUrl)
       .optional()
       .or(z.literal("")),
+    behance: z
+      .string()
+      .trim()
+      .url({ message: "Invalid Behance URL" })
+      .max(500, "Behance URL is too long")
+      .transform(sanitizeUrl)
+      .optional()
+      .or(z.literal("")),
+    dribbble: z
+      .string()
+      .trim()
+      .url({ message: "Invalid Dribbble URL" })
+      .max(500, "Dribbble URL is too long")
+      .transform(sanitizeUrl)
+      .optional()
+      .or(z.literal("")),
   });
 
 /**
@@ -277,6 +293,14 @@ const projectSchema = z.object({
     .trim()
     .url({ message: "Invalid project URL" })
     .max(500, "Project URL is too long")
+    .transform(sanitizeUrl)
+    .optional()
+    .or(z.literal("")),
+  image_url: z
+    .string()
+    .trim()
+    .url({ message: "Invalid image URL" })
+    .max(500, "Image URL is too long")
     .transform(sanitizeUrl)
     .optional()
     .or(z.literal("")),

@@ -23,6 +23,8 @@ type ResumeContact = {
   linkedin?: string;
   github?: string;
   website?: string;
+  behance?: string;
+  dribbble?: string;
 };
 
 type ResumeExperience = {
@@ -37,7 +39,7 @@ type ResumeExperience = {
 
 type ResumeEducation = {
   degree: string;
-  institution?: string;
+  institution: string;
   location?: string;
   graduation_date?: string;
   gpa?: string;
@@ -50,7 +52,7 @@ type ResumeSkill = {
 
 type ResumeCertification = {
   name: string;
-  issuer?: string;
+  issuer: string;
   date?: string;
   url?: string;
 };
@@ -61,6 +63,7 @@ type ResumeProject = {
   year?: string;
   technologies?: string[];
   url?: string;
+  image_url?: string;
 };
 
 type ResumeSchema = {
@@ -114,6 +117,14 @@ const RESUME_EXTRACTION_SCHEMA = {
         website: {
           type: "string",
           description: "Full website URL. Must start with https:// or http://",
+        },
+        behance: {
+          type: "string",
+          description: "Full Behance URL. Must start with https://behance.net/",
+        },
+        dribbble: {
+          type: "string",
+          description: "Full Dribbble URL. Must start with https://dribbble.com/",
         },
       },
     },
@@ -230,6 +241,11 @@ const RESUME_EXTRACTION_SCHEMA = {
           url: {
             type: "string",
             description: "Project URL or demo link. Must start with https:// or http://",
+          },
+          image_url: {
+            type: "string",
+            description:
+              "URL to project screenshot or thumbnail image. Must start with https:// or http://",
           },
         },
       },
@@ -531,6 +547,8 @@ function transformAiResponse(raw: unknown): unknown {
     c.linkedin = validateUrl(c.linkedin);
     c.github = validateUrl(c.github);
     c.website = validateUrl(c.website);
+    c.behance = validateUrl(c.behance);
+    c.dribbble = validateUrl(c.dribbble);
   } else {
     data.contact = { email: "" };
   }
@@ -630,6 +648,7 @@ function transformAiResponse(raw: unknown): unknown {
       proj.title = truncateString(normalizeString(proj.title), 150);
       proj.description = truncateString(normalizeString(proj.description), 1000);
       proj.url = validateUrl(proj.url);
+      proj.image_url = validateUrl(proj.image_url);
       if (Array.isArray(proj.technologies)) {
         proj.technologies = proj.technologies
           .filter((t): t is string => typeof t === "string" && t.trim().length > 0)

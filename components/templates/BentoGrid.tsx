@@ -11,6 +11,7 @@ import {
   Linkedin,
   Mail,
   MapPin,
+  Phone,
 } from "lucide-react";
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
@@ -43,23 +44,65 @@ const BentoGrid: React.FC<TemplateProps> = ({ content, profile }) => {
                       icon: Mail,
                       link: content.contact?.email ? `mailto:${content.contact.email}` : null,
                     },
+                    {
+                      icon: Phone,
+                      link: content.contact?.phone ? `tel:${content.contact.phone}` : null,
+                    },
                     { icon: Github, link: content.contact?.github },
                     { icon: Linkedin, link: content.contact?.linkedin },
                     { icon: Globe, link: content.contact?.website },
-                  ].map(
-                    (item, idx) =>
-                      item.link && (
+                    {
+                      custom: "Bē",
+                      link: content.contact?.behance,
+                      color: "#1769FF",
+                    },
+                    {
+                      custom: "Dr",
+                      link: content.contact?.dribbble,
+                      color: "#EA4C89",
+                    },
+                  ].map((item, idx) => {
+                    const hasCustom = "custom" in item;
+                    if (!item.link) return null;
+
+                    if (hasCustom) {
+                      const itemCustom = item as {
+                        custom: string;
+                        color: string;
+                        link: string;
+                      };
+                      return (
                         <a
                           key={idx}
-                          href={item.link}
+                          href={itemCustom.link}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="p-2.5 bg-gray-50 rounded-full hover:bg-gray-100 border border-gray-100 hover:border-gray-200 transition-all text-gray-500 hover:text-gray-900 hover:scale-105"
+                          className="p-2.5 bg-gray-50 rounded-full hover:bg-gray-100 border border-gray-100 hover:border-gray-200 transition-all text-gray-500 hover:text-gray-900 hover:scale-105 flex items-center justify-center"
+                          style={{ color: itemCustom.color }}
                         >
-                          <item.icon size={18} strokeWidth={1.5} />
+                          <span className="text-xs font-bold">{itemCustom.custom}</span>
                         </a>
-                      ),
-                  )}
+                      );
+                    }
+
+                    const itemIcon = item as {
+                      icon: typeof Mail;
+                      link: string;
+                    };
+                    const IconComponent = itemIcon.icon;
+
+                    return (
+                      <a
+                        key={idx}
+                        href={itemIcon.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-2.5 bg-gray-50 rounded-full hover:bg-gray-100 border border-gray-100 hover:border-gray-200 transition-all text-gray-500 hover:text-gray-900 hover:scale-105"
+                      >
+                        <IconComponent size={18} strokeWidth={1.5} />
+                      </a>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -82,7 +125,7 @@ const BentoGrid: React.FC<TemplateProps> = ({ content, profile }) => {
                 {content.summary}
               </p>
 
-              <div className="sm:hidden flex gap-3 mb-4">
+              <div className="sm:hidden flex gap-3 mb-4 flex-wrap">
                 {/* Mobile Socials */}
                 {content.contact?.email && (
                   <a
@@ -92,12 +135,42 @@ const BentoGrid: React.FC<TemplateProps> = ({ content, profile }) => {
                     <Mail size={18} />
                   </a>
                 )}
+                {content.contact?.phone && (
+                  <a
+                    href={`tel:${content.contact.phone}`}
+                    className="p-2 bg-gray-100 rounded-full text-gray-600"
+                  >
+                    <Phone size={18} />
+                  </a>
+                )}
                 {content.contact?.github && (
                   <a
                     href={content.contact.github}
                     className="p-2 bg-gray-100 rounded-full text-gray-600"
                   >
                     <Github size={18} />
+                  </a>
+                )}
+                {content.contact?.behance && (
+                  <a
+                    href={content.contact.behance}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-2 bg-gray-100 rounded-full flex items-center justify-center w-10 h-10"
+                    style={{ color: "#1769FF" }}
+                  >
+                    <span className="text-xs font-bold">Bē</span>
+                  </a>
+                )}
+                {content.contact?.dribbble && (
+                  <a
+                    href={content.contact.dribbble}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-2 bg-gray-100 rounded-full flex items-center justify-center w-10 h-10"
+                    style={{ color: "#EA4C89" }}
+                  >
+                    <span className="text-xs font-bold">Dr</span>
                   </a>
                 )}
               </div>

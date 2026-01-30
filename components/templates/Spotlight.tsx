@@ -6,6 +6,8 @@ import {
   GraduationCap,
   Linkedin,
   Mail,
+  MapPin,
+  Phone,
 } from "lucide-react";
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
@@ -112,6 +114,41 @@ const ModernSpotlight: React.FC<TemplateProps> = ({ content, profile }) => {
                     className="p-2 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 rounded-full transition-all"
                   >
                     <Globe className="w-6 h-6" />
+                  </a>
+                )}
+                {content.contact.phone && (
+                  <a
+                    href={`tel:${content.contact.phone}`}
+                    className="p-2 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 rounded-full transition-all"
+                  >
+                    <Phone className="w-6 h-6" />
+                  </a>
+                )}
+                {content.contact.location && (
+                  <div className="p-2 text-zinc-500 rounded-full flex items-center justify-center">
+                    <MapPin className="w-6 h-6" />
+                  </div>
+                )}
+                {content.contact.behance && (
+                  <a
+                    href={content.contact.behance}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="p-2 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 rounded-full transition-all flex items-center justify-center"
+                    style={{ color: "#1769FF" }}
+                  >
+                    <span className="font-bold text-sm">Bē</span>
+                  </a>
+                )}
+                {content.contact.dribbble && (
+                  <a
+                    href={content.contact.dribbble}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="p-2 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 rounded-full transition-all flex items-center justify-center"
+                    style={{ color: "#EA4C89" }}
+                  >
+                    <span className="font-bold text-sm">Dr</span>
                   </a>
                 )}
               </div>

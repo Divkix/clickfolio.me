@@ -1,4 +1,13 @@
-import { ArrowUpRight, Award, Briefcase, Globe, GraduationCap, Star } from "lucide-react";
+import {
+  ArrowUpRight,
+  Award,
+  Briefcase,
+  Globe,
+  GraduationCap,
+  MapPin,
+  Phone,
+  Star,
+} from "lucide-react";
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
 import {
@@ -113,6 +122,12 @@ const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
               <h3 className="font-black text-lg uppercase mb-4 underline decoration-4 decoration-[#FFDE00]">
                 Connect
               </h3>
+              {content.contact.location && (
+                <div className="flex items-center gap-2 mb-3 font-bold text-sm">
+                  <MapPin className="w-4 h-4" />
+                  {content.contact.location}
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-3">
                 {content.contact.email && (
                   <a
@@ -120,6 +135,14 @@ const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
                     className="flex items-center justify-center p-3 border-2 border-black bg-white hover:bg-black hover:text-white transition-colors font-bold text-xs uppercase gap-2"
                   >
                     Email
+                  </a>
+                )}
+                {content.contact.phone && (
+                  <a
+                    href={`tel:${content.contact.phone}`}
+                    className="flex items-center justify-center p-3 border-2 border-black bg-white hover:bg-black hover:text-white transition-colors font-bold text-xs uppercase gap-2"
+                  >
+                    <Phone className="w-3 h-3" /> Phone
                   </a>
                 )}
                 {content.contact.linkedin && (
@@ -150,6 +173,26 @@ const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
                     className="flex items-center justify-center p-3 border-2 border-black bg-white hover:bg-black hover:text-white transition-colors font-bold text-xs uppercase gap-2"
                   >
                     Website
+                  </a>
+                )}
+                {content.contact.behance && (
+                  <a
+                    href={content.contact.behance}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center p-3 border-2 border-black bg-[#1769FF] text-white hover:bg-black transition-colors font-bold text-xs uppercase gap-2"
+                  >
+                    Behance
+                  </a>
+                )}
+                {content.contact.dribbble && (
+                  <a
+                    href={content.contact.dribbble}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center p-3 border-2 border-black bg-[#EA4C89] text-white hover:bg-black transition-colors font-bold text-xs uppercase gap-2"
+                  >
+                    Dribbble
                   </a>
                 )}
               </div>

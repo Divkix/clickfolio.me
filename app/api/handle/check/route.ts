@@ -75,6 +75,14 @@ export async function GET(request: Request) {
       );
     }
 
+    if (/--/.test(normalizedHandle)) {
+      return createErrorResponse(
+        "Handle cannot contain consecutive hyphens",
+        ERROR_CODES.BAD_REQUEST,
+        400,
+      );
+    }
+
     // 3. Check reserved handles
     if (RESERVED_HANDLES.has(normalizedHandle)) {
       return createSuccessResponse({ available: false, reason: "reserved" });

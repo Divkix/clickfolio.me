@@ -59,12 +59,14 @@ export async function PUT(request: Request) {
       );
     }
 
-    const { show_phone, show_address } = validation.data;
+    const { show_phone, show_address, hide_from_search, show_in_directory } = validation.data;
 
     // 6. Update privacy_settings (stored as JSON string in D1)
     const privacySettings = JSON.stringify({
       show_phone,
       show_address,
+      hide_from_search,
+      show_in_directory,
     });
 
     await db
@@ -96,6 +98,8 @@ export async function PUT(request: Request) {
       privacy_settings: {
         show_phone,
         show_address,
+        hide_from_search,
+        show_in_directory,
       },
     });
   } catch (err) {

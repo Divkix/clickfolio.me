@@ -20,7 +20,9 @@ export const user = sqliteTable(
     headline: text("headline"),
     privacySettings: text("privacy_settings")
       .notNull()
-      .default('{"show_phone":false,"show_address":false,"hide_from_search":false}'),
+      .default(
+        '{"show_phone":false,"show_address":false,"hide_from_search":false,"show_in_directory":false}',
+      ),
     onboardingCompleted: integer("onboarding_completed", { mode: "boolean" })
       .notNull()
       .default(false),
@@ -371,6 +373,7 @@ export type PrivacySettings = {
   show_phone: boolean;
   show_address: boolean;
   hide_from_search: boolean;
+  show_in_directory: boolean;
 };
 
 // Resume status enum type

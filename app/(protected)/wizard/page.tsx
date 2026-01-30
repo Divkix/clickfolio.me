@@ -14,7 +14,7 @@ import { ThemeStep } from "@/components/wizard/ThemeStep";
 import { UploadStep } from "@/components/wizard/UploadStep";
 import { YouAreLiveModal } from "@/components/YouAreLiveModal";
 import { useSession } from "@/lib/auth/client";
-import type { ThemeId } from "@/lib/templates/theme-ids";
+import { DEFAULT_THEME, type ThemeId } from "@/lib/templates/theme-ids";
 import type { ResumeContent } from "@/lib/types/database";
 import { waitForResumeCompletion } from "@/lib/utils/wait-for-completion";
 
@@ -109,7 +109,7 @@ export default function WizardPage() {
       show_phone: false,
       show_address: false,
     },
-    themeId: "minimalist_editorial",
+    themeId: DEFAULT_THEME,
   });
 
   // Compute total steps based on whether upload is needed

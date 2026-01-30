@@ -1,4 +1,4 @@
-import { Folder, GitBranch, Globe, Mail, MapPin, Terminal } from "lucide-react";
+import { Folder, GitBranch, Globe, Mail, MapPin, Phone, Terminal } from "lucide-react";
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
 import { formatDateRange } from "@/lib/templates/helpers";
@@ -98,6 +98,15 @@ const DevTerminal: React.FC<TemplateProps> = ({ content, profile }) => {
                   >
                     <Globe className="size-4" />
                     {contact.website}
+                  </a>
+                )}
+                {contact.phone && (
+                  <a
+                    href={`tel:${contact.phone}`}
+                    className="flex items-center gap-1.5 text-[#58a6ff] hover:underline"
+                  >
+                    <Phone className="size-4" />
+                    {contact.phone}
                   </a>
                 )}
               </div>
@@ -327,6 +336,39 @@ const DevTerminal: React.FC<TemplateProps> = ({ content, profile }) => {
                     className="text-[#58a6ff] hover:underline"
                   >
                     GitHub
+                  </a>
+                )}
+                {contact.phone && (
+                  <a href={`tel:${contact.phone}`} className="text-[#58a6ff] hover:underline">
+                    Phone
+                  </a>
+                )}
+                {contact.behance && (
+                  <a
+                    href={
+                      contact.behance.startsWith("http")
+                        ? contact.behance
+                        : `https://${contact.behance}`
+                    }
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[#58a6ff] hover:underline"
+                  >
+                    Behance
+                  </a>
+                )}
+                {contact.dribbble && (
+                  <a
+                    href={
+                      contact.dribbble.startsWith("http")
+                        ? contact.dribbble
+                        : `https://${contact.dribbble}`
+                    }
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[#58a6ff] hover:underline"
+                  >
+                    Dribbble
                   </a>
                 )}
               </div>

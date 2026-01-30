@@ -160,6 +160,28 @@ const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => {
                 Website
               </a>
             )}
+            {content.contact.behance && (
+              <a
+                href={content.contact.behance}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-900 transition-colors"
+              >
+                <span className="text-xs font-bold">Bē</span>
+                Behance
+              </a>
+            )}
+            {content.contact.dribbble && (
+              <a
+                href={content.contact.dribbble}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-900 transition-colors"
+              >
+                <span className="text-xs font-bold">Dr</span>
+                Dribbble
+              </a>
+            )}
           </div>
           <div className="mt-4">
             <ShareBar
@@ -503,6 +525,26 @@ const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => {
                     className="block text-sm text-neutral-500 hover:text-neutral-900 transition-colors"
                   >
                     Website
+                  </a>
+                )}
+                {content.contact.behance && (
+                  <a
+                    href={content.contact.behance}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block text-sm text-neutral-500 hover:text-neutral-900 transition-colors"
+                  >
+                    Behance
+                  </a>
+                )}
+                {content.contact.dribbble && (
+                  <a
+                    href={content.contact.dribbble}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block text-sm text-neutral-500 hover:text-neutral-900 transition-colors"
+                  >
+                    Dribbble
                   </a>
                 )}
               </div>

@@ -6,12 +6,14 @@ import {
   Briefcase,
   FolderCode,
   GraduationCap,
+  List,
   Mail,
   Plus,
   Save,
   Trash2,
   User,
   Wrench,
+  X,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { type FieldPath, useFieldArray, useForm } from "react-hook-form";
@@ -381,6 +383,39 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
                 </FormItem>
               )}
             />
+
+            <Separator className="my-2" />
+            <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">
+              Design Portfolio Links
+            </p>
+
+            <FormField
+              control={form.control}
+              name="contact.behance"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Behance (Optional)</FormLabel>
+                  <FormControl>
+                    <Input type="url" placeholder="https://behance.net/johndoe" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="contact.dribbble"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Dribbble (Optional)</FormLabel>
+                  <FormControl>
+                    <Input type="url" placeholder="https://dribbble.com/johndoe" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </div>
         </div>
 
@@ -420,6 +455,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
                       start_date: "",
                       end_date: "",
                       description: "",
+                      highlights: [],
                     })
                   }
                 >
@@ -551,6 +587,73 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
                         )}
                       />
                     </div>
+
+                    {/* Highlights Section */}
+                    <div className="mt-4">
+                      <FormField
+                        control={form.control}
+                        name={`experience.${index}.highlights`}
+                        render={({ field }) => {
+                          const highlights = field.value || [];
+                          return (
+                            <FormItem>
+                              <FormLabel className="flex items-center gap-2">
+                                <List className="h-4 w-4" />
+                                Key Achievements (Optional)
+                              </FormLabel>
+                              <FormDescription className="mb-2">
+                                Add bullet points highlighting your key accomplishments
+                              </FormDescription>
+                              <div className="space-y-2">
+                                {highlights.map((highlight: string, hIndex: number) => (
+                                  <div key={hIndex} className="flex gap-2">
+                                    <Input
+                                      value={highlight}
+                                      onChange={(e) => {
+                                        const newHighlights = [...highlights];
+                                        newHighlights[hIndex] = e.target.value;
+                                        field.onChange(newHighlights);
+                                      }}
+                                      placeholder="e.g., Increased sales by 25%"
+                                      className="flex-1"
+                                      maxLength={500}
+                                    />
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => {
+                                        const newHighlights = highlights.filter(
+                                          (_: string, i: number) => i !== hIndex,
+                                        );
+                                        field.onChange(newHighlights);
+                                      }}
+                                      className="shrink-0 text-slate-400 hover:text-red-600 hover:bg-red-50"
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                ))}
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    field.onChange([...highlights, ""]);
+                                  }}
+                                  disabled={highlights.length >= 5}
+                                  className="text-xs"
+                                >
+                                  <Plus className="h-3 w-3 mr-1" />
+                                  Add Achievement
+                                </Button>
+                              </div>
+                              <FormMessage />
+                            </FormItem>
+                          );
+                        }}
+                      />
+                    </div>
                   </div>
                 ))}
 
@@ -566,6 +669,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
                       start_date: "",
                       end_date: "",
                       description: "",
+                      highlights: [],
                     })
                   }
                   disabled={experienceFields.length >= 10}
@@ -1077,6 +1181,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
                       year: "",
                       technologies: [],
                       url: "",
+                      image_url: "",
                     })
                   }
                 >
@@ -1199,7 +1304,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
                       />
                     </div>
 
-                    <div className="mt-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                       <FormField
                         control={form.control}
                         name={`projects.${index}.url`}
@@ -1214,9 +1319,27 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
                                 maxLength={500}
                               />
                             </FormControl>
-                            <FormDescription>
-                              Link to live demo, GitHub repo, or portfolio page
-                            </FormDescription>
+                            <FormDescription>Link to live demo or repo</FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name={`projects.${index}.image_url`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Image URL (Optional)</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="url"
+                                placeholder="https://imgur.com/screenshot.png"
+                                {...field}
+                                maxLength={500}
+                              />
+                            </FormControl>
+                            <FormDescription>External image (Imgur, etc.)</FormDescription>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -1236,6 +1359,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
                       year: "",
                       technologies: [],
                       url: "",
+                      image_url: "",
                     })
                   }
                   disabled={projectFields.length >= 10}

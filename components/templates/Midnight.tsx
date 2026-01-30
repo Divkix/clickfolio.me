@@ -1,4 +1,4 @@
-import { Calendar, ExternalLink, Github, Globe, Linkedin, Mail, MapPin } from "lucide-react";
+import { Calendar, ExternalLink, Github, Globe, Linkedin, Mail, MapPin, Phone } from "lucide-react";
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
 import { flattenSkills, formatDateRange, formatYear, getInitials } from "@/lib/templates/helpers";
@@ -297,20 +297,28 @@ const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
             )}
             <div className="flex gap-2">
               {[
+                { link: content.contact.phone, Icon: Phone, isPhone: true },
                 { link: content.contact.github, Icon: Github },
                 { link: content.contact.linkedin, Icon: Linkedin },
                 { link: content.contact.website, Icon: Globe },
+                { link: content.contact.behance, text: "Bē", color: "#1769FF" },
+                { link: content.contact.dribbble, text: "Dr", color: "#EA4C89" },
               ].map(
                 (item, i) =>
                   item.link && (
                     <a
                       key={i}
-                      href={item.link}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                      href={item.isPhone ? `tel:${item.link}` : item.link}
+                      target={item.isPhone ? undefined : "_blank"}
+                      rel={item.isPhone ? undefined : "noopener noreferrer"}
                       className="w-11 h-11 rounded-full bg-neutral-900 border border-white/10 flex items-center justify-center text-neutral-400 hover:text-white hover:border-amber-500/50 hover:scale-110 transition-all duration-300"
+                      style={item.text ? { color: item.color } : undefined}
                     >
-                      <item.Icon className="w-4 h-4" />
+                      {item.Icon ? (
+                        <item.Icon className="w-4 h-4" />
+                      ) : (
+                        <span className="text-xs font-bold">{item.text}</span>
+                      )}
                     </a>
                   ),
               )}
