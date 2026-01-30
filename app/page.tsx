@@ -249,7 +249,7 @@ export default function Home() {
                 <div className="flex-1 h-1 bg-ink" />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="flex flex-wrap justify-center gap-4">
                 {DEMO_PROFILES.map((profile, index) => {
                   const cardColors = [
                     { avatar: "bg-coral text-white", badge: "bg-coral/10 text-coral" },
@@ -276,6 +276,9 @@ export default function Home() {
                       focus:outline-none
                       focus:ring-4
                       focus:ring-coral
+                      w-full
+                      sm:w-[calc(50%-0.5rem)]
+                      lg:w-[calc(25%-0.75rem)]
                     `}
                       style={{ animationDelay: `${(index + 4) * 100}ms` }}
                     >
