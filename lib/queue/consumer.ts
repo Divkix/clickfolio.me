@@ -3,12 +3,15 @@ import { resumes, siteData } from "../db/schema";
 import { getSessionDbForWebhook } from "../db/session";
 import { parseResumeWithGemini } from "../gemini";
 import { getR2Binding, R2 } from "../r2";
+import type { ResumeContent } from "../types/database";
+import { extractPreviewFields } from "../utils/preview-fields";
 import { classifyQueueError } from "./errors";
 import { notifyStatusChange, notifyStatusChangeBatch } from "./notify-status";
 import type { QueueMessage, ResumeParseMessage } from "./types";
 
 /**
  * Upsert site_data with UNIQUE constraint handling
+ * Extracts preview fields from content for denormalized columns
  */
 async function upsertSiteData(
   db: ReturnType<typeof getSessionDbForWebhook>["db"],
@@ -17,6 +20,17 @@ async function upsertSiteData(
   content: string,
   now: string,
 ): Promise<void> {
+  // Parse content to extract preview fields
+  let parsedContent: ResumeContent | null = null;
+  try {
+    parsedContent = JSON.parse(content) as ResumeContent;
+  } catch {
+    // If parsing fails, continue without preview fields
+    console.warn(`Failed to parse content for preview fields extraction, resumeId: ${resumeId}`);
+  }
+
+  const previewFields = extractPreviewFields(parsedContent);
+
   const existingSiteData = await db
     .select({ id: siteData.id })
     .from(siteData)
@@ -29,6 +43,7 @@ async function upsertSiteData(
       .set({
         resumeId,
         content,
+        ...previewFields,
         lastPublishedAt: now,
         updatedAt: now,
       })
@@ -40,6 +55,7 @@ async function upsertSiteData(
         userId,
         resumeId,
         content,
+        ...previewFields,
         lastPublishedAt: now,
         createdAt: now,
         updatedAt: now,
@@ -51,6 +67,7 @@ async function upsertSiteData(
           .set({
             resumeId,
             content,
+            ...previewFields,
             lastPublishedAt: now,
             updatedAt: now,
           })

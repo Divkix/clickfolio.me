@@ -6,7 +6,6 @@ import Link from "next/link";
 import { siteConfig } from "@/lib/config/site";
 import { getDb } from "@/lib/db";
 import { siteData, user } from "@/lib/db/schema";
-import type { ResumeContent } from "@/lib/types/database";
 
 export const metadata: Metadata = {
   title: `Explore Professionals | ${siteConfig.fullName}`,
@@ -22,7 +21,12 @@ export const metadata: Metadata = {
 interface DirectoryUser {
   handle: string;
   role: string | null;
-  content: ResumeContent;
+  previewName: string | null;
+  previewHeadline: string | null;
+  previewLocation: string | null;
+  previewExpCount: number | null;
+  previewEduCount: number | null;
+  previewSkills: string[] | null;
 }
 
 const ITEMS_PER_PAGE = 12;
@@ -64,12 +68,17 @@ export default async function ExplorePage({
   const totalCount = countResult[0]?.count ?? 0;
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
-  // Get paginated users with their site data
+  // Get paginated users with their site data preview columns
   const usersWithData = await db
     .select({
       handle: user.handle,
       role: user.role,
-      content: siteData.content,
+      previewName: siteData.previewName,
+      previewHeadline: siteData.previewHeadline,
+      previewLocation: siteData.previewLocation,
+      previewExpCount: siteData.previewExpCount,
+      previewEduCount: siteData.previewEduCount,
+      previewSkills: siteData.previewSkills,
     })
     .from(user)
     .innerJoin(siteData, eq(user.id, siteData.userId))
@@ -83,7 +92,12 @@ export default async function ExplorePage({
     .map((u) => ({
       handle: u.handle as string,
       role: u.role,
-      content: JSON.parse(u.content) as ResumeContent,
+      previewName: u.previewName,
+      previewHeadline: u.previewHeadline,
+      previewLocation: u.previewLocation,
+      previewExpCount: u.previewExpCount,
+      previewEduCount: u.previewEduCount,
+      previewSkills: u.previewSkills ? (JSON.parse(u.previewSkills) as string[]) : null,
     }));
 
   // Role options for filter
@@ -160,54 +174,52 @@ export default async function ExplorePage({
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1 min-w-0">
                     <h3 className="text-lg font-bold text-slate-900 truncate group-hover:text-indigo-600 transition-colors">
-                      {person.content.full_name}
+                      {person.previewName || "Unknown"}
                     </h3>
-                    <p className="text-sm text-slate-600 truncate">{person.content.headline}</p>
+                    <p className="text-sm text-slate-600 truncate">
+                      {person.previewHeadline || "Professional"}
+                    </p>
                   </div>
                   <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-indigo-500 shrink-0 ml-2" />
                 </div>
 
                 {/* Quick stats */}
                 <div className="flex flex-wrap gap-3 text-xs text-slate-500">
-                  {person.content.contact?.location && (
+                  {person.previewLocation && (
                     <span className="inline-flex items-center gap-1">
                       <MapPin className="w-3 h-3" />
-                      {person.content.contact.location.split(",")[0]}
+                      {person.previewLocation.split(",")[0]}
                     </span>
                   )}
-                  {person.content.experience?.length > 0 && (
+                  {person.previewExpCount != null && person.previewExpCount > 0 && (
                     <span className="inline-flex items-center gap-1">
                       <Briefcase className="w-3 h-3" />
-                      {person.content.experience.length}{" "}
-                      {person.content.experience.length === 1 ? "position" : "positions"}
+                      {person.previewExpCount}{" "}
+                      {person.previewExpCount === 1 ? "position" : "positions"}
                     </span>
                   )}
-                  {person.content.education && person.content.education.length > 0 && (
+                  {person.previewEduCount != null && person.previewEduCount > 0 && (
                     <span className="inline-flex items-center gap-1">
                       <GraduationCap className="w-3 h-3" />
-                      {person.content.education.length}
+                      {person.previewEduCount}
                     </span>
                   )}
                 </div>
 
                 {/* Skills preview */}
-                {person.content.skills && person.content.skills.length > 0 && (
+                {person.previewSkills && person.previewSkills.length > 0 && (
                   <div className="mt-4 flex flex-wrap gap-1">
-                    {/* Flatten skill items and show first 4 */}
-                    {person.content.skills
-                      .flatMap((skillGroup) => skillGroup.items)
-                      .slice(0, 4)
-                      .map((skill, idx) => (
-                        <span
-                          key={`${skill}-${idx}`}
-                          className="inline-block px-2 py-0.5 bg-slate-100 text-slate-600 text-xs rounded-md"
-                        >
-                          {skill}
-                        </span>
-                      ))}
-                    {person.content.skills.flatMap((s) => s.items).length > 4 && (
+                    {person.previewSkills.slice(0, 4).map((skill, idx) => (
+                      <span
+                        key={`${skill}-${idx}`}
+                        className="inline-block px-2 py-0.5 bg-slate-100 text-slate-600 text-xs rounded-md"
+                      >
+                        {skill}
+                      </span>
+                    ))}
+                    {person.previewSkills.length > 4 && (
                       <span className="inline-block px-2 py-0.5 text-slate-400 text-xs">
-                        +{person.content.skills.flatMap((s) => s.items).length - 4} more
+                        +{person.previewSkills.length - 4} more
                       </span>
                     )}
                   </div>

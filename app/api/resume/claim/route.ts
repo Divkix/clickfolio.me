@@ -229,8 +229,9 @@ export async function POST(request: Request) {
 
     // 5b. Check for cached parse result (same file uploaded before BY THIS USER)
     // SECURITY: Only look up cache for current user's own resumes to prevent cross-user data access
-    const cached = await db
-      .select({ id: resumes.id, parsedContent: resumes.parsedContent })
+    // Step 1: Existence check - only fetch id to avoid loading 100KB+ parsedContent unnecessarily
+    const hasCache = await db
+      .select({ id: resumes.id })
       .from(resumes)
       .where(
         and(
@@ -243,7 +244,18 @@ export async function POST(request: Request) {
       )
       .limit(1);
 
-    if (cached[0]?.parsedContent) {
+    // Step 2: Only fetch content if cache exists
+    let cachedContent: string | null = null;
+    if (hasCache.length > 0) {
+      const result = await db
+        .select({ parsedContent: resumes.parsedContent })
+        .from(resumes)
+        .where(eq(resumes.id, hasCache[0].id))
+        .limit(1);
+      cachedContent = result[0]?.parsedContent as string | null;
+    }
+
+    if (cachedContent) {
       // DATA INTEGRITY FIX: Store file to user's folder using existing buffer
       // No need to copy from temp - we already have the file in memory
       let r2PutSucceeded = false;
@@ -271,13 +283,13 @@ export async function POST(request: Request) {
               status: "completed",
               fileHash: computedFileHash,
               parsedAt: now,
-              parsedContent: cached[0].parsedContent,
+              parsedContent: cachedContent,
             })
             .where(eq(resumes.id, resumeId));
 
           // Copy content to user's site_data for publishing (upsert with race condition handling)
           // Pass raw string directly - already valid JSON, avoid parse-stringify round-trip
-          await upsertSiteData(db, userId, resumeId, cached[0].parsedContent as string, now);
+          await upsertSiteData(db, userId, resumeId, cachedContent, now);
 
           // R2 and DB both succeeded - return cached result
           await captureBookmark();

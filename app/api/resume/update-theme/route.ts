@@ -1,5 +1,5 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
-import { eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
 import { siteData, user } from "@/lib/db/schema";
 import {
@@ -53,12 +53,14 @@ export async function POST(request: Request) {
     }
 
     // 5b. Check if theme is locked behind referral requirement
-    const [referralCountResult, userProStatus] = await Promise.all([
-      db.select({ count: sql<number>`count(*)` }).from(user).where(eq(user.referredBy, userId)),
-      db.select({ isPro: user.isPro }).from(user).where(eq(user.id, userId)),
-    ]);
-    const referralCount = referralCountResult[0]?.count ?? 0;
-    const isPro = userProStatus[0]?.isPro ?? false;
+    // Use pre-computed referralCount column instead of COUNT query
+    const userResult = await db
+      .select({ referralCount: user.referralCount, isPro: user.isPro })
+      .from(user)
+      .where(eq(user.id, userId));
+
+    const referralCount = userResult[0]?.referralCount ?? 0;
+    const isPro = userResult[0]?.isPro ?? false;
 
     if (!isThemeUnlocked(theme_id as ThemeId, referralCount, isPro)) {
       const required = getThemeReferralRequirement(theme_id as ThemeId);

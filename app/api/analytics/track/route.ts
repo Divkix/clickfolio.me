@@ -2,13 +2,14 @@
  * POST /api/analytics/track
  *
  * Receives page view beacons from the client-side AnalyticsBeacon component.
+ * Supports both single events and batches (up to 10 events).
  * Processes: bot filter → handle→userId → self-view skip → dedup → insert.
  *
  * Always returns 204 — analytics must never leak info or break the page.
  */
 
 import { getCloudflareContext } from "@opennextjs/cloudflare";
-import { and, eq, gte } from "drizzle-orm";
+import { and, eq, gte, inArray } from "drizzle-orm";
 import { siteConfig } from "@/lib/config/site";
 import { getDb } from "@/lib/db";
 import { pageViews, session as sessionTable, user } from "@/lib/db/schema";
@@ -22,47 +23,81 @@ import { isValidHandleFormat } from "@/lib/utils/handle-validation";
 import { getClientIP } from "@/lib/utils/ip-rate-limit";
 
 const EMPTY_204 = new Response(null, { status: 204 });
+const MAX_BATCH_SIZE = 10;
+
+type RawEvent = {
+  handle?: string;
+  referrer?: string;
+  ts?: number;
+};
+
+type ValidatedEvent = {
+  handle: string;
+  referrer: string | null;
+  ts: number;
+};
 
 export async function POST(request: Request) {
   try {
     // Parse body
-    let body: { handle?: string; referrer?: string };
+    let body: unknown;
     try {
       body = await request.json();
     } catch {
       return EMPTY_204;
     }
 
-    const { handle, referrer } = body;
+    // Normalize to array (backward compatible with single object)
+    const rawEvents = Array.isArray(body) ? body : [body];
 
-    // Validate handle
-    if (!handle || typeof handle !== "string" || !isValidHandleFormat(handle)) {
+    // Validate batch size
+    if (rawEvents.length === 0 || rawEvents.length > MAX_BATCH_SIZE) {
       return EMPTY_204;
     }
 
-    // Bot detection
+    // Bot detection (once per request - same UA for all events in batch)
     const ua = request.headers.get("user-agent") || "";
     if (isBot(ua)) {
+      return EMPTY_204;
+    }
+
+    // Validate and filter events
+    const validEvents: ValidatedEvent[] = [];
+    for (const event of rawEvents as RawEvent[]) {
+      if (event?.handle && typeof event.handle === "string" && isValidHandleFormat(event.handle)) {
+        validEvents.push({
+          handle: event.handle,
+          referrer: typeof event.referrer === "string" ? event.referrer : null,
+          ts: typeof event.ts === "number" ? event.ts : Date.now(),
+        });
+      }
+    }
+
+    if (validEvents.length === 0) {
       return EMPTY_204;
     }
 
     const { env } = await getCloudflareContext({ async: true });
     const db = getDb(env.DB);
 
-    // Resolve handle → userId
-    const userResult = await db
-      .select({ id: user.id })
-      .from(user)
-      .where(eq(user.handle, handle))
-      .limit(1);
+    // Get unique handles from batch
+    const uniqueHandles = [...new Set(validEvents.map((e) => e.handle))];
 
-    if (userResult.length === 0) {
+    // Batch resolve handles → userIds (single query with IN clause)
+    const userResults = await db
+      .select({ id: user.id, handle: user.handle })
+      .from(user)
+      .where(inArray(user.handle, uniqueHandles));
+
+    if (userResults.length === 0) {
       return EMPTY_204;
     }
 
-    const userId = userResult[0].id;
+    // Build handle → userId lookup map
+    const handleToUserId = new Map<string, string>(userResults.map((u) => [u.handle!, u.id]));
 
     // Self-view detection: check session cookie
+    let selfViewUserId: string | null = null;
     const sessionToken = extractSessionToken(request);
     if (sessionToken) {
       const sessionResult = await db
@@ -71,52 +106,88 @@ export async function POST(request: Request) {
         .where(eq(sessionTable.token, sessionToken))
         .limit(1);
 
-      if (sessionResult.length > 0 && sessionResult[0].userId === userId) {
-        // Owner viewing their own page — skip
-        return EMPTY_204;
+      if (sessionResult.length > 0) {
+        selfViewUserId = sessionResult[0].userId;
       }
     }
 
-    // Generate visitor hash
+    // Generate visitor hash (same for all events - same IP/UA for entire batch)
     const ip = getClientIP(request);
     const visitorHash = await generateVisitorHash(ip, ua);
 
-    // Dedup: same visitorHash + userId within 5 minutes
+    // Map events to userIds, filter out:
+    // - Events with handles that don't exist (no userId found)
+    // - Self-views (owner viewing their own page)
+    type EventWithUserId = ValidatedEvent & { userId: string };
+    const eventsWithUserIds: EventWithUserId[] = [];
+
+    for (const event of validEvents) {
+      const userId = handleToUserId.get(event.handle);
+      if (userId && userId !== selfViewUserId) {
+        eventsWithUserIds.push({ ...event, userId });
+      }
+    }
+
+    if (eventsWithUserIds.length === 0) {
+      return EMPTY_204;
+    }
+
+    // Get unique userIds for batch dedup check
+    const uniqueUserIds = [...new Set(eventsWithUserIds.map((e) => e.userId))];
+
+    // Batch dedup: find existing views for this visitor + any of these users in last 5 min
     const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-    const dedupResult = await db
-      .select({ id: pageViews.id })
+    const existingViews = await db
+      .select({ userId: pageViews.userId })
       .from(pageViews)
       .where(
         and(
           eq(pageViews.visitorHash, visitorHash),
-          eq(pageViews.userId, userId),
+          inArray(pageViews.userId, uniqueUserIds),
           gte(pageViews.createdAt, fiveMinutesAgo),
         ),
-      )
-      .limit(1);
+      );
 
-    if (dedupResult.length > 0) {
+    // Build set of userIds that already have a recent view from this visitor
+    const existingUserIds = new Set(existingViews.map((v) => v.userId));
+
+    // Filter out:
+    // - Events for users who already have a view in dedup window
+    // - Duplicate events within batch (keep first per userId)
+    const seenUserIds = new Set<string>();
+    const eventsToInsert: EventWithUserId[] = [];
+
+    for (const event of eventsWithUserIds) {
+      if (!existingUserIds.has(event.userId) && !seenUserIds.has(event.userId)) {
+        seenUserIds.add(event.userId);
+        eventsToInsert.push(event);
+      }
+    }
+
+    if (eventsToInsert.length === 0) {
       return EMPTY_204;
     }
 
-    // Extract metadata
+    // Extract common metadata (same for all events in batch)
     const country = request.headers.get("cf-ipcountry") || null;
     const deviceType = getDeviceType(ua);
-    const referrerHostname = parseReferrerHostname(
-      referrer || request.headers.get("referer"),
-      siteConfig.domain,
-    );
+    const now = new Date().toISOString();
 
-    // Insert page view
-    await db.insert(pageViews).values({
-      id: crypto.randomUUID(),
-      userId,
-      visitorHash,
-      referrer: referrerHostname,
-      country: country === "XX" ? null : country, // CF returns "XX" for unknown
-      deviceType,
-      createdAt: new Date().toISOString(),
-    });
+    // Batch insert all remaining events
+    await db.insert(pageViews).values(
+      eventsToInsert.map((event) => ({
+        id: crypto.randomUUID(),
+        userId: event.userId,
+        visitorHash,
+        referrer: parseReferrerHostname(
+          event.referrer || request.headers.get("referer"),
+          siteConfig.domain,
+        ),
+        country: country === "XX" ? null : country, // CF returns "XX" for unknown
+        deviceType,
+        createdAt: now,
+      })),
+    );
 
     return EMPTY_204;
   } catch (error) {

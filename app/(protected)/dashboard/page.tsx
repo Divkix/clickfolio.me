@@ -173,6 +173,7 @@ export default async function DashboardPage() {
       privacySettings: true,
       onboardingCompleted: true,
       createdAt: true,
+      referralCount: true,
     },
   });
 
@@ -181,18 +182,12 @@ export default async function DashboardPage() {
   const resume = (userData?.resumes?.[0] ?? null) as Resume | null;
   const siteDataResult = (userData?.siteData ?? null) as typeof siteData.$inferSelect | null;
 
-  // Get referral stats (conversions and clicks) in parallel
-  const [referralCountResult, clickCountResult] = await Promise.all([
-    db
-      .select({ count: sql<number>`count(*)` })
-      .from(user)
-      .where(eq(user.referredBy, session.user.id)),
-    db
-      .select({ count: sql<number>`count(*)` })
-      .from(referralClicks)
-      .where(eq(referralClicks.referrerUserId, session.user.id)),
-  ]);
-  const referralCount = referralCountResult[0]?.count ?? 0;
+  // Use pre-computed referralCount from user table, fetch click count separately
+  const referralCount = userData?.referralCount ?? 0;
+  const clickCountResult = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(referralClicks)
+    .where(eq(referralClicks.referrerUserId, session.user.id));
   const clickCount = clickCountResult[0]?.count ?? 0;
 
   // Safety net: Redirect to wizard if onboarding is incomplete

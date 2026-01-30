@@ -9,7 +9,7 @@
  */
 
 import { getCloudflareContext } from "@opennextjs/cloudflare";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { referralClicks, user } from "@/lib/db/schema";
 import { generateVisitorHashWithDate } from "@/lib/utils/analytics";
@@ -132,6 +132,19 @@ export async function writeReferral(
       return { success: false, reason: "user_not_found" };
     }
     return { success: false, reason: "already_referred" };
+  }
+
+  // Atomically increment referrer's referralCount
+  // This only executes when a NEW referral was successfully linked above
+  try {
+    await db
+      .update(user)
+      .set({ referralCount: sql`${user.referralCount} + 1` })
+      .where(eq(user.id, referrerId));
+  } catch (error) {
+    // Log but don't fail - referral link was already created successfully
+    // The denormalized count can be reconciled later if needed
+    console.error("Failed to increment referralCount for referrer:", referrerId, error);
   }
 
   // Mark referral clicks as converted with visitor-specific matching

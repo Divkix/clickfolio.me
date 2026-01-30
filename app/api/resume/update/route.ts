@@ -4,6 +4,7 @@ import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
 import { siteData } from "@/lib/db/schema";
 import { resumeContentSchemaStrict } from "@/lib/schemas/resume";
 import type { ResumeContent } from "@/lib/types/database";
+import { extractPreviewFields } from "@/lib/utils/preview-fields";
 import { enforceRateLimit } from "@/lib/utils/rate-limit";
 import {
   createErrorResponse,
@@ -84,11 +85,15 @@ export async function PUT(request: Request) {
     const content = validation.data;
     const now = new Date().toISOString();
 
+    // Extract preview fields for denormalized columns
+    const previewFields = extractPreviewFields(content);
+
     // 7. Update site_data (don't return content - we already have it validated)
     const updateResult = await db
       .update(siteData)
       .set({
         content: JSON.stringify(content),
+        ...previewFields,
         lastPublishedAt: now,
         updatedAt: now,
       })

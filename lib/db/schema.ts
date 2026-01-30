@@ -40,6 +40,8 @@ export const user = sqliteTable(
     referredBy: text("referred_by"),
     // Pro flag: unlocks all themes
     isPro: integer("is_pro", { mode: "boolean" }).notNull().default(false),
+    // Denormalized count of users referred by this user
+    referralCount: integer("referral_count").notNull().default(0),
   },
   (table) => [
     // Index for sitemap queries (WHERE handle IS NOT NULL ORDER BY handle)
@@ -164,6 +166,13 @@ export const siteData = sqliteTable(
     content: text("content").notNull(),
     themeId: text("theme_id").default("minimalist_editorial"),
     lastPublishedAt: text("last_published_at"), // Nullable - represents "never published"
+    // Preview columns for directory/listing pages (denormalized for performance)
+    previewName: text("preview_name"),
+    previewHeadline: text("preview_headline"),
+    previewLocation: text("preview_location"),
+    previewExpCount: integer("preview_exp_count"),
+    previewEduCount: integer("preview_edu_count"),
+    previewSkills: text("preview_skills"), // JSON array of first 4 skills
     createdAt: text("created_at").notNull(),
     updatedAt: text("updated_at").notNull(),
   },
