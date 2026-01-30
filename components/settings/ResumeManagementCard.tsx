@@ -86,8 +86,8 @@ export function ResumeManagementCard({
         <div className="flex items-center gap-6 mb-4">
           <div className="flex items-center gap-3">
             <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-blue-500 rounded-lg blur-md opacity-20" />
-              <div className="relative bg-gradient-to-r from-indigo-100 to-blue-100 p-2.5 rounded-lg">
+              <div className="absolute inset-0 bg-linear-to-r from-indigo-500 to-blue-500 rounded-lg blur-md opacity-20" />
+              <div className="relative bg-linear-to-r from-indigo-100 to-blue-100 p-2.5 rounded-lg">
                 <Upload className="h-4 w-4 text-indigo-600" />
               </div>
             </div>
@@ -144,7 +144,7 @@ export function ResumeManagementCard({
         <div className="mt-auto">
           <Button
             onClick={() => setUploadModalOpen(true)}
-            className="w-full bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-semibold transition-all duration-300 shadow-depth-sm hover:shadow-depth-md"
+            className="w-full bg-linear-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-semibold transition-all duration-300 shadow-depth-sm hover:shadow-depth-md"
           >
             <Upload className="h-4 w-4 mr-2" />
             Upload New Resume

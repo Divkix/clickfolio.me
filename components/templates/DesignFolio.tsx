@@ -180,7 +180,7 @@ const DesignFolio: React.FC<TemplateProps> = ({ content, profile }) => {
                           alt={project.title}
                           className="w-full aspect-video object-cover transition-transform duration-500 group-hover:scale-105"
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-[#1a1a1a] to-transparent opacity-60" />
+                        <div className="absolute inset-0 bg-linear-to-t from-[#1a1a1a] to-transparent opacity-60" />
                       </div>
                     )}
                     <div className="p-8 md:p-12">

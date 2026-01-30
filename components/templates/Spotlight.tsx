@@ -26,7 +26,7 @@ const ModernSpotlight: React.FC<TemplateProps> = ({ content, profile }) => {
   return (
     <div className="min-h-screen bg-white text-zinc-900 font-sans selection:bg-zinc-900 selection:text-white relative">
       {/* Background Grid Pattern */}
-      <div className="fixed inset-0 z-0 h-full w-full bg-white bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:24px_24px]"></div>
+      <div className="fixed inset-0 z-0 h-full w-full bg-white bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-size-[24px_24px]"></div>
 
       {/* CSS for animations */}
       <style>{`
@@ -118,7 +118,7 @@ const ModernSpotlight: React.FC<TemplateProps> = ({ content, profile }) => {
             </div>
 
             <div className="relative group shrink-0">
-              <div className="absolute -inset-1 bg-gradient-to-tr from-zinc-200 to-zinc-100 rounded-full blur opacity-75 group-hover:opacity-100 transition duration-1000"></div>
+              <div className="absolute -inset-1 bg-linear-to-tr from-zinc-200 to-zinc-100 rounded-full blur opacity-75 group-hover:opacity-100 transition duration-1000"></div>
               {profile.avatar_url ? (
                 <img
                   src={profile.avatar_url}
@@ -233,7 +233,7 @@ const ModernSpotlight: React.FC<TemplateProps> = ({ content, profile }) => {
                     {project.title}
                   </h4>
 
-                  <p className="text-sm text-zinc-600 leading-relaxed mb-6 flex-grow">
+                  <p className="text-sm text-zinc-600 leading-relaxed mb-6 grow">
                     {project.description}
                   </p>
 

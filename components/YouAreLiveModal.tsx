@@ -150,7 +150,7 @@ export function YouAreLiveModal({ open, onOpenChange, handle, url }: YouAreLiveM
           </div>
 
           {/* Referral Section */}
-          <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg p-4 border border-purple-200/60 dark:border-purple-700/40">
+          <div className="bg-linear-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg p-4 border border-purple-200/60 dark:border-purple-700/40">
             <div className="flex items-center gap-2 mb-2">
               <Gift className="size-4 text-purple-600 dark:text-purple-400" aria-hidden="true" />
               <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">

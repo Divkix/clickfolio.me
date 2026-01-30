@@ -11,7 +11,7 @@ const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
     <div className="min-h-screen bg-neutral-950 text-neutral-200 font-sans selection:bg-amber-500/30 selection:text-amber-200 relative overflow-x-hidden">
       {/* Background Ambience & Noise */}
       <div className="fixed inset-0 z-0 pointer-events-none">
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-size-[24px_24px]"></div>
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-amber-500/10 rounded-full blur-[100px] opacity-50"></div>
       </div>
 
@@ -19,7 +19,7 @@ const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
         {/* Header Section */}
         <header className="flex flex-col items-center text-center mb-20 animate-in fade-in slide-in-from-bottom-4 duration-700">
           <div className="relative mb-8 group">
-            <div className="absolute -inset-1 bg-gradient-to-br from-amber-500/40 to-purple-600/0 rounded-full blur opacity-40 group-hover:opacity-70 transition duration-500"></div>
+            <div className="absolute -inset-1 bg-linear-to-br from-amber-500/40 to-purple-600/0 rounded-full blur opacity-40 group-hover:opacity-70 transition duration-500"></div>
             <div className="relative w-28 h-28 rounded-full border border-white/10 overflow-hidden bg-neutral-900 shadow-2xl">
               {profile.avatar_url ? (
                 <img
@@ -35,7 +35,7 @@ const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
             </div>
           </div>
 
-          <h1 className="text-5xl md:text-6xl font-bold tracking-tight mb-4 bg-clip-text text-transparent bg-gradient-to-b from-white via-white to-neutral-500 font-serif">
+          <h1 className="text-5xl md:text-6xl font-bold tracking-tight mb-4 bg-clip-text text-transparent bg-linear-to-b from-white via-white to-neutral-500 font-serif">
             {content.full_name}
           </h1>
 
@@ -64,10 +64,10 @@ const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
         {/* Skills Marquee with Gradient Mask */}
         {flatSkills.length > 0 && (
           <div className="mb-24 relative">
-            <div className="absolute left-0 top-0 bottom-0 w-20 z-10 bg-gradient-to-r from-neutral-950 to-transparent"></div>
-            <div className="absolute right-0 top-0 bottom-0 w-20 z-10 bg-gradient-to-l from-neutral-950 to-transparent"></div>
+            <div className="absolute left-0 top-0 bottom-0 w-20 z-10 bg-linear-to-r from-neutral-950 to-transparent"></div>
+            <div className="absolute right-0 top-0 bottom-0 w-20 z-10 bg-linear-to-l from-neutral-950 to-transparent"></div>
 
-            <div className="overflow-hidden flex py-4 border-y border-white/5 bg-white/[0.02]">
+            <div className="overflow-hidden flex py-4 border-y border-white/5 bg-white/2">
               <div className="flex animate-[marquee_40s_linear_infinite] gap-8 px-4">
                 {[...flatSkills, ...flatSkills, ...flatSkills].map((skill: string, i: number) => (
                   <span
@@ -86,7 +86,7 @@ const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
         {content.summary && (
           <section className="mb-24 max-w-2xl mx-auto">
             <h2 className="text-2xl font-serif text-white mb-6 flex items-center gap-3">
-              <span className="w-8 h-[1px] bg-amber-500/50"></span>
+              <span className="w-8 h-px bg-amber-500/50"></span>
               About
             </h2>
             <p className="text-neutral-400 leading-8 text-lg font-light">{content.summary}</p>
@@ -100,7 +100,7 @@ const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
             {content.experience && content.experience.length > 0 && (
               <section>
                 <h2 className="text-2xl font-serif text-white mb-8 flex items-center gap-3">
-                  <span className="w-8 h-[1px] bg-amber-500/50"></span>
+                  <span className="w-8 h-px bg-amber-500/50"></span>
                   Experience
                 </h2>
                 <div className="relative border-l border-white/10 ml-3 md:ml-6 space-y-12 pb-4">
@@ -154,7 +154,7 @@ const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
             {content.projects && content.projects.length > 0 && (
               <section>
                 <h2 className="text-2xl font-serif text-white mb-8 flex items-center gap-3">
-                  <span className="w-8 h-[1px] bg-amber-500/50"></span>
+                  <span className="w-8 h-px bg-amber-500/50"></span>
                   Selected Projects
                 </h2>
                 <div className="grid grid-cols-1 gap-6">
@@ -163,7 +163,7 @@ const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
                       key={index}
                       className="group relative bg-neutral-900/40 border border-white/5 hover:border-white/10 rounded-2xl p-6 md:p-8 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-black/50 overflow-hidden"
                     >
-                      <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                      <div className="absolute inset-0 bg-linear-to-br from-amber-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 
                       <div className="relative z-10 flex flex-col md:flex-row gap-6 md:items-start justify-between">
                         <div className="flex-1">

@@ -171,7 +171,7 @@ export function ThemeSelector({
                 aria-disabled={!isUnlocked}
                 onClick={() => isUnlocked && setSelectedTheme(themeId)}
                 className={cn(
-                  "relative flex-shrink-0 w-28 md:w-36 rounded-lg overflow-hidden transition-all duration-200",
+                  "relative shrink-0 w-28 md:w-36 rounded-lg overflow-hidden transition-all duration-200",
                   "border-2 bg-white",
                   "focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2",
                   isUnlocked
@@ -182,7 +182,7 @@ export function ThemeSelector({
                 )}
               >
                 {/* Thumbnail Image */}
-                <div className="aspect-[4/3] bg-slate-100 overflow-hidden relative">
+                <div className="aspect-4/3 bg-slate-100 overflow-hidden relative">
                   <img
                     src={meta.preview}
                     alt={`${meta.name} preview`}

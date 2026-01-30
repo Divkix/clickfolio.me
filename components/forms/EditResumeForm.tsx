@@ -189,8 +189,8 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="relative shrink-0">
-                <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-blue-500 rounded-lg blur-md opacity-20" />
-                <div className="relative bg-gradient-to-r from-indigo-100 to-blue-100 p-2 rounded-lg">
+                <div className="absolute inset-0 bg-linear-to-r from-indigo-500 to-blue-500 rounded-lg blur-md opacity-20" />
+                <div className="relative bg-linear-to-r from-indigo-100 to-blue-100 p-2 rounded-lg">
                   <Save className="h-4 w-4 text-indigo-600" />
                 </div>
               </div>
@@ -199,7 +199,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
             <Button
               type="submit"
               disabled={saveStatus === "saving"}
-              className="bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-semibold shadow-depth-sm hover:shadow-depth-md transition-all duration-300"
+              className="bg-linear-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-semibold shadow-depth-sm hover:shadow-depth-md transition-all duration-300"
             >
               <Save className="h-4 w-4 mr-2" />
               Publish Changes
@@ -211,8 +211,8 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
         <div className="bg-white rounded-2xl shadow-depth-sm border border-slate-200/60 p-6 hover:shadow-depth-md transition-all duration-300">
           <div className="flex items-center gap-3 mb-6">
             <div className="relative shrink-0">
-              <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-blue-500 rounded-lg blur-md opacity-20" />
-              <div className="relative bg-gradient-to-r from-indigo-100 to-blue-100 p-2.5 rounded-lg">
+              <div className="absolute inset-0 bg-linear-to-r from-indigo-500 to-blue-500 rounded-lg blur-md opacity-20" />
+              <div className="relative bg-linear-to-r from-indigo-100 to-blue-100 p-2.5 rounded-lg">
                 <User className="h-5 w-5 text-indigo-600" />
               </div>
             </div>
@@ -283,8 +283,8 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
         <div className="bg-white rounded-2xl shadow-depth-sm border border-slate-200/60 p-6 hover:shadow-depth-md transition-all duration-300">
           <div className="flex items-center gap-3 mb-6">
             <div className="relative shrink-0">
-              <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg blur-md opacity-20" />
-              <div className="relative bg-gradient-to-r from-purple-100 to-pink-100 p-2.5 rounded-lg">
+              <div className="absolute inset-0 bg-linear-to-r from-purple-500 to-pink-500 rounded-lg blur-md opacity-20" />
+              <div className="relative bg-linear-to-r from-purple-100 to-pink-100 p-2.5 rounded-lg">
                 <Mail className="h-5 w-5 text-purple-600" />
               </div>
             </div>
@@ -388,8 +388,8 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
         <div className="bg-white rounded-2xl shadow-depth-sm border border-slate-200/60 p-6 hover:shadow-depth-md transition-all duration-300">
           <div className="flex items-center gap-3 mb-6">
             <div className="relative shrink-0">
-              <div className="absolute inset-0 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-lg blur-md opacity-20" />
-              <div className="relative bg-gradient-to-r from-emerald-100 to-teal-100 p-2.5 rounded-lg">
+              <div className="absolute inset-0 bg-linear-to-r from-emerald-500 to-teal-500 rounded-lg blur-md opacity-20" />
+              <div className="relative bg-linear-to-r from-emerald-100 to-teal-100 p-2.5 rounded-lg">
                 <Briefcase className="h-5 w-5 text-emerald-600" />
               </div>
             </div>
@@ -402,8 +402,8 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
             {experienceFields.length === 0 ? (
               <div className="text-center py-8 px-4 bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
                 <div className="relative inline-block mb-4">
-                  <div className="absolute inset-0 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl blur-lg opacity-15" />
-                  <div className="relative bg-gradient-to-r from-emerald-100 to-teal-100 p-4 rounded-xl">
+                  <div className="absolute inset-0 bg-linear-to-r from-emerald-500 to-teal-500 rounded-xl blur-lg opacity-15" />
+                  <div className="relative bg-linear-to-r from-emerald-100 to-teal-100 p-4 rounded-xl">
                     <Briefcase className="h-8 w-8 text-emerald-600" />
                   </div>
                 </div>
@@ -411,7 +411,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
                 <p className="text-sm text-slate-500 mb-4">Add your professional work history</p>
                 <Button
                   type="button"
-                  className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold shadow-depth-sm hover:shadow-depth-md"
+                  className="bg-linear-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold shadow-depth-sm hover:shadow-depth-md"
                   onClick={() =>
                     appendExperience({
                       title: "",
@@ -436,7 +436,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
                   >
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-2">
-                        <div className="bg-gradient-to-r from-emerald-100 to-teal-100 p-1.5 rounded-md">
+                        <div className="bg-linear-to-r from-emerald-100 to-teal-100 p-1.5 rounded-md">
                           <Briefcase className="h-3.5 w-3.5 text-emerald-600" />
                         </div>
                         <span className="text-sm font-medium text-slate-700">
@@ -582,8 +582,8 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
         <div className="bg-white rounded-2xl shadow-depth-sm border border-slate-200/60 p-6 hover:shadow-depth-md transition-all duration-300">
           <div className="flex items-center gap-3 mb-6">
             <div className="relative shrink-0">
-              <div className="absolute inset-0 bg-gradient-to-r from-orange-500 to-amber-500 rounded-lg blur-md opacity-20" />
-              <div className="relative bg-gradient-to-r from-orange-100 to-amber-100 p-2.5 rounded-lg">
+              <div className="absolute inset-0 bg-linear-to-r from-orange-500 to-amber-500 rounded-lg blur-md opacity-20" />
+              <div className="relative bg-linear-to-r from-orange-100 to-amber-100 p-2.5 rounded-lg">
                 <GraduationCap className="h-5 w-5 text-orange-600" />
               </div>
             </div>
@@ -596,8 +596,8 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
             {educationFields.length === 0 ? (
               <div className="text-center py-8 px-4 bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
                 <div className="relative inline-block mb-4">
-                  <div className="absolute inset-0 bg-gradient-to-r from-orange-500 to-amber-500 rounded-xl blur-lg opacity-15" />
-                  <div className="relative bg-gradient-to-r from-orange-100 to-amber-100 p-4 rounded-xl">
+                  <div className="absolute inset-0 bg-linear-to-r from-orange-500 to-amber-500 rounded-xl blur-lg opacity-15" />
+                  <div className="relative bg-linear-to-r from-orange-100 to-amber-100 p-4 rounded-xl">
                     <GraduationCap className="h-8 w-8 text-orange-600" />
                   </div>
                 </div>
@@ -607,7 +607,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
                 </p>
                 <Button
                   type="button"
-                  className="bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white font-semibold shadow-depth-sm hover:shadow-depth-md"
+                  className="bg-linear-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white font-semibold shadow-depth-sm hover:shadow-depth-md"
                   onClick={() =>
                     appendEducation({
                       degree: "",
@@ -631,7 +631,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
                   >
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-2">
-                        <div className="bg-gradient-to-r from-orange-100 to-amber-100 p-1.5 rounded-md">
+                        <div className="bg-linear-to-r from-orange-100 to-amber-100 p-1.5 rounded-md">
                           <GraduationCap className="h-3.5 w-3.5 text-orange-600" />
                         </div>
                         <span className="text-sm font-medium text-slate-700">
@@ -753,8 +753,8 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
         <div className="bg-white rounded-2xl shadow-depth-sm border border-slate-200/60 p-6 hover:shadow-depth-md transition-all duration-300">
           <div className="flex items-center gap-3 mb-6">
             <div className="relative shrink-0">
-              <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-sky-500 rounded-lg blur-md opacity-20" />
-              <div className="relative bg-gradient-to-r from-cyan-100 to-sky-100 p-2.5 rounded-lg">
+              <div className="absolute inset-0 bg-linear-to-r from-cyan-500 to-sky-500 rounded-lg blur-md opacity-20" />
+              <div className="relative bg-linear-to-r from-cyan-100 to-sky-100 p-2.5 rounded-lg">
                 <Wrench className="h-5 w-5 text-cyan-600" />
               </div>
             </div>
@@ -767,8 +767,8 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
             {skillFields.length === 0 ? (
               <div className="text-center py-8 px-4 bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
                 <div className="relative inline-block mb-4">
-                  <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-sky-500 rounded-xl blur-lg opacity-15" />
-                  <div className="relative bg-gradient-to-r from-cyan-100 to-sky-100 p-4 rounded-xl">
+                  <div className="absolute inset-0 bg-linear-to-r from-cyan-500 to-sky-500 rounded-xl blur-lg opacity-15" />
+                  <div className="relative bg-linear-to-r from-cyan-100 to-sky-100 p-4 rounded-xl">
                     <Wrench className="h-8 w-8 text-cyan-600" />
                   </div>
                 </div>
@@ -776,7 +776,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
                 <p className="text-sm text-slate-500 mb-4">Add your skills grouped by category</p>
                 <Button
                   type="button"
-                  className="bg-gradient-to-r from-cyan-600 to-sky-600 hover:from-cyan-700 hover:to-sky-700 text-white font-semibold shadow-depth-sm hover:shadow-depth-md"
+                  className="bg-linear-to-r from-cyan-600 to-sky-600 hover:from-cyan-700 hover:to-sky-700 text-white font-semibold shadow-depth-sm hover:shadow-depth-md"
                   onClick={() =>
                     appendSkill({
                       category: "",
@@ -797,7 +797,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
                   >
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-2">
-                        <div className="bg-gradient-to-r from-cyan-100 to-sky-100 p-1.5 rounded-md">
+                        <div className="bg-linear-to-r from-cyan-100 to-sky-100 p-1.5 rounded-md">
                           <Wrench className="h-3.5 w-3.5 text-cyan-600" />
                         </div>
                         <span className="text-sm font-medium text-slate-700">
@@ -883,8 +883,8 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
         <div className="bg-white rounded-2xl shadow-depth-sm border border-slate-200/60 p-6 hover:shadow-depth-md transition-all duration-300">
           <div className="flex items-center gap-3 mb-6">
             <div className="relative shrink-0">
-              <div className="absolute inset-0 bg-gradient-to-r from-rose-500 to-pink-500 rounded-lg blur-md opacity-20" />
-              <div className="relative bg-gradient-to-r from-rose-100 to-pink-100 p-2.5 rounded-lg">
+              <div className="absolute inset-0 bg-linear-to-r from-rose-500 to-pink-500 rounded-lg blur-md opacity-20" />
+              <div className="relative bg-linear-to-r from-rose-100 to-pink-100 p-2.5 rounded-lg">
                 <Award className="h-5 w-5 text-rose-600" />
               </div>
             </div>
@@ -897,8 +897,8 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
             {certificationFields.length === 0 ? (
               <div className="text-center py-8 px-4 bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
                 <div className="relative inline-block mb-4">
-                  <div className="absolute inset-0 bg-gradient-to-r from-rose-500 to-pink-500 rounded-xl blur-lg opacity-15" />
-                  <div className="relative bg-gradient-to-r from-rose-100 to-pink-100 p-4 rounded-xl">
+                  <div className="absolute inset-0 bg-linear-to-r from-rose-500 to-pink-500 rounded-xl blur-lg opacity-15" />
+                  <div className="relative bg-linear-to-r from-rose-100 to-pink-100 p-4 rounded-xl">
                     <Award className="h-8 w-8 text-rose-600" />
                   </div>
                 </div>
@@ -908,7 +908,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
                 </p>
                 <Button
                   type="button"
-                  className="bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 text-white font-semibold shadow-depth-sm hover:shadow-depth-md"
+                  className="bg-linear-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 text-white font-semibold shadow-depth-sm hover:shadow-depth-md"
                   onClick={() =>
                     appendCertification({
                       name: "",
@@ -931,7 +931,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
                   >
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-2">
-                        <div className="bg-gradient-to-r from-rose-100 to-pink-100 p-1.5 rounded-md">
+                        <div className="bg-linear-to-r from-rose-100 to-pink-100 p-1.5 rounded-md">
                           <Award className="h-3.5 w-3.5 text-rose-600" />
                         </div>
                         <span className="text-sm font-medium text-slate-700">
@@ -1042,8 +1042,8 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
         <div className="bg-white rounded-2xl shadow-depth-sm border border-slate-200/60 p-6 hover:shadow-depth-md transition-all duration-300">
           <div className="flex items-center gap-3 mb-6">
             <div className="relative shrink-0">
-              <div className="absolute inset-0 bg-gradient-to-r from-violet-500 to-purple-500 rounded-lg blur-md opacity-20" />
-              <div className="relative bg-gradient-to-r from-violet-100 to-purple-100 p-2.5 rounded-lg">
+              <div className="absolute inset-0 bg-linear-to-r from-violet-500 to-purple-500 rounded-lg blur-md opacity-20" />
+              <div className="relative bg-linear-to-r from-violet-100 to-purple-100 p-2.5 rounded-lg">
                 <FolderCode className="h-5 w-5 text-violet-600" />
               </div>
             </div>
@@ -1058,8 +1058,8 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
             {projectFields.length === 0 ? (
               <div className="text-center py-8 px-4 bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
                 <div className="relative inline-block mb-4">
-                  <div className="absolute inset-0 bg-gradient-to-r from-violet-500 to-purple-500 rounded-xl blur-lg opacity-15" />
-                  <div className="relative bg-gradient-to-r from-violet-100 to-purple-100 p-4 rounded-xl">
+                  <div className="absolute inset-0 bg-linear-to-r from-violet-500 to-purple-500 rounded-xl blur-lg opacity-15" />
+                  <div className="relative bg-linear-to-r from-violet-100 to-purple-100 p-4 rounded-xl">
                     <FolderCode className="h-8 w-8 text-violet-600" />
                   </div>
                 </div>
@@ -1069,7 +1069,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
                 </p>
                 <Button
                   type="button"
-                  className="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white font-semibold shadow-depth-sm hover:shadow-depth-md"
+                  className="bg-linear-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white font-semibold shadow-depth-sm hover:shadow-depth-md"
                   onClick={() =>
                     appendProject({
                       title: "",
@@ -1093,7 +1093,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
                   >
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-2">
-                        <div className="bg-gradient-to-r from-violet-100 to-purple-100 p-1.5 rounded-md">
+                        <div className="bg-linear-to-r from-violet-100 to-purple-100 p-1.5 rounded-md">
                           <FolderCode className="h-3.5 w-3.5 text-violet-600" />
                         </div>
                         <span className="text-sm font-medium text-slate-700">
@@ -1254,7 +1254,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
             type="submit"
             size="lg"
             disabled={saveStatus === "saving"}
-            className="bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-semibold shadow-depth-sm hover:shadow-depth-md transition-all duration-300"
+            className="bg-linear-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-semibold shadow-depth-sm hover:shadow-depth-md transition-all duration-300"
           >
             <Save className="h-4 w-4 mr-2" />
             Publish Changes

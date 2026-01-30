@@ -200,7 +200,7 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content, profile }) => {
         {/* Skills Marquee / Badges */}
         {flatSkills.length > 0 && (
           <section className="mb-32">
-            <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/5">
+            <div className="p-6 rounded-2xl bg-white/2 border border-white/5">
               <p className="text-xs font-mono text-slate-500 mb-4 uppercase tracking-widest">
                 Technologies
               </p>
@@ -230,12 +230,12 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content, profile }) => {
               {content.projects.map((project: Project, i: number) => (
                 <div
                   key={i}
-                  className="group relative flex flex-col justify-between rounded-2xl bg-white/[0.03] border border-white/5 p-6 hover:bg-white/[0.05] hover:border-white/10 transition-all duration-300"
+                  className="group relative flex flex-col justify-between rounded-2xl bg-white/3 border border-white/5 p-6 hover:bg-white/5 hover:border-white/10 transition-all duration-300"
                 >
                   <div>
                     <div className="flex justify-between items-start mb-4">
                       <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center text-indigo-300 font-bold border border-white/5">
+                        <div className="h-10 w-10 rounded-full bg-linear-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center text-indigo-300 font-bold border border-white/5">
                           {project.title.charAt(0)}
                         </div>
                         <div>
@@ -286,7 +286,7 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content, profile }) => {
         <section className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-20">
           {/* Education */}
           {content.education && content.education.length > 0 && (
-            <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.03] to-transparent p-6">
+            <div className="rounded-2xl border border-white/10 bg-linear-to-br from-white/3 to-transparent p-6">
               <h3 className="flex items-center gap-2 text-lg font-semibold text-white mb-6">
                 <GraduationCap className="w-4 h-4 text-slate-400" />
                 Education
@@ -308,7 +308,7 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content, profile }) => {
 
           {/* Certifications */}
           {content.certifications && content.certifications.length > 0 && (
-            <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.03] to-transparent p-6">
+            <div className="rounded-2xl border border-white/10 bg-linear-to-br from-white/3 to-transparent p-6">
               <h3 className="flex items-center gap-2 text-lg font-semibold text-white mb-6">
                 <Award className="w-4 h-4 text-slate-400" />
                 Certifications

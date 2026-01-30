@@ -67,7 +67,7 @@ export function Confetti({
   const count = particleCount ?? (isMobile ? 50 : 100);
 
   return (
-    <div className="fixed inset-0 pointer-events-none z-[100]" aria-hidden="true">
+    <div className="fixed inset-0 pointer-events-none z-100" aria-hidden="true">
       <NeoConfetti
         particleCount={count}
         duration={duration}

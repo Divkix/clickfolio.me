@@ -267,7 +267,7 @@ export default async function ExplorePage({
         )}
 
         {/* CTA for non-listed users */}
-        <div className="mt-16 text-center bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl border border-indigo-100 p-8">
+        <div className="mt-16 text-center bg-linear-to-r from-indigo-50 to-purple-50 rounded-2xl border border-indigo-100 p-8">
           <h2 className="text-2xl font-bold text-slate-900 mb-3">Join Our Directory</h2>
           <p className="text-slate-600 mb-6 max-w-xl mx-auto">
             Want to be featured here? Enable &ldquo;Show in Directory&rdquo; in your privacy

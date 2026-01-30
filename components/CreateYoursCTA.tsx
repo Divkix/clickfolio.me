@@ -22,7 +22,7 @@ const ctaVariants = cva(
         glass_morphic: "bg-white/10 backdrop-blur-md border border-white/20 text-white",
         bento_grid:
           "bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white border border-neutral-200 dark:border-neutral-700",
-        spotlight: "bg-gradient-to-r from-orange-500 to-amber-500 text-white",
+        spotlight: "bg-linear-to-r from-orange-500 to-amber-500 text-white",
         midnight: "bg-neutral-900 text-amber-200 border border-amber-700/30",
         bold_corporate: "bg-white text-neutral-900 border border-neutral-200 shadow-lg",
         dev_terminal: "bg-[#161b22] text-[#c9d1d9] border border-[#30363d]",

@@ -46,7 +46,7 @@ export function ReferralStats({ referralCount, clickCount, handle }: ReferralSta
   const conversionRate = clickCount > 0 ? Math.round((referralCount / clickCount) * 100) : 0;
 
   return (
-    <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl border border-purple-200/60 p-6 shadow-depth-sm hover:shadow-depth-md transition-shadow duration-300">
+    <div className="bg-linear-to-r from-purple-50 to-pink-50 rounded-2xl border border-purple-200/60 p-6 shadow-depth-sm hover:shadow-depth-md transition-shadow duration-300">
       <div className="flex flex-col gap-4">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
