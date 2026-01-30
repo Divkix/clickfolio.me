@@ -45,6 +45,18 @@ bun run ci               # type-check + lint + build
 - **No Next.js `<Image />`** — use `<img>` with CSS (`aspect-ratio`, `object-fit`)
 - **No middleware D1 access** — Edge middleware can't call D1; move DB checks to page components/API routes
 
+### Middleware Cookie Validation (Intentional Design)
+The middleware (`middleware.ts`) only checks if a session cookie **exists**, not if it's **valid**. This is intentional:
+
+1. **Edge middleware can't access D1** — Cloudflare Workers edge middleware cannot call D1 for session validation
+2. **Defense in depth** — Page components and API routes perform full authentication via `requireAuthWithUserValidation()` which validates both the session AND that the user exists in the database
+3. **Cookie existence is a UX optimization** — Prevents unnecessary redirects for clearly unauthenticated users (no cookie at all)
+
+This means an attacker could set a fake cookie (`better-auth.session_token=fake`) to bypass middleware redirects, but they would fail at the page/API handler level where full validation occurs. This is acceptable because:
+- No sensitive operations happen in middleware
+- All data access requires valid auth checked at handler level
+- The pattern is documented and expected
+
 ### D1/SQLite Constraints
 - JSON stored as TEXT — always `JSON.parse()`/`JSON.stringify()`
 - UUIDs generated in app code (`crypto.randomUUID()`)

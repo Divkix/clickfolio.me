@@ -260,8 +260,19 @@ export function generateResumeJsonLd(
 
 /**
  * Serializes JSON-LD to a string for embedding in HTML
- * Uses JSON.stringify with proper escaping
+ *
+ * SECURITY: Escapes characters that could break out of the script tag context.
+ * JSON.stringify does NOT escape angle brackets, so a malicious string like
+ * "</script><script>alert(1)//" would break out of the JSON-LD script tag.
+ * We escape < and > to their Unicode equivalents to prevent XSS.
+ *
+ * Also escapes U+2028 (LINE SEPARATOR) and U+2029 (PARAGRAPH SEPARATOR)
+ * which are valid JSON but can break JavaScript parsing in some contexts.
  */
 export function serializeJsonLd(jsonLd: JsonLdProfilePage): string {
-  return JSON.stringify(jsonLd);
+  return JSON.stringify(jsonLd)
+    .replace(/</g, "\\u003c")
+    .replace(/>/g, "\\u003e")
+    .replace(/\u2028/g, "\\u2028")
+    .replace(/\u2029/g, "\\u2029");
 }

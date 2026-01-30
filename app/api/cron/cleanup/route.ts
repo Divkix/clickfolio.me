@@ -17,12 +17,18 @@ const CRON_SECRET = process.env.CRON_SECRET;
 
 export async function GET(request: Request) {
   // Verify cron secret header (basic auth for cron endpoints)
-  if (CRON_SECRET) {
-    const authHeader = request.headers.get("Authorization");
-    const expectedAuth = `Bearer ${CRON_SECRET}`;
-    if (authHeader !== expectedAuth) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  // SECURITY: Fail-closed - reject all requests if CRON_SECRET is not configured
+  if (!CRON_SECRET) {
+    console.error("CRON_SECRET environment variable is not configured");
+    return Response.json(
+      { error: "Server misconfiguration: CRON_SECRET not set" },
+      { status: 500 },
+    );
+  }
+
+  const authHeader = request.headers.get("Authorization");
+  if (authHeader !== `Bearer ${CRON_SECRET}`) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {

@@ -1,9 +1,7 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { eq } from "drizzle-orm";
-import { headers } from "next/headers";
-import { getAuth } from "@/lib/auth";
+import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
 import { siteData } from "@/lib/db/schema";
-import { getSessionDb } from "@/lib/db/session";
 import {
   createErrorResponse,
   createSuccessResponse,
@@ -18,25 +16,18 @@ export async function GET() {
   try {
     // 1. Get D1 database binding
     const { env } = await getCloudflareContext({ async: true });
-    const { db } = await getSessionDb(env.DB);
 
-    // 2. Check authentication via Better Auth
-    const auth = await getAuth();
-    const session = await auth.api.getSession({ headers: await headers() });
-
-    if (!session?.user) {
-      return createErrorResponse(
-        "You must be logged in to access site data",
-        ERROR_CODES.UNAUTHORIZED,
-        401,
-      );
-    }
-
-    const userId = session.user.id;
+    // 2. Authenticate and validate user exists in database
+    // Uses the standard helper that protects against stale sessions
+    const { user, db, error } = await requireAuthWithUserValidation(
+      "You must be logged in to access site data",
+      env.DB,
+    );
+    if (error) return error;
 
     // 3. Fetch site_data for the user
     const userSiteData = await db.query.siteData.findFirst({
-      where: eq(siteData.userId, userId),
+      where: eq(siteData.userId, user.id),
     });
 
     if (!userSiteData) {
