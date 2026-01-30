@@ -26,6 +26,7 @@ const shareBarVariants = cva("flex items-center gap-2 flex-wrap", {
       midnight: "",
       "bold-corporate": "",
       "design-folio": "",
+      "dev-terminal": "",
     },
   },
   defaultVariants: {
@@ -54,6 +55,8 @@ const buttonVariants = cva(
           "bg-white text-neutral-700 hover:bg-neutral-50 border border-neutral-200 rounded-md px-3 py-1.5 shadow-sm",
         "design-folio":
           "bg-[#1a1a1a] text-[#888] hover:text-[#CCFF00] border border-[#333] hover:border-[#CCFF00] rounded-full px-3 py-1.5 font-mono text-xs uppercase tracking-widest",
+        "dev-terminal":
+          "bg-[#161b22] text-[#c9d1d9] hover:text-[#58a6ff] border border-[#30363d] rounded px-3 py-1.5",
       },
     },
     defaultVariants: {

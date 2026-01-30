@@ -8,6 +8,7 @@ export const THEME_IDS = [
   "bento",
   "bold_corporate",
   "design_folio",
+  "dev_terminal",
   "glass",
   "midnight",
   "minimalist_editorial",
@@ -60,6 +61,13 @@ export const THEME_METADATA: Record<
     category: "Creative",
     preview: "/previews/design-folio.png",
     referralsRequired: 3, // Premium - 3 referrals
+  },
+  dev_terminal: {
+    name: "DevTerminal",
+    description: "GitHub-inspired dark terminal aesthetic for developers",
+    category: "Developer",
+    preview: "/previews/dev-terminal.png",
+    referralsRequired: 0, // Free template for students
   },
   glass: {
     name: "Glass Morphic",

@@ -25,6 +25,7 @@ const ctaVariants = cva(
         spotlight: "bg-gradient-to-r from-orange-500 to-amber-500 text-white",
         midnight: "bg-neutral-900 text-amber-200 border border-amber-700/30",
         bold_corporate: "bg-white text-neutral-900 border border-neutral-200 shadow-lg",
+        dev_terminal: "bg-[#161b22] text-[#c9d1d9] border border-[#30363d]",
       },
     },
     defaultVariants: {
@@ -46,6 +47,7 @@ const buttonVariants = cva(
         spotlight: "bg-white text-orange-600 hover:bg-orange-50",
         midnight: "bg-amber-500 text-neutral-900 hover:bg-amber-400",
         bold_corporate: "bg-neutral-900 text-white hover:bg-neutral-800",
+        dev_terminal: "bg-[#238636] text-white hover:bg-[#2ea043]",
       },
     },
     defaultVariants: {
@@ -64,6 +66,7 @@ const closeButtonVariants = cva("p-1 rounded-full transition-colors", {
       spotlight: "hover:bg-white/10 text-white/80",
       midnight: "hover:bg-amber-900/30 text-amber-400",
       bold_corporate: "hover:bg-neutral-100 text-neutral-400",
+      dev_terminal: "hover:bg-[#30363d] text-[#8b949e]",
     },
   },
   defaultVariants: {

@@ -99,6 +99,16 @@ export const DEMO_PROFILES: DemoProfile[] = [
     badgeBgColor: "bg-lime-50",
     badgeTextColor: "text-lime-600",
   },
+  {
+    id: "dev_terminal",
+    name: "Jordan Lee",
+    role: "CS Student & Developer",
+    initials: "JL",
+    avatarGradient: "from-green-400 to-emerald-600",
+    badgeLabel: "Terminal",
+    badgeBgColor: "bg-green-50",
+    badgeTextColor: "text-green-600",
+  },
 ];
 
 /**
@@ -682,6 +692,78 @@ export const DEMO_RESUME_CONTENT: Record<ThemeId, ResumeContent> = {
     ],
   },
 
+  dev_terminal: {
+    full_name: "Jordan Lee",
+    headline: "Computer Science Student passionate about open source",
+    summary:
+      "Junior CS student at Stanford with a focus on distributed systems and developer tools. Active open source contributor with 500+ GitHub contributions.",
+    contact: {
+      email: "jordan@example.com",
+      location: "Stanford, CA",
+      github: "github.com/jordanlee",
+      linkedin: "linkedin.com/in/jordanlee",
+    },
+    experience: [
+      {
+        title: "Software Engineering Intern",
+        company: "GitHub",
+        location: "Remote",
+        start_date: "2024-06",
+        end_date: "2024-09",
+        description: "Worked on GitHub Copilot infrastructure and CLI tools.",
+        highlights: [
+          "Improved CLI response time by 40%",
+          "Shipped feature flag system for internal tools",
+        ],
+      },
+      {
+        title: "Research Assistant",
+        company: "Stanford CS Department",
+        location: "Stanford, CA",
+        start_date: "2023-09",
+        end_date: undefined,
+        description: "Researching distributed consensus algorithms under Prof. Smith.",
+      },
+    ],
+    education: [
+      {
+        degree: "BS in Computer Science",
+        institution: "Stanford University",
+        location: "Stanford, CA",
+        graduation_date: "2026-06",
+        gpa: "3.9",
+      },
+    ],
+    skills: [
+      { category: "Languages", items: ["TypeScript", "Rust", "Go", "Python"] },
+      { category: "Tools", items: ["Git", "Docker", "Kubernetes", "Linux"] },
+      { category: "Frameworks", items: ["React", "Next.js", "Node.js", "PostgreSQL"] },
+    ],
+    certifications: [
+      {
+        name: "AWS Cloud Practitioner",
+        issuer: "Amazon Web Services",
+        date: "2024-01",
+      },
+    ],
+    projects: [
+      {
+        title: "GitSync",
+        description: "CLI tool for syncing dotfiles across machines with 2k+ stars",
+        year: "2024",
+        technologies: ["Rust", "Git"],
+        url: "github.com/jordanlee/gitsync",
+      },
+      {
+        title: "TerminalUI",
+        description: "TUI framework for building terminal applications",
+        year: "2023",
+        technologies: ["Go", "ANSI"],
+        url: "github.com/jordanlee/terminalui",
+      },
+    ],
+  },
+
   design_folio: {
     full_name: "Kai Nakamura",
     headline: "Visual Designer crafting bold digital experiences",
@@ -776,6 +858,7 @@ export const TEMPLATE_BACKGROUNDS: Record<ThemeId, { bg: string; isDark: boolean
   bento: { bg: "bg-neutral-100", isDark: false },
   bold_corporate: { bg: "bg-white", isDark: false },
   design_folio: { bg: "bg-[#0f0f0f]", isDark: true },
+  dev_terminal: { bg: "bg-[#0d1117]", isDark: true },
   glass: { bg: "bg-[#0f172a]", isDark: true },
   midnight: { bg: "bg-[#0a0a0a]", isDark: true },
   minimalist_editorial: { bg: "bg-[#fdfbf9]", isDark: false },

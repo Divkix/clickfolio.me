@@ -153,7 +153,8 @@ export default async function HandlePage({ params }: PageProps) {
     | "bento_grid"
     | "spotlight"
     | "midnight"
-    | "bold_corporate";
+    | "bold_corporate"
+    | "dev_terminal";
 
   // Generate JSON-LD structured data for SEO (skip if user opted out)
   const profileUrl = `${siteConfig.url}/@${handle}`;
