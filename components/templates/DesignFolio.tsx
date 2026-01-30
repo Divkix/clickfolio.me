@@ -171,29 +171,41 @@ const DesignFolio: React.FC<TemplateProps> = ({ content, profile }) => {
                     href={project.url || "#"}
                     target={project.url ? "_blank" : "_self"}
                     rel="noopener noreferrer"
-                    className={`group block bg-[#1a1a1a] border border-[#333] p-8 md:p-12 hover:border-[#CCFF00] transition-all duration-300 ${!project.url ? "pointer-events-none" : ""}`}
+                    className={`group block bg-[#1a1a1a] border border-[#333] overflow-hidden hover:border-[#CCFF00] transition-all duration-300 ${!project.url ? "pointer-events-none" : ""}`}
                   >
-                    <div className="flex flex-wrap gap-2 mb-6">
-                      {project.technologies?.map((tech, t) => (
-                        <span
-                          key={t}
-                          className="text-[10px] uppercase border border-[#444] text-[#888] px-2 py-1 rounded-full group-hover:border-[#CCFF00] group-hover:text-[#CCFF00] transition-colors"
-                        >
-                          {tech}
-                        </span>
-                      ))}
+                    {project.image_url && (
+                      <div className="relative overflow-hidden">
+                        <img
+                          src={project.image_url}
+                          alt={project.title}
+                          className="w-full aspect-video object-cover transition-transform duration-500 group-hover:scale-105"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-[#1a1a1a] to-transparent opacity-60" />
+                      </div>
+                    )}
+                    <div className="p-8 md:p-12">
+                      <div className="flex flex-wrap gap-2 mb-6">
+                        {project.technologies?.map((tech, t) => (
+                          <span
+                            key={t}
+                            className="text-[10px] uppercase border border-[#444] text-[#888] px-2 py-1 rounded-full group-hover:border-[#CCFF00] group-hover:text-[#CCFF00] transition-colors"
+                          >
+                            {tech}
+                          </span>
+                        ))}
+                      </div>
+                      <h3 className="font-serif-df text-3xl text-white mb-4 group-hover:text-[#CCFF00] transition-colors flex items-center gap-2">
+                        {project.title}
+                        {project.url && (
+                          <span className="text-sm opacity-0 group-hover:opacity-100 transition-opacity">
+                            ↗
+                          </span>
+                        )}
+                      </h3>
+                      <p className="font-mono-df text-[#888] text-sm leading-relaxed">
+                        {project.description}
+                      </p>
                     </div>
-                    <h3 className="font-serif-df text-3xl text-white mb-4 group-hover:text-[#CCFF00] transition-colors flex items-center gap-2">
-                      {project.title}
-                      {project.url && (
-                        <span className="text-sm opacity-0 group-hover:opacity-100 transition-opacity">
-                          ↗
-                        </span>
-                      )}
-                    </h3>
-                    <p className="font-mono-df text-[#888] text-sm leading-relaxed">
-                      {project.description}
-                    </p>
                   </a>
                 ))}
               </div>

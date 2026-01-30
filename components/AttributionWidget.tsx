@@ -10,7 +10,10 @@ type ThemeId =
   | "bento_grid"
   | "spotlight"
   | "midnight"
-  | "bold_corporate";
+  | "bold_corporate"
+  | "dev_terminal"
+  | "design_folio"
+  | "classic_ats";
 
 interface AttributionWidgetProps {
   theme: string;
@@ -77,6 +80,26 @@ export function AttributionWidget({ theme }: AttributionWidgetProps) {
         "bg-white/95 sm:bg-white border border-neutral-200 text-neutral-500 hover:text-neutral-800",
       accent: "text-neutral-900",
       shimmer: "from-transparent via-neutral-200/30 to-transparent",
+      shadow: "shadow-sm hover:shadow-md",
+    },
+    dev_terminal: {
+      container:
+        "bg-[#161b22]/95 backdrop-blur-md border border-[#30363d] text-[#c9d1d9] hover:text-white",
+      accent: "text-[#58a6ff]",
+      shimmer: "from-transparent via-[#58a6ff]/20 to-transparent",
+      shadow: "shadow-lg hover:shadow-xl",
+    },
+    design_folio: {
+      container:
+        "bg-[#1a1a1a]/95 backdrop-blur-md border border-[#333] text-[#888] hover:text-[#e0e0e0]",
+      accent: "text-[#CCFF00]",
+      shimmer: "from-transparent via-[#CCFF00]/20 to-transparent",
+      shadow: "shadow-lg hover:shadow-xl",
+    },
+    classic_ats: {
+      container: "bg-white/95 border border-gray-300 text-gray-600 hover:text-gray-900",
+      accent: "text-gray-800",
+      shimmer: "from-transparent via-gray-200/30 to-transparent",
       shadow: "shadow-sm hover:shadow-md",
     },
   };

@@ -26,6 +26,8 @@ const ctaVariants = cva(
         midnight: "bg-neutral-900 text-amber-200 border border-amber-700/30",
         bold_corporate: "bg-white text-neutral-900 border border-neutral-200 shadow-lg",
         dev_terminal: "bg-[#161b22] text-[#c9d1d9] border border-[#30363d]",
+        classic_ats: "bg-white text-gray-800 border border-gray-300",
+        design_folio: "bg-[#1a1a1a] text-[#e0e0e0] border border-[#333]",
       },
     },
     defaultVariants: {
@@ -48,6 +50,8 @@ const buttonVariants = cva(
         midnight: "bg-amber-500 text-neutral-900 hover:bg-amber-400",
         bold_corporate: "bg-neutral-900 text-white hover:bg-neutral-800",
         dev_terminal: "bg-[#238636] text-white hover:bg-[#2ea043]",
+        classic_ats: "bg-gray-800 text-white hover:bg-gray-700",
+        design_folio: "bg-[#CCFF00] text-black hover:bg-[#b8e600]",
       },
     },
     defaultVariants: {
@@ -67,6 +71,8 @@ const closeButtonVariants = cva("p-1 rounded-full transition-colors", {
       midnight: "hover:bg-amber-900/30 text-amber-400",
       bold_corporate: "hover:bg-neutral-100 text-neutral-400",
       dev_terminal: "hover:bg-[#30363d] text-[#8b949e]",
+      classic_ats: "hover:bg-gray-100 text-gray-500",
+      design_folio: "hover:bg-[#333] text-[#888]",
     },
   },
   defaultVariants: {

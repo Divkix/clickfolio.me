@@ -5,6 +5,7 @@ export interface Project {
   year?: string;
   technologies?: string[];
   url?: string;
+  image_url?: string;
 }
 
 // Resume content structure (from AI parsing)
