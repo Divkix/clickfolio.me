@@ -5,8 +5,10 @@ import { type ChangeEvent, type DragEvent, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { clearStoredReferralHandle, getStoredReferralHandle } from "@/lib/referral";
 import type { ResumeContent } from "@/lib/types/database";
 import { validatePDF } from "@/lib/utils/validation";
+import { waitForResumeCompletion } from "@/lib/utils/wait-for-completion";
 
 interface UploadStepProps {
   onContinue: (resumeData: ResumeContent) => void;
@@ -20,11 +22,6 @@ interface UploadResponse {
   remaining: number;
   error?: string;
   message?: string;
-}
-
-interface ResumeStatusResponse {
-  status: "pending_claim" | "processing" | "completed" | "failed";
-  error?: string | null;
 }
 
 interface ClaimResponse {
@@ -43,7 +40,6 @@ interface SiteDataResponse {
  */
 export function UploadStep({ onContinue }: UploadStepProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const [file, setFile] = useState<File | null>(null);
   const [uploadState, setUploadState] = useState<UploadState>("idle");
@@ -100,82 +96,26 @@ export function UploadStep({ onContinue }: UploadStepProps) {
     uploadAndParse(selectedFile);
   };
 
-  // Poll for resume status
-  const pollResumeStatus = async (resumeId: string): Promise<ResumeContent | null> => {
-    return new Promise((resolve) => {
-      let attempts = 0;
-      const maxAttempts = 30; // 30 * 3 seconds = 90 seconds max
+  // Wait for resume parsing completion via WebSocket (with polling fallback)
+  const awaitResumeCompletion = async (resumeId: string): Promise<ResumeContent | null> => {
+    const result = await waitForResumeCompletion(resumeId);
 
-      const checkStatus = async () => {
-        try {
-          const response = await fetch(`/api/resume/status?resume_id=${resumeId}`);
-          if (!response.ok) {
-            throw new Error("Failed to check status");
-          }
-
-          const data = (await response.json()) as ResumeStatusResponse;
-
-          if (data.status === "completed") {
-            // Clear polling interval
-            if (pollingIntervalRef.current) {
-              clearInterval(pollingIntervalRef.current);
-              pollingIntervalRef.current = null;
-            }
-
-            // Fetch the parsed content
-            const siteDataResponse = await fetch("/api/site-data");
-            if (siteDataResponse.ok) {
-              const siteData = (await siteDataResponse.json()) as SiteDataResponse | null;
-              if (siteData?.content) {
-                resolve(siteData.content);
-                return;
-              }
-            }
-            resolve(null);
-            return;
-          }
-
-          if (data.status === "failed") {
-            if (pollingIntervalRef.current) {
-              clearInterval(pollingIntervalRef.current);
-              pollingIntervalRef.current = null;
-            }
-            setError(data.error || "Resume parsing failed. Please try again.");
-            setUploadState("error");
-            resolve(null);
-            return;
-          }
-
-          attempts++;
-          if (attempts >= maxAttempts) {
-            if (pollingIntervalRef.current) {
-              clearInterval(pollingIntervalRef.current);
-              pollingIntervalRef.current = null;
-            }
-            setError("Parsing is taking longer than expected. Please wait or try again.");
-            setUploadState("error");
-            resolve(null);
-          }
-        } catch (err) {
-          console.error("Error polling status:", err);
-          attempts++;
-          if (attempts >= maxAttempts) {
-            if (pollingIntervalRef.current) {
-              clearInterval(pollingIntervalRef.current);
-              pollingIntervalRef.current = null;
-            }
-            setError("Failed to check parsing status. Please try again.");
-            setUploadState("error");
-            resolve(null);
-          }
+    if (result.status === "completed") {
+      // Fetch the parsed content
+      const siteDataResponse = await fetch("/api/site-data");
+      if (siteDataResponse.ok) {
+        const siteData = (await siteDataResponse.json()) as SiteDataResponse | null;
+        if (siteData?.content) {
+          return siteData.content;
         }
-      };
+      }
+      return null;
+    }
 
-      // Start polling every 3 seconds
-      pollingIntervalRef.current = setInterval(checkStatus, 3000);
-      // Check immediately as well
-      checkStatus();
-    });
+    // Failed
+    setError(result.error || "Resume parsing failed. Please try again.");
+    setUploadState("error");
+    return null;
   };
 
   const uploadAndParse = async (fileToUpload: File) => {
@@ -210,10 +150,14 @@ export function UploadStep({ onContinue }: UploadStepProps) {
       setUploadState("claiming");
 
       // Step 2: Claim the upload (hash computed server-side)
+      const referralHandle = getStoredReferralHandle();
       const claimResponse = await fetch("/api/resume/claim", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key }),
+        body: JSON.stringify({
+          key,
+          referral_handle: referralHandle || undefined,
+        }),
       });
 
       if (!claimResponse.ok) {
@@ -235,6 +179,7 @@ export function UploadStep({ onContinue }: UploadStepProps) {
           const siteData = (await siteDataResponse.json()) as SiteDataResponse | null;
           if (siteData?.content) {
             setUploadProgress(100);
+            clearStoredReferralHandle();
             toast.success("Resume parsed successfully!");
             onContinue(siteData.content);
             return;
@@ -243,11 +188,12 @@ export function UploadStep({ onContinue }: UploadStepProps) {
         throw new Error("Failed to load cached resume data");
       }
 
-      // Poll for parsing completion
-      const parsingResult = await pollResumeStatus(resumeId);
+      // Wait for parsing completion via WebSocket (with polling fallback)
+      const parsingResult = await awaitResumeCompletion(resumeId);
 
       if (parsingResult) {
         setUploadProgress(100);
+        clearStoredReferralHandle();
         toast.success("Resume parsed successfully!");
         onContinue(parsingResult);
       }
@@ -273,11 +219,6 @@ export function UploadStep({ onContinue }: UploadStepProps) {
   };
 
   const handleRetry = () => {
-    // Clear any polling interval
-    if (pollingIntervalRef.current) {
-      clearInterval(pollingIntervalRef.current);
-      pollingIntervalRef.current = null;
-    }
     setError(null);
     setUploadState("idle");
     setUploadProgress(0);

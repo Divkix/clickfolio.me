@@ -1,55 +1,36 @@
 import { and, eq, isNotNull } from "drizzle-orm";
-import { resumes, siteData, user } from "../db/schema";
-import { getSessionDb } from "../db/session";
+import { resumes, siteData } from "../db/schema";
+import { getSessionDbForWebhook } from "../db/session";
 import { parseResumeWithGemini } from "../gemini";
 import { getR2Binding, R2 } from "../r2";
+import type { ResumeContent } from "../types/database";
+import { extractPreviewFields } from "../utils/preview-fields";
 import { classifyQueueError } from "./errors";
+import { notifyStatusChange, notifyStatusChangeBatch } from "./notify-status";
 import type { QueueMessage, ResumeParseMessage } from "./types";
 
 /**
- * Invalidate cache for a user's resume page
- * Best-effort - failures are logged but don't throw
- */
-async function invalidateResumeCache(handle: string, env: CloudflareEnv): Promise<void> {
-  const appUrl = env.NEXT_PUBLIC_APP_URL;
-  const token = env.INTERNAL_CACHE_INVALIDATION_TOKEN;
-
-  if (!appUrl || !token) {
-    console.warn(
-      "Cache invalidation skipped - missing NEXT_PUBLIC_APP_URL or INTERNAL_CACHE_INVALIDATION_TOKEN",
-    );
-    return;
-  }
-
-  try {
-    const response = await fetch(`${appUrl}/api/internal/cache/invalidate`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-internal-auth": token,
-      },
-      body: JSON.stringify({ handle }),
-    });
-
-    if (!response.ok) {
-      console.error(`Cache invalidation failed: ${response.status}`);
-    }
-  } catch (error) {
-    console.error("Cache invalidation error:", error);
-    // Don't throw - cache invalidation is best-effort
-  }
-}
-
-/**
  * Upsert site_data with UNIQUE constraint handling
+ * Extracts preview fields from content for denormalized columns
  */
 async function upsertSiteData(
-  db: Awaited<ReturnType<typeof getSessionDb>>["db"],
+  db: ReturnType<typeof getSessionDbForWebhook>["db"],
   userId: string,
   resumeId: string,
   content: string,
   now: string,
 ): Promise<void> {
+  // Parse content to extract preview fields
+  let parsedContent: ResumeContent | null = null;
+  try {
+    parsedContent = JSON.parse(content) as ResumeContent;
+  } catch {
+    // If parsing fails, continue without preview fields
+    console.warn(`Failed to parse content for preview fields extraction, resumeId: ${resumeId}`);
+  }
+
+  const previewFields = extractPreviewFields(parsedContent);
+
   const existingSiteData = await db
     .select({ id: siteData.id })
     .from(siteData)
@@ -62,6 +43,7 @@ async function upsertSiteData(
       .set({
         resumeId,
         content,
+        ...previewFields,
         lastPublishedAt: now,
         updatedAt: now,
       })
@@ -73,6 +55,7 @@ async function upsertSiteData(
         userId,
         resumeId,
         content,
+        ...previewFields,
         lastPublishedAt: now,
         createdAt: now,
         updatedAt: now,
@@ -84,6 +67,7 @@ async function upsertSiteData(
           .set({
             resumeId,
             content,
+            ...previewFields,
             lastPublishedAt: now,
             updatedAt: now,
           })
@@ -99,7 +83,7 @@ async function upsertSiteData(
  * Handle resume parsing from queue
  */
 async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv): Promise<void> {
-  const { db, captureBookmark } = await getSessionDb(env.DB);
+  const { db } = getSessionDbForWebhook(env.DB);
   const r2Binding = getR2Binding(env);
 
   if (!r2Binding) {
@@ -149,18 +133,7 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
       now,
     );
 
-    // Invalidate cache for the user's resume page
-    const userRecord = await db
-      .select({ handle: user.handle })
-      .from(user)
-      .where(eq(user.id, message.userId))
-      .limit(1);
-
-    if (userRecord[0]?.handle) {
-      await invalidateResumeCache(userRecord[0].handle, env);
-    }
-
-    await captureBookmark();
+    await notifyStatusChange({ resumeId: message.resumeId, status: "completed", env });
     return;
   }
 
@@ -205,23 +178,13 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
       now,
     );
 
-    // Invalidate cache for the user's resume page
-    const userRecord = await db
-      .select({ handle: user.handle })
-      .from(user)
-      .where(eq(user.id, message.userId))
-      .limit(1);
-
-    if (userRecord[0]?.handle) {
-      await invalidateResumeCache(userRecord[0].handle, env);
-    }
-
-    await captureBookmark();
+    await notifyStatusChange({ resumeId: message.resumeId, status: "completed", env });
     return;
   }
 
   // Update status to processing
   await db.update(resumes).set({ status: "processing" }).where(eq(resumes.id, message.resumeId));
+  await notifyStatusChange({ resumeId: message.resumeId, status: "processing", env });
 
   // Fetch PDF from R2
   const pdfBuffer = await R2.getAsUint8Array(r2Binding, message.r2Key);
@@ -247,7 +210,12 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
         lastAttemptError: errorMessage,
       })
       .where(eq(resumes.id, message.resumeId));
-    await captureBookmark();
+    await notifyStatusChange({
+      resumeId: message.resumeId,
+      status: "failed",
+      error: errorMessage,
+      env,
+    });
     throw new Error(errorMessage);
   }
 
@@ -266,7 +234,12 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
         lastAttemptError: errorMessage,
       })
       .where(eq(resumes.id, message.resumeId));
-    await captureBookmark();
+    await notifyStatusChange({
+      resumeId: message.resumeId,
+      status: "failed",
+      error: errorMessage,
+      env,
+    });
     throw new Error(errorMessage);
   }
 
@@ -291,19 +264,9 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
     .where(eq(resumes.id, message.resumeId));
 
   await upsertSiteData(db, message.userId, message.resumeId, parsedContent, now);
+  await notifyStatusChange({ resumeId: message.resumeId, status: "completed", env });
 
-  // Invalidate cache for the user's resume page
-  const userRecord = await db
-    .select({ handle: user.handle })
-    .from(user)
-    .where(eq(user.id, message.userId))
-    .limit(1);
-
-  if (userRecord[0]?.handle) {
-    await invalidateResumeCache(userRecord[0].handle, env);
-  }
-
-  // FIX: Notify ALL resumes waiting for this fileHash
+  // Notify ALL resumes waiting for this fileHash
   const waitingResumes = await db
     .select({ id: resumes.id, userId: resumes.userId })
     .from(resumes)
@@ -322,23 +285,19 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
       .where(and(eq(resumes.fileHash, message.fileHash), eq(resumes.status, "waiting_for_cache")));
   }
 
-  // Still need individual site data upserts and cache invalidation
+  // Still need individual site data upserts for waiting resumes
   for (const waiting of waitingResumes) {
     await upsertSiteData(db, waiting.userId as string, waiting.id as string, parsedContent, now);
-
-    // Invalidate cache for this user's handle
-    const waitingUserRecord = await db
-      .select({ handle: user.handle })
-      .from(user)
-      .where(eq(user.id, waiting.userId as string))
-      .limit(1);
-
-    if (waitingUserRecord[0]?.handle) {
-      await invalidateResumeCache(waitingUserRecord[0].handle, env);
-    }
   }
 
-  await captureBookmark();
+  // Notify waiting resumes via WebSocket
+  if (waitingResumes.length > 0) {
+    await notifyStatusChangeBatch(
+      waitingResumes.map((r) => r.id as string),
+      "completed",
+      env,
+    );
+  }
 }
 
 /**
@@ -346,7 +305,7 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
  * Export this from the worker entry point
  */
 export async function handleQueueMessage(message: QueueMessage, env: CloudflareEnv): Promise<void> {
-  const { db } = await getSessionDb(env.DB);
+  const { db } = getSessionDbForWebhook(env.DB);
 
   try {
     // Currently only supporting parse messages

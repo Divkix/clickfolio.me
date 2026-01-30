@@ -1,9 +1,11 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { eq } from "drizzle-orm";
+import { headers } from "next/headers";
+import { getAuth } from "@/lib/auth";
 import { user } from "@/lib/db/schema";
 import { getSessionDb } from "@/lib/db/session";
 import { RESERVED_HANDLES } from "@/lib/utils/handle-validation";
-import { checkIPRateLimit, getClientIP } from "@/lib/utils/ip-rate-limit";
+import { checkHandleRateLimit, getClientIP } from "@/lib/utils/ip-rate-limit";
 import {
   createErrorResponse,
   createSuccessResponse,
@@ -18,8 +20,9 @@ import {
 export async function GET(request: Request) {
   try {
     // 0. IP-based rate limiting to prevent username enumeration
+    // Uses separate limit (100/hr) from uploads (10/hr) since this is a cheap read
     const clientIP = getClientIP(request);
-    const rateLimitResult = await checkIPRateLimit(clientIP);
+    const rateLimitResult = await checkHandleRateLimit(clientIP);
 
     if (!rateLimitResult.allowed) {
       return createErrorResponse(
@@ -72,6 +75,14 @@ export async function GET(request: Request) {
       );
     }
 
+    if (/--/.test(normalizedHandle)) {
+      return createErrorResponse(
+        "Handle cannot contain consecutive hyphens",
+        ERROR_CODES.BAD_REQUEST,
+        400,
+      );
+    }
+
     // 3. Check reserved handles
     if (RESERVED_HANDLES.has(normalizedHandle)) {
       return createSuccessResponse({ available: false, reason: "reserved" });
@@ -81,6 +92,17 @@ export async function GET(request: Request) {
     const { env } = await getCloudflareContext({ async: true });
     const { db, captureBookmark } = await getSessionDb(env.DB);
 
+    // 4b. Optional auth — detect current user for own-handle check
+    let currentUserId: string | null = null;
+    try {
+      const auth = await getAuth();
+      const headersList = await headers();
+      const session = await auth.api.getSession({ headers: headersList });
+      currentUserId = session?.user?.id ?? null;
+    } catch {
+      // Not authenticated — continue as public endpoint
+    }
+
     // 5. Check if handle exists in database
     const existingUser = await db
       .select({ id: user.id })
@@ -88,12 +110,20 @@ export async function GET(request: Request) {
       .where(eq(user.handle, normalizedHandle))
       .limit(1);
 
-    const available = existingUser.length === 0;
-
     // Capture bookmark for session consistency (read-your-own-writes)
     await captureBookmark();
 
-    return createSuccessResponse({ available });
+    if (existingUser.length === 0) {
+      return createSuccessResponse({ available: true });
+    }
+
+    // Handle belongs to current user
+    if (currentUserId && existingUser[0].id === currentUserId) {
+      return createSuccessResponse({ available: true, isCurrentHandle: true });
+    }
+
+    // Taken by another user
+    return createSuccessResponse({ available: false });
   } catch (err) {
     console.error("Error checking handle availability:", err);
     return createErrorResponse(

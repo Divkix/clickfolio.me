@@ -36,18 +36,12 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
       }
 
       try {
-        // The session already contains the user's handle from Better Auth
-        // Cast to access custom fields
-        const user = session.user as typeof session.user & { handle?: string };
-        if (user.handle) {
-          setProfile({ handle: user.handle });
-        } else {
-          // Fallback: fetch from API if not in session
-          const response = await fetch("/api/profile/me");
-          if (response.ok) {
-            const data = (await response.json()) as ProfileResponse;
-            setProfile({ handle: data.handle ?? null });
-          }
+        // Always fetch from API to get the authoritative handle
+        // Session cache can be stale after handle changes
+        const response = await fetch("/api/profile/me");
+        if (response.ok) {
+          const data = (await response.json()) as ProfileResponse;
+          setProfile({ handle: data.handle ?? null });
         }
       } catch (error) {
         console.error("Error loading profile:", error);

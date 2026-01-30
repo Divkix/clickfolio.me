@@ -23,6 +23,8 @@ type ResumeContact = {
   linkedin?: string;
   github?: string;
   website?: string;
+  behance?: string;
+  dribbble?: string;
 };
 
 type ResumeExperience = {
@@ -37,7 +39,7 @@ type ResumeExperience = {
 
 type ResumeEducation = {
   degree: string;
-  institution?: string;
+  institution: string;
   location?: string;
   graduation_date?: string;
   gpa?: string;
@@ -50,7 +52,7 @@ type ResumeSkill = {
 
 type ResumeCertification = {
   name: string;
-  issuer?: string;
+  issuer: string;
   date?: string;
   url?: string;
 };
@@ -61,6 +63,7 @@ type ResumeProject = {
   year?: string;
   technologies?: string[];
   url?: string;
+  image_url?: string;
 };
 
 type ResumeSchema = {
@@ -85,19 +88,18 @@ const RESUME_EXTRACTION_SCHEMA = {
     },
     headline: {
       type: "string",
-      description: "A concise 10-word professional headline/title",
-      maxLength: 100,
+      description: "A concise professional headline/title (max 10 words, under 100 characters)",
     },
     summary: {
       type: "string",
-      description: "Professional summary or objective statement",
-      maxLength: 500,
+      description:
+        "Professional summary or objective statement (2-4 sentences, max 500 characters)",
     },
     contact: {
       type: "object",
       required: ["email"],
       properties: {
-        email: { type: "string", format: "email" },
+        email: { type: "string", description: "Email address" },
         phone: { type: "string" },
         location: {
           type: "string",
@@ -115,6 +117,14 @@ const RESUME_EXTRACTION_SCHEMA = {
         website: {
           type: "string",
           description: "Full website URL. Must start with https:// or http://",
+        },
+        behance: {
+          type: "string",
+          description: "Full Behance URL. Must start with https://behance.net/",
+        },
+        dribbble: {
+          type: "string",
+          description: "Full Dribbble URL. Must start with https://dribbble.com/",
         },
       },
     },
@@ -136,7 +146,10 @@ const RESUME_EXTRACTION_SCHEMA = {
             type: "string",
             description: "Format: YYYY-MM or Month YYYY. Omit for current role.",
           },
-          description: { type: "string" },
+          description: {
+            type: "string",
+            description: "Role description (2-4 sentences, max 500 characters)",
+          },
           highlights: {
             type: "array",
             items: { type: "string" },
@@ -213,8 +226,8 @@ const RESUME_EXTRACTION_SCHEMA = {
           },
           description: {
             type: "string",
-            maxLength: 200,
-            description: "Brief description of the project and its impact",
+            description:
+              "Brief description of the project and its impact (1-2 sentences, max 200 characters)",
           },
           year: {
             type: "string",
@@ -229,31 +242,85 @@ const RESUME_EXTRACTION_SCHEMA = {
             type: "string",
             description: "Project URL or demo link. Must start with https:// or http://",
           },
+          image_url: {
+            type: "string",
+            description:
+              "URL to project screenshot or thumbnail image. Must start with https:// or http://",
+          },
         },
       },
     },
   },
 } as const;
 
-const SYSTEM_PROMPT = `You are an expert resume parser. Extract ALL available information from the resume into the JSON schema.
+const SYSTEM_PROMPT = `You are an expert resume parser. Extract information from resumes into structured JSON.
 
-EXTRACTION RULES:
-1. Be thorough - extract every piece of information, even for optional fields
-2. Dates: Use YYYY-MM format (e.g., 2023-08 for August 2023)
-3. URLs: Include full URLs with https:// prefix
-4. Locations: Use "City, State" format when possible
+## REQUIRED FIELDS (must ALWAYS be present)
+- full_name: Person's full name. If unclear, use the most prominent name at the top.
+- headline: Professional title/role (e.g., "Senior Software Engineer"). Generate from most recent job title if not explicit.
+- summary: 2-4 sentence professional summary. If no explicit summary exists, synthesize one from the person's experience and skills.
+- contact.email: Primary email address. Required.
+- experience: Work history array. Include ALL positions found.
 
-SECTION HINTS:
-- certifications: Look for Certifications, Licenses, Courses, Awards, Achievements, Honors, Competitions
-- projects: Extract technologies/tools mentioned in project descriptions into the technologies array
-- education: Always include graduation_date (expected or completed)
-- skills: Group into logical categories (e.g., Programming Languages, Frameworks, Tools)
+## EXTRACTION RULES
+1. Dates: YYYY-MM format (e.g., 2023-08). Use "Present" for current roles.
+2. URLs: Full URLs with https:// prefix. Validate format before including.
+3. Locations: "City, State" or "City, Country" format.
+4. Descriptions: Preserve original wording. Do not embellish.
 
-IMPORTANT:
-- Do NOT omit optional sections if data exists in the resume
-- If unsure about a field, make a best-effort extraction rather than omitting
-- Only use empty arrays for truly absent sections
-- Return ONLY valid JSON matching the schema`;
+## FIELD-SPECIFIC GUIDANCE
+- summary: CRITICAL - Never leave empty. If no explicit summary section exists, write one based on the person's experience, skills, and career trajectory.
+- headline: If not stated, derive from most recent job title or primary skill area.
+- skills: Group into logical categories (Languages, Frameworks, Tools, etc.)
+- certifications: Include courses, licenses, awards, honors, competitions.
+- projects: Extract technologies into the technologies array.
+
+## OUTPUT RULES
+- Return ONLY valid JSON matching the schema
+- Never omit sections if data exists in the resume
+- Use empty arrays [] only for truly absent sections
+- Do not add fields not in the schema`;
+
+/**
+ * Sanitize raw error responses from service bindings into human-readable messages.
+ * Service workers can return raw HTML (e.g. 504 gateway pages) or JSON error bodies
+ * that should never be shown to users.
+ */
+function sanitizeServiceError(responseText: string, status: number): string {
+  // HTTP status-specific friendly messages
+  if (status === 504) return "Service timed out. Please try again.";
+  if (status === 502) return "Service temporarily unavailable. Please try again.";
+  if (status === 429) return "AI service rate limited. Please wait a moment and try again.";
+
+  const text = responseText.trim();
+  if (!text) return "An unexpected error occurred. Please try again.";
+
+  // Detect HTML responses (raw gateway error pages)
+  if (text.startsWith("<") || text.toLowerCase().includes("<html")) {
+    return "Resume parsing service unavailable. Please try again.";
+  }
+
+  // Detect JSON responses — extract the .error field if present
+  if (text.startsWith("{")) {
+    try {
+      const parsed = JSON.parse(text);
+      if (typeof parsed.error === "string" && parsed.error.trim()) {
+        // Truncate extracted error to 200 chars
+        const msg = parsed.error.trim();
+        return msg.length > 200 ? `${msg.slice(0, 200)}...` : msg;
+      }
+    } catch {
+      // Not valid JSON, fall through
+    }
+  }
+
+  // Truncate any remaining raw text to 200 chars
+  if (text.length > 200) {
+    return `${text.slice(0, 200)}...`;
+  }
+
+  return text;
+}
 
 /**
  * Extract text from PDF using pdf-text-worker
@@ -279,7 +346,7 @@ async function extractPdfText(
   });
 
   if (!response.ok) {
-    const error = await response.text();
+    const error = sanitizeServiceError(await response.text(), response.status);
     return { success: false, text: "", pageCount: 0, error };
   }
 
@@ -311,7 +378,7 @@ async function parseWithAi(text: string, env: Partial<CloudflareEnv>): Promise<A
   });
 
   if (!response.ok) {
-    const error = await response.text();
+    const error = sanitizeServiceError(await response.text(), response.status);
     return { success: false, data: null, error };
   }
 
@@ -418,8 +485,8 @@ function normalizeString(value: unknown, defaultVal = ""): string {
  * - React render: "AT&amp;amp;T Corporation" (visible in UI)
  *
  * ### 2. Model upgrades don't fix hallucination
- * All Gemini models (Flash-Lite, Flash, Pro) hallucinate URLs and data at similar rates.
- * Testing showed Pro costs 25x more than Flash-Lite for only ~5-15% improvement in accuracy.
+ * All LLMs hallucinate URLs and data at similar rates regardless of model or provider.
+ * More expensive models show only marginal improvement in extraction accuracy.
  * URL hallucination is a fundamental LLM limitation, not a model quality issue.
  *
  * ### 3. Correct pattern: defensive validation + edit-time sanitization
@@ -447,7 +514,29 @@ function transformAiResponse(raw: unknown): unknown {
   // Top-level fields - use empty strings as defaults (lenient) with max length
   data.full_name = truncateString(normalizeString(data.full_name, "Unknown"), 100);
   data.headline = truncateString(normalizeString(data.headline, "Professional"), 150);
-  data.summary = truncateString(normalizeString(data.summary), 2000);
+
+  // Summary with fallback generation if AI didn't return one
+  let summary = normalizeString(data.summary);
+
+  if (!summary) {
+    // Try to extract from first experience description
+    if (Array.isArray(data.experience) && data.experience.length > 0) {
+      const firstExp = data.experience[0] as Record<string, unknown>;
+      if (firstExp?.description && typeof firstExp.description === "string") {
+        const desc = firstExp.description.trim();
+        if (desc.length > 0) {
+          summary = desc.slice(0, 500);
+        }
+      }
+    }
+    // Fallback to headline-based summary
+    if (!summary) {
+      const headline = normalizeString(data.headline, "Professional");
+      summary = `Experienced ${headline.toLowerCase()} with a proven track record.`;
+    }
+  }
+
+  data.summary = truncateString(summary, 2000);
 
   // Contact - validate URLs (with garbage detection), sanitize email
   if (data.contact && typeof data.contact === "object") {
@@ -458,6 +547,8 @@ function transformAiResponse(raw: unknown): unknown {
     c.linkedin = validateUrl(c.linkedin);
     c.github = validateUrl(c.github);
     c.website = validateUrl(c.website);
+    c.behance = validateUrl(c.behance);
+    c.dribbble = validateUrl(c.dribbble);
   } else {
     data.contact = { email: "" };
   }
@@ -557,6 +648,7 @@ function transformAiResponse(raw: unknown): unknown {
       proj.title = truncateString(normalizeString(proj.title), 150);
       proj.description = truncateString(normalizeString(proj.description), 1000);
       proj.url = validateUrl(proj.url);
+      proj.image_url = validateUrl(proj.image_url);
       if (Array.isArray(proj.technologies)) {
         proj.technologies = proj.technologies
           .filter((t): t is string => typeof t === "string" && t.trim().length > 0)

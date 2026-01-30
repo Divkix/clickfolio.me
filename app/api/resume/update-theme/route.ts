@@ -1,22 +1,19 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { eq } from "drizzle-orm";
-import { revalidatePath, revalidateTag } from "next/cache";
 import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
-import { getResumeCacheTag } from "@/lib/data/resume";
-import { siteData } from "@/lib/db/schema";
-import { TEMPLATES, type ThemeId } from "@/lib/templates/theme-registry";
+import { siteData, user } from "@/lib/db/schema";
+import {
+  getThemeReferralRequirement,
+  isThemeUnlocked,
+  isValidThemeId,
+  THEME_IDS,
+  type ThemeId,
+} from "@/lib/templates/theme-ids";
 import {
   createErrorResponse,
   createSuccessResponse,
   ERROR_CODES,
 } from "@/lib/utils/security-headers";
-
-// Get valid themes from the source of truth
-const VALID_THEMES = Object.keys(TEMPLATES) as ThemeId[];
-
-function isValidTheme(theme: string): theme is ThemeId {
-  return VALID_THEMES.includes(theme as ThemeId);
-}
 
 interface ThemeUpdateRequestBody {
   theme_id?: string;
@@ -30,13 +27,11 @@ export async function POST(request: Request) {
       user: authUser,
       db,
       captureBookmark,
-      dbUser,
       error: authError,
     } = await requireAuthWithUserValidation("You must be logged in to update theme", env.DB);
     if (authError) return authError;
 
     const userId = authUser.id;
-    const userHandle = dbUser.handle;
 
     // 4. Parse request body
     const body = (await request.json()) as ThemeUpdateRequestBody;
@@ -51,10 +46,33 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!isValidTheme(theme_id)) {
+    if (!isValidThemeId(theme_id)) {
       return createErrorResponse("Invalid theme_id provided", ERROR_CODES.VALIDATION_ERROR, 400, {
-        valid_themes: VALID_THEMES,
+        valid_themes: [...THEME_IDS],
       });
+    }
+
+    // 5b. Check if theme is locked behind referral requirement
+    // Use pre-computed referralCount column instead of COUNT query
+    const userResult = await db
+      .select({ referralCount: user.referralCount, isPro: user.isPro })
+      .from(user)
+      .where(eq(user.id, userId));
+
+    const referralCount = userResult[0]?.referralCount ?? 0;
+    const isPro = userResult[0]?.isPro ?? false;
+
+    if (!isThemeUnlocked(theme_id as ThemeId, referralCount, isPro)) {
+      const required = getThemeReferralRequirement(theme_id as ThemeId);
+      return createErrorResponse(
+        `This theme requires ${required} referral${required === 1 ? "" : "s"} to unlock. You have ${referralCount}.`,
+        ERROR_CODES.FORBIDDEN,
+        403,
+        {
+          required_referrals: required,
+          current_referrals: referralCount,
+        },
+      );
     }
 
     const now = new Date().toISOString();
@@ -79,12 +97,6 @@ export async function POST(request: Request) {
     }
 
     const data = updateResult[0];
-
-    // 7. Invalidate cache for public resume page
-    if (userHandle) {
-      revalidateTag(getResumeCacheTag(userHandle), "max");
-      revalidatePath(`/${userHandle}`);
-    }
 
     await captureBookmark();
 

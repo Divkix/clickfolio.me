@@ -31,6 +31,7 @@
     "next-env.d.ts",
     "global.d.ts",
     "lib/cloudflare-env.d.ts",
+    "open-next-worker.d.ts",
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",

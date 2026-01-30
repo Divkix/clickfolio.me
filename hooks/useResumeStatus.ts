@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { classifyError, getErrorMessage, showErrorToast } from "@/lib/utils/errors";
+import { useResumeWebSocket } from "./useResumeWebSocket";
 
 interface ResumeStatus {
   status: "pending_claim" | "processing" | "completed" | "failed";
@@ -20,8 +21,13 @@ interface UseResumeStatusReturn {
 }
 
 /**
- * Custom hook to poll resume parsing status
- * @param resumeId - Resume ID to check status for (null to disable polling)
+ * Custom hook to monitor resume parsing status.
+ *
+ * Uses WebSocket (via ResumeStatusDO) as primary channel for instant push
+ * notifications. Falls back to 3s HTTP polling if WebSocket fails to connect
+ * after 3 attempts.
+ *
+ * @param resumeId - Resume ID to check status for (null to disable)
  * @returns Status state and refetch function
  */
 export function useResumeStatus(resumeId: string | null): UseResumeStatusReturn {
@@ -37,7 +43,40 @@ export function useResumeStatus(resumeId: string | null): UseResumeStatusReturn 
   const hasTimedOutRef = useRef(false);
   const retryCountRef = useRef(0);
 
-  // Memoize fetchStatus with only resumeId as dependency
+  // Handle status updates from WebSocket
+  const handleWSStatus = useCallback((newStatus: string, wsError?: string) => {
+    const s = newStatus as ResumeStatus["status"];
+    setStatus(s);
+    if (wsError) {
+      setError(wsError);
+    }
+
+    // Map status to progress percentage
+    if (s === "processing") {
+      setProgress(50);
+    } else if (s === "completed") {
+      setProgress(100);
+    } else if (s === "failed") {
+      setCanRetry(true);
+    }
+
+    // Terminal state — stop any polling that might be running
+    if (s === "completed" || s === "failed") {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      setIsLoading(false);
+    }
+  }, []);
+
+  // WebSocket connection
+  const { connectionState } = useResumeWebSocket({
+    resumeId,
+    onStatusChange: handleWSStatus,
+  });
+
+  // Memoize fetchStatus for HTTP polling
   const fetchStatus = useCallback(async () => {
     if (!resumeId) {
       setIsLoading(false);
@@ -45,7 +84,6 @@ export function useResumeStatus(resumeId: string | null): UseResumeStatusReturn 
     }
 
     try {
-      // Cancel previous request if still pending
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
@@ -87,32 +125,27 @@ export function useResumeStatus(resumeId: string | null): UseResumeStatusReturn 
       if (elapsed > 90000 && data.status === "processing" && !hasTimedOutRef.current) {
         hasTimedOutRef.current = true;
         setError("Processing is taking longer than expected. Please check back in a moment.");
-        // Don't stop polling - just show warning
       }
     } catch (err) {
-      // Ignore abort errors (expected during cleanup or re-fetch)
       if (err instanceof Error && err.name === "AbortError") {
         return;
       }
 
-      // Extract status code if available
-      const status =
+      const httpStatus =
         (err as { status?: number })?.status || (err instanceof Response ? err.status : 0);
-      const category = classifyError(status);
+      const category = classifyError(httpStatus);
 
       console.error("Error fetching resume status:", err);
 
       if (category === "fatal" || category === "auth") {
-        // Stop polling on fatal/auth errors
         if (intervalRef.current) {
           clearInterval(intervalRef.current);
           intervalRef.current = null;
         }
-        setError(getErrorMessage(status, "checking resume status"));
-        showErrorToast(status, "checking resume status");
+        setError(getErrorMessage(httpStatus, "checking resume status"));
+        showErrorToast(httpStatus, "checking resume status");
         setIsLoading(false);
       } else {
-        // Transient error - continue polling but track retries
         retryCountRef.current++;
         if (retryCountRef.current >= 5) {
           setError("Unable to check status. Please refresh the page.");
@@ -123,12 +156,11 @@ export function useResumeStatus(resumeId: string | null): UseResumeStatusReturn 
           }
           setIsLoading(false);
         }
-        // Polling continues automatically on transient errors
       }
     }
-  }, [resumeId]); // Only depend on resumeId - this is now stable
+  }, [resumeId]);
 
-  // Start polling on mount or when resumeId changes
+  // Initial HTTP fetch for immediate state population + polling fallback
   useEffect(() => {
     if (!resumeId) {
       setIsLoading(false);
@@ -141,27 +173,33 @@ export function useResumeStatus(resumeId: string | null): UseResumeStatusReturn 
     retryCountRef.current = 0;
     setIsLoading(true);
 
-    // Fetch immediately
+    // Always do an initial HTTP fetch for immediate state
     fetchStatus();
 
-    // Poll every 3 seconds
-    intervalRef.current = setInterval(fetchStatus, 3000);
-
-    // Cleanup on unmount or when resumeId changes
     return () => {
-      // Clear interval
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
-
-      // Abort pending request
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
         abortControllerRef.current = null;
       }
     };
-  }, [resumeId, fetchStatus]); // fetchStatus is now stable via useCallback
+  }, [resumeId, fetchStatus]);
+
+  // Start polling fallback when WebSocket gives up
+  useEffect(() => {
+    if (connectionState === "fallback" && resumeId && !intervalRef.current) {
+      intervalRef.current = setInterval(fetchStatus, 3000);
+    }
+
+    // If WS connects successfully, stop any polling
+    if (connectionState === "connected" && intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  }, [connectionState, resumeId, fetchStatus]);
 
   return {
     status,

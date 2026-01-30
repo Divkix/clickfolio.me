@@ -20,7 +20,9 @@ export const user = sqliteTable(
     headline: text("headline"),
     privacySettings: text("privacy_settings")
       .notNull()
-      .default('{"show_phone":false,"show_address":false}'),
+      .default(
+        '{"show_phone":false,"show_address":false,"hide_from_search":false,"show_in_directory":false}',
+      ),
     onboardingCompleted: integer("onboarding_completed", { mode: "boolean" })
       .notNull()
       .default(false),
@@ -34,6 +36,12 @@ export const user = sqliteTable(
         "freelancer",
       ],
     }),
+    // Referral tracking: stores user ID of referrer
+    referredBy: text("referred_by"),
+    // Pro flag: unlocks all themes
+    isPro: integer("is_pro", { mode: "boolean" }).notNull().default(false),
+    // Denormalized count of users referred by this user
+    referralCount: integer("referral_count").notNull().default(0),
   },
   (table) => [
     // Index for sitemap queries (WHERE handle IS NOT NULL ORDER BY handle)
@@ -158,6 +166,13 @@ export const siteData = sqliteTable(
     content: text("content").notNull(),
     themeId: text("theme_id").default("minimalist_editorial"),
     lastPublishedAt: text("last_published_at"), // Nullable - represents "never published"
+    // Preview columns for directory/listing pages (denormalized for performance)
+    previewName: text("preview_name"),
+    previewHeadline: text("preview_headline"),
+    previewLocation: text("preview_location"),
+    previewExpCount: integer("preview_exp_count"),
+    previewEduCount: integer("preview_edu_count"),
+    previewSkills: text("preview_skills"), // JSON array of first 4 skills
     createdAt: text("created_at").notNull(),
     updatedAt: text("updated_at").notNull(),
   },
@@ -181,11 +196,36 @@ export const handleChanges = sqliteTable(
   ],
 );
 
+export const pageViews = sqliteTable(
+  "page_views",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    visitorHash: text("visitor_hash").notNull(),
+    referrer: text("referrer"),
+    country: text("country"),
+    deviceType: text("device_type", {
+      enum: ["mobile", "tablet", "desktop"],
+    }),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [
+    index("page_views_user_created_idx").on(table.userId, table.createdAt),
+    index("page_views_dedup_idx").on(table.visitorHash, table.userId, table.createdAt),
+    index("page_views_created_idx").on(table.createdAt),
+  ],
+);
+
 export const uploadRateLimits = sqliteTable(
   "upload_rate_limits",
   {
     id: text("id").primaryKey(),
     ipHash: text("ip_hash").notNull(),
+    actionType: text("action_type", { enum: ["upload", "handle_check"] })
+      .notNull()
+      .default("upload"),
     createdAt: text("created_at").notNull(),
     expiresAt: text("expires_at").notNull(), // TTL: createdAt + 24h for automatic cleanup
   },
@@ -193,6 +233,28 @@ export const uploadRateLimits = sqliteTable(
     index("upload_rate_limits_ip_hash_idx").on(table.ipHash),
     index("upload_rate_limits_ip_created_idx").on(table.ipHash, table.createdAt),
     index("upload_rate_limits_expires_idx").on(table.expiresAt), // Index for cleanup queries
+    index("upload_rate_limits_ip_action_idx").on(table.ipHash, table.actionType, table.createdAt),
+  ],
+);
+
+export const referralClicks = sqliteTable(
+  "referral_clicks",
+  {
+    id: text("id").primaryKey(),
+    referrerUserId: text("referrer_user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    visitorHash: text("visitor_hash").notNull(),
+    source: text("source", { enum: ["homepage", "cta", "share"] }),
+    converted: integer("converted", { mode: "boolean" }).notNull().default(false),
+    convertedUserId: text("converted_user_id").references(() => user.id, { onDelete: "set null" }),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [
+    index("referral_clicks_referrer_idx").on(table.referrerUserId),
+    index("referral_clicks_visitor_idx").on(table.visitorHash),
+    index("referral_clicks_referrer_created_idx").on(table.referrerUserId, table.createdAt),
+    index("referral_clicks_dedup_idx").on(table.referrerUserId, table.visitorHash),
   ],
 );
 
@@ -204,8 +266,13 @@ export const userRelations = relations(user, ({ many, one }) => ({
   sessions: many(session),
   accounts: many(account),
   resumes: many(resumes),
-  siteData: one(siteData),
+  siteData: one(siteData, {
+    fields: [user.id],
+    references: [siteData.userId],
+  }),
   handleChanges: many(handleChanges),
+  pageViews: many(pageViews),
+  referralClicks: many(referralClicks),
 }));
 
 export const sessionRelations = relations(session, ({ one }) => ({
@@ -248,6 +315,24 @@ export const handleChangesRelations = relations(handleChanges, ({ one }) => ({
   }),
 }));
 
+export const pageViewsRelations = relations(pageViews, ({ one }) => ({
+  user: one(user, {
+    fields: [pageViews.userId],
+    references: [user.id],
+  }),
+}));
+
+export const referralClicksRelations = relations(referralClicks, ({ one }) => ({
+  referrer: one(user, {
+    fields: [referralClicks.referrerUserId],
+    references: [user.id],
+  }),
+  convertedUser: one(user, {
+    fields: [referralClicks.convertedUserId],
+    references: [user.id],
+  }),
+}));
+
 // =============================================================================
 // Type Exports
 // =============================================================================
@@ -280,14 +365,24 @@ export type NewSiteData = typeof siteData.$inferInsert;
 export type HandleChange = typeof handleChanges.$inferSelect;
 export type NewHandleChange = typeof handleChanges.$inferInsert;
 
+// PageViews types
+export type PageView = typeof pageViews.$inferSelect;
+export type NewPageView = typeof pageViews.$inferInsert;
+
 // UploadRateLimits types
 export type UploadRateLimit = typeof uploadRateLimits.$inferSelect;
 export type NewUploadRateLimit = typeof uploadRateLimits.$inferInsert;
+
+// ReferralClicks types
+export type ReferralClick = typeof referralClicks.$inferSelect;
+export type NewReferralClick = typeof referralClicks.$inferInsert;
 
 // Privacy settings helper type
 export type PrivacySettings = {
   show_phone: boolean;
   show_address: boolean;
+  hide_from_search: boolean;
+  show_in_directory: boolean;
 };
 
 // Resume status enum type

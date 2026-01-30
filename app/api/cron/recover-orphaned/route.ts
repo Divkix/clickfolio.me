@@ -7,7 +7,7 @@
  */
 
 import { getCloudflareContext } from "@opennextjs/cloudflare";
-import { and, eq, isNotNull, lt } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, lt, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { resumes } from "@/lib/db/schema";
 import { publishResumeParse } from "@/lib/queue/resume-parse";
@@ -68,9 +68,10 @@ export async function GET(request: Request) {
       return Response.json({ error: "Queue unavailable" }, { status: 500 });
     }
 
-    let recovered = 0;
     const now = new Date().toISOString();
+    const successfulIds: string[] = [];
 
+    // Process queue publishes and collect successful IDs
     for (const resume of orphanedResumes) {
       // Skip if already at max attempts (6 total = 3 queue retries x 2 manual retries)
       if ((resume.totalAttempts ?? 0) >= 6) {
@@ -88,22 +89,26 @@ export async function GET(request: Request) {
           attempt: (resume.totalAttempts ?? 0) + 1,
         });
 
-        // Update status to queued
-        await db
-          .update(resumes)
-          .set({
-            status: "queued",
-            queuedAt: now,
-            totalAttempts: (resume.totalAttempts ?? 0) + 1,
-          })
-          .where(eq(resumes.id, resume.id));
-
-        recovered++;
+        successfulIds.push(resume.id);
         console.log(`Recovered orphaned resume: ${resume.id}`);
       } catch (error) {
         console.error(`Failed to recover resume ${resume.id}:`, error);
       }
     }
+
+    // Batch update all successful resumes in single DB call
+    if (successfulIds.length > 0) {
+      await db
+        .update(resumes)
+        .set({
+          status: "queued",
+          queuedAt: now,
+          totalAttempts: sql`${resumes.totalAttempts} + 1`,
+        })
+        .where(inArray(resumes.id, successfulIds));
+    }
+
+    const recovered = successfulIds.length;
 
     return Response.json({
       ok: true,

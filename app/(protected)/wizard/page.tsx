@@ -4,6 +4,7 @@ import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { Confetti } from "@/components/Confetti";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { WizardProgress } from "@/components/wizard";
 import { HandleStep } from "@/components/wizard/HandleStep";
@@ -11,18 +12,13 @@ import { PrivacyStep } from "@/components/wizard/PrivacyStep";
 import { ReviewStep } from "@/components/wizard/ReviewStep";
 import { ThemeStep } from "@/components/wizard/ThemeStep";
 import { UploadStep } from "@/components/wizard/UploadStep";
+import { YouAreLiveModal } from "@/components/YouAreLiveModal";
 import { useSession } from "@/lib/auth/client";
-import type { ThemeId } from "@/lib/templates/theme-registry";
+import { DEFAULT_THEME, type ThemeId } from "@/lib/templates/theme-ids";
 import type { ResumeContent } from "@/lib/types/database";
+import { waitForResumeCompletion } from "@/lib/utils/wait-for-completion";
 
 // Type definitions for API responses
-interface ResumeStatusResponse {
-  status: "pending_claim" | "processing" | "completed" | "failed";
-  progress_pct?: number;
-  error?: string | null;
-  can_retry?: boolean;
-}
-
 interface ClaimResponse {
   resume_id: string;
   cached?: boolean;
@@ -94,10 +90,16 @@ async function clearPendingUploadCookie(): Promise<void> {
 export default function WizardPage() {
   const router = useRouter();
   const { data: session, isPending: sessionLoading } = useSession();
+  const userId = session?.user?.id;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [needsUpload, setNeedsUpload] = useState(false);
-  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [showLiveModal, setShowLiveModal] = useState(false);
+
+  // Refs to prevent race conditions during wizard initialization
+  const initializingRef = useRef(false);
+  const hasClaimedRef = useRef(false);
 
   const [state, setState] = useState<WizardState>({
     currentStep: 1,
@@ -107,76 +109,29 @@ export default function WizardPage() {
       show_phone: false,
       show_address: false,
     },
-    themeId: "minimalist_editorial",
+    themeId: DEFAULT_THEME,
   });
 
   // Compute total steps based on whether upload is needed
   const totalSteps = needsUpload ? 5 : 4;
 
-  // Function to poll resume status
-  const pollResumeStatus = useCallback(
+  // Derive onboardingCompleted from session (used by initializeWizard for returning user check)
+  const onboardingCompleted =
+    (session?.user as { onboardingCompleted?: boolean } | undefined)?.onboardingCompleted === true;
+
+  // Wait for resume completion via WebSocket (with polling fallback)
+  const awaitResumeComplete = useCallback(
     async (resumeId: string): Promise<boolean> => {
-      return new Promise((resolve) => {
-        let attempts = 0;
-        const maxAttempts = 30; // 30 attempts * 3 seconds = 90 seconds max
+      const result = await waitForResumeCompletion(resumeId);
 
-        const checkStatus = async () => {
-          try {
-            const response = await fetch(`/api/resume/status?resume_id=${resumeId}`);
-            if (!response.ok) {
-              throw new Error("Failed to check status");
-            }
+      if (result.status === "completed") {
+        return true;
+      }
 
-            const data = (await response.json()) as ResumeStatusResponse;
-
-            if (data.status === "completed") {
-              if (pollingIntervalRef.current) {
-                clearInterval(pollingIntervalRef.current);
-                pollingIntervalRef.current = null;
-              }
-              resolve(true);
-              return;
-            }
-
-            if (data.status === "failed") {
-              if (pollingIntervalRef.current) {
-                clearInterval(pollingIntervalRef.current);
-                pollingIntervalRef.current = null;
-              }
-              setError(data.error || "Resume parsing failed. Please try again.");
-              setTimeout(() => router.push("/dashboard"), 3000);
-              resolve(false);
-              return;
-            }
-
-            attempts++;
-            if (attempts >= maxAttempts) {
-              if (pollingIntervalRef.current) {
-                clearInterval(pollingIntervalRef.current);
-                pollingIntervalRef.current = null;
-              }
-              router.push(`/waiting?resume_id=${resumeId}`);
-              resolve(false);
-            }
-          } catch (err) {
-            console.error("Error polling status:", err);
-            attempts++;
-            if (attempts >= maxAttempts) {
-              if (pollingIntervalRef.current) {
-                clearInterval(pollingIntervalRef.current);
-                pollingIntervalRef.current = null;
-              }
-              router.push(`/waiting?resume_id=${resumeId}`);
-              resolve(false);
-            }
-          }
-        };
-
-        // Start polling every 3 seconds
-        pollingIntervalRef.current = setInterval(checkStatus, 3000);
-        // Check immediately as well
-        checkStatus();
-      });
+      // Failed
+      setError(result.error || "Resume parsing failed. Please try again.");
+      setTimeout(() => router.push("/dashboard"), 3000);
+      return false;
     },
     [router],
   );
@@ -184,14 +139,20 @@ export default function WizardPage() {
   // Fetch resume data on mount + handle upload claiming
   useEffect(() => {
     const initializeWizard = async () => {
+      // Prevent concurrent initialization (race condition fix)
+      if (initializingRef.current) return;
+
       // Wait for session to load
       if (sessionLoading) return;
 
       // Check authentication
-      if (!session?.user) {
+      if (!userId) {
         router.push("/");
         return;
       }
+
+      // Mark as initializing to prevent re-entry
+      initializingRef.current = true;
 
       try {
         setLoading(true);
@@ -243,7 +204,49 @@ export default function WizardPage() {
           }
         }
 
-        if (tempKey) {
+        // RETURNING USER CHECK: If onboarding already completed, skip wizard entirely
+        if (onboardingCompleted) {
+          // Returning user — claim pending upload if exists, then redirect to dashboard
+          if (tempKey) {
+            try {
+              const claimResponse = await fetch("/api/resume/claim", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ key: tempKey, file_hash: fileHash }),
+              });
+
+              const claimData = (await claimResponse.json()) as ClaimResponse;
+
+              if (!claimResponse.ok) {
+                throw new Error(claimData.error || "Failed to claim resume");
+              }
+
+              if (claimData.cached) {
+                toast.success("Resume updated successfully!");
+              } else {
+                toast.success("Resume uploaded! Processing in background.");
+              }
+            } catch (claimError) {
+              console.error("Returning user claim error:", claimError);
+              toast.error(
+                claimError instanceof Error ? claimError.message : "Failed to process upload",
+              );
+            }
+
+            // Clear storage regardless of claim success
+            sessionStorage.removeItem("temp_upload");
+            sessionStorage.removeItem("temp_file_hash");
+            await clearPendingUploadCookie();
+          }
+
+          router.push("/dashboard");
+          return;
+        }
+
+        if (tempKey && !hasClaimedRef.current) {
+          // Mark as claimed to prevent double-claiming on useEffect re-run
+          hasClaimedRef.current = true;
+
           // Claim the upload (include file_hash for deduplication caching)
           setLoading(true);
           try {
@@ -274,9 +277,9 @@ export default function WizardPage() {
             // Clear HTTP-only cookie after successful claim
             await clearPendingUploadCookie();
 
-            // If not cached, poll for status updates (parsing in progress)
+            // If not cached, wait for status updates (WS-first with polling fallback)
             if (!claimData.cached) {
-              const parsingComplete = await pollResumeStatus(resumeId);
+              const parsingComplete = await awaitResumeComplete(resumeId);
 
               if (!parsingComplete) {
                 return;
@@ -291,6 +294,9 @@ export default function WizardPage() {
             sessionStorage.removeItem("temp_upload");
             sessionStorage.removeItem("temp_file_hash");
             await clearPendingUploadCookie();
+
+            // Reset claim ref on error to allow retry
+            hasClaimedRef.current = false;
 
             setTimeout(() => router.push("/dashboard"), 3000);
             return;
@@ -333,19 +339,15 @@ export default function WizardPage() {
         console.error("Error initializing wizard:", err);
         setError("Failed to load resume data. Please try again.");
         setLoading(false);
+      } finally {
+        // Reset initializing flag when done (success or failure)
+        initializingRef.current = false;
       }
     };
 
     initializeWizard();
-
-    // Cleanup polling on unmount
-    return () => {
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current);
-        pollingIntervalRef.current = null;
-      }
-    };
-  }, [router, session, sessionLoading, pollResumeStatus]);
+    // No cleanup needed — waitForResumeCompletion handles its own cleanup internally
+  }, [router, userId, sessionLoading, awaitResumeComplete, onboardingCompleted]);
 
   // Handler for upload completion (Step 1 for login-first users)
   // Note: We keep needsUpload=true to maintain correct step numbering throughout the session
@@ -406,14 +408,22 @@ export default function WizardPage() {
         throw new Error(data.error || "Failed to complete setup");
       }
 
-      // Show success message and redirect
-      toast.success("Profile setup completed successfully!");
-      router.push("/dashboard");
+      // Show celebration! 🎉
+      setShowCelebration(true);
+      setShowLiveModal(true);
     } catch (err) {
       console.error("Error completing wizard:", err);
       const errorMessage = err instanceof Error ? err.message : "Failed to complete setup";
       setError(errorMessage);
       toast.error(errorMessage);
+    }
+  };
+
+  // Handle modal close - redirect to dashboard
+  const handleLiveModalClose = (open: boolean) => {
+    setShowLiveModal(open);
+    if (!open) {
+      router.push("/dashboard");
     }
   };
 
@@ -465,6 +475,14 @@ export default function WizardPage() {
   // Main wizard UI
   return (
     <div className="min-h-screen bg-linear-to-br from-indigo-50 via-blue-50 to-cyan-50">
+      {/* Celebration Effects */}
+      {showCelebration && <Confetti />}
+      <YouAreLiveModal
+        open={showLiveModal}
+        onOpenChange={handleLiveModalClose}
+        handle={state.handle}
+      />
+
       {/* Progress Indicator */}
       <WizardProgress
         currentStep={state.currentStep}

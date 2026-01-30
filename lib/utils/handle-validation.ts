@@ -19,31 +19,16 @@ import { handleSchema } from "@/lib/schemas/profile";
 
 /**
  * Reserved handles that cannot be used as user handles
- * These match route groups and common system paths
+ *
+ * With the /@handle URL format, most route conflicts are eliminated.
+ * This list only needs to block handles that could cause issues
+ * if someone typed /@api, /@_next, etc.
  *
  * Also used by: app/api/handle/check/route.ts
  */
 export const RESERVED_HANDLES = new Set([
-  "admin",
+  // System paths (just in case someone types /@api)
   "api",
-  "auth",
-  "dashboard",
-  "edit",
-  "login",
-  "logout",
-  "settings",
-  "wizard",
-  "waiting",
-  "onboarding",
-  "profile",
-  "resume",
-  "help",
-  "support",
-  "about",
-  "terms",
-  "privacy",
-  "contact",
-  "themes",
   "_next",
   "static",
   "public",

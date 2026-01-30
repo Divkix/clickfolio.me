@@ -1,6 +1,8 @@
 import { R2 } from "@/lib/r2";
 
-export const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const DEFAULT_MAX_FILE_SIZE_MB = 5;
+export const MAX_FILE_SIZE =
+  (Number(process.env.MAX_UPLOAD_SIZE_MB) || DEFAULT_MAX_FILE_SIZE_MB) * 1024 * 1024;
 
 export function validatePDF(file: File): { valid: boolean; error?: string } {
   if (file.size > MAX_FILE_SIZE) {

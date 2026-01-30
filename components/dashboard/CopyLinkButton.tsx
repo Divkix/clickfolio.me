@@ -14,7 +14,7 @@ export function CopyLinkButton({ handle }: CopyLinkButtonProps) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
-    const url = `${window.location.origin}/${handle}`;
+    const url = `${window.location.origin}/@${handle}`;
 
     const success = await copyToClipboard(url);
 

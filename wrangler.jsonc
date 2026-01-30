@@ -37,26 +37,6 @@
 		{
 			"binding": "R2_BUCKET",
 			"bucket_name": "webresume-bucket"
-		},
-		{
-			"binding": "NEXT_INC_CACHE_R2_BUCKET",
-			"bucket_name": "webresume-bucket"
-		}
-	],
-	"durable_objects": {
-		"bindings": [
-			{
-				"name": "NEXT_TAG_CACHE_DO_SHARDED",
-				"class_name": "DOShardedTagCache"
-			}
-		]
-	},
-	"migrations": [
-		{
-			"tag": "v1",
-			"new_sqlite_classes": [
-				"DOShardedTagCache"
-			]
 		}
 	],
 	// Service bindings for utility workers (remote: true uses deployed workers in dev)
@@ -91,6 +71,16 @@
 			}
 		]
 	},
+	// Durable Objects for real-time WebSocket notifications
+	"durable_objects": {
+		"bindings": [
+			{ "name": "RESUME_STATUS_DO", "class_name": "ResumeStatusDO" }
+		]
+	},
+	"migrations": [
+		{ "tag": "v1", "new_sqlite_classes": ["DOShardedTagCache"] },
+		{ "tag": "v2", "deleted_classes": ["DOShardedTagCache"], "new_classes": ["ResumeStatusDO"] }
+	],
 	"observability": {
 		"enabled": true,
 		"head_sampling_rate": 0.1,
@@ -114,15 +104,16 @@
 		//
 		// ===== REQUIRED SECRETS =====
 		//   wrangler secret put BETTER_AUTH_SECRET
-		//   wrangler secret put BETTER_AUTH_URL
+		//   wrangler secret put BETTER_AUTH_URL                      # Also used as app URL
 		//   wrangler secret put GOOGLE_CLIENT_ID
 		//   wrangler secret put GOOGLE_CLIENT_SECRET
-		//   wrangler secret put NEXT_PUBLIC_APP_URL
-		//   wrangler secret put INTERNAL_CACHE_INVALIDATION_TOKEN  # openssl rand -hex 32
-		//
+			//
 		// ===== OPTIONAL: Edge cache purge (only for custom domains behind CF proxy) =====
 		//   wrangler secret put CF_ZONE_ID                  # From Cloudflare Dashboard
 		//   wrangler secret put CF_CACHE_PURGE_API_TOKEN    # API token with Cache Purge permission
+		//
+		// ===== OPTIONAL: Email (password reset) =====
+		//   wrangler secret put RESEND_API_KEY      # From resend.com (free tier: 3k/month)
 		//
 		// ===== OPTIONAL: DLQ alerting (defaults to Cloudflare Logpush) =====
 		//   wrangler secret put ALERT_CHANNEL       # logpush | webhook | email
@@ -130,7 +121,8 @@
 		//
 		// Note: R2 is accessed via binding (R2_BUCKET) - no API credentials needed
 		// Note: AI Gateway secrets are configured in ai-parser-worker, not here
-		"NEXT_INC_CACHE_R2_PREFIX": "incremental-cache",
-		"AI_MODEL": "google/gemini-2.5-flash-lite"
+		// Optional: For edge cache purge (set via wrangler secret put in production)
+		"CF_ZONE_ID": "",
+		// AI model for resume parsing (set in .env/.dev.vars locally or as a secret in production)
 	}
 }

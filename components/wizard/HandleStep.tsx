@@ -14,6 +14,7 @@ interface HandleStepProps {
 
 interface HandleCheckResponse {
   available: boolean;
+  isCurrentHandle?: boolean;
   reason?: string;
   error?: string;
 }
@@ -26,6 +27,7 @@ export function HandleStep({ initialHandle = "", onContinue }: HandleStepProps) 
   const [handle, setHandle] = useState(initialHandle);
   const [isChecking, setIsChecking] = useState(false);
   const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
+  const [isCurrentHandle, setIsCurrentHandle] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Debounced availability check via API route
@@ -47,6 +49,7 @@ export function HandleStep({ initialHandle = "", onContinue }: HandleStepProps) 
       }
 
       setIsAvailable(data.available);
+      setIsCurrentHandle(data.isCurrentHandle === true);
     } catch (err) {
       console.error("Error checking handle availability:", err);
       setError("Failed to check availability");
@@ -79,6 +82,7 @@ export function HandleStep({ initialHandle = "", onContinue }: HandleStepProps) 
 
     // Reset states while typing
     setIsAvailable(null);
+    setIsCurrentHandle(false);
     setError(null);
 
     // Validate length
@@ -129,7 +133,11 @@ export function HandleStep({ initialHandle = "", onContinue }: HandleStepProps) 
             {/* Status Icon */}
             <div className="absolute right-3 top-1/2 -translate-y-1/2">
               {isChecking && <Loader2 className="w-5 h-5 text-slate-400 animate-spin" />}
-              {!isChecking && isAvailable === true && <Check className="w-5 h-5 text-green-600" />}
+              {!isChecking && isAvailable === true && (
+                <Check
+                  className={`w-5 h-5 ${isCurrentHandle ? "text-blue-600" : "text-green-600"}`}
+                />
+              )}
               {!isChecking && isAvailable === false && <X className="w-5 h-5 text-red-600" />}
             </div>
           </div>
@@ -157,7 +165,13 @@ export function HandleStep({ initialHandle = "", onContinue }: HandleStepProps) 
               This handle is already taken
             </p>
           )}
-          {!isChecking && isAvailable === true && (
+          {!isChecking && isAvailable === true && isCurrentHandle && (
+            <p className="text-sm text-blue-600 font-medium flex items-center gap-1">
+              <Check className="w-4 h-4" />
+              This is your current handle
+            </p>
+          )}
+          {!isChecking && isAvailable === true && !isCurrentHandle && (
             <p className="text-sm text-green-600 font-medium flex items-center gap-1">
               <Check className="w-4 h-4" />
               This handle is available!

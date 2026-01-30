@@ -1,6 +1,5 @@
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { getAuth } from "@/lib/auth";
+import { getServerSession } from "@/lib/auth/session";
 import { SidebarLayoutClient } from "./SidebarLayoutClient";
 
 // Force dynamic rendering - protected routes require runtime auth context
@@ -8,12 +7,8 @@ import { SidebarLayoutClient } from "./SidebarLayoutClient";
 export const dynamic = "force-dynamic";
 
 export default async function ProtectedLayout({ children }: { children: React.ReactNode }) {
-  const auth = await getAuth();
-
-  // Check authentication via Better Auth
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  // Use cached session helper to deduplicate auth calls within request
+  const session = await getServerSession();
 
   if (!session) {
     redirect("/");

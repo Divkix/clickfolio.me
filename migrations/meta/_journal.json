@@ -57,6 +57,55 @@
       "when": 1769200591131,
       "tag": "0007_colorful_giant_girl",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1769222333000,
+      "tag": "0008_lethal_doctor_octopus",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1769469879931,
+      "tag": "0009_free_colonel_america",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1769648178274,
+      "tag": "0010_massive_marvel_zombies",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1769660256681,
+      "tag": "0011_flippant_earthquake",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1769661897217,
+      "tag": "0012_lonely_satana",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1769739991861,
+      "tag": "0013_even_karnak",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "6",
+      "when": 1769740032623,
+      "tag": "0014_conscious_human_cannonball",
+      "breakpoints": true
     }
   ]
 }

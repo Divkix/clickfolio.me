@@ -1,18 +1,15 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { eq } from "drizzle-orm";
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { EditResumeFormWrapper } from "@/components/forms/EditResumeFormWrapper";
-import { getAuth } from "@/lib/auth";
+import { getServerSession } from "@/lib/auth/session";
 import { getDb } from "@/lib/db";
 import { siteData } from "@/lib/db/schema";
 import type { ResumeContent } from "@/lib/types/database";
 
 export default async function EditPage() {
-  const auth = await getAuth();
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  // Use cached session helper to deduplicate auth calls within request
+  const session = await getServerSession();
 
   if (!session) {
     redirect("/");
@@ -36,10 +33,11 @@ export default async function EditPage() {
 
   return (
     <div className="min-h-screen py-8">
-      <div className="max-w-6xl mx-auto px-4 lg:px-6">
-        <div className="mb-8">
+      <div className="max-w-5xl mx-auto px-4 lg:px-6 space-y-6">
+        {/* Page Header */}
+        <div className="mb-2">
           <h1 className="text-3xl font-bold text-slate-900">Edit Resume</h1>
-          <p className="text-slate-600 mt-2">Update your resume content and publish changes</p>
+          <p className="text-slate-600 mt-1">Update your resume content and publish changes</p>
         </div>
         <EditResumeFormWrapper initialData={content} />
       </div>

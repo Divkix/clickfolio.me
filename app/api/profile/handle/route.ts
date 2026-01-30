@@ -1,8 +1,6 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { and, eq, gte, ne, sql } from "drizzle-orm";
-import { revalidatePath, revalidateTag } from "next/cache";
 import { requireAuthWithMessage } from "@/lib/auth/middleware";
-import { getResumeCacheTag } from "@/lib/data/resume";
 import { handleChanges, user } from "@/lib/db/schema";
 import { getSessionDb } from "@/lib/db/session";
 import { handleUpdateSchema } from "@/lib/schemas/profile";
@@ -156,14 +154,6 @@ export async function PUT(request: Request) {
       }
       throw error; // Re-throw other errors
     }
-
-    // 10. Invalidate cache for both old and new handles (sync)
-    if (oldHandle) {
-      revalidateTag(getResumeCacheTag(oldHandle), "max");
-      revalidatePath(`/${oldHandle}`);
-    }
-    revalidateTag(getResumeCacheTag(newHandle), "max");
-    revalidatePath(`/${newHandle}`);
 
     await captureBookmark();
 

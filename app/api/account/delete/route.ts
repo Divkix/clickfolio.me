@@ -1,10 +1,8 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { eq } from "drizzle-orm";
-import { revalidatePath, revalidateTag } from "next/cache";
 import { headers } from "next/headers";
 import { getAuth } from "@/lib/auth";
 import { purgeResumeCache } from "@/lib/cloudflare-cache-purge";
-import { getResumeCacheTag } from "@/lib/data/resume";
 import { getDb } from "@/lib/db";
 import {
   account,
@@ -122,21 +120,20 @@ export async function POST(request: Request) {
 
     const userHandle = userWithHandle[0]?.handle;
 
-    // 7. Delete R2 files (best effort - continue even if some fail)
-    for (const resume of userResumes) {
-      if (resume.r2Key) {
-        try {
-          await R2.delete(r2Binding, resume.r2Key as string);
-        } catch (r2Error) {
-          console.error(`Failed to delete R2 file ${resume.r2Key}:`, r2Error);
-          warnings.push({
-            type: "r2",
-            message: `Failed to delete file: ${resume.r2Key}`,
-          });
-          // Continue with deletion - R2 cleanup can be done later if needed
-        }
+    // 7. Delete R2 files in parallel (best effort - continue even if some fail)
+    const r2Keys = userResumes.map((r) => r.r2Key).filter((key): key is string => Boolean(key));
+    const deletionResults = await Promise.allSettled(
+      r2Keys.map((r2Key) => R2.delete(r2Binding, r2Key)),
+    );
+    deletionResults.forEach((result, index) => {
+      if (result.status === "rejected") {
+        console.error(`Failed to delete R2 file ${r2Keys[index]}:`, result.reason);
+        warnings.push({
+          type: "r2",
+          message: `Failed to delete file: ${r2Keys[index]}`,
+        });
       }
-    }
+    });
 
     // 8. Delete database records in a transaction using batch
     // D1 supports atomic transactions via db.batch() - all operations succeed or all fail
@@ -174,19 +171,17 @@ export async function POST(request: Request) {
           .where(eq(user.id, userId)),
       ]);
 
-      // Invalidate cache for deleted user's public page
+      // Purge edge cache for deleted user's public page (fire-and-forget)
       if (userHandle) {
-        // Purge Next.js ISR cache
-        revalidateTag(getResumeCacheTag(userHandle), "max");
-        revalidatePath(`/${userHandle}`);
-
-        // Purge Cloudflare edge cache immediately (privacy-sensitive deletion)
         const cfZoneId = (typedEnv as CloudflareEnv).CF_ZONE_ID;
         const cfApiToken = (typedEnv as CloudflareEnv).CF_CACHE_PURGE_API_TOKEN;
-        const baseUrl = typedEnv.NEXT_PUBLIC_APP_URL;
+        const baseUrl = process.env.BETTER_AUTH_URL;
 
         if (cfZoneId && cfApiToken && baseUrl) {
-          await purgeResumeCache(userHandle, baseUrl, cfZoneId, cfApiToken);
+          // Fire-and-forget: don't block response on cache purge
+          purgeResumeCache(userHandle, baseUrl, cfZoneId, cfApiToken).catch(() => {
+            // Error already logged inside purgeResumeCache
+          });
         }
       }
     } catch (dbError) {

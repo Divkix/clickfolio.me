@@ -1,4 +1,9 @@
+import bundleAnalyzer from "@next/bundle-analyzer";
 import type { NextConfig } from "next";
+
+const withBundleAnalyzer = bundleAnalyzer({
+  enabled: process.env.ANALYZE === "true",
+});
 
 const nextConfig: NextConfig = {
   /* config options here */
@@ -12,7 +17,7 @@ const nextConfig: NextConfig = {
   // Configure for Cloudflare deployment
   experimental: {
     serverActions: {
-      bodySizeLimit: "5mb",
+      bodySizeLimit: `${process.env.MAX_UPLOAD_SIZE_MB || "5"}mb` as `${number}mb`,
     },
   },
 
@@ -41,6 +46,30 @@ const nextConfig: NextConfig = {
     ],
   },
 
+  // Rewrites for sitemap index (Next.js generateSitemaps doesn't create sitemap index)
+  async rewrites() {
+    return [
+      {
+        source: "/sitemap.xml",
+        destination: "/api/sitemap-index",
+      },
+    ];
+  },
+
+  // Redirects for backward compatibility (old /handle URLs to new /@handle URLs)
+  async redirects() {
+    return [
+      {
+        // Redirect old /{handle} to /@{handle}
+        // Exclude known routes, static files, and paths already starting with @
+        source:
+          "/:handle((?!@|api|_next|dashboard|edit|settings|themes|waiting|wizard|privacy|terms|reset-password|preview|sitemap|robots\\.txt|manifest\\.webmanifest|favicon\\.ico)[a-z0-9][a-z0-9-]*[a-z0-9]|[a-z0-9])",
+        destination: "/@:handle",
+        permanent: true, // 308 redirect for SEO
+      },
+    ];
+  },
+
   // Edge caching headers for Cloudflare CDN
   // These enable Cloudflare's edge cache to serve responses without hitting the Worker
   async headers() {
@@ -49,7 +78,8 @@ const nextConfig: NextConfig = {
         // Public resume pages - cache at edge for 1 hour, stale-while-revalidate for 1 day
         // Invalidation still works via revalidateTag/revalidatePath (purges origin cache)
         // Edge cache will serve stale while origin revalidates
-        source: "/:handle((?!api|_next|dashboard|edit|settings|waiting|wizard|privacy|terms)[^/]+)",
+        // Matches /@handle format (@ prefix convention)
+        source: "/@:handle",
         headers: [
           {
             key: "Cache-Control",
@@ -107,4 +137,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withBundleAnalyzer(nextConfig);

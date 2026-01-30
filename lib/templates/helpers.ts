@@ -38,3 +38,19 @@ export function formatDateRange(startDate: string, endDate?: string | null): str
 export function flattenSkills(skills?: Array<{ category: string; items: string[] }>): string[] {
   return skills?.flatMap((s) => s.items) || [];
 }
+
+/**
+ * Format a date string to just the year
+ * Example: "2020-01-15" -> "2020"
+ */
+export function formatYear(date: string): string {
+  return new Date(date).getFullYear().toString();
+}
+
+/**
+ * Format a date string to short month and year
+ * Example: "2020-01-15" -> "Jan 2020"
+ */
+export function formatShortDate(date: string): string {
+  return new Date(date).toLocaleDateString("en-US", { month: "short", year: "numeric" });
+}

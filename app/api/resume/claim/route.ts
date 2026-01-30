@@ -6,6 +6,7 @@ import { resumes, siteData } from "@/lib/db/schema";
 import type { getSessionDb } from "@/lib/db/session";
 import { publishResumeParse } from "@/lib/queue/resume-parse";
 import { getR2Binding, R2 } from "@/lib/r2";
+import { writeReferral } from "@/lib/referral";
 import { enforceRateLimit } from "@/lib/utils/rate-limit";
 import {
   createErrorResponse,
@@ -16,6 +17,7 @@ import { MAX_FILE_SIZE, validateRequestSize } from "@/lib/utils/validation";
 
 interface ClaimRequestBody {
   key?: string;
+  referral_handle?: string;
 }
 
 /**
@@ -212,10 +214,24 @@ export async function POST(request: Request) {
       );
     }
 
+    // 5a. Link referral if provided (best effort - don't fail claim on referral errors)
+    if (body.referral_handle) {
+      try {
+        const referralResult = await writeReferral(userId, body.referral_handle, request);
+        if (!referralResult.success) {
+          console.log(`Referral not linked: ${referralResult.reason}`);
+        }
+      } catch (referralError) {
+        console.error("Referral linking error:", referralError);
+        // Don't fail the claim for referral errors
+      }
+    }
+
     // 5b. Check for cached parse result (same file uploaded before BY THIS USER)
     // SECURITY: Only look up cache for current user's own resumes to prevent cross-user data access
-    const cached = await db
-      .select({ id: resumes.id, parsedContent: resumes.parsedContent })
+    // Step 1: Existence check - only fetch id to avoid loading 100KB+ parsedContent unnecessarily
+    const hasCache = await db
+      .select({ id: resumes.id })
       .from(resumes)
       .where(
         and(
@@ -228,7 +244,18 @@ export async function POST(request: Request) {
       )
       .limit(1);
 
-    if (cached[0]?.parsedContent) {
+    // Step 2: Only fetch content if cache exists
+    let cachedContent: string | null = null;
+    if (hasCache.length > 0) {
+      const result = await db
+        .select({ parsedContent: resumes.parsedContent })
+        .from(resumes)
+        .where(eq(resumes.id, hasCache[0].id))
+        .limit(1);
+      cachedContent = result[0]?.parsedContent as string | null;
+    }
+
+    if (cachedContent) {
       // DATA INTEGRITY FIX: Store file to user's folder using existing buffer
       // No need to copy from temp - we already have the file in memory
       let r2PutSucceeded = false;
@@ -256,15 +283,13 @@ export async function POST(request: Request) {
               status: "completed",
               fileHash: computedFileHash,
               parsedAt: now,
-              parsedContent: cached[0].parsedContent,
+              parsedContent: cachedContent,
             })
             .where(eq(resumes.id, resumeId));
 
-          // Parse the cached content for site_data
-          const parsedContent = JSON.parse(cached[0].parsedContent as string);
-
           // Copy content to user's site_data for publishing (upsert with race condition handling)
-          await upsertSiteData(db, userId, resumeId, JSON.stringify(parsedContent), now);
+          // Pass raw string directly - already valid JSON, avoid parse-stringify round-trip
+          await upsertSiteData(db, userId, resumeId, cachedContent, now);
 
           // R2 and DB both succeeded - return cached result
           await captureBookmark();

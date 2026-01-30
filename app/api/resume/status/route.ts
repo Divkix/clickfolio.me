@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { getAuth } from "@/lib/auth";
 import { resumes } from "@/lib/db/schema";
-import { getSessionDb } from "@/lib/db/session";
+import { getSessionDbWithPrimaryFirst } from "@/lib/db/session";
 import {
   createErrorResponse,
   createSuccessResponse,
@@ -16,7 +16,7 @@ const WAITING_FOR_CACHE_TIMEOUT_MS = 10 * 60 * 1000;
 export async function GET(request: Request) {
   try {
     const { env } = await getCloudflareContext({ async: true });
-    const { db, captureBookmark } = await getSessionDb(env.DB);
+    const { db, captureBookmark } = await getSessionDbWithPrimaryFirst(env.DB);
 
     // 2. Check authentication via Better Auth
     const auth = await getAuth();

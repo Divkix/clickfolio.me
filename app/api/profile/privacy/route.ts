@@ -1,9 +1,7 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { eq } from "drizzle-orm";
-import { revalidatePath, revalidateTag } from "next/cache";
 import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
 import { purgeResumeCache } from "@/lib/cloudflare-cache-purge";
-import { getResumeCacheTag } from "@/lib/data/resume";
 import { user } from "@/lib/db/schema";
 import { privacySettingsSchema } from "@/lib/schemas/profile";
 import { enforceRateLimit } from "@/lib/utils/rate-limit";
@@ -61,12 +59,14 @@ export async function PUT(request: Request) {
       );
     }
 
-    const { show_phone, show_address } = validation.data;
+    const { show_phone, show_address, hide_from_search, show_in_directory } = validation.data;
 
     // 6. Update privacy_settings (stored as JSON string in D1)
     const privacySettings = JSON.stringify({
       show_phone,
       show_address,
+      hide_from_search,
+      show_in_directory,
     });
 
     await db
@@ -77,19 +77,18 @@ export async function PUT(request: Request) {
       })
       .where(eq(user.id, authUser.id));
 
-    // 7. Invalidate cache for public page so privacy changes reflect immediately
-    // This prevents PII exposure through stale ISR cache
+    // 7. Purge edge cache for privacy changes (fire-and-forget)
+    // This prevents PII exposure through stale edge cache
     if (userHandle) {
-      revalidateTag(getResumeCacheTag(userHandle), "max");
-      revalidatePath(`/${userHandle}`);
-
-      // Purge Cloudflare edge cache immediately (privacy-sensitive change)
       const cfZoneId = (env as CloudflareEnv).CF_ZONE_ID;
       const cfApiToken = (env as CloudflareEnv).CF_CACHE_PURGE_API_TOKEN;
-      const baseUrl = (env as CloudflareEnv).NEXT_PUBLIC_APP_URL;
+      const baseUrl = process.env.BETTER_AUTH_URL;
 
       if (cfZoneId && cfApiToken && baseUrl) {
-        await purgeResumeCache(userHandle, baseUrl, cfZoneId, cfApiToken);
+        // Fire-and-forget: don't block response on cache purge
+        purgeResumeCache(userHandle, baseUrl, cfZoneId, cfApiToken).catch(() => {
+          // Error already logged inside purgeResumeCache
+        });
       }
     }
 
@@ -99,6 +98,8 @@ export async function PUT(request: Request) {
       privacy_settings: {
         show_phone,
         show_address,
+        hide_from_search,
+        show_in_directory,
       },
     });
   } catch (err) {

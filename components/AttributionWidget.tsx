@@ -3,7 +3,17 @@
 import Link from "next/link";
 import { siteConfig } from "@/lib/config/site";
 
-type ThemeId = "minimalist_editorial" | "glassmorphic" | "neo_brutalist" | "bento_grid";
+type ThemeId =
+  | "minimalist_editorial"
+  | "glassmorphic"
+  | "neo_brutalist"
+  | "bento_grid"
+  | "spotlight"
+  | "midnight"
+  | "bold_corporate"
+  | "dev_terminal"
+  | "design_folio"
+  | "classic_ats";
 
 interface AttributionWidgetProps {
   theme: string;
@@ -50,6 +60,47 @@ export function AttributionWidget({ theme }: AttributionWidgetProps) {
       accent: "bg-linear-to-r from-indigo-600 to-blue-600 bg-clip-text text-transparent",
       shimmer: "from-transparent via-indigo-200/30 to-transparent",
       shadow: "shadow-depth-sm hover:shadow-depth-md",
+    },
+    spotlight: {
+      container:
+        "bg-stone-50/95 sm:bg-stone-50/80 border border-stone-300/50 text-stone-700 hover:text-stone-900",
+      accent: "text-orange-600",
+      shimmer: "from-transparent via-orange-200/30 to-transparent",
+      shadow: "shadow-sm hover:shadow-md",
+    },
+    midnight: {
+      container:
+        "bg-neutral-900/90 sm:bg-neutral-900/80 backdrop-blur-md border border-amber-400/20 text-amber-100/80 hover:text-amber-100",
+      accent: "text-amber-400",
+      shimmer: "from-transparent via-amber-400/20 to-transparent",
+      shadow: "shadow-lg hover:shadow-xl",
+    },
+    bold_corporate: {
+      container:
+        "bg-white/95 sm:bg-white border border-neutral-200 text-neutral-500 hover:text-neutral-800",
+      accent: "text-neutral-900",
+      shimmer: "from-transparent via-neutral-200/30 to-transparent",
+      shadow: "shadow-sm hover:shadow-md",
+    },
+    dev_terminal: {
+      container:
+        "bg-[#161b22]/95 backdrop-blur-md border border-[#30363d] text-[#c9d1d9] hover:text-white",
+      accent: "text-[#58a6ff]",
+      shimmer: "from-transparent via-[#58a6ff]/20 to-transparent",
+      shadow: "shadow-lg hover:shadow-xl",
+    },
+    design_folio: {
+      container:
+        "bg-[#1a1a1a]/95 backdrop-blur-md border border-[#333] text-[#888] hover:text-[#e0e0e0]",
+      accent: "text-[#CCFF00]",
+      shimmer: "from-transparent via-[#CCFF00]/20 to-transparent",
+      shadow: "shadow-lg hover:shadow-xl",
+    },
+    classic_ats: {
+      container: "bg-white/95 border border-gray-300 text-gray-600 hover:text-gray-900",
+      accent: "text-gray-800",
+      shimmer: "from-transparent via-gray-200/30 to-transparent",
+      shadow: "shadow-sm hover:shadow-md",
     },
   };
 

@@ -95,17 +95,66 @@ export function extractCityState(location: string | undefined): string {
 }
 
 /**
- * Type guard to check if privacy settings are valid
+ * Full privacy settings type
  */
-export function isValidPrivacySettings(
-  settings: unknown,
-): settings is { show_phone: boolean; show_address: boolean } {
+export interface PrivacySettingsType {
+  show_phone: boolean;
+  show_address: boolean;
+  hide_from_search: boolean;
+  show_in_directory: boolean;
+}
+
+/**
+ * Type guard to check if privacy settings are valid
+ * Backward compatible: hide_from_search and show_in_directory are optional (defaults to false)
+ */
+export function isValidPrivacySettings(settings: unknown): settings is {
+  show_phone: boolean;
+  show_address: boolean;
+  hide_from_search?: boolean;
+  show_in_directory?: boolean;
+} {
   return (
     typeof settings === "object" &&
     settings !== null &&
     "show_phone" in settings &&
     "show_address" in settings &&
     typeof (settings as { show_phone: unknown }).show_phone === "boolean" &&
-    typeof (settings as { show_address: unknown }).show_address === "boolean"
+    typeof (settings as { show_address: unknown }).show_address === "boolean" &&
+    // hide_from_search is optional for backward compatibility
+    (!("hide_from_search" in settings) ||
+      typeof (settings as { hide_from_search: unknown }).hide_from_search === "boolean") &&
+    // show_in_directory is optional for backward compatibility
+    (!("show_in_directory" in settings) ||
+      typeof (settings as { show_in_directory: unknown }).show_in_directory === "boolean")
   );
+}
+
+/**
+ * Normalizes privacy settings with defaults for missing fields
+ * Ensures backward compatibility with existing data
+ */
+export function normalizePrivacySettings(
+  settings: {
+    show_phone: boolean;
+    show_address: boolean;
+    hide_from_search?: boolean;
+    show_in_directory?: boolean;
+  } | null,
+): PrivacySettingsType {
+  if (!settings) {
+    return {
+      show_phone: false,
+      show_address: false,
+      hide_from_search: false,
+      show_in_directory: false,
+    };
+  }
+
+  return {
+    show_phone: settings.show_phone,
+    show_address: settings.show_address,
+    hide_from_search: settings.hide_from_search ?? false,
+    show_in_directory: settings.show_in_directory ?? false,
+  };
 }

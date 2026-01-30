@@ -5,6 +5,7 @@ export interface Project {
   year?: string;
   technologies?: string[];
   url?: string;
+  image_url?: string;
 }
 
 // Resume content structure (from AI parsing)
@@ -19,6 +20,8 @@ export interface ResumeContent {
     linkedin?: string;
     github?: string;
     website?: string;
+    behance?: string;
+    dribbble?: string;
   };
   experience: Array<{
     title: string;

@@ -1,11 +1,10 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { eq } from "drizzle-orm";
-import { revalidatePath, revalidateTag } from "next/cache";
 import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
-import { getResumeCacheTag } from "@/lib/data/resume";
 import { siteData } from "@/lib/db/schema";
 import { resumeContentSchemaStrict } from "@/lib/schemas/resume";
 import type { ResumeContent } from "@/lib/types/database";
+import { extractPreviewFields } from "@/lib/utils/preview-fields";
 import { enforceRateLimit } from "@/lib/utils/rate-limit";
 import {
   createErrorResponse,
@@ -52,13 +51,11 @@ export async function PUT(request: Request) {
       user: authUser,
       db,
       captureBookmark,
-      dbUser,
       error: authError,
     } = await requireAuthWithUserValidation("You must be logged in to update your resume", env.DB);
     if (authError) return authError;
 
     const userId = authUser.id;
-    const userHandle = dbUser.handle;
 
     // 5. Check rate limit (10 updates per hour)
     const rateLimitResponse = await enforceRateLimit(userId, "resume_update");
@@ -88,18 +85,21 @@ export async function PUT(request: Request) {
     const content = validation.data;
     const now = new Date().toISOString();
 
-    // 7. Update site_data
+    // Extract preview fields for denormalized columns
+    const previewFields = extractPreviewFields(content);
+
+    // 7. Update site_data (don't return content - we already have it validated)
     const updateResult = await db
       .update(siteData)
       .set({
         content: JSON.stringify(content),
+        ...previewFields,
         lastPublishedAt: now,
         updatedAt: now,
       })
       .where(eq(siteData.userId, userId))
       .returning({
         id: siteData.id,
-        content: siteData.content,
         lastPublishedAt: siteData.lastPublishedAt,
       });
 
@@ -113,19 +113,13 @@ export async function PUT(request: Request) {
 
     const data = updateResult[0];
 
-    // 8. Invalidate cache for public resume page synchronously
-    if (userHandle) {
-      revalidateTag(getResumeCacheTag(userHandle), "max");
-      revalidatePath(`/${userHandle}`);
-    }
-
-    // 9. Return success response
+    // 8. Return success response (use validated content directly, avoid JSON round-trip)
     await captureBookmark();
     return createSuccessResponse({
       success: true,
       data: {
         id: data.id,
-        content: JSON.parse(data.content),
+        content, // Use validated object from line 84
         last_published_at: data.lastPublishedAt,
       },
     });

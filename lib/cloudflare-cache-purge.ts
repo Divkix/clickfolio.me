@@ -56,7 +56,8 @@ export async function purgeResumeCache(
 
   // Normalize base URL (remove trailing slash)
   const normalizedBaseUrl = baseUrl.replace(/\/$/, "");
-  const resumeUrl = `${normalizedBaseUrl}/${handle}`;
+  // Use @ prefix convention for handle URLs
+  const resumeUrl = `${normalizedBaseUrl}/@${handle}`;
 
   try {
     const response = await fetch(`${CLOUDFLARE_API_BASE}/zones/${zoneId}/purge_cache`, {
@@ -117,7 +118,8 @@ export async function purgeMultipleResumeCaches(
 
   // Normalize base URL (remove trailing slash)
   const normalizedBaseUrl = baseUrl.replace(/\/$/, "");
-  const urls = handles.map((handle) => `${normalizedBaseUrl}/${handle}`);
+  // Use @ prefix convention for handle URLs
+  const urls = handles.map((handle) => `${normalizedBaseUrl}/@${handle}`);
 
   // Cloudflare allows up to 30 files per purge request
   const BATCH_SIZE = 30;

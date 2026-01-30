@@ -8,7 +8,8 @@ import {
   DEMO_RESUME_CONTENT,
   TEMPLATE_BACKGROUNDS,
 } from "@/lib/templates/demo-data";
-import { getTemplate, THEME_METADATA } from "@/lib/templates/theme-registry";
+import { THEME_METADATA } from "@/lib/templates/theme-ids";
+import { DYNAMIC_TEMPLATES } from "@/lib/templates/theme-registry";
 import { cn } from "@/lib/utils";
 
 interface TemplatePreviewModalProps {
@@ -59,7 +60,7 @@ export function TemplatePreviewModal({
 
   if (!currentProfile || !themeId) return null;
 
-  const Template = getTemplate(themeId);
+  const Template = DYNAMIC_TEMPLATES[themeId];
   const content = DEMO_RESUME_CONTENT[themeId];
   const metadata = THEME_METADATA[themeId];
   const profile = {

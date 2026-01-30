@@ -3,20 +3,24 @@
  * Designed to work in Cloudflare Workers environment (no DOM available)
  */
 
+// Pre-compiled regex and lookup table for sanitizeText (single-pass optimization)
+const HTML_ENTITIES: Record<string, string> = {
+  "&": "&amp;",
+  "<": "&lt;",
+  ">": "&gt;",
+  '"': "&quot;",
+  "'": "&#x27;",
+  "/": "&#x2F;",
+};
+const HTML_ESCAPE_REGEX = /[&<>"'/]/g;
+
 /**
  * Sanitizes plain text by removing/encoding dangerous HTML characters
  * Prevents XSS attacks by encoding special characters
  */
 export function sanitizeText(input: string): string {
   if (!input) return "";
-
-  return input
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#x27;")
-    .replace(/\//g, "&#x2F;");
+  return input.replace(HTML_ESCAPE_REGEX, (char) => HTML_ENTITIES[char]);
 }
 
 /**
@@ -83,27 +87,18 @@ export function sanitizePhone(input: string): string {
   return input.replace(/[^0-9\s\-()+ ]/g, "").trim();
 }
 
+// Pre-compiled combined XSS pattern regex (single-pass optimization)
+const XSS_PATTERN = /<script|<iframe|javascript:|data:text\/html|\s*on\w+\s*=/i;
+
 /**
  * Checks if a string contains potential XSS patterns
  * Returns true if suspicious content is detected
  */
 export function containsXssPattern(input: string): boolean {
   if (!input) return false;
-
-  // Check for script tags
-  if (/<script/i.test(input)) return true;
-
-  // Check for javascript: protocol
-  if (/javascript:/i.test(input)) return true;
-
-  // Check for event handlers
-  if (/\s*on\w+\s*=/i.test(input)) return true;
-
-  // Check for data: protocol (can be used for XSS)
-  if (/data:text\/html/i.test(input)) return true;
-
-  // Check for iframe tags
-  if (/<iframe/i.test(input)) return true;
-
-  return false;
+  // Quick check: XSS patterns require '<', ':', or '='
+  if (!input.includes("<") && !input.includes(":") && !input.includes("=")) {
+    return false;
+  }
+  return XSS_PATTERN.test(input);
 }

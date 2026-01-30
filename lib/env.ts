@@ -48,20 +48,6 @@ function getRequiredEnv(key: string): string {
 }
 
 /**
- * Gets an optional environment variable, returns undefined if not set
- */
-function getEnvVar(key: string, required: boolean = true): string | undefined {
-  const value = getEnvValue(key);
-  if (required && (!value || value.trim() === "")) {
-    throw new EnvironmentError(
-      `Missing required environment variable: ${key}\n` +
-        `Please set it in your .env.local file (development) or via 'wrangler secret put ${key}' (production).`,
-    );
-  }
-  return value || undefined;
-}
-
-/**
  * Validates all required environment variables
  * Call this at app startup to fail fast
  */
@@ -106,7 +92,4 @@ export const ENV = {
   // Google OAuth
   GOOGLE_CLIENT_ID: () => getRequiredEnv("GOOGLE_CLIENT_ID"),
   GOOGLE_CLIENT_SECRET: () => getRequiredEnv("GOOGLE_CLIENT_SECRET"),
-
-  // Optional - Public app URL
-  NEXT_PUBLIC_APP_URL: () => getEnvVar("NEXT_PUBLIC_APP_URL", false),
 } as const;

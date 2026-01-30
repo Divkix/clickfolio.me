@@ -45,6 +45,18 @@ bun run ci               # type-check + lint + build
 - **No Next.js `<Image />`** — use `<img>` with CSS (`aspect-ratio`, `object-fit`)
 - **No middleware D1 access** — Edge middleware can't call D1; move DB checks to page components/API routes
 
+### Middleware Cookie Validation (Intentional Design)
+The middleware (`middleware.ts`) only checks if a session cookie **exists**, not if it's **valid**. This is intentional:
+
+1. **Edge middleware can't access D1** — Cloudflare Workers edge middleware cannot call D1 for session validation
+2. **Defense in depth** — Page components and API routes perform full authentication via `requireAuthWithUserValidation()` which validates both the session AND that the user exists in the database
+3. **Cookie existence is a UX optimization** — Prevents unnecessary redirects for clearly unauthenticated users (no cookie at all)
+
+This means an attacker could set a fake cookie (`better-auth.session_token=fake`) to bypass middleware redirects, but they would fail at the page/API handler level where full validation occurs. This is acceptable because:
+- No sensitive operations happen in middleware
+- All data access requires valid auth checked at handler level
+- The pattern is documented and expected
+
 ### D1/SQLite Constraints
 - JSON stored as TEXT — always `JSON.parse()`/`JSON.stringify()`
 - UUIDs generated in app code (`crypto.randomUUID()`)
@@ -113,43 +125,13 @@ if (!settings.show_address) content.contact.location = extractCityState(...);
 
 ### Caching Architecture
 
-Three-layer caching strategy optimized for Cloudflare Workers:
-
-**Layer 1: Cloudflare Edge Cache (CDN)**
+**Cloudflare CDN Edge Cache:**
 - Configured via `Cache-Control` headers in `next.config.ts`
-- Serves cached responses at edge (~5ms latency) without hitting Worker
 - Public resumes: 1hr TTL, 24hr stale-while-revalidate
 - Static pages (/privacy, /terms): 1 week TTL
-- Homepage: 5min TTL (client component)
+- Privacy-sensitive changes purge edge cache immediately via Cloudflare API
 
-**Layer 2: OpenNext Incremental Cache (R2)**
-- ISR snapshots stored in `webresume-bucket/incremental-cache/*`
-- Configured in `open-next.config.ts` via `r2IncrementalCache`
-- Fallback revalidation: 1 hour (`export const revalidate = 3600`)
-
-**Layer 3: Tag-based Invalidation (Durable Objects)**
-- Tracks cache tags for granular invalidation
-- Configured via `doShardedTagCache` in `open-next.config.ts`
-- Strong consistency for immediate invalidation
-
-**Cache Invalidation Pattern:**
-```typescript
-// In API routes (update, update-theme, handle change, privacy toggle)
-revalidateTag(getResumeCacheTag(handle));  // Purges DO tag cache
-revalidatePath(`/${handle}`);               // Purges R2 route cache
-// Edge cache serves stale-while-revalidate, refreshes in background
-```
-
-**Why this setup:**
-- Edge cache handles 90%+ of requests at ~5ms (free tier)
-- R2 + DO only hit on cache misses
-- Durable Objects chosen over KV for strong consistency on invalidation
-- `stale-while-revalidate` provides instant responses even during revalidation
-
-**Cost comparison (R2 + DO is cheaper than KV at scale):**
-- DO requests: $0.15/million vs KV reads: $0.50/million (3x cheaper)
-- R2 reads: $0.36/million vs KV reads: $0.50/million
-- At 10M views/month: R2+DO ~$5 vs KV+KV ~$10
+**No ISR layer** - All requests hit D1 directly. Edge cache handles most traffic.
 
 ## Code Standards
 
@@ -184,9 +166,15 @@ All receive `content` (ResumeContent) and `user` props, must respect privacy set
 
 Required in `.env.local` (dev) and Cloudflare secrets (prod):
 ```
-BETTER_AUTH_SECRET, BETTER_AUTH_URL
+BETTER_AUTH_SECRET, BETTER_AUTH_URL   # BETTER_AUTH_URL is also used as the app URL
 GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
-NEXT_PUBLIC_APP_URL
+RESEND_API_KEY              # For password reset emails (optional, free tier: 3k/month)
+```
+
+Optional (for edge cache purging on custom domains):
+```
+CF_ZONE_ID                  # Cloudflare zone ID from dashboard
+CF_CACHE_PURGE_API_TOKEN    # API token with Cache Purge permission
 ```
 
 Note: R2 is accessed via binding in `wrangler.jsonc` - no API credentials needed.

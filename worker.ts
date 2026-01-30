@@ -1,12 +1,11 @@
 /**
  * Custom worker entry point that wraps OpenNext's generated handler
- * and adds Cloudflare Queue consumer support.
+ * and adds Cloudflare Queue consumer support and Durable Object exports.
  *
  * Note: This file is excluded from Next.js tsconfig because it imports
  * .open-next/worker.js which only exists after OpenNext build.
  * Wrangler handles bundling and type resolution separately.
  */
-/// <reference types="@cloudflare/workers-types" />
 /// <reference path="./lib/cloudflare-env.d.ts" />
 
 import opennextHandler from "./.open-next/worker.js";
@@ -15,9 +14,51 @@ import { handleDLQMessage } from "./lib/queue/dlq-consumer";
 import { isRetryableError } from "./lib/queue/errors";
 import type { QueueMessage } from "./lib/queue/types";
 
+// Re-export Durable Object class for Wrangler to discover
+export { ResumeStatusDO } from "./lib/durable-objects/resume-status";
+
 export default {
-  // Re-use the OpenNext fetch handler
-  fetch: opennextHandler.fetch,
+  async fetch(request: Request, env: CloudflareEnv, ctx: ExecutionContext): Promise<Response> {
+    const url = new URL(request.url);
+
+    // Intercept WebSocket upgrade requests for resume status
+    if (
+      url.pathname === "/ws/resume-status" &&
+      request.headers.get("Upgrade")?.toLowerCase() === "websocket"
+    ) {
+      const resumeId = url.searchParams.get("resume_id");
+      if (!resumeId) {
+        return new Response("Missing resume_id query parameter", { status: 400 });
+      }
+
+      // Route to the Durable Object keyed by resumeId
+      if (!env.RESUME_STATUS_DO) {
+        return new Response("WebSocket not available", { status: 503 });
+      }
+
+      const doId = env.RESUME_STATUS_DO.idFromName(resumeId);
+      const stub = env.RESUME_STATUS_DO.get(doId);
+
+      // Forward the WebSocket upgrade request to the DO
+      return stub.fetch(request);
+    }
+
+    // Serve static assets from ASSETS binding
+    // The ASSETS binding serves files from .open-next/assets/ which contains /public/* files
+    const staticFilePattern =
+      /\.(ico|png|svg|webp|jpg|jpeg|gif|webmanifest|xml|txt|woff|woff2|ttf|eot|css|js|json)$/i;
+    if (staticFilePattern.test(url.pathname) && env.ASSETS) {
+      const assetResponse = await env.ASSETS.fetch(request);
+      // Return asset if found, otherwise fall through to OpenNext for dynamically generated files
+      if (assetResponse.status !== 404) {
+        return assetResponse;
+      }
+    }
+
+    // All other requests go to the OpenNext handler
+    // Cast needed: wrapper function receives CfProperties but opennextHandler expects IncomingRequestCfProperties
+    return opennextHandler.fetch(request as Parameters<typeof opennextHandler.fetch>[0], env, ctx);
+  },
 
   // Cloudflare Queue consumer handler
   async queue(batch: MessageBatch<unknown>, env: CloudflareEnv): Promise<void> {
@@ -47,7 +88,45 @@ export default {
       }
     }
   },
-} satisfies ExportedHandler<CloudflareEnv>;
 
-// Re-export Durable Objects classes for OpenNext cache system
-export { DOShardedTagCache } from "./.open-next/worker.js";
+  // Cloudflare Cron trigger handler
+  async scheduled(controller: ScheduledController, env: CloudflareEnv): Promise<void> {
+    const baseUrl = env.BETTER_AUTH_URL || "https://webresume-now.divkix.workers.dev";
+
+    let endpoint: string;
+    switch (controller.cron) {
+      case "0 3 * * *":
+        endpoint = "/api/cron/cleanup";
+        break;
+      case "*/15 * * * *":
+        endpoint = "/api/cron/recover-orphaned";
+        break;
+      default:
+        console.error(`Unknown cron trigger: ${controller.cron}`);
+        return;
+    }
+
+    const headers: HeadersInit = {};
+    // CRON_SECRET is optional - routes skip auth check if not set
+    const cronSecret = process.env.CRON_SECRET;
+    if (cronSecret) {
+      headers.Authorization = `Bearer ${cronSecret}`;
+    }
+
+    try {
+      const response = await fetch(`${baseUrl}${endpoint}`, {
+        method: "GET",
+        headers,
+      });
+
+      const result = await response.json();
+      console.log(`Cron ${controller.cron} completed:`, result);
+
+      if (!response.ok) {
+        console.error(`Cron ${controller.cron} failed with status ${response.status}`);
+      }
+    } catch (error) {
+      console.error(`Cron ${controller.cron} error:`, error);
+    }
+  },
+} satisfies ExportedHandler<CloudflareEnv>;

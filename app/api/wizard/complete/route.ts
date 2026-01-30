@@ -3,6 +3,8 @@ import { and, eq, ne } from "drizzle-orm";
 import { z } from "zod";
 import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
 import { siteData, user } from "@/lib/db/schema";
+import { handleSchema } from "@/lib/schemas/profile";
+import { THEME_IDS, type ThemeId } from "@/lib/templates/theme-ids";
 import {
   createErrorResponse,
   createSuccessResponse,
@@ -10,25 +12,19 @@ import {
 } from "@/lib/utils/security-headers";
 import { validateRequestSize } from "@/lib/utils/validation";
 
-const VALID_THEMES = ["bento", "glass", "minimalist_editorial", "neo_brutalist"] as const;
-
 /**
  * Wizard completion request schema
  * Validates handle, privacy settings, and theme selection
  */
 const wizardCompleteSchema = z.object({
-  handle: z
-    .string()
-    .trim()
-    .min(3, "Handle must be at least 3 characters")
-    .max(30, "Handle must be at most 30 characters")
-    .regex(/^[a-z0-9-]+$/, "Handle can only contain lowercase letters, numbers, and hyphens")
-    .regex(/^[^-].*[^-]$/, "Handle cannot start or end with a hyphen"),
+  handle: handleSchema,
   privacy_settings: z.object({
     show_phone: z.boolean(),
     show_address: z.boolean(),
+    hide_from_search: z.boolean().optional().default(false),
+    show_in_directory: z.boolean().optional().default(false),
   }),
-  theme_id: z.enum(VALID_THEMES),
+  theme_id: z.enum([...THEME_IDS] as [ThemeId, ...ThemeId[]]),
 });
 
 type WizardCompleteRequest = z.infer<typeof wizardCompleteSchema>;
@@ -41,7 +37,7 @@ type WizardCompleteRequest = z.infer<typeof wizardCompleteSchema>;
  * {
  *   handle: string,
  *   privacy_settings: { show_phone: boolean, show_address: boolean },
- *   theme_id: 'bento' | 'glass' | 'minimalist_editorial' | 'neo_brutalist'
+ *   theme_id: ThemeId (any registered theme from theme-registry)
  * }
  *
  * Response:

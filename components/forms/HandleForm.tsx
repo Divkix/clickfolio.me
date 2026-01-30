@@ -7,7 +7,6 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { siteConfig } from "@/lib/config/site";
@@ -16,6 +15,7 @@ import { copyToClipboard } from "@/lib/utils/clipboard";
 
 interface HandleFormProps {
   currentHandle: string;
+  variant?: "default" | "compact";
 }
 
 interface ErrorResponse {
@@ -23,7 +23,7 @@ interface ErrorResponse {
   message?: string;
 }
 
-export function HandleForm({ currentHandle }: HandleFormProps) {
+export function HandleForm({ currentHandle, variant = "default" }: HandleFormProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [copied, setCopied] = useState(false);
   const router = useRouter();
@@ -41,7 +41,7 @@ export function HandleForm({ currentHandle }: HandleFormProps) {
   });
 
   const newHandle = watch("handle");
-  const publicUrl = `${siteConfig.domain}/${newHandle || currentHandle}`;
+  const publicUrl = `${siteConfig.domain}/@${newHandle || currentHandle}`;
 
   const handleCopy = async () => {
     const success = await copyToClipboard(`https://${publicUrl}`);
@@ -56,7 +56,6 @@ export function HandleForm({ currentHandle }: HandleFormProps) {
   };
 
   const onSubmit = async (data: HandleUpdate) => {
-    // Don't submit if handle hasn't changed
     if (data.handle === currentHandle) {
       toast.info("Handle is already set to this value");
       return;
@@ -81,8 +80,6 @@ export function HandleForm({ currentHandle }: HandleFormProps) {
       await response.json();
 
       toast.success("Handle updated successfully!");
-
-      // Refresh the page to update the UI with new handle
       router.refresh();
     } catch (err) {
       console.error("Handle update error:", err);
@@ -92,94 +89,148 @@ export function HandleForm({ currentHandle }: HandleFormProps) {
     }
   };
 
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Link2 className="h-5 w-5" />
-          Public Handle
-        </CardTitle>
-        <CardDescription>Your unique URL for sharing your resume</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          {/* Current Handle Display */}
-          <div className="space-y-2">
-            <Label htmlFor="current-url" className="text-sm text-gray-600">
-              Current Public URL
-            </Label>
-            <div className="flex gap-2">
-              <div className="flex-1 flex items-center gap-2 px-3 py-2 rounded-md border border-gray-300 bg-gray-50 font-mono text-sm">
-                <Link2 className="h-4 w-4 text-gray-400" />
-                <span className="text-gray-900">{siteConfig.domain}/</span>
-                <span className="font-semibold text-blue-600">{currentHandle}</span>
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                onClick={handleCopy}
-                className="shrink-0"
-              >
-                {copied ? (
-                  <CheckCircle2 className="h-4 w-4 text-green-600" />
-                ) : (
-                  <Copy className="h-4 w-4" />
-                )}
-              </Button>
+  if (variant === "compact") {
+    return (
+      <div className="space-y-4">
+        {/* Current URL with copy button */}
+        <div>
+          <Label className="text-xs text-slate-500 mb-1.5 block">Public URL</Label>
+          <div className="flex gap-2">
+            <div className="flex-1 flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 font-mono text-sm min-w-0">
+              <Link2 className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+              <span className="text-slate-600 truncate">{siteConfig.domain}/@</span>
+              <span className="font-semibold text-indigo-600 truncate">{currentHandle}</span>
             </div>
-          </div>
-
-          {/* New Handle Input */}
-          <div className="space-y-2">
-            <Label htmlFor="handle">Change Handle</Label>
-            <div className="flex items-start gap-2">
-              <div className="flex-1 space-y-1">
-                <div className="flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2">
-                  <span className="text-sm text-gray-500">{siteConfig.domain}/</span>
-                  <Input
-                    id="handle"
-                    {...register("handle")}
-                    placeholder="your-handle"
-                    className="border-0 p-0 h-auto focus-visible:ring-0 font-mono text-sm"
-                    disabled={isSaving}
-                  />
-                </div>
-                {errors.handle && <p className="text-sm text-red-600">{errors.handle.message}</p>}
-              </div>
-            </div>
-            <p className="text-xs text-gray-500">
-              3-30 characters. Lowercase letters, numbers, and hyphens only.
-            </p>
-          </div>
-
-          {/* URL Preview */}
-          {isDirty && newHandle !== currentHandle && !errors.handle && (
-            <div className="rounded-lg bg-blue-50 border border-blue-200 p-3">
-              <p className="text-xs font-medium text-blue-900 mb-1">New URL Preview:</p>
-              <p className="font-mono text-sm text-blue-700">https://{publicUrl}</p>
-            </div>
-          )}
-
-          {/* Submit Button */}
-          <div className="flex gap-3 pt-2">
             <Button
-              type="submit"
-              disabled={isSaving || !isDirty || !!errors.handle}
-              className="flex-1"
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={handleCopy}
+              className="shrink-0 h-[38px] w-[38px]"
             >
-              {isSaving ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Updating Handle...
-                </>
+              {copied ? (
+                <CheckCircle2 className="h-4 w-4 text-green-600" />
               ) : (
-                "Update Handle"
+                <Copy className="h-4 w-4" />
               )}
             </Button>
           </div>
+        </div>
+
+        {/* Inline change handle form */}
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <Label htmlFor="handle-compact" className="text-xs text-slate-500 mb-1.5 block">
+            Change Handle
+          </Label>
+          <div className="flex gap-2">
+            <div className="flex-1 flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 min-w-0">
+              <span className="text-sm text-slate-400 shrink-0">@</span>
+              <Input
+                id="handle-compact"
+                {...register("handle")}
+                placeholder="new-handle"
+                className="border-0 p-0 h-9 focus-visible:ring-0 font-mono text-sm"
+                disabled={isSaving}
+              />
+            </div>
+            <Button
+              type="submit"
+              disabled={isSaving || !isDirty || !!errors.handle}
+              className="shrink-0"
+            >
+              {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Update"}
+            </Button>
+          </div>
+          {errors.handle && <p className="text-xs text-red-600 mt-1">{errors.handle.message}</p>}
+          {isDirty && newHandle !== currentHandle && !errors.handle && (
+            <p className="text-xs text-indigo-600 mt-1">
+              Preview: {siteConfig.domain}/@{newHandle}
+            </p>
+          )}
         </form>
-      </CardContent>
-    </Card>
+      </div>
+    );
+  }
+
+  // Default full card variant (keeping original for backwards compatibility)
+  return (
+    <div className="bg-white rounded-2xl shadow-depth-sm border border-slate-200/60 p-6">
+      <div className="flex items-center gap-2 mb-4">
+        <Link2 className="h-5 w-5 text-indigo-600" />
+        <h3 className="text-lg font-semibold text-slate-900">Public Handle</h3>
+      </div>
+
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        {/* Current URL Display */}
+        <div className="space-y-2">
+          <Label htmlFor="current-url" className="text-sm text-slate-600">
+            Current Public URL
+          </Label>
+          <div className="flex gap-2">
+            <div className="flex-1 flex items-center gap-2 px-3 py-2 rounded-md border border-slate-200 bg-slate-50 font-mono text-sm">
+              <Link2 className="h-4 w-4 text-slate-400" />
+              <span className="text-slate-600">{siteConfig.domain}/@</span>
+              <span className="font-semibold text-indigo-600">{currentHandle}</span>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={handleCopy}
+              className="shrink-0"
+            >
+              {copied ? (
+                <CheckCircle2 className="h-4 w-4 text-green-600" />
+              ) : (
+                <Copy className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+        </div>
+
+        {/* New Handle Input */}
+        <div className="space-y-2">
+          <Label htmlFor="handle">Change Handle</Label>
+          <div className="flex items-start gap-2">
+            <div className="flex-1 space-y-1">
+              <div className="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2">
+                <span className="text-sm text-slate-500">{siteConfig.domain}/@</span>
+                <Input
+                  id="handle"
+                  {...register("handle")}
+                  placeholder="your-handle"
+                  className="border-0 p-0 h-auto focus-visible:ring-0 font-mono text-sm"
+                  disabled={isSaving}
+                />
+              </div>
+              {errors.handle && <p className="text-sm text-red-600">{errors.handle.message}</p>}
+            </div>
+          </div>
+          <p className="text-xs text-slate-500">
+            3-30 characters. Lowercase letters, numbers, and hyphens only.
+          </p>
+        </div>
+
+        {/* URL Preview */}
+        {isDirty && newHandle !== currentHandle && !errors.handle && (
+          <div className="rounded-lg bg-indigo-50 border border-indigo-200 p-3">
+            <p className="text-xs font-medium text-indigo-900 mb-1">New URL Preview:</p>
+            <p className="font-mono text-sm text-indigo-700">https://{publicUrl}</p>
+          </div>
+        )}
+
+        {/* Submit Button */}
+        <Button type="submit" disabled={isSaving || !isDirty || !!errors.handle} className="w-full">
+          {isSaving ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Updating Handle...
+            </>
+          ) : (
+            "Update Handle"
+          )}
+        </Button>
+      </form>
+    </div>
   );
 }

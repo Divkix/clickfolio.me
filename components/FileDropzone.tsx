@@ -3,8 +3,10 @@
 import { useRouter } from "next/navigation";
 import { type ChangeEvent, type DragEvent, useRef, useState } from "react";
 import { toast } from "sonner";
+import { AuthDialog } from "@/components/auth/AuthDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { signIn, useSession } from "@/lib/auth/client";
+import { useSession } from "@/lib/auth/client";
+import { clearStoredReferralHandle, getStoredReferralHandle } from "@/lib/referral";
 import { validatePDF } from "@/lib/utils/validation";
 
 /**
@@ -65,6 +67,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
   const [claiming, setClaiming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [authDialogOpen, setAuthDialogOpen] = useState(false);
 
   const handleDragEnter = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -209,10 +212,15 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
     setError(null);
 
     try {
+      // Include referral handle if present
+      const referralHandle = getStoredReferralHandle();
       const claimResponse = await fetch("/api/resume/claim", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key }),
+        body: JSON.stringify({
+          key,
+          referral_handle: referralHandle || undefined,
+        }),
       });
 
       if (!claimResponse.ok) {
@@ -227,6 +235,9 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
 
       // Clear HTTP-only cookie
       await clearPendingUploadCookie();
+
+      // Clear referral handle after successful claim
+      clearStoredReferralHandle();
 
       toast.success("Resume claimed successfully! Processing...");
 
@@ -269,18 +280,6 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
       toast.error(errorMessage);
     } finally {
       setClaiming(false);
-    }
-  };
-
-  const handleLoginRedirect = async () => {
-    try {
-      await signIn.social({
-        provider: "google",
-        callbackURL: "/wizard",
-      });
-    } catch (err) {
-      console.error("Error signing in:", err);
-      toast.error("Failed to sign in. Please try again.");
     }
   };
 
@@ -333,7 +332,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
           ${
             isDragging
               ? "bg-amber/20 border-solid border-coral translate-x-[-2px] translate-y-[-2px] shadow-brutal-md"
-              : "hover:bg-amber/10 hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-brutal-sm"
+              : "hover:bg-amber/10 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-brutal-sm"
           }
           ${uploading ? "pointer-events-none opacity-60" : ""}
         `}
@@ -542,8 +541,8 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
                 border-3
                 border-ink
                 shadow-brutal-sm
-                hover:translate-x-[-2px]
-                hover:translate-y-[-2px]
+                hover:-translate-x-0.5
+                hover:-translate-y-0.5
                 hover:shadow-brutal-md
                 active:translate-x-0
                 active:translate-y-0
@@ -599,7 +598,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
               <>
                 <button
                   type="button"
-                  onClick={handleLoginRedirect}
+                  onClick={() => setAuthDialogOpen(true)}
                   disabled={claiming}
                   className="
                     w-full
@@ -612,8 +611,8 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
                     border-3
                     border-ink
                     shadow-brutal-sm
-                    hover:translate-x-[-2px]
-                    hover:translate-y-[-2px]
+                    hover:-translate-x-0.5
+                    hover:-translate-y-0.5
                     hover:shadow-brutal-md
                     active:translate-x-0
                     active:translate-y-0
@@ -641,6 +640,12 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
                 >
                   Upload a different file
                 </button>
+
+                <AuthDialog
+                  open={authDialogOpen}
+                  onOpenChange={setAuthDialogOpen}
+                  callbackURL="/wizard"
+                />
               </>
             )}
           </div>
