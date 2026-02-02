@@ -20,63 +20,58 @@ export async function GET() {
     const { env } = await getCloudflareContext({ async: true });
     const db = getDb(env.DB);
 
-    const [
-      referrerCount,
-      clickStats,
-      sourceBreakdown,
-      topReferrers,
-      recentConversions,
-    ] = await Promise.all([
-      // Count users with at least 1 referral
-      db
-        .select({ count: count() })
-        .from(user)
-        .where(gt(user.referralCount, 0)),
+    const [referrerCount, clickStats, sourceBreakdown, topReferrers, recentConversions] =
+      await Promise.all([
+        // Count users with at least 1 referral
+        db
+          .select({ count: count() })
+          .from(user)
+          .where(gt(user.referralCount, 0)),
 
-      // Click and conversion stats
-      db
-        .select({
-          totalClicks: count(),
-          uniqueClicks: sql<number>`COUNT(DISTINCT ${referralClicks.visitorHash})`,
-          conversions: sql<number>`SUM(CASE WHEN ${referralClicks.converted} = 1 THEN 1 ELSE 0 END)`,
-        })
-        .from(referralClicks),
+        // Click and conversion stats
+        db
+          .select({
+            totalClicks: count(),
+            uniqueClicks: sql<number>`COUNT(DISTINCT ${referralClicks.visitorHash})`,
+            conversions: sql<number>`SUM(CASE WHEN ${referralClicks.converted} = 1 THEN 1 ELSE 0 END)`,
+          })
+          .from(referralClicks),
 
-      // Source breakdown
-      db
-        .select({
-          source: referralClicks.source,
-          count: count(),
-        })
-        .from(referralClicks)
-        .groupBy(referralClicks.source)
-        .orderBy(sql`COUNT(*) DESC`),
+        // Source breakdown
+        db
+          .select({
+            source: referralClicks.source,
+            count: count(),
+          })
+          .from(referralClicks)
+          .groupBy(referralClicks.source)
+          .orderBy(sql`COUNT(*) DESC`),
 
-      // Top referrers by conversions
-      db
-        .select({
-          userId: user.id,
-          handle: user.handle,
-          referralCount: user.referralCount,
-        })
-        .from(user)
-        .where(gt(user.referralCount, 0))
-        .orderBy(desc(user.referralCount))
-        .limit(20),
+        // Top referrers by conversions
+        db
+          .select({
+            userId: user.id,
+            handle: user.handle,
+            referralCount: user.referralCount,
+          })
+          .from(user)
+          .where(gt(user.referralCount, 0))
+          .orderBy(desc(user.referralCount))
+          .limit(20),
 
-      // Recent conversions
-      db
-        .select({
-          id: referralClicks.id,
-          referrerUserId: referralClicks.referrerUserId,
-          convertedUserId: referralClicks.convertedUserId,
-          createdAt: referralClicks.createdAt,
-        })
-        .from(referralClicks)
-        .where(eq(referralClicks.converted, true))
-        .orderBy(sql`${referralClicks.createdAt} DESC`)
-        .limit(10),
-    ]);
+        // Recent conversions
+        db
+          .select({
+            id: referralClicks.id,
+            referrerUserId: referralClicks.referrerUserId,
+            convertedUserId: referralClicks.convertedUserId,
+            createdAt: referralClicks.createdAt,
+          })
+          .from(referralClicks)
+          .where(eq(referralClicks.converted, true))
+          .orderBy(sql`${referralClicks.createdAt} DESC`)
+          .limit(10),
+      ]);
 
     // Get referrer handles and click counts for top referrers
     const referrerIds = topReferrers.map((r) => r.userId);

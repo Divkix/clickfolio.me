@@ -37,10 +37,7 @@ export async function GET(request: Request) {
       : undefined;
 
     // Get total count
-    const [totalResult] = await db
-      .select({ count: count() })
-      .from(user)
-      .where(searchCondition);
+    const [totalResult] = await db.select({ count: count() }).from(user).where(searchCondition);
 
     // Get users with resume status and view counts
     const users = await db
@@ -77,7 +74,12 @@ export async function GET(request: Request) {
           status: resumes.status,
         })
         .from(resumes)
-        .where(sql`${resumes.userId} IN (${sql.join(userIds.map((id) => sql`${id}`), sql`, `)})`),
+        .where(
+          sql`${resumes.userId} IN (${sql.join(
+            userIds.map((id) => sql`${id}`),
+            sql`, `,
+          )})`,
+        ),
 
       db
         .select({
@@ -85,13 +87,23 @@ export async function GET(request: Request) {
           views: count(),
         })
         .from(pageViews)
-        .where(sql`${pageViews.userId} IN (${sql.join(userIds.map((id) => sql`${id}`), sql`, `)})`)
+        .where(
+          sql`${pageViews.userId} IN (${sql.join(
+            userIds.map((id) => sql`${id}`),
+            sql`, `,
+          )})`,
+        )
         .groupBy(pageViews.userId),
 
       db
         .select({ userId: siteData.userId })
         .from(siteData)
-        .where(sql`${siteData.userId} IN (${sql.join(userIds.map((id) => sql`${id}`), sql`, `)})`),
+        .where(
+          sql`${siteData.userId} IN (${sql.join(
+            userIds.map((id) => sql`${id}`),
+            sql`, `,
+          )})`,
+        ),
     ]);
 
     // Build lookup maps
@@ -99,7 +111,11 @@ export async function GET(request: Request) {
     for (const r of resumeStatuses) {
       // Prefer showing worst status (failed > processing > completed)
       const existing = resumeStatusMap.get(r.userId);
-      if (!existing || r.status === "failed" || (r.status === "processing" && existing !== "failed")) {
+      if (
+        !existing ||
+        r.status === "failed" ||
+        (r.status === "processing" && existing !== "failed")
+      ) {
         resumeStatusMap.set(r.userId, r.status || "unknown");
       }
     }

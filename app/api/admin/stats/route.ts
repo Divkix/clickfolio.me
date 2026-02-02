@@ -24,13 +24,7 @@ export async function GET() {
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-    const [
-      userStats,
-      resumeStats,
-      viewsToday,
-      recentSignups,
-      dailyViews,
-    ] = await Promise.all([
+    const [userStats, resumeStats, viewsToday, recentSignups, dailyViews] = await Promise.all([
       // User counts
       db
         .select({
@@ -85,8 +79,7 @@ export async function GET() {
       {} as Record<string, number>,
     );
 
-    const processingResumes =
-      (resumeStatusMap.processing || 0) + (resumeStatusMap.queued || 0);
+    const processingResumes = (resumeStatusMap.processing || 0) + (resumeStatusMap.queued || 0);
     const failedResumes = resumeStatusMap.failed || 0;
 
     // Fill missing dates for sparkline
@@ -118,9 +111,7 @@ function fillMissingDates(
   const result: Array<{ date: string; views: number }> = [];
 
   for (let i = days - 1; i >= 0; i--) {
-    const date = new Date(Date.now() - i * 24 * 60 * 60 * 1000)
-      .toISOString()
-      .slice(0, 10);
+    const date = new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
     result.push({ date, views: dataMap.get(date) ?? 0 });
   }
 

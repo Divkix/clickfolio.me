@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  BarChart3,
-  FileText,
-  LayoutDashboard,
-  Share2,
-  Users,
-  X,
-} from "lucide-react";
+import { BarChart3, FileText, LayoutDashboard, Share2, Users, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Logo } from "@/components/Logo";
@@ -76,7 +69,7 @@ export function AdminSidebar({ isOpen, onClose, adminEmail }: AdminSidebarProps)
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-1" role="navigation">
+        <nav className="flex-1 p-4 space-y-1">
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.href, item.exact);
