@@ -46,6 +46,7 @@ export async function GET() {
         privacySettings: user.privacySettings,
         onboardingCompleted: user.onboardingCompleted,
         role: user.role,
+        isAdmin: user.isAdmin,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
       })

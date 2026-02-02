@@ -1,6 +1,6 @@
 "use client";
 
-import { Edit3, ExternalLink, Home, LogOut, Palette, Settings, X } from "lucide-react";
+import { Edit3, ExternalLink, Home, LogOut, Palette, Settings, Shield, X } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Logo } from "@/components/Logo";
@@ -13,10 +13,12 @@ interface SidebarProps {
 
 interface UserProfile {
   handle: string | null;
+  isAdmin: boolean;
 }
 
 interface ProfileResponse {
   handle?: string | null;
+  isAdmin?: boolean;
 }
 
 export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
@@ -41,7 +43,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
         const response = await fetch("/api/profile/me");
         if (response.ok) {
           const data = (await response.json()) as ProfileResponse;
-          setProfile({ handle: data.handle ?? null });
+          setProfile({ handle: data.handle ?? null, isAdmin: data.isAdmin ?? false });
         }
       } catch (error) {
         console.error("Error loading profile:", error);
@@ -229,6 +231,21 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
               <ExternalLink size={20} />
               <span>View Site</span>
             </a>
+          )}
+
+          {/* Admin Link */}
+          {profile?.isAdmin && (
+            <button
+              type="button"
+              onClick={() => {
+                router.push("/admin");
+                onClose?.();
+              }}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-purple-700 hover:bg-purple-50 transition-all duration-300"
+            >
+              <Shield size={20} />
+              <span>Admin</span>
+            </button>
           )}
         </nav>
 
