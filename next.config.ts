@@ -63,7 +63,7 @@ const nextConfig: NextConfig = {
         // Redirect old /{handle} to /@{handle}
         // Exclude known routes, static files, and paths already starting with @
         source:
-          "/:handle((?!@|api|_next|dashboard|edit|settings|themes|waiting|wizard|privacy|terms|reset-password|preview|sitemap|robots\\.txt|manifest\\.webmanifest|favicon\\.ico)[a-z0-9][a-z0-9-]*[a-z0-9]|[a-z0-9])",
+          "/:handle((?!@|api|_next|admin|dashboard|edit|explore|settings|themes|waiting|wizard|privacy|terms|reset-password|preview|sitemap|robots\\.txt|manifest\\.webmanifest|favicon\\.ico)[a-z0-9][a-z0-9-]*[a-z0-9]|[a-z0-9])",
         destination: "/@:handle",
         permanent: true, // 308 redirect for SEO
       },
