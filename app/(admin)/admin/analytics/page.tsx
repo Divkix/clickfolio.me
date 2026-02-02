@@ -108,7 +108,7 @@ export default function AdminAnalyticsPage() {
               value={data?.totals.views ?? 0}
               icon={Eye}
               iconColorClass="text-indigo-600"
-              iconBgClass="bg-gradient-to-r from-indigo-100 to-blue-100"
+              iconBgClass="bg-linear-to-r from-indigo-100 to-blue-100"
               change={data?.changes.views}
             />
             <StatCard
@@ -116,7 +116,7 @@ export default function AdminAnalyticsPage() {
               value={data?.totals.unique ?? 0}
               icon={Users}
               iconColorClass="text-emerald-600"
-              iconBgClass="bg-gradient-to-r from-emerald-100 to-teal-100"
+              iconBgClass="bg-linear-to-r from-emerald-100 to-teal-100"
               change={data?.changes.unique}
             />
             <StatCard
@@ -124,7 +124,7 @@ export default function AdminAnalyticsPage() {
               value={data?.totals.avgPerDay ?? 0}
               icon={TrendingUp}
               iconColorClass="text-amber-600"
-              iconBgClass="bg-gradient-to-r from-amber-100 to-orange-100"
+              iconBgClass="bg-linear-to-r from-amber-100 to-orange-100"
               change={data?.changes.avgPerDay}
             />
             <StatCard
@@ -132,7 +132,7 @@ export default function AdminAnalyticsPage() {
               value={data?.totals.profilesViewed ?? 0}
               icon={BarChart3}
               iconColorClass="text-purple-600"
-              iconBgClass="bg-gradient-to-r from-purple-100 to-pink-100"
+              iconBgClass="bg-linear-to-r from-purple-100 to-pink-100"
             />
           </>
         )}

@@ -93,21 +93,21 @@ export default async function AdminOverviewPage() {
           value={stats.totalUsers}
           icon={Users}
           iconColorClass="text-indigo-600"
-          iconBgClass="bg-gradient-to-r from-indigo-100 to-blue-100"
+          iconBgClass="bg-linear-to-r from-indigo-100 to-blue-100"
         />
         <StatCard
           title="Published Resumes"
           value={stats.publishedResumes}
           icon={FileText}
           iconColorClass="text-emerald-600"
-          iconBgClass="bg-gradient-to-r from-emerald-100 to-teal-100"
+          iconBgClass="bg-linear-to-r from-emerald-100 to-teal-100"
         />
         <StatCard
           title="Processing"
           value={stats.processingResumes}
           icon={Loader2}
           iconColorClass="text-amber-600"
-          iconBgClass="bg-gradient-to-r from-amber-100 to-orange-100"
+          iconBgClass="bg-linear-to-r from-amber-100 to-orange-100"
           href="/admin/resumes?status=processing"
         />
         <StatCard
@@ -115,7 +115,7 @@ export default async function AdminOverviewPage() {
           value={stats.viewsToday}
           icon={Eye}
           iconColorClass="text-purple-600"
-          iconBgClass="bg-gradient-to-r from-purple-100 to-pink-100"
+          iconBgClass="bg-linear-to-r from-purple-100 to-pink-100"
         />
       </div>
 

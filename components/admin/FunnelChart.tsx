@@ -22,7 +22,7 @@ export function FunnelChart({ steps }: FunnelChartProps) {
             <span className="text-sm text-slate-600 w-20">{step.label}</span>
             <div className="flex-1 h-8 bg-slate-100 rounded-full overflow-hidden">
               <div
-                className="h-full bg-[#FF6B6B] rounded-full transition-all duration-500 flex items-center justify-end pr-3"
+                className="h-full bg-coral rounded-full transition-all duration-500 flex items-center justify-end pr-3"
                 style={{ width: `${Math.max(width, 5)}%` }}
               >
                 <span

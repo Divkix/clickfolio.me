@@ -117,7 +117,7 @@ export default function AdminResumesPage() {
             value={data?.stats.completed ?? 0}
             icon={CheckCircle2}
             iconColorClass="text-emerald-600"
-            iconBgClass="bg-gradient-to-r from-emerald-100 to-teal-100"
+            iconBgClass="bg-linear-to-r from-emerald-100 to-teal-100"
           />
         </button>
         <button
@@ -130,7 +130,7 @@ export default function AdminResumesPage() {
             value={data?.stats.processing ?? 0}
             icon={Loader2}
             iconColorClass="text-amber-600"
-            iconBgClass="bg-gradient-to-r from-amber-100 to-orange-100"
+            iconBgClass="bg-linear-to-r from-amber-100 to-orange-100"
           />
         </button>
         <button
@@ -143,7 +143,7 @@ export default function AdminResumesPage() {
             value={data?.stats.queued ?? 0}
             icon={Clock}
             iconColorClass="text-blue-600"
-            iconBgClass="bg-gradient-to-r from-blue-100 to-indigo-100"
+            iconBgClass="bg-linear-to-r from-blue-100 to-indigo-100"
           />
         </button>
         <button
@@ -156,7 +156,7 @@ export default function AdminResumesPage() {
             value={data?.stats.failed ?? 0}
             icon={AlertTriangle}
             iconColorClass="text-red-600"
-            iconBgClass="bg-gradient-to-r from-red-100 to-pink-100"
+            iconBgClass="bg-linear-to-r from-red-100 to-pink-100"
           />
         </button>
       </div>
@@ -272,7 +272,7 @@ export default function AdminResumesPage() {
                     {expandedRow === resume.id && resume.lastAttemptError && (
                       <tr key={`${resume.id}-error`}>
                         <td colSpan={5} className="px-4 py-3 bg-red-50/50">
-                          <pre className="text-xs text-red-700 font-mono whitespace-pre-wrap break-words">
+                          <pre className="text-xs text-red-700 font-mono whitespace-pre-wrap wrap-break-word">
                             {resume.lastAttemptError}
                           </pre>
                         </td>

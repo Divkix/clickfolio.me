@@ -291,7 +291,7 @@ export function AdminSidebar({ isOpen, onClose, adminEmail }: AdminSidebarProps)
                   transition-all duration-200
                   ${
                     active
-                      ? "bg-slate-100 text-slate-900 border-l-2 border-[#FF6B6B]"
+                      ? "bg-slate-100 text-slate-900 border-l-2 border-coral"
                       : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                   }
                 `}
@@ -431,7 +431,7 @@ export function AdminLayoutClient({ children, adminEmail }: AdminLayoutClientPro
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-[#FDF8F3]">
+    <div className="min-h-screen bg-cream">
       <AdminSidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
@@ -918,21 +918,21 @@ export default async function AdminOverviewPage() {
           value={stats.totalUsers}
           icon={Users}
           iconColorClass="text-indigo-600"
-          iconBgClass="bg-gradient-to-r from-indigo-100 to-blue-100"
+          iconBgClass="bg-linear-to-r from-indigo-100 to-blue-100"
         />
         <StatCard
           title="Published Resumes"
           value={stats.publishedResumes}
           icon={FileText}
           iconColorClass="text-emerald-600"
-          iconBgClass="bg-gradient-to-r from-emerald-100 to-teal-100"
+          iconBgClass="bg-linear-to-r from-emerald-100 to-teal-100"
         />
         <StatCard
           title="Processing"
           value={stats.processingResumes}
           icon={Loader2}
           iconColorClass="text-amber-600"
-          iconBgClass="bg-gradient-to-r from-amber-100 to-orange-100"
+          iconBgClass="bg-linear-to-r from-amber-100 to-orange-100"
           href="/admin/resumes?status=processing"
         />
         <StatCard
@@ -940,7 +940,7 @@ export default async function AdminOverviewPage() {
           value={stats.viewsToday}
           icon={Eye}
           iconColorClass="text-purple-600"
-          iconBgClass="bg-gradient-to-r from-purple-100 to-pink-100"
+          iconBgClass="bg-linear-to-r from-purple-100 to-pink-100"
         />
       </div>
 
@@ -1948,7 +1948,7 @@ export default function AdminResumesPage() {
             value={data?.stats.completed ?? 0}
             icon={CheckCircle2}
             iconColorClass="text-emerald-600"
-            iconBgClass="bg-gradient-to-r from-emerald-100 to-teal-100"
+            iconBgClass="bg-linear-to-r from-emerald-100 to-teal-100"
           />
         </button>
         <button
@@ -1961,7 +1961,7 @@ export default function AdminResumesPage() {
             value={data?.stats.processing ?? 0}
             icon={Loader2}
             iconColorClass="text-amber-600"
-            iconBgClass="bg-gradient-to-r from-amber-100 to-orange-100"
+            iconBgClass="bg-linear-to-r from-amber-100 to-orange-100"
           />
         </button>
         <button
@@ -1974,7 +1974,7 @@ export default function AdminResumesPage() {
             value={data?.stats.queued ?? 0}
             icon={Clock}
             iconColorClass="text-blue-600"
-            iconBgClass="bg-gradient-to-r from-blue-100 to-indigo-100"
+            iconBgClass="bg-linear-to-r from-blue-100 to-indigo-100"
           />
         </button>
         <button
@@ -1987,7 +1987,7 @@ export default function AdminResumesPage() {
             value={data?.stats.failed ?? 0}
             icon={AlertTriangle}
             iconColorClass="text-red-600"
-            iconBgClass="bg-gradient-to-r from-red-100 to-pink-100"
+            iconBgClass="bg-linear-to-r from-red-100 to-pink-100"
           />
         </button>
       </div>
@@ -2109,7 +2109,7 @@ export default function AdminResumesPage() {
                     {expandedRow === resume.id && resume.lastAttemptError && (
                       <tr key={`${resume.id}-error`}>
                         <td colSpan={5} className="px-4 py-3 bg-red-50/50">
-                          <pre className="text-xs text-red-700 font-mono whitespace-pre-wrap break-words">
+                          <pre className="text-xs text-red-700 font-mono whitespace-pre-wrap wrap-break-word">
                             {resume.lastAttemptError}
                           </pre>
                         </td>
@@ -2694,7 +2694,7 @@ export default function AdminAnalyticsPage() {
               value={data?.totals.views ?? 0}
               icon={Eye}
               iconColorClass="text-indigo-600"
-              iconBgClass="bg-gradient-to-r from-indigo-100 to-blue-100"
+              iconBgClass="bg-linear-to-r from-indigo-100 to-blue-100"
               change={data?.changes.views}
             />
             <StatCard
@@ -2702,7 +2702,7 @@ export default function AdminAnalyticsPage() {
               value={data?.totals.unique ?? 0}
               icon={Users}
               iconColorClass="text-emerald-600"
-              iconBgClass="bg-gradient-to-r from-emerald-100 to-teal-100"
+              iconBgClass="bg-linear-to-r from-emerald-100 to-teal-100"
               change={data?.changes.unique}
             />
             <StatCard
@@ -2710,7 +2710,7 @@ export default function AdminAnalyticsPage() {
               value={data?.totals.avgPerDay ?? 0}
               icon={TrendingUp}
               iconColorClass="text-amber-600"
-              iconBgClass="bg-gradient-to-r from-amber-100 to-orange-100"
+              iconBgClass="bg-linear-to-r from-amber-100 to-orange-100"
               change={data?.changes.avgPerDay}
             />
             <StatCard
@@ -2718,7 +2718,7 @@ export default function AdminAnalyticsPage() {
               value={data?.totals.profilesViewed ?? 0}
               icon={BarChart3}
               iconColorClass="text-purple-600"
-              iconBgClass="bg-gradient-to-r from-purple-100 to-pink-100"
+              iconBgClass="bg-linear-to-r from-purple-100 to-pink-100"
             />
           </>
         )}
@@ -3123,7 +3123,7 @@ export function FunnelChart({ steps }: FunnelChartProps) {
             <span className="text-sm text-slate-600 w-20">{step.label}</span>
             <div className="flex-1 h-8 bg-slate-100 rounded-full overflow-hidden">
               <div
-                className="h-full bg-[#FF6B6B] rounded-full transition-all duration-500 flex items-center justify-end pr-3"
+                className="h-full bg-coral rounded-full transition-all duration-500 flex items-center justify-end pr-3"
                 style={{ width: `${Math.max(width, 5)}%` }}
               >
                 <span
@@ -3241,28 +3241,28 @@ export default function AdminReferralsPage() {
               value={data?.stats.totalReferrers ?? 0}
               icon={Share2}
               iconColorClass="text-purple-600"
-              iconBgClass="bg-gradient-to-r from-purple-100 to-pink-100"
+              iconBgClass="bg-linear-to-r from-purple-100 to-pink-100"
             />
             <StatCard
               title="Total Clicks"
               value={data?.stats.totalClicks ?? 0}
               icon={MousePointerClick}
               iconColorClass="text-indigo-600"
-              iconBgClass="bg-gradient-to-r from-indigo-100 to-blue-100"
+              iconBgClass="bg-linear-to-r from-indigo-100 to-blue-100"
             />
             <StatCard
               title="Conversions"
               value={data?.stats.conversions ?? 0}
               icon={UserPlus}
               iconColorClass="text-emerald-600"
-              iconBgClass="bg-gradient-to-r from-emerald-100 to-teal-100"
+              iconBgClass="bg-linear-to-r from-emerald-100 to-teal-100"
             />
             <StatCard
               title="Conv. Rate"
               value={`${data?.stats.conversionRate ?? 0}%`}
               icon={TrendingUp}
               iconColorClass="text-amber-600"
-              iconBgClass="bg-gradient-to-r from-amber-100 to-orange-100"
+              iconBgClass="bg-linear-to-r from-amber-100 to-orange-100"
             />
           </>
         )}
