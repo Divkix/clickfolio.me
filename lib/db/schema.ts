@@ -42,6 +42,8 @@ export const user = sqliteTable(
     isPro: integer("is_pro", { mode: "boolean" }).notNull().default(false),
     // Denormalized count of users referred by this user
     referralCount: integer("referral_count").notNull().default(0),
+    // Admin flag for admin dashboard access
+    isAdmin: integer("is_admin", { mode: "boolean" }).notNull().default(false),
   },
   (table) => [
     // Index for sitemap queries (WHERE handle IS NOT NULL ORDER BY handle)
