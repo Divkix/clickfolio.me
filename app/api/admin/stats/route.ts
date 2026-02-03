@@ -10,8 +10,6 @@ import { requireAdminAuthForApi } from "@/lib/auth/admin";
 import { getDb } from "@/lib/db";
 import { pageViews, resumes, user } from "@/lib/db/schema";
 
-export const runtime = "edge";
-
 export async function GET() {
   const { error } = await requireAdminAuthForApi();
   if (error) return error;

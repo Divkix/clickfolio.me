@@ -8,8 +8,6 @@ import { requireAdminAuth } from "@/lib/auth/admin";
 import { getDb } from "@/lib/db";
 import { pageViews, resumes, siteData, user } from "@/lib/db/schema";
 
-export const runtime = "edge";
-
 async function getStats() {
   const { env } = await getCloudflareContext({ async: true });
   const db = getDb(env.DB);

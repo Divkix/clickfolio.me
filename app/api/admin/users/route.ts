@@ -10,8 +10,6 @@ import { requireAdminAuthForApi } from "@/lib/auth/admin";
 import { getDb } from "@/lib/db";
 import { pageViews, resumes, siteData, user } from "@/lib/db/schema";
 
-export const runtime = "edge";
-
 const PAGE_SIZE = 25;
 
 export async function GET(request: Request) {

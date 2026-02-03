@@ -10,8 +10,6 @@ import { requireAdminAuthForApi } from "@/lib/auth/admin";
 import { getDb } from "@/lib/db";
 import { resumes, user } from "@/lib/db/schema";
 
-export const runtime = "edge";
-
 const PAGE_SIZE = 25;
 const VALID_STATUSES = new Set(["all", "completed", "processing", "queued", "failed"]);
 

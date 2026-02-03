@@ -10,8 +10,6 @@ import { requireAdminAuthForApi } from "@/lib/auth/admin";
 import { getDb } from "@/lib/db";
 import { pageViews, user } from "@/lib/db/schema";
 
-export const runtime = "edge";
-
 const VALID_PERIODS = new Set(["7d", "30d", "90d"]);
 
 function periodToDays(period: string): number {
