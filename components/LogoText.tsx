@@ -35,7 +35,7 @@ export function LogoText({ size = "md", colorScheme = "dark", className = "" }: 
     <svg
       width={width}
       height={height}
-      viewBox="0 0 290 60"
+      viewBox="0 0 250 60"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
       aria-label="clickfolio.me"
@@ -55,28 +55,28 @@ export function LogoText({ size = "md", colorScheme = "dark", className = "" }: 
 
       {/* .me badge shadow */}
       <rect
-        x="208"
+        x="172"
         y="15"
         width="70"
         height="36"
         rx="4"
-        transform="rotate(-3 208 15)"
+        transform="rotate(-3 172 15)"
         fill={colors.shadow}
       />
 
       {/* .me badge */}
       <rect
-        x="204"
+        x="168"
         y="11"
         width="70"
         height="36"
         rx="4"
-        transform="rotate(-3 204 11)"
+        transform="rotate(-3 168 11)"
         fill="#3b82f6"
         stroke={colors.stroke}
         strokeWidth="3"
       />
-      <text x="212" y="36" className="logotext-tld" transform="rotate(-3 212 36)">
+      <text x="176" y="36" className="logotext-tld" transform="rotate(-3 176 36)">
         .me
       </text>
     </svg>
