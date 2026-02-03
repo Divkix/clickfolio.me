@@ -29,6 +29,6 @@
   <rect x="208" y="25" width="70" height="36" rx="4" transform="rotate(-3 208 25)" fill="#0D0D0D" />
 
   <!-- .me badge -->
-  <rect x="204" y="21" width="70" height="36" rx="4" transform="rotate(-3 204 21)" fill="#3b82f6" stroke="#0D0D0D" stroke-width="3" />
+  <rect x="204" y="21" width="70" height="36" rx="4" transform="rotate(-3 204 21)" fill="#FF6B6B" stroke="#0D0D0D" stroke-width="3" />
   <text x="212" y="46" class="font-tld" transform="rotate(-3 212 46)">.me</text>
 </svg>
