@@ -13,7 +13,7 @@ export function DashboardUploadSection() {
       <Button
         onClick={() => setUploadModalOpen(true)}
         variant="outline"
-        className="flex-1 border-red-300 text-red-700 hover:bg-red-50 hover:border-red-400 font-semibold transition-all duration-300 shadow-depth-sm hover:shadow-depth-md"
+        className="flex-1 border-coral/40 text-coral hover:bg-coral/10 hover:border-coral/40 font-semibold transition-all duration-300 shadow-depth-sm hover:shadow-depth-md"
       >
         <Upload className="h-4 w-4 mr-2" />
         Upload New Resume

@@ -41,8 +41,8 @@ export function SaveIndicator({ status, lastSaved, className }: SaveIndicatorPro
       )}
       {status === "error" && (
         <>
-          <AlertCircle className="h-4 w-4 text-red-500" />
-          <span className="text-red-500">Save failed</span>
+          <AlertCircle className="h-4 w-4 text-coral" />
+          <span className="text-coral">Save failed</span>
         </>
       )}
       {status === "unsaved" && (

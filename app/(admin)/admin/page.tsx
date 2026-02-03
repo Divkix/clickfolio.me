@@ -92,8 +92,8 @@ export default async function AdminOverviewPage() {
           title="Total Users"
           value={stats.totalUsers}
           icon={Users}
-          iconColorClass="text-red-600"
-          iconBgClass="bg-linear-to-r from-red-100 to-rose-100"
+          iconColorClass="text-coral"
+          iconBgClass="bg-linear-to-r from-coral/20 to-coral/20"
         />
         <StatCard
           title="Published Resumes"
@@ -123,17 +123,17 @@ export default async function AdminOverviewPage() {
       {stats.failedResumes > 0 && (
         <Link
           href="/admin/resumes?status=failed"
-          className="block bg-red-50 border border-red-200 rounded-2xl p-4 hover:bg-red-100 transition-colors"
+          className="block bg-coral/10 border border-coral/30 rounded-2xl p-4 hover:bg-coral/20 transition-colors"
         >
           <div className="flex items-center gap-3">
-            <div className="bg-red-100 p-2 rounded-lg">
-              <AlertTriangle className="w-5 h-5 text-red-600" aria-hidden="true" />
+            <div className="bg-coral/20 p-2 rounded-lg">
+              <AlertTriangle className="w-5 h-5 text-coral" aria-hidden="true" />
             </div>
             <div>
-              <p className="font-semibold text-red-900">
+              <p className="font-semibold text-coral">
                 {stats.failedResumes} Failed Resume{stats.failedResumes > 1 ? "s" : ""}
               </p>
-              <p className="text-sm text-red-700">Click to view details</p>
+              <p className="text-sm text-coral">Click to view details</p>
             </div>
           </div>
         </Link>

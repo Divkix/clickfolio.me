@@ -47,7 +47,7 @@ export function WizardProgress({
         {/* Step Counter and Title */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
-            <span className="text-sm font-semibold text-red-600">
+            <span className="text-sm font-semibold text-coral">
               Step {currentStep} of {totalSteps}
             </span>
             <span className="hidden sm:block text-sm text-slate-400">•</span>

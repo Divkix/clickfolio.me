@@ -71,15 +71,15 @@ export function RealtimeStatusListener({ resumeId, currentStatus }: RealtimeStat
 
   if (detected.status === "failed") {
     return (
-      <div className="rounded-lg border border-red-200 bg-red-50 p-4 mb-4">
+      <div className="rounded-lg border border-coral/30 bg-coral/10 p-4 mb-4">
         <div className="flex items-start gap-3">
-          <AlertCircle className="h-5 w-5 text-red-600 shrink-0" />
+          <AlertCircle className="h-5 w-5 text-coral shrink-0" />
           <div className="flex-1">
-            <h3 className="font-semibold text-red-900">Processing Failed</h3>
-            <p className="mt-1 text-sm text-red-700">
+            <h3 className="font-semibold text-coral">Processing Failed</h3>
+            <p className="mt-1 text-sm text-coral">
               {detected.errorMessage || "An error occurred while processing your resume."}
             </p>
-            <p className="mt-2 text-xs text-red-600">Refreshing page...</p>
+            <p className="mt-2 text-xs text-coral">Refreshing page...</p>
           </div>
         </div>
       </div>
@@ -87,15 +87,15 @@ export function RealtimeStatusListener({ resumeId, currentStatus }: RealtimeStat
   }
 
   return (
-    <div className="rounded-lg border border-red-200 bg-red-50 p-4 mb-4">
+    <div className="rounded-lg border border-coral/30 bg-coral/10 p-4 mb-4">
       <div className="flex items-start gap-3">
-        <Loader2 className="h-5 w-5 animate-spin text-red-600 shrink-0" />
+        <Loader2 className="h-5 w-5 animate-spin text-coral shrink-0" />
         <div className="flex-1">
-          <h3 className="font-semibold text-red-900">Processing Your Resume</h3>
-          <p className="mt-1 text-sm text-red-700">
+          <h3 className="font-semibold text-coral">Processing Your Resume</h3>
+          <p className="mt-1 text-sm text-coral">
             Our AI is analyzing your resume. This usually takes 30-40 seconds.
           </p>
-          <p className="mt-2 text-xs text-red-600">
+          <p className="mt-2 text-xs text-coral">
             This page will automatically refresh when processing completes.
           </p>
         </div>

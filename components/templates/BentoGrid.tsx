@@ -297,7 +297,7 @@ const BentoGrid: React.FC<TemplateProps> = ({ content, profile }) => {
           {content.projects && content.projects.length > 0 && (
             <div className="col-span-1 sm:col-span-2 row-span-2 bg-gray-900 rounded-4xl overflow-hidden border border-gray-800 group relative cursor-pointer shadow-2xl">
               {/* Aesthetic Gradient Background */}
-              <div className="absolute inset-0 bg-linear-to-br from-red-500 via-rose-500 to-pink-500 opacity-20 group-hover:opacity-30 transition-opacity duration-500"></div>
+              <div className="absolute inset-0 bg-linear-to-br from-coral via-coral to-pink-500 opacity-20 group-hover:opacity-30 transition-opacity duration-500"></div>
               <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150"></div>
 
               <div className="absolute inset-0 p-8 flex flex-col justify-end text-white z-20">
@@ -380,12 +380,12 @@ const BentoGrid: React.FC<TemplateProps> = ({ content, profile }) => {
           {/* 8. Third Project - 1x1 */}
           {content.projects?.[2] && (
             <div className="col-span-1 row-span-1 bg-white rounded-4xl p-6 border border-gray-200/80 flex flex-col justify-between group cursor-pointer hover:shadow-lg transition-all relative overflow-hidden">
-              <div className="absolute -right-4 -top-4 w-24 h-24 bg-gray-50 rounded-full group-hover:bg-red-50 transition-colors duration-500"></div>
+              <div className="absolute -right-4 -top-4 w-24 h-24 bg-gray-50 rounded-full group-hover:bg-coral/10 transition-colors duration-500"></div>
 
               <div className="flex justify-between items-start relative z-10">
                 <Code
                   size={16}
-                  className="text-gray-400 group-hover:text-red-500 transition-colors"
+                  className="text-gray-400 group-hover:text-coral transition-colors"
                 />
                 {content.projects[2].url && (
                   <ArrowUpRight

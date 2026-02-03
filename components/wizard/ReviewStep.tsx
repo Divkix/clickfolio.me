@@ -19,8 +19,8 @@ export function ReviewStep({ content, onContinue }: ReviewStepProps) {
     <div className="space-y-8">
       {/* Header */}
       <div className="text-center">
-        <div className="mx-auto w-16 h-16 bg-linear-to-r from-red-100 to-rose-100 rounded-2xl flex items-center justify-center mb-6">
-          <FileCheck className="w-8 h-8 text-red-600" />
+        <div className="mx-auto w-16 h-16 bg-linear-to-r from-coral/20 to-coral/20 rounded-2xl flex items-center justify-center mb-6">
+          <FileCheck className="w-8 h-8 text-coral" />
         </div>
         <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-3 leading-tight">
           Review Your Information
@@ -37,7 +37,7 @@ export function ReviewStep({ content, onContinue }: ReviewStepProps) {
           <div className="space-y-4">
             <div>
               <h2 className="text-2xl font-bold text-slate-900">{content.full_name}</h2>
-              <p className="text-lg text-red-600 font-semibold">{content.headline}</p>
+              <p className="text-lg text-coral font-semibold">{content.headline}</p>
             </div>
 
             {/* Contact Info */}
@@ -102,7 +102,7 @@ export function ReviewStep({ content, onContinue }: ReviewStepProps) {
             <h3 className="text-lg font-bold text-slate-900 mb-4">Experience</h3>
             <div className="space-y-4">
               {content.experience.slice(0, 3).map((exp, index) => (
-                <div key={index} className="border-l-2 border-red-200 pl-4">
+                <div key={index} className="border-l-2 border-coral/30 pl-4">
                   <div className="flex justify-between items-start mb-1">
                     <div>
                       <h4 className="font-semibold text-slate-900">{exp.title}</h4>
@@ -176,7 +176,7 @@ export function ReviewStep({ content, onContinue }: ReviewStepProps) {
         <div className="pt-4">
           <Button
             onClick={onContinue}
-            className="w-full bg-linear-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 text-white font-semibold shadow-depth-sm hover:shadow-depth-md transition-all duration-300"
+            className="w-full bg-linear-to-r from-coral to-coral hover:from-coral/90 hover:to-coral/90 text-white font-semibold shadow-depth-sm hover:shadow-depth-md transition-all duration-300"
             size="lg"
           >
             Looks Good, Continue

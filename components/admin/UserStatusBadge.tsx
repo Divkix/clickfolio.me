@@ -19,7 +19,7 @@ const STATUS_CONFIG: Record<Status, { label: string; className: string }> = {
   },
   failed: {
     label: "Failed",
-    className: "bg-red-100 text-red-700",
+    className: "bg-coral/20 text-coral",
   },
 };
 

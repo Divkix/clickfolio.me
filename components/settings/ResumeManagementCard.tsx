@@ -51,9 +51,9 @@ export function ResumeManagementCard({
       case "completed":
         return "text-green-700 bg-green-100";
       case "processing":
-        return "text-red-700 bg-red-100";
+        return "text-coral bg-coral/20";
       case "failed":
-        return "text-red-700 bg-red-100";
+        return "text-coral bg-coral/20";
       default:
         return "text-slate-700 bg-slate-100";
     }
@@ -78,7 +78,7 @@ export function ResumeManagementCard({
     <>
       <div className="bg-white rounded-2xl shadow-depth-sm border border-slate-200/60 p-6 h-full flex flex-col">
         <div className="flex items-center gap-2 mb-4">
-          <FileText className="h-5 w-5 text-red-600" />
+          <FileText className="h-5 w-5 text-coral" />
           <h3 className="text-lg font-semibold text-slate-900">Resume</h3>
         </div>
 
@@ -86,9 +86,9 @@ export function ResumeManagementCard({
         <div className="flex items-center gap-6 mb-4">
           <div className="flex items-center gap-3">
             <div className="relative">
-              <div className="absolute inset-0 bg-linear-to-r from-red-400 to-rose-400 rounded-lg blur-md opacity-20" />
-              <div className="relative bg-linear-to-r from-red-100 to-rose-100 p-2.5 rounded-lg">
-                <Upload className="h-4 w-4 text-red-600" />
+              <div className="absolute inset-0 bg-linear-to-r from-coral to-coral rounded-lg blur-md opacity-20" />
+              <div className="relative bg-linear-to-r from-coral/20 to-coral/20 p-2.5 rounded-lg">
+                <Upload className="h-4 w-4 text-coral" />
               </div>
             </div>
             <div>
@@ -119,12 +119,12 @@ export function ResumeManagementCard({
 
         {/* Error Message - compact version */}
         {latestResumeStatus === "failed" && latestResumeError && (
-          <div className="rounded-lg bg-red-50 border border-red-200 p-3 mb-4">
+          <div className="rounded-lg bg-coral/10 border border-coral/30 p-3 mb-4">
             <div className="flex items-start gap-2">
-              <AlertCircle className="h-4 w-4 text-red-600 shrink-0 mt-0.5" />
+              <AlertCircle className="h-4 w-4 text-coral shrink-0 mt-0.5" />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-red-900">Processing failed</p>
-                <p className="text-xs text-red-700 truncate">{latestResumeError}</p>
+                <p className="text-sm font-medium text-coral">Processing failed</p>
+                <p className="text-xs text-coral truncate">{latestResumeError}</p>
               </div>
             </div>
             {latestResumeId && (
@@ -132,7 +132,7 @@ export function ResumeManagementCard({
                 asChild
                 size="sm"
                 variant="outline"
-                className="w-full mt-2 border-red-200 text-red-700 hover:bg-red-100"
+                className="w-full mt-2 border-coral/30 text-coral hover:bg-coral/20"
               >
                 <Link href={`/waiting?resume_id=${latestResumeId}`}>Retry Processing</Link>
               </Button>
@@ -144,7 +144,7 @@ export function ResumeManagementCard({
         <div className="mt-auto">
           <Button
             onClick={() => setUploadModalOpen(true)}
-            className="w-full bg-linear-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 text-white font-semibold transition-all duration-300 shadow-depth-sm hover:shadow-depth-md"
+            className="w-full bg-linear-to-r from-coral to-coral hover:from-coral/90 hover:to-coral/90 text-white font-semibold transition-all duration-300 shadow-depth-sm hover:shadow-depth-md"
           >
             <Upload className="h-4 w-4 mr-2" />
             Upload New Resume

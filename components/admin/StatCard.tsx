@@ -39,9 +39,7 @@ export function StatCard({
             </p>
             {change !== undefined && (
               <span
-                className={`text-xs font-medium ${
-                  change >= 0 ? "text-emerald-600" : "text-red-600"
-                }`}
+                className={`text-xs font-medium ${change >= 0 ? "text-emerald-600" : "text-coral"}`}
               >
                 {change >= 0 ? "+" : ""}
                 {change}%

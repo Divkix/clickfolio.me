@@ -191,9 +191,9 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="relative shrink-0">
-                <div className="absolute inset-0 bg-linear-to-r from-red-400 to-rose-400 rounded-lg blur-md opacity-20" />
-                <div className="relative bg-linear-to-r from-red-100 to-rose-100 p-2 rounded-lg">
-                  <Save className="h-4 w-4 text-red-600" />
+                <div className="absolute inset-0 bg-linear-to-r from-coral to-coral rounded-lg blur-md opacity-20" />
+                <div className="relative bg-linear-to-r from-coral/20 to-coral/20 p-2 rounded-lg">
+                  <Save className="h-4 w-4 text-coral" />
                 </div>
               </div>
               <SaveIndicator status={saveStatus} lastSaved={lastSaved} />
@@ -201,7 +201,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
             <Button
               type="submit"
               disabled={saveStatus === "saving"}
-              className="bg-linear-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 text-white font-semibold shadow-depth-sm hover:shadow-depth-md transition-all duration-300"
+              className="bg-linear-to-r from-coral to-coral hover:from-coral/90 hover:to-coral/90 text-white font-semibold shadow-depth-sm hover:shadow-depth-md transition-all duration-300"
             >
               <Save className="h-4 w-4 mr-2" />
               Publish Changes
@@ -213,9 +213,9 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
         <div className="bg-white rounded-2xl shadow-depth-sm border border-slate-200/60 p-6 hover:shadow-depth-md transition-all duration-300">
           <div className="flex items-center gap-3 mb-6">
             <div className="relative shrink-0">
-              <div className="absolute inset-0 bg-linear-to-r from-red-400 to-rose-400 rounded-lg blur-md opacity-20" />
-              <div className="relative bg-linear-to-r from-red-100 to-rose-100 p-2.5 rounded-lg">
-                <User className="h-5 w-5 text-red-600" />
+              <div className="absolute inset-0 bg-linear-to-r from-coral to-coral rounded-lg blur-md opacity-20" />
+              <div className="relative bg-linear-to-r from-coral/20 to-coral/20 p-2.5 rounded-lg">
+                <User className="h-5 w-5 text-coral" />
               </div>
             </div>
             <div>
@@ -484,7 +484,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
                         variant="ghost"
                         size="sm"
                         onClick={() => removeExperience(index)}
-                        className="text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                        className="text-slate-400 hover:text-coral hover:bg-coral/10 transition-colors"
                         aria-label={`Remove experience ${index + 1}`}
                       >
                         <Trash2 className="h-4 w-4" />
@@ -628,7 +628,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
                                         );
                                         field.onChange(newHighlights);
                                       }}
-                                      className="shrink-0 text-slate-400 hover:text-red-600 hover:bg-red-50"
+                                      className="shrink-0 text-slate-400 hover:text-coral hover:bg-coral/10"
                                     >
                                       <X className="h-4 w-4" />
                                     </Button>
@@ -747,7 +747,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
                         variant="ghost"
                         size="sm"
                         onClick={() => removeEducation(index)}
-                        className="text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                        className="text-slate-400 hover:text-coral hover:bg-coral/10 transition-colors"
                         aria-label={`Remove education ${index + 1}`}
                       >
                         <Trash2 className="h-4 w-4" />
@@ -913,7 +913,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
                         variant="ghost"
                         size="sm"
                         onClick={() => removeSkill(index)}
-                        className="text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                        className="text-slate-400 hover:text-coral hover:bg-coral/10 transition-colors"
                         aria-label={`Remove skill group ${index + 1}`}
                       >
                         <Trash2 className="h-4 w-4" />
@@ -987,9 +987,9 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
         <div className="bg-white rounded-2xl shadow-depth-sm border border-slate-200/60 p-6 hover:shadow-depth-md transition-all duration-300">
           <div className="flex items-center gap-3 mb-6">
             <div className="relative shrink-0">
-              <div className="absolute inset-0 bg-linear-to-r from-rose-500 to-pink-500 rounded-lg blur-md opacity-20" />
-              <div className="relative bg-linear-to-r from-rose-100 to-pink-100 p-2.5 rounded-lg">
-                <Award className="h-5 w-5 text-rose-600" />
+              <div className="absolute inset-0 bg-linear-to-r from-coral to-pink-500 rounded-lg blur-md opacity-20" />
+              <div className="relative bg-linear-to-r from-coral/20 to-pink-100 p-2.5 rounded-lg">
+                <Award className="h-5 w-5 text-coral" />
               </div>
             </div>
             <div>
@@ -1001,9 +1001,9 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
             {certificationFields.length === 0 ? (
               <div className="text-center py-8 px-4 bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
                 <div className="relative inline-block mb-4">
-                  <div className="absolute inset-0 bg-linear-to-r from-rose-500 to-pink-500 rounded-xl blur-lg opacity-15" />
-                  <div className="relative bg-linear-to-r from-rose-100 to-pink-100 p-4 rounded-xl">
-                    <Award className="h-8 w-8 text-rose-600" />
+                  <div className="absolute inset-0 bg-linear-to-r from-coral to-pink-500 rounded-xl blur-lg opacity-15" />
+                  <div className="relative bg-linear-to-r from-coral/20 to-pink-100 p-4 rounded-xl">
+                    <Award className="h-8 w-8 text-coral" />
                   </div>
                 </div>
                 <p className="text-slate-600 font-medium mb-1">No certifications added yet</p>
@@ -1012,7 +1012,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
                 </p>
                 <Button
                   type="button"
-                  className="bg-linear-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 text-white font-semibold shadow-depth-sm hover:shadow-depth-md"
+                  className="bg-linear-to-r from-coral to-pink-600 hover:from-coral/90 hover:to-pink-700 text-white font-semibold shadow-depth-sm hover:shadow-depth-md"
                   onClick={() =>
                     appendCertification({
                       name: "",
@@ -1035,8 +1035,8 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
                   >
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-2">
-                        <div className="bg-linear-to-r from-rose-100 to-pink-100 p-1.5 rounded-md">
-                          <Award className="h-3.5 w-3.5 text-rose-600" />
+                        <div className="bg-linear-to-r from-coral/20 to-pink-100 p-1.5 rounded-md">
+                          <Award className="h-3.5 w-3.5 text-coral" />
                         </div>
                         <span className="text-sm font-medium text-slate-700">
                           Certification {index + 1}
@@ -1047,7 +1047,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
                         variant="ghost"
                         size="sm"
                         onClick={() => removeCertification(index)}
-                        className="text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                        className="text-slate-400 hover:text-coral hover:bg-coral/10 transition-colors"
                         aria-label={`Remove certification ${index + 1}`}
                       >
                         <Trash2 className="h-4 w-4" />
@@ -1123,7 +1123,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
                 <Button
                   type="button"
                   variant="outline"
-                  className="w-full border-dashed border-2 border-slate-300 hover:border-rose-400 hover:bg-rose-50/50 text-slate-600 hover:text-rose-700 transition-all duration-200"
+                  className="w-full border-dashed border-2 border-slate-300 hover:border-coral/40 hover:bg-coral/10 text-slate-600 hover:text-coral transition-all duration-200"
                   onClick={() =>
                     appendCertification({
                       name: "",
@@ -1210,7 +1210,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
                         variant="ghost"
                         size="sm"
                         onClick={() => removeProject(index)}
-                        className="text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                        className="text-slate-400 hover:text-coral hover:bg-coral/10 transition-colors"
                         aria-label={`Remove project ${index + 1}`}
                       >
                         <Trash2 className="h-4 w-4" />
@@ -1224,7 +1224,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>
-                              Project Title <span className="text-red-500">*</span>
+                              Project Title <span className="text-coral">*</span>
                             </FormLabel>
                             <FormControl>
                               <Input placeholder="My Awesome Project" {...field} maxLength={200} />
@@ -1256,7 +1256,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>
-                              Description <span className="text-red-500">*</span>
+                              Description <span className="text-coral">*</span>
                             </FormLabel>
                             <FormControl>
                               <Textarea
@@ -1378,7 +1378,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
             type="submit"
             size="lg"
             disabled={saveStatus === "saving"}
-            className="bg-linear-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 text-white font-semibold shadow-depth-sm hover:shadow-depth-md transition-all duration-300"
+            className="bg-linear-to-r from-coral to-coral hover:from-coral/90 hover:to-coral/90 text-white font-semibold shadow-depth-sm hover:shadow-depth-md transition-all duration-300"
           >
             <Save className="h-4 w-4 mr-2" />
             Publish Changes

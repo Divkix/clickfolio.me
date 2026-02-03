@@ -136,7 +136,7 @@ export default async function ExplorePage({
                 name="role"
                 defaultValue={roleFilter}
                 onChange={(e) => (e.target as HTMLSelectElement).form?.submit()}
-                className="px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                className="px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-coral focus:border-coral"
               >
                 {roleOptions.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -157,7 +157,7 @@ export default async function ExplorePage({
             <p className="text-slate-600 text-lg">
               No professionals found.{" "}
               {roleFilter && (
-                <Link href="/explore" className="text-red-600 hover:underline">
+                <Link href="/explore" className="text-coral hover:underline">
                   Clear filters
                 </Link>
               )}
@@ -169,18 +169,18 @@ export default async function ExplorePage({
               <Link
                 key={person.handle}
                 href={`/@${person.handle}`}
-                className="group bg-white rounded-2xl border border-slate-200/60 p-6 hover:shadow-lg hover:border-red-200 transition-all duration-200"
+                className="group bg-white rounded-2xl border border-slate-200/60 p-6 hover:shadow-lg hover:border-coral/30 transition-all duration-200"
               >
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-lg font-bold text-slate-900 truncate group-hover:text-red-600 transition-colors">
+                    <h3 className="text-lg font-bold text-slate-900 truncate group-hover:text-coral transition-colors">
                       {person.previewName || "Unknown"}
                     </h3>
                     <p className="text-sm text-slate-600 truncate">
                       {person.previewHeadline || "Professional"}
                     </p>
                   </div>
-                  <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-red-500 shrink-0 ml-2" />
+                  <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-coral shrink-0 ml-2" />
                 </div>
 
                 {/* Quick stats */}
@@ -256,7 +256,7 @@ export default async function ExplorePage({
                         href={`/explore?page=${page}${roleFilter ? `&role=${roleFilter}` : ""}`}
                         className={`w-10 h-10 flex items-center justify-center text-sm font-medium rounded-lg ${
                           page === currentPage
-                            ? "bg-red-500 text-white"
+                            ? "bg-coral text-white"
                             : "text-slate-700 bg-white border border-slate-200 hover:bg-slate-50"
                         }`}
                       >
@@ -279,7 +279,7 @@ export default async function ExplorePage({
         )}
 
         {/* CTA for non-listed users */}
-        <div className="mt-16 text-center bg-linear-to-r from-red-50 to-rose-50 rounded-2xl border border-red-100 p-8">
+        <div className="mt-16 text-center bg-linear-to-r from-coral/10 to-coral/10 rounded-2xl border border-coral/20 p-8">
           <h2 className="text-2xl font-bold text-slate-900 mb-3">Join Our Directory</h2>
           <p className="text-slate-600 mb-6 max-w-xl mx-auto">
             Want to be featured here? Enable &ldquo;Show in Directory&rdquo; in your privacy
@@ -287,7 +287,7 @@ export default async function ExplorePage({
           </p>
           <Link
             href="/settings"
-            className="inline-flex items-center justify-center px-6 py-3 bg-red-500 text-white font-semibold rounded-lg hover:bg-red-600 transition-colors"
+            className="inline-flex items-center justify-center px-6 py-3 bg-coral text-white font-semibold rounded-lg hover:bg-coral/90 transition-colors"
           >
             Update Privacy Settings
           </Link>

@@ -51,8 +51,8 @@ export function PrivacyStep({
     <div className="space-y-8">
       {/* Header */}
       <div className="text-center">
-        <div className="mx-auto w-16 h-16 bg-linear-to-r from-red-100 to-rose-100 rounded-2xl flex items-center justify-center mb-6">
-          <Shield className="w-8 h-8 text-red-600" />
+        <div className="mx-auto w-16 h-16 bg-linear-to-r from-coral/20 to-coral/20 rounded-2xl flex items-center justify-center mb-6">
+          <Shield className="w-8 h-8 text-coral" />
         </div>
         <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-3 leading-tight">
           Privacy Settings
@@ -65,14 +65,14 @@ export function PrivacyStep({
       {/* Privacy Controls */}
       <div className="max-w-2xl mx-auto space-y-6">
         {/* Info Banner */}
-        <Card className="p-4 bg-red-50 border-red-200">
+        <Card className="p-4 bg-coral/10 border-coral/30">
           <div className="flex gap-3">
-            <Info className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+            <Info className="w-5 h-5 text-coral shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm text-red-900 font-medium">
+              <p className="text-sm text-coral font-medium">
                 Your email is always visible to potential employers.
               </p>
-              <p className="text-xs text-red-700 mt-1">
+              <p className="text-xs text-coral mt-1">
                 We recommend keeping phone and address hidden for privacy, showing only city/state.
               </p>
             </div>
@@ -141,7 +141,7 @@ export function PrivacyStep({
                     </div>
                   ) : (
                     <div className="flex items-center gap-2 text-sm text-slate-900">
-                      <EyeOff className="w-4 h-4 text-red-600" />
+                      <EyeOff className="w-4 h-4 text-coral" />
                       <span className="font-medium">{getCityState(content.contact.location)}</span>
                       <span className="text-xs text-slate-500">(City/State only)</span>
                     </div>
@@ -174,7 +174,7 @@ export function PrivacyStep({
         <div className="pt-4">
           <Button
             onClick={handleContinue}
-            className="w-full bg-linear-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 text-white font-semibold shadow-depth-sm hover:shadow-depth-md transition-all duration-300"
+            className="w-full bg-linear-to-r from-coral to-coral hover:from-coral/90 hover:to-coral/90 text-white font-semibold shadow-depth-sm hover:shadow-depth-md transition-all duration-300"
             size="lg"
           >
             Continue

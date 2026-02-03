@@ -214,9 +214,9 @@ export default async function DashboardPage() {
         <main className="flex items-center justify-center min-h-[80vh] px-4">
           <div className="bg-white rounded-2xl shadow-depth-md border border-slate-200/60 p-12 max-w-md w-full text-center hover:shadow-depth-lg transition-all duration-300">
             <div className="relative inline-block mb-6">
-              <div className="absolute inset-0 bg-linear-to-r from-red-400 to-rose-400 rounded-xl blur-xl opacity-20" />
-              <div className="relative bg-linear-to-r from-red-100 to-rose-100 p-6 rounded-xl">
-                <Upload className="w-12 h-12 text-red-600 mx-auto" aria-hidden="true" />
+              <div className="absolute inset-0 bg-linear-to-r from-coral to-coral rounded-xl blur-xl opacity-20" />
+              <div className="relative bg-linear-to-r from-coral/20 to-coral/20 p-6 rounded-xl">
+                <Upload className="w-12 h-12 text-coral mx-auto" aria-hidden="true" />
               </div>
             </div>
             <h2 className="text-2xl font-bold text-slate-900 mb-3">No Resume Yet</h2>
@@ -226,7 +226,7 @@ export default async function DashboardPage() {
             </p>
             <Button
               asChild
-              className="w-full bg-linear-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 text-white font-semibold transition-all duration-300 shadow-depth-sm hover:shadow-depth-md"
+              className="w-full bg-linear-to-r from-coral to-coral hover:from-coral/90 hover:to-coral/90 text-white font-semibold transition-all duration-300 shadow-depth-sm hover:shadow-depth-md"
             >
               <Link href="/">
                 <Upload className="h-4 w-4 mr-2" aria-hidden="true" />
@@ -279,15 +279,15 @@ export default async function DashboardPage() {
               {/* Show error message when resume processing failed */}
               {resume.status === "failed" && (
                 <div className="col-span-full">
-                  <div className="rounded-lg border border-red-200 bg-red-50 p-4 mb-4">
+                  <div className="rounded-lg border border-coral/30 bg-coral/10 p-4 mb-4">
                     <div className="flex items-start gap-3">
                       <AlertCircle
-                        className="h-5 w-5 text-red-600 shrink-0 mt-0.5"
+                        className="h-5 w-5 text-coral shrink-0 mt-0.5"
                         aria-hidden="true"
                       />
                       <div className="flex-1">
-                        <h3 className="font-semibold text-red-900">Processing Failed</h3>
-                        <p className="mt-1 text-sm text-red-700">
+                        <h3 className="font-semibold text-coral">Processing Failed</h3>
+                        <p className="mt-1 text-sm text-coral">
                           {(resume.errorMessage as string | undefined | null) ||
                             "An error occurred while processing your resume."}
                         </p>
@@ -295,7 +295,7 @@ export default async function DashboardPage() {
                           <Button
                             asChild
                             size="sm"
-                            className="bg-red-600 hover:bg-red-700 text-white"
+                            className="bg-coral hover:bg-coral/90 text-white"
                           >
                             <Link href={`/waiting?resume_id=${resume.id}`}>Retry</Link>
                           </Button>
@@ -310,12 +310,12 @@ export default async function DashboardPage() {
               {/* Profile Completeness - Shown at top when incomplete */}
               {completeness < 100 && suggestions.length > 0 && (
                 <div className="col-span-full">
-                  <Alert className="border-red-200 bg-red-50 rounded-2xl shadow-depth-sm hover:shadow-depth-md transition-all duration-300">
+                  <Alert className="border-coral/30 bg-coral/10 rounded-2xl shadow-depth-sm hover:shadow-depth-md transition-all duration-300">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-3">
-                          <CheckCircle2 className="h-5 w-5 text-red-600" aria-hidden="true" />
-                          <h3 className="font-semibold text-red-900">Complete Your Profile</h3>
+                          <CheckCircle2 className="h-5 w-5 text-coral" aria-hidden="true" />
+                          <h3 className="font-semibold text-coral">Complete Your Profile</h3>
                         </div>
 
                         {/* Progress Bar */}
@@ -325,22 +325,22 @@ export default async function DashboardPage() {
                           aria-valuemin={0}
                           aria-valuemax={100}
                           aria-label={`Profile completeness: ${completeness}%`}
-                          className="w-full bg-red-200 rounded-full h-2 mb-4"
+                          className="w-full bg-coral/30 rounded-full h-2 mb-4"
                         >
                           <div
-                            className="h-2 rounded-full bg-linear-to-r from-red-500 to-rose-500 transition-all duration-500"
+                            className="h-2 rounded-full bg-linear-to-r from-coral to-coral transition-all duration-500"
                             style={{ width: `${completeness}%` }}
                           />
                         </div>
 
-                        <AlertDescription className="text-red-900">
+                        <AlertDescription className="text-coral">
                           <p className="text-sm font-medium mb-2">
                             Your profile is {completeness}% complete. Add these to reach 100%:
                           </p>
                           <ul className="space-y-1.5">
                             {suggestions.map((suggestion, index) => (
                               <li key={index} className="text-sm flex items-start gap-2">
-                                <span className="text-red-600 mt-0.5" aria-hidden="true">
+                                <span className="text-coral mt-0.5" aria-hidden="true">
                                   •
                                 </span>
                                 <span>{suggestion}</span>
@@ -350,7 +350,7 @@ export default async function DashboardPage() {
                           <Button
                             asChild
                             size="sm"
-                            className="mt-4 bg-linear-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 text-white font-semibold"
+                            className="mt-4 bg-linear-to-r from-coral to-coral hover:from-coral/90 hover:to-coral/90 text-white font-semibold"
                           >
                             <Link href="/edit">
                               <Edit3 className="h-3 w-3 mr-2" aria-hidden="true" />
@@ -399,7 +399,7 @@ export default async function DashboardPage() {
                         {content.summary.length > 200 && (
                           <Link
                             href="/edit"
-                            className="text-red-600 hover:text-red-700 ml-1 font-medium"
+                            className="text-coral hover:text-coral ml-1 font-medium"
                           >
                             Read more
                           </Link>
@@ -412,9 +412,9 @@ export default async function DashboardPage() {
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
                     <div className="flex items-center gap-3">
                       <div className="relative shrink-0">
-                        <div className="absolute inset-0 bg-linear-to-r from-red-400 to-rose-400 rounded-lg blur-md opacity-20" />
-                        <div className="relative bg-linear-to-r from-red-100 to-rose-100 p-2 rounded-lg">
-                          <Briefcase className="h-4 w-4 text-red-600" aria-hidden="true" />
+                        <div className="absolute inset-0 bg-linear-to-r from-coral to-coral rounded-lg blur-md opacity-20" />
+                        <div className="relative bg-linear-to-r from-coral/20 to-coral/20 p-2 rounded-lg">
+                          <Briefcase className="h-4 w-4 text-coral" aria-hidden="true" />
                         </div>
                       </div>
                       <div>
@@ -490,7 +490,7 @@ export default async function DashboardPage() {
                   <div className="flex flex-col sm:flex-row gap-3">
                     <Button
                       asChild
-                      className="flex-1 bg-linear-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 text-white font-semibold transition-colors duration-300 shadow-depth-sm hover:shadow-depth-md"
+                      className="flex-1 bg-linear-to-r from-coral to-coral hover:from-coral/90 hover:to-coral/90 text-white font-semibold transition-colors duration-300 shadow-depth-sm hover:shadow-depth-md"
                     >
                       <Link href="/edit">
                         <Edit3 className="h-4 w-4 mr-2" aria-hidden="true" />
@@ -520,9 +520,9 @@ export default async function DashboardPage() {
                     {/* Email */}
                     <div className="flex items-start gap-3">
                       <div className="relative shrink-0 mt-0.5">
-                        <div className="absolute inset-0 bg-linear-to-r from-red-400 to-rose-400 rounded-lg blur-md opacity-20" />
-                        <div className="relative bg-linear-to-r from-red-100 to-rose-100 p-2 rounded-lg">
-                          <Mail className="w-4 h-4 text-red-600" aria-hidden="true" />
+                        <div className="absolute inset-0 bg-linear-to-r from-coral to-coral rounded-lg blur-md opacity-20" />
+                        <div className="relative bg-linear-to-r from-coral/20 to-coral/20 p-2 rounded-lg">
+                          <Mail className="w-4 h-4 text-coral" aria-hidden="true" />
                         </div>
                       </div>
                       <div className="flex-1 min-w-0">
@@ -537,9 +537,9 @@ export default async function DashboardPage() {
                         <Separator />
                         <div className="flex items-start gap-3">
                           <div className="relative shrink-0 mt-0.5">
-                            <div className="absolute inset-0 bg-linear-to-r from-red-400 to-rose-400 rounded-lg blur-md opacity-20" />
-                            <div className="relative bg-linear-to-r from-red-100 to-rose-100 p-2 rounded-lg">
-                              <LinkIcon className="w-4 h-4 text-red-600" aria-hidden="true" />
+                            <div className="absolute inset-0 bg-linear-to-r from-coral to-coral rounded-lg blur-md opacity-20" />
+                            <div className="relative bg-linear-to-r from-coral/20 to-coral/20 p-2 rounded-lg">
+                              <LinkIcon className="w-4 h-4 text-coral" aria-hidden="true" />
                             </div>
                           </div>
                           <div className="flex-1 min-w-0">
@@ -547,7 +547,7 @@ export default async function DashboardPage() {
                             <div className="flex items-center gap-2">
                               <Link
                                 href={`/@${profile.handle}`}
-                                className="text-sm text-red-600 hover:text-red-700 font-medium truncate block"
+                                className="text-sm text-coral hover:text-coral font-medium truncate block"
                               >
                                 {siteConfig.domain}/@{profile.handle}
                               </Link>
@@ -566,9 +566,9 @@ export default async function DashboardPage() {
                         <Separator />
                         <div className="flex items-start gap-3">
                           <div className="relative shrink-0 mt-0.5">
-                            <div className="absolute inset-0 bg-linear-to-r from-red-400 to-rose-400 rounded-lg blur-md opacity-20" />
-                            <div className="relative bg-linear-to-r from-red-100 to-rose-100 p-2 rounded-lg">
-                              <Calendar className="w-4 h-4 text-red-600" aria-hidden="true" />
+                            <div className="absolute inset-0 bg-linear-to-r from-coral to-coral rounded-lg blur-md opacity-20" />
+                            <div className="relative bg-linear-to-r from-coral/20 to-coral/20 p-2 rounded-lg">
+                              <Calendar className="w-4 h-4 text-coral" aria-hidden="true" />
                             </div>
                           </div>
                           <div className="flex-1 min-w-0">
@@ -604,10 +604,10 @@ export default async function DashboardPage() {
                 {resume.status === "failed" && (
                   <div className="space-y-6">
                     <div className="flex items-center gap-4">
-                      <AlertCircle className="h-8 w-8 text-red-600 shrink-0" aria-hidden="true" />
+                      <AlertCircle className="h-8 w-8 text-coral shrink-0" aria-hidden="true" />
                       <div className="flex-1">
-                        <h3 className="text-xl font-bold text-red-900 mb-1">Processing failed</h3>
-                        <p className="text-red-700">
+                        <h3 className="text-xl font-bold text-coral mb-1">Processing failed</h3>
+                        <p className="text-coral">
                           {(resume.errorMessage as string | undefined | null) ||
                             "Unknown error occurred. Please try uploading again."}
                         </p>
@@ -616,7 +616,7 @@ export default async function DashboardPage() {
                     <div className="flex flex-col sm:flex-row gap-3">
                       <Button
                         asChild
-                        className="flex-1 bg-linear-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 text-white font-semibold transition-all duration-300 shadow-depth-sm hover:shadow-depth-md"
+                        className="flex-1 bg-linear-to-r from-coral to-coral hover:from-coral/90 hover:to-coral/90 text-white font-semibold transition-all duration-300 shadow-depth-sm hover:shadow-depth-md"
                       >
                         <Link href={`/waiting?resume_id=${resume.id}`}>Try Again</Link>
                       </Button>

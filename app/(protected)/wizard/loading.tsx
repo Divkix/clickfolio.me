@@ -2,7 +2,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function WizardLoading() {
   return (
-    <div className="min-h-screen bg-linear-to-br from-red-50 via-rose-50 to-orange-50">
+    <div className="min-h-screen bg-linear-to-br from-coral/10 via-coral/10 to-orange-50">
       {/* Progress Bar Header */}
       <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm border-b border-slate-200/60">
         <div className="max-w-5xl mx-auto px-4 py-4">

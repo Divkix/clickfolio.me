@@ -107,8 +107,8 @@ export default function AdminAnalyticsPage() {
               title="Total Views"
               value={data?.totals.views ?? 0}
               icon={Eye}
-              iconColorClass="text-red-600"
-              iconBgClass="bg-linear-to-r from-red-100 to-rose-100"
+              iconColorClass="text-coral"
+              iconBgClass="bg-linear-to-r from-coral/20 to-coral/20"
               change={data?.changes.views}
             />
             <StatCard
@@ -173,7 +173,7 @@ export default function AdminAnalyticsPage() {
                     <Link
                       href={`/${profile.handle}`}
                       target="_blank"
-                      className="text-sm text-red-600 hover:text-red-800"
+                      className="text-sm text-coral hover:text-coral"
                     >
                       @{profile.handle}
                     </Link>
@@ -210,7 +210,7 @@ export default function AdminAnalyticsPage() {
                   percent: r.percent,
                 })) ?? []
               }
-              colorClass="bg-red-500"
+              colorClass="bg-coral"
             />
           )}
         </div>

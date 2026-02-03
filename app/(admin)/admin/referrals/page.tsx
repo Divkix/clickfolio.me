@@ -96,8 +96,8 @@ export default function AdminReferralsPage() {
               title="Total Clicks"
               value={data?.stats.totalClicks ?? 0}
               icon={MousePointerClick}
-              iconColorClass="text-red-600"
-              iconBgClass="bg-linear-to-r from-red-100 to-rose-100"
+              iconColorClass="text-coral"
+              iconBgClass="bg-linear-to-r from-coral/20 to-coral/20"
             />
             <StatCard
               title="Conversions"
@@ -208,7 +208,7 @@ export default function AdminReferralsPage() {
                       <Link
                         href={`/${referrer.handle}`}
                         target="_blank"
-                        className="text-sm text-red-600 hover:text-red-800"
+                        className="text-sm text-coral hover:text-coral"
                       >
                         @{referrer.handle}
                       </Link>
@@ -292,7 +292,7 @@ export default function AdminReferralsPage() {
                       <Link
                         href={`/${conv.referrerHandle}`}
                         target="_blank"
-                        className="text-red-600 hover:text-red-800"
+                        className="text-coral hover:text-coral"
                       >
                         @{conv.referrerHandle}
                       </Link>

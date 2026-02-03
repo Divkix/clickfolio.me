@@ -24,7 +24,7 @@ export default function TermsOfServicePage() {
           </Link>
           <Link
             href="/"
-            className="text-sm font-medium text-slate-600 hover:text-red-600 transition-colors duration-300"
+            className="text-sm font-medium text-slate-600 hover:text-coral transition-colors duration-300"
           >
             Back to Home
           </Link>
@@ -69,7 +69,7 @@ export default function TermsOfServicePage() {
                   <li key={index}>
                     <a
                       href={`#section-${index + 1}`}
-                      className="text-slate-600 hover:text-red-600 transition-colors duration-300"
+                      className="text-slate-600 hover:text-coral transition-colors duration-300"
                     >
                       {index + 1}. {item}
                     </a>
@@ -82,7 +82,7 @@ export default function TermsOfServicePage() {
             <div className="prose prose-slate max-w-none">
               <section id="section-1" className="mb-10">
                 <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-3">
-                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-r from-red-100 to-rose-100 text-red-600 text-sm font-bold">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-r from-coral/20 to-coral/20 text-coral text-sm font-bold">
                     1
                   </span>
                   Service Description
@@ -98,7 +98,7 @@ export default function TermsOfServicePage() {
 
               <section id="section-2" className="mb-10">
                 <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-3">
-                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-r from-red-100 to-rose-100 text-red-600 text-sm font-bold">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-r from-coral/20 to-coral/20 text-coral text-sm font-bold">
                     2
                   </span>
                   Eligibility
@@ -112,7 +112,7 @@ export default function TermsOfServicePage() {
 
               <section id="section-3" className="mb-10">
                 <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-3">
-                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-r from-red-100 to-rose-100 text-red-600 text-sm font-bold">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-r from-coral/20 to-coral/20 text-coral text-sm font-bold">
                     3
                   </span>
                   Account Responsibilities
@@ -133,7 +133,7 @@ export default function TermsOfServicePage() {
 
               <section id="section-4" className="mb-10">
                 <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-3">
-                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-r from-red-100 to-rose-100 text-red-600 text-sm font-bold">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-r from-coral/20 to-coral/20 text-coral text-sm font-bold">
                     4
                   </span>
                   Acceptable Use
@@ -153,7 +153,7 @@ export default function TermsOfServicePage() {
 
               <section id="section-5" className="mb-10">
                 <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-3">
-                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-r from-red-100 to-rose-100 text-red-600 text-sm font-bold">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-r from-coral/20 to-coral/20 text-coral text-sm font-bold">
                     5
                   </span>
                   Content Ownership
@@ -178,7 +178,7 @@ export default function TermsOfServicePage() {
 
               <section id="section-6" className="mb-10">
                 <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-3">
-                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-r from-red-100 to-rose-100 text-red-600 text-sm font-bold">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-r from-coral/20 to-coral/20 text-coral text-sm font-bold">
                     6
                   </span>
                   AI Processing
@@ -195,7 +195,7 @@ export default function TermsOfServicePage() {
 
               <section id="section-7" className="mb-10">
                 <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-3">
-                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-r from-red-100 to-rose-100 text-red-600 text-sm font-bold">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-r from-coral/20 to-coral/20 text-coral text-sm font-bold">
                     7
                   </span>
                   Limitation of Liability
@@ -219,7 +219,7 @@ export default function TermsOfServicePage() {
 
               <section id="section-8" className="mb-10">
                 <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-3">
-                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-r from-red-100 to-rose-100 text-red-600 text-sm font-bold">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-r from-coral/20 to-coral/20 text-coral text-sm font-bold">
                     8
                   </span>
                   Termination
@@ -246,7 +246,7 @@ export default function TermsOfServicePage() {
 
               <section id="section-9" className="mb-10">
                 <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-3">
-                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-r from-red-100 to-rose-100 text-red-600 text-sm font-bold">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-r from-coral/20 to-coral/20 text-coral text-sm font-bold">
                     9
                   </span>
                   Changes to Terms
@@ -262,7 +262,7 @@ export default function TermsOfServicePage() {
 
               <section id="section-10" className="mb-10">
                 <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-3">
-                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-r from-red-100 to-rose-100 text-red-600 text-sm font-bold">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-r from-coral/20 to-coral/20 text-coral text-sm font-bold">
                     10
                   </span>
                   Governing Law
@@ -277,7 +277,7 @@ export default function TermsOfServicePage() {
 
               <section id="section-11" className="mb-4">
                 <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-3">
-                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-r from-red-100 to-rose-100 text-red-600 text-sm font-bold">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-r from-coral/20 to-coral/20 text-coral text-sm font-bold">
                     11
                   </span>
                   Contact
@@ -288,7 +288,7 @@ export default function TermsOfServicePage() {
                 <div className="bg-slate-50 border border-slate-200/60 rounded-lg p-4">
                   <a
                     href={`mailto:${siteConfig.supportEmail}`}
-                    className="text-red-600 hover:text-red-700 font-medium transition-colors duration-300"
+                    className="text-coral hover:text-coral font-medium transition-colors duration-300"
                   >
                     {siteConfig.supportEmail}
                   </a>
@@ -301,7 +301,7 @@ export default function TermsOfServicePage() {
           <div className="mt-8 text-center">
             <Link
               href="/"
-              className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-red-600 transition-colors duration-300"
+              className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-coral transition-colors duration-300"
             >
               <svg
                 className="w-4 h-4"

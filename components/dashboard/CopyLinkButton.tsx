@@ -35,7 +35,7 @@ export function CopyLinkButton({ handle }: CopyLinkButtonProps) {
         "inline-flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all duration-300",
         copied
           ? "bg-linear-to-r from-emerald-600 to-emerald-700 text-white shadow-depth-sm"
-          : "bg-linear-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 text-white shadow-depth-sm hover:shadow-depth-md focus:ring-2 focus:ring-red-500 focus:ring-offset-2",
+          : "bg-linear-to-r from-coral to-coral hover:from-coral/90 hover:to-coral/90 text-white shadow-depth-sm hover:shadow-depth-md focus:ring-2 focus:ring-coral focus:ring-offset-2",
       )}
     >
       {copied ? (

@@ -33,8 +33,8 @@ function ProfileSection({ name, email, headline, image, handle }: ProfileSection
             className="w-14 h-14 rounded-full object-cover border-2 border-slate-200/60 shrink-0"
           />
         ) : (
-          <div className="w-14 h-14 rounded-full bg-linear-to-br from-red-100 to-rose-100 flex items-center justify-center shrink-0 border-2 border-slate-200/60">
-            <User className="h-6 w-6 text-red-600" />
+          <div className="w-14 h-14 rounded-full bg-linear-to-br from-coral/20 to-coral/20 flex items-center justify-center shrink-0 border-2 border-slate-200/60">
+            <User className="h-6 w-6 text-coral" />
           </div>
         )}
         <div className="flex-1 min-w-0">

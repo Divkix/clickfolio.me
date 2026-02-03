@@ -266,7 +266,7 @@ const ModernSpotlight: React.FC<TemplateProps> = ({ content, profile }) => {
                     )}
                   </div>
 
-                  <h4 className="text-lg font-bold text-zinc-900 mb-2 group-hover:text-red-600 transition-colors">
+                  <h4 className="text-lg font-bold text-zinc-900 mb-2 group-hover:text-coral transition-colors">
                     {project.title}
                   </h4>
 
@@ -332,7 +332,7 @@ const ModernSpotlight: React.FC<TemplateProps> = ({ content, profile }) => {
                     className="flex items-center justify-between p-4 bg-white border border-zinc-100 rounded-xl hover:border-zinc-300 transition-all group"
                   >
                     <div>
-                      <h4 className="font-semibold text-sm text-zinc-900 group-hover:text-red-600 transition-colors">
+                      <h4 className="font-semibold text-sm text-zinc-900 group-hover:text-coral transition-colors">
                         {cert.name}
                       </h4>
                       <p className="text-xs text-zinc-500">{cert.issuer}</p>

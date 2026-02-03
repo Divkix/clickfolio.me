@@ -35,12 +35,12 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content, profile }) => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-slate-200 font-sans relative overflow-x-hidden selection:bg-red-500/30 selection:text-red-200">
+    <div className="min-h-screen bg-neutral-950 text-slate-200 font-sans relative overflow-x-hidden selection:bg-coral/30 selection:text-coral">
       {/* Dynamic Background */}
       <div className="fixed inset-0 z-0">
-        <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-red-500/20 rounded-full blur-[100px] animate-blob mix-blend-screen"></div>
+        <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-coral/20 rounded-full blur-[100px] animate-blob mix-blend-screen"></div>
         <div className="absolute top-[20%] right-[-10%] w-[400px] h-[400px] bg-purple-500/10 rounded-full blur-[100px] animate-blob animation-delay-2000 mix-blend-screen"></div>
-        <div className="absolute bottom-[-10%] left-[20%] w-[600px] h-[600px] bg-rose-500/10 rounded-full blur-[120px] animate-blob animation-delay-4000 mix-blend-screen"></div>
+        <div className="absolute bottom-[-10%] left-[20%] w-[600px] h-[600px] bg-coral/10 rounded-full blur-[120px] animate-blob animation-delay-4000 mix-blend-screen"></div>
         {/* Grain Overlay */}
         <div
           className="absolute inset-0 opacity-[0.04] pointer-events-none"
@@ -199,7 +199,7 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content, profile }) => {
         {content.experience && content.experience.length > 0 && (
           <section id="experience" className="mb-32">
             <h2 className="text-2xl font-semibold text-white mb-10 flex items-center gap-2">
-              <Briefcase className="w-5 h-5 text-red-400" />
+              <Briefcase className="w-5 h-5 text-coral" />
               <span>Work Experience</span>
             </h2>
 
@@ -207,10 +207,10 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content, profile }) => {
               {content.experience.map((job, index) => (
                 <div key={index} className="relative pl-8 md:pl-12 group">
                   {/* Timeline Dot */}
-                  <div className="absolute -left-[5px] top-2 w-[10px] h-[10px] rounded-full bg-neutral-950 border border-white/30 group-hover:border-red-400 group-hover:scale-125 transition-all duration-300"></div>
+                  <div className="absolute -left-[5px] top-2 w-[10px] h-[10px] rounded-full bg-neutral-950 border border-white/30 group-hover:border-coral group-hover:scale-125 transition-all duration-300"></div>
 
                   <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between mb-2">
-                    <h3 className="text-xl font-bold text-slate-100 group-hover:text-red-300 transition-colors">
+                    <h3 className="text-xl font-bold text-slate-100 group-hover:text-coral transition-colors">
                       {job.title}
                     </h3>
                     <span className="text-xs font-mono text-slate-500 whitespace-nowrap">
@@ -267,7 +267,7 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content, profile }) => {
         {content.projects && content.projects.length > 0 && (
           <section id="projects" className="mb-32">
             <h2 className="text-2xl font-semibold text-white mb-10 flex items-center gap-2">
-              <Award className="w-5 h-5 text-red-400" />
+              <Award className="w-5 h-5 text-coral" />
               <span>Selected Projects</span>
             </h2>
 
@@ -280,11 +280,11 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content, profile }) => {
                   <div>
                     <div className="flex justify-between items-start mb-4">
                       <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-linear-to-br from-red-500/20 to-rose-500/20 flex items-center justify-center text-red-300 font-bold border border-white/5">
+                        <div className="h-10 w-10 rounded-full bg-linear-to-br from-coral/20 to-coral/20 flex items-center justify-center text-coral font-bold border border-white/5">
                           {project.title.charAt(0)}
                         </div>
                         <div>
-                          <h3 className="text-lg font-bold text-white group-hover:text-red-300 transition-colors">
+                          <h3 className="text-lg font-bold text-white group-hover:text-coral transition-colors">
                             {project.title}
                           </h3>
                           {project.year && (

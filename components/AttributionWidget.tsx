@@ -57,8 +57,8 @@ export function AttributionWidget({ theme }: AttributionWidgetProps) {
     bento_grid: {
       container:
         "bg-white/95 sm:bg-white border border-slate-200/60 text-slate-600 hover:text-slate-900",
-      accent: "bg-linear-to-r from-red-500 to-rose-500 bg-clip-text text-transparent",
-      shimmer: "from-transparent via-red-200/30 to-transparent",
+      accent: "bg-linear-to-r from-coral to-coral bg-clip-text text-transparent",
+      shimmer: "from-transparent via-coral/30 to-transparent",
       shadow: "shadow-depth-sm hover:shadow-depth-md",
     },
     spotlight: {

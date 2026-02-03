@@ -27,8 +27,8 @@ export function ThemeStep({ initialTheme = "minimalist_editorial", onContinue }:
     <div className="space-y-8">
       {/* Header */}
       <div className="text-center">
-        <div className="mx-auto w-16 h-16 bg-linear-to-r from-red-100 to-rose-100 rounded-2xl flex items-center justify-center mb-6">
-          <Palette className="w-8 h-8 text-red-600" />
+        <div className="mx-auto w-16 h-16 bg-linear-to-r from-coral/20 to-coral/20 rounded-2xl flex items-center justify-center mb-6">
+          <Palette className="w-8 h-8 text-coral" />
         </div>
         <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-3 leading-tight">
           Choose Your Template
@@ -49,14 +49,14 @@ export function ThemeStep({ initialTheme = "minimalist_editorial", onContinue }:
                 "group relative cursor-pointer overflow-hidden transition-all duration-300 p-6",
                 "border-2 shadow-depth-sm hover:shadow-depth-lg hover:-translate-y-1",
                 selectedTheme === id
-                  ? "border-red-500 ring-2 ring-red-100 bg-red-50/50"
-                  : "border-slate-200/60 hover:border-red-300 bg-white",
+                  ? "border-coral ring-2 ring-coral/20 bg-coral/10"
+                  : "border-slate-200/60 hover:border-coral/40 bg-white",
               )}
             >
               {/* Selected Indicator */}
               {selectedTheme === id && (
                 <div className="absolute top-4 right-4">
-                  <div className="flex items-center gap-1 bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold">
+                  <div className="flex items-center gap-1 bg-coral text-white px-3 py-1 rounded-full text-xs font-bold">
                     <CheckCircle2 className="w-3 h-3" />
                     Selected
                   </div>
@@ -71,7 +71,7 @@ export function ThemeStep({ initialTheme = "minimalist_editorial", onContinue }:
                     className={cn(
                       "inline-block text-xs uppercase tracking-wide font-bold px-2 py-1 rounded",
                       selectedTheme === id
-                        ? "bg-red-200 text-red-900"
+                        ? "bg-coral/30 text-coral"
                         : "bg-slate-100 text-slate-600",
                     )}
                   >
@@ -83,9 +83,7 @@ export function ThemeStep({ initialTheme = "minimalist_editorial", onContinue }:
                 <h3
                   className={cn(
                     "text-xl font-bold transition-colors",
-                    selectedTheme === id
-                      ? "text-red-900"
-                      : "text-slate-900 group-hover:text-red-600",
+                    selectedTheme === id ? "text-coral" : "text-slate-900 group-hover:text-coral",
                   )}
                 >
                   {meta.name}
@@ -106,7 +104,7 @@ export function ThemeStep({ initialTheme = "minimalist_editorial", onContinue }:
                   <div
                     className={cn(
                       "aspect-16/10 rounded-lg overflow-hidden border-2 transition-all",
-                      selectedTheme === id ? "border-red-400" : "border-slate-200",
+                      selectedTheme === id ? "border-coral" : "border-slate-200",
                     )}
                   >
                     <img
@@ -126,7 +124,7 @@ export function ThemeStep({ initialTheme = "minimalist_editorial", onContinue }:
         <div className="mt-6 text-center">
           <p className="text-sm text-slate-600">
             Currently selected:{" "}
-            <span className="font-bold text-red-600">{THEME_METADATA[selectedTheme].name}</span>
+            <span className="font-bold text-coral">{THEME_METADATA[selectedTheme].name}</span>
           </p>
         </div>
 
@@ -134,7 +132,7 @@ export function ThemeStep({ initialTheme = "minimalist_editorial", onContinue }:
         <div className="pt-6">
           <Button
             onClick={handleContinue}
-            className="w-full bg-linear-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 text-white font-semibold shadow-depth-sm hover:shadow-depth-md transition-all duration-300"
+            className="w-full bg-linear-to-r from-coral to-coral hover:from-coral/90 hover:to-coral/90 text-white font-semibold shadow-depth-sm hover:shadow-depth-md transition-all duration-300"
             size="lg"
           >
             Complete Setup

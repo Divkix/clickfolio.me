@@ -52,7 +52,7 @@ function ToggleCard({
         <div className="flex items-center gap-3 min-w-0">
           <div
             className={`shrink-0 rounded-lg p-2 ${
-              isWarning ? "bg-amber-100 text-amber-600" : "bg-red-100 text-red-600"
+              isWarning ? "bg-amber-100 text-amber-600" : "bg-coral/20 text-coral"
             }`}
           >
             <Icon className="h-4 w-4" />
@@ -134,7 +134,7 @@ export function PrivacySettingsForm({ initialSettings }: PrivacySettingsFormProp
     <div className="bg-white rounded-2xl shadow-depth-sm border border-slate-200/60 p-6">
       <div className="flex items-center justify-between gap-4 mb-4">
         <div className="flex items-center gap-2">
-          <Eye className="h-5 w-5 text-red-600" />
+          <Eye className="h-5 w-5 text-coral" />
           <h3 className="text-lg font-semibold text-slate-900">Privacy</h3>
         </div>
         {isSaving && (

@@ -244,8 +244,8 @@ export function UploadStep({ onContinue }: UploadStepProps) {
     <div className="space-y-8">
       {/* Header */}
       <div className="text-center">
-        <div className="mx-auto w-16 h-16 bg-linear-to-r from-red-100 to-rose-100 rounded-2xl flex items-center justify-center mb-6">
-          <Upload className="w-8 h-8 text-red-600" />
+        <div className="mx-auto w-16 h-16 bg-linear-to-r from-coral/20 to-coral/20 rounded-2xl flex items-center justify-center mb-6">
+          <Upload className="w-8 h-8 text-coral" />
         </div>
         <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-3 leading-tight">
           Upload Your Resume
@@ -259,12 +259,12 @@ export function UploadStep({ onContinue }: UploadStepProps) {
       <div className="max-w-md mx-auto space-y-4">
         {uploadState === "error" ? (
           /* Error State */
-          <div className="bg-white rounded-2xl border border-red-200 p-8 text-center">
+          <div className="bg-white rounded-2xl border border-coral/30 p-8 text-center">
             <div className="relative mx-auto w-16 h-16 mb-4">
-              <div className="absolute inset-0 bg-red-500 rounded-full blur-xl opacity-20" />
-              <div className="relative w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
+              <div className="absolute inset-0 bg-coral rounded-full blur-xl opacity-20" />
+              <div className="relative w-16 h-16 bg-coral/20 rounded-full flex items-center justify-center">
                 <svg
-                  className="w-8 h-8 text-red-500"
+                  className="w-8 h-8 text-coral"
                   viewBox="0 0 24 24"
                   fill="none"
                   aria-hidden="true"
@@ -281,11 +281,11 @@ export function UploadStep({ onContinue }: UploadStepProps) {
             </div>
 
             <h3 className="text-lg font-bold text-slate-900 mb-2">Something Went Wrong</h3>
-            <p className="text-sm text-red-600 mb-6">{error}</p>
+            <p className="text-sm text-coral mb-6">{error}</p>
 
             <Button
               onClick={handleRetry}
-              className="w-full bg-linear-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 text-white font-semibold shadow-depth-sm hover:shadow-depth-md transition-all duration-300"
+              className="w-full bg-linear-to-r from-coral to-coral hover:from-coral/90 hover:to-coral/90 text-white font-semibold shadow-depth-sm hover:shadow-depth-md transition-all duration-300"
               size="lg"
             >
               Try Again
@@ -295,9 +295,9 @@ export function UploadStep({ onContinue }: UploadStepProps) {
           /* Processing State */
           <div className="bg-white rounded-2xl border border-slate-200/60 p-8 text-center">
             <div className="relative mx-auto w-16 h-16 mb-4">
-              <div className="absolute inset-0 bg-linear-to-r from-red-400 to-rose-400 rounded-full blur-xl opacity-30 animate-pulse" />
-              <div className="relative w-16 h-16 bg-linear-to-r from-red-100 to-rose-100 rounded-full flex items-center justify-center">
-                <Loader2 className="w-8 h-8 text-red-600 animate-spin" />
+              <div className="absolute inset-0 bg-linear-to-r from-coral to-coral rounded-full blur-xl opacity-30 animate-pulse" />
+              <div className="relative w-16 h-16 bg-linear-to-r from-coral/20 to-coral/20 rounded-full flex items-center justify-center">
+                <Loader2 className="w-8 h-8 text-coral animate-spin" />
               </div>
             </div>
 
@@ -336,13 +336,13 @@ export function UploadStep({ onContinue }: UploadStepProps) {
               group relative bg-white rounded-2xl border border-slate-200/60 p-12 cursor-pointer transition-all duration-300 overflow-hidden
               ${
                 isDragging
-                  ? "border-red-400 bg-linear-to-br from-red-50 to-rose-50 shadow-depth-lg -translate-y-1"
-                  : "hover:border-red-300 hover:shadow-depth-md"
+                  ? "border-coral bg-linear-to-br from-coral/10 to-coral/10 shadow-depth-lg -translate-y-1"
+                  : "hover:border-coral/40 hover:shadow-depth-md"
               }
             `}
           >
             {/* Subtle gradient overlay on hover */}
-            <div className="absolute inset-0 bg-linear-to-br from-red-50/50 via-transparent to-rose-50/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+            <div className="absolute inset-0 bg-linear-to-br from-coral/10 via-transparent to-coral/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
 
             <input
               ref={fileInputRef}
@@ -357,10 +357,10 @@ export function UploadStep({ onContinue }: UploadStepProps) {
               {/* Icon with gradient background */}
               <div className="relative">
                 <div
-                  className={`absolute inset-0 bg-linear-to-r from-red-400 to-rose-400 rounded-2xl blur-xl transition-opacity duration-300 ${isDragging ? "opacity-40" : "opacity-20 group-hover:opacity-40"}`}
+                  className={`absolute inset-0 bg-linear-to-r from-coral to-coral rounded-2xl blur-xl transition-opacity duration-300 ${isDragging ? "opacity-40" : "opacity-20 group-hover:opacity-40"}`}
                 />
                 <div
-                  className={`relative bg-linear-to-r from-red-100 to-rose-100 p-4 rounded-2xl transition-transform duration-300 ${isDragging ? "scale-110" : "group-hover:scale-110"}`}
+                  className={`relative bg-linear-to-r from-coral/20 to-coral/20 p-4 rounded-2xl transition-transform duration-300 ${isDragging ? "scale-110" : "group-hover:scale-110"}`}
                 >
                   <svg className="w-12 h-12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                     <defs>

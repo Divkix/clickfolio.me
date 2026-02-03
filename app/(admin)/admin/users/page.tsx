@@ -100,7 +100,7 @@ export default function AdminUsersPage() {
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             placeholder="Search name, email, handle..."
-            className="w-full sm:w-64 pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500"
+            className="w-full sm:w-64 pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-coral/20 focus:border-coral"
             aria-label="Search users"
           />
         </form>
@@ -175,7 +175,7 @@ export default function AdminUsersPage() {
                         <Link
                           href={`/${user.handle}`}
                           target="_blank"
-                          className="text-sm text-red-600 hover:text-red-800"
+                          className="text-sm text-coral hover:text-coral"
                         >
                           @{user.handle}
                         </Link>

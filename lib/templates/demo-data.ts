@@ -24,10 +24,10 @@ export const DEMO_PROFILES: DemoProfile[] = [
     name: "Sarah Chen",
     role: "Product Designer",
     initials: "SC",
-    avatarGradient: "from-red-400 to-rose-500",
+    avatarGradient: "from-coral to-coral",
     badgeLabel: "Editorial",
-    badgeBgColor: "bg-red-50",
-    badgeTextColor: "text-red-600",
+    badgeBgColor: "bg-coral/10",
+    badgeTextColor: "text-coral",
   },
   {
     id: "neo_brutalist",

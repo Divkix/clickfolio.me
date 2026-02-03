@@ -161,7 +161,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
             <div className="flex items-center gap-3">
               {user.image ? (
                 <div className="relative">
-                  <div className="absolute inset-0 rounded-full bg-linear-to-r from-red-500 to-rose-500 p-0.5">
+                  <div className="absolute inset-0 rounded-full bg-linear-to-r from-coral to-coral p-0.5">
                     <div className="w-full h-full rounded-full bg-white" />
                   </div>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -172,7 +172,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
                   />
                 </div>
               ) : (
-                <div className="w-10 h-10 rounded-full bg-linear-to-r from-red-500 to-rose-500 flex items-center justify-center text-white font-semibold text-sm">
+                <div className="w-10 h-10 rounded-full bg-linear-to-r from-coral to-coral flex items-center justify-center text-white font-semibold text-sm">
                   {getInitials()}
                 </div>
               )}
@@ -204,7 +204,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
                   transition-all duration-300
                   ${
                     active
-                      ? "bg-linear-to-r from-red-500 to-rose-500 text-white shadow-depth-sm"
+                      ? "bg-linear-to-r from-coral to-coral text-white shadow-depth-sm"
                       : "text-slate-700 hover:bg-slate-100"
                   }
                 `}
@@ -254,7 +254,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
           <button
             type="button"
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-slate-700 hover:text-red-600 hover:bg-red-50 transition-all duration-300"
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-slate-700 hover:text-coral hover:bg-coral/10 transition-all duration-300"
           >
             <LogOut size={20} />
             <span>Logout</span>

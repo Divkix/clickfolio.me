@@ -142,8 +142,8 @@ export default function AdminResumesPage() {
             title="Queued"
             value={data?.stats.queued ?? 0}
             icon={Clock}
-            iconColorClass="text-red-600"
-            iconBgClass="bg-linear-to-r from-red-100 to-rose-100"
+            iconColorClass="text-coral"
+            iconBgClass="bg-linear-to-r from-coral/20 to-coral/20"
           />
         </button>
         <button
@@ -155,8 +155,8 @@ export default function AdminResumesPage() {
             title="Failed"
             value={data?.stats.failed ?? 0}
             icon={AlertTriangle}
-            iconColorClass="text-red-600"
-            iconBgClass="bg-linear-to-r from-red-100 to-pink-100"
+            iconColorClass="text-coral"
+            iconBgClass="bg-linear-to-r from-coral/20 to-coral/20"
           />
         </button>
       </div>
@@ -167,7 +167,7 @@ export default function AdminResumesPage() {
         <select
           value={statusFilter}
           onChange={(e) => updateParams({ status: e.target.value as StatusFilter })}
-          className="text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500"
+          className="text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-coral/20 focus:border-coral"
           aria-label="Filter by status"
         >
           {STATUS_OPTIONS.map((opt) => (
@@ -235,7 +235,7 @@ export default function AdminResumesPage() {
                     <tr
                       key={resume.id}
                       className={`hover:bg-slate-50/50 transition-colors ${
-                        resume.status === "failed" ? "bg-red-50/30" : ""
+                        resume.status === "failed" ? "bg-coral/10" : ""
                       }`}
                     >
                       <td className="px-4 py-3 text-sm text-slate-900">{resume.userEmail}</td>
@@ -255,7 +255,7 @@ export default function AdminResumesPage() {
                             onClick={() =>
                               setExpandedRow(expandedRow === resume.id ? null : resume.id)
                             }
-                            className="text-sm text-red-600 hover:text-red-800 truncate max-w-[200px] block text-left"
+                            className="text-sm text-coral hover:text-coral truncate max-w-[200px] block text-left"
                             title="Click to expand"
                           >
                             {resume.lastAttemptError.slice(0, 50)}
@@ -271,8 +271,8 @@ export default function AdminResumesPage() {
                     </tr>
                     {expandedRow === resume.id && resume.lastAttemptError && (
                       <tr key={`${resume.id}-error`}>
-                        <td colSpan={5} className="px-4 py-3 bg-red-50/50">
-                          <pre className="text-xs text-red-700 font-mono whitespace-pre-wrap wrap-break-word">
+                        <td colSpan={5} className="px-4 py-3 bg-coral/10">
+                          <pre className="text-xs text-coral font-mono whitespace-pre-wrap wrap-break-word">
                             {resume.lastAttemptError}
                           </pre>
                         </td>

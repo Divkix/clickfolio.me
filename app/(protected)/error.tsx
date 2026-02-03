@@ -52,10 +52,10 @@ export default function ProtectedError({
         </p>
 
         {process.env.NODE_ENV === "development" && (
-          <div className="mb-6 p-4 bg-red-50 rounded-lg border border-red-200">
-            <p className="text-sm font-semibold text-red-800 mb-2">Development Error Details:</p>
-            <p className="text-xs font-mono text-red-700 break-all">{error.message}</p>
-            {error.digest && <p className="text-xs text-red-600 mt-2">Digest: {error.digest}</p>}
+          <div className="mb-6 p-4 bg-coral/10 rounded-lg border border-coral/30">
+            <p className="text-sm font-semibold text-coral mb-2">Development Error Details:</p>
+            <p className="text-xs font-mono text-coral break-all">{error.message}</p>
+            {error.digest && <p className="text-xs text-coral mt-2">Digest: {error.digest}</p>}
           </div>
         )}
 
