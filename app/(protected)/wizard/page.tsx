@@ -47,6 +47,11 @@ interface PendingUploadResponse {
   file_hash: string | null;
 }
 
+interface UserStatsResponse {
+  referralCount?: number;
+  isPro?: boolean;
+}
+
 interface WizardState {
   currentStep: number;
   resumeData: ResumeContent | null;
@@ -96,6 +101,10 @@ export default function WizardPage() {
   const [needsUpload, setNeedsUpload] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
   const [showLiveModal, setShowLiveModal] = useState(false);
+
+  // Referral stats for theme lock display
+  const [referralCount, setReferralCount] = useState(0);
+  const [isPro, setIsPro] = useState(false);
 
   // Refs to prevent race conditions during wizard initialization
   const initializingRef = useRef(false);
@@ -316,6 +325,19 @@ export default function WizardPage() {
               ...prev,
               resumeData: content,
             }));
+
+            // Fetch user referral status for theme lock display
+            try {
+              const statsResponse = await fetch("/api/user/stats");
+              if (statsResponse.ok) {
+                const stats = (await statsResponse.json()) as UserStatsResponse;
+                setReferralCount(stats.referralCount ?? 0);
+                setIsPro(stats.isPro ?? false);
+              }
+            } catch (e) {
+              console.warn("Failed to fetch referral stats", e);
+            }
+
             setLoading(false);
             return;
           }
@@ -524,7 +546,12 @@ export default function WizardPage() {
 
         {/* Theme Selection - Step 5 if needsUpload, Step 4 otherwise */}
         {state.currentStep === (needsUpload ? 5 : 4) && (
-          <ThemeStep initialTheme={state.themeId} onContinue={handleThemeContinue} />
+          <ThemeStep
+            initialTheme={state.themeId}
+            onContinue={handleThemeContinue}
+            referralCount={referralCount}
+            isPro={isPro}
+          />
         )}
       </main>
     </div>

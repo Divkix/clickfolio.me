@@ -4,7 +4,13 @@ import { z } from "zod";
 import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
 import { siteData, user } from "@/lib/db/schema";
 import { handleSchema } from "@/lib/schemas/profile";
-import { THEME_IDS, type ThemeId } from "@/lib/templates/theme-ids";
+import {
+  DEFAULT_THEME,
+  getThemeReferralRequirement,
+  isThemeUnlocked,
+  THEME_IDS,
+  type ThemeId,
+} from "@/lib/templates/theme-ids";
 import {
   createErrorResponse,
   createSuccessResponse,
@@ -88,6 +94,33 @@ export async function POST(request: Request) {
       return createErrorResponse("Invalid JSON in request body", ERROR_CODES.BAD_REQUEST, 400);
     }
 
+    // 4b. Validate theme access based on referral count
+    const userResult = await db
+      .select({ referralCount: user.referralCount, isPro: user.isPro })
+      .from(user)
+      .where(eq(user.id, authUser.id));
+
+    const referralCount = userResult[0]?.referralCount ?? 0;
+    const isPro = userResult[0]?.isPro ?? false;
+
+    if (!isThemeUnlocked(body.theme_id as ThemeId, referralCount, isPro)) {
+      const required = getThemeReferralRequirement(body.theme_id as ThemeId);
+      return createErrorResponse(
+        `This theme requires ${required} referral${required === 1 ? "" : "s"} to unlock. You have ${referralCount}.`,
+        ERROR_CODES.FORBIDDEN,
+        403,
+        {
+          required_referrals: required,
+          current_referrals: referralCount,
+        },
+      );
+    }
+
+    // Safety fallback: use DEFAULT_THEME if locked theme somehow got through
+    const finalThemeId = isThemeUnlocked(body.theme_id as ThemeId, referralCount, isPro)
+      ? body.theme_id
+      : DEFAULT_THEME;
+
     // 5. Check if handle is available (not already taken by another user)
     const existingHandle = await db
       .select({ id: user.id })
@@ -142,7 +175,7 @@ export async function POST(request: Request) {
       await db
         .update(siteData)
         .set({
-          themeId: body.theme_id,
+          themeId: finalThemeId,
           lastPublishedAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         })
@@ -155,7 +188,7 @@ export async function POST(request: Request) {
           id: crypto.randomUUID(),
           userId: authUser.id,
           content: "{}", // Will be populated by webhook when parsing completes
-          themeId: body.theme_id,
+          themeId: finalThemeId,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         });
@@ -165,7 +198,7 @@ export async function POST(request: Request) {
           await db
             .update(siteData)
             .set({
-              themeId: body.theme_id,
+              themeId: finalThemeId,
               lastPublishedAt: new Date().toISOString(),
               updatedAt: new Date().toISOString(),
             })
