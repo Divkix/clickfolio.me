@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Copy, ExternalLink, Gift, Linkedin, Rocket, XIcon } from "lucide-react";
+import { Check, Copy, ExternalLink, Gift, Rocket, XIcon } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
@@ -14,7 +14,15 @@ import {
   generateWhatsAppShareUrl,
 } from "@/lib/utils/share";
 
-// WhatsApp SVG icon (Lucide doesn't have it)
+// Custom SVG icons (brand icons deprecated in Lucide)
+function LinkedInIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
+      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+    </svg>
+  );
+}
+
 function WhatsAppIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
@@ -134,23 +142,39 @@ export function YouAreLiveModal({ open, onOpenChange, handle, url }: YouAreLiveM
               </button>
             </div>
 
-            {/* Share Actions */}
-            <div className="grid grid-cols-2 gap-2">
-              <Button variant="outline" onClick={handleTwitterShare}>
-                <XIcon className="size-4 mr-2" />X / Twitter
+            {/* Primary CTA: LinkedIn */}
+            <Button
+              className="w-full bg-[#0077B5] hover:bg-[#006399] text-white"
+              onClick={handleLinkedInShare}
+            >
+              <LinkedInIcon className="size-5 mr-2" />
+              Share on LinkedIn
+            </Button>
+
+            {/* Secondary share options */}
+            <div className="grid grid-cols-3 gap-2">
+              <Button variant="outline" size="sm" onClick={handleTwitterShare}>
+                <XIcon className="size-4 mr-1" />
+                Twitter
               </Button>
-              <Button variant="outline" onClick={handleLinkedInShare}>
-                <Linkedin className="size-4 mr-2" />
-                LinkedIn
-              </Button>
-              <Button variant="outline" onClick={handleWhatsAppShare}>
-                <WhatsAppIcon className="size-4 mr-2" />
+              <Button variant="outline" size="sm" onClick={handleWhatsAppShare}>
+                <WhatsAppIcon className="size-4 mr-1" />
                 WhatsApp
               </Button>
-              <Button variant="outline" onClick={handleCopyLink}>
-                <Copy className="size-4 mr-2" />
+              <Button variant="outline" size="sm" onClick={handleCopyLink}>
+                <Copy className="size-4 mr-1" />
                 {copied ? "Copied!" : "Copy"}
               </Button>
+            </div>
+
+            {/* Next Steps */}
+            <div className="border-t pt-4 mt-4 text-sm text-muted-foreground text-left">
+              <p className="font-semibold text-foreground mb-2">What to do next:</p>
+              <ul className="space-y-1">
+                <li>&#10003; Add your link to your LinkedIn profile</li>
+                <li>&#10003; Update your email signature</li>
+                <li>&#10003; Share in job hunting communities</li>
+              </ul>
             </div>
 
             {/* Referral Section */}

@@ -1,5 +1,6 @@
 "use client";
 
+import { ShieldCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { type ChangeEvent, type DragEvent, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -429,6 +430,14 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
           >
             Try Again
           </button>
+        </div>
+      )}
+
+      {/* Security Badge */}
+      {!uploading && !error && (
+        <div className="flex items-center justify-center gap-2 text-xs text-[#6B6B6B] mt-3">
+          <ShieldCheck className="w-4 h-4" />
+          <span>256-bit encryption • Your data stays yours</span>
         </div>
       )}
 

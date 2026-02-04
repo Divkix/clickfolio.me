@@ -119,32 +119,13 @@ export default function Home() {
                   </h1>
 
                   <p className="text-lg sm:text-xl text-[#6B6B6B] max-w-lg font-medium leading-relaxed">
-                    Drop your PDF. Get a shareable link.
-                    <br />
-                    <span className="font-mono text-ink">It takes less than a minute.</span>
+                    Drop your PDF. Get a shareable link in{" "}
+                    <span className="font-mono text-ink">30 seconds.</span>
                   </p>
                 </div>
 
-                {/* Stats Row */}
+                {/* Stats Row - Reordered: Free → ~30s → AI-Powered */}
                 <div className="grid grid-cols-3 gap-4">
-                  <div
-                    className="
-                    bg-amber
-                    border-3
-                    border-ink
-                    p-4
-                    shadow-brutal-sm
-                    hover-brutal-shift
-                    animate-fade-in-up
-                    delay-100
-                  "
-                  >
-                    <div className="font-black text-2xl sm:text-3xl text-ink">~30s</div>
-                    <div className="font-mono text-xs sm:text-sm text-ink/80 uppercase tracking-wide">
-                      Setup
-                    </div>
-                  </div>
-
                   <div
                     className="
                     bg-mint
@@ -154,12 +135,30 @@ export default function Home() {
                     shadow-brutal-sm
                     hover-brutal-shift
                     animate-fade-in-up
+                    delay-100
+                  "
+                  >
+                    <div className="font-black text-2xl sm:text-3xl text-ink">Free</div>
+                    <div className="font-mono text-xs sm:text-sm text-ink/80 uppercase tracking-wide">
+                      Forever
+                    </div>
+                  </div>
+
+                  <div
+                    className="
+                    bg-amber
+                    border-3
+                    border-ink
+                    p-4
+                    shadow-brutal-sm
+                    hover-brutal-shift
+                    animate-fade-in-up
                     delay-200
                   "
                   >
-                    <div className="font-black text-2xl sm:text-3xl text-ink">AI</div>
+                    <div className="font-black text-2xl sm:text-3xl text-ink">~30s</div>
                     <div className="font-mono text-xs sm:text-sm text-ink/80 uppercase tracking-wide">
-                      Parsing
+                      Setup
                     </div>
                   </div>
 
@@ -175,7 +174,10 @@ export default function Home() {
                     delay-300
                   "
                   >
-                    <div className="font-black text-2xl sm:text-3xl text-ink">Free</div>
+                    <div className="font-black text-2xl sm:text-3xl text-ink">AI</div>
+                    <div className="font-mono text-xs sm:text-sm text-ink/80 uppercase tracking-wide">
+                      Powered
+                    </div>
                   </div>
                 </div>
               </div>
@@ -195,7 +197,7 @@ export default function Home() {
                 >
                   <div className="border-b-3 border-ink bg-ink text-cream px-4 py-2">
                     <span className="font-mono text-sm uppercase tracking-wider">
-                      → Drop your resume
+                      → Drop your resume (it&apos;s free)
                     </span>
                   </div>
                   <div className="p-4">
@@ -235,6 +237,12 @@ export default function Home() {
                       Resumes published
                     </div>
                   </div>
+                </div>
+
+                {/* Tech Badges */}
+                <div className="text-center text-xs text-[#6B6B6B] mt-2">
+                  Powered by <span className="font-semibold">Cloudflare</span> •{" "}
+                  <span className="font-semibold">Google AI</span>
                 </div>
               </div>
             </div>
@@ -352,19 +360,19 @@ export default function Home() {
                   {
                     step: "01",
                     title: "Upload",
-                    desc: "Drop your PDF resume. No account needed.",
+                    desc: "Drop your PDF resume. No account needed to start.",
                     color: "bg-amber",
                   },
                   {
                     step: "02",
                     title: "AI Parses",
-                    desc: "We extract your experience, skills, and achievements.",
+                    desc: "Google AI extracts your experience, skills, and achievements.",
                     color: "bg-mint",
                   },
                   {
                     step: "03",
                     title: "Publish",
-                    desc: "Get a beautiful shareable link in seconds.",
+                    desc: "Get your own clickfolio.me/@yourname URL in 30 seconds.",
                     color: "bg-brand",
                   },
                 ].map((item, index) => (
@@ -391,6 +399,19 @@ export default function Home() {
               </div>
             </section>
 
+            {/* Testimonial */}
+            <section className="mt-16 lg:mt-20">
+              <div className="bg-mint border-3 border-ink p-6 shadow-brutal-md relative">
+                <div className="absolute top-4 left-4 text-6xl text-ink/10 font-serif">"</div>
+                <blockquote className="text-lg text-ink font-medium relative z-10 pl-8">
+                  I spent 3 hours on my old portfolio. Clickfolio took 30 seconds.
+                </blockquote>
+                <footer className="mt-4 font-mono text-sm text-ink/70 pl-8">
+                  — Marcus R., Software Engineer
+                </footer>
+              </div>
+            </section>
+
             {/* Bottom CTA */}
             <section className="mt-16 lg:mt-20">
               <div
@@ -405,14 +426,14 @@ export default function Home() {
               "
               >
                 <h2 className="font-black text-3xl sm:text-4xl text-cream mb-4">
-                  Your resume shouldn&apos;t
+                  Your resume deserves
                   <br />
                   <span className="inline-block bg-brand text-white px-3 py-1 rotate-1 mt-2">
-                    blend in.
+                    its own URL.
                   </span>
                 </h2>
                 <p className="font-mono text-cream/70 mb-8 max-w-md mx-auto">
-                  Neither should we. Start building your web portfolio today.
+                  Give it a permanent home on the web. Free forever.
                 </p>
                 <div className="flex justify-center">
                   <button

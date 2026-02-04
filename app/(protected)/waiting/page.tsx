@@ -13,7 +13,15 @@
  * Dashboard already handles live status updates for processing resumes.
  */
 
-import { AlertCircle, CheckCircle2, Sparkles } from "lucide-react";
+import {
+  AlertCircle,
+  Briefcase,
+  CheckCircle2,
+  FileText,
+  Layout,
+  Sparkles,
+  Wrench,
+} from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -27,21 +35,40 @@ interface RetryResponse {
   error?: string;
 }
 
-const TIPS = [
-  "Pro tip: A custom domain makes your resume look more professional",
-  "Did you know? Recruiters spend an average of 7 seconds on a resume",
-  "Tip: Keep your LinkedIn profile updated with your Clickfolio link",
-  "Fun fact: 75% of resumes are never seen by human eyes",
-  "Pro tip: Share your Clickfolio link in your email signature",
-  "Did you know? AI-parsed resumes are 3x more accurate than manual entry",
-  "Tip: Use a professional headshot to increase profile views by 14x",
-  "Fun fact: Your resume will be mobile-optimized automatically",
-  "Pro tip: Update your portfolio quarterly to stay relevant",
-  "Did you know? 87% of recruiters use LinkedIn to vet candidates",
+const PROCESSING_STAGES = [
+  {
+    progress: 20,
+    stage: "Extracting Text",
+    message: "Reading your PDF and extracting all content...",
+    icon: FileText,
+  },
+  {
+    progress: 40,
+    stage: "Finding Sections",
+    message: "Identifying experience, education, and skills...",
+    icon: Layout,
+  },
+  {
+    progress: 60,
+    stage: "Analyzing Experience",
+    message: "Understanding your work history and achievements...",
+    icon: Briefcase,
+  },
+  {
+    progress: 80,
+    stage: "Extracting Skills",
+    message: "Identifying technical skills and competencies...",
+    icon: Wrench,
+  },
+  {
+    progress: 95,
+    stage: "Final Touches",
+    message: "Formatting your beautiful new portfolio...",
+    icon: Sparkles,
+  },
 ] as const;
 
 const INITIAL_COUNTDOWN = 35;
-const TIP_ROTATION_INTERVAL = 4500;
 
 function WaitingContent() {
   const router = useRouter();
@@ -50,24 +77,7 @@ function WaitingContent() {
 
   const { status, progress, error, canRetry, isLoading, refetch } = useResumeStatus(resumeId);
 
-  const [currentTipIndex, setCurrentTipIndex] = useState(0);
-  const [isTipVisible, setIsTipVisible] = useState(true);
   const [countdown, setCountdown] = useState(INITIAL_COUNTDOWN);
-
-  // Rotate tips with fade transition
-  useEffect(() => {
-    if (status !== "processing") return;
-
-    const interval = setInterval(() => {
-      setIsTipVisible(false);
-      setTimeout(() => {
-        setCurrentTipIndex((prev) => (prev + 1) % TIPS.length);
-        setIsTipVisible(true);
-      }, 300);
-    }, TIP_ROTATION_INTERVAL);
-
-    return () => clearInterval(interval);
-  }, [status]);
 
   // Countdown timer
   useEffect(() => {
@@ -181,27 +191,36 @@ function WaitingContent() {
                 </p>
               </div>
 
-              {/* Tips carousel */}
+              {/* Processing stage info */}
               <div className="border-2 border-ink bg-secondary/50 p-4 shadow-brutal-sm">
-                <div className="min-h-[3rem] flex items-center justify-center">
-                  <p
-                    className={`text-sm text-center text-ink/80 transition-opacity duration-300 ${
-                      isTipVisible ? "opacity-100" : "opacity-0"
-                    }`}
-                  >
-                    {TIPS[currentTipIndex]}
-                  </p>
+                <div className="space-y-3">
+                  {(() => {
+                    const currentStage =
+                      PROCESSING_STAGES.find((s) => progress <= s.progress) ||
+                      PROCESSING_STAGES[PROCESSING_STAGES.length - 1];
+                    const StageIcon = currentStage.icon;
+                    return (
+                      <div className="flex items-center gap-3">
+                        <div className="bg-coral/10 border border-coral/20 rounded-lg p-2">
+                          <StageIcon className="h-5 w-5 text-coral" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-ink">{currentStage.stage}</p>
+                          <p className="text-xs text-muted-foreground">{currentStage.message}</p>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
-                {/* Tip indicator dots */}
-                <div className="flex justify-center gap-1 mt-3">
-                  {TIPS.map((_, index) => (
-                    <div
-                      key={index}
-                      className={`w-1.5 h-1.5 rounded-full transition-colors duration-300 ${
-                        index === currentTipIndex ? "bg-coral" : "bg-ink/20"
-                      }`}
-                    />
-                  ))}
+
+                {/* What You'll Get preview */}
+                <div className="mt-4 pt-4 border-t border-ink/10">
+                  <p className="text-xs font-semibold text-ink/70 mb-2">What you&apos;ll get:</p>
+                  <ul className="text-xs text-muted-foreground space-y-1">
+                    <li>• Your own clickfolio.me/@yourname URL</li>
+                    <li>• Mobile-optimized design</li>
+                    <li>• One-click sharing to LinkedIn</li>
+                  </ul>
                 </div>
               </div>
             </div>

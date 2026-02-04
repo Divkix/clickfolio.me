@@ -371,6 +371,21 @@ export default function WizardPage() {
     // No cleanup needed — waitForResumeCompletion handles its own cleanup internally
   }, [router, userId, sessionLoading, awaitResumeComplete, onboardingCompleted]);
 
+  // Abandonment prevention - warn users before leaving mid-wizard
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      // Only warn if user has started the wizard (past step 1) and hasn't completed
+      if (state.currentStep > 1 && !showCelebration) {
+        e.preventDefault();
+        // returnValue is deprecated but required for cross-browser compatibility
+        e.returnValue = "";
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [state.currentStep, showCelebration]);
+
   // Handler for upload completion (Step 1 for login-first users)
   // Note: We keep needsUpload=true to maintain correct step numbering throughout the session
   const handleUploadComplete = (resumeData: ResumeContent) => {
