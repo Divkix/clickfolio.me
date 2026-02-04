@@ -1,7 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { ABProvider } from "@/components/ABTest";
 import { Toaster } from "@/components/ui/sonner";
-import { getVariantServer } from "@/lib/ab-testing/server";
 import { siteConfig } from "@/lib/config/site";
 import "./globals.css";
 
@@ -35,13 +33,11 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const variant = await getVariantServer();
-
   return (
     <html lang="en">
       <body className="antialiased">
@@ -51,7 +47,7 @@ export default async function RootLayout({
         >
           Skip to main content
         </a>
-        <ABProvider variant={variant}>{children}</ABProvider>
+        {children}
         <Toaster />
       </body>
     </html>
