@@ -4,6 +4,7 @@ import { Check, Copy, ExternalLink, Gift, Linkedin, Rocket, XIcon } from "lucide
 import Link from "next/link";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
+import { Confetti } from "@/components/Confetti";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
@@ -99,98 +100,102 @@ export function YouAreLiveModal({ open, onOpenChange, handle, url }: YouAreLiveM
   }, [resumeUrl]);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md text-center">
-        <DialogHeader className="items-center">
-          <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-4">
-            <Rocket className="size-8 text-green-600 dark:text-green-400" />
-          </div>
-          <DialogTitle className="text-2xl">You&apos;re Live!</DialogTitle>
-        </DialogHeader>
-
-        <div className="space-y-4 py-4">
-          <p className="text-muted-foreground">
-            Your resume is now published and ready to share with the world.
-          </p>
-
-          {/* Resume URL */}
-          <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
-            <code className="flex-1 text-sm truncate font-mono">clickfolio.me/@{handle}</code>
-            <button
-              type="button"
-              onClick={handleCopyLink}
-              className="p-2 hover:bg-background rounded-md transition-colors"
-              aria-label={copied ? "Link copied" : "Copy link"}
-            >
-              {copied ? (
-                <Check className="size-4 text-green-500" />
-              ) : (
-                <Copy className="size-4 text-muted-foreground" />
-              )}
-            </button>
-          </div>
-
-          {/* Share Actions */}
-          <div className="grid grid-cols-2 gap-2">
-            <Button variant="outline" onClick={handleTwitterShare}>
-              <XIcon className="size-4 mr-2" />X / Twitter
-            </Button>
-            <Button variant="outline" onClick={handleLinkedInShare}>
-              <Linkedin className="size-4 mr-2" />
-              LinkedIn
-            </Button>
-            <Button variant="outline" onClick={handleWhatsAppShare}>
-              <WhatsAppIcon className="size-4 mr-2" />
-              WhatsApp
-            </Button>
-            <Button variant="outline" onClick={handleCopyLink}>
-              <Copy className="size-4 mr-2" />
-              {copied ? "Copied!" : "Copy"}
-            </Button>
-          </div>
-
-          {/* Referral Section */}
-          <div className="bg-linear-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg p-4 border border-purple-200/60 dark:border-purple-700/40">
-            <div className="flex items-center gap-2 mb-2">
-              <Gift className="size-4 text-purple-600 dark:text-purple-400" aria-hidden="true" />
-              <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                Share with friends
-              </span>
+    <>
+      {/* Celebration confetti when modal opens */}
+      {open && <Confetti />}
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-md text-center">
+          <DialogHeader className="items-center">
+            <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-4">
+              <Rocket className="size-8 text-green-600 dark:text-green-400" />
             </div>
-            <p className="text-xs text-slate-600 dark:text-slate-400 mb-3">
-              Know someone job hunting? Share your referral link.
+            <DialogTitle className="text-2xl">You&apos;re Live!</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <p className="text-muted-foreground">
+              Your resume is now published and ready to share with the world.
             </p>
-            <div className="flex items-center gap-2">
-              <code className="flex-1 text-xs bg-white/80 dark:bg-slate-800/80 px-2 py-1.5 rounded font-mono text-slate-600 dark:text-slate-300 truncate">
-                ?ref={handle}
-              </code>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={handleCopyReferralLink}
-                className="shrink-0"
+
+            {/* Resume URL */}
+            <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
+              <code className="flex-1 text-sm truncate font-mono">clickfolio.me/@{handle}</code>
+              <button
+                type="button"
+                onClick={handleCopyLink}
+                className="p-2 hover:bg-background rounded-md transition-colors"
+                aria-label={copied ? "Link copied" : "Copy link"}
               >
-                {referralCopied ? (
-                  <Check className="size-3 text-green-500" />
+                {copied ? (
+                  <Check className="size-4 text-green-500" />
                 ) : (
-                  <Copy className="size-3" />
+                  <Copy className="size-4 text-muted-foreground" />
                 )}
+              </button>
+            </div>
+
+            {/* Share Actions */}
+            <div className="grid grid-cols-2 gap-2">
+              <Button variant="outline" onClick={handleTwitterShare}>
+                <XIcon className="size-4 mr-2" />X / Twitter
+              </Button>
+              <Button variant="outline" onClick={handleLinkedInShare}>
+                <Linkedin className="size-4 mr-2" />
+                LinkedIn
+              </Button>
+              <Button variant="outline" onClick={handleWhatsAppShare}>
+                <WhatsAppIcon className="size-4 mr-2" />
+                WhatsApp
+              </Button>
+              <Button variant="outline" onClick={handleCopyLink}>
+                <Copy className="size-4 mr-2" />
+                {copied ? "Copied!" : "Copy"}
               </Button>
             </div>
-          </div>
 
-          {/* View Resume Link */}
-          <Link
-            href={`/@${handle}`}
-            className="inline-flex items-center gap-2 text-primary hover:underline font-medium"
-            onClick={() => onOpenChange(false)}
-          >
-            View My Resume
-            <ExternalLink className="size-4" />
-          </Link>
-        </div>
-      </DialogContent>
-    </Dialog>
+            {/* Referral Section */}
+            <div className="bg-linear-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg p-4 border border-purple-200/60 dark:border-purple-700/40">
+              <div className="flex items-center gap-2 mb-2">
+                <Gift className="size-4 text-purple-600 dark:text-purple-400" aria-hidden="true" />
+                <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                  Share with friends
+                </span>
+              </div>
+              <p className="text-xs text-slate-600 dark:text-slate-400 mb-3">
+                Know someone job hunting? Share your referral link.
+              </p>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 text-xs bg-white/80 dark:bg-slate-800/80 px-2 py-1.5 rounded font-mono text-slate-600 dark:text-slate-300 truncate">
+                  ?ref={handle}
+                </code>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleCopyReferralLink}
+                  className="shrink-0"
+                >
+                  {referralCopied ? (
+                    <Check className="size-3 text-green-500" />
+                  ) : (
+                    <Copy className="size-3" />
+                  )}
+                </Button>
+              </div>
+            </div>
+
+            {/* View Resume Link */}
+            <Link
+              href={`/@${handle}`}
+              className="inline-flex items-center gap-2 text-primary hover:underline font-medium"
+              onClick={() => onOpenChange(false)}
+            >
+              View My Resume
+              <ExternalLink className="size-4" />
+            </Link>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 

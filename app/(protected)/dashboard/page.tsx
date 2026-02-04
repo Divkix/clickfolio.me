@@ -210,9 +210,11 @@ export default async function DashboardPage() {
   // Empty State - No Resume
   if (!hasResume) {
     return (
-      <div className="min-h-screen bg-slate-50">
+      // <CHANGE> bg-slate-50 -> bg-cream for neubrutalist design
+      <div className="min-h-screen bg-cream">
         <main className="flex items-center justify-center min-h-[80vh] px-4">
-          <div className="bg-white rounded-2xl shadow-depth-md border border-slate-200/60 p-12 max-w-md w-full text-center hover:shadow-depth-lg transition-all duration-300">
+          {/* <CHANGE> shadow-depth -> shadow-brutal, border-slate -> border-ink */}
+          <div className="bg-white rounded-2xl shadow-brutal-sm border-2 border-ink/10 p-12 max-w-md w-full text-center hover:shadow-brutal-md transition-all duration-300">
             <div className="relative inline-block mb-6">
               <div className="absolute inset-0 bg-linear-to-r from-coral to-coral rounded-xl blur-xl opacity-20" />
               <div className="relative bg-linear-to-r from-coral/20 to-coral/20 p-6 rounded-xl">
@@ -240,7 +242,8 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    // <CHANGE> bg-slate-50 -> bg-cream for neubrutalist design
+    <div className="min-h-screen bg-cream">
       <main className="max-w-[1400px] mx-auto px-4 lg:px-6 py-8">
         {/* Onboarding Incomplete Banner */}
         {profile && !profile.onboardingCompleted && (

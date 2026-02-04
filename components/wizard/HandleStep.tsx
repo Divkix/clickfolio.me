@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, Loader2, User, X } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,6 +20,29 @@ interface HandleCheckResponse {
 }
 
 /**
+ * Generate alternative handle suggestions when a handle is taken
+ */
+function generateSuggestions(handle: string): string[] {
+  const suggestions: string[] = [];
+
+  // Add numbers suffix
+  suggestions.push(`${handle}123`);
+
+  // Add -dev suffix
+  suggestions.push(`${handle}-dev`);
+
+  // Add "the" prefix
+  suggestions.push(`the${handle}`);
+
+  // Add random 2-digit number
+  const randomNum = Math.floor(Math.random() * 90) + 10; // 10-99
+  suggestions.push(`${handle}${randomNum}`);
+
+  // Filter out suggestions that are too long (max 30 chars) or too short (min 3)
+  return suggestions.filter((s) => s.length >= 3 && s.length <= 30);
+}
+
+/**
  * Step 1: Handle Selection Component
  * Allows users to choose their unique username/handle
  */
@@ -29,6 +52,14 @@ export function HandleStep({ initialHandle = "", onContinue }: HandleStepProps) 
   const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
   const [isCurrentHandle, setIsCurrentHandle] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Generate suggestions when handle is taken
+  const suggestions = useMemo(() => {
+    if (isAvailable === false && handle.length >= 3) {
+      return generateSuggestions(handle);
+    }
+    return [];
+  }, [isAvailable, handle]);
 
   // Debounced availability check via API route
   const checkAvailability = useCallback(async (value: string) => {
@@ -89,6 +120,15 @@ export function HandleStep({ initialHandle = "", onContinue }: HandleStepProps) 
     if (value.length > 0 && value.length < 3) {
       setError("Handle must be at least 3 characters");
     }
+  };
+
+  const handleSuggestionClick = (suggestion: string) => {
+    setHandle(suggestion);
+    setIsAvailable(null);
+    setIsCurrentHandle(false);
+    setError(null);
+    // Trigger immediate availability check
+    checkAvailability(suggestion);
   };
 
   const handleSubmit = () => {
@@ -158,10 +198,31 @@ export function HandleStep({ initialHandle = "", onContinue }: HandleStepProps) 
             </p>
           )}
           {!isChecking && isAvailable === false && (
-            <p className="text-sm text-coral font-medium flex items-center gap-1">
-              <X className="w-4 h-4" />
-              This handle is already taken
-            </p>
+            <div className="space-y-3">
+              <p className="text-sm text-coral font-medium flex items-center gap-1">
+                <X className="w-4 h-4" />
+                This handle is already taken
+              </p>
+
+              {/* Handle Suggestions */}
+              {suggestions.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-slate-600">Try one of these:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {suggestions.map((suggestion) => (
+                      <button
+                        key={suggestion}
+                        type="button"
+                        onClick={() => handleSuggestionClick(suggestion)}
+                        className="px-3 py-1.5 text-sm font-medium bg-slate-50 border-2 border-slate-900 rounded-md hover:bg-coral/10 hover:border-coral transition-colors cursor-pointer"
+                      >
+                        {suggestion}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           )}
           {!isChecking && isAvailable === true && isCurrentHandle && (
             <p className="text-sm text-coral font-medium flex items-center gap-1">

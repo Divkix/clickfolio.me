@@ -3,12 +3,27 @@ import { notFound } from "next/navigation";
 import { AttributionWidget } from "@/components/AttributionWidget";
 import { AnalyticsBeacon } from "@/components/analytics/AnalyticsBeacon";
 import { CreateYoursCTA } from "@/components/CreateYoursCTA";
+import { ShareBar, type ShareBarVariant } from "@/components/ShareBar";
 import { siteConfig } from "@/lib/config/site";
 import { getResumeData, getResumeMetadata } from "@/lib/data/resume";
-import { DEFAULT_THEME } from "@/lib/templates/theme-ids";
+import { DEFAULT_THEME, type ThemeId } from "@/lib/templates/theme-ids";
 import { getTemplate } from "@/lib/templates/theme-registry";
 import { isValidHandleFormat } from "@/lib/utils/handle-validation";
 import { generateResumeJsonLd, serializeJsonLd } from "@/lib/utils/json-ld";
+
+// Map database theme IDs (underscore) to ShareBar variants (kebab-case)
+const themeToShareBarVariant: Record<ThemeId, ShareBarVariant> = {
+  minimalist_editorial: "minimalist-editorial",
+  neo_brutalist: "neo-brutalist",
+  glass: "glass-morphic",
+  bento: "bento-grid",
+  spotlight: "spotlight",
+  midnight: "midnight",
+  bold_corporate: "bold-corporate",
+  classic_ats: "classic-ats",
+  design_folio: "design-folio",
+  dev_terminal: "dev-terminal",
+};
 
 // Dynamic params are always allowed (new handles can be created)
 export const dynamicParams = true;
@@ -172,6 +187,11 @@ export default async function HandlePage({ params }: PageProps) {
   // - Data is from trusted D1 database, not user input
   const jsonLdScript = jsonLd ? serializeJsonLd(jsonLd) : null;
 
+  // Map theme_id to ShareBar variant (kebab-case format)
+  // Cast theme_id to ThemeId since it's validated against the enum in the database
+  const shareBarVariant = themeToShareBarVariant[(theme_id ?? DEFAULT_THEME) as ThemeId];
+  const pageTitle = `${content.full_name}'s Resume`;
+
   return (
     <>
       {/* JSON-LD structured data for rich search results */}
@@ -190,6 +210,15 @@ export default async function HandlePage({ params }: PageProps) {
         }}
       />
       <AnalyticsBeacon handle={handle} />
+      {/* Floating share bar for visitors */}
+      <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-40 print:hidden">
+        <ShareBar
+          handle={handle}
+          name={content.full_name}
+          title={pageTitle}
+          variant={shareBarVariant}
+        />
+      </div>
       <CreateYoursCTA handle={handle} variant={ctaVariant} />
       <AttributionWidget theme={theme_id ?? DEFAULT_THEME} />
     </>

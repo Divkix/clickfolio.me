@@ -22,7 +22,8 @@ interface ProfileSectionProps {
 
 function ProfileSection({ name, email, headline, image, handle }: ProfileSectionProps) {
   return (
-    <div className="bg-white rounded-2xl shadow-depth-sm border border-slate-200/60 p-6 h-full flex flex-col">
+    // <CHANGE> shadow-depth-sm -> shadow-brutal-sm, border-slate -> border-ink for neubrutalist design
+    <div className="bg-white rounded-2xl shadow-brutal-sm border-2 border-ink/10 p-6 h-full flex flex-col">
       {/* Profile header with avatar */}
       <div className="flex items-start gap-4 mb-4">
         {image ? (
@@ -134,7 +135,8 @@ export default async function SettingsPage() {
       : null;
 
   return (
-    <div className="min-h-screen py-8">
+    // <CHANGE> Add bg-cream for neubrutalist design alignment
+    <div className="min-h-screen bg-cream py-8">
       <div className="max-w-5xl mx-auto px-4 lg:px-6 space-y-6">
         {/* Page Header */}
         <div className="mb-2">
