@@ -177,6 +177,7 @@ export default async function DashboardPage() {
       onboardingCompleted: true,
       createdAt: true,
       referralCount: true,
+      referralCode: true,
     },
   });
 
@@ -206,9 +207,15 @@ export default async function DashboardPage() {
   // Determine resume state
   const hasResume = !!resume;
   const hasPublishedSite = !!siteDataResult;
-  const content = siteDataResult?.content
-    ? (JSON.parse(siteDataResult.content) as ResumeContent)
-    : null;
+  let content: ResumeContent | null = null;
+  if (siteDataResult?.content) {
+    try {
+      content = JSON.parse(siteDataResult.content) as ResumeContent;
+    } catch (error) {
+      console.error("Failed to parse siteData content:", error);
+      // content remains null, dashboard will show appropriate fallback state
+    }
+  }
 
   // Calculate profile metrics
   const completeness = content ? calculateCompleteness(content) : 0;
@@ -252,26 +259,6 @@ export default async function DashboardPage() {
     // <CHANGE> bg-slate-50 -> bg-cream for neubrutalist design
     <div className="min-h-screen bg-cream">
       <main className="max-w-[1400px] mx-auto px-4 lg:px-6 py-8">
-        {/* Onboarding Incomplete Banner */}
-        {profile && !profile.onboardingCompleted && (
-          <Alert className="mb-6 border-amber-200 bg-amber-50">
-            <AlertCircle className="w-4 h-4 text-amber-600" aria-hidden="true" />
-            <AlertDescription className="flex items-center justify-between">
-              <span className="text-amber-900 font-medium">
-                Your profile is incomplete. Complete the wizard to improve your resume.
-              </span>
-              <Button
-                asChild
-                variant="outline"
-                size="sm"
-                className="ml-4 border-amber-300 text-amber-700 hover:bg-amber-100 hover:border-amber-400"
-              >
-                <Link href="/wizard">Complete Now</Link>
-              </Button>
-            </AlertDescription>
-          </Alert>
-        )}
-
         {/* Email Verification Banner (client component) */}
         {profile?.email && (
           <div className="mb-6">
@@ -523,11 +510,11 @@ export default async function DashboardPage() {
                 </div>
 
                 {/* Referral CTA - Now prominent in left column */}
-                {profile?.handle && (
+                {profile?.referralCode && (
                   <ReferralStats
                     referralCount={referralCount}
                     clickCount={clickCount}
-                    handle={profile.handle}
+                    referralCode={profile.referralCode}
                   />
                 )}
               </div>

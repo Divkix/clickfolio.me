@@ -16,6 +16,7 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { drizzle } from "drizzle-orm/d1";
 import * as schema from "@/lib/db/schema";
 import { sendPasswordResetEmail, sendVerificationEmail } from "@/lib/email/resend";
+import { generateReferralCode } from "@/lib/utils/referral-code";
 
 /**
  * Wraps a D1Database to automatically convert Date objects to ISO strings.
@@ -163,6 +164,26 @@ export async function getAuth() {
       // Allow localhost:3000 for Next.js dev server (different port than Workers preview)
       process.env.NODE_ENV === "development" ? "http://localhost:3000" : null,
     ].filter(Boolean) as string[],
+    databaseHooks: {
+      user: {
+        create: {
+          before: async (user) => {
+            try {
+              return {
+                data: {
+                  ...user,
+                  referralCode: generateReferralCode(),
+                },
+              };
+            } catch (error) {
+              // Log but don't crash signup - referralCode can be backfilled later
+              console.error("[AUTH] Failed to generate referral code during signup:", error);
+              return { data: user };
+            }
+          },
+        },
+      },
+    },
     emailAndPassword: {
       enabled: true,
       sendResetPassword: async ({ user, url }) => {

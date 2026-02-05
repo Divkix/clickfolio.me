@@ -1,66 +1,66 @@
 import { describe, expect, it } from "vitest";
 import {
-  captureReferralHandle,
-  clearStoredReferralHandle,
-  getStoredReferralHandle,
+  captureReferralCode,
+  clearStoredReferralCode,
+  getStoredReferralCode,
 } from "@/lib/referral";
 
-const REFERRAL_KEY = "referral_handle";
+const REFERRAL_CODE_KEY = "referral_code";
 
 describe("referral client-side utilities", () => {
-  describe("captureReferralHandle", () => {
-    it("stores handle in localStorage", () => {
-      captureReferralHandle("johndoe");
-      expect(localStorage.getItem(REFERRAL_KEY)).toBe("johndoe");
+  describe("captureReferralCode", () => {
+    it("stores code in localStorage", () => {
+      captureReferralCode("ABC12345");
+      expect(localStorage.getItem(REFERRAL_CODE_KEY)).toBe("ABC12345");
     });
 
-    it("converts handle to lowercase", () => {
-      captureReferralHandle("JohnDoe");
-      expect(localStorage.getItem(REFERRAL_KEY)).toBe("johndoe");
+    it("converts code to uppercase", () => {
+      captureReferralCode("abc12345");
+      expect(localStorage.getItem(REFERRAL_CODE_KEY)).toBe("ABC12345");
     });
 
-    it("trims whitespace from handle", () => {
-      captureReferralHandle("  johndoe  ");
-      expect(localStorage.getItem(REFERRAL_KEY)).toBe("johndoe");
+    it("trims whitespace from code", () => {
+      captureReferralCode("  ABC12345  ");
+      expect(localStorage.getItem(REFERRAL_CODE_KEY)).toBe("ABC12345");
     });
 
-    it("does not overwrite existing handle (first ref wins)", () => {
-      captureReferralHandle("firstref");
-      captureReferralHandle("secondref");
-      expect(localStorage.getItem(REFERRAL_KEY)).toBe("firstref");
+    it("does not overwrite existing code (first ref wins)", () => {
+      captureReferralCode("FIRSTREF");
+      captureReferralCode("SECNDREF");
+      expect(localStorage.getItem(REFERRAL_CODE_KEY)).toBe("FIRSTREF");
     });
 
-    it("ignores empty string handle", () => {
-      captureReferralHandle("");
-      expect(localStorage.getItem(REFERRAL_KEY)).toBeNull();
+    it("ignores empty string code", () => {
+      captureReferralCode("");
+      expect(localStorage.getItem(REFERRAL_CODE_KEY)).toBeNull();
     });
 
-    it("ignores whitespace-only handle", () => {
-      captureReferralHandle("   ");
-      expect(localStorage.getItem(REFERRAL_KEY)).toBeNull();
-    });
-  });
-
-  describe("getStoredReferralHandle", () => {
-    it("returns stored handle", () => {
-      localStorage.setItem(REFERRAL_KEY, "johndoe");
-      expect(getStoredReferralHandle()).toBe("johndoe");
-    });
-
-    it("returns null when no handle is stored", () => {
-      expect(getStoredReferralHandle()).toBeNull();
+    it("ignores whitespace-only code", () => {
+      captureReferralCode("   ");
+      expect(localStorage.getItem(REFERRAL_CODE_KEY)).toBeNull();
     });
   });
 
-  describe("clearStoredReferralHandle", () => {
-    it("removes handle from localStorage", () => {
-      localStorage.setItem(REFERRAL_KEY, "johndoe");
-      clearStoredReferralHandle();
-      expect(localStorage.getItem(REFERRAL_KEY)).toBeNull();
+  describe("getStoredReferralCode", () => {
+    it("returns stored code", () => {
+      localStorage.setItem(REFERRAL_CODE_KEY, "ABC12345");
+      expect(getStoredReferralCode()).toBe("ABC12345");
     });
 
-    it("does not throw when no handle exists", () => {
-      expect(() => clearStoredReferralHandle()).not.toThrow();
+    it("returns null when no code is stored", () => {
+      expect(getStoredReferralCode()).toBeNull();
+    });
+  });
+
+  describe("clearStoredReferralCode", () => {
+    it("removes code from localStorage", () => {
+      localStorage.setItem(REFERRAL_CODE_KEY, "ABC12345");
+      clearStoredReferralCode();
+      expect(localStorage.getItem(REFERRAL_CODE_KEY)).toBeNull();
+    });
+
+    it("does not throw when no code exists", () => {
+      expect(() => clearStoredReferralCode()).not.toThrow();
     });
   });
 });

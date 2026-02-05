@@ -11,25 +11,25 @@ interface ReferralStatsProps {
   referralCount: number;
   /** Number of clicks on the referral link */
   clickCount: number;
-  /** The user's handle for generating the referral link */
-  handle: string;
+  /** The user's referral code for generating the referral link */
+  referralCode: string;
 }
 
 /**
  * Horizontal referral CTA card for dashboard left column
  *
  * Features:
- * - Benefit-focused copy ("Help friends land jobs")
+ * - Benefit-focused copy ("Share Clickfolio")
  * - Click and conversion stats
  * - Prominent copy button with focus ring
  */
-export function ReferralStats({ referralCount, clickCount, handle }: ReferralStatsProps) {
+export function ReferralStats({ referralCount, clickCount, referralCode }: ReferralStatsProps) {
   const [copied, setCopied] = useState(false);
 
   const referralUrl =
     typeof window !== "undefined"
-      ? `${window.location.origin}/?ref=${handle}`
-      : `https://clickfolio.me/?ref=${handle}`;
+      ? `${window.location.origin}/?ref=${referralCode}`
+      : `https://clickfolio.me/?ref=${referralCode}`;
 
   const handleCopyLink = useCallback(async () => {
     try {
@@ -53,15 +53,15 @@ export function ReferralStats({ referralCount, clickCount, handle }: ReferralSta
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1">
               <Gift className="w-5 h-5 text-purple-600" aria-hidden="true" />
-              <h3 className="font-semibold text-slate-900">Help friends land jobs</h3>
+              <h3 className="font-semibold text-slate-900">Share Clickfolio</h3>
             </div>
             <p className="text-sm text-slate-600">
-              Know someone job hunting? Share clickfolio.me with them.
+              Know someone who needs a portfolio? Share your link.
             </p>
           </div>
           <div className="flex items-center gap-2">
             <code className="bg-white/80 px-3 py-2 rounded-lg text-sm font-mono text-slate-600 hidden sm:block">
-              clickfolio.me/?ref={handle}
+              clickfolio.me/?ref={referralCode}
             </code>
             <Button
               variant="default"

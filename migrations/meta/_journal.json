@@ -113,6 +113,20 @@
       "when": 1770067056301,
       "tag": "0015_slimy_power_man",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "6",
+      "when": 1770282890154,
+      "tag": "0016_certain_hydra",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "6",
+      "when": 1770283389444,
+      "tag": "0017_sparkling_living_tribunal",
+      "breakpoints": true
     }
   ]
 }

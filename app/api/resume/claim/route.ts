@@ -17,7 +17,7 @@ import { MAX_FILE_SIZE, validateRequestSize } from "@/lib/utils/validation";
 
 interface ClaimRequestBody {
   key?: string;
-  referral_handle?: string;
+  referral_code?: string;
 }
 
 /**
@@ -220,9 +220,9 @@ export async function POST(request: Request) {
     }
 
     // 5a. Link referral if provided (best effort - don't fail claim on referral errors)
-    if (body.referral_handle) {
+    if (body.referral_code) {
       try {
-        const referralResult = await writeReferral(userId, body.referral_handle, request);
+        const referralResult = await writeReferral(userId, body.referral_code, request);
         if (!referralResult.success) {
           console.log(`Referral not linked: ${referralResult.reason}`);
         }

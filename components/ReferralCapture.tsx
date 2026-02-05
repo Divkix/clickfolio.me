@@ -2,18 +2,18 @@
 
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef } from "react";
-import { captureReferralHandle } from "@/lib/referral";
+import { captureReferralCode } from "@/lib/referral";
 
 /**
  * Fire tracking beacon to record referral click
  * Uses sendBeacon for reliability (survives page navigation)
  */
 async function trackReferralClick(
-  handle: string,
+  code: string,
   source: "homepage" | "cta" | "share" = "homepage",
 ): Promise<void> {
   try {
-    const payload = JSON.stringify({ handle, source });
+    const payload = JSON.stringify({ code, source });
 
     // Prefer sendBeacon for reliability
     if (navigator.sendBeacon) {
@@ -38,22 +38,21 @@ async function trackReferralClick(
  * This is separated from the main page to allow Suspense boundary
  * during static page generation.
  *
- * Captures the referral handle in localStorage and fires a tracking beacon.
+ * Captures the referral code in localStorage and fires a tracking beacon.
  */
 export function ReferralCapture() {
   const searchParams = useSearchParams();
   const hasTracked = useRef(false);
 
   useEffect(() => {
-    const refHandle = searchParams.get("ref");
-    if (refHandle) {
-      // Capture referral to localStorage (first ref wins)
-      captureReferralHandle(refHandle);
+    const ref = searchParams.get("ref");
+    if (ref) {
+      captureReferralCode(ref);
 
       // Track the click only once per page load
       if (!hasTracked.current) {
         hasTracked.current = true;
-        trackReferralClick(refHandle, "homepage");
+        trackReferralClick(ref, "homepage");
       }
     }
   }, [searchParams]);

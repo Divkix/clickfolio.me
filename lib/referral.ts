@@ -2,62 +2,70 @@
  * Referral utilities for handling ?ref= parameter tracking
  *
  * Flow:
- * 1. Visitor lands on /?ref={handle}
+ * 1. Visitor lands on /?ref={code}
  * 2. Homepage captures and stores ref in localStorage
  * 3. Visitor signs up via OAuth
  * 4. After signup, referredBy is written to user record
  */
 
 import { getCloudflareContext } from "@opennextjs/cloudflare";
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { referralClicks, user } from "@/lib/db/schema";
 import { generateVisitorHashWithDate } from "@/lib/utils/analytics";
 import { getClientIP } from "@/lib/utils/ip-rate-limit";
 
-const REFERRAL_KEY = "referral_handle";
+const REFERRAL_CODE_KEY = "referral_code";
+
+// =============================================================================
+// Client-side functions for referral codes
+// =============================================================================
 
 /**
- * Store referral handle in localStorage (first ref wins)
+ * Store referral code in localStorage (first ref wins)
  *
- * @param handle - The referrer's handle from ?ref= param
+ * @param code - The referrer's referral code from ?ref= param
  */
-export function captureReferralHandle(handle: string): void {
+export function captureReferralCode(code: string): void {
   if (typeof window === "undefined") return;
 
   // First ref wins - don't overwrite existing
-  const existing = localStorage.getItem(REFERRAL_KEY);
-  if (!existing && handle && handle.trim().length > 0) {
-    localStorage.setItem(REFERRAL_KEY, handle.trim().toLowerCase());
+  const existing = localStorage.getItem(REFERRAL_CODE_KEY);
+  if (!existing && code && code.trim().length > 0) {
+    localStorage.setItem(REFERRAL_CODE_KEY, code.trim().toUpperCase());
   }
 }
 
 /**
- * Get stored referral handle from localStorage
+ * Get stored referral code from localStorage
  *
- * @returns The referral handle or null
+ * @returns The referral code or null
  */
-export function getStoredReferralHandle(): string | null {
+export function getStoredReferralCode(): string | null {
   if (typeof window === "undefined") return null;
-  return localStorage.getItem(REFERRAL_KEY);
+  return localStorage.getItem(REFERRAL_CODE_KEY);
 }
 
 /**
- * Clear stored referral handle from localStorage
+ * Clear stored referral code from localStorage
  */
-export function clearStoredReferralHandle(): void {
+export function clearStoredReferralCode(): void {
   if (typeof window === "undefined") return;
-  localStorage.removeItem(REFERRAL_KEY);
+  localStorage.removeItem(REFERRAL_CODE_KEY);
 }
 
+// =============================================================================
+// Server-side functions
+// =============================================================================
+
 /**
- * Resolve a handle to a user ID (server-side only)
+ * Resolve a referral code to a user ID (server-side only)
  *
- * @param handle - The handle to resolve
+ * @param code - The referral code to resolve
  * @returns The user ID or null if not found
  */
-export async function resolveReferralHandle(handle: string): Promise<string | null> {
-  if (!handle || handle.trim().length === 0) {
+export async function resolveReferralCode(code: string): Promise<string | null> {
+  if (!code || code.trim().length === 0) {
     return null;
   }
 
@@ -67,7 +75,7 @@ export async function resolveReferralHandle(handle: string): Promise<string | nu
   const result = await db
     .select({ id: user.id })
     .from(user)
-    .where(eq(user.handle, handle.toLowerCase()))
+    .where(eq(user.referralCode, code.trim().toUpperCase()))
     .limit(1);
 
   return result[0]?.id ?? null;
@@ -80,30 +88,35 @@ export async function resolveReferralHandle(handle: string): Promise<string | nu
  * First-referral-wins: only writes if user doesn't already have a referrer.
  *
  * Validates:
- * - Referrer exists
+ * - Referrer exists (by code)
  * - User is not self-referring
  *
  * @param userId - The ID of the user to update
- * @param referrerHandle - The handle of the referrer
+ * @param referrerCode - The referral code of the referrer
  * @param request - Optional request for visitor hash matching
  * @returns Success status
  */
 export async function writeReferral(
   userId: string,
-  referrerHandle: string,
+  referrerCode: string,
   request?: Request,
 ): Promise<{ success: boolean; reason?: string }> {
-  if (!referrerHandle || referrerHandle.trim().length === 0) {
-    return { success: false, reason: "empty_handle" };
+  if (!referrerCode || referrerCode.trim().length === 0) {
+    return { success: false, reason: "empty_ref" };
+  }
+
+  // Reject absurdly long inputs to prevent DB issues
+  if (referrerCode.length > 64) {
+    return { success: false, reason: "ref_too_long" };
   }
 
   const { env } = await getCloudflareContext({ async: true });
   const db = getDb(env.DB);
 
-  // Resolve handle to user ID
-  const referrerId = await resolveReferralHandle(referrerHandle);
+  // Resolve referral code to user ID
+  const referrerId = await resolveReferralCode(referrerCode);
   if (!referrerId) {
-    return { success: false, reason: "invalid_handle" };
+    return { success: false, reason: "invalid_ref" };
   }
 
   // Prevent self-referral
@@ -198,12 +211,23 @@ export async function writeReferral(
     // Fallback: if no request or no hash match, mark most recent unconverted click
     // This maintains backwards compatibility and handles edge cases
     if (!clickMarked) {
-      await db
-        .update(referralClicks)
-        .set({ converted: true, convertedUserId: userId })
+      // Find the most recent unconverted click to mark (not all of them)
+      // SQLite/Drizzle doesn't support UPDATE with LIMIT, so SELECT first then UPDATE by ID
+      const mostRecentClick = await db
+        .select({ id: referralClicks.id })
+        .from(referralClicks)
         .where(
           and(eq(referralClicks.referrerUserId, referrerId), eq(referralClicks.converted, false)),
-        );
+        )
+        .orderBy(desc(referralClicks.createdAt))
+        .limit(1);
+
+      if (mostRecentClick[0]) {
+        await db
+          .update(referralClicks)
+          .set({ converted: true, convertedUserId: userId })
+          .where(eq(referralClicks.id, mostRecentClick[0].id));
+      }
     }
   } catch (error) {
     console.error("Failed to mark referral clicks as converted:", error);

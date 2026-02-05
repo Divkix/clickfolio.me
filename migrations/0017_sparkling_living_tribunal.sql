@@ -1,0 +1,1 @@
+DROP INDEX `user_referral_code_idx`;

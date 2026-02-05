@@ -42,12 +42,15 @@ export const user = sqliteTable(
     isPro: integer("is_pro", { mode: "boolean" }).notNull().default(false),
     // Denormalized count of users referred by this user
     referralCount: integer("referral_count").notNull().default(0),
+    // Permanent referral code (generated once at signup, never changes)
+    referralCode: text("referral_code").unique(),
     // Admin flag for admin dashboard access
     isAdmin: integer("is_admin", { mode: "boolean" }).notNull().default(false),
   },
   (table) => [
     // Index for sitemap queries (WHERE handle IS NOT NULL ORDER BY handle)
     index("user_handle_idx").on(table.handle),
+    // Note: referralCode already has implicit unique index from .unique() constraint
   ],
 );
 

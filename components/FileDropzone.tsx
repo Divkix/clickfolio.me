@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { AuthDialog } from "@/components/auth/AuthDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useSession } from "@/lib/auth/client";
-import { clearStoredReferralHandle, getStoredReferralHandle } from "@/lib/referral";
+import { clearStoredReferralCode, getStoredReferralCode } from "@/lib/referral";
 import { validatePDF } from "@/lib/utils/validation";
 
 /**
@@ -213,14 +213,14 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
     setError(null);
 
     try {
-      // Include referral handle if present
-      const referralHandle = getStoredReferralHandle();
+      // Include referral code if present
+      const referralRef = getStoredReferralCode();
       const claimResponse = await fetch("/api/resume/claim", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           key,
-          referral_handle: referralHandle || undefined,
+          referral_code: referralRef || undefined,
         }),
       });
 
@@ -237,8 +237,8 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
       // Clear HTTP-only cookie
       await clearPendingUploadCookie();
 
-      // Clear referral handle after successful claim
-      clearStoredReferralHandle();
+      // Clear referral data after successful claim
+      clearStoredReferralCode();
 
       toast.success("Resume claimed successfully! Processing...");
 
