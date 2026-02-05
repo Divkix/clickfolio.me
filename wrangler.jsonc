@@ -122,7 +122,7 @@
 		// Note: R2 is accessed via binding (R2_BUCKET) - no API credentials needed
 		// Note: AI Gateway secrets are configured in ai-parser-worker, not here
 		// Optional: For edge cache purge (set via wrangler secret put in production)
-		"CF_ZONE_ID": "",
+		"CF_ZONE_ID": "67b153979964d5eafc441643acb1fc14",
 		"NODE_ENV": "production"
 	}
 }
