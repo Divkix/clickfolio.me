@@ -79,6 +79,19 @@ export function normalizeString(value: unknown, defaultVal = ""): string {
 }
 
 /**
+ * Normalize end_date values - treat "Present"/"Current" etc as empty
+ */
+export function normalizeEndDate(value: unknown): string {
+  const normalized = normalizeString(value);
+  if (!normalized) return "";
+  const lower = normalized.toLowerCase();
+  if (lower === "present" || lower === "current" || lower === "ongoing" || lower === "now") {
+    return "";
+  }
+  return normalized;
+}
+
+/**
  * Transform AI response - lenient parsing with XSS protection and URL validation
  */
 export function transformAiResponse(raw: unknown): unknown {
@@ -153,6 +166,8 @@ export function transformAiResponse(raw: unknown): unknown {
       exp.title = truncateString(normalizeString(exp.title), 150);
       exp.company = truncateString(normalizeString(exp.company), 150);
       exp.location = truncateString(normalizeString(exp.location), 100);
+      exp.start_date = truncateString(normalizeString(exp.start_date), 50);
+      exp.end_date = truncateString(normalizeEndDate(exp.end_date), 50);
       exp.description = truncateString(normalizeString(exp.description), 2000);
       if (Array.isArray(exp.highlights)) {
         exp.highlights = exp.highlights
@@ -299,6 +314,9 @@ export function transformAiOutput(raw: ResumeSchema): ResumeSchema {
     for (const exp of result.experience) {
       if (exp?.location === "") {
         delete exp.location;
+      }
+      if (exp?.end_date === "") {
+        delete exp.end_date;
       }
     }
   }
