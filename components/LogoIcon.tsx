@@ -27,14 +27,14 @@ const colorConfig: Record<
     document: "#fdf8f3",
     documentStroke: "#0d0d0d",
     lines: "#0d0d0d",
-    lightning: "#ff6b6b",
+    lightning: "#d94e4e",
   },
   light: {
     shadow: "#0d0d0d",
     document: "#fdf8f3",
     documentStroke: "#0d0d0d",
     lines: "#0d0d0d",
-    lightning: "#ff6b6b",
+    lightning: "#d94e4e",
   },
 };
 

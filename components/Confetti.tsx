@@ -19,7 +19,7 @@ const DEFAULT_COLORS = [
   "#8b5cf6", // violet-500
   "#ec4899", // pink-500
   "#10b981", // emerald-500
-  "#FF6B6B", // coral
+  "#D94E4E", // coral
 ];
 
 /**

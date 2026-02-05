@@ -25,11 +25,11 @@ export const metadata: Metadata = {
     ],
     shortcut: "/favicon.ico",
     apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
-    other: [{ rel: "mask-icon", url: "/safari-pinned-tab.svg", color: "#FF6B6B" }],
+    other: [{ rel: "mask-icon", url: "/safari-pinned-tab.svg", color: "#D94E4E" }],
   },
   manifest: "/manifest.webmanifest",
   other: {
-    "msapplication-TileColor": "#FF6B6B",
+    "msapplication-TileColor": "#D94E4E",
     "msapplication-config": "/browserconfig.xml",
   },
 };

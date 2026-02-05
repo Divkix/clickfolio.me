@@ -72,7 +72,7 @@ export function LogoText({ size = "md", colorScheme = "dark", className = "" }: 
         height="36"
         rx="4"
         transform="rotate(-3 168 11)"
-        fill="#FF6B6B"
+        fill="#D94E4E"
         stroke={colors.stroke}
         strokeWidth="3"
       />
