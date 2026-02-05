@@ -123,6 +123,7 @@
 		// Note: AI Gateway secrets are configured in ai-parser-worker, not here
 		// Optional: For edge cache purge (set via wrangler secret put in production)
 		"CF_ZONE_ID": "67b153979964d5eafc441643acb1fc14",
-		"NODE_ENV": "production"
+		"NODE_ENV": "production",
+		"AI_MODEL": "openai/gpt-oss-120b"
 	}
 }
