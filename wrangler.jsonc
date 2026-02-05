@@ -123,6 +123,6 @@
 		// Note: AI Gateway secrets are configured in ai-parser-worker, not here
 		// Optional: For edge cache purge (set via wrangler secret put in production)
 		"CF_ZONE_ID": "",
-		// AI model for resume parsing (set in .env/.dev.vars locally or as a secret in production)
+		"NODE_ENV": "production"
 	}
 }

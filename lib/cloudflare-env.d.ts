@@ -17,11 +17,6 @@ declare namespace Cloudflare {
 		GOOGLE_CLIENT_ID: string;
 		GOOGLE_CLIENT_SECRET: string;
 		RESEND_API_KEY: string;
-		NEXT_PUBLIC_SITE_NAME: string;
-		NEXT_PUBLIC_SITE_TLD: string;
-		NEXT_PUBLIC_SITE_DOMAIN: string;
-		NEXT_PUBLIC_SITE_TAGLINE: string;
-		NEXT_PUBLIC_SUPPORT_EMAIL: string;
 		NODE_ENV: string;
 		CF_CACHE_PURGE_API_TOKEN: string;
 		AI_MODEL: string;
@@ -35,7 +30,7 @@ type StringifyValues<EnvType extends Record<string, unknown>> = {
 	[Binding in keyof EnvType]: EnvType[Binding] extends string ? EnvType[Binding] : string;
 };
 declare namespace NodeJS {
-	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "CF_ZONE_ID" | "BETTER_AUTH_URL" | "BETTER_AUTH_SECRET" | "GOOGLE_CLIENT_ID" | "GOOGLE_CLIENT_SECRET" | "RESEND_API_KEY" | "NEXT_PUBLIC_SITE_NAME" | "NEXT_PUBLIC_SITE_TLD" | "NEXT_PUBLIC_SITE_DOMAIN" | "NEXT_PUBLIC_SITE_TAGLINE" | "NEXT_PUBLIC_SUPPORT_EMAIL" | "NODE_ENV" | "CF_CACHE_PURGE_API_TOKEN" | "AI_MODEL">> {}
+	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "CF_ZONE_ID" | "BETTER_AUTH_URL" | "BETTER_AUTH_SECRET" | "GOOGLE_CLIENT_ID" | "GOOGLE_CLIENT_SECRET" | "RESEND_API_KEY" | "NODE_ENV" | "CF_CACHE_PURGE_API_TOKEN" | "AI_MODEL">> {}
 }
 
 // Begin runtime types
