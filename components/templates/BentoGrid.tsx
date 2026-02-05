@@ -27,7 +27,7 @@ const BentoGrid: React.FC<TemplateProps> = ({ content, profile }) => {
       <div className="fixed inset-0 h-full w-full bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] bg-size-[16px_16px] mask-[radial-gradient(ellipse_50%_50%_at_50%_50%,#000_70%,transparent_100%)] pointer-events-none z-0" />
 
       <div className="max-w-6xl mx-auto relative z-10 animate-in fade-in slide-in-from-bottom-4 duration-1000">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 auto-rows-[180px] gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 auto-rows-[150px] sm:auto-rows-[180px] gap-4">
           {/* 1. Profile Card (Large) - 2x2 */}
           <div className="col-span-1 sm:col-span-2 row-span-2 bg-white rounded-4xl p-8 shadow-sm border border-gray-200/80 flex flex-col justify-between group hover:shadow-xl hover:shadow-gray-200/50 transition-all duration-300 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-80 h-80 bg-linear-to-br from-gray-100 to-gray-50 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none opacity-50 group-hover:scale-110 transition-transform duration-700"></div>

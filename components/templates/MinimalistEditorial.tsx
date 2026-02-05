@@ -46,7 +46,7 @@ const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile }) => {
       />
 
       {/* Floating Navigation */}
-      <nav className="fixed bottom-8 left-1/2 -translate-x-1/2 z-40">
+      <nav className="fixed bottom-8 left-1/2 -translate-x-1/2 z-40 pb-[env(safe-area-inset-bottom)]">
         <div className="flex items-center gap-6 px-6 py-3 bg-white/80 backdrop-blur-md border border-black/5 rounded-full shadow-2xl shadow-black/5 transition-transform hover:scale-105">
           <span className="text-xs font-bold tracking-widest uppercase opacity-40 hover:opacity-100 transition-opacity cursor-default">
             {profile.handle}

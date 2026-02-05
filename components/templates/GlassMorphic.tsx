@@ -55,7 +55,7 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content, profile }) => {
         className={`relative z-10 max-w-4xl mx-auto px-6 py-12 md:py-20 transition-opacity duration-1000 ${mounted ? "opacity-100" : "opacity-0"}`}
       >
         {/* Floating Navigation */}
-        <nav className="fixed top-6 left-1/2 -translate-x-1/2 z-50">
+        <nav className="fixed top-6 left-1/2 -translate-x-1/2 z-50 pt-[env(safe-area-inset-top)]">
           <div className="flex items-center gap-1 bg-white/5 backdrop-blur-md border border-white/10 rounded-full p-1.5 shadow-xl shadow-black/20">
             {/* Mobile Menu Icon */}
             <a
@@ -203,7 +203,7 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content, profile }) => {
               <span>Work Experience</span>
             </h2>
 
-            <div className="relative border-l border-white/10 ml-3 md:ml-6 space-y-12">
+            <div className="relative border-l border-white/10 ml-2 md:ml-4 lg:ml-6 space-y-12">
               {content.experience.map((job, index) => (
                 <div key={index} className="relative pl-8 md:pl-12 group">
                   {/* Timeline Dot */}

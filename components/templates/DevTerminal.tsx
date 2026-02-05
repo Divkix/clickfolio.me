@@ -122,7 +122,7 @@ const DevTerminal: React.FC<TemplateProps> = ({ content, profile }) => {
                     <span className="text-[#238636]">#</span> System_Configuration
                   </h2>
                 </div>
-                <div className="p-4 font-mono-term text-sm">
+                <div className="p-4 font-mono-term text-xs md:text-sm">
                   {skills.map((skillGroup, index) => (
                     <div key={index} className="mb-4 last:mb-0">
                       <div className="text-[#7ee787] mb-2">

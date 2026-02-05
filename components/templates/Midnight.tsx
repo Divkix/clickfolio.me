@@ -20,7 +20,7 @@ const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
         <header className="flex flex-col items-center text-center mb-20 animate-in fade-in slide-in-from-bottom-4 duration-700">
           <div className="relative mb-8 group">
             <div className="absolute -inset-1 bg-linear-to-br from-amber-500/40 to-purple-600/0 rounded-full blur opacity-40 group-hover:opacity-70 transition duration-500"></div>
-            <div className="relative w-28 h-28 rounded-full border border-white/10 overflow-hidden bg-neutral-900 shadow-2xl">
+            <div className="relative w-20 h-20 md:w-28 md:h-28 rounded-full border border-white/10 overflow-hidden bg-neutral-900 shadow-2xl">
               {profile.avatar_url ? (
                 <img
                   src={profile.avatar_url}
@@ -85,7 +85,7 @@ const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
         {/* About Section */}
         {content.summary && (
           <section className="mb-24 max-w-2xl mx-auto">
-            <h2 className="text-2xl font-serif text-white mb-6 flex items-center gap-3">
+            <h2 className="text-xl md:text-2xl font-serif text-white mb-6 flex items-center gap-3">
               <span className="w-8 h-px bg-amber-500/50"></span>
               About
             </h2>
@@ -99,7 +99,7 @@ const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
             {/* Experience Section */}
             {content.experience && content.experience.length > 0 && (
               <section>
-                <h2 className="text-2xl font-serif text-white mb-8 flex items-center gap-3">
+                <h2 className="text-xl md:text-2xl font-serif text-white mb-8 flex items-center gap-3">
                   <span className="w-8 h-px bg-amber-500/50"></span>
                   Experience
                 </h2>
@@ -153,7 +153,7 @@ const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
             {/* Projects Section */}
             {content.projects && content.projects.length > 0 && (
               <section>
-                <h2 className="text-2xl font-serif text-white mb-8 flex items-center gap-3">
+                <h2 className="text-xl md:text-2xl font-serif text-white mb-8 flex items-center gap-3">
                   <span className="w-8 h-px bg-amber-500/50"></span>
                   Selected Projects
                 </h2>

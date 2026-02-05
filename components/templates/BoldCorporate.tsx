@@ -58,7 +58,7 @@ const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => {
             <p className="text-xl text-neutral-500 mt-6 max-w-md">{safeHeadline}</p>
           </div>
           <div className="md:col-span-4 flex justify-start md:justify-end">
-            <div className="w-32 h-32 rounded-full bg-neutral-100 overflow-hidden flex items-center justify-center">
+            <div className="w-20 h-20 md:w-32 md:h-32 rounded-full bg-neutral-100 overflow-hidden flex items-center justify-center">
               {profile.avatar_url ? (
                 <img
                   src={profile.avatar_url}

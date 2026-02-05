@@ -402,7 +402,7 @@ export default async function DashboardPage() {
               {/* Left Column - Resume Preview + Referral (spans 2 on desktop) */}
               <div className="lg:col-span-2 space-y-4">
                 {/* Resume Preview Card */}
-                <div className="bg-white rounded-2xl shadow-depth-sm border border-slate-200/60 p-8 hover:shadow-depth-md hover:-translate-y-0.5 transition-shadow duration-300">
+                <div className="bg-white rounded-2xl shadow-depth-sm border border-slate-200/60 p-4 md:p-6 lg:p-8 hover:shadow-depth-md hover:-translate-y-0.5 transition-shadow duration-300">
                   {/* Header */}
                   <div className="mb-6">
                     <h2 className="text-2xl font-bold text-slate-900">{content.full_name}</h2>

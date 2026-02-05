@@ -37,7 +37,7 @@ const ModernSpotlight: React.FC<TemplateProps> = ({ content, profile }) => {
       `}</style>
 
       {/* Floating Glass Navigation */}
-      <nav className="fixed top-6 left-1/2 -translate-x-1/2 z-50 w-auto max-w-[90vw]">
+      <nav className="fixed top-6 left-1/2 -translate-x-1/2 z-50 w-auto max-w-[90vw] pt-[env(safe-area-inset-top)]">
         <div className="flex items-center gap-1 p-1.5 rounded-full border border-zinc-200 bg-white/80 backdrop-blur-md shadow-sm">
           {navLinks.map((link) => (
             <a
