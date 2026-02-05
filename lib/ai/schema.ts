@@ -92,7 +92,10 @@ export const projectSchema = z.object({
 });
 
 /**
- * Full resume schema for AI extraction
+ * Full resume schema for AI extraction and validation.
+ * Used both for structured AI output (Output.object()) and downstream validation.
+ * The .describe() annotations serve double duty: they document field expectations
+ * and become JSON Schema description fields that guide AI structured output.
  */
 export const resumeSchema = z.object({
   full_name: z.string().describe("Full name of the person"),
@@ -111,77 +114,6 @@ export const resumeSchema = z.object({
     .array(projectSchema)
     .optional()
     .describe("Personal projects, side work, portfolio pieces"),
-});
-
-/**
- * Minimal schema for structured outputs (reduced metadata for compatibility)
- */
-export const resumeSchemaStructured = z.object({
-  full_name: z.string(),
-  headline: z.string(),
-  summary: z.string(),
-  contact: z.object({
-    email: z.string(),
-    phone: z.string().optional(),
-    location: z.string().optional(),
-    linkedin: z.string().optional(),
-    github: z.string().optional(),
-    website: z.string().optional(),
-    behance: z.string().optional(),
-    dribbble: z.string().optional(),
-  }),
-  experience: z.array(
-    z.object({
-      title: z.string(),
-      company: z.string(),
-      location: z.string().optional(),
-      start_date: z.string(),
-      end_date: z.string().optional(),
-      description: z.string(),
-      highlights: z.array(z.string()).optional(),
-    }),
-  ),
-  education: z
-    .array(
-      z.object({
-        degree: z.string(),
-        institution: z.string(),
-        location: z.string().optional(),
-        graduation_date: z.string().optional(),
-        gpa: z.string().optional(),
-      }),
-    )
-    .optional(),
-  skills: z
-    .array(
-      z.object({
-        category: z.string(),
-        items: z.array(z.string()),
-      }),
-    )
-    .optional(),
-  certifications: z
-    .array(
-      z.object({
-        name: z.string(),
-        issuer: z.string(),
-        date: z.string().optional(),
-        url: z.string().optional(),
-      }),
-    )
-    .optional(),
-  projects: z
-    .array(
-      z.object({
-        title: z.string(),
-        description: z.string(),
-        year: z.string().optional(),
-        technologies: z.array(z.string()).optional(),
-        url: z.string().optional(),
-        image_url: z.string().optional(),
-      }),
-    )
-    .optional(),
 });
 
 /**

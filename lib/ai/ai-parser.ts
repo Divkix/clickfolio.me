@@ -1,6 +1,6 @@
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { generateText, Output, parsePartialJson } from "ai";
-import { resumeSchemaStructured } from "./schema";
+import { resumeSchema } from "./schema";
 
 const DEFAULT_AI_MODEL = "openai/gpt-oss-120b:nitro";
 
@@ -193,10 +193,6 @@ function extractJson(text: string): string {
 
 function buildPrompt(text: string): string {
   return `Resume Text:\n"""\n${text}\n"""`;
-}
-
-function shouldAttemptStructuredOutput(): boolean {
-  return true;
 }
 
 const RETRY_MAX_CHARS = 32000;
@@ -551,7 +547,8 @@ function transformToSchema(data: Record<string, unknown>): Record<string, unknow
 
 /**
  * Parse resume text using AI
- * Uses text generation and manual JSON parsing for maximum model compatibility
+ * Uses structured output (schema-enforced) with fallback to text generation
+ * and manual JSON parsing for maximum model compatibility.
  */
 export async function parseWithAi(
   text: string,
@@ -568,36 +565,29 @@ export async function parseWithAi(
 
     // Attempt structured output first (schema-enforced).
     // Uses the minimal system prompt since Output.object() already enforces the schema.
-    if (shouldAttemptStructuredOutput()) {
-      try {
-        const provider = createAiProvider(env, { structuredOutputs: true });
-        const { output } = await generateText({
-          model: provider(modelId),
-          system: STRUCTURED_OUTPUT_SYSTEM_PROMPT,
-          prompt,
-          temperature: 0,
-          output: Output.object({
-            schema: resumeSchemaStructured,
-            name: "resume",
-            description: "Parsed resume fields",
-          }),
-        });
+    try {
+      const provider = createAiProvider(env, { structuredOutputs: true });
+      const { output } = await generateText({
+        model: provider(modelId),
+        system: STRUCTURED_OUTPUT_SYSTEM_PROMPT,
+        prompt,
+        temperature: 0,
+        output: Output.object({
+          schema: resumeSchema,
+          name: "resume",
+          description: "Parsed resume fields",
+        }),
+      });
 
-        if (output) {
-          return { success: true, data: output };
-        }
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        console.warn("[ai-parse] Structured output failed, falling back to text parsing", {
-          provider: providerLabel,
-          model: modelId,
-          error: message,
-        });
+      if (output) {
+        return { success: true, data: output };
       }
-    } else {
-      console.info("[ai-parse] Structured output skipped for routed model", {
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn("[ai-parse] Structured output failed, falling back to text parsing", {
         provider: providerLabel,
         model: modelId,
+        error: message,
       });
     }
 
@@ -673,5 +663,3 @@ export async function parseWithAi(
     };
   }
 }
-
-export { SYSTEM_PROMPT };

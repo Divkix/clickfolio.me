@@ -50,6 +50,8 @@ export const user = sqliteTable(
   (table) => [
     // Index for sitemap queries (WHERE handle IS NOT NULL ORDER BY handle)
     index("user_handle_idx").on(table.handle),
+    // Index for referral count queries and atomic updates on referredBy
+    index("user_referred_by_idx").on(table.referredBy),
     // Note: referralCode already has implicit unique index from .unique() constraint
   ],
 );
@@ -235,7 +237,8 @@ export const uploadRateLimits = sqliteTable(
     expiresAt: text("expires_at").notNull(), // TTL: createdAt + 24h for automatic cleanup
   },
   (table) => [
-    index("upload_rate_limits_ip_hash_idx").on(table.ipHash),
+    // Redundant standalone (ipHash) index removed — (ipHash, createdAt) and
+    // (ipHash, actionType, createdAt) both satisfy prefix lookups on ipHash alone.
     index("upload_rate_limits_ip_created_idx").on(table.ipHash, table.createdAt),
     index("upload_rate_limits_expires_idx").on(table.expiresAt), // Index for cleanup queries
     index("upload_rate_limits_ip_action_idx").on(table.ipHash, table.actionType, table.createdAt),
@@ -260,6 +263,8 @@ export const referralClicks = sqliteTable(
     index("referral_clicks_visitor_idx").on(table.visitorHash),
     index("referral_clicks_referrer_created_idx").on(table.referrerUserId, table.createdAt),
     index("referral_clicks_dedup_idx").on(table.referrerUserId, table.visitorHash),
+    // Composite index for queries filtering by referrer + conversion status
+    index("referral_clicks_referrer_converted_idx").on(table.referrerUserId, table.converted),
   ],
 );
 

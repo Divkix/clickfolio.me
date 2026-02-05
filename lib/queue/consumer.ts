@@ -9,29 +9,27 @@ import { notifyStatusChange, notifyStatusChangeBatch } from "./notify-status";
 import type { QueueMessage, ResumeParseMessage } from "./types";
 
 /**
- * Upsert site_data using onConflictDoUpdate on the UNIQUE userId column.
- * Eliminates the SELECT roundtrip and race-condition fallback logic.
- * Extracts preview fields from content for denormalized columns.
+ * Build the siteData upsert query (not executed).
+ * Returned so callers can include it in a db.batch() call.
  */
-async function upsertSiteData(
+function buildSiteDataUpsert(
   db: ReturnType<typeof getSessionDbForWebhook>["db"],
   userId: string,
   resumeId: string,
   content: string,
   now: string,
-): Promise<void> {
+) {
   // Parse content to extract preview fields
   let parsedContent: ResumeContent | null = null;
   try {
     parsedContent = JSON.parse(content) as ResumeContent;
   } catch {
-    // If parsing fails, continue without preview fields
     console.warn(`Failed to parse content for preview fields extraction, resumeId: ${resumeId}`);
   }
 
   const previewFields = extractPreviewFields(parsedContent);
 
-  await db
+  return db
     .insert(siteData)
     .values({
       id: crypto.randomUUID(),
@@ -53,6 +51,19 @@ async function upsertSiteData(
         updatedAt: now,
       },
     });
+}
+
+/**
+ * Execute siteData upsert standalone (for paths that cannot use batch).
+ */
+async function upsertSiteData(
+  db: ReturnType<typeof getSessionDbForWebhook>["db"],
+  userId: string,
+  resumeId: string,
+  content: string,
+  now: string,
+): Promise<void> {
+  await buildSiteDataUpsert(db, userId, resumeId, content, now);
 }
 
 /**
@@ -88,36 +99,29 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
   if (currentResume[0]?.parsedContentStaged) {
     console.log(`Using staged content for resume ${message.resumeId}`);
     const now = new Date().toISOString();
+    const stagedContent = currentResume[0].parsedContentStaged as string;
 
-    // Commit staged content to final
-    await db
-      .update(resumes)
-      .set({
-        status: "completed",
-        parsedAt: now,
-        parsedContent: currentResume[0].parsedContentStaged,
-        parsedContentStaged: null, // Clear staging
-        lastAttemptError: null, // Clear error on success
-      })
-      .where(eq(resumes.id, message.resumeId));
-
-    await upsertSiteData(
-      db,
-      message.userId,
-      message.resumeId,
-      currentResume[0].parsedContentStaged as string,
-      now,
-    );
+    // M7: Batch resume completion + siteData upsert atomically
+    await db.batch([
+      db
+        .update(resumes)
+        .set({
+          status: "completed",
+          parsedAt: now,
+          parsedContent: stagedContent,
+          parsedContentStaged: null,
+          lastAttemptError: null,
+        })
+        .where(eq(resumes.id, message.resumeId)),
+      buildSiteDataUpsert(db, message.userId, message.resumeId, stagedContent, now),
+    ]);
 
     await notifyStatusChange({ resumeId: message.resumeId, status: "completed", env });
     return;
   }
 
-  // Increment total attempts
-  await db
-    .update(resumes)
-    .set({ totalAttempts: (currentResume[0]?.totalAttempts || 0) + 1 })
-    .where(eq(resumes.id, message.resumeId));
+  // M7: Fold totalAttempts increment into later updates to eliminate standalone UPDATE.
+  const nextAttemptCount = (currentResume[0]?.totalAttempts || 0) + 1;
 
   // Check for cached result with same fileHash (deduplication)
   const cached = await db
@@ -134,36 +138,38 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
     .limit(1);
 
   if (cached[0]?.parsedContent) {
-    // Use cached result
+    // Use cached result — M7: include totalAttempts increment in same UPDATE
     const now = new Date().toISOString();
-    await db
-      .update(resumes)
-      .set({
-        status: "completed",
-        parsedAt: now,
-        parsedContent: cached[0].parsedContent,
-        lastAttemptError: null,
-      })
-      .where(eq(resumes.id, message.resumeId));
+    const cachedContent = cached[0].parsedContent as string;
 
-    await upsertSiteData(
-      db,
-      message.userId,
-      message.resumeId,
-      cached[0].parsedContent as string,
-      now,
-    );
+    // M7: Batch resume completion + siteData upsert atomically
+    await db.batch([
+      db
+        .update(resumes)
+        .set({
+          status: "completed",
+          parsedAt: now,
+          parsedContent: cachedContent,
+          lastAttemptError: null,
+          totalAttempts: nextAttemptCount,
+        })
+        .where(eq(resumes.id, message.resumeId)),
+      buildSiteDataUpsert(db, message.userId, message.resumeId, cachedContent, now),
+    ]);
 
     await notifyStatusChange({ resumeId: message.resumeId, status: "completed", env });
     return;
   }
 
-  // Update status to processing
-  await db.update(resumes).set({ status: "processing" }).where(eq(resumes.id, message.resumeId));
+  // Update status to processing — M7: include totalAttempts increment in same UPDATE
+  await db
+    .update(resumes)
+    .set({ status: "processing", totalAttempts: nextAttemptCount })
+    .where(eq(resumes.id, message.resumeId));
   await notifyStatusChange({ resumeId: message.resumeId, status: "processing", env });
 
-  // Fetch PDF from R2
-  const pdfBuffer = await R2.getAsUint8Array(r2Binding, message.r2Key);
+  // M9: Fetch PDF from R2 as ArrayBuffer directly — no intermediate Uint8Array copy
+  const pdfBuffer = await R2.getAsArrayBuffer(r2Binding, message.r2Key);
   if (!pdfBuffer) {
     const error = new Error(`Failed to fetch PDF from R2: ${message.r2Key}`);
     await db
@@ -177,7 +183,7 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
   // Normal HTTP requests (page views, API calls) never evaluate unpdf/Vercel AI SDK.
   const { parseResumeWithAi } = await import("../ai");
 
-  // Parse with AI
+  // M9: Pass ArrayBuffer directly — parseResumeWithAi now accepts ArrayBuffer
   const parseResult = await parseResumeWithAi(pdfBuffer, env);
 
   if (!parseResult.success) {
@@ -204,21 +210,17 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
 
   const now = new Date().toISOString();
 
-  // Stage content first (allows recovery if next steps fail)
-  await db
-    .update(resumes)
-    .set({ parsedContentStaged: parsedContent })
-    .where(eq(resumes.id, message.resumeId));
-
-  // Then update to completed and copy to final
+  // M10: Single atomic UPDATE replaces the two-step stage-then-complete pattern.
+  // The staging column was a crash-recovery mechanism between two UPDATEs.
+  // With one atomic UPDATE, there is no crash window to recover from.
   await db
     .update(resumes)
     .set({
       status: "completed",
       parsedAt: now,
       parsedContent,
-      parsedContentStaged: null, // Clear staging
-      lastAttemptError: null, // Clear error on success
+      parsedContentStaged: null,
+      lastAttemptError: null,
     })
     .where(eq(resumes.id, message.resumeId));
 

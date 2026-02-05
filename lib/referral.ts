@@ -91,6 +91,11 @@ export async function resolveReferralCode(code: string): Promise<string | null> 
  * - Referrer exists (by code)
  * - User is not self-referring
  *
+ * Optimizations over naive implementation:
+ * - Single getCloudflareContext + getDb instance for all queries
+ * - Parallel crypto hash computation (today + yesterday via Promise.all)
+ * - db.batch() for independent post-success writes (count + click conversions)
+ *
  * @param userId - The ID of the user to update
  * @param referrerCode - The referral code of the referrer
  * @param request - Optional request for visitor hash matching
@@ -110,11 +115,19 @@ export async function writeReferral(
     return { success: false, reason: "ref_too_long" };
   }
 
+  // Single context + DB instance for the entire function
   const { env } = await getCloudflareContext({ async: true });
   const db = getDb(env.DB);
 
-  // Resolve referral code to user ID
-  const referrerId = await resolveReferralCode(referrerCode);
+  // Resolve referral code to user ID inline (avoids redundant getCloudflareContext + getDb)
+  const normalizedCode = referrerCode.trim().toUpperCase();
+  const referrerResult = await db
+    .select({ id: user.id })
+    .from(user)
+    .where(eq(user.referralCode, normalizedCode))
+    .limit(1);
+
+  const referrerId = referrerResult[0]?.id;
   if (!referrerId) {
     return { success: false, reason: "invalid_ref" };
   }
@@ -147,21 +160,8 @@ export async function writeReferral(
     return { success: false, reason: "already_referred" };
   }
 
-  // Atomically increment referrer's referralCount
-  // This only executes when a NEW referral was successfully linked above
-  try {
-    await db
-      .update(user)
-      .set({ referralCount: sql`${user.referralCount} + 1` })
-      .where(eq(user.id, referrerId));
-  } catch (error) {
-    // Log but don't fail - referral link was already created successfully
-    // The denormalized count can be reconciled later if needed
-    console.error("Failed to increment referralCount for referrer:", referrerId, error);
-  }
-
-  // Mark referral clicks as converted with visitor-specific matching
-  // (best effort - don't fail if this doesn't work)
+  // Post-success: atomically increment referrer count + mark clicks as converted
+  // All best-effort — the referral link above is the critical operation
   try {
     let clickMarked = false;
 
@@ -171,26 +171,31 @@ export async function writeReferral(
       const today = new Date().toISOString().slice(0, 10);
       const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
 
-      // Try today's hash first
-      const todayHash = await generateVisitorHashWithDate(ip, ua, today);
-      const todayResult = await db
-        .update(referralClicks)
-        .set({ converted: true, convertedUserId: userId })
-        .where(
-          and(
-            eq(referralClicks.referrerUserId, referrerId),
-            eq(referralClicks.visitorHash, todayHash),
-            eq(referralClicks.converted, false),
-          ),
-        )
-        .returning({ id: referralClicks.id });
+      // Compute both visitor hashes in parallel instead of sequentially
+      const [todayHash, yesterdayHash] = await Promise.all([
+        generateVisitorHashWithDate(ip, ua, today),
+        generateVisitorHashWithDate(ip, ua, yesterday),
+      ]);
 
-      if (todayResult.length > 0) {
-        clickMarked = true;
-      } else {
-        // Try yesterday's hash (for clicks that crossed midnight)
-        const yesterdayHash = await generateVisitorHashWithDate(ip, ua, yesterday);
-        const yesterdayResult = await db
+      // Single D1 batch: increment referralCount + try both hash-based click conversions
+      // All three are independent writes executed in one HTTP roundtrip
+      const [, todayClickResult, yesterdayClickResult] = await db.batch([
+        db
+          .update(user)
+          .set({ referralCount: sql`${user.referralCount} + 1` })
+          .where(eq(user.id, referrerId)),
+        db
+          .update(referralClicks)
+          .set({ converted: true, convertedUserId: userId })
+          .where(
+            and(
+              eq(referralClicks.referrerUserId, referrerId),
+              eq(referralClicks.visitorHash, todayHash),
+              eq(referralClicks.converted, false),
+            ),
+          )
+          .returning({ id: referralClicks.id }),
+        db
           .update(referralClicks)
           .set({ converted: true, convertedUserId: userId })
           .where(
@@ -200,18 +205,21 @@ export async function writeReferral(
               eq(referralClicks.converted, false),
             ),
           )
-          .returning({ id: referralClicks.id });
+          .returning({ id: referralClicks.id }),
+      ]);
 
-        if (yesterdayResult.length > 0) {
-          clickMarked = true;
-        }
-      }
+      clickMarked = todayClickResult.length > 0 || yesterdayClickResult.length > 0;
+    } else {
+      // No request — just increment referral count
+      await db
+        .update(user)
+        .set({ referralCount: sql`${user.referralCount} + 1` })
+        .where(eq(user.id, referrerId));
     }
 
-    // Fallback: if no request or no hash match, mark most recent unconverted click
+    // Fallback: if no hash match (or no request), mark most recent unconverted click
     // This maintains backwards compatibility and handles edge cases
     if (!clickMarked) {
-      // Find the most recent unconverted click to mark (not all of them)
       // SQLite/Drizzle doesn't support UPDATE with LIMIT, so SELECT first then UPDATE by ID
       const mostRecentClick = await db
         .select({ id: referralClicks.id })
@@ -230,8 +238,8 @@ export async function writeReferral(
       }
     }
   } catch (error) {
-    console.error("Failed to mark referral clicks as converted:", error);
-    // Don't fail the referral write
+    console.error("Failed to complete post-referral operations:", error);
+    // Don't fail the referral write — the referredBy link was already persisted
   }
 
   return { success: true };

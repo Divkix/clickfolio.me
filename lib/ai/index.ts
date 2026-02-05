@@ -37,18 +37,16 @@ function truncateResumeText(text: string): string {
  * 2. Parse text with AI using Vercel AI SDK (structured output)
  * 3. Transform and validate the AI response
  * 4. Return JSON string of parsed content
+ *
+ * Accepts ArrayBuffer directly from R2 to avoid intermediate buffer copies.
  */
 export async function parseResumeWithAi(
-  pdfBuffer: Uint8Array,
+  pdfBuffer: ArrayBuffer,
   env: Partial<CloudflareEnv>,
 ): Promise<ParseResumeResult> {
   try {
-    // Step 1: Extract text from PDF
-    // Create a new ArrayBuffer with only the bytes from pdfBuffer
-    // This is necessary when Uint8Array is a view into a larger buffer
-    const arrayBuffer = new Uint8Array(pdfBuffer).buffer;
-
-    const extractResult = await extractPdfText(arrayBuffer);
+    // Step 1: Extract text from PDF — pass ArrayBuffer directly, no copies
+    const extractResult = await extractPdfText(pdfBuffer);
 
     if (!extractResult.success || !extractResult.text) {
       return {
