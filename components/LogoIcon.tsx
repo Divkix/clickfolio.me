@@ -50,7 +50,7 @@ export function LogoIcon({ size = "md", colorScheme = "dark", className = "" }: 
     <svg
       width={dimension}
       height={dimension}
-      viewBox="0 0 48 48"
+      viewBox="0 0 46 46"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
       aria-label="clickfolio.me icon"
