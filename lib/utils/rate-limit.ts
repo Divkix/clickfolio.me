@@ -157,6 +157,11 @@ export async function enforceRateLimit(
     return null;
   }
 
+  // Feature flag bypass for temporary production testing
+  if (process.env.DISABLE_RATE_LIMITS === "true") {
+    return null;
+  }
+
   const result = await checkRateLimit(userId, action, env);
 
   if (!result.allowed) {

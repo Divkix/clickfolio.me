@@ -89,6 +89,14 @@ export async function checkIPRateLimit(ip: string): Promise<IPRateLimitResult> {
     };
   }
 
+  // Feature flag bypass for temporary production testing
+  if (process.env.DISABLE_RATE_LIMITS === "true") {
+    return {
+      allowed: true,
+      remaining: { hourly: 999, daily: 999 },
+    };
+  }
+
   // Skip for localhost IPs or local environment (local preview runs in production mode)
   if (LOCAL_IPS.has(ip) || isLocalEnvironment()) {
     return {
@@ -197,6 +205,14 @@ export async function checkHandleRateLimit(ip: string): Promise<IPRateLimitResul
     return {
       allowed: true,
       remaining: { hourly: HANDLE_CHECK_HOURLY_LIMIT, daily: 1000 },
+    };
+  }
+
+  // Feature flag bypass for temporary production testing
+  if (process.env.DISABLE_RATE_LIMITS === "true") {
+    return {
+      allowed: true,
+      remaining: { hourly: 999, daily: 999 },
     };
   }
 
