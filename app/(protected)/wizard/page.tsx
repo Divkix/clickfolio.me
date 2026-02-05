@@ -470,7 +470,7 @@ export default function WizardPage() {
   // Loading state (including session loading)
   if (loading || sessionLoading) {
     return (
-      <div className="min-h-screen bg-linear-to-br from-coral/10 via-coral/10 to-orange-50 flex items-center justify-center">
+      <div className="min-h-screen bg-cream flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-12 h-12 animate-spin text-coral mx-auto mb-4" />
           <p className="text-slate-600 font-medium">Loading your resume...</p>
@@ -485,7 +485,7 @@ export default function WizardPage() {
   // Error state (only for actual errors, not for "no resume" case which is handled by UploadStep)
   if (error && !needsUpload && state.currentStep === 1) {
     return (
-      <div className="min-h-screen bg-linear-to-br from-coral/10 via-coral/10 to-orange-50 flex items-center justify-center px-4">
+      <div className="min-h-screen bg-cream flex items-center justify-center px-4">
         <div className="bg-white rounded-2xl shadow-depth-md border border-coral/30 p-8 max-w-md w-full text-center">
           <div className="w-16 h-16 bg-coral/20 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg
@@ -511,7 +511,7 @@ export default function WizardPage() {
 
   // Main wizard UI
   return (
-    <div className="min-h-screen bg-linear-to-br from-coral/10 via-coral/10 to-orange-50">
+    <div className="min-h-screen bg-cream">
       {/* Celebration Effects */}
       {showCelebration && <Confetti />}
       <YouAreLiveModal
