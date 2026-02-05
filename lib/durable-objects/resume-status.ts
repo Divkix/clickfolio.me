@@ -92,15 +92,11 @@ export class ResumeStatusDO extends DurableObject {
       return new Response("Missing status", { status: 400 });
     }
 
-    // Store in DO storage (survives hibernation) — batched write
-    if (error) {
-      await this.ctx.storage.put({ lastStatus: status, lastError: error });
-    } else {
-      await Promise.all([
-        this.ctx.storage.put("lastStatus", status),
-        this.ctx.storage.delete("lastError"),
-      ]);
-    }
+    // Store in DO storage (survives hibernation) — atomic batched write
+    await this.ctx.storage.put({
+      lastStatus: status,
+      lastError: error ?? "",
+    });
 
     // Broadcast to all connected WebSockets
     const msg: StatusMessage = {

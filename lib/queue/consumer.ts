@@ -210,21 +210,24 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
 
   const now = new Date().toISOString();
 
-  // M10: Single atomic UPDATE replaces the two-step stage-then-complete pattern.
-  // The staging column was a crash-recovery mechanism between two UPDATEs.
-  // With one atomic UPDATE, there is no crash window to recover from.
-  await db
-    .update(resumes)
-    .set({
-      status: "completed",
-      parsedAt: now,
-      parsedContent,
-      parsedContentStaged: null,
-      lastAttemptError: null,
-    })
-    .where(eq(resumes.id, message.resumeId));
+  // M10: Batch resume completion + siteData upsert atomically.
+  // Without batching, a crash between the UPDATE and upsert leaves the resume
+  // marked "completed" with no siteData, and the idempotency guard at line 93
+  // skips it on retry. db.batch() executes both in a single D1 transaction.
+  await db.batch([
+    db
+      .update(resumes)
+      .set({
+        status: "completed",
+        parsedAt: now,
+        parsedContent,
+        parsedContentStaged: null,
+        lastAttemptError: null,
+      })
+      .where(eq(resumes.id, message.resumeId)),
+    buildSiteDataUpsert(db, message.userId, message.resumeId, parsedContent, now),
+  ]);
 
-  await upsertSiteData(db, message.userId, message.resumeId, parsedContent, now);
   await notifyStatusChange({ resumeId: message.resumeId, status: "completed", env });
 
   // Notify ALL resumes waiting for this fileHash
