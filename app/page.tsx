@@ -43,7 +43,7 @@ export default function Home() {
         <main id="main-content" className="flex-1 relative overflow-hidden">
           {/* Decorative elements */}
           <div className="absolute top-20 left-10 w-32 h-32 bg-amber rounded-full opacity-20 blur-3xl" />
-          <div className="absolute bottom-40 right-10 w-40 h-40 bg-brand rounded-full opacity-20 blur-3xl" />
+          <div className="absolute bottom-40 right-10 w-40 h-40 bg-coral rounded-full opacity-20 blur-3xl" />
           <div className="absolute top-1/2 left-1/4 w-24 h-24 bg-mint rounded-full opacity-15 blur-2xl" />
 
           {/* Hero Section - Asymmetric Bento Layout */}
@@ -99,7 +99,7 @@ export default function Home() {
                     <span className="relative inline-block">
                       is already a
                       <svg
-                        className="absolute -bottom-2 left-0 w-full h-3 text-brand"
+                        className="absolute -bottom-2 left-0 w-full h-3 text-coral"
                         viewBox="0 0 200 12"
                         preserveAspectRatio="none"
                       >
@@ -208,7 +208,7 @@ export default function Home() {
                 {/* Social Proof */}
                 <div
                   className="
-                  bg-brand
+                  bg-coral
                   border-3
                   border-ink
                   p-4
@@ -257,7 +257,7 @@ export default function Home() {
               <div className="flex flex-wrap justify-center gap-4">
                 {DEMO_PROFILES.map((profile, index) => {
                   const cardColors = [
-                    { avatar: "bg-brand text-white", badge: "bg-brand/10 text-brand" },
+                    { avatar: "bg-coral text-white", badge: "bg-coral/10 text-coral" },
                     { avatar: "bg-mint text-ink", badge: "bg-mint/10 text-ink" },
                     { avatar: "bg-lavender text-white", badge: "bg-lavender/10 text-lavender" },
                     { avatar: "bg-amber text-ink", badge: "bg-amber/10 text-ink" },
@@ -280,7 +280,7 @@ export default function Home() {
                       animate-fade-in-up
                       focus:outline-none
                       focus:ring-4
-                      focus:ring-brand
+                      focus:ring-coral
                       w-full
                       sm:w-[calc(50%-0.5rem)]
                       lg:w-[calc(25%-0.75rem)]
@@ -373,7 +373,7 @@ export default function Home() {
                     step: "03",
                     title: "Publish",
                     desc: "Get your own clickfolio.me/@yourname URL in 30 seconds.",
-                    color: "bg-brand",
+                    color: "bg-coral",
                   },
                 ].map((item, index) => (
                   <div
@@ -428,7 +428,7 @@ export default function Home() {
                 <h2 className="font-black text-3xl sm:text-4xl text-cream mb-4">
                   Your resume deserves
                   <br />
-                  <span className="inline-block bg-brand text-white px-3 py-1 rotate-1 mt-2">
+                  <span className="inline-block bg-coral text-white px-3 py-1 rotate-1 mt-2">
                     its own URL.
                   </span>
                 </h2>
@@ -443,7 +443,7 @@ export default function Home() {
                     }}
                     className="
                     inline-block
-                    bg-brand
+                    bg-coral
                     text-white
                     font-black
                     text-lg
