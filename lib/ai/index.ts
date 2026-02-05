@@ -9,6 +9,26 @@ export interface ParseResumeResult {
   error?: string;
 }
 
+const MAX_RESUME_TEXT_CHARS = 60000;
+const RESUME_HEAD_CHARS = 38000;
+const RESUME_TAIL_CHARS = 18000;
+const RESUME_TRUNCATION_MARKER = "\n\n...[truncated]...\n\n";
+
+function normalizeResumeText(text: string): string {
+  return text
+    .replace(/\r\n/g, "\n")
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function truncateResumeText(text: string): string {
+  if (text.length <= MAX_RESUME_TEXT_CHARS) return text;
+  const head = text.slice(0, RESUME_HEAD_CHARS);
+  const tail = text.slice(-RESUME_TAIL_CHARS);
+  return `${head}${RESUME_TRUNCATION_MARKER}${tail}`;
+}
+
 /**
  * Parse a PDF resume using AI
  *
@@ -38,7 +58,8 @@ export async function parseResumeWithAi(
       };
     }
 
-    const resumeText = extractResult.text.slice(0, 60000);
+    const normalizedText = normalizeResumeText(extractResult.text);
+    const resumeText = truncateResumeText(normalizedText);
 
     if (!resumeText.trim()) {
       return {
