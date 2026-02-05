@@ -174,13 +174,10 @@ function buildPrompt(text: string): string {
 
 function shouldAttemptStructuredOutput(modelId: string): boolean {
   const lower = modelId.toLowerCase();
+  const isNitro = lower.includes(":nitro");
   // OpenRouter routing modifiers often pick providers without structured output support
-  if (
-    lower.includes(":nitro") ||
-    lower.includes(":auto") ||
-    lower.includes(":router") ||
-    lower.includes("openrouter/auto")
-  ) {
+  // Allow nitro (fast paths like Cerebras can still support structured outputs)
+  if (!isNitro && (lower.includes(":auto") || lower.includes(":router") || lower.includes("openrouter/auto"))) {
     return false;
   }
   return true;
