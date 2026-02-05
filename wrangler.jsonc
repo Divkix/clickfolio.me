@@ -29,7 +29,7 @@
 		{
 			"binding": "DB",
 			"database_name": "clickfolio-db",
-			"database_id": "7187fbfb-168e-43bf-9217-dd29639fdcfe"
+			"database_id": "37cf1935-96c5-40c8-aa2e-0d0655f9b652"
 		}
 	],
 	// R2 bucket binding for direct access (replaces AWS SDK for most operations)
