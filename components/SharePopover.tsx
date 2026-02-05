@@ -78,16 +78,13 @@ const itemVariants = cva(
       variant: {
         "minimalist-editorial":
           "bg-white text-neutral-600 hover:text-neutral-900 border border-neutral-200 hover:bg-neutral-100",
-        "neo-brutalist":
-          "bg-white text-black border-2 border-black font-bold hover:bg-yellow-300",
+        "neo-brutalist": "bg-white text-black border-2 border-black font-bold hover:bg-yellow-300",
         "glass-morphic":
           "bg-white/10 text-white/80 hover:text-white hover:bg-white/20 border border-white/20",
         "bento-grid":
           "bg-neutral-100 text-neutral-700 hover:bg-neutral-200 border border-neutral-200 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-700 dark:border-neutral-700",
-        spotlight:
-          "bg-orange-50 text-orange-700 hover:bg-orange-100 border border-orange-200",
-        midnight:
-          "bg-amber-900/20 text-amber-200 hover:bg-amber-900/40 border border-amber-700/30",
+        spotlight: "bg-orange-50 text-orange-700 hover:bg-orange-100 border border-orange-200",
+        midnight: "bg-amber-900/20 text-amber-200 hover:bg-amber-900/40 border border-amber-700/30",
         "bold-corporate": "bg-white text-neutral-700 hover:bg-neutral-50 border-neutral-200",
         "classic-ats": "bg-white text-gray-600 hover:text-gray-900 border-gray-300",
         "design-folio":

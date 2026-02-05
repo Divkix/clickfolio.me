@@ -25,16 +25,6 @@ export async function POST(request: Request) {
     const typedEnv = env as Partial<CloudflareEnv>;
     const { db, captureBookmark } = await getSessionDb(env.DB);
 
-    // Get R2 binding for direct operations
-    const r2Binding = getR2Binding(typedEnv);
-    if (!r2Binding) {
-      return createErrorResponse(
-        "Storage service unavailable",
-        ERROR_CODES.EXTERNAL_SERVICE_ERROR,
-        500,
-      );
-    }
-
     // 2. Check authentication via Better Auth
     const auth = await getAuth();
     const session = await auth.api.getSession({ headers: await headers() });
@@ -60,7 +50,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // 3. Fetch resume from database including idempotency fields
+    // 3. Fetch resume from database including idempotency fields and fileHash
     const resume = await db.query.resumes.findFirst({
       where: eq(resumes.id, resume_id),
       columns: {
@@ -71,6 +61,7 @@ export async function POST(request: Request) {
         retryCount: true,
         totalAttempts: true,
         lastAttemptError: true,
+        fileHash: true,
       },
     });
 
@@ -140,12 +131,38 @@ export async function POST(request: Request) {
       );
     }
 
-    let pdfBuffer: Uint8Array;
+    // 6. Get file hash — use stored hash if available, fall back to R2 download for legacy rows
+    let fileHash: string;
 
-    try {
-      const fileBuffer = await R2.getAsUint8Array(r2Binding, resume.r2Key as string);
+    if (resume.fileHash) {
+      fileHash = resume.fileHash;
+    } else {
+      // Legacy fallback: download from R2 and compute hash
+      const r2Binding = getR2Binding(typedEnv);
+      if (!r2Binding) {
+        return createErrorResponse(
+          "Storage service unavailable",
+          ERROR_CODES.EXTERNAL_SERVICE_ERROR,
+          500,
+        );
+      }
 
-      if (!fileBuffer) {
+      let pdfBuffer: Uint8Array;
+
+      try {
+        const fileBuffer = await R2.getAsUint8Array(r2Binding, resume.r2Key as string);
+
+        if (!fileBuffer) {
+          return createErrorResponse(
+            "Failed to download file for processing",
+            ERROR_CODES.EXTERNAL_SERVICE_ERROR,
+            500,
+          );
+        }
+
+        pdfBuffer = fileBuffer;
+      } catch (error) {
+        console.error("R2 download error:", error);
         return createErrorResponse(
           "Failed to download file for processing",
           ERROR_CODES.EXTERNAL_SERVICE_ERROR,
@@ -153,26 +170,16 @@ export async function POST(request: Request) {
         );
       }
 
-      pdfBuffer = fileBuffer;
-    } catch (error) {
-      console.error("R2 download error:", error);
-      return createErrorResponse(
-        "Failed to download file for processing",
-        ERROR_CODES.EXTERNAL_SERVICE_ERROR,
-        500,
-      );
+      // Compute SHA-256 hash from downloaded PDF
+      const bufferCopy = pdfBuffer.buffer.slice(
+        pdfBuffer.byteOffset,
+        pdfBuffer.byteOffset + pdfBuffer.byteLength,
+      ) as ArrayBuffer;
+      const hashBuffer = await crypto.subtle.digest("SHA-256", bufferCopy);
+      fileHash = Array.from(new Uint8Array(hashBuffer))
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("");
     }
-
-    // Get file hash for the queue message
-    // Create a proper ArrayBuffer from the Uint8Array for crypto.subtle.digest
-    const bufferCopy = pdfBuffer.buffer.slice(
-      pdfBuffer.byteOffset,
-      pdfBuffer.byteOffset + pdfBuffer.byteLength,
-    ) as ArrayBuffer;
-    const hashBuffer = await crypto.subtle.digest("SHA-256", bufferCopy);
-    const fileHash = Array.from(new Uint8Array(hashBuffer))
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join("");
 
     // Publish to queue for background processing
     const queue = typedEnv.RESUME_PARSE_QUEUE;

@@ -92,6 +92,21 @@ const nextConfig: NextConfig = {
         ],
       },
       {
+        // Explore directory page - cache for 5 minutes, stale-while-revalidate for 1 hour
+        // Paginated public listing; content changes slowly so short cache is fine
+        source: "/explore",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, s-maxage=300, stale-while-revalidate=3600",
+          },
+          {
+            key: "CDN-Cache-Control",
+            value: "public, max-age=300, stale-while-revalidate=3600",
+          },
+        ],
+      },
+      {
         // Static legal pages - cache aggressively (1 week), these rarely change
         source: "/privacy",
         headers: [

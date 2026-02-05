@@ -4,12 +4,13 @@
  * Provides realistic password strength estimation based on entropy and
  * pattern matching rather than arbitrary complexity rules.
  *
+ * Dependencies (~800KB uncompressed) are loaded lazily on first call
+ * since 80%+ of users authenticate via Google OAuth and never need this.
+ *
  * @see https://github.com/zxcvbn-ts/zxcvbn
  */
 
-import { zxcvbn, zxcvbnOptions } from "@zxcvbn-ts/core";
-import * as zxcvbnCommonPackage from "@zxcvbn-ts/language-common";
-import * as zxcvbnEnPackage from "@zxcvbn-ts/language-en";
+import type { ZxcvbnResult } from "@zxcvbn-ts/core";
 
 /**
  * Minimum acceptable password strength score
@@ -19,19 +20,33 @@ import * as zxcvbnEnPackage from "@zxcvbn-ts/language-en";
 export const MINIMUM_SCORE = 2;
 
 /**
- * Initialize zxcvbn with English dictionaries
- * This is done once at module load for performance
+ * Cached zxcvbn function after first dynamic import + initialization.
+ * Avoids re-importing and re-configuring on subsequent calls.
  */
-const options = {
-  translations: zxcvbnEnPackage.translations,
-  graphs: zxcvbnCommonPackage.adjacencyGraphs,
-  dictionary: {
-    ...zxcvbnCommonPackage.dictionary,
-    ...zxcvbnEnPackage.dictionary,
-  },
-};
+let cachedZxcvbn: ((password: string, userInputs?: string[]) => ZxcvbnResult) | null = null;
 
-zxcvbnOptions.setOptions(options);
+async function getZxcvbn() {
+  if (cachedZxcvbn) return cachedZxcvbn;
+
+  const [{ zxcvbn, zxcvbnOptions }, zxcvbnCommonPackage, zxcvbnEnPackage] =
+    await Promise.all([
+      import("@zxcvbn-ts/core"),
+      import("@zxcvbn-ts/language-common"),
+      import("@zxcvbn-ts/language-en"),
+    ]);
+
+  zxcvbnOptions.setOptions({
+    translations: zxcvbnEnPackage.translations,
+    graphs: zxcvbnCommonPackage.adjacencyGraphs,
+    dictionary: {
+      ...zxcvbnCommonPackage.dictionary,
+      ...zxcvbnEnPackage.dictionary,
+    },
+  });
+
+  cachedZxcvbn = zxcvbn;
+  return cachedZxcvbn;
+}
 
 /**
  * Password feedback from zxcvbn
@@ -129,7 +144,8 @@ export async function checkPasswordStrength(
     return parts.filter((p) => p.length > 2);
   });
 
-  // Run zxcvbn analysis
+  // Lazily load zxcvbn (cached after first call)
+  const zxcvbn = await getZxcvbn();
   const result = zxcvbn(password, expandedInputs);
 
   return {

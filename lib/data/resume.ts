@@ -161,15 +161,10 @@ async function fetchResumeDataRaw(handle: string): Promise<ResumeData | null> {
   };
 }
 
-function coerceMetadataString(value: unknown): string | undefined {
-  if (typeof value !== "string") return undefined;
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : undefined;
-}
-
 /**
  * Lightweight metadata fetcher for SEO.
- * Avoids full Zod validation to keep HEAD requests cheap.
+ * Uses denormalized preview columns from siteData instead of parsing
+ * the full content JSON blob (50-100KB), saving significant I/O and CPU.
  */
 async function fetchResumeMetadataRaw(handle: string): Promise<ResumeMetadata | null> {
   const { env } = await getCloudflareContext({ async: true });
@@ -188,7 +183,8 @@ async function fetchResumeMetadataRaw(handle: string): Promise<ResumeMetadata | 
     with: {
       siteData: {
         columns: {
-          content: true,
+          previewName: true,
+          previewHeadline: true,
         },
       },
     },
@@ -198,17 +194,9 @@ async function fetchResumeMetadataRaw(handle: string): Promise<ResumeMetadata | 
     return null;
   }
 
-  let rawContent: unknown;
-  try {
-    rawContent = JSON.parse(userData.siteData.content);
-  } catch (error) {
-    console.error("Failed to parse site_data metadata for handle:", handle, error);
-    return null;
-  }
-
-  const content = (rawContent ?? {}) as Record<string, unknown>;
+  // Use denormalized columns instead of parsing full content JSON
   const fullName =
-    coerceMetadataString(content.full_name) ?? coerceMetadataString(userData.name) ?? null;
+    userData.siteData.previewName?.trim() || userData.name?.trim() || null;
 
   if (!fullName) {
     return null;
@@ -227,8 +215,9 @@ async function fetchResumeMetadataRaw(handle: string): Promise<ResumeMetadata | 
 
   return {
     full_name: fullName,
-    headline: coerceMetadataString(content.headline) ?? userData.headline ?? null,
-    summary: coerceMetadataString(content.summary) ?? null,
+    headline: userData.siteData.previewHeadline?.trim() || userData.headline || null,
+    // summary not available from denormalized columns; consumer uses fallback description
+    summary: null,
     avatar_url: userData.image,
     hide_from_search: hideFromSearch,
   };
