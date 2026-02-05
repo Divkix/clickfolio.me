@@ -353,7 +353,7 @@ async function extractPdfText(
   return response.json() as Promise<PdfExtractResponse>;
 }
 
-const DEFAULT_AI_MODEL = "openai/gpt-oss-120b";
+const DEFAULT_AI_MODEL = "openai/gpt-oss-120b:nitro";
 
 /**
  * Parse text with AI using ai-parser-worker
