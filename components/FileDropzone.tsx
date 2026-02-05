@@ -247,9 +247,15 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
         onOpenChange(false);
       }
 
-      // Redirect to dashboard
-      router.push("/dashboard");
-      router.refresh();
+      // Brief delay to ensure session cookie is fully established after OAuth
+      // This prevents a race condition where navigation happens before the
+      // browser has fully processed the Set-Cookie header from the OAuth response
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Use replace() to prevent back-button returning to upload flow
+      // Note: router.refresh() was intentionally removed - it caused a race
+      // condition where the server-side session check would fire mid-transition
+      router.replace("/dashboard");
     } catch (err) {
       let errorMessage = "Failed to claim resume";
 
