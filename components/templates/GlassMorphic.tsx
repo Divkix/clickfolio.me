@@ -381,6 +381,27 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content, profile }) => {
           )}
         </section>
 
+        {/* Contact Section */}
+        {content.contact.email && (
+          <section
+            id="contact"
+            className="mb-20 rounded-2xl border border-white/10 bg-white/3 backdrop-blur-sm p-10 md:p-16 text-center"
+          >
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Let's work together</h2>
+            <p className="text-slate-400 max-w-md mx-auto mb-8 leading-relaxed">
+              Currently open to new opportunities. If you have a project in mind or just want to
+              connect, I'd love to hear from you.
+            </p>
+            <a
+              href={`mailto:${content.contact.email}`}
+              className="inline-flex items-center gap-2 px-8 py-3 bg-coral text-white font-semibold rounded-full hover:scale-105 transition-transform shadow-lg shadow-coral/20"
+            >
+              <Mail size={18} />
+              Say Hello
+            </a>
+          </section>
+        )}
+
         {/* Footer */}
         <footer className="text-center pt-20 pb-10 border-t border-white/5">
           <p className="text-xs text-slate-600">
