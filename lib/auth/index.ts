@@ -204,9 +204,15 @@ export async function getAuth() {
     },
     trustedOrigins: [
       baseURL,
-      // Allow localhost:3000 for Next.js dev server (different port than Workers preview)
-      process.env.NODE_ENV === "development" ? "http://localhost:3000" : null,
-    ].filter(Boolean) as string[],
+      // Allow localhost dev servers (Next.js dev + Workers preview)
+      "http://localhost:3000",
+      "http://localhost:8787",
+      // Production domains
+      "https://clickfolio.me",
+      "https://www.clickfolio.me",
+      // Allow HTTP variant for local DNS testing (clickfolio.me → 127.0.0.1)
+      "http://clickfolio.me",
+    ],
     databaseHooks: {
       user: {
         create: {
