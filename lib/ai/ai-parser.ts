@@ -5,21 +5,53 @@ import { resumeSchema } from "./schema";
 const DEFAULT_AI_MODEL = "openai/gpt-oss-120b:nitro";
 
 /**
- * OpenRouter provider routing:
- * - :nitro suffix sorts by throughput
- * - require_parameters: true ensures only providers supporting structured_outputs are selected
- * - response-healing plugin fixes JSON syntax at provider level before SDK validates
- * - Removed quantization filter: gpt-oss-120b is natively MXFP4, filtering out fp4 removed the most stable providers
+ * Structured output: fail fast if no provider supports json_schema.
+ * allow_fallbacks: false prevents silent routing to providers that ignore the schema.
  */
-const OPENROUTER_PROVIDER_ROUTING = {
+const STRUCTURED_PROVIDER_ROUTING = {
   openrouter: {
     plugins: [{ id: "response-healing" }],
     provider: {
       require_parameters: true,
+      allow_fallbacks: false,
+    },
+  },
+};
+
+/**
+ * Text fallback: maximum availability, no structured output requirement.
+ */
+const TEXT_PROVIDER_ROUTING = {
+  openrouter: {
+    plugins: [{ id: "response-healing" }],
+    provider: {
       allow_fallbacks: true,
     },
   },
 };
+
+const STRUCTURED_TIMEOUT_MS = 90_000;
+const FALLBACK_TIMEOUT_MS = 60_000;
+const MAX_OUTPUT_TOKENS = 16_384;
+
+interface ParseEvent {
+  modelId: string;
+  path:
+    | "structured"
+    | "structured-salvage"
+    | "text-fallback"
+    | "text-fallback-retry"
+    | "error-feedback-retry";
+  durationMs: number;
+  success: boolean;
+  error?: string;
+  repaired?: boolean;
+}
+
+function logParseEvent(event: ParseEvent): void {
+  const level = event.success ? "info" : "warn";
+  console[level](`[ai-parse:${event.path}]`, JSON.stringify(event));
+}
 
 /**
  * Slim system prompt for structured output path.
@@ -138,6 +170,7 @@ export interface AiParseResult {
   success: boolean;
   data: unknown;
   error?: string;
+  structuredOutput?: boolean;
 }
 
 /**
@@ -566,7 +599,6 @@ export async function parseWithAi(
   try {
     const modelId = model || env.AI_MODEL || DEFAULT_AI_MODEL;
     const prompt = buildPrompt(text);
-    const providerLabel = "cf-ai-gateway";
 
     const provider = createAiProvider(env);
 
@@ -574,118 +606,245 @@ export async function parseWithAi(
     if (retryContext) {
       const retrySystem = `${RETRY_SYSTEM_PROMPT}\n\nValidation errors found:\n${retryContext.errors}`;
 
-      const { text: responseText } = await generateText({
-        model: provider(modelId),
-        system: retrySystem,
-        prompt: retryContext.previousOutput,
-        temperature: 0,
-        providerOptions: OPENROUTER_PROVIDER_ROUTING,
-      });
+      const startTime = Date.now();
+      try {
+        const { text: responseText } = await generateText({
+          model: provider(modelId),
+          system: retrySystem,
+          prompt: truncateForRetry(retryContext.previousOutput),
+          temperature: 0,
+          maxOutputTokens: MAX_OUTPUT_TOKENS,
+          abortSignal: AbortSignal.timeout(FALLBACK_TIMEOUT_MS),
+          providerOptions: TEXT_PROVIDER_ROUTING,
+        });
 
-      const jsonStr = extractJson(responseText);
-      const { data: parsed } = await parseJsonWithRepair(jsonStr);
-      if (!parsed) {
-        return {
+        const jsonStr = extractJson(responseText);
+        const { data: parsed } = await parseJsonWithRepair(jsonStr);
+        if (!parsed) {
+          logParseEvent({
+            modelId,
+            path: "error-feedback-retry",
+            durationMs: Date.now() - startTime,
+            success: false,
+            error: "Failed to parse retry response as JSON",
+          });
+          return {
+            success: false,
+            data: null,
+            error: `Retry failed to produce valid JSON: ${jsonStr.slice(0, 200)}...`,
+          };
+        }
+
+        const normalized = normalizeAiKeys(parsed);
+        const transformed = transformToSchema(normalized);
+        logParseEvent({
+          modelId,
+          path: "error-feedback-retry",
+          durationMs: Date.now() - startTime,
+          success: true,
+        });
+        return { success: true, data: transformed };
+      } catch (retryError) {
+        logParseEvent({
+          modelId,
+          path: "error-feedback-retry",
+          durationMs: Date.now() - startTime,
           success: false,
-          data: null,
-          error: `Retry failed to produce valid JSON: ${jsonStr.slice(0, 200)}...`,
-        };
+          error: retryError instanceof Error ? retryError.message : String(retryError),
+        });
+        throw retryError;
       }
-
-      const normalized = normalizeAiKeys(parsed);
-      const transformed = transformToSchema(normalized);
-      return { success: true, data: transformed };
     }
 
     // Primary path: structured output via Output.object()
     // SDK sends response_format: { type: "json_schema" } with full schema enforcement
     // require_parameters: true ensures only providers supporting this are selected
     try {
-      const { output } = await generateText({
-        model: provider(modelId),
-        output: Output.object({ schema: resumeSchema, name: "resume" }),
-        system: STRUCTURED_SYSTEM_PROMPT,
-        prompt,
-        temperature: 0,
-        providerOptions: OPENROUTER_PROVIDER_ROUTING,
-      });
+      const startTime = Date.now();
+      try {
+        const { output } = await generateText({
+          model: provider(modelId),
+          output: Output.object({ schema: resumeSchema, name: "resume" }),
+          system: STRUCTURED_SYSTEM_PROMPT,
+          prompt,
+          temperature: 0,
+          maxOutputTokens: MAX_OUTPUT_TOKENS,
+          abortSignal: AbortSignal.timeout(STRUCTURED_TIMEOUT_MS),
+          providerOptions: STRUCTURED_PROVIDER_ROUTING,
+        });
 
-      // SDK validated against Zod schema — output is typed ResumeSchema
-      return { success: true, data: output };
-    } catch (structuredError) {
-      if (!NoObjectGeneratedError.isInstance(structuredError)) throw structuredError;
-
-      console.warn("[ai-parse] Structured output failed, falling back to text parsing", {
-        finishReason: structuredError.finishReason,
-      });
-
-      // Attempt to salvage raw text from the failed structured output
-      if (structuredError.text) {
-        const jsonStr = extractJson(structuredError.text);
-        const { data: parsed, repaired } = await parseJsonWithRepair(jsonStr);
-        if (repaired) {
-          console.warn("[ai-parse] JSON repair applied to structured output fallback");
+        // SDK validated against Zod schema — output is typed ResumeSchema
+        logParseEvent({
+          modelId,
+          path: "structured",
+          durationMs: Date.now() - startTime,
+          success: true,
+        });
+        return { success: true, data: output, structuredOutput: true };
+      } catch (structuredError) {
+        // Config errors should bubble up — no point trying fallback
+        if (
+          structuredError instanceof Error &&
+          structuredError.message.includes("AI Gateway not configured")
+        ) {
+          throw structuredError;
         }
-        if (parsed) {
-          const normalized = normalizeAiKeys(parsed);
-          const transformed = transformToSchema(normalized);
-          return { success: true, data: transformed };
+
+        if (NoObjectGeneratedError.isInstance(structuredError)) {
+          logParseEvent({
+            modelId,
+            path: "structured",
+            durationMs: Date.now() - startTime,
+            success: false,
+            error: `finishReason: ${structuredError.finishReason}`,
+          });
+
+          // Attempt to salvage raw text from the failed structured output
+          if (structuredError.text) {
+            const salvageStartTime = Date.now();
+            const jsonStr = extractJson(structuredError.text);
+            const { data: parsed, repaired } = await parseJsonWithRepair(jsonStr);
+            if (parsed) {
+              const normalized = normalizeAiKeys(parsed);
+              const transformed = transformToSchema(normalized);
+              logParseEvent({
+                modelId,
+                path: "structured-salvage",
+                durationMs: Date.now() - salvageStartTime,
+                success: true,
+                repaired,
+              });
+              return { success: true, data: transformed };
+            }
+            logParseEvent({
+              modelId,
+              path: "structured-salvage",
+              durationMs: Date.now() - salvageStartTime,
+              success: false,
+              error: "Failed to parse salvaged text",
+            });
+          }
+        } else {
+          // Network/provider errors — log and fall through to text fallback
+          logParseEvent({
+            modelId,
+            path: "structured",
+            durationMs: Date.now() - startTime,
+            success: false,
+            error:
+              structuredError instanceof Error ? structuredError.message : String(structuredError),
+          });
         }
+      }
+    } catch (outerError) {
+      // Re-throw config errors; everything else was already logged
+      if (outerError instanceof Error && outerError.message.includes("AI Gateway not configured")) {
+        throw outerError;
       }
     }
 
     // Last resort: text-based generation with full SYSTEM_PROMPT (includes JSON schema example)
-    const runFallbackParse = async (system: string, attemptLabel: string) => {
-      const { text: responseText } = await generateText({
-        model: provider(modelId),
-        system,
-        prompt,
-        temperature: 0,
-        providerOptions: OPENROUTER_PROVIDER_ROUTING,
-      });
-
-      const jsonStr = extractJson(responseText);
-      const { data: parsed, repaired } = await parseJsonWithRepair(jsonStr);
-      if (repaired) {
-        console.warn("[ai-parse] JSON repair applied during fallback parsing", {
-          provider: providerLabel,
-          model: modelId,
-          attempt: attemptLabel,
+    const runFallbackParse = async (system: string) => {
+      const startTime = Date.now();
+      try {
+        const { text: responseText } = await generateText({
+          model: provider(modelId),
+          system,
+          prompt,
+          temperature: 0,
+          maxOutputTokens: MAX_OUTPUT_TOKENS,
+          abortSignal: AbortSignal.timeout(FALLBACK_TIMEOUT_MS),
+          providerOptions: TEXT_PROVIDER_ROUTING,
         });
+
+        const jsonStr = extractJson(responseText);
+        const { data: parsed, repaired } = await parseJsonWithRepair(jsonStr);
+        if (repaired) {
+          logParseEvent({
+            modelId,
+            path: "text-fallback",
+            durationMs: Date.now() - startTime,
+            success: true,
+            repaired: true,
+          });
+        } else if (parsed) {
+          logParseEvent({
+            modelId,
+            path: "text-fallback",
+            durationMs: Date.now() - startTime,
+            success: true,
+          });
+        } else {
+          logParseEvent({
+            modelId,
+            path: "text-fallback",
+            durationMs: Date.now() - startTime,
+            success: false,
+            error: "Failed to parse response as JSON",
+          });
+        }
+        return { parsed, jsonStr };
+      } catch (fallbackError) {
+        logParseEvent({
+          modelId,
+          path: "text-fallback",
+          durationMs: Date.now() - startTime,
+          success: false,
+          error: fallbackError instanceof Error ? fallbackError.message : String(fallbackError),
+        });
+        throw fallbackError;
       }
-      return { parsed, jsonStr };
     };
 
-    let fallbackResult = await runFallbackParse(SYSTEM_PROMPT, "text-fallback");
+    let fallbackResult = await runFallbackParse(SYSTEM_PROMPT);
 
     if (!fallbackResult.parsed) {
       const retryText = truncateForRetry(text);
       const retryPrompt = buildPrompt(retryText);
       const retrySystem = `${SYSTEM_PROMPT}\n\nIMPORTANT: Output a single valid JSON object only.`;
 
-      const { text: responseText } = await generateText({
-        model: provider(modelId),
-        system: retrySystem,
-        prompt: retryPrompt,
-        temperature: 0,
-        providerOptions: OPENROUTER_PROVIDER_ROUTING,
-      });
-
-      const jsonStr = extractJson(responseText);
-      const { data: parsed, repaired } = await parseJsonWithRepair(jsonStr);
-      if (repaired) {
-        console.warn("[ai-parse] JSON repair applied during fallback retry", {
-          provider: providerLabel,
-          model: modelId,
+      const startTime = Date.now();
+      try {
+        const { text: responseText } = await generateText({
+          model: provider(modelId),
+          system: retrySystem,
+          prompt: retryPrompt,
+          temperature: 0,
+          maxOutputTokens: MAX_OUTPUT_TOKENS,
+          abortSignal: AbortSignal.timeout(FALLBACK_TIMEOUT_MS),
+          providerOptions: TEXT_PROVIDER_ROUTING,
         });
-      }
-      fallbackResult = { parsed, jsonStr };
-      if (!parsed) {
-        return {
+
+        const jsonStr = extractJson(responseText);
+        const { data: parsed, repaired } = await parseJsonWithRepair(jsonStr);
+        logParseEvent({
+          modelId,
+          path: "text-fallback-retry",
+          durationMs: Date.now() - startTime,
+          success: !!parsed,
+          repaired: repaired || undefined,
+          error: parsed ? undefined : "Failed to parse retry response as JSON",
+        });
+        fallbackResult = { parsed, jsonStr };
+        if (!parsed) {
+          return {
+            success: false,
+            data: null,
+            error: `Failed to parse AI response as JSON: ${jsonStr.slice(0, 200)}...`,
+          };
+        }
+      } catch (retryFallbackError) {
+        logParseEvent({
+          modelId,
+          path: "text-fallback-retry",
+          durationMs: Date.now() - startTime,
           success: false,
-          data: null,
-          error: `Failed to parse AI response as JSON: ${jsonStr.slice(0, 200)}...`,
-        };
+          error:
+            retryFallbackError instanceof Error
+              ? retryFallbackError.message
+              : String(retryFallbackError),
+        });
+        throw retryFallbackError;
       }
     }
 

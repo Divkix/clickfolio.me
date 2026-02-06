@@ -27,14 +27,31 @@ export async function extractPdfText(buffer: ArrayBuffer): Promise<PdfExtractRes
 
   try {
     const pdf = await getDocumentProxy(new Uint8Array(buffer));
+
+    if (pdf.numPages > 50) {
+      return {
+        success: false,
+        text: "",
+        pageCount: pdf.numPages,
+        error: `PDF has ${pdf.numPages} pages (maximum 50). Please upload a shorter document.`,
+      };
+    }
+
     const { text, totalPages } = await extractText(pdf, { mergePages: true });
     return { success: true, text: text ?? "", pageCount: totalPages };
   } catch (error) {
-    return {
-      success: false,
-      text: "",
-      pageCount: 0,
-      error: error instanceof Error ? error.message : "PDF extraction failed",
-    };
+    const message = error instanceof Error ? error.message : String(error);
+    const lower = message.toLowerCase();
+
+    let userError: string;
+    if (/password|encrypted/.test(lower)) {
+      userError = "This PDF is password-protected. Please upload an unprotected version.";
+    } else if (/invalid pdf|corrupt|not a pdf/.test(lower)) {
+      userError = "This PDF appears to be corrupted. Please upload a valid PDF file.";
+    } else {
+      userError = message || "PDF extraction failed";
+    }
+
+    return { success: false, text: "", pageCount: 0, error: userError };
   }
 }

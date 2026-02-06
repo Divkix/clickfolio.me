@@ -54,6 +54,35 @@ function buildSiteDataUpsert(
 }
 
 /**
+ * Map raw error messages to user-friendly messages.
+ * Raw error is preserved in lastAttemptError for debugging;
+ * user-friendly message goes into errorMessage (shown to user).
+ */
+function getUserFriendlyError(rawError: string): string {
+  const lower = rawError.toLowerCase();
+
+  if (/password.protected|encrypted/.test(lower)) {
+    return "Your PDF is password-protected. Please upload an unprotected version.";
+  }
+  if (/invalid.*pdf|corrupt/.test(lower)) {
+    return "Your PDF couldn't be read. Please upload a valid PDF file.";
+  }
+  if (/extracted.*text.*is.*empty/.test(lower)) {
+    return "No text could be extracted from your PDF. It may be a scanned image.";
+  }
+  if (/pdf.*has.*\d+.*pages/.test(lower)) {
+    return "Your PDF is too long. Please upload a resume under 50 pages.";
+  }
+  if (/schema.*validation/.test(lower)) {
+    return "We couldn't parse your resume format. Please try again.";
+  }
+  if (/timeout|timed.*out/.test(lower)) {
+    return "Processing timed out. Please try again.";
+  }
+  return "Something went wrong while parsing your resume. Please try again.";
+}
+
+/**
  * Handle resume parsing from queue
  */
 async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv): Promise<void> {
@@ -174,22 +203,24 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
   const parseResult = await parseResumeWithAi(pdfBuffer, env);
 
   if (!parseResult.success) {
-    const errorMessage = parseResult.error || "Parsing failed";
+    const rawError = parseResult.error || "Parsing failed";
+    const userError = getUserFriendlyError(rawError);
     await db
       .update(resumes)
       .set({
         status: "failed",
-        errorMessage,
-        lastAttemptError: errorMessage,
+        errorMessage: userError,
+        lastAttemptError: rawError,
       })
       .where(eq(resumes.id, message.resumeId));
     await notifyStatusChange({
       resumeId: message.resumeId,
       status: "failed",
-      error: errorMessage,
+      error: userError,
       env,
     });
-    throw new Error(errorMessage);
+    // Throw raw error so classifyQueueError pattern matching still works
+    throw new Error(rawError);
   }
 
   // parsedContent is produced by JSON.stringify() in parseResumeWithAi — guaranteed valid JSON

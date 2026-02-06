@@ -11,6 +11,7 @@ export enum QueueErrorType {
   DB_CONNECTION_ERROR = "db_connection_error",
   SERVICE_BINDING_TIMEOUT = "service_binding_timeout",
   R2_THROTTLE = "r2_throttle",
+  AI_PROVIDER_ERROR = "ai_provider_error",
 
   // Permanent errors (should ack, no retry)
   INVALID_PDF = "invalid_pdf",
@@ -28,6 +29,7 @@ const TRANSIENT_ERROR_TYPES = new Set<QueueErrorType>([
   QueueErrorType.DB_CONNECTION_ERROR,
   QueueErrorType.SERVICE_BINDING_TIMEOUT,
   QueueErrorType.R2_THROTTLE,
+  QueueErrorType.AI_PROVIDER_ERROR,
 ]);
 
 /**
@@ -127,6 +129,25 @@ const ERROR_PATTERNS: Array<{ pattern: RegExp; type: QueueErrorType }> = [
   {
     pattern: /extracted.*resume.*text.*is.*empty/i,
     type: QueueErrorType.INVALID_PDF,
+  },
+
+  // AI provider errors (transient — provider down, model unavailable, etc.)
+  {
+    pattern: /NoObjectGeneratedError|no.*object.*generated/i,
+    type: QueueErrorType.AI_PROVIDER_ERROR,
+  },
+  {
+    pattern: /API.*error|api.*request.*failed|provider.*error/i,
+    type: QueueErrorType.AI_PROVIDER_ERROR,
+  },
+  {
+    pattern: /model.*not.*found|model.*unavailable|insufficient.*credits/i,
+    type: QueueErrorType.AI_PROVIDER_ERROR,
+  },
+  {
+    pattern:
+      /HTTP\s*5\d{2}|status.*5\d{2}|internal.*server.*error|bad.*gateway|service.*unavailable/i,
+    type: QueueErrorType.AI_PROVIDER_ERROR,
   },
 
   // Malformed response errors (permanent)

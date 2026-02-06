@@ -106,18 +106,25 @@ export const resumeSchema = z.object({
     .string()
     .describe("Professional summary or objective statement (2-4 sentences, max 500 characters)"),
   contact: contactSchema.describe("Contact information"),
-  experience: z.array(experienceSchema).describe("Work experience in reverse chronological order"),
+  experience: z
+    .array(experienceSchema)
+    .max(15)
+    .describe("Work experience in reverse chronological order"),
   education: z
     .array(educationSchema)
+    .max(15)
     .describe("Education history. Return empty array [] if absent."),
   skills: z
     .array(skillSchema)
+    .max(25)
     .describe("Skills grouped by category. Return empty array [] if absent."),
   certifications: z
     .array(certificationSchema)
+    .max(25)
     .describe("Professional certifications. Return empty array [] if absent."),
   projects: z
     .array(projectSchema)
+    .max(15)
     .describe("Personal projects, side work, portfolio pieces. Return empty array [] if absent."),
 });
 

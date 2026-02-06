@@ -256,7 +256,7 @@ export function transformAiResponse(raw: unknown): unknown {
 /**
  * Final cleanup transformations - trim strings, extract LinkedIn from website, remove empty fields
  */
-export function transformAiOutput(raw: ResumeSchema): ResumeSchema {
+export function transformAiOutput(raw: ResumeSchema): Record<string, unknown> {
   const result = structuredClone(raw);
 
   const trimStrings = (obj: Record<string, unknown>): void => {

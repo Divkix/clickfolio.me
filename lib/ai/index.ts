@@ -1,7 +1,8 @@
+import { sanitizeEmail } from "@/lib/utils/sanitization";
 import { parseWithAi } from "./ai-parser";
 import { extractPdfText } from "./pdf-extract";
 import { type ResumeSchema, resumeSchema } from "./schema";
-import { transformAiOutput, transformAiResponse } from "./transform";
+import { normalizeEndDate, transformAiOutput, transformAiResponse, validateUrl } from "./transform";
 
 export interface ParseResumeResult {
   success: boolean;
@@ -29,16 +30,49 @@ function truncateResumeText(text: string): string {
   return `${head}${RESUME_TRUNCATION_MARKER}${tail}`;
 }
 
-function validateParseResult(data: unknown): {
+function validateParseResult(
+  data: unknown,
+  structuredOutput?: boolean,
+): {
   success: boolean;
   data?: Record<string, unknown>;
   errors?: string;
 } {
-  const transformed = transformAiResponse(data);
-  const withDefaults = transformed as Record<string, unknown>;
+  let withDefaults: Record<string, unknown>;
+
+  if (structuredOutput) {
+    // Structured output was schema-validated by the SDK — skip heavy transformAiResponse.
+    // Only apply lightweight security sanitization.
+    withDefaults = (
+      typeof data === "object" && data !== null ? { ...(data as Record<string, unknown>) } : {}
+    ) as Record<string, unknown>;
+
+    // Security: validate URLs to block javascript: protocol
+    if (withDefaults.contact && typeof withDefaults.contact === "object") {
+      const c = withDefaults.contact as Record<string, unknown>;
+      for (const urlField of ["linkedin", "github", "website", "behance", "dribbble"]) {
+        if (c[urlField]) c[urlField] = validateUrl(c[urlField]);
+      }
+      if (c.email) c.email = sanitizeEmail(String(c.email));
+    }
+
+    // Normalize "Present"/"Current" end dates
+    if (Array.isArray(withDefaults.experience)) {
+      for (const exp of withDefaults.experience as Record<string, unknown>[]) {
+        if (exp.end_date) exp.end_date = normalizeEndDate(exp.end_date);
+      }
+    }
+  } else {
+    // Fallback path: full transformation with garbage filtering and truncation
+    const transformed = transformAiResponse(data);
+    withDefaults = transformed as Record<string, unknown>;
+  }
+
+  // Inject default empty arrays for optional fields
   for (const key of ["education", "skills", "certifications", "projects"]) {
     if (!Array.isArray(withDefaults[key])) withDefaults[key] = [];
   }
+
   const result = resumeSchema.safeParse(withDefaults);
   if (result.success) {
     return { success: true, data: result.data as Record<string, unknown> };
@@ -97,7 +131,10 @@ export async function parseResumeWithAi(
     }
 
     // Step 3: Validate (transform → defaults → Zod)
-    let validation = validateParseResult(parseResult.data);
+    // Clone data before validation — transformAiResponse mutates in-place,
+    // and we need the original for retry context if validation fails
+    const dataForRetry = structuredClone(parseResult.data);
+    let validation = validateParseResult(parseResult.data, parseResult.structuredOutput);
 
     // Step 3b: Retry with error feedback if validation failed
     if (!validation.success && validation.errors) {
@@ -106,7 +143,7 @@ export async function parseResumeWithAi(
       });
 
       const retryResult = await parseWithAi(resumeText, env, undefined, {
-        previousOutput: JSON.stringify(parseResult.data),
+        previousOutput: JSON.stringify(dataForRetry),
         errors: validation.errors,
       });
 
