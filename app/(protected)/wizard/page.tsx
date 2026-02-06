@@ -70,6 +70,7 @@ interface WizardState {
   privacySettings: {
     show_phone: boolean;
     show_address: boolean;
+    show_in_directory: boolean;
   };
   themeId: ThemeId;
 }
@@ -116,6 +117,7 @@ export default function WizardPage() {
     privacySettings: {
       show_phone: false,
       show_address: false,
+      show_in_directory: true,
     },
     themeId: DEFAULT_THEME,
   });
@@ -414,7 +416,11 @@ export default function WizardPage() {
   };
 
   // Handler for privacy settings
-  const handlePrivacyContinue = (settings: { show_phone: boolean; show_address: boolean }) => {
+  const handlePrivacyContinue = (settings: {
+    show_phone: boolean;
+    show_address: boolean;
+    show_in_directory: boolean;
+  }) => {
     setState((prev) => ({
       ...prev,
       privacySettings: settings,

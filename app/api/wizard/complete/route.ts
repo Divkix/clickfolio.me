@@ -27,7 +27,7 @@ const wizardCompleteSchema = z.object({
     show_phone: z.boolean(),
     show_address: z.boolean(),
     hide_from_search: z.boolean().optional().default(false),
-    show_in_directory: z.boolean().optional().default(false),
+    show_in_directory: z.boolean().optional().default(true),
   }),
   theme_id: z.enum([...THEME_IDS] as [ThemeId, ...ThemeId[]]),
 });

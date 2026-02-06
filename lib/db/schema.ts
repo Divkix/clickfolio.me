@@ -21,7 +21,7 @@ export const user = sqliteTable(
     privacySettings: text("privacy_settings")
       .notNull()
       .default(
-        '{"show_phone":false,"show_address":false,"hide_from_search":false,"show_in_directory":false}',
+        '{"show_phone":false,"show_address":false,"hide_from_search":false,"show_in_directory":true}',
       ),
     onboardingCompleted: integer("onboarding_completed", { mode: "boolean" })
       .notNull()
@@ -47,7 +47,7 @@ export const user = sqliteTable(
     // Admin flag for admin dashboard access
     isAdmin: integer("is_admin", { mode: "boolean" }).notNull().default(false),
     // Denormalized from privacySettings JSON for indexed directory queries
-    showInDirectory: integer("show_in_directory", { mode: "boolean" }).notNull().default(false),
+    showInDirectory: integer("show_in_directory", { mode: "boolean" }).notNull().default(true),
   },
   (table) => [
     // Index for sitemap queries (WHERE handle IS NOT NULL ORDER BY handle)

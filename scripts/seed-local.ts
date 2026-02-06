@@ -56,7 +56,7 @@ async function seed() {
     1,
     now,
     now,
-    '{"show_phone":false,"show_address":false,"hide_from_search":false,"show_in_directory":false}',
+    '{"show_phone":false,"show_address":false,"hide_from_search":false,"show_in_directory":true}',
     0,
     0,
     0,

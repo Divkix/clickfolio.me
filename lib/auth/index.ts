@@ -179,7 +179,7 @@ export async function getAuth() {
           type: "string",
           required: false,
           defaultValue:
-            '{"show_phone":false,"show_address":false,"hide_from_search":false,"show_in_directory":false}',
+            '{"show_phone":false,"show_address":false,"hide_from_search":false,"show_in_directory":true}',
         },
         onboardingCompleted: {
           type: "boolean",

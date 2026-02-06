@@ -1,6 +1,6 @@
 "use client";
 
-import { Eye, EyeOff, Info, MapPin, Phone, Shield } from "lucide-react";
+import { Eye, EyeOff, Info, MapPin, Phone, Shield, Users } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -13,8 +13,13 @@ interface PrivacyStepProps {
   initialSettings?: {
     show_phone: boolean;
     show_address: boolean;
+    show_in_directory: boolean;
   };
-  onContinue: (settings: { show_phone: boolean; show_address: boolean }) => void;
+  onContinue: (settings: {
+    show_phone: boolean;
+    show_address: boolean;
+    show_in_directory: boolean;
+  }) => void;
 }
 
 /**
@@ -23,16 +28,18 @@ interface PrivacyStepProps {
  */
 export function PrivacyStep({
   content,
-  initialSettings = { show_phone: false, show_address: false },
+  initialSettings = { show_phone: false, show_address: false, show_in_directory: true },
   onContinue,
 }: PrivacyStepProps) {
   const [showPhone, setShowPhone] = useState(initialSettings.show_phone);
   const [showAddress, setShowAddress] = useState(initialSettings.show_address);
+  const [showInDirectory, setShowInDirectory] = useState(initialSettings.show_in_directory);
 
   const handleContinue = () => {
     onContinue({
       show_phone: showPhone,
       show_address: showAddress,
+      show_in_directory: showInDirectory,
     });
   };
 
@@ -157,6 +164,46 @@ export function PrivacyStep({
             </div>
           </Card>
         )}
+
+        {/* Directory Visibility Toggle */}
+        <Card className="p-6 border-2 border-slate-200/60 shadow-depth-sm">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-2">
+                <Users className="w-5 h-5 text-slate-600" />
+                <Label
+                  htmlFor="show-in-directory"
+                  className="text-base font-semibold text-slate-900"
+                >
+                  Show in Explore Directory
+                </Label>
+              </div>
+              <p className="text-sm text-slate-600 mb-3">
+                Let others discover your portfolio on the public explore page
+              </p>
+              <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
+                <p className="text-xs font-medium text-slate-500 mb-1">Preview:</p>
+                {showInDirectory ? (
+                  <div className="flex items-center gap-2 text-sm text-slate-900">
+                    <Eye className="w-4 h-4 text-green-600" />
+                    <span className="font-medium">Listed on /explore</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 text-sm text-slate-500">
+                    <EyeOff className="w-4 h-4" />
+                    <span className="italic">Hidden from explore directory</span>
+                  </div>
+                )}
+              </div>
+            </div>
+            <Switch
+              id="show-in-directory"
+              checked={showInDirectory}
+              onCheckedChange={setShowInDirectory}
+              className="mt-1"
+            />
+          </div>
+        </Card>
 
         {/* No sensitive data message */}
         {!content.contact.phone && !content.contact.location && (
