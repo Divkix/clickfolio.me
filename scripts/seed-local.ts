@@ -1,13 +1,13 @@
 import { Database } from "bun:sqlite";
 import fs from "node:fs";
 import path from "node:path";
-import { scryptAsync } from "@noble/hashes/scrypt";
-import { bytesToHex } from "@noble/hashes/utils";
+import { scryptAsync } from "@noble/hashes/scrypt.js";
+import { bytesToHex, utf8ToBytes } from "@noble/hashes/utils.js";
 
 // Hash password using scrypt to match Better Auth's internal format
 async function hashPassword(password: string): Promise<string> {
   const salt = bytesToHex(crypto.getRandomValues(new Uint8Array(16)));
-  const key = await scryptAsync(password.normalize("NFKC"), salt, {
+  const key = await scryptAsync(utf8ToBytes(password.normalize("NFKC")), utf8ToBytes(salt), {
     N: 16384,
     p: 1,
     r: 16,
