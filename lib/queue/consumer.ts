@@ -54,19 +54,6 @@ function buildSiteDataUpsert(
 }
 
 /**
- * Execute siteData upsert standalone (for paths that cannot use batch).
- */
-async function upsertSiteData(
-  db: ReturnType<typeof getSessionDbForWebhook>["db"],
-  userId: string,
-  resumeId: string,
-  content: string,
-  now: string,
-): Promise<void> {
-  await buildSiteDataUpsert(db, userId, resumeId, content, now);
-}
-
-/**
  * Handle resume parsing from queue
  */
 async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv): Promise<void> {
@@ -236,22 +223,27 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
     .from(resumes)
     .where(and(eq(resumes.fileHash, message.fileHash), eq(resumes.status, "waiting_for_cache")));
 
-  // Batch update all waiting resumes with same fileHash to completed
+  // Batch status update + all siteData upserts atomically.
+  // Without batching, a crash between the bulk UPDATE and individual upserts
+  // leaves some resumes marked "completed" with no siteData, and the
+  // idempotency guard at line 93 skips them on retry.
   if (waitingResumes.length > 0) {
-    await db
-      .update(resumes)
-      .set({
-        status: "completed",
-        parsedAt: now,
-        parsedContent,
-        parsedContentStaged: null,
-      })
-      .where(and(eq(resumes.fileHash, message.fileHash), eq(resumes.status, "waiting_for_cache")));
-  }
-
-  // Still need individual site data upserts for waiting resumes
-  for (const waiting of waitingResumes) {
-    await upsertSiteData(db, waiting.userId as string, waiting.id as string, parsedContent, now);
+    await db.batch([
+      db
+        .update(resumes)
+        .set({
+          status: "completed",
+          parsedAt: now,
+          parsedContent,
+          parsedContentStaged: null,
+        })
+        .where(
+          and(eq(resumes.fileHash, message.fileHash), eq(resumes.status, "waiting_for_cache")),
+        ),
+      ...waitingResumes.map((w) =>
+        buildSiteDataUpsert(db, w.userId as string, w.id as string, parsedContent, now),
+      ),
+    ]);
   }
 
   // Notify waiting resumes via WebSocket

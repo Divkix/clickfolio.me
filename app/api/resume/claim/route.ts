@@ -20,17 +20,17 @@ interface ClaimRequestBody {
 }
 
 /**
- * Upsert site_data using onConflictDoUpdate on the UNIQUE userId column.
- * Eliminates the SELECT roundtrip and race-condition fallback logic.
+ * Build siteData upsert query (not executed).
+ * Returned so callers can include it in a db.batch() call for atomicity.
  */
-async function upsertSiteData(
+function buildSiteDataUpsert(
   db: Awaited<ReturnType<typeof getSessionDb>>["db"],
   userId: string,
   resumeId: string,
   content: string,
   now: string,
-): Promise<void> {
-  await db
+) {
+  return db
     .insert(siteData)
     .values({
       id: crypto.randomUUID(),
@@ -240,19 +240,22 @@ export async function POST(request: Request) {
       // Only update DB if R2 put succeeded
       if (r2PutSucceeded) {
         try {
-          await db
-            .update(resumes)
-            .set({
-              status: "completed",
-              fileHash: computedFileHash,
-              parsedAt: now,
-              parsedContent: cachedContent,
-            })
-            .where(eq(resumes.id, resumeId));
-
-          // Copy content to user's site_data for publishing (upsert with race condition handling)
-          // Pass raw string directly - already valid JSON, avoid parse-stringify round-trip
-          await upsertSiteData(db, userId, resumeId, cachedContent, now);
+          // Batch resume completion + siteData upsert atomically.
+          // Without batching, a crash between the UPDATE and upsert leaves
+          // the resume "completed" with no siteData, and the idempotency
+          // guard in the queue consumer skips it on retry.
+          await db.batch([
+            db
+              .update(resumes)
+              .set({
+                status: "completed",
+                fileHash: computedFileHash,
+                parsedAt: now,
+                parsedContent: cachedContent,
+              })
+              .where(eq(resumes.id, resumeId)),
+            buildSiteDataUpsert(db, userId, resumeId, cachedContent, now),
+          ]);
 
           // R2 and DB both succeeded - return cached result
           await captureBookmark();

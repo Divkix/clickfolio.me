@@ -31,21 +31,13 @@ export async function performCleanup(db: Database): Promise<CleanupResult> {
   const nowIso = new Date().toISOString();
   const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
 
-  // Delete expired rate limits
-  const rateLimitsResult = await db
-    .delete(uploadRateLimits)
-    .where(lt(uploadRateLimits.expiresAt, nowIso));
-
-  // Delete expired sessions
-  const sessionsResult = await db.delete(session).where(lt(session.expiresAt, nowIso));
-
-  // Archive old handleChanges (keep 90 days)
-  const handleChangesResult = await db
-    .delete(handleChanges)
-    .where(lt(handleChanges.createdAt, ninetyDaysAgo));
-
-  // Delete page views older than 90 days
-  const pageViewsResult = await db.delete(pageViews).where(lt(pageViews.createdAt, ninetyDaysAgo));
+  // Batch all 4 independent DELETEs into a single D1 roundtrip
+  const [rateLimitsResult, sessionsResult, handleChangesResult, pageViewsResult] = await db.batch([
+    db.delete(uploadRateLimits).where(lt(uploadRateLimits.expiresAt, nowIso)),
+    db.delete(session).where(lt(session.expiresAt, nowIso)),
+    db.delete(handleChanges).where(lt(handleChanges.createdAt, ninetyDaysAgo)),
+    db.delete(pageViews).where(lt(pageViews.createdAt, ninetyDaysAgo)),
+  ]);
 
   return {
     ok: true,
