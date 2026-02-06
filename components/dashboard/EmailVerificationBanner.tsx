@@ -60,7 +60,7 @@ export function EmailVerificationBanner({
     try {
       const { error } = await sendVerificationEmail({
         email,
-        callbackURL: "/dashboard",
+        callbackURL: "/verify-email",
       });
 
       if (error) {

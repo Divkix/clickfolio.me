@@ -25,7 +25,7 @@ function VerifyEmailContent() {
     try {
       const { error } = await sendVerificationEmail({
         email,
-        callbackURL: "/dashboard",
+        callbackURL: "/verify-email",
       });
 
       if (error) {

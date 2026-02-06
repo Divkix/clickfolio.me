@@ -78,15 +78,20 @@ export async function sendPasswordResetEmail({
     // Escape user-controlled values for HTML safety
     const safeUserName = userName ? escapeHtml(userName) : null;
     const greeting = safeUserName ? `Hi ${safeUserName},` : "Hi,";
-    // Encode URL to prevent injection via URL parameters
-    const safeResetUrl = encodeURI(resetUrl);
+    // Validate URL structure — Better Auth already produces properly-encoded URLs.
+    // Do NOT use encodeURI() here: it re-encodes % to %25, mangling query params.
+    try {
+      new URL(resetUrl);
+    } catch {
+      return { success: false, error: "Invalid reset URL" };
+    }
 
     const textContent = `${greeting}
 
 You requested to reset your password for your Clickfolio account.
 
 Click the link below to set a new password:
-${safeResetUrl}
+${resetUrl}
 
 This link will expire in 1 hour.
 
@@ -109,7 +114,7 @@ If you didn't request this, you can safely ignore this email. Your password won'
 
     <p style="margin: 0 0 24px 0;">You requested to reset your password for your Clickfolio account.</p>
 
-    <a href="${safeResetUrl}" style="display: inline-block; background: #1a1a1a; color: #fffef5; padding: 12px 24px; text-decoration: none; font-weight: 600; border: 3px solid #1a1a1a; box-shadow: 4px 4px 0 #1a1a1a;">
+    <a href="${resetUrl}" style="display: inline-block; background: #1a1a1a; color: #fffef5; padding: 12px 24px; text-decoration: none; font-weight: 600; border: 3px solid #1a1a1a; box-shadow: 4px 4px 0 #1a1a1a;">
       Reset Password
     </a>
 
@@ -192,15 +197,20 @@ export async function sendVerificationEmail({
     // Escape user-controlled values for HTML safety
     const safeUserName = userName ? escapeHtml(userName) : null;
     const greeting = safeUserName ? `Hi ${safeUserName},` : "Hi,";
-    // Encode URL to prevent injection via URL parameters
-    const safeVerificationUrl = encodeURI(verificationUrl);
+    // Validate URL structure — Better Auth already produces properly-encoded URLs.
+    // Do NOT use encodeURI() here: it re-encodes % to %25, mangling query params.
+    try {
+      new URL(verificationUrl);
+    } catch {
+      return { success: false, error: "Invalid verification URL" };
+    }
 
     const textContent = `${greeting}
 
 Thanks for signing up for Clickfolio! Please verify your email address to complete your registration.
 
 Click the link below to verify your email:
-${safeVerificationUrl}
+${verificationUrl}
 
 This link will expire in 24 hours.
 
@@ -223,7 +233,7 @@ If you didn't create a Clickfolio account, you can safely ignore this email.
 
     <p style="margin: 0 0 24px 0;">Thanks for signing up for Clickfolio! Please verify your email address to complete your registration.</p>
 
-    <a href="${safeVerificationUrl}" style="display: inline-block; background: #1a1a1a; color: #fffef5; padding: 12px 24px; text-decoration: none; font-weight: 600; border: 3px solid #1a1a1a; box-shadow: 4px 4px 0 #1a1a1a;">
+    <a href="${verificationUrl}" style="display: inline-block; background: #1a1a1a; color: #fffef5; padding: 12px 24px; text-decoration: none; font-weight: 600; border: 3px solid #1a1a1a; box-shadow: 4px 4px 0 #1a1a1a;">
       Verify Email
     </a>
 

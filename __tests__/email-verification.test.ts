@@ -1,5 +1,14 @@
+import { ofetch } from "ofetch";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { sendVerificationEmail } from "@/lib/email/resend";
+import { sendPasswordResetEmail, sendVerificationEmail } from "@/lib/email/resend";
+
+vi.mock("ofetch", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("ofetch")>();
+  return {
+    ...actual,
+    ofetch: vi.fn(),
+  };
+});
 
 describe("email verification", () => {
   const originalFetch = globalThis.fetch;
@@ -132,6 +141,72 @@ describe("email verification", () => {
       const body = JSON.parse(fetchCall?.[1]?.body as string);
       expect(body.html).not.toContain("<script>");
       expect(body.html).toContain("&lt;script&gt;");
+    });
+
+    it("does not double-encode pre-encoded URL characters", async () => {
+      globalThis.fetch = vi.fn().mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ id: "email_123" }),
+      }) as unknown as typeof fetch;
+
+      // Better Auth produces URLs with already-encoded query params
+      const urlWithEncoded =
+        "https://clickfolio.me/api/auth/verify-email?token=abc%2Fdef&callbackURL=%2Fdashboard";
+
+      await sendVerificationEmail({
+        email: "test@example.com",
+        verificationUrl: urlWithEncoded,
+      });
+
+      const fetchCall = vi.mocked(globalThis.fetch).mock.calls[0];
+      const body = JSON.parse(fetchCall?.[1]?.body as string);
+      // %2F must NOT become %252F (double-encoded)
+      expect(body.html).toContain("abc%2Fdef");
+      expect(body.html).not.toContain("abc%252Fdef");
+      expect(body.text).toContain("abc%2Fdef");
+      expect(body.text).not.toContain("abc%252Fdef");
+    });
+
+    it("returns error for invalid verification URL", async () => {
+      const result = await sendVerificationEmail({
+        email: "test@example.com",
+        verificationUrl: "not-a-valid-url",
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("Invalid");
+    });
+  });
+
+  describe("sendPasswordResetEmail", () => {
+    it("does not double-encode pre-encoded URL characters", async () => {
+      vi.mocked(ofetch).mockResolvedValueOnce({ id: "email_456" });
+
+      const urlWithEncoded = "https://clickfolio.me/api/auth/reset-password?token=abc%2Fdef";
+
+      const result = await sendPasswordResetEmail({
+        email: "test@example.com",
+        resetUrl: urlWithEncoded,
+      });
+
+      expect(result.success).toBe(true);
+      // Inspect the body passed to ofetch
+      const callArgs = vi.mocked(ofetch).mock.calls[0];
+      const body = (callArgs[1] as { body: { html: string; text: string } }).body;
+      expect(body.html).toContain("abc%2Fdef");
+      expect(body.html).not.toContain("abc%252Fdef");
+      expect(body.text).toContain("abc%2Fdef");
+      expect(body.text).not.toContain("abc%252Fdef");
+    });
+
+    it("returns error for invalid reset URL", async () => {
+      const result = await sendPasswordResetEmail({
+        email: "test@example.com",
+        resetUrl: "not-a-valid-url",
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("Invalid");
     });
   });
 });
