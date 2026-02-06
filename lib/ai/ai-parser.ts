@@ -4,6 +4,17 @@ import { resumeSchema } from "./schema";
 
 const DEFAULT_AI_MODEL = "openai/gpt-oss-120b:nitro";
 
+/** OpenRouter provider routing: prefer Cerebras (fp16), exclude fp4 junk */
+const OPENROUTER_PROVIDER_ROUTING = {
+  openrouter: {
+    provider: {
+      order: ["cerebras"],
+      quantizations: ["fp16", "bf16", "fp8"],
+      allow_fallbacks: true,
+    },
+  },
+};
+
 /**
  * Full system prompt for resume extraction (used by fallback text-parsing path).
  * Includes the complete JSON schema example so the model knows the exact shape
@@ -149,7 +160,7 @@ export function createAiProvider(
 
   if (gatewayAccountId && gatewayId && gatewayAuthToken) {
     return createOpenAICompatible({
-      name: "cf-ai-gateway",
+      name: "openrouter",
       baseURL: `https://gateway.ai.cloudflare.com/v1/${gatewayAccountId}/${gatewayId}/openrouter`,
       headers: {
         "cf-aig-authorization": `Bearer ${gatewayAuthToken}`,
@@ -574,6 +585,7 @@ export async function parseWithAi(
         system: STRUCTURED_OUTPUT_SYSTEM_PROMPT,
         prompt,
         temperature: 0,
+        providerOptions: OPENROUTER_PROVIDER_ROUTING,
         output: Output.object({
           schema: resumeSchema,
           name: "resume",
@@ -603,6 +615,7 @@ export async function parseWithAi(
         system,
         prompt,
         temperature: 0,
+        providerOptions: OPENROUTER_PROVIDER_ROUTING,
       });
 
       const jsonStr = extractJson(responseText);
@@ -629,6 +642,7 @@ export async function parseWithAi(
         system: retrySystem,
         prompt: retryPrompt,
         temperature: 0,
+        providerOptions: OPENROUTER_PROVIDER_ROUTING,
       });
 
       const jsonStr = extractJson(responseText);
