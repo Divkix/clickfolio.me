@@ -3,6 +3,7 @@ import { and, desc, eq, isNotNull, sql } from "drizzle-orm";
 import { Briefcase, ExternalLink, GraduationCap, MapPin } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { RoleFilterSelect } from "@/components/explore/role-filter-select";
 import { siteConfig } from "@/lib/config/site";
 import { getDb } from "@/lib/db";
 import { siteData, user } from "@/lib/db/schema";
@@ -133,21 +134,7 @@ export default async function ExplorePage({
             <label htmlFor="role-filter" className="text-sm font-medium text-slate-700">
               Filter by role:
             </label>
-            <form action="/explore" method="get">
-              <select
-                id="role-filter"
-                name="role"
-                defaultValue={roleFilter}
-                onChange={(e) => (e.target as HTMLSelectElement).form?.submit()}
-                className="px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-coral focus:border-coral"
-              >
-                {roleOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </form>
+            <RoleFilterSelect roleFilter={roleFilter} roleOptions={roleOptions} />
           </div>
           <p className="text-sm text-slate-500">
             {totalCount} {totalCount === 1 ? "professional" : "professionals"} listed
