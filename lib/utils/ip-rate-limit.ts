@@ -9,6 +9,7 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { and, eq, gte, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { uploadRateLimits } from "@/lib/db/schema";
+import { isLocalEnvironment } from "./environment";
 
 const HOURLY_LIMIT = 10;
 const DAILY_LIMIT = 50;
@@ -22,17 +23,6 @@ const LOCAL_IPS = new Set([
   "0.0.0.0",
   "::ffff:127.0.0.1",
 ]);
-
-/**
- * Detect local environment via BETTER_AUTH_URL.
- * More robust than IP matching since wrangler preview can present
- * unexpected IP variants, but BETTER_AUTH_URL is always set and
- * reliably indicates local vs production.
- */
-function isLocalEnvironment(): boolean {
-  const authUrl = process.env.BETTER_AUTH_URL || "";
-  return authUrl.includes("localhost") || authUrl.includes("127.0.0.1");
-}
 
 interface IPRateLimitResult {
   allowed: boolean;

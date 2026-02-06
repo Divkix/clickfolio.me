@@ -2,6 +2,7 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { and, eq, gte, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { handleChanges, resumes } from "@/lib/db/schema";
+import { isLocalEnvironment } from "./environment";
 import { SECURITY_HEADERS } from "./security-headers";
 
 const RATE_LIMITS = {
@@ -120,6 +121,11 @@ export async function enforceRateLimit(
 
   // Feature flag bypass for temporary production testing
   if (process.env.DISABLE_RATE_LIMITS === "true") {
+    return null;
+  }
+
+  // Skip for local environment (local preview runs in production mode)
+  if (isLocalEnvironment()) {
     return null;
   }
 
