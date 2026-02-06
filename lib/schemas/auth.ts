@@ -107,8 +107,6 @@ export const signUpWithStrongPasswordSchema = z.object({
   password: strongPasswordSchema,
 });
 
-export type SignUpWithStrongPasswordData = z.infer<typeof signUpWithStrongPasswordSchema>;
-
 /**
  * Reset password schema with strong password validation
  *
@@ -123,5 +121,3 @@ export const resetPasswordWithStrongSchema = z
     message: "Passwords do not match",
     path: ["confirmPassword"],
   });
-
-export type ResetPasswordWithStrongData = z.infer<typeof resetPasswordWithStrongSchema>;

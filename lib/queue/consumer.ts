@@ -1,5 +1,4 @@
 import { and, eq, isNotNull } from "drizzle-orm";
-import { parseResumeWithAi } from "../ai";
 import { resumes, siteData } from "../db/schema";
 import { getSessionDbForWebhook } from "../db/session";
 import { getR2Binding, R2 } from "../r2";
@@ -10,73 +9,77 @@ import { notifyStatusChange, notifyStatusChangeBatch } from "./notify-status";
 import type { QueueMessage, ResumeParseMessage } from "./types";
 
 /**
- * Upsert site_data with UNIQUE constraint handling
- * Extracts preview fields from content for denormalized columns
+ * Build the siteData upsert query (not executed).
+ * Returned so callers can include it in a db.batch() call.
  */
-async function upsertSiteData(
+function buildSiteDataUpsert(
   db: ReturnType<typeof getSessionDbForWebhook>["db"],
   userId: string,
   resumeId: string,
   content: string,
   now: string,
-): Promise<void> {
+) {
   // Parse content to extract preview fields
   let parsedContent: ResumeContent | null = null;
   try {
     parsedContent = JSON.parse(content) as ResumeContent;
   } catch {
-    // If parsing fails, continue without preview fields
     console.warn(`Failed to parse content for preview fields extraction, resumeId: ${resumeId}`);
   }
 
   const previewFields = extractPreviewFields(parsedContent);
 
-  const existingSiteData = await db
-    .select({ id: siteData.id })
-    .from(siteData)
-    .where(eq(siteData.userId, userId))
-    .limit(1);
+  return db
+    .insert(siteData)
+    .values({
+      id: crypto.randomUUID(),
+      userId,
+      resumeId,
+      content,
+      ...previewFields,
+      lastPublishedAt: now,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .onConflictDoUpdate({
+      target: siteData.userId,
+      set: {
+        resumeId,
+        content,
+        ...previewFields,
+        lastPublishedAt: now,
+        updatedAt: now,
+      },
+    });
+}
 
-  if (existingSiteData[0]) {
-    await db
-      .update(siteData)
-      .set({
-        resumeId,
-        content,
-        ...previewFields,
-        lastPublishedAt: now,
-        updatedAt: now,
-      })
-      .where(eq(siteData.userId, userId));
-  } else {
-    try {
-      await db.insert(siteData).values({
-        id: crypto.randomUUID(),
-        userId,
-        resumeId,
-        content,
-        ...previewFields,
-        lastPublishedAt: now,
-        createdAt: now,
-        updatedAt: now,
-      });
-    } catch (error) {
-      if (error instanceof Error && error.message.includes("UNIQUE constraint failed")) {
-        await db
-          .update(siteData)
-          .set({
-            resumeId,
-            content,
-            ...previewFields,
-            lastPublishedAt: now,
-            updatedAt: now,
-          })
-          .where(eq(siteData.userId, userId));
-      } else {
-        throw error;
-      }
-    }
+/**
+ * Map raw error messages to user-friendly messages.
+ * Raw error is preserved in lastAttemptError for debugging;
+ * user-friendly message goes into errorMessage (shown to user).
+ */
+function getUserFriendlyError(rawError: string): string {
+  const lower = rawError.toLowerCase();
+
+  if (/password.protected|encrypted/.test(lower)) {
+    return "Your PDF is password-protected. Please upload an unprotected version.";
   }
+  if (/invalid.*pdf|corrupt/.test(lower)) {
+    return "Your PDF couldn't be read. Please upload a valid PDF file.";
+  }
+  if (/extracted.*text.*is.*empty/.test(lower)) {
+    return "No text could be extracted from your PDF. It may be a scanned image.";
+  }
+  if (/pdf.*has.*\d+.*pages/.test(lower)) {
+    return "Your PDF is too long. Please upload a resume under 50 pages.";
+  }
+  if (/schema.*validation/.test(lower)) {
+    return "We couldn't parse your resume format. Please try again.";
+  }
+  if (/timeout|timed.*out/.test(lower)) {
+    return "Processing timed out. Please try again.";
+  }
+  return "Something went wrong while parsing your resume. Please try again.";
 }
 
 /**
@@ -90,17 +93,35 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
     throw new Error("R2 binding not available");
   }
 
-  // Check for staged content from previous attempt (idempotency)
-  const currentResume = await db
-    .select({
-      status: resumes.status,
-      parsedContent: resumes.parsedContent,
-      parsedContentStaged: resumes.parsedContentStaged,
-      totalAttempts: resumes.totalAttempts,
-    })
-    .from(resumes)
-    .where(eq(resumes.id, message.resumeId))
-    .limit(1);
+  // Run status check and cache-by-fileHash lookup in parallel.
+  // The cache query is cheap (indexed on fileHash+status) and rarely wasted.
+  const [currentResume, cached] = await Promise.all([
+    // Check for staged content from previous attempt (idempotency)
+    db
+      .select({
+        status: resumes.status,
+        parsedContent: resumes.parsedContent,
+        parsedContentStaged: resumes.parsedContentStaged,
+        totalAttempts: resumes.totalAttempts,
+      })
+      .from(resumes)
+      .where(eq(resumes.id, message.resumeId))
+      .limit(1),
+
+    // Check for cached result with same fileHash (deduplication)
+    db
+      .select({ id: resumes.id, parsedContent: resumes.parsedContent })
+      .from(resumes)
+      .where(
+        and(
+          eq(resumes.userId, message.userId),
+          eq(resumes.fileHash, message.fileHash),
+          eq(resumes.status, "completed"),
+          isNotNull(resumes.parsedContent),
+        ),
+      )
+      .limit(1),
+  ]);
 
   // If already completed with parsed content, skip (full idempotency)
   if (currentResume[0]?.status === "completed" && currentResume[0]?.parsedContent) {
@@ -112,82 +133,63 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
   if (currentResume[0]?.parsedContentStaged) {
     console.log(`Using staged content for resume ${message.resumeId}`);
     const now = new Date().toISOString();
+    const stagedContent = currentResume[0].parsedContentStaged as string;
 
-    // Commit staged content to final
-    await db
-      .update(resumes)
-      .set({
-        status: "completed",
-        parsedAt: now,
-        parsedContent: currentResume[0].parsedContentStaged,
-        parsedContentStaged: null, // Clear staging
-        lastAttemptError: null, // Clear error on success
-      })
-      .where(eq(resumes.id, message.resumeId));
-
-    await upsertSiteData(
-      db,
-      message.userId,
-      message.resumeId,
-      currentResume[0].parsedContentStaged as string,
-      now,
-    );
+    // M7: Batch resume completion + siteData upsert atomically
+    await db.batch([
+      db
+        .update(resumes)
+        .set({
+          status: "completed",
+          parsedAt: now,
+          parsedContent: stagedContent,
+          parsedContentStaged: null,
+          lastAttemptError: null,
+        })
+        .where(eq(resumes.id, message.resumeId)),
+      buildSiteDataUpsert(db, message.userId, message.resumeId, stagedContent, now),
+    ]);
 
     await notifyStatusChange({ resumeId: message.resumeId, status: "completed", env });
     return;
   }
 
-  // Increment total attempts
-  await db
-    .update(resumes)
-    .set({ totalAttempts: (currentResume[0]?.totalAttempts || 0) + 1 })
-    .where(eq(resumes.id, message.resumeId));
-
-  // Check for cached result with same fileHash (deduplication)
-  const cached = await db
-    .select({ id: resumes.id, parsedContent: resumes.parsedContent })
-    .from(resumes)
-    .where(
-      and(
-        eq(resumes.userId, message.userId),
-        eq(resumes.fileHash, message.fileHash),
-        eq(resumes.status, "completed"),
-        isNotNull(resumes.parsedContent),
-      ),
-    )
-    .limit(1);
+  // M7: Fold totalAttempts increment into later updates to eliminate standalone UPDATE.
+  const nextAttemptCount = (currentResume[0]?.totalAttempts || 0) + 1;
 
   if (cached[0]?.parsedContent) {
-    // Use cached result
+    // Use cached result — M7: include totalAttempts increment in same UPDATE
     const now = new Date().toISOString();
-    await db
-      .update(resumes)
-      .set({
-        status: "completed",
-        parsedAt: now,
-        parsedContent: cached[0].parsedContent,
-        lastAttemptError: null,
-      })
-      .where(eq(resumes.id, message.resumeId));
+    const cachedContent = cached[0].parsedContent as string;
 
-    await upsertSiteData(
-      db,
-      message.userId,
-      message.resumeId,
-      cached[0].parsedContent as string,
-      now,
-    );
+    // M7: Batch resume completion + siteData upsert atomically
+    await db.batch([
+      db
+        .update(resumes)
+        .set({
+          status: "completed",
+          parsedAt: now,
+          parsedContent: cachedContent,
+          lastAttemptError: null,
+          totalAttempts: nextAttemptCount,
+        })
+        .where(eq(resumes.id, message.resumeId)),
+      buildSiteDataUpsert(db, message.userId, message.resumeId, cachedContent, now),
+    ]);
 
     await notifyStatusChange({ resumeId: message.resumeId, status: "completed", env });
     return;
   }
 
-  // Update status to processing
-  await db.update(resumes).set({ status: "processing" }).where(eq(resumes.id, message.resumeId));
+  // Update status to processing — M7: include totalAttempts increment in same UPDATE
+  await db
+    .update(resumes)
+    .set({ status: "processing", totalAttempts: nextAttemptCount })
+    .where(eq(resumes.id, message.resumeId));
   await notifyStatusChange({ resumeId: message.resumeId, status: "processing", env });
 
-  // Fetch PDF from R2
-  const pdfBuffer = await R2.getAsUint8Array(r2Binding, message.r2Key);
+  // M9: Fetch PDF from R2 as ArrayBuffer directly — no intermediate Uint8Array copy
+  const pdfBuffer = await R2.getAsArrayBuffer(r2Binding, message.r2Key);
   if (!pdfBuffer) {
     const error = new Error(`Failed to fetch PDF from R2: ${message.r2Key}`);
     await db
@@ -197,72 +199,57 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
     throw error;
   }
 
-  // Parse with AI
+  // Lazy-load AI modules only when actually needed for parsing.
+  // Normal HTTP requests (page views, API calls) never evaluate unpdf/Vercel AI SDK.
+  const { parseResumeWithAi } = await import("../ai");
+
+  // M9: Pass ArrayBuffer directly — parseResumeWithAi now accepts ArrayBuffer
   const parseResult = await parseResumeWithAi(pdfBuffer, env);
 
   if (!parseResult.success) {
-    const errorMessage = parseResult.error || "Parsing failed";
+    const rawError = parseResult.error || "Parsing failed";
+    const userError = getUserFriendlyError(rawError);
     await db
       .update(resumes)
       .set({
         status: "failed",
-        errorMessage,
-        lastAttemptError: errorMessage,
+        errorMessage: userError,
+        lastAttemptError: rawError,
       })
       .where(eq(resumes.id, message.resumeId));
     await notifyStatusChange({
       resumeId: message.resumeId,
       status: "failed",
-      error: errorMessage,
+      error: userError,
       env,
     });
-    throw new Error(errorMessage);
+    // Throw raw error so classifyQueueError pattern matching still works
+    throw new Error(rawError);
   }
 
-  // Validate JSON syntax only (avoid parse-stringify round-trip for performance)
+  // parsedContent is produced by JSON.stringify() in parseResumeWithAi — guaranteed valid JSON
   const parsedContent = parseResult.parsedContent;
-  try {
-    JSON.parse(parsedContent);
-  } catch {
-    const errorMessage = "Invalid JSON response from AI";
-    await db
-      .update(resumes)
-      .set({
-        status: "failed",
-        errorMessage,
-        lastAttemptError: errorMessage,
-      })
-      .where(eq(resumes.id, message.resumeId));
-    await notifyStatusChange({
-      resumeId: message.resumeId,
-      status: "failed",
-      error: errorMessage,
-      env,
-    });
-    throw new Error(errorMessage);
-  }
 
   const now = new Date().toISOString();
 
-  // Stage content first (allows recovery if next steps fail)
-  await db
-    .update(resumes)
-    .set({ parsedContentStaged: parsedContent })
-    .where(eq(resumes.id, message.resumeId));
+  // M10: Batch resume completion + siteData upsert atomically.
+  // Without batching, a crash between the UPDATE and upsert leaves the resume
+  // marked "completed" with no siteData, and the idempotency guard at line 93
+  // skips it on retry. db.batch() executes both in a single D1 transaction.
+  await db.batch([
+    db
+      .update(resumes)
+      .set({
+        status: "completed",
+        parsedAt: now,
+        parsedContent,
+        parsedContentStaged: null,
+        lastAttemptError: null,
+      })
+      .where(eq(resumes.id, message.resumeId)),
+    buildSiteDataUpsert(db, message.userId, message.resumeId, parsedContent, now),
+  ]);
 
-  // Then update to completed and copy to final
-  await db
-    .update(resumes)
-    .set({
-      status: "completed",
-      parsedAt: now,
-      parsedContent,
-      parsedContentStaged: null, // Clear staging
-      lastAttemptError: null, // Clear error on success
-    })
-    .where(eq(resumes.id, message.resumeId));
-
-  await upsertSiteData(db, message.userId, message.resumeId, parsedContent, now);
   await notifyStatusChange({ resumeId: message.resumeId, status: "completed", env });
 
   // Notify ALL resumes waiting for this fileHash
@@ -271,22 +258,27 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
     .from(resumes)
     .where(and(eq(resumes.fileHash, message.fileHash), eq(resumes.status, "waiting_for_cache")));
 
-  // Batch update all waiting resumes with same fileHash to completed
+  // Batch status update + all siteData upserts atomically.
+  // Without batching, a crash between the bulk UPDATE and individual upserts
+  // leaves some resumes marked "completed" with no siteData, and the
+  // idempotency guard at line 93 skips them on retry.
   if (waitingResumes.length > 0) {
-    await db
-      .update(resumes)
-      .set({
-        status: "completed",
-        parsedAt: now,
-        parsedContent,
-        parsedContentStaged: null,
-      })
-      .where(and(eq(resumes.fileHash, message.fileHash), eq(resumes.status, "waiting_for_cache")));
-  }
-
-  // Still need individual site data upserts for waiting resumes
-  for (const waiting of waitingResumes) {
-    await upsertSiteData(db, waiting.userId as string, waiting.id as string, parsedContent, now);
+    await db.batch([
+      db
+        .update(resumes)
+        .set({
+          status: "completed",
+          parsedAt: now,
+          parsedContent,
+          parsedContentStaged: null,
+        })
+        .where(
+          and(eq(resumes.fileHash, message.fileHash), eq(resumes.status, "waiting_for_cache")),
+        ),
+      ...waitingResumes.map((w) =>
+        buildSiteDataUpsert(db, w.userId as string, w.id as string, parsedContent, now),
+      ),
+    ]);
   }
 
   // Notify waiting resumes via WebSocket

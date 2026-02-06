@@ -56,22 +56,14 @@ async function checkR2(r2: R2Bucket): Promise<ServiceHealth> {
  * so we just verify the required env vars are present
  */
 function checkAiProviderConfig(env: Record<string, unknown>): ServiceHealth {
-  // Check for Cloudflare AI Gateway config
   const hasGateway = env.CF_AI_GATEWAY_ACCOUNT_ID && env.CF_AI_GATEWAY_ID && env.CF_AIG_AUTH_TOKEN;
-
-  // Check for direct OpenRouter config
-  const hasOpenRouter = env.OPENROUTER_API_KEY;
-
-  if (hasGateway || hasOpenRouter) {
-    return {
-      status: "healthy",
-      error: hasGateway ? "Using Cloudflare AI Gateway" : "Using OpenRouter",
-    };
+  if (hasGateway) {
+    return { status: "healthy", error: "Using Cloudflare AI Gateway" };
   }
-
   return {
     status: "unhealthy",
-    error: "No AI provider configured (need CF_AI_GATEWAY_* or OPENROUTER_API_KEY)",
+    error:
+      "Cloudflare AI Gateway not configured (need CF_AI_GATEWAY_ACCOUNT_ID, CF_AI_GATEWAY_ID, CF_AIG_AUTH_TOKEN)",
   };
 }
 

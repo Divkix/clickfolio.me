@@ -70,7 +70,7 @@ export function extractPreviewFields(content: ResumeContent | null | undefined):
  * extractTopSkills([{ category: "Frontend", items: ["React", "Vue"] }], 4);
  * // Returns: ["React", "Vue"]
  */
-export function extractTopSkills(
+function extractTopSkills(
   skills: ResumeContent["skills"] | null | undefined,
   limit: number,
 ): string[] {

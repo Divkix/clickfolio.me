@@ -1,9 +1,6 @@
-import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { eq } from "drizzle-orm";
-import { headers } from "next/headers";
-import { getAuth } from "@/lib/auth";
+import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
 import { resumes } from "@/lib/db/schema";
-import { getSessionDbWithPrimaryFirst } from "@/lib/db/session";
 import {
   createErrorResponse,
   createSuccessResponse,
@@ -15,24 +12,18 @@ const WAITING_FOR_CACHE_TIMEOUT_MS = 10 * 60 * 1000;
 
 export async function GET(request: Request) {
   try {
-    const { env } = await getCloudflareContext({ async: true });
-    const { db, captureBookmark } = await getSessionDbWithPrimaryFirst(env.DB);
+    // 1. Check authentication and validate user exists in database
+    const {
+      user: authUser,
+      db,
+      captureBookmark,
+      error: authError,
+    } = await requireAuthWithUserValidation("You must be logged in to check resume status");
+    if (authError) return authError;
 
-    // 2. Check authentication via Better Auth
-    const auth = await getAuth();
-    const session = await auth.api.getSession({ headers: await headers() });
+    const userId = authUser.id;
 
-    if (!session?.user) {
-      return createErrorResponse(
-        "You must be logged in to check resume status",
-        ERROR_CODES.UNAUTHORIZED,
-        401,
-      );
-    }
-
-    const userId = session.user.id;
-
-    // 3. Get resume_id from query params
+    // 2. Get resume_id from query params
     const { searchParams } = new URL(request.url);
     const resumeId = searchParams.get("resume_id");
 
@@ -40,16 +31,28 @@ export async function GET(request: Request) {
       return createErrorResponse("resume_id parameter is required", ERROR_CODES.BAD_REQUEST, 400);
     }
 
-    // 4. Fetch resume from database (include fileHash for fan-out)
+    // 3. Fetch resume from database -- lightweight polling query
+    //    Only select columns needed for status checks. Excludes parsedContent
+    //    and parsedContentStaged (10-100KB JSON blobs) to avoid transferring
+    //    them on every 3-second poll.
     const resume = await db.query.resumes.findFirst({
       where: eq(resumes.id, resumeId),
+      columns: {
+        id: true,
+        userId: true,
+        status: true,
+        errorMessage: true,
+        retryCount: true,
+        totalAttempts: true,
+        createdAt: true,
+      },
     });
 
     if (!resume) {
       return createErrorResponse("Resume not found", ERROR_CODES.NOT_FOUND, 404);
     }
 
-    // 5. Verify ownership
+    // 4. Verify ownership
     if (resume.userId !== userId) {
       return createErrorResponse(
         "You do not have permission to access this resume",
@@ -58,9 +61,9 @@ export async function GET(request: Request) {
       );
     }
 
-    // 6. Handle waiting_for_cache status with timeout check
+    // 5. Handle waiting_for_cache status with timeout check
     if (resume.status === "waiting_for_cache") {
-      const createdAt = new Date(resume.createdAt as string);
+      const createdAt = new Date(resume.createdAt);
       const waitingTime = Date.now() - createdAt.getTime();
 
       if (waitingTime > WAITING_FOR_CACHE_TIMEOUT_MS) {
@@ -79,7 +82,7 @@ export async function GET(request: Request) {
           status: "failed",
           progress_pct: 0,
           error: "Parsing timed out while waiting for cached result. Please try uploading again.",
-          can_retry: (resume.retryCount as number) < 2,
+          can_retry: resume.retryCount < 2,
         });
       }
 
@@ -104,7 +107,17 @@ export async function GET(request: Request) {
       });
     }
 
-    const buildCompletedResponse = (parsedContent: string | null) => {
+    if (resume.status === "completed") {
+      // Only fetch parsedContent when we actually need it (status is completed).
+      // This second query is a one-time cost on completion, not repeated every poll.
+      const resumeContent = await db.query.resumes.findFirst({
+        where: eq(resumes.id, resumeId),
+        columns: {
+          parsedContent: true,
+        },
+      });
+
+      const parsedContent = (resumeContent?.parsedContent as string | null) ?? null;
       let parsedJson: unknown = null;
 
       if (parsedContent) {
@@ -127,18 +140,14 @@ export async function GET(request: Request) {
         can_retry: false,
         parsed_content: parsedJson,
       });
-    };
-
-    if (resume.status === "completed") {
-      return buildCompletedResponse((resume.parsedContent as string | null) ?? null);
     }
 
     if (resume.status === "failed") {
       return createSuccessResponse({
         status: "failed",
         progress_pct: 0,
-        error: (resume.errorMessage as string | undefined | null) ?? null,
-        can_retry: (resume.retryCount as number) < 2,
+        error: resume.errorMessage ?? null,
+        can_retry: resume.retryCount < 2,
       });
     }
 

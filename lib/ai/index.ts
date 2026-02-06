@@ -1,7 +1,8 @@
+import { sanitizeEmail } from "@/lib/utils/sanitization";
 import { parseWithAi } from "./ai-parser";
 import { extractPdfText } from "./pdf-extract";
-import { resumeSchema } from "./schema";
-import { transformAiOutput, transformAiResponse } from "./transform";
+import { type ResumeSchema, resumeSchema } from "./schema";
+import { normalizeEndDate, transformAiOutput, transformAiResponse, validateUrl } from "./transform";
 
 export interface ParseResumeResult {
   success: boolean;
@@ -29,6 +30,57 @@ function truncateResumeText(text: string): string {
   return `${head}${RESUME_TRUNCATION_MARKER}${tail}`;
 }
 
+function validateParseResult(
+  data: unknown,
+  structuredOutput?: boolean,
+): {
+  success: boolean;
+  data?: Record<string, unknown>;
+  errors?: string;
+} {
+  let withDefaults: Record<string, unknown>;
+
+  if (structuredOutput) {
+    // Structured output was schema-validated by the SDK — skip heavy transformAiResponse.
+    // Only apply lightweight security sanitization.
+    withDefaults = (
+      typeof data === "object" && data !== null ? { ...(data as Record<string, unknown>) } : {}
+    ) as Record<string, unknown>;
+
+    // Security: validate URLs to block javascript: protocol
+    if (withDefaults.contact && typeof withDefaults.contact === "object") {
+      const c = withDefaults.contact as Record<string, unknown>;
+      for (const urlField of ["linkedin", "github", "website", "behance", "dribbble"]) {
+        if (c[urlField]) c[urlField] = validateUrl(c[urlField]);
+      }
+      if (c.email) c.email = sanitizeEmail(String(c.email));
+    }
+
+    // Normalize "Present"/"Current" end dates
+    if (Array.isArray(withDefaults.experience)) {
+      for (const exp of withDefaults.experience as Record<string, unknown>[]) {
+        if (exp.end_date) exp.end_date = normalizeEndDate(exp.end_date);
+      }
+    }
+  } else {
+    // Fallback path: full transformation with garbage filtering and truncation
+    const transformed = transformAiResponse(data);
+    withDefaults = transformed as Record<string, unknown>;
+  }
+
+  // Inject default empty arrays for optional fields
+  for (const key of ["education", "skills", "certifications", "projects"]) {
+    if (!Array.isArray(withDefaults[key])) withDefaults[key] = [];
+  }
+
+  const result = resumeSchema.safeParse(withDefaults);
+  if (result.success) {
+    return { success: true, data: result.data as Record<string, unknown> };
+  }
+  const errors = result.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("\n");
+  return { success: false, errors };
+}
+
 /**
  * Parse a PDF resume using AI
  *
@@ -37,18 +89,16 @@ function truncateResumeText(text: string): string {
  * 2. Parse text with AI using Vercel AI SDK (structured output)
  * 3. Transform and validate the AI response
  * 4. Return JSON string of parsed content
+ *
+ * Accepts ArrayBuffer directly from R2 to avoid intermediate buffer copies.
  */
 export async function parseResumeWithAi(
-  pdfBuffer: Uint8Array,
+  pdfBuffer: ArrayBuffer,
   env: Partial<CloudflareEnv>,
 ): Promise<ParseResumeResult> {
   try {
-    // Step 1: Extract text from PDF
-    // Create a new ArrayBuffer with only the bytes from pdfBuffer
-    // This is necessary when Uint8Array is a view into a larger buffer
-    const arrayBuffer = new Uint8Array(pdfBuffer).buffer;
-
-    const extractResult = await extractPdfText(arrayBuffer);
+    // Step 1: Extract text from PDF — pass ArrayBuffer directly, no copies
+    const extractResult = await extractPdfText(pdfBuffer);
 
     if (!extractResult.success || !extractResult.text) {
       return {
@@ -80,12 +130,32 @@ export async function parseResumeWithAi(
       };
     }
 
-    // Step 3: Transform - lenient validation with XSS protection
-    const transformedData = transformAiResponse(parseResult.data);
+    // Step 3: Validate (transform → defaults → Zod)
+    // Clone data before validation — transformAiResponse mutates in-place,
+    // and we need the original for retry context if validation fails
+    const dataForRetry = structuredClone(parseResult.data);
+    let validation = validateParseResult(parseResult.data, parseResult.structuredOutput);
 
-    // Step 4: Validate against schema
-    const validationResult = resumeSchema.safeParse(transformedData);
-    if (!validationResult.success) {
+    // Step 3b: Retry with error feedback if validation failed
+    if (!validation.success && validation.errors) {
+      console.warn("[ai-parse] Schema validation failed, retrying with error feedback", {
+        errors: validation.errors,
+      });
+
+      const retryResult = await parseWithAi(resumeText, env, undefined, {
+        previousOutput: JSON.stringify(dataForRetry),
+        errors: validation.errors,
+      });
+
+      if (retryResult.success && retryResult.data) {
+        validation = validateParseResult(retryResult.data);
+        if (validation.success) {
+          console.info("[ai-parse] Retry with error feedback succeeded");
+        }
+      }
+    }
+
+    if (!validation.success) {
       return {
         success: false,
         parsedContent: "",
@@ -93,8 +163,8 @@ export async function parseResumeWithAi(
       };
     }
 
-    // Step 5: Final cleanup
-    const finalData = transformAiOutput(validationResult.data);
+    // Step 4: Final cleanup
+    const finalData = transformAiOutput(validation.data as ResumeSchema);
 
     return {
       success: true,
@@ -108,9 +178,3 @@ export async function parseResumeWithAi(
     };
   }
 }
-
-export { createAiProvider, parseWithAi } from "./ai-parser";
-export { extractPdfText } from "./pdf-extract";
-// Re-export useful types and functions
-export type { ResumeSchema } from "./schema";
-export { sanitizeServiceError, transformAiOutput, transformAiResponse } from "./transform";

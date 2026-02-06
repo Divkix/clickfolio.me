@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { clearStoredReferralCode, getStoredReferralCode } from "@/lib/referral";
 import type { ResumeContent } from "@/lib/types/database";
-import { validatePDF } from "@/lib/utils/validation";
+import { MAX_FILE_SIZE_LABEL, validatePDF } from "@/lib/utils/validation";
 import { waitForResumeCompletion } from "@/lib/utils/wait-for-completion";
 
 interface UploadStepProps {
@@ -205,7 +205,7 @@ export function UploadStep({ onContinue }: UploadStepProps) {
         if (err.message.includes("429") || err.message.includes("limit")) {
           errorMessage = "Upload limit reached (5 per day). Try again tomorrow.";
         } else if (err.message.includes("413") || err.message.includes("large")) {
-          errorMessage = "File too large. Maximum size is 5MB.";
+          errorMessage = `File too large. Maximum size is ${MAX_FILE_SIZE_LABEL}.`;
         } else if (err.message.includes("401") || err.message.includes("expired")) {
           errorMessage = "Session expired. Please refresh the page.";
         } else if (err.message) {
@@ -387,7 +387,9 @@ export function UploadStep({ onContinue }: UploadStepProps) {
               </p>
 
               {/* Secondary text */}
-              <p className="text-sm text-slate-500">or click to browse - Max 5MB</p>
+              <p className="text-sm text-slate-500">
+                or click to browse - Max {MAX_FILE_SIZE_LABEL}
+              </p>
             </div>
           </div>
         )}
@@ -398,7 +400,7 @@ export function UploadStep({ onContinue }: UploadStepProps) {
             <p className="text-xs font-semibold text-slate-700 mb-2">Supported formats:</p>
             <ul className="text-xs text-slate-600 space-y-1">
               <li>* PDF files only</li>
-              <li>* Maximum file size: 5MB</li>
+              <li>* Maximum file size: {MAX_FILE_SIZE_LABEL}</li>
               <li>* Best results with text-based PDFs (not scanned images)</li>
             </ul>
           </div>

@@ -1,8 +1,20 @@
 import { ArrowUpRight, Award, Github, Globe, Mail, MapPin, Phone } from "lucide-react";
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
+import { type ContactLinkType, getContactLinks } from "@/lib/templates/contact-links";
 import { formatDateRange, formatShortDate } from "@/lib/templates/helpers";
 import type { TemplateProps } from "@/lib/types/template";
+
+const navIconMap: Record<ContactLinkType, React.ReactNode> = {
+  email: <Mail className="w-4 h-4 text-neutral-600 group-hover:text-black" />,
+  phone: <Phone className="w-4 h-4 text-neutral-600 group-hover:text-black" />,
+  linkedin: <ArrowUpRight className="w-4 h-4 text-neutral-600 group-hover:text-black" />,
+  github: <Github className="w-4 h-4 text-neutral-600 group-hover:text-black" />,
+  website: <Globe className="w-4 h-4 text-neutral-600 group-hover:text-black" />,
+  location: <MapPin className="w-4 h-4 text-neutral-600 group-hover:text-black" />,
+  behance: <span className="text-xs font-bold text-neutral-600 group-hover:text-black">Be</span>,
+  dribbble: <span className="text-xs font-bold text-neutral-600 group-hover:text-black">Dr</span>,
+};
 
 // Noise texture via inline SVG
 const noiseBg = {
@@ -36,6 +48,7 @@ const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile }) => {
 
   const [firstName, ...rest] = full_name.split(" ");
   const lastName = rest.join(" ");
+  const contactLinks = getContactLinks(contact);
 
   return (
     <div className="relative min-h-screen bg-[#FDFCF8] text-[#1a1a1a] font-sans selection:bg-[#1a1a1a] selection:text-white overflow-x-hidden">
@@ -51,79 +64,20 @@ const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile }) => {
           <span className="text-xs font-bold tracking-widest uppercase opacity-40 hover:opacity-100 transition-opacity cursor-default">
             {profile.handle}
           </span>
-          {contact.email && (
-            <a
-              href={`mailto:${contact.email}`}
-              className="group relative p-2 rounded-full hover:bg-neutral-100 transition-colors"
-            >
-              <Mail className="w-4 h-4 text-neutral-600 group-hover:text-black" />
-              <span className="sr-only">Email</span>
-            </a>
-          )}
-          {contact.linkedin && (
-            <a
-              href={contact.linkedin}
-              target="_blank"
-              rel="noreferrer"
-              className="group relative p-2 rounded-full hover:bg-neutral-100 transition-colors"
-            >
-              <ArrowUpRight className="w-4 h-4 text-neutral-600 group-hover:text-black" />
-              <span className="sr-only">LinkedIn</span>
-            </a>
-          )}
-          {contact.github && (
-            <a
-              href={contact.github}
-              target="_blank"
-              rel="noreferrer"
-              className="group relative p-2 rounded-full hover:bg-neutral-100 transition-colors"
-            >
-              <Github className="w-4 h-4 text-neutral-600 group-hover:text-black" />
-              <span className="sr-only">GitHub</span>
-            </a>
-          )}
-          {contact.website && (
-            <a
-              href={contact.website}
-              target="_blank"
-              rel="noreferrer"
-              className="group relative p-2 rounded-full hover:bg-neutral-100 transition-colors"
-            >
-              <Globe className="w-4 h-4 text-neutral-600 group-hover:text-black" />
-              <span className="sr-only">Website</span>
-            </a>
-          )}
-          {contact.phone && (
-            <a
-              href={`tel:${contact.phone}`}
-              className="group relative p-2 rounded-full hover:bg-neutral-100 transition-colors"
-            >
-              <Phone className="w-4 h-4 text-neutral-600 group-hover:text-black" />
-              <span className="sr-only">Phone</span>
-            </a>
-          )}
-          {contact.behance && (
-            <a
-              href={contact.behance}
-              target="_blank"
-              rel="noreferrer"
-              className="group relative p-2 rounded-full hover:bg-neutral-100 transition-colors"
-            >
-              <span className="text-xs font-bold text-neutral-600 group-hover:text-black">Bē</span>
-              <span className="sr-only">Behance</span>
-            </a>
-          )}
-          {contact.dribbble && (
-            <a
-              href={contact.dribbble}
-              target="_blank"
-              rel="noreferrer"
-              className="group relative p-2 rounded-full hover:bg-neutral-100 transition-colors"
-            >
-              <span className="text-xs font-bold text-neutral-600 group-hover:text-black">Dr</span>
-              <span className="sr-only">Dribbble</span>
-            </a>
-          )}
+          {contactLinks
+            .filter((link) => link.type !== "location")
+            .map((link) => (
+              <a
+                key={link.type}
+                href={link.href}
+                target={link.isExternal ? "_blank" : undefined}
+                rel={link.isExternal ? "noreferrer" : undefined}
+                className="group relative p-2 rounded-full hover:bg-neutral-100 transition-colors"
+              >
+                {navIconMap[link.type]}
+                <span className="sr-only">{link.label}</span>
+              </a>
+            ))}
         </div>
       </nav>
 

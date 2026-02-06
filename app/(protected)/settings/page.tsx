@@ -10,7 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { getServerSession } from "@/lib/auth/session";
 import { getDb } from "@/lib/db";
 import { resumes, user } from "@/lib/db/schema";
-import { isValidPrivacySettings, normalizePrivacySettings } from "@/lib/utils/privacy";
+import { parsePrivacySettings } from "@/lib/utils/privacy";
 
 interface ProfileSectionProps {
   name: string;
@@ -76,7 +76,7 @@ export default async function SettingsPage() {
   const { env } = await getCloudflareContext({ async: true });
   const db = getDb(env.DB);
 
-  const [profile, resumeData] = await Promise.all([
+  const [profile, resumeData, latestResume] = await Promise.all([
     db.query.user.findFirst({
       where: eq(user.id, session.user.id),
       columns: {
@@ -96,6 +96,16 @@ export default async function SettingsPage() {
       })
       .from(resumes)
       .where(eq(resumes.userId, session.user.id)),
+    db.query.resumes.findFirst({
+      where: eq(resumes.userId, session.user.id),
+      orderBy: [desc(resumes.createdAt)],
+      columns: {
+        id: true,
+        createdAt: true,
+        status: true,
+        errorMessage: true,
+      },
+    }),
   ]);
 
   if (!profile) {
@@ -103,36 +113,9 @@ export default async function SettingsPage() {
     redirect("/dashboard");
   }
 
-  let parsedPrivacySettings: {
-    show_phone: boolean;
-    show_address: boolean;
-    hide_from_search?: boolean;
-  } | null = null;
-  try {
-    parsedPrivacySettings = profile.privacySettings ? JSON.parse(profile.privacySettings) : null;
-  } catch {
-    parsedPrivacySettings = null;
-  }
-
-  const privacySettings = normalizePrivacySettings(
-    isValidPrivacySettings(parsedPrivacySettings) ? parsedPrivacySettings : null,
-  );
+  const privacySettings = parsePrivacySettings(profile.privacySettings);
 
   const resumeCount = resumeData[0]?.count ?? 0;
-
-  const latestResume =
-    resumeCount > 0
-      ? await db.query.resumes.findFirst({
-          where: eq(resumes.userId, session.user.id),
-          orderBy: [desc(resumes.createdAt)],
-          columns: {
-            id: true,
-            createdAt: true,
-            status: true,
-            errorMessage: true,
-          },
-        })
-      : null;
 
   return (
     // <CHANGE> Add bg-cream for neubrutalist design alignment

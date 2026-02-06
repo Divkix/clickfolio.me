@@ -1,15 +1,14 @@
 {
   "$schema": "https://unpkg.com/knip@latest/schema.json",
-  "entry": [
-    "app/**/*.{ts,tsx,mdx}",
-    "components/**/*.{ts,tsx,mdx}",
+  "entry": ["worker.ts", "open-next.config.ts", "scripts/**/*.ts"],
+  "project": [
+    "app/**/*.{ts,tsx}",
+    "components/**/*.{ts,tsx}",
     "hooks/**/*.{ts,tsx}",
-    "lib/**/*.{ts,tsx}",
-    "open-next.config.ts",
-    "scripts/**/*.ts",
-    "worker.ts"
+    "lib/**/*.{ts,tsx}"
   ],
   "ignore": ["app/globals.css"],
   "ignoreBinaries": [],
-  "ignoreDependencies": ["cloudflare"]
+  "ignoreDependencies": ["cloudflare", "tailwindcss", "tw-animate-css"],
+  "ignoreExportsUsedInFile": true
 }

@@ -5,8 +5,8 @@ import { Check, Copy, LinkedinIcon, Share2, XIcon } from "lucide-react";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { copyToClipboard } from "@/lib/utils/clipboard";
 import {
-  copyToClipboard,
   generateLinkedInShareUrl,
   generateShareText,
   generateTwitterShareUrl,
@@ -224,4 +224,3 @@ export function ShareBar({ url, handle, title, name, variant, className }: Share
 }
 
 export type { ShareBarProps };
-export type ShareBarVariant = NonNullable<VariantProps<typeof shareBarVariants>["variant"]>;

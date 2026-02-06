@@ -4,7 +4,7 @@ import type { ThemeId } from "./theme-ids";
 /**
  * Demo profile metadata for landing page cards
  */
-interface DemoProfile {
+export interface DemoProfile {
   id: ThemeId;
   name: string;
   role: string;

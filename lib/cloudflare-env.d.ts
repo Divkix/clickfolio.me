@@ -25,8 +25,7 @@ declare namespace Cloudflare {
 		CRON_SECRET?: string;
 		ALERT_CHANNEL?: string;
 		ALERT_WEBHOOK_URL?: string;
-		// AI Provider secrets (one of these must be configured)
-		OPENROUTER_API_KEY?: string;
+		// Cloudflare AI Gateway secrets
 		CF_AI_GATEWAY_ACCOUNT_ID?: string;
 		CF_AI_GATEWAY_ID?: string;
 		CF_AIG_AUTH_TOKEN?: string;

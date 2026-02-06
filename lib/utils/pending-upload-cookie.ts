@@ -13,12 +13,21 @@
 export const COOKIE_NAME = "pending_upload";
 export const COOKIE_MAX_AGE = 30 * 60; // 30 minutes in seconds
 
+/** Module-level TextEncoder — no reason to recreate per call */
+const encoder = new TextEncoder();
+
 /**
- * Sign a value using HMAC-SHA256 (Cloudflare Workers compatible)
- * Uses Web Crypto API which is available in both browser and Workers
+ * Module-level CryptoKey cache keyed by the raw secret string.
+ * Avoids re-importing the same HMAC key on every sign/verify call.
+ * A Map is used so that if the secret ever changes at runtime
+ * (e.g. key rotation), we derive a new CryptoKey for the new secret.
  */
-async function signValue(value: string, secret: string): Promise<string> {
-  const encoder = new TextEncoder();
+const keyCache = new Map<string, CryptoKey>();
+
+async function getCryptoKey(secret: string): Promise<CryptoKey> {
+  const cached = keyCache.get(secret);
+  if (cached) return cached;
+
   const key = await crypto.subtle.importKey(
     "raw",
     encoder.encode(secret),
@@ -26,6 +35,16 @@ async function signValue(value: string, secret: string): Promise<string> {
     false,
     ["sign"],
   );
+  keyCache.set(secret, key);
+  return key;
+}
+
+/**
+ * Sign a value using HMAC-SHA256 (Cloudflare Workers compatible)
+ * Uses Web Crypto API which is available in both browser and Workers
+ */
+async function signValue(value: string, secret: string): Promise<string> {
+  const key = await getCryptoKey(secret);
   const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(value));
   // Convert to base64 for cookie-safe storage
   return btoa(String.fromCharCode(...new Uint8Array(signature)));

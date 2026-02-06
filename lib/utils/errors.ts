@@ -1,4 +1,5 @@
 import { toast } from "sonner";
+import { MAX_FILE_SIZE_LABEL } from "@/lib/utils/validation";
 
 type ErrorCategory = "transient" | "fatal" | "auth" | "validation" | "rate_limit";
 
@@ -24,7 +25,7 @@ export function getErrorMessage(status: number, context?: string): string {
     401: "Session expired. Please sign in again.",
     403: "You don't have permission for this action.",
     404: "Resource not found.",
-    413: "File too large. Maximum size is 5MB.",
+    413: `File too large. Maximum size is ${MAX_FILE_SIZE_LABEL}.`,
     422: "Invalid data. Please check your input.",
     429: "Too many requests. Please wait before trying again.",
     500: "Server error. We're working on it.",

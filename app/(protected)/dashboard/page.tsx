@@ -30,118 +30,8 @@ import { siteConfig } from "@/lib/config/site";
 import { getDb } from "@/lib/db";
 import { type Resume, referralClicks, resumes, type siteData, user } from "@/lib/db/schema";
 import type { ResumeContent } from "@/lib/types/database";
-
-/**
- * Calculate profile completeness score based on available data
- */
-function calculateCompleteness(content: ResumeContent): number {
-  let score = 0;
-  let total = 0;
-
-  // Full name (required) - 10%
-  total += 10;
-  if (content.full_name?.trim()) score += 10;
-
-  // Headline (required) - 10%
-  total += 10;
-  if (content.headline?.trim()) score += 10;
-
-  // Summary (required) - 15%
-  total += 15;
-  if (content.summary?.trim()) score += 15;
-
-  // Contact (required) - 10%
-  total += 10;
-  if (content.contact?.email) score += 10;
-
-  // Experience (required) - 20%
-  total += 20;
-  if (content.experience?.length > 0) score += 20;
-
-  // Education - 15%
-  total += 15;
-  if (content.education && content.education.length > 0) score += 15;
-
-  // Skills - 10%
-  total += 10;
-  if (content.skills && content.skills.length > 0) score += 10;
-
-  // Certifications - 10%
-  total += 10;
-  if (content.certifications && content.certifications.length > 0) score += 10;
-
-  return Math.round((score / total) * 100);
-}
-
-/**
- * Get suggestions for improving profile
- */
-function getProfileSuggestions(content: ResumeContent): string[] {
-  const suggestions: string[] = [];
-
-  if (!content.education || content.education.length === 0) {
-    suggestions.push("Add your education background");
-  }
-
-  if (!content.skills || content.skills.length === 0) {
-    suggestions.push("List your technical skills");
-  }
-
-  if (!content.certifications || content.certifications.length === 0) {
-    suggestions.push("Add certifications to stand out");
-  }
-
-  if (content.experience.length < 2) {
-    suggestions.push("Add more work experience entries");
-  }
-
-  if (!content.contact.linkedin && !content.contact.github) {
-    suggestions.push("Link your professional social profiles");
-  }
-
-  return suggestions;
-}
-
-/**
- * Format relative time (e.g., "2 days ago") - deterministic to avoid hydration mismatch
- */
-function formatRelativeTime(dateString: string): string {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffMins < 1) return "Just now";
-  if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? "s" : ""} ago`;
-  if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
-  if (diffDays < 30) return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
-
-  const months = [
-    "Jan",
-    "Feb",
-    "Mar",
-    "Apr",
-    "May",
-    "Jun",
-    "Jul",
-    "Aug",
-    "Sep",
-    "Oct",
-    "Nov",
-    "Dec",
-  ];
-  return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
-}
-
-/**
- * Truncate text with ellipsis
- */
-function truncateText(text: string, maxLength: number): string {
-  if (text.length <= maxLength) return text;
-  return `${text.slice(0, maxLength).trim()}...`;
-}
+import { formatRelativeTime, truncateText } from "@/lib/utils/format";
+import { calculateCompleteness, getProfileSuggestions } from "@/lib/utils/profile-completeness";
 
 export default async function DashboardPage() {
   // Use cached session helper to deduplicate auth calls within request
@@ -154,32 +44,38 @@ export default async function DashboardPage() {
   const { env } = await getCloudflareContext({ async: true });
   const db = getDb(env.DB);
 
-  // Single query with relations to eliminate N+1 queries
-  const userData = await db.query.user.findFirst({
-    where: eq(user.id, session.user.id),
-    with: {
-      resumes: {
-        orderBy: [desc(resumes.createdAt)],
-        limit: 1,
+  // Parallelize independent queries: user data + referral click count
+  const [userData, clickCountResult] = await Promise.all([
+    db.query.user.findFirst({
+      where: eq(user.id, session.user.id),
+      with: {
+        resumes: {
+          orderBy: [desc(resumes.createdAt)],
+          limit: 1,
+        },
+        siteData: true,
+        accounts: true, // For checking OAuth vs email/password
       },
-      siteData: true,
-      accounts: true, // For checking OAuth vs email/password
-    },
-    columns: {
-      id: true,
-      handle: true,
-      name: true,
-      email: true,
-      emailVerified: true, // For email verification banner
-      image: true,
-      headline: true,
-      privacySettings: true,
-      onboardingCompleted: true,
-      createdAt: true,
-      referralCount: true,
-      referralCode: true,
-    },
-  });
+      columns: {
+        id: true,
+        handle: true,
+        name: true,
+        email: true,
+        emailVerified: true, // For email verification banner
+        image: true,
+        headline: true,
+        privacySettings: true,
+        onboardingCompleted: true,
+        createdAt: true,
+        referralCount: true,
+        referralCode: true,
+      },
+    }),
+    db
+      .select({ count: sql<number>`count(*)` })
+      .from(referralClicks)
+      .where(eq(referralClicks.referrerUserId, session.user.id)),
+  ]);
 
   // Extract data from the consolidated query
   const profile = userData ?? null;
@@ -190,12 +86,8 @@ export default async function DashboardPage() {
   const emailVerified = userData?.emailVerified ?? false;
   const isOAuthUser = userData?.accounts?.some((a) => a.providerId === "google") ?? false;
 
-  // Use pre-computed referralCount from user table, fetch click count separately
+  // Use pre-computed referralCount from user table
   const referralCount = userData?.referralCount ?? 0;
-  const clickCountResult = await db
-    .select({ count: sql<number>`count(*)` })
-    .from(referralClicks)
-    .where(eq(referralClicks.referrerUserId, session.user.id));
   const clickCount = clickCountResult[0]?.count ?? 0;
 
   // Safety net: Redirect to wizard if onboarding is incomplete

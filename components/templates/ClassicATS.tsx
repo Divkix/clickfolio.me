@@ -3,8 +3,20 @@
 import { Github, Globe, Linkedin, Mail, MapPin, Phone } from "lucide-react";
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
+import { type ContactLinkType, getContactLinks } from "@/lib/templates/contact-links";
 import { flattenSkills, formatDateRange, formatYear } from "@/lib/templates/helpers";
 import type { TemplateProps } from "@/lib/types/template";
+
+const atsIconMap: Partial<
+  Record<ContactLinkType, React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>>
+> = {
+  location: MapPin,
+  phone: Phone,
+  email: Mail,
+  linkedin: Linkedin,
+  github: Github,
+  website: Globe,
+};
 
 /**
  * ClassicATS Template
@@ -21,6 +33,7 @@ import type { TemplateProps } from "@/lib/types/template";
  */
 const ClassicATS: React.FC<TemplateProps> = ({ content, profile }) => {
   const flatSkills = content.skills ? flattenSkills(content.skills) : [];
+  const contactLinks = getContactLinks(content.contact);
 
   return (
     <div className="min-h-screen bg-white text-gray-900 font-serif selection:bg-gray-200 overflow-y-auto print:overflow-visible">
@@ -34,85 +47,52 @@ const ClassicATS: React.FC<TemplateProps> = ({ content, profile }) => {
 
           {/* Contact Row */}
           <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-sm text-gray-700">
-            {content.contact.location && (
-              <span className="inline-flex items-center gap-1">
-                <MapPin className="w-3.5 h-3.5 print:hidden" aria-hidden="true" />
-                {content.contact.location}
-              </span>
-            )}
-            {content.contact.phone && (
-              <span className="inline-flex items-center gap-1">
-                <Phone className="w-3.5 h-3.5 print:hidden" aria-hidden="true" />
-                {content.contact.phone}
-              </span>
-            )}
-            {content.contact.email && (
-              <a
-                href={`mailto:${content.contact.email}`}
-                className="inline-flex items-center gap-1 hover:text-gray-900 hover:underline"
-              >
-                <Mail className="w-3.5 h-3.5 print:hidden" aria-hidden="true" />
-                {content.contact.email}
-              </a>
-            )}
-            {content.contact.linkedin && (
-              <a
-                href={content.contact.linkedin}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 hover:text-gray-900 hover:underline"
-              >
-                <Linkedin className="w-3.5 h-3.5 print:hidden" aria-hidden="true" />
-                <span className="print:hidden">LinkedIn</span>
-                <span className="hidden print:inline">{content.contact.linkedin}</span>
-              </a>
-            )}
-            {content.contact.github && (
-              <a
-                href={content.contact.github}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 hover:text-gray-900 hover:underline"
-              >
-                <Github className="w-3.5 h-3.5 print:hidden" aria-hidden="true" />
-                <span className="print:hidden">GitHub</span>
-                <span className="hidden print:inline">{content.contact.github}</span>
-              </a>
-            )}
-            {content.contact.website && (
-              <a
-                href={content.contact.website}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 hover:text-gray-900 hover:underline"
-              >
-                <Globe className="w-3.5 h-3.5 print:hidden" aria-hidden="true" />
-                <span className="print:hidden">Website</span>
-                <span className="hidden print:inline">{content.contact.website}</span>
-              </a>
-            )}
-            {content.contact.behance && (
-              <a
-                href={content.contact.behance}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 hover:text-gray-900 hover:underline"
-              >
-                <span className="print:hidden">Bē</span>
-                <span className="hidden print:inline">{content.contact.behance}</span>
-              </a>
-            )}
-            {content.contact.dribbble && (
-              <a
-                href={content.contact.dribbble}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 hover:text-gray-900 hover:underline"
-              >
-                <span className="print:hidden">Dr</span>
-                <span className="hidden print:inline">{content.contact.dribbble}</span>
-              </a>
-            )}
+            {contactLinks.map((link) => {
+              const IconComponent = atsIconMap[link.type];
+              const isNonClickable = link.type === "location" || link.type === "phone";
+              const showPrintUrl = link.isExternal;
+              const isBranded = link.type === "behance" || link.type === "dribbble";
+              const brandText =
+                link.type === "behance" ? "Be" : link.type === "dribbble" ? "Dr" : null;
+
+              if (isNonClickable) {
+                return (
+                  <span key={link.type} className="inline-flex items-center gap-1">
+                    {IconComponent && (
+                      <IconComponent className="w-3.5 h-3.5 print:hidden" aria-hidden={true} />
+                    )}
+                    {link.label}
+                  </span>
+                );
+              }
+
+              return (
+                <a
+                  key={link.type}
+                  href={link.href}
+                  target={link.isExternal ? "_blank" : undefined}
+                  rel={link.isExternal ? "noopener noreferrer" : undefined}
+                  className="inline-flex items-center gap-1 hover:text-gray-900 hover:underline"
+                >
+                  {IconComponent && (
+                    <IconComponent className="w-3.5 h-3.5 print:hidden" aria-hidden={true} />
+                  )}
+                  {isBranded ? (
+                    <>
+                      <span className="print:hidden">{brandText}</span>
+                      <span className="hidden print:inline">{link.href}</span>
+                    </>
+                  ) : showPrintUrl ? (
+                    <>
+                      <span className="print:hidden">{link.label}</span>
+                      <span className="hidden print:inline">{link.href}</span>
+                    </>
+                  ) : (
+                    link.label
+                  )}
+                </a>
+              );
+            })}
           </div>
         </header>
 

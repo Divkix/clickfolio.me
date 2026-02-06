@@ -1,4 +1,3 @@
-import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { eq } from "drizzle-orm";
 import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
 import { siteData, user } from "@/lib/db/schema";
@@ -22,13 +21,12 @@ interface ThemeUpdateRequestBody {
 export async function POST(request: Request) {
   try {
     // 1. Authenticate user and validate existence in database
-    const { env } = await getCloudflareContext({ async: true });
     const {
       user: authUser,
       db,
       captureBookmark,
       error: authError,
-    } = await requireAuthWithUserValidation("You must be logged in to update theme", env.DB);
+    } = await requireAuthWithUserValidation("You must be logged in to update theme");
     if (authError) return authError;
 
     const userId = authUser.id;

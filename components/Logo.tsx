@@ -70,7 +70,3 @@ export function Logo({
     </div>
   );
 }
-
-// Re-export individual components for direct use
-export { LogoIcon } from "./LogoIcon";
-export { LogoText } from "./LogoText";

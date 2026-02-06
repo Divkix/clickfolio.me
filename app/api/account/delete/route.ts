@@ -1,7 +1,5 @@
-import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { eq } from "drizzle-orm";
-import { headers } from "next/headers";
-import { getAuth } from "@/lib/auth";
+import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
 import { purgeResumeCache } from "@/lib/cloudflare-cache-purge";
 import { getDb } from "@/lib/db";
 import {
@@ -44,8 +42,14 @@ export async function POST(request: Request) {
   const warnings: DeletionWarning[] = [];
 
   try {
-    // 1. Get Cloudflare env bindings
-    const { env } = await getCloudflareContext({ async: true });
+    // 1. Check authentication and validate user exists in database
+    const {
+      user: authUser,
+      env,
+      error: authError,
+    } = await requireAuthWithUserValidation("You must be logged in to delete your account");
+    if (authError) return authError;
+
     const typedEnv = env as Partial<CloudflareEnv>;
 
     // Get R2 binding for direct operations
@@ -58,22 +62,10 @@ export async function POST(request: Request) {
       );
     }
 
-    // 2. Check authentication
-    const auth = await getAuth();
-    const sessionData = await auth.api.getSession({ headers: await headers() });
+    const userId = authUser.id;
+    const userEmail = authUser.email;
 
-    if (!sessionData?.user) {
-      return createErrorResponse(
-        "You must be logged in to delete your account",
-        ERROR_CODES.UNAUTHORIZED,
-        401,
-      );
-    }
-
-    const userId = sessionData.user.id;
-    const userEmail = sessionData.user.email;
-
-    // 3. Parse and validate request body
+    // 2. Parse and validate request body
     let body: unknown;
     try {
       body = await request.json();
@@ -93,7 +85,7 @@ export async function POST(request: Request) {
 
     const { confirmation } = parseResult.data;
 
-    // 4. Verify email confirmation matches user's email (case-insensitive)
+    // 3. Verify email confirmation matches user's email (case-insensitive)
     if (confirmation.toLowerCase() !== userEmail.toLowerCase()) {
       return createErrorResponse(
         "Email confirmation does not match your account email",
@@ -102,25 +94,18 @@ export async function POST(request: Request) {
       );
     }
 
-    // 5. Initialize database
+    // 4. Initialize database
     const db = getDb(env.DB);
 
-    // 6. Fetch all resume R2 keys before deletion
-    const userResumes = await db
-      .select({ r2Key: resumes.r2Key })
-      .from(resumes)
-      .where(eq(resumes.userId, userId));
-
-    // Fetch user's handle BEFORE deletion for cache invalidation
-    const userWithHandle = await db
-      .select({ handle: user.handle })
-      .from(user)
-      .where(eq(user.id, userId))
-      .limit(1);
+    // 5. Fetch all resume R2 keys and user handle in parallel before deletion
+    const [userResumes, userWithHandle] = await Promise.all([
+      db.select({ r2Key: resumes.r2Key }).from(resumes).where(eq(resumes.userId, userId)),
+      db.select({ handle: user.handle }).from(user).where(eq(user.id, userId)).limit(1),
+    ]);
 
     const userHandle = userWithHandle[0]?.handle;
 
-    // 7. Delete R2 files in parallel (best effort - continue even if some fail)
+    // 6. Delete R2 files in parallel (best effort - continue even if some fail)
     const r2Keys = userResumes.map((r) => r.r2Key).filter((key): key is string => Boolean(key));
     const deletionResults = await Promise.allSettled(
       r2Keys.map((r2Key) => R2.delete(r2Binding, r2Key)),
@@ -135,25 +120,25 @@ export async function POST(request: Request) {
       }
     });
 
-    // 8. Delete database records in a transaction using batch
+    // 7. Delete database records in a transaction using batch
     // D1 supports atomic transactions via db.batch() - all operations succeed or all fail
     // This prevents orphaned records if deletion fails midway
 
     try {
       await db.batch([
-        // 8a. Delete siteData (depends on resumeId)
+        // 7a. Delete siteData (depends on resumeId)
         db.delete(siteData).where(eq(siteData.userId, userId)),
-        // 8b. Delete resumes
+        // 7b. Delete resumes
         db.delete(resumes).where(eq(resumes.userId, userId)),
-        // 8c. Delete handleChanges
+        // 7c. Delete handleChanges
         db.delete(handleChanges).where(eq(handleChanges.userId, userId)),
-        // 8d. Delete sessions (all sessions for this user)
+        // 7d. Delete sessions (all sessions for this user)
         db.delete(session).where(eq(session.userId, userId)),
-        // 8e. Delete accounts (OAuth providers)
+        // 7e. Delete accounts (OAuth providers)
         db.delete(account).where(eq(account.userId, userId)),
-        // 8f. Delete verification records (by email identifier)
+        // 7f. Delete verification records (by email identifier)
         db.delete(verification).where(eq(verification.identifier, userEmail)),
-        // 8g. Delete user (last)
+        // 7g. Delete user (last)
         db.delete(user).where(eq(user.id, userId)),
       ]);
 
@@ -180,23 +165,30 @@ export async function POST(request: Request) {
       );
     }
 
-    // 9. Return success response with cookie cleared
-    // Clear the session cookie to fully log out the user
+    // 8. Return success response with both cookie variants cleared
+    // Clear both cookie names to handle different deployment environments:
+    // - "better-auth.session_token" (dev / non-HTTPS)
+    // - "__Secure-better-auth.session_token" (production HTTPS with Secure prefix)
     const response = createSuccessResponse({
       success: true,
       message: "Your account has been permanently deleted",
       warnings: warnings.length > 0 ? warnings : undefined,
     });
 
-    // Clone the response to add headers (createSuccessResponse returns immutable Response)
+    const responseHeaders = new Headers(response.headers);
+    responseHeaders.append(
+      "Set-Cookie",
+      "better-auth.session_token=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=Lax",
+    );
+    responseHeaders.append(
+      "Set-Cookie",
+      "__Secure-better-auth.session_token=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=Lax",
+    );
+
     return new Response(response.body, {
       status: response.status,
       statusText: response.statusText,
-      headers: {
-        ...Object.fromEntries(response.headers.entries()),
-        "Set-Cookie":
-          "better-auth.session_token=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=Lax",
-      },
+      headers: responseHeaders,
     });
   } catch (error) {
     console.error("Account deletion error:", error);

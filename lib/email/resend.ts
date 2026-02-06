@@ -53,9 +53,6 @@ interface SendPasswordResetEmailParams {
 /**
  * Sends a password reset email via the Resend HTTP API
  *
- * IMPORTANT: This function should NOT be awaited in the Better Auth
- * sendResetPassword callback to prevent timing attacks. Fire-and-forget.
- *
  * @param params.email - Recipient email address
  * @param params.resetUrl - Password reset URL with token
  * @param params.userName - Optional user name for personalization
@@ -169,9 +166,6 @@ interface SendVerificationEmailParams {
 
 /**
  * Sends an email verification email via the Resend HTTP API
- *
- * IMPORTANT: This function should NOT be awaited in the Better Auth
- * sendVerificationEmail callback to prevent timing attacks. Fire-and-forget.
  *
  * @param params.email - Recipient email address
  * @param params.verificationUrl - Email verification URL with token

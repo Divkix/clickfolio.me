@@ -96,17 +96,3 @@ export async function webShare(data: { title: string; text: string; url: string 
   }
   await navigator.share(data);
 }
-
-/**
- * Copy text to clipboard
- *
- * @param text - Text to copy
- * @returns Promise that resolves when copied
- */
-export async function copyToClipboard(text: string): Promise<void> {
-  if (typeof navigator !== "undefined" && navigator.clipboard) {
-    await navigator.clipboard.writeText(text);
-  } else {
-    throw new Error("Clipboard API not supported");
-  }
-}

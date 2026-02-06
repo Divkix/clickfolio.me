@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { getDb } from "@/lib/db";
 import { user as users } from "@/lib/db/schema";
+import { createErrorResponse, ERROR_CODES } from "@/lib/utils/security-headers";
 import { getServerSession } from "./session";
 
 export interface AdminUser {
@@ -59,7 +60,7 @@ export async function requireAdminAuthForApi(): Promise<
   if (!session?.user) {
     return {
       user: null,
-      error: Response.json({ error: "Unauthorized" }, { status: 401 }),
+      error: createErrorResponse("Unauthorized", ERROR_CODES.UNAUTHORIZED, 401),
     };
   }
 
@@ -79,14 +80,14 @@ export async function requireAdminAuthForApi(): Promise<
   if (!dbUser) {
     return {
       user: null,
-      error: Response.json({ error: "User not found" }, { status: 401 }),
+      error: createErrorResponse("User not found", ERROR_CODES.UNAUTHORIZED, 401),
     };
   }
 
   if (!dbUser.isAdmin) {
     return {
       user: null,
-      error: Response.json({ error: "Admin access required" }, { status: 403 }),
+      error: createErrorResponse("Admin access required", ERROR_CODES.FORBIDDEN, 403),
     };
   }
 

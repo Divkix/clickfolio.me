@@ -7,8 +7,8 @@ import { toast } from "sonner";
 import { Confetti } from "@/components/Confetti";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { copyToClipboard } from "@/lib/utils/clipboard";
 import {
-  copyToClipboard,
   generateLinkedInShareUrl,
   generateTwitterShareUrl,
   generateWhatsAppShareUrl,

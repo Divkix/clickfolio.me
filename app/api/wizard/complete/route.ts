@@ -1,4 +1,3 @@
-import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { and, eq, ne } from "drizzle-orm";
 import { z } from "zod";
 import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
@@ -65,13 +64,12 @@ export async function POST(request: Request) {
     }
 
     // 2. Authenticate user and validate existence in database
-    const { env } = await getCloudflareContext({ async: true });
     const {
       user: authUser,
       db,
       captureBookmark,
       error: authError,
-    } = await requireAuthWithUserValidation("You must be logged in to complete onboarding", env.DB);
+    } = await requireAuthWithUserValidation("You must be logged in to complete onboarding");
     if (authError) return authError;
 
     // 4. Parse and validate request body
@@ -147,6 +145,7 @@ export async function POST(request: Request) {
         .set({
           handle: body.handle,
           privacySettings,
+          showInDirectory: body.privacy_settings.show_in_directory,
           onboardingCompleted: true,
           updatedAt: new Date().toISOString(),
         })
@@ -163,51 +162,27 @@ export async function POST(request: Request) {
       throw error; // Re-throw other errors
     }
 
-    // 7. Upsert site_data with theme_id
-    // Handle race condition where webhook may insert siteData between our SELECT and INSERT
-    const existingSiteData = await db
-      .select({ id: siteData.id })
-      .from(siteData)
-      .where(eq(siteData.userId, authUser.id))
-      .limit(1);
-
-    if (existingSiteData.length > 0) {
-      await db
-        .update(siteData)
-        .set({
+    // 7. Upsert site_data with theme_id using onConflictDoUpdate on UNIQUE userId.
+    // Eliminates the SELECT roundtrip and race-condition fallback logic.
+    const now = new Date().toISOString();
+    await db
+      .insert(siteData)
+      .values({
+        id: crypto.randomUUID(),
+        userId: authUser.id,
+        content: "{}", // Will be populated by queue consumer when parsing completes
+        themeId: finalThemeId,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .onConflictDoUpdate({
+        target: siteData.userId,
+        set: {
           themeId: finalThemeId,
-          lastPublishedAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        })
-        .where(eq(siteData.userId, authUser.id));
-    } else {
-      // No existing siteData - try to insert, but handle race condition
-      // where webhook may insert between our SELECT and INSERT
-      try {
-        await db.insert(siteData).values({
-          id: crypto.randomUUID(),
-          userId: authUser.id,
-          content: "{}", // Will be populated by webhook when parsing completes
-          themeId: finalThemeId,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        });
-      } catch (error) {
-        // Race condition: webhook inserted first, just update the theme instead
-        if (error instanceof Error && error.message.includes("UNIQUE constraint failed")) {
-          await db
-            .update(siteData)
-            .set({
-              themeId: finalThemeId,
-              lastPublishedAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            })
-            .where(eq(siteData.userId, authUser.id));
-        } else {
-          throw error;
-        }
-      }
-    }
+          lastPublishedAt: now,
+          updatedAt: now,
+        },
+      });
 
     // 8. Capture bookmark before returning success
     await captureBookmark();

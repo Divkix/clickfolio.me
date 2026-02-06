@@ -1,10 +1,8 @@
-import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { eq } from "drizzle-orm";
 import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
 import { purgeResumeCache } from "@/lib/cloudflare-cache-purge";
 import { user } from "@/lib/db/schema";
 import { privacySettingsSchema } from "@/lib/schemas/profile";
-import { enforceRateLimit } from "@/lib/utils/rate-limit";
 import {
   createErrorResponse,
   createSuccessResponse,
@@ -14,33 +12,24 @@ import {
 /**
  * PUT /api/profile/privacy
  * Update user's privacy settings (show_phone, show_address)
- * Rate limit: 20 updates per hour (more generous for toggle settings)
  */
 export async function PUT(request: Request) {
   try {
     // 1. Authenticate user and validate existence in database
-    const { env } = await getCloudflareContext({ async: true });
+    // env is returned from requireAuthWithUserValidation, no separate getCloudflareContext needed
     const {
       user: authUser,
       db,
       captureBookmark,
       dbUser,
+      env,
       error: authError,
-    } = await requireAuthWithUserValidation(
-      "You must be logged in to update privacy settings",
-      env.DB,
-    );
+    } = await requireAuthWithUserValidation("You must be logged in to update privacy settings");
     if (authError) return authError;
 
     const userHandle = dbUser.handle;
 
-    // 2. Rate limit check (20 updates per hour)
-    const rateLimitResponse = await enforceRateLimit(authUser.id, "privacy_update");
-    if (rateLimitResponse) {
-      return rateLimitResponse;
-    }
-
-    // 5. Parse and validate request body
+    // 2. Parse and validate request body
     let body;
     try {
       body = await request.json();
@@ -61,7 +50,7 @@ export async function PUT(request: Request) {
 
     const { show_phone, show_address, hide_from_search, show_in_directory } = validation.data;
 
-    // 6. Update privacy_settings (stored as JSON string in D1)
+    // 3. Update privacy_settings (stored as JSON string in D1)
     const privacySettings = JSON.stringify({
       show_phone,
       show_address,
@@ -73,15 +62,16 @@ export async function PUT(request: Request) {
       .update(user)
       .set({
         privacySettings,
+        showInDirectory: show_in_directory,
         updatedAt: new Date().toISOString(),
       })
       .where(eq(user.id, authUser.id));
 
-    // 7. Purge edge cache for privacy changes (fire-and-forget)
+    // 4. Purge edge cache for privacy changes (fire-and-forget)
     // This prevents PII exposure through stale edge cache
     if (userHandle) {
-      const cfZoneId = (env as CloudflareEnv).CF_ZONE_ID;
-      const cfApiToken = (env as CloudflareEnv).CF_CACHE_PURGE_API_TOKEN;
+      const cfZoneId = env.CF_ZONE_ID;
+      const cfApiToken = env.CF_CACHE_PURGE_API_TOKEN;
       const baseUrl = process.env.BETTER_AUTH_URL;
 
       if (cfZoneId && cfApiToken && baseUrl) {

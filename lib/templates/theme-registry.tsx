@@ -3,16 +3,7 @@ import type { TemplateProps } from "@/lib/types/template";
 import { DEFAULT_THEME, isValidThemeId, type ThemeId } from "./theme-ids";
 
 export type { ThemeId } from "./theme-ids";
-// Re-export everything from theme-ids for backward compatibility
-export {
-  DEFAULT_THEME,
-  getThemeReferralRequirement,
-  getUnlockedThemes,
-  isThemeUnlocked,
-  isValidThemeId,
-  THEME_IDS,
-  THEME_METADATA,
-} from "./theme-ids";
+export { isThemeUnlocked, THEME_IDS, THEME_METADATA } from "./theme-ids";
 
 /**
  * Lazy loaders — each returns a dynamic import() promise.

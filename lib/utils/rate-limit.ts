@@ -1,24 +1,11 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { and, eq, gte, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db";
-import { handleChanges, resumes, siteData } from "@/lib/db/schema";
+import { handleChanges, resumes } from "@/lib/db/schema";
+import { isLocalEnvironment } from "./environment";
 import { SECURITY_HEADERS } from "./security-headers";
 
-/**
- * Rate limiting configuration for different actions
- *
- * Note on privacy_update: Since we don't have a dedicated table for tracking
- * privacy updates, we use a higher threshold (20/hour) to account for the fact
- * that user.updatedAt counts ALL user modifications, not just privacy changes.
- * This is a reasonable trade-off that still prevents abuse while avoiding
- * false positives from legitimate profile updates.
- */
 const RATE_LIMITS = {
-  resume_update: {
-    limit: Number(process.env.RATE_LIMIT_UPDATES_PER_HOUR) || 10,
-    windowHours: 1,
-  },
-  privacy_update: { limit: 20, windowHours: 1 },
   handle_change: { limit: 3, windowHours: 24 },
   resume_upload: {
     limit: Number(process.env.RATE_LIMIT_UPLOADS_PER_DAY) || 5,
@@ -59,31 +46,6 @@ async function checkRateLimit(
     let count = 0;
 
     switch (action) {
-      case "resume_update": {
-        const result = await db
-          .select({ count: sql<number>`count(*)` })
-          .from(siteData)
-          .where(
-            and(eq(siteData.userId, userId), gte(siteData.updatedAt, windowStart.toISOString())),
-          );
-        count = result[0]?.count ?? 0;
-        break;
-      }
-
-      case "privacy_update": {
-        // Count site_data updates as a proxy for privacy updates
-        // Using a higher threshold (20/hour) since this counts all content updates too
-        // This approach avoids adding a new table while still providing abuse protection
-        const result = await db
-          .select({ count: sql<number>`count(*)` })
-          .from(siteData)
-          .where(
-            and(eq(siteData.userId, userId), gte(siteData.updatedAt, windowStart.toISOString())),
-          );
-        count = result[0]?.count ?? 0;
-        break;
-      }
-
       case "handle_change": {
         // Use handle_changes table for tracking handle changes
         const result = await db
@@ -157,8 +119,17 @@ export async function enforceRateLimit(
     return null;
   }
 
-  // Feature flag bypass for temporary production testing
+  // Feature flag bypass for temporary testing (non-production only)
   if (process.env.DISABLE_RATE_LIMITS === "true") {
+    if (process.env.NODE_ENV === "production") {
+      console.warn("[SECURITY] DISABLE_RATE_LIMITS ignored in production environment");
+    } else {
+      return null;
+    }
+  }
+
+  // Skip for local environment (local preview runs in production mode)
+  if (isLocalEnvironment()) {
     return null;
   }
 

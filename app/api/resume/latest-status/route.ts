@@ -1,7 +1,6 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { desc, eq } from "drizzle-orm";
-import { headers } from "next/headers";
-import { getAuth } from "@/lib/auth";
+import { requireAuthWithMessage } from "@/lib/auth/middleware";
 import { resumes } from "@/lib/db/schema";
 import { getSessionDb } from "@/lib/db/session";
 import {
@@ -16,23 +15,17 @@ import {
  */
 export async function GET() {
   try {
-    // 1. Get D1 database binding
+    // 1. Check authentication via requireAuthWithMessage (read-only route)
+    const { user: authUser, error: authError } = await requireAuthWithMessage(
+      "You must be logged in to check resume status",
+    );
+    if (authError) return authError;
+
+    // 2. Get D1 database binding
     const { env } = await getCloudflareContext({ async: true });
     const { db } = await getSessionDb(env.DB);
 
-    // 2. Check authentication via Better Auth
-    const auth = await getAuth();
-    const session = await auth.api.getSession({ headers: await headers() });
-
-    if (!session?.user) {
-      return createErrorResponse(
-        "You must be logged in to check resume status",
-        ERROR_CODES.UNAUTHORIZED,
-        401,
-      );
-    }
-
-    const userId = session.user.id;
+    const userId = authUser.id;
 
     // 3. Fetch the latest resume for the user
     const latestResume = await db

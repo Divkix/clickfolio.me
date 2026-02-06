@@ -12,6 +12,14 @@ import { pageViews, resumes, siteData, user } from "@/lib/db/schema";
 
 const PAGE_SIZE = 25;
 
+/**
+ * Escapes LIKE wildcard characters to prevent pattern injection
+ * SQLite LIKE wildcards: % (any sequence), _ (any single char)
+ */
+function escapeLikePattern(input: string): string {
+  return input.replace(/[%_\\]/g, (char) => `\\${char}`);
+}
+
 export async function GET(request: Request) {
   const { error } = await requireAdminAuthForApi();
   if (error) return error;
@@ -25,12 +33,15 @@ export async function GET(request: Request) {
     const { env } = await getCloudflareContext({ async: true });
     const db = getDb(env.DB);
 
+    // Escape LIKE wildcards to prevent pattern injection
+    const escapedSearch = escapeLikePattern(search);
+
     // Build where clause for search
     const searchCondition = search
       ? or(
-          like(user.name, `%${search}%`),
-          like(user.email, `%${search}%`),
-          like(user.handle, `%${search}%`),
+          like(user.name, `%${escapedSearch}%`),
+          like(user.email, `%${escapedSearch}%`),
+          like(user.handle, `%${escapedSearch}%`),
         )
       : undefined;
 

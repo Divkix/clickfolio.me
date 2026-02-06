@@ -1,9 +1,9 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { eq } from "drizzle-orm";
-import { headers } from "next/headers";
-import { getAuth } from "@/lib/auth";
+import { requireAuthWithMessage } from "@/lib/auth/middleware";
 import { user } from "@/lib/db/schema";
 import { getSessionDb } from "@/lib/db/session";
+import { parsePrivacySettings } from "@/lib/utils/privacy";
 import {
   createErrorResponse,
   createSuccessResponse,
@@ -16,23 +16,17 @@ import {
  */
 export async function GET() {
   try {
-    // 1. Get D1 database binding
+    // 1. Check authentication via requireAuthWithMessage (read-only route)
+    const { user: authUser, error: authError } = await requireAuthWithMessage(
+      "You must be logged in to access your profile",
+    );
+    if (authError) return authError;
+
+    // 2. Get D1 database binding
     const { env } = await getCloudflareContext({ async: true });
     const { db } = await getSessionDb(env.DB);
 
-    // 2. Check authentication via Better Auth
-    const auth = await getAuth();
-    const session = await auth.api.getSession({ headers: await headers() });
-
-    if (!session?.user) {
-      return createErrorResponse(
-        "You must be logged in to access your profile",
-        ERROR_CODES.UNAUTHORIZED,
-        401,
-      );
-    }
-
-    const userId = session.user.id;
+    const userId = authUser.id;
 
     // 3. Fetch user from database
     const userRecord = await db
@@ -61,22 +55,7 @@ export async function GET() {
     const profile = userRecord[0];
 
     // 4. Parse privacy settings JSON
-    let privacySettings = {
-      show_phone: false,
-      show_address: false,
-      hide_from_search: false,
-      show_in_directory: false,
-    };
-    if (profile.privacySettings) {
-      try {
-        privacySettings =
-          typeof profile.privacySettings === "string"
-            ? JSON.parse(profile.privacySettings)
-            : profile.privacySettings;
-      } catch {
-        console.error("Failed to parse privacy settings");
-      }
-    }
+    const privacySettings = parsePrivacySettings(profile.privacySettings);
 
     return createSuccessResponse({
       ...profile,

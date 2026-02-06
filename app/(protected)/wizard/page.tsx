@@ -16,6 +16,7 @@ import { YouAreLiveModal } from "@/components/YouAreLiveModal";
 import { useSession } from "@/lib/auth/client";
 import { DEFAULT_THEME, type ThemeId } from "@/lib/templates/theme-ids";
 import type { ResumeContent } from "@/lib/types/database";
+import { clearPendingUploadCookie } from "@/lib/utils/pending-upload-client";
 import { waitForResumeCompletion } from "@/lib/utils/wait-for-completion";
 
 // Type definitions for API responses
@@ -52,8 +53,18 @@ interface UserStatsResponse {
   isPro?: boolean;
 }
 
+// Named step identifiers eliminate error-prone numeric offset arithmetic
+type WizardStepId = "upload" | "handle" | "review" | "privacy" | "theme";
+
+function getStepOrder(needsUpload: boolean): WizardStepId[] {
+  if (needsUpload) {
+    return ["upload", "handle", "review", "privacy", "theme"];
+  }
+  return ["handle", "review", "privacy", "theme"];
+}
+
 interface WizardState {
-  currentStep: number;
+  currentStepId: WizardStepId;
   resumeData: ResumeContent | null;
   handle: string;
   privacySettings: {
@@ -61,18 +72,6 @@ interface WizardState {
     show_address: boolean;
   };
   themeId: ThemeId;
-}
-
-/**
- * Clear pending upload cookie via API
- * Best effort - silent failure is acceptable
- */
-async function clearPendingUploadCookie(): Promise<void> {
-  try {
-    await fetch("/api/upload/pending", { method: "DELETE" });
-  } catch (error) {
-    console.warn("Failed to clear pending upload cookie:", error);
-  }
 }
 
 /**
@@ -111,7 +110,7 @@ export default function WizardPage() {
   const hasClaimedRef = useRef(false);
 
   const [state, setState] = useState<WizardState>({
-    currentStep: 1,
+    currentStepId: "handle",
     resumeData: null,
     handle: "",
     privacySettings: {
@@ -121,8 +120,11 @@ export default function WizardPage() {
     themeId: DEFAULT_THEME,
   });
 
-  // Compute total steps based on whether upload is needed
-  const totalSteps = needsUpload ? 5 : 4;
+  // Derive step order and numeric values for WizardProgress component
+  const stepOrder = getStepOrder(needsUpload);
+  const totalSteps = stepOrder.length;
+  const currentStepNumber = stepOrder.indexOf(state.currentStepId) + 1;
+  const progress = (currentStepNumber / totalSteps) * 100;
 
   // Derive onboardingCompleted from session (used by initializeWizard for returning user check)
   const onboardingCompleted =
@@ -356,6 +358,7 @@ export default function WizardPage() {
 
         // No resume OR failed status -> show upload step
         setNeedsUpload(true);
+        setState((prev) => ({ ...prev, currentStepId: "upload" }));
         setLoading(false);
       } catch (err) {
         console.error("Error initializing wizard:", err);
@@ -374,8 +377,9 @@ export default function WizardPage() {
   // Abandonment prevention - warn users before leaving mid-wizard
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      // Only warn if user has started the wizard (past step 1) and hasn't completed
-      if (state.currentStep > 1 && !showCelebration) {
+      // Only warn if user has moved past the first step and hasn't completed
+      const currentIndex = stepOrder.indexOf(state.currentStepId);
+      if (currentIndex > 0 && !showCelebration) {
         e.preventDefault();
         // returnValue is deprecated but required for cross-browser compatibility
         e.returnValue = "";
@@ -384,15 +388,14 @@ export default function WizardPage() {
 
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [state.currentStep, showCelebration]);
+  }, [state.currentStepId, stepOrder, showCelebration]);
 
-  // Handler for upload completion (Step 1 for login-first users)
-  // Note: We keep needsUpload=true to maintain correct step numbering throughout the session
+  // Handler for upload completion (moves to handle step)
   const handleUploadComplete = (resumeData: ResumeContent) => {
     setState((prev) => ({
       ...prev,
       resumeData,
-      currentStep: 2, // Move to Handle step (step 2 in 5-step flow)
+      currentStepId: "handle",
     }));
   };
 
@@ -401,13 +404,13 @@ export default function WizardPage() {
     setState((prev) => ({
       ...prev,
       handle,
-      currentStep: needsUpload ? 3 : 2,
+      currentStepId: "review",
     }));
   };
 
   // Handler for review continue
   const handleReviewContinue = () => {
-    setState((prev) => ({ ...prev, currentStep: needsUpload ? 4 : 3 }));
+    setState((prev) => ({ ...prev, currentStepId: "privacy" }));
   };
 
   // Handler for privacy settings
@@ -415,7 +418,7 @@ export default function WizardPage() {
     setState((prev) => ({
       ...prev,
       privacySettings: settings,
-      currentStep: needsUpload ? 5 : 4,
+      currentStepId: "theme",
     }));
   };
 
@@ -445,7 +448,6 @@ export default function WizardPage() {
         throw new Error(data.error || "Failed to complete setup");
       }
 
-      // Show celebration! 🎉
       setShowCelebration(true);
       setShowLiveModal(true);
     } catch (err) {
@@ -464,9 +466,6 @@ export default function WizardPage() {
     }
   };
 
-  // Calculate progress percentage
-  const progress = (state.currentStep / totalSteps) * 100;
-
   // Loading state (including session loading)
   if (loading || sessionLoading) {
     return (
@@ -483,7 +482,7 @@ export default function WizardPage() {
   }
 
   // Error state (only for actual errors, not for "no resume" case which is handled by UploadStep)
-  if (error && !needsUpload && state.currentStep === 1) {
+  if (error && state.currentStepId === "handle" && !needsUpload) {
     return (
       <div className="min-h-screen bg-cream flex items-center justify-center px-4">
         <div className="bg-white rounded-2xl shadow-depth-md border border-coral/30 p-8 max-w-md w-full text-center">
@@ -522,7 +521,7 @@ export default function WizardPage() {
 
       {/* Progress Indicator */}
       <WizardProgress
-        currentStep={state.currentStep}
+        currentStep={currentStepNumber}
         totalSteps={totalSteps}
         progress={progress}
         hasUploadStep={needsUpload}
@@ -530,28 +529,28 @@ export default function WizardPage() {
 
       {/* Step Content */}
       <main className="max-w-5xl mx-auto px-4 py-12">
-        {/* Error Alert (shown inline for steps 2+) */}
-        {error && state.currentStep > 1 && (
+        {/* Error Alert (shown inline for steps past the first) */}
+        {error && stepOrder.indexOf(state.currentStepId) > 0 && (
           <Alert className="mb-6 border-coral/30 bg-coral/10">
             <AlertDescription className="text-coral">{error}</AlertDescription>
           </Alert>
         )}
 
-        {/* Step 1: Upload (only when needsUpload) */}
-        {needsUpload && state.currentStep === 1 && <UploadStep onContinue={handleUploadComplete} />}
+        {/* Upload Step */}
+        {state.currentStepId === "upload" && <UploadStep onContinue={handleUploadComplete} />}
 
-        {/* Handle Selection - Step 2 if needsUpload, Step 1 otherwise */}
-        {state.currentStep === (needsUpload ? 2 : 1) && (
+        {/* Handle Selection */}
+        {state.currentStepId === "handle" && (
           <HandleStep initialHandle={state.handle} onContinue={handleHandleContinue} />
         )}
 
-        {/* Content Review - Step 3 if needsUpload, Step 2 otherwise */}
-        {state.currentStep === (needsUpload ? 3 : 2) && state.resumeData && (
+        {/* Content Review */}
+        {state.currentStepId === "review" && state.resumeData && (
           <ReviewStep content={state.resumeData} onContinue={handleReviewContinue} />
         )}
 
-        {/* Privacy Settings - Step 4 if needsUpload, Step 3 otherwise */}
-        {state.currentStep === (needsUpload ? 4 : 3) && state.resumeData && (
+        {/* Privacy Settings */}
+        {state.currentStepId === "privacy" && state.resumeData && (
           <PrivacyStep
             content={state.resumeData}
             initialSettings={state.privacySettings}
@@ -559,8 +558,8 @@ export default function WizardPage() {
           />
         )}
 
-        {/* Theme Selection - Step 5 if needsUpload, Step 4 otherwise */}
-        {state.currentStep === (needsUpload ? 5 : 4) && (
+        {/* Theme Selection */}
+        {state.currentStepId === "theme" && (
           <ThemeStep
             initialTheme={state.themeId}
             onContinue={handleThemeContinue}

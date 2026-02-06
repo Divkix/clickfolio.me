@@ -3,6 +3,7 @@
  * Provides reusable authentication helpers for Better Auth
  */
 
+import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { getAuth } from "@/lib/auth";
@@ -111,39 +112,33 @@ interface DbUser {
  * Helper to require authentication AND validate user exists in database.
  * This protects against stale sessions pointing to deleted users (e.g., after db:reset).
  *
- * Returns the session db and captureBookmark function for use in the endpoint,
- * avoiding the need to create a separate db connection.
+ * Fetches Cloudflare env internally and returns it alongside the session db,
+ * so callers do not need a separate getCloudflareContext() call.
  *
  * @param errorMessage Custom error message for unauthorized access
- * @param dbBinding D1 database binding from Cloudflare context
- * @returns Promise containing either auth data + db + user record, or error response
+ * @returns Promise containing either auth data + db + env + user record, or error response
  *
  * @example
  * ```ts
  * export async function POST(request: Request) {
- *   const { env } = await getCloudflareContext({ async: true });
- *   const { user, db, captureBookmark, dbUser, error } = await requireAuthWithUserValidation(
+ *   const { user, db, captureBookmark, dbUser, env, error } = await requireAuthWithUserValidation(
  *     "Must be logged in",
- *     env.DB,
  *   );
  *   if (error) return error;
  *
- *   // user, db, and dbUser are guaranteed to be defined here
- *   // dbUser.handle is available for cache invalidation
+ *   // user, db, env, and dbUser are guaranteed to be defined here
  *   await db.insert(table).values({ userId: user.id });
  *   await captureBookmark();
  * }
  * ```
  */
-export async function requireAuthWithUserValidation(
-  errorMessage: string,
-  dbBinding: D1Database,
-): Promise<
+export async function requireAuthWithUserValidation(errorMessage: string): Promise<
   | {
       user: AuthUser;
       db: Awaited<ReturnType<typeof getSessionDbWithPrimaryFirst>>["db"];
       captureBookmark: () => Promise<void>;
       dbUser: DbUser;
+      env: CloudflareEnv;
       error: null;
     }
   | {
@@ -151,6 +146,7 @@ export async function requireAuthWithUserValidation(
       db: null;
       captureBookmark: null;
       dbUser: null;
+      env: null;
       error: Response;
     }
 > {
@@ -162,14 +158,18 @@ export async function requireAuthWithUserValidation(
       db: null,
       captureBookmark: null,
       dbUser: null,
+      env: null,
       error: authResult.error,
     };
   }
 
+  // Get Cloudflare env for D1 binding (cached per request via AsyncLocalStorage)
+  const { env } = await getCloudflareContext({ async: true });
+
   // Create session db with primary-first consistency
   // This ensures reads/writes go to primary, avoiding FK constraint failures
   // when user record hasn't replicated to all replicas yet (post-auth flow)
-  const { db, captureBookmark } = await getSessionDbWithPrimaryFirst(dbBinding);
+  const { db, captureBookmark } = await getSessionDbWithPrimaryFirst(env.DB);
 
   // Validate user exists in database (protects against stale sessions)
   const userRecord = await db
@@ -184,6 +184,7 @@ export async function requireAuthWithUserValidation(
       db: null,
       captureBookmark: null,
       dbUser: null,
+      env: null,
       error: createErrorResponse(
         "User account not found. Please re-authenticate.",
         ERROR_CODES.NOT_FOUND,
@@ -197,6 +198,7 @@ export async function requireAuthWithUserValidation(
     db,
     captureBookmark,
     dbUser: userRecord[0],
+    env,
     error: null,
   };
 }

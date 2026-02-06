@@ -83,11 +83,25 @@ export async function POST(request: Request) {
     // Get unique handles from batch
     const uniqueHandles = [...new Set(validEvents.map((e) => e.handle))];
 
-    // Batch resolve handles → userIds (single query with IN clause)
-    const userResults = await db
-      .select({ id: user.id, handle: user.handle })
-      .from(user)
-      .where(inArray(user.handle, uniqueHandles));
+    // Run handle→userId lookup and session→userId lookup in parallel
+    const sessionToken = extractSessionToken(request);
+
+    const [userResults, sessionResult] = await Promise.all([
+      // Batch resolve handles → userIds (single query with IN clause)
+      db
+        .select({ id: user.id, handle: user.handle })
+        .from(user)
+        .where(inArray(user.handle, uniqueHandles)),
+
+      // Self-view detection: check session cookie (conditional, returns null if no token)
+      sessionToken
+        ? db
+            .select({ userId: sessionTable.userId })
+            .from(sessionTable)
+            .where(eq(sessionTable.token, sessionToken))
+            .limit(1)
+        : Promise.resolve([]),
+    ]);
 
     if (userResults.length === 0) {
       return EMPTY_204;
@@ -96,20 +110,8 @@ export async function POST(request: Request) {
     // Build handle → userId lookup map
     const handleToUserId = new Map<string, string>(userResults.map((u) => [u.handle!, u.id]));
 
-    // Self-view detection: check session cookie
-    let selfViewUserId: string | null = null;
-    const sessionToken = extractSessionToken(request);
-    if (sessionToken) {
-      const sessionResult = await db
-        .select({ userId: sessionTable.userId })
-        .from(sessionTable)
-        .where(eq(sessionTable.token, sessionToken))
-        .limit(1);
-
-      if (sessionResult.length > 0) {
-        selfViewUserId = sessionResult[0].userId;
-      }
-    }
+    // Self-view userId from session lookup
+    const selfViewUserId = sessionResult.length > 0 ? sessionResult[0].userId : null;
 
     // Generate visitor hash (same for all events - same IP/UA for entire batch)
     const ip = getClientIP(request);

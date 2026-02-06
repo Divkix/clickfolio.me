@@ -9,6 +9,9 @@
 /// <reference path="./lib/cloudflare-env.d.ts" />
 
 import opennextHandler from "./.open-next/worker.js";
+import { performCleanup } from "./lib/cron/cleanup";
+import { recoverOrphanedResumes } from "./lib/cron/recover-orphaned";
+import { getDb } from "./lib/db";
 import { handleQueueMessage } from "./lib/queue/consumer";
 import { handleDLQMessage } from "./lib/queue/dlq-consumer";
 import { isRetryableError } from "./lib/queue/errors";
@@ -90,40 +93,29 @@ export default {
   },
 
   // Cloudflare Cron trigger handler
+  // Calls shared functions directly to avoid self-fetch (which doubles Worker invocations billed).
   async scheduled(controller: ScheduledController, env: CloudflareEnv): Promise<void> {
-    const baseUrl = env.BETTER_AUTH_URL || "https://clickfolio-me.divkix.workers.dev";
-
-    let endpoint: string;
-    switch (controller.cron) {
-      case "0 3 * * *":
-        endpoint = "/api/cron/cleanup";
-        break;
-      case "*/15 * * * *":
-        endpoint = "/api/cron/recover-orphaned";
-        break;
-      default:
-        console.error(`Unknown cron trigger: ${controller.cron}`);
-        return;
-    }
-
-    const headers: HeadersInit = {};
-    // CRON_SECRET is optional - routes skip auth check if not set
-    const cronSecret = process.env.CRON_SECRET;
-    if (cronSecret) {
-      headers.Authorization = `Bearer ${cronSecret}`;
-    }
+    const db = getDb(env.DB);
 
     try {
-      const response = await fetch(`${baseUrl}${endpoint}`, {
-        method: "GET",
-        headers,
-      });
-
-      const result = await response.json();
-      console.log(`Cron ${controller.cron} completed:`, result);
-
-      if (!response.ok) {
-        console.error(`Cron ${controller.cron} failed with status ${response.status}`);
+      switch (controller.cron) {
+        case "0 3 * * *": {
+          const result = await performCleanup(db);
+          console.log(`Cron ${controller.cron} completed:`, result);
+          break;
+        }
+        case "*/15 * * * *": {
+          const queue = env.RESUME_PARSE_QUEUE;
+          if (!queue) {
+            console.error("RESUME_PARSE_QUEUE not available for orphan recovery");
+            return;
+          }
+          const result = await recoverOrphanedResumes(db, queue);
+          console.log(`Cron ${controller.cron} completed:`, result);
+          break;
+        }
+        default:
+          console.error(`Unknown cron trigger: ${controller.cron}`);
       }
     } catch (error) {
       console.error(`Cron ${controller.cron} error:`, error);

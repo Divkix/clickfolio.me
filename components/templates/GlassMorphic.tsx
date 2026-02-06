@@ -17,6 +17,7 @@ import {
 import type React from "react";
 import { useEffect, useState } from "react";
 import { ShareBar } from "@/components/ShareBar";
+import { type ContactLinkType, getContactLinks } from "@/lib/templates/contact-links";
 import {
   flattenSkills,
   formatDateRange,
@@ -26,8 +27,19 @@ import {
 import type { Project } from "@/lib/types/database";
 import type { TemplateProps } from "@/lib/types/template";
 
+const glassIconMap: Partial<
+  Record<ContactLinkType, React.ComponentType<{ size: number; className?: string }>>
+> = {
+  github: Github,
+  linkedin: Linkedin,
+  email: Mail,
+  phone: Phone,
+  website: Globe,
+};
+
 const GlassMorphic: React.FC<TemplateProps> = ({ content, profile }) => {
   const flatSkills = content.skills ? flattenSkills(content.skills).slice(0, 10) : [];
+  const contactLinks = getContactLinks(content.contact);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -122,64 +134,55 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content, profile }) => {
 
               {/* Social Links Row */}
               <div className="flex flex-wrap gap-3">
-                {[
-                  { icon: Github, link: content.contact.github, label: "GitHub" },
-                  { icon: Linkedin, link: content.contact.linkedin, label: "LinkedIn" },
-                  { icon: Mail, link: `mailto:${content.contact.email}`, label: "Email" },
-                  {
-                    icon: Phone,
-                    link: content.contact.phone ? `tel:${content.contact.phone}` : null,
-                    label: "Phone",
-                  },
-                  { icon: Globe, link: content.contact.website, label: "Website" },
-                ].map(
-                  (social, idx) =>
-                    social.link && (
+                {contactLinks
+                  .filter((link) => link.type !== "location")
+                  .map((link) => {
+                    const isBehance = link.type === "behance";
+                    const isDribbble = link.type === "dribbble";
+                    const isBranded = isBehance || isDribbble;
+                    const IconComponent = glassIconMap[link.type];
+
+                    if (isBranded) {
+                      const color = isBehance ? "#1769FF" : "#EA4C89";
+                      const text = isBehance ? "Be" : "Dr";
+                      return (
+                        <a
+                          key={link.type}
+                          href={link.href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={`group flex items-center gap-2 px-4 py-2 bg-[${color}]/10 hover:bg-[${color}]/20 border border-[${color}]/20 hover:border-[${color}]/40 rounded-lg transition-all duration-300`}
+                        >
+                          <span className="text-sm font-bold" style={{ color }}>
+                            {text}
+                          </span>
+                          <span className="text-sm font-medium text-slate-400 group-hover:text-white transition-colors">
+                            {link.label}
+                          </span>
+                        </a>
+                      );
+                    }
+
+                    return (
                       <a
-                        key={idx}
-                        href={social.link}
-                        target={social.icon === Phone ? undefined : "_blank"}
+                        key={link.type}
+                        href={link.href}
+                        target={link.isExternal ? "_blank" : undefined}
                         rel="noopener noreferrer"
                         className="group flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 rounded-lg transition-all duration-300"
                       >
-                        <social.icon
-                          size={16}
-                          className="text-slate-400 group-hover:text-white transition-colors"
-                        />
+                        {IconComponent && (
+                          <IconComponent
+                            size={16}
+                            className="text-slate-400 group-hover:text-white transition-colors"
+                          />
+                        )}
                         <span className="text-sm font-medium text-slate-400 group-hover:text-white transition-colors">
-                          {social.label}
+                          {link.label}
                         </span>
                       </a>
-                    ),
-                )}
-                {/* Behance */}
-                {content.contact.behance && (
-                  <a
-                    href={content.contact.behance}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="group flex items-center gap-2 px-4 py-2 bg-[#1769FF]/10 hover:bg-[#1769FF]/20 border border-[#1769FF]/20 hover:border-[#1769FF]/40 rounded-lg transition-all duration-300"
-                  >
-                    <span className="text-sm font-bold text-[#1769FF]">Bē</span>
-                    <span className="text-sm font-medium text-slate-400 group-hover:text-white transition-colors">
-                      Behance
-                    </span>
-                  </a>
-                )}
-                {/* Dribbble */}
-                {content.contact.dribbble && (
-                  <a
-                    href={content.contact.dribbble}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="group flex items-center gap-2 px-4 py-2 bg-[#EA4C89]/10 hover:bg-[#EA4C89]/20 border border-[#EA4C89]/20 hover:border-[#EA4C89]/40 rounded-lg transition-all duration-300"
-                  >
-                    <span className="text-sm font-bold text-[#EA4C89]">Dr</span>
-                    <span className="text-sm font-medium text-slate-400 group-hover:text-white transition-colors">
-                      Dribbble
-                    </span>
-                  </a>
-                )}
+                    );
+                  })}
               </div>
 
               {/* Share Bar */}
@@ -380,6 +383,27 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content, profile }) => {
             </div>
           )}
         </section>
+
+        {/* Contact Section */}
+        {content.contact.email && (
+          <section
+            id="contact"
+            className="mb-20 rounded-2xl border border-white/10 bg-white/3 backdrop-blur-sm p-10 md:p-16 text-center"
+          >
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Let's work together</h2>
+            <p className="text-slate-400 max-w-md mx-auto mb-8 leading-relaxed">
+              Currently open to new opportunities. If you have a project in mind or just want to
+              connect, I'd love to hear from you.
+            </p>
+            <a
+              href={`mailto:${content.contact.email}`}
+              className="inline-flex items-center gap-2 px-8 py-3 bg-coral text-white font-semibold rounded-full hover:scale-105 transition-transform shadow-lg shadow-coral/20"
+            >
+              <Mail size={18} />
+              Say Hello
+            </a>
+          </section>
+        )}
 
         {/* Footer */}
         <footer className="text-center pt-20 pb-10 border-t border-white/5">

@@ -3,6 +3,7 @@ import { and, desc, eq, isNotNull, sql } from "drizzle-orm";
 import { Briefcase, ExternalLink, GraduationCap, MapPin } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { RoleFilterSelect } from "@/components/explore/role-filter-select";
 import { siteConfig } from "@/lib/config/site";
 import { getDb } from "@/lib/db";
 import { siteData, user } from "@/lib/db/schema";
@@ -46,9 +47,8 @@ export default async function ExplorePage({
   // Build where conditions
   const whereConditions = [
     isNotNull(user.handle),
-    // Filter for users who opted into directory
-    // Privacy settings are stored as JSON TEXT, so we use LIKE to check
-    sql`json_extract(${user.privacySettings}, '$.show_in_directory') = 1`,
+    // Denormalized boolean column — indexed, no json_extract() needed
+    eq(user.showInDirectory, true),
     // Must have completed onboarding
     eq(user.onboardingCompleted, true),
   ];
@@ -58,34 +58,37 @@ export default async function ExplorePage({
     whereConditions.push(eq(user.role, roleFilter as (typeof user.role.enumValues)[number]));
   }
 
-  // Get total count for pagination
-  const countResult = await db
-    .select({ count: sql<number>`count(*)` })
-    .from(user)
-    .innerJoin(siteData, eq(user.id, siteData.userId))
-    .where(and(...whereConditions));
+  // Run count and data queries in parallel (independent D1 reads)
+  const [countResult, usersWithData] = await Promise.all([
+    // Total count for pagination
+    db
+      .select({ count: sql<number>`count(*)` })
+      .from(user)
+      .innerJoin(siteData, eq(user.id, siteData.userId))
+      .where(and(...whereConditions)),
+
+    // Paginated users with their site data preview columns
+    db
+      .select({
+        handle: user.handle,
+        role: user.role,
+        previewName: siteData.previewName,
+        previewHeadline: siteData.previewHeadline,
+        previewLocation: siteData.previewLocation,
+        previewExpCount: siteData.previewExpCount,
+        previewEduCount: siteData.previewEduCount,
+        previewSkills: siteData.previewSkills,
+      })
+      .from(user)
+      .innerJoin(siteData, eq(user.id, siteData.userId))
+      .where(and(...whereConditions))
+      .orderBy(desc(siteData.updatedAt))
+      .limit(ITEMS_PER_PAGE)
+      .offset((currentPage - 1) * ITEMS_PER_PAGE),
+  ]);
 
   const totalCount = countResult[0]?.count ?? 0;
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
-
-  // Get paginated users with their site data preview columns
-  const usersWithData = await db
-    .select({
-      handle: user.handle,
-      role: user.role,
-      previewName: siteData.previewName,
-      previewHeadline: siteData.previewHeadline,
-      previewLocation: siteData.previewLocation,
-      previewExpCount: siteData.previewExpCount,
-      previewEduCount: siteData.previewEduCount,
-      previewSkills: siteData.previewSkills,
-    })
-    .from(user)
-    .innerJoin(siteData, eq(user.id, siteData.userId))
-    .where(and(...whereConditions))
-    .orderBy(desc(siteData.updatedAt))
-    .limit(ITEMS_PER_PAGE)
-    .offset((currentPage - 1) * ITEMS_PER_PAGE);
 
   const directoryUsers: DirectoryUser[] = usersWithData
     .filter((u) => u.handle !== null)
@@ -130,21 +133,7 @@ export default async function ExplorePage({
             <label htmlFor="role-filter" className="text-sm font-medium text-slate-700">
               Filter by role:
             </label>
-            <form action="/explore" method="get">
-              <select
-                id="role-filter"
-                name="role"
-                defaultValue={roleFilter}
-                onChange={(e) => (e.target as HTMLSelectElement).form?.submit()}
-                className="px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-coral focus:border-coral"
-              >
-                {roleOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </form>
+            <RoleFilterSelect roleFilter={roleFilter} roleOptions={roleOptions} />
           </div>
           <p className="text-sm text-slate-500">
             {totalCount} {totalCount === 1 ? "professional" : "professionals"} listed

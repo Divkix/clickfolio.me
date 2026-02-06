@@ -1,7 +1,6 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { eq } from "drizzle-orm";
-import { headers } from "next/headers";
-import { getAuth } from "@/lib/auth";
+import { requireAuthWithMessage } from "@/lib/auth/middleware";
 import { getDb } from "@/lib/db";
 import { user } from "@/lib/db/schema";
 
@@ -13,18 +12,17 @@ import { user } from "@/lib/db/schema";
  */
 export async function GET() {
   try {
-    const auth = await getAuth();
-    const session = await auth.api.getSession({ headers: await headers() });
-
-    if (!session) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    // Check authentication via requireAuthWithMessage (read-only route)
+    const { user: authUser, error: authError } = await requireAuthWithMessage(
+      "You must be logged in to view stats",
+    );
+    if (authError) return authError;
 
     const { env } = await getCloudflareContext({ async: true });
     const db = getDb(env.DB);
 
     const userData = await db.query.user.findFirst({
-      where: eq(user.id, session.user.id),
+      where: eq(user.id, authUser.id),
       columns: {
         referralCount: true,
         isPro: true,

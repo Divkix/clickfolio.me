@@ -68,15 +68,15 @@ const GITHUB_PATTERN = /^https?:\/\/(www\.)?github\.com\/[\w-]+\/?$/i;
  */
 const WEBSITE_PATTERN = /^https?:\/\/[\w.-]+\.[a-z]{2,}(\/.*)?$/i;
 
-export function isValidLinkedInUrl(url: string): boolean {
+function isValidLinkedInUrl(url: string): boolean {
   return LINKEDIN_PATTERN.test(url.trim());
 }
 
-export function isValidGitHubUrl(url: string): boolean {
+function isValidGitHubUrl(url: string): boolean {
   return GITHUB_PATTERN.test(url.trim());
 }
 
-export function isValidWebsiteUrl(url: string): boolean {
+function isValidWebsiteUrl(url: string): boolean {
   return WEBSITE_PATTERN.test(url.trim());
 }
 

@@ -37,7 +37,7 @@ import type { ResumeContent } from "@/lib/types/database";
 
 interface EditResumeFormProps {
   initialData: ResumeContent;
-  onSave: (data: ResumeContent) => Promise<void>;
+  onSave: (data: ResumeContent, isAutoSave?: boolean) => Promise<void>;
 }
 
 export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
@@ -119,7 +119,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
     async (data: ResumeContent, isAutoSave = false) => {
       setSaveStatus("saving");
       try {
-        await onSave(data);
+        await onSave(data, isAutoSave);
         setLastSaved(new Date());
         setSaveStatus("saved");
         if (!isAutoSave) {

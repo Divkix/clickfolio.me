@@ -98,15 +98,9 @@ export function extractCityState(location: string | undefined): string {
   return normalized;
 }
 
-/**
- * Full privacy settings type
- */
-export interface PrivacySettingsType {
-  show_phone: boolean;
-  show_address: boolean;
-  hide_from_search: boolean;
-  show_in_directory: boolean;
-}
+import type { PrivacySettings } from "@/lib/schemas/profile";
+
+export type { PrivacySettings };
 
 /**
  * Type guard to check if privacy settings are valid
@@ -145,7 +139,7 @@ export function normalizePrivacySettings(
     hide_from_search?: boolean;
     show_in_directory?: boolean;
   } | null,
-): PrivacySettingsType {
+): PrivacySettings {
   if (!settings) {
     return {
       show_phone: false,
@@ -161,4 +155,21 @@ export function normalizePrivacySettings(
     hide_from_search: settings.hide_from_search ?? false,
     show_in_directory: settings.show_in_directory ?? false,
   };
+}
+
+/**
+ * Parses privacy settings from a raw JSON string (as stored in D1).
+ * Handles null, invalid JSON, and missing fields with safe defaults.
+ */
+export function parsePrivacySettings(raw: string | null): PrivacySettings {
+  if (!raw) {
+    return normalizePrivacySettings(null);
+  }
+
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    return normalizePrivacySettings(isValidPrivacySettings(parsed) ? parsed : null);
+  } catch {
+    return normalizePrivacySettings(null);
+  }
 }

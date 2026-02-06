@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
+import { getContactLinks } from "@/lib/templates/contact-links";
 import {
   flattenSkills,
   formatDateRange,
@@ -35,6 +36,7 @@ const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
 
   // Cache flattened skills to avoid triple computation in marquee
   const flatSkills = content.skills ? flattenSkills(content.skills) : [];
+  const contactLinks = getContactLinks(content.contact);
 
   return (
     <div className="min-h-screen bg-[#FFFDF5] font-mono p-4 md:p-6 overflow-y-auto selection:bg-[#FF90E8] selection:text-black">
@@ -129,72 +131,29 @@ const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
                 </div>
               )}
               <div className="grid grid-cols-2 gap-3">
-                {content.contact.email && (
-                  <a
-                    href={`mailto:${content.contact.email}`}
-                    className="flex items-center justify-center p-3 border-2 border-black bg-white hover:bg-black hover:text-white transition-colors font-bold text-xs uppercase gap-2"
-                  >
-                    Email
-                  </a>
-                )}
-                {content.contact.phone && (
-                  <a
-                    href={`tel:${content.contact.phone}`}
-                    className="flex items-center justify-center p-3 border-2 border-black bg-white hover:bg-black hover:text-white transition-colors font-bold text-xs uppercase gap-2"
-                  >
-                    <Phone className="w-3 h-3" /> Phone
-                  </a>
-                )}
-                {content.contact.linkedin && (
-                  <a
-                    href={content.contact.linkedin}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-center p-3 border-2 border-black bg-white hover:bg-black hover:text-white transition-colors font-bold text-xs uppercase gap-2"
-                  >
-                    LinkedIn
-                  </a>
-                )}
-                {content.contact.github && (
-                  <a
-                    href={content.contact.github}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-center p-3 border-2 border-black bg-white hover:bg-black hover:text-white transition-colors font-bold text-xs uppercase gap-2"
-                  >
-                    GitHub
-                  </a>
-                )}
-                {content.contact.website && (
-                  <a
-                    href={content.contact.website}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-center p-3 border-2 border-black bg-white hover:bg-black hover:text-white transition-colors font-bold text-xs uppercase gap-2"
-                  >
-                    Website
-                  </a>
-                )}
-                {content.contact.behance && (
-                  <a
-                    href={content.contact.behance}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-center p-3 border-2 border-black bg-[#1769FF] text-white hover:bg-black transition-colors font-bold text-xs uppercase gap-2"
-                  >
-                    Behance
-                  </a>
-                )}
-                {content.contact.dribbble && (
-                  <a
-                    href={content.contact.dribbble}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-center p-3 border-2 border-black bg-[#EA4C89] text-white hover:bg-black transition-colors font-bold text-xs uppercase gap-2"
-                  >
-                    Dribbble
-                  </a>
-                )}
+                {contactLinks
+                  .filter((link) => link.type !== "location")
+                  .map((link) => {
+                    const isBranded = link.type === "behance" || link.type === "dribbble";
+                    const brandBg =
+                      link.type === "behance"
+                        ? "bg-[#1769FF] text-white"
+                        : link.type === "dribbble"
+                          ? "bg-[#EA4C89] text-white"
+                          : "bg-white";
+                    return (
+                      <a
+                        key={link.type}
+                        href={link.href}
+                        target={link.isExternal ? "_blank" : undefined}
+                        rel={link.isExternal ? "noopener noreferrer" : undefined}
+                        className={`flex items-center justify-center p-3 border-2 border-black hover:bg-black hover:text-white transition-colors font-bold text-xs uppercase gap-2 ${isBranded ? brandBg : "bg-white"}`}
+                      >
+                        {link.type === "phone" && <Phone className="w-3 h-3" />}
+                        {link.label}
+                      </a>
+                    );
+                  })}
               </div>
               <div className="mt-4 pt-4 border-t-2 border-black">
                 <ShareBar

@@ -23,15 +23,16 @@ export default function ProfileError({
   }, [error]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-white px-4">
-      <div className="max-w-md w-full text-center">
-        <div className="mb-8">
-          <div className="mx-auto w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
+      <div className="max-w-md w-full bg-white rounded-2xl shadow-depth-md border border-slate-200/60 p-8 text-center">
+        <div className="mb-6">
+          <div className="mx-auto w-16 h-16 bg-coral/20 rounded-full flex items-center justify-center">
             <svg
-              className="w-10 h-10 text-gray-400"
+              className="w-8 h-8 text-coral"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
+              aria-hidden="true"
             >
               <path
                 strokeLinecap="round"
@@ -43,39 +44,41 @@ export default function ProfileError({
           </div>
         </div>
 
-        <h1 className="text-3xl font-bold text-gray-900 mb-3">Something went wrong</h1>
+        <h1 className="text-2xl font-bold text-slate-900 mb-2">Something went wrong</h1>
 
-        <p className="text-lg text-gray-600 mb-8">
+        <p className="text-slate-600 mb-6">
           We couldn&apos;t load this resume. The page may not exist or there was a temporary error.
         </p>
 
         {process.env.NODE_ENV === "development" && (
-          <div className="mb-6 p-4 bg-gray-50 rounded-lg text-left">
-            <p className="text-xs font-mono text-gray-600 break-all">{error.message}</p>
+          <div className="mb-6 p-4 bg-slate-50 rounded-lg text-left">
+            <p className="text-xs font-mono text-slate-700 break-all">{error.message}</p>
+            {error.digest && (
+              <p className="text-xs text-slate-500 mt-2">Error ID: {error.digest}</p>
+            )}
           </div>
         )}
 
-        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+        <div className="flex flex-col sm:flex-row gap-3">
           <button
             type="button"
             onClick={reset}
-            className="px-6 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors"
+            className="flex-1 px-4 py-2 bg-linear-to-r from-coral to-coral text-white rounded-lg hover:from-coral/90 hover:to-coral/90 transition-all font-semibold shadow-depth-sm hover:shadow-depth-md"
           >
             Try Again
           </button>
-
           <Link
             href="/"
-            className="px-6 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            className="flex-1 px-4 py-2 bg-white text-slate-900 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors font-medium text-center"
           >
             Back to Home
           </Link>
         </div>
 
-        <div className="mt-12 pt-8 border-t border-gray-200">
-          <p className="text-sm text-gray-500">
+        <div className="mt-6 pt-6 border-t border-slate-200">
+          <p className="text-sm text-slate-500">
             Powered by{" "}
-            <Link href="/" className="text-gray-900 hover:underline font-medium">
+            <Link href="/" className="text-slate-900 hover:underline font-medium">
               {siteConfig.fullName}
             </Link>
           </p>

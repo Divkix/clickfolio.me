@@ -1,6 +1,7 @@
 import { Folder, GitBranch, Globe, Mail, MapPin, Phone, Terminal } from "lucide-react";
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
+import { getContactLinks } from "@/lib/templates/contact-links";
 import { formatDateRange } from "@/lib/templates/helpers";
 import type { TemplateProps } from "@/lib/types/template";
 
@@ -19,6 +20,7 @@ const DevTerminal: React.FC<TemplateProps> = ({ content, profile }) => {
 
   // Parse name for terminal prompt
   const username = full_name?.toLowerCase().replace(/\s+/g, "") || "user";
+  const contactLinks = getContactLinks(contact);
 
   return (
     <>
@@ -305,72 +307,19 @@ const DevTerminal: React.FC<TemplateProps> = ({ content, profile }) => {
                 <span className="text-[#c9d1d9]">cat ./contact.txt</span>
               </div>
               <div className="flex flex-wrap gap-4 text-sm mb-6">
-                {contact.email && (
-                  <a href={`mailto:${contact.email}`} className="text-[#58a6ff] hover:underline">
-                    {contact.email}
-                  </a>
-                )}
-                {contact.linkedin && (
-                  <a
-                    href={
-                      contact.linkedin.startsWith("http")
-                        ? contact.linkedin
-                        : `https://${contact.linkedin}`
-                    }
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-[#58a6ff] hover:underline"
-                  >
-                    LinkedIn
-                  </a>
-                )}
-                {contact.github && (
-                  <a
-                    href={
-                      contact.github.startsWith("http")
-                        ? contact.github
-                        : `https://${contact.github}`
-                    }
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-[#58a6ff] hover:underline"
-                  >
-                    GitHub
-                  </a>
-                )}
-                {contact.phone && (
-                  <a href={`tel:${contact.phone}`} className="text-[#58a6ff] hover:underline">
-                    Phone
-                  </a>
-                )}
-                {contact.behance && (
-                  <a
-                    href={
-                      contact.behance.startsWith("http")
-                        ? contact.behance
-                        : `https://${contact.behance}`
-                    }
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-[#58a6ff] hover:underline"
-                  >
-                    Behance
-                  </a>
-                )}
-                {contact.dribbble && (
-                  <a
-                    href={
-                      contact.dribbble.startsWith("http")
-                        ? contact.dribbble
-                        : `https://${contact.dribbble}`
-                    }
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-[#58a6ff] hover:underline"
-                  >
-                    Dribbble
-                  </a>
-                )}
+                {contactLinks
+                  .filter((link) => link.type !== "location")
+                  .map((link) => (
+                    <a
+                      key={link.type}
+                      href={link.href}
+                      target={link.isExternal ? "_blank" : undefined}
+                      rel={link.isExternal ? "noreferrer" : undefined}
+                      className="text-[#58a6ff] hover:underline"
+                    >
+                      {link.type === "email" ? link.label : link.label}
+                    </a>
+                  ))}
               </div>
 
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-4 border-t border-[#30363d]">

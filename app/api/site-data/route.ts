@@ -1,4 +1,3 @@
-import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { eq } from "drizzle-orm";
 import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
 import { siteData } from "@/lib/db/schema";
@@ -14,18 +13,14 @@ import {
  */
 export async function GET() {
   try {
-    // 1. Get D1 database binding
-    const { env } = await getCloudflareContext({ async: true });
-
-    // 2. Authenticate and validate user exists in database
-    // Uses the standard helper that protects against stale sessions
+    // 1. Authenticate and validate user exists in database
+    // env/db are fetched internally by requireAuthWithUserValidation
     const { user, db, error } = await requireAuthWithUserValidation(
       "You must be logged in to access site data",
-      env.DB,
     );
     if (error) return error;
 
-    // 3. Fetch site_data for the user
+    // 2. Fetch site_data for the user
     const userSiteData = await db.query.siteData.findFirst({
       where: eq(siteData.userId, user.id),
     });
@@ -34,7 +29,7 @@ export async function GET() {
       return createSuccessResponse(null);
     }
 
-    // 4. Parse JSON content
+    // 3. Parse JSON content
     let content = null;
     if (userSiteData.content) {
       try {

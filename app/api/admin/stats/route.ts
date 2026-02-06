@@ -8,7 +8,7 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { count, gte, sql } from "drizzle-orm";
 import { requireAdminAuthForApi } from "@/lib/auth/admin";
 import { getDb } from "@/lib/db";
-import { pageViews, resumes, user } from "@/lib/db/schema";
+import { pageViews, resumes, siteData, user } from "@/lib/db/schema";
 
 export async function GET() {
   const { error } = await requireAdminAuthForApi();
@@ -22,48 +22,47 @@ export async function GET() {
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-    const [userStats, resumeStats, viewsToday, recentSignups, dailyViews] = await Promise.all([
-      // User counts
-      db
-        .select({
-          total: count(),
-          withSiteData: sql<number>`SUM(CASE WHEN EXISTS (SELECT 1 FROM site_data WHERE site_data.user_id = user.id) THEN 1 ELSE 0 END)`,
-        })
-        .from(user),
+    const [userStats, siteDataCount, resumeStats, viewsToday, recentSignups, dailyViews] =
+      await Promise.all([
+        // Total user count
+        db.select({ total: count() }).from(user),
 
-      // Resume status counts
-      db
-        .select({
-          status: resumes.status,
-          count: count(),
-        })
-        .from(resumes)
-        .groupBy(resumes.status),
+        // Users with site data (separate query, no correlated subquery)
+        db.select({ count: count() }).from(siteData),
 
-      // Views today
-      db.select({ count: count() }).from(pageViews).where(gte(pageViews.createdAt, todayStart)),
+        // Resume status counts
+        db
+          .select({
+            status: resumes.status,
+            count: count(),
+          })
+          .from(resumes)
+          .groupBy(resumes.status),
 
-      // Recent signups (last 10)
-      db
-        .select({
-          email: user.email,
-          createdAt: user.createdAt,
-        })
-        .from(user)
-        .orderBy(sql`${user.createdAt} DESC`)
-        .limit(10),
+        // Views today
+        db.select({ count: count() }).from(pageViews).where(gte(pageViews.createdAt, todayStart)),
 
-      // Daily views for sparkline (last 7 days)
-      db
-        .select({
-          date: sql<string>`DATE(${pageViews.createdAt})`.as("date"),
-          views: count(),
-        })
-        .from(pageViews)
-        .where(gte(pageViews.createdAt, sevenDaysAgo))
-        .groupBy(sql`DATE(${pageViews.createdAt})`)
-        .orderBy(sql`DATE(${pageViews.createdAt})`),
-    ]);
+        // Recent signups (last 10)
+        db
+          .select({
+            email: user.email,
+            createdAt: user.createdAt,
+          })
+          .from(user)
+          .orderBy(sql`${user.createdAt} DESC`)
+          .limit(10),
+
+        // Daily views for sparkline (last 7 days)
+        db
+          .select({
+            date: sql<string>`DATE(${pageViews.createdAt})`.as("date"),
+            views: count(),
+          })
+          .from(pageViews)
+          .where(gte(pageViews.createdAt, sevenDaysAgo))
+          .groupBy(sql`DATE(${pageViews.createdAt})`)
+          .orderBy(sql`DATE(${pageViews.createdAt})`),
+      ]);
 
     // Process resume stats
     const resumeStatusMap = resumeStats.reduce(
@@ -82,7 +81,7 @@ export async function GET() {
 
     return Response.json({
       totalUsers: userStats[0]?.total ?? 0,
-      publishedResumes: userStats[0]?.withSiteData ?? 0,
+      publishedResumes: siteDataCount[0]?.count ?? 0,
       processingResumes,
       viewsToday: viewsToday[0]?.count ?? 0,
       failedResumes,

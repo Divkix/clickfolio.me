@@ -1,5 +1,4 @@
-import { getCloudflareContext } from "@opennextjs/cloudflare";
-import { and, eq, isNotNull, ne } from "drizzle-orm";
+import { and, desc, eq, gte, isNotNull, ne } from "drizzle-orm";
 import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
 import type { NewResume } from "@/lib/db/schema";
 import { resumes, siteData } from "@/lib/db/schema";
@@ -13,7 +12,7 @@ import {
   createSuccessResponse,
   ERROR_CODES,
 } from "@/lib/utils/security-headers";
-import { MAX_FILE_SIZE, validateRequestSize } from "@/lib/utils/validation";
+import { MAX_FILE_SIZE, MAX_FILE_SIZE_LABEL, validateRequestSize } from "@/lib/utils/validation";
 
 interface ClaimRequestBody {
   key?: string;
@@ -21,62 +20,36 @@ interface ClaimRequestBody {
 }
 
 /**
- * Upsert site_data with UNIQUE constraint handling
- * Handles race conditions where another request may have inserted between SELECT and INSERT
+ * Build siteData upsert query (not executed).
+ * Returned so callers can include it in a db.batch() call for atomicity.
  */
-async function upsertSiteData(
+function buildSiteDataUpsert(
   db: Awaited<ReturnType<typeof getSessionDb>>["db"],
   userId: string,
   resumeId: string,
   content: string,
   now: string,
-): Promise<void> {
-  // First try to update existing record
-  const existingSiteData = await db
-    .select({ id: siteData.id })
-    .from(siteData)
-    .where(eq(siteData.userId, userId))
-    .limit(1);
-
-  if (existingSiteData[0]) {
-    await db
-      .update(siteData)
-      .set({
+) {
+  return db
+    .insert(siteData)
+    .values({
+      id: crypto.randomUUID(),
+      userId,
+      resumeId,
+      content,
+      lastPublishedAt: now,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .onConflictDoUpdate({
+      target: siteData.userId,
+      set: {
         resumeId,
         content,
         lastPublishedAt: now,
         updatedAt: now,
-      })
-      .where(eq(siteData.userId, userId));
-  } else {
-    // Try to insert, handle UNIQUE constraint race condition
-    try {
-      await db.insert(siteData).values({
-        id: crypto.randomUUID(),
-        userId,
-        resumeId,
-        content,
-        lastPublishedAt: now,
-        createdAt: now,
-        updatedAt: now,
-      });
-    } catch (error) {
-      if (error instanceof Error && error.message.includes("UNIQUE constraint failed")) {
-        // Another request inserted between our SELECT and INSERT, update instead
-        await db
-          .update(siteData)
-          .set({
-            resumeId,
-            content,
-            lastPublishedAt: now,
-            updatedAt: now,
-          })
-          .where(eq(siteData.userId, userId));
-      } else {
-        throw error;
-      }
-    }
-  }
+      },
+    });
 }
 
 /**
@@ -86,20 +59,6 @@ async function upsertSiteData(
  */
 export async function POST(request: Request) {
   try {
-    // Get Cloudflare env bindings for R2/AI secrets
-    const { env } = await getCloudflareContext({ async: true });
-    const typedEnv = env as Partial<CloudflareEnv>;
-
-    // Get R2 binding for direct operations
-    const r2Binding = getR2Binding(typedEnv);
-    if (!r2Binding) {
-      return createErrorResponse(
-        "Storage service unavailable",
-        ERROR_CODES.EXTERNAL_SERVICE_ERROR,
-        500,
-      );
-    }
-
     // 1. Validate request size before parsing (prevent DoS)
     const sizeCheck = validateRequestSize(request);
     if (!sizeCheck.valid) {
@@ -111,17 +70,29 @@ export async function POST(request: Request) {
     }
 
     // 2. Check authentication and validate user exists in database
+    // env is returned from requireAuthWithUserValidation, no separate getCloudflareContext needed
     const {
       user: authUser,
       db,
       captureBookmark,
+      env,
       error: authError,
-    } = await requireAuthWithUserValidation("You must be logged in to claim a resume", env.DB);
+    } = await requireAuthWithUserValidation("You must be logged in to claim a resume");
     if (authError) return authError;
 
     const userId = authUser.id;
 
-    // 3. Parse request body
+    // 3. Get R2 binding for direct operations (uses env from auth result)
+    const r2Binding = getR2Binding(env);
+    if (!r2Binding) {
+      return createErrorResponse(
+        "Storage service unavailable",
+        ERROR_CODES.EXTERNAL_SERVICE_ERROR,
+        500,
+      );
+    }
+
+    // 4. Parse request body
     let body: ClaimRequestBody;
     try {
       body = (await request.json()) as ClaimRequestBody;
@@ -139,24 +110,39 @@ export async function POST(request: Request) {
       );
     }
 
-    // 4. Rate limiting check (5 uploads per 24 hours)
-    // Pass env to avoid redundant getCloudflareContext call
-    const rateLimitResponse = await enforceRateLimit(
-      userId,
-      "resume_upload",
-      typedEnv as CloudflareEnv,
-    );
+    // 5. Rate limiting check (5 uploads per 24 hours)
+    // Pass env to avoid redundant getCloudflareContext call in rate limiter
+    const rateLimitResponse = await enforceRateLimit(userId, "resume_upload", env);
     if (rateLimitResponse) {
       return rateLimitResponse;
     }
 
-    // 4b. Fetch file and compute SHA-256 hash server-side (early fetch for validation + caching)
+    // 5b. Fetch file and compute SHA-256 hash server-side (early fetch for validation + caching)
     let fileBuffer: ArrayBuffer;
     let computedFileHash: string;
 
     try {
       const buffer = await R2.getAsArrayBuffer(r2Binding, key);
       if (!buffer) {
+        // Double-claim guard: auth redirect causes wizard to mount twice,
+        // second mount tries to claim a file already moved by the first.
+        // Check if this user already has a recent resume (created in last 2 min).
+        const twoMinAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+        const recentResume = await db
+          .select({ id: resumes.id, status: resumes.status })
+          .from(resumes)
+          .where(and(eq(resumes.userId, userId), gte(resumes.createdAt, twoMinAgo)))
+          .orderBy(desc(resumes.createdAt))
+          .limit(1);
+
+        if (recentResume[0]) {
+          return createSuccessResponse({
+            resume_id: recentResume[0].id,
+            status: recentResume[0].status,
+            already_claimed: true,
+          });
+        }
+
         return createErrorResponse(
           "File not found. The upload may have expired.",
           ERROR_CODES.VALIDATION_ERROR,
@@ -174,7 +160,7 @@ export async function POST(request: Request) {
       // Validate file size using buffer
       if (fileBuffer.byteLength > MAX_FILE_SIZE) {
         return createErrorResponse(
-          `File size exceeds 5MB limit (${Math.round(fileBuffer.byteLength / 1024 / 1024)}MB)`,
+          `File size exceeds ${MAX_FILE_SIZE_LABEL} limit (${Math.round(fileBuffer.byteLength / 1024 / 1024)}MB)`,
           ERROR_CODES.VALIDATION_ERROR,
           400,
         );
@@ -194,7 +180,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // 5. Generate new key and insert DB record FIRST
+    // 6. Generate new key and insert DB record FIRST
     // This ensures we always have a record for tracking, even if R2 operations fail
     const timestamp = Date.now();
     const filename = key.split("/").pop();
@@ -219,7 +205,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // 5a. Link referral if provided (best effort - don't fail claim on referral errors)
+    // 6a. Link referral if provided (best effort - don't fail claim on referral errors)
     if (body.referral_code) {
       try {
         const referralResult = await writeReferral(userId, body.referral_code, request);
@@ -232,7 +218,7 @@ export async function POST(request: Request) {
       }
     }
 
-    // 5b. Check for cached parse result (same file uploaded before BY THIS USER)
+    // 6b. Check for cached parse result (same file uploaded before BY THIS USER)
     // SECURITY: Only look up cache for current user's own resumes to prevent cross-user data access
     // Single query to fetch both existence and content (saves one D1 roundtrip)
     const cached = await db
@@ -273,19 +259,22 @@ export async function POST(request: Request) {
       // Only update DB if R2 put succeeded
       if (r2PutSucceeded) {
         try {
-          await db
-            .update(resumes)
-            .set({
-              status: "completed",
-              fileHash: computedFileHash,
-              parsedAt: now,
-              parsedContent: cachedContent,
-            })
-            .where(eq(resumes.id, resumeId));
-
-          // Copy content to user's site_data for publishing (upsert with race condition handling)
-          // Pass raw string directly - already valid JSON, avoid parse-stringify round-trip
-          await upsertSiteData(db, userId, resumeId, cachedContent, now);
+          // Batch resume completion + siteData upsert atomically.
+          // Without batching, a crash between the UPDATE and upsert leaves
+          // the resume "completed" with no siteData, and the idempotency
+          // guard in the queue consumer skips it on retry.
+          await db.batch([
+            db
+              .update(resumes)
+              .set({
+                status: "completed",
+                fileHash: computedFileHash,
+                parsedAt: now,
+                parsedContent: cachedContent,
+              })
+              .where(eq(resumes.id, resumeId)),
+            buildSiteDataUpsert(db, userId, resumeId, cachedContent, now),
+          ]);
 
           // R2 and DB both succeeded - return cached result
           await captureBookmark();
@@ -301,7 +290,7 @@ export async function POST(request: Request) {
       }
     }
 
-    // 5c. Check if another resume with same hash is currently processing
+    // 6c. Check if another resume with same hash is currently processing
     // If so, wait for it instead of triggering duplicate parsing
     // SECURITY: Only look for processing resumes from the same user
     const processing = await db
@@ -368,7 +357,7 @@ export async function POST(request: Request) {
       return createErrorResponse(errorMessage, errorCode, statusCode);
     };
 
-    // 6-7. Store file and cleanup temp in parallel
+    // 7. Store file and cleanup temp in parallel
     // R2.put must succeed, R2.delete is best-effort (can be cleaned by lifecycle rules if fails)
     try {
       await Promise.all([
@@ -385,7 +374,7 @@ export async function POST(request: Request) {
     }
 
     // 8. Publish to queue for background processing
-    const queue = typedEnv.RESUME_PARSE_QUEUE;
+    const queue = env.RESUME_PARSE_QUEUE;
     if (!queue) {
       return await failResume("Queue service unavailable", ERROR_CODES.INTERNAL_ERROR, 500);
     }

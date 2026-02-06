@@ -8,35 +8,11 @@ import { AuthDialog } from "@/components/auth/AuthDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useSession } from "@/lib/auth/client";
 import { clearStoredReferralCode, getStoredReferralCode } from "@/lib/referral";
-import { validatePDF } from "@/lib/utils/validation";
-
-/**
- * Set pending upload cookie via API (primary storage)
- * Falls back silently if API call fails - sessionStorage remains as backup
- */
-async function setPendingUploadCookie(key: string): Promise<void> {
-  try {
-    await fetch("/api/upload/pending", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ key }),
-    });
-  } catch (error) {
-    console.warn("Failed to set pending upload cookie, using sessionStorage fallback:", error);
-  }
-}
-
-/**
- * Clear pending upload cookie via API
- * Best effort - silent failure is acceptable
- */
-async function clearPendingUploadCookie(): Promise<void> {
-  try {
-    await fetch("/api/upload/pending", { method: "DELETE" });
-  } catch (error) {
-    console.warn("Failed to clear pending upload cookie:", error);
-  }
-}
+import {
+  clearPendingUploadCookie,
+  setPendingUploadCookie,
+} from "@/lib/utils/pending-upload-client";
+import { MAX_FILE_SIZE_LABEL, validatePDF } from "@/lib/utils/validation";
 
 interface FileDropzoneProps {
   open?: boolean;
@@ -178,7 +154,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
         if (status === 429) {
           errorMessage = "Upload limit reached (5 per day). Try again tomorrow.";
         } else if (status === 413) {
-          errorMessage = "File too large. Maximum size is 5MB.";
+          errorMessage = `File too large. Maximum size is ${MAX_FILE_SIZE_LABEL}.`;
         } else if (status === 401) {
           errorMessage = "Session expired. Please sign in again.";
         } else if (status === 409) {
@@ -402,7 +378,9 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
             <p className="font-black text-lg text-ink mb-1">
               {file ? file.name : "Drop your PDF here"}
             </p>
-            <p className="font-mono text-sm text-[#6B6B6B]">or click to browse • Max 5MB</p>
+            <p className="font-mono text-sm text-[#6B6B6B]">
+              or click to browse • Max {MAX_FILE_SIZE_LABEL}
+            </p>
           </div>
         </div>
       </div>

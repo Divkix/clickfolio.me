@@ -4,7 +4,7 @@ import { Copy, Gift, MousePointerClick, Share2, Users } from "lucide-react";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { copyToClipboard } from "@/lib/utils/share";
+import { copyToClipboard } from "@/lib/utils/clipboard";
 
 interface ReferralStatsProps {
   /** Number of users who signed up via this user's referral link */

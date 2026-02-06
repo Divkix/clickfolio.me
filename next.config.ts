@@ -92,6 +92,21 @@ const nextConfig: NextConfig = {
         ],
       },
       {
+        // Explore directory page - cache for 5 minutes, stale-while-revalidate for 1 hour
+        // Paginated public listing; content changes slowly so short cache is fine
+        source: "/explore",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, s-maxage=300, stale-while-revalidate=3600",
+          },
+          {
+            key: "CDN-Cache-Control",
+            value: "public, max-age=300, stale-while-revalidate=3600",
+          },
+        ],
+      },
+      {
         // Static legal pages - cache aggressively (1 week), these rarely change
         source: "/privacy",
         headers: [
@@ -130,6 +145,18 @@ const nextConfig: NextConfig = {
           {
             key: "CDN-Cache-Control",
             value: "public, max-age=300, stale-while-revalidate=3600",
+          },
+        ],
+      },
+      {
+        // Content-Security-Policy for all routes
+        // 'unsafe-inline' required for Next.js hydration on Cloudflare Workers (no nonce support in edge middleware)
+        source: "/:path*",
+        headers: [
+          {
+            key: "Content-Security-Policy",
+            value:
+              "default-src 'self'; script-src 'self' 'unsafe-inline' https://analytics.divkix.me; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self' https://analytics.divkix.me https://accounts.google.com; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'",
           },
         ],
       },

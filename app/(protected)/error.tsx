@@ -23,15 +23,16 @@ export default function ProtectedError({
   }, [error]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <div className="max-w-lg w-full bg-white rounded-lg shadow-md p-8">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
+      <div className="max-w-md w-full bg-white rounded-2xl shadow-depth-md border border-slate-200/60 p-8 text-center">
         <div className="mb-6">
-          <div className="mx-auto w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center">
+          <div className="mx-auto w-16 h-16 bg-coral/20 rounded-full flex items-center justify-center">
             <svg
-              className="w-8 h-8 text-amber-600"
+              className="w-8 h-8 text-coral"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
+              aria-hidden="true"
             >
               <path
                 strokeLinecap="round"
@@ -43,43 +44,44 @@ export default function ProtectedError({
           </div>
         </div>
 
-        <h1 className="text-2xl font-bold text-gray-900 mb-2 text-center">
-          Oops! Something went wrong
-        </h1>
+        <h1 className="text-2xl font-bold text-slate-900 mb-2">Oops! Something went wrong</h1>
 
-        <p className="text-gray-600 text-center mb-6">
+        <p className="text-slate-600 mb-6">
           We encountered an error while loading this page. Your data is safe.
         </p>
 
         {process.env.NODE_ENV === "development" && (
-          <div className="mb-6 p-4 bg-coral/10 rounded-lg border border-coral/30">
-            <p className="text-sm font-semibold text-coral mb-2">Development Error Details:</p>
-            <p className="text-xs font-mono text-coral break-all">{error.message}</p>
-            {error.digest && <p className="text-xs text-coral mt-2">Digest: {error.digest}</p>}
+          <div className="mb-6 p-4 bg-slate-50 rounded-lg text-left">
+            <p className="text-xs font-mono text-slate-700 break-all">{error.message}</p>
+            {error.digest && (
+              <p className="text-xs text-slate-500 mt-2">Error ID: {error.digest}</p>
+            )}
           </div>
         )}
 
-        <div className="space-y-3">
+        <div className="flex flex-col sm:flex-row gap-3">
           <button
             type="button"
             onClick={reset}
-            className="w-full px-4 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-medium"
+            className="flex-1 px-4 py-2 bg-linear-to-r from-coral to-coral text-white rounded-lg hover:from-coral/90 hover:to-coral/90 transition-all font-semibold shadow-depth-sm hover:shadow-depth-md"
           >
             Try Again
           </button>
-
           <Link
             href="/dashboard"
-            className="block w-full px-4 py-3 bg-white text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-center font-medium"
+            className="flex-1 px-4 py-2 bg-white text-slate-900 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors font-medium text-center"
           >
             Back to Dashboard
           </Link>
         </div>
 
-        <div className="mt-6 pt-6 border-t border-gray-200">
-          <p className="text-sm text-gray-500 text-center">
+        <div className="mt-6 pt-6 border-t border-slate-200">
+          <p className="text-sm text-slate-500">
             Need help?{" "}
-            <a href={`mailto:${siteConfig.supportEmail}`} className="text-gray-900 hover:underline">
+            <a
+              href={`mailto:${siteConfig.supportEmail}`}
+              className="text-slate-900 hover:underline"
+            >
               Contact Support
             </a>
           </p>

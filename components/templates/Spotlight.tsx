@@ -11,12 +11,23 @@ import {
 } from "lucide-react";
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
+import { type ContactLinkType, getContactLinks } from "@/lib/templates/contact-links";
 import { flattenSkills, formatDateRange, formatYear, getInitials } from "@/lib/templates/helpers";
 import type { TemplateProps } from "@/lib/types/template";
+
+const spotlightIconMap: Partial<Record<ContactLinkType, React.ReactNode>> = {
+  github: <Github className="w-6 h-6" />,
+  linkedin: <Linkedin className="w-6 h-6" />,
+  email: <Mail className="w-6 h-6" />,
+  website: <Globe className="w-6 h-6" />,
+  phone: <Phone className="w-6 h-6" />,
+  location: <MapPin className="w-6 h-6" />,
+};
 
 const ModernSpotlight: React.FC<TemplateProps> = ({ content, profile }) => {
   const firstName = content.full_name.split(" ")[0] || content.full_name;
   const allSkills = flattenSkills(content.skills);
+  const contactLinks = getContactLinks(content.contact);
 
   const navLinks = [
     { label: "About", href: "#about" },
@@ -78,79 +89,42 @@ const ModernSpotlight: React.FC<TemplateProps> = ({ content, profile }) => {
               <p className="text-lg text-zinc-600 leading-relaxed max-w-xl">{content.summary}</p>
 
               <div className="flex gap-4 pt-4">
-                {content.contact.github && (
-                  <a
-                    href={content.contact.github}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="p-2 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 rounded-full transition-all"
-                  >
-                    <Github className="w-6 h-6" />
-                  </a>
-                )}
-                {content.contact.linkedin && (
-                  <a
-                    href={content.contact.linkedin}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="p-2 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 rounded-full transition-all"
-                  >
-                    <Linkedin className="w-6 h-6" />
-                  </a>
-                )}
-                {content.contact.email && (
-                  <a
-                    href={`mailto:${content.contact.email}`}
-                    className="p-2 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 rounded-full transition-all"
-                  >
-                    <Mail className="w-6 h-6" />
-                  </a>
-                )}
-                {content.contact.website && (
-                  <a
-                    href={content.contact.website}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="p-2 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 rounded-full transition-all"
-                  >
-                    <Globe className="w-6 h-6" />
-                  </a>
-                )}
-                {content.contact.phone && (
-                  <a
-                    href={`tel:${content.contact.phone}`}
-                    className="p-2 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 rounded-full transition-all"
-                  >
-                    <Phone className="w-6 h-6" />
-                  </a>
-                )}
-                {content.contact.location && (
-                  <div className="p-2 text-zinc-500 rounded-full flex items-center justify-center">
-                    <MapPin className="w-6 h-6" />
-                  </div>
-                )}
-                {content.contact.behance && (
-                  <a
-                    href={content.contact.behance}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="p-2 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 rounded-full transition-all flex items-center justify-center"
-                    style={{ color: "#1769FF" }}
-                  >
-                    <span className="font-bold text-sm">Bē</span>
-                  </a>
-                )}
-                {content.contact.dribbble && (
-                  <a
-                    href={content.contact.dribbble}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="p-2 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 rounded-full transition-all flex items-center justify-center"
-                    style={{ color: "#EA4C89" }}
-                  >
-                    <span className="font-bold text-sm">Dr</span>
-                  </a>
-                )}
+                {contactLinks.map((link) => {
+                  const icon = spotlightIconMap[link.type];
+                  const isBranded = link.type === "behance" || link.type === "dribbble";
+                  const brandColor =
+                    link.type === "behance"
+                      ? "#1769FF"
+                      : link.type === "dribbble"
+                        ? "#EA4C89"
+                        : undefined;
+                  const brandText =
+                    link.type === "behance" ? "Bē" : link.type === "dribbble" ? "Dr" : null;
+
+                  if (link.type === "location") {
+                    return (
+                      <div
+                        key={link.type}
+                        className="p-2 text-zinc-500 rounded-full flex items-center justify-center"
+                      >
+                        {icon}
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <a
+                      key={link.type}
+                      href={link.href}
+                      target={link.isExternal ? "_blank" : undefined}
+                      rel={link.isExternal ? "noreferrer" : undefined}
+                      className="p-2 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 rounded-full transition-all flex items-center justify-center"
+                      style={isBranded ? { color: brandColor } : undefined}
+                    >
+                      {isBranded ? <span className="font-bold text-sm">{brandText}</span> : icon}
+                    </a>
+                  );
+                })}
               </div>
             </div>
 

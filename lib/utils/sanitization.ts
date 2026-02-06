@@ -88,7 +88,8 @@ export function sanitizePhone(input: string): string {
 }
 
 // Pre-compiled combined XSS pattern regex (single-pass optimization)
-const XSS_PATTERN = /<script|<iframe|javascript:|data:text\/html|\s*on\w+\s*=/i;
+const XSS_PATTERN =
+  /<script|<iframe|<embed|<object|<applet|<base|<form|<link\s|<meta|javascript:|vbscript:|data:text\/html|\bon\w+\s*=/i;
 
 /**
  * Checks if a string contains potential XSS patterns

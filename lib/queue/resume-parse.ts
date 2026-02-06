@@ -24,22 +24,3 @@ export async function publishResumeParse(
 
   await queue.send(message);
 }
-
-/**
- * Publish a retry job to the queue with incremented attempt count
- */
-export async function publishResumeRetry(
-  queue: Queue<ResumeParseMessage>,
-  params: {
-    resumeId: string;
-    userId: string;
-    r2Key: string;
-    fileHash: string;
-    currentAttempt: number;
-  },
-): Promise<void> {
-  await publishResumeParse(queue, {
-    ...params,
-    attempt: params.currentAttempt + 1,
-  });
-}

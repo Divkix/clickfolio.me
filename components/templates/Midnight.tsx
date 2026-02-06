@@ -1,11 +1,20 @@
 import { Calendar, ExternalLink, Github, Globe, Linkedin, Mail, MapPin, Phone } from "lucide-react";
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
+import { type ContactLinkType, getContactLinks } from "@/lib/templates/contact-links";
 import { flattenSkills, formatDateRange, formatYear, getInitials } from "@/lib/templates/helpers";
 import type { TemplateProps } from "@/lib/types/template";
 
+const midnightIconMap: Partial<Record<ContactLinkType, React.ReactNode>> = {
+  phone: <Phone className="w-4 h-4" />,
+  github: <Github className="w-4 h-4" />,
+  linkedin: <Linkedin className="w-4 h-4" />,
+  website: <Globe className="w-4 h-4" />,
+};
+
 const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
   const flatSkills = content.skills ? flattenSkills(content.skills) : [];
+  const contactLinks = getContactLinks(content.contact);
 
   return (
     <div className="min-h-screen bg-neutral-950 text-neutral-200 font-sans selection:bg-amber-500/30 selection:text-amber-200 relative overflow-x-hidden">
@@ -286,9 +295,9 @@ const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
           <h2 className="font-serif text-3xl md:text-4xl text-white mb-8">Let's work together.</h2>
 
           <div className="flex flex-wrap justify-center gap-4 mb-12">
-            {content.contact.email && (
+            {contactLinks.find((l) => l.type === "email") && (
               <a
-                href={`mailto:${content.contact.email}`}
+                href={contactLinks.find((l) => l.type === "email")!.href}
                 className="group flex items-center gap-2 px-6 py-3 rounded-full bg-white text-black font-medium text-sm hover:bg-amber-400 transition-colors duration-300"
               >
                 <Mail className="w-4 h-4" />
@@ -296,32 +305,33 @@ const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
               </a>
             )}
             <div className="flex gap-2">
-              {[
-                { link: content.contact.phone, Icon: Phone, isPhone: true },
-                { link: content.contact.github, Icon: Github },
-                { link: content.contact.linkedin, Icon: Linkedin },
-                { link: content.contact.website, Icon: Globe },
-                { link: content.contact.behance, text: "Bē", color: "#1769FF" },
-                { link: content.contact.dribbble, text: "Dr", color: "#EA4C89" },
-              ].map(
-                (item, i) =>
-                  item.link && (
+              {contactLinks
+                .filter((link) => link.type !== "email" && link.type !== "location")
+                .map((link) => {
+                  const icon = midnightIconMap[link.type];
+                  const isBranded = link.type === "behance" || link.type === "dribbble";
+                  const brandColor =
+                    link.type === "behance"
+                      ? "#1769FF"
+                      : link.type === "dribbble"
+                        ? "#EA4C89"
+                        : undefined;
+                  const brandText =
+                    link.type === "behance" ? "Bē" : link.type === "dribbble" ? "Dr" : null;
+
+                  return (
                     <a
-                      key={i}
-                      href={item.isPhone ? `tel:${item.link}` : item.link}
-                      target={item.isPhone ? undefined : "_blank"}
-                      rel={item.isPhone ? undefined : "noopener noreferrer"}
+                      key={link.type}
+                      href={link.href}
+                      target={link.isExternal ? "_blank" : undefined}
+                      rel={link.isExternal ? "noopener noreferrer" : undefined}
                       className="w-11 h-11 rounded-full bg-neutral-900 border border-white/10 flex items-center justify-center text-neutral-400 hover:text-white hover:border-amber-500/50 hover:scale-110 transition-all duration-300"
-                      style={item.text ? { color: item.color } : undefined}
+                      style={isBranded ? { color: brandColor } : undefined}
                     >
-                      {item.Icon ? (
-                        <item.Icon className="w-4 h-4" />
-                      ) : (
-                        <span className="text-xs font-bold">{item.text}</span>
-                      )}
+                      {isBranded ? <span className="text-xs font-bold">{brandText}</span> : icon}
                     </a>
-                  ),
-              )}
+                  );
+                })}
             </div>
           </div>
 

@@ -46,11 +46,17 @@ export const user = sqliteTable(
     referralCode: text("referral_code").unique(),
     // Admin flag for admin dashboard access
     isAdmin: integer("is_admin", { mode: "boolean" }).notNull().default(false),
+    // Denormalized from privacySettings JSON for indexed directory queries
+    showInDirectory: integer("show_in_directory", { mode: "boolean" }).notNull().default(false),
   },
   (table) => [
     // Index for sitemap queries (WHERE handle IS NOT NULL ORDER BY handle)
     index("user_handle_idx").on(table.handle),
+    // Index for referral count queries and atomic updates on referredBy
+    index("user_referred_by_idx").on(table.referredBy),
     // Note: referralCode already has implicit unique index from .unique() constraint
+    // Index for /explore directory queries (WHERE show_in_directory = 1)
+    index("user_show_in_directory_idx").on(table.showInDirectory),
   ],
 );
 
@@ -181,7 +187,10 @@ export const siteData = sqliteTable(
     createdAt: text("created_at").notNull(),
     updatedAt: text("updated_at").notNull(),
   },
-  (table) => [index("site_data_resume_id_idx").on(table.resumeId)],
+  (table) => [
+    index("site_data_resume_id_idx").on(table.resumeId),
+    index("site_data_updated_at_idx").on(table.updatedAt),
+  ],
 );
 
 export const handleChanges = sqliteTable(
@@ -235,7 +244,8 @@ export const uploadRateLimits = sqliteTable(
     expiresAt: text("expires_at").notNull(), // TTL: createdAt + 24h for automatic cleanup
   },
   (table) => [
-    index("upload_rate_limits_ip_hash_idx").on(table.ipHash),
+    // Redundant standalone (ipHash) index removed — (ipHash, createdAt) and
+    // (ipHash, actionType, createdAt) both satisfy prefix lookups on ipHash alone.
     index("upload_rate_limits_ip_created_idx").on(table.ipHash, table.createdAt),
     index("upload_rate_limits_expires_idx").on(table.expiresAt), // Index for cleanup queries
     index("upload_rate_limits_ip_action_idx").on(table.ipHash, table.actionType, table.createdAt),
@@ -260,6 +270,8 @@ export const referralClicks = sqliteTable(
     index("referral_clicks_visitor_idx").on(table.visitorHash),
     index("referral_clicks_referrer_created_idx").on(table.referrerUserId, table.createdAt),
     index("referral_clicks_dedup_idx").on(table.referrerUserId, table.visitorHash),
+    // Composite index for queries filtering by referrer + conversion status
+    index("referral_clicks_referrer_converted_idx").on(table.referrerUserId, table.converted),
   ],
 );
 
@@ -382,13 +394,8 @@ export type NewUploadRateLimit = typeof uploadRateLimits.$inferInsert;
 export type ReferralClick = typeof referralClicks.$inferSelect;
 export type NewReferralClick = typeof referralClicks.$inferInsert;
 
-// Privacy settings helper type
-export type PrivacySettings = {
-  show_phone: boolean;
-  show_address: boolean;
-  hide_from_search: boolean;
-  show_in_directory: boolean;
-};
+// Privacy settings helper type (canonical source: lib/schemas/profile.ts)
+export type { PrivacySettings } from "@/lib/schemas/profile";
 
 // Resume status enum type
 export type ResumeStatus =

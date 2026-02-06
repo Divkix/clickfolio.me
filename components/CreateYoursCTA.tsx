@@ -197,4 +197,3 @@ export function CreateYoursCTA({ handle, variant, className }: CreateYoursCTAPro
 }
 
 export type { CreateYoursCTAProps };
-export type CreateYoursCTAVariant = NonNullable<VariantProps<typeof ctaVariants>["variant"]>;

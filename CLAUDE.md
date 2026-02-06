@@ -177,13 +177,10 @@ CF_ZONE_ID                  # Cloudflare zone ID from dashboard
 CF_CACHE_PURGE_API_TOKEN    # API token with Cache Purge permission
 ```
 
-AI Provider (one required for resume parsing):
+AI Provider (required for resume parsing):
 ```
-# Option A: Cloudflare AI Gateway (recommended)
+# Cloudflare AI Gateway (proxies to OpenRouter)
 CF_AI_GATEWAY_ACCOUNT_ID, CF_AI_GATEWAY_ID, CF_AIG_AUTH_TOKEN
-
-# Option B: Direct OpenRouter
-OPENROUTER_API_KEY
 ```
 
 Note: R2 is accessed via binding in `wrangler.jsonc` - no API credentials needed.
@@ -193,5 +190,5 @@ Note: R2 is accessed via binding in `wrangler.jsonc` - no API credentials needed
 1. **"Cannot find module 'fs'"** — You're on Workers, use R2 bindings for file operations
 2. **Auth redirect loop** — Check `BETTER_AUTH_URL` matches deployment URL exactly
 3. **R2 CORS errors** — Add localhost:3000 AND production URL to R2 CORS config
-4. **Parsing stuck** — Check AI provider is configured (OPENROUTER_API_KEY or CF_AI_GATEWAY_*), use retry button (max 2 retries)
+4. **Parsing stuck** — Check AI provider is configured (CF_AI_GATEWAY_*), use retry button (max 2 retries)
 5. **D1 JSON returning strings** — Always parse TEXT fields with JSON.parse()

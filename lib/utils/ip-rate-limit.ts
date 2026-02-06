@@ -9,6 +9,7 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { and, eq, gte, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { uploadRateLimits } from "@/lib/db/schema";
+import { isLocalEnvironment } from "./environment";
 
 const HOURLY_LIMIT = 10;
 const DAILY_LIMIT = 50;
@@ -22,17 +23,6 @@ const LOCAL_IPS = new Set([
   "0.0.0.0",
   "::ffff:127.0.0.1",
 ]);
-
-/**
- * Detect local environment via BETTER_AUTH_URL.
- * More robust than IP matching since wrangler preview can present
- * unexpected IP variants, but BETTER_AUTH_URL is always set and
- * reliably indicates local vs production.
- */
-function isLocalEnvironment(): boolean {
-  const authUrl = process.env.BETTER_AUTH_URL || "";
-  return authUrl.includes("localhost") || authUrl.includes("127.0.0.1");
-}
 
 interface IPRateLimitResult {
   allowed: boolean;
@@ -89,12 +79,16 @@ export async function checkIPRateLimit(ip: string): Promise<IPRateLimitResult> {
     };
   }
 
-  // Feature flag bypass for temporary production testing
+  // Feature flag bypass for temporary testing (non-production only)
   if (process.env.DISABLE_RATE_LIMITS === "true") {
-    return {
-      allowed: true,
-      remaining: { hourly: 999, daily: 999 },
-    };
+    if (process.env.NODE_ENV === "production") {
+      console.warn("[SECURITY] DISABLE_RATE_LIMITS ignored in production environment");
+    } else {
+      return {
+        allowed: true,
+        remaining: { hourly: 999, daily: 999 },
+      };
+    }
   }
 
   // Skip for localhost IPs or local environment (local preview runs in production mode)
@@ -208,12 +202,16 @@ export async function checkHandleRateLimit(ip: string): Promise<IPRateLimitResul
     };
   }
 
-  // Feature flag bypass for temporary production testing
+  // Feature flag bypass for temporary testing (non-production only)
   if (process.env.DISABLE_RATE_LIMITS === "true") {
-    return {
-      allowed: true,
-      remaining: { hourly: 999, daily: 999 },
-    };
+    if (process.env.NODE_ENV === "production") {
+      console.warn("[SECURITY] DISABLE_RATE_LIMITS ignored in production environment");
+    } else {
+      return {
+        allowed: true,
+        remaining: { hourly: 999, daily: 999 },
+      };
+    }
   }
 
   // Skip for localhost IPs or local environment (local preview runs in production mode)

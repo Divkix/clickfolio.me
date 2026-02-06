@@ -1,8 +1,14 @@
 import { MapPin, Phone } from "lucide-react";
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
+import { type ContactLinkType, getContactLinks } from "@/lib/templates/contact-links";
 import { formatDateRange } from "@/lib/templates/helpers";
 import type { TemplateProps } from "@/lib/types/template";
+
+const dfIconMap: Partial<Record<ContactLinkType, React.ReactNode>> = {
+  phone: <Phone size={18} />,
+  location: <MapPin size={18} />,
+};
 
 const DesignFolio: React.FC<TemplateProps> = ({ content, profile }) => {
   const {
@@ -16,6 +22,8 @@ const DesignFolio: React.FC<TemplateProps> = ({ content, profile }) => {
     projects,
     certifications,
   } = content;
+
+  const contactLinks = getContactLinks(contact);
 
   // Null-safe name parsing
   const nameParts = (full_name || "Unknown").split(" ");
@@ -269,81 +277,45 @@ const DesignFolio: React.FC<TemplateProps> = ({ content, profile }) => {
             </h2>
 
             <div className="flex flex-col md:flex-row gap-8 md:gap-16 font-mono-df text-lg">
-              {contact.email && (
-                <a
-                  href={`mailto:${contact.email}`}
-                  className="text-[#888] hover:text-[#CCFF00] transition-colors"
-                >
-                  {contact.email}
-                </a>
-              )}
-              {contact.linkedin && (
-                <a
-                  href={contact.linkedin}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-[#888] hover:text-[#CCFF00] transition-colors"
-                >
-                  LinkedIn
-                </a>
-              )}
-              {contact.github && (
-                <a
-                  href={contact.github}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-[#888] hover:text-[#CCFF00] transition-colors"
-                >
-                  GitHub
-                </a>
-              )}
-              {contact.website && (
-                <a
-                  href={contact.website}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-[#888] hover:text-[#CCFF00] transition-colors"
-                >
-                  Website
-                </a>
-              )}
-              {contact.phone && (
-                <a
-                  href={`tel:${contact.phone}`}
-                  className="text-[#888] hover:text-[#CCFF00] transition-colors flex items-center gap-2"
-                >
-                  <Phone size={18} />
-                  {contact.phone}
-                </a>
-              )}
-              {contact.location && (
-                <div className="text-[#888] flex items-center gap-2">
-                  <MapPin size={18} />
-                  {contact.location}
-                </div>
-              )}
-              {contact.behance && (
-                <a
-                  href={contact.behance}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="transition-colors flex items-center gap-2 hover:text-[#1769FF]"
-                  style={{ color: "#1769FF" }}
-                >
-                  <span className="font-bold">Bē</span>
-                </a>
-              )}
-              {contact.dribbble && (
-                <a
-                  href={contact.dribbble}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="transition-colors flex items-center gap-2 hover:text-[#EA4C89]"
-                  style={{ color: "#EA4C89" }}
-                >
-                  <span className="font-bold">Dr</span>
-                </a>
-              )}
+              {contactLinks.map((link) => {
+                const icon = dfIconMap[link.type];
+                const isBranded = link.type === "behance" || link.type === "dribbble";
+                const brandColor =
+                  link.type === "behance"
+                    ? "#1769FF"
+                    : link.type === "dribbble"
+                      ? "#EA4C89"
+                      : undefined;
+                const brandText =
+                  link.type === "behance" ? "Bē" : link.type === "dribbble" ? "Dr" : null;
+
+                if (link.type === "location") {
+                  return (
+                    <div key={link.type} className="text-[#888] flex items-center gap-2">
+                      {icon}
+                      {link.label}
+                    </div>
+                  );
+                }
+
+                return (
+                  <a
+                    key={link.type}
+                    href={link.href}
+                    target={link.isExternal ? "_blank" : undefined}
+                    rel={link.isExternal ? "noreferrer" : undefined}
+                    className={
+                      isBranded
+                        ? `transition-colors flex items-center gap-2 hover:text-[${brandColor}]`
+                        : "text-[#888] hover:text-[#CCFF00] transition-colors flex items-center gap-2"
+                    }
+                    style={isBranded ? { color: brandColor } : undefined}
+                  >
+                    {icon}
+                    {isBranded ? <span className="font-bold">{brandText}</span> : link.label}
+                  </a>
+                );
+              })}
             </div>
 
             <div className="mt-20 text-[#444] text-xs font-mono-df flex flex-col md:flex-row justify-between items-start md:items-end gap-4">

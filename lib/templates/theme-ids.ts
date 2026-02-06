@@ -132,12 +132,3 @@ export function isThemeUnlocked(themeId: ThemeId, referralCount: number, isPro =
 export function getThemeReferralRequirement(themeId: ThemeId): number {
   return THEME_METADATA[themeId].referralsRequired;
 }
-
-/**
- * Get all unlocked themes for a user
- * @param referralCount - User's current referral count
- * @param isPro - Whether user has pro status (unlocks all themes)
- */
-export function getUnlockedThemes(referralCount: number, isPro = false): ThemeId[] {
-  return THEME_IDS.filter((id) => isThemeUnlocked(id, referralCount, isPro));
-}

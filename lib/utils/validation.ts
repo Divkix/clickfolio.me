@@ -1,12 +1,11 @@
-import { R2 } from "@/lib/r2";
-
 const DEFAULT_MAX_FILE_SIZE_MB = 5;
 export const MAX_FILE_SIZE =
   (Number(process.env.MAX_UPLOAD_SIZE_MB) || DEFAULT_MAX_FILE_SIZE_MB) * 1024 * 1024;
+export const MAX_FILE_SIZE_LABEL = `${DEFAULT_MAX_FILE_SIZE_MB}MB`;
 
 export function validatePDF(file: File): { valid: boolean; error?: string } {
   if (file.size > MAX_FILE_SIZE) {
-    return { valid: false, error: "File size must be less than 5MB" };
+    return { valid: false, error: `File size must be less than ${MAX_FILE_SIZE_LABEL}` };
   }
   if (file.type !== "application/pdf") {
     return { valid: false, error: "Only PDF files are allowed" };
@@ -45,46 +44,6 @@ export function generateTempKey(filename: string): string {
   const uuid = crypto.randomUUID();
   const safeFilename = sanitizeFilename(filename);
   return `temp/${uuid}/${safeFilename}`;
-}
-
-/**
- * Validates PDF file by checking magic number (%PDF)
- * Downloads first 5 bytes from R2 to verify file signature
- * Uses R2 binding directly instead of AWS SDK
- */
-export async function validatePDFMagicNumber(
-  r2Binding: R2Bucket,
-  key: string,
-): Promise<{ valid: boolean; error?: string }> {
-  try {
-    // Download only first 5 bytes to check for %PDF signature
-    const buffer = await R2.getPartial(r2Binding, key, 0, 5);
-
-    if (!buffer) {
-      return { valid: false, error: "Could not read file" };
-    }
-
-    const bytes = new Uint8Array(buffer);
-
-    // Check for PDF magic number: 0x25 0x50 0x44 0x46 = %PDF
-    if (
-      bytes.length >= 4 &&
-      bytes[0] === 0x25 && // %
-      bytes[1] === 0x50 && // P
-      bytes[2] === 0x44 && // D
-      bytes[3] === 0x46 // F
-    ) {
-      return { valid: true };
-    }
-
-    return {
-      valid: false,
-      error: "File is not a valid PDF (invalid magic number)",
-    };
-  } catch (error) {
-    console.error("PDF validation error:", error);
-    return { valid: false, error: "Failed to validate PDF file" };
-  }
 }
 
 /**

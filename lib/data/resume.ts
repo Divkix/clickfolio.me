@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { cache } from "react";
 import { getDb } from "@/lib/db";
 import { user } from "@/lib/db/schema";
+import type { PrivacySettings } from "@/lib/schemas/profile";
 import {
   DEFAULT_THEME,
   isThemeUnlocked,
@@ -11,14 +12,9 @@ import {
   type ThemeId,
 } from "@/lib/templates/theme-ids";
 import type { ResumeContent } from "@/lib/types/database";
-import {
-  extractCityState,
-  isValidPrivacySettings,
-  normalizePrivacySettings,
-  type PrivacySettingsType,
-} from "@/lib/utils/privacy";
+import { extractCityState, parsePrivacySettings } from "@/lib/utils/privacy";
 
-export interface ResumeData {
+interface ResumeData {
   profile: {
     id: string;
     handle: string;
@@ -28,10 +24,10 @@ export interface ResumeData {
   };
   content: ResumeContent;
   theme_id: string | null;
-  privacy_settings: PrivacySettingsType;
+  privacy_settings: PrivacySettings;
 }
 
-export interface ResumeMetadata {
+interface ResumeMetadata {
   full_name: string;
   headline?: string | null;
   summary?: string | null;
@@ -89,21 +85,7 @@ async function fetchResumeDataRaw(handle: string): Promise<ResumeData | null> {
   }
 
   // Parse privacy settings from JSON string
-  let parsedPrivacySettings: {
-    show_phone: boolean;
-    show_address: boolean;
-    hide_from_search?: boolean;
-  } | null = null;
-  try {
-    parsedPrivacySettings = userData.privacySettings ? JSON.parse(userData.privacySettings) : null;
-  } catch {
-    parsedPrivacySettings = null;
-  }
-
-  // Apply privacy filtering with type guard and normalization
-  const privacySettings = normalizePrivacySettings(
-    isValidPrivacySettings(parsedPrivacySettings) ? parsedPrivacySettings : null,
-  );
+  const privacySettings = parsePrivacySettings(userData.privacySettings);
 
   // Defense-in-depth: Validate theme is unlocked before returning
   // This catches edge cases where theme was set directly in DB or via API bypass
@@ -161,15 +143,10 @@ async function fetchResumeDataRaw(handle: string): Promise<ResumeData | null> {
   };
 }
 
-function coerceMetadataString(value: unknown): string | undefined {
-  if (typeof value !== "string") return undefined;
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : undefined;
-}
-
 /**
  * Lightweight metadata fetcher for SEO.
- * Avoids full Zod validation to keep HEAD requests cheap.
+ * Uses denormalized preview columns from siteData instead of parsing
+ * the full content JSON blob (50-100KB), saving significant I/O and CPU.
  */
 async function fetchResumeMetadataRaw(handle: string): Promise<ResumeMetadata | null> {
   const { env } = await getCloudflareContext({ async: true });
@@ -188,7 +165,8 @@ async function fetchResumeMetadataRaw(handle: string): Promise<ResumeMetadata | 
     with: {
       siteData: {
         columns: {
-          content: true,
+          previewName: true,
+          previewHeadline: true,
         },
       },
     },
@@ -198,37 +176,22 @@ async function fetchResumeMetadataRaw(handle: string): Promise<ResumeMetadata | 
     return null;
   }
 
-  let rawContent: unknown;
-  try {
-    rawContent = JSON.parse(userData.siteData.content);
-  } catch (error) {
-    console.error("Failed to parse site_data metadata for handle:", handle, error);
-    return null;
-  }
-
-  const content = (rawContent ?? {}) as Record<string, unknown>;
-  const fullName =
-    coerceMetadataString(content.full_name) ?? coerceMetadataString(userData.name) ?? null;
+  // Use denormalized columns instead of parsing full content JSON
+  const fullName = userData.siteData.previewName?.trim() || userData.name?.trim() || null;
 
   if (!fullName) {
     return null;
   }
 
   // Parse privacy settings for hide_from_search
-  let hideFromSearch = false;
-  if (userData.privacySettings) {
-    try {
-      const parsedSettings = JSON.parse(userData.privacySettings);
-      hideFromSearch = parsedSettings?.hide_from_search === true;
-    } catch {
-      // Keep default false
-    }
-  }
+  const parsedSettings = parsePrivacySettings(userData.privacySettings);
+  const hideFromSearch = parsedSettings.hide_from_search;
 
   return {
     full_name: fullName,
-    headline: coerceMetadataString(content.headline) ?? userData.headline ?? null,
-    summary: coerceMetadataString(content.summary) ?? null,
+    headline: userData.siteData.previewHeadline?.trim() || userData.headline || null,
+    // summary not available from denormalized columns; consumer uses fallback description
+    summary: null,
     avatar_url: userData.image,
     hide_from_search: hideFromSearch,
   };

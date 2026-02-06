@@ -256,7 +256,7 @@ export function transformAiResponse(raw: unknown): unknown {
 /**
  * Final cleanup transformations - trim strings, extract LinkedIn from website, remove empty fields
  */
-export function transformAiOutput(raw: ResumeSchema): ResumeSchema {
+export function transformAiOutput(raw: ResumeSchema): Record<string, unknown> {
   const result = structuredClone(raw);
 
   const trimStrings = (obj: Record<string, unknown>): void => {
@@ -342,38 +342,4 @@ export function transformAiOutput(raw: ResumeSchema): ResumeSchema {
   }
 
   return result;
-}
-
-/**
- * Sanitize raw error responses from service bindings into human-readable messages
- */
-export function sanitizeServiceError(responseText: string, status: number): string {
-  if (status === 504) return "Service timed out. Please try again.";
-  if (status === 502) return "Service temporarily unavailable. Please try again.";
-  if (status === 429) return "AI service rate limited. Please wait a moment and try again.";
-
-  const text = responseText.trim();
-  if (!text) return "An unexpected error occurred. Please try again.";
-
-  if (text.startsWith("<") || text.toLowerCase().includes("<html")) {
-    return "Resume parsing service unavailable. Please try again.";
-  }
-
-  if (text.startsWith("{")) {
-    try {
-      const parsed = JSON.parse(text);
-      if (typeof parsed.error === "string" && parsed.error.trim()) {
-        const msg = parsed.error.trim();
-        return msg.length > 200 ? `${msg.slice(0, 200)}...` : msg;
-      }
-    } catch {
-      // Not valid JSON
-    }
-  }
-
-  if (text.length > 200) {
-    return `${text.slice(0, 200)}...`;
-  }
-
-  return text;
 }

@@ -19,6 +19,7 @@ export function formatDateRange(startDate: string, endDate?: string | null): str
   const start = new Date(startDate).toLocaleDateString("en-US", {
     month: "short",
     year: "numeric",
+    timeZone: "UTC",
   });
 
   if (!endDate) return `${start} — Present`;
@@ -26,6 +27,7 @@ export function formatDateRange(startDate: string, endDate?: string | null): str
   const end = new Date(endDate).toLocaleDateString("en-US", {
     month: "short",
     year: "numeric",
+    timeZone: "UTC",
   });
 
   return `${start} — ${end}`;
@@ -44,7 +46,7 @@ export function flattenSkills(skills?: Array<{ category: string; items: string[]
  * Example: "2020-01-15" -> "2020"
  */
 export function formatYear(date: string): string {
-  return new Date(date).getFullYear().toString();
+  return new Date(date).toLocaleDateString("en-US", { year: "numeric", timeZone: "UTC" });
 }
 
 /**
@@ -52,5 +54,9 @@ export function formatYear(date: string): string {
  * Example: "2020-01-15" -> "Jan 2020"
  */
 export function formatShortDate(date: string): string {
-  return new Date(date).toLocaleDateString("en-US", { month: "short", year: "numeric" });
+  return new Date(date).toLocaleDateString("en-US", {
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  });
 }

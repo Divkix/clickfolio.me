@@ -16,7 +16,7 @@ interface ErrorResponse {
 export function EditResumeFormWrapper({ initialData }: EditResumeFormWrapperProps) {
   const router = useRouter();
 
-  const handleSave = async (data: ResumeContent): Promise<void> => {
+  const handleSave = async (data: ResumeContent, isAutoSave?: boolean): Promise<void> => {
     const response = await fetch("/api/resume/update", {
       method: "PUT",
       headers: {
@@ -43,8 +43,12 @@ export function EditResumeFormWrapper({ initialData }: EditResumeFormWrapperProp
 
     await response.json();
 
-    // Refresh the page to get updated data
-    router.refresh();
+    // Only refresh on explicit "Publish Changes" (manual submit), not autosave.
+    // Autosave already persists data to D1 — the RSC re-render + D1 read from
+    // router.refresh() is unnecessary overhead for background saves.
+    if (!isAutoSave) {
+      router.refresh();
+    }
   };
 
   return <EditResumeForm initialData={initialData} onSave={handleSave} />;

@@ -3,14 +3,26 @@
 import { Github, Globe, Linkedin, Mail, MapPin } from "lucide-react";
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
+import { type ContactLinkType, getContactLinks } from "@/lib/templates/contact-links";
 import { flattenSkills, formatDateRange, formatYear, getInitials } from "@/lib/templates/helpers";
 import type { TemplateProps } from "@/lib/types/template";
+
+const corporateIconMap: Partial<
+  Record<ContactLinkType, React.ComponentType<{ className?: string }>>
+> = {
+  location: MapPin,
+  email: Mail,
+  linkedin: Linkedin,
+  github: Github,
+  website: Globe,
+};
 
 const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => {
   const nameParts = content.full_name.split(" ");
   const firstName = nameParts[0] ?? "";
   const lastName = nameParts.slice(1).join(" ") || "";
   const flatSkills = content.skills ? flattenSkills(content.skills) : [];
+  const contactLinks = getContactLinks(content.contact);
   const safeHeadline =
     content.headline && content.headline.trim() !== "" ? content.headline : "Professional";
 
@@ -112,76 +124,43 @@ const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => {
             </p>
           )}
           <div className="flex flex-wrap items-center gap-4">
-            {content.contact.location && (
-              <span className="inline-flex items-center gap-1.5 text-sm text-neutral-500">
-                <MapPin className="w-4 h-4" />
-                {content.contact.location}
-              </span>
-            )}
-            {content.contact.email && (
-              <a
-                href={`mailto:${content.contact.email}`}
-                className="inline-flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-900 transition-colors"
-              >
-                <Mail className="w-4 h-4" />
-                Email
-              </a>
-            )}
-            {content.contact.linkedin && (
-              <a
-                href={content.contact.linkedin}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-900 transition-colors"
-              >
-                <Linkedin className="w-4 h-4" />
-                LinkedIn
-              </a>
-            )}
-            {content.contact.github && (
-              <a
-                href={content.contact.github}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-900 transition-colors"
-              >
-                <Github className="w-4 h-4" />
-                GitHub
-              </a>
-            )}
-            {content.contact.website && (
-              <a
-                href={content.contact.website}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-900 transition-colors"
-              >
-                <Globe className="w-4 h-4" />
-                Website
-              </a>
-            )}
-            {content.contact.behance && (
-              <a
-                href={content.contact.behance}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-900 transition-colors"
-              >
-                <span className="text-xs font-bold">Bē</span>
-                Behance
-              </a>
-            )}
-            {content.contact.dribbble && (
-              <a
-                href={content.contact.dribbble}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-900 transition-colors"
-              >
-                <span className="text-xs font-bold">Dr</span>
-                Dribbble
-              </a>
-            )}
+            {contactLinks.map((link) => {
+              const IconComponent = corporateIconMap[link.type];
+              const isLocation = link.type === "location";
+              const isBehance = link.type === "behance";
+              const isDribbble = link.type === "dribbble";
+
+              if (isLocation) {
+                return (
+                  <span
+                    key={link.type}
+                    className="inline-flex items-center gap-1.5 text-sm text-neutral-500"
+                  >
+                    <MapPin className="w-4 h-4" />
+                    {link.label}
+                  </span>
+                );
+              }
+
+              return (
+                <a
+                  key={link.type}
+                  href={link.href}
+                  target={link.isExternal ? "_blank" : undefined}
+                  rel={link.isExternal ? "noopener noreferrer" : undefined}
+                  className="inline-flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-900 transition-colors"
+                >
+                  {isBehance ? (
+                    <span className="text-xs font-bold">Be</span>
+                  ) : isDribbble ? (
+                    <span className="text-xs font-bold">Dr</span>
+                  ) : IconComponent ? (
+                    <IconComponent className="w-4 h-4" />
+                  ) : null}
+                  {link.label}
+                </a>
+              );
+            })}
           </div>
           <div className="mt-4">
             <ShareBar
@@ -497,56 +476,19 @@ const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => {
             <div>
               <h3 className="text-xs font-black uppercase tracking-widest mb-4">Social</h3>
               <div className="space-y-2">
-                {content.contact.linkedin && (
-                  <a
-                    href={content.contact.linkedin}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block text-sm text-neutral-500 hover:text-neutral-900 transition-colors"
-                  >
-                    LinkedIn
-                  </a>
-                )}
-                {content.contact.github && (
-                  <a
-                    href={content.contact.github}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block text-sm text-neutral-500 hover:text-neutral-900 transition-colors"
-                  >
-                    GitHub
-                  </a>
-                )}
-                {content.contact.website && (
-                  <a
-                    href={content.contact.website}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block text-sm text-neutral-500 hover:text-neutral-900 transition-colors"
-                  >
-                    Website
-                  </a>
-                )}
-                {content.contact.behance && (
-                  <a
-                    href={content.contact.behance}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block text-sm text-neutral-500 hover:text-neutral-900 transition-colors"
-                  >
-                    Behance
-                  </a>
-                )}
-                {content.contact.dribbble && (
-                  <a
-                    href={content.contact.dribbble}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block text-sm text-neutral-500 hover:text-neutral-900 transition-colors"
-                  >
-                    Dribbble
-                  </a>
-                )}
+                {contactLinks
+                  .filter((link) => link.isExternal)
+                  .map((link) => (
+                    <a
+                      key={link.type}
+                      href={link.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block text-sm text-neutral-500 hover:text-neutral-900 transition-colors"
+                    >
+                      {link.label}
+                    </a>
+                  ))}
               </div>
             </div>
             {/* Column 4: Navigation */}

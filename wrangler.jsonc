@@ -120,12 +120,10 @@
 		//   wrangler secret put ALERT_WEBHOOK_URL   # Slack/Discord webhook URL
 		//
 		// ===== AI PROVIDER (resume parsing) =====
-		// Option A: Cloudflare AI Gateway (recommended)
+		// Cloudflare AI Gateway (proxies to OpenRouter)
 		//   wrangler secret put CF_AI_GATEWAY_ACCOUNT_ID
 		//   wrangler secret put CF_AI_GATEWAY_ID
 		//   wrangler secret put CF_AIG_AUTH_TOKEN
-		// Option B: Direct OpenRouter
-		//   wrangler secret put OPENROUTER_API_KEY
 		//
 		// Note: R2 is accessed via binding (R2_BUCKET) - no API credentials needed
 		// Optional: For edge cache purge (set via wrangler secret put in production)
