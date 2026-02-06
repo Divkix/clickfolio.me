@@ -29,7 +29,13 @@ export default async function EditPage() {
   }
 
   // Parse content JSON (stored as text in D1)
-  const content = JSON.parse(siteDataResult.content) as ResumeContent;
+  let content: ResumeContent;
+  try {
+    content = JSON.parse(siteDataResult.content) as ResumeContent;
+  } catch (error) {
+    console.error("Failed to parse siteData content:", error);
+    redirect("/dashboard?error=corrupt_data");
+  }
 
   return (
     <div className="min-h-screen py-8">

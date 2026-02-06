@@ -16,11 +16,17 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
-    // Log error to console for debugging
     console.error("Global error boundary caught:", error);
 
-    // TODO: In production, send to monitoring service (e.g., Sentry)
-    // Example: Sentry.captureException(error)
+    fetch("/api/client-error", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message: error.message,
+        stack: error.stack,
+        url: window.location.href,
+      }),
+    }).catch(() => {});
   }, [error]);
 
   return (

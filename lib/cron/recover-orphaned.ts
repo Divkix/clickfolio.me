@@ -26,28 +26,55 @@ export async function recoverOrphanedResumes(
   db: Database,
   queue: Queue<ResumeParseMessage>,
 ): Promise<RecoverOrphanedResult> {
-  // Find orphaned resumes older than 5 minutes
-  // (gives normal flow time to complete)
+  // Thresholds: pending_claim = 5 min, processing = 15 min (AI parsing can take ~40s)
   const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+  const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
 
-  const orphanedResumes = await db
-    .select({
-      id: resumes.id,
-      userId: resumes.userId,
-      r2Key: resumes.r2Key,
-      fileHash: resumes.fileHash,
-      totalAttempts: resumes.totalAttempts,
-    })
-    .from(resumes)
-    .where(
-      and(
-        eq(resumes.status, "pending_claim"),
-        isNotNull(resumes.r2Key),
-        isNotNull(resumes.fileHash),
-        lt(resumes.createdAt, fiveMinutesAgo),
-      ),
-    )
-    .limit(10); // Process max 10 per run to avoid overwhelming queue
+  const selectColumns = {
+    id: resumes.id,
+    userId: resumes.userId,
+    r2Key: resumes.r2Key,
+    fileHash: resumes.fileHash,
+    totalAttempts: resumes.totalAttempts,
+  };
+
+  // Run both queries in parallel — they hit different index prefixes
+  const [pendingOrphans, processingOrphans] = await Promise.all([
+    // Resumes stuck in pending_claim (never queued, e.g. worker crash after upload)
+    db
+      .select(selectColumns)
+      .from(resumes)
+      .where(
+        and(
+          eq(resumes.status, "pending_claim"),
+          isNotNull(resumes.r2Key),
+          isNotNull(resumes.fileHash),
+          lt(resumes.createdAt, fiveMinutesAgo),
+        ),
+      )
+      .limit(10),
+    // Resumes stuck in processing (consumer crashed mid-parse)
+    db
+      .select(selectColumns)
+      .from(resumes)
+      .where(
+        and(
+          eq(resumes.status, "processing"),
+          isNotNull(resumes.r2Key),
+          isNotNull(resumes.fileHash),
+          lt(resumes.createdAt, fifteenMinutesAgo),
+        ),
+      )
+      .limit(10),
+  ]);
+
+  // Merge and deduplicate (shouldn't overlap, but defensive)
+  const seenIds = new Set<string>();
+  const orphanedResumes = [...pendingOrphans, ...processingOrphans].filter((r) => {
+    if (seenIds.has(r.id)) return false;
+    seenIds.add(r.id);
+    return true;
+  });
 
   if (orphanedResumes.length === 0) {
     return {

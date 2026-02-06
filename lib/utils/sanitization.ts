@@ -92,6 +92,14 @@ const XSS_PATTERN =
   /<script|<iframe|<embed|<object|<applet|<base|<form|<link\s|<meta|javascript:|vbscript:|data:text\/html|\bon\w+\s*=/i;
 
 /**
+ * Zod refinement helper: returns true if value is safe (no XSS).
+ * Use with `.refine(noXssPattern, { message: "..." })`.
+ */
+export function noXssPattern(value: string): boolean {
+  return !containsXssPattern(value);
+}
+
+/**
  * Checks if a string contains potential XSS patterns
  * Returns true if suspicious content is detected
  */

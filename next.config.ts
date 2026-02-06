@@ -149,10 +149,14 @@ const nextConfig: NextConfig = {
         ],
       },
       {
-        // Content-Security-Policy for all routes
-        // 'unsafe-inline' required for Next.js hydration on Cloudflare Workers (no nonce support in edge middleware)
+        // Security headers for all routes
+        // CSP: 'unsafe-inline' required for Next.js hydration on Cloudflare Workers (no nonce support in edge middleware)
         source: "/:path*",
         headers: [
+          {
+            key: "Strict-Transport-Security",
+            value: "max-age=63072000; includeSubDomains; preload",
+          },
           {
             key: "Content-Security-Policy",
             value:

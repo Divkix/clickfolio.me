@@ -28,7 +28,7 @@ interface UpdateRequestBody {
  * Response:
  * {
  *   success: true,
- *   data: { id, content, last_published_at }
+ *   data: { id, last_published_at }
  * }
  */
 export async function PUT(request: Request) {
@@ -104,13 +104,12 @@ export async function PUT(request: Request) {
 
     const data = updateResult[0];
 
-    // 5. Return success response (use validated content directly, avoid JSON round-trip)
+    // 5. Return success response (no content echo — caller already has validated copy)
     await captureBookmark();
     return createSuccessResponse({
       success: true,
       data: {
         id: data.id,
-        content, // Use validated object from line 84
         last_published_at: data.lastPublishedAt,
       },
     });

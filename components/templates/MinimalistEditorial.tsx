@@ -6,14 +6,26 @@ import { formatDateRange, formatShortDate } from "@/lib/templates/helpers";
 import type { TemplateProps } from "@/lib/types/template";
 
 const navIconMap: Record<ContactLinkType, React.ReactNode> = {
-  email: <Mail className="w-4 h-4 text-neutral-600 group-hover:text-black" />,
-  phone: <Phone className="w-4 h-4 text-neutral-600 group-hover:text-black" />,
-  linkedin: <ArrowUpRight className="w-4 h-4 text-neutral-600 group-hover:text-black" />,
-  github: <Github className="w-4 h-4 text-neutral-600 group-hover:text-black" />,
-  website: <Globe className="w-4 h-4 text-neutral-600 group-hover:text-black" />,
-  location: <MapPin className="w-4 h-4 text-neutral-600 group-hover:text-black" />,
-  behance: <span className="text-xs font-bold text-neutral-600 group-hover:text-black">Be</span>,
-  dribbble: <span className="text-xs font-bold text-neutral-600 group-hover:text-black">Dr</span>,
+  email: <Mail className="w-4 h-4 text-neutral-600 group-hover:text-black" aria-hidden="true" />,
+  phone: <Phone className="w-4 h-4 text-neutral-600 group-hover:text-black" aria-hidden="true" />,
+  linkedin: (
+    <ArrowUpRight className="w-4 h-4 text-neutral-600 group-hover:text-black" aria-hidden="true" />
+  ),
+  github: <Github className="w-4 h-4 text-neutral-600 group-hover:text-black" aria-hidden="true" />,
+  website: <Globe className="w-4 h-4 text-neutral-600 group-hover:text-black" aria-hidden="true" />,
+  location: (
+    <MapPin className="w-4 h-4 text-neutral-600 group-hover:text-black" aria-hidden="true" />
+  ),
+  behance: (
+    <span className="text-xs font-bold text-neutral-600 group-hover:text-black" aria-hidden="true">
+      Be
+    </span>
+  ),
+  dribbble: (
+    <span className="text-xs font-bold text-neutral-600 group-hover:text-black" aria-hidden="true">
+      Dr
+    </span>
+  ),
 };
 
 // Noise texture via inline SVG
@@ -59,7 +71,10 @@ const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile }) => {
       />
 
       {/* Floating Navigation */}
-      <nav className="fixed bottom-8 left-1/2 -translate-x-1/2 z-40 pb-[env(safe-area-inset-bottom)]">
+      <nav
+        className="fixed bottom-8 left-1/2 -translate-x-1/2 z-40 pb-[env(safe-area-inset-bottom)]"
+        aria-label="Contact navigation"
+      >
         <div className="flex items-center gap-6 px-6 py-3 bg-white/80 backdrop-blur-md border border-black/5 rounded-full shadow-2xl shadow-black/5 transition-transform hover:scale-105">
           <span className="text-xs font-bold tracking-widest uppercase opacity-40 hover:opacity-100 transition-opacity cursor-default">
             {profile.handle}
@@ -104,7 +119,7 @@ const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile }) => {
                 </span>
                 {contact.location && (
                   <span className="inline-flex items-center gap-1 px-3 py-1 border border-black/10 rounded-full text-xs font-medium uppercase tracking-widest text-neutral-500">
-                    <MapPin className="w-3 h-3" /> {contact.location}
+                    <MapPin className="w-3 h-3" aria-hidden="true" /> {contact.location}
                   </span>
                 )}
               </div>
@@ -122,13 +137,13 @@ const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile }) => {
 
         {/* Experience - Grid Style */}
         {experience && experience.length > 0 && (
-          <section className="mb-32">
+          <section className="mb-32" aria-label="Experience">
             <SectionTitle title="Experience" count={experience.length} />
             <div className="group/list">
               {experience.map((job, index) => (
                 <div
                   key={index}
-                  className="grid grid-cols-1 md:grid-cols-12 gap-y-4 py-8 border-b border-black/5 transition-all duration-500 hover:bg-neutral-50/50 hover:pl-4 group-hover/list:opacity-40 group-hover/list:hover:opacity-100"
+                  className="grid grid-cols-1 md:grid-cols-12 gap-y-4 py-8 border-b border-black/5 transition-colors duration-500 hover:bg-neutral-50/50 hover:pl-4 group-hover/list:opacity-40 group-hover/list:hover:opacity-100"
                 >
                   <div className="md:col-span-3">
                     <span className="font-mono text-xs text-neutral-400 block mb-1">
@@ -168,7 +183,7 @@ const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile }) => {
 
         {/* Selected Works - Interactive Rows */}
         {projects && projects.length > 0 && (
-          <section className="mb-32">
+          <section className="mb-32" aria-label="Selected works">
             <SectionTitle title="Selected Works" count={projects.length} />
             <div className="flex flex-col">
               {projects.map((project, index) => (
@@ -180,7 +195,7 @@ const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile }) => {
                   className="group relative flex flex-col md:flex-row md:items-center justify-between border-t border-black/10 py-10 hover:bg-[#1a1a1a] hover:text-white transition-colors duration-500 px-2 -mx-2 rounded-sm"
                 >
                   <div className="md:w-1/2">
-                    <h3 className="text-4xl md:text-5xl font-serif font-light tracking-tight mb-2 group-hover:italic transition-all">
+                    <h3 className="text-4xl md:text-5xl font-serif font-light tracking-tight mb-2 group-hover:italic transition-colors">
                       {project.title}
                     </h3>
                     <div className="flex gap-3 opacity-60 group-hover:opacity-80">
@@ -197,7 +212,10 @@ const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile }) => {
                   </div>
 
                   <div className="mt-6 md:mt-0">
-                    <ArrowUpRight className="w-8 h-8 opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-500" />
+                    <ArrowUpRight
+                      className="w-8 h-8 opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-[transform,opacity] duration-500"
+                      aria-hidden="true"
+                    />
                   </div>
                 </a>
               ))}
@@ -209,7 +227,7 @@ const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile }) => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-24 mb-32">
           {/* Education */}
           {education && education.length > 0 && (
-            <section>
+            <section aria-label="Education">
               <SectionTitle title="Education" />
               <div className="space-y-8">
                 {education.map((edu, index) => (
@@ -239,7 +257,7 @@ const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile }) => {
 
           {/* Skills */}
           {skills && skills.length > 0 && (
-            <section>
+            <section aria-label="Technical skills">
               <SectionTitle title="Technical Skills" />
               <div className="flex flex-wrap content-start gap-2">
                 {skills
@@ -259,7 +277,7 @@ const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile }) => {
 
         {/* Certifications */}
         {certifications && certifications.length > 0 && (
-          <section className="mb-32">
+          <section className="mb-32" aria-label="Certifications">
             <SectionTitle title="Certifications" count={certifications.length} />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {certifications.map((cert, index) => (
@@ -268,7 +286,7 @@ const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile }) => {
                   className="border border-black/10 p-6 hover:bg-neutral-50/50 transition-colors duration-300"
                 >
                   <div className="flex items-start gap-3">
-                    <Award className="w-5 h-5 text-neutral-400 mt-1 shrink-0" />
+                    <Award className="w-5 h-5 text-neutral-400 mt-1 shrink-0" aria-hidden="true" />
                     <div className="flex-1">
                       <h3 className="font-serif text-lg italic mb-1">{cert.name}</h3>
                       <p className="text-sm text-neutral-600 font-medium">{cert.issuer}</p>
@@ -284,7 +302,7 @@ const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile }) => {
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-1 text-xs text-neutral-500 hover:text-black mt-2 transition-colors"
                         >
-                          View credential <ArrowUpRight className="w-3 h-3" />
+                          View credential <ArrowUpRight className="w-3 h-3" aria-hidden="true" />
                         </a>
                       )}
                     </div>
@@ -296,10 +314,13 @@ const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile }) => {
         )}
 
         {/* Footer */}
-        <footer className="flex flex-col items-center justify-center pt-20 border-t border-black/10 opacity-50 hover:opacity-100 transition-opacity">
+        <footer
+          className="flex flex-col items-center justify-center pt-20 border-t border-black/10 opacity-50 hover:opacity-100 transition-opacity"
+          role="contentinfo"
+        >
           <p className="font-serif italic text-xl mb-4">"Designed to endure."</p>
           <div className="text-xs font-bold uppercase tracking-[0.2em] flex gap-4">
-            <span>{new Date().getFullYear()}</span>
+            <span suppressHydrationWarning>{new Date().getFullYear()}</span>
             <span>•</span>
             <span>{profile.handle}</span>
           </div>

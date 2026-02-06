@@ -15,7 +15,7 @@ import { getDb } from "./lib/db";
 import { handleQueueMessage } from "./lib/queue/consumer";
 import { handleDLQMessage } from "./lib/queue/dlq-consumer";
 import { isRetryableError } from "./lib/queue/errors";
-import type { QueueMessage } from "./lib/queue/types";
+import { queueMessageSchema } from "./lib/queue/types";
 
 // Re-export Durable Object class for Wrangler to discover
 export { ResumeStatusDO } from "./lib/durable-objects/resume-status";
@@ -69,13 +69,20 @@ export default {
 
     for (const message of batch.messages) {
       try {
+        const parsed = queueMessageSchema.safeParse(message.body);
+        if (!parsed.success) {
+          console.error("Invalid queue message shape:", parsed.error.flatten());
+          message.ack(); // discard malformed messages
+          continue;
+        }
+
         if (isDLQ) {
-          await handleDLQMessage(message.body as QueueMessage, env);
+          await handleDLQMessage(parsed.data, env);
           message.ack();
           continue;
         }
 
-        await handleQueueMessage(message.body as QueueMessage, env);
+        await handleQueueMessage(parsed.data, env);
         message.ack();
       } catch (error) {
         console.error("Queue message processing failed:", error);

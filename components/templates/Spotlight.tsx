@@ -16,12 +16,12 @@ import { flattenSkills, formatDateRange, formatYear, getInitials } from "@/lib/t
 import type { TemplateProps } from "@/lib/types/template";
 
 const spotlightIconMap: Partial<Record<ContactLinkType, React.ReactNode>> = {
-  github: <Github className="w-6 h-6" />,
-  linkedin: <Linkedin className="w-6 h-6" />,
-  email: <Mail className="w-6 h-6" />,
-  website: <Globe className="w-6 h-6" />,
-  phone: <Phone className="w-6 h-6" />,
-  location: <MapPin className="w-6 h-6" />,
+  github: <Github className="w-6 h-6" aria-hidden="true" />,
+  linkedin: <Linkedin className="w-6 h-6" aria-hidden="true" />,
+  email: <Mail className="w-6 h-6" aria-hidden="true" />,
+  website: <Globe className="w-6 h-6" aria-hidden="true" />,
+  phone: <Phone className="w-6 h-6" aria-hidden="true" />,
+  location: <MapPin className="w-6 h-6" aria-hidden="true" />,
 };
 
 const ModernSpotlight: React.FC<TemplateProps> = ({ content, profile }) => {
@@ -39,7 +39,7 @@ const ModernSpotlight: React.FC<TemplateProps> = ({ content, profile }) => {
   return (
     <div className="min-h-screen bg-white text-zinc-900 font-sans selection:bg-zinc-900 selection:text-white relative">
       {/* Background Grid Pattern */}
-      <div className="fixed inset-0 z-0 h-full w-full bg-white bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-size-[24px_24px]"></div>
+      <div className="fixed inset-0 z-0 h-full w-full bg-white bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-size-[24px_24px]" />
 
       {/* CSS for animations */}
       <style>{`
@@ -48,22 +48,25 @@ const ModernSpotlight: React.FC<TemplateProps> = ({ content, profile }) => {
       `}</style>
 
       {/* Floating Glass Navigation */}
-      <nav className="fixed top-6 left-1/2 -translate-x-1/2 z-50 w-auto max-w-[90vw] pt-[env(safe-area-inset-top)]">
+      <nav
+        className="fixed top-6 left-1/2 -translate-x-1/2 z-50 w-auto max-w-[90vw] pt-[env(safe-area-inset-top)]"
+        aria-label="Main navigation"
+      >
         <div className="flex items-center gap-1 p-1.5 rounded-full border border-zinc-200 bg-white/80 backdrop-blur-md shadow-sm">
           {navLinks.map((link) => (
             <a
               key={link.href}
               href={link.href}
-              className="px-4 py-2 text-sm font-medium text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 rounded-full transition-all duration-300"
+              className="px-4 py-2 text-sm font-medium text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 rounded-full transition-colors duration-300"
             >
               {link.label}
             </a>
           ))}
           <a
             href="#contact"
-            className="hidden sm:flex ml-2 px-4 py-2 text-sm font-medium bg-zinc-900 text-white rounded-full hover:bg-zinc-700 transition-all items-center gap-2"
+            className="hidden sm:flex ml-2 px-4 py-2 text-sm font-medium bg-zinc-900 text-white rounded-full hover:bg-zinc-700 transition-colors items-center gap-2"
           >
-            <Mail className="w-3.5 h-3.5" />
+            <Mail className="w-3.5 h-3.5" aria-hidden="true" />
             Hire Me
           </a>
         </div>
@@ -118,7 +121,8 @@ const ModernSpotlight: React.FC<TemplateProps> = ({ content, profile }) => {
                       href={link.href}
                       target={link.isExternal ? "_blank" : undefined}
                       rel={link.isExternal ? "noreferrer" : undefined}
-                      className="p-2 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 rounded-full transition-all flex items-center justify-center"
+                      aria-label={link.label}
+                      className="p-2 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 rounded-full transition-colors flex items-center justify-center"
                       style={isBranded ? { color: brandColor } : undefined}
                     >
                       {isBranded ? <span className="font-bold text-sm">{brandText}</span> : icon}
@@ -129,12 +133,14 @@ const ModernSpotlight: React.FC<TemplateProps> = ({ content, profile }) => {
             </div>
 
             <div className="relative group shrink-0">
-              <div className="absolute -inset-1 bg-linear-to-tr from-zinc-200 to-zinc-100 rounded-full blur opacity-75 group-hover:opacity-100 transition duration-1000"></div>
+              <div className="absolute -inset-1 bg-linear-to-tr from-zinc-200 to-zinc-100 rounded-full blur opacity-75 group-hover:opacity-100 transition duration-1000" />
               {profile.avatar_url ? (
                 <img
                   src={profile.avatar_url}
                   alt={content.full_name}
-                  className="relative w-32 h-32 md:w-48 md:h-48 rounded-full object-cover border-4 border-white shadow-xl grayscale hover:grayscale-0 transition-all duration-500"
+                  width={192}
+                  height={192}
+                  className="relative w-32 h-32 md:w-48 md:h-48 rounded-full object-cover border-4 border-white shadow-xl grayscale hover:grayscale-0 transition-[filter] duration-500"
                 />
               ) : (
                 <div className="relative w-32 h-32 md:w-48 md:h-48 rounded-full bg-zinc-100 flex items-center justify-center text-3xl font-bold text-zinc-300 border-4 border-white shadow-xl">
@@ -148,10 +154,7 @@ const ModernSpotlight: React.FC<TemplateProps> = ({ content, profile }) => {
         {/* Minimal Skills Marquee */}
         {allSkills.length > 0 && (
           <section className="mb-24 py-10 border-y border-zinc-100 relative overflow-hidden mask-linear-fade">
-            <div
-              className="flex whitespace-nowrap"
-              style={{ animation: "marquee 40s linear infinite" }}
-            >
+            <div className="flex whitespace-nowrap motion-safe:animate-[marquee_40s_linear_infinite]">
               {[...allSkills, ...allSkills, ...allSkills].map((skill, i) => (
                 <span
                   key={i}
@@ -167,16 +170,16 @@ const ModernSpotlight: React.FC<TemplateProps> = ({ content, profile }) => {
 
         {/* Experience Timeline */}
         {content.experience?.length > 0 && (
-          <section id="work" className="mb-24">
+          <section id="work" className="mb-24" aria-label="Work history">
             <h3 className="text-sm font-bold uppercase tracking-widest text-zinc-400 mb-10 flex items-center gap-2">
-              <Briefcase className="w-4 h-4" /> Work History
+              <Briefcase className="w-4 h-4" aria-hidden="true" /> Work History
             </h3>
 
             <div className="space-y-0 relative border-l border-zinc-200 ml-3">
               {content.experience.map((job, index) => (
                 <div key={index} className="relative pl-8 pb-12 last:pb-0 group">
                   {/* Timeline Dot */}
-                  <div className="absolute -left-[5px] top-2 w-2.5 h-2.5 rounded-full bg-zinc-200 border border-white group-hover:bg-zinc-900 group-hover:scale-125 transition-all duration-300"></div>
+                  <div className="absolute -left-[5px] top-2 w-2.5 h-2.5 rounded-full bg-zinc-200 border border-white group-hover:bg-zinc-900 group-hover:scale-125 transition-[background-color,transform] duration-300" />
 
                   <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1 mb-2">
                     <h4 className="text-xl font-bold text-zinc-900">{job.company}</h4>
@@ -213,16 +216,16 @@ const ModernSpotlight: React.FC<TemplateProps> = ({ content, profile }) => {
 
         {/* Projects Grid */}
         {content.projects && content.projects.length > 0 && (
-          <section id="projects" className="mb-24">
+          <section id="projects" className="mb-24" aria-label="Selected projects">
             <h3 className="text-sm font-bold uppercase tracking-widest text-zinc-400 mb-10 flex items-center gap-2">
-              <Globe className="w-4 h-4" /> Selected Projects
+              <Globe className="w-4 h-4" aria-hidden="true" /> Selected Projects
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {content.projects.map((project, index) => (
                 <div
                   key={index}
-                  className="group bg-zinc-50 border border-zinc-100 rounded-2xl p-6 hover:shadow-lg hover:border-zinc-200 transition-all duration-300 flex flex-col h-full"
+                  className="group bg-zinc-50 border border-zinc-100 rounded-2xl p-6 hover:shadow-lg hover:border-zinc-200 transition-shadow duration-300 flex flex-col h-full"
                 >
                   <div className="flex justify-between items-start mb-4">
                     <div className="w-10 h-10 rounded-full bg-white border border-zinc-200 flex items-center justify-center text-zinc-900 shadow-sm group-hover:scale-110 transition-transform">
@@ -233,9 +236,10 @@ const ModernSpotlight: React.FC<TemplateProps> = ({ content, profile }) => {
                         href={project.url}
                         target="_blank"
                         rel="noreferrer"
+                        aria-label="View project"
                         className="text-zinc-400 hover:text-zinc-900 transition-colors"
                       >
-                        <ArrowUpRight className="w-5 h-5" />
+                        <ArrowUpRight className="w-5 h-5" aria-hidden="true" />
                       </a>
                     )}
                   </div>
@@ -269,14 +273,14 @@ const ModernSpotlight: React.FC<TemplateProps> = ({ content, profile }) => {
           {content.education && content.education.length > 0 && (
             <div>
               <h3 className="text-sm font-bold uppercase tracking-widest text-zinc-400 mb-8 flex items-center gap-2">
-                <GraduationCap className="w-4 h-4" /> Education
+                <GraduationCap className="w-4 h-4" aria-hidden="true" /> Education
               </h3>
               <div className="space-y-6">
                 {content.education.map((edu, index) => (
                   <div key={index} className="flex gap-4">
                     <div className="flex-col items-center hidden sm:flex">
                       <div className="w-px h-full bg-zinc-200 relative">
-                        <div className="absolute top-2 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-zinc-300"></div>
+                        <div className="absolute top-2 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-zinc-300" />
                       </div>
                     </div>
                     <div className="pb-2">
@@ -295,7 +299,7 @@ const ModernSpotlight: React.FC<TemplateProps> = ({ content, profile }) => {
           {content.certifications && content.certifications.length > 0 && (
             <div>
               <h3 className="text-sm font-bold uppercase tracking-widest text-zinc-400 mb-8 flex items-center gap-2">
-                <AwardIcon className="w-4 h-4" /> Certifications
+                <AwardIcon className="w-4 h-4" aria-hidden="true" /> Certifications
               </h3>
               <div className="space-y-4">
                 {content.certifications.map((cert, index) => (
@@ -303,7 +307,7 @@ const ModernSpotlight: React.FC<TemplateProps> = ({ content, profile }) => {
                     key={index}
                     href={cert.url || "#"}
                     target={cert.url ? "_blank" : undefined}
-                    className="flex items-center justify-between p-4 bg-white border border-zinc-100 rounded-xl hover:border-zinc-300 transition-all group"
+                    className="flex items-center justify-between p-4 bg-white border border-zinc-100 rounded-xl hover:border-zinc-300 transition-colors group"
                   >
                     <div>
                       <h4 className="font-semibold text-sm text-zinc-900 group-hover:text-coral transition-colors">
@@ -312,7 +316,10 @@ const ModernSpotlight: React.FC<TemplateProps> = ({ content, profile }) => {
                       <p className="text-xs text-zinc-500">{cert.issuer}</p>
                     </div>
                     {cert.url && (
-                      <ArrowUpRight className="w-3 h-3 text-zinc-300 group-hover:text-zinc-600" />
+                      <ArrowUpRight
+                        className="w-3 h-3 text-zinc-300 group-hover:text-zinc-600"
+                        aria-hidden="true"
+                      />
                     )}
                   </a>
                 ))}
@@ -322,7 +329,7 @@ const ModernSpotlight: React.FC<TemplateProps> = ({ content, profile }) => {
         </section>
 
         {/* Contact Footer */}
-        <section id="contact" className="py-20 border-t border-zinc-100">
+        <footer id="contact" className="py-20 border-t border-zinc-100" role="contentinfo">
           <div className="flex flex-col items-center text-center space-y-6">
             <h2 className="text-3xl font-bold tracking-tight text-zinc-900">
               Ready to build something?
@@ -348,18 +355,18 @@ const ModernSpotlight: React.FC<TemplateProps> = ({ content, profile }) => {
               />
             </div>
 
-            <div className="pt-8 text-xs text-zinc-400">
+            <div className="pt-8 text-xs text-zinc-400" suppressHydrationWarning>
               © {new Date().getFullYear()} {content.full_name}. All rights reserved.
             </div>
           </div>
-        </section>
+        </footer>
       </main>
     </div>
   );
 };
 
 // Helper Icon for Certs since it wasn't in original imports
-const AwardIcon = ({ className }: { className?: string }) => (
+const AwardIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     viewBox="0 0 24 24"
@@ -369,6 +376,7 @@ const AwardIcon = ({ className }: { className?: string }) => (
     strokeLinecap="round"
     strokeLinejoin="round"
     className={className}
+    {...props}
   >
     <circle cx="12" cy="8" r="7" />
     <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88" />

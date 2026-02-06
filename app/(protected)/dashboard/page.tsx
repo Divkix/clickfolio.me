@@ -53,7 +53,16 @@ export default async function DashboardPage() {
           orderBy: [desc(resumes.createdAt)],
           limit: 1,
         },
-        siteData: true,
+        siteData: {
+          columns: {
+            id: true,
+            content: true,
+            themeId: true,
+            lastPublishedAt: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
         accounts: true, // For checking OAuth vs email/password
       },
       columns: {

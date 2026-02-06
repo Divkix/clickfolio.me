@@ -19,7 +19,15 @@ export default function ProfileError({
   useEffect(() => {
     console.error("Public profile error:", error);
 
-    // TODO: Log to monitoring service
+    fetch("/api/client-error", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message: error.message,
+        stack: error.stack,
+        url: window.location.href,
+      }),
+    }).catch(() => {});
   }, [error]);
 
   return (

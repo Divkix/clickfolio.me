@@ -1,57 +1,11 @@
 import { and, eq, isNotNull } from "drizzle-orm";
-import { resumes, siteData } from "../db/schema";
+import { buildSiteDataUpsert } from "../data/site-data-upsert";
+import { resumes } from "../db/schema";
 import { getSessionDbForWebhook } from "../db/session";
 import { getR2Binding, R2 } from "../r2";
-import type { ResumeContent } from "../types/database";
-import { extractPreviewFields } from "../utils/preview-fields";
 import { classifyQueueError } from "./errors";
 import { notifyStatusChange, notifyStatusChangeBatch } from "./notify-status";
 import type { QueueMessage, ResumeParseMessage } from "./types";
-
-/**
- * Build the siteData upsert query (not executed).
- * Returned so callers can include it in a db.batch() call.
- */
-function buildSiteDataUpsert(
-  db: ReturnType<typeof getSessionDbForWebhook>["db"],
-  userId: string,
-  resumeId: string,
-  content: string,
-  now: string,
-) {
-  // Parse content to extract preview fields
-  let parsedContent: ResumeContent | null = null;
-  try {
-    parsedContent = JSON.parse(content) as ResumeContent;
-  } catch {
-    console.warn(`Failed to parse content for preview fields extraction, resumeId: ${resumeId}`);
-  }
-
-  const previewFields = extractPreviewFields(parsedContent);
-
-  return db
-    .insert(siteData)
-    .values({
-      id: crypto.randomUUID(),
-      userId,
-      resumeId,
-      content,
-      ...previewFields,
-      lastPublishedAt: now,
-      createdAt: now,
-      updatedAt: now,
-    })
-    .onConflictDoUpdate({
-      target: siteData.userId,
-      set: {
-        resumeId,
-        content,
-        ...previewFields,
-        lastPublishedAt: now,
-        updatedAt: now,
-      },
-    });
-}
 
 /**
  * Map raw error messages to user-friendly messages.

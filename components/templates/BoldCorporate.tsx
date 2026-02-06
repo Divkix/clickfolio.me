@@ -8,7 +8,7 @@ import { flattenSkills, formatDateRange, formatYear, getInitials } from "@/lib/t
 import type { TemplateProps } from "@/lib/types/template";
 
 const corporateIconMap: Partial<
-  Record<ContactLinkType, React.ComponentType<{ className?: string }>>
+  Record<ContactLinkType, React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>>
 > = {
   location: MapPin,
   email: Mail,
@@ -53,7 +53,7 @@ const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => {
   };
 
   return (
-    <div className="min-h-screen bg-white text-neutral-900 font-sans selection:bg-neutral-900 selection:text-white overflow-y-auto scroll-smooth">
+    <main className="min-h-screen bg-white text-neutral-900 font-sans selection:bg-neutral-900 selection:text-white overflow-y-auto scroll-smooth">
       <div className="max-w-6xl mx-auto px-6 md:px-12 pt-16 pb-0">
         {/* Hero Section */}
         <header className="grid grid-cols-1 md:grid-cols-12 gap-8 items-end mb-20 md:mb-32">
@@ -75,6 +75,8 @@ const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => {
                 <img
                   src={profile.avatar_url}
                   alt={content.full_name}
+                  width={128}
+                  height={128}
                   className="w-full h-full object-cover"
                 />
               ) : (
@@ -103,6 +105,8 @@ const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => {
                 <img
                   src={profile.avatar_url}
                   alt={content.full_name}
+                  width={64}
+                  height={64}
                   className="w-full h-full object-cover"
                 />
               ) : (
@@ -123,7 +127,7 @@ const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => {
               {renderBoldedSummary(content.summary)}
             </p>
           )}
-          <div className="flex flex-wrap items-center gap-4">
+          <nav aria-label="Contact information" className="flex flex-wrap items-center gap-4">
             {contactLinks.map((link) => {
               const IconComponent = corporateIconMap[link.type];
               const isLocation = link.type === "location";
@@ -136,7 +140,7 @@ const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => {
                     key={link.type}
                     className="inline-flex items-center gap-1.5 text-sm text-neutral-500"
                   >
-                    <MapPin className="w-4 h-4" />
+                    <MapPin className="w-4 h-4" aria-hidden="true" />
                     {link.label}
                   </span>
                 );
@@ -155,13 +159,13 @@ const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => {
                   ) : isDribbble ? (
                     <span className="text-xs font-bold">Dr</span>
                   ) : IconComponent ? (
-                    <IconComponent className="w-4 h-4" />
+                    <IconComponent className="w-4 h-4" aria-hidden={true} />
                   ) : null}
                   {link.label}
                 </a>
               );
             })}
-          </div>
+          </nav>
           <div className="mt-4">
             <ShareBar
               handle={profile.handle}
@@ -370,7 +374,7 @@ const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => {
 
         {/* Skills Marquee */}
         {flatSkills.length > 0 && (
-          <section className="mb-20 md:mb-32 overflow-hidden">
+          <section className="mb-20 md:mb-32 overflow-hidden" aria-label="Skills">
             <div className="flex items-center gap-4 mb-12">
               <h2 className="text-xs font-black uppercase tracking-widest text-neutral-900 shrink-0">
                 Skills
@@ -380,7 +384,7 @@ const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => {
             <div className="space-y-4">
               {/* Row 1 - normal direction */}
               <div className="overflow-hidden whitespace-nowrap">
-                <div className="inline-block animate-[marquee_30s_linear_infinite]">
+                <div className="inline-block motion-safe:animate-[marquee_30s_linear_infinite]">
                   {flatSkills.map((skill, i) => (
                     <span
                       key={i}
@@ -401,7 +405,7 @@ const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => {
               </div>
               {/* Row 2 - reverse direction */}
               <div className="overflow-hidden whitespace-nowrap">
-                <div className="inline-block animate-[marquee-reverse_35s_linear_infinite]">
+                <div className="inline-block motion-safe:animate-[marquee-reverse_35s_linear_infinite]">
                   {flatSkills.map((skill, i) => (
                     <span
                       key={i}
@@ -422,7 +426,7 @@ const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => {
               </div>
               {/* Row 3 - normal direction, faster */}
               <div className="overflow-hidden whitespace-nowrap">
-                <div className="inline-block animate-[marquee_25s_linear_infinite]">
+                <div className="inline-block motion-safe:animate-[marquee_25s_linear_infinite]">
                   {flatSkills.map((skill, i) => (
                     <span
                       key={i}
@@ -492,7 +496,7 @@ const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => {
               </div>
             </div>
             {/* Column 4: Navigation */}
-            <div>
+            <nav aria-label="Page navigation">
               <h3 className="text-xs font-black uppercase tracking-widest mb-4">Navigate</h3>
               <div className="space-y-2">
                 <button
@@ -505,19 +509,22 @@ const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => {
                   Back to Top
                 </button>
               </div>
-            </div>
+            </nav>
           </div>
 
           {/* Decorative Name */}
           <div className="overflow-hidden mb-8">
-            <p className="text-8xl md:text-[10rem] font-black text-neutral-100 leading-none tracking-tighter select-none uppercase wrap-break-word">
+            <p
+              className="text-8xl md:text-[10rem] font-black text-neutral-100 leading-none tracking-tighter select-none uppercase wrap-break-word"
+              aria-hidden="true"
+            >
               {content.full_name}
             </p>
           </div>
 
           {/* Copyright + Badge */}
           <div className="pt-4 border-t border-neutral-100">
-            <p className="text-xs text-neutral-400">
+            <p className="text-xs text-neutral-400" suppressHydrationWarning>
               &copy; {new Date().getFullYear()} {content.full_name}. All rights reserved.
             </p>
           </div>
@@ -527,6 +534,12 @@ const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => {
       <style>{`
         .typewriter-animate {
           animation: typing 3.5s steps(40, end) forwards, blink-caret 0.75s step-end infinite;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .typewriter-animate {
+            animation: none;
+            border-right-color: transparent;
+          }
         }
         @keyframes marquee {
           0% { transform: translateX(0); }
@@ -545,7 +558,7 @@ const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => {
           50% { border-color: currentColor; }
         }
       `}</style>
-    </div>
+    </main>
   );
 };
 

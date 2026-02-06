@@ -1,15 +1,5 @@
 import { z } from "zod";
-import { containsXssPattern } from "@/lib/utils/sanitization";
-
-/**
- * Custom Zod refinement for XSS detection
- */
-const noXssPattern = (value: string) => {
-  if (containsXssPattern(value)) {
-    return false;
-  }
-  return true;
-};
+import { noXssPattern } from "@/lib/utils/sanitization";
 
 /**
  * Privacy settings schema

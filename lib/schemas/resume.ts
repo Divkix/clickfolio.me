@@ -1,21 +1,11 @@
 import { z } from "zod";
 import {
-  containsXssPattern,
+  noXssPattern,
   sanitizeEmail,
   sanitizePhone,
   sanitizeText,
   sanitizeUrl,
 } from "@/lib/utils/sanitization";
-
-/**
- * Custom Zod refinement for XSS detection
- */
-const noXssPattern = (value: string) => {
-  if (containsXssPattern(value)) {
-    return false;
-  }
-  return true;
-};
 
 /**
  * Email validation regexes

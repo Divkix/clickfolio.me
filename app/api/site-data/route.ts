@@ -20,10 +20,22 @@ export async function GET() {
     );
     if (error) return error;
 
-    // 2. Fetch site_data for the user
-    const userSiteData = await db.query.siteData.findFirst({
-      where: eq(siteData.userId, user.id),
-    });
+    // 2. Fetch site_data for the user (explicit columns to prevent future column creep)
+    const rows = await db
+      .select({
+        id: siteData.id,
+        userId: siteData.userId,
+        resumeId: siteData.resumeId,
+        content: siteData.content,
+        themeId: siteData.themeId,
+        lastPublishedAt: siteData.lastPublishedAt,
+        createdAt: siteData.createdAt,
+        updatedAt: siteData.updatedAt,
+      })
+      .from(siteData)
+      .where(eq(siteData.userId, user.id))
+      .limit(1);
+    const userSiteData = rows[0] ?? null;
 
     if (!userSiteData) {
       return createSuccessResponse(null);

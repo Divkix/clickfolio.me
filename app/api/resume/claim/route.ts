@@ -1,8 +1,9 @@
 import { and, desc, eq, gte, isNotNull, ne } from "drizzle-orm";
+import { z } from "zod";
 import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
+import { buildSiteDataUpsert } from "@/lib/data/site-data-upsert";
 import type { NewResume } from "@/lib/db/schema";
-import { resumes, siteData } from "@/lib/db/schema";
-import type { getSessionDb } from "@/lib/db/session";
+import { resumes } from "@/lib/db/schema";
 import { publishResumeParse } from "@/lib/queue/resume-parse";
 import { getR2Binding, R2 } from "@/lib/r2";
 import { writeReferral } from "@/lib/referral";
@@ -14,43 +15,10 @@ import {
 } from "@/lib/utils/security-headers";
 import { MAX_FILE_SIZE, MAX_FILE_SIZE_LABEL, validateRequestSize } from "@/lib/utils/validation";
 
-interface ClaimRequestBody {
-  key?: string;
-  referral_code?: string;
-}
-
-/**
- * Build siteData upsert query (not executed).
- * Returned so callers can include it in a db.batch() call for atomicity.
- */
-function buildSiteDataUpsert(
-  db: Awaited<ReturnType<typeof getSessionDb>>["db"],
-  userId: string,
-  resumeId: string,
-  content: string,
-  now: string,
-) {
-  return db
-    .insert(siteData)
-    .values({
-      id: crypto.randomUUID(),
-      userId,
-      resumeId,
-      content,
-      lastPublishedAt: now,
-      createdAt: now,
-      updatedAt: now,
-    })
-    .onConflictDoUpdate({
-      target: siteData.userId,
-      set: {
-        resumeId,
-        content,
-        lastPublishedAt: now,
-        updatedAt: now,
-      },
-    });
-}
+const claimRequestSchema = z.object({
+  key: z.string().min(1).startsWith("temp/"),
+  referral_code: z.string().max(50).optional(),
+});
 
 /**
  * POST /api/resume/claim
@@ -92,23 +60,24 @@ export async function POST(request: Request) {
       );
     }
 
-    // 4. Parse request body
-    let body: ClaimRequestBody;
+    // 4. Parse and validate request body
+    let rawBody: unknown;
     try {
-      body = (await request.json()) as ClaimRequestBody;
+      rawBody = await request.json();
     } catch {
       return createErrorResponse("Invalid JSON in request body", ERROR_CODES.BAD_REQUEST, 400);
     }
 
-    const { key } = body;
-
-    if (!key || !key.startsWith("temp/")) {
+    const bodyResult = claimRequestSchema.safeParse(rawBody);
+    if (!bodyResult.success) {
       return createErrorResponse(
         "Invalid upload key. Must be a temporary upload.",
         ERROR_CODES.VALIDATION_ERROR,
         400,
       );
     }
+    const body = bodyResult.data;
+    const { key } = body;
 
     // 5. Rate limiting check (5 uploads per 24 hours)
     // Pass env to avoid redundant getCloudflareContext call in rate limiter

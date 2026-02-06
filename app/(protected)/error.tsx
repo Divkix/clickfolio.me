@@ -19,7 +19,15 @@ export default function ProtectedError({
   useEffect(() => {
     console.error("Protected route error:", error);
 
-    // TODO: Log to monitoring service with auth context
+    fetch("/api/client-error", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message: error.message,
+        stack: error.stack,
+        url: window.location.href,
+      }),
+    }).catch(() => {});
   }, [error]);
 
   return (

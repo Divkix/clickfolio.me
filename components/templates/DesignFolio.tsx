@@ -6,8 +6,8 @@ import { formatDateRange } from "@/lib/templates/helpers";
 import type { TemplateProps } from "@/lib/types/template";
 
 const dfIconMap: Partial<Record<ContactLinkType, React.ReactNode>> = {
-  phone: <Phone size={18} />,
-  location: <MapPin size={18} />,
+  phone: <Phone size={18} aria-hidden="true" />,
+  location: <MapPin size={18} aria-hidden="true" />,
 };
 
 const DesignFolio: React.FC<TemplateProps> = ({ content, profile }) => {
@@ -66,10 +66,14 @@ const DesignFolio: React.FC<TemplateProps> = ({ content, profile }) => {
         `}</style>
 
         {/* Navigation */}
-        <nav className="flex justify-between items-center p-8 md:p-12 fixed top-0 w-full z-50 mix-blend-difference">
+        <nav
+          aria-label="Main navigation"
+          className="flex justify-between items-center p-8 md:p-12 fixed top-0 w-full z-50 mix-blend-difference"
+        >
           <div className="text-xl font-bold tracking-tighter font-mono-df">{initials}.</div>
           <div className="text-xs border border-[#CCFF00] px-4 py-1 rounded-full text-[#CCFF00] uppercase tracking-widest">
-            ● {headline?.split(" ")[0] || "Available"}
+            <span aria-hidden="true">● </span>
+            {headline?.split(" ")[0] || "Available"}
           </div>
         </nav>
 
@@ -89,7 +93,7 @@ const DesignFolio: React.FC<TemplateProps> = ({ content, profile }) => {
             </div>
 
             <div
-              className="absolute bottom-0 right-0 animate-bounce text-[#CCFF00] hidden md:block"
+              className="absolute bottom-0 right-0 motion-safe:animate-bounce text-[#CCFF00] hidden md:block"
               style={{ writingMode: "vertical-rl" }}
             >
               Scroll to Explore
@@ -108,7 +112,7 @@ const DesignFolio: React.FC<TemplateProps> = ({ content, profile }) => {
                 {experience.map((job, index) => (
                   <div
                     key={index}
-                    className={`bg-[#1a1a1a] border border-[#333] p-8 flex flex-col justify-between transition-all duration-300 hover:border-[#CCFF00] hover:-translate-y-1 ${getSpanClass(index)}`}
+                    className={`bg-[#1a1a1a] border border-[#333] p-8 flex flex-col justify-between transition-[border-color,transform] duration-300 hover:border-[#CCFF00] hover:-translate-y-1 ${getSpanClass(index)}`}
                   >
                     <div className="mb-8">
                       <span className="text-[#CCFF00] text-xs font-bold tracking-widest uppercase border border-[#CCFF00]/30 px-2 py-1 rounded inline-block mb-4">
@@ -180,13 +184,15 @@ const DesignFolio: React.FC<TemplateProps> = ({ content, profile }) => {
                     href={project.url || "#"}
                     target={project.url ? "_blank" : "_self"}
                     rel="noopener noreferrer"
-                    className={`group block bg-[#1a1a1a] border border-[#333] overflow-hidden hover:border-[#CCFF00] transition-all duration-300 ${!project.url ? "pointer-events-none" : ""}`}
+                    className={`group block bg-[#1a1a1a] border border-[#333] overflow-hidden hover:border-[#CCFF00] transition-colors duration-300 ${!project.url ? "pointer-events-none" : ""}`}
                   >
                     {project.image_url && (
                       <div className="relative overflow-hidden">
                         <img
                           src={project.image_url}
                           alt={project.title}
+                          width={800}
+                          height={450}
                           className="w-full aspect-video object-cover transition-transform duration-500 group-hover:scale-105"
                         />
                         <div className="absolute inset-0 bg-linear-to-t from-[#1a1a1a] to-transparent opacity-60" />
@@ -206,7 +212,10 @@ const DesignFolio: React.FC<TemplateProps> = ({ content, profile }) => {
                       <h3 className="font-serif-df text-3xl text-white mb-4 group-hover:text-[#CCFF00] transition-colors flex items-center gap-2">
                         {project.title}
                         {project.url && (
-                          <span className="text-sm opacity-0 group-hover:opacity-100 transition-opacity">
+                          <span
+                            className="text-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                            aria-hidden="true"
+                          >
                             ↗
                           </span>
                         )}
@@ -319,7 +328,7 @@ const DesignFolio: React.FC<TemplateProps> = ({ content, profile }) => {
             </div>
 
             <div className="mt-20 text-[#444] text-xs font-mono-df flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-              <span>
+              <span suppressHydrationWarning>
                 © {new Date().getFullYear()} {full_name}.
               </span>
               <ShareBar

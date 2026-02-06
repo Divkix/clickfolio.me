@@ -36,7 +36,7 @@ const ClassicATS: React.FC<TemplateProps> = ({ content, profile }) => {
   const contactLinks = getContactLinks(content.contact);
 
   return (
-    <div className="min-h-screen bg-white text-gray-900 font-serif selection:bg-gray-200 overflow-y-auto print:overflow-visible">
+    <main className="min-h-screen bg-white text-gray-900 font-serif selection:bg-gray-200 overflow-y-auto print:overflow-visible">
       <article className="max-w-[8.5in] mx-auto px-8 py-12 print:px-[0.75in] print:py-[0.5in]">
         {/* Header with Double Border */}
         <header className="border-y-4 border-double border-gray-900 py-6 mb-8 text-center print:break-inside-avoid">
@@ -46,7 +46,10 @@ const ClassicATS: React.FC<TemplateProps> = ({ content, profile }) => {
           )}
 
           {/* Contact Row */}
-          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-sm text-gray-700">
+          <nav
+            aria-label="Contact information"
+            className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-sm text-gray-700"
+          >
             {contactLinks.map((link) => {
               const IconComponent = atsIconMap[link.type];
               const isNonClickable = link.type === "location" || link.type === "phone";
@@ -93,7 +96,7 @@ const ClassicATS: React.FC<TemplateProps> = ({ content, profile }) => {
                 </a>
               );
             })}
-          </div>
+          </nav>
         </header>
 
         {/* Summary Section */}
@@ -269,7 +272,7 @@ const ClassicATS: React.FC<TemplateProps> = ({ content, profile }) => {
         {/* Share Bar - Hidden on Print */}
         <footer className="mt-12 pt-6 border-t border-gray-200 print:hidden">
           <div className="flex items-center justify-between">
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-gray-400" suppressHydrationWarning>
               &copy; {new Date().getFullYear()} {content.full_name}
             </p>
             <ShareBar
@@ -281,7 +284,7 @@ const ClassicATS: React.FC<TemplateProps> = ({ content, profile }) => {
           </div>
         </footer>
       </article>
-    </div>
+    </main>
   );
 };
 

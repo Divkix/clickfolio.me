@@ -40,16 +40,19 @@ const DevTerminal: React.FC<TemplateProps> = ({ content, profile }) => {
         `}</style>
 
         {/* Navigation Bar */}
-        <nav className="sticky top-0 z-50 bg-[#161b22] border-b border-[#30363d] px-4 py-3">
+        <nav
+          aria-label="Main navigation"
+          className="sticky top-0 z-50 bg-[#161b22] border-b border-[#30363d] px-4 py-3"
+        >
           <div className="max-w-5xl mx-auto flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Terminal className="size-5 text-[#58a6ff]" />
+              <Terminal className="size-5 text-[#58a6ff]" aria-hidden="true" />
               <span className="font-mono-term text-sm font-semibold">{username}</span>
               <span className="text-[#8b949e] text-xs hidden sm:inline">/ portfolio</span>
             </div>
             <div className="flex items-center gap-2 text-xs font-mono-term">
               <span className="px-2 py-1 bg-[#238636] text-white rounded-md flex items-center gap-1">
-                <GitBranch className="size-3" />
+                <GitBranch className="size-3" aria-hidden="true" />
                 main
               </span>
             </div>
@@ -60,7 +63,7 @@ const DevTerminal: React.FC<TemplateProps> = ({ content, profile }) => {
           {/* Hero Section - README style */}
           <header className="mb-12 bg-[#161b22] border border-[#30363d] rounded-md overflow-hidden">
             <div className="px-4 py-3 bg-[#0d1117] border-b border-[#30363d] flex items-center gap-2">
-              <Folder className="size-4 text-[#8b949e]" />
+              <Folder className="size-4 text-[#8b949e]" aria-hidden="true" />
               <span className="font-mono-term text-sm text-[#c9d1d9]">README.md</span>
             </div>
             <div className="p-6">
@@ -74,7 +77,7 @@ const DevTerminal: React.FC<TemplateProps> = ({ content, profile }) => {
               <div className="mt-6 flex flex-wrap gap-4 text-sm">
                 {contact.location && (
                   <span className="flex items-center gap-1.5 text-[#8b949e]">
-                    <MapPin className="size-4" />
+                    <MapPin className="size-4" aria-hidden="true" />
                     {contact.location}
                   </span>
                 )}
@@ -83,7 +86,7 @@ const DevTerminal: React.FC<TemplateProps> = ({ content, profile }) => {
                     href={`mailto:${contact.email}`}
                     className="flex items-center gap-1.5 text-[#58a6ff] hover:underline"
                   >
-                    <Mail className="size-4" />
+                    <Mail className="size-4" aria-hidden="true" />
                     {contact.email}
                   </a>
                 )}
@@ -98,7 +101,7 @@ const DevTerminal: React.FC<TemplateProps> = ({ content, profile }) => {
                     rel="noreferrer"
                     className="flex items-center gap-1.5 text-[#58a6ff] hover:underline"
                   >
-                    <Globe className="size-4" />
+                    <Globe className="size-4" aria-hidden="true" />
                     {contact.website}
                   </a>
                 )}
@@ -107,7 +110,7 @@ const DevTerminal: React.FC<TemplateProps> = ({ content, profile }) => {
                     href={`tel:${contact.phone}`}
                     className="flex items-center gap-1.5 text-[#58a6ff] hover:underline"
                   >
-                    <Phone className="size-4" />
+                    <Phone className="size-4" aria-hidden="true" />
                     {contact.phone}
                   </a>
                 )}
@@ -176,7 +179,9 @@ const DevTerminal: React.FC<TemplateProps> = ({ content, profile }) => {
                               key={i}
                               className="font-mono-term text-xs text-[#7ee787] flex items-start gap-2"
                             >
-                              <span className="text-[#8b949e]">→</span>
+                              <span className="text-[#8b949e]" aria-hidden="true">
+                                →
+                              </span>
                               {highlight}
                             </li>
                           ))}
@@ -211,7 +216,7 @@ const DevTerminal: React.FC<TemplateProps> = ({ content, profile }) => {
                       }
                       target={project.url ? "_blank" : "_self"}
                       rel="noopener noreferrer"
-                      className={`block p-4 bg-[#0d1117] border border-[#30363d] rounded-md hover:border-[#58a6ff] transition-all group ${!project.url ? "pointer-events-none" : ""}`}
+                      className={`block p-4 bg-[#0d1117] border border-[#30363d] rounded-md hover:border-[#58a6ff] transition-colors group ${!project.url ? "pointer-events-none" : ""}`}
                     >
                       <div className="flex items-start justify-between mb-2">
                         <h3 className="font-sans-term font-semibold text-[#58a6ff] group-hover:underline">
@@ -231,7 +236,10 @@ const DevTerminal: React.FC<TemplateProps> = ({ content, profile }) => {
                               key={i}
                               className="flex items-center gap-1 text-xs text-[#8b949e]"
                             >
-                              <span className="size-3 rounded-full bg-[#238636]" />
+                              <span
+                                className="size-3 rounded-full bg-[#238636]"
+                                aria-hidden="true"
+                              />
                               {tech}
                             </span>
                           ))}
@@ -317,13 +325,13 @@ const DevTerminal: React.FC<TemplateProps> = ({ content, profile }) => {
                       rel={link.isExternal ? "noreferrer" : undefined}
                       className="text-[#58a6ff] hover:underline"
                     >
-                      {link.type === "email" ? link.label : link.label}
+                      {link.label}
                     </a>
                   ))}
               </div>
 
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-4 border-t border-[#30363d]">
-                <span className="text-xs text-[#8b949e] font-mono-term">
+                <span className="text-xs text-[#8b949e] font-mono-term" suppressHydrationWarning>
                   &copy; {new Date().getFullYear()} {full_name}
                 </span>
                 <ShareBar

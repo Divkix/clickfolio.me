@@ -2,7 +2,7 @@
 
 import { Edit3, ExternalLink, Home, LogOut, Palette, Settings, Shield, X } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Logo } from "@/components/Logo";
 import { signOut, useSession } from "@/lib/auth/client";
 
@@ -28,6 +28,9 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
   const { data: session, isPending } = useSession();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
+  const lastFetchedRef = useRef<number>(0);
+
+  const STALE_TIME_MS = 30_000;
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: pathname triggers refetch on route change (wizard → dashboard)
   useEffect(() => {
@@ -37,13 +40,18 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
         return;
       }
 
+      // Skip refetch if data is fresh (< 30s old)
+      if (profile && Date.now() - lastFetchedRef.current < STALE_TIME_MS) {
+        setProfileLoading(false);
+        return;
+      }
+
       try {
-        // Always fetch from API to get the authoritative handle
-        // Session cache can be stale after handle changes
         const response = await fetch("/api/profile/me");
         if (response.ok) {
           const data = (await response.json()) as ProfileResponse;
           setProfile({ handle: data.handle ?? null, isAdmin: data.isAdmin ?? false });
+          lastFetchedRef.current = Date.now();
         }
       } catch (error) {
         console.error("Error loading profile:", error);
