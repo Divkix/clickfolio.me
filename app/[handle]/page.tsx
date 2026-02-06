@@ -9,7 +9,11 @@ import { getResumeData, getResumeMetadata } from "@/lib/data/resume";
 import { DEFAULT_THEME, type ThemeId } from "@/lib/templates/theme-ids";
 import { getTemplate } from "@/lib/templates/theme-registry";
 import { isValidHandleFormat } from "@/lib/utils/handle-validation";
-import { generateResumeJsonLd, serializeJsonLd } from "@/lib/utils/json-ld";
+import {
+  generateBreadcrumbJsonLd,
+  generateResumeJsonLd,
+  serializeJsonLd,
+} from "@/lib/utils/json-ld";
 
 // Map database theme IDs (underscore) to share popover variants (kebab-case)
 const themeToShareVariant: Record<ThemeId, SharePopoverVariant> = {
@@ -73,7 +77,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     };
   }
 
-  const { full_name, headline, summary, avatar_url, hide_from_search } = data;
+  const { full_name, headline, summary, hide_from_search } = data;
 
   // Truncate summary to 160 characters for meta description
   const description = summary
@@ -101,22 +105,21 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       description,
       type: "profile",
       url: profileUrl,
-      images: avatar_url
-        ? [
-            {
-              url: avatar_url,
-              width: 400,
-              height: 400,
-              alt: full_name,
-            },
-          ]
-        : undefined,
+      siteName: siteConfig.fullName,
+      images: [
+        {
+          url: `${siteConfig.url}/api/og/${handle}`,
+          width: 1200,
+          height: 630,
+          alt: full_name,
+        },
+      ],
     },
     twitter: {
-      card: "summary",
+      card: "summary_large_image",
       title: `${full_name} — ${headline ?? "Resume"}`,
       description,
-      images: avatar_url ? [avatar_url] : undefined,
+      images: [`${siteConfig.url}/api/og/${handle}`],
     },
   };
 }
@@ -187,6 +190,11 @@ export default async function HandlePage({ params }: PageProps) {
   // - Data is from trusted D1 database, not user input
   const jsonLdScript = jsonLd ? serializeJsonLd(jsonLd) : null;
 
+  // Breadcrumb JSON-LD for navigation context in search results
+  const breadcrumbJsonLd = !privacy_settings.hide_from_search
+    ? serializeJsonLd(generateBreadcrumbJsonLd(handle, content.full_name))
+    : null;
+
   // Map theme_id to share popover variant (kebab-case format)
   // Cast theme_id to ThemeId since it's validated against the enum in the database
   const shareVariant = themeToShareVariant[(theme_id ?? DEFAULT_THEME) as ThemeId];
@@ -200,6 +208,14 @@ export default async function HandlePage({ params }: PageProps) {
           type="application/ld+json"
           // biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD from trusted DB, JSON.stringify escapes special chars
           dangerouslySetInnerHTML={{ __html: jsonLdScript }}
+        />
+      )}
+      {/* Breadcrumb JSON-LD for navigation context in search results */}
+      {breadcrumbJsonLd && (
+        <script
+          type="application/ld+json"
+          // biome-ignore lint/security/noDangerouslySetInnerHtml: Breadcrumb JSON-LD from trusted DB data, serialized with XSS-safe escaping via serializeJsonLd
+          dangerouslySetInnerHTML={{ __html: breadcrumbJsonLd }}
         />
       )}
       <Template

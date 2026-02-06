@@ -86,6 +86,12 @@ export default async function sitemap(props: {
         changeFrequency: "yearly",
         priority: 0.3,
       },
+      {
+        url: `${baseUrl}/explore`,
+        lastModified: new Date(),
+        changeFrequency: "daily",
+        priority: 0.9,
+      },
     );
   }
 

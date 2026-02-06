@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import { LoginButton } from "@/components/auth/LoginButton";
 import { FileDropzone } from "@/components/FileDropzone";
@@ -6,11 +7,53 @@ import { ExamplesSection } from "@/components/home/ExamplesSection";
 import { ScrollToTopButton } from "@/components/home/ScrollToTopButton";
 import { Logo } from "@/components/Logo";
 import { ReferralCapture } from "@/components/ReferralCapture";
+import { siteConfig } from "@/lib/config/site";
 import { DEMO_PROFILES } from "@/lib/templates/demo-data";
+import { generateHomepageJsonLd, serializeJsonLd } from "@/lib/utils/json-ld";
+
+const pageTitle = `${siteConfig.fullName} — ${siteConfig.tagline}`;
+const pageDescription =
+  "Drop your PDF résumé and get a shareable website in seconds. Free, fast, and AI-powered.";
+
+export const metadata: Metadata = {
+  title: pageTitle,
+  description: pageDescription,
+  alternates: { canonical: siteConfig.url },
+  openGraph: {
+    title: pageTitle,
+    description: pageDescription,
+    type: "website",
+    url: siteConfig.url,
+    siteName: siteConfig.fullName,
+    images: [
+      {
+        url: `${siteConfig.url}/api/og/home`,
+        width: 1200,
+        height: 630,
+        alt: siteConfig.fullName,
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: pageTitle,
+    description: "Drop your PDF résumé and get a shareable website in seconds.",
+    images: [`${siteConfig.url}/api/og/home`],
+  },
+};
 
 export default function Home() {
+  const homepageJsonLd = generateHomepageJsonLd();
   return (
     <>
+      {homepageJsonLd.map((schema, i) => (
+        <script
+          key={`homepage-jsonld-${i}`}
+          type="application/ld+json"
+          // biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD from hardcoded siteConfig, serializeJsonLd escapes XSS vectors
+          dangerouslySetInnerHTML={{ __html: serializeJsonLd(schema) }}
+        />
+      ))}
       {/* Capture referral handle from ?ref= parameter */}
       <Suspense fallback={null}>
         <ReferralCapture />

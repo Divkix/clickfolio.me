@@ -4,9 +4,22 @@ import { Footer } from "@/components/Footer";
 import { Logo } from "@/components/Logo";
 import { siteConfig } from "@/lib/config/site";
 
+const termsTitle = `Terms of Service - ${siteConfig.fullName}`;
+const termsDescription = `Terms of Service for ${siteConfig.fullName}. Read our terms and conditions for using the service.`;
+
 export const metadata: Metadata = {
-  title: `Terms of Service - ${siteConfig.fullName}`,
-  description: `Terms of Service for ${siteConfig.fullName}. Read our terms and conditions for using the service.`,
+  title: termsTitle,
+  description: termsDescription,
+  openGraph: {
+    title: termsTitle,
+    description: termsDescription,
+    siteName: siteConfig.fullName,
+  },
+  twitter: {
+    card: "summary",
+    title: termsTitle,
+    description: termsDescription,
+  },
 };
 
 export default function TermsOfServicePage() {

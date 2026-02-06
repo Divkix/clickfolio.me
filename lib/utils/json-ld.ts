@@ -4,6 +4,7 @@
  * to enable rich snippets in Google/Bing search results.
  */
 
+import { siteConfig } from "@/lib/config/site";
 import type { ResumeContent } from "@/lib/types/database";
 
 // =============================================================================
@@ -269,10 +270,71 @@ export function generateResumeJsonLd(
  * Also escapes U+2028 (LINE SEPARATOR) and U+2029 (PARAGRAPH SEPARATOR)
  * which are valid JSON but can break JavaScript parsing in some contexts.
  */
-export function serializeJsonLd(jsonLd: JsonLdProfilePage): string {
+export function serializeJsonLd(
+  jsonLd: JsonLdProfilePage | Record<string, unknown> | Record<string, unknown>[],
+): string {
   return JSON.stringify(jsonLd)
     .replace(/</g, "\\u003c")
     .replace(/>/g, "\\u003e")
     .replace(/\u2028/g, "\\u2028")
     .replace(/\u2029/g, "\\u2029");
+}
+
+// =============================================================================
+// Homepage & Breadcrumb Generators
+// =============================================================================
+
+/**
+ * Generates JSON-LD for the homepage: WebSite + Organization schemas.
+ */
+export function generateHomepageJsonLd(): Record<string, unknown>[] {
+  return [
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      name: siteConfig.fullName,
+      url: siteConfig.url,
+      description: siteConfig.tagline,
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      name: siteConfig.fullName,
+      url: siteConfig.url,
+      logo: `${siteConfig.url}/icon-512.png`,
+    },
+  ];
+}
+
+/**
+ * Generates BreadcrumbList JSON-LD for profile pages: Home > Explore > @name
+ */
+export function generateBreadcrumbJsonLd(
+  handle: string,
+  displayName: string,
+): Record<string, unknown> {
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Home",
+        item: siteConfig.url,
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "Explore",
+        item: `${siteConfig.url}/explore`,
+      },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: displayName,
+        item: `${siteConfig.url}/@${handle}`,
+      },
+    ],
+  };
 }

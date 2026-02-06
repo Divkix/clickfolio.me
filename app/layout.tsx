@@ -16,6 +16,10 @@ export const metadata: Metadata = {
   title: `${siteConfig.fullName} - ${siteConfig.tagline}`,
   description:
     "Drop your PDF résumé and get a shareable website in seconds. Free, fast, and AI-powered.",
+  applicationName: siteConfig.fullName,
+  keywords: [...siteConfig.keywords],
+  authors: [{ name: siteConfig.fullName }],
+  creator: siteConfig.fullName,
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "48x48" },
@@ -28,6 +32,9 @@ export const metadata: Metadata = {
     other: [{ rel: "mask-icon", url: "/safari-pinned-tab.svg", color: "#D94E4E" }],
   },
   manifest: "/manifest.webmanifest",
+  openGraph: {
+    siteName: siteConfig.fullName,
+  },
   other: {
     "msapplication-TileColor": "#D94E4E",
     "msapplication-config": "/browserconfig.xml",

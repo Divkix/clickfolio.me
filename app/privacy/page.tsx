@@ -4,9 +4,22 @@ import { Footer } from "@/components/Footer";
 import { Logo } from "@/components/Logo";
 import { siteConfig } from "@/lib/config/site";
 
+const privacyTitle = `Privacy Policy - ${siteConfig.fullName}`;
+const privacyDescription = `Privacy Policy for ${siteConfig.fullName}. Learn how we collect, use, and protect your personal information.`;
+
 export const metadata: Metadata = {
-  title: `Privacy Policy - ${siteConfig.fullName}`,
-  description: `Privacy Policy for ${siteConfig.fullName}. Learn how we collect, use, and protect your personal information.`,
+  title: privacyTitle,
+  description: privacyDescription,
+  openGraph: {
+    title: privacyTitle,
+    description: privacyDescription,
+    siteName: siteConfig.fullName,
+  },
+  twitter: {
+    card: "summary",
+    title: privacyTitle,
+    description: privacyDescription,
+  },
 };
 
 export default function PrivacyPolicyPage() {

@@ -8,14 +8,25 @@ import { siteConfig } from "@/lib/config/site";
 import { getDb } from "@/lib/db";
 import { siteData, user } from "@/lib/db/schema";
 
+const exploreTitle = `Browse Professional Portfolios | ${siteConfig.fullName}`;
+const exploreDescription =
+  "Discover professionals in our community. Browse portfolios and connect with talented individuals.";
+
 export const metadata: Metadata = {
-  title: `Explore Professionals | ${siteConfig.fullName}`,
-  description:
-    "Discover professionals in our community. Browse portfolios and connect with talented individuals.",
+  title: exploreTitle,
+  description: exploreDescription,
+  alternates: {
+    canonical: `${siteConfig.url}/explore`,
+  },
   openGraph: {
-    title: `Explore Professionals | ${siteConfig.fullName}`,
-    description:
-      "Discover professionals in our community. Browse portfolios and connect with talented individuals.",
+    title: exploreTitle,
+    description: exploreDescription,
+    siteName: siteConfig.fullName,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: exploreTitle,
+    description: exploreDescription,
   },
 };
 

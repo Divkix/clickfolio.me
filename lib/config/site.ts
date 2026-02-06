@@ -21,4 +21,13 @@ export const siteConfig = {
   supportEmail: "support@clickfolio.me",
   /** Full URL with protocol */
   url: `https://${domain}`,
+  /** SEO keywords */
+  keywords: [
+    "resume website",
+    "online portfolio",
+    "PDF to website",
+    "AI resume parser",
+    "professional portfolio",
+    "clickfolio",
+  ],
 } as const;
