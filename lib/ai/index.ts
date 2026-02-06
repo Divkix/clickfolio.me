@@ -1,6 +1,6 @@
 import { parseWithAi } from "./ai-parser";
 import { extractPdfText } from "./pdf-extract";
-import { resumeSchema } from "./schema";
+import { type ResumeSchema, resumeSchema } from "./schema";
 import { transformAiOutput, transformAiResponse } from "./transform";
 
 export interface ParseResumeResult {
@@ -27,6 +27,24 @@ function truncateResumeText(text: string): string {
   const head = text.slice(0, RESUME_HEAD_CHARS);
   const tail = text.slice(-RESUME_TAIL_CHARS);
   return `${head}${RESUME_TRUNCATION_MARKER}${tail}`;
+}
+
+function validateParseResult(data: unknown): {
+  success: boolean;
+  data?: Record<string, unknown>;
+  errors?: string;
+} {
+  const transformed = transformAiResponse(data);
+  const withDefaults = transformed as Record<string, unknown>;
+  for (const key of ["education", "skills", "certifications", "projects"]) {
+    if (!Array.isArray(withDefaults[key])) withDefaults[key] = [];
+  }
+  const result = resumeSchema.safeParse(withDefaults);
+  if (result.success) {
+    return { success: true, data: result.data as Record<string, unknown> };
+  }
+  const errors = result.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("\n");
+  return { success: false, errors };
 }
 
 /**
@@ -78,18 +96,29 @@ export async function parseResumeWithAi(
       };
     }
 
-    // Step 3: Transform - lenient validation with XSS protection
-    const transformedData = transformAiResponse(parseResult.data);
+    // Step 3: Validate (transform → defaults → Zod)
+    let validation = validateParseResult(parseResult.data);
 
-    // Step 4: Default missing array fields for fallback path (no schema enforcement)
-    const withDefaults = transformedData as Record<string, unknown>;
-    for (const key of ["education", "skills", "certifications", "projects"]) {
-      if (!Array.isArray(withDefaults[key])) withDefaults[key] = [];
+    // Step 3b: Retry with error feedback if validation failed
+    if (!validation.success && validation.errors) {
+      console.warn("[ai-parse] Schema validation failed, retrying with error feedback", {
+        errors: validation.errors,
+      });
+
+      const retryResult = await parseWithAi(resumeText, env, undefined, {
+        previousOutput: JSON.stringify(parseResult.data),
+        errors: validation.errors,
+      });
+
+      if (retryResult.success && retryResult.data) {
+        validation = validateParseResult(retryResult.data);
+        if (validation.success) {
+          console.info("[ai-parse] Retry with error feedback succeeded");
+        }
+      }
     }
 
-    // Step 5: Validate against schema
-    const validationResult = resumeSchema.safeParse(withDefaults);
-    if (!validationResult.success) {
+    if (!validation.success) {
       return {
         success: false,
         parsedContent: "",
@@ -97,8 +126,8 @@ export async function parseResumeWithAi(
       };
     }
 
-    // Step 6: Final cleanup
-    const finalData = transformAiOutput(validationResult.data);
+    // Step 4: Final cleanup
+    const finalData = transformAiOutput(validation.data as ResumeSchema);
 
     return {
       success: true,

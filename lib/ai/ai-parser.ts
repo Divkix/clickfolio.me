@@ -6,6 +6,7 @@ const DEFAULT_AI_MODEL = "openai/gpt-oss-120b:nitro";
 /** OpenRouter provider routing: :nitro sorts by throughput, quantizations filter excludes fp4 */
 const OPENROUTER_PROVIDER_ROUTING = {
   openrouter: {
+    plugins: [{ id: "response-healing" }],
     provider: {
       quantizations: ["fp16", "bf16", "fp8"],
       allow_fallbacks: true,
@@ -96,6 +97,16 @@ Rules:
 - ALWAYS extract education, skills, certifications, and projects when present in the resume.
 - Return empty arrays [] only for sections truly absent from the resume text.
 - Do not add fields not in the schema.`;
+
+const RETRY_SYSTEM_PROMPT = `Fix the following JSON to resolve validation errors. Return ONLY the corrected JSON.
+
+Rules:
+- Keep all existing data intact, only fix the errors listed below
+- Required fields: full_name (string), headline (string), summary (string), contact.email (string), experience (non-empty array)
+- Each experience entry needs: title, company, start_date, description
+- Skills must be an array of { category: string, items: string[] }, not an object
+- If a required field is missing, add it with a reasonable default value
+- Do not add markdown, commentary, or code fences`;
 
 export interface AiParseResult {
   success: boolean;
@@ -522,6 +533,7 @@ export async function parseWithAi(
   text: string,
   env: Partial<CloudflareEnv> & AiEnvVars,
   model?: string,
+  retryContext?: { previousOutput: string; errors: string },
 ): Promise<AiParseResult> {
   try {
     const modelId = model || env.AI_MODEL || DEFAULT_AI_MODEL;
@@ -532,6 +544,33 @@ export async function parseWithAi(
     // The model returns JSON guided by SYSTEM_PROMPT's schema example, then we
     // extract, repair, normalize keys, transform types, and Zod-validate in index.ts.
     const provider = createAiProvider(env);
+
+    // When retrying with error feedback, use a focused prompt with the previous output
+    if (retryContext) {
+      const retrySystem = `${RETRY_SYSTEM_PROMPT}\n\nValidation errors found:\n${retryContext.errors}`;
+
+      const { text: responseText } = await generateText({
+        model: provider(modelId),
+        system: retrySystem,
+        prompt: retryContext.previousOutput,
+        temperature: 0,
+        providerOptions: OPENROUTER_PROVIDER_ROUTING,
+      });
+
+      const jsonStr = extractJson(responseText);
+      const { data: parsed } = await parseJsonWithRepair(jsonStr);
+      if (!parsed) {
+        return {
+          success: false,
+          data: null,
+          error: `Retry failed to produce valid JSON: ${jsonStr.slice(0, 200)}...`,
+        };
+      }
+
+      const normalized = normalizeAiKeys(parsed);
+      const transformed = transformToSchema(normalized);
+      return { success: true, data: transformed };
+    }
 
     const runFallbackParse = async (system: string, attemptLabel: string) => {
       const { text: responseText } = await generateText({
