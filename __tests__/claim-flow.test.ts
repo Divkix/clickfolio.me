@@ -174,7 +174,7 @@ function authedAs(userId: string) {
       headline: null,
       privacySettings: "{}",
       onboardingCompleted: true,
-      role: "mid_level_professional",
+      role: "mid_level",
     },
     db: mockDb as never,
     captureBookmark: mockCaptureBookmark,

@@ -190,6 +190,10 @@ export async function getAuth() {
           type: "string",
           required: false,
         },
+        roleSource: {
+          type: "string",
+          required: false,
+        },
       },
     },
     session: {

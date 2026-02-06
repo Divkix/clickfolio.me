@@ -8,6 +8,7 @@ export interface ParseResumeResult {
   success: boolean;
   parsedContent: string;
   error?: string;
+  professionalLevel?: string;
 }
 
 const MAX_RESUME_TEXT_CHARS = 60000;
@@ -166,9 +167,16 @@ export async function parseResumeWithAi(
     // Step 4: Final cleanup
     const finalData = transformAiOutput(validation.data as ResumeSchema);
 
+    // Extract professional_level before serializing — it goes to user.role, not siteData.content
+    const professionalLevel = (finalData as Record<string, unknown>).professional_level as
+      | string
+      | undefined;
+    delete (finalData as Record<string, unknown>).professional_level;
+
     return {
       success: true,
       parsedContent: JSON.stringify(finalData),
+      professionalLevel,
     };
   } catch (error) {
     return {

@@ -46,3 +46,15 @@ export const handleUpdateSchema = z.object({
 // Type exports for TypeScript inference
 export type PrivacySettings = z.infer<typeof privacySettingsSchema>;
 export type HandleUpdate = z.infer<typeof handleUpdateSchema>;
+
+export const ROLE_OPTIONS = [
+  { value: "student", label: "Student" },
+  { value: "entry_level", label: "Entry Level" },
+  { value: "mid_level", label: "Mid Level" },
+  { value: "senior", label: "Senior" },
+  { value: "executive", label: "Executive" },
+] as const;
+
+export const roleUpdateSchema = z.object({
+  role: z.enum(["student", "entry_level", "mid_level", "senior", "executive"]),
+});

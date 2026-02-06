@@ -1,11 +1,13 @@
 import { and, eq, isNotNull } from "drizzle-orm";
 import { buildSiteDataUpsert } from "../data/site-data-upsert";
-import { resumes } from "../db/schema";
+import { resumes, user } from "../db/schema";
 import { getSessionDbForWebhook } from "../db/session";
 import { getR2Binding, R2 } from "../r2";
 import { classifyQueueError } from "./errors";
 import { notifyStatusChange, notifyStatusChangeBatch } from "./notify-status";
 import type { QueueMessage, ResumeParseMessage } from "./types";
+
+type UserRole = (typeof user.role.enumValues)[number];
 
 /**
  * Map raw error messages to user-friendly messages.
@@ -183,6 +185,7 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
 
   // parsedContent is produced by JSON.stringify() in parseResumeWithAi — guaranteed valid JSON
   const parsedContent = parseResult.parsedContent;
+  const professionalLevel = parseResult.professionalLevel as UserRole | undefined;
 
   const now = new Date().toISOString();
 
@@ -203,6 +206,18 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
       .where(eq(resumes.id, message.resumeId)),
     buildSiteDataUpsert(db, message.userId, message.resumeId, parsedContent, now),
   ]);
+
+  // Write AI-inferred professional level to user.role separately from the
+  // critical resume+siteData batch. If this fails, the resume is still
+  // completed and the user can set their role manually via settings.
+  // Intentionally overwrites user-set roles on re-upload — the new resume
+  // may reflect a different career stage.
+  if (professionalLevel) {
+    await db
+      .update(user)
+      .set({ role: professionalLevel, roleSource: "ai", updatedAt: now })
+      .where(eq(user.id, message.userId));
+  }
 
   await notifyStatusChange({ resumeId: message.resumeId, status: "completed", env });
 
@@ -233,6 +248,17 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
         buildSiteDataUpsert(db, w.userId as string, w.id as string, parsedContent, now),
       ),
     ]);
+
+    // Set AI role for waiting users (same fileHash = same resume content).
+    // Separate from batch to avoid Drizzle heterogeneous table type errors.
+    if (professionalLevel) {
+      for (const w of waitingResumes) {
+        await db
+          .update(user)
+          .set({ role: professionalLevel, roleSource: "ai", updatedAt: now })
+          .where(eq(user.id, w.userId as string));
+      }
+    }
   }
 
   // Notify waiting resumes via WebSocket

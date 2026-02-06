@@ -40,6 +40,7 @@ export async function GET() {
         privacySettings: user.privacySettings,
         onboardingCompleted: user.onboardingCompleted,
         role: user.role,
+        roleSource: user.roleSource,
         isAdmin: user.isAdmin,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,

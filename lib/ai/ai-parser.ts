@@ -76,6 +76,7 @@ Rules:
 - Descriptions: preserve original wording. Do not embellish.
 - If bullet points exist, include them in highlights and summarize in description.
 - ALWAYS extract education, skills, certifications, and projects when present in the resume.
+- Classify professional_level based on experience years and title seniority. Omit if uncertain.
 - Return empty arrays [] only for sections truly absent from the resume text.`;
 
 /**
@@ -147,7 +148,8 @@ The JSON MUST use these exact snake_case keys and structure:
       "url": "",
       "image_url": ""
     }
-  ]
+  ],
+  "professional_level": "mid_level"
 }
 
 Rules:
@@ -160,6 +162,7 @@ Rules:
 - Skills MUST be an array of { category, items } (not an object).
 - ALWAYS extract education, skills, certifications, and projects when present in the resume.
 - Return empty arrays [] only for sections truly absent from the resume text.
+- Classify professional_level based on experience years and title seniority. Omit if uncertain.
 - Do not add fields not in the schema.`;
 
 const RETRY_SYSTEM_PROMPT = `Fix the following JSON to resolve validation errors. Return ONLY the corrected JSON.

@@ -7,6 +7,7 @@ import { RoleFilterSelect } from "@/components/explore/role-filter-select";
 import { siteConfig } from "@/lib/config/site";
 import { getDb } from "@/lib/db";
 import { siteData, user } from "@/lib/db/schema";
+import { ROLE_OPTIONS } from "@/lib/schemas/profile";
 
 const exploreTitle = `Browse Professional Portfolios | ${siteConfig.fullName}`;
 const exploreDescription =
@@ -114,16 +115,8 @@ export default async function ExplorePage({
       previewSkills: u.previewSkills ? (JSON.parse(u.previewSkills) as string[]) : null,
     }));
 
-  // Role options for filter
-  const roleOptions = [
-    { value: "", label: "All Roles" },
-    { value: "student", label: "Student" },
-    { value: "recent_graduate", label: "Recent Graduate" },
-    { value: "junior_professional", label: "Junior Professional" },
-    { value: "mid_level_professional", label: "Mid-Level Professional" },
-    { value: "senior_professional", label: "Senior Professional" },
-    { value: "freelancer", label: "Freelancer" },
-  ];
+  // Role options for filter (shared constant from profile schema)
+  const roleOptions = [{ value: "", label: "All Roles" }, ...ROLE_OPTIONS];
 
   return (
     <div className="min-h-screen bg-slate-50">

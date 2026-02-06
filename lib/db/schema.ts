@@ -27,15 +27,9 @@ export const user = sqliteTable(
       .notNull()
       .default(false),
     role: text("role", {
-      enum: [
-        "student",
-        "recent_graduate",
-        "junior_professional",
-        "mid_level_professional",
-        "senior_professional",
-        "freelancer",
-      ],
+      enum: ["student", "entry_level", "mid_level", "senior", "executive"],
     }),
+    roleSource: text("role_source", { enum: ["ai", "user"] }),
     // Referral tracking: stores user ID of referrer
     referredBy: text("referred_by"),
     // Pro flag: unlocks all themes
@@ -407,10 +401,7 @@ export type ResumeStatus =
   | "waiting_for_cache";
 
 // User role enum type
-export type UserRole =
-  | "student"
-  | "recent_graduate"
-  | "junior_professional"
-  | "mid_level_professional"
-  | "senior_professional"
-  | "freelancer";
+export type UserRole = "student" | "entry_level" | "mid_level" | "senior" | "executive";
+
+// User role source enum type
+export type UserRoleSource = "ai" | "user";

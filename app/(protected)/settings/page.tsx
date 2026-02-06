@@ -6,6 +6,7 @@ import { HandleForm } from "@/components/forms/HandleForm";
 import { PrivacySettingsForm } from "@/components/forms/PrivacySettings";
 import { DeleteAccountCard } from "@/components/settings/DeleteAccountCard";
 import { ResumeManagementCard } from "@/components/settings/ResumeManagementCard";
+import { RoleSelectorCard } from "@/components/settings/RoleSelectorCard";
 import { Separator } from "@/components/ui/separator";
 import { getServerSession } from "@/lib/auth/session";
 import { getDb } from "@/lib/db";
@@ -86,6 +87,8 @@ export default async function SettingsPage() {
         headline: true,
         image: true,
         privacySettings: true,
+        role: true,
+        roleSource: true,
       },
     }),
     db
@@ -149,6 +152,12 @@ export default async function SettingsPage() {
             latestResumeId={latestResume?.id as string}
           />
         </div>
+
+        {/* Professional Level */}
+        <RoleSelectorCard
+          currentRole={profile.role ?? null}
+          roleSource={profile.roleSource ?? null}
+        />
 
         {/* Full width: Privacy horizontal */}
         <PrivacySettingsForm initialSettings={privacySettings} userHandle={profile.handle} />
