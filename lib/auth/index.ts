@@ -234,27 +234,26 @@ export async function getAuth() {
     emailAndPassword: {
       enabled: true,
       sendResetPassword: async ({ user, url }) => {
-        // Fire-and-forget to prevent timing attacks
-        // Don't await - response time should be consistent regardless of email existence
-        sendPasswordResetEmail({
+        const result = await sendPasswordResetEmail({
           email: user.email,
           resetUrl: url,
           userName: user.name,
-        }).catch((err) => {
-          console.error("[AUTH] Failed to send reset email:", err);
         });
+        if (!result.success) {
+          console.error("[AUTH] Failed to send reset email:", result.error);
+        }
       },
     },
     emailVerification: {
       sendVerificationEmail: async ({ user, url }) => {
-        // Fire-and-forget to prevent timing attacks
-        sendVerificationEmail({
+        const result = await sendVerificationEmail({
           email: user.email,
           verificationUrl: url,
           userName: user.name,
-        }).catch((err) => {
-          console.error("[AUTH] Failed to send verification email:", err);
         });
+        if (!result.success) {
+          console.error("[AUTH] Failed to send verification email:", result.error);
+        }
       },
       sendOnSignUp: true,
       autoSignInAfterVerification: true,
