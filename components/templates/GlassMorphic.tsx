@@ -2,7 +2,6 @@
 
 import {
   ArrowUpRight,
-  Award,
   Briefcase,
   ExternalLink,
   GithubIcon,
@@ -13,11 +12,12 @@ import {
   Mail,
   MapPin,
   Phone,
+  Sparkles,
   User,
   Zap,
 } from "lucide-react";
 import type React from "react";
-import { useMemo } from "react";
+import { useMemo, useRef, useState } from "react";
 import { ShareBar } from "@/components/ShareBar";
 import { type ContactLinkType, getContactLinks } from "@/lib/templates/contact-links";
 import {
@@ -30,8 +30,10 @@ import {
 import type { Project } from "@/lib/types/database";
 import type { TemplateProps } from "@/lib/types/template";
 
+// --- Configuration & Assets ---
+
 const FONT_URL =
-  "https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&family=IBM+Plex+Sans:wght@300;400;500&display=swap";
+  "https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700;800&family=JetBrains+Mono:wght@400;500&display=swap";
 
 const glassIconMap: Partial<
   Record<ContactLinkType, React.ComponentType<{ size: number; className?: string }>>
@@ -44,18 +46,90 @@ const glassIconMap: Partial<
 };
 
 const NAV_SECTIONS = [
-  { id: "about", label: "About", icon: User },
-  { id: "experience", label: "Experience", icon: Briefcase },
-  { id: "skills", label: "Skills", icon: Zap },
-  { id: "projects", label: "Projects", icon: Layers },
+  { id: "about", label: "Overview", icon: User },
+  { id: "experience", label: "Career", icon: Briefcase },
+  { id: "projects", label: "Works", icon: Layers },
+  { id: "skills", label: "Stack", icon: Zap },
   { id: "education", label: "Education", icon: GraduationCap },
-  { id: "contact", label: "Contact", icon: Mail },
 ] as const;
+
+// --- Components ---
+
+/**
+ * SpotlightCard
+ * A card that tracks mouse movement to create a glowing border/background effect
+ */
+const SpotlightCard = ({
+  children,
+  className = "",
+  spotlightColor = "rgba(255, 255, 255, 0.15)",
+}: {
+  children: React.ReactNode;
+  className?: string;
+  spotlightColor?: string;
+}) => {
+  const divRef = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [opacity, setOpacity] = useState(0);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!divRef.current) return;
+    const rect = divRef.current.getBoundingClientRect();
+    setPosition({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+  };
+
+  const handleMouseEnter = () => setOpacity(1);
+  const handleMouseLeave = () => setOpacity(0);
+
+  return (
+    <div
+      ref={divRef}
+      onMouseMove={handleMouseMove}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      className={`relative rounded-3xl overflow-hidden border border-white/[0.08] bg-[#0A0A0A]/40 backdrop-blur-2xl transition-colors duration-300 ${className}`}
+    >
+      <div
+        className="pointer-events-none absolute -inset-px opacity-0 transition duration-300"
+        style={{
+          opacity,
+          background: `radial-gradient(600px circle at ${position.x}px ${position.y}px, ${spotlightColor}, transparent 40%)`,
+        }}
+      />
+      <div className="relative h-full">{children}</div>
+    </div>
+  );
+};
+
+const SectionHeading = ({
+  icon: Icon,
+  title,
+  subtitle,
+}: {
+  icon: any;
+  title: string;
+  subtitle?: string;
+}) => (
+  <div className="flex items-end gap-4 mb-10 pb-4 border-b border-white/[0.05]">
+    <div className="p-3 rounded-2xl bg-white/[0.03] border border-white/[0.08] text-[#D8B4FE]">
+      <Icon size={24} strokeWidth={1.5} aria-hidden="true" />
+    </div>
+    <div>
+      <h2 className="text-3xl md:text-4xl font-display-gm font-bold text-white tracking-tight">
+        {title}
+      </h2>
+      {subtitle && <p className="text-sm font-mono-gm text-white/40 mt-1">{subtitle}</p>}
+    </div>
+  </div>
+);
+
+// --- Main Template ---
 
 const GlassMorphic: React.FC<TemplateProps> = ({ content, profile }) => {
   const flatSkills = content.skills ? flattenSkills(content.skills) : [];
   const contactLinks = getContactLinks(content.contact);
 
+  // Memoized Nav Logic
   const availableNavSections = useMemo(
     () =>
       NAV_SECTIONS.filter((section) => {
@@ -64,17 +138,15 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content, profile }) => {
             return true;
           case "experience":
             return content.experience && content.experience.length > 0;
-          case "skills":
-            return flatSkills.length > 0;
           case "projects":
             return content.projects && content.projects.length > 0;
+          case "skills":
+            return flatSkills.length > 0;
           case "education":
             return (
               (content.education && content.education.length > 0) ||
               (content.certifications && content.certifications.length > 0)
             );
-          case "contact":
-            return !!content.contact.email;
           default:
             return false;
         }
@@ -84,609 +156,477 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content, profile }) => {
       content.projects,
       content.education,
       content.certifications,
-      content.contact.email,
       flatSkills.length,
     ],
   );
 
   return (
     <>
-      {/* Font preloading */}
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       <link href={FONT_URL} rel="stylesheet" />
 
       <style>{`
-        .font-display-gm { font-family: 'Outfit', sans-serif; }
-        .font-body-gm { font-family: 'IBM Plex Sans', sans-serif; }
-
-        .scrollbar-hide {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
+        :root {
+          --glass-border: rgba(255, 255, 255, 0.08);
+          --glass-surface: rgba(20, 20, 20, 0.6);
+          --primary-glow: #A78BFA;
+          --secondary-glow: #2DD4BF;
         }
-        .scrollbar-hide::-webkit-scrollbar {
-          display: none;
+        
+        .font-display-gm { font-family: 'Outfit', sans-serif; }
+        .font-mono-gm { font-family: 'JetBrains Mono', monospace; }
+
+        html { scroll-behavior: smooth; }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #050505; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #555; }
+
+        /* Animations */
+        @keyframes blob {
+          0% { transform: translate(0px, 0px) scale(1); }
+          33% { transform: translate(30px, -50px) scale(1.1); }
+          66% { transform: translate(-20px, 20px) scale(0.9); }
+          100% { transform: translate(0px, 0px) scale(1); }
+        }
+        .animate-blob {
+          animation: blob 10s infinite;
+        }
+        .animation-delay-2000 { animation-delay: 2s; }
+        .animation-delay-4000 { animation-delay: 4s; }
+
+        @media (prefers-reduced-motion: reduce) {
+          .animate-blob { animation: none; }
+          .animate-ping { animation: none; }
+          .animate-pulse { animation: none; }
+        }
+
+        .text-gradient {
+          background: linear-gradient(135deg, #fff 0%, #a5a5a5 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+        }
+        
+        .text-gradient-purple {
+          background: linear-gradient(135deg, #E879F9 0%, #A78BFA 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
         }
       `}</style>
 
-      <div
-        className="min-h-screen font-body-gm text-[#CBD5E1] relative overflow-x-hidden selection:bg-[#A78BFA]/30 selection:text-white"
-        style={{ backgroundColor: "#0F172A" }}
-      >
-        {/* Static gradient mesh background */}
-        <div className="fixed inset-0 z-0 overflow-hidden" aria-hidden="true">
-          {/* Violet-tinted radial — top-left */}
-          <div
-            className="absolute top-[-10%] left-[-5%] w-[600px] h-[600px]"
-            style={{
-              background: "radial-gradient(circle, rgba(167,139,250,0.12) 0%, transparent 70%)",
-              filter: "blur(120px)",
-            }}
-          />
-          {/* Amber-tinted radial — bottom-right */}
-          <div
-            className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px]"
-            style={{
-              background: "radial-gradient(circle, rgba(245,158,11,0.08) 0%, transparent 70%)",
-              filter: "blur(100px)",
-            }}
-          />
-          {/* Subtle violet center wash */}
-          <div
-            className="absolute top-[50%] left-[50%] -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px]"
-            style={{
-              background: "radial-gradient(circle, rgba(167,139,250,0.05) 0%, transparent 60%)",
-              filter: "blur(80px)",
-            }}
-          />
+      <div className="min-h-screen bg-[#030303] text-slate-300 relative selection:bg-[#A78BFA]/30 selection:text-white font-display-gm overflow-x-hidden">
+        {/* --- Background Ambient Layer --- */}
+        <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-0 left-1/4 w-[50vw] h-[50vw] bg-[#A78BFA]/20 rounded-full mix-blend-screen filter blur-[100px] opacity-20 animate-blob" />
+          <div className="absolute top-0 right-1/4 w-[50vw] h-[50vw] bg-[#2DD4BF]/10 rounded-full mix-blend-screen filter blur-[100px] opacity-20 animate-blob animation-delay-2000" />
+          <div className="absolute -bottom-32 left-1/3 w-[60vw] h-[60vw] bg-[#F472B6]/10 rounded-full mix-blend-screen filter blur-[120px] opacity-20 animate-blob animation-delay-4000" />
 
-          {/* Grain overlay */}
+          {/* Noise Overlay */}
           <div
-            className="absolute inset-0 opacity-[0.03] pointer-events-none"
+            className="absolute inset-0 opacity-[0.04]"
             style={{
-              backgroundImage:
-                "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E\")",
+              backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
             }}
           />
         </div>
 
-        {/* Sticky horizontal pill navigation — desktop */}
-        <nav
-          aria-label="Section navigation"
-          className="sticky top-0 z-50 hidden md:flex justify-center py-4 backdrop-blur-xl"
-          style={{ backgroundColor: "rgba(15,23,42,0.8)" }}
-        >
-          <div className="flex items-center gap-2">
+        {/* --- Floating Navigation --- */}
+        <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
+          <div className="flex items-center gap-1 p-1.5 rounded-full bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] shadow-2xl shadow-black/50">
             {availableNavSections.map((section) => {
               const Icon = section.icon;
               return (
                 <a
                   key={section.id}
                   href={`#${section.id}`}
-                  className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.06] border border-white/[0.08] text-[#CBD5E1]/60 hover:text-[#A78BFA] hover:bg-[#A78BFA]/10 hover:border-[#A78BFA]/30 transition-colors duration-200"
+                  className="group relative flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-full hover:bg-white/[0.1] transition-all duration-300"
+                  aria-label={section.label}
                 >
-                  <Icon size={14} className="shrink-0" aria-hidden="true" />
-                  <span className="text-xs font-display-gm font-semibold">{section.label}</span>
-                </a>
-              );
-            })}
-          </div>
-        </nav>
-
-        {/* Bottom bar navigation — mobile */}
-        <nav
-          aria-label="Section navigation"
-          className="fixed bottom-0 left-0 right-0 z-50 md:hidden backdrop-blur-xl border-t border-white/[0.08] pb-[env(safe-area-inset-bottom)]"
-          style={{ backgroundColor: "rgba(15,23,42,0.9)" }}
-        >
-          <div className="flex items-center justify-around py-2 px-1">
-            {availableNavSections.slice(0, 5).map((section) => {
-              const Icon = section.icon;
-              return (
-                <a
-                  key={section.id}
-                  href={`#${section.id}`}
-                  className="flex flex-col items-center gap-0.5 px-2 py-1.5 text-[#CBD5E1]/50 hover:text-[#A78BFA] transition-colors"
-                >
-                  <Icon size={18} aria-hidden="true" />
-                  <span className="text-[9px] font-display-gm">{section.label}</span>
-                </a>
-              );
-            })}
-          </div>
-        </nav>
-
-        {/* Main content area */}
-        <div className="relative z-10 max-w-4xl mx-auto px-6 py-12 md:py-20 pb-24 md:pb-20">
-          <main className="space-y-6">
-            {/* Hero Section */}
-            <section
-              id="about"
-              className="rounded-3xl backdrop-blur-xl border border-white/[0.10] p-8 md:p-12"
-              style={{ backgroundColor: "rgba(255,255,255,0.06)" }}
-            >
-              <div className="flex flex-col md:flex-row gap-8 items-start">
-                {/* Avatar */}
-                {profile.avatar_url ? (
-                  <img
-                    src={profile.avatar_url}
-                    alt={`${content.full_name}'s avatar`}
-                    className="w-24 h-24 rounded-2xl object-cover border border-white/[0.12] shrink-0"
+                  <Icon
+                    size={20}
+                    className="text-white/50 group-hover:text-white transition-colors"
+                    strokeWidth={1.5}
+                    aria-hidden="true"
                   />
-                ) : (
-                  <div
-                    className="w-24 h-24 rounded-2xl flex items-center justify-center border border-white/[0.12] shrink-0 font-display-gm text-2xl font-bold"
-                    style={{
-                      backgroundColor: "rgba(167,139,250,0.1)",
-                      color: "#A78BFA",
-                    }}
-                  >
-                    {getInitials(content.full_name)}
-                  </div>
-                )}
+                  {/* Tooltip */}
+                  <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-2 py-1 bg-[#1a1a1a] border border-white/10 text-[10px] font-mono-gm text-white rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+                    {section.label}
+                  </span>
+                </a>
+              );
+            })}
+            {content.contact.email && (
+              <a
+                href={`mailto:${content.contact.email}`}
+                className="flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-full bg-white text-black hover:scale-110 transition-transform duration-300 ml-2"
+                aria-label="Contact"
+              >
+                <Mail size={18} strokeWidth={2.5} aria-hidden="true" />
+              </a>
+            )}
+          </div>
+        </nav>
 
-                <div className="flex-1 space-y-6">
-                  {/* Status badge */}
-                  <div
-                    className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#A78BFA]/20"
-                    style={{ backgroundColor: "rgba(167,139,250,0.08)" }}
-                  >
-                    <span className="relative flex h-2 w-2">
-                      <span
-                        className="motion-safe:animate-ping absolute inline-flex h-full w-full rounded-full opacity-75"
-                        style={{ backgroundColor: "#A78BFA" }}
-                      />
-                      <span
-                        className="relative inline-flex rounded-full h-2 w-2"
-                        style={{ backgroundColor: "#A78BFA" }}
-                      />
-                    </span>
-                    <span
-                      className="text-[10px] font-display-gm font-semibold uppercase tracking-widest"
-                      style={{ color: "#A78BFA" }}
-                    >
-                      Available for work
-                    </span>
-                  </div>
+        {/* --- Main Content --- */}
+        <div className="relative z-10 max-w-5xl mx-auto px-6 py-20 md:py-32 space-y-32">
+          {/* HERO SECTION */}
+          <section id="about" className="relative">
+            <div className="flex flex-col gap-8">
+              {/* Status Indicator */}
+              <div className="inline-flex items-center gap-2 self-start px-3 py-1 rounded-full border border-[#A78BFA]/30 bg-[#A78BFA]/5 backdrop-blur-md">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#A78BFA] opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-[#A78BFA]"></span>
+                </span>
+                <span className="text-xs font-mono-gm text-[#D8B4FE]">ONLINE_V2.0</span>
+              </div>
 
-                  <div className="space-y-3">
-                    <h1
-                      className="text-4xl md:text-6xl font-display-gm font-bold tracking-tight leading-[1.1]"
-                      style={{ color: "#F1F5F9" }}
-                    >
-                      {content.full_name}
-                    </h1>
-                    {content.headline && (
-                      <p
-                        className="text-lg font-display-gm font-semibold"
-                        style={{ color: "#A78BFA" }}
-                      >
-                        {content.headline}
-                      </p>
+              <div className="grid md:grid-cols-[1fr_auto] gap-8 items-end">
+                <div className="space-y-2">
+                  <h1 className="text-6xl md:text-8xl lg:text-9xl font-extrabold tracking-tighter text-white leading-[0.9]">
+                    <span className="block">{content.full_name.split(" ")[0]}</span>
+                    <span className="block text-white/20">
+                      {content.full_name.split(" ").slice(1).join(" ")}
+                    </span>
+                  </h1>
+                  <h2 className="text-xl md:text-2xl font-light text-gradient-purple tracking-wide">
+                    {content.headline}
+                  </h2>
+                </div>
+
+                {/* Abstract Avatar / Photo */}
+                <div className="relative w-32 h-32 md:w-48 md:h-48 rounded-full border-2 border-white/10 p-1">
+                  <div className="w-full h-full rounded-full overflow-hidden relative group">
+                    {profile.avatar_url ? (
+                      <img
+                        src={profile.avatar_url}
+                        alt="Profile"
+                        className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-[#111] flex items-center justify-center text-4xl font-bold text-[#333]">
+                        {getInitials(content.full_name)}
+                      </div>
                     )}
-                    <p className="text-base font-body-gm font-light leading-relaxed max-w-2xl text-[#CBD5E1]">
+                    {/* Scanline overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/5 to-transparent bg-[length:100%_4px] pointer-events-none" />
+                  </div>
+                </div>
+              </div>
+
+              <SpotlightCard className="p-8 md:p-10 mt-8">
+                <div className="grid md:grid-cols-[2fr_1fr] gap-10">
+                  <div className="space-y-6">
+                    <p className="text-lg md:text-xl font-light leading-relaxed text-slate-300">
                       {content.summary}
                     </p>
-                  </div>
 
-                  {/* Location */}
-                  {content.contact.location && (
-                    <div className="flex items-center gap-2 text-[#CBD5E1]/60">
-                      <MapPin size={14} aria-hidden="true" />
-                      <span className="text-sm font-body-gm">{content.contact.location}</span>
-                    </div>
-                  )}
+                    {/* Socials */}
+                    <div className="flex flex-wrap gap-3 pt-2">
+                      {contactLinks
+                        .filter((l) => l.type !== "location")
+                        .map((link) => {
+                          const Icon = glassIconMap[link.type] || ExternalLink;
+                          const isBranded = link.type === "behance" || link.type === "dribbble";
+                          const brandColor =
+                            link.type === "behance"
+                              ? "#1769FF"
+                              : link.type === "dribbble"
+                                ? "#EA4C89"
+                                : undefined;
+                          const brandText =
+                            link.type === "behance" ? "Be" : link.type === "dribbble" ? "Dr" : null;
 
-                  {/* Contact links */}
-                  <div className="flex flex-wrap gap-3">
-                    {contactLinks
-                      .filter((link) => link.type !== "location")
-                      .map((link) => {
-                        const IconComponent = glassIconMap[link.type];
-                        const isBehance = link.type === "behance";
-                        const isDribbble = link.type === "dribbble";
-
-                        if (isBehance || isDribbble) {
-                          const color = isBehance ? "#1769FF" : "#EA4C89";
-                          const text = isBehance ? "Be" : "Dr";
                           return (
                             <a
                               key={link.type}
                               href={link.href}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="group flex items-center gap-2 px-4 py-2 backdrop-blur-sm border rounded-xl transition-colors duration-300"
-                              style={{
-                                backgroundColor: `${color}10`,
-                                borderColor: `${color}33`,
-                              }}
+                              target={link.isExternal ? "_blank" : undefined}
+                              rel={link.isExternal ? "noopener noreferrer" : undefined}
+                              aria-label={link.label}
+                              className="group flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 transition-all"
                             >
-                              <span className="text-sm font-bold" style={{ color }}>
-                                {text}
-                              </span>
-                              <span className="text-sm font-medium text-[#CBD5E1]/60 group-hover:text-white transition-colors">
+                              {isBranded ? (
+                                <span
+                                  className="text-xs font-bold font-mono-gm"
+                                  style={{ color: brandColor }}
+                                >
+                                  {brandText}
+                                </span>
+                              ) : (
+                                <Icon
+                                  size={14}
+                                  className="text-white/60 group-hover:text-white"
+                                  aria-hidden="true"
+                                />
+                              )}
+                              <span className="text-sm font-mono-gm text-white/60 group-hover:text-white capitalize">
                                 {link.label}
                               </span>
                             </a>
                           );
-                        }
-
-                        return (
-                          <a
-                            key={link.type}
-                            href={link.href}
-                            target={link.isExternal ? "_blank" : undefined}
-                            rel="noopener noreferrer"
-                            className="group flex items-center gap-2 px-4 py-2 bg-white/[0.08] hover:bg-white/[0.12] border border-white/[0.12] hover:border-[#A78BFA]/30 rounded-xl backdrop-blur-sm transition-colors duration-300"
-                          >
-                            {IconComponent && (
-                              <IconComponent
-                                size={16}
-                                className="text-[#CBD5E1]/60 group-hover:text-[#A78BFA] transition-colors"
-                                aria-hidden="true"
-                              />
-                            )}
-                            <span className="text-sm font-medium text-[#CBD5E1]/60 group-hover:text-white transition-colors">
-                              {link.label}
-                            </span>
-                          </a>
-                        );
-                      })}
+                        })}
+                    </div>
                   </div>
 
-                  {/* Share bar */}
-                  <div className="opacity-60 hover:opacity-100 transition-opacity">
-                    <ShareBar
-                      handle={profile.handle}
-                      title={`${content.full_name}'s Portfolio`}
-                      name={content.full_name}
-                      variant="glass-morphic"
-                    />
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            {/* Experience — vertical timeline */}
-            {content.experience && content.experience.length > 0 && (
-              <section
-                id="experience"
-                className="rounded-3xl backdrop-blur-xl border border-white/[0.10] p-8 md:p-12"
-                style={{ backgroundColor: "rgba(255,255,255,0.06)" }}
-              >
-                <h2
-                  className="text-2xl font-display-gm font-bold mb-8 flex items-center gap-3"
-                  style={{ color: "#F1F5F9" }}
-                >
-                  <Briefcase className="w-5 h-5" style={{ color: "#A78BFA" }} aria-hidden="true" />
-                  Experience
-                </h2>
-
-                <div className="border-l-2 border-[#A78BFA]/30 space-y-6 ml-2">
-                  {content.experience.map((job, index) => (
-                    <div key={index} className="relative pl-6">
-                      {/* Timeline dot */}
-                      <div
-                        className="absolute -left-[7px] top-2 w-3 h-3 rounded-full border-2"
-                        style={{
-                          backgroundColor: "#0F172A",
-                          borderColor: "#A78BFA",
-                        }}
-                        aria-hidden="true"
-                      />
-
-                      <div className="rounded-2xl bg-white/[0.05] border border-white/[0.08] backdrop-blur-md p-6 hover:border-[#A78BFA]/20 transition-colors duration-300">
-                        <div className="mb-3">
-                          <span
-                            className="text-[10px] font-display-gm font-semibold uppercase tracking-widest px-2 py-0.5 rounded-full border inline-block"
-                            style={{
-                              color: "#A78BFA",
-                              borderColor: "rgba(167,139,250,0.2)",
-                              backgroundColor: "rgba(167,139,250,0.08)",
-                            }}
-                          >
-                            {formatDateRange(job.start_date, job.end_date)}
-                          </span>
-                        </div>
-
-                        <h3
-                          className="text-lg font-display-gm font-bold mb-1"
-                          style={{ color: "#F1F5F9" }}
-                        >
-                          {job.title}
-                        </h3>
-                        <p
-                          className="text-sm font-body-gm font-medium mb-4"
-                          style={{ color: "#A78BFA", opacity: 0.7 }}
-                        >
-                          {job.company}
-                          {job.location && (
-                            <span className="text-[#CBD5E1]/40"> &middot; {job.location}</span>
-                          )}
-                        </p>
-
-                        {job.description && (
-                          <p className="text-sm font-body-gm font-light leading-relaxed text-[#CBD5E1]/70 mb-4">
-                            {job.description}
-                          </p>
-                        )}
-
-                        {job.highlights && job.highlights.length > 0 && (
-                          <ul className="space-y-1.5">
-                            {job.highlights.map((highlight, i) => (
-                              <li
-                                key={i}
-                                className="flex items-start gap-2 text-xs font-body-gm text-[#CBD5E1]/60"
-                              >
-                                <span
-                                  className="mt-1.5 w-1 h-1 rounded-full shrink-0"
-                                  style={{ backgroundColor: "#A78BFA" }}
-                                  aria-hidden="true"
-                                />
-                                <span>{highlight}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        )}
+                  {/* Meta Data */}
+                  <div className="hidden md:block border-l border-white/10 pl-10 space-y-6">
+                    <div>
+                      <h3 className="text-xs font-mono-gm text-white/30 uppercase tracking-widest mb-2">
+                        Location
+                      </h3>
+                      <div className="flex items-center gap-2 text-slate-300">
+                        <MapPin size={14} aria-hidden="true" />
+                        <span>{content.contact.location || "Remote"}</span>
                       </div>
                     </div>
-                  ))}
+                    <div>
+                      <h3 className="text-xs font-mono-gm text-white/30 uppercase tracking-widest mb-2">
+                        Status
+                      </h3>
+                      <div className="flex items-center gap-2 text-[#A78BFA]">
+                        <Sparkles size={14} aria-hidden="true" />
+                        <span>Available for work</span>
+                      </div>
+                    </div>
+                    <div className="pt-4 opacity-50 hover:opacity-100 transition-opacity">
+                      <ShareBar
+                        handle={profile.handle}
+                        title="Portfolio"
+                        name={content.full_name}
+                        variant="glass-morphic"
+                      />
+                    </div>
+                  </div>
                 </div>
-              </section>
-            )}
 
-            {/* Skills — uniform chip cloud */}
-            {flatSkills.length > 0 && (
-              <section
-                id="skills"
-                className="rounded-3xl backdrop-blur-xl border border-white/[0.10] p-8 md:p-12"
-                style={{ backgroundColor: "rgba(255,255,255,0.06)" }}
-              >
-                <h2
-                  className="text-2xl font-display-gm font-bold mb-8 flex items-center gap-3"
-                  style={{ color: "#F1F5F9" }}
-                >
-                  <Zap className="w-5 h-5" style={{ color: "#A78BFA" }} aria-hidden="true" />
-                  Skills &amp; Technologies
-                </h2>
+                {/* Mobile ShareBar */}
+                <div className="md:hidden mt-6 flex justify-center opacity-50 hover:opacity-100 transition-opacity">
+                  <ShareBar
+                    handle={profile.handle}
+                    title="Portfolio"
+                    name={content.full_name}
+                    variant="glass-morphic"
+                  />
+                </div>
+              </SpotlightCard>
+            </div>
+          </section>
 
-                <div className="flex flex-wrap gap-3 justify-center">
-                  {flatSkills.map((skill) => (
+          {/* EXPERIENCE SECTION */}
+          {content.experience && content.experience.length > 0 && (
+            <section id="experience">
+              <SectionHeading
+                icon={Briefcase}
+                title="Experience"
+                subtitle="Professional trajectory"
+              />
+
+              <div className="space-y-4">
+                {content.experience.map((job, index) => (
+                  <SpotlightCard key={index} className="group p-6 md:p-8">
+                    <div className="flex flex-col md:flex-row gap-4 md:items-start justify-between mb-4">
+                      <div>
+                        <h3 className="text-xl font-bold text-white group-hover:text-[#A78BFA] transition-colors">
+                          {job.title}
+                        </h3>
+                        <div className="flex items-center gap-2 text-slate-400 mt-1">
+                          <span className="font-medium">{job.company}</span>
+                          {job.location && (
+                            <>
+                              <span className="w-1 h-1 rounded-full bg-slate-600" />
+                              <span className="text-sm text-slate-500">{job.location}</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/5 self-start shrink-0">
+                        <span className="text-xs font-mono-gm text-slate-300">
+                          {formatDateRange(job.start_date, job.end_date)}
+                        </span>
+                      </div>
+                    </div>
+
+                    {job.description && (
+                      <p className="text-slate-400 font-light leading-relaxed mb-6 max-w-3xl">
+                        {job.description}
+                      </p>
+                    )}
+
+                    {job.highlights && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {job.highlights.map((item, i) => (
+                          <div key={i} className="flex items-start gap-3 text-sm text-slate-400/80">
+                            <span className="mt-1.5 w-1 h-1 rounded-full bg-[#A78BFA]/50 shrink-0" />
+                            <span>{item}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </SpotlightCard>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* PROJECTS SECTION */}
+          {content.projects && content.projects.length > 0 && (
+            <section id="projects">
+              <SectionHeading
+                icon={Layers}
+                title="Projects"
+                subtitle="Selected works & experiments"
+              />
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {content.projects.map((project: Project, i: number) => (
+                  <SpotlightCard key={i} className="group flex flex-col h-full">
+                    <div className="p-6 md:p-8 flex flex-col h-full">
+                      <div className="flex justify-between items-start mb-6">
+                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-white/10 to-transparent border border-white/5 flex items-center justify-center">
+                          <span className="font-display-gm font-bold text-xl text-white">
+                            {project.title.charAt(0)}
+                          </span>
+                        </div>
+                        {project.url && (
+                          <a
+                            href={project.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label={`View ${project.title}`}
+                            className="p-2 rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-all"
+                          >
+                            <ArrowUpRight size={20} aria-hidden="true" />
+                          </a>
+                        )}
+                      </div>
+
+                      <h3 className="text-xl font-bold text-white mb-2 group-hover:text-[#A78BFA] transition-colors">
+                        {project.title}
+                      </h3>
+                      {project.year && (
+                        <span className="text-xs font-mono-gm text-white/30">{project.year}</span>
+                      )}
+
+                      <p className="text-slate-400 font-light text-sm leading-relaxed mb-6 flex-grow">
+                        {project.description}
+                      </p>
+
+                      <div className="pt-6 border-t border-white/5">
+                        <div className="flex flex-wrap gap-2">
+                          {project.technologies?.slice(0, 4).map((tech) => (
+                            <span
+                              key={tech}
+                              className="px-2 py-1 text-[10px] font-mono-gm uppercase tracking-wider text-[#A78BFA] bg-[#A78BFA]/10 rounded border border-[#A78BFA]/20"
+                            >
+                              {tech}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </SpotlightCard>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* SKILLS SECTION - CLOUD */}
+          {flatSkills.length > 0 && (
+            <section id="skills">
+              <SectionHeading icon={Zap} title="Stack" subtitle="Tools & Technologies" />
+              <SpotlightCard className="p-8 md:p-12">
+                <div className="flex flex-wrap justify-center gap-3">
+                  {flatSkills.map((skill, i) => (
                     <span
-                      key={skill}
-                      className="bg-white/[0.06] border border-white/[0.10] px-4 py-2 rounded-full text-sm font-body-gm hover:bg-[#A78BFA]/10 hover:border-[#A78BFA]/30 hover:text-white transition-all duration-300 cursor-default"
+                      key={i}
+                      className="px-4 py-2 rounded-lg bg-white/[0.03] border border-white/[0.06] text-sm text-slate-300 hover:bg-white/[0.08] hover:text-white hover:border-[#A78BFA]/30 hover:shadow-[0_0_15px_rgba(167,139,250,0.3)] transition-all duration-300 cursor-default select-none"
                     >
                       {skill}
                     </span>
                   ))}
                 </div>
-              </section>
-            )}
+              </SpotlightCard>
+            </section>
+          )}
 
-            {/* Projects — 2-col grid */}
-            {content.projects && content.projects.length > 0 && (
-              <section
-                id="projects"
-                className="rounded-3xl backdrop-blur-xl border border-white/[0.10] p-8 md:p-12"
-                style={{ backgroundColor: "rgba(255,255,255,0.06)" }}
-              >
-                <h2
-                  className="text-2xl font-display-gm font-bold mb-8 flex items-center gap-3"
-                  style={{ color: "#F1F5F9" }}
-                >
-                  <Layers className="w-5 h-5" style={{ color: "#A78BFA" }} aria-hidden="true" />
-                  Selected Projects
-                </h2>
+          {/* EDUCATION & CERTS */}
+          {((content.education && content.education.length > 0) ||
+            (content.certifications && content.certifications.length > 0)) && (
+            <section id="education">
+              <SectionHeading
+                icon={GraduationCap}
+                title="Education"
+                subtitle="Academic background"
+              />
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {content.projects.map((project: Project, i: number) => (
-                    <div
-                      key={i}
-                      className="group relative rounded-2xl bg-white/[0.06] border border-white/[0.08] backdrop-blur-md overflow-hidden hover:border-transparent transition-colors duration-300"
-                    >
-                      {/* Gradient bottom border on hover */}
-                      <div
-                        className="absolute bottom-0 left-0 right-0 h-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                        style={{
-                          background: "linear-gradient(to right, #A78BFA, #F59E0B)",
-                        }}
-                        aria-hidden="true"
-                      />
-
-                      <div className="p-6">
-                        <div className="flex justify-between items-start mb-4">
-                          <div className="flex items-center gap-3">
-                            <div
-                              className="h-10 w-10 rounded-xl flex items-center justify-center font-display-gm font-bold text-sm border border-white/[0.08]"
-                              style={{
-                                background:
-                                  "linear-gradient(135deg, rgba(167,139,250,0.15), rgba(245,158,11,0.15))",
-                              }}
-                            >
-                              <span style={{ color: "#A78BFA" }}>{project.title.charAt(0)}</span>
-                            </div>
-                            <div>
-                              <h3
-                                className="text-lg font-display-gm font-bold group-hover:text-[#A78BFA] transition-colors"
-                                style={{ color: "#F1F5F9" }}
-                              >
-                                {project.title}
-                              </h3>
-                              {project.year && (
-                                <span className="text-xs font-body-gm text-[#CBD5E1]/40">
-                                  {project.year}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          {project.url && (
-                            <a
-                              href={project.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              aria-label={`Visit ${project.title}`}
-                              className="text-[#CBD5E1]/40 hover:text-[#A78BFA] transition-colors"
-                            >
-                              <ArrowUpRight size={18} aria-hidden="true" />
-                            </a>
-                          )}
-                        </div>
-
-                        <p className="text-sm font-body-gm font-light leading-relaxed text-[#CBD5E1]/70 mb-6">
-                          {project.description}
-                        </p>
-
-                        {project.technologies && (
-                          <div className="flex flex-wrap gap-2 pt-4 border-t border-white/[0.06]">
-                            {project.technologies.slice(0, 5).map((tech) => (
-                              <span
-                                key={tech}
-                                className="text-[10px] font-display-gm font-semibold uppercase tracking-wider text-[#CBD5E1]/40 group-hover:text-[#A78BFA]/60 transition-colors"
-                              >
-                                {tech}
-                              </span>
-                            ))}
-                          </div>
-                        )}
+              <div className="grid md:grid-cols-2 gap-6">
+                {/* Edu Column */}
+                <div className="space-y-4">
+                  {content.education?.map((edu, i) => (
+                    <SpotlightCard key={i} className="p-6">
+                      <div className="text-xs font-mono-gm text-[#A78BFA] mb-2">
+                        {edu.graduation_date ? formatYear(edu.graduation_date) : "Present"}
                       </div>
-                    </div>
+                      <h4 className="text-lg font-bold text-white mb-1">{edu.institution}</h4>
+                      <p className="text-slate-400 text-sm font-medium">{edu.degree}</p>
+                      {edu.gpa && (
+                        <p className="text-slate-500 text-xs mt-2 font-mono-gm">GPA: {edu.gpa}</p>
+                      )}
+                    </SpotlightCard>
                   ))}
                 </div>
-              </section>
-            )}
 
-            {/* Education & Certifications */}
-            {((content.education && content.education.length > 0) ||
-              (content.certifications && content.certifications.length > 0)) && (
-              <section
-                id="education"
-                className="rounded-3xl backdrop-blur-xl border border-white/[0.10] p-8 md:p-12"
-                style={{ backgroundColor: "rgba(255,255,255,0.06)" }}
-              >
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                  {/* Education */}
-                  {content.education && content.education.length > 0 && (
-                    <div>
-                      <h3
-                        className="flex items-center gap-2 text-lg font-display-gm font-bold mb-6"
-                        style={{ color: "#F1F5F9" }}
-                      >
-                        <GraduationCap
-                          className="w-4 h-4"
-                          style={{ color: "#A78BFA" }}
-                          aria-hidden="true"
-                        />
-                        Education
-                      </h3>
-                      <div className="space-y-5">
-                        {content.education.map((edu, idx) => (
-                          <div key={idx} className="relative pl-4 border-l-2 border-[#A78BFA]/30">
-                            <h4
-                              className="text-base font-display-gm font-semibold"
-                              style={{ color: "#F1F5F9" }}
-                            >
-                              {edu.institution}
-                            </h4>
-                            <p className="text-sm font-body-gm text-[#CBD5E1]/70">{edu.degree}</p>
-                            <div className="flex justify-between mt-1 text-xs font-body-gm text-[#CBD5E1]/40">
-                              {edu.graduation_date && (
-                                <span>{formatYear(edu.graduation_date)}</span>
-                              )}
-                              {edu.gpa && <span>GPA: {edu.gpa}</span>}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Certifications */}
-                  {content.certifications && content.certifications.length > 0 && (
-                    <div>
-                      <h3
-                        className="flex items-center gap-2 text-lg font-display-gm font-bold mb-6"
-                        style={{ color: "#F1F5F9" }}
-                      >
-                        <Award
-                          className="w-4 h-4"
-                          style={{ color: "#A78BFA" }}
-                          aria-hidden="true"
-                        />
-                        Certifications
-                      </h3>
-                      <div className="space-y-3">
-                        {content.certifications.map((cert, idx) => (
+                {/* Certs Column */}
+                <div className="space-y-4">
+                  {content.certifications?.map((cert, i) => (
+                    <SpotlightCard key={i} className="p-6 h-full flex flex-col justify-center">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h4 className="text-base font-bold text-white mb-1">{cert.name}</h4>
+                          <p className="text-slate-500 text-xs uppercase tracking-wider">
+                            {cert.issuer}
+                          </p>
+                          {cert.date && (
+                            <p className="text-slate-500 text-xs mt-1 font-mono-gm">
+                              {formatShortDate(cert.date)}
+                            </p>
+                          )}
+                        </div>
+                        {cert.url && (
                           <a
-                            key={idx}
-                            href={cert.url || "#"}
-                            target={cert.url ? "_blank" : undefined}
+                            href={cert.url}
+                            target="_blank"
                             rel="noopener noreferrer"
-                            className={`block p-3 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] hover:border-[#A78BFA]/20 transition-colors ${!cert.url ? "pointer-events-none" : ""}`}
+                            aria-label={`View ${cert.name} certificate`}
+                            className="text-white/20 hover:text-white transition-colors"
                           >
-                            <div className="flex justify-between items-center">
-                              <span
-                                className="text-sm font-display-gm font-semibold"
-                                style={{ color: "#F1F5F9" }}
-                              >
-                                {cert.name}
-                              </span>
-                              {cert.url && (
-                                <ExternalLink
-                                  size={12}
-                                  className="text-[#CBD5E1]/40"
-                                  aria-hidden="true"
-                                />
-                              )}
-                            </div>
-                            <div className="text-xs font-body-gm text-[#CBD5E1]/40 mt-1 flex justify-between">
-                              <span>{cert.issuer}</span>
-                              {cert.date && <span>{formatShortDate(cert.date)}</span>}
-                            </div>
+                            <ExternalLink size={16} aria-hidden="true" />
                           </a>
-                        ))}
+                        )}
                       </div>
-                    </div>
-                  )}
+                    </SpotlightCard>
+                  ))}
                 </div>
-              </section>
-            )}
+              </div>
+            </section>
+          )}
 
-            {/* CTA Contact Section */}
-            {content.contact.email && (
-              <section
-                id="contact"
-                className="rounded-3xl backdrop-blur-xl border border-white/[0.10] p-10 md:p-16 text-center"
-                style={{ backgroundColor: "rgba(255,255,255,0.06)" }}
-              >
-                <h2
-                  className="text-3xl md:text-4xl font-display-gm font-bold mb-4"
-                  style={{ color: "#F1F5F9" }}
-                >
-                  Let&apos;s create something extraordinary
-                </h2>
-                <p className="font-body-gm font-light text-[#CBD5E1]/70 max-w-md mx-auto mb-8 leading-relaxed">
-                  Currently open to new opportunities. If you have a project in mind or just want to
-                  connect, I'd love to hear from you.
-                </p>
-                <a
-                  href={`mailto:${content.contact.email}`}
-                  className="inline-flex items-center gap-2 px-8 py-3 font-display-gm font-semibold rounded-full hover:scale-105 motion-safe:transition-transform text-white"
-                  style={{
-                    background: "linear-gradient(135deg, #A78BFA, #F59E0B)",
-                    boxShadow: "0 8px 30px rgba(167,139,250,0.25)",
-                  }}
-                >
-                  <Mail size={18} aria-hidden="true" />
-                  Say Hello
-                </a>
-              </section>
-            )}
-          </main>
-
-          {/* Footer */}
-          <footer className="text-center pt-16 pb-10 border-t border-white/[0.05] mt-12">
-            <p className="text-xs font-body-gm text-[#CBD5E1]/30" suppressHydrationWarning>
-              &copy; {new Date().getFullYear()} {content.full_name}. Crafted with precision.
+          {/* FOOTER */}
+          <footer className="pt-20 pb-32 text-center">
+            <div className="inline-flex items-center justify-center p-1 rounded-full border border-white/10 bg-white/5 mb-8">
+              <div className="w-2 h-2 bg-green-500 rounded-full mx-3 animate-pulse" />
+              <span className="text-xs font-mono-gm text-white/50 pr-4 py-1">
+                System Operational
+              </span>
+            </div>
+            <p className="text-slate-600 text-sm font-light" suppressHydrationWarning>
+              &copy; {new Date().getFullYear()} {content.full_name}. <br className="md:hidden" />
+              <span className="hidden md:inline mx-2">&middot;</span>
+              Designed with precision.
             </p>
           </footer>
         </div>
