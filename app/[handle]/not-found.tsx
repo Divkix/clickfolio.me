@@ -6,7 +6,7 @@ export default function NotFound() {
       <div className="max-w-md">
         <div className="bg-cream border-3 border-ink shadow-brutal-lg p-8 text-center hover:-translate-y-1 transition-all duration-300">
           <div className="mb-8">
-            <div className="text-8xl font-extrabold mb-4 text-slate-300">404</div>
+            <div className="text-8xl font-extrabold mb-4 text-muted-foreground/50">404</div>
             <h1 className="text-3xl font-bold text-ink mb-2">Resume Not Found</h1>
             <p className="text-ink/70 text-lg">
               This resume doesn&apos;t exist or hasn&apos;t been published yet.

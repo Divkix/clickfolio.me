@@ -123,7 +123,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
       {/* Mobile backdrop */}
       {isOpen && onClose && (
         <div
-          className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-40 md:hidden"
+          className="fixed inset-0 bg-ink/20 backdrop-blur-sm z-40 md:hidden"
           onClick={onClose}
           aria-hidden="true"
         />
@@ -132,7 +132,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
       {/* Sidebar */}
       <aside
         className={`
-          fixed top-0 left-0 h-full w-60 bg-white border-r border-slate-200/60 shadow-depth-sm
+          fixed top-0 left-0 h-full w-60 bg-card border-r border-ink/10 shadow-sm
           flex flex-col z-50 transition-transform duration-300
           ${isOpen ? "translate-x-0" : "-translate-x-full"}
           md:translate-x-0
@@ -144,7 +144,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
           <button
             type="button"
             onClick={onClose}
-            className="absolute top-4 right-4 p-2 text-slate-600 hover:text-slate-900 md:hidden transition-colors duration-300"
+            className="absolute top-4 right-4 p-2 text-muted-foreground hover:text-foreground md:hidden transition-colors duration-300"
             aria-label="Close navigation"
           >
             <X size={20} />
@@ -152,25 +152,25 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
         )}
 
         {/* Logo Header */}
-        <div className="p-4 border-b border-slate-200/60">
+        <div className="p-4 border-b border-ink/10">
           <a href="/" aria-label="clickfolio.me home">
             <Logo size="xs" />
           </a>
         </div>
 
         {/* Profile Header */}
-        <div className="p-4 border-b border-slate-200/60">
+        <div className="p-4 border-b border-ink/10">
           {loading ? (
             <div className="animate-pulse">
-              <div className="w-10 h-10 bg-slate-200 rounded-full mb-3" />
-              <div className="h-4 bg-slate-200 rounded w-24" />
+              <div className="w-10 h-10 bg-muted rounded-full mb-3" />
+              <div className="h-4 bg-muted rounded w-24" />
             </div>
           ) : user ? (
             <div className="flex items-center gap-3">
               {user.image ? (
                 <div className="relative">
                   <div className="absolute inset-0 rounded-full bg-linear-to-r from-coral to-coral p-0.5">
-                    <div className="w-full h-full rounded-full bg-white" />
+                    <div className="w-full h-full rounded-full bg-card" />
                   </div>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
@@ -185,7 +185,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
                 </div>
               )}
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-slate-900 truncate">
+                <p className="text-sm font-semibold text-foreground truncate">
                   {user.name || "User"}
                 </p>
               </div>
@@ -212,8 +212,8 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
                   transition-all duration-300
                   ${
                     active
-                      ? "bg-linear-to-r from-coral to-coral text-white shadow-depth-sm"
-                      : "text-slate-700 hover:bg-slate-100"
+                      ? "bg-linear-to-r from-coral to-coral text-white shadow-sm"
+                      : "text-foreground/80 hover:bg-muted"
                   }
                 `}
               >
@@ -233,7 +233,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
               href={`/${profile.handle}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-100 transition-all duration-300"
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-foreground/80 hover:bg-muted transition-all duration-300"
               onClick={onClose}
             >
               <ExternalLink size={20} />
@@ -249,7 +249,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
                 router.push("/admin");
                 onClose?.();
               }}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-purple-700 hover:bg-purple-50 transition-all duration-300"
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-lavender hover:bg-lavender/5 transition-all duration-300"
             >
               <Shield size={20} />
               <span>Admin</span>
@@ -258,11 +258,11 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
         </nav>
 
         {/* Logout Button */}
-        <div className="p-4 border-t border-slate-200/60 mt-auto">
+        <div className="p-4 border-t border-ink/10 mt-auto">
           <button
             type="button"
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-slate-700 hover:text-coral hover:bg-coral/10 transition-all duration-300"
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-foreground/80 hover:text-coral hover:bg-coral/10 transition-all duration-300"
           >
             <LogOut size={20} />
             <span>Logout</span>

@@ -36,13 +36,13 @@ export function ThemeStep({
     <div className="space-y-8">
       {/* Header */}
       <div className="text-center">
-        <div className="mx-auto w-16 h-16 bg-linear-to-r from-coral/20 to-coral/20 rounded-2xl flex items-center justify-center mb-6">
+        <div className="mx-auto w-16 h-16 bg-linear-to-r from-coral/20 to-coral/20 rounded-xl flex items-center justify-center mb-6">
           <Palette className="w-8 h-8 text-coral" />
         </div>
-        <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-3 leading-tight">
+        <h1 className="text-3xl sm:text-4xl font-bold text-foreground mb-3 leading-tight">
           Choose Your Template
         </h1>
-        <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+        <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
           Select a design that best represents your professional style. You can change this anytime.
         </p>
       </div>
@@ -61,12 +61,12 @@ export function ThemeStep({
                 onClick={() => isUnlocked && setSelectedTheme(themeId)}
                 className={cn(
                   "group relative overflow-hidden transition-all duration-300 p-6",
-                  "border-2 shadow-depth-sm",
+                  "shadow-sm",
                   isUnlocked
                     ? selectedTheme === id
-                      ? "border-coral ring-2 ring-coral/20 bg-coral/10 cursor-pointer hover:shadow-depth-lg hover:-translate-y-1"
-                      : "border-slate-200/60 hover:border-coral/40 bg-white cursor-pointer hover:shadow-depth-lg hover:-translate-y-1"
-                    : "border-slate-200/60 bg-slate-50 cursor-not-allowed opacity-75",
+                      ? "border-coral ring-2 ring-coral/20 bg-coral/10 cursor-pointer hover:shadow-lg hover:-translate-y-1"
+                      : "border-ink/10 hover:border-coral/40 bg-card cursor-pointer hover:shadow-lg hover:-translate-y-1"
+                    : "border-ink/10 bg-muted cursor-not-allowed opacity-75",
                 )}
               >
                 {/* Selected Indicator */}
@@ -89,8 +89,8 @@ export function ThemeStep({
                         isUnlocked
                           ? selectedTheme === id
                             ? "bg-coral/30 text-coral"
-                            : "bg-slate-100 text-slate-600"
-                          : "bg-slate-200 text-slate-500",
+                            : "bg-muted text-muted-foreground"
+                          : "bg-muted text-muted-foreground",
                       )}
                     >
                       {meta.category}
@@ -110,8 +110,8 @@ export function ThemeStep({
                       isUnlocked
                         ? selectedTheme === id
                           ? "text-coral"
-                          : "text-slate-900 group-hover:text-coral"
-                        : "text-slate-500",
+                          : "text-foreground group-hover:text-coral"
+                        : "text-muted-foreground",
                     )}
                   >
                     {meta.name}
@@ -123,9 +123,9 @@ export function ThemeStep({
                       "text-sm leading-relaxed",
                       isUnlocked
                         ? selectedTheme === id
-                          ? "text-slate-700"
-                          : "text-slate-600"
-                        : "text-slate-500",
+                          ? "text-foreground/80"
+                          : "text-muted-foreground"
+                        : "text-muted-foreground",
                     )}
                   >
                     {meta.description}
@@ -139,8 +139,8 @@ export function ThemeStep({
                         isUnlocked
                           ? selectedTheme === id
                             ? "border-coral"
-                            : "border-slate-200"
-                          : "border-slate-200",
+                            : "border-ink/15"
+                          : "border-ink/15",
                       )}
                     >
                       <img
@@ -154,7 +154,7 @@ export function ThemeStep({
                       />
                       {/* Lock Overlay for locked themes */}
                       {!isUnlocked && (
-                        <div className="absolute inset-0 bg-slate-900/40 flex flex-col items-center justify-center">
+                        <div className="absolute inset-0 bg-ink/40 flex flex-col items-center justify-center">
                           <Lock className="w-5 h-5 text-white mb-1" />
                           <span className="text-[10px] text-white font-semibold">
                             {requiredReferrals} referrals
@@ -171,7 +171,7 @@ export function ThemeStep({
 
         {/* Selected Theme Info */}
         <div className="mt-6 text-center">
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-muted-foreground">
             Currently selected:{" "}
             <span className="font-bold text-coral">{THEME_METADATA[selectedTheme].name}</span>
           </p>
@@ -181,7 +181,7 @@ export function ThemeStep({
         <div className="pt-6">
           <Button
             onClick={handleContinue}
-            className="w-full bg-linear-to-r from-coral to-coral hover:from-coral/90 hover:to-coral/90 text-white font-semibold shadow-depth-sm hover:shadow-depth-md transition-all duration-300"
+            className="w-full bg-linear-to-r from-coral to-coral hover:from-coral/90 hover:to-coral/90 text-white font-semibold shadow-sm hover:shadow-md transition-all duration-300"
             size="lg"
           >
             Complete Setup
@@ -191,7 +191,7 @@ export function ThemeStep({
 
       {/* Help Text */}
       <div className="text-center">
-        <p className="text-sm text-slate-500 font-medium">
+        <p className="text-sm text-muted-foreground font-medium">
           You can change your template anytime in dashboard settings.
         </p>
       </div>

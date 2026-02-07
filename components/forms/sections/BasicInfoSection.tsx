@@ -24,7 +24,7 @@ export function BasicInfoSection({ form }: BasicInfoSectionProps) {
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-depth-sm border border-slate-200/60 p-6 hover:shadow-depth-md transition-all duration-300">
+    <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-6 hover:shadow-md transition-all duration-300">
       <div className="flex items-center gap-3 mb-6">
         <div className="relative shrink-0">
           <div className="absolute inset-0 bg-linear-to-r from-coral to-coral rounded-lg blur-md opacity-20" />
@@ -33,8 +33,10 @@ export function BasicInfoSection({ form }: BasicInfoSectionProps) {
           </div>
         </div>
         <div>
-          <h2 className="text-lg font-semibold text-slate-900">Basic Information</h2>
-          <p className="text-sm text-slate-600">Your name, headline, and professional summary</p>
+          <h2 className="text-lg font-semibold text-foreground">Basic Information</h2>
+          <p className="text-sm text-muted-foreground">
+            Your name, headline, and professional summary
+          </p>
         </div>
       </div>
       <div className="space-y-4">

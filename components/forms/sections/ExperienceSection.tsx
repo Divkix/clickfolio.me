@@ -29,7 +29,7 @@ export function ExperienceSection({ form }: ExperienceSectionProps) {
   });
 
   return (
-    <div className="bg-white rounded-2xl shadow-depth-sm border border-slate-200/60 p-6 hover:shadow-depth-md transition-all duration-300">
+    <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-6 hover:shadow-md transition-all duration-300">
       <div className="flex items-center gap-3 mb-6">
         <div className="relative shrink-0">
           <div className="absolute inset-0 bg-linear-to-r from-emerald-500 to-teal-500 rounded-lg blur-md opacity-20" />
@@ -38,24 +38,24 @@ export function ExperienceSection({ form }: ExperienceSectionProps) {
           </div>
         </div>
         <div>
-          <h2 className="text-lg font-semibold text-slate-900">Work Experience</h2>
-          <p className="text-sm text-slate-600">Your professional work history</p>
+          <h2 className="text-lg font-semibold text-foreground">Work Experience</h2>
+          <p className="text-sm text-muted-foreground">Your professional work history</p>
         </div>
       </div>
       <div className="space-y-4">
         {experienceFields.length === 0 ? (
-          <div className="text-center py-8 px-4 bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
+          <div className="text-center py-8 px-4 bg-muted/50 rounded-xl border border-dashed border-ink/15">
             <div className="relative inline-block mb-4">
               <div className="absolute inset-0 bg-linear-to-r from-emerald-500 to-teal-500 rounded-xl blur-lg opacity-15" />
               <div className="relative bg-linear-to-r from-emerald-100 to-teal-100 p-4 rounded-xl">
                 <Briefcase className="h-8 w-8 text-emerald-600" />
               </div>
             </div>
-            <p className="text-slate-600 font-medium mb-1">No work experience yet</p>
-            <p className="text-sm text-slate-500 mb-4">Add your professional work history</p>
+            <p className="text-muted-foreground font-medium mb-1">No work experience yet</p>
+            <p className="text-sm text-muted-foreground mb-4">Add your professional work history</p>
             <Button
               type="button"
-              className="bg-linear-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold shadow-depth-sm hover:shadow-depth-md"
+              className="bg-linear-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold shadow-sm hover:shadow-md"
               onClick={() =>
                 appendExperience({
                   title: "",
@@ -77,14 +77,16 @@ export function ExperienceSection({ form }: ExperienceSectionProps) {
             {experienceFields.map((field, index) => (
               <div
                 key={field.id}
-                className="bg-slate-50/50 rounded-xl border border-slate-200/60 p-5 hover:border-slate-300 transition-all duration-200"
+                className="bg-muted/50 rounded-xl border border-ink/10 p-5 hover:border-ink/25 transition-all duration-200"
               >
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
                     <div className="bg-linear-to-r from-emerald-100 to-teal-100 p-1.5 rounded-md">
                       <Briefcase className="h-3.5 w-3.5 text-emerald-600" />
                     </div>
-                    <span className="text-sm font-medium text-slate-700">Position {index + 1}</span>
+                    <span className="text-sm font-medium text-foreground/80">
+                      Position {index + 1}
+                    </span>
                   </div>
                   <Button
                     type="button"
@@ -95,7 +97,7 @@ export function ExperienceSection({ form }: ExperienceSectionProps) {
                         removeExperience(index);
                       }
                     }}
-                    className="text-slate-400 hover:text-coral hover:bg-coral/10 transition-colors"
+                    className="text-muted-foreground/70 hover:text-coral hover:bg-coral/10 transition-colors"
                     aria-label={`Remove experience ${index + 1}`}
                   >
                     <Trash2 className="h-4 w-4" />
@@ -239,7 +241,7 @@ export function ExperienceSection({ form }: ExperienceSectionProps) {
                                     );
                                     field.onChange(newHighlights);
                                   }}
-                                  className="shrink-0 text-slate-400 hover:text-coral hover:bg-coral/10"
+                                  className="shrink-0 text-muted-foreground/70 hover:text-coral hover:bg-coral/10"
                                 >
                                   <X className="h-4 w-4" />
                                 </Button>
@@ -271,7 +273,7 @@ export function ExperienceSection({ form }: ExperienceSectionProps) {
             <Button
               type="button"
               variant="outline"
-              className="w-full border-dashed border-2 border-slate-300 hover:border-emerald-400 hover:bg-emerald-50/50 text-slate-600 hover:text-emerald-700 transition-all duration-200"
+              className="w-full border-dashed border-2 border-ink/20 hover:border-emerald-400 hover:bg-emerald-50/50 text-muted-foreground hover:text-emerald-700 transition-all duration-200"
               onClick={() =>
                 appendExperience({
                   title: "",

@@ -2,21 +2,22 @@
 
 import {
   ArrowUpRight,
-  Award,
   Briefcase,
   ExternalLink,
-  Github,
+  GithubIcon,
   Globe,
   GraduationCap,
-  Linkedin,
+  Layers,
+  LinkedinIcon,
   Mail,
   MapPin,
-  Menu,
   Phone,
-  X,
+  Sparkles,
+  User,
+  Zap,
 } from "lucide-react";
 import type React from "react";
-import { useEffect, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { ShareBar } from "@/components/ShareBar";
 import { type ContactLinkType, getContactLinks } from "@/lib/templates/contact-links";
 import {
@@ -24,438 +25,167 @@ import {
   formatDateRange,
   formatShortDate,
   formatYear,
+  getInitials,
 } from "@/lib/templates/helpers";
 import type { Project } from "@/lib/types/database";
 import type { TemplateProps } from "@/lib/types/template";
 
+// --- Configuration & Assets ---
+
+const FONT_URL =
+  "https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700;800&family=JetBrains+Mono:wght@400;500&display=swap";
+
 const glassIconMap: Partial<
   Record<ContactLinkType, React.ComponentType<{ size: number; className?: string }>>
 > = {
-  github: Github,
-  linkedin: Linkedin,
+  github: GithubIcon,
+  linkedin: LinkedinIcon,
   email: Mail,
   phone: Phone,
   website: Globe,
 };
 
-const GlassMorphic: React.FC<TemplateProps> = ({ content, profile }) => {
-  const flatSkills = content.skills ? flattenSkills(content.skills).slice(0, 10) : [];
-  const contactLinks = getContactLinks(content.contact);
-  const [mounted, setMounted] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+const NAV_SECTIONS = [
+  { id: "about", label: "Overview", icon: User },
+  { id: "experience", label: "Career", icon: Briefcase },
+  { id: "projects", label: "Works", icon: Layers },
+  { id: "skills", label: "Stack", icon: Zap },
+  { id: "education", label: "Education", icon: GraduationCap },
+] as const;
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+// --- Components ---
+
+/**
+ * SpotlightCard
+ * A card that tracks mouse movement to create a glowing border/background effect
+ */
+const SpotlightCard = ({
+  children,
+  className = "",
+  spotlightColor = "rgba(255, 255, 255, 0.15)",
+}: {
+  children: React.ReactNode;
+  className?: string;
+  spotlightColor?: string;
+}) => {
+  const divRef = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [opacity, setOpacity] = useState(0);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!divRef.current) return;
+    const rect = divRef.current.getBoundingClientRect();
+    setPosition({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+  };
+
+  const handleMouseEnter = () => setOpacity(1);
+  const handleMouseLeave = () => setOpacity(0);
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-slate-200 font-sans relative overflow-x-hidden selection:bg-coral/30 selection:text-coral">
-      {/* Dynamic Background */}
-      <div className="fixed inset-0 z-0" aria-hidden="true">
-        <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-coral/20 rounded-full blur-[100px] motion-safe:animate-blob mix-blend-screen"></div>
-        <div className="absolute top-[20%] right-[-10%] w-[400px] h-[400px] bg-purple-500/10 rounded-full blur-[100px] motion-safe:animate-blob animation-delay-2000 mix-blend-screen"></div>
-        <div className="absolute bottom-[-10%] left-[20%] w-[600px] h-[600px] bg-coral/10 rounded-full blur-[120px] motion-safe:animate-blob animation-delay-4000 mix-blend-screen"></div>
-        {/* Grain Overlay */}
-        <div
-          className="absolute inset-0 opacity-[0.04] pointer-events-none"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
-          }}
-        ></div>
-      </div>
-
-      {/* Main Content Container */}
+    <div
+      ref={divRef}
+      onMouseMove={handleMouseMove}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      className={`relative rounded-3xl overflow-hidden border border-white/8 bg-[#0A0A0A]/40 backdrop-blur-2xl transition-colors duration-300 ${className}`}
+    >
       <div
-        className={`relative z-10 max-w-4xl mx-auto px-6 py-12 md:py-20 transition-opacity duration-1000 ${mounted ? "opacity-100" : "opacity-0"}`}
-      >
-        {/* Floating Navigation */}
-        <nav
-          aria-label="Main navigation"
-          className="fixed top-6 left-1/2 -translate-x-1/2 z-50 pt-[env(safe-area-inset-top)]"
-        >
-          <div className="flex items-center gap-1 bg-white/5 backdrop-blur-md border border-white/10 rounded-full p-1.5 shadow-xl shadow-black/20">
-            {/* Mobile Menu Toggle */}
-            <div className="sm:hidden relative">
-              <button
-                type="button"
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                aria-expanded={mobileMenuOpen}
-                aria-label={mobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
-                className="p-2 rounded-full hover:bg-white/10 text-white/70 transition-colors"
-              >
-                {mobileMenuOpen ? (
-                  <X size={18} aria-hidden="true" />
-                ) : (
-                  <Menu size={18} aria-hidden="true" />
-                )}
-              </button>
+        className="pointer-events-none absolute -inset-px opacity-0 transition duration-300"
+        style={{
+          opacity,
+          background: `radial-gradient(600px circle at ${position.x}px ${position.y}px, ${spotlightColor}, transparent 40%)`,
+        }}
+      />
+      <div className="relative h-full">{children}</div>
+    </div>
+  );
+};
 
-              {mobileMenuOpen && (
-                <div className="absolute top-full right-0 mt-2 bg-white/10 backdrop-blur-md border border-white/10 rounded-xl p-1.5 shadow-xl shadow-black/20 min-w-[140px]">
-                  {["About", "Experience", "Projects"].map((item) => (
-                    <a
-                      key={item}
-                      href={`#${item.toLowerCase()}`}
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="block px-4 py-2 text-xs font-medium text-white/60 hover:text-white hover:bg-white/5 rounded-full transition-colors duration-300"
-                    >
-                      {item}
-                    </a>
-                  ))}
-                </div>
-              )}
-            </div>
+const SectionHeading = ({
+  icon: Icon,
+  title,
+  subtitle,
+}: {
+  icon: any;
+  title: string;
+  subtitle?: string;
+}) => (
+  <div className="flex items-end gap-4 mb-10 pb-4 border-b border-white/5">
+    <div className="p-3 rounded-2xl bg-white/3 border border-white/8 text-[#D8B4FE]">
+      <Icon size={24} strokeWidth={1.5} aria-hidden="true" />
+    </div>
+    <div>
+      <h2 className="text-3xl md:text-4xl font-display-gm font-bold text-white tracking-tight">
+        {title}
+      </h2>
+      {subtitle && <p className="text-sm font-mono-gm text-white/40 mt-1">{subtitle}</p>}
+    </div>
+  </div>
+);
 
-            {/* Desktop Links */}
-            <div className="hidden sm:flex items-center">
-              {["About", "Experience", "Projects"].map((item) => (
-                <a
-                  key={item}
-                  href={`#${item.toLowerCase()}`}
-                  className="px-4 py-2 text-xs font-medium text-white/60 hover:text-white hover:bg-white/5 rounded-full transition-colors duration-300"
-                >
-                  {item}
-                </a>
-              ))}
-            </div>
+// --- Main Template ---
 
-            {/* CTA Button */}
-            <a
-              href="#contact"
-              className="px-4 py-2 bg-white text-black text-xs font-semibold rounded-full hover:scale-105 transition-transform"
-            >
-              Hire Me
-            </a>
-          </div>
-        </nav>
+const GlassMorphic: React.FC<TemplateProps> = ({ content, profile }) => {
+  const flatSkills = content.skills ? flattenSkills(content.skills) : [];
+  const contactLinks = getContactLinks(content.contact);
 
-        <main>
-          {/* Hero Section */}
-          <section id="about" className="pt-20 mb-32">
-            <div className="flex flex-col md:flex-row gap-12 items-start justify-between">
-              <div className="flex-1 space-y-8">
-                {/* Status Badge */}
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
-                  <span className="relative flex h-2 w-2">
-                    <span className="motion-safe:animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                  </span>
-                  <span className="text-[10px] font-semibold text-emerald-200 uppercase tracking-widest">
-                    Available for work
-                  </span>
-                </div>
+  // Memoized Nav Logic
+  const availableNavSections = useMemo(
+    () =>
+      NAV_SECTIONS.filter((section) => {
+        switch (section.id) {
+          case "about":
+            return true;
+          case "experience":
+            return content.experience && content.experience.length > 0;
+          case "projects":
+            return content.projects && content.projects.length > 0;
+          case "skills":
+            return flatSkills.length > 0;
+          case "education":
+            return (
+              (content.education && content.education.length > 0) ||
+              (content.certifications && content.certifications.length > 0)
+            );
+          default:
+            return false;
+        }
+      }),
+    [
+      content.experience,
+      content.projects,
+      content.education,
+      content.certifications,
+      flatSkills.length,
+    ],
+  );
 
-                <div className="space-y-4">
-                  <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-white leading-[1.1]">
-                    {content.full_name}
-                  </h1>
-                  <p className="text-xl text-slate-400 font-light leading-relaxed max-w-2xl">
-                    {content.summary}
-                  </p>
-                </div>
-
-                {/* Location */}
-                {content.contact.location && (
-                  <div className="flex items-center gap-2 text-slate-400">
-                    <MapPin size={16} aria-hidden="true" />
-                    <span className="text-sm">{content.contact.location}</span>
-                  </div>
-                )}
-
-                {/* Social Links Row */}
-                <div className="flex flex-wrap gap-3">
-                  {contactLinks
-                    .filter((link) => link.type !== "location")
-                    .map((link) => {
-                      const isBehance = link.type === "behance";
-                      const isDribbble = link.type === "dribbble";
-                      const isBranded = isBehance || isDribbble;
-                      const IconComponent = glassIconMap[link.type];
-
-                      if (isBranded) {
-                        const color = isBehance ? "#1769FF" : "#EA4C89";
-                        const text = isBehance ? "Be" : "Dr";
-                        return (
-                          <a
-                            key={link.type}
-                            href={link.href}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className={`group flex items-center gap-2 px-4 py-2 bg-[${color}]/10 hover:bg-[${color}]/20 border border-[${color}]/20 hover:border-[${color}]/40 rounded-lg transition-colors duration-300`}
-                          >
-                            <span className="text-sm font-bold" style={{ color }}>
-                              {text}
-                            </span>
-                            <span className="text-sm font-medium text-slate-400 group-hover:text-white transition-colors">
-                              {link.label}
-                            </span>
-                          </a>
-                        );
-                      }
-
-                      return (
-                        <a
-                          key={link.type}
-                          href={link.href}
-                          target={link.isExternal ? "_blank" : undefined}
-                          rel="noopener noreferrer"
-                          className="group flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 rounded-lg transition-colors duration-300"
-                        >
-                          {IconComponent && (
-                            <IconComponent
-                              size={16}
-                              className="text-slate-400 group-hover:text-white transition-colors"
-                              aria-hidden="true"
-                            />
-                          )}
-                          <span className="text-sm font-medium text-slate-400 group-hover:text-white transition-colors">
-                            {link.label}
-                          </span>
-                        </a>
-                      );
-                    })}
-                </div>
-
-                {/* Share Bar */}
-                <div className="opacity-60 hover:opacity-100 transition-opacity">
-                  <ShareBar
-                    handle={profile.handle}
-                    title={`${content.full_name}'s Portfolio`}
-                    name={content.full_name}
-                    variant="glass-morphic"
-                  />
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {/* Experience Section - Timeline Style */}
-          {content.experience && content.experience.length > 0 && (
-            <section id="experience" className="mb-32">
-              <h2 className="text-2xl font-semibold text-white mb-10 flex items-center gap-2">
-                <Briefcase className="w-5 h-5 text-coral" aria-hidden="true" />
-                <span>Work Experience</span>
-              </h2>
-
-              <div className="relative border-l border-white/10 ml-2 md:ml-4 lg:ml-6 space-y-12">
-                {content.experience.map((job, index) => (
-                  <div key={index} className="relative pl-8 md:pl-12 group">
-                    {/* Timeline Dot */}
-                    <div className="absolute -left-[5px] top-2 w-[10px] h-[10px] rounded-full bg-neutral-950 border border-white/30 group-hover:border-coral group-hover:scale-125 transition-[border-color,transform] duration-300"></div>
-
-                    <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between mb-2">
-                      <h3 className="text-xl font-bold text-slate-100 group-hover:text-coral transition-colors">
-                        {job.title}
-                      </h3>
-                      <span className="text-xs font-mono text-slate-500 whitespace-nowrap">
-                        {formatDateRange(job.start_date, job.end_date)}
-                      </span>
-                    </div>
-
-                    <div className="text-base text-slate-300 font-medium mb-4">{job.company}</div>
-
-                    {job.description && (
-                      <p className="text-sm text-slate-400 leading-relaxed mb-4 max-w-2xl">
-                        {job.description}
-                      </p>
-                    )}
-
-                    {job.highlights && job.highlights.length > 0 && (
-                      <ul className="space-y-2">
-                        {job.highlights.slice(0, 4).map((highlight, i) => (
-                          <li key={i} className="flex items-start gap-3 text-sm text-slate-400">
-                            <span
-                              className="mt-1.5 w-1 h-1 rounded-full bg-slate-600 shrink-0"
-                              aria-hidden="true"
-                            ></span>
-                            <span>{highlight}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* Skills Marquee / Badges */}
-          {flatSkills.length > 0 && (
-            <section className="mb-32">
-              <div className="p-6 rounded-2xl bg-white/2 border border-white/5">
-                <p className="text-xs font-mono text-slate-500 mb-4 uppercase tracking-widest">
-                  Technologies
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {flatSkills.map((skill) => (
-                    <span
-                      key={skill}
-                      className="px-3 py-1.5 text-sm text-slate-300 bg-white/5 border border-white/5 rounded-md hover:bg-white/10 hover:border-white/20 hover:text-white transition-colors cursor-default"
-                    >
-                      {skill}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </section>
-          )}
-
-          {/* Projects Grid */}
-          {content.projects && content.projects.length > 0 && (
-            <section id="projects" className="mb-32">
-              <h2 className="text-2xl font-semibold text-white mb-10 flex items-center gap-2">
-                <Award className="w-5 h-5 text-coral" aria-hidden="true" />
-                <span>Selected Projects</span>
-              </h2>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {content.projects.map((project: Project, i: number) => (
-                  <div
-                    key={i}
-                    className="group relative flex flex-col justify-between rounded-2xl bg-white/3 border border-white/5 p-6 hover:bg-white/5 hover:border-white/10 transition-colors duration-300"
-                  >
-                    <div>
-                      <div className="flex justify-between items-start mb-4">
-                        <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 rounded-full bg-linear-to-br from-coral/20 to-coral/20 flex items-center justify-center text-coral font-bold border border-white/5">
-                            {project.title.charAt(0)}
-                          </div>
-                          <div>
-                            <h3 className="text-lg font-bold text-white group-hover:text-coral transition-colors">
-                              {project.title}
-                            </h3>
-                            {project.year && (
-                              <span className="text-xs text-slate-500 font-mono">
-                                {project.year}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        {project.url && (
-                          <a
-                            href={project.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            aria-label={`Visit ${project.title}`}
-                            className="text-slate-500 hover:text-white transition-colors"
-                          >
-                            <ArrowUpRight size={20} aria-hidden="true" />
-                          </a>
-                        )}
-                      </div>
-
-                      <p className="text-sm text-slate-400 leading-relaxed mb-6">
-                        {project.description}
-                      </p>
-                    </div>
-
-                    {project.technologies && (
-                      <div className="flex flex-wrap gap-2 pt-4 border-t border-white/5">
-                        {project.technologies.slice(0, 4).map((tech) => (
-                          <span
-                            key={tech}
-                            className="text-[10px] font-medium text-slate-500 uppercase tracking-wider"
-                          >
-                            {tech}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* Combined Education & Certification (Bento Style) */}
-          <section className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-20">
-            {/* Education */}
-            {content.education && content.education.length > 0 && (
-              <div className="rounded-2xl border border-white/10 bg-linear-to-br from-white/3 to-transparent p-6">
-                <h3 className="flex items-center gap-2 text-lg font-semibold text-white mb-6">
-                  <GraduationCap className="w-4 h-4 text-slate-400" aria-hidden="true" />
-                  Education
-                </h3>
-                <div className="space-y-6">
-                  {content.education.map((edu, idx) => (
-                    <div key={idx} className="relative pl-4 border-l-2 border-white/10">
-                      <h4 className="text-base font-medium text-slate-200">{edu.institution}</h4>
-                      <p className="text-sm text-slate-400">{edu.degree}</p>
-                      <div className="flex justify-between mt-1 text-xs text-slate-500 font-mono">
-                        {edu.graduation_date && <span>{formatYear(edu.graduation_date)}</span>}
-                        {edu.gpa && <span>GPA: {edu.gpa}</span>}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Certifications */}
-            {content.certifications && content.certifications.length > 0 && (
-              <div className="rounded-2xl border border-white/10 bg-linear-to-br from-white/3 to-transparent p-6">
-                <h3 className="flex items-center gap-2 text-lg font-semibold text-white mb-6">
-                  <Award className="w-4 h-4 text-slate-400" aria-hidden="true" />
-                  Certifications
-                </h3>
-                <div className="space-y-4">
-                  {content.certifications.map((cert, idx) => (
-                    <a
-                      key={idx}
-                      href={cert.url || "#"}
-                      target={cert.url ? "_blank" : undefined}
-                      className={`block p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors ${!cert.url && "pointer-events-none"}`}
-                    >
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium text-slate-200">{cert.name}</span>
-                        {cert.url && (
-                          <ExternalLink size={12} className="text-slate-500" aria-hidden="true" />
-                        )}
-                      </div>
-                      <div className="text-xs text-slate-500 mt-1 flex justify-between">
-                        <span>{cert.issuer}</span>
-                        {cert.date && <span>{formatShortDate(cert.date)}</span>}
-                      </div>
-                    </a>
-                  ))}
-                </div>
-              </div>
-            )}
-          </section>
-
-          {/* Contact Section */}
-          {content.contact.email && (
-            <section
-              id="contact"
-              className="mb-20 rounded-2xl border border-white/10 bg-white/3 backdrop-blur-sm p-10 md:p-16 text-center"
-            >
-              <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-                Let's work together
-              </h2>
-              <p className="text-slate-400 max-w-md mx-auto mb-8 leading-relaxed">
-                Currently open to new opportunities. If you have a project in mind or just want to
-                connect, I'd love to hear from you.
-              </p>
-              <a
-                href={`mailto:${content.contact.email}`}
-                className="inline-flex items-center gap-2 px-8 py-3 bg-coral text-white font-semibold rounded-full hover:scale-105 transition-transform shadow-lg shadow-coral/20"
-              >
-                <Mail size={18} aria-hidden="true" />
-                Say Hello
-              </a>
-            </section>
-          )}
-        </main>
-
-        {/* Footer */}
-        <footer className="text-center pt-20 pb-10 border-t border-white/5">
-          <p className="text-xs text-slate-600" suppressHydrationWarning>
-            © {new Date().getFullYear()} {content.full_name}. Crafted with precision.
-          </p>
-        </footer>
-      </div>
+  return (
+    <>
+      <link rel="preconnect" href="https://fonts.googleapis.com" />
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+      <link href={FONT_URL} rel="stylesheet" />
 
       <style>{`
+        :root {
+          --glass-border: rgba(255, 255, 255, 0.08);
+          --glass-surface: rgba(20, 20, 20, 0.6);
+          --primary-glow: #A78BFA;
+          --secondary-glow: #2DD4BF;
+        }
+        
+        .font-display-gm { font-family: 'Outfit', sans-serif; }
+        .font-mono-gm { font-family: 'JetBrains Mono', monospace; }
+
+        html { scroll-behavior: smooth; }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #050505; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #555; }
+
+        /* Animations */
         @keyframes blob {
           0% { transform: translate(0px, 0px) scale(1); }
           33% { transform: translate(30px, -50px) scale(1.1); }
@@ -463,16 +193,445 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content, profile }) => {
           100% { transform: translate(0px, 0px) scale(1); }
         }
         .animate-blob {
-          animation: blob 7s infinite;
+          animation: blob 10s infinite;
         }
-        .animation-delay-2000 {
-          animation-delay: 2s;
+        .animation-delay-2000 { animation-delay: 2s; }
+        .animation-delay-4000 { animation-delay: 4s; }
+
+        @media (prefers-reduced-motion: reduce) {
+          .animate-blob { animation: none; }
+          .animate-ping { animation: none; }
+          .animate-pulse { animation: none; }
         }
-        .animation-delay-4000 {
-          animation-delay: 4s;
+
+        .text-gradient {
+          background: linear-gradient(135deg, #fff 0%, #a5a5a5 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+        }
+        
+        .text-gradient-purple {
+          background: linear-gradient(135deg, #E879F9 0%, #A78BFA 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
         }
       `}</style>
-    </div>
+
+      <div className="min-h-screen bg-[#030303] text-slate-300 relative selection:bg-lavender/30 selection:text-white font-display-gm overflow-x-hidden">
+        {/* --- Background Ambient Layer --- */}
+        <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-0 left-1/4 w-[50vw] h-[50vw] bg-lavender/20 rounded-full mix-blend-screen filter blur-[100px] opacity-20 animate-blob" />
+          <div className="absolute top-0 right-1/4 w-[50vw] h-[50vw] bg-[#2DD4BF]/10 rounded-full mix-blend-screen filter blur-[100px] opacity-20 animate-blob animation-delay-2000" />
+          <div className="absolute -bottom-32 left-1/3 w-[60vw] h-[60vw] bg-[#F472B6]/10 rounded-full mix-blend-screen filter blur-[120px] opacity-20 animate-blob animation-delay-4000" />
+
+          {/* Noise Overlay */}
+          <div
+            className="absolute inset-0 opacity-[0.04]"
+            style={{
+              backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+            }}
+          />
+        </div>
+
+        {/* --- Floating Navigation --- */}
+        <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
+          <div className="flex items-center gap-1 p-1.5 rounded-full bg-white/3 backdrop-blur-xl border border-white/8 shadow-2xl shadow-black/50">
+            {availableNavSections.map((section) => {
+              const Icon = section.icon;
+              return (
+                <a
+                  key={section.id}
+                  href={`#${section.id}`}
+                  className="group relative flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-full hover:bg-white/10 transition-all duration-300"
+                  aria-label={section.label}
+                >
+                  <Icon
+                    size={20}
+                    className="text-white/50 group-hover:text-white transition-colors"
+                    strokeWidth={1.5}
+                    aria-hidden="true"
+                  />
+                  {/* Tooltip */}
+                  <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-2 py-1 bg-[#1a1a1a] border border-white/10 text-[10px] font-mono-gm text-white rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+                    {section.label}
+                  </span>
+                </a>
+              );
+            })}
+            {content.contact.email && (
+              <a
+                href={`mailto:${content.contact.email}`}
+                className="flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-full bg-white text-black hover:scale-110 transition-transform duration-300 ml-2"
+                aria-label="Contact"
+              >
+                <Mail size={18} strokeWidth={2.5} aria-hidden="true" />
+              </a>
+            )}
+          </div>
+        </nav>
+
+        {/* --- Main Content --- */}
+        <div className="relative z-10 max-w-5xl mx-auto px-6 py-20 md:py-32 space-y-32">
+          {/* HERO SECTION */}
+          <section id="about" className="relative">
+            <div className="flex flex-col gap-8">
+              {/* Status Indicator */}
+              <div className="inline-flex items-center gap-2 self-start px-3 py-1 rounded-full border border-lavender/30 bg-lavender/5 backdrop-blur-md">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-lavender opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-lavender"></span>
+                </span>
+                <span className="text-xs font-mono-gm text-[#D8B4FE]">ONLINE_V2.0</span>
+              </div>
+
+              <div className="grid md:grid-cols-[1fr_auto] gap-8 items-end">
+                <div className="space-y-2">
+                  <h1 className="text-6xl md:text-8xl lg:text-9xl font-extrabold tracking-tighter text-white leading-[0.9]">
+                    <span className="block">{content.full_name.split(" ")[0]}</span>
+                    <span className="block text-white/20">
+                      {content.full_name.split(" ").slice(1).join(" ")}
+                    </span>
+                  </h1>
+                  <h2 className="text-xl md:text-2xl font-light text-gradient-purple tracking-wide">
+                    {content.headline}
+                  </h2>
+                </div>
+
+                {/* Abstract Avatar / Photo */}
+                <div className="relative w-32 h-32 md:w-48 md:h-48 rounded-full border-2 border-white/10 p-1">
+                  <div className="w-full h-full rounded-full overflow-hidden relative group">
+                    {profile.avatar_url ? (
+                      <img
+                        src={profile.avatar_url}
+                        alt="Profile"
+                        className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-[#111] flex items-center justify-center text-4xl font-bold text-[#333]">
+                        {getInitials(content.full_name)}
+                      </div>
+                    )}
+                    {/* Scanline overlay */}
+                    <div className="absolute inset-0 bg-linear-to-b from-transparent via-white/5 to-transparent bg-size-[100%_4px] pointer-events-none" />
+                  </div>
+                </div>
+              </div>
+
+              <SpotlightCard className="p-8 md:p-10 mt-8">
+                <div className="grid md:grid-cols-[2fr_1fr] gap-10">
+                  <div className="space-y-6">
+                    <p className="text-lg md:text-xl font-light leading-relaxed text-slate-300">
+                      {content.summary}
+                    </p>
+
+                    {/* Socials */}
+                    <div className="flex flex-wrap gap-3 pt-2">
+                      {contactLinks
+                        .filter((l) => l.type !== "location")
+                        .map((link) => {
+                          const Icon = glassIconMap[link.type] || ExternalLink;
+                          const isBranded = link.type === "behance" || link.type === "dribbble";
+                          const brandColor =
+                            link.type === "behance"
+                              ? "#1769FF"
+                              : link.type === "dribbble"
+                                ? "#EA4C89"
+                                : undefined;
+                          const brandText =
+                            link.type === "behance" ? "Be" : link.type === "dribbble" ? "Dr" : null;
+
+                          return (
+                            <a
+                              key={link.type}
+                              href={link.href}
+                              target={link.isExternal ? "_blank" : undefined}
+                              rel={link.isExternal ? "noopener noreferrer" : undefined}
+                              aria-label={link.label}
+                              className="group flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 transition-all"
+                            >
+                              {isBranded ? (
+                                <span
+                                  className="text-xs font-bold font-mono-gm"
+                                  style={{ color: brandColor }}
+                                >
+                                  {brandText}
+                                </span>
+                              ) : (
+                                <Icon
+                                  size={14}
+                                  className="text-white/60 group-hover:text-white"
+                                  aria-hidden="true"
+                                />
+                              )}
+                              <span className="text-sm font-mono-gm text-white/60 group-hover:text-white capitalize">
+                                {link.label}
+                              </span>
+                            </a>
+                          );
+                        })}
+                    </div>
+                  </div>
+
+                  {/* Meta Data */}
+                  <div className="hidden md:block border-l border-white/10 pl-10 space-y-6">
+                    <div>
+                      <h3 className="text-xs font-mono-gm text-white/30 uppercase tracking-widest mb-2">
+                        Location
+                      </h3>
+                      <div className="flex items-center gap-2 text-slate-300">
+                        <MapPin size={14} aria-hidden="true" />
+                        <span>{content.contact.location || "Remote"}</span>
+                      </div>
+                    </div>
+                    <div>
+                      <h3 className="text-xs font-mono-gm text-white/30 uppercase tracking-widest mb-2">
+                        Status
+                      </h3>
+                      <div className="flex items-center gap-2 text-lavender">
+                        <Sparkles size={14} aria-hidden="true" />
+                        <span>Available for work</span>
+                      </div>
+                    </div>
+                    <div className="pt-4 opacity-50 hover:opacity-100 transition-opacity">
+                      <ShareBar
+                        handle={profile.handle}
+                        title="Portfolio"
+                        name={content.full_name}
+                        variant="glass-morphic"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Mobile ShareBar */}
+                <div className="md:hidden mt-6 flex justify-center opacity-50 hover:opacity-100 transition-opacity">
+                  <ShareBar
+                    handle={profile.handle}
+                    title="Portfolio"
+                    name={content.full_name}
+                    variant="glass-morphic"
+                  />
+                </div>
+              </SpotlightCard>
+            </div>
+          </section>
+
+          {/* EXPERIENCE SECTION */}
+          {content.experience && content.experience.length > 0 && (
+            <section id="experience">
+              <SectionHeading
+                icon={Briefcase}
+                title="Experience"
+                subtitle="Professional trajectory"
+              />
+
+              <div className="space-y-4">
+                {content.experience.map((job, index) => (
+                  <SpotlightCard key={index} className="group p-6 md:p-8">
+                    <div className="flex flex-col md:flex-row gap-4 md:items-start justify-between mb-4">
+                      <div>
+                        <h3 className="text-xl font-bold text-white group-hover:text-lavender transition-colors">
+                          {job.title}
+                        </h3>
+                        <div className="flex items-center gap-2 text-slate-400 mt-1">
+                          <span className="font-medium">{job.company}</span>
+                          {job.location && (
+                            <>
+                              <span className="w-1 h-1 rounded-full bg-slate-600" />
+                              <span className="text-sm text-slate-500">{job.location}</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/5 self-start shrink-0">
+                        <span className="text-xs font-mono-gm text-slate-300">
+                          {formatDateRange(job.start_date, job.end_date)}
+                        </span>
+                      </div>
+                    </div>
+
+                    {job.description && (
+                      <p className="text-slate-400 font-light leading-relaxed mb-6 max-w-3xl">
+                        {job.description}
+                      </p>
+                    )}
+
+                    {job.highlights && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {job.highlights.map((item, i) => (
+                          <div key={i} className="flex items-start gap-3 text-sm text-slate-400/80">
+                            <span className="mt-1.5 w-1 h-1 rounded-full bg-lavender/50 shrink-0" />
+                            <span>{item}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </SpotlightCard>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* PROJECTS SECTION */}
+          {content.projects && content.projects.length > 0 && (
+            <section id="projects">
+              <SectionHeading
+                icon={Layers}
+                title="Projects"
+                subtitle="Selected works & experiments"
+              />
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {content.projects.map((project: Project, i: number) => (
+                  <SpotlightCard key={i} className="group flex flex-col h-full">
+                    <div className="p-6 md:p-8 flex flex-col h-full">
+                      <div className="flex justify-between items-start mb-6">
+                        <div className="w-12 h-12 rounded-xl bg-linear-to-br from-white/10 to-transparent border border-white/5 flex items-center justify-center">
+                          <span className="font-display-gm font-bold text-xl text-white">
+                            {project.title.charAt(0)}
+                          </span>
+                        </div>
+                        {project.url && (
+                          <a
+                            href={project.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label={`View ${project.title}`}
+                            className="p-2 rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-all"
+                          >
+                            <ArrowUpRight size={20} aria-hidden="true" />
+                          </a>
+                        )}
+                      </div>
+
+                      <h3 className="text-xl font-bold text-white mb-2 group-hover:text-lavender transition-colors">
+                        {project.title}
+                      </h3>
+                      {project.year && (
+                        <span className="text-xs font-mono-gm text-white/30">{project.year}</span>
+                      )}
+
+                      <p className="text-slate-400 font-light text-sm leading-relaxed mb-6 grow">
+                        {project.description}
+                      </p>
+
+                      <div className="pt-6 border-t border-white/5">
+                        <div className="flex flex-wrap gap-2">
+                          {project.technologies?.slice(0, 4).map((tech) => (
+                            <span
+                              key={tech}
+                              className="px-2 py-1 text-[10px] font-mono-gm uppercase tracking-wider text-lavender bg-lavender/10 rounded border border-lavender/20"
+                            >
+                              {tech}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </SpotlightCard>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* SKILLS SECTION - CLOUD */}
+          {flatSkills.length > 0 && (
+            <section id="skills">
+              <SectionHeading icon={Zap} title="Stack" subtitle="Tools & Technologies" />
+              <SpotlightCard className="p-8 md:p-12">
+                <div className="flex flex-wrap justify-center gap-3">
+                  {flatSkills.map((skill, i) => (
+                    <span
+                      key={i}
+                      className="px-4 py-2 rounded-lg bg-white/3 border border-white/6 text-sm text-slate-300 hover:bg-white/8 hover:text-white hover:border-lavender/30 hover:shadow-[0_0_15px_rgba(167,139,250,0.3)] transition-all duration-300 cursor-default select-none"
+                    >
+                      {skill}
+                    </span>
+                  ))}
+                </div>
+              </SpotlightCard>
+            </section>
+          )}
+
+          {/* EDUCATION & CERTS */}
+          {((content.education && content.education.length > 0) ||
+            (content.certifications && content.certifications.length > 0)) && (
+            <section id="education">
+              <SectionHeading
+                icon={GraduationCap}
+                title="Education"
+                subtitle="Academic background"
+              />
+
+              <div className="grid md:grid-cols-2 gap-6">
+                {/* Edu Column */}
+                <div className="space-y-4">
+                  {content.education?.map((edu, i) => (
+                    <SpotlightCard key={i} className="p-6">
+                      <div className="text-xs font-mono-gm text-lavender mb-2">
+                        {edu.graduation_date ? formatYear(edu.graduation_date) : "Present"}
+                      </div>
+                      <h4 className="text-lg font-bold text-white mb-1">{edu.institution}</h4>
+                      <p className="text-slate-400 text-sm font-medium">{edu.degree}</p>
+                      {edu.gpa && (
+                        <p className="text-slate-500 text-xs mt-2 font-mono-gm">GPA: {edu.gpa}</p>
+                      )}
+                    </SpotlightCard>
+                  ))}
+                </div>
+
+                {/* Certs Column */}
+                <div className="space-y-4">
+                  {content.certifications?.map((cert, i) => (
+                    <SpotlightCard key={i} className="p-6 h-full flex flex-col justify-center">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h4 className="text-base font-bold text-white mb-1">{cert.name}</h4>
+                          <p className="text-slate-500 text-xs uppercase tracking-wider">
+                            {cert.issuer}
+                          </p>
+                          {cert.date && (
+                            <p className="text-slate-500 text-xs mt-1 font-mono-gm">
+                              {formatShortDate(cert.date)}
+                            </p>
+                          )}
+                        </div>
+                        {cert.url && (
+                          <a
+                            href={cert.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label={`View ${cert.name} certificate`}
+                            className="text-white/20 hover:text-white transition-colors"
+                          >
+                            <ExternalLink size={16} aria-hidden="true" />
+                          </a>
+                        )}
+                      </div>
+                    </SpotlightCard>
+                  ))}
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* FOOTER */}
+          <footer className="pt-20 pb-32 text-center">
+            <div className="inline-flex items-center justify-center p-1 rounded-full border border-white/10 bg-white/5 mb-8">
+              <div className="w-2 h-2 bg-green-500 rounded-full mx-3 animate-pulse" />
+              <span className="text-xs font-mono-gm text-white/50 pr-4 py-1">
+                System Operational
+              </span>
+            </div>
+            <p className="text-slate-600 text-sm font-light" suppressHydrationWarning>
+              &copy; {new Date().getFullYear()} {content.full_name}. <br className="md:hidden" />
+              <span className="hidden md:inline mx-2">&middot;</span>
+              Designed with precision.
+            </p>
+          </footer>
+        </div>
+      </div>
+    </>
   );
 };
 

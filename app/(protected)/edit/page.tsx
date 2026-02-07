@@ -42,8 +42,10 @@ export default async function EditPage() {
       <div className="max-w-5xl mx-auto px-4 lg:px-6 space-y-6">
         {/* Page Header */}
         <div className="mb-2">
-          <h1 className="text-3xl font-bold text-slate-900">Edit Resume</h1>
-          <p className="text-slate-600 mt-1">Update your resume content and publish changes</p>
+          <h1 className="text-3xl font-bold text-foreground">Edit Resume</h1>
+          <p className="text-muted-foreground mt-1">
+            Update your resume content and publish changes
+          </p>
         </div>
         <EditResumeFormWrapper initialData={content} />
       </div>

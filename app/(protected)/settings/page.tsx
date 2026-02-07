@@ -23,8 +23,7 @@ interface ProfileSectionProps {
 
 function ProfileSection({ name, email, headline, image, handle }: ProfileSectionProps) {
   return (
-    // <CHANGE> shadow-depth-sm -> shadow-brutal-sm, border-slate -> border-ink for neubrutalist design
-    <div className="bg-white rounded-2xl shadow-brutal-sm border-2 border-ink/10 p-6 h-full flex flex-col">
+    <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-6 h-full flex flex-col">
       {/* Profile header with avatar */}
       <div className="flex items-start gap-4 mb-4">
         {image ? (
@@ -32,17 +31,19 @@ function ProfileSection({ name, email, headline, image, handle }: ProfileSection
           <img
             src={image}
             alt="Profile avatar"
-            className="w-14 h-14 rounded-full object-cover border-2 border-slate-200/60 shrink-0"
+            className="w-14 h-14 rounded-full object-cover border-2 border-ink/10 shrink-0"
           />
         ) : (
-          <div className="w-14 h-14 rounded-full bg-linear-to-br from-coral/20 to-coral/20 flex items-center justify-center shrink-0 border-2 border-slate-200/60">
+          <div className="w-14 h-14 rounded-full bg-linear-to-br from-coral/20 to-coral/20 flex items-center justify-center shrink-0 border-2 border-ink/10">
             <User className="h-6 w-6 text-coral" />
           </div>
         )}
         <div className="flex-1 min-w-0">
-          <h2 className="text-lg font-semibold text-slate-900 truncate">{name}</h2>
-          <p className="text-sm text-slate-600 truncate">{email}</p>
-          {headline && <p className="text-sm text-slate-500 mt-1 line-clamp-2">{headline}</p>}
+          <h2 className="text-lg font-semibold text-foreground truncate">{name}</h2>
+          <p className="text-sm text-muted-foreground truncate">{email}</p>
+          {headline && (
+            <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{headline}</p>
+          )}
         </div>
       </div>
 
@@ -121,13 +122,12 @@ export default async function SettingsPage() {
   const resumeCount = resumeData[0]?.count ?? 0;
 
   return (
-    // <CHANGE> Add bg-cream for neubrutalist design alignment
     <div className="min-h-screen bg-cream py-8">
       <div className="max-w-5xl mx-auto px-4 lg:px-6 space-y-6">
         {/* Page Header */}
         <div className="mb-2">
-          <h1 className="text-3xl font-bold text-slate-900">Settings</h1>
-          <p className="text-slate-600 mt-1">Manage your account and privacy settings</p>
+          <h1 className="text-3xl font-bold text-foreground">Settings</h1>
+          <p className="text-muted-foreground mt-1">Manage your account and privacy settings</p>
         </div>
 
         {/* Top Row: 2-column grid for Profile and Resume */}

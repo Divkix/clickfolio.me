@@ -14,7 +14,13 @@ function escapeXml(str: string): string {
 
 function renderFallbackSvg(): Response {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
-  <rect width="1200" height="630" fill="#1a1a2e"/>
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1a1a2e"/>
+      <stop offset="100%" stop-color="#16213e"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bgGrad)"/>
   <text x="600" y="280" text-anchor="middle" font-family="system-ui,sans-serif" font-size="72" font-weight="800">
     <tspan fill="#FFF8F0">clickfolio</tspan><tspan fill="#D94E4E">.me</tspan>
   </text>
@@ -36,7 +42,8 @@ function renderFallbackSvg(): Response {
  * Dynamic profile OG image — shows name, headline, top skills.
  * 1200x630 SVG, cached for 1 hour with 24h stale-while-revalidate.
  *
- * Returns SVG (no WASM deps needed, works on Cloudflare Workers + Turbopack).
+ * NOTE: PNG conversion via workers-og failed due to Turbopack incompatibility
+ * with WASM modules. SVG is used with enhanced visual design instead.
  */
 export async function GET(_request: Request, { params }: { params: Promise<{ handle: string }> }) {
   const { handle: rawHandle } = await params;
@@ -91,7 +98,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ han
     // Build skill pills as SVG elements
     let skillsSvg = "";
     if (skills.length > 0) {
-      const startX = 60;
+      const startX = 80;
       let currentX = startX;
       const skillY = headline ? 380 : 340;
       const pillParts: string[] = [];
@@ -104,20 +111,64 @@ export async function GET(_request: Request, { params }: { params: Promise<{ han
         );
         currentX += textWidth + 12;
       }
-      skillsSvg = pillParts.join("\n  ");
+      skillsSvg = pillParts.join("\n    ");
     }
 
     const headlineSvg = headline
-      ? `<text x="60" y="320" font-family="system-ui,sans-serif" font-size="30" font-weight="500" fill="#F5C542">${headline}</text>`
+      ? `<text x="80" y="320" font-family="system-ui,sans-serif" font-size="30" font-weight="500" fill="#F5C542">${headline}</text>`
       : "";
 
+    // Initials for avatar circle
+    const initials = displayName
+      .split(" ")
+      .map((w) => w[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase();
+
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
-  <rect width="1200" height="630" fill="#1a1a2e"/>
-  <text x="60" y="260" font-family="system-ui,sans-serif" font-size="52" font-weight="800" fill="#FFF8F0">${displayName}</text>
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1a1a2e"/>
+      <stop offset="100%" stop-color="#16213e"/>
+    </linearGradient>
+    <linearGradient id="avatarGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#4ECDC4"/>
+      <stop offset="100%" stop-color="#44B09E"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bgGrad)"/>
+
+  <!-- Subtle accent line at top -->
+  <rect x="0" y="0" width="1200" height="4" fill="#D94E4E"/>
+
+  <!-- Avatar circle with initials -->
+  <circle cx="130" cy="190" r="50" fill="url(#avatarGrad)"/>
+  <text x="130" y="204" text-anchor="middle" font-family="system-ui,sans-serif" font-size="32" font-weight="700" fill="#1a1a2e">${escapeXml(initials)}</text>
+
+  <!-- Name -->
+  <text x="200" y="180" font-family="system-ui,sans-serif" font-size="48" font-weight="800" fill="#FFF8F0">${displayName}</text>
+
+  <!-- Handle -->
+  <text x="200" y="216" font-family="system-ui,sans-serif" font-size="22" fill="#FFF8F0" opacity="0.5">@${escapeXml(handle)}</text>
+
+  <!-- Headline -->
   ${headlineSvg}
+
+  <!-- Skills -->
   ${skillsSvg}
-  <text x="60" y="590" font-family="system-ui,sans-serif" font-size="28" font-weight="700">
-    <tspan fill="#FFF8F0">clickfolio</tspan><tspan fill="#D94E4E">.me</tspan><tspan fill="#FFF8F0" opacity="0.6" font-size="22" font-weight="400"> /${escapeXml(handle)}</tspan>
+
+  <!-- Decorative line separator -->
+  <rect x="80" y="520" width="1040" height="1" fill="#FFF8F0" opacity="0.1"/>
+
+  <!-- Bottom branding -->
+  <text x="80" y="570" font-family="system-ui,sans-serif" font-size="28" font-weight="700">
+    <tspan fill="#FFF8F0">clickfolio</tspan><tspan fill="#D94E4E">.me</tspan>
+  </text>
+  <text x="1120" y="570" text-anchor="end" font-family="system-ui,sans-serif" font-size="18" fill="#FFF8F0" opacity="0.4">
+    AI-powered portfolio
   </text>
 </svg>`;
 

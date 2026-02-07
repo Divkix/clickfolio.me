@@ -13,7 +13,7 @@ interface DashboardUploadSectionProps {
 
 export function DashboardUploadSection({
   variant = "outline",
-  className = "flex-1 border-coral/40 text-coral hover:bg-coral/10 hover:border-coral/40 font-semibold transition-all duration-300 shadow-depth-sm hover:shadow-depth-md",
+  className = "flex-1 border-coral/40 text-coral hover:bg-coral/10 hover:border-coral/40 font-semibold transition-all duration-300 shadow-sm hover:shadow-md",
   children,
 }: DashboardUploadSectionProps) {
   const [uploadModalOpen, setUploadModalOpen] = useState(false);

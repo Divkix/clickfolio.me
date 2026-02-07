@@ -46,7 +46,7 @@ export function AttributionWidget({ theme }: AttributionWidgetProps) {
         "bg-slate-900/80 sm:bg-slate-900/80 backdrop-blur-md border border-white/20 text-white/90 hover:text-white",
       accent: "text-cyan-400",
       shimmer: "from-transparent via-white/20 to-transparent",
-      shadow: "shadow-depth-lg hover:shadow-depth-xl",
+      shadow: "shadow-lg hover:shadow-xl",
     },
     neo_brutalist: {
       container: "bg-yellow-300 border-4 border-black text-black font-bold",
@@ -59,7 +59,7 @@ export function AttributionWidget({ theme }: AttributionWidgetProps) {
         "bg-white/95 sm:bg-white border border-slate-200/60 text-slate-600 hover:text-slate-900",
       accent: "bg-linear-to-r from-coral to-coral bg-clip-text text-transparent",
       shimmer: "from-transparent via-coral/30 to-transparent",
-      shadow: "shadow-depth-sm hover:shadow-depth-md",
+      shadow: "shadow-sm hover:shadow-md",
     },
     spotlight: {
       container:

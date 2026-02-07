@@ -382,6 +382,11 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
             <p className="font-mono text-sm text-[#6B6B6B]">
               or click to browse • Max {MAX_FILE_SIZE_LABEL}
             </p>
+            {!uploading && !error && !file && (
+              <div className="bg-ink text-cream font-black text-sm py-2.5 px-6 border-3 border-ink shadow-brutal-sm inline-block group-hover:shadow-brutal-md group-hover:-translate-y-0.5 transition-all duration-200 mt-2">
+                Choose PDF →
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -436,17 +441,36 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
 
       {/* Security Badge */}
       {!uploading && !error && (
-        <div className="flex items-center justify-center gap-2 text-xs text-[#6B6B6B] mt-3">
+        <a
+          href="https://github.com/divkix/clickfolio.me"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center gap-2 text-xs text-[#6B6B6B] hover:text-ink transition-colors mt-3"
+        >
           <ShieldCheck className="w-4 h-4" />
-          <span>Enterprise-grade security • Your data stays yours</span>
-        </div>
+          <span>Open source &amp; transparent — audit the code yourself</span>
+        </a>
       )}
 
       {/* Info Text - only show when not in modal mode */}
       {!uploading && !error && !isModal && (
-        <p className="font-mono text-xs text-[#6B6B6B] text-center">
-          Upload anonymously. No account needed until you&apos;re ready to publish.
-        </p>
+        <div className="flex items-center justify-center gap-2 bg-mint/10 border-2 border-mint/30 px-3 py-2 mt-3">
+          <svg
+            className="w-4 h-4 text-mint shrink-0"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="3"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M5 13l4 4L19 7" />
+          </svg>
+          <span className="font-mono text-xs text-ink/70">
+            Upload anonymously. No account needed until you publish.
+          </span>
+        </div>
       )}
     </div>
   );

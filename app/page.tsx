@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Suspense } from "react";
-import { LoginButton } from "@/components/auth/LoginButton";
 import { FileDropzone } from "@/components/FileDropzone";
 import { Footer } from "@/components/Footer";
+import { BottomCTAButton } from "@/components/home/BottomCTAButton";
 import { ExamplesSection } from "@/components/home/ExamplesSection";
-import { ScrollToTopButton } from "@/components/home/ScrollToTopButton";
-import { Logo } from "@/components/Logo";
+import { MobileStickyUpload } from "@/components/home/MobileStickyUpload";
+import { WhatYouGetSection } from "@/components/home/WhatYouGetSection";
 import { ReferralCapture } from "@/components/ReferralCapture";
+import { SiteHeader } from "@/components/SiteHeader";
 import { siteConfig } from "@/lib/config/site";
 import { DEMO_PROFILES } from "@/lib/templates/demo-data";
 import { generateHomepageJsonLd, serializeJsonLd } from "@/lib/utils/json-ld";
@@ -59,17 +61,9 @@ export default function Home() {
         <ReferralCapture />
       </Suspense>
       <div className="min-h-screen bg-cream flex flex-col paper-texture">
-        {/* Header - Bold, minimal */}
-        <header className="sticky top-0 z-50 border-b-3 border-ink bg-cream">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-            <a href="/" aria-label="clickfolio.me home">
-              <Logo size="md" />
-            </a>
-            <LoginButton />
-          </div>
-        </header>
+        <SiteHeader />
 
-        <main id="main-content" className="flex-1 relative overflow-hidden">
+        <main id="main-content" className="flex-1 relative overflow-hidden pb-20 lg:pb-0">
           {/* Decorative elements */}
           <div className="absolute top-20 left-10 w-32 h-32 bg-amber rounded-full opacity-20 blur-3xl" />
           <div className="absolute bottom-40 right-10 w-40 h-40 bg-coral rounded-full opacity-20 blur-3xl" />
@@ -151,6 +145,36 @@ export default function Home() {
                     Drop your PDF. Get a shareable link in{" "}
                     <span className="font-mono text-ink">30 seconds.</span>
                   </p>
+
+                  {/* Portfolio preview mockups */}
+                  <div className="flex items-end gap-3 mt-8">
+                    {[
+                      { src: "/previews/minimalist.png", rotate: "-rotate-3" },
+                      { src: "/previews/brutalist.png", rotate: "rotate-1" },
+                      { src: "/previews/glass.png", rotate: "rotate-3" },
+                    ].map((preview) => (
+                      <div
+                        key={preview.src}
+                        className={`${preview.rotate} border-3 border-ink shadow-brutal-sm bg-white overflow-hidden w-20 sm:w-24`}
+                      >
+                        <div className="bg-ink flex items-center gap-1 px-1.5 py-1">
+                          <div className="w-1.5 h-1.5 rounded-full bg-coral" />
+                          <div className="w-1.5 h-1.5 rounded-full bg-amber" />
+                          <div className="w-1.5 h-1.5 rounded-full bg-mint" />
+                        </div>
+                        <img
+                          src={preview.src}
+                          alt=""
+                          aria-hidden="true"
+                          loading="eager"
+                          className="aspect-3/4 object-cover object-top w-full"
+                        />
+                      </div>
+                    ))}
+                    <span className="hidden sm:block font-mono text-xs text-ink/50 ml-2 pb-1">
+                      ← Your resume, {DEMO_PROFILES.length} ways
+                    </span>
+                  </div>
                 </div>
 
                 {/* Stats Row - Reordered: Free → ~30s → AI-Powered */}
@@ -191,7 +215,10 @@ export default function Home() {
                     </div>
                   </div>
 
-                  <div
+                  <a
+                    href="https://github.com/divkix/clickfolio.me"
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="
                     bg-lavender
                     border-3
@@ -201,13 +228,27 @@ export default function Home() {
                     hover-brutal-shift
                     animate-fade-in-up
                     delay-300
+                    block
                   "
                   >
-                    <div className="font-black text-2xl sm:text-3xl text-ink">AI</div>
-                    <div className="font-mono text-xs sm:text-sm text-ink/80 uppercase tracking-wide">
-                      Powered
+                    <div className="flex items-center gap-2">
+                      <svg
+                        className="h-6 w-6 sm:h-7 sm:w-7 text-ink"
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                      >
+                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+                      </svg>
+                      <div>
+                        <div className="font-black text-lg sm:text-xl text-ink leading-tight">
+                          Open
+                        </div>
+                        <div className="font-mono text-xs sm:text-sm text-ink/80 uppercase tracking-wide">
+                          Source
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  </a>
                 </div>
               </div>
 
@@ -215,6 +256,7 @@ export default function Home() {
               <div className="lg:col-span-5 flex flex-col gap-6">
                 {/* Upload Card */}
                 <div
+                  id="upload-card"
                   className="
                   bg-white
                   border-3
@@ -224,9 +266,12 @@ export default function Home() {
                   delay-200
                 "
                 >
-                  <div className="border-b-3 border-ink bg-ink text-cream px-4 py-2">
+                  <div className="border-b-3 border-ink bg-ink text-cream px-4 py-2 flex items-center justify-between">
                     <span className="font-mono text-sm uppercase tracking-wider">
-                      → Drop your resume (it&apos;s free)
+                      → Drop your resume
+                    </span>
+                    <span className="bg-mint text-ink px-2 py-0.5 border-2 border-ink font-bold font-mono text-xs uppercase">
+                      No sign-up to upload
                     </span>
                   </div>
                   <div className="p-4">
@@ -234,39 +279,38 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* Social Proof */}
-                <div
+                {/* Templates Feature Anchor */}
+                <a
+                  href="#examples"
                   className="
                   bg-coral
                   border-3
                   border-ink
                   p-4
                   shadow-brutal-sm
+                  hover-brutal-shift
                   animate-fade-in-up
                   delay-300
                   flex
                   items-center
                   gap-4
+                  block
                 "
                 >
-                  <div className="flex -space-x-3">
-                    <div className="w-10 h-10 rounded-full bg-amber border-3 border-ink flex items-center justify-center font-black text-sm text-ink">
-                      SC
-                    </div>
-                    <div className="w-10 h-10 rounded-full bg-mint border-3 border-ink flex items-center justify-center font-black text-sm text-ink">
-                      JS
-                    </div>
-                    <div className="w-10 h-10 rounded-full bg-lavender border-3 border-ink flex items-center justify-center font-black text-sm text-ink">
-                      MR
-                    </div>
+                  <div className="flex gap-1.5">
+                    <div className="w-6 h-6 bg-amber border-2 border-ink" />
+                    <div className="w-6 h-6 bg-mint border-2 border-ink" />
+                    <div className="w-6 h-6 bg-lavender border-2 border-ink" />
                   </div>
                   <div>
-                    <div className="font-black text-xl text-white">1,000+</div>
+                    <div className="font-black text-xl text-white">
+                      {DEMO_PROFILES.length} Templates
+                    </div>
                     <div className="font-mono text-xs text-white/80 uppercase tracking-wide">
-                      Resumes published
+                      Choose your style
                     </div>
                   </div>
-                </div>
+                </a>
 
                 {/* Tech Badges */}
                 <div className="text-center text-xs text-[#6B6B6B] mt-2">
@@ -278,6 +322,41 @@ export default function Home() {
 
             {/* Examples Section */}
             <ExamplesSection profiles={DEMO_PROFILES} />
+
+            {/* Explore Bridge — from demos to real portfolios */}
+            <section className="mt-12 lg:mt-16">
+              <Link
+                href="/explore"
+                className="group block bg-lavender border-3 border-ink p-6 shadow-brutal-md hover-brutal-shift"
+              >
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="text-center sm:text-left">
+                    <div className="font-black text-xl sm:text-2xl text-ink mb-1">
+                      Browse Real Portfolios
+                    </div>
+                    <div className="font-mono text-sm text-ink/70 uppercase tracking-wide">
+                      Discover professionals in our directory
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 text-ink font-mono text-sm font-bold uppercase tracking-wide shrink-0">
+                    <span>Explore</span>
+                    <svg
+                      className="w-5 h-5 transform group-hover:translate-x-1 transition-transform"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={3}
+                        d="M17 8l4 4m0 0l-4 4m4-4H3"
+                      />
+                    </svg>
+                  </div>
+                </div>
+              </Link>
+            </section>
 
             {/* How it works - Horizontal steps */}
             <section className="mt-16 lg:mt-20">
@@ -291,7 +370,7 @@ export default function Home() {
                   {
                     step: "01",
                     title: "Upload",
-                    desc: "Drop your PDF resume. No account needed to start.",
+                    desc: "Drop your PDF resume. No sign-up to start.",
                     color: "bg-amber",
                   },
                   {
@@ -330,18 +409,7 @@ export default function Home() {
               </div>
             </section>
 
-            {/* Testimonial */}
-            <section className="mt-16 lg:mt-20">
-              <div className="bg-mint border-3 border-ink p-6 shadow-brutal-md relative">
-                <div className="absolute top-4 left-4 text-6xl text-ink/10 font-serif">"</div>
-                <blockquote className="text-lg text-ink font-medium relative z-10 pl-8">
-                  I spent 3 hours on my old portfolio. Clickfolio took 30 seconds.
-                </blockquote>
-                <footer className="mt-4 font-mono text-sm text-ink/70 pl-8">
-                  — Marcus R., Software Engineer
-                </footer>
-              </div>
-            </section>
+            <WhatYouGetSection />
 
             {/* Bottom CTA */}
             <section className="mt-16 lg:mt-20">
@@ -367,7 +435,7 @@ export default function Home() {
                   Give it a permanent home on the web. Free forever.
                 </p>
                 <div className="flex justify-center">
-                  <ScrollToTopButton />
+                  <BottomCTAButton />
                 </div>
               </div>
             </section>
@@ -375,6 +443,7 @@ export default function Home() {
         </main>
 
         <Footer />
+        <MobileStickyUpload />
       </div>
     </>
   );

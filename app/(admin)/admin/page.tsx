@@ -123,7 +123,7 @@ export default async function AdminOverviewPage() {
       {stats.failedResumes > 0 && (
         <Link
           href="/admin/resumes?status=failed"
-          className="block bg-coral/10 border border-coral/30 rounded-2xl p-4 hover:bg-coral/20 transition-colors"
+          className="block bg-coral/10 border border-coral/30 rounded-xl p-4 hover:bg-coral/20 transition-colors"
         >
           <div className="flex items-center gap-3">
             <div className="bg-coral/20 p-2 rounded-lg">
@@ -141,13 +141,13 @@ export default async function AdminOverviewPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Signups */}
-        <div className="bg-white rounded-2xl shadow-depth-sm border border-slate-200/60 p-6">
-          <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">
+        <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-6">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
             Recent Signups
           </h2>
           <div className="space-y-3">
             {stats.recentSignups.length === 0 ? (
-              <p className="text-sm text-slate-500">No signups yet</p>
+              <p className="text-sm text-muted-foreground">No signups yet</p>
             ) : (
               stats.recentSignups.map((signup, i) => (
                 <div
@@ -155,12 +155,12 @@ export default async function AdminOverviewPage() {
                   className="flex items-center justify-between text-sm"
                 >
                   <div className="min-w-0 flex-1">
-                    <p className="font-medium text-slate-900 truncate">
+                    <p className="font-medium text-foreground truncate">
                       {signup.name || "Unnamed"}
                     </p>
-                    <p className="text-slate-500 truncate">{signup.email}</p>
+                    <p className="text-muted-foreground truncate">{signup.email}</p>
                   </div>
-                  <span className="text-xs text-slate-400 shrink-0 ml-2">
+                  <span className="text-xs text-muted-foreground/70 shrink-0 ml-2">
                     {formatRelativeTime(signup.createdAt)}
                   </span>
                 </div>
@@ -170,8 +170,8 @@ export default async function AdminOverviewPage() {
         </div>
 
         {/* Views Sparkline */}
-        <div className="bg-white rounded-2xl shadow-depth-sm border border-slate-200/60 p-6">
-          <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">
+        <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-6">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
             Views (Last 7 Days)
           </h2>
           <AdminSparkline data={stats.dailyViews} />

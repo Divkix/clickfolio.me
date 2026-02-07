@@ -32,7 +32,7 @@ export function AdminSidebar({ isOpen, onClose, adminEmail }: AdminSidebarProps)
       {/* Mobile backdrop */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-40 lg:hidden"
+          className="fixed inset-0 bg-ink/20 backdrop-blur-sm z-40 lg:hidden"
           onClick={onClose}
           aria-hidden="true"
         />
@@ -41,7 +41,7 @@ export function AdminSidebar({ isOpen, onClose, adminEmail }: AdminSidebarProps)
       {/* Sidebar */}
       <aside
         className={`
-          fixed top-0 left-0 h-full w-64 bg-white border-r border-slate-200/60
+          fixed top-0 left-0 h-full w-64 bg-card border-r border-ink/10
           flex flex-col z-50 transition-transform duration-300
           ${isOpen ? "translate-x-0" : "-translate-x-full"}
           lg:translate-x-0
@@ -52,18 +52,18 @@ export function AdminSidebar({ isOpen, onClose, adminEmail }: AdminSidebarProps)
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 text-slate-600 hover:text-slate-900 lg:hidden transition-colors"
+          className="absolute top-4 right-4 p-2 text-muted-foreground hover:text-foreground lg:hidden transition-colors"
           aria-label="Close navigation"
         >
           <X size={20} />
         </button>
 
         {/* Logo Header */}
-        <div className="p-4 border-b border-slate-200/60">
+        <div className="p-4 border-b border-ink/10">
           <Link href="/" aria-label="clickfolio.me home">
             <Logo size="xs" />
           </Link>
-          <span className="ml-2 text-xs font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
+          <span className="ml-2 text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded">
             Admin
           </span>
         </div>
@@ -84,8 +84,8 @@ export function AdminSidebar({ isOpen, onClose, adminEmail }: AdminSidebarProps)
                   transition-all duration-200
                   ${
                     active
-                      ? "bg-slate-100 text-slate-900 border-l-2 border-ink"
-                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                      ? "bg-muted text-foreground border-l-2 border-ink"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
                   }
                 `}
                 aria-current={active ? "page" : undefined}
@@ -98,9 +98,9 @@ export function AdminSidebar({ isOpen, onClose, adminEmail }: AdminSidebarProps)
         </nav>
 
         {/* Admin Info */}
-        <div className="p-4 border-t border-slate-200/60">
-          <p className="text-xs text-slate-500">Logged in as</p>
-          <p className="text-sm font-medium text-slate-700 truncate">{adminEmail}</p>
+        <div className="p-4 border-t border-ink/10">
+          <p className="text-xs text-muted-foreground">Logged in as</p>
+          <p className="text-sm font-medium text-foreground/80 truncate">{adminEmail}</p>
         </div>
       </aside>
     </>

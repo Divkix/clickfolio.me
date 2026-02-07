@@ -271,11 +271,11 @@ export function AnalyticsCard() {
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-depth-sm border border-slate-200/60 p-6 hover:shadow-depth-md transition-all duration-300">
+    <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-6 hover:shadow-md transition-all duration-300">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-slate-900">Analytics</h3>
-        <div className="flex gap-1 bg-slate-100 rounded-lg p-0.5">
+        <h3 className="text-lg font-semibold text-foreground">Analytics</h3>
+        <div className="flex gap-1 bg-muted rounded-lg p-0.5">
           {PERIOD_OPTIONS.map((opt) => (
             <button
               key={opt.value}
@@ -283,8 +283,8 @@ export function AnalyticsCard() {
               onClick={() => handlePeriodChange(opt.value)}
               className={`px-2.5 py-1 text-xs font-medium rounded-md transition-all ${
                 period === opt.value
-                  ? "bg-white text-slate-900 shadow-sm"
-                  : "text-slate-500 hover:text-slate-700"
+                  ? "bg-card text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground/80"
               }`}
             >
               {opt.label}
@@ -296,7 +296,7 @@ export function AnalyticsCard() {
       {loading ? (
         <LoadingSkeleton />
       ) : error ? (
-        <div className="text-sm text-slate-500 text-center py-8">
+        <div className="text-sm text-muted-foreground text-center py-8">
           Failed to load analytics. Try refreshing.
         </div>
       ) : stats && stats.totalViews === 0 ? (
@@ -326,8 +326,8 @@ function StatsContent({ stats }: { stats: AnalyticsStats }) {
             </div>
           </div>
           <div>
-            <p className="text-xs font-medium text-slate-500">Views</p>
-            <p className="text-lg font-bold text-slate-900">{formatNumber(stats.totalViews)}</p>
+            <p className="text-xs font-medium text-muted-foreground">Views</p>
+            <p className="text-lg font-bold text-foreground">{formatNumber(stats.totalViews)}</p>
           </div>
         </div>
         <div className="flex items-center gap-2.5">
@@ -338,8 +338,10 @@ function StatsContent({ stats }: { stats: AnalyticsStats }) {
             </div>
           </div>
           <div>
-            <p className="text-xs font-medium text-slate-500">Visitors</p>
-            <p className="text-lg font-bold text-slate-900">{formatNumber(stats.uniqueVisitors)}</p>
+            <p className="text-xs font-medium text-muted-foreground">Visitors</p>
+            <p className="text-lg font-bold text-foreground">
+              {formatNumber(stats.uniqueVisitors)}
+            </p>
           </div>
         </div>
       </div>
@@ -351,24 +353,24 @@ function StatsContent({ stats }: { stats: AnalyticsStats }) {
 
       {/* Traffic Sources */}
       <div>
-        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
           Traffic Sources
         </p>
         <div className="space-y-1.5">
           {stats.directVisits > 0 && (
             <div className="flex items-center justify-between text-sm">
-              <span className="text-slate-600">Direct</span>
-              <span className="font-medium text-slate-900">{stats.directVisits}</span>
+              <span className="text-muted-foreground">Direct</span>
+              <span className="font-medium text-foreground">{stats.directVisits}</span>
             </div>
           )}
           {topReferrers.map((r) => (
             <div key={r.referrer} className="flex items-center justify-between text-sm">
-              <span className="text-slate-600 truncate max-w-[140px]">{r.referrer}</span>
-              <span className="font-medium text-slate-900">{r.count}</span>
+              <span className="text-muted-foreground truncate max-w-[140px]">{r.referrer}</span>
+              <span className="font-medium text-foreground">{r.count}</span>
             </div>
           ))}
           {stats.directVisits === 0 && topReferrers.length === 0 && (
-            <p className="text-xs text-slate-400">No traffic sources yet</p>
+            <p className="text-xs text-muted-foreground/70">No traffic sources yet</p>
           )}
         </div>
       </div>
@@ -376,7 +378,7 @@ function StatsContent({ stats }: { stats: AnalyticsStats }) {
       {/* Device Breakdown */}
       {stats.deviceBreakdown.length > 0 && (
         <div>
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
             Devices
           </p>
           <div className="flex gap-3">
@@ -384,9 +386,9 @@ function StatsContent({ stats }: { stats: AnalyticsStats }) {
               const Icon = DEVICE_ICONS[d.device] || Globe;
               return (
                 <div key={d.device} className="flex items-center gap-1.5 text-sm">
-                  <Icon className="w-3.5 h-3.5 text-slate-400" aria-hidden="true" />
-                  <span className="text-slate-600 capitalize">{d.device}</span>
-                  <span className="font-medium text-slate-900">{d.count}</span>
+                  <Icon className="w-3.5 h-3.5 text-muted-foreground/70" aria-hidden="true" />
+                  <span className="text-muted-foreground capitalize">{d.device}</span>
+                  <span className="font-medium text-foreground">{d.count}</span>
                 </div>
               );
             })}
@@ -406,8 +408,10 @@ function EmptyState() {
           <Eye className="w-6 h-6 text-coral" aria-hidden="true" />
         </div>
       </div>
-      <p className="text-sm font-medium text-slate-700 mb-1">No views yet</p>
-      <p className="text-xs text-slate-500">Share your resume link to start tracking visits.</p>
+      <p className="text-sm font-medium text-foreground/80 mb-1">No views yet</p>
+      <p className="text-xs text-muted-foreground">
+        Share your resume link to start tracking visits.
+      </p>
     </div>
   );
 }

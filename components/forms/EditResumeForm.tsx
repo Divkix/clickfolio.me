@@ -113,7 +113,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         {/* Save Status Bar */}
-        <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-md py-4 -mx-4 px-4 border-b border-slate-200/60 shadow-depth-sm mb-6">
+        <div className="sticky top-0 z-10 bg-card/95 backdrop-blur-md py-4 -mx-4 px-4 border-b border-ink/10 shadow-sm mb-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="relative shrink-0">
@@ -127,7 +127,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
             <Button
               type="submit"
               disabled={saveStatus === "saving"}
-              className="bg-linear-to-r from-coral to-coral hover:from-coral/90 hover:to-coral/90 text-white font-semibold shadow-depth-sm hover:shadow-depth-md transition-all duration-300"
+              className="bg-linear-to-r from-coral to-coral hover:from-coral/90 hover:to-coral/90 text-white font-semibold shadow-sm hover:shadow-md transition-all duration-300"
             >
               <Save className="h-4 w-4 mr-2" />
               Publish Changes
@@ -149,7 +149,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
             type="submit"
             size="lg"
             disabled={saveStatus === "saving"}
-            className="bg-linear-to-r from-coral to-coral hover:from-coral/90 hover:to-coral/90 text-white font-semibold shadow-depth-sm hover:shadow-depth-md transition-all duration-300"
+            className="bg-linear-to-r from-coral to-coral hover:from-coral/90 hover:to-coral/90 text-white font-semibold shadow-sm hover:shadow-md transition-all duration-300"
           >
             <Save className="h-4 w-4 mr-2" />
             Publish Changes

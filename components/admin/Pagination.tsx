@@ -44,7 +44,7 @@ export function Pagination({ currentPage, totalPages, onPageChange }: Pagination
         type="button"
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 1}
-        className="p-2 rounded-lg text-slate-600 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        className="p-2 rounded-lg text-muted-foreground hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         aria-label="Previous page"
       >
         <ChevronLeft size={16} />
@@ -52,7 +52,7 @@ export function Pagination({ currentPage, totalPages, onPageChange }: Pagination
 
       {pages.map((page, i) =>
         page === "..." ? (
-          <span key={`ellipsis-${i}`} className="px-2 text-slate-400">
+          <span key={`ellipsis-${i}`} className="px-2 text-muted-foreground/70">
             ...
           </span>
         ) : (
@@ -61,7 +61,7 @@ export function Pagination({ currentPage, totalPages, onPageChange }: Pagination
             type="button"
             onClick={() => onPageChange(page)}
             className={`min-w-[32px] h-8 px-2 rounded-lg text-sm font-medium transition-colors ${
-              page === currentPage ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"
+              page === currentPage ? "bg-ink text-cream" : "text-muted-foreground hover:bg-muted"
             }`}
             aria-current={page === currentPage ? "page" : undefined}
           >
@@ -74,7 +74,7 @@ export function Pagination({ currentPage, totalPages, onPageChange }: Pagination
         type="button"
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
-        className="p-2 rounded-lg text-slate-600 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        className="p-2 rounded-lg text-muted-foreground hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         aria-label="Next page"
       >
         <ChevronRight size={16} />

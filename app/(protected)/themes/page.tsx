@@ -56,7 +56,7 @@ export default async function ThemesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 md:p-6">
+    <div className="min-h-screen bg-cream p-4 md:p-6">
       <div className="max-w-6xl mx-auto">
         {/* Theme Selector with Live Preview */}
         <ThemeSelector

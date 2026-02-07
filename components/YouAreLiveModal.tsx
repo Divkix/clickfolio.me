@@ -181,15 +181,13 @@ export function YouAreLiveModal({ open, onOpenChange, handle, url }: YouAreLiveM
             <div className="bg-linear-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg p-4 border border-purple-200/60 dark:border-purple-700/40">
               <div className="flex items-center gap-2 mb-2">
                 <Gift className="size-4 text-purple-600 dark:text-purple-400" aria-hidden="true" />
-                <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                  Share with friends
-                </span>
+                <span className="text-sm font-semibold text-foreground">Share with friends</span>
               </div>
-              <p className="text-xs text-slate-600 dark:text-slate-400 mb-3">
+              <p className="text-xs text-muted-foreground mb-3">
                 Know someone job hunting? Share your referral link.
               </p>
               <div className="flex items-center gap-2">
-                <code className="flex-1 text-xs bg-white/80 dark:bg-slate-800/80 px-2 py-1.5 rounded font-mono text-slate-600 dark:text-slate-300 truncate">
+                <code className="flex-1 text-xs bg-white/80 dark:bg-ink/80 px-2 py-1.5 rounded font-mono text-muted-foreground truncate">
                   ?ref={handle}
                 </code>
                 <Button

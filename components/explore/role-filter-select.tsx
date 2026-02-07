@@ -13,7 +13,7 @@ export function RoleFilterSelect({ roleFilter, roleOptions }: RoleFilterSelectPr
         name="role"
         defaultValue={roleFilter}
         onChange={(e) => (e.target as HTMLSelectElement).form?.submit()}
-        className="px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-coral focus:border-coral"
+        className="px-3 py-2 border border-ink/15 rounded-lg text-sm bg-card focus:ring-2 focus:ring-coral focus:border-coral"
       >
         {roleOptions.map((option) => (
           <option key={option.value} value={option.value}>

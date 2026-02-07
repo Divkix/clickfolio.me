@@ -245,13 +245,13 @@ export function UploadStep({ onContinue }: UploadStepProps) {
     <div className="space-y-8">
       {/* Header */}
       <div className="text-center">
-        <div className="mx-auto w-16 h-16 bg-linear-to-r from-coral/20 to-coral/20 rounded-2xl flex items-center justify-center mb-6">
+        <div className="mx-auto w-16 h-16 bg-linear-to-r from-coral/20 to-coral/20 rounded-xl flex items-center justify-center mb-6">
           <Upload className="w-8 h-8 text-coral" />
         </div>
-        <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-3 leading-tight">
+        <h1 className="text-3xl sm:text-4xl font-bold text-foreground mb-3 leading-tight">
           Upload Your Resume
         </h1>
-        <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+        <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
           Drop your PDF to get started. We&apos;ll extract your experience in seconds.
         </p>
       </div>
@@ -260,7 +260,7 @@ export function UploadStep({ onContinue }: UploadStepProps) {
       <div className="max-w-md mx-auto space-y-4">
         {uploadState === "error" ? (
           /* Error State */
-          <div className="bg-white rounded-2xl border border-coral/30 p-8 text-center">
+          <div className="bg-card rounded-xl border border-coral/30 p-8 text-center">
             <div className="relative mx-auto w-16 h-16 mb-4">
               <div className="absolute inset-0 bg-coral rounded-full blur-xl opacity-20" />
               <div className="relative w-16 h-16 bg-coral/20 rounded-full flex items-center justify-center">
@@ -281,12 +281,12 @@ export function UploadStep({ onContinue }: UploadStepProps) {
               </div>
             </div>
 
-            <h3 className="text-lg font-bold text-slate-900 mb-2">Something Went Wrong</h3>
+            <h3 className="text-lg font-bold text-foreground mb-2">Something Went Wrong</h3>
             <p className="text-sm text-coral mb-6">{error}</p>
 
             <Button
               onClick={handleRetry}
-              className="w-full bg-linear-to-r from-coral to-coral hover:from-coral/90 hover:to-coral/90 text-white font-semibold shadow-depth-sm hover:shadow-depth-md transition-all duration-300"
+              className="w-full bg-linear-to-r from-coral to-coral hover:from-coral/90 hover:to-coral/90 text-white font-semibold shadow-sm hover:shadow-md transition-all duration-300"
               size="lg"
             >
               Try Again
@@ -294,7 +294,7 @@ export function UploadStep({ onContinue }: UploadStepProps) {
           </div>
         ) : isProcessing ? (
           /* Processing State */
-          <div className="bg-white rounded-2xl border border-slate-200/60 p-8 text-center">
+          <div className="bg-card rounded-xl border border-ink/10 p-8 text-center">
             <div className="relative mx-auto w-16 h-16 mb-4">
               <div className="absolute inset-0 bg-linear-to-r from-coral to-coral rounded-full blur-xl opacity-30 animate-pulse" />
               <div className="relative w-16 h-16 bg-linear-to-r from-coral/20 to-coral/20 rounded-full flex items-center justify-center">
@@ -302,19 +302,19 @@ export function UploadStep({ onContinue }: UploadStepProps) {
               </div>
             </div>
 
-            <h3 className="text-lg font-bold text-slate-900 mb-2">
+            <h3 className="text-lg font-bold text-foreground mb-2">
               {uploadState === "parsing" ? "AI Parsing Your Resume" : "Processing..."}
             </h3>
-            <p className="text-sm text-slate-600 mb-4">{getProgressMessage()}</p>
+            <p className="text-sm text-muted-foreground mb-4">{getProgressMessage()}</p>
 
             {uploadState === "parsing" && (
-              <p className="text-xs text-slate-400 font-medium mb-4">
+              <p className="text-xs text-muted-foreground/70 font-medium mb-4">
                 This typically takes ~30 seconds
               </p>
             )}
 
-            <Progress value={uploadProgress} className="h-2 bg-slate-100" />
-            <p className="text-xs text-slate-500 mt-2 font-medium">{uploadProgress}%</p>
+            <Progress value={uploadProgress} className="h-2 bg-muted" />
+            <p className="text-xs text-muted-foreground mt-2 font-medium">{uploadProgress}%</p>
           </div>
         ) : (
           /* Idle State - Drop Zone */
@@ -334,11 +334,11 @@ export function UploadStep({ onContinue }: UploadStepProps) {
             tabIndex={0}
             aria-label="Drop your PDF resume here or click to browse files"
             className={`
-              group relative bg-white rounded-2xl border border-slate-200/60 p-12 cursor-pointer transition-all duration-300 overflow-hidden
+              group relative bg-card rounded-xl border border-ink/10 p-12 cursor-pointer transition-all duration-300 overflow-hidden
               ${
                 isDragging
-                  ? "border-coral bg-linear-to-br from-coral/10 to-coral/10 shadow-depth-lg -translate-y-1"
-                  : "hover:border-coral/40 hover:shadow-depth-md"
+                  ? "border-coral bg-linear-to-br from-coral/10 to-coral/10 shadow-lg -translate-y-1"
+                  : "hover:border-coral/40 hover:shadow-md"
               }
             `}
           >
@@ -358,10 +358,10 @@ export function UploadStep({ onContinue }: UploadStepProps) {
               {/* Icon with gradient background */}
               <div className="relative">
                 <div
-                  className={`absolute inset-0 bg-linear-to-r from-coral to-coral rounded-2xl blur-xl transition-opacity duration-300 ${isDragging ? "opacity-40" : "opacity-20 group-hover:opacity-40"}`}
+                  className={`absolute inset-0 bg-linear-to-r from-coral to-coral rounded-xl blur-xl transition-opacity duration-300 ${isDragging ? "opacity-40" : "opacity-20 group-hover:opacity-40"}`}
                 />
                 <div
-                  className={`relative bg-linear-to-r from-coral/20 to-coral/20 p-4 rounded-2xl transition-transform duration-300 ${isDragging ? "scale-110" : "group-hover:scale-110"}`}
+                  className={`relative bg-linear-to-r from-coral/20 to-coral/20 p-4 rounded-xl transition-transform duration-300 ${isDragging ? "scale-110" : "group-hover:scale-110"}`}
                 >
                   <svg className="w-12 h-12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                     <defs>
@@ -382,12 +382,12 @@ export function UploadStep({ onContinue }: UploadStepProps) {
               </div>
 
               {/* Title text */}
-              <p className="text-lg font-semibold text-slate-900">
+              <p className="text-lg font-semibold text-foreground">
                 {file ? file.name : "Drop your PDF resume here"}
               </p>
 
               {/* Secondary text */}
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-muted-foreground">
                 or click to browse - Max {MAX_FILE_SIZE_LABEL}
               </p>
             </div>
@@ -396,9 +396,9 @@ export function UploadStep({ onContinue }: UploadStepProps) {
 
         {/* Help Text */}
         {uploadState === "idle" && (
-          <div className="bg-slate-50 border border-slate-200/60 rounded-xl p-4">
-            <p className="text-xs font-semibold text-slate-700 mb-2">Supported formats:</p>
-            <ul className="text-xs text-slate-600 space-y-1">
+          <div className="bg-muted border border-ink/10 rounded-xl p-4">
+            <p className="text-xs font-semibold text-foreground/80 mb-2">Supported formats:</p>
+            <ul className="text-xs text-muted-foreground space-y-1">
               <li>* PDF files only</li>
               <li>* Maximum file size: {MAX_FILE_SIZE_LABEL}</li>
               <li>* Best results with text-based PDFs (not scanned images)</li>

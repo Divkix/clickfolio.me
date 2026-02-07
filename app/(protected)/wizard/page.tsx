@@ -478,8 +478,8 @@ export default function WizardPage() {
       <div className="min-h-screen bg-cream flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-12 h-12 animate-spin text-coral mx-auto mb-4" />
-          <p className="text-slate-600 font-medium">Loading your resume...</p>
-          <p className="text-slate-500 text-sm mt-2">
+          <p className="text-muted-foreground font-medium">Loading your resume...</p>
+          <p className="text-muted-foreground text-sm mt-2">
             This may take 30-60 seconds if we&apos;re parsing your PDF
           </p>
         </div>
@@ -491,7 +491,7 @@ export default function WizardPage() {
   if (error && state.currentStepId === "handle" && !needsUpload) {
     return (
       <div className="min-h-screen bg-cream flex items-center justify-center px-4">
-        <div className="bg-white rounded-2xl shadow-depth-md border border-coral/30 p-8 max-w-md w-full text-center">
+        <div className="bg-card rounded-xl shadow-md border border-coral/30 p-8 max-w-md w-full text-center">
           <div className="w-16 h-16 bg-coral/20 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg
               className="w-8 h-8 text-coral"
@@ -507,8 +507,8 @@ export default function WizardPage() {
               />
             </svg>
           </div>
-          <h2 className="text-2xl font-bold text-slate-900 mb-3">Something Went Wrong</h2>
-          <p className="text-slate-600">{error}</p>
+          <h2 className="text-2xl font-bold text-foreground mb-3">Something Went Wrong</h2>
+          <p className="text-muted-foreground">{error}</p>
         </div>
       </div>
     );

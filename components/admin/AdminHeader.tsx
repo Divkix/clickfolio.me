@@ -27,27 +27,27 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
   };
 
   return (
-    <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm border-b border-slate-200/60">
+    <header className="sticky top-0 z-10 bg-card/80 backdrop-blur-sm border-b border-ink/10">
       <div className="flex items-center justify-between h-14 px-4 lg:px-6">
         <div className="flex items-center gap-3">
           {/* Mobile menu button */}
           <button
             type="button"
             onClick={onMenuClick}
-            className="p-2 -ml-2 text-slate-600 hover:text-slate-900 lg:hidden transition-colors"
+            className="p-2 -ml-2 text-muted-foreground hover:text-foreground lg:hidden transition-colors"
             aria-label="Open menu"
           >
             <Menu size={20} />
           </button>
 
-          <h1 className="text-lg font-semibold text-slate-900">{title}</h1>
+          <h1 className="text-lg font-semibold text-foreground">{title}</h1>
         </div>
 
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={handleRefresh}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
+            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
             aria-label="Refresh data"
           >
             <RefreshCw size={16} aria-hidden="true" />
@@ -56,7 +56,7 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
 
           <Link
             href="/dashboard"
-            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
+            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
           >
             <ArrowLeft size={16} aria-hidden="true" />
             <span className="hidden sm:inline">Back to Dashboard</span>

@@ -42,7 +42,7 @@ export function WizardProgress({
   const stepTitle = getStepTitle(currentStep, hasUploadStep ?? false);
 
   return (
-    <div className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-slate-200/60 shadow-depth-sm">
+    <div className="sticky top-0 z-50 bg-card/95 backdrop-blur-sm border-b border-ink/10 shadow-sm">
       <div className="max-w-3xl mx-auto px-4 py-4">
         {/* Step Counter and Title */}
         <div className="flex items-center justify-between mb-3">
@@ -50,14 +50,16 @@ export function WizardProgress({
             <span className="text-sm font-semibold text-coral">
               Step {currentStep} of {totalSteps}
             </span>
-            <span className="hidden sm:block text-sm text-slate-400">•</span>
-            <span className="hidden sm:block text-sm font-medium text-slate-900">{stepTitle}</span>
+            <span className="hidden sm:block text-sm text-muted-foreground/70">&bull;</span>
+            <span className="hidden sm:block text-sm font-medium text-foreground">{stepTitle}</span>
           </div>
-          <span className="text-sm font-semibold text-slate-600">{Math.round(progress)}%</span>
+          <span className="text-sm font-semibold text-muted-foreground">
+            {Math.round(progress)}%
+          </span>
         </div>
 
         {/* Progress Bar */}
-        <Progress value={progress} className="h-2 bg-slate-100" />
+        <Progress value={progress} className="h-2 bg-muted" />
       </div>
     </div>
   );

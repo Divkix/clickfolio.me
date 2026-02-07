@@ -124,10 +124,10 @@ export function ThemeSelector({
     <div className="space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight mb-2">
+        <h1 className="text-3xl md:text-4xl font-extrabold text-foreground tracking-tight mb-2">
           Choose Your Theme
         </h1>
-        <p className="text-base md:text-lg text-slate-600 leading-relaxed">
+        <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
           Preview how your resume looks with different styles. Click a theme to preview, then apply
           it.
         </p>
@@ -172,17 +172,17 @@ export function ThemeSelector({
                 onClick={() => isUnlocked && setSelectedTheme(themeId)}
                 className={cn(
                   "relative shrink-0 w-28 md:w-36 rounded-lg overflow-hidden transition-all duration-200",
-                  "border-2 bg-white",
+                  "border-2 bg-card",
                   "focus:outline-none focus:ring-2 focus:ring-coral focus:ring-offset-2",
                   isUnlocked
                     ? isSelected
                       ? "border-coral ring-2 ring-coral/20 shadow-lg"
-                      : "border-slate-200 hover:border-slate-300 hover:shadow-md cursor-pointer"
-                    : "border-slate-200 opacity-75 cursor-not-allowed",
+                      : "border-ink/15 hover:border-ink/25 hover:shadow-md cursor-pointer"
+                    : "border-ink/15 opacity-75 cursor-not-allowed",
                 )}
               >
                 {/* Thumbnail Image */}
-                <div className="aspect-4/3 bg-slate-100 overflow-hidden relative">
+                <div className="aspect-4/3 bg-muted overflow-hidden relative">
                   <img
                     src={meta.preview}
                     alt={`${meta.name} preview`}
@@ -194,7 +194,7 @@ export function ThemeSelector({
                   />
                   {/* Lock Overlay for locked themes */}
                   {!isUnlocked && (
-                    <div className="absolute inset-0 bg-slate-900/40 flex flex-col items-center justify-center">
+                    <div className="absolute inset-0 bg-ink/40 flex flex-col items-center justify-center">
                       <Lock className="w-5 h-5 text-white mb-1" />
                       <span className="text-[10px] text-white font-semibold">
                         {requiredReferrals} referrals
@@ -208,7 +208,7 @@ export function ThemeSelector({
                   <span
                     className={cn(
                       "text-xs md:text-sm font-semibold truncate block",
-                      isUnlocked ? "text-slate-900" : "text-slate-500",
+                      isUnlocked ? "text-foreground" : "text-muted-foreground",
                     )}
                   >
                     {meta.name}
@@ -219,7 +219,7 @@ export function ThemeSelector({
                     </span>
                   )}
                   {!isUnlocked && (
-                    <span className="inline-flex items-center gap-1 mt-1 text-[10px] md:text-xs font-medium text-amber-600">
+                    <span className="inline-flex items-center gap-1 mt-1 text-[10px] md:text-xs font-medium text-amber">
                       <Gift className="w-3 h-3" />
                       Locked
                     </span>
@@ -246,11 +246,15 @@ export function ThemeSelector({
       </div>
 
       {/* Selected Theme Info + Apply Button */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 bg-card rounded-xl border border-ink/15 shadow-sm">
         <div>
-          <h2 className="text-lg font-bold text-slate-900">{THEME_METADATA[selectedTheme].name}</h2>
-          <p className="text-sm text-slate-600">{THEME_METADATA[selectedTheme].description}</p>
-          <span className="inline-block mt-1 text-xs uppercase tracking-wide text-slate-500 font-medium">
+          <h2 className="text-lg font-bold text-foreground">
+            {THEME_METADATA[selectedTheme].name}
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            {THEME_METADATA[selectedTheme].description}
+          </p>
+          <span className="inline-block mt-1 text-xs uppercase tracking-wide text-muted-foreground font-medium">
             {THEME_METADATA[selectedTheme].category}
           </span>
         </div>
@@ -284,7 +288,7 @@ export function ThemeSelector({
       <div
         ref={previewContainerRef}
         className={cn(
-          "relative rounded-xl border border-slate-200 overflow-hidden shadow-lg",
+          "relative rounded-xl border border-ink/15 overflow-hidden shadow-lg",
           bgConfig.bg,
         )}
         style={{ height: "60vh", minHeight: "400px" }}

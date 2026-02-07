@@ -35,7 +35,7 @@ export function SidebarLayoutClient({ children }: { children: React.ReactNode })
   }, [sidebarOpen]);
 
   return (
-    <div className="min-h-screen bg-cream">
+    <div className="min-h-screen bg-cream paper-texture">
       {/* Sidebar - Desktop: always visible, Mobile: controlled by state */}
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
@@ -43,10 +43,10 @@ export function SidebarLayoutClient({ children }: { children: React.ReactNode })
       <button
         type="button"
         onClick={() => setSidebarOpen(true)}
-        className="fixed top-4 right-4 z-50 p-3 bg-white border border-slate-200/60 rounded-lg shadow-depth-sm md:hidden hover:shadow-depth-md transition-all duration-300"
+        className="fixed top-4 right-4 z-50 p-3 bg-card border border-ink/10 rounded-lg shadow-sm md:hidden hover:shadow-md transition-all duration-300"
         aria-label="Open navigation menu"
       >
-        <Menu size={24} className="text-slate-900" />
+        <Menu size={24} className="text-foreground" />
       </button>
 
       {/* Main content area */}

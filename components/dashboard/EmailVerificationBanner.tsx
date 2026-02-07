@@ -93,12 +93,12 @@ export function EmailVerificationBanner({
   }
 
   return (
-    <div className="bg-amber-50 border-2 border-amber-300 rounded-xl p-4 shadow-sm">
+    <div className="bg-amber/5 border-2 border-amber rounded-xl p-4 shadow-sm">
       <div className="flex items-start gap-3">
-        <AlertCircle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+        <AlertCircle className="h-5 w-5 text-amber shrink-0 mt-0.5" />
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-amber-900">Verify your email</h3>
-          <p className="mt-1 text-sm text-amber-800">
+          <h3 className="font-semibold text-foreground">Verify your email</h3>
+          <p className="mt-1 text-sm text-amber">
             Please verify your email address ({email}) to ensure account security and receive
             important notifications.
           </p>
@@ -110,8 +110,8 @@ export function EmailVerificationBanner({
               className="
                 px-3
                 py-1.5
-                bg-amber-600
-                hover:bg-amber-700
+                bg-amber
+                hover:bg-amber/90
                 text-white
                 text-sm
                 font-semibold
@@ -140,7 +140,7 @@ export function EmailVerificationBanner({
         <button
           type="button"
           onClick={handleDismiss}
-          className="text-amber-600 hover:text-amber-800 p-1 transition-colors"
+          className="text-amber/80 hover:text-amber p-1 transition-colors"
           aria-label="Dismiss"
         >
           <X className="h-4 w-4" />

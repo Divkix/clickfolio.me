@@ -1,4 +1,4 @@
-import { Folder, GitBranch, Globe, Mail, MapPin, Phone, Terminal } from "lucide-react";
+import { Folder, GitBranch, Globe, Mail, MapPin, Phone } from "lucide-react";
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
 import { getContactLinks } from "@/lib/templates/contact-links";
@@ -18,9 +18,20 @@ const DevTerminal: React.FC<TemplateProps> = ({ content, profile }) => {
     certifications,
   } = content;
 
-  // Parse name for terminal prompt
-  const username = full_name?.toLowerCase().replace(/\s+/g, "") || "user";
   const contactLinks = getContactLinks(contact);
+
+  // Build tab list from available sections
+  const tabs: { id: string; label: string }[] = [
+    { id: "readme", label: "README.md" },
+    ...(skills && skills.length > 0 ? [{ id: "skills", label: "config.yml" }] : []),
+    ...(experience && experience.length > 0 ? [{ id: "experience", label: "experience.log" }] : []),
+    ...(projects && projects.length > 0 ? [{ id: "projects", label: "repos/" }] : []),
+    ...(education && education.length > 0 ? [{ id: "education", label: "education/" }] : []),
+    ...(certifications && certifications.length > 0
+      ? [{ id: "certifications", label: "certs/" }]
+      : []),
+    { id: "contact", label: "contact.txt" },
+  ];
 
   return (
     <>
@@ -33,24 +44,60 @@ const DevTerminal: React.FC<TemplateProps> = ({ content, profile }) => {
       />
 
       <div className="min-h-screen bg-[#0d1117] text-[#c9d1d9] selection:bg-[#388bfd] selection:text-white w-full overflow-x-hidden">
-        {/* Custom font classes */}
+        {/* Custom font classes + typing animation */}
         <style>{`
           .font-mono-term { font-family: 'JetBrains Mono', monospace; }
           .font-sans-term { font-family: 'Inter', sans-serif; }
+          .typing-line {
+            display: inline-block;
+            overflow: hidden;
+            white-space: nowrap;
+            border-right: 2px solid transparent;
+            max-width: 0;
+          }
+          @media (prefers-reduced-motion: no-preference) {
+            .typing-line {
+              animation: typing-reveal 2s steps(25) forwards, blink-cursor 0.75s step-end infinite;
+            }
+          }
+          @media (prefers-reduced-motion: reduce) {
+            .typing-line {
+              max-width: none;
+              border-right-color: transparent;
+            }
+          }
+          @keyframes typing-reveal {
+            from { max-width: 0; }
+            to { max-width: 40ch; }
+          }
+          @keyframes blink-cursor {
+            from, to { border-color: transparent; }
+            50% { border-color: #7ee787; }
+          }
         `}</style>
 
-        {/* Navigation Bar */}
+        {/* VS Code-style Tab Navigation */}
         <nav
           aria-label="Main navigation"
-          className="sticky top-0 z-50 bg-[#161b22] border-b border-[#30363d] px-4 py-3"
+          className="sticky top-0 z-50 bg-[#161b22] border-b border-[#30363d]"
         >
-          <div className="max-w-5xl mx-auto flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Terminal className="size-5 text-[#58a6ff]" aria-hidden="true" />
-              <span className="font-mono-term text-sm font-semibold">{username}</span>
-              <span className="text-[#8b949e] text-xs hidden sm:inline">/ portfolio</span>
+          <div className="max-w-5xl mx-auto flex items-center">
+            <div className="flex items-center overflow-x-auto no-scrollbar">
+              {tabs.map((tab, idx) => (
+                <a
+                  key={tab.id}
+                  href={`#${tab.id}`}
+                  className={`px-4 py-3 font-mono-term text-xs whitespace-nowrap border-t-2 transition-colors ${
+                    idx === 0
+                      ? "border-[#58a6ff] text-white bg-[#0d1117]"
+                      : "border-transparent text-[#8b949e] hover:text-[#c9d1d9] hover:bg-[#0d1117]/50"
+                  }`}
+                >
+                  {tab.label}
+                </a>
+              ))}
             </div>
-            <div className="flex items-center gap-2 text-xs font-mono-term">
+            <div className="ml-auto px-4 py-3 flex items-center gap-2 text-xs font-mono-term shrink-0">
               <span className="px-2 py-1 bg-[#238636] text-white rounded-md flex items-center gap-1">
                 <GitBranch className="size-3" aria-hidden="true" />
                 main
@@ -61,7 +108,10 @@ const DevTerminal: React.FC<TemplateProps> = ({ content, profile }) => {
 
         <main className="max-w-5xl mx-auto px-4 py-8">
           {/* Hero Section - README style */}
-          <header className="mb-12 bg-[#161b22] border border-[#30363d] rounded-md overflow-hidden">
+          <header
+            id="readme"
+            className="mb-12 bg-[#161b22] border border-[#30363d] rounded-md overflow-hidden"
+          >
             <div className="px-4 py-3 bg-[#0d1117] border-b border-[#30363d] flex items-center gap-2">
               <Folder className="size-4 text-[#8b949e]" aria-hidden="true" />
               <span className="font-mono-term text-sm text-[#c9d1d9]">README.md</span>
@@ -118,9 +168,9 @@ const DevTerminal: React.FC<TemplateProps> = ({ content, profile }) => {
             </div>
           </header>
 
-          {/* Skills Section - System Configuration */}
+          {/* Skills Section - System Configuration with line numbers */}
           {skills && skills.length > 0 && (
-            <section className="mb-8">
+            <section id="skills" className="mb-8">
               <div className="bg-[#161b22] border border-[#30363d] rounded-md overflow-hidden">
                 <div className="px-4 py-3 bg-[#0d1117] border-b border-[#30363d]">
                   <h2 className="font-mono-term text-sm text-[#c9d1d9] flex items-center gap-2">
@@ -128,31 +178,47 @@ const DevTerminal: React.FC<TemplateProps> = ({ content, profile }) => {
                   </h2>
                 </div>
                 <div className="p-4 font-mono-term text-xs md:text-sm">
-                  {skills.map((skillGroup, index) => (
-                    <div key={index} className="mb-4 last:mb-0">
-                      <div className="text-[#7ee787] mb-2">
-                        $ echo ${skillGroup.category.toUpperCase().replace(/\s+/g, "_")}
-                      </div>
-                      <div className="pl-4 flex flex-wrap gap-2">
-                        {skillGroup.items.map((item, i) => (
-                          <span
-                            key={i}
-                            className="px-2 py-1 bg-[#21262d] border border-[#30363d] rounded text-[#c9d1d9] hover:border-[#58a6ff] transition-colors"
-                          >
-                            {item}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
+                  {(() => {
+                    let lineNum = 1;
+                    return skills.map((skillGroup, index) => {
+                      const echoText = `$ echo ${skillGroup.category.toUpperCase().replace(/\s+/g, "_")}`;
+                      const echoLineNum = lineNum;
+                      lineNum += 1;
+                      return (
+                        <div key={index} className="mb-4 last:mb-0">
+                          <div className="text-[#7ee787] mb-2 flex items-start">
+                            <span className="text-[#484f58] select-none mr-4 text-right inline-block w-8 shrink-0">
+                              {echoLineNum}
+                            </span>
+                            <span
+                              className="typing-line"
+                              style={{ animationDelay: `${index * 2.5}s` }}
+                            >
+                              {echoText}
+                            </span>
+                          </div>
+                          <div className="pl-12 flex flex-wrap gap-2">
+                            {skillGroup.items.map((item, i) => (
+                              <span
+                                key={i}
+                                className="px-2 py-1 bg-[#21262d] border border-[#30363d] rounded text-[#c9d1d9] hover:border-[#58a6ff] transition-colors"
+                              >
+                                {item}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    });
+                  })()}
                 </div>
               </div>
             </section>
           )}
 
-          {/* Experience Section - Log History */}
+          {/* Experience Section - Log History with git diff styling */}
           {experience && experience.length > 0 && (
-            <section className="mb-8">
+            <section id="experience" className="mb-8">
               <div className="bg-[#161b22] border border-[#30363d] rounded-md overflow-hidden">
                 <div className="px-4 py-3 bg-[#0d1117] border-b border-[#30363d]">
                   <h2 className="font-mono-term text-sm text-[#c9d1d9] flex items-center gap-2">
@@ -179,8 +245,8 @@ const DevTerminal: React.FC<TemplateProps> = ({ content, profile }) => {
                               key={i}
                               className="font-mono-term text-xs text-[#7ee787] flex items-start gap-2"
                             >
-                              <span className="text-[#8b949e]" aria-hidden="true">
-                                →
+                              <span className="text-[#7ee787] font-bold" aria-hidden="true">
+                                +
                               </span>
                               {highlight}
                             </li>
@@ -196,7 +262,7 @@ const DevTerminal: React.FC<TemplateProps> = ({ content, profile }) => {
 
           {/* Projects Section - Public Repositories */}
           {projects && projects.length > 0 && (
-            <section className="mb-8">
+            <section id="projects" className="mb-8">
               <div className="bg-[#161b22] border border-[#30363d] rounded-md overflow-hidden">
                 <div className="px-4 py-3 bg-[#0d1117] border-b border-[#30363d]">
                   <h2 className="font-mono-term text-sm text-[#c9d1d9] flex items-center gap-2">
@@ -256,7 +322,10 @@ const DevTerminal: React.FC<TemplateProps> = ({ content, profile }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
             {/* Education */}
             {education && education.length > 0 && (
-              <section className="bg-[#161b22] border border-[#30363d] rounded-md overflow-hidden">
+              <section
+                id="education"
+                className="bg-[#161b22] border border-[#30363d] rounded-md overflow-hidden"
+              >
                 <div className="px-4 py-3 bg-[#0d1117] border-b border-[#30363d]">
                   <h2 className="font-mono-term text-sm text-[#c9d1d9] flex items-center gap-2">
                     <span className="text-[#238636]">#</span> Education
@@ -279,9 +348,12 @@ const DevTerminal: React.FC<TemplateProps> = ({ content, profile }) => {
               </section>
             )}
 
-            {/* Certifications */}
+            {/* Certifications with GitHub pink keywords */}
             {certifications && certifications.length > 0 && (
-              <section className="bg-[#161b22] border border-[#30363d] rounded-md overflow-hidden">
+              <section
+                id="certifications"
+                className="bg-[#161b22] border border-[#30363d] rounded-md overflow-hidden"
+              >
                 <div className="px-4 py-3 bg-[#0d1117] border-b border-[#30363d]">
                   <h2 className="font-mono-term text-sm text-[#c9d1d9] flex items-center gap-2">
                     <span className="text-[#238636]">#</span> Certifications
@@ -290,7 +362,7 @@ const DevTerminal: React.FC<TemplateProps> = ({ content, profile }) => {
                 <div className="p-4 space-y-4">
                   {certifications.map((cert, index) => (
                     <div key={index}>
-                      <h3 className="font-sans-term font-semibold text-white text-sm">
+                      <h3 className="font-sans-term font-semibold text-[#F97583] text-sm">
                         {cert.name}
                       </h3>
                       <p className="text-[#8b949e] text-sm">{cert.issuer}</p>
@@ -303,7 +375,10 @@ const DevTerminal: React.FC<TemplateProps> = ({ content, profile }) => {
           </div>
 
           {/* Footer - Contact */}
-          <footer className="bg-[#161b22] border border-[#30363d] rounded-md overflow-hidden">
+          <footer
+            id="contact"
+            className="bg-[#161b22] border border-[#30363d] rounded-md overflow-hidden"
+          >
             <div className="px-4 py-3 bg-[#0d1117] border-b border-[#30363d]">
               <h2 className="font-mono-term text-sm text-[#c9d1d9] flex items-center gap-2">
                 <span className="text-[#238636]">#</span> Contact

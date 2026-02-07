@@ -58,13 +58,13 @@ export function PrivacyStep({
     <div className="space-y-8">
       {/* Header */}
       <div className="text-center">
-        <div className="mx-auto w-16 h-16 bg-linear-to-r from-coral/20 to-coral/20 rounded-2xl flex items-center justify-center mb-6">
+        <div className="mx-auto w-16 h-16 bg-linear-to-r from-coral/20 to-coral/20 rounded-xl flex items-center justify-center mb-6">
           <Shield className="w-8 h-8 text-coral" />
         </div>
-        <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-3 leading-tight">
+        <h1 className="text-3xl sm:text-4xl font-bold text-foreground mb-3 leading-tight">
           Privacy Settings
         </h1>
-        <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+        <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
           Control what information is visible on your public resume. You can change this anytime.
         </p>
       </div>
@@ -88,27 +88,27 @@ export function PrivacyStep({
 
         {/* Phone Number Toggle */}
         {content.contact.phone && (
-          <Card className="p-6 border-2 border-slate-200/60 shadow-depth-sm">
+          <Card className="p-6 border-ink/10 shadow-sm">
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-2">
-                  <Phone className="w-5 h-5 text-slate-600" />
-                  <Label htmlFor="show-phone" className="text-base font-semibold text-slate-900">
+                  <Phone className="w-5 h-5 text-muted-foreground" />
+                  <Label htmlFor="show-phone" className="text-base font-semibold text-foreground">
                     Show Phone Number
                   </Label>
                 </div>
-                <p className="text-sm text-slate-600 mb-3">
+                <p className="text-sm text-muted-foreground mb-3">
                   Display your phone number on your public resume
                 </p>
-                <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
-                  <p className="text-xs font-medium text-slate-500 mb-1">Preview:</p>
+                <div className="bg-muted border border-ink/15 rounded-lg p-3">
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Preview:</p>
                   {showPhone ? (
-                    <div className="flex items-center gap-2 text-sm text-slate-900">
+                    <div className="flex items-center gap-2 text-sm text-foreground">
                       <Eye className="w-4 h-4 text-green-600" />
                       <span className="font-medium">{content.contact.phone}</span>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-2 text-sm text-slate-500">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <EyeOff className="w-4 h-4" />
                       <span className="italic">Hidden from public view</span>
                     </div>
@@ -127,30 +127,30 @@ export function PrivacyStep({
 
         {/* Address Toggle */}
         {content.contact.location && (
-          <Card className="p-6 border-2 border-slate-200/60 shadow-depth-sm">
+          <Card className="p-6 border-ink/10 shadow-sm">
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-2">
-                  <MapPin className="w-5 h-5 text-slate-600" />
-                  <Label htmlFor="show-address" className="text-base font-semibold text-slate-900">
+                  <MapPin className="w-5 h-5 text-muted-foreground" />
+                  <Label htmlFor="show-address" className="text-base font-semibold text-foreground">
                     Show Full Address
                   </Label>
                 </div>
-                <p className="text-sm text-slate-600 mb-3">
+                <p className="text-sm text-muted-foreground mb-3">
                   Display your full street address instead of just city and state
                 </p>
-                <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
-                  <p className="text-xs font-medium text-slate-500 mb-1">Preview:</p>
+                <div className="bg-muted border border-ink/15 rounded-lg p-3">
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Preview:</p>
                   {showAddress ? (
-                    <div className="flex items-center gap-2 text-sm text-slate-900">
+                    <div className="flex items-center gap-2 text-sm text-foreground">
                       <Eye className="w-4 h-4 text-green-600" />
                       <span className="font-medium">{content.contact.location}</span>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-2 text-sm text-slate-900">
+                    <div className="flex items-center gap-2 text-sm text-foreground">
                       <EyeOff className="w-4 h-4 text-coral" />
                       <span className="font-medium">{getCityState(content.contact.location)}</span>
-                      <span className="text-xs text-slate-500">(City/State only)</span>
+                      <span className="text-xs text-muted-foreground">(City/State only)</span>
                     </div>
                   )}
                 </div>
@@ -166,30 +166,30 @@ export function PrivacyStep({
         )}
 
         {/* Directory Visibility Toggle */}
-        <Card className="p-6 border-2 border-slate-200/60 shadow-depth-sm">
+        <Card className="p-6 border-ink/10 shadow-sm">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-2">
-                <Users className="w-5 h-5 text-slate-600" />
+                <Users className="w-5 h-5 text-muted-foreground" />
                 <Label
                   htmlFor="show-in-directory"
-                  className="text-base font-semibold text-slate-900"
+                  className="text-base font-semibold text-foreground"
                 >
                   Show in Explore Directory
                 </Label>
               </div>
-              <p className="text-sm text-slate-600 mb-3">
+              <p className="text-sm text-muted-foreground mb-3">
                 Let others discover your portfolio on the public explore page
               </p>
-              <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
-                <p className="text-xs font-medium text-slate-500 mb-1">Preview:</p>
+              <div className="bg-muted border border-ink/15 rounded-lg p-3">
+                <p className="text-xs font-medium text-muted-foreground mb-1">Preview:</p>
                 {showInDirectory ? (
-                  <div className="flex items-center gap-2 text-sm text-slate-900">
+                  <div className="flex items-center gap-2 text-sm text-foreground">
                     <Eye className="w-4 h-4 text-green-600" />
                     <span className="font-medium">Listed on /explore</span>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-2 text-sm text-slate-500">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <EyeOff className="w-4 h-4" />
                     <span className="italic">Hidden from explore directory</span>
                   </div>
@@ -207,9 +207,9 @@ export function PrivacyStep({
 
         {/* No sensitive data message */}
         {!content.contact.phone && !content.contact.location && (
-          <Card className="p-6 border-2 border-slate-200/60 shadow-depth-sm text-center">
-            <Shield className="w-12 h-12 text-slate-400 mx-auto mb-3" />
-            <p className="text-slate-600">
+          <Card className="p-6 border-ink/10 shadow-sm text-center">
+            <Shield className="w-12 h-12 text-muted-foreground/70 mx-auto mb-3" />
+            <p className="text-muted-foreground">
               No phone number or address found in your resume.
               <br />
               <span className="text-sm">You can add these later in your dashboard.</span>
@@ -221,7 +221,7 @@ export function PrivacyStep({
         <div className="pt-4">
           <Button
             onClick={handleContinue}
-            className="w-full bg-linear-to-r from-coral to-coral hover:from-coral/90 hover:to-coral/90 text-white font-semibold shadow-depth-sm hover:shadow-depth-md transition-all duration-300"
+            className="w-full bg-linear-to-r from-coral to-coral hover:from-coral/90 hover:to-coral/90 text-white font-semibold shadow-sm hover:shadow-md transition-all duration-300"
             size="lg"
           >
             Continue
@@ -231,7 +231,7 @@ export function PrivacyStep({
 
       {/* Help Text */}
       <div className="text-center">
-        <p className="text-sm text-slate-500 font-medium">
+        <p className="text-sm text-muted-foreground font-medium">
           You can change these settings anytime in your dashboard.
         </p>
       </div>

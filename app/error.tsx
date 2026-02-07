@@ -21,8 +21,8 @@ export default function ErrorPage({
   }, [error]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-depth-md border border-slate-200/60 p-8 text-center">
+    <div className="min-h-screen flex items-center justify-center bg-cream px-4">
+      <div className="max-w-md w-full bg-card rounded-xl shadow-md border border-ink/10 p-8 text-center">
         <div className="mb-6">
           <div className="mx-auto w-16 h-16 bg-coral/20 rounded-full flex items-center justify-center">
             <svg
@@ -42,17 +42,17 @@ export default function ErrorPage({
           </div>
         </div>
 
-        <h1 className="text-2xl font-bold text-slate-900 mb-2">Something went wrong</h1>
+        <h1 className="text-2xl font-bold text-foreground mb-2">Something went wrong</h1>
 
-        <p className="text-slate-600 mb-6">
+        <p className="text-muted-foreground mb-6">
           We encountered an unexpected error. Please try again or go back to the dashboard.
         </p>
 
         {process.env.NODE_ENV === "development" && (
-          <div className="mb-6 p-4 bg-slate-50 rounded-lg text-left">
-            <p className="text-xs font-mono text-slate-700 break-all">{error.message}</p>
+          <div className="mb-6 p-4 bg-muted rounded-lg text-left">
+            <p className="text-xs font-mono text-foreground/80 break-all">{error.message}</p>
             {error.digest && (
-              <p className="text-xs text-slate-500 mt-2">Error ID: {error.digest}</p>
+              <p className="text-xs text-muted-foreground mt-2">Error ID: {error.digest}</p>
             )}
           </div>
         )}
@@ -61,19 +61,19 @@ export default function ErrorPage({
           <button
             type="button"
             onClick={reset}
-            className="flex-1 px-4 py-2 bg-linear-to-r from-coral to-coral text-white rounded-lg hover:from-coral/90 hover:to-coral/90 transition-all font-semibold shadow-depth-sm hover:shadow-depth-md"
+            className="flex-1 px-4 py-2 bg-linear-to-r from-coral to-coral text-white rounded-lg hover:from-coral/90 hover:to-coral/90 transition-all font-semibold shadow-sm hover:shadow-md"
           >
             Try Again
           </button>
           <Link
             href="/dashboard"
-            className="flex-1 px-4 py-2 bg-white text-slate-900 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors font-medium text-center"
+            className="flex-1 px-4 py-2 bg-card text-foreground border border-ink/15 rounded-lg hover:bg-muted transition-colors font-medium text-center"
           >
             Go to Dashboard
           </Link>
         </div>
 
-        <p className="mt-6 text-sm text-slate-500">
+        <p className="mt-6 text-sm text-muted-foreground">
           If the problem persists, please contact support.
         </p>
       </div>

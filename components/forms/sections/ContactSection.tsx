@@ -18,7 +18,7 @@ interface ContactSectionProps {
 
 export function ContactSection({ form }: ContactSectionProps) {
   return (
-    <div className="bg-white rounded-2xl shadow-depth-sm border border-slate-200/60 p-6 hover:shadow-depth-md transition-all duration-300">
+    <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-6 hover:shadow-md transition-all duration-300">
       <div className="flex items-center gap-3 mb-6">
         <div className="relative shrink-0">
           <div className="absolute inset-0 bg-linear-to-r from-purple-500 to-pink-500 rounded-lg blur-md opacity-20" />
@@ -27,8 +27,8 @@ export function ContactSection({ form }: ContactSectionProps) {
           </div>
         </div>
         <div>
-          <h2 className="text-lg font-semibold text-slate-900">Contact Information</h2>
-          <p className="text-sm text-slate-600">How people can reach you</p>
+          <h2 className="text-lg font-semibold text-foreground">Contact Information</h2>
+          <p className="text-sm text-muted-foreground">How people can reach you</p>
         </div>
       </div>
       <div className="space-y-4">
@@ -121,7 +121,7 @@ export function ContactSection({ form }: ContactSectionProps) {
         />
 
         <Separator className="my-2" />
-        <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">
+        <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
           Design Portfolio Links
         </p>
 

@@ -20,7 +20,7 @@ export function StatCard({
   href,
 }: StatCardProps) {
   const content = (
-    <div className="bg-white rounded-2xl shadow-depth-sm border border-slate-200/60 p-4 hover:shadow-depth-md hover:-translate-y-0.5 transition-all duration-300">
+    <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
       <div className="flex items-center gap-3">
         <div className="relative shrink-0">
           <div className={`absolute inset-0 ${iconBgClass} rounded-lg blur-md opacity-20`} />
@@ -29,10 +29,10 @@ export function StatCard({
           </div>
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-medium text-slate-500 truncate">{title}</p>
+          <p className="text-xs font-medium text-muted-foreground truncate">{title}</p>
           <div className="flex items-baseline gap-2">
             <p
-              className="text-xl font-bold text-slate-900"
+              className="text-xl font-bold text-foreground"
               style={{ fontVariantNumeric: "tabular-nums" }}
             >
               {typeof value === "number" ? value.toLocaleString() : value}

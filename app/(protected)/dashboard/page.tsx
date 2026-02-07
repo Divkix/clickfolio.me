@@ -125,25 +125,23 @@ export default async function DashboardPage() {
   // Empty State - No Resume
   if (!hasResume) {
     return (
-      // <CHANGE> bg-slate-50 -> bg-cream for neubrutalist design
       <div className="min-h-screen bg-cream">
         <main className="flex items-center justify-center min-h-[80vh] px-4">
-          {/* <CHANGE> shadow-depth -> shadow-brutal, border-slate -> border-ink */}
-          <div className="bg-white rounded-2xl shadow-brutal-sm border-2 border-ink/10 p-12 max-w-md w-full text-center hover:shadow-brutal-md transition-all duration-300">
+          <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-12 max-w-md w-full text-center hover:shadow-md transition-all duration-300">
             <div className="relative inline-block mb-6">
               <div className="absolute inset-0 bg-linear-to-r from-coral to-coral rounded-xl blur-xl opacity-20" />
               <div className="relative bg-linear-to-r from-coral/20 to-coral/20 p-6 rounded-xl">
                 <Upload className="w-12 h-12 text-coral mx-auto" aria-hidden="true" />
               </div>
             </div>
-            <h2 className="text-2xl font-bold text-slate-900 mb-3">No Resume Yet</h2>
-            <p className="text-slate-600 mb-6">
+            <h2 className="text-2xl font-bold text-foreground mb-3">No Resume Yet</h2>
+            <p className="text-muted-foreground mb-6">
               Upload your first PDF to get started and create your professional web resume in
               minutes.
             </p>
             <DashboardUploadSection
               variant="default"
-              className="w-full bg-linear-to-r from-coral to-coral hover:from-coral/90 hover:to-coral/90 text-white font-semibold transition-all duration-300 shadow-depth-sm hover:shadow-depth-md"
+              className="w-full bg-linear-to-r from-coral to-coral hover:from-coral/90 hover:to-coral/90 text-white font-semibold transition-all duration-300 shadow-sm hover:shadow-md"
             >
               <Upload className="h-4 w-4 mr-2" aria-hidden="true" />
               Upload Your Resume
@@ -155,7 +153,6 @@ export default async function DashboardPage() {
   }
 
   return (
-    // <CHANGE> bg-slate-50 -> bg-cream for neubrutalist design
     <div className="min-h-screen bg-cream">
       <main className="max-w-[1400px] mx-auto px-4 lg:px-6 py-8">
         {/* Email Verification Banner (client component) */}
@@ -219,7 +216,7 @@ export default async function DashboardPage() {
               {/* Profile Completeness - Shown at top when incomplete */}
               {completeness < 100 && suggestions.length > 0 && (
                 <div className="col-span-full">
-                  <Alert className="border-slate-200 bg-white rounded-2xl shadow-depth-md hover:shadow-depth-lg transition-all duration-300">
+                  <Alert className="border-ink/15 bg-card rounded-xl shadow-md hover:shadow-lg transition-all duration-300">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-3">
@@ -234,7 +231,7 @@ export default async function DashboardPage() {
                           aria-valuemin={0}
                           aria-valuemax={100}
                           aria-label={`Profile completeness: ${completeness}%`}
-                          className="w-full bg-slate-200 rounded-full h-2 mb-4"
+                          className="w-full bg-muted rounded-full h-2 mb-4"
                         >
                           <div
                             className="h-2 rounded-full bg-coral transition-all duration-500"
@@ -242,14 +239,17 @@ export default async function DashboardPage() {
                           />
                         </div>
 
-                        <AlertDescription className="text-slate-700">
+                        <AlertDescription className="text-foreground/80">
                           <p className="text-sm font-medium mb-2">
                             Your profile is {completeness}% complete. Add these to reach 100%:
                           </p>
                           <ul className="space-y-1.5">
                             {suggestions.map((suggestion, index) => (
                               <li key={index} className="text-sm flex items-start gap-2">
-                                <span className="text-slate-400 mt-0.5" aria-hidden="true">
+                                <span
+                                  className="text-muted-foreground/70 mt-0.5"
+                                  aria-hidden="true"
+                                >
                                   •
                                 </span>
                                 <span>{suggestion}</span>
@@ -276,10 +276,10 @@ export default async function DashboardPage() {
               {/* Success Alert - Shown at top when profile is complete */}
               {completeness === 100 && (
                 <div className="col-span-full">
-                  <Alert className="border-green-200 bg-green-50 rounded-2xl shadow-depth-sm hover:shadow-depth-md transition-all duration-300">
+                  <Alert className="border-mint bg-mint/5 rounded-xl shadow-sm hover:shadow-md transition-all duration-300">
                     <div className="flex items-center gap-3">
-                      <CheckCircle2 className="h-5 w-5 text-green-600" aria-hidden="true" />
-                      <AlertDescription className="text-green-900 font-medium">
+                      <CheckCircle2 className="h-5 w-5 text-mint" aria-hidden="true" />
+                      <AlertDescription className="text-foreground font-medium">
                         Your profile is complete! Your resume looks professional and ready to share.
                       </AlertDescription>
                     </div>
@@ -290,11 +290,11 @@ export default async function DashboardPage() {
               {/* Left Column - Resume Preview + Referral (spans 2 on desktop) */}
               <div className="lg:col-span-2 space-y-4">
                 {/* Resume Preview Card */}
-                <div className="bg-white rounded-2xl shadow-depth-sm border border-slate-200/60 p-4 md:p-6 lg:p-8 hover:shadow-depth-md hover:-translate-y-0.5 transition-shadow duration-300">
+                <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-4 md:p-6 lg:p-8 hover:shadow-md hover:-translate-y-0.5 transition-shadow duration-300">
                   {/* Header */}
                   <div className="mb-6">
-                    <h2 className="text-2xl font-bold text-slate-900">{content.full_name}</h2>
-                    <p className="text-base text-slate-600 mt-1">{content.headline}</p>
+                    <h2 className="text-2xl font-bold text-foreground">{content.full_name}</h2>
+                    <p className="text-base text-muted-foreground mt-1">{content.headline}</p>
                   </div>
 
                   <Separator className="mb-6" />
@@ -302,8 +302,8 @@ export default async function DashboardPage() {
                   {/* Summary */}
                   {content.summary && (
                     <div className="mb-6">
-                      <h3 className="text-sm font-semibold text-slate-700 mb-2">Summary</h3>
-                      <p className="text-sm text-slate-600 leading-relaxed">
+                      <h3 className="text-sm font-semibold text-foreground/80 mb-2">Summary</h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">
                         {truncateText(content.summary, 200)}
                         {content.summary.length > 200 && (
                           <Link
@@ -327,10 +327,10 @@ export default async function DashboardPage() {
                         </div>
                       </div>
                       <div>
-                        <p className="text-lg font-semibold text-slate-900">
+                        <p className="text-lg font-semibold text-foreground">
                           {content.experience?.length || 0}
                         </p>
-                        <p className="text-xs text-slate-600">
+                        <p className="text-xs text-muted-foreground">
                           Position{content.experience?.length !== 1 ? "s" : ""}
                         </p>
                       </div>
@@ -344,10 +344,10 @@ export default async function DashboardPage() {
                         </div>
                       </div>
                       <div>
-                        <p className="text-lg font-semibold text-slate-900">
+                        <p className="text-lg font-semibold text-foreground">
                           {content.education?.length || 0}
                         </p>
-                        <p className="text-xs text-slate-600">Education</p>
+                        <p className="text-xs text-muted-foreground">Education</p>
                       </div>
                     </div>
 
@@ -359,10 +359,10 @@ export default async function DashboardPage() {
                         </div>
                       </div>
                       <div>
-                        <p className="text-lg font-semibold text-slate-900">
+                        <p className="text-lg font-semibold text-foreground">
                           {content.skills?.length || 0}
                         </p>
-                        <p className="text-xs text-slate-600">
+                        <p className="text-xs text-muted-foreground">
                           Skill{content.skills?.length !== 1 ? "s" : ""}
                         </p>
                       </div>
@@ -376,7 +376,7 @@ export default async function DashboardPage() {
                         </div>
                       </div>
                       <div>
-                        <p className="text-lg font-semibold text-slate-900">
+                        <p className="text-lg font-semibold text-foreground">
                           {content.certifications?.length || 0}
                         </p>
                         {content.certifications?.length === 0 ? (
@@ -387,7 +387,7 @@ export default async function DashboardPage() {
                             Add certs
                           </Link>
                         ) : (
-                          <p className="text-xs text-slate-600">Certs</p>
+                          <p className="text-xs text-muted-foreground">Certs</p>
                         )}
                       </div>
                     </div>
@@ -399,7 +399,7 @@ export default async function DashboardPage() {
                   <div className="flex flex-col sm:flex-row gap-3">
                     <Button
                       asChild
-                      className="flex-1 bg-linear-to-r from-coral to-coral hover:from-coral/90 hover:to-coral/90 text-white font-semibold transition-colors duration-300 shadow-depth-sm hover:shadow-depth-md"
+                      className="flex-1 bg-linear-to-r from-coral to-coral hover:from-coral/90 hover:to-coral/90 text-white font-semibold transition-colors duration-300 shadow-sm hover:shadow-md"
                     >
                       <Link href="/edit">
                         <Edit3 className="h-4 w-4 mr-2" aria-hidden="true" />
@@ -423,8 +423,8 @@ export default async function DashboardPage() {
               {/* Right Column - Account + Analytics */}
               <div className="space-y-4">
                 {/* Account Info Card */}
-                <div className="bg-white rounded-2xl shadow-depth-sm border border-slate-200/60 p-6 hover:shadow-depth-md hover:-translate-y-0.5 transition-all duration-300">
-                  <h3 className="text-lg font-semibold text-slate-900 mb-4">Account</h3>
+                <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-6 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
+                  <h3 className="text-lg font-semibold text-foreground mb-4">Account</h3>
                   <div className="space-y-4">
                     {/* Email */}
                     <div className="flex items-start gap-3">
@@ -435,8 +435,8 @@ export default async function DashboardPage() {
                         </div>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-slate-600 mb-1">Email</p>
-                        <p className="text-sm text-slate-900 truncate">{session.user.email}</p>
+                        <p className="text-xs font-medium text-muted-foreground mb-1">Email</p>
+                        <p className="text-sm text-foreground truncate">{session.user.email}</p>
                       </div>
                     </div>
 
@@ -452,7 +452,7 @@ export default async function DashboardPage() {
                             </div>
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-xs font-medium text-slate-600 mb-1">Handle</p>
+                            <p className="text-xs font-medium text-muted-foreground mb-1">Handle</p>
                             <div className="flex items-center gap-2">
                               <Link
                                 href={`/@${profile.handle}`}
@@ -481,8 +481,10 @@ export default async function DashboardPage() {
                             </div>
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-xs font-medium text-slate-600 mb-1">Member since</p>
-                            <p className="text-sm text-slate-900">
+                            <p className="text-xs font-medium text-muted-foreground mb-1">
+                              Member since
+                            </p>
+                            <p className="text-sm text-foreground">
                               {formatRelativeTime(profile.createdAt)}
                             </p>
                           </div>
@@ -499,7 +501,7 @@ export default async function DashboardPage() {
           ) : (
             /* Show processing/failed state in main content area */
             <div className="col-span-full">
-              <div className="bg-white rounded-2xl shadow-depth-sm border border-slate-200/60 p-8 hover:shadow-depth-md hover:-translate-y-0.5 transition-all duration-300">
+              <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-8 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
                 {(resume.status === "processing" ||
                   resume.status === "pending_claim" ||
                   resume.status === "queued") && (
@@ -527,7 +529,7 @@ export default async function DashboardPage() {
                     <div className="flex flex-col sm:flex-row gap-3">
                       <Button
                         asChild
-                        className="flex-1 bg-linear-to-r from-coral to-coral hover:from-coral/90 hover:to-coral/90 text-white font-semibold transition-all duration-300 shadow-depth-sm hover:shadow-depth-md"
+                        className="flex-1 bg-linear-to-r from-coral to-coral hover:from-coral/90 hover:to-coral/90 text-white font-semibold transition-all duration-300 shadow-sm hover:shadow-md"
                       >
                         <Link href={`/waiting?resume_id=${resume.id}`}>Try Again</Link>
                       </Button>
@@ -539,14 +541,16 @@ export default async function DashboardPage() {
                 {resume.status === "pending_claim" && (
                   <div className="flex items-center gap-4">
                     <Loader2
-                      className="h-8 w-8 animate-spin text-slate-600 shrink-0"
+                      className="h-8 w-8 animate-spin text-muted-foreground shrink-0"
                       aria-hidden="true"
                     />
                     <div className="flex-1">
-                      <h3 className="text-xl font-bold text-slate-900 mb-1">
+                      <h3 className="text-xl font-bold text-foreground mb-1">
                         Claiming your resume...
                       </h3>
-                      <p className="text-slate-600">Please wait while we process your upload.</p>
+                      <p className="text-muted-foreground">
+                        Please wait while we process your upload.
+                      </p>
                     </div>
                   </div>
                 )}

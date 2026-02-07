@@ -57,12 +57,12 @@ export function RealtimeStatusListener({ resumeId, currentStatus }: RealtimeStat
 
   if (detected.status === "completed") {
     return (
-      <div className="rounded-lg border border-green-200 bg-green-50 p-4 mb-4">
+      <div className="rounded-lg border border-mint bg-mint/5 p-4 mb-4">
         <div className="flex items-start gap-3">
-          <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0" />
+          <CheckCircle2 className="h-5 w-5 text-mint shrink-0" />
           <div className="flex-1">
-            <h3 className="font-semibold text-green-900">Processing Complete!</h3>
-            <p className="mt-1 text-sm text-green-700">
+            <h3 className="font-semibold text-foreground">Processing Complete!</h3>
+            <p className="mt-1 text-sm text-foreground/80">
               Your resume has been processed. Refreshing page...
             </p>
           </div>

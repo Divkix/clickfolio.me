@@ -2,7 +2,7 @@
 
 import { cva, type VariantProps } from "class-variance-authority";
 import { Check, Copy, LinkedinIcon, Share2, XIcon } from "lucide-react";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { copyToClipboard } from "@/lib/utils/clipboard";
@@ -109,8 +109,12 @@ interface ShareBarProps extends VariantProps<typeof shareBarVariants> {
  */
 export function ShareBar({ url, handle, title, name, variant, className }: ShareBarProps) {
   const [copied, setCopied] = useState(false);
+  const [hasWebShare, setHasWebShare] = useState(false);
   const shareText = generateShareText(name);
-  const hasWebShare = isWebShareSupported();
+
+  useEffect(() => {
+    setHasWebShare(isWebShareSupported());
+  }, []);
 
   // Construct URL from handle if not provided (uses @ prefix convention)
   const shareUrl =

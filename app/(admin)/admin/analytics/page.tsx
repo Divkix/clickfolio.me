@@ -76,10 +76,10 @@ export default function AdminAnalyticsPage() {
       {/* Period Toggle */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <BarChart3 className="w-5 h-5 text-slate-400" aria-hidden="true" />
-          <span className="text-sm text-slate-500">Platform Analytics</span>
+          <BarChart3 className="w-5 h-5 text-muted-foreground/70" aria-hidden="true" />
+          <span className="text-sm text-muted-foreground">Platform Analytics</span>
         </div>
-        <div className="flex gap-1 bg-slate-100 rounded-lg p-0.5">
+        <div className="flex gap-1 bg-muted rounded-lg p-0.5">
           {PERIOD_OPTIONS.map((opt) => (
             <button
               key={opt.value}
@@ -87,8 +87,8 @@ export default function AdminAnalyticsPage() {
               onClick={() => setPeriod(opt.value)}
               className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
                 period === opt.value
-                  ? "bg-white text-slate-900 shadow-sm"
-                  : "text-slate-500 hover:text-slate-700"
+                  ? "bg-card text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground/80"
               }`}
             >
               {opt.label}
@@ -100,7 +100,7 @@ export default function AdminAnalyticsPage() {
       {/* Stat Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {loading ? (
-          Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-2xl" />)
+          Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)
         ) : (
           <>
             <StatCard
@@ -139,8 +139,8 @@ export default function AdminAnalyticsPage() {
       </div>
 
       {/* Traffic Chart */}
-      <div className="bg-white rounded-2xl shadow-depth-sm border border-slate-200/60 p-6">
-        <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">
+      <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-6">
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
           Platform Traffic
         </h2>
         {loading ? (
@@ -152,8 +152,8 @@ export default function AdminAnalyticsPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Top Profiles */}
-        <div className="bg-white rounded-2xl shadow-depth-sm border border-slate-200/60 p-6">
-          <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">
+        <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-6">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
             Top Profiles
           </h2>
           {loading ? (
@@ -163,13 +163,13 @@ export default function AdminAnalyticsPage() {
               ))}
             </div>
           ) : data?.topProfiles.length === 0 ? (
-            <p className="text-sm text-slate-400">No profile views yet</p>
+            <p className="text-sm text-muted-foreground/70">No profile views yet</p>
           ) : (
             <div className="space-y-2">
               {data?.topProfiles.map((profile, i) => (
                 <div key={profile.handle} className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm text-slate-400 w-6">{i + 1}.</span>
+                    <span className="text-sm text-muted-foreground/70 w-6">{i + 1}.</span>
                     <Link
                       href={`/${profile.handle}`}
                       target="_blank"
@@ -179,7 +179,7 @@ export default function AdminAnalyticsPage() {
                     </Link>
                   </div>
                   <span
-                    className="text-sm font-medium text-slate-900"
+                    className="text-sm font-medium text-foreground"
                     style={{ fontVariantNumeric: "tabular-nums" }}
                   >
                     {profile.views.toLocaleString()}
@@ -191,8 +191,8 @@ export default function AdminAnalyticsPage() {
         </div>
 
         {/* Traffic Sources */}
-        <div className="bg-white rounded-2xl shadow-depth-sm border border-slate-200/60 p-6">
-          <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">
+        <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-6">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
             Traffic Sources
           </h2>
           {loading ? (
@@ -216,8 +216,8 @@ export default function AdminAnalyticsPage() {
         </div>
 
         {/* Countries */}
-        <div className="bg-white rounded-2xl shadow-depth-sm border border-slate-200/60 p-6">
-          <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">
+        <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-6">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
             Top Countries
           </h2>
           {loading ? (
@@ -227,16 +227,16 @@ export default function AdminAnalyticsPage() {
               ))}
             </div>
           ) : data?.countries.length === 0 ? (
-            <p className="text-sm text-slate-400">No country data yet</p>
+            <p className="text-sm text-muted-foreground/70">No country data yet</p>
           ) : (
             <div className="space-y-2">
               {data?.countries.map((c) => (
                 <div key={c.code} className="flex items-center justify-between">
-                  <span className="text-sm text-slate-600">
+                  <span className="text-sm text-muted-foreground">
                     {COUNTRY_FLAGS[c.code] || "\u{1F3F3}"} {c.name}
                   </span>
                   <span
-                    className="text-sm font-medium text-slate-900"
+                    className="text-sm font-medium text-foreground"
                     style={{ fontVariantNumeric: "tabular-nums" }}
                   >
                     {c.percent}%
@@ -248,8 +248,8 @@ export default function AdminAnalyticsPage() {
         </div>
 
         {/* Devices */}
-        <div className="bg-white rounded-2xl shadow-depth-sm border border-slate-200/60 p-6">
-          <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">
+        <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-6">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
             Devices
           </h2>
           {loading ? (

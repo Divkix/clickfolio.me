@@ -29,14 +29,14 @@ export function SaveIndicator({ status, lastSaved, className }: SaveIndicatorPro
     >
       {status === "saving" && (
         <>
-          <Loader2 className="h-4 w-4 animate-spin text-slate-500" />
-          <span className="text-slate-500">Saving...</span>
+          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          <span className="text-muted-foreground">Saving...</span>
         </>
       )}
       {status === "saved" && lastSaved && (
         <>
           <Check className="h-4 w-4 text-emerald-600" />
-          <span className="text-slate-500">Saved {formatRelativeTime(lastSaved)}</span>
+          <span className="text-muted-foreground">Saved {formatRelativeTime(lastSaved)}</span>
         </>
       )}
       {status === "error" && (

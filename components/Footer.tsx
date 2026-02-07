@@ -17,6 +17,12 @@ export function Footer() {
           </div>
           <nav className="flex items-center gap-6" aria-label="Footer navigation">
             <Link
+              href="/explore"
+              className="font-mono text-sm text-[#6B6B6B] hover:text-ink underline-offset-4 hover:underline transition-colors"
+            >
+              Explore
+            </Link>
+            <Link
               href="/terms"
               className="font-mono text-sm text-[#6B6B6B] hover:text-ink underline-offset-4 hover:underline transition-colors"
             >

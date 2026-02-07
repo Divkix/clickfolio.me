@@ -94,11 +94,11 @@ export function HandleForm({ currentHandle, variant = "default" }: HandleFormPro
       <div className="space-y-4">
         {/* Current URL with copy button */}
         <div>
-          <Label className="text-xs text-slate-500 mb-1.5 block">Public URL</Label>
+          <Label className="text-xs text-muted-foreground mb-1.5 block">Public URL</Label>
           <div className="flex gap-2">
-            <div className="flex-1 flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 font-mono text-sm min-w-0">
-              <Link2 className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-              <span className="text-slate-600 truncate">{siteConfig.domain}/@</span>
+            <div className="flex-1 flex items-center gap-1.5 px-3 py-2 rounded-lg border border-ink/15 bg-muted font-mono text-sm min-w-0">
+              <Link2 className="h-3.5 w-3.5 text-muted-foreground/70 shrink-0" />
+              <span className="text-muted-foreground truncate">{siteConfig.domain}/@</span>
               <span className="font-semibold text-coral truncate">{currentHandle}</span>
             </div>
             <Button
@@ -119,12 +119,12 @@ export function HandleForm({ currentHandle, variant = "default" }: HandleFormPro
 
         {/* Inline change handle form */}
         <form onSubmit={handleSubmit(onSubmit)}>
-          <Label htmlFor="handle-compact" className="text-xs text-slate-500 mb-1.5 block">
+          <Label htmlFor="handle-compact" className="text-xs text-muted-foreground mb-1.5 block">
             Change Handle
           </Label>
           <div className="flex gap-2">
-            <div className="flex-1 flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 min-w-0">
-              <span className="text-sm text-slate-400 shrink-0">@</span>
+            <div className="flex-1 flex items-center gap-1.5 rounded-lg border border-ink/15 bg-card px-3 min-w-0">
+              <span className="text-sm text-muted-foreground/70 shrink-0">@</span>
               <Input
                 id="handle-compact"
                 {...register("handle")}
@@ -154,22 +154,22 @@ export function HandleForm({ currentHandle, variant = "default" }: HandleFormPro
 
   // Default full card variant (keeping original for backwards compatibility)
   return (
-    <div className="bg-white rounded-2xl shadow-depth-sm border border-slate-200/60 p-6">
+    <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-6">
       <div className="flex items-center gap-2 mb-4">
         <Link2 className="h-5 w-5 text-coral" />
-        <h3 className="text-lg font-semibold text-slate-900">Public Handle</h3>
+        <h3 className="text-lg font-semibold text-foreground">Public Handle</h3>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         {/* Current URL Display */}
         <div className="space-y-2">
-          <Label htmlFor="current-url" className="text-sm text-slate-600">
+          <Label htmlFor="current-url" className="text-sm text-muted-foreground">
             Current Public URL
           </Label>
           <div className="flex gap-2">
-            <div className="flex-1 flex items-center gap-2 px-3 py-2 rounded-md border border-slate-200 bg-slate-50 font-mono text-sm">
-              <Link2 className="h-4 w-4 text-slate-400" />
-              <span className="text-slate-600">{siteConfig.domain}/@</span>
+            <div className="flex-1 flex items-center gap-2 px-3 py-2 rounded-md border border-ink/15 bg-muted font-mono text-sm">
+              <Link2 className="h-4 w-4 text-muted-foreground/70" />
+              <span className="text-muted-foreground">{siteConfig.domain}/@</span>
               <span className="font-semibold text-coral">{currentHandle}</span>
             </div>
             <Button
@@ -193,8 +193,8 @@ export function HandleForm({ currentHandle, variant = "default" }: HandleFormPro
           <Label htmlFor="handle">Change Handle</Label>
           <div className="flex items-start gap-2">
             <div className="flex-1 space-y-1">
-              <div className="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2">
-                <span className="text-sm text-slate-500">{siteConfig.domain}/@</span>
+              <div className="flex items-center gap-2 rounded-md border border-ink/15 bg-card px-3 py-2">
+                <span className="text-sm text-muted-foreground">{siteConfig.domain}/@</span>
                 <Input
                   id="handle"
                   {...register("handle")}
@@ -206,7 +206,7 @@ export function HandleForm({ currentHandle, variant = "default" }: HandleFormPro
               {errors.handle && <p className="text-sm text-coral">{errors.handle.message}</p>}
             </div>
           </div>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-muted-foreground">
             3-30 characters. Lowercase letters, numbers, and hyphens only.
           </p>
         </div>

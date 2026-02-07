@@ -282,7 +282,9 @@ const DesignFolio: React.FC<TemplateProps> = ({ content, profile }) => {
           <footer className="border-t border-[#333] pt-20 pb-12">
             <h2 className="font-serif-df text-[clamp(2rem,5vw,4rem)] mb-12 leading-tight">
               Let's build something <br />
-              <span className="text-[#CCFF00] italic">remarkable.</span>
+              <span className="text-[#CCFF00] italic motion-safe:animate-in motion-safe:slide-in-from-bottom-2">
+                remarkable.
+              </span>
             </h2>
 
             <div className="flex flex-col md:flex-row gap-8 md:gap-16 font-mono-df text-lg">
@@ -315,7 +317,7 @@ const DesignFolio: React.FC<TemplateProps> = ({ content, profile }) => {
                     rel={link.isExternal ? "noreferrer" : undefined}
                     className={
                       isBranded
-                        ? `transition-colors flex items-center gap-2 hover:text-[${brandColor}]`
+                        ? "transition-colors flex items-center gap-2"
                         : "text-[#888] hover:text-[#CCFF00] transition-colors flex items-center gap-2"
                     }
                     style={isBranded ? { color: brandColor } : undefined}

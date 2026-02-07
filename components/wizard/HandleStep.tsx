@@ -143,13 +143,13 @@ export function HandleStep({ initialHandle = "", onContinue }: HandleStepProps) 
     <div className="space-y-8">
       {/* Header */}
       <div className="text-center">
-        <div className="mx-auto w-16 h-16 bg-linear-to-r from-coral/20 to-coral/20 rounded-2xl flex items-center justify-center mb-6">
+        <div className="mx-auto w-16 h-16 bg-linear-to-r from-coral/20 to-coral/20 rounded-xl flex items-center justify-center mb-6">
           <User className="w-8 h-8 text-coral" />
         </div>
-        <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-3 leading-tight">
+        <h1 className="text-3xl sm:text-4xl font-bold text-foreground mb-3 leading-tight">
           Choose Your Handle
         </h1>
-        <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+        <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
           This will be your unique URL. Choose something professional and memorable.
         </p>
       </div>
@@ -157,7 +157,7 @@ export function HandleStep({ initialHandle = "", onContinue }: HandleStepProps) 
       {/* Handle Input */}
       <div className="max-w-md mx-auto space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="handle" className="text-sm font-semibold text-slate-700">
+          <Label htmlFor="handle" className="text-sm font-semibold text-foreground/80">
             Your Handle
           </Label>
           <div className="relative">
@@ -172,7 +172,7 @@ export function HandleStep({ initialHandle = "", onContinue }: HandleStepProps) 
             />
             {/* Status Icon */}
             <div className="absolute right-3 top-1/2 -translate-y-1/2">
-              {isChecking && <Loader2 className="w-5 h-5 text-slate-400 animate-spin" />}
+              {isChecking && <Loader2 className="w-5 h-5 text-muted-foreground/70 animate-spin" />}
               {!isChecking && isAvailable === true && (
                 <Check className={`w-5 h-5 ${isCurrentHandle ? "text-coral" : "text-green-600"}`} />
               )}
@@ -182,7 +182,7 @@ export function HandleStep({ initialHandle = "", onContinue }: HandleStepProps) 
 
           {/* URL Preview */}
           {handle && (
-            <p className="text-sm text-slate-500 font-medium">
+            <p className="text-sm text-muted-foreground font-medium">
               Your resume will be at:{" "}
               <span className="text-coral font-semibold">
                 {siteConfig.domain}/{handle}
@@ -207,14 +207,14 @@ export function HandleStep({ initialHandle = "", onContinue }: HandleStepProps) 
               {/* Handle Suggestions */}
               {suggestions.length > 0 && (
                 <div className="space-y-2">
-                  <p className="text-xs font-semibold text-slate-600">Try one of these:</p>
+                  <p className="text-xs font-semibold text-muted-foreground">Try one of these:</p>
                   <div className="flex flex-wrap gap-2">
                     {suggestions.map((suggestion) => (
                       <button
                         key={suggestion}
                         type="button"
                         onClick={() => handleSuggestionClick(suggestion)}
-                        className="px-3 py-1.5 text-sm font-medium bg-slate-50 border-2 border-slate-900 rounded-md hover:bg-coral/10 hover:border-coral transition-colors cursor-pointer"
+                        className="px-3 py-1.5 text-sm font-medium bg-muted border-2 border-ink rounded-md hover:bg-coral/10 hover:border-coral transition-colors cursor-pointer"
                       >
                         {suggestion}
                       </button>
@@ -239,9 +239,9 @@ export function HandleStep({ initialHandle = "", onContinue }: HandleStepProps) 
         </div>
 
         {/* Requirements */}
-        <div className="bg-slate-50 border border-slate-200/60 rounded-xl p-4">
-          <p className="text-xs font-semibold text-slate-700 mb-2">Requirements:</p>
-          <ul className="text-xs text-slate-600 space-y-1">
+        <div className="bg-muted border border-ink/10 rounded-xl p-4">
+          <p className="text-xs font-semibold text-foreground/80 mb-2">Requirements:</p>
+          <ul className="text-xs text-muted-foreground space-y-1">
             <li className={handle.length >= 3 ? "text-green-600" : ""}>• At least 3 characters</li>
             <li className={/^[a-z0-9-]+$/.test(handle) ? "text-green-600" : ""}>
               • Only lowercase letters, numbers, and hyphens
@@ -256,7 +256,7 @@ export function HandleStep({ initialHandle = "", onContinue }: HandleStepProps) 
         <Button
           onClick={handleSubmit}
           disabled={!canContinue}
-          className="w-full bg-linear-to-r from-coral to-coral hover:from-coral/90 hover:to-coral/90 text-white font-semibold shadow-depth-sm hover:shadow-depth-md transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full bg-linear-to-r from-coral to-coral hover:from-coral/90 hover:to-coral/90 text-white font-semibold shadow-sm hover:shadow-md transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
           size="lg"
         >
           Continue
@@ -265,7 +265,7 @@ export function HandleStep({ initialHandle = "", onContinue }: HandleStepProps) 
 
       {/* Help Text */}
       <div className="text-center">
-        <p className="text-sm text-slate-500 font-medium">
+        <p className="text-sm text-muted-foreground font-medium">
           You can change your handle later in settings.
         </p>
       </div>
