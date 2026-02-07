@@ -208,7 +208,7 @@ const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
                         return (
                           <div
                             key={index}
-                            className={`bg-white/[0.02] border transition-colors duration-300 rounded-lg overflow-hidden ${
+                            className={`bg-white/2 border transition-colors duration-300 rounded-lg overflow-hidden ${
                               isExpanded
                                 ? "border-l-2 border-l-[#C9A96E] border-t-white/5 border-r-white/5 border-b-white/5"
                                 : "border-white/5 hover:border-white/10"
@@ -285,7 +285,7 @@ const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
                       {content.projects.map((project, index) => (
                         <div
                           key={index}
-                          className="group relative bg-white/[0.02] border border-white/5 hover:border-[#C9A96E]/30 rounded-lg p-6 transition-[border-color,box-shadow] duration-300 hover:shadow-[0_0_20px_rgba(201,169,110,0.05)] overflow-hidden"
+                          className="group relative bg-white/2 border border-white/5 hover:border-[#C9A96E]/30 rounded-lg p-6 transition-[border-color,box-shadow] duration-300 hover:shadow-[0_0_20px_rgba(201,169,110,0.05)] overflow-hidden"
                         >
                           <div className="flex flex-col md:flex-row gap-4 md:items-start justify-between">
                             <div className="flex-1">

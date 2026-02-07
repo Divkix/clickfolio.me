@@ -169,7 +169,7 @@ const Spotlight: React.FC<TemplateProps> = ({ content, profile }) => {
 
         {/* Cursor-following spotlight overlay */}
         <div
-          className="fixed inset-0 z-[1] pointer-events-none motion-safe:transition-[background] motion-safe:duration-100"
+          className="fixed inset-0 z-1 pointer-events-none motion-safe:transition-[background] motion-safe:duration-100"
           aria-hidden="true"
           style={{
             background: `radial-gradient(circle 250px at ${cursorPos.x}px ${cursorPos.y}px, rgba(232,77,14,0.04), transparent)`,
