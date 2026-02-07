@@ -91,7 +91,7 @@ export function DeleteAccountCard({ userEmail }: DeleteAccountCardProps) {
   return (
     <>
       {/* Compact inline danger zone row */}
-      <div className="rounded-2xl border border-coral/30 bg-coral/5 p-4">
+      <div className="rounded-xl border border-coral/30 bg-coral/5 p-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="shrink-0 rounded-lg bg-coral/20 p-2">
@@ -139,7 +139,7 @@ export function DeleteAccountCard({ userEmail }: DeleteAccountCardProps) {
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="confirmation" className="text-sm font-medium text-slate-900">
+              <label htmlFor="confirmation" className="text-sm font-medium text-foreground">
                 Type <span className="font-mono text-coral">{userEmail}</span> to confirm
               </label>
               <Input

@@ -55,7 +55,7 @@ export function ResumeManagementCard({
       case "failed":
         return "text-coral bg-coral/20";
       default:
-        return "text-slate-700 bg-slate-100";
+        return "text-foreground/80 bg-muted";
     }
   };
 
@@ -76,10 +76,10 @@ export function ResumeManagementCard({
 
   return (
     <>
-      <div className="bg-white rounded-2xl shadow-depth-sm border border-slate-200/60 p-6 h-full flex flex-col">
+      <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-6 h-full flex flex-col">
         <div className="flex items-center gap-2 mb-4">
           <FileText className="h-5 w-5 text-coral" />
-          <h3 className="text-lg font-semibold text-slate-900">Resume</h3>
+          <h3 className="text-lg font-semibold text-foreground">Resume</h3>
         </div>
 
         {/* Horizontal stats row */}
@@ -92,8 +92,8 @@ export function ResumeManagementCard({
               </div>
             </div>
             <div>
-              <p className="text-xl font-bold text-slate-900">{resumeCount}</p>
-              <p className="text-xs text-slate-500">Uploads</p>
+              <p className="text-xl font-bold text-foreground">{resumeCount}</p>
+              <p className="text-xs text-muted-foreground">Uploads</p>
             </div>
           </div>
 
@@ -107,7 +107,7 @@ export function ResumeManagementCard({
                   {getStatusLabel(latestResumeStatus)}
                 </span>
                 {latestResumeDate && (
-                  <p className="text-xs text-slate-500 mt-1">
+                  <p className="text-xs text-muted-foreground mt-1">
                     <Calendar className="inline h-3 w-3 mr-1" />
                     {formatDate(latestResumeDate)}
                   </p>
@@ -144,12 +144,12 @@ export function ResumeManagementCard({
         <div className="mt-auto">
           <Button
             onClick={() => setUploadModalOpen(true)}
-            className="w-full bg-linear-to-r from-coral to-coral hover:from-coral/90 hover:to-coral/90 text-white font-semibold transition-all duration-300 shadow-depth-sm hover:shadow-depth-md"
+            className="w-full bg-linear-to-r from-coral to-coral hover:from-coral/90 hover:to-coral/90 text-white font-semibold transition-all duration-300 shadow-sm hover:shadow-md"
           >
             <Upload className="h-4 w-4 mr-2" />
             Upload New Resume
           </Button>
-          <p className="text-xs text-slate-500 text-center mt-2">5 uploads per 24 hours</p>
+          <p className="text-xs text-muted-foreground text-center mt-2">5 uploads per 24 hours</p>
         </div>
       </div>
 
