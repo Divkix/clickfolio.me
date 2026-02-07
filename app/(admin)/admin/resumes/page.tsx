@@ -163,11 +163,11 @@ export default function AdminResumesPage() {
 
       {/* Filter */}
       <div className="flex items-center gap-4">
-        <FileText className="w-5 h-5 text-slate-400" aria-hidden="true" />
+        <FileText className="w-5 h-5 text-muted-foreground/70" aria-hidden="true" />
         <select
           value={statusFilter}
           onChange={(e) => updateParams({ status: e.target.value as StatusFilter })}
-          className="text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-coral/20 focus:border-coral"
+          className="text-sm border border-ink/15 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-coral/20 focus:border-coral"
           aria-label="Filter by status"
         >
           {STATUS_OPTIONS.map((opt) => (
@@ -176,33 +176,35 @@ export default function AdminResumesPage() {
             </option>
           ))}
         </select>
-        <span className="text-sm text-slate-500">{data?.total.toLocaleString() ?? 0} resumes</span>
+        <span className="text-sm text-muted-foreground">
+          {data?.total.toLocaleString() ?? 0} resumes
+        </span>
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-2xl shadow-depth-sm border border-slate-200/60 overflow-hidden">
+      <div className="bg-card rounded-xl shadow-sm border border-ink/10 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-slate-200/60 bg-slate-50/50">
-                <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-4 py-3">
+              <tr className="border-b border-ink/10 bg-muted/50">
+                <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3">
                   User
                 </th>
-                <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-4 py-3">
+                <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3">
                   Status
                 </th>
-                <th className="text-center text-xs font-semibold text-slate-500 uppercase tracking-wider px-4 py-3">
+                <th className="text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3">
                   Attempts
                 </th>
-                <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-4 py-3">
+                <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3">
                   Error
                 </th>
-                <th className="text-right text-xs font-semibold text-slate-500 uppercase tracking-wider px-4 py-3">
+                <th className="text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3">
                   Updated
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-ink/10">
               {loading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i}>
@@ -225,7 +227,7 @@ export default function AdminResumesPage() {
                 ))
               ) : !data || data.resumes.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-slate-500">
+                  <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
                     No resumes found
                   </td>
                 </tr>
@@ -234,16 +236,16 @@ export default function AdminResumesPage() {
                   <>
                     <tr
                       key={resume.id}
-                      className={`hover:bg-slate-50/50 transition-colors ${
+                      className={`hover:bg-muted/50 transition-colors ${
                         resume.status === "failed" ? "bg-coral/10" : ""
                       }`}
                     >
-                      <td className="px-4 py-3 text-sm text-slate-900">{resume.userEmail}</td>
+                      <td className="px-4 py-3 text-sm text-foreground">{resume.userEmail}</td>
                       <td className="px-4 py-3">
                         <ResumeStatusBadge status={resume.status} />
                       </td>
                       <td
-                        className="px-4 py-3 text-center text-sm text-slate-600"
+                        className="px-4 py-3 text-center text-sm text-muted-foreground"
                         style={{ fontVariantNumeric: "tabular-nums" }}
                       >
                         {resume.retryCount}/3
@@ -262,10 +264,10 @@ export default function AdminResumesPage() {
                             {resume.lastAttemptError.length > 50 ? "..." : ""}
                           </button>
                         ) : (
-                          <span className="text-sm text-slate-400">-</span>
+                          <span className="text-sm text-muted-foreground/70">-</span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-right text-sm text-slate-500">
+                      <td className="px-4 py-3 text-right text-sm text-muted-foreground">
                         {formatRelativeTime(resume.updatedAt)}
                       </td>
                     </tr>
@@ -287,7 +289,7 @@ export default function AdminResumesPage() {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="border-t border-slate-200/60 px-4 py-3">
+          <div className="border-t border-ink/10 px-4 py-3">
             <Pagination
               currentPage={page}
               totalPages={totalPages}

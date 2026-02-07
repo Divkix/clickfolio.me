@@ -63,11 +63,6 @@
   --shadow-brutal-lg: 8px 8px 0px var(--color-ink);
   --shadow-brutal-xl: 12px 12px 0px var(--color-ink);
 
-/* Legacy soft shadows (for existing components) */
-  --shadow-depth-sm: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
-  --shadow-depth-md: 0 2px 8px rgba(0, 0, 0, 0.04), 0 8px 32px rgba(0, 0, 0, 0.08);
-  --shadow-depth-lg: 0 4px 16px rgba(0, 0, 0, 0.06), 0 16px 64px rgba(0, 0, 0, 0.12);
-  --shadow-depth-xl: 0 8px 24px rgba(0, 0, 0, 0.08), 0 24px 96px rgba(0, 0, 0, 0.16);
 }
 
 :root {
@@ -210,11 +205,6 @@
 .shadow-brutal-md { box-shadow: var(--shadow-brutal-md); }
 .shadow-brutal-lg { box-shadow: var(--shadow-brutal-lg); }
 .shadow-brutal-xl { box-shadow: var(--shadow-brutal-xl); }
-/* Legacy soft shadows */
-.shadow-depth-sm { box-shadow: var(--shadow-depth-sm); }
-.shadow-depth-md { box-shadow: var(--shadow-depth-md); }
-.shadow-depth-lg { box-shadow: var(--shadow-depth-lg); }
-.shadow-depth-xl { box-shadow: var(--shadow-depth-xl); }
 
 /* Animation utilities */
 .animate-float { animation: float 6s ease-in-out infinite; }

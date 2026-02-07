@@ -23,7 +23,7 @@ const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
   },
   pending_claim: {
     label: "Pending",
-    className: "bg-slate-100 text-slate-600",
+    className: "bg-muted text-muted-foreground",
   },
   failed: {
     label: "Failed",
@@ -34,7 +34,7 @@ const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
 export function ResumeStatusBadge({ status }: ResumeStatusBadgeProps) {
   const config = STATUS_CONFIG[status] || {
     label: status,
-    className: "bg-slate-100 text-slate-600",
+    className: "bg-muted text-muted-foreground",
   };
 
   return (

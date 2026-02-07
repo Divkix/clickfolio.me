@@ -15,7 +15,7 @@ const STATUS_CONFIG: Record<Status, { label: string; className: string }> = {
   },
   no_resume: {
     label: "No Resume",
-    className: "bg-slate-100 text-slate-600",
+    className: "bg-muted text-muted-foreground",
   },
   failed: {
     label: "Failed",

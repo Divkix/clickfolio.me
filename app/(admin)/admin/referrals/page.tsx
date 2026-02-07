@@ -75,14 +75,14 @@ export default function AdminReferralsPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-2">
-        <Share2 className="w-5 h-5 text-slate-400" aria-hidden="true" />
-        <span className="text-sm text-slate-500">Referral Program</span>
+        <Share2 className="w-5 h-5 text-muted-foreground/70" aria-hidden="true" />
+        <span className="text-sm text-muted-foreground">Referral Program</span>
       </div>
 
       {/* Stat Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {loading ? (
-          Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-2xl" />)
+          Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)
         ) : (
           <>
             <StatCard
@@ -118,8 +118,8 @@ export default function AdminReferralsPage() {
       </div>
 
       {/* Funnel */}
-      <div className="bg-white rounded-2xl shadow-depth-sm border border-slate-200/60 p-6">
-        <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">
+      <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-6">
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
           Referral Funnel
         </h2>
         {loading ? (
@@ -140,34 +140,34 @@ export default function AdminReferralsPage() {
       </div>
 
       {/* Top Referrers Table */}
-      <div className="bg-white rounded-2xl shadow-depth-sm border border-slate-200/60 overflow-hidden">
-        <div className="p-6 border-b border-slate-200/60">
-          <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">
+      <div className="bg-card rounded-xl shadow-sm border border-ink/10 overflow-hidden">
+        <div className="p-6 border-b border-ink/10">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
             Top Referrers
           </h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-slate-200/60 bg-slate-50/50">
-                <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-4 py-3">
+              <tr className="border-b border-ink/10 bg-muted/50">
+                <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3">
                   Rank
                 </th>
-                <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-4 py-3">
+                <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3">
                   User
                 </th>
-                <th className="text-right text-xs font-semibold text-slate-500 uppercase tracking-wider px-4 py-3">
+                <th className="text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3">
                   Clicks
                 </th>
-                <th className="text-right text-xs font-semibold text-slate-500 uppercase tracking-wider px-4 py-3">
+                <th className="text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3">
                   Conversions
                 </th>
-                <th className="text-right text-xs font-semibold text-slate-500 uppercase tracking-wider px-4 py-3">
+                <th className="text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3">
                   Rate
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-ink/10">
               {loading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i}>
@@ -190,18 +190,18 @@ export default function AdminReferralsPage() {
                 ))
               ) : !data || data.topReferrers.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-slate-500">
+                  <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
                     No referrers yet
                   </td>
                 </tr>
               ) : (
                 data.topReferrers.map((referrer, i) => (
-                  <tr key={referrer.handle} className="hover:bg-slate-50/50 transition-colors">
+                  <tr key={referrer.handle} className="hover:bg-muted/50 transition-colors">
                     <td className="px-4 py-3 text-sm">
                       {i < 3 ? (
                         <span className="text-lg">{MEDAL_EMOJIS[i]}</span>
                       ) : (
-                        <span className="text-slate-400 pl-1">{i + 1}</span>
+                        <span className="text-muted-foreground/70 pl-1">{i + 1}</span>
                       )}
                     </td>
                     <td className="px-4 py-3">
@@ -214,19 +214,19 @@ export default function AdminReferralsPage() {
                       </Link>
                     </td>
                     <td
-                      className="px-4 py-3 text-right text-sm text-slate-900"
+                      className="px-4 py-3 text-right text-sm text-foreground"
                       style={{ fontVariantNumeric: "tabular-nums" }}
                     >
                       {referrer.clicks.toLocaleString()}
                     </td>
                     <td
-                      className="px-4 py-3 text-right text-sm text-slate-900 font-medium"
+                      className="px-4 py-3 text-right text-sm text-foreground font-medium"
                       style={{ fontVariantNumeric: "tabular-nums" }}
                     >
                       {referrer.conversions}
                     </td>
                     <td
-                      className="px-4 py-3 text-right text-sm text-slate-600"
+                      className="px-4 py-3 text-right text-sm text-muted-foreground"
                       style={{ fontVariantNumeric: "tabular-nums" }}
                     >
                       {referrer.rate}%
@@ -241,8 +241,8 @@ export default function AdminReferralsPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Click Sources */}
-        <div className="bg-white rounded-2xl shadow-depth-sm border border-slate-200/60 p-6">
-          <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">
+        <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-6">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
             Click Sources
           </h2>
           {loading ? (
@@ -266,8 +266,8 @@ export default function AdminReferralsPage() {
         </div>
 
         {/* Recent Conversions */}
-        <div className="bg-white rounded-2xl shadow-depth-sm border border-slate-200/60 p-6">
-          <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">
+        <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-6">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
             Recent Conversions
           </h2>
           {loading ? (
@@ -277,7 +277,7 @@ export default function AdminReferralsPage() {
               ))}
             </div>
           ) : data?.recentConversions.length === 0 ? (
-            <p className="text-sm text-slate-400">No conversions yet</p>
+            <p className="text-sm text-muted-foreground/70">No conversions yet</p>
           ) : (
             <div className="space-y-3">
               {data?.recentConversions.map((conv, i) => (
@@ -286,8 +286,10 @@ export default function AdminReferralsPage() {
                   className="flex items-center justify-between text-sm"
                 >
                   <div className="min-w-0 flex-1">
-                    <span className="text-slate-600 truncate block">{conv.newUserEmail}</span>
-                    <span className="text-slate-400">
+                    <span className="text-muted-foreground truncate block">
+                      {conv.newUserEmail}
+                    </span>
+                    <span className="text-muted-foreground/70">
                       via{" "}
                       <Link
                         href={`/${conv.referrerHandle}`}
@@ -298,7 +300,7 @@ export default function AdminReferralsPage() {
                       </Link>
                     </span>
                   </div>
-                  <span className="text-xs text-slate-400 shrink-0 ml-2">
+                  <span className="text-xs text-muted-foreground/70 shrink-0 ml-2">
                     {formatRelativeTime(conv.createdAt)}
                   </span>
                 </div>
