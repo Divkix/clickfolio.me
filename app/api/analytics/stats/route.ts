@@ -73,7 +73,7 @@ export async function GET(request: Request) {
         handleSet.add(row.oldHandle);
       }
     }
-    const handlePaths = [...handleSet].map((h) => `/@${h}`);
+    const handlePaths = [...handleSet].map((h) => `/${h}`);
 
     // Fan out all Umami queries for all handle paths in parallel
     const [statsResults, pageviewsResults, referrerResults, deviceResults, countryResults] =
