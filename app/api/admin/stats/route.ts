@@ -76,8 +76,10 @@ export async function GET() {
     const failedResumes = resumeStatusMap.failed || 0;
 
     // Fill missing dates for sparkline from Umami pageviews
+    // Umami returns x as full ISO timestamp (e.g. "2026-02-09T00:00:00Z") when timezone=UTC,
+    // so normalize to YYYY-MM-DD for consistent date matching.
     const filledDailyViews = fillMissingDates(
-      umamiPageviews.pageviews.map((p) => ({ date: p.x, views: p.y })),
+      umamiPageviews.pageviews.map((p) => ({ date: p.x.slice(0, 10), views: p.y })),
       7,
     );
 

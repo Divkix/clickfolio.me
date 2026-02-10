@@ -145,10 +145,12 @@ export async function GET(request: Request) {
     const dailyUniquesMap = new Map<string, number>();
     for (const pv of pageviewsResults) {
       for (const entry of pv.pageviews) {
-        dailyMap.set(entry.x, (dailyMap.get(entry.x) ?? 0) + entry.y);
+        const date = entry.x.slice(0, 10);
+        dailyMap.set(date, (dailyMap.get(date) ?? 0) + entry.y);
       }
       for (const entry of pv.sessions) {
-        dailyUniquesMap.set(entry.x, (dailyUniquesMap.get(entry.x) ?? 0) + entry.y);
+        const date = entry.x.slice(0, 10);
+        dailyUniquesMap.set(date, (dailyUniquesMap.get(date) ?? 0) + entry.y);
       }
     }
 

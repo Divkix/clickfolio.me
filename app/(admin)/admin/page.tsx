@@ -57,7 +57,7 @@ async function getAdminStats() {
   );
 
   // Fill missing dates from Umami pageviews (fallback to zeros if Umami unavailable)
-  const umamiMap = new Map(umamiPageviews?.pageviews.map((p) => [p.x, p.y]) ?? []);
+  const umamiMap = new Map(umamiPageviews?.pageviews.map((p) => [p.x.slice(0, 10), p.y]) ?? []);
   const filledDaily: Array<{ date: string; views: number }> = [];
   for (let i = 6; i >= 0; i--) {
     const date = new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);

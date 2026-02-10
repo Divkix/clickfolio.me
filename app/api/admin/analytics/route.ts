@@ -95,12 +95,14 @@ export async function GET(request: Request) {
       prevAvgPerDay > 0 ? Math.round(((avgPerDay - prevAvgPerDay) / prevAvgPerDay) * 100) : 0;
 
     // Daily breakdown — map Umami {x, y} to {date, views, unique}
-    const sessionMap = new Map(pageviews.sessions.map((s) => [s.x, s.y]));
+    // Umami returns x as full ISO timestamp (e.g. "2026-02-09T00:00:00Z") when timezone=UTC,
+    // so normalize to YYYY-MM-DD for consistent date matching in fillMissingDates.
+    const sessionMap = new Map(pageviews.sessions.map((s) => [s.x.slice(0, 10), s.y]));
     const daily = fillMissingDates(
       pageviews.pageviews.map((p) => ({
-        date: p.x,
+        date: p.x.slice(0, 10),
         views: p.y,
-        unique: sessionMap.get(p.x) ?? 0,
+        unique: sessionMap.get(p.x.slice(0, 10)) ?? 0,
       })),
       days,
     );
