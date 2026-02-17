@@ -49,6 +49,7 @@ function SpotlightCard({
   }, []);
 
   return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: decorative spotlight cursor effect, no interactive semantics
     <div
       ref={cardRef}
       onMouseMove={handleMouseMove}
@@ -76,6 +77,7 @@ function SpotlightCard({
 /* ─── Award icon (inline SVG) ─── */
 const AwardIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
   <svg
+    aria-hidden="true"
     xmlns="http://www.w3.org/2000/svg"
     viewBox="0 0 24 24"
     fill="none"
@@ -129,6 +131,7 @@ const Spotlight: React.FC<TemplateProps> = ({ content, profile }) => {
         rel="stylesheet"
       />
 
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: decorative page-level spotlight tracking, no interactive semantics */}
       <div
         ref={containerRef}
         onMouseMove={handlePageMouseMove}
@@ -486,7 +489,7 @@ const Spotlight: React.FC<TemplateProps> = ({ content, profile }) => {
           )}
 
           {/* ─── CTA Footer ─── */}
-          <footer id="contact" className="py-20 border-t border-stone-200/60" role="contentinfo">
+          <footer id="contact" className="py-20 border-t border-stone-200/60">
             <div className="flex flex-col items-center text-center space-y-6">
               <h2 className="text-4xl md:text-5xl font-display-sl font-extrabold tracking-tight text-[#1C1917]">
                 The stage is yours.
