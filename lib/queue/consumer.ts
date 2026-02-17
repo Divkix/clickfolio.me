@@ -1,4 +1,4 @@
-import { and, eq, isNotNull } from "drizzle-orm";
+import { and, eq, inArray, isNotNull } from "drizzle-orm";
 import { buildSiteDataUpsert } from "../data/site-data-upsert";
 import { resumes, user } from "../db/schema";
 import { getSessionDbForWebhook } from "../db/session";
@@ -251,13 +251,17 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
 
     // Set AI role for waiting users (same fileHash = same resume content).
     // Separate from batch to avoid Drizzle heterogeneous table type errors.
+    // Uses inArray for a single UPDATE instead of N sequential queries.
     if (professionalLevel) {
-      for (const w of waitingResumes) {
-        await db
-          .update(user)
-          .set({ role: professionalLevel, roleSource: "ai", updatedAt: now })
-          .where(eq(user.id, w.userId as string));
-      }
+      await db
+        .update(user)
+        .set({ role: professionalLevel, roleSource: "ai", updatedAt: now })
+        .where(
+          inArray(
+            user.id,
+            waitingResumes.map((w) => w.userId as string),
+          ),
+        );
     }
   }
 

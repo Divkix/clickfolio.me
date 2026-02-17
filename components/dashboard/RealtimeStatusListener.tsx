@@ -1,6 +1,7 @@
 "use client";
 
 import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useCallback, useRef, useState } from "react";
 import { useResumeWebSocket } from "@/hooks/useResumeWebSocket";
 
@@ -20,6 +21,7 @@ type DetectedState = {
  * Falls back to polling automatically via useResumeWebSocket.
  */
 export function RealtimeStatusListener({ resumeId, currentStatus }: RealtimeStatusListenerProps) {
+  const router = useRouter();
   const hasRefreshedRef = useRef(false);
   const refreshDebounceRef = useRef<NodeJS.Timeout | null>(null);
   const [detected, setDetected] = useState<DetectedState>({
@@ -29,25 +31,28 @@ export function RealtimeStatusListener({ resumeId, currentStatus }: RealtimeStat
         : (currentStatus as DetectedState["status"]),
   });
 
-  const handleStatusChange = useCallback((newStatus: string, errorMessage?: string) => {
-    if (hasRefreshedRef.current) return;
-    if (newStatus === "completed" || newStatus === "failed") {
-      if (refreshDebounceRef.current) {
-        clearTimeout(refreshDebounceRef.current);
+  const handleStatusChange = useCallback(
+    (newStatus: string, errorMessage?: string) => {
+      if (hasRefreshedRef.current) return;
+      if (newStatus === "completed" || newStatus === "failed") {
+        if (refreshDebounceRef.current) {
+          clearTimeout(refreshDebounceRef.current);
+        }
+
+        setDetected({
+          status: newStatus as "completed" | "failed",
+          errorMessage,
+        });
+
+        refreshDebounceRef.current = setTimeout(() => {
+          if (hasRefreshedRef.current) return;
+          hasRefreshedRef.current = true;
+          router.refresh();
+        }, 200);
       }
-
-      setDetected({
-        status: newStatus as "completed" | "failed",
-        errorMessage,
-      });
-
-      refreshDebounceRef.current = setTimeout(() => {
-        if (hasRefreshedRef.current) return;
-        hasRefreshedRef.current = true;
-        window.location.reload();
-      }, 200);
-    }
-  }, []);
+    },
+    [router],
+  );
 
   // Connect WebSocket only when currently processing
   useResumeWebSocket({

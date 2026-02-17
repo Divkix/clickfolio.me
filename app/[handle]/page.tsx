@@ -166,15 +166,22 @@ export default async function HandlePage({ params }: PageProps) {
   // Owner detection for Umami self-view filtering
   // If the viewer is the resume owner, OwnerViewFlag sets a window flag
   // that suppresses the Umami page view event via data-before-send
+  // Optimization: skip auth entirely for cookie-less visitors (most public traffic)
+  const hdrs = await headers();
+  const hasCookie =
+    hdrs.get("cookie")?.includes("better-auth.session_token") ||
+    hdrs.get("cookie")?.includes("__Secure-better-auth.session_token");
   let isOwner = false;
-  try {
-    const auth = await getAuth();
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (session?.user?.id === profile.id) {
-      isOwner = true;
+  if (hasCookie) {
+    try {
+      const auth = await getAuth();
+      const session = await auth.api.getSession({ headers: hdrs });
+      if (session?.user?.id === profile.id) {
+        isOwner = true;
+      }
+    } catch {
+      // Auth error or unauthenticated — not the owner
     }
-  } catch {
-    // Auth error or unauthenticated — not the owner
   }
 
   // Dynamically select template based on theme_id

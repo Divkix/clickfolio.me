@@ -52,10 +52,10 @@
         "noArrayIndexKey": "off"
       },
       "a11y": {
-        "noSvgWithoutTitle": "off",
-        "noStaticElementInteractions": "off",
-        "useSemanticElements": "off",
-        "useKeyWithClickEvents": "off"
+        "noSvgWithoutTitle": "warn",
+        "noStaticElementInteractions": "warn",
+        "useSemanticElements": "warn",
+        "useKeyWithClickEvents": "warn"
       }
     }
   },

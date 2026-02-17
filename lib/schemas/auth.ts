@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { noXssPattern } from "@/lib/utils/sanitization";
 
 /**
  * Password validation requirements
@@ -31,7 +32,12 @@ const emailSchema = z
  * Name is required for Better Auth user creation.
  */
 export const signUpSchema = z.object({
-  name: z.string().trim().min(1, "Name is required").max(100, "Name is too long"),
+  name: z
+    .string()
+    .trim()
+    .min(1, "Name is required")
+    .max(100, "Name is too long")
+    .refine(noXssPattern, { message: "Name contains invalid characters" }),
   email: emailSchema,
   password: passwordSchema,
 });

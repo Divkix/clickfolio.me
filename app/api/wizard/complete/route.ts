@@ -135,23 +135,44 @@ export async function POST(request: Request) {
       );
     }
 
-    // 6. Update user table with handle, privacy settings, and mark onboarding as completed
-    // Wrapped in try-catch to handle race condition on unique constraint
+    // 6+7. Update user + upsert siteData atomically via db.batch().
+    // Wrapped in try-catch to handle race condition on unique constraint.
     const privacySettings = JSON.stringify(body.privacy_settings);
+    const now = new Date().toISOString();
 
     try {
-      await db
-        .update(user)
-        .set({
-          handle: body.handle,
-          privacySettings,
-          showInDirectory: body.privacy_settings.show_in_directory,
-          onboardingCompleted: true,
-          updatedAt: new Date().toISOString(),
-        })
-        .where(eq(user.id, authUser.id));
+      await db.batch([
+        db
+          .update(user)
+          .set({
+            handle: body.handle,
+            privacySettings,
+            showInDirectory: body.privacy_settings.show_in_directory,
+            onboardingCompleted: true,
+            updatedAt: now,
+          })
+          .where(eq(user.id, authUser.id)),
+        db
+          .insert(siteData)
+          .values({
+            id: crypto.randomUUID(),
+            userId: authUser.id,
+            content: "{}", // Will be populated by queue consumer when parsing completes
+            themeId: finalThemeId,
+            createdAt: now,
+            updatedAt: now,
+          })
+          .onConflictDoUpdate({
+            target: siteData.userId,
+            set: {
+              themeId: finalThemeId,
+              lastPublishedAt: now,
+              updatedAt: now,
+            },
+          }),
+      ]);
     } catch (error) {
-      // Check if it's a unique constraint violation (race condition)
+      // Check if it's a unique constraint violation (race condition on handle)
       if (error instanceof Error && error.message.includes("UNIQUE constraint failed")) {
         return createErrorResponse(
           "This handle was just taken. Please choose a different one.",
@@ -161,28 +182,6 @@ export async function POST(request: Request) {
       }
       throw error; // Re-throw other errors
     }
-
-    // 7. Upsert site_data with theme_id using onConflictDoUpdate on UNIQUE userId.
-    // Eliminates the SELECT roundtrip and race-condition fallback logic.
-    const now = new Date().toISOString();
-    await db
-      .insert(siteData)
-      .values({
-        id: crypto.randomUUID(),
-        userId: authUser.id,
-        content: "{}", // Will be populated by queue consumer when parsing completes
-        themeId: finalThemeId,
-        createdAt: now,
-        updatedAt: now,
-      })
-      .onConflictDoUpdate({
-        target: siteData.userId,
-        set: {
-          themeId: finalThemeId,
-          lastPublishedAt: now,
-          updatedAt: now,
-        },
-      });
 
     // 8. Capture bookmark before returning success
     await captureBookmark();

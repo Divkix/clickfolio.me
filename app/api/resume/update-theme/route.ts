@@ -13,6 +13,7 @@ import {
   createSuccessResponse,
   ERROR_CODES,
 } from "@/lib/utils/security-headers";
+import { validateRequestSize } from "@/lib/utils/validation";
 
 interface ThemeUpdateRequestBody {
   theme_id?: string;
@@ -31,8 +32,23 @@ export async function POST(request: Request) {
 
     const userId = authUser.id;
 
+    // 3. Validate request size before parsing (prevent DoS)
+    const sizeCheck = validateRequestSize(request);
+    if (!sizeCheck.valid) {
+      return createErrorResponse(
+        sizeCheck.error || "Request body too large",
+        ERROR_CODES.BAD_REQUEST,
+        413,
+      );
+    }
+
     // 4. Parse request body
-    const body = (await request.json()) as ThemeUpdateRequestBody;
+    let body: ThemeUpdateRequestBody;
+    try {
+      body = (await request.json()) as ThemeUpdateRequestBody;
+    } catch {
+      return Response.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
     const { theme_id } = body;
 
     // 5. Validate theme_id

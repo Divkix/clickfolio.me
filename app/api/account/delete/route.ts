@@ -2,15 +2,7 @@ import { eq } from "drizzle-orm";
 import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
 import { purgeResumeCache } from "@/lib/cloudflare-cache-purge";
 import { getDb } from "@/lib/db";
-import {
-  account,
-  handleChanges,
-  resumes,
-  session,
-  siteData,
-  user,
-  verification,
-} from "@/lib/db/schema";
+import { resumes, user, verification } from "@/lib/db/schema";
 import { getR2Binding, R2 } from "@/lib/r2";
 import { deleteAccountSchema } from "@/lib/schemas/account";
 import {
@@ -29,14 +21,9 @@ interface DeletionWarning {
  * Permanently deletes a user's account and all associated data
  *
  * GDPR-compliant deletion order:
- * 1. R2 files (resume uploads)
- * 2. siteData (has resumeId FK)
- * 3. resumes
- * 4. handleChanges
- * 5. session
- * 6. account
- * 7. verification (by email identifier)
- * 8. user (last)
+ * 1. R2 files (resume uploads — must be deleted before DB records)
+ * 2. verification (no FK to user — must be explicitly deleted)
+ * 3. user (CASCADE handles: session, account, resumes, siteData, handleChanges, referralClicks)
  */
 export async function POST(request: Request) {
   const warnings: DeletionWarning[] = [];
@@ -126,19 +113,9 @@ export async function POST(request: Request) {
 
     try {
       await db.batch([
-        // 7a. Delete siteData (depends on resumeId)
-        db.delete(siteData).where(eq(siteData.userId, userId)),
-        // 7b. Delete resumes
-        db.delete(resumes).where(eq(resumes.userId, userId)),
-        // 7c. Delete handleChanges
-        db.delete(handleChanges).where(eq(handleChanges.userId, userId)),
-        // 7d. Delete sessions (all sessions for this user)
-        db.delete(session).where(eq(session.userId, userId)),
-        // 7e. Delete accounts (OAuth providers)
-        db.delete(account).where(eq(account.userId, userId)),
-        // 7f. Delete verification records (by email identifier)
+        // 7a. Delete verification records (no FK to user — must be explicit)
         db.delete(verification).where(eq(verification.identifier, userEmail)),
-        // 7g. Delete user (last)
+        // 7b. Delete user (CASCADE handles: session, account, resumes, siteData, handleChanges, referralClicks)
         db.delete(user).where(eq(user.id, userId)),
       ]);
 
@@ -156,13 +133,8 @@ export async function POST(request: Request) {
         }
       }
     } catch (dbError) {
-      console.error("Database deletion error:", dbError);
-      return createErrorResponse(
-        "Failed to delete account data. Please try again or contact support.",
-        ERROR_CODES.DATABASE_ERROR,
-        500,
-        { error: dbError instanceof Error ? dbError.message : "Unknown database error" },
-      );
+      console.error("Account deletion error:", dbError);
+      return createErrorResponse("Failed to delete account", ERROR_CODES.DATABASE_ERROR, 500);
     }
 
     // 8. Return success response with both cookie variants cleared

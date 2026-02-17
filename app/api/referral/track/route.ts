@@ -12,7 +12,7 @@
  */
 
 import { getCloudflareContext } from "@opennextjs/cloudflare";
-import { eq } from "drizzle-orm";
+import { eq, or } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { referralClicks, user } from "@/lib/db/schema";
 import { generateVisitorHash, isBot } from "@/lib/utils/analytics";
@@ -66,21 +66,12 @@ export async function POST(request: Request) {
     const { env } = await getCloudflareContext({ async: true });
     const db = getDb(env.DB);
 
-    // Try referral code first (uppercase)
-    let userResult = await db
+    // Single query: match referralCode (uppercase) OR handle (lowercase) in one roundtrip
+    const userResult = await db
       .select({ id: user.id })
       .from(user)
-      .where(eq(user.referralCode, code.toUpperCase()))
+      .where(or(eq(user.referralCode, code.toUpperCase()), eq(user.handle, code.toLowerCase())))
       .limit(1);
-
-    // Fall back to handle lookup for backward compatibility
-    if (userResult.length === 0) {
-      userResult = await db
-        .select({ id: user.id })
-        .from(user)
-        .where(eq(user.handle, code.toLowerCase()))
-        .limit(1);
-    }
 
     if (userResult.length === 0) {
       return EMPTY_204;

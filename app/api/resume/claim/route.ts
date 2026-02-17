@@ -17,7 +17,11 @@ import { MAX_FILE_SIZE, MAX_FILE_SIZE_LABEL, validateRequestSize } from "@/lib/u
 
 const claimRequestSchema = z.object({
   key: z.string().min(1).startsWith("temp/"),
-  referral_code: z.string().max(50).optional(),
+  referral_code: z
+    .string()
+    .max(50)
+    .regex(/^[A-Za-z0-9@_-]+$/, "Invalid referral code")
+    .optional(),
 });
 
 /**

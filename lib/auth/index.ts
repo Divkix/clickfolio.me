@@ -213,7 +213,7 @@ export async function getAuth() {
       "https://clickfolio.me",
       "https://www.clickfolio.me",
       // Allow HTTP variant for local DNS testing (clickfolio.me → 127.0.0.1)
-      "http://clickfolio.me",
+      ...(process.env.NODE_ENV !== "production" ? ["http://clickfolio.me"] : []),
     ],
     databaseHooks: {
       user: {

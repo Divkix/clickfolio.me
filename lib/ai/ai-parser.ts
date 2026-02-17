@@ -219,6 +219,22 @@ export function createAiProvider(env: Partial<CloudflareEnv> & AiEnvVars) {
 }
 
 /**
+ * Module-level cache for AI provider to avoid re-creating per invocation
+ * within the same Worker isolate. Keyed on account+gateway IDs so a config
+ * change (e.g., env var rotation) invalidates the cached instance.
+ */
+let cachedProvider: ReturnType<typeof createAiProvider> | null = null;
+let cachedEnvKey: string | null = null;
+
+function getAiProvider(env: Partial<CloudflareEnv> & AiEnvVars) {
+  const key = (env.CF_AI_GATEWAY_ACCOUNT_ID || "") + (env.CF_AI_GATEWAY_ID || "");
+  if (cachedProvider && cachedEnvKey === key) return cachedProvider;
+  cachedProvider = createAiProvider(env);
+  cachedEnvKey = key;
+  return cachedProvider;
+}
+
+/**
  * Extract JSON from AI response text
  * Handles responses that may have markdown code blocks or extra text
  */
@@ -271,7 +287,7 @@ export async function parseWithAi(
     const modelId = model || env.AI_MODEL || DEFAULT_AI_MODEL;
     const prompt = buildPrompt(text);
 
-    const provider = createAiProvider(env);
+    const provider = getAiProvider(env);
 
     // When retrying with error feedback, use a focused prompt with the previous output
     if (retryContext) {

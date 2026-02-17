@@ -9,7 +9,7 @@
  */
 
 import { getCloudflareContext } from "@opennextjs/cloudflare";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, or } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { referralClicks, user } from "@/lib/db/schema";
 import { generateVisitorHashWithDate } from "@/lib/utils/analytics";
@@ -103,20 +103,12 @@ export async function writeReferral(
   const normalizedUpper = normalized.toUpperCase();
   const normalizedLower = normalized.toLowerCase();
 
-  let referrerResult = await db
+  // Single query: match referralCode (uppercase) OR handle (lowercase) in one roundtrip
+  const referrerResult = await db
     .select({ id: user.id })
     .from(user)
-    .where(eq(user.referralCode, normalizedUpper))
+    .where(or(eq(user.referralCode, normalizedUpper), eq(user.handle, normalizedLower)))
     .limit(1);
-
-  // Fall back to handle lookup for backward compatibility (older referral links).
-  if (referrerResult.length === 0) {
-    referrerResult = await db
-      .select({ id: user.id })
-      .from(user)
-      .where(eq(user.handle, normalizedLower))
-      .limit(1);
-  }
 
   const referrerId = referrerResult[0]?.id;
   if (!referrerId) {

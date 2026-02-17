@@ -10,6 +10,7 @@ import {
   createSuccessResponse,
   ERROR_CODES,
 } from "@/lib/utils/security-headers";
+import { validateRequestSize } from "@/lib/utils/validation";
 
 interface RetryRequestBody {
   resume_id?: string;
@@ -30,7 +31,22 @@ export async function POST(request: Request) {
     const userId = authUser.id;
     const typedEnv = env as Partial<CloudflareEnv>;
 
-    const body = (await request.json()) as RetryRequestBody;
+    // Validate request size before parsing (prevent DoS)
+    const sizeCheck = validateRequestSize(request);
+    if (!sizeCheck.valid) {
+      return createErrorResponse(
+        sizeCheck.error || "Request body too large",
+        ERROR_CODES.BAD_REQUEST,
+        413,
+      );
+    }
+
+    let body: RetryRequestBody;
+    try {
+      body = (await request.json()) as RetryRequestBody;
+    } catch {
+      return Response.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
     const { resume_id } = body;
 
     if (!resume_id) {

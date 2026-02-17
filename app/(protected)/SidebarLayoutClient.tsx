@@ -50,7 +50,9 @@ export function SidebarLayoutClient({ children }: { children: React.ReactNode })
       </button>
 
       {/* Main content area */}
-      <main className="md:ml-60 min-h-screen transition-all duration-300">{children}</main>
+      <main id="main-content" className="md:ml-60 min-h-screen transition-all duration-300">
+        {children}
+      </main>
     </div>
   );
 }

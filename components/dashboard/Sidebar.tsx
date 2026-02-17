@@ -1,6 +1,7 @@
 "use client";
 
 import { Edit3, ExternalLink, Home, LogOut, Palette, Settings, Shield, X } from "lucide-react";
+import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Logo } from "@/components/Logo";
@@ -200,13 +201,10 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
             const active = isActive(item.href, item.exact);
 
             return (
-              <button
-                type="button"
+              <Link
+                href={item.href}
                 key={item.href}
-                onClick={() => {
-                  router.push(item.href);
-                  onClose?.();
-                }}
+                onClick={() => onClose?.()}
                 className={`
                   w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium
                   transition-all duration-300
@@ -223,7 +221,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
                   style={active ? { stroke: "currentColor" } : undefined}
                 />
                 <span>{item.name}</span>
-              </button>
+              </Link>
             );
           })}
 
@@ -243,17 +241,14 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
 
           {/* Admin Link */}
           {profile?.isAdmin && (
-            <button
-              type="button"
-              onClick={() => {
-                router.push("/admin");
-                onClose?.();
-              }}
+            <Link
+              href="/admin"
+              onClick={() => onClose?.()}
               className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-lavender hover:bg-lavender/5 transition-all duration-300"
             >
               <Shield size={20} />
               <span>Admin</span>
-            </button>
+            </Link>
           )}
         </nav>
 

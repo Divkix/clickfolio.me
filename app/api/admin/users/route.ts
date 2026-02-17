@@ -5,7 +5,7 @@
  */
 
 import { getCloudflareContext } from "@opennextjs/cloudflare";
-import { count, like, or, sql } from "drizzle-orm";
+import { count, or, sql } from "drizzle-orm";
 import { requireAdminAuthForApi } from "@/lib/auth/admin";
 import { getDb } from "@/lib/db";
 import { resumes, siteData, user } from "@/lib/db/schema";
@@ -37,11 +37,13 @@ export async function GET(request: Request) {
     const escapedSearch = escapeLikePattern(search);
 
     // Build where clause for search
+    // Use raw sql with ESCAPE '\\' so the escapeLikePattern backslash escapes
+    // are actually honored by SQLite (Drizzle's like() omits the ESCAPE clause)
     const searchCondition = search
       ? or(
-          like(user.name, `%${escapedSearch}%`),
-          like(user.email, `%${escapedSearch}%`),
-          like(user.handle, `%${escapedSearch}%`),
+          sql`${user.name} LIKE ${`%${escapedSearch}%`} ESCAPE '\\'`,
+          sql`${user.email} LIKE ${`%${escapedSearch}%`} ESCAPE '\\'`,
+          sql`${user.handle} LIKE ${`%${escapedSearch}%`} ESCAPE '\\'`,
         )
       : undefined;
 
