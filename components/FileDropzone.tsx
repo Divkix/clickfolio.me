@@ -46,24 +46,24 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
   const [isDragging, setIsDragging] = useState(false);
   const [authDialogOpen, setAuthDialogOpen] = useState(false);
 
-  const handleDragEnter = (e: DragEvent<HTMLDivElement>) => {
+  const handleDragEnter = (e: DragEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(true);
   };
 
-  const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
+  const handleDragLeave = (e: DragEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
   };
 
-  const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
+  const handleDragOver = (e: DragEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.stopPropagation();
   };
 
-  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
+  const handleDrop = (e: DragEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
@@ -303,20 +303,13 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
   const dropzoneContent = (
     <div className="space-y-4">
       {/* Drop Zone */}
-      <div
+      <button
+        type="button"
         onDragEnter={handleDragEnter}
         onDragLeave={handleDragLeave}
         onDragOver={handleDragOver}
         onDrop={handleDrop}
         onClick={() => fileInputRef.current?.click()}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            fileInputRef.current?.click();
-          }
-        }}
-        role="button"
-        tabIndex={0}
         aria-label="Drop your PDF resume here or click to browse files"
         className={`
           group
@@ -389,7 +382,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
             )}
           </div>
         </div>
-      </div>
+      </button>
 
       {/* Progress Bar */}
       {uploading && (

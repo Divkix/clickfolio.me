@@ -47,24 +47,24 @@ export function UploadStep({ onContinue }: UploadStepProps) {
   const [error, setError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
 
-  const handleDragEnter = (e: DragEvent<HTMLDivElement>) => {
+  const handleDragEnter = (e: DragEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(true);
   };
 
-  const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
+  const handleDragLeave = (e: DragEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
   };
 
-  const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
+  const handleDragOver = (e: DragEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.stopPropagation();
   };
 
-  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
+  const handleDrop = (e: DragEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
@@ -318,20 +318,13 @@ export function UploadStep({ onContinue }: UploadStepProps) {
           </div>
         ) : (
           /* Idle State - Drop Zone */
-          <div
+          <button
+            type="button"
             onDragEnter={handleDragEnter}
             onDragLeave={handleDragLeave}
             onDragOver={handleDragOver}
             onDrop={handleDrop}
             onClick={() => fileInputRef.current?.click()}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                fileInputRef.current?.click();
-              }
-            }}
-            role="button"
-            tabIndex={0}
             aria-label="Drop your PDF resume here or click to browse files"
             className={`
               group relative bg-card rounded-xl border border-ink/10 p-12 cursor-pointer transition-all duration-300 overflow-hidden
@@ -391,7 +384,7 @@ export function UploadStep({ onContinue }: UploadStepProps) {
                 or click to browse - Max {MAX_FILE_SIZE_LABEL}
               </p>
             </div>
-          </div>
+          </button>
         )}
 
         {/* Help Text */}
