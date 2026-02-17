@@ -22,11 +22,7 @@ export function SaveIndicator({ status, lastSaved, className }: SaveIndicatorPro
   if (status === "idle") return null;
 
   return (
-    <div
-      className={cn("flex items-center gap-2 text-sm", className)}
-      role="status"
-      aria-live="polite"
-    >
+    <output className={cn("flex items-center gap-2 text-sm", className)} aria-live="polite">
       {status === "saving" && (
         <>
           <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
@@ -51,6 +47,6 @@ export function SaveIndicator({ status, lastSaved, className }: SaveIndicatorPro
           <span className="text-amber-500">Unsaved changes</span>
         </>
       )}
-    </div>
+    </output>
   );
 }

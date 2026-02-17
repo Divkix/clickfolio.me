@@ -158,9 +158,8 @@ export function ShareBar({ url, handle, title, name, variant, className }: Share
   }, [shareUrl]);
 
   return (
-    <div
-      className={cn(shareBarVariants({ variant }), className)}
-      role="group"
+    <fieldset
+      className={cn(shareBarVariants({ variant }), "border-none p-0 m-0", className)}
       aria-label="Share options"
     >
       {/* Native share button (mobile-first) */}
@@ -223,7 +222,7 @@ export function ShareBar({ url, handle, title, name, variant, className }: Share
         )}
         <span className="sr-only sm:not-sr-only sm:ml-1.5">{copied ? "Copied" : "Copy"}</span>
       </button>
-    </div>
+    </fieldset>
   );
 }
 

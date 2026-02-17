@@ -331,10 +331,7 @@ const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile }) => {
           )}
 
           {/* Footer */}
-          <footer
-            className="flex flex-col items-center justify-center pt-20 border-t border-black/10 opacity-50 hover:opacity-100 transition-opacity"
-            role="contentinfo"
-          >
+          <footer className="flex flex-col items-center justify-center pt-20 border-t border-black/10 opacity-50 hover:opacity-100 transition-opacity">
             <p className="font-serif-me italic text-xl mb-4">"Designed to endure."</p>
             <div className="text-xs font-bold uppercase tracking-[0.2em] flex gap-4">
               <span suppressHydrationWarning>{new Date().getFullYear()}</span>

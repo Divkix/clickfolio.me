@@ -64,6 +64,7 @@ export function PasswordStrengthMeter({
   return (
     <div className={cn("space-y-2", className)}>
       {/* Strength bar - 4 segments */}
+      {/* biome-ignore lint/a11y/useSemanticElements: meter element cannot render segmented strength bars */}
       <div
         className="flex gap-1"
         role="meter"
