@@ -265,7 +265,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
         </div>
 
         {/* SVG Gradient Definition for Active Icons */}
-        <svg width="0" height="0" className="absolute">
+        <svg aria-hidden="true" width="0" height="0" className="absolute">
           <defs>
             <linearGradient id="iconGradient" x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stopColor="#EF4444" />

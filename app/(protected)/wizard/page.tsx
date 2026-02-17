@@ -494,6 +494,7 @@ export default function WizardPage() {
         <div className="bg-card rounded-xl shadow-md border border-coral/30 p-8 max-w-md w-full text-center">
           <div className="w-16 h-16 bg-coral/20 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg
+              aria-hidden="true"
               className="w-8 h-8 text-coral"
               fill="none"
               stroke="currentColor"
