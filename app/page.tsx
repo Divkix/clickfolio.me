@@ -122,6 +122,7 @@ export default function Home() {
                     <span className="relative inline-block">
                       is already a
                       <svg
+                        aria-hidden="true"
                         className="absolute -bottom-2 left-0 w-full h-3 text-coral"
                         viewBox="0 0 200 12"
                         preserveAspectRatio="none"
@@ -233,6 +234,7 @@ export default function Home() {
                   >
                     <div className="flex items-center gap-2">
                       <svg
+                        aria-hidden="true"
                         className="h-6 w-6 sm:h-7 sm:w-7 text-ink"
                         viewBox="0 0 24 24"
                         fill="currentColor"
@@ -341,6 +343,7 @@ export default function Home() {
                   <div className="flex items-center gap-2 text-ink font-mono text-sm font-bold uppercase tracking-wide shrink-0">
                     <span>Explore</span>
                     <svg
+                      aria-hidden="true"
                       className="w-5 h-5 transform group-hover:translate-x-1 transition-transform"
                       fill="none"
                       viewBox="0 0 24 24"
