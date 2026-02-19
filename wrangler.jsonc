@@ -61,6 +61,13 @@
 			"database_id": "37cf1935-96c5-40c8-aa2e-0d0655f9b652"
 		}
 	],
+	// KV namespace for disposable email domain blocklist
+	"kv_namespaces": [
+		{
+			"binding": "DISPOSABLE_DOMAINS",
+			"id": "6fe2480a4f4d46a9970eb2c441ecf38a"
+		}
+	],
 	// R2 bucket binding for direct access (replaces AWS SDK for most operations)
 	"r2_buckets": [
 		{
@@ -71,7 +78,10 @@
 	// Cloudflare Queues for async processing
 	"queues": {
 		"producers": [
-			{ "binding": "RESUME_PARSE_QUEUE", "queue": "resume-parse-queue" }
+			{
+				"binding": "RESUME_PARSE_QUEUE",
+				"queue": "resume-parse-queue"
+			}
 		],
 		"consumers": [
 			{
@@ -90,12 +100,28 @@
 	// Durable Objects for real-time WebSocket notifications
 	"durable_objects": {
 		"bindings": [
-			{ "name": "RESUME_STATUS_DO", "class_name": "ResumeStatusDO" }
+			{
+				"name": "RESUME_STATUS_DO",
+				"class_name": "ResumeStatusDO"
+			}
 		]
 	},
 	"migrations": [
-		{ "tag": "v1", "new_sqlite_classes": ["DOShardedTagCache"] },
-		{ "tag": "v2", "deleted_classes": ["DOShardedTagCache"], "new_classes": ["ResumeStatusDO"] }
+		{
+			"tag": "v1",
+			"new_sqlite_classes": [
+				"DOShardedTagCache"
+			]
+		},
+		{
+			"tag": "v2",
+			"deleted_classes": [
+				"DOShardedTagCache"
+			],
+			"new_classes": [
+				"ResumeStatusDO"
+			]
+		}
 	],
 	"observability": {
 		"enabled": true,
@@ -110,8 +136,9 @@
 	// Cron Triggers for scheduled tasks
 	"triggers": {
 		"crons": [
-			"0 3 * * *",     // Daily at 3 AM UTC - runs /api/cron/cleanup
-			"*/15 * * * *"   // Every 15 minutes - runs /api/cron/recover-orphaned
+			"0 3 * * *", // Daily at 3 AM UTC - runs /api/cron/cleanup
+			"0 4 * * *", // Daily at 4 AM UTC - syncs disposable email domain blocklist
+			"*/15 * * * *" // Every 15 minutes - runs /api/cron/recover-orphaned
 		]
 	},
 	"vars": {
@@ -123,7 +150,7 @@
 		//   wrangler secret put BETTER_AUTH_URL                      # Also used as app URL
 		//   wrangler secret put GOOGLE_CLIENT_ID
 		//   wrangler secret put GOOGLE_CLIENT_SECRET
-			//
+		//
 		// ===== OPTIONAL: Edge cache purge (only for custom domains behind CF proxy) =====
 		//   wrangler secret put CF_ZONE_ID                  # From Cloudflare Dashboard
 		//   wrangler secret put CF_CACHE_PURGE_API_TOKEN    # API token with Cache Purge permission

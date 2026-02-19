@@ -211,7 +211,7 @@ export const uploadRateLimits = sqliteTable(
   {
     id: text("id").primaryKey(),
     ipHash: text("ip_hash").notNull(),
-    actionType: text("action_type", { enum: ["upload", "handle_check"] })
+    actionType: text("action_type", { enum: ["upload", "handle_check", "email_validate"] })
       .notNull()
       .default("upload"),
     createdAt: text("created_at").notNull(),

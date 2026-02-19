@@ -20,8 +20,10 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { APIError } from "better-auth/api";
 import { drizzle } from "drizzle-orm/d1";
 import * as schema from "@/lib/db/schema";
+import { isDisposableEmail } from "@/lib/email/disposable-check";
 import { sendPasswordResetEmail, sendVerificationEmail } from "@/lib/email/resend";
 import { generateReferralCode } from "@/lib/utils/referral-code";
 
@@ -219,6 +221,24 @@ export async function getAuth() {
       user: {
         create: {
           before: async (user) => {
+            // Check for disposable email before allowing signup
+            try {
+              const result = await isDisposableEmail(
+                user.email,
+                (typedEnv as { DISPOSABLE_DOMAINS?: KVNamespace }).DISPOSABLE_DOMAINS ?? null,
+              );
+              if (result.disposable) {
+                throw new APIError("BAD_REQUEST", {
+                  message: "Please use a permanent email address to sign up",
+                });
+              }
+            } catch (error) {
+              // Re-throw APIError (our intentional block), swallow all other errors (fail open)
+              if (error instanceof APIError) throw error;
+              console.error("[AUTH] Disposable email check failed, allowing signup:", error);
+            }
+
+            // Generate referral code (existing logic)
             try {
               return {
                 data: {

@@ -14,6 +14,7 @@ import { isLocalEnvironment } from "./environment";
 const HOURLY_LIMIT = 10;
 const DAILY_LIMIT = 50;
 const HANDLE_CHECK_HOURLY_LIMIT = 100;
+const EMAIL_VALIDATE_HOURLY_LIMIT = 30;
 
 const LOCAL_IPS = new Set([
   "127.0.0.1",
@@ -276,6 +277,107 @@ export async function checkHandleRateLimit(ip: string): Promise<IPRateLimitResul
     };
   } catch (error) {
     console.error("Handle rate limit check failed:", error);
+
+    // SECURITY: Fail OPEN - same rationale as upload rate limiting
+    return {
+      allowed: true,
+      remaining: { hourly: 1, daily: 1 },
+    };
+  }
+}
+
+/**
+ * Check and record IP-based rate limit for email validation checks
+ * Moderate limit (30/hour) to prevent email enumeration attacks
+ * Uses separate action type to not share quota with uploads or handle checks
+ *
+ * Protects against:
+ * - Email enumeration attacks
+ * - DoS via rapid validation checks
+ */
+export async function checkEmailValidateRateLimit(ip: string): Promise<IPRateLimitResult> {
+  // Skip in development
+  if (process.env.NODE_ENV !== "production") {
+    return {
+      allowed: true,
+      remaining: { hourly: EMAIL_VALIDATE_HOURLY_LIMIT, daily: 1000 },
+    };
+  }
+
+  // Feature flag bypass for temporary testing (non-production only)
+  if (process.env.DISABLE_RATE_LIMITS === "true") {
+    if (process.env.NODE_ENV === "production") {
+      console.warn("[SECURITY] DISABLE_RATE_LIMITS ignored in production environment");
+    } else {
+      return {
+        allowed: true,
+        remaining: { hourly: 999, daily: 999 },
+      };
+    }
+  }
+
+  // Skip for localhost IPs or local environment (local preview runs in production mode)
+  if (LOCAL_IPS.has(ip) || isLocalEnvironment()) {
+    return {
+      allowed: true,
+      remaining: { hourly: EMAIL_VALIDATE_HOURLY_LIMIT, daily: 1000 },
+    };
+  }
+
+  const ipHash = await hashIP(ip);
+  const now = new Date();
+  const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000).toISOString();
+
+  try {
+    const { env } = await getCloudflareContext({ async: true });
+    const db = getDb(env.DB);
+
+    // Count email validation checks in the last hour
+    const result = await db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(uploadRateLimits)
+      .where(
+        and(
+          eq(uploadRateLimits.ipHash, ipHash),
+          eq(uploadRateLimits.actionType, "email_validate"),
+          gte(uploadRateLimits.createdAt, oneHourAgo),
+        ),
+      );
+
+    const count = result[0]?.count ?? 0;
+
+    if (count >= EMAIL_VALIDATE_HOURLY_LIMIT) {
+      return {
+        allowed: false,
+        remaining: { hourly: 0, daily: 0 },
+        message: "Too many email validation checks. Please try again later.",
+      };
+    }
+
+    // Record this check (separate from uploads and handle checks)
+    try {
+      const expiresAt = new Date(now.getTime() + 60 * 60 * 1000).toISOString(); // 1hr TTL
+      await db.insert(uploadRateLimits).values({
+        id: crypto.randomUUID(),
+        ipHash,
+        actionType: "email_validate",
+        createdAt: now.toISOString(),
+        expiresAt,
+      });
+    } catch (insertError) {
+      console.error("Failed to record email validate rate limit:", insertError);
+      // Continue anyway - fail open for legitimate users
+    }
+
+    return {
+      allowed: true,
+      remaining: {
+        hourly: EMAIL_VALIDATE_HOURLY_LIMIT - count - 1,
+        daily: 1000,
+      },
+    };
+  } catch (error) {
+    console.error("Email validate rate limit check failed:", error);
 
     // SECURITY: Fail OPEN - same rationale as upload rate limiting
     return {

@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { signUp } from "@/lib/auth/client";
@@ -21,6 +21,9 @@ interface SignUpFormProps {
 export function SignUpForm({ onSuccess, callbackURL }: SignUpFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState<PasswordStrengthResult | null>(null);
+  const [isCheckingEmail, setIsCheckingEmail] = useState(false);
+  const [emailDisposableError, setEmailDisposableError] = useState<string | null>(null);
+  const emailCheckTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const router = useRouter();
 
   const {
@@ -41,6 +44,69 @@ export function SignUpForm({ onSuccess, callbackURL }: SignUpFormProps) {
   const email = watch("email");
   const name = watch("name");
 
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (emailCheckTimeoutRef.current) {
+        clearTimeout(emailCheckTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const checkEmailDisposable = useCallback(async (emailValue: string) => {
+    // Basic format check before calling API
+    if (!emailValue || !emailValue.includes("@") || !emailValue.includes(".")) {
+      return;
+    }
+
+    setIsCheckingEmail(true);
+    setEmailDisposableError(null);
+
+    try {
+      const response = await fetch("/api/email/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: emailValue }),
+      });
+
+      if (!response.ok) {
+        // Fail open — don't block signups due to validation endpoint errors
+        return;
+      }
+
+      const data = (await response.json()) as { valid: boolean; reason?: string };
+      if (!data.valid) {
+        setEmailDisposableError(data.reason || "Please use a permanent email address");
+      }
+    } catch {
+      // Fail open
+    } finally {
+      setIsCheckingEmail(false);
+    }
+  }, []);
+
+  const handleEmailBlur = useCallback(() => {
+    // Clear any pending check
+    if (emailCheckTimeoutRef.current) {
+      clearTimeout(emailCheckTimeoutRef.current);
+    }
+
+    // Debounce the check (400ms)
+    emailCheckTimeoutRef.current = setTimeout(() => {
+      checkEmailDisposable(email);
+    }, 400);
+  }, [email, checkEmailDisposable]);
+
+  // Compose onBlur with react-hook-form's register
+  const emailRegister = register("email");
+  const emailBlurHandler = useCallback(
+    (e: React.FocusEvent<HTMLInputElement>) => {
+      emailRegister.onBlur(e); // react-hook-form blur
+      handleEmailBlur(); // disposable check
+    },
+    [emailRegister, handleEmailBlur],
+  );
+
   const handlePasswordChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       setValue("password", e.target.value, { shouldValidate: true });
@@ -53,6 +119,12 @@ export function SignUpForm({ onSuccess, callbackURL }: SignUpFormProps) {
   }, []);
 
   const onSubmit = async (data: SignUpFormData) => {
+    // Block submission if disposable email detected
+    if (emailDisposableError) {
+      toast.error(emailDisposableError);
+      return;
+    }
+
     // Check password strength before submitting
     if (!passwordStrength?.isAcceptable) {
       toast.error("Please choose a stronger password");
@@ -78,6 +150,8 @@ export function SignUpForm({ onSuccess, callbackURL }: SignUpFormProps) {
           toast.error("An account with this email already exists");
         } else if (message.includes("password")) {
           toast.error("Password does not meet requirements");
+        } else if (message.includes("permanent email")) {
+          toast.error("Please use a permanent email address to sign up");
         } else {
           toast.error(error.message || "Sign up failed. Please try again.");
         }
@@ -146,7 +220,10 @@ export function SignUpForm({ onSuccess, callbackURL }: SignUpFormProps) {
           autoComplete="email"
           placeholder="you@example.com"
           disabled={isSubmitting}
-          {...register("email")}
+          ref={emailRegister.ref}
+          name={emailRegister.name}
+          onChange={emailRegister.onChange}
+          onBlur={emailBlurHandler}
           className={`
             w-full
             px-4
@@ -166,10 +243,21 @@ export function SignUpForm({ onSuccess, callbackURL }: SignUpFormProps) {
             duration-150
             disabled:opacity-50
             disabled:cursor-not-allowed
-            ${errors.email ? "border-brand" : ""}
+            ${errors.email || emailDisposableError ? "border-brand" : ""}
           `}
         />
-        {errors.email && <p className="text-sm text-brand font-medium">{errors.email.message}</p>}
+        {isCheckingEmail && (
+          <p className="text-sm text-ink/60 font-medium flex items-center gap-1">
+            <Loader2 className="w-3 h-3 animate-spin" />
+            Checking email...
+          </p>
+        )}
+        {emailDisposableError && (
+          <p className="text-sm text-brand font-medium">{emailDisposableError}</p>
+        )}
+        {errors.email && !emailDisposableError && (
+          <p className="text-sm text-brand font-medium">{errors.email.message}</p>
+        )}
       </div>
 
       {/* Password Field with Strength Meter */}
@@ -199,7 +287,7 @@ export function SignUpForm({ onSuccess, callbackURL }: SignUpFormProps) {
       {/* Submit Button */}
       <button
         type="submit"
-        disabled={isSubmitting}
+        disabled={isSubmitting || !!emailDisposableError}
         className="
           w-full
           mt-2

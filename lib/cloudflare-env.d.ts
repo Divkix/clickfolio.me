@@ -33,6 +33,8 @@ declare namespace Cloudflare {
 		UMAMI_API_URL: string;
 		UMAMI_USERNAME: string;
 		UMAMI_PASSWORD: string;
+		// KV namespace for disposable email domain blocklist
+		DISPOSABLE_DOMAINS: KVNamespace;
 	}
 }
 interface CloudflareEnv extends Cloudflare.Env {}

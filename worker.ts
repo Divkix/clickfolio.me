@@ -11,6 +11,7 @@
 import opennextHandler from "./.open-next/worker.js";
 import { performCleanup } from "./lib/cron/cleanup";
 import { recoverOrphanedResumes } from "./lib/cron/recover-orphaned";
+import { syncDisposableDomains } from "./lib/cron/sync-disposable-domains";
 import { getDb } from "./lib/db";
 import { handleQueueMessage } from "./lib/queue/consumer";
 import { handleDLQMessage } from "./lib/queue/dlq-consumer";
@@ -109,6 +110,16 @@ export default {
         case "0 3 * * *": {
           const result = await performCleanup(db);
           console.log(`Cron ${controller.cron} completed:`, result);
+          break;
+        }
+        case "0 4 * * *": {
+          const kv = env.DISPOSABLE_DOMAINS;
+          if (!kv) {
+            console.error("DISPOSABLE_DOMAINS KV not available for domain sync");
+            return;
+          }
+          const syncResult = await syncDisposableDomains(kv);
+          console.log(`Cron ${controller.cron} completed:`, syncResult);
           break;
         }
         case "*/15 * * * *": {
