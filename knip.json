@@ -7,7 +7,7 @@
     "hooks/**/*.{ts,tsx}",
     "lib/**/*.{ts,tsx}"
   ],
-  "ignore": ["app/globals.css"],
+  "ignore": [],
   "ignoreBinaries": [],
   "ignoreDependencies": ["cloudflare", "tailwindcss", "tw-animate-css"],
   "ignoreExportsUsedInFile": true
