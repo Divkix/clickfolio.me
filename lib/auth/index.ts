@@ -17,9 +17,9 @@
  * - Development: process.env (via .env.local)
  */
 
+import { drizzleAdapter } from "@better-auth/drizzle-adapter";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { betterAuth } from "better-auth";
-import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { APIError } from "better-auth/api";
 import { drizzle } from "drizzle-orm/d1";
 import * as schema from "@/lib/db/schema";
@@ -38,7 +38,8 @@ import { generateReferralCode } from "@/lib/utils/referral-code";
  * are passed at call sites), so sharing it across requests is safe.
  */
 const d1ProxyCache = new WeakMap<D1Database, D1Database>();
-const authInstanceCache = new WeakMap<D1Database, ReturnType<typeof betterAuth>>();
+// biome-ignore lint/suspicious/noExplicitAny: Auth generic variance prevents storing specific config types in WeakMap<D1Database, Auth<BetterAuthOptions>>
+const authInstanceCache = new WeakMap<D1Database, any>();
 
 /**
  * Wraps a D1Database to automatically convert Date objects to ISO strings.
