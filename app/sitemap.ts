@@ -1,4 +1,4 @@
-import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { env } from "cloudflare:workers";
 import { and, count, isNotNull, or, sql } from "drizzle-orm";
 import type { MetadataRoute } from "next";
 
@@ -29,7 +29,6 @@ function getBaseUrl(): string {
  */
 export async function generateSitemaps(): Promise<Array<{ id: number }>> {
   try {
-    const { env } = await getCloudflareContext({ async: true });
     const db = getDb(env.DB);
 
     // Count users with handles (completed onboarding) who haven't opted out of search
@@ -96,7 +95,6 @@ export default async function sitemap(props: {
   }
 
   try {
-    const { env } = await getCloudflareContext({ async: true });
     const db = getDb(env.DB);
 
     // Calculate pagination offset

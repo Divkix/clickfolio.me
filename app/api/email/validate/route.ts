@@ -1,4 +1,4 @@
-import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { env } from "cloudflare:workers";
 import { z } from "zod";
 import { isDisposableEmail } from "@/lib/email/disposable-check";
 import { checkEmailValidateRateLimit, getClientIP } from "@/lib/utils/ip-rate-limit";
@@ -47,7 +47,6 @@ export async function POST(request: Request) {
     }
 
     // 3. Check if email is disposable
-    const { env } = await getCloudflareContext({ async: true });
     const kv = (env as { DISPOSABLE_DOMAINS?: KVNamespace }).DISPOSABLE_DOMAINS ?? null;
     const result = await isDisposableEmail(parsed.data.email, kv);
 

@@ -4,7 +4,7 @@
  * Returns platform-wide traffic analytics via Umami API.
  */
 
-import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { env } from "cloudflare:workers";
 import { requireAdminAuthForApi } from "@/lib/auth/admin";
 import { getMetrics, getPageviews, getStats } from "@/lib/umami/client";
 
@@ -41,8 +41,6 @@ export async function GET(request: Request) {
   }
 
   try {
-    const { env } = await getCloudflareContext({ async: true });
-
     const days = periodToDays(period);
     const now = Date.now();
     const startAt = now - days * 24 * 60 * 60 * 1000;

@@ -7,7 +7,7 @@
  * Scheduled daily at 4 AM UTC via wrangler.jsonc
  */
 
-import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { env } from "cloudflare:workers";
 import { syncDisposableDomains } from "@/lib/cron/sync-disposable-domains";
 
 const CRON_SECRET = process.env.CRON_SECRET;
@@ -29,7 +29,6 @@ export async function GET(request: Request) {
   }
 
   try {
-    const { env } = await getCloudflareContext({ async: true });
     const kv = (env as { DISPOSABLE_DOMAINS?: KVNamespace }).DISPOSABLE_DOMAINS;
     if (!kv) {
       return Response.json(

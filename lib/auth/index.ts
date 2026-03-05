@@ -17,8 +17,8 @@
  * - Development: process.env (via .env.local)
  */
 
+import { env } from "cloudflare:workers";
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
-import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { betterAuth } from "better-auth";
 import { APIError } from "better-auth/api";
 import { drizzle } from "drizzle-orm/d1";
@@ -130,7 +130,6 @@ function getEnvValue(env: Partial<CloudflareEnv>, key: keyof CloudflareEnv): str
  * ```
  */
 export async function getAuth() {
-  const { env } = await getCloudflareContext({ async: true });
   const rawD1 = env.DB;
 
   // Fast path: return cached instance if we already built one for this binding

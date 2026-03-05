@@ -3,19 +3,19 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "build:worker": "bunx opennextjs-cloudflare build",
-    "start": "next start",
+    "dev": "vite dev --port 3000",
+    "build": "vite build",
+    "build:worker": "vite build",
+    "start": "vite preview",
     "lint": "biome check .",
     "fix": "biome check --write .",
     "type-check": "tsc --noEmit",
-    "clean": "rm -rf .next .open-next",
+    "clean": "rm -rf .next dist",
     "test": "vitest run",
     "test:watch": "vitest",
     "ci": "bun run type-check && bun run lint && bun run test && bun run build",
-    "preview": "bunx opennextjs-cloudflare build && bunx opennextjs-cloudflare preview",
-    "deploy": "bunx opennextjs-cloudflare build && bunx wrangler deploy",
+    "preview": "vite build && bunx wrangler dev",
+    "deploy": "vite build && bunx wrangler deploy",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
     "db:migrate": "wrangler d1 migrations apply clickfolio-db --local",
@@ -27,9 +27,7 @@
     "generate:favicons": "bun run scripts/generate-favicons.ts",
     "db:seed:local": "bun run scripts/seed-local.ts",
     "db:reset:local": "bun run db:reset && bun run db:seed:local",
-    "prepare": "husky",
-    "dev:vinext": "vite dev --port 3001",
-    "build:vinext": "vite build"
+    "prepare": "husky"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx,json,css}": [
@@ -41,7 +39,6 @@
     "@better-auth/drizzle-adapter": "^1.5.3",
     "@hookform/resolvers": "^5.2.2",
     "@neoconfetti/react": "^1.0.0",
-    "@opennextjs/cloudflare": "^1.17.1",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-label": "^2.1.8",
     "@radix-ui/react-progress": "^1.1.8",
@@ -96,7 +93,8 @@
     "vinext": "^0.0.20",
     "vite": "^7.3.1",
     "vitest": "^4.0.18",
-    "wrangler": "^4.70.0"
+    "wrangler": "^4.70.0",
+    "ws": "8.18.0"
   },
   "type": "module"
 }

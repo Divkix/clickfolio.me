@@ -11,7 +11,7 @@
  * Always returns 204 — tracking must never leak info or break the page.
  */
 
-import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { env } from "cloudflare:workers";
 import { eq, or } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { referralClicks, user } from "@/lib/db/schema";
@@ -63,7 +63,6 @@ export async function POST(request: Request) {
       return EMPTY_204;
     }
 
-    const { env } = await getCloudflareContext({ async: true });
     const db = getDb(env.DB);
 
     // Single query: match referralCode (uppercase) OR handle (lowercase) in one roundtrip

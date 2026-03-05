@@ -4,7 +4,7 @@
  * Returns resume processing status breakdown.
  */
 
-import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { env } from "cloudflare:workers";
 import { count, eq, sql } from "drizzle-orm";
 import { requireAdminAuthForApi } from "@/lib/auth/admin";
 import { getDb } from "@/lib/db";
@@ -27,7 +27,6 @@ export async function GET(request: Request) {
   }
 
   try {
-    const { env } = await getCloudflareContext({ async: true });
     const db = getDb(env.DB);
 
     // Get status counts

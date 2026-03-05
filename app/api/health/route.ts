@@ -1,4 +1,4 @@
-import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { env } from "cloudflare:workers";
 import { NextResponse } from "next/server";
 import { getR2Binding } from "@/lib/r2";
 
@@ -84,7 +84,6 @@ function aggregateStatus(services: HealthResponse["services"]): ServiceStatus {
  */
 export async function GET() {
   try {
-    const { env } = await getCloudflareContext({ async: true });
     const typedEnv = env as CloudflareEnv;
 
     const r2Binding = getR2Binding(typedEnv);

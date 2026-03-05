@@ -1,4 +1,4 @@
-import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { env } from "cloudflare:workers";
 import { and, eq, gte, ne, sql } from "drizzle-orm";
 import { requireAuthWithMessage } from "@/lib/auth/middleware";
 import { handleChanges, user } from "@/lib/db/schema";
@@ -34,7 +34,6 @@ export async function PUT(request: Request) {
     const { user: authUser } = authResult;
 
     // 3. Get database connection
-    const { env } = await getCloudflareContext({ async: true });
     const { db, captureBookmark } = await getSessionDb(env.DB);
 
     // 4. Check rate limit (3 handle changes per 24 hours)

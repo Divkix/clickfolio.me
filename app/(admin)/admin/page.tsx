@@ -1,4 +1,4 @@
-import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { env } from "cloudflare:workers";
 import { count, sql } from "drizzle-orm";
 import { AlertTriangle, Eye, FileText, Loader2, Users } from "lucide-react";
 import Link from "next/link";
@@ -12,7 +12,6 @@ import { getPageviews, getStats } from "@/lib/umami/client";
 export const dynamic = "force-dynamic";
 
 async function getAdminStats() {
-  const { env } = await getCloudflareContext({ async: true });
   const db = getDb(env.DB);
 
   const now = new Date();

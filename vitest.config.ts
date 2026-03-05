@@ -7,7 +7,7 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./__tests__/setup.ts"],
     include: ["**/__tests__/**/*.test.{ts,tsx}"],
-    exclude: ["node_modules", ".next", ".open-next"],
+    exclude: ["node_modules", ".next", "dist"],
     coverage: {
       provider: "v8",
       reporter: ["text", "json-summary"],
@@ -18,6 +18,8 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": resolve(__dirname, "./"),
+      // Stub cloudflare:workers for vitest (runs in Node.js, not Workers)
+      "cloudflare:workers": resolve(__dirname, "lib/stubs/cloudflare-workers-client-stub.mjs"),
     },
   },
 });

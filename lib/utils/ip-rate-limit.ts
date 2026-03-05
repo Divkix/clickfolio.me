@@ -5,7 +5,7 @@
  * Hashes IPs for privacy (GDPR-friendly, no raw IPs stored).
  */
 
-import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { env } from "cloudflare:workers";
 import { and, eq, gte, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { uploadRateLimits } from "@/lib/db/schema";
@@ -106,7 +106,6 @@ export async function checkIPRateLimit(ip: string): Promise<IPRateLimitResult> {
   const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
 
   try {
-    const { env } = await getCloudflareContext({ async: true });
     const db = getDb(env.DB);
 
     // Single query with conditional aggregation (saves 1 D1 roundtrip)
@@ -228,7 +227,6 @@ export async function checkHandleRateLimit(ip: string): Promise<IPRateLimitResul
   const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000).toISOString();
 
   try {
-    const { env } = await getCloudflareContext({ async: true });
     const db = getDb(env.DB);
 
     // Count handle checks in the last hour
@@ -329,7 +327,6 @@ export async function checkEmailValidateRateLimit(ip: string): Promise<IPRateLim
   const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000).toISOString();
 
   try {
-    const { env } = await getCloudflareContext({ async: true });
     const db = getDb(env.DB);
 
     // Count email validation checks in the last hour

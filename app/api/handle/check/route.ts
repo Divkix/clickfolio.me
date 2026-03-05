@@ -1,4 +1,4 @@
-import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { env } from "cloudflare:workers";
 import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { getAuth } from "@/lib/auth";
@@ -96,7 +96,6 @@ export async function GET(request: Request) {
     // 3. Check if handle exists in database
     //    Plain getDb() — this is a read-only availability check, no need for
     //    session consistency (bookmark cookies) or D1 session wrappers.
-    const { env } = await getCloudflareContext({ async: true });
     const db = getDb(env.DB);
 
     const existingUser = await db

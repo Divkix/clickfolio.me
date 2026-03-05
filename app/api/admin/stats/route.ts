@@ -5,7 +5,7 @@
  * User/resume stats from D1, traffic stats from Umami.
  */
 
-import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { env } from "cloudflare:workers";
 import { count, sql } from "drizzle-orm";
 import { requireAdminAuthForApi } from "@/lib/auth/admin";
 import { getDb } from "@/lib/db";
@@ -17,7 +17,6 @@ export async function GET() {
   if (error) return error;
 
   try {
-    const { env } = await getCloudflareContext({ async: true });
     const db = getDb(env.DB);
 
     const now = new Date();

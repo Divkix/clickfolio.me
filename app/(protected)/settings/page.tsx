@@ -1,4 +1,4 @@
-import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { env } from "cloudflare:workers";
 import { count, desc, eq, sql } from "drizzle-orm";
 import { User } from "lucide-react";
 import { redirect } from "next/navigation";
@@ -75,7 +75,6 @@ export default async function SettingsPage() {
     redirect("/");
   }
 
-  const { env } = await getCloudflareContext({ async: true });
   const db = getDb(env.DB);
 
   const [profile, resumeData, latestResume] = await Promise.all([

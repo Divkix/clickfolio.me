@@ -16,7 +16,7 @@ import {
 export async function PUT(request: Request) {
   try {
     // 1. Authenticate user and validate existence in database
-    // env is returned from requireAuthWithUserValidation, no separate getCloudflareContext needed
+    // env is available from cloudflare:workers module import
     const {
       user: authUser,
       db,

@@ -1,4 +1,4 @@
-import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { env } from "cloudflare:workers";
 import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { EditResumeFormWrapper } from "@/components/forms/EditResumeFormWrapper";
@@ -15,7 +15,6 @@ export default async function EditPage() {
     redirect("/");
   }
 
-  const { env } = await getCloudflareContext({ async: true });
   const db = getDb(env.DB);
 
   // Fetch user's site data
