@@ -1,5 +1,6 @@
 import { resolve } from "node:path";
 import { cloudflare } from "@cloudflare/vite-plugin";
+import { visualizer } from "rollup-plugin-visualizer";
 import vinext from "vinext";
 import { defineConfig, type Plugin } from "vite";
 
@@ -80,6 +81,12 @@ export default defineConfig({
   },
   build: {
     rollupOptions: {
+      plugins: [
+        // Bundle visualizer — only runs when ANALYZE=true
+        ...(process.env.ANALYZE === "true"
+          ? [visualizer({ open: true, gzipSize: true, filename: "dist/stats.html" })]
+          : []),
+      ],
       onwarn(warning, warn) {
         // vinext virtual entry imports "middleware" from proxy.ts even though
         // only "proxy" / "default" are used — suppress the harmless warning
