@@ -136,7 +136,7 @@ function authedAs(userId: string) {
     db: mockDb as never,
     captureBookmark: mockCaptureBookmark,
     dbUser: { id: userId, handle: "testuser" },
-    env: { DB: {}, RESUME_PARSE_QUEUE: {} } as never,
+    env: { DB: {}, CLICKFOLIO_PARSE_QUEUE: {} } as never,
     error: null,
   });
 }

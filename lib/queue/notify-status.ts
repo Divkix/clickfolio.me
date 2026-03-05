@@ -1,6 +1,6 @@
 /**
  * Best-effort notification helper for pushing resume status changes
- * to the ResumeStatusDO Durable Object.
+ * to the ClickfolioStatusDO Durable Object.
  *
  * Used by both the main queue consumer and DLQ consumer.
  * Failures are logged but never thrown — polling fallback covers missed notifications.
@@ -22,13 +22,13 @@ export async function notifyStatusChange({
   env: CloudflareEnv;
 }): Promise<void> {
   try {
-    if (!env.RESUME_STATUS_DO) {
+    if (!env.CLICKFOLIO_STATUS_DO) {
       // DO binding not configured (e.g., local dev without DO support)
       return;
     }
 
-    const doId = env.RESUME_STATUS_DO.idFromName(resumeId);
-    const stub = env.RESUME_STATUS_DO.get(doId);
+    const doId = env.CLICKFOLIO_STATUS_DO.idFromName(resumeId);
+    const stub = env.CLICKFOLIO_STATUS_DO.get(doId);
 
     const body: { status: string; error?: string } = { status };
     if (error) {

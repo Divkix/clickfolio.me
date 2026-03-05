@@ -36,7 +36,7 @@ const PING_INTERVAL_MS = 30000;
  * WebSocket hook for real-time resume status updates.
  *
  * Opens a WebSocket to /ws/resume-status, receives push notifications
- * from the ResumeStatusDO Durable Object, and auto-reconnects with
+ * from the ClickfolioStatusDO Durable Object, and auto-reconnects with
  * exponential backoff. Falls back to `connectionState: "fallback"` after
  * MAX_RECONNECT_ATTEMPTS failures so callers can activate HTTP polling.
  */

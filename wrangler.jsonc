@@ -47,11 +47,11 @@
 	// KV namespaces
 	"kv_namespaces": [
 		{
-			"binding": "DISPOSABLE_DOMAINS",
+			"binding": "CLICKFOLIO_DISPOSABLE_DOMAINS",
 			"id": "6fe2480a4f4d46a9970eb2c441ecf38a"
 		},
 		{
-			"binding": "VINEXT_CACHE",
+			"binding": "CLICKFOLIO_CACHE",
 			"id": "e7585a844b6449dfa5d30fdc5e50082b"
 		}
 	],
@@ -66,19 +66,19 @@
 	"queues": {
 		"producers": [
 			{
-				"binding": "RESUME_PARSE_QUEUE",
-				"queue": "resume-parse-queue"
+				"binding": "CLICKFOLIO_PARSE_QUEUE",
+				"queue": "clickfolio-parse-queue"
 			}
 		],
 		"consumers": [
 			{
-				"queue": "resume-parse-queue",
+				"queue": "clickfolio-parse-queue",
 				"max_batch_size": 1,
 				"max_retries": 3,
-				"dead_letter_queue": "resume-parse-dlq"
+				"dead_letter_queue": "clickfolio-parse-dlq"
 			},
 			{
-				"queue": "resume-parse-dlq",
+				"queue": "clickfolio-parse-dlq",
 				"max_batch_size": 1,
 				"max_retries": 0
 			}
@@ -88,8 +88,8 @@
 	"durable_objects": {
 		"bindings": [
 			{
-				"name": "RESUME_STATUS_DO",
-				"class_name": "ResumeStatusDO"
+				"name": "CLICKFOLIO_STATUS_DO",
+				"class_name": "ClickfolioStatusDO"
 			}
 		]
 	},
@@ -107,6 +107,15 @@
 			],
 			"new_classes": [
 				"ResumeStatusDO"
+			]
+		},
+		{
+			"tag": "v3",
+			"renamed_classes": [
+				{
+					"from": "ResumeStatusDO",
+					"to": "ClickfolioStatusDO"
+				}
 			]
 		}
 	],

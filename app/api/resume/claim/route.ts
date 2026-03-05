@@ -347,7 +347,7 @@ export async function POST(request: Request) {
     }
 
     // 8. Publish to queue for background processing
-    const queue = env.RESUME_PARSE_QUEUE;
+    const queue = env.CLICKFOLIO_PARSE_QUEUE;
     if (!queue) {
       return await failResume("Queue service unavailable", ERROR_CODES.INTERNAL_ERROR, 500);
     }

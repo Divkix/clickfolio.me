@@ -36,9 +36,9 @@ export async function GET(request: Request) {
   try {
     const db = getDb(env.DB);
 
-    const queue = env.RESUME_PARSE_QUEUE;
+    const queue = env.CLICKFOLIO_PARSE_QUEUE;
     if (!queue) {
-      console.error("RESUME_PARSE_QUEUE not available");
+      console.error("CLICKFOLIO_PARSE_QUEUE not available");
       return Response.json({ error: "Queue unavailable" }, { status: 500 });
     }
 

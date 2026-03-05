@@ -29,10 +29,11 @@ export async function GET(request: Request) {
   }
 
   try {
-    const kv = (env as { DISPOSABLE_DOMAINS?: KVNamespace }).DISPOSABLE_DOMAINS;
+    const kv = (env as { CLICKFOLIO_DISPOSABLE_DOMAINS?: KVNamespace })
+      .CLICKFOLIO_DISPOSABLE_DOMAINS;
     if (!kv) {
       return Response.json(
-        { error: "DISPOSABLE_DOMAINS KV namespace not configured" },
+        { error: "CLICKFOLIO_DISPOSABLE_DOMAINS KV namespace not configured" },
         { status: 500 },
       );
     }

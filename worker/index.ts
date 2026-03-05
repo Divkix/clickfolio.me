@@ -17,11 +17,11 @@ import { isRetryableError } from "../lib/queue/errors";
 import { queueMessageSchema } from "../lib/queue/types";
 
 // Re-export Durable Object class for Wrangler to discover
-export { ResumeStatusDO } from "../lib/durable-objects/resume-status";
+export { ClickfolioStatusDO } from "../lib/durable-objects/resume-status";
 
 export default {
   async fetch(request: Request, env: CloudflareEnv, _ctx: ExecutionContext): Promise<Response> {
-    setCacheHandler(new KVCacheHandler(env.VINEXT_CACHE));
+    setCacheHandler(new KVCacheHandler(env.CLICKFOLIO_CACHE));
     const url = new URL(request.url);
 
     // Intercept WebSocket upgrade requests for resume status
@@ -35,12 +35,12 @@ export default {
       }
 
       // Route to the Durable Object keyed by resumeId
-      if (!env.RESUME_STATUS_DO) {
+      if (!env.CLICKFOLIO_STATUS_DO) {
         return new Response("WebSocket not available", { status: 503 });
       }
 
-      const doId = env.RESUME_STATUS_DO.idFromName(resumeId);
-      const stub = env.RESUME_STATUS_DO.get(doId);
+      const doId = env.CLICKFOLIO_STATUS_DO.idFromName(resumeId);
+      const stub = env.CLICKFOLIO_STATUS_DO.get(doId);
 
       // Forward the WebSocket upgrade request to the DO
       return stub.fetch(request);
@@ -53,8 +53,8 @@ export default {
 
   // Cloudflare Queue consumer handler
   async queue(batch: MessageBatch<unknown>, env: CloudflareEnv): Promise<void> {
-    setCacheHandler(new KVCacheHandler(env.VINEXT_CACHE));
-    const isDLQ = batch.queue === "resume-parse-dlq";
+    setCacheHandler(new KVCacheHandler(env.CLICKFOLIO_CACHE));
+    const isDLQ = batch.queue === "clickfolio-parse-dlq";
 
     for (const message of batch.messages) {
       try {
@@ -101,9 +101,9 @@ export default {
           break;
         }
         case "0 4 * * *": {
-          const kv = env.DISPOSABLE_DOMAINS;
+          const kv = env.CLICKFOLIO_DISPOSABLE_DOMAINS;
           if (!kv) {
-            console.error("DISPOSABLE_DOMAINS KV not available for domain sync");
+            console.error("CLICKFOLIO_DISPOSABLE_DOMAINS KV not available for domain sync");
             return;
           }
           const syncResult = await syncDisposableDomains(kv);
@@ -111,9 +111,9 @@ export default {
           break;
         }
         case "*/15 * * * *": {
-          const queue = env.RESUME_PARSE_QUEUE;
+          const queue = env.CLICKFOLIO_PARSE_QUEUE;
           if (!queue) {
-            console.error("RESUME_PARSE_QUEUE not available for orphan recovery");
+            console.error("CLICKFOLIO_PARSE_QUEUE not available for orphan recovery");
             return;
           }
           const result = await recoverOrphanedResumes(db, queue);

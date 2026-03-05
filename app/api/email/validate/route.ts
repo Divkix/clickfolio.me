@@ -47,7 +47,9 @@ export async function POST(request: Request) {
     }
 
     // 3. Check if email is disposable
-    const kv = (env as { DISPOSABLE_DOMAINS?: KVNamespace }).DISPOSABLE_DOMAINS ?? null;
+    const kv =
+      (env as { CLICKFOLIO_DISPOSABLE_DOMAINS?: KVNamespace }).CLICKFOLIO_DISPOSABLE_DOMAINS ??
+      null;
     const result = await isDisposableEmail(parsed.data.email, kv);
 
     if (result.disposable) {

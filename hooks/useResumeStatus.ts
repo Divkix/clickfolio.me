@@ -23,7 +23,7 @@ interface UseResumeStatusReturn {
 /**
  * Custom hook to monitor resume parsing status.
  *
- * Uses WebSocket (via ResumeStatusDO) as primary channel for instant push
+ * Uses WebSocket (via ClickfolioStatusDO) as primary channel for instant push
  * notifications. Falls back to 3s HTTP polling if WebSocket fails to connect
  * after 3 attempts.
  *

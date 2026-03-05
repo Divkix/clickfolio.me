@@ -225,7 +225,8 @@ export async function getAuth() {
             try {
               const result = await isDisposableEmail(
                 user.email,
-                (typedEnv as { DISPOSABLE_DOMAINS?: KVNamespace }).DISPOSABLE_DOMAINS ?? null,
+                (typedEnv as { CLICKFOLIO_DISPOSABLE_DOMAINS?: KVNamespace })
+                  .CLICKFOLIO_DISPOSABLE_DOMAINS ?? null,
               );
               if (result.disposable) {
                 throw new APIError("BAD_REQUEST", {

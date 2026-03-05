@@ -20,7 +20,7 @@ interface StatusMessage {
  * Uses the Hibernatable WebSocket API so the DO is evicted from memory
  * when idle (zero cost during hibernation).
  */
-export class ResumeStatusDO extends DurableObject {
+export class ClickfolioStatusDO extends DurableObject {
   /**
    * Handle incoming requests:
    * - WebSocket upgrade: accept connection, send cached status if available
@@ -174,7 +174,7 @@ export class ResumeStatusDO extends DurableObject {
    * Handle WebSocket error — log and close.
    */
   async webSocketError(ws: WebSocket, error: unknown): Promise<void> {
-    console.error("ResumeStatusDO WebSocket error:", error);
+    console.error("ClickfolioStatusDO WebSocket error:", error);
     try {
       ws.close(1011, "WebSocket error");
     } catch {

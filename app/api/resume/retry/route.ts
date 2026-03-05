@@ -189,7 +189,7 @@ export async function POST(request: Request) {
     }
 
     // Publish to queue for background processing
-    const queue = typedEnv.RESUME_PARSE_QUEUE;
+    const queue = typedEnv.CLICKFOLIO_PARSE_QUEUE;
     if (!queue) {
       return createErrorResponse("Queue service unavailable", ERROR_CODES.INTERNAL_ERROR, 500);
     }
