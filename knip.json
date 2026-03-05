@@ -9,6 +9,6 @@
   ],
   "ignore": [],
   "ignoreBinaries": [],
-  "ignoreDependencies": ["cloudflare", "tailwindcss", "tw-animate-css"],
+  "ignoreDependencies": ["cloudflare", "postcss", "tailwindcss", "tw-animate-css"],
   "ignoreExportsUsedInFile": true
 }
