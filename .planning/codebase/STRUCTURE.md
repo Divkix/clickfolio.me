@@ -6,7 +6,7 @@
 
 ```
 clickfolio.me/
-├── app/                          # Next.js App Router — pages and API routes
+├── app/                          # vinext App Router — pages and API routes
 │   ├── layout.tsx                # Root layout with Umami tracker
 │   ├── robots.ts                 # robots.txt generation
 │   ├── sitemap.ts                # sitemap.xml generation
@@ -168,28 +168,35 @@ clickfolio.me/
 │   ├── e2e/                      # End-to-end tests
 │   │   └── fixtures/             # Test data
 │
-├── .open-next/                   # OpenNext build output (generated)
+├── dist/                         # Vite build output (generated)
+│   └── client/                   # Static assets served by ASSETS binding
 ├── .wrangler/                    # Wrangler state (local D1, KV, Durable Objects)
 ├── .localflare/                  # Local Cloudflare environment cache
 ├── .planning/codebase/           # Architecture documentation (this directory)
 │
-├── worker.ts                     # Custom Cloudflare Worker entry point
-│   ├── Intercepts WebSocket upgrades for resume status
-│   ├── Serves static assets from ASSETS binding
-│   ├── Routes HTTP to OpenNext handler
-│   ├── Implements queue consumer (resume-parse-queue, resume-parse-dlq)
-│   └── Implements scheduled task handler (cron triggers)
+├── worker/
+│   └── index.ts                  # Custom Cloudflare Worker entry point
+│       ├── Intercepts WebSocket upgrades for resume status
+│       ├── Serves static assets from ASSETS binding
+│       ├── Routes HTTP to vinext app-router-entry handler
+│       ├── Implements queue consumer (resume-parse-queue, resume-parse-dlq)
+│       └── Implements scheduled task handler (cron triggers)
 │
-├── middleware.ts                 # Edge middleware
+├── proxy.ts                      # Edge proxy (vinext's replacement for middleware.ts)
 │   ├── Checks session cookie exists on protected routes
 │   ├── Redirects unauthenticated users to home
 │   └── Note: Full auth validation happens in page components/handlers
 │
-├── next.config.ts                # Next.js configuration
-│   ├── Cloudflare Workers deployment config (OpenNext)
+├── vite.config.ts                # Vite build configuration
+│   ├── vinext + @cloudflare/vite-plugin
+│   ├── cloudflare:workers client stub plugin
+│   ├── Client vendor split plugin
+│   └── Bundle stubs via resolve.alias (vercel/og, zxcvbn, zod/v3)
+│
+├── next.config.ts                # vinext configuration
 │   ├── Old URL redirects (/@handle format)
 │   ├── Edge cache headers (Cache-Control)
-│   ├── Bundle stubs (vercel/og, zxcvbn, zod/v3)
+│   └── Security headers (CSP, HSTS)
 │
 ├── wrangler.jsonc                # Cloudflare Workers configuration
 │   ├── D1 database binding
@@ -197,9 +204,7 @@ clickfolio.me/
 │   ├── KV binding (disposable domains)
 │   ├── Queue bindings (main + DLQ)
 │   ├── Durable Object bindings
-│   ├── Cron triggers (0 3 * * *, 0 4 * * *, */15 * * * *)
-│   ├── AI Gateway route
-│   └── Bundle stubs for dead code elimination
+│   └── Cron triggers (0 3 * * *, 0 4 * * *, */15 * * * *)
 │
 ├── drizzle.config.ts             # Drizzle ORM config
 ├── package.json                  # Dependencies, scripts
@@ -211,7 +216,7 @@ clickfolio.me/
 
 ## Directory Purposes
 
-**app/ (Next.js App Router):**
+**app/ (vinext App Router):**
 - Purpose: Route definitions, page rendering, API endpoints
 - Contains: Server Components, client components, layout wrapping, API route handlers
 - Key files: `layout.tsx` (root), `(protected)/layout.tsx` (auth wrapper), `[handle]/page.tsx` (public viewer)
@@ -234,13 +239,14 @@ clickfolio.me/
 ## Key File Locations
 
 **Entry Points:**
-- `worker.ts`: Cloudflare Worker handler (fetch, queue, scheduled)
-- `app/layout.tsx`: Root Next.js layout, loads Umami tracker
-- `middleware.ts`: Edge middleware, validates session cookie
+- `worker/index.ts`: Cloudflare Worker handler (fetch, queue, scheduled)
+- `app/layout.tsx`: Root vinext layout, loads Umami tracker
+- `proxy.ts`: Edge proxy (vinext's middleware replacement), validates session cookie
 
 **Configuration:**
-- `wrangler.jsonc`: Cloudflare bindings, D1, R2, queues, cron, AI Gateway
-- `next.config.ts`: Next.js config, redirects, cache headers, bundle stubs
+- `vite.config.ts`: Vite build config, vinext + @cloudflare/vite-plugin, bundle stubs
+- `wrangler.jsonc`: Cloudflare bindings, D1, R2, queues, cron
+- `next.config.ts`: vinext config, redirects, cache headers, security headers
 - `tsconfig.json`: TypeScript paths, strict mode
 - `biome.json`: Formatter/linter rules (spaces, 100 char width)
 
@@ -279,7 +285,7 @@ clickfolio.me/
 ## Naming Conventions
 
 **Files:**
-- Pages: `page.tsx` (Next.js convention)
+- Pages: `page.tsx` (vinext/Next.js convention)
 - Layouts: `layout.tsx`
 - API routes: `route.ts` (in `app/api/path/`)
 - Components: PascalCase (e.g., `DashboardCard.tsx`, `Button.tsx`)
@@ -374,17 +380,17 @@ clickfolio.me/
 ## Special Directories
 
 **Built/Generated:**
-- `.open-next/`: OpenNext build output (Next.js compiled for Workers)
-  - Generated: `bun run build:worker`
+- `dist/`: Vite build output (vinext compiled for Workers)
+  - Generated: `bun run build`
   - Committed: No (in .gitignore)
-  - Contains: Worker handler, server functions, static assets
+  - Contains: `dist/client/` (static assets), worker bundle
 
 - `.wrangler/`: Wrangler state (local D1 database, KV, Durable Objects)
   - Generated: Automatically on first `bun run dev` or `bun run preview`
   - Committed: No (in .gitignore)
   - Reset: `rm -rf .wrangler/`
 
-- `.next/`: Next.js build cache
+- `.next/`: vinext build cache
   - Committed: No
 
 - `node_modules/`, `bun.lockb`: Dependencies

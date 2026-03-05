@@ -29,8 +29,8 @@
 ## Frameworks
 
 **Core:**
-- Next.js 16.1.6 (App Router) - React framework with Server Components
-- OpenNext (@opennextjs/cloudflare 1.16.5) - Next.js adapter for Cloudflare Workers
+- vinext v0.0.20 (Vite-based Next.js) - App Router reimplementation on Vite for Cloudflare Workers
+- @cloudflare/vite-plugin - Native Cloudflare Workers integration via Vite
 
 **Authentication:**
 - Better Auth 1.4.18 - Auth system with Google OAuth, email/password, drizzle adapter
@@ -93,9 +93,9 @@
 ## Build & Development Tools
 
 **Bundler:**
-- Next.js Turbopack - Default bundler in Next.js 16 (development + production)
-- Wrangler 4.66.0 - Cloudflare Workers CLI and bundler
-  - esbuild integration for custom aliases (dead code elimination)
+- Vite 7.x - Build tool and dev server (used by vinext)
+- Wrangler 4.66.0 - Cloudflare Workers CLI
+  - Bundle stubs handled by Vite resolve.alias (not wrangler esbuild)
 
 **Code Quality:**
 - Biome 2.4.2 - Linter + formatter (replaces ESLint/Prettier)
@@ -122,7 +122,7 @@
 **Critical:**
 - better-auth 1.4.18 - Full auth implementation (Google, email, session management)
 - drizzle-orm 0.45.1 - Type-safe ORM for D1 queries
-- @opennextjs/cloudflare 1.16.5 - Bridges Next.js to Cloudflare Workers
+- @cloudflare/vite-plugin - Vite plugin for Cloudflare Workers integration
 - ai 6.0.91 + @ai-sdk/openai-compatible 2.0.30 - LLM client with OpenRouter routing
 - unpdf 1.4.0 - PDF extraction (embedded in queue consumer to keep Worker bundle small)
 - zod 4.3.6 - Input validation and schema transformation
@@ -139,32 +139,31 @@
 ## Configuration
 
 **Environment:**
-- Dev: `.env.local` (Next.js auto-loads for development)
+- Dev: `.dev.vars` (Vite/Wrangler loads for development)
 - Prod: Cloudflare secrets (`wrangler secret put`)
 
 **Build Configuration:**
-- `next.config.ts` - Next.js build options, CDN cache headers, security headers, CSP
+- `vite.config.ts` - Vite build config, vinext + @cloudflare/vite-plugin, bundle stubs
+- `next.config.ts` - vinext config (rewrites, redirects, CDN cache headers, security headers, CSP)
 - `wrangler.jsonc` - Cloudflare Workers bindings, D1, R2, KV, Queues, Durable Objects, cron triggers
 - `tsconfig.json` - TypeScript compiler options (strict mode, noEmit for type-check only)
 - `vitest.config.ts` - Test environment (jsdom), coverage configuration
 - `drizzle.config.ts` - Drizzle Kit pointing to local D1 SQLite file
 - `biome.json` - Formatter/linter rules (spaces, quotes, line width)
-- `open-next.config.ts` - OpenNext Cloudflare-specific configuration
 - `postcss.config.mjs` - PostCSS with Tailwind plugin
 
 **Build Optimization:**
-- Bundle aliases in `wrangler.jsonc` esbuild level:
+- Bundle aliases in `vite.config.ts` resolve.alias:
   - `@vercel/og` → stub (2MB unused, doesn't work on Workers)
   - `@zxcvbn-ts/*` → stub (1.7MB, client-only password strength)
   - `zod/v3` → stub (128KB, dead code from @ai-sdk/provider-utils)
-- Next.js `serverExternalPackages`: @vercel/og, canvas, sharp (not bundled)
-- Next.js `outputFileTracingExcludes`: @vercel/og, sharp, @img wasm files
-- Experimental `optimizePackageImports`: lucide-react, @radix-ui/* (tree-shake barrel exports)
+- Custom Vite plugin `cloudflare-workers-client-stub` stubs `cloudflare:workers` for client builds
+- Custom Vite plugin `client-vendor-split` splits radix-ui, react-hook-form, better-auth into separate chunks
 
 ## Platform Requirements
 
 **Development:**
-- Node.js 25.x (for running Next.js dev server)
+- Node.js 25.x (for running Vite dev server)
 - Bun 1.3.9+ (package manager, task runner)
 - Cloudflare account with Workers, D1, R2, KV namespaces configured
 
@@ -209,7 +208,7 @@ R2_BUCKET           → R2 bucket (clickfolio-bucket)
 DISPOSABLE_DOMAINS  → KV namespace for email domain blocklist
 RESUME_PARSE_QUEUE  → Queue for async resume parsing
 RESUME_STATUS_DO    → Durable Object for WebSocket notifications
-ASSETS              → Static assets from .open-next/assets/
+ASSETS              → Static assets from dist/client/
 ```
 
 **Environment Variables (public):**

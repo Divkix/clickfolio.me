@@ -23,10 +23,10 @@
 - Fix approach: Use database-level lock or move availability check into transaction; alternatively, catch and retry with exponential backoff
 
 **Middleware auth is shallow:**
-- Issue: Middleware in `middleware.ts` only checks session cookie existence, not validity
-- Files: `middleware.ts` (lines 19-26)
-- Impact: User with expired/forged session cookie passes middleware but fails in page components; creates inconsistent UX
-- Fix approach: This is intentional per CLAUDE.md (edge middleware can't call D1), but document the risk: attackers can set fake cookies to bypass middleware redirects (caught by downstream auth checks)
+- Issue: Proxy in `proxy.ts` only checks session cookie existence, not validity
+- Files: `proxy.ts`
+- Impact: User with expired/forged session cookie passes proxy but fails in page components; creates inconsistent UX
+- Fix approach: This is intentional per CLAUDE.md (edge proxy can't call D1), but document the risk: attackers can set fake cookies to bypass proxy redirects (caught by downstream auth checks)
 
 ## Known Bugs
 
@@ -186,7 +186,7 @@
 - Impact: Session handling, OAuth flow, email verification depend on v1.x API
 - Migration plan:
   1. Audit breaking changes in v2 (likely auth.api.* changes)
-  2. Update session validation in middleware.ts and requireAuthWithUserValidation
+  2. Update session validation in proxy.ts and requireAuthWithUserValidation
   3. Test OAuth flow with Google on staging
   4. Plan 2-3 sprint effort
 
@@ -206,13 +206,13 @@
   2. Monitor GitHub issues for reported bugs with batch()
   3. Test migrations on staging D1 before production applies
 
-**@opennextjs/cloudflare at v1.16.5:**
-- Risk: OpenNext is community-maintained, less stable than official Next.js adapters
-- Impact: Worker bundling, image optimization, server components could have issues
+**vinext at v0.0.20 (early stage):**
+- Risk: vinext is a young project; API surface may change between versions
+- Impact: Build config, proxy.ts conventions, or import paths could break on upgrade
 - Migration plan:
-  1. Monitor for release notes of major versions
-  2. Test locally with `bun run build:worker` before upgrading
-  3. Have rollback plan (previous git tag) if deploy breaks
+  1. Pin to exact version in package.json
+  2. Test locally with `bun run build` before upgrading
+  3. Monitor vinext GitHub for breaking changes
 
 ## Missing Critical Features
 

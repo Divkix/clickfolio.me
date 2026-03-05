@@ -153,7 +153,7 @@ The Biome configuration is in `biome.json`. Run `bun run fix` to auto-format.
 
 ```
 clickfolio.me/
-├── app/                    # Next.js App Router
+├── app/                    # vinext App Router
 │   ├── (auth)/            # Auth API routes
 │   ├── (public)/          # Public pages (/, /[handle])
 │   ├── (protected)/       # Auth-required pages

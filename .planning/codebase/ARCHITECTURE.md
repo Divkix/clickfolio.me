@@ -4,10 +4,10 @@
 
 ## Pattern Overview
 
-**Overall:** Cloudflare Workers + Next.js App Router with async queue-driven resume parsing.
+**Overall:** Cloudflare Workers + vinext (Vite-based Next.js) App Router with async queue-driven resume parsing.
 
 **Key Characteristics:**
-- Single Cloudflare Worker handles Next.js routing (via OpenNext), WebSocket upgrades, and async queue consumption
+- Single Cloudflare Worker handles vinext app-router-entry routing, WebSocket upgrades, and async queue consumption
 - Claim-check pattern: anonymous file upload before authentication, linked to user account on login
 - Event-driven resume parsing: queue consumer processes uploads asynchronously via AI SDK
 - Real-time status updates via Durable Objects and WebSocket Hibernation API
@@ -45,9 +45,9 @@
 
 **Infrastructure Layer:**
 - Purpose: Cloudflare bindings and external service integrations
-- Location: `worker.ts`, `wrangler.jsonc`, `lib/auth/index.ts`
+- Location: `worker/index.ts`, `wrangler.jsonc`, `lib/auth/index.ts`
 - Contains: Worker fetch/queue/scheduled handlers, D1 binding setup, R2 wrapper, auth caching
-- Depends on: Cloudflare Workers platform, Better Auth, Vercel AI SDK, unpdf
+- Depends on: Cloudflare Workers platform, vinext, Better Auth, Vercel AI SDK, unpdf
 - Used by: All upper layers
 
 ## Data Flow
@@ -154,14 +154,14 @@
 ## Entry Points
 
 **Web Request (Browser):**
-- Location: `worker.ts` fetch handler, wraps OpenNext handler
+- Location: `worker/index.ts` fetch handler, wraps vinext app-router-entry handler
 - Triggers: HTTP request from client
 - Responsibilities:
   1. Route WebSocket upgrades to ResumeStatusDO
   2. Serve static assets from ASSETS binding
-  3. Fall through to OpenNext for Next.js routing
+  3. Fall through to vinext for App Router routing
 
-**Next.js App Router:**
+**vinext App Router:**
 - Location: `app/` directory structure
 - Entry: `app/layout.tsx` (root RSC), applied to all routes
 - Responsibilities:
@@ -190,7 +190,7 @@
   6. Track view in Umami
 
 **Queue Consumer:**
-- Location: `worker.ts` queue handler
+- Location: `worker/index.ts` queue handler
 - Triggers: Message enqueued to `resume-parse-queue` or `resume-parse-dlq`
 - Responsibilities:
   1. Parse and validate message schema
@@ -200,7 +200,7 @@
   5. Send status notifications to ResumeStatusDO
 
 **Scheduled Tasks (Cron):**
-- Location: `worker.ts` scheduled handler
+- Location: `worker/index.ts` scheduled handler
 - Triggers: Cron patterns configured in `wrangler.jsonc` (0 3 * * *, 0 4 * * *, */15 * * * *)
 - Responsibilities:
   1. `0 3 * * *`: `performCleanup()` — expire old sessions and email verifications

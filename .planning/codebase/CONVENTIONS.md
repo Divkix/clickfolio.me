@@ -60,7 +60,7 @@
 **Order:**
 1. Node.js built-in modules: `import { resolve } from "node:path"`
 2. Third-party dependencies: `import { z } from "zod"`, `import { eq } from "drizzle-orm"`
-3. Next.js framework: `import { redirect } from "next/navigation"`, `import Link from "next/link"`
+3. vinext/Next.js framework: `import { redirect } from "next/navigation"`, `import Link from "next/link"`
 4. Internal imports: `import { getDb } from "@/lib/db"`, `import { Button } from "@/components/ui/button"`
 5. Relative imports rarely used (path aliases preferred)
 
@@ -170,7 +170,7 @@ export function captureReferralCode(code: string): void {
 
 **Exports:**
 - Prefer named exports: `export function doThing() {}`
-- Default exports rare (only for page components in Next.js)
+- Default exports rare (only for page components in vinext)
 - All public APIs typed with explicit return types
 
 **Barrel Files:**
@@ -184,7 +184,7 @@ export function captureReferralCode(code: string): void {
 - `lib/queue/*` — async queue consumers
 - `lib/email/*` — email sending services
 - `components/*` — React components
-- `app/` — Next.js pages and API routes
+- `app/` — vinext pages and API routes
 
 **Dependencies:**
 - Lower layers (utils, db) never import from higher layers (components, app)

@@ -6,7 +6,7 @@ Upload a PDF. AI parses it. Get a shareable link.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Cloudflare Workers](https://img.shields.io/badge/Deployed%20on-Cloudflare%20Workers-F38020)](https://workers.cloudflare.com/)
-[![Next.js 16](https://img.shields.io/badge/Next.js-16-black)](https://nextjs.org/)
+[![vinext](https://img.shields.io/badge/vinext-v0.0.20-blue)](https://github.com/nicolo-ribaudo/vinext)
 
 ---
 
@@ -25,7 +25,7 @@ Upload a PDF. AI parses it. Get a shareable link.
 
 | Layer | Technology |
 |-------|------------|
-| **Framework** | [Next.js 16](https://nextjs.org) (App Router) |
+| **Framework** | [vinext](https://github.com/nicolo-ribaudo/vinext) (Vite-based Next.js) |
 | **Runtime** | [Cloudflare Workers](https://workers.cloudflare.com) |
 | **Database** | [Cloudflare D1](https://developers.cloudflare.com/d1/) (SQLite) + [Drizzle ORM](https://orm.drizzle.team) |
 | **Auth** | [Better Auth](https://better-auth.com) (Google OAuth) |
@@ -57,7 +57,7 @@ We chose Cloudflare Workers over traditional hosting for several reasons:
 
 ### Trade-offs
 - **No `fs` Module**: Must use R2 for file operations
-- **No Native Next.js Image**: Use `<img>` with CSS instead
+- **No Next.js `<Image />` Component**: Use `<img>` with CSS instead
 - **Edge Middleware Limits**: No D1 access in middleware
 - **Bundle Size**: Keep dependencies minimal
 
@@ -311,8 +311,8 @@ bun run fix              # Biome auto-fix
 bun run type-check       # TypeScript check
 
 # Build & Deploy
-bun run build            # Next.js production build
-bun run build:worker     # OpenNext Cloudflare bundle
+bun run build            # Vite production build (vinext)
+bun run build:worker     # Alias for build
 bun run preview          # Local Cloudflare preview
 bun run deploy           # Build and deploy to Cloudflare Workers
 
@@ -455,7 +455,7 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ## Acknowledgments
 
-- [Next.js](https://nextjs.org) - React framework
+- [vinext](https://github.com/nicolo-ribaudo/vinext) - Vite-based Next.js for Cloudflare Workers
 - [Better Auth](https://better-auth.com) - Authentication
 - [Drizzle ORM](https://orm.drizzle.team) - Type-safe database
 - [Cloudflare](https://cloudflare.com) - Edge infrastructure

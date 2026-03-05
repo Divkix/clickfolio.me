@@ -9,7 +9,7 @@ const nextConfig: NextConfig = {
     },
   },
 
-  // Rewrites for sitemap index (Next.js generateSitemaps doesn't create sitemap index)
+  // Rewrites for sitemap index (vinext generateSitemaps doesn't create sitemap index)
   async rewrites() {
     return [
       {
@@ -113,7 +113,7 @@ const nextConfig: NextConfig = {
       },
       {
         // Security headers for all routes
-        // CSP: 'unsafe-inline' required for Next.js hydration on Cloudflare Workers (no nonce support in edge middleware)
+        // CSP: 'unsafe-inline' required for React hydration on Cloudflare Workers (no nonce support in edge middleware)
         source: "/:path*",
         headers: [
           {

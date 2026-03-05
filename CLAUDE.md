@@ -154,7 +154,7 @@ Static assets are served by `@cloudflare/vite-plugin` via the ASSETS binding at 
 
 ### Bundle Size Stubs
 `vite.config.ts` resolve.alias stubs out dead code at Vite build level:
-- `@vercel/og` (~2MB) — doesn't work on CF Workers, Next.js bundles it anyway
+- `@vercel/og` (~2MB) — doesn't work on CF Workers, vinext bundles it anyway
 - `@zxcvbn-ts/*` (~1.7MB) — password dictionaries, only needed client-side (SSR gets a no-op)
 - `zod/v3` (~128KB) — Zod v4 ships v3 compat, only `@ai-sdk/provider-utils` imports it for dead code
 

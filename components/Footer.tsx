@@ -38,7 +38,7 @@ export function Footer() {
         </div>
         <div className="mt-4 pt-4 border-t-2 border-ink/10">
           <p className="text-center text-[#6B6B6B] text-xs font-mono flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
-            <span>Built with Next.js</span>
+            <span>Built with vinext</span>
             <span className="text-ink">•</span>
             <span>Powered by Cloudflare</span>
             <span className="text-ink">•</span>

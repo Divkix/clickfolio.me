@@ -1,5 +1,5 @@
 /**
- * Server-side Better Auth configuration for Next.js 16 with Cloudflare D1
+ * Server-side Better Auth configuration for vinext with Cloudflare D1
  *
  * IMPORTANT: The auth instance must be created inside request handlers because
  * the D1 database binding is only available within the Cloudflare Workers
@@ -208,7 +208,7 @@ export async function getAuth() {
     },
     trustedOrigins: [
       baseURL,
-      // Allow localhost dev servers (Next.js dev + Workers preview)
+      // Allow localhost dev servers (vinext dev + Workers preview)
       "http://localhost:3000",
       "http://localhost:8787",
       // Production domains

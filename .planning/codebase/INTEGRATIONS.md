@@ -124,12 +124,12 @@
 - Cloudflare Workers
   - Custom domain: clickfolio.me, www.clickfolio.me
   - Workers.dev subdomain: Enabled
-  - Custom entry: `worker.ts` (wraps OpenNext + adds queue/DO handlers)
+  - Custom entry: `worker/index.ts` (wraps vinext app-router-entry + adds queue/DO handlers)
   - Compatibility date: 2026-01-22
   - Node.js compat flag: Enabled
 
 **Build & Deploy:**
-- Local build: `bun run build:worker` (OpenNext + Wrangler)
+- Local build: `bun run build` (Vite + vinext)
 - Deploy: `bun run deploy` (builds + `wrangler deploy`)
 - Preview: `bun run preview` (local Cloudflare emulator)
 
@@ -140,7 +140,7 @@
   - Type check: `bun run type-check`
   - Lint/format: `bun run lint`, `bun run fix` (Biome)
   - Test: `bun run test` (Vitest)
-  - Build: `bun run build` (Next.js) then `bun run build:worker` (OpenNext/Wrangler)
+  - Build: `bun run build` (Vite/vinext, single step)
 
 ## Webhooks & Callbacks
 
@@ -200,7 +200,7 @@
 - `AI_MODEL` - LLM model ID (default: "openai/gpt-oss-120b:nitro")
 
 **Secrets location:**
-- Dev: `.env.local` (Next.js auto-loads)
+- Dev: `.dev.vars` (Vite/Wrangler loads)
 - Prod: Cloudflare secrets (`wrangler secret put KEY_NAME`)
 - Never commit: `.env*` files with actual values
 
@@ -208,7 +208,7 @@
 
 **CSP (Content-Security-Policy):**
 - Origin: `self`
-- Script: `self`, `unsafe-inline` (Next.js hydration), analytics.divkix.me
+- Script: `self`, `unsafe-inline` (React hydration), analytics.divkix.me
 - Style: `self`, `unsafe-inline`
 - Image: `self`, `data:`, `https:`
 - Font: `self`

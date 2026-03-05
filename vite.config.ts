@@ -69,7 +69,7 @@ export default defineConfig({
   resolve: {
     alias: {
       // Bundle stubs — replaces wrangler.jsonc alias block
-      // @vercel/og — doesn't work on CF Workers, Next.js bundles it anyway (~2MB)
+      // @vercel/og — doesn't work on CF Workers, vinext bundles it anyway (~2MB)
       "next/dist/compiled/@vercel/og/index.edge.js": resolve("lib/stubs/og-stub.js"),
       // @zxcvbn-ts — password dictionaries (1.73MB), only client-side
       "@zxcvbn-ts/core": resolve("lib/stubs/zxcvbn-core-stub.mjs"),
