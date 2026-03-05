@@ -27,15 +27,6 @@
       "@/*": ["./*"]
     }
   },
-  "include": [
-    "next-env.d.ts",
-    "global.d.ts",
-    "lib/cloudflare-env.d.ts",
-    "open-next-worker.d.ts",
-    "**/*.ts",
-    "**/*.tsx",
-    ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts"
-  ],
-  "exclude": ["node_modules", "worker.ts"]
+  "include": ["global.d.ts", "lib/cloudflare-env.d.ts", "**/*.ts", "**/*.tsx"],
+  "exclude": ["node_modules"]
 }

@@ -1,60 +1,13 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
   allowedDevOrigins: ["*.ngrok-free.app"],
 
-  // Disable Next.js Image optimization (not compatible with Cloudflare Workers)
-  images: {
-    unoptimized: true,
-  },
-
-  // Configure for Cloudflare deployment
   experimental: {
     serverActions: {
       bodySizeLimit: `${process.env.MAX_UPLOAD_SIZE_MB || "5"}mb` as `${number}mb`,
     },
-    // Tree-shake barrel exports — only import what's actually used
-    optimizePackageImports: [
-      "lucide-react",
-      "@radix-ui/react-dialog",
-      "@radix-ui/react-label",
-      "@radix-ui/react-progress",
-      "@radix-ui/react-separator",
-      "@radix-ui/react-slot",
-      "@radix-ui/react-switch",
-    ],
   },
-
-  // Exclude packages from automatic bundling (use native require instead)
-  // This helps reduce bundle size for Cloudflare Workers
-  serverExternalPackages: [
-    // @vercel/og is ~2.2MB and not used directly
-    "@vercel/og",
-    "canvas",
-    // sharp is ~256KB and not needed (images.unoptimized: true)
-    "sharp",
-    "@img/sharp-darwin-arm64",
-    "@img/sharp-linux-x64",
-  ],
-
-  // Exclude unused files from bundle tracing to reduce worker size
-  // Keys are route globs, values are glob patterns to exclude
-  outputFileTracingExcludes: {
-    "*": [
-      // @vercel/og wasm files are ~2.2MB and not used
-      "./node_modules/@vercel/og/**/*",
-      "./node_modules/canvas/**/*",
-      // sharp is not needed (images.unoptimized: true)
-      "./node_modules/sharp/**/*",
-      "./node_modules/@img/**/*",
-    ],
-  },
-
-  // Note: Module aliases for dead code elimination (zxcvbn, zod/v3, @vercel/og)
-  // are configured in wrangler.jsonc "alias" block, not here.
-  // Next.js 16 uses Turbopack for builds which ignores webpack() config.
-  turbopack: {},
 
   // Rewrites for sitemap index (Next.js generateSitemaps doesn't create sitemap index)
   async rewrites() {

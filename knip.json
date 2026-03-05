@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/knip@latest/schema.json",
-  "entry": ["worker.ts", "open-next.config.ts", "scripts/**/*.ts"],
+  "entry": ["worker/index.ts", "scripts/**/*.ts"],
   "project": [
     "app/**/*.{ts,tsx}",
     "components/**/*.{ts,tsx}",
