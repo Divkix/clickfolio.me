@@ -5,12 +5,12 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { TEMPLATE_BACKGROUNDS } from "@/lib/templates/demo-data";
 import {
-  DYNAMIC_TEMPLATES,
   isThemeUnlocked,
   THEME_IDS,
   THEME_METADATA,
   type ThemeId,
-} from "@/lib/templates/theme-registry";
+} from "@/lib/templates/theme-ids";
+import { DYNAMIC_TEMPLATES } from "@/lib/templates/theme-registry.client";
 import type { ResumeContent } from "@/lib/types/database";
 import { cn } from "@/lib/utils";
 
