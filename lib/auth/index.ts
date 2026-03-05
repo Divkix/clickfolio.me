@@ -14,7 +14,7 @@
  *
  * Environment variables are loaded from:
  * - Production: Cloudflare Workers env bindings (via wrangler secret put)
- * - Development: process.env (via .env.local)
+ * - Development: env bindings (via .dev.vars)
  */
 
 import { env } from "cloudflare:workers";
@@ -100,7 +100,7 @@ function getEnvValue(env: Partial<CloudflareEnv>, key: keyof CloudflareEnv): str
   }
   throw new Error(
     `Missing required environment variable: ${key}. ` +
-      `Set it via .env.local (dev) or 'wrangler secret put ${key}' (prod).`,
+      `Set it via .dev.vars (dev) or 'wrangler secret put ${key}' (prod).`,
   );
 }
 
