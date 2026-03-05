@@ -22,6 +22,40 @@ function cloudflareWorkersClientStub(): Plugin {
   };
 }
 
+/**
+ * Vite plugin that extends vinext's client manualChunks to split heavy vendor
+ * deps into their own chunks — keeps the main client bundle under 500 KB.
+ *
+ * vinext intentionally only splits React/scheduler into "framework" and its own
+ * shims into "vinext", leaving all other vendor code to Rollup's default splitting.
+ * This works well for most apps, but ours pulls radix-ui, react-hook-form, and
+ * better-auth into a single mega-chunk. We wrap vinext's function to split those
+ * specific packages out while preserving all other vinext chunking decisions.
+ */
+function clientVendorSplit(): Plugin {
+  return {
+    name: "client-vendor-split",
+    configResolved(config) {
+      const clientEnv = config.environments?.client;
+      const output = clientEnv?.build?.rollupOptions?.output;
+      if (output && typeof output === "object" && !Array.isArray(output)) {
+        const original = output.manualChunks;
+        output.manualChunks = (id: string, api: unknown) => {
+          // Split heavy vendor deps that bloat the client mega-chunk
+          if (id.includes("node_modules/@radix-ui")) return "vendor-radix";
+          if (id.includes("node_modules/react-hook-form")) return "vendor-forms";
+          if (id.includes("node_modules/better-auth")) return "vendor-auth";
+          // Delegate to vinext's default chunking
+          if (typeof original === "function") {
+            return (original as (id: string, api: unknown) => string | undefined)(id, api);
+          }
+          return undefined;
+        };
+      }
+    },
+  };
+}
+
 export default defineConfig({
   plugins: [
     vinext(),
@@ -29,6 +63,7 @@ export default defineConfig({
       viteEnvironment: { name: "rsc", childEnvironments: ["ssr"] },
     }),
     cloudflareWorkersClientStub(),
+    clientVendorSplit(),
   ],
   resolve: {
     alias: {
@@ -41,6 +76,22 @@ export default defineConfig({
       "@zxcvbn-ts/language-en": resolve("lib/stubs/zxcvbn-lang-stub.mjs"),
       // zod/v3 — Zod v4 compat layer, only dead code path
       "zod/v3": resolve("lib/stubs/zod-v3-stub.mjs"),
+    },
+  },
+  build: {
+    rollupOptions: {
+      onwarn(warning, warn) {
+        // vinext virtual entry imports "middleware" from proxy.ts even though
+        // only "proxy" / "default" are used — suppress the harmless warning
+        if (
+          warning.code === "MISSING_EXPORT" &&
+          warning.message?.includes('"middleware"') &&
+          warning.message?.includes("proxy.ts")
+        ) {
+          return;
+        }
+        warn(warning);
+      },
     },
   },
 });

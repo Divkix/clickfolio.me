@@ -20,8 +20,6 @@
 			"custom_domain": true
 		}
 	],
-	// Minify to reduce bundle size (saves ~400KB gzipped)
-	"minify": true,
 	// Bundle stubs are now handled by Vite's resolve.alias in vite.config.ts
 	"compatibility_flags": [
 		// Enable Node.js API
