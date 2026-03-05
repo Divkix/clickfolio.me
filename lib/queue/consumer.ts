@@ -39,6 +39,25 @@ function getUserFriendlyError(rawError: string): string {
 }
 
 /**
+ * Look up user handle by userId and invalidate their resume cache.
+ * One extra D1 read per parse completion — negligible for an infrequent async operation.
+ */
+async function invalidateCacheForUser(
+  db: ReturnType<typeof getSessionDbForWebhook>["db"],
+  userId: string,
+): Promise<void> {
+  const { invalidateResumeCache } = await import("@/lib/cache/invalidation");
+  const result = await db
+    .select({ handle: user.handle })
+    .from(user)
+    .where(eq(user.id, userId))
+    .limit(1);
+  if (result[0]?.handle) {
+    await invalidateResumeCache(result[0].handle);
+  }
+}
+
+/**
  * Handle resume parsing from queue
  */
 async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv): Promise<void> {
@@ -106,6 +125,8 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
       buildSiteDataUpsert(db, message.userId, message.resumeId, stagedContent, now),
     ]);
 
+    await invalidateCacheForUser(db, message.userId);
+
     await notifyStatusChange({ resumeId: message.resumeId, status: "completed", env });
     return;
   }
@@ -132,6 +153,8 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
         .where(eq(resumes.id, message.resumeId)),
       buildSiteDataUpsert(db, message.userId, message.resumeId, cachedContent, now),
     ]);
+
+    await invalidateCacheForUser(db, message.userId);
 
     await notifyStatusChange({ resumeId: message.resumeId, status: "completed", env });
     return;
@@ -207,6 +230,8 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
     buildSiteDataUpsert(db, message.userId, message.resumeId, parsedContent, now),
   ]);
 
+  await invalidateCacheForUser(db, message.userId);
+
   // Write AI-inferred professional level to user.role separately from the
   // critical resume+siteData batch. If this fails, the resume is still
   // completed and the user can set their role manually via settings.
@@ -248,6 +273,8 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
         buildSiteDataUpsert(db, w.userId as string, w.id as string, parsedContent, now),
       ),
     ]);
+
+    await Promise.all(waitingResumes.map((w) => invalidateCacheForUser(db, w.userId as string)));
 
     // Set AI role for waiting users (same fileHash = same resume content).
     // Separate from batch to avoid Drizzle heterogeneous table type errors.

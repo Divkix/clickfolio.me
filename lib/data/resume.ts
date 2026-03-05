@@ -1,5 +1,6 @@
 import { env } from "cloudflare:workers";
 import { eq } from "drizzle-orm";
+import { unstable_cache } from "next/cache";
 import { cache } from "react";
 import { getDb } from "@/lib/db";
 import { user } from "@/lib/db/schema";
@@ -195,6 +196,20 @@ async function fetchResumeMetadataRaw(handle: string): Promise<ResumeMetadata | 
   };
 }
 
+function getCachedResumeData(handle: string) {
+  return unstable_cache(() => fetchResumeDataRaw(handle), ["resume-data", handle], {
+    tags: [`resume_${handle}`],
+    revalidate: 86400,
+  })();
+}
+
+function getCachedResumeMetadata(handle: string) {
+  return unstable_cache(() => fetchResumeMetadataRaw(handle), ["resume-metadata", handle], {
+    tags: [`resume_${handle}`],
+    revalidate: 86400,
+  })();
+}
+
 /**
  * Resume data fetcher with request-level deduplication.
  * Wrapped with React.cache() to avoid duplicate D1 queries when
@@ -203,13 +218,9 @@ async function fetchResumeMetadataRaw(handle: string): Promise<ResumeMetadata | 
  * @param handle - The user's unique handle
  * @returns Resume data or null if not found
  */
-export const getResumeData = cache((handle: string) => {
-  return fetchResumeDataRaw(handle);
-});
+export const getResumeData = cache((handle: string) => getCachedResumeData(handle));
 
 /**
  * Metadata fetcher for SEO with request-level deduplication.
  */
-export const getResumeMetadata = cache((handle: string) => {
-  return fetchResumeMetadataRaw(handle);
-});
+export const getResumeMetadata = cache((handle: string) => getCachedResumeMetadata(handle));

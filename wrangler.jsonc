@@ -44,11 +44,15 @@
 			"database_id": "37cf1935-96c5-40c8-aa2e-0d0655f9b652"
 		}
 	],
-	// KV namespace for disposable email domain blocklist
+	// KV namespaces
 	"kv_namespaces": [
 		{
 			"binding": "DISPOSABLE_DOMAINS",
 			"id": "6fe2480a4f4d46a9970eb2c441ecf38a"
+		},
+		{
+			"binding": "VINEXT_CACHE",
+			"id": "e7585a844b6449dfa5d30fdc5e50082b"
 		}
 	],
 	// R2 bucket binding for direct access (replaces AWS SDK for most operations)

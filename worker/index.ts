@@ -4,7 +4,9 @@
  */
 /// <reference path="../lib/cloudflare-env.d.ts" />
 
+import { KVCacheHandler } from "vinext/cloudflare";
 import handler from "vinext/server/app-router-entry";
+import { setCacheHandler } from "vinext/shims/cache";
 import { performCleanup } from "../lib/cron/cleanup";
 import { recoverOrphanedResumes } from "../lib/cron/recover-orphaned";
 import { syncDisposableDomains } from "../lib/cron/sync-disposable-domains";
@@ -19,6 +21,7 @@ export { ResumeStatusDO } from "../lib/durable-objects/resume-status";
 
 export default {
   async fetch(request: Request, env: CloudflareEnv, _ctx: ExecutionContext): Promise<Response> {
+    setCacheHandler(new KVCacheHandler(env.VINEXT_CACHE));
     const url = new URL(request.url);
 
     // Intercept WebSocket upgrade requests for resume status
@@ -50,6 +53,7 @@ export default {
 
   // Cloudflare Queue consumer handler
   async queue(batch: MessageBatch<unknown>, env: CloudflareEnv): Promise<void> {
+    setCacheHandler(new KVCacheHandler(env.VINEXT_CACHE));
     const isDLQ = batch.queue === "resume-parse-dlq";
 
     for (const message of batch.messages) {

@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
 import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
+import { invalidateResumeCache } from "@/lib/cache/invalidation";
 import { siteData } from "@/lib/db/schema";
 import { resumeContentSchemaStrict } from "@/lib/schemas/resume";
 import type { ResumeContent } from "@/lib/types/database";
@@ -47,6 +48,7 @@ export async function PUT(request: Request) {
     const {
       user: authUser,
       db,
+      dbUser,
       captureBookmark,
       error: authError,
     } = await requireAuthWithUserValidation("You must be logged in to update your resume");
@@ -103,6 +105,11 @@ export async function PUT(request: Request) {
     }
 
     const data = updateResult[0];
+
+    // Invalidate KV cache for this user's public resume page
+    if (dbUser.handle) {
+      await invalidateResumeCache(dbUser.handle);
+    }
 
     // 5. Return success response (no content echo — caller already has validated copy)
     await captureBookmark();

@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
 import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
+import { invalidateResumeCache } from "@/lib/cache/invalidation";
 import { purgeResumeCache } from "@/lib/cloudflare-cache-purge";
 import { getDb } from "@/lib/db";
 import { resumes, user, verification } from "@/lib/db/schema";
@@ -118,6 +119,11 @@ export async function POST(request: Request) {
         // 7b. Delete user (CASCADE handles: session, account, resumes, siteData, handleChanges, referralClicks)
         db.delete(user).where(eq(user.id, userId)),
       ]);
+
+      // Invalidate KV cache for deleted user
+      if (userHandle) {
+        await invalidateResumeCache(userHandle);
+      }
 
       // Purge edge cache for deleted user's public page (fire-and-forget)
       if (userHandle) {

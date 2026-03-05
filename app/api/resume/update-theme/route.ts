@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
 import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
+import { invalidateResumeCache } from "@/lib/cache/invalidation";
 import { siteData, user } from "@/lib/db/schema";
 import {
   getThemeReferralRequirement,
@@ -25,6 +26,7 @@ export async function POST(request: Request) {
     const {
       user: authUser,
       db,
+      dbUser,
       captureBookmark,
       error: authError,
     } = await requireAuthWithUserValidation("You must be logged in to update theme");
@@ -111,6 +113,11 @@ export async function POST(request: Request) {
     }
 
     const data = updateResult[0];
+
+    // Invalidate KV cache for this user's public resume page
+    if (dbUser.handle) {
+      await invalidateResumeCache(dbUser.handle);
+    }
 
     await captureBookmark();
 
