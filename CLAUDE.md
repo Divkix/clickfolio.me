@@ -20,7 +20,7 @@ bun run test             # Run tests (vitest)
 bun run test:watch       # Run tests in watch mode
 bunx vitest run __tests__/referral.test.ts          # Run single test file
 bunx vitest run __tests__/referral.test.ts -t "name" # Run single test by name
-bun run analyze          # Bundle analysis (ANALYZE=true next build)
+bun run analyze          # Bundle analysis (ANALYZE=true vite build)
 
 # Build & Deploy
 bun run build            # Vite production build (vinext)

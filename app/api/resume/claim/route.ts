@@ -42,7 +42,7 @@ export async function POST(request: Request) {
     }
 
     // 2. Check authentication and validate user exists in database
-    // env is available from cloudflare:workers module import
+    // env is returned by requireAuthWithUserValidation (backed by cloudflare:workers)
     const {
       user: authUser,
       db,
