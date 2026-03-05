@@ -1,4 +1,4 @@
-import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { env } from "cloudflare:workers";
 import { eq } from "drizzle-orm";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
@@ -24,7 +24,6 @@ export default async function ThemesPage() {
   }
 
   // 2. Get database connection
-  const { env } = await getCloudflareContext({ async: true });
   const db = getDb(env.DB);
 
   // 3. Fetch user's site data (theme + content) and profile info (including referralCount) in parallel

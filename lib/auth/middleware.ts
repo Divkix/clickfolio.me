@@ -3,7 +3,7 @@
  * Provides reusable authentication helpers for Better Auth
  */
 
-import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { env } from "cloudflare:workers";
 import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { getAuth } from "@/lib/auth";
@@ -113,7 +113,7 @@ interface DbUser {
  * This protects against stale sessions pointing to deleted users (e.g., after db:reset).
  *
  * Fetches Cloudflare env internally and returns it alongside the session db,
- * so callers do not need a separate getCloudflareContext() call.
+ * so callers do not need a separate env import.
  *
  * @param errorMessage Custom error message for unauthorized access
  * @returns Promise containing either auth data + db + env + user record, or error response
@@ -162,9 +162,6 @@ export async function requireAuthWithUserValidation(errorMessage: string): Promi
       error: authResult.error,
     };
   }
-
-  // Get Cloudflare env for D1 binding (cached per request via AsyncLocalStorage)
-  const { env } = await getCloudflareContext({ async: true });
 
   // Create session db with primary-first consistency
   // This ensures reads/writes go to primary, avoiding FK constraint failures

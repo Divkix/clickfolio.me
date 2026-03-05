@@ -56,3 +56,4 @@ d1-backup-*.sql
 
 # Localflare generated files
 .localflare/
+/dist/

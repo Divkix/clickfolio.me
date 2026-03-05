@@ -1,4 +1,4 @@
-import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { env } from "cloudflare:workers";
 import { eq } from "drizzle-orm";
 import { requireAuthWithMessage } from "@/lib/auth/middleware";
 import { user } from "@/lib/db/schema";
@@ -23,7 +23,6 @@ export async function GET() {
     if (authError) return authError;
 
     // 2. Get D1 database binding
-    const { env } = await getCloudflareContext({ async: true });
     const { db } = await getSessionDb(env.DB);
 
     const userId = authUser.id;

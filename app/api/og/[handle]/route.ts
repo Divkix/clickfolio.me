@@ -1,4 +1,4 @@
-import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { env } from "cloudflare:workers";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { siteData, user } from "@/lib/db/schema";
@@ -56,7 +56,6 @@ export async function GET(_request: Request, { params }: { params: Promise<{ han
   }
 
   try {
-    const { env } = await getCloudflareContext({ async: true });
     const db = getDb(env.DB);
 
     // Lightweight query: only preview columns needed for OG card

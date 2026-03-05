@@ -1,4 +1,4 @@
-import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { env } from "cloudflare:workers";
 import { eq } from "drizzle-orm";
 import { cache } from "react";
 import { getDb } from "@/lib/db";
@@ -42,7 +42,6 @@ interface ResumeMetadata {
  * is already privacy-filtered.
  */
 async function fetchResumeDataRaw(handle: string): Promise<ResumeData | null> {
-  const { env } = await getCloudflareContext({ async: true });
   const db = getDb(env.DB);
 
   // Fetch user by handle with siteData relation
@@ -149,7 +148,6 @@ async function fetchResumeDataRaw(handle: string): Promise<ResumeData | null> {
  * the full content JSON blob (50-100KB), saving significant I/O and CPU.
  */
 async function fetchResumeMetadataRaw(handle: string): Promise<ResumeMetadata | null> {
-  const { env } = await getCloudflareContext({ async: true });
   const db = getDb(env.DB);
 
   const userData = await db.query.user.findFirst({

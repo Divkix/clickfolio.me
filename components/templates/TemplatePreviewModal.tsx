@@ -9,7 +9,7 @@ import {
   TEMPLATE_BACKGROUNDS,
 } from "@/lib/templates/demo-data";
 import { THEME_METADATA } from "@/lib/templates/theme-ids";
-import { DYNAMIC_TEMPLATES } from "@/lib/templates/theme-registry";
+import { DYNAMIC_TEMPLATES } from "@/lib/templates/theme-registry.client";
 import { cn } from "@/lib/utils";
 
 interface TemplatePreviewModalProps {

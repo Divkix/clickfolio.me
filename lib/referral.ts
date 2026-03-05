@@ -8,7 +8,7 @@
  * 4. During /api/resume/claim, referredBy is written to the new user record
  */
 
-import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { env } from "cloudflare:workers";
 import { and, eq, isNull, or } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { referralClicks, user } from "@/lib/db/schema";
@@ -69,7 +69,7 @@ export function clearStoredReferralCode(): void {
  * - User is not self-referring
  *
  * Optimizations over naive implementation:
- * - Single getCloudflareContext + getDb instance for all queries
+ * - Single getDb instance for all queries
  * - Parallel crypto hash computation (today + yesterday via Promise.all)
  * - Atomic conditional UPDATE to prevent double-crediting
  *
@@ -92,11 +92,10 @@ export async function writeReferral(
     return { success: false, reason: "ref_too_long" };
   }
 
-  // Single context + DB instance for the entire function
-  const { env } = await getCloudflareContext({ async: true });
+  // Single DB instance for the entire function
   const db = getDb(env.DB);
 
-  // Resolve referral code to user ID inline (avoids redundant getCloudflareContext + getDb)
+  // Resolve referral code to user ID inline (avoids redundant getDb calls)
   // Backward compatible: accept either a referralCode (uppercase) or a handle (lowercase).
   const trimmed = referrerCode.trim();
   const normalized = trimmed.startsWith("@") ? trimmed.slice(1) : trimmed;

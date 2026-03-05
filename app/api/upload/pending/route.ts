@@ -10,7 +10,7 @@
  * - DELETE: Clear cookie after successful claim
  */
 
-import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { env } from "cloudflare:workers";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import {
@@ -44,7 +44,6 @@ function getSecret(env: Partial<CloudflareEnv>): string {
  */
 export async function POST(request: Request) {
   try {
-    const { env } = await getCloudflareContext({ async: true });
     const typedEnv = env as Partial<CloudflareEnv>;
     const secret = getSecret(typedEnv);
 
@@ -84,7 +83,6 @@ export async function POST(request: Request) {
  */
 export async function GET() {
   try {
-    const { env } = await getCloudflareContext({ async: true });
     const typedEnv = env as Partial<CloudflareEnv>;
     const secret = getSecret(typedEnv);
 

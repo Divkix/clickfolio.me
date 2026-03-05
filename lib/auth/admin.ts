@@ -1,4 +1,4 @@
-import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { env } from "cloudflare:workers";
 import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { getDb } from "@/lib/db";
@@ -24,7 +24,6 @@ export async function requireAdminAuth(): Promise<AdminUser> {
     redirect("/");
   }
 
-  const { env } = await getCloudflareContext({ async: true });
   const db = getDb(env.DB);
 
   const dbUser = await db.query.user.findFirst({
@@ -64,7 +63,6 @@ export async function requireAdminAuthForApi(): Promise<
     };
   }
 
-  const { env } = await getCloudflareContext({ async: true });
   const db = getDb(env.DB);
 
   const dbUser = await db.query.user.findFirst({

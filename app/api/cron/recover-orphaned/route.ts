@@ -9,7 +9,7 @@
  * but weren't successfully queued (e.g., due to worker crash after upload).
  */
 
-import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { env } from "cloudflare:workers";
 import { recoverOrphanedResumes } from "@/lib/cron/recover-orphaned";
 import { getDb } from "@/lib/db";
 
@@ -34,7 +34,6 @@ export async function GET(request: Request) {
   }
 
   try {
-    const { env } = await getCloudflareContext({ async: true });
     const db = getDb(env.DB);
 
     const queue = env.RESUME_PARSE_QUEUE;

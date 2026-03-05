@@ -1,4 +1,4 @@
-import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { env } from "cloudflare:workers";
 import { desc, eq, sql } from "drizzle-orm";
 import {
   AlertCircle,
@@ -41,7 +41,6 @@ export default async function DashboardPage() {
     redirect("/");
   }
 
-  const { env } = await getCloudflareContext({ async: true });
   const db = getDb(env.DB);
 
   // Parallelize independent queries: user data + referral click count

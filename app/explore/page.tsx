@@ -1,4 +1,4 @@
-import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { env } from "cloudflare:workers";
 import { and, desc, eq, isNotNull, sql } from "drizzle-orm";
 import { Briefcase, ExternalLink, GraduationCap, MapPin } from "lucide-react";
 import type { Metadata } from "next";
@@ -55,7 +55,6 @@ export default async function ExplorePage({
   const currentPage = Math.max(1, Number.parseInt(params.page || "1", 10));
   const roleFilter = params.role || "";
 
-  const { env } = await getCloudflareContext({ async: true });
   const db = getDb(env.DB);
 
   // Build where conditions

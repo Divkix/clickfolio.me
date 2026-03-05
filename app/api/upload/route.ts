@@ -1,4 +1,4 @@
-import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { env } from "cloudflare:workers";
 import { NextResponse } from "next/server";
 import { getR2Binding, R2 } from "@/lib/r2";
 import { checkIPRateLimit, getClientIP } from "@/lib/utils/ip-rate-limit";
@@ -23,7 +23,6 @@ const MIN_PDF_SIZE = 100;
 export async function POST(request: Request) {
   try {
     // 0. Get Cloudflare env bindings for R2
-    const { env } = await getCloudflareContext({ async: true });
     const typedEnv = env as Partial<CloudflareEnv>;
 
     // Get R2 binding for direct operations

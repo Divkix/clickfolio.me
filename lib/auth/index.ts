@@ -14,11 +14,11 @@
  *
  * Environment variables are loaded from:
  * - Production: Cloudflare Workers env bindings (via wrangler secret put)
- * - Development: process.env (via .env.local)
+ * - Development: env bindings (via .dev.vars)
  */
 
+import { env } from "cloudflare:workers";
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
-import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { betterAuth } from "better-auth";
 import { APIError } from "better-auth/api";
 import { drizzle } from "drizzle-orm/d1";
@@ -100,7 +100,7 @@ function getEnvValue(env: Partial<CloudflareEnv>, key: keyof CloudflareEnv): str
   }
   throw new Error(
     `Missing required environment variable: ${key}. ` +
-      `Set it via .env.local (dev) or 'wrangler secret put ${key}' (prod).`,
+      `Set it via .dev.vars (dev) or 'wrangler secret put ${key}' (prod).`,
   );
 }
 
@@ -130,7 +130,6 @@ function getEnvValue(env: Partial<CloudflareEnv>, key: keyof CloudflareEnv): str
  * ```
  */
 export async function getAuth() {
-  const { env } = await getCloudflareContext({ async: true });
   const rawD1 = env.DB;
 
   // Fast path: return cached instance if we already built one for this binding

@@ -1,28 +1,24 @@
 /**
- * Custom worker entry point that wraps OpenNext's generated handler
+ * Custom worker entry point that wraps vinext's generated handler
  * and adds Cloudflare Queue consumer support and Durable Object exports.
- *
- * Note: This file is excluded from Next.js tsconfig because it imports
- * .open-next/worker.js which only exists after OpenNext build.
- * Wrangler handles bundling and type resolution separately.
  */
-/// <reference path="./lib/cloudflare-env.d.ts" />
+/// <reference path="../lib/cloudflare-env.d.ts" />
 
-import opennextHandler from "./.open-next/worker.js";
-import { performCleanup } from "./lib/cron/cleanup";
-import { recoverOrphanedResumes } from "./lib/cron/recover-orphaned";
-import { syncDisposableDomains } from "./lib/cron/sync-disposable-domains";
-import { getDb } from "./lib/db";
-import { handleQueueMessage } from "./lib/queue/consumer";
-import { handleDLQMessage } from "./lib/queue/dlq-consumer";
-import { isRetryableError } from "./lib/queue/errors";
-import { queueMessageSchema } from "./lib/queue/types";
+import handler from "vinext/server/app-router-entry";
+import { performCleanup } from "../lib/cron/cleanup";
+import { recoverOrphanedResumes } from "../lib/cron/recover-orphaned";
+import { syncDisposableDomains } from "../lib/cron/sync-disposable-domains";
+import { getDb } from "../lib/db";
+import { handleQueueMessage } from "../lib/queue/consumer";
+import { handleDLQMessage } from "../lib/queue/dlq-consumer";
+import { isRetryableError } from "../lib/queue/errors";
+import { queueMessageSchema } from "../lib/queue/types";
 
 // Re-export Durable Object class for Wrangler to discover
-export { ResumeStatusDO } from "./lib/durable-objects/resume-status";
+export { ResumeStatusDO } from "../lib/durable-objects/resume-status";
 
 export default {
-  async fetch(request: Request, env: CloudflareEnv, ctx: ExecutionContext): Promise<Response> {
+  async fetch(request: Request, env: CloudflareEnv, _ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
 
     // Intercept WebSocket upgrade requests for resume status
@@ -47,21 +43,9 @@ export default {
       return stub.fetch(request);
     }
 
-    // Serve static assets from ASSETS binding
-    // The ASSETS binding serves files from .open-next/assets/ which contains /public/* files
-    const staticFilePattern =
-      /\.(ico|png|svg|webp|jpg|jpeg|gif|webmanifest|xml|txt|woff|woff2|ttf|eot|css|js|json)$/i;
-    if (staticFilePattern.test(url.pathname) && env.ASSETS) {
-      const assetResponse = await env.ASSETS.fetch(request);
-      // Return asset if found, otherwise fall through to OpenNext for dynamically generated files
-      if (assetResponse.status !== 404) {
-        return assetResponse;
-      }
-    }
-
-    // All other requests go to the OpenNext handler
-    // Cast needed: wrapper function receives CfProperties but opennextHandler expects IncomingRequestCfProperties
-    return opennextHandler.fetch(request as Parameters<typeof opennextHandler.fetch>[0], env, ctx);
+    // All other requests go to vinext handler
+    // Note: vinext uses cloudflare:workers internally for env access
+    return handler.fetch(request);
   },
 
   // Cloudflare Queue consumer handler

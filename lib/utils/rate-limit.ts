@@ -1,4 +1,4 @@
-import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { env } from "cloudflare:workers";
 import { and, eq, gte, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { handleChanges, resumes } from "@/lib/db/schema";
@@ -26,7 +26,7 @@ interface RateLimitResult {
  * Checks if a user has exceeded the rate limit for a specific action
  * Uses Drizzle/D1 to count actions in the time window
  *
- * @param existingEnv - Optional pre-fetched CloudflareEnv to avoid redundant getCloudflareContext calls
+ * @param existingEnv - Optional pre-fetched CloudflareEnv to override the module-level env
  */
 async function checkRateLimit(
   userId: string,
@@ -39,8 +39,8 @@ async function checkRateLimit(
   const resetAt = new Date(Date.now() + windowMs);
 
   try {
-    const env = existingEnv ?? (await getCloudflareContext({ async: true })).env;
-    const db = getDb(env.DB);
+    const resolvedEnv = existingEnv ?? env;
+    const db = getDb(resolvedEnv.DB);
 
     // Determine which table and column to query based on action
     let count = 0;
@@ -107,7 +107,7 @@ async function checkRateLimit(
  * Helper function to enforce rate limits in API routes
  * Returns a Response object if rate limit is exceeded, null otherwise
  *
- * @param env - Optional pre-fetched CloudflareEnv to avoid redundant getCloudflareContext calls
+ * @param env - Optional pre-fetched CloudflareEnv to override the module-level env
  */
 export async function enforceRateLimit(
   userId: string,

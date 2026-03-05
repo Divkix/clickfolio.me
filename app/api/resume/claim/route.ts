@@ -42,7 +42,7 @@ export async function POST(request: Request) {
     }
 
     // 2. Check authentication and validate user exists in database
-    // env is returned from requireAuthWithUserValidation, no separate getCloudflareContext needed
+    // env is returned by requireAuthWithUserValidation (backed by cloudflare:workers)
     const {
       user: authUser,
       db,
@@ -84,7 +84,7 @@ export async function POST(request: Request) {
     const { key } = body;
 
     // 5. Rate limiting check (5 uploads per 24 hours)
-    // Pass env to avoid redundant getCloudflareContext call in rate limiter
+    // Pass env to reuse the same binding reference in rate limiter
     const rateLimitResponse = await enforceRateLimit(userId, "resume_upload", env);
     if (rateLimitResponse) {
       return rateLimitResponse;

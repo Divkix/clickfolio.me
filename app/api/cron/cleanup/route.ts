@@ -11,7 +11,7 @@
  * - Old handleChanges (older than 90 days)
  */
 
-import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { env } from "cloudflare:workers";
 import { performCleanup } from "@/lib/cron/cleanup";
 import { getDb } from "@/lib/db";
 
@@ -34,7 +34,6 @@ export async function GET(request: Request) {
   }
 
   try {
-    const { env } = await getCloudflareContext({ async: true });
     const db = getDb(env.DB);
 
     const result = await performCleanup(db);

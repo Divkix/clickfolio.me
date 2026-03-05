@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **clickfolio.me** — Turn a PDF resume into a hosted web portfolio. Upload → AI Parse → Publish.
 
-**Stack**: Next.js 16 (App Router) on Cloudflare Workers, D1 (SQLite) via Drizzle ORM, Better Auth (Google OAuth + email/password), R2 storage, AI parsing via Vercel AI SDK + unpdf (embedded in main worker), Durable Objects for WebSocket notifications.
+**Stack**: vinext (Vite-based Next.js) on Cloudflare Workers via `@cloudflare/vite-plugin`, D1 (SQLite) via Drizzle ORM, Better Auth (Google OAuth + email/password), R2 storage, AI parsing via Vercel AI SDK + unpdf (embedded in main worker), Durable Objects for WebSocket notifications.
 
 ## Commands
 
@@ -20,12 +20,12 @@ bun run test             # Run tests (vitest)
 bun run test:watch       # Run tests in watch mode
 bunx vitest run __tests__/referral.test.ts          # Run single test file
 bunx vitest run __tests__/referral.test.ts -t "name" # Run single test by name
-bun run analyze          # Bundle analysis (ANALYZE=true next build)
+bun run analyze          # Bundle analysis (ANALYZE=true vite build)
 
 # Build & Deploy
-bun run build            # Next.js production build
-bun run build:worker     # OpenNext Cloudflare bundle
-bun run preview          # Local Cloudflare preview
+bun run build            # Vite production build (vinext)
+bun run build:worker     # Alias for build
+bun run preview          # Build + local Cloudflare preview (wrangler dev)
 bun run deploy           # Build and deploy to Cloudflare Workers
 
 # Database (D1 + Drizzle)
@@ -54,7 +54,7 @@ bun run ci               # type-check + lint + test + build
 - **No middleware D1 access** — Edge middleware can't call D1; move DB checks to page components/API routes
 
 ### Middleware Cookie Validation (Intentional Design)
-The middleware (`middleware.ts`) only checks if a session cookie **exists**, not if it's **valid**. This is intentional:
+The proxy (`proxy.ts`, vinext's replacement for middleware.ts) only checks if a session cookie **exists**, not if it's **valid**. This is intentional:
 
 1. **Edge middleware can't access D1** — Cloudflare Workers edge middleware cannot call D1 for session validation
 2. **Defense in depth** — Page components and API routes perform full authentication via `requireAuthWithUserValidation()` which validates both the session AND that the user exists in the database
@@ -144,15 +144,16 @@ app/
 ### URL Convention: `/@handle`
 Public portfolio URLs use the `/@handle` format (e.g., `clickfolio.me/@jane`). Old `/handle` URLs are 308-redirected to `/@handle` via `next.config.ts` redirects. The redirect regex excludes known routes (`api`, `dashboard`, `edit`, `explore`, etc.).
 
-### Custom Worker Entry (`worker.ts`)
-The app deploys as a single Cloudflare Worker. `worker.ts` wraps OpenNext's generated handler and adds:
+### Custom Worker Entry (`worker/index.ts`)
+The app deploys as a single Cloudflare Worker. `worker/index.ts` wraps vinext's generated handler and adds:
 1. **WebSocket upgrade** — `/ws/resume-status?resume_id=X` routes to `ResumeStatusDO` Durable Object for real-time parse status
-2. **Static asset interception** — serves files from `ASSETS` binding before falling through to OpenNext
-3. **Queue consumer** — processes `resume-parse-queue` (main) and `resume-parse-dlq` (dead letter) with retry classification via `isRetryableError()`
-4. **Cron handler** — calls shared functions directly (not self-fetch) to avoid double Worker invocation billing
+2. **Queue consumer** — processes `resume-parse-queue` (main) and `resume-parse-dlq` (dead letter) with retry classification via `isRetryableError()`
+3. **Cron handler** — calls shared functions directly (not self-fetch) to avoid double Worker invocation billing
+
+Static assets are served by `@cloudflare/vite-plugin` via the ASSETS binding at CDN level.
 
 ### Bundle Size Stubs
-`wrangler.jsonc` aliases stub out dead code at esbuild level (post-Next.js build):
+`vite.config.ts` resolve.alias stubs out dead code at Vite build level:
 - `@vercel/og` (~2MB) — doesn't work on CF Workers, Next.js bundles it anyway
 - `@zxcvbn-ts/*` (~1.7MB) — password dictionaries, only needed client-side (SSR gets a no-op)
 - `zod/v3` (~128KB) — Zod v4 ships v3 compat, only `@ai-sdk/provider-utils` imports it for dead code
@@ -278,7 +279,7 @@ All receive `content` (ResumeContent) and `user` props, must respect privacy set
 
 ## Environment Variables
 
-Required in `.env.local` (dev) and Cloudflare secrets (prod):
+Required in `.dev.vars` (dev) and Cloudflare secrets (prod):
 ```
 BETTER_AUTH_SECRET, BETTER_AUTH_URL   # BETTER_AUTH_URL is also used as the app URL
 GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
