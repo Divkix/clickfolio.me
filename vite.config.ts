@@ -1,3 +1,4 @@
+import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { cloudflare } from "@cloudflare/vite-plugin";
 import { visualizer } from "rollup-plugin-visualizer";
@@ -5,18 +6,23 @@ import vinext from "vinext";
 import { defineConfig, type Plugin } from "vite";
 
 /**
- * Vite plugin that stubs `cloudflare:workers` for client environments.
- * Files like lib/referral.ts export both client and server functions;
- * the server-only code imports `cloudflare:workers` which doesn't exist
- * in the browser. This plugin resolves it to an empty stub for client builds.
+ * Vite plugin that stubs server-only modules for client environments.
+ * - `cloudflare:workers` — used by lib/referral.ts etc., doesn't exist in browser
+ * - `node:async_hooks` — vinext's headers.js shim imports AsyncLocalStorage,
+ *   which Vite externalizes to a browser stub that lacks the named export
  */
-function cloudflareWorkersClientStub(): Plugin {
-  const stubPath = resolve("lib/stubs/cloudflare-workers-client-stub.mjs");
+function clientModuleStubs(): Plugin {
+  const stubs: Record<string, string> = {
+    "cloudflare:workers": resolve("lib/stubs/cloudflare-workers-client-stub.mjs"),
+    "node:async_hooks": resolve("lib/stubs/async-hooks-client-stub.mjs"),
+    async_hooks: resolve("lib/stubs/async-hooks-client-stub.mjs"),
+  };
   return {
-    name: "cloudflare-workers-client-stub",
+    name: "client-module-stubs",
+    enforce: "pre",
     resolveId(id) {
-      if (id === "cloudflare:workers" && this.environment?.name === "client") {
-        return stubPath;
+      if (this.environment?.name === "client" && stubs[id]) {
+        return stubs[id];
       }
       return null;
     },
@@ -57,13 +63,35 @@ function clientVendorSplit(): Plugin {
   };
 }
 
+/**
+ * Workaround for vinext cloudflare-build bug: the plugin writes
+ * dist/client/_headers via writeFileSync without creating the directory first.
+ * This plugin ensures the output directory exists before writeBundle hooks fire.
+ * Remove once vinext fixes this upstream.
+ */
+function ensureClientDir(): Plugin {
+  return {
+    name: "ensure-client-dir",
+    enforce: "pre",
+    writeBundle: {
+      order: "pre",
+      handler() {
+        if (this.environment?.name === "client") {
+          mkdirSync("dist/client", { recursive: true });
+        }
+      },
+    },
+  };
+}
+
 export default defineConfig({
   plugins: [
+    ensureClientDir(),
     vinext(),
     cloudflare({
       viteEnvironment: { name: "rsc", childEnvironments: ["ssr"] },
     }),
-    cloudflareWorkersClientStub(),
+    clientModuleStubs(),
     clientVendorSplit(),
   ],
   resolve: {
