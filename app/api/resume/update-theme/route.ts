@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
 import { invalidateResumeCache } from "@/lib/cache/invalidation";
+import { purgeResumeCache } from "@/lib/cloudflare-cache-purge";
 import { siteData, user } from "@/lib/db/schema";
 import {
   getThemeReferralRequirement,
@@ -27,6 +28,7 @@ export async function POST(request: Request) {
       user: authUser,
       db,
       dbUser,
+      env,
       captureBookmark,
       error: authError,
     } = await requireAuthWithUserValidation("You must be logged in to update theme");
@@ -117,6 +119,17 @@ export async function POST(request: Request) {
     // Invalidate KV cache for this user's public resume page
     if (dbUser.handle) {
       await invalidateResumeCache(dbUser.handle);
+
+      // Also purge CDN edge cache so visitors see updated theme immediately
+      const cfZoneId = env.CF_ZONE_ID;
+      const cfApiToken = env.CF_CACHE_PURGE_API_TOKEN;
+      const baseUrl = process.env.BETTER_AUTH_URL;
+
+      if (cfZoneId && cfApiToken && baseUrl) {
+        purgeResumeCache(dbUser.handle, baseUrl, cfZoneId, cfApiToken).catch(() => {
+          // Error already logged inside purgeResumeCache
+        });
+      }
     }
 
     await captureBookmark();

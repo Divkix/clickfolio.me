@@ -10,6 +10,7 @@
 
 import { env } from "cloudflare:workers";
 import { and, eq, isNull, or } from "drizzle-orm";
+import { invalidateResumeCache } from "@/lib/cache/invalidation";
 import { getDb } from "@/lib/db";
 import { referralClicks, user } from "@/lib/db/schema";
 import { generateVisitorHashWithDate } from "@/lib/utils/analytics";
@@ -104,12 +105,13 @@ export async function writeReferral(
 
   // Single query: match referralCode (uppercase) OR handle (lowercase) in one roundtrip
   const referrerResult = await db
-    .select({ id: user.id })
+    .select({ id: user.id, handle: user.handle })
     .from(user)
     .where(or(eq(user.referralCode, normalizedUpper), eq(user.handle, normalizedLower)))
     .limit(1);
 
   const referrerId = referrerResult[0]?.id;
+  const referrerHandle = referrerResult[0]?.handle;
   if (!referrerId) {
     return { success: false, reason: "invalid_ref" };
   }
@@ -129,6 +131,13 @@ export async function writeReferral(
     .set({ referredBy: referrerId, referredAt: now })
     .where(and(eq(user.id, userId), isNull(user.referredBy)))
     .returning({ id: user.id });
+
+  // Invalidate referrer's cached public page (referralCount changed, may affect theme unlock)
+  if (result.length > 0 && referrerHandle) {
+    invalidateResumeCache(referrerHandle).catch(() => {
+      // Best-effort — the referral write is the critical operation
+    });
+  }
 
   if (result.length === 0) {
     // No rows updated - check why

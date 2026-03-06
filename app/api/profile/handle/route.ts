@@ -172,6 +172,20 @@ export async function PUT(request: Request) {
       }
     }
 
+    // Invalidate KV + CDN cache for new handle (clears stale 404 from prior visits)
+    await invalidateResumeCache(newHandle);
+    {
+      const cfZoneId = env.CF_ZONE_ID;
+      const cfApiToken = env.CF_CACHE_PURGE_API_TOKEN;
+      const baseUrl = process.env.BETTER_AUTH_URL;
+
+      if (cfZoneId && cfApiToken && baseUrl) {
+        purgeResumeCache(newHandle, baseUrl, cfZoneId, cfApiToken).catch(() => {
+          // Error already logged inside purgeResumeCache
+        });
+      }
+    }
+
     await captureBookmark();
 
     return createSuccessResponse({

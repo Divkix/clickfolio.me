@@ -1,6 +1,7 @@
 import { and, eq, ne } from "drizzle-orm";
 import { z } from "zod";
 import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
+import { invalidateResumeCache } from "@/lib/cache/invalidation";
 import { siteData, user } from "@/lib/db/schema";
 import { handleSchema } from "@/lib/schemas/profile";
 import {
@@ -183,10 +184,13 @@ export async function POST(request: Request) {
       throw error; // Re-throw other errors
     }
 
-    // 8. Capture bookmark before returning success
+    // 8. Invalidate KV cache for new handle (clears stale 404 from prior visits)
+    await invalidateResumeCache(body.handle);
+
+    // 9. Capture bookmark before returning success
     await captureBookmark();
 
-    // 9. Return success response
+    // 10. Return success response
     return createSuccessResponse({
       success: true,
       handle: body.handle,

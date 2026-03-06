@@ -199,14 +199,14 @@ async function fetchResumeMetadataRaw(handle: string): Promise<ResumeMetadata | 
 function getCachedResumeData(handle: string) {
   return unstable_cache(() => fetchResumeDataRaw(handle), ["resume-data", handle], {
     tags: [`resume_${handle}`],
-    revalidate: 86400,
+    revalidate: 3600,
   })();
 }
 
 function getCachedResumeMetadata(handle: string) {
   return unstable_cache(() => fetchResumeMetadataRaw(handle), ["resume-metadata", handle], {
     tags: [`resume_${handle}`],
-    revalidate: 86400,
+    revalidate: 3600,
   })();
 }
 
