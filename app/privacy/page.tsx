@@ -4,6 +4,8 @@ import { Footer } from "@/components/Footer";
 import { Logo } from "@/components/Logo";
 import { siteConfig } from "@/lib/config/site";
 
+export const revalidate = 86400;
+
 const privacyTitle = `Privacy Policy - ${siteConfig.fullName}`;
 const privacyDescription = `Privacy Policy for ${siteConfig.fullName}. Learn how we collect, use, and protect your personal information.`;
 

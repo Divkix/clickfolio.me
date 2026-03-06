@@ -7,6 +7,8 @@ import { getDb } from "@/lib/db";
 import { siteData } from "@/lib/db/schema";
 import type { ResumeContent } from "@/lib/types/database";
 
+export const dynamic = "force-dynamic";
+
 export default async function EditPage() {
   // Use cached session helper to deduplicate auth calls within request
   const session = await getServerSession();

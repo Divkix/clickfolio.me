@@ -8,7 +8,7 @@ import { Logo } from "@/components/Logo";
 interface AdminSidebarProps {
   isOpen: boolean;
   onClose: () => void;
-  adminEmail: string;
+  adminEmail?: string;
 }
 
 const NAV_ITEMS = [

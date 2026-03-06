@@ -10,6 +10,8 @@ import { siteData, user } from "@/lib/db/schema";
 import { DEFAULT_THEME } from "@/lib/templates/theme-ids";
 import type { ResumeContent } from "@/lib/types/database";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: `Themes | ${siteConfig.fullName}`,
   description: "Choose your resume theme",

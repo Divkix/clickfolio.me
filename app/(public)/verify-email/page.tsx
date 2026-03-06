@@ -1,5 +1,7 @@
 "use client";
 
+export const revalidate = 86400;
+
 import { CheckCircle, Loader2, XCircle } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";

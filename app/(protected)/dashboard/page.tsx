@@ -33,6 +33,8 @@ import type { ResumeContent } from "@/lib/types/database";
 import { formatRelativeTime, truncateText } from "@/lib/utils/format";
 import { calculateCompleteness, getProfileSuggestions } from "@/lib/utils/profile-completeness";
 
+export const dynamic = "force-dynamic";
+
 export default async function DashboardPage() {
   // Use cached session helper to deduplicate auth calls within request
   const session = await getServerSession();

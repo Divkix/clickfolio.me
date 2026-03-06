@@ -1,5 +1,7 @@
 "use client";
 
+export const revalidate = 86400;
+
 import { MousePointerClick, Share2, TrendingUp, UserPlus } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";

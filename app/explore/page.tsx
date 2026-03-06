@@ -11,6 +11,8 @@ import { getDb } from "@/lib/db";
 import { siteData, user } from "@/lib/db/schema";
 import { ROLE_OPTIONS } from "@/lib/schemas/profile";
 
+export const dynamic = "force-dynamic";
+
 const exploreTitle = `Browse Professional Portfolios | ${siteConfig.fullName}`;
 const exploreDescription =
   "Discover professionals in our community. Browse portfolios and connect with talented individuals.";

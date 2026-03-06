@@ -3,6 +3,8 @@ import { DEMO_RESUME_CONTENT, TEMPLATE_BACKGROUNDS } from "@/lib/templates/demo-
 import type { ThemeId } from "@/lib/templates/theme-ids";
 import { getTemplate } from "@/lib/templates/theme-registry";
 
+export const revalidate = 604800;
+
 /**
  * Standalone template preview page used by the thumbnail generator script.
  * Not linked from the UI — only accessed via scripts/generate-thumbnails.ts.

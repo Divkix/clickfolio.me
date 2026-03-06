@@ -1,5 +1,7 @@
 "use client";
 
+export const revalidate = 86400;
+
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CheckCircle, Loader2, XCircle } from "lucide-react";
 import Link from "next/link";

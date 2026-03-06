@@ -1,5 +1,7 @@
 "use client";
 
+export const revalidate = 86400;
+
 /**
  * Waiting Room - Error Fallback Page
  *

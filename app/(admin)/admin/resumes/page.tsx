@@ -1,5 +1,7 @@
 "use client";
 
+export const revalidate = 86400;
+
 import { AlertTriangle, CheckCircle2, Clock, FileText, Loader2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";

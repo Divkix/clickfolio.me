@@ -3,21 +3,22 @@
 import { useState } from "react";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
+import { useSession } from "@/lib/auth/client";
 
 interface AdminLayoutClientProps {
   children: React.ReactNode;
-  adminEmail: string;
 }
 
-export function AdminLayoutClient({ children, adminEmail }: AdminLayoutClientProps) {
+export function AdminLayoutClient({ children }: AdminLayoutClientProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { data: session } = useSession();
 
   return (
     <div className="min-h-screen bg-cream">
       <AdminSidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
-        adminEmail={adminEmail}
+        adminEmail={session?.user?.email}
       />
 
       <div className="lg:pl-64">

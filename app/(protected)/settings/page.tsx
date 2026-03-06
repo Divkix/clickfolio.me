@@ -13,6 +13,8 @@ import { getDb } from "@/lib/db";
 import { resumes, user } from "@/lib/db/schema";
 import { parsePrivacySettings } from "@/lib/utils/privacy";
 
+export const dynamic = "force-dynamic";
+
 interface ProfileSectionProps {
   name: string;
   email: string;

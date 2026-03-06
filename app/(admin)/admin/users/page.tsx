@@ -1,5 +1,7 @@
 "use client";
 
+export const revalidate = 86400;
+
 import { Search, Users } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";

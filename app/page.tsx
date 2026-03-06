@@ -13,6 +13,8 @@ import { siteConfig } from "@/lib/config/site";
 import { DEMO_PROFILES } from "@/lib/templates/demo-data";
 import { generateHomepageJsonLd, serializeJsonLd } from "@/lib/utils/json-ld";
 
+export const revalidate = 3600;
+
 const pageTitle = `${siteConfig.fullName} — ${siteConfig.tagline}`;
 const pageDescription =
   "Drop your PDF résumé and get a shareable website in seconds. Free, fast, and AI-powered.";

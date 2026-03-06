@@ -4,6 +4,8 @@ import { Footer } from "@/components/Footer";
 import { Logo } from "@/components/Logo";
 import { siteConfig } from "@/lib/config/site";
 
+export const revalidate = 86400;
+
 const termsTitle = `Terms of Service - ${siteConfig.fullName}`;
 const termsDescription = `Terms of Service for ${siteConfig.fullName}. Read our terms and conditions for using the service.`;
 

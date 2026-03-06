@@ -1,5 +1,7 @@
 "use client";
 
+export const revalidate = 86400;
+
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
