@@ -15,7 +15,7 @@
     "test:watch": "vitest",
     "ci": "bun run type-check && bun run lint && bun run test && bun run build",
     "preview": "vite build && bunx wrangler dev",
-    "deploy": "bunx wrangler deploy",
+    "deploy": "bun run scripts/deploy.ts",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
     "db:migrate": "wrangler d1 migrations apply clickfolio-db --local",

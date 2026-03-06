@@ -16,6 +16,10 @@ const nextConfig: NextConfig = {
         source: "/sitemap.xml",
         destination: "/api/sitemap-index",
       },
+      {
+        source: "/sitemap/:id.xml",
+        destination: "/api/sitemap/:id",
+      },
     ];
   },
 
@@ -93,6 +97,48 @@ const nextConfig: NextConfig = {
           {
             key: "CDN-Cache-Control",
             value: "public, max-age=604800, stale-while-revalidate=2592000",
+          },
+        ],
+      },
+      {
+        // robots.txt is static metadata; cache it aggressively at the edge
+        source: "/robots.txt",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, s-maxage=86400, stale-while-revalidate=604800",
+          },
+          {
+            key: "CDN-Cache-Control",
+            value: "public, max-age=86400, stale-while-revalidate=604800",
+          },
+        ],
+      },
+      {
+        // Sitemap index changes slowly; 1 hour TTL is fine
+        source: "/sitemap.xml",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, s-maxage=3600, stale-while-revalidate=86400",
+          },
+          {
+            key: "CDN-Cache-Control",
+            value: "public, max-age=3600, stale-while-revalidate=86400",
+          },
+        ],
+      },
+      {
+        // Sitemap shards are bot-facing and safe to cache briefly
+        source: "/sitemap/:id.xml",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, s-maxage=3600, stale-while-revalidate=86400",
+          },
+          {
+            key: "CDN-Cache-Control",
+            value: "public, max-age=3600, stale-while-revalidate=86400",
           },
         ],
       },

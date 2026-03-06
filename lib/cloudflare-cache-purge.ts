@@ -10,6 +10,15 @@
  */
 
 const CLOUDFLARE_API_BASE = "https://api.cloudflare.com/client/v4";
+const PUBLIC_CACHE_PATHS = [
+  "/",
+  "/privacy",
+  "/terms",
+  "/explore",
+  "/robots.txt",
+  "/sitemap.xml",
+  "/api/og/home",
+] as const;
 
 interface CloudflarePurgeResponse {
   success: boolean;
@@ -20,44 +29,44 @@ interface CloudflarePurgeResponse {
   };
 }
 
-/**
- * Purges the Cloudflare edge cache for a specific resume URL.
- *
- * This function calls the Cloudflare Cache Purge API to immediately remove
- * cached responses from the edge. Use this for privacy-sensitive changes
- * (e.g., hiding phone number, address) where the user expects immediate effect.
- *
- * @param handle - The user's handle (username)
- * @param baseUrl - The base URL of the site (e.g., "https://clickfolio.me")
- * @param zoneId - Cloudflare zone ID
- * @param apiToken - Cloudflare API token with Cache Purge permissions
- * @returns boolean indicating success (true) or failure (false)
- *
- * @example
- * ```typescript
- * const success = await purgeResumeCache(
- *   "johndoe",
- *   "https://clickfolio.me",
- *   env.CF_ZONE_ID,
- *   env.CF_CACHE_PURGE_API_TOKEN
- * );
- * ```
- */
-export async function purgeResumeCache(
-  handle: string,
-  baseUrl: string,
+function normalizeBaseUrl(baseUrl: string): string {
+  return baseUrl.replace(/\/$/, "");
+}
+
+function purgeLogTarget(urls: string[]): string {
+  return urls.length === 1 ? urls[0] : `${urls.length} URLs`;
+}
+
+export function buildResumeCacheUrls(handle: string, baseUrl: string): string[] {
+  if (!handle || !baseUrl) return [];
+
+  const normalizedBaseUrl = normalizeBaseUrl(baseUrl);
+  const encodedHandle = encodeURIComponent(handle);
+
+  return [`${normalizedBaseUrl}/@${handle}`, `${normalizedBaseUrl}/api/og/${encodedHandle}`];
+}
+
+export function buildPublicPageCacheUrls(baseUrl: string): string[] {
+  if (!baseUrl) return [];
+
+  const normalizedBaseUrl = normalizeBaseUrl(baseUrl);
+
+  return PUBLIC_CACHE_PATHS.map((path) =>
+    path === "/" ? normalizedBaseUrl : `${normalizedBaseUrl}${path}`,
+  );
+}
+
+export async function purgeCloudflareCacheUrls(
+  urls: string[],
   zoneId: string,
   apiToken: string,
 ): Promise<boolean> {
-  if (!handle || !baseUrl || !zoneId || !apiToken) {
+  const uniqueUrls = [...new Set(urls.filter(Boolean))];
+
+  if (uniqueUrls.length === 0 || !zoneId || !apiToken) {
     console.error("purgeResumeCache: Missing required parameters");
     return false;
   }
-
-  // Normalize base URL (remove trailing slash)
-  const normalizedBaseUrl = baseUrl.replace(/\/$/, "");
-  // Use @ prefix convention for handle URLs
-  const resumeUrl = `${normalizedBaseUrl}/@${handle}`;
 
   try {
     const response = await fetch(`${CLOUDFLARE_API_BASE}/zones/${zoneId}/purge_cache`, {
@@ -67,7 +76,7 @@ export async function purgeResumeCache(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        files: [resumeUrl],
+        files: uniqueUrls,
       }),
     });
 
@@ -87,11 +96,47 @@ export async function purgeResumeCache(
       return false;
     }
 
-    console.log(`Successfully purged Cloudflare cache for: ${resumeUrl}`);
+    console.log(`Successfully purged Cloudflare cache for: ${purgeLogTarget(uniqueUrls)}`);
     return true;
   } catch (error) {
     // Log but don't throw - cache purge is best-effort
     console.error("Cloudflare cache purge exception:", error);
     return false;
   }
+}
+
+/**
+ * Purges the Cloudflare edge cache for public resume assets.
+ *
+ * This removes both the HTML profile page and its OG image so social previews
+ * stay in sync with handle/content/theme updates.
+ */
+export async function purgeResumeCache(
+  handle: string,
+  baseUrl: string,
+  zoneId: string,
+  apiToken: string,
+): Promise<boolean> {
+  if (!handle || !baseUrl || !zoneId || !apiToken) {
+    console.error("purgeResumeCache: Missing required parameters");
+    return false;
+  }
+
+  return purgeCloudflareCacheUrls(buildResumeCacheUrls(handle, baseUrl), zoneId, apiToken);
+}
+
+/**
+ * Purges cache for code-driven public pages after deploy.
+ */
+export async function purgePublicPageCache(
+  baseUrl: string,
+  zoneId: string,
+  apiToken: string,
+): Promise<boolean> {
+  if (!baseUrl || !zoneId || !apiToken) {
+    console.error("purgePublicPageCache: Missing required parameters");
+    return false;
+  }
+
+  return purgeCloudflareCacheUrls(buildPublicPageCacheUrls(baseUrl), zoneId, apiToken);
 }
