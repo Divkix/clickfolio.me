@@ -93,7 +93,7 @@ export async function writeReferral(
   }
 
   // Single DB instance for the entire function
-  const db = getDb(env.DB);
+  const db = getDb(env.CLICKFOLIO_DB);
 
   // Resolve referral code to user ID inline (avoids redundant getDb calls)
   // Backward compatible: accept either a referralCode (uppercase) or a handle (lowercase).

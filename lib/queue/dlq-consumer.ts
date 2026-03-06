@@ -87,7 +87,7 @@ export async function handleDLQMessage(
     "failureReason" in message ? message.failureReason : "Unknown (moved to DLQ)";
 
   // Use webhook variant since cookies are not available in Worker queue context
-  const { db } = getSessionDbForWebhook(env.DB);
+  const { db } = getSessionDbForWebhook(env.CLICKFOLIO_DB);
 
   // Fetch current resume state
   const currentResume = await db

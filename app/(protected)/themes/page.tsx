@@ -24,7 +24,7 @@ export default async function ThemesPage() {
   }
 
   // 2. Get database connection
-  const db = getDb(env.DB);
+  const db = getDb(env.CLICKFOLIO_DB);
 
   // 3. Fetch user's site data (theme + content) and profile info (including referralCount) in parallel
   const [userSiteData, userProfile] = await Promise.all([

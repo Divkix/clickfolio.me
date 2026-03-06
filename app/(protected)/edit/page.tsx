@@ -15,7 +15,7 @@ export default async function EditPage() {
     redirect("/");
   }
 
-  const db = getDb(env.DB);
+  const db = getDb(env.CLICKFOLIO_DB);
 
   // Fetch user's site data
   const siteDataResult = await db.query.siteData.findFirst({

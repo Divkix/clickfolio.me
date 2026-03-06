@@ -55,7 +55,7 @@ export default async function ExplorePage({
   const currentPage = Math.max(1, Number.parseInt(params.page || "1", 10));
   const roleFilter = params.role || "";
 
-  const db = getDb(env.DB);
+  const db = getDb(env.CLICKFOLIO_DB);
 
   // Build where conditions
   const whereConditions = [

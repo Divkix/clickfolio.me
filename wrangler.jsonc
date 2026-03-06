@@ -39,7 +39,7 @@
 	// D1 Database binding
 	"d1_databases": [
 		{
-			"binding": "DB",
+			"binding": "CLICKFOLIO_DB",
 			"database_name": "clickfolio-db",
 			"database_id": "37cf1935-96c5-40c8-aa2e-0d0655f9b652"
 		}
@@ -58,7 +58,7 @@
 	// R2 bucket binding for direct access (replaces AWS SDK for most operations)
 	"r2_buckets": [
 		{
-			"binding": "R2_BUCKET",
+			"binding": "CLICKFOLIO_R2_BUCKET",
 			"bucket_name": "clickfolio-bucket"
 		}
 	],
@@ -170,7 +170,7 @@
 		//   wrangler secret put CF_AI_GATEWAY_ID
 		//   wrangler secret put CF_AIG_AUTH_TOKEN
 		//
-		// Note: R2 is accessed via binding (R2_BUCKET) - no API credentials needed
+		// Note: R2 is accessed via binding (CLICKFOLIO_R2_BUCKET) - no API credentials needed
 		// Optional: For edge cache purge (set via wrangler secret put in production)
 		"CF_ZONE_ID": "67b153979964d5eafc441643acb1fc14",
 		"NODE_ENV": "production",

@@ -43,7 +43,7 @@ interface ResumeMetadata {
  * is already privacy-filtered.
  */
 async function fetchResumeDataRaw(handle: string): Promise<ResumeData | null> {
-  const db = getDb(env.DB);
+  const db = getDb(env.CLICKFOLIO_DB);
 
   // Fetch user by handle with siteData relation
   const userData = await db.query.user.findFirst({
@@ -149,7 +149,7 @@ async function fetchResumeDataRaw(handle: string): Promise<ResumeData | null> {
  * the full content JSON blob (50-100KB), saving significant I/O and CPU.
  */
 async function fetchResumeMetadataRaw(handle: string): Promise<ResumeMetadata | null> {
-  const db = getDb(env.DB);
+  const db = getDb(env.CLICKFOLIO_DB);
 
   const userData = await db.query.user.findFirst({
     where: eq(user.handle, handle),

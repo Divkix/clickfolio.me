@@ -9,7 +9,7 @@
  * Used for direct R2 operations (get, put, delete, copy, head)
  */
 export function getR2Binding(env: Partial<CloudflareEnv>): R2Bucket | null {
-  return env.R2_BUCKET ?? null;
+  return env.CLICKFOLIO_R2_BUCKET ?? null;
 }
 
 /**

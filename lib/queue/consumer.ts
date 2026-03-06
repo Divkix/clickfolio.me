@@ -61,7 +61,7 @@ async function invalidateCacheForUser(
  * Handle resume parsing from queue
  */
 async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv): Promise<void> {
-  const { db } = getSessionDbForWebhook(env.DB);
+  const { db } = getSessionDbForWebhook(env.CLICKFOLIO_DB);
   const r2Binding = getR2Binding(env);
 
   if (!r2Binding) {
@@ -307,7 +307,7 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
  * Export this from the worker entry point
  */
 export async function handleQueueMessage(message: QueueMessage, env: CloudflareEnv): Promise<void> {
-  const { db } = getSessionDbForWebhook(env.DB);
+  const { db } = getSessionDbForWebhook(env.CLICKFOLIO_DB);
 
   try {
     // Currently only supporting parse messages

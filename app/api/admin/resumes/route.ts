@@ -27,7 +27,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const db = getDb(env.DB);
+    const db = getDb(env.CLICKFOLIO_DB);
 
     // Get status counts
     const statusCounts = await db

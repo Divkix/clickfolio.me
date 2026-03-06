@@ -96,7 +96,7 @@ export async function GET(request: Request) {
     // 3. Check if handle exists in database
     //    Plain getDb() — this is a read-only availability check, no need for
     //    session consistency (bookmark cookies) or D1 session wrappers.
-    const db = getDb(env.DB);
+    const db = getDb(env.CLICKFOLIO_DB);
 
     const existingUser = await db
       .select({ id: user.id })

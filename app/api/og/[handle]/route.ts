@@ -56,7 +56,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ han
   }
 
   try {
-    const db = getDb(env.DB);
+    const db = getDb(env.CLICKFOLIO_DB);
 
     // Lightweight query: only preview columns needed for OG card
     const rows = await db

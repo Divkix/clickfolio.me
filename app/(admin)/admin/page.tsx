@@ -12,7 +12,7 @@ import { getPageviews, getStats } from "@/lib/umami/client";
 export const dynamic = "force-dynamic";
 
 async function getAdminStats() {
-  const db = getDb(env.DB);
+  const db = getDb(env.CLICKFOLIO_DB);
 
   const now = new Date();
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());

@@ -18,7 +18,7 @@ export async function GET() {
     );
     if (authError) return authError;
 
-    const db = getDb(env.DB);
+    const db = getDb(env.CLICKFOLIO_DB);
 
     const userData = await db.query.user.findFirst({
       where: eq(user.id, authUser.id),

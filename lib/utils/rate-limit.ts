@@ -31,7 +31,7 @@ interface RateLimitResult {
 async function checkRateLimit(
   userId: string,
   action: RateLimitAction,
-  existingEnv?: Pick<CloudflareEnv, "DB">,
+  existingEnv?: Pick<CloudflareEnv, "CLICKFOLIO_DB">,
 ): Promise<RateLimitResult> {
   const config = RATE_LIMITS[action];
   const windowMs = config.windowHours * 60 * 60 * 1000;
@@ -40,7 +40,7 @@ async function checkRateLimit(
 
   try {
     const resolvedEnv = existingEnv ?? env;
-    const db = getDb(resolvedEnv.DB);
+    const db = getDb(resolvedEnv.CLICKFOLIO_DB);
 
     // Determine which table and column to query based on action
     let count = 0;
@@ -112,7 +112,7 @@ async function checkRateLimit(
 export async function enforceRateLimit(
   userId: string,
   action: RateLimitAction,
-  env?: Pick<CloudflareEnv, "DB">,
+  env?: Pick<CloudflareEnv, "CLICKFOLIO_DB">,
 ): Promise<Response | null> {
   // Skip rate limiting in development
   if (process.env.NODE_ENV !== "production") {

@@ -166,7 +166,7 @@ export async function requireAuthWithUserValidation(errorMessage: string): Promi
   // Create session db with primary-first consistency
   // This ensures reads/writes go to primary, avoiding FK constraint failures
   // when user record hasn't replicated to all replicas yet (post-auth flow)
-  const { db, captureBookmark } = await getSessionDbWithPrimaryFirst(env.DB);
+  const { db, captureBookmark } = await getSessionDbWithPrimaryFirst(env.CLICKFOLIO_DB);
 
   // Validate user exists in database (protects against stale sessions)
   const userRecord = await db

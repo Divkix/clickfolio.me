@@ -50,7 +50,7 @@ async function setBookmarkCookie(bookmark: string): Promise<void> {
  *
  * Usage:
  * ```typescript
- * const { db, captureBookmark } = await getSessionDb(env.DB);
+ * const { db, captureBookmark } = await getSessionDb(env.CLICKFOLIO_DB);
  * await db.insert(users).values({ ... });
  * await captureBookmark(); // Store bookmark for read-your-own-writes
  * ```
@@ -86,7 +86,7 @@ export async function getSessionDb(d1: D1Database): Promise<SessionDbResult> {
  *
  * Usage:
  * ```typescript
- * const { db } = getSessionDbForWebhook(env.DB);
+ * const { db } = getSessionDbForWebhook(env.CLICKFOLIO_DB);
  * await db.update(resumes).set({ status: "completed" }).where(...);
  * ```
  */
@@ -107,7 +107,7 @@ export function getSessionDbForWebhook(d1: D1Database): Pick<SessionDbResult, "d
  *
  * Usage:
  * ```typescript
- * const { db, captureBookmark } = await getSessionDbWithPrimaryFirst(env.DB);
+ * const { db, captureBookmark } = await getSessionDbWithPrimaryFirst(env.CLICKFOLIO_DB);
  * await db.insert(resumes).values({ userId: user.id, ... });
  * await captureBookmark();
  * ```

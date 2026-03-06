@@ -106,7 +106,7 @@ export async function checkIPRateLimit(ip: string): Promise<IPRateLimitResult> {
   const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
 
   try {
-    const db = getDb(env.DB);
+    const db = getDb(env.CLICKFOLIO_DB);
 
     // Single query with conditional aggregation (saves 1 D1 roundtrip)
     // WHERE clause orders ipHash first (index prefix) for optimal index usage
@@ -227,7 +227,7 @@ export async function checkHandleRateLimit(ip: string): Promise<IPRateLimitResul
   const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000).toISOString();
 
   try {
-    const db = getDb(env.DB);
+    const db = getDb(env.CLICKFOLIO_DB);
 
     // Count handle checks in the last hour
     const result = await db
@@ -327,7 +327,7 @@ export async function checkEmailValidateRateLimit(ip: string): Promise<IPRateLim
   const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000).toISOString();
 
   try {
-    const db = getDb(env.DB);
+    const db = getDb(env.CLICKFOLIO_DB);
 
     // Count email validation checks in the last hour
     const result = await db

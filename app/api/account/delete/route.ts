@@ -83,7 +83,7 @@ export async function POST(request: Request) {
     }
 
     // 4. Initialize database
-    const db = getDb(env.DB);
+    const db = getDb(env.CLICKFOLIO_DB);
 
     // 5. Fetch all resume R2 keys and user handle in parallel before deletion
     const [userResumes, userWithHandle] = await Promise.all([

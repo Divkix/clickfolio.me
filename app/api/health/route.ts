@@ -90,7 +90,7 @@ export async function GET() {
 
     // Run all health checks in parallel
     const [d1Health, r2Health] = await Promise.all([
-      checkD1(env.DB),
+      checkD1(env.CLICKFOLIO_DB),
       r2Binding
         ? checkR2(r2Binding)
         : Promise.resolve({ status: "unhealthy" as const, error: "R2 binding not available" }),

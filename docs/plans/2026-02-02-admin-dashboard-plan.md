@@ -95,7 +95,7 @@ export async function requireAdminAuth(): Promise<AdminUser> {
   }
 
   const { env } = await getCloudflareContext({ async: true });
-  const db = getDb(env.DB);
+  const db = getDb(env.CLICKFOLIO_DB);
 
   const dbUser = await db.query.user.findFirst({
     where: eq(users.id, session.user.id),
@@ -135,7 +135,7 @@ export async function requireAdminAuthForApi(): Promise<
   }
 
   const { env } = await getCloudflareContext({ async: true });
-  const db = getDb(env.DB);
+  const db = getDb(env.CLICKFOLIO_DB);
 
   const dbUser = await db.query.user.findFirst({
     where: eq(users.id, session.user.id),
@@ -505,7 +505,7 @@ export async function GET() {
 
   try {
     const { env } = await getCloudflareContext({ async: true });
-    const db = getDb(env.DB);
+    const db = getDb(env.CLICKFOLIO_DB);
 
     const now = new Date();
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
@@ -823,7 +823,7 @@ export const runtime = "edge";
 
 async function getStats() {
   const { env } = await getCloudflareContext({ async: true });
-  const db = getDb(env.DB);
+  const db = getDb(env.CLICKFOLIO_DB);
 
   const now = new Date();
   const todayStart = new Date(
@@ -1067,7 +1067,7 @@ export async function GET(request: Request) {
 
   try {
     const { env } = await getCloudflareContext({ async: true });
-    const db = getDb(env.DB);
+    const db = getDb(env.CLICKFOLIO_DB);
 
     // Build where clause for search
     const searchCondition = search
@@ -1645,7 +1645,7 @@ export async function GET(request: Request) {
 
   try {
     const { env } = await getCloudflareContext({ async: true });
-    const db = getDb(env.DB);
+    const db = getDb(env.CLICKFOLIO_DB);
 
     // Get status counts
     const statusCounts = await db
@@ -2211,7 +2211,7 @@ export async function GET(request: Request) {
 
   try {
     const { env } = await getCloudflareContext({ async: true });
-    const db = getDb(env.DB);
+    const db = getDb(env.CLICKFOLIO_DB);
 
     const days = periodToDays(period);
     const sinceDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
@@ -2916,7 +2916,7 @@ export async function GET() {
 
   try {
     const { env } = await getCloudflareContext({ async: true });
-    const db = getDb(env.DB);
+    const db = getDb(env.CLICKFOLIO_DB);
 
     const [
       referrerCount,

@@ -41,7 +41,7 @@ export default async function DashboardPage() {
     redirect("/");
   }
 
-  const db = getDb(env.DB);
+  const db = getDb(env.CLICKFOLIO_DB);
 
   // Parallelize independent queries: user data + referral click count
   const [userData, clickCountResult] = await Promise.all([

@@ -109,7 +109,7 @@ function getEnvValue(env: Partial<CloudflareEnv>, key: keyof CloudflareEnv): str
  * D1 binding.
  *
  * The instance is cached in a module-level WeakMap keyed by the raw D1 binding
- * object. Within a Cloudflare Workers isolate, `env.DB` is the same object
+ * object. Within a Cloudflare Workers isolate, `env.CLICKFOLIO_DB` is the same object
  * reference on every request, so the betterAuth() constructor (schema parsing,
  * middleware pipeline, plugin init, route generation) runs exactly once per
  * isolate rather than once per request.
@@ -130,7 +130,7 @@ function getEnvValue(env: Partial<CloudflareEnv>, key: keyof CloudflareEnv): str
  * ```
  */
 export async function getAuth() {
-  const rawD1 = env.DB;
+  const rawD1 = env.CLICKFOLIO_DB;
 
   // Fast path: return cached instance if we already built one for this binding
   const cached = authInstanceCache.get(rawD1);

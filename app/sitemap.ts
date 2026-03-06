@@ -29,7 +29,7 @@ function getBaseUrl(): string {
  */
 export async function generateSitemaps(): Promise<Array<{ id: number }>> {
   try {
-    const db = getDb(env.DB);
+    const db = getDb(env.CLICKFOLIO_DB);
 
     // Count users with handles (completed onboarding) who haven't opted out of search
     const [result] = await db
@@ -95,7 +95,7 @@ export default async function sitemap(props: {
   }
 
   try {
-    const db = getDb(env.DB);
+    const db = getDb(env.CLICKFOLIO_DB);
 
     // Calculate pagination offset
     const offset = id * URLS_PER_SITEMAP;

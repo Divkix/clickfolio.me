@@ -36,7 +36,7 @@ export async function PUT(request: Request) {
     const { user: authUser } = authResult;
 
     // 3. Get database connection
-    const { db, captureBookmark } = await getSessionDb(env.DB);
+    const { db, captureBookmark } = await getSessionDb(env.CLICKFOLIO_DB);
 
     // 4. Check rate limit (3 handle changes per 24 hours)
     const windowStart = new Date(Date.now() - 24 * 60 * 60 * 1000);

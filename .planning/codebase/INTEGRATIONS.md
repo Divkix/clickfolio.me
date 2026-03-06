@@ -68,7 +68,7 @@
 
 **File Storage:**
 - R2 (Cloudflare object storage)
-  - Binding: `R2_BUCKET` (clickfolio-bucket)
+  - Binding: `CLICKFOLIO_R2_BUCKET` (clickfolio-bucket)
   - Stored artifacts: PDF uploads (temp + claimed), parsed resume content (JSON), OG images
   - Access: Direct binding via `lib/r2.ts` wrapper (no S3 SDK, no credentials needed)
   - CORS: Configured for localhost:3000 and clickfolio.me

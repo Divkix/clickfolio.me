@@ -203,8 +203,8 @@ ALERT_WEBHOOK_URL           # Slack/Discord webhook for DLQ alerts
 
 **Bindings (wrangler.jsonc):**
 ```
-DB                  → D1 database (clickfolio-db)
-R2_BUCKET           → R2 bucket (clickfolio-bucket)
+CLICKFOLIO_DB        → D1 database (clickfolio-db)
+CLICKFOLIO_R2_BUCKET → R2 bucket (clickfolio-bucket)
 DISPOSABLE_DOMAINS  → KV namespace for email domain blocklist
 RESUME_PARSE_QUEUE  → Queue for async resume parsing
 RESUME_STATUS_DO    → Durable Object for WebSocket notifications

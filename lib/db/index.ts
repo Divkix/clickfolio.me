@@ -6,7 +6,7 @@ type SchemaDb = DrizzleD1Database<typeof schema> & { $client: D1Database };
 /**
  * Module-level cache for Drizzle instances, keyed by raw D1 binding identity.
  *
- * Within a single Cloudflare Workers isolate, `env.DB` is the same object
+ * Within a single Cloudflare Workers isolate, `env.CLICKFOLIO_DB` is the same object
  * reference on every request, so the drizzle() constructor (schema parsing,
  * relation graph) runs exactly once per isolate rather than once per request.
  * WeakMap ensures automatic cleanup when the binding is garbage-collected.

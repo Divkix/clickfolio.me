@@ -23,7 +23,7 @@ export async function GET() {
     if (authError) return authError;
 
     // 2. Get D1 database binding
-    const { db } = await getSessionDb(env.DB);
+    const { db } = await getSessionDb(env.CLICKFOLIO_DB);
 
     const userId = authUser.id;
 

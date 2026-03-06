@@ -30,7 +30,7 @@ export async function GET(request: Request) {
   const offset = (page - 1) * PAGE_SIZE;
 
   try {
-    const db = getDb(env.DB);
+    const db = getDb(env.CLICKFOLIO_DB);
 
     // Escape LIKE wildcards to prevent pattern injection
     const escapedSearch = escapeLikePattern(search);

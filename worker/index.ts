@@ -91,7 +91,7 @@ export default {
   // Cloudflare Cron trigger handler
   // Calls shared functions directly to avoid self-fetch (which doubles Worker invocations billed).
   async scheduled(controller: ScheduledController, env: CloudflareEnv): Promise<void> {
-    const db = getDb(env.DB);
+    const db = getDb(env.CLICKFOLIO_DB);
 
     try {
       switch (controller.cron) {

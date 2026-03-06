@@ -34,7 +34,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const db = getDb(env.DB);
+    const db = getDb(env.CLICKFOLIO_DB);
 
     const queue = env.CLICKFOLIO_PARSE_QUEUE;
     if (!queue) {

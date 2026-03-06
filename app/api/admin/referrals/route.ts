@@ -15,7 +15,7 @@ export async function GET() {
   if (error) return error;
 
   try {
-    const db = getDb(env.DB);
+    const db = getDb(env.CLICKFOLIO_DB);
 
     const [
       referrerCount,

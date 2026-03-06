@@ -75,7 +75,7 @@ export default async function SettingsPage() {
     redirect("/");
   }
 
-  const db = getDb(env.DB);
+  const db = getDb(env.CLICKFOLIO_DB);
 
   const [profile, resumeData, latestResume] = await Promise.all([
     db.query.user.findFirst({
