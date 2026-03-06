@@ -4,6 +4,10 @@ import { siteConfig } from "@/lib/config/site";
 import "./globals.css";
 
 export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#eff6ff" },
     { media: "(prefers-color-scheme: dark)", color: "#0f172a" },
