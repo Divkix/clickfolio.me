@@ -46,70 +46,70 @@ export const THEME_METADATA: Record<
     name: "Bento Grid",
     description: "Modern mosaic layout with colorful cards",
     category: "Modern",
-    preview: "/previews/bento.png",
+    preview: "/previews/bento.webp",
     referralsRequired: 0, // Free
   },
   bold_corporate: {
     name: "Bold Corporate",
     description: "Executive typography with bold numbered sections",
     category: "Professional",
-    preview: "/previews/bold-corporate.png",
+    preview: "/previews/bold-corporate.webp",
     referralsRequired: 10, // Premium - 10 referrals
   },
   classic_ats: {
     name: "Classic ATS",
     description: "Legal brief typography, single-column ATS-optimized layout",
     category: "Professional",
-    preview: "/previews/classic-ats.png",
+    preview: "/previews/classic-ats.webp",
     referralsRequired: 0, // Free
   },
   design_folio: {
     name: "DesignFolio",
     description: "Digital brutalism meets Swiss typography. Dark theme with acid lime accents.",
     category: "Creative",
-    preview: "/previews/design-folio.png",
+    preview: "/previews/design-folio.webp",
     referralsRequired: 3, // Premium - 3 referrals
   },
   dev_terminal: {
     name: "DevTerminal",
     description: "GitHub-inspired dark terminal aesthetic for developers",
     category: "Developer",
-    preview: "/previews/dev-terminal.png",
+    preview: "/previews/dev-terminal.webp",
     referralsRequired: 0, // Free template for students
   },
   glass: {
     name: "Glass Morphic",
     description: "Dark theme with frosted glass effects",
     category: "Modern",
-    preview: "/previews/glass.png",
+    preview: "/previews/glass.webp",
     referralsRequired: 0, // Free
   },
   midnight: {
     name: "Midnight",
     description: "Dark minimal with serif headings and gold accents",
     category: "Modern",
-    preview: "/previews/midnight.png",
+    preview: "/previews/midnight.webp",
     referralsRequired: 5, // Premium - 5 referrals
   },
   minimalist_editorial: {
     name: "Minimalist Editorial",
     description: "Clean magazine-style layout with serif typography",
     category: "Professional",
-    preview: "/previews/minimalist.png",
+    preview: "/previews/minimalist.webp",
     referralsRequired: 0, // Free (default)
   },
   neo_brutalist: {
     name: "Neo Brutalist",
     description: "Bold design with thick borders and loud colors",
     category: "Creative",
-    preview: "/previews/brutalist.png",
+    preview: "/previews/brutalist.webp",
     referralsRequired: 0, // Free
   },
   spotlight: {
     name: "Spotlight",
     description: "Warm creative portfolio with animated sections",
     category: "Creative",
-    preview: "/previews/spotlight.png",
+    preview: "/previews/spotlight.webp",
     referralsRequired: 3, // Premium - 3 referrals
   },
 } as const;

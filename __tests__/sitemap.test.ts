@@ -1,14 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { buildSitemapIndexXml, buildSitemapXml } from "@/lib/sitemap";
+import { buildSitemapXml } from "@/lib/sitemap";
 
 describe("sitemap xml builders", () => {
-  it("builds sitemap index entries for shard URLs", () => {
-    const xml = buildSitemapIndexXml([{ id: 0 }, { id: 1 }], "https://clickfolio.me");
-
-    expect(xml).toContain("<loc>https://clickfolio.me/sitemap/0.xml</loc>");
-    expect(xml).toContain("<loc>https://clickfolio.me/sitemap/1.xml</loc>");
-  });
-
   it("builds sitemap xml for url entries", () => {
     const xml = buildSitemapXml([
       {

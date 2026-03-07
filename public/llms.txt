@@ -1,0 +1,38 @@
+# clickfolio.me
+
+> Turn your resume into a website. Upload a PDF, AI parses it, get a shareable portfolio in 30 seconds.
+
+## About
+clickfolio.me converts PDF resumes into hosted web portfolios using AI-powered parsing. Free, open-source, and deployed on Cloudflare Workers.
+
+## Key Pages
+- Homepage: https://clickfolio.me
+- Explore Directory: https://clickfolio.me/explore
+- Privacy Policy: https://clickfolio.me/privacy
+- Terms of Service: https://clickfolio.me/terms
+
+## Portfolio URLs
+User portfolios are available at: https://clickfolio.me/@{handle}
+
+## Features
+- PDF resume upload and AI parsing (OpenAI via OpenRouter)
+- 10 professionally designed portfolio templates
+- Custom @handle URLs
+- Privacy controls (hide phone, address, search indexing)
+- Referral system for premium template unlocks
+- Public directory of professionals
+- Real-time parsing status via WebSocket
+- Mobile-responsive templates
+- Open Graph and structured data for rich link previews
+
+## Tech Stack
+- Cloudflare Workers (compute)
+- Cloudflare D1 (database)
+- Cloudflare R2 (file storage)
+- vinext (Vite-based Next.js)
+- Better Auth (authentication)
+- Drizzle ORM
+
+## Contact
+- Support: support@clickfolio.me
+- Source: https://github.com/divkix/clickfolio.me

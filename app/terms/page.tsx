@@ -3,6 +3,11 @@ import Link from "next/link";
 import { Footer } from "@/components/Footer";
 import { Logo } from "@/components/Logo";
 import { siteConfig } from "@/lib/config/site";
+import {
+  generatePageBreadcrumbJsonLd,
+  generateWebPageJsonLd,
+  serializeJsonLd,
+} from "@/lib/utils/json-ld";
 
 export const revalidate = 86400;
 
@@ -12,6 +17,7 @@ const termsDescription = `Terms of Service for ${siteConfig.fullName}. Read our 
 export const metadata: Metadata = {
   title: termsTitle,
   description: termsDescription,
+  alternates: { canonical: `${siteConfig.url}/terms` },
   openGraph: {
     title: termsTitle,
     description: termsDescription,
@@ -25,8 +31,26 @@ export const metadata: Metadata = {
 };
 
 export default function TermsOfServicePage() {
+  const breadcrumb = generatePageBreadcrumbJsonLd("Terms of Service", "/terms");
+  const webPage = generateWebPageJsonLd(
+    "Terms of Service",
+    "/terms",
+    termsDescription,
+    "2025-12-01",
+  );
+
   return (
     <div className="min-h-screen bg-cream paper-texture flex flex-col">
+      <script
+        type="application/ld+json"
+        // biome-ignore lint/security/noDangerouslySetInnerHtml: Safe - all values are hardcoded strings from siteConfig, escaped via serializeJsonLd
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumb) }}
+      />
+      <script
+        type="application/ld+json"
+        // biome-ignore lint/security/noDangerouslySetInnerHtml: Safe - all values are hardcoded strings from siteConfig, escaped via serializeJsonLd
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(webPage) }}
+      />
       {/* Header */}
       <header className="sticky top-0 z-50 border-b-3 border-ink bg-cream">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">

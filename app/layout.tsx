@@ -20,7 +20,6 @@ export const metadata: Metadata = {
   description:
     "Drop your PDF résumé and get a shareable website in seconds. Free, fast, and AI-powered.",
   applicationName: siteConfig.fullName,
-  keywords: [...siteConfig.keywords],
   authors: [{ name: siteConfig.fullName }],
   creator: siteConfig.fullName,
   icons: {

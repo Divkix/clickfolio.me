@@ -78,12 +78,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     };
   }
 
-  const { full_name, headline, summary, hide_from_search } = data;
+  const { full_name, headline, hide_from_search, location, skills } = data;
 
-  // Truncate summary to 160 characters for meta description
-  const description = summary
-    ? summary.slice(0, 157) + (summary.length > 157 ? "..." : "")
-    : `View ${full_name}'s professional resume and experience.`;
+  const descParts: string[] = [full_name];
+  if (headline) descParts.push(`— ${headline}`);
+  if (location) descParts.push(`in ${location}`);
+  if (skills?.length) descParts.push(`| ${skills.slice(0, 4).join(", ")}`);
+  const assembled = descParts.join(" ");
+  const description = assembled.length > 157 ? `${assembled.slice(0, 157)}...` : assembled;
 
   const profileUrl = `${siteConfig.url}/@${handle}`;
 

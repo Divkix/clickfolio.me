@@ -41,7 +41,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: pageTitle,
-    description: "Drop your PDF résumé and get a shareable website in seconds.",
+    description: pageDescription,
     images: [`${siteConfig.url}/api/og/home`],
   },
 };
@@ -152,9 +152,9 @@ export default function Home() {
                   {/* Portfolio preview mockups */}
                   <div className="flex items-end gap-3 mt-8">
                     {[
-                      { src: "/previews/minimalist.png", rotate: "-rotate-3" },
-                      { src: "/previews/brutalist.png", rotate: "rotate-1" },
-                      { src: "/previews/glass.png", rotate: "rotate-3" },
+                      { src: "/previews/minimalist.webp", rotate: "-rotate-3" },
+                      { src: "/previews/brutalist.webp", rotate: "rotate-1" },
+                      { src: "/previews/glass.webp", rotate: "rotate-3" },
                     ].map((preview) => (
                       <div
                         key={preview.src}
@@ -169,7 +169,7 @@ export default function Home() {
                           src={preview.src}
                           alt=""
                           aria-hidden="true"
-                          loading="eager"
+                          loading="lazy"
                           className="aspect-3/4 object-cover object-top w-full"
                         />
                       </div>

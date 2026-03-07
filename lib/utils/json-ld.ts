@@ -303,7 +303,103 @@ export function generateHomepageJsonLd(): Record<string, unknown>[] {
       url: siteConfig.url,
       logo: `${siteConfig.url}/icon-512.png`,
     },
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      name: siteConfig.fullName,
+      url: siteConfig.url,
+      applicationCategory: "BusinessApplication",
+      operatingSystem: "Web",
+      offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+      description: siteConfig.tagline,
+    },
   ];
+}
+
+/**
+ * Generates CollectionPage JSON-LD for the explore/directory page.
+ */
+export function generateExploreJsonLd(
+  users: Array<{ handle: string; name: string; headline?: string | null }>,
+): Record<string, unknown> {
+  return {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: "Professional Portfolio Directory",
+    description: "Browse professional portfolios and connect with talented individuals.",
+    url: `${siteConfig.url}/explore`,
+    isPartOf: {
+      "@type": "WebSite",
+      name: siteConfig.fullName,
+      url: siteConfig.url,
+    },
+    mainEntity: {
+      "@type": "ItemList",
+      numberOfItems: users.length,
+      itemListElement: users.map((u, i) => ({
+        "@type": "ListItem",
+        position: i + 1,
+        url: `${siteConfig.url}/@${u.handle}`,
+        name: u.name,
+        ...(u.headline && { description: u.headline }),
+      })),
+    },
+  };
+}
+
+/**
+ * Generates a generic 2-item BreadcrumbList: Home > Page.
+ * Reusable for explore, privacy, terms, etc.
+ */
+export function generatePageBreadcrumbJsonLd(
+  pageName: string,
+  pagePath: string,
+): Record<string, unknown> {
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Home",
+        item: siteConfig.url,
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: pageName,
+        item: `${siteConfig.url}${pagePath}`,
+      },
+    ],
+  };
+}
+
+/**
+ * Generates WebPage JSON-LD for informational pages.
+ */
+export function generateWebPageJsonLd(
+  name: string,
+  path: string,
+  description: string,
+  dateModified?: string,
+): Record<string, unknown> {
+  const page: Record<string, unknown> = {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    name,
+    url: `${siteConfig.url}${path}`,
+    description,
+    isPartOf: {
+      "@type": "WebSite",
+      name: siteConfig.fullName,
+      url: siteConfig.url,
+    },
+  };
+  if (dateModified) {
+    page.dateModified = dateModified;
+  }
+  return page;
 }
 
 /**

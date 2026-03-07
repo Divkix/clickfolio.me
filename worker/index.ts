@@ -17,6 +17,14 @@ import { queueMessageSchema } from "../lib/queue/types";
 // Re-export Durable Object class for Wrangler to discover
 export { ClickfolioStatusDO } from "../lib/durable-objects/resume-status";
 
+const SECURITY_HEADERS: Record<string, string> = {
+  "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "DENY",
+  "Referrer-Policy": "strict-origin-when-cross-origin",
+  "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+};
+
 export default {
   async fetch(request: Request, env: CloudflareEnv, _ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
@@ -45,7 +53,16 @@ export default {
 
     // All other requests go to vinext handler
     // Note: vinext uses cloudflare:workers internally for env access
-    return handler.fetch(request);
+    const response = await handler.fetch(request);
+    const newHeaders = new Headers(response.headers);
+    for (const [key, value] of Object.entries(SECURITY_HEADERS)) {
+      newHeaders.set(key, value);
+    }
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: newHeaders,
+    });
   },
 
   // Cloudflare Queue consumer handler

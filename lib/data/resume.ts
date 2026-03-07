@@ -34,6 +34,8 @@ interface ResumeMetadata {
   summary?: string | null;
   avatar_url: string | null;
   hide_from_search: boolean;
+  location?: string | null;
+  skills?: string[] | null;
 }
 
 /**
@@ -166,6 +168,8 @@ async function fetchResumeMetadataRaw(handle: string): Promise<ResumeMetadata | 
         columns: {
           previewName: true,
           previewHeadline: true,
+          previewLocation: true,
+          previewSkills: true,
         },
       },
     },
@@ -189,10 +193,13 @@ async function fetchResumeMetadataRaw(handle: string): Promise<ResumeMetadata | 
   return {
     full_name: fullName,
     headline: userData.siteData.previewHeadline?.trim() || userData.headline || null,
-    // summary not available from denormalized columns; consumer uses fallback description
     summary: null,
     avatar_url: userData.image,
     hide_from_search: hideFromSearch,
+    location: userData.siteData.previewLocation?.trim() || null,
+    skills: userData.siteData.previewSkills
+      ? (JSON.parse(userData.siteData.previewSkills) as string[])
+      : null,
   };
 }
 

@@ -1,5 +1,5 @@
 import { env } from "cloudflare:workers";
-import { and, count, isNotNull, or, sql } from "drizzle-orm";
+import { and, isNotNull, or, sql } from "drizzle-orm";
 import type { MetadataRoute } from "next";
 import { getDb } from "@/lib/db";
 import { siteData, user } from "@/lib/db/schema";
@@ -28,28 +28,6 @@ function escapeXml(value: string): string {
 
 export function getSitemapBaseUrl(): string {
   return process.env.BETTER_AUTH_URL || "https://clickfolio.me";
-}
-
-/**
- * Generate sitemap IDs based on total user count.
- */
-export async function generateSitemaps(): Promise<Array<{ id: number }>> {
-  try {
-    const db = getDb(env.CLICKFOLIO_DB);
-
-    const [result] = await db
-      .select({ count: count() })
-      .from(user)
-      .where(and(isNotNull(user.handle), notHiddenFromSearch));
-
-    const userCount = result?.count ?? 0;
-    const dynamicSitemapCount = Math.ceil(userCount / URLS_PER_SITEMAP) || 1;
-
-    return Array.from({ length: dynamicSitemapCount }, (_, i) => ({ id: i }));
-  } catch (error) {
-    console.error("Failed to generate sitemaps:", error);
-    return [{ id: 0 }];
-  }
 }
 
 /**
@@ -162,23 +140,4 @@ export function buildSitemapXml(entries: MetadataRoute.Sitemap): string {
 <urlset xmlns="${SITEMAP_XMLNS}">
 ${urls}
 </urlset>`;
-}
-
-export function buildSitemapIndexXml(
-  sitemaps: Array<{ id: number }>,
-  baseUrl = getSitemapBaseUrl(),
-): string {
-  const normalizedBaseUrl = baseUrl.replace(/\/$/, "");
-  const sitemapNodes = sitemaps
-    .map(
-      ({ id }) => `  <sitemap>
-    <loc>${escapeXml(`${normalizedBaseUrl}/sitemap/${id}.xml`)}</loc>
-  </sitemap>`,
-    )
-    .join("\n");
-
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<sitemapindex xmlns="${SITEMAP_XMLNS}">
-${sitemapNodes}
-</sitemapindex>`;
 }

@@ -10,6 +10,11 @@ import { siteConfig } from "@/lib/config/site";
 import { getDb } from "@/lib/db";
 import { siteData, user } from "@/lib/db/schema";
 import { ROLE_OPTIONS } from "@/lib/schemas/profile";
+import {
+  generateExploreJsonLd,
+  generatePageBreadcrumbJsonLd,
+  serializeJsonLd,
+} from "@/lib/utils/json-ld";
 
 export const revalidate = 300;
 
@@ -118,11 +123,30 @@ export default async function ExplorePage({
       previewSkills: u.previewSkills ? (JSON.parse(u.previewSkills) as string[]) : null,
     }));
 
+  const exploreJsonLd = generateExploreJsonLd(
+    directoryUsers.map((u) => ({
+      handle: u.handle,
+      name: u.previewName || "Unknown",
+      headline: u.previewHeadline,
+    })),
+  );
+  const exploreBreadcrumb = generatePageBreadcrumbJsonLd("Explore Professionals", "/explore");
+
   // Role options for filter (shared constant from profile schema)
   const roleOptions = [{ value: "", label: "All Roles" }, ...ROLE_OPTIONS];
 
   return (
     <div className="min-h-screen bg-cream flex flex-col">
+      <script
+        type="application/ld+json"
+        // biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD from trusted DB data, serialized with XSS-safe escaping via serializeJsonLd which escapes < > U+2028 U+2029
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(exploreJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        // biome-ignore lint/security/noDangerouslySetInnerHtml: Breadcrumb JSON-LD from hardcoded config, no user input
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(exploreBreadcrumb) }}
+      />
       <SiteHeader />
       <main id="main-content" className="flex-1 max-w-7xl mx-auto px-4 py-12 w-full">
         {/* Header */}
