@@ -257,7 +257,7 @@ export default function Home() {
               </div>
 
               {/* Right Column - Upload & Examples */}
-              <div className="lg:col-span-5 flex flex-col gap-6">
+              <div className="lg:col-span-5 flex flex-col gap-6 lg:justify-center">
                 {/* Upload Card */}
                 <div
                   id="upload-card"

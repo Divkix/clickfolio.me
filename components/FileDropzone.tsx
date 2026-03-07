@@ -312,6 +312,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
         onClick={() => fileInputRef.current?.click()}
         aria-label="Drop your PDF resume here or click to browse files"
         className={`
+          w-full
           group
           relative
           bg-cream
