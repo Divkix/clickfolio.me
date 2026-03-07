@@ -4,9 +4,7 @@
  */
 /// <reference path="../lib/cloudflare-env.d.ts" />
 
-import { KVCacheHandler } from "vinext/cloudflare";
 import handler from "vinext/server/app-router-entry";
-import { setCacheHandler } from "vinext/shims/cache";
 import { performCleanup } from "../lib/cron/cleanup";
 import { recoverOrphanedResumes } from "../lib/cron/recover-orphaned";
 import { syncDisposableDomains } from "../lib/cron/sync-disposable-domains";
@@ -19,16 +17,8 @@ import { queueMessageSchema } from "../lib/queue/types";
 // Re-export Durable Object class for Wrangler to discover
 export { ClickfolioStatusDO } from "../lib/durable-objects/resume-status";
 
-function getKvCacheHandler(env: CloudflareEnv): KVCacheHandler {
-  const cacheVersion = (env as CloudflareEnv & { CACHE_VERSION?: string }).CACHE_VERSION;
-  return new KVCacheHandler(env.CLICKFOLIO_CACHE, {
-    appPrefix: cacheVersion ?? "default",
-  });
-}
-
 export default {
   async fetch(request: Request, env: CloudflareEnv, _ctx: ExecutionContext): Promise<Response> {
-    setCacheHandler(getKvCacheHandler(env));
     const url = new URL(request.url);
 
     // Intercept WebSocket upgrade requests for resume status
@@ -60,7 +50,6 @@ export default {
 
   // Cloudflare Queue consumer handler
   async queue(batch: MessageBatch<unknown>, env: CloudflareEnv): Promise<void> {
-    setCacheHandler(getKvCacheHandler(env));
     const isDLQ = batch.queue === "clickfolio-parse-dlq";
 
     for (const message of batch.messages) {

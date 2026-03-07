@@ -49,10 +49,6 @@
 		{
 			"binding": "CLICKFOLIO_DISPOSABLE_DOMAINS",
 			"id": "6fe2480a4f4d46a9970eb2c441ecf38a"
-		},
-		{
-			"binding": "CLICKFOLIO_CACHE",
-			"id": "e7585a844b6449dfa5d30fdc5e50082b"
 		}
 	],
 	// R2 bucket binding for direct access (replaces AWS SDK for most operations)

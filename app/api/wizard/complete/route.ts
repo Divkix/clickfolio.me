@@ -2,7 +2,7 @@ import { env } from "cloudflare:workers";
 import { and, eq, ne } from "drizzle-orm";
 import { z } from "zod";
 import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
-import { invalidateResumeCache } from "@/lib/cache/invalidation";
+
 import { purgeResumeCache } from "@/lib/cloudflare-cache-purge";
 import { siteData, user } from "@/lib/db/schema";
 import { handleSchema } from "@/lib/schemas/profile";
@@ -186,8 +186,7 @@ export async function POST(request: Request) {
       throw error; // Re-throw other errors
     }
 
-    // 8. Invalidate KV + CDN cache for new handle (clears stale 404 from prior visits)
-    await invalidateResumeCache(body.handle);
+    // 8. Purge CDN cache for new handle (clears stale 404 from prior visits)
     {
       const cfZoneId = env.CF_ZONE_ID;
       const cfApiToken = env.CF_CACHE_PURGE_API_TOKEN;
