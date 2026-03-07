@@ -212,17 +212,6 @@ if (!settings.show_phone) delete content.contact.phone;
 if (!settings.show_address) content.contact.location = extractCityState(...);
 ```
 
-### Caching Architecture
-
-**Cloudflare CDN Edge Cache:**
-- Configured via `Cache-Control` headers in `next.config.ts`
-- Public resumes: 1hr TTL, 24hr stale-while-revalidate
-- Explore page: 5min TTL
-- Static pages (/privacy, /terms): 1 week TTL
-- Privacy-sensitive changes purge edge cache immediately via Cloudflare API
-
-**No ISR layer** - All requests hit D1 directly. Edge cache handles most traffic.
-
 ## Code Standards
 
 - **Package manager**: bun only (never npm/yarn/pnpm)
@@ -273,7 +262,6 @@ All receive `content` (ResumeContent) and `user` props, must respect privacy set
 - `lib/cron/cleanup.ts` — Session/verification expiry cleanup
 - `lib/cron/recover-orphaned.ts` — Orphaned resume recovery
 - `lib/queue/` — Async resume parsing queue (6 files, includes DLQ consumer)
-- `lib/cloudflare-cache-purge.ts` — Edge cache invalidation
 - `wrangler.jsonc` — Cloudflare Workers config (D1, R2, Queue, Durable Objects)
 - `drizzle.config.ts` — Drizzle config pointing to local D1
 
@@ -284,12 +272,6 @@ Required in `.dev.vars` (dev) and Cloudflare secrets (prod):
 BETTER_AUTH_SECRET, BETTER_AUTH_URL   # BETTER_AUTH_URL is also used as the app URL
 GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
 RESEND_API_KEY              # For password reset emails (optional, free tier: 3k/month)
-```
-
-Optional (for edge cache purging on custom domains):
-```
-CF_ZONE_ID                  # Cloudflare zone ID from dashboard
-CF_CACHE_PURGE_API_TOKEN    # API token with Cache Purge permission
 ```
 
 AI Provider (required for resume parsing):
