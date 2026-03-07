@@ -107,6 +107,37 @@ export async function generateSitemapEntries(id: number): Promise<MetadataRoute.
   return entries;
 }
 
+/**
+ * Count total indexable users (have a handle, not hidden from search).
+ */
+export async function getTotalIndexableUserCount(): Promise<number> {
+  const db = getDb(env.CLICKFOLIO_DB);
+  const result = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(user)
+    .where(and(isNotNull(user.handle), notHiddenFromSearch));
+  return result[0]?.count ?? 0;
+}
+
+/**
+ * Build a sitemap index XML string for the given number of shards.
+ */
+export function buildSitemapIndexXml(shardCount: number): string {
+  const baseUrl = getSitemapBaseUrl();
+  const sitemaps = Array.from({ length: shardCount }, (_, i) =>
+    [
+      `  <sitemap>`,
+      `    <loc>${escapeXml(`${baseUrl}/sitemap/${i}.xml`)}</loc>`,
+      `  </sitemap>`,
+    ].join("\n"),
+  ).join("\n");
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<sitemapindex xmlns="${SITEMAP_XMLNS}">
+${sitemaps}
+</sitemapindex>`;
+}
+
 function formatLastModified(
   lastModified: MetadataRoute.Sitemap[number]["lastModified"],
 ): string | null {
