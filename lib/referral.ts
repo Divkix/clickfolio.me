@@ -10,7 +10,7 @@
 
 import { env } from "cloudflare:workers";
 import { and, eq, isNull, or } from "drizzle-orm";
-
+import { purgeResumeCache } from "@/lib/cloudflare-cache-purge";
 import { getDb } from "@/lib/db";
 import { referralClicks, user } from "@/lib/db/schema";
 import { generateVisitorHashWithDate } from "@/lib/utils/analytics";
@@ -105,12 +105,13 @@ export async function writeReferral(
 
   // Single query: match referralCode (uppercase) OR handle (lowercase) in one roundtrip
   const referrerResult = await db
-    .select({ id: user.id })
+    .select({ id: user.id, handle: user.handle })
     .from(user)
     .where(or(eq(user.referralCode, normalizedUpper), eq(user.handle, normalizedLower)))
     .limit(1);
 
   const referrerId = referrerResult[0]?.id;
+  const referrerHandle = referrerResult[0]?.handle;
   if (!referrerId) {
     return { success: false, reason: "invalid_ref" };
   }
@@ -130,6 +131,16 @@ export async function writeReferral(
     .set({ referredBy: referrerId, referredAt: now })
     .where(and(eq(user.id, userId), isNull(user.referredBy)))
     .returning({ id: user.id });
+
+  // Purge CDN edge cache for referrer's public page (referralCount changed, may affect theme unlock)
+  if (result.length > 0 && referrerHandle) {
+    const baseUrl = env.BETTER_AUTH_URL;
+    const zoneId = env.CF_ZONE_ID;
+    const apiToken = env.CF_CACHE_PURGE_API_TOKEN;
+    if (baseUrl && zoneId && apiToken) {
+      purgeResumeCache(referrerHandle, baseUrl, zoneId, apiToken).catch(() => {});
+    }
+  }
 
   if (result.length === 0) {
     // No rows updated - check why
