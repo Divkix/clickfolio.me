@@ -1,7 +1,6 @@
 import { eq } from "drizzle-orm";
 import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
 
-import { purgeResumeCache } from "@/lib/cloudflare-cache-purge";
 import { user } from "@/lib/db/schema";
 import { privacySettingsSchema } from "@/lib/schemas/profile";
 import {
@@ -22,13 +21,9 @@ export async function PUT(request: Request) {
       user: authUser,
       db,
       captureBookmark,
-      dbUser,
-      env,
       error: authError,
     } = await requireAuthWithUserValidation("You must be logged in to update privacy settings");
     if (authError) return authError;
-
-    const userHandle = dbUser.handle;
 
     // 2. Parse and validate request body
     let body;
@@ -67,21 +62,6 @@ export async function PUT(request: Request) {
         updatedAt: new Date().toISOString(),
       })
       .where(eq(user.id, authUser.id));
-
-    // 4. Purge edge cache for privacy changes (fire-and-forget)
-    // This prevents PII exposure through stale edge cache
-    if (userHandle) {
-      const cfZoneId = env.CF_ZONE_ID;
-      const cfApiToken = env.CF_CACHE_PURGE_API_TOKEN;
-      const baseUrl = process.env.BETTER_AUTH_URL;
-
-      if (cfZoneId && cfApiToken && baseUrl) {
-        // Fire-and-forget: don't block response on cache purge
-        purgeResumeCache(userHandle, baseUrl, cfZoneId, cfApiToken).catch(() => {
-          // Error already logged inside purgeResumeCache
-        });
-      }
-    }
 
     await captureBookmark();
     return createSuccessResponse({

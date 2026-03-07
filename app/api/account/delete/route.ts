@@ -1,7 +1,6 @@
 import { eq } from "drizzle-orm";
 import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
 
-import { purgeResumeCache } from "@/lib/cloudflare-cache-purge";
 import { getDb } from "@/lib/db";
 import { resumes, user, verification } from "@/lib/db/schema";
 import { getR2Binding, R2 } from "@/lib/r2";
@@ -85,13 +84,11 @@ export async function POST(request: Request) {
     // 4. Initialize database
     const db = getDb(env.CLICKFOLIO_DB);
 
-    // 5. Fetch all resume R2 keys and user handle in parallel before deletion
-    const [userResumes, userWithHandle] = await Promise.all([
-      db.select({ r2Key: resumes.r2Key }).from(resumes).where(eq(resumes.userId, userId)),
-      db.select({ handle: user.handle }).from(user).where(eq(user.id, userId)).limit(1),
-    ]);
-
-    const userHandle = userWithHandle[0]?.handle;
+    // 5. Fetch all resume R2 keys before deletion
+    const userResumes = await db
+      .select({ r2Key: resumes.r2Key })
+      .from(resumes)
+      .where(eq(resumes.userId, userId));
 
     // 6. Delete R2 files in parallel (best effort - continue even if some fail)
     const r2Keys = userResumes.map((r) => r.r2Key).filter((key): key is string => Boolean(key));
@@ -119,20 +116,6 @@ export async function POST(request: Request) {
         // 7b. Delete user (CASCADE handles: session, account, resumes, siteData, handleChanges, referralClicks)
         db.delete(user).where(eq(user.id, userId)),
       ]);
-
-      // Purge edge cache for deleted user's public page (fire-and-forget)
-      if (userHandle) {
-        const cfZoneId = (typedEnv as CloudflareEnv).CF_ZONE_ID;
-        const cfApiToken = (typedEnv as CloudflareEnv).CF_CACHE_PURGE_API_TOKEN;
-        const baseUrl = process.env.BETTER_AUTH_URL;
-
-        if (cfZoneId && cfApiToken && baseUrl) {
-          // Fire-and-forget: don't block response on cache purge
-          purgeResumeCache(userHandle, baseUrl, cfZoneId, cfApiToken).catch(() => {
-            // Error already logged inside purgeResumeCache
-          });
-        }
-      }
     } catch (dbError) {
       console.error("Account deletion error:", dbError);
       return createErrorResponse("Failed to delete account", ERROR_CODES.DATABASE_ERROR, 500);

@@ -2,7 +2,6 @@ import { env } from "cloudflare:workers";
 import { and, eq, gte, ne, sql } from "drizzle-orm";
 import { requireAuthWithMessage } from "@/lib/auth/middleware";
 
-import { purgeResumeCache } from "@/lib/cloudflare-cache-purge";
 import { handleChanges, user } from "@/lib/db/schema";
 import { getSessionDb } from "@/lib/db/session";
 import { handleUpdateSchema } from "@/lib/schemas/profile";
@@ -154,32 +153,6 @@ export async function PUT(request: Request) {
         );
       }
       throw error; // Re-throw other errors
-    }
-
-    // Purge edge cache for old handle (clears stale cache for old URL)
-    if (oldHandle) {
-      const cfZoneId = env.CF_ZONE_ID;
-      const cfApiToken = env.CF_CACHE_PURGE_API_TOKEN;
-      const baseUrl = process.env.BETTER_AUTH_URL;
-
-      if (cfZoneId && cfApiToken && baseUrl) {
-        purgeResumeCache(oldHandle, baseUrl, cfZoneId, cfApiToken).catch(() => {
-          // Error already logged inside purgeResumeCache
-        });
-      }
-    }
-
-    // Purge CDN cache for new handle (clears stale 404 from prior visits)
-    {
-      const cfZoneId = env.CF_ZONE_ID;
-      const cfApiToken = env.CF_CACHE_PURGE_API_TOKEN;
-      const baseUrl = process.env.BETTER_AUTH_URL;
-
-      if (cfZoneId && cfApiToken && baseUrl) {
-        purgeResumeCache(newHandle, baseUrl, cfZoneId, cfApiToken).catch(() => {
-          // Error already logged inside purgeResumeCache
-        });
-      }
     }
 
     await captureBookmark();

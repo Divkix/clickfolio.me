@@ -1,9 +1,7 @@
-import { env } from "cloudflare:workers";
 import { and, eq, ne } from "drizzle-orm";
 import { z } from "zod";
 import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
 
-import { purgeResumeCache } from "@/lib/cloudflare-cache-purge";
 import { siteData, user } from "@/lib/db/schema";
 import { handleSchema } from "@/lib/schemas/profile";
 import {
@@ -186,23 +184,10 @@ export async function POST(request: Request) {
       throw error; // Re-throw other errors
     }
 
-    // 8. Purge CDN cache for new handle (clears stale 404 from prior visits)
-    {
-      const cfZoneId = env.CF_ZONE_ID;
-      const cfApiToken = env.CF_CACHE_PURGE_API_TOKEN;
-      const baseUrl = process.env.BETTER_AUTH_URL;
-
-      if (cfZoneId && cfApiToken && baseUrl) {
-        purgeResumeCache(body.handle, baseUrl, cfZoneId, cfApiToken).catch(() => {
-          // Error already logged inside purgeResumeCache
-        });
-      }
-    }
-
-    // 9. Capture bookmark before returning success
+    // 8. Capture bookmark before returning success
     await captureBookmark();
 
-    // 10. Return success response
+    // 9. Return success response
     return createSuccessResponse({
       success: true,
       handle: body.handle,

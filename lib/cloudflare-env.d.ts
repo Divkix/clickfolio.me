@@ -12,7 +12,6 @@ declare namespace Cloudflare {
 		CLICKFOLIO_DB: D1Database;
 		CLICKFOLIO_PARSE_QUEUE: Queue;
 		ASSETS: Fetcher;
-		CF_ZONE_ID: "67b153979964d5eafc441643acb1fc14";
 		NODE_ENV: string;
 		DISABLE_RATE_LIMITS: string;
 		BETTER_AUTH_URL: string;
@@ -25,7 +24,6 @@ declare namespace Cloudflare {
 		NEXT_PUBLIC_SITE_DOMAIN: string;
 		NEXT_PUBLIC_SITE_TAGLINE: string;
 		NEXT_PUBLIC_SUPPORT_EMAIL: string;
-		CF_CACHE_PURGE_API_TOKEN: string;
 		AI_MODEL: string;
 		CF_AI_GATEWAY_ACCOUNT_ID: string;
 		CF_AI_GATEWAY_ID: string;
@@ -42,7 +40,7 @@ type StringifyValues<EnvType extends Record<string, unknown>> = {
 	[Binding in keyof EnvType]: EnvType[Binding] extends string ? EnvType[Binding] : string;
 };
 declare namespace NodeJS {
-	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "CF_ZONE_ID" | "NODE_ENV" | "DISABLE_RATE_LIMITS" | "BETTER_AUTH_URL" | "BETTER_AUTH_SECRET" | "GOOGLE_CLIENT_ID" | "GOOGLE_CLIENT_SECRET" | "RESEND_API_KEY" | "NEXT_PUBLIC_SITE_NAME" | "NEXT_PUBLIC_SITE_TLD" | "NEXT_PUBLIC_SITE_DOMAIN" | "NEXT_PUBLIC_SITE_TAGLINE" | "NEXT_PUBLIC_SUPPORT_EMAIL" | "CF_CACHE_PURGE_API_TOKEN" | "AI_MODEL" | "CF_AI_GATEWAY_ACCOUNT_ID" | "CF_AI_GATEWAY_ID" | "CF_AIG_AUTH_TOKEN" | "NEXT_PUBLIC_UMAMI_WEBSITE_ID" | "UMAMI_API_URL" | "UMAMI_USERNAME" | "UMAMI_PASSWORD">> {}
+	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "NODE_ENV" | "DISABLE_RATE_LIMITS" | "BETTER_AUTH_URL" | "BETTER_AUTH_SECRET" | "GOOGLE_CLIENT_ID" | "GOOGLE_CLIENT_SECRET" | "RESEND_API_KEY" | "NEXT_PUBLIC_SITE_NAME" | "NEXT_PUBLIC_SITE_TLD" | "NEXT_PUBLIC_SITE_DOMAIN" | "NEXT_PUBLIC_SITE_TAGLINE" | "NEXT_PUBLIC_SUPPORT_EMAIL" | "AI_MODEL" | "CF_AI_GATEWAY_ACCOUNT_ID" | "CF_AI_GATEWAY_ID" | "CF_AIG_AUTH_TOKEN" | "NEXT_PUBLIC_UMAMI_WEBSITE_ID" | "UMAMI_API_URL" | "UMAMI_USERNAME" | "UMAMI_PASSWORD">> {}
 }
 
 // Begin runtime types

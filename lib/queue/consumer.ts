@@ -39,35 +39,6 @@ function getUserFriendlyError(rawError: string): string {
 }
 
 /**
- * Look up user handle by userId and purge their CDN edge cache.
- * One extra D1 read per parse completion — negligible for an infrequent async operation.
- */
-async function purgeCacheForUser(
-  db: ReturnType<typeof getSessionDbForWebhook>["db"],
-  userId: string,
-  env: CloudflareEnv,
-): Promise<void> {
-  const result = await db
-    .select({ handle: user.handle })
-    .from(user)
-    .where(eq(user.id, userId))
-    .limit(1);
-  const handle = result[0]?.handle;
-  if (handle) {
-    const cfZoneId = env.CF_ZONE_ID;
-    const cfApiToken = env.CF_CACHE_PURGE_API_TOKEN;
-    const baseUrl = process.env.BETTER_AUTH_URL;
-
-    if (cfZoneId && cfApiToken && baseUrl) {
-      const { purgeResumeCache } = await import("@/lib/cloudflare-cache-purge");
-      purgeResumeCache(handle, baseUrl, cfZoneId, cfApiToken).catch(() => {
-        // Error already logged inside purgeResumeCache
-      });
-    }
-  }
-}
-
-/**
  * Handle resume parsing from queue
  */
 async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv): Promise<void> {
@@ -135,8 +106,6 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
       buildSiteDataUpsert(db, message.userId, message.resumeId, stagedContent, now),
     ]);
 
-    await purgeCacheForUser(db, message.userId, env);
-
     await notifyStatusChange({ resumeId: message.resumeId, status: "completed", env });
     return;
   }
@@ -163,8 +132,6 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
         .where(eq(resumes.id, message.resumeId)),
       buildSiteDataUpsert(db, message.userId, message.resumeId, cachedContent, now),
     ]);
-
-    await purgeCacheForUser(db, message.userId, env);
 
     await notifyStatusChange({ resumeId: message.resumeId, status: "completed", env });
     return;
@@ -240,8 +207,6 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
     buildSiteDataUpsert(db, message.userId, message.resumeId, parsedContent, now),
   ]);
 
-  await purgeCacheForUser(db, message.userId, env);
-
   // Write AI-inferred professional level to user.role separately from the
   // critical resume+siteData batch. If this fails, the resume is still
   // completed and the user can set their role manually via settings.
@@ -283,8 +248,6 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
         buildSiteDataUpsert(db, w.userId as string, w.id as string, parsedContent, now),
       ),
     ]);
-
-    await Promise.all(waitingResumes.map((w) => purgeCacheForUser(db, w.userId as string, env)));
 
     // Set AI role for waiting users (same fileHash = same resume content).
     // Separate from batch to avoid Drizzle heterogeneous table type errors.
