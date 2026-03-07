@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
-import { invalidateResumeCache } from "@/lib/cache/invalidation";
+
 import { purgeResumeCache } from "@/lib/cloudflare-cache-purge";
 import { user } from "@/lib/db/schema";
 import { privacySettingsSchema } from "@/lib/schemas/profile";
@@ -67,11 +67,6 @@ export async function PUT(request: Request) {
         updatedAt: new Date().toISOString(),
       })
       .where(eq(user.id, authUser.id));
-
-    // Invalidate KV cache for privacy changes
-    if (userHandle) {
-      await invalidateResumeCache(userHandle);
-    }
 
     // 4. Purge edge cache for privacy changes (fire-and-forget)
     // This prevents PII exposure through stale edge cache

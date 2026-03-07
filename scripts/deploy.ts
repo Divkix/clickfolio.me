@@ -1,19 +1,11 @@
 import { purgePublicPageCache } from "../lib/cloudflare-cache-purge";
 
-function generateCacheVersion(): string {
-  return new Date().toISOString().replace(/[-:.TZ]/g, "");
-}
-
 async function main(): Promise<void> {
-  const cacheVersion = process.env.CACHE_VERSION || generateCacheVersion();
   const args = process.argv.slice(2);
 
-  const deploy = Bun.spawnSync(
-    ["bunx", "wrangler", "deploy", "--var", `CACHE_VERSION:${cacheVersion}`, ...args],
-    {
-      stdio: ["inherit", "inherit", "inherit"],
-    },
-  );
+  const deploy = Bun.spawnSync(["bunx", "wrangler", "deploy", ...args], {
+    stdio: ["inherit", "inherit", "inherit"],
+  });
 
   if (deploy.exitCode !== 0) {
     process.exit(deploy.exitCode ?? 1);

@@ -8,7 +8,6 @@ declare namespace Cloudflare {
 	}
 	interface Env {
 		CLICKFOLIO_DISPOSABLE_DOMAINS: KVNamespace;
-		CLICKFOLIO_CACHE: KVNamespace;
 		CLICKFOLIO_R2_BUCKET: R2Bucket;
 		CLICKFOLIO_DB: D1Database;
 		CLICKFOLIO_PARSE_QUEUE: Queue;
