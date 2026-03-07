@@ -10,7 +10,7 @@
 
 import { env } from "cloudflare:workers";
 import { and, eq, isNull, or } from "drizzle-orm";
-import { invalidateResumeCache } from "@/lib/cache/invalidation";
+import { purgeResumeCache } from "@/lib/cloudflare-cache-purge";
 import { getDb } from "@/lib/db";
 import { referralClicks, user } from "@/lib/db/schema";
 import { generateVisitorHashWithDate } from "@/lib/utils/analytics";
@@ -132,11 +132,14 @@ export async function writeReferral(
     .where(and(eq(user.id, userId), isNull(user.referredBy)))
     .returning({ id: user.id });
 
-  // Invalidate referrer's cached public page (referralCount changed, may affect theme unlock)
+  // Purge CDN edge cache for referrer's public page (referralCount changed, may affect theme unlock)
   if (result.length > 0 && referrerHandle) {
-    invalidateResumeCache(referrerHandle).catch(() => {
-      // Best-effort — the referral write is the critical operation
-    });
+    const baseUrl = env.BETTER_AUTH_URL;
+    const zoneId = env.CF_ZONE_ID;
+    const apiToken = env.CF_CACHE_PURGE_API_TOKEN;
+    if (baseUrl && zoneId && apiToken) {
+      purgeResumeCache(referrerHandle, baseUrl, zoneId, apiToken).catch(() => {});
+    }
   }
 
   if (result.length === 0) {
