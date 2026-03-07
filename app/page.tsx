@@ -75,7 +75,7 @@ export default function Home() {
           <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-20 lg:pt-20">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
               {/* Left Column - Main headline */}
-              <div className="lg:col-span-6 flex flex-col gap-6">
+              <div className="lg:col-span-7 flex flex-col gap-6">
                 {/* Hero Card */}
                 <div
                   className="
@@ -257,7 +257,7 @@ export default function Home() {
               </div>
 
               {/* Right Column - Upload & Examples */}
-              <div className="lg:col-span-6 flex flex-col gap-6 lg:justify-center">
+              <div className="lg:col-span-5 flex flex-col gap-6 lg:justify-center">
                 {/* Upload Card */}
                 <div
                   id="upload-card"
