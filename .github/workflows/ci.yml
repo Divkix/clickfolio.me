@@ -14,27 +14,41 @@ permissions:
   contents: read
 
 jobs:
-  ci:
-    name: Type Check, Lint, Test, Knip, Build
+  quality:
+    name: Code Quality
     runs-on: ubuntu-latest
     timeout-minutes: 10
-
     steps:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Biome
+        uses: biomejs/setup-biome@v2
         with:
-          node-version: 22
+          version: latest
+
+      - name: Run Biome
+        run: biome ci .
+
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
 
+      - name: Get bun cache directory
+        id: bun-cache-dir
+        run: echo "dir=$(bun pm cache)" >> $GITHUB_OUTPUT
+
       - name: Cache bun dependencies
         uses: actions/cache@v5
         with:
-          path: ~/.bun/install/cache
+          path: ${{ steps.bun-cache-dir.outputs.dir }}
           key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
           restore-keys: |
             ${{ runner.os }}-bun-
@@ -42,17 +56,62 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Type check
-        run: bun run type-check
-
-      - name: Lint
-        run: bun run lint
-
-      - name: Test
+      - name: Run tests
         run: bun run test
 
-      - name: Check unused code
+  check:
+    name: Build & Verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Get bun cache directory
+        id: bun-cache-dir
+        run: echo "dir=$(bun pm cache)" >> $GITHUB_OUTPUT
+
+      - name: Cache bun dependencies
+        uses: actions/cache@v5
+        with:
+          path: ${{ steps.bun-cache-dir.outputs.dir }}
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: TypeScript type-check
+        run: bun run type-check
+
+      - name: Check unused exports
         run: bunx knip
 
       - name: Build
         run: bun run build
+
+  ci-success:
+    name: CI Success
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [quality, test, check]
+    if: always()
+    steps:
+      - name: Check all jobs status
+        run: |
+          if [[ "${{ needs.quality.result }}" != "success" ]] || \
+             [[ "${{ needs.test.result }}" != "success" ]] || \
+             [[ "${{ needs.check.result }}" != "success" ]]; then
+            echo "One or more CI jobs failed"
+            exit 1
+          fi
+          echo "All CI checks passed successfully"
