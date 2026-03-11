@@ -68,6 +68,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.6",
+    "@cloudflare/vite-plugin": "^1.27.0",
     "@noble/hashes": "^2.0.1",
     "@playwright/test": "^1.58.2",
     "@tailwindcss/postcss": "^4.2.1",
@@ -75,7 +76,7 @@
     "@types/node": "^25.4.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "@cloudflare/vite-plugin": "^1.27.0",
+    "@vitejs/plugin-rsc": "^0.5.21",
     "@vitest/coverage-v8": "^4.0.18",
     "drizzle-kit": "^0.31.9",
     "husky": "^9.1.7",
