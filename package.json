@@ -36,7 +36,7 @@
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^2.0.35",
-    "@better-auth/drizzle-adapter": "^1.5.4",
+    "@better-auth/drizzle-adapter": "^1.5.5",
     "@hookform/resolvers": "^5.2.2",
     "@neoconfetti/react": "^1.0.0",
     "@radix-ui/react-dialog": "^1.1.15",
@@ -49,7 +49,7 @@
     "@zxcvbn-ts/language-common": "^3.0.4",
     "@zxcvbn-ts/language-en": "^3.0.2",
     "ai": "^6.0.116",
-    "better-auth": "^1.5.4",
+    "better-auth": "^1.5.5",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.1",
