@@ -1,7 +1,8 @@
 "use client";
 
-import { Github, Globe, Linkedin, Mail, MapPin, Phone } from "lucide-react";
+import { Globe, Mail, MapPin, Phone } from "lucide-react";
 import { type ReactNode, useState } from "react";
+import { GitHubIcon, LinkedInIcon } from "@/components/icons/BrandIcons";
 import { ShareBar } from "@/components/ShareBar";
 import { type ContactLinkType, getContactLinks } from "@/lib/templates/contact-links";
 import { flattenSkills, formatDateRange, formatYear, getInitials } from "@/lib/templates/helpers";
@@ -9,8 +10,8 @@ import type { TemplateProps } from "@/lib/types/template";
 
 const midnightIconMap: Partial<Record<ContactLinkType, ReactNode>> = {
   phone: <Phone className="w-4 h-4" aria-hidden="true" />,
-  github: <Github className="w-4 h-4" aria-hidden="true" />,
-  linkedin: <Linkedin className="w-4 h-4" aria-hidden="true" />,
+  github: <GitHubIcon variant="white" className="w-4 h-4" aria-hidden={true} />,
+  linkedin: <LinkedInIcon variant="white" className="w-4 h-4" aria-hidden={true} />,
   website: <Globe className="w-4 h-4" aria-hidden="true" />,
 };
 

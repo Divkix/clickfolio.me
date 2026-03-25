@@ -5,11 +5,9 @@ import {
   ArrowUpRight,
   Briefcase,
   ExternalLink,
-  GithubIcon,
   Globe,
   GraduationCap,
   Layers,
-  LinkedinIcon,
   Mail,
   MapPin,
   Phone,
@@ -19,6 +17,7 @@ import {
 } from "lucide-react";
 import type React from "react";
 import { useMemo, useRef, useState } from "react";
+import { GitHubIcon, LinkedInIcon } from "@/components/icons/BrandIcons";
 import { ShareBar } from "@/components/ShareBar";
 import { type ContactLinkType, getContactLinks } from "@/lib/templates/contact-links";
 import {
@@ -36,11 +35,19 @@ import type { TemplateProps } from "@/lib/types/template";
 const FONT_URL =
   "https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700;800&family=JetBrains+Mono:wght@400;500&display=swap";
 
+const GlassGitHubIcon = ({ size, className }: { size: number; className?: string }) => (
+  <GitHubIcon variant="white" size={size} className={className} aria-hidden={true} />
+);
+
+const GlassLinkedInIcon = ({ size, className }: { size: number; className?: string }) => (
+  <LinkedInIcon variant="white" size={size} className={className} aria-hidden={true} />
+);
+
 const glassIconMap: Partial<
   Record<ContactLinkType, React.ComponentType<{ size: number; className?: string }>>
 > = {
-  github: GithubIcon,
-  linkedin: LinkedinIcon,
+  github: GlassGitHubIcon,
+  linkedin: GlassLinkedInIcon,
   email: Mail,
   phone: Phone,
   website: Globe,

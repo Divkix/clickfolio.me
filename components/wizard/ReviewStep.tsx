@@ -1,6 +1,7 @@
 "use client";
 
-import { FileCheck, Github, Globe, Linkedin, Mail, MapPin, Phone } from "lucide-react";
+import { FileCheck, Globe, Mail, MapPin, Phone } from "lucide-react";
+import { Github, Linkedin } from "@/components/icons/BrandIcons";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import type { ResumeContent } from "@/lib/types/database";

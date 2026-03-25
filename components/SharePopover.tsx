@@ -1,9 +1,10 @@
 "use client";
 
 import { cva, type VariantProps } from "class-variance-authority";
-import { Check, Copy, LinkedinIcon, Share2, XIcon } from "lucide-react";
+import { Check, Copy, Share2, XIcon } from "lucide-react";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { type BrandIconVariant, LinkedInIcon } from "@/components/icons/BrandIcons";
 import { siteConfig } from "@/lib/config/site";
 import { cn } from "@/lib/utils";
 import { copyToClipboard } from "@/lib/utils/clipboard";
@@ -98,6 +99,20 @@ const itemVariants = cva(
     },
   },
 );
+
+function getLinkedInIconVariant(
+  variant?: VariantProps<typeof triggerVariants>["variant"],
+): BrandIconVariant {
+  switch (variant) {
+    case "glass-morphic":
+    case "midnight":
+    case "design-folio":
+    case "dev-terminal":
+      return "white";
+    default:
+      return "black";
+  }
+}
 
 interface SharePopoverProps extends VariantProps<typeof triggerVariants> {
   /** The URL to share (optional if handle is provided) */
@@ -251,7 +266,11 @@ export function SharePopover({ url, handle, title, name, variant, className }: S
               className={cn(itemVariants({ variant }))}
               aria-label="Share on LinkedIn"
             >
-              <LinkedinIcon className="size-4" aria-hidden="true" />
+              <LinkedInIcon
+                variant={getLinkedInIconVariant(variant)}
+                className="size-4"
+                aria-hidden={true}
+              />
               <span>LinkedIn</span>
             </button>
             <button

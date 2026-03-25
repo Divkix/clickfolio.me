@@ -1,7 +1,8 @@
 "use client";
 
-import { Github, Globe, Linkedin, Mail, MapPin, Phone, Printer } from "lucide-react";
+import { Globe, Mail, MapPin, Phone, Printer } from "lucide-react";
 import type React from "react";
+import { Github, Linkedin } from "@/components/icons/BrandIcons";
 import { ShareBar } from "@/components/ShareBar";
 import { type ContactLinkType, getContactLinks } from "@/lib/templates/contact-links";
 import { flattenSkills, formatDateRange, formatYear } from "@/lib/templates/helpers";

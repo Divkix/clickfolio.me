@@ -1,18 +1,9 @@
 "use client";
 
-import {
-  ArrowUpRight,
-  Briefcase,
-  Github,
-  Globe,
-  GraduationCap,
-  Linkedin,
-  Mail,
-  MapPin,
-  Phone,
-} from "lucide-react";
+import { ArrowUpRight, Briefcase, Globe, GraduationCap, Mail, MapPin, Phone } from "lucide-react";
 import type React from "react";
 import { useCallback, useRef, useState } from "react";
+import { Github, Linkedin } from "@/components/icons/BrandIcons";
 import { ShareBar } from "@/components/ShareBar";
 import { type ContactLinkType, getContactLinks } from "@/lib/templates/contact-links";
 import { flattenSkills, formatDateRange, formatYear, getInitials } from "@/lib/templates/helpers";
@@ -20,8 +11,8 @@ import type { TemplateProps } from "@/lib/types/template";
 
 /* ─── Icon map ─── */
 const spotlightIconMap: Partial<Record<ContactLinkType, React.ReactNode>> = {
-  github: <Github className="w-5 h-5" aria-hidden="true" />,
-  linkedin: <Linkedin className="w-5 h-5" aria-hidden="true" />,
+  github: <Github className="w-5 h-5" aria-hidden={true} />,
+  linkedin: <Linkedin className="w-5 h-5" aria-hidden={true} />,
   email: <Mail className="w-5 h-5" aria-hidden="true" />,
   website: <Globe className="w-5 h-5" aria-hidden="true" />,
   phone: <Phone className="w-5 h-5" aria-hidden="true" />,

@@ -1,5 +1,6 @@
-import { ArrowUpRight, Award, Github, Globe, Mail, MapPin, Phone } from "lucide-react";
+import { ArrowUpRight, Award, Globe, Mail, MapPin, Phone } from "lucide-react";
 import type React from "react";
+import { Github } from "@/components/icons/BrandIcons";
 import { ShareBar } from "@/components/ShareBar";
 import { type ContactLinkType, getContactLinks } from "@/lib/templates/contact-links";
 import { formatDateRange, formatShortDate } from "@/lib/templates/helpers";
@@ -11,7 +12,7 @@ const navIconMap: Record<ContactLinkType, React.ReactNode> = {
   linkedin: (
     <ArrowUpRight className="w-4 h-4 text-neutral-600 group-hover:text-black" aria-hidden="true" />
   ),
-  github: <Github className="w-4 h-4 text-neutral-600 group-hover:text-black" aria-hidden="true" />,
+  github: <Github className="w-4 h-4 text-neutral-600 group-hover:text-black" aria-hidden={true} />,
   website: <Globe className="w-4 h-4 text-neutral-600 group-hover:text-black" aria-hidden="true" />,
   location: (
     <MapPin className="w-4 h-4 text-neutral-600 group-hover:text-black" aria-hidden="true" />

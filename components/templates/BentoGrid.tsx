@@ -4,16 +4,15 @@ import {
   Briefcase,
   Code,
   Crown,
-  Github,
   Globe,
   GraduationCap,
   Layers,
-  Linkedin,
   Mail,
   MapPin,
   Phone,
 } from "lucide-react";
 import type React from "react";
+import { Github, Linkedin } from "@/components/icons/BrandIcons";
 import { ShareBar } from "@/components/ShareBar";
 import { type ContactLinkType, getContactLinks } from "@/lib/templates/contact-links";
 import { flattenSkills, formatDateRange, formatYear, getInitials } from "@/lib/templates/helpers";

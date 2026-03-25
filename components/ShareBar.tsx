@@ -1,9 +1,10 @@
 "use client";
 
 import { cva, type VariantProps } from "class-variance-authority";
-import { Check, Copy, LinkedinIcon, Share2, XIcon } from "lucide-react";
+import { Check, Copy, Share2, XIcon } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { type BrandIconVariant, LinkedInIcon } from "@/components/icons/BrandIcons";
 import { cn } from "@/lib/utils";
 import { copyToClipboard } from "@/lib/utils/clipboard";
 import {
@@ -67,6 +68,20 @@ const buttonVariants = cva(
     },
   },
 );
+
+function getLinkedInIconVariant(
+  variant?: VariantProps<typeof shareBarVariants>["variant"],
+): BrandIconVariant {
+  switch (variant) {
+    case "glass-morphic":
+    case "midnight":
+    case "design-folio":
+    case "dev-terminal":
+      return "white";
+    default:
+      return "black";
+  }
+}
 
 // WhatsApp SVG icon (Lucide doesn't have it)
 function WhatsAppIcon({ className }: { className?: string }) {
@@ -193,7 +208,11 @@ export function ShareBar({ url, handle, title, name, variant, className }: Share
         className={cn(buttonVariants({ variant }))}
         aria-label="Share on LinkedIn"
       >
-        <LinkedinIcon className="size-4" aria-hidden="true" />
+        <LinkedInIcon
+          variant={getLinkedInIconVariant(variant)}
+          className="size-4"
+          aria-hidden={true}
+        />
         <span className="sr-only sm:not-sr-only sm:ml-1.5">LinkedIn</span>
       </button>
 
