@@ -155,7 +155,7 @@ export default function Home() {
                       { src: "/previews/minimalist.webp", rotate: "-rotate-3" },
                       { src: "/previews/brutalist.webp", rotate: "rotate-1" },
                       { src: "/previews/glass.webp", rotate: "rotate-3" },
-                    ].map((preview) => (
+                    ].map((preview, index) => (
                       <div
                         key={preview.src}
                         className={`${preview.rotate} border-3 border-ink shadow-brutal-sm bg-white overflow-hidden w-20 sm:w-24`}
@@ -169,7 +169,9 @@ export default function Home() {
                           src={preview.src}
                           alt=""
                           aria-hidden="true"
-                          loading="lazy"
+                          loading={index === 2 ? "eager" : "lazy"}
+                          decoding="async"
+                          {...(index === 2 ? { fetchpriority: "high" } : {})}
                           className="aspect-3/4 object-cover object-top w-full"
                         />
                       </div>
