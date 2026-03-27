@@ -6,7 +6,7 @@ Upload a PDF. AI parses it. Get a shareable link.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Cloudflare Workers](https://img.shields.io/badge/Deployed%20on-Cloudflare%20Workers-F38020)](https://workers.cloudflare.com/)
-[![vinext](https://img.shields.io/badge/vinext-v0.0.20-blue)](https://github.com/nicolo-ribaudo/vinext)
+[![vinext](https://img.shields.io/npm/v/vinext?label=vinext&color=blue)](https://github.com/cloudflare/vinext)
 
 ---
 
@@ -25,7 +25,7 @@ Upload a PDF. AI parses it. Get a shareable link.
 
 | Layer | Technology |
 |-------|------------|
-| **Framework** | [vinext](https://github.com/nicolo-ribaudo/vinext) (Vite-based Next.js) |
+| **Framework** | [vinext](https://github.com/cloudflare/vinext) (Vite-based Next.js) |
 | **Runtime** | [Cloudflare Workers](https://workers.cloudflare.com) |
 | **Database** | [Cloudflare D1](https://developers.cloudflare.com/d1/) (SQLite) + [Drizzle ORM](https://orm.drizzle.team) |
 | **Auth** | [Better Auth](https://better-auth.com) (Google OAuth) |
@@ -455,7 +455,7 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ## Acknowledgments
 
-- [vinext](https://github.com/nicolo-ribaudo/vinext) - Vite-based Next.js for Cloudflare Workers
+- [vinext](https://github.com/cloudflare/vinext) - Vite-based Next.js for Cloudflare Workers
 - [Better Auth](https://better-auth.com) - Authentication
 - [Drizzle ORM](https://orm.drizzle.team) - Type-safe database
 - [Cloudflare](https://cloudflare.com) - Edge infrastructure
