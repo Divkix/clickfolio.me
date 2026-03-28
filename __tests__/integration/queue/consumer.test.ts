@@ -632,6 +632,7 @@ describe("Queue Consumer - Main Processing", () => {
                 return Promise.resolve([]);
               }),
               // For the waiting resumes query (no limit)
+              // biome-ignore lint/suspicious/noThenProperty: mock for testing
               then: vi.fn().mockImplementation((cb: (value: unknown[]) => unknown) => {
                 if (callCount === 2) {
                   return Promise.resolve(cb([{ id: waitingResumeId, userId }]));

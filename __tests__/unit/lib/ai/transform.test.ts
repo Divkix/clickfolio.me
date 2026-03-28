@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// biome-ignore-all lint/suspicious/noExplicitAny: Test file uses any for flexible type testing
 import { describe, expect, it } from "vitest";
 import type { ResumeSchema } from "@/lib/ai/schema";
 import {
@@ -257,7 +256,6 @@ describe("transformAiResponse", () => {
 
   it("truncates full_name to 100 chars", () => {
     const data = { full_name: "a".repeat(150) };
-    // biome-ignore lint/suspicious/noExplicitAny: test helper
     // biome-ignore lint/suspicious/noExplicitAny: test helper
     const result = transformAiResponse(data) as any;
     expect(result.full_name).toBe(`${"a".repeat(97)}...`);
