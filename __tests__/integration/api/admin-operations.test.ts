@@ -38,10 +38,23 @@ vi.mock("drizzle-orm", () => ({
   gte: vi.fn((_col, val) => ({ gte: val })),
   gt: vi.fn((_col, val) => ({ gt: val })),
   isNotNull: vi.fn((col) => ({ isNotNull: col })),
-  sql: vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({
-    sql: strings.join("?"),
-    values,
-  })),
+  sql: Object.assign(
+    vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({
+      sql: strings.join("?"),
+      values,
+    })),
+    {
+      join: vi.fn((values: unknown[], _separator?: string) => ({
+        toString: () => (values as string[]).join(", "),
+      })),
+      literal: vi.fn((val: unknown) => ({
+        toString: () => String(val),
+      })),
+      raw: vi.fn((str: string) => ({
+        toString: () => str,
+      })),
+    },
+  ),
   count: vi.fn(() => ({ count: "count" })),
   sum: vi.fn((col) => ({ sum: col })),
   coalesce: vi.fn((...args) => ({ coalesce: args })),
@@ -181,7 +194,9 @@ const createChainable = () => {
     orderBy: mockOrderBy,
     limit: mockLimit,
     offset: mockOffset,
-    groupBy: mockGroupBy,
+    groupBy: vi.fn().mockReturnValue({
+      limit: vi.fn().mockResolvedValue([]),
+    }),
     leftJoin: mockLeftJoin,
   };
 
@@ -191,7 +206,6 @@ const createChainable = () => {
   mockOrderBy.mockReturnValue(chain);
   mockLimit.mockResolvedValue([]);
   mockOffset.mockResolvedValue([]);
-  mockGroupBy.mockReturnValue(chain);
   mockLeftJoin.mockReturnValue(chain);
 
   return chain;

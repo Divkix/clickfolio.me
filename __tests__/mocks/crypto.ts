@@ -23,7 +23,7 @@ export const mockDigest = vi.fn(
 
     // Use Bun's crypto for accurate hashing
     if (algorithm === "SHA-1" || algorithm === "SHA-256") {
-      const crypto = await import("crypto");
+      const crypto = await import("node:crypto");
       const hash = crypto.createHash(algorithm.toLowerCase().replace("-", ""));
       hash.update(Buffer.from(input));
       const result = hash.digest();
