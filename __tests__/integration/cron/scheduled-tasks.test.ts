@@ -152,7 +152,6 @@ describe("Cron Scheduled Tasks", () => {
     });
 
     it("should handle session expiry at exact boundary", async () => {
-      const _now = new Date();
       const boundarySession = {
         meta: { changes: 1 },
         results: [],
@@ -387,9 +386,7 @@ describe("Cron Scheduled Tasks", () => {
     it("should handle database errors during cleanup", async () => {
       mockDb.batch.mockRejectedValueOnce(new Error("Database connection failed"));
 
-      await expect(performCleanup(mockDb as never)).rejects.toThrow(
-        "Database connection failed",
-      );
+      await expect(performCleanup(mockDb as never)).rejects.toThrow("Database connection failed");
     });
 
     it("should handle queue errors during recovery", async () => {
@@ -458,10 +455,7 @@ describe("Cron Scheduled Tasks", () => {
 
       const [cleanupResult, recoveryResult] = await Promise.all([
         performCleanup(mockDb as never),
-        recoverOrphanedResumes(
-          mockDb as never,
-          mockQueue as unknown as Queue<ResumeParseMessage>,
-        ),
+        recoverOrphanedResumes(mockDb as never, mockQueue as unknown as Queue<ResumeParseMessage>),
       ]);
 
       expect(cleanupResult.ok).toBe(true);

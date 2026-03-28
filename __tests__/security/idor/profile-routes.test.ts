@@ -481,14 +481,13 @@ describe("IDOR - Profile Routes Security", () => {
           privacySettings: "{}",
           onboardingCompleted: true,
           role: "mid_level",
-          isAdmin: false,
         },
         db: mockDb as never,
         captureBookmark: mockCaptureBookmark,
-        dbUser: null, // User not found in DB
+        dbUser: null as never, // User not found in DB
         env: { DB: {} } as never,
         error: new Response(JSON.stringify({ error: "User account not found" }), { status: 404 }),
-      });
+      } as never);
 
       const { PUT } = await import("@/app/api/profile/privacy/route");
       const request = new Request("http://localhost:3000/api/profile/privacy", {

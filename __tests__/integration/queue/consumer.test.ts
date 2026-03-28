@@ -67,9 +67,9 @@ vi.mock("@/lib/db/session", () => ({
   getSessionDbForWebhook: vi.fn().mockImplementation(() => {
     // Create a mock db that reads from/writes to mockDbState
     const mockDb = {
-      select: vi.fn().mockImplementation((fields: unknown) => ({
-        from: vi.fn().mockImplementation((table: unknown) => ({
-          where: vi.fn().mockImplementation((condition: unknown) => ({
+      select: vi.fn().mockImplementation((_fields: unknown) => ({
+        from: vi.fn().mockImplementation((_table: unknown) => ({
+          where: vi.fn().mockImplementation((_condition: unknown) => ({
             limit: vi.fn().mockImplementation((n: number) => {
               // Extract resumeId from condition if possible
               const records = Array.from(mockDbState.resumes.values());
@@ -78,20 +78,20 @@ vi.mock("@/lib/db/session", () => ({
           })),
         })),
       })),
-      update: vi.fn().mockImplementation((table: unknown) => ({
+      update: vi.fn().mockImplementation((_table: unknown) => ({
         set: vi.fn().mockImplementation((values: Record<string, unknown>) => ({
           where: vi.fn().mockImplementation((condition: Record<string, unknown>) => {
             // Simple mock - update by id
             const resumeId = condition.id || condition.resumeId;
-            if (resumeId && mockDbState.resumes.has(resumeId)) {
-              const existing = mockDbState.resumes.get(resumeId)!;
-              mockDbState.resumes.set(resumeId, { ...existing, ...values });
+            if (resumeId && mockDbState.resumes.has(resumeId as string)) {
+              const existing = mockDbState.resumes.get(resumeId as string)!;
+              mockDbState.resumes.set(resumeId as string, { ...existing, ...values });
             }
             return Promise.resolve(undefined);
           }),
         })),
       })),
-      insert: vi.fn().mockImplementation((table: unknown) => ({
+      insert: vi.fn().mockImplementation((_table: unknown) => ({
         values: vi.fn().mockImplementation((values: Record<string, unknown>) => {
           if (values.id) {
             mockDbState.siteData.set(
@@ -295,6 +295,7 @@ describe("Queue Consumer - Main Processing", () => {
       id: resumeId1,
       status: "completed",
       parsedContent: cachedContent,
+      // @ts-expect-error fileHash not in ResumeRecord type
       fileHash,
     });
     mockR2Store.set(r2Key1, makePdfBuffer());
@@ -315,7 +316,7 @@ describe("Queue Consumer - Main Processing", () => {
       select: vi.fn().mockReturnValue({
         from: vi.fn().mockReturnValue({
           where: vi.fn().mockReturnValue({
-            limit: vi.fn().mockImplementation((n: number) => {
+            limit: vi.fn().mockImplementation((_n: number) => {
               const callIndex = vi.mocked(mockDb.select).mock.calls.length;
               // First call: check current resume
               if (callIndex <= 1) {
@@ -611,14 +612,14 @@ describe("Queue Consumer - Main Processing", () => {
     const selectCalls: Array<string> = [];
 
     const mockDb = {
-      select: vi.fn().mockImplementation((fields: unknown) => {
+      select: vi.fn().mockImplementation((_fields: unknown) => {
         const callCount = selectCalls.length;
         selectCalls.push(`call-${callCount}`);
 
         return {
           from: vi.fn().mockReturnValue({
             where: vi.fn().mockReturnValue({
-              limit: vi.fn().mockImplementation((n: number) => {
+              limit: vi.fn().mockImplementation((_n: number) => {
                 if (callCount === 0) {
                   return Promise.resolve([
                     {
@@ -664,9 +665,7 @@ describe("Queue Consumer - Main Processing", () => {
     await handleQueueMessage(message, env);
 
     // Should have notified waiting resumes
-    const _waitingNotification = mockWebSocketNotifications.find(
-      (n) => n.resumeId === waitingResumeId,
-    );
+    void mockWebSocketNotifications.find((_n) => _n.resumeId === waitingResumeId);
     // Note: Full waiting resume logic depends on proper mock setup
   });
 
@@ -872,6 +871,7 @@ describe("DLQ Consumer", () => {
   beforeEach(() => {
     resetAll();
     // Reset fetch mock
+    // @ts-expect-error preconnect property missing from mock
     global.fetch = vi.fn().mockResolvedValue(new Response("OK"));
   });
 
@@ -935,7 +935,7 @@ describe("DLQ Consumer", () => {
           fetch: vi.fn().mockResolvedValue(new Response("OK")),
         }),
       } as unknown as DurableObjectNamespace,
-    } as CloudflareEnv;
+    } as unknown as CloudflareEnv;
 
     await handleDLQMessage(message, env);
 
@@ -994,7 +994,7 @@ describe("DLQ Consumer", () => {
           fetch: vi.fn().mockResolvedValue(new Response("OK")),
         }),
       } as unknown as DurableObjectNamespace,
-    } as CloudflareEnv;
+    } as unknown as CloudflareEnv;
 
     await handleDLQMessage(message, env);
 
@@ -1055,7 +1055,7 @@ describe("DLQ Consumer", () => {
         }),
       } as unknown as DurableObjectNamespace,
       ALERT_CHANNEL: "logpush",
-    } as CloudflareEnv;
+    } as unknown as CloudflareEnv;
 
     await handleDLQMessage(message, env);
 
@@ -1114,7 +1114,7 @@ describe("DLQ Consumer", () => {
       } as unknown as DurableObjectNamespace,
       ALERT_CHANNEL: "webhook",
       ALERT_WEBHOOK_URL: "https://hooks.slack.com/services/TEST",
-    } as CloudflareEnv;
+    } as unknown as CloudflareEnv;
 
     await handleDLQMessage(message, env);
 
@@ -1180,7 +1180,7 @@ describe("DLQ Consumer", () => {
           fetch: vi.fn().mockResolvedValue(new Response("OK")),
         }),
       } as unknown as DurableObjectNamespace,
-    } as CloudflareEnv;
+    } as unknown as CloudflareEnv;
 
     // Should handle wrapped message without errors
     await expect(handleDLQMessage(deadLetterMessage, env)).resolves.not.toThrow();

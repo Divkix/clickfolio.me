@@ -528,8 +528,8 @@ describe("transformAiOutput", () => {
       ],
     };
     const result = transformAiOutput(data as ResumeSchema);
-    expect(result.projects?.[0].year).toBe("2023");
-    expect(result.projects?.[1].year).toBe("2022");
+    expect((result.projects as any[])[0].year).toBe("2023");
+    expect((result.projects as any[])[1].year).toBe("2022");
   });
 
   it("removes empty experience location fields", () => {
@@ -541,7 +541,7 @@ describe("transformAiOutput", () => {
       ],
     };
     const result = transformAiOutput(data as ResumeSchema);
-    expect(result.experience?.[0].location).toBeUndefined();
+    expect((result.experience as any[])[0].location).toBeUndefined();
   });
 
   it("removes empty experience end_date fields", () => {
@@ -553,7 +553,7 @@ describe("transformAiOutput", () => {
       ],
     };
     const result = transformAiOutput(data as ResumeSchema);
-    expect(result.experience?.[0].end_date).toBeUndefined();
+    expect((result.experience as any[])[0].end_date).toBeUndefined();
   });
 
   it("removes empty education location and gpa", () => {
@@ -563,8 +563,8 @@ describe("transformAiOutput", () => {
       education: [{ degree: "BS", institution: "MIT", location: "", gpa: "" }],
     };
     const result = transformAiOutput(data as ResumeSchema);
-    expect(result.education?.[0].location).toBeUndefined();
-    expect(result.education?.[0].gpa).toBeUndefined();
+    expect((result.education as any[])[0].location).toBeUndefined();
+    expect((result.education as any[])[0].gpa).toBeUndefined();
   });
 
   it("removes empty optional arrays", () => {
@@ -622,11 +622,14 @@ describe("transformAiOutput", () => {
       ],
     };
     const result = transformAiOutput(data as ResumeSchema);
-    expect(result.experience?.[0].title).toBe("Engineer");
-    expect(result.experience?.[0].company).toBe("Acme");
+    expect((result.experience as any[])[0].title).toBe("Engineer");
+    expect((result.experience as any[])[0].company).toBe("Acme");
     // Note: The current implementation doesn't trim strings inside arrays like highlights
     // This test documents the actual behavior
-    expect(result.experience?.[0].highlights).toEqual(["  Achievement 1  ", "  Achievement 2  "]);
+    expect((result.experience as any[])[0].highlights).toEqual([
+      "  Achievement 1  ",
+      "  Achievement 2  ",
+    ]);
   });
 });
 /* eslint-enable @typescript-eslint/no-explicit-any */

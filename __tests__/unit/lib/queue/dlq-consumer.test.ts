@@ -84,7 +84,7 @@ describe("DLQ Consumer", () => {
         }),
       });
 
-      vi.mocked(getSessionDbForWebhook).mockReturnValue({ db: mockDb } as ReturnType<
+      vi.mocked(getSessionDbForWebhook).mockReturnValue({ db: mockDb } as unknown as ReturnType<
         typeof getSessionDbForWebhook
       >);
 
@@ -118,7 +118,7 @@ describe("DLQ Consumer", () => {
         }),
       });
 
-      vi.mocked(getSessionDbForWebhook).mockReturnValue({ db: mockDb } as ReturnType<
+      vi.mocked(getSessionDbForWebhook).mockReturnValue({ db: mockDb } as unknown as ReturnType<
         typeof getSessionDbForWebhook
       >);
 
@@ -152,7 +152,7 @@ describe("DLQ Consumer", () => {
         }),
       });
 
-      vi.mocked(getSessionDbForWebhook).mockReturnValue({ db: mockDb } as ReturnType<
+      vi.mocked(getSessionDbForWebhook).mockReturnValue({ db: mockDb } as unknown as ReturnType<
         typeof getSessionDbForWebhook
       >);
 
@@ -195,7 +195,7 @@ describe("DLQ Consumer", () => {
         }),
       });
 
-      vi.mocked(getSessionDbForWebhook).mockReturnValue({ db: mockDb } as ReturnType<
+      vi.mocked(getSessionDbForWebhook).mockReturnValue({ db: mockDb } as unknown as ReturnType<
         typeof getSessionDbForWebhook
       >);
 
@@ -233,7 +233,7 @@ describe("DLQ Consumer", () => {
         }),
       });
 
-      vi.mocked(getSessionDbForWebhook).mockReturnValue({ db: mockDb } as ReturnType<
+      vi.mocked(getSessionDbForWebhook).mockReturnValue({ db: mockDb } as unknown as ReturnType<
         typeof getSessionDbForWebhook
       >);
 
@@ -279,7 +279,7 @@ describe("DLQ Consumer", () => {
         }),
       });
 
-      vi.mocked(getSessionDbForWebhook).mockReturnValue({ db: mockDb } as ReturnType<
+      vi.mocked(getSessionDbForWebhook).mockReturnValue({ db: mockDb } as unknown as ReturnType<
         typeof getSessionDbForWebhook
       >);
 
@@ -321,7 +321,7 @@ describe("DLQ Consumer", () => {
         }),
       });
 
-      vi.mocked(getSessionDbForWebhook).mockReturnValue({ db: mockDb } as ReturnType<
+      vi.mocked(getSessionDbForWebhook).mockReturnValue({ db: mockDb } as unknown as ReturnType<
         typeof getSessionDbForWebhook
       >);
 
@@ -364,7 +364,7 @@ describe("DLQ Consumer", () => {
         }),
       });
 
-      vi.mocked(getSessionDbForWebhook).mockReturnValue({ db: mockDb } as ReturnType<
+      vi.mocked(getSessionDbForWebhook).mockReturnValue({ db: mockDb } as unknown as ReturnType<
         typeof getSessionDbForWebhook
       >);
 
@@ -412,7 +412,7 @@ describe("DLQ Consumer", () => {
         }),
       });
 
-      vi.mocked(getSessionDbForWebhook).mockReturnValue({ db: mockDb } as ReturnType<
+      vi.mocked(getSessionDbForWebhook).mockReturnValue({ db: mockDb } as unknown as ReturnType<
         typeof getSessionDbForWebhook
       >);
 
@@ -453,7 +453,7 @@ describe("DLQ Consumer", () => {
         }),
       });
 
-      vi.mocked(getSessionDbForWebhook).mockReturnValue({ db: mockDb } as ReturnType<
+      vi.mocked(getSessionDbForWebhook).mockReturnValue({ db: mockDb } as unknown as ReturnType<
         typeof getSessionDbForWebhook
       >);
 
@@ -494,7 +494,7 @@ describe("DLQ Consumer", () => {
         }),
       });
 
-      vi.mocked(getSessionDbForWebhook).mockReturnValue({ db: mockDb } as ReturnType<
+      vi.mocked(getSessionDbForWebhook).mockReturnValue({ db: mockDb } as unknown as ReturnType<
         typeof getSessionDbForWebhook
       >);
 
@@ -531,7 +531,7 @@ describe("DLQ Consumer", () => {
         }),
       });
 
-      vi.mocked(getSessionDbForWebhook).mockReturnValue({ db: mockDb } as ReturnType<
+      vi.mocked(getSessionDbForWebhook).mockReturnValue({ db: mockDb } as unknown as ReturnType<
         typeof getSessionDbForWebhook
       >);
 
@@ -562,7 +562,7 @@ describe("DLQ Consumer", () => {
         }),
       });
 
-      vi.mocked(getSessionDbForWebhook).mockReturnValue({ db: mockDb } as ReturnType<
+      vi.mocked(getSessionDbForWebhook).mockReturnValue({ db: mockDb } as unknown as ReturnType<
         typeof getSessionDbForWebhook
       >);
 
@@ -599,7 +599,7 @@ describe("DLQ Consumer", () => {
         }),
       });
 
-      vi.mocked(getSessionDbForWebhook).mockReturnValue({ db: mockDb } as ReturnType<
+      vi.mocked(getSessionDbForWebhook).mockReturnValue({ db: mockDb } as unknown as ReturnType<
         typeof getSessionDbForWebhook
       >);
 
@@ -636,7 +636,7 @@ describe("DLQ Consumer", () => {
         }),
       });
 
-      vi.mocked(getSessionDbForWebhook).mockReturnValue({ db: mockDb } as ReturnType<
+      vi.mocked(getSessionDbForWebhook).mockReturnValue({ db: mockDb } as unknown as ReturnType<
         typeof getSessionDbForWebhook
       >);
 
@@ -678,7 +678,7 @@ describe("DLQ Consumer", () => {
         }),
       });
 
-      vi.mocked(getSessionDbForWebhook).mockReturnValue({ db: mockDb } as ReturnType<
+      vi.mocked(getSessionDbForWebhook).mockReturnValue({ db: mockDb } as unknown as ReturnType<
         typeof getSessionDbForWebhook
       >);
 

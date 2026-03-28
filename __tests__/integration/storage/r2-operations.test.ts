@@ -8,11 +8,33 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getR2Binding, R2 } from "@/lib/r2";
 
-// Minimal R2ObjectBody interface for testing
-type R2ObjectBody = R2Object & { body: ReadableStream<Uint8Array> };
+// Mock R2Bucket for testing - using separate interface to avoid type conflicts
+interface MockR2Object {
+  key: string;
+  size: number;
+  etag: string;
+  httpEtag: string;
+  httpMetadata: R2HTTPMetadata;
+  customMetadata: Record<string, string>;
+  checksums: R2Checksums;
+  uploaded: Date;
+  version: string;
+  storageClass: string;
+  writeHttpMetadata(headers: Headers): void;
+  arrayBuffer(): Promise<ArrayBuffer>;
+  blob(): Promise<Blob>;
+  bytes(): Promise<Uint8Array>;
+  text(): Promise<string>;
+  json<T>(): Promise<T>;
+}
+
+interface MockR2ObjectBody extends MockR2Object {
+  body: ReadableStream<Uint8Array>;
+  bodyUsed: boolean;
+}
 
 // Mock R2Bucket for testing
-class MockR2Bucket implements R2Bucket {
+class MockR2Bucket {
   private storage = new Map<
     string,
     {
@@ -22,7 +44,7 @@ class MockR2Bucket implements R2Bucket {
     }
   >();
 
-  async get(key: string, options?: R2GetOptions): Promise<R2ObjectBody | null> {
+  async get(key: string, options?: R2GetOptions): Promise<MockR2ObjectBody | null> {
     const stored = this.storage.get(key);
     if (!stored) return null;
 
@@ -40,48 +62,23 @@ class MockR2Bucket implements R2Bucket {
       },
     });
 
+    // Create a stored object with the sliced body for range requests
+    const storedForObject = { ...stored, body: bodyArray };
+    const baseObj = this.createMockR2Object(key, bodyArray, storedForObject);
+
     return {
-      key,
-      size: stored.body.length,
-      etag: `"${this.hashKey(key)}"`,
-      httpEtag: `"${this.hashKey(key)}"`,
-      httpMetadata: stored.httpMetadata || {},
-      customMetadata: stored.customMetadata || {},
+      ...baseObj,
       body,
-      checksums: {},
-      uploaded: new Date(),
-      version: "1",
-      writeHttpMetadata(headers: Headers) {
-        for (const [k, v] of Object.entries(stored.httpMetadata || {})) {
-          if (v) headers.set(k, String(v));
-        }
-      },
-      async arrayBuffer() {
-        return bodyArray.buffer.slice(
-          bodyArray.byteOffset,
-          bodyArray.byteOffset + bodyArray.byteLength,
-        );
-      },
-      async blob() {
-        return new Blob([bodyArray]);
-      },
-      async bytes() {
-        return bodyArray;
-      },
-      async text() {
-        return new TextDecoder().decode(bodyArray);
-      },
-      async json<T>() {
-        return JSON.parse(await this.text()) as T;
-      },
-    } as R2ObjectBody;
+      bodyUsed: false,
+      size: bodyArray.length,
+    };
   }
 
   async put(
     key: string,
     value: ReadableStream | ArrayBuffer | ArrayBufferView | string | Blob,
     options?: R2PutOptions,
-  ): Promise<R2Object> {
+  ): Promise<MockR2Object> {
     let body: Uint8Array;
 
     if (typeof value === "string") {
@@ -112,37 +109,15 @@ class MockR2Bucket implements R2Bucket {
 
     this.storage.set(key, {
       body,
-      httpMetadata: options?.httpMetadata,
+      httpMetadata: options?.httpMetadata as R2HTTPMetadata | undefined,
       customMetadata: options?.customMetadata,
     });
 
-    return {
-      key,
-      size: body.length,
-      etag: `"${this.hashKey(key)}"`,
-      httpEtag: `"${this.hashKey(key)}"`,
-      httpMetadata: options?.httpMetadata || {},
-      customMetadata: options?.customMetadata || {},
-      checksums: {},
-      uploaded: new Date(),
-      version: "1",
-      writeHttpMetadata() {},
-      async arrayBuffer() {
-        return body.buffer.slice(body.byteOffset, body.byteOffset + body.byteLength);
-      },
-      async blob() {
-        return new Blob([body]);
-      },
-      async bytes() {
-        return body;
-      },
-      async text() {
-        return new TextDecoder().decode(body);
-      },
-      async json<T>() {
-        return JSON.parse(await this.text()) as T;
-      },
-    };
+    return this.createMockR2Object(key, body, {
+      body,
+      httpMetadata: options?.httpMetadata as R2HTTPMetadata | undefined,
+      customMetadata: options?.customMetadata,
+    });
   }
 
   async delete(key: string | string[]): Promise<void> {
@@ -153,43 +128,19 @@ class MockR2Bucket implements R2Bucket {
     }
   }
 
-  async head(key: string): Promise<R2Object | null> {
+  async head(key: string): Promise<MockR2Object | null> {
     const stored = this.storage.get(key);
     if (!stored) return null;
 
-    return {
-      key,
-      size: stored.body.length,
-      etag: `"${this.hashKey(key)}"`,
-      httpEtag: `"${this.hashKey(key)}"`,
-      httpMetadata: stored.httpMetadata || {},
-      customMetadata: stored.customMetadata || {},
-      checksums: {},
-      uploaded: new Date(),
-      version: "1",
-      writeHttpMetadata() {},
-      async arrayBuffer() {
-        return stored.body.buffer.slice(
-          stored.body.byteOffset,
-          stored.body.byteOffset + stored.body.byteLength,
-        );
-      },
-      async blob() {
-        return new Blob([stored.body]);
-      },
-      async bytes() {
-        return stored.body;
-      },
-      async text() {
-        return new TextDecoder().decode(stored.body);
-      },
-      async json<T>() {
-        return JSON.parse(await this.text()) as T;
-      },
-    };
+    return this.createMockR2Object(key, stored.body, stored);
   }
 
-  async list(options?: R2ListOptions): Promise<R2Objects> {
+  async list(options?: R2ListOptions): Promise<{
+    objects: MockR2Object[];
+    truncated: boolean;
+    cursor?: string;
+    delimitedPrefixes: string[];
+  }> {
     const prefix = options?.prefix || "";
     const limit = options?.limit || 1000;
     const cursor = options?.cursor || "0";
@@ -201,36 +152,7 @@ class MockR2Bucket implements R2Bucket {
 
     const objects = allKeys.slice(startIndex, startIndex + limit).map((key) => {
       const stored = this.storage.get(key)!;
-      return {
-        key,
-        size: stored.body.length,
-        etag: `"${this.hashKey(key)}"`,
-        httpEtag: `"${this.hashKey(key)}"`,
-        httpMetadata: stored.httpMetadata || {},
-        customMetadata: stored.customMetadata || {},
-        checksums: {},
-        uploaded: new Date(),
-        version: "1",
-        writeHttpMetadata() {},
-        async arrayBuffer() {
-          return stored.body.buffer.slice(
-            stored.body.byteOffset,
-            stored.body.byteOffset + stored.body.byteLength,
-          );
-        },
-        async blob() {
-          return new Blob([stored.body]);
-        },
-        async bytes() {
-          return stored.body;
-        },
-        async text() {
-          return new TextDecoder().decode(stored.body);
-        },
-        async json<T>() {
-          return JSON.parse(await this.text()) as T;
-        },
-      };
+      return this.createMockR2Object(key, stored.body, stored);
     });
 
     const truncated = startIndex + limit < allKeys.length;
@@ -264,6 +186,64 @@ class MockR2Bucket implements R2Bucket {
     }
     return hash.toString(16);
   }
+
+  private createMockChecksums(): R2Checksums {
+    return {
+      md5: undefined,
+      sha1: undefined,
+      sha256: undefined,
+      sha384: undefined,
+      sha512: undefined,
+      toJSON: () => ({}),
+    };
+  }
+
+  private createMockR2Object(
+    key: string,
+    body: Uint8Array,
+    stored: {
+      body: Uint8Array;
+      httpMetadata?: R2HTTPMetadata;
+      customMetadata?: Record<string, string>;
+    },
+  ): MockR2Object {
+    const self = this;
+    return {
+      key,
+      size: stored.body.length,
+      etag: `"${this.hashKey(key)}"`,
+      httpEtag: `"${this.hashKey(key)}"`,
+      httpMetadata: stored.httpMetadata || {},
+      customMetadata: stored.customMetadata || {},
+      checksums: this.createMockChecksums(),
+      uploaded: new Date(),
+      version: "1",
+      storageClass: "Standard",
+      writeHttpMetadata(headers: Headers) {
+        for (const [k, v] of Object.entries(stored.httpMetadata || {})) {
+          if (v) headers.set(k, String(v));
+        }
+      },
+      async arrayBuffer() {
+        return stored.body.buffer.slice(
+          stored.body.byteOffset,
+          stored.body.byteOffset + stored.body.byteLength,
+        ) as ArrayBuffer;
+      },
+      async blob() {
+        return new Blob([stored.body as unknown as BlobPart]);
+      },
+      async bytes() {
+        return stored.body;
+      },
+      async text() {
+        return new TextDecoder().decode(stored.body);
+      },
+      async json<T>() {
+        return JSON.parse(await self.createMockR2Object(key, body, stored).text()) as T;
+      },
+    };
+  }
 }
 
 describe("R2 Storage Integration", () => {
@@ -292,7 +272,7 @@ describe("R2 Storage Integration", () => {
       const key = "resumes/test-user/test.pdf";
       const content = new Uint8Array([0x25, 0x50, 0x44, 0x46]); // PDF magic bytes
 
-      const result = await R2.put(mockBucket, key, content, {
+      const result = await R2.put(mockBucket as unknown as R2Bucket, key, content, {
         contentType: "application/pdf",
         customMetadata: { userId: "test-user" },
       });
@@ -305,8 +285,10 @@ describe("R2 Storage Integration", () => {
       const key = "test/file.pdf";
       const content = new Uint8Array([1, 2, 3]);
 
-      await R2.put(mockBucket, key, content, { contentType: "application/pdf" });
-      const head = await R2.head(mockBucket, key);
+      await R2.put(mockBucket as unknown as R2Bucket, key, content, {
+        contentType: "application/pdf",
+      });
+      const head = await R2.head(mockBucket as unknown as R2Bucket, key);
 
       expect(head?.exists).toBe(true);
     });
@@ -315,7 +297,7 @@ describe("R2 Storage Integration", () => {
       const key = "test/empty.pdf";
       const content = new Uint8Array(0);
 
-      const result = await R2.put(mockBucket, key, content);
+      const result = await R2.put(mockBucket as unknown as R2Bucket, key, content);
       expect(result.size).toBe(0);
     });
 
@@ -324,7 +306,7 @@ describe("R2 Storage Integration", () => {
       const content = new Uint8Array([1, 2, 3]);
       const metadata = { userId: "user123", originalName: "resume.pdf" };
 
-      await R2.put(mockBucket, key, content, {
+      await R2.put(mockBucket as unknown as R2Bucket, key, content, {
         contentType: "application/pdf",
         customMetadata: metadata,
       });
@@ -337,7 +319,7 @@ describe("R2 Storage Integration", () => {
       const key = "test/string-content.txt";
       const content = "Hello, World!";
 
-      const result = await R2.put(mockBucket, key, content);
+      const result = await R2.put(mockBucket as unknown as R2Bucket, key, content);
       expect(result.size).toBe(13);
     });
 
@@ -351,7 +333,7 @@ describe("R2 Storage Integration", () => {
         },
       });
 
-      const result = await R2.put(mockBucket, key, stream);
+      const result = await R2.put(mockBucket as unknown as R2Bucket, key, stream);
       expect(result.size).toBe(4);
     });
 
@@ -360,11 +342,11 @@ describe("R2 Storage Integration", () => {
       const content1 = new Uint8Array([1, 2, 3]);
       const content2 = new Uint8Array([4, 5, 6, 7, 8]);
 
-      await R2.put(mockBucket, key, content1);
-      const firstHead = await R2.head(mockBucket, key);
+      await R2.put(mockBucket as unknown as R2Bucket, key, content1);
+      const firstHead = await R2.head(mockBucket as unknown as R2Bucket, key);
 
-      await R2.put(mockBucket, key, content2);
-      const secondHead = await R2.head(mockBucket, key);
+      await R2.put(mockBucket as unknown as R2Bucket, key, content2);
+      const secondHead = await R2.head(mockBucket as unknown as R2Bucket, key);
 
       expect(firstHead?.size).toBe(3);
       expect(secondHead?.size).toBe(5);
@@ -374,7 +356,7 @@ describe("R2 Storage Integration", () => {
       const key = "test/special-chars/file@2x.pdf";
       const content = new Uint8Array([1, 2, 3]);
 
-      const result = await R2.put(mockBucket, key, content);
+      const result = await R2.put(mockBucket as unknown as R2Bucket, key, content);
       expect(result.key).toBe(key);
     });
 
@@ -382,7 +364,7 @@ describe("R2 Storage Integration", () => {
       const key = "test/resume/履歴書.pdf";
       const content = new Uint8Array([1, 2, 3]);
 
-      const result = await R2.put(mockBucket, key, content);
+      const result = await R2.put(mockBucket as unknown as R2Bucket, key, content);
       expect(result.key).toBe(key);
     });
   });
@@ -392,20 +374,20 @@ describe("R2 Storage Integration", () => {
       const key = "test/retrieve.pdf";
       const originalContent = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d]);
 
-      await R2.put(mockBucket, key, originalContent);
-      const retrieved = await R2.get(mockBucket, key);
+      await R2.put(mockBucket as unknown as R2Bucket, key, originalContent);
+      const retrieved = await R2.get(mockBucket as unknown as R2Bucket, key);
 
       expect(retrieved).not.toBeNull();
       expect(retrieved?.contentLength).toBe(5);
     });
 
     it("should return 404 error for invalid key access", async () => {
-      const result = await R2.get(mockBucket, "non-existent/key.pdf");
+      const result = await R2.get(mockBucket as unknown as R2Bucket, "non-existent/key.pdf");
       expect(result).toBeNull();
     });
 
     it("should return null for non-existent object", async () => {
-      const result = await R2.get(mockBucket, "does-not-exist");
+      const result = await R2.get(mockBucket as unknown as R2Bucket, "does-not-exist");
       expect(result).toBeNull();
     });
   });
@@ -415,15 +397,15 @@ describe("R2 Storage Integration", () => {
       const key = "test/arraybuffer.pdf";
       const content = new Uint8Array([1, 2, 3, 4, 5]);
 
-      await R2.put(mockBucket, key, content);
-      const result = await R2.getAsArrayBuffer(mockBucket, key);
+      await R2.put(mockBucket as unknown as R2Bucket, key, content);
+      const result = await R2.getAsArrayBuffer(mockBucket as unknown as R2Bucket, key);
 
       expect(result).not.toBeNull();
       expect(new Uint8Array(result!).length).toBe(5);
     });
 
     it("should return null for non-existent key", async () => {
-      const result = await R2.getAsArrayBuffer(mockBucket, "non-existent");
+      const result = await R2.getAsArrayBuffer(mockBucket as unknown as R2Bucket, "non-existent");
       expect(result).toBeNull();
     });
   });
@@ -433,8 +415,8 @@ describe("R2 Storage Integration", () => {
       const key = "test/uint8array.pdf";
       const content = new Uint8Array([1, 2, 3, 4, 5]);
 
-      await R2.put(mockBucket, key, content);
-      const result = await R2.getAsUint8Array(mockBucket, key);
+      await R2.put(mockBucket as unknown as R2Bucket, key, content);
+      const result = await R2.getAsUint8Array(mockBucket as unknown as R2Bucket, key);
 
       expect(result).not.toBeNull();
       expect(result?.length).toBe(5);
@@ -446,8 +428,8 @@ describe("R2 Storage Integration", () => {
       const key = "test/partial.pdf";
       const content = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
 
-      await R2.put(mockBucket, key, content);
-      const partial = await R2.getPartial(mockBucket, key, 2, 4);
+      await R2.put(mockBucket as unknown as R2Bucket, key, content);
+      const partial = await R2.getPartial(mockBucket as unknown as R2Bucket, key, 2, 4);
 
       expect(partial).not.toBeNull();
       const partialArray = new Uint8Array(partial!);
@@ -455,7 +437,7 @@ describe("R2 Storage Integration", () => {
     });
 
     it("should return null for non-existent key in partial request", async () => {
-      const result = await R2.getPartial(mockBucket, "non-existent", 0, 100);
+      const result = await R2.getPartial(mockBucket as unknown as R2Bucket, "non-existent", 0, 100);
       expect(result).toBeNull();
     });
   });
@@ -466,17 +448,17 @@ describe("R2 Storage Integration", () => {
       const destKey = "test/destination.pdf";
       const content = new Uint8Array([1, 2, 3, 4, 5]);
 
-      await R2.put(mockBucket, sourceKey, content);
-      const copied = await R2.copy(mockBucket, sourceKey, destKey);
+      await R2.put(mockBucket as unknown as R2Bucket, sourceKey, content);
+      const copied = await R2.copy(mockBucket as unknown as R2Bucket, sourceKey, destKey);
 
       expect(copied).toBe(true);
 
-      const destContent = await R2.getAsUint8Array(mockBucket, destKey);
+      const destContent = await R2.getAsUint8Array(mockBucket as unknown as R2Bucket, destKey);
       expect(destContent).toEqual(content);
     });
 
     it("should return false when source does not exist", async () => {
-      const result = await R2.copy(mockBucket, "non-existent", "dest");
+      const result = await R2.copy(mockBucket as unknown as R2Bucket, "non-existent", "dest");
       expect(result).toBe(false);
     });
 
@@ -486,11 +468,11 @@ describe("R2 Storage Integration", () => {
       const content = new Uint8Array([1, 2, 3]);
       const metadata = { custom: "value" };
 
-      await R2.put(mockBucket, sourceKey, content, {
+      await R2.put(mockBucket as unknown as R2Bucket, sourceKey, content, {
         contentType: "application/pdf",
         customMetadata: metadata,
       });
-      await R2.copy(mockBucket, sourceKey, destKey);
+      await R2.copy(mockBucket as unknown as R2Bucket, sourceKey, destKey);
 
       const headResult = await mockBucket.head(destKey);
       expect(headResult?.customMetadata).toEqual(metadata);
@@ -500,16 +482,18 @@ describe("R2 Storage Integration", () => {
   describe("R2.delete", () => {
     it("should delete object from R2", async () => {
       const key = "test/delete-me.pdf";
-      await R2.put(mockBucket, key, new Uint8Array([1, 2, 3]));
+      await R2.put(mockBucket as unknown as R2Bucket, key, new Uint8Array([1, 2, 3]));
 
-      await R2.delete(mockBucket, key);
-      const result = await R2.get(mockBucket, key);
+      await R2.delete(mockBucket as unknown as R2Bucket, key);
+      const result = await R2.get(mockBucket as unknown as R2Bucket, key);
 
       expect(result).toBeNull();
     });
 
     it("should not throw when deleting non-existent key", async () => {
-      await expect(R2.delete(mockBucket, "non-existent")).resolves.not.toThrow();
+      await expect(
+        R2.delete(mockBucket as unknown as R2Bucket, "non-existent"),
+      ).resolves.not.toThrow();
     });
   });
 
@@ -518,8 +502,8 @@ describe("R2 Storage Integration", () => {
       const key = "test/head-check.pdf";
       const content = new Uint8Array([1, 2, 3, 4, 5]);
 
-      await R2.put(mockBucket, key, content);
-      const head = await R2.head(mockBucket, key);
+      await R2.put(mockBucket as unknown as R2Bucket, key, content);
+      const head = await R2.head(mockBucket as unknown as R2Bucket, key);
 
       expect(head?.exists).toBe(true);
       expect(head?.size).toBe(5);
@@ -527,14 +511,14 @@ describe("R2 Storage Integration", () => {
     });
 
     it("should return exists: false for non-existent object", async () => {
-      const head = await R2.head(mockBucket, "non-existent");
+      const head = await R2.head(mockBucket as unknown as R2Bucket, "non-existent");
       expect(head?.exists).toBe(false);
     });
   });
 
   describe("R2.healthCheck", () => {
     it("should return true when bucket is accessible", async () => {
-      const result = await R2.healthCheck(mockBucket);
+      const result = await R2.healthCheck(mockBucket as unknown as R2Bucket);
       expect(result).toBe(true);
     });
 
@@ -550,9 +534,9 @@ describe("R2 Storage Integration", () => {
 
   describe("bucket.list", () => {
     it("should list objects with prefix", async () => {
-      await R2.put(mockBucket, "prefix/file1.pdf", new Uint8Array([1]));
-      await R2.put(mockBucket, "prefix/file2.pdf", new Uint8Array([2]));
-      await R2.put(mockBucket, "other/file3.pdf", new Uint8Array([3]));
+      await R2.put(mockBucket as unknown as R2Bucket, "prefix/file1.pdf", new Uint8Array([1]));
+      await R2.put(mockBucket as unknown as R2Bucket, "prefix/file2.pdf", new Uint8Array([2]));
+      await R2.put(mockBucket as unknown as R2Bucket, "other/file3.pdf", new Uint8Array([3]));
 
       const list = await mockBucket.list({ prefix: "prefix/" });
       expect(list.objects.length).toBe(2);
@@ -560,7 +544,7 @@ describe("R2 Storage Integration", () => {
 
     it("should support pagination with limit", async () => {
       for (let i = 0; i < 5; i++) {
-        await R2.put(mockBucket, `test/file${i}.pdf`, new Uint8Array([i]));
+        await R2.put(mockBucket as unknown as R2Bucket, `test/file${i}.pdf`, new Uint8Array([i]));
       }
 
       const list = await mockBucket.list({ prefix: "test/", limit: 2 });
@@ -578,10 +562,10 @@ describe("R2 Storage Integration", () => {
         largeContent[i] = i % 256;
       }
 
-      const result = await R2.put(mockBucket, key, largeContent);
+      const result = await R2.put(mockBucket as unknown as R2Bucket, key, largeContent);
       expect(result.size).toBe(1024 * 1024);
 
-      const retrieved = await R2.getAsUint8Array(mockBucket, key);
+      const retrieved = await R2.getAsUint8Array(mockBucket as unknown as R2Bucket, key);
       expect(retrieved?.length).toBe(1024 * 1024);
     });
   });
@@ -591,10 +575,12 @@ describe("R2 Storage Integration", () => {
       const keys = ["concurrent/1.pdf", "concurrent/2.pdf", "concurrent/3.pdf"];
       const contents = keys.map((_, i) => new Uint8Array([i, i + 1, i + 2]));
 
-      await Promise.all(keys.map((key, i) => R2.put(mockBucket, key, contents[i])));
+      await Promise.all(
+        keys.map((key, i) => R2.put(mockBucket as unknown as R2Bucket, key, contents[i])),
+      );
 
       for (let i = 0; i < keys.length; i++) {
-        const retrieved = await R2.getAsUint8Array(mockBucket, keys[i]);
+        const retrieved = await R2.getAsUint8Array(mockBucket as unknown as R2Bucket, keys[i]);
         expect(retrieved).toEqual(contents[i]);
       }
     });
@@ -605,8 +591,8 @@ describe("R2 Storage Integration", () => {
       const key = "test/binary-integrity.bin";
       const content = crypto.getRandomValues(new Uint8Array(1000));
 
-      await R2.put(mockBucket, key, content);
-      const head = await R2.head(mockBucket, key);
+      await R2.put(mockBucket as unknown as R2Bucket, key, content);
+      const head = await R2.head(mockBucket as unknown as R2Bucket, key);
 
       expect(head?.exists).toBe(true);
       expect(head?.etag).toBeDefined();
@@ -621,10 +607,10 @@ describe("R2 Storage Integration", () => {
         content[i] = i % 256;
       }
 
-      await R2.put(mockBucket, key, content);
+      await R2.put(mockBucket as unknown as R2Bucket, key, content);
 
-      const partial1 = await R2.getPartial(mockBucket, key, 0, 1000);
-      const partial2 = await R2.getPartial(mockBucket, key, 5000, 1000);
+      const partial1 = await R2.getPartial(mockBucket as unknown as R2Bucket, key, 0, 1000);
+      const partial2 = await R2.getPartial(mockBucket as unknown as R2Bucket, key, 5000, 1000);
 
       expect(new Uint8Array(partial1!).length).toBe(1000);
       expect(new Uint8Array(partial2!).length).toBe(1000);
@@ -676,9 +662,9 @@ describe("R2 Storage Integration", () => {
       // Note: Real presigned URLs require R2 S3-compatible API
       // This tests the conceptual URL generation
       const key = "test/presigned.pdf";
-      await R2.put(mockBucket, key, new Uint8Array([1, 2, 3]));
+      await R2.put(mockBucket as unknown as R2Bucket, key, new Uint8Array([1, 2, 3]));
 
-      const head = await R2.head(mockBucket, key);
+      const head = await R2.head(mockBucket as unknown as R2Bucket, key);
       expect(head?.exists).toBe(true);
     });
   });

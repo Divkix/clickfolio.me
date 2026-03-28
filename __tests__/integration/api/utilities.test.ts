@@ -413,7 +413,11 @@ describe("Utility APIs", () => {
         aiProvider: { status: "healthy" as const },
       };
 
-      const aggregateStatus = (services: typeof healthyServices) => {
+      const aggregateStatus = (services: {
+        d1: { status: string };
+        r2: { status: string };
+        aiProvider: { status: string };
+      }) => {
         const statuses = Object.values(services).map((s) => s.status);
         if (statuses.every((s) => s === "healthy")) return "healthy";
         if (statuses.some((s) => s === "unhealthy")) return "unhealthy";

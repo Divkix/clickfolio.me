@@ -5,11 +5,6 @@ import { parseWithAi } from "@/lib/ai/ai-parser";
 import { parseResumeWithAi } from "@/lib/ai/index";
 import { resumeSchema } from "@/lib/ai/schema";
 
-// Mock the AI SDK
-declare const process: {
-  env: Record<string, string | undefined>;
-};
-
 vi.mock("@ai-sdk/openai-compatible", () => ({
   createOpenAICompatible: vi.fn(() => (modelId: string) => ({
     modelId,
@@ -24,8 +19,26 @@ vi.mock("ai", async (importOriginal) => {
     generateText: vi.fn(),
     Output: actual.Output,
     NoObjectGeneratedError: class NoObjectGeneratedError extends Error {
-      finishReason = "stop";
-      text?: string;
+      readonly finishReason = "stop";
+      readonly text?: string;
+      readonly response?: unknown;
+      readonly usage?: unknown;
+      constructor(options: {
+        message?: string;
+        cause?: Error;
+        text?: string;
+        response?: unknown;
+        usage?: unknown;
+        finishReason?: string;
+      }) {
+        super(options.message ?? "No object generated");
+        this.text = options.text;
+        this.response = options.response;
+        this.usage = options.usage;
+        if (options.finishReason) {
+          Object.defineProperty(this, "finishReason", { value: options.finishReason });
+        }
+      }
       static isInstance(error: unknown): error is NoObjectGeneratedError {
         return error instanceof NoObjectGeneratedError;
       }
@@ -180,7 +193,7 @@ describe("AI Parsing Pipeline", () => {
         },
         experimental_output: undefined,
         providerMetadata: {},
-      });
+      } as never);
 
       const result = await parseWithAi(SAMPLE_RESUME_TEXT, mockEnv);
 
@@ -199,7 +212,11 @@ describe("AI Parsing Pipeline", () => {
             new NoObjectGeneratedError({
               message: "No object generated",
               cause: new Error("Schema validation failed"),
-            }),
+              finishReason: "stop",
+              text: JSON.stringify(VALID_AI_RESPONSE),
+              response: { id: "test", timestamp: new Date(), modelId: "test" },
+              usage: { inputTokens: 1000, outputTokens: 500, totalTokens: 1500 },
+            } as never),
             {
               finishReason: "stop",
               text: JSON.stringify(VALID_AI_RESPONSE),
@@ -225,7 +242,7 @@ describe("AI Parsing Pipeline", () => {
           },
           experimental_output: undefined,
           providerMetadata: {},
-        });
+        } as never);
 
       const result = await parseWithAi(SAMPLE_RESUME_TEXT, mockEnv);
 
@@ -256,7 +273,7 @@ describe("AI Parsing Pipeline", () => {
           },
           experimental_output: undefined,
           providerMetadata: {},
-        });
+        } as never);
 
       const result = await parseWithAi(SAMPLE_RESUME_TEXT, mockEnv);
 
@@ -280,10 +297,10 @@ describe("AI Parsing Pipeline", () => {
           headers: {},
           messages: [],
           body: {},
-          experimental_output: undefined,
-          providerMetadata: {},
         },
-      });
+        experimental_output: undefined,
+        providerMetadata: {},
+      } as never);
 
       const result = await parseWithAi(SAMPLE_RESUME_TEXT, mockEnv);
 
@@ -305,7 +322,11 @@ describe("AI Parsing Pipeline", () => {
           new NoObjectGeneratedError({
             message: "No object generated",
             cause: new Error("Schema validation failed"),
-          }),
+            finishReason: "content_filter",
+            text: JSON.stringify(partialResponse),
+            response: { id: "test", timestamp: new Date(), modelId: "test" },
+            usage: { inputTokens: 500, outputTokens: 200, totalTokens: 700 },
+          } as never),
           {
             finishReason: "content_filter",
             text: JSON.stringify(partialResponse),
@@ -366,9 +387,11 @@ describe("AI Parsing Pipeline", () => {
       const result = transformToSchema(input);
 
       expect(Array.isArray(result.skills)).toBe(true);
-      expect(result.skills).toHaveLength(2);
-      expect(result.skills[0]).toHaveProperty("category");
-      expect(result.skills[0]).toHaveProperty("items");
+      expect((result as { skills: unknown[] }).skills).toHaveLength(2);
+      expect((result as { skills: Record<string, unknown>[] }).skills[0]).toHaveProperty(
+        "category",
+      );
+      expect((result as { skills: Record<string, unknown>[] }).skills[0]).toHaveProperty("items");
     });
 
     it("should transform experience descriptions from array to string", () => {
@@ -384,9 +407,15 @@ describe("AI Parsing Pipeline", () => {
 
       const result = transformToSchema(input);
 
-      expect(typeof result.experience[0].description).toBe("string");
-      expect(result.experience[0].description).toBe("Built features Fixed bugs");
-      expect(result.experience[0].highlights).toEqual(["Built features", "Fixed bugs"]);
+      expect(
+        typeof (result as { experience: { description: string }[] }).experience[0].description,
+      ).toBe("string");
+      expect((result as { experience: { description: string }[] }).experience[0].description).toBe(
+        "Built features Fixed bugs",
+      );
+      expect(
+        (result as { experience: { highlights: string[] }[] }).experience[0].highlights,
+      ).toEqual(["Built features", "Fixed bugs"]);
     });
 
     it("should transform project date to year", () => {
@@ -402,8 +431,8 @@ describe("AI Parsing Pipeline", () => {
 
       const result = transformToSchema(input);
 
-      expect(result.projects[0].year).toBe("2023");
-      expect(result.projects[0].date).toBeUndefined();
+      expect((result as { projects: { year: string }[] }).projects[0].year).toBe("2023");
+      expect((result as { projects: { date?: string }[] }).projects[0].date).toBeUndefined();
     });
   });
 
@@ -429,15 +458,21 @@ describe("AI Parsing Pipeline", () => {
 
       const result = normalizeAiKeys(input);
 
-      expect(result.full_name).toBe("John Doe");
-      expect(result.headline).toBe("Software Engineer");
-      expect(result.summary).toBe("A developer");
-      expect(result.contact.email).toBe("john@example.com");
-      expect(result.contact.phone).toBe("555-1234");
-      expect(result.experience[0].title).toBe("Developer");
-      expect(result.experience[0].company).toBe("TechCorp");
-      expect(result.experience[0].start_date).toBe("2020-01");
-      expect(result.experience[0].end_date).toBe("2022-12");
+      expect((result as { full_name: string }).full_name).toBe("John Doe");
+      expect((result as { headline: string }).headline).toBe("Software Engineer");
+      expect((result as { summary: string }).summary).toBe("A developer");
+      expect((result as { contact: { email: string } }).contact.email).toBe("john@example.com");
+      expect((result as { contact: { phone: string } }).contact.phone).toBe("555-1234");
+      expect((result as { experience: { title: string }[] }).experience[0].title).toBe("Developer");
+      expect((result as { experience: { company: string }[] }).experience[0].company).toBe(
+        "TechCorp",
+      );
+      expect((result as { experience: { start_date: string }[] }).experience[0].start_date).toBe(
+        "2020-01",
+      );
+      expect((result as { experience: { end_date: string }[] }).experience[0].end_date).toBe(
+        "2022-12",
+      );
     });
 
     it("should handle string array skills", () => {
@@ -447,9 +482,13 @@ describe("AI Parsing Pipeline", () => {
 
       const result = normalizeAiKeys(input);
 
-      expect(result.skills).toHaveLength(1);
-      expect(result.skills[0].category).toBe("Skills");
-      expect(result.skills[0].items).toEqual(["TypeScript", "React", "Node.js"]);
+      expect((result as { skills: unknown[] }).skills).toHaveLength(1);
+      expect((result as { skills: { category: string }[] }).skills[0].category).toBe("Skills");
+      expect((result as { skills: { items: string[] }[] }).skills[0].items).toEqual([
+        "TypeScript",
+        "React",
+        "Node.js",
+      ]);
     });
   });
 
@@ -479,7 +518,7 @@ describe("AI Parsing Pipeline", () => {
         },
         experimental_output: undefined,
         providerMetadata: {},
-      });
+      } as never);
 
       const result = await parseResumeWithAi(mockPdfBuffer, mockEnv);
 
@@ -696,7 +735,7 @@ describe("AI Parsing Pipeline", () => {
         },
         experimental_output: undefined,
         providerMetadata: {},
-      });
+      } as never);
 
       const result = await parseWithAi(SAMPLE_RESUME_TEXT, mockEnv);
       // Schema validation should filter out malicious content
@@ -752,7 +791,7 @@ describe("AI Parsing Pipeline", () => {
           },
           experimental_output: undefined,
           providerMetadata: {},
-        })
+        } as never)
         .mockResolvedValueOnce({
           text: JSON.stringify(VALID_AI_RESPONSE),
           finishReason: "stop",
@@ -771,7 +810,7 @@ describe("AI Parsing Pipeline", () => {
           },
           experimental_output: undefined,
           providerMetadata: {},
-        });
+        } as never);
 
       const result = await parseWithAi(SAMPLE_RESUME_TEXT, mockEnv);
       expect(result).toBeDefined();

@@ -193,14 +193,6 @@ function authedAsMessage(userId: string) {
   });
 }
 
-function _createMockEnv() {
-  return {
-    CLICKFOLIO_DB: {} as D1Database,
-    CLICKFOLIO_PARSE_QUEUE: {} as Queue,
-    CLICKFOLIO_BUCKET: {} as R2Bucket,
-  };
-}
-
 beforeEach(() => {
   vi.clearAllMocks();
 });
@@ -731,6 +723,7 @@ describe("IDOR - Resume Routes Security", () => {
       const { eq } = await import("drizzle-orm");
 
       // Verify eq function is called with correct parameters
+      // @ts-expect-error - Testing mock function call
       eq("resumes.userId", "user-a");
       expect(eq).toHaveBeenCalledWith("resumes.userId", "user-a");
     });
@@ -739,7 +732,6 @@ describe("IDOR - Resume Routes Security", () => {
       // Verify resume IDs are UUIDs
       const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-      const _mockResumeId = "resume-a-001";
       // In real system this would be a UUID like "550e8400-e29b-41d4-a716-446655440000"
 
       // The test demonstrates UUIDs are used

@@ -14,7 +14,6 @@ const mockInsert = vi.fn().mockReturnValue({
 const mockSelect = vi.fn().mockReturnThis();
 const mockFrom = vi.fn().mockReturnThis();
 const mockWhere = vi.fn().mockReturnThis();
-const _mockCountResult = vi.fn();
 
 const mockDb = {
   insert: mockInsert,

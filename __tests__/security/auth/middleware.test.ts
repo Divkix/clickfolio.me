@@ -384,7 +384,7 @@ describe("Authentication Middleware Security", () => {
     it("blocks empty authentication headers", async () => {
       vi.mocked(await import("next/headers")).headers.mockResolvedValue({
         get: vi.fn().mockReturnValue(null),
-      });
+      } as never);
 
       mockGetSession.mockResolvedValue(null);
 
@@ -397,7 +397,7 @@ describe("Authentication Middleware Security", () => {
     it("blocks malformed session tokens", async () => {
       vi.mocked(await import("next/headers")).headers.mockResolvedValue({
         get: vi.fn().mockReturnValue("invalid-token"),
-      });
+      } as never);
 
       mockGetSession.mockRejectedValue(new Error("Invalid token"));
 
@@ -410,7 +410,7 @@ describe("Authentication Middleware Security", () => {
     it("blocks requests with missing cookies entirely", async () => {
       vi.mocked(await import("next/headers")).headers.mockResolvedValue({
         get: vi.fn().mockReturnValue(undefined),
-      });
+      } as never);
 
       mockGetSession.mockResolvedValue(null);
 
