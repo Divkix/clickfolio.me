@@ -385,7 +385,6 @@ describe("Queue Consumer - Main Processing", () => {
 
   it("4. Process with permanent error → does not throw (should ack)", async () => {
     const { handleQueueMessage } = await import("@/lib/queue/consumer");
-    const { QueueError, QueueErrorType } = await import("@/lib/queue/errors");
 
     const resumeId = crypto.randomUUID();
     const userId = "user-1";

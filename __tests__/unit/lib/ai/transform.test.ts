@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+// biome-ignore-all lint/suspicious/noExplicitAny: Test file uses any for flexible type testing
 import { describe, expect, it } from "vitest";
 import type { ResumeSchema } from "@/lib/ai/schema";
 import {
@@ -257,12 +258,14 @@ describe("transformAiResponse", () => {
   it("truncates full_name to 100 chars", () => {
     const data = { full_name: "a".repeat(150) };
     // biome-ignore lint/suspicious/noExplicitAny: test helper
+    // biome-ignore lint/suspicious/noExplicitAny: test helper
     const result = transformAiResponse(data) as any;
     expect(result.full_name).toBe(`${"a".repeat(97)}...`);
   });
 
   it("truncates headline to 150 chars", () => {
     const data = { headline: "a".repeat(200) };
+    // biome-ignore lint/suspicious/noExplicitAny: test helper
     const result = transformAiResponse(data) as any;
     expect(result.headline).toBe(`${"a".repeat(147)}...`);
   });
@@ -272,18 +275,21 @@ describe("transformAiResponse", () => {
       headline: "Developer",
       experience: [{ description: "Led the engineering team." }],
     };
+    // biome-ignore lint/suspicious/noExplicitAny: test helper
     const result = transformAiResponse(data) as any;
     expect(result.summary).toBe("Led the engineering team.");
   });
 
   it("generates generic summary when no experience description", () => {
     const data = { headline: "Developer" };
+    // biome-ignore lint/suspicious/noExplicitAny: test helper
     const result = transformAiResponse(data) as any;
     expect(result.summary).toBe("Experienced developer with a proven track record.");
   });
 
   it("truncates summary to 2000 chars", () => {
     const data = { summary: "a".repeat(3000) };
+    // biome-ignore lint/suspicious/noExplicitAny: test helper
     const result = transformAiResponse(data) as any;
     expect(result.summary).toBe(`${"a".repeat(1997)}...`);
   });
@@ -292,6 +298,7 @@ describe("transformAiResponse", () => {
     const data = {
       contact: { email: "  Test@Example.COM  " },
     };
+    // biome-ignore lint/suspicious/noExplicitAny: test helper
     const result = transformAiResponse(data) as any;
     expect(result.contact.email).toBe("test@example.com");
   });
@@ -305,6 +312,7 @@ describe("transformAiResponse", () => {
         { title: "Engineer", company: "Acme", start_date: "2020", description: "Valid" },
       ],
     };
+    // biome-ignore lint/suspicious/noExplicitAny: test helper
     const result = transformAiResponse(data) as any;
     expect(result.experience).toHaveLength(1);
     expect(result.experience[0].title).toBe("Engineer");
@@ -324,6 +332,7 @@ describe("transformAiResponse", () => {
         },
       ],
     };
+    // biome-ignore lint/suspicious/noExplicitAny: test helper
     const result = transformAiResponse(data) as any;
     const exp = result.experience[0];
     expect(exp.title.length).toBeLessThanOrEqual(153);
@@ -342,6 +351,7 @@ describe("transformAiResponse", () => {
         { degree: "BS", institution: "Stanford" },
       ],
     };
+    // biome-ignore lint/suspicious/noExplicitAny: test helper
     const result = transformAiResponse(data) as any;
     expect(result.education).toHaveLength(1);
     expect(result.education[0].degree).toBe("BS");
@@ -355,6 +365,7 @@ describe("transformAiResponse", () => {
         { category: "Frameworks", items: ["React"] },
       ],
     };
+    // biome-ignore lint/suspicious/noExplicitAny: test helper
     const result = transformAiResponse(data) as any;
     expect(result.skills).toHaveLength(1);
     expect(result.skills[0].category).toBe("Frameworks");
@@ -364,6 +375,7 @@ describe("transformAiResponse", () => {
     const data = {
       skills: [{ category: "Languages", items: ["JS", "", "  ", "Python"] }],
     };
+    // biome-ignore lint/suspicious/noExplicitAny: test helper
     const result = transformAiResponse(data) as any;
     expect(result.skills[0].items).toEqual(["JS", "Python"]);
   });
@@ -375,6 +387,7 @@ describe("transformAiResponse", () => {
         { name: "Solutions Architect", issuer: "AWS" },
       ],
     };
+    // biome-ignore lint/suspicious/noExplicitAny: test helper
     const result = transformAiResponse(data) as any;
     expect(result.certifications).toHaveLength(1);
   });
@@ -386,6 +399,7 @@ describe("transformAiResponse", () => {
         { name: "Valid Cert", url: "https://example.com" },
       ],
     };
+    // biome-ignore lint/suspicious/noExplicitAny: test helper
     const result = transformAiResponse(data) as any;
     expect(result.certifications[0].url).toBe("");
     expect(result.certifications[1].url).toBe("https://example.com");
@@ -398,6 +412,7 @@ describe("transformAiResponse", () => {
         { title: "Cool App", description: "" },
       ],
     };
+    // biome-ignore lint/suspicious/noExplicitAny: test helper
     const result = transformAiResponse(data) as any;
     expect(result.projects).toHaveLength(1);
   });
@@ -409,6 +424,7 @@ describe("transformAiResponse", () => {
         { title: "Good Project", url: "https://example.com" },
       ],
     };
+    // biome-ignore lint/suspicious/noExplicitAny: test helper
     const result = transformAiResponse(data) as any;
     expect(result.projects[0].url).toBe("");
     expect(result.projects[1].url).toBe("https://example.com");
@@ -423,6 +439,7 @@ describe("transformAiResponse", () => {
         },
       ],
     };
+    // biome-ignore lint/suspicious/noExplicitAny: test helper
     const result = transformAiResponse(data) as any;
     expect(result.projects[0].technologies).toEqual(["React", "Node"]);
   });
@@ -431,12 +448,14 @@ describe("transformAiResponse", () => {
     const data = {
       projects: [{ title: "Project", image_url: "javascript:alert(1)" }],
     };
+    // biome-ignore lint/suspicious/noExplicitAny: test helper
     const result = transformAiResponse(data) as any;
     expect(result.projects[0].image_url).toBe("");
   });
 
   it("returns defaults for missing optional arrays", () => {
     const data = {};
+    // biome-ignore lint/suspicious/noExplicitAny: test helper
     const result = transformAiResponse(data) as any;
     expect(result.experience).toEqual([]);
   });

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, expect, it, vi } from "vitest";
 import { setupMockCleanup } from "@/__tests__/setup/helpers/test-utils";
 import { parseJsonWithRepair, transformToSchema } from "@/lib/ai/ai-fallback";
@@ -159,8 +160,20 @@ describe("parseJsonWithRepair", () => {
   });
 });
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 describe("transformToSchema", () => {
+  interface ExperienceEntry {
+    title: string;
+    company?: string;
+    description?: string;
+    highlights?: string[];
+  }
+
+  interface ProjectEntry {
+    title: string;
+    year?: string;
+    date?: string;
+    description?: string;
+  }
   it("transforms skills from object to array format", () => {
     const data = {
       full_name: "Jane",
@@ -203,8 +216,11 @@ describe("transformToSchema", () => {
 
     const result = transformToSchema(data);
 
-    expect((result.experience as any[])[0].description).toBe("Led team Built features");
-    expect((result.experience as any[])[0].highlights).toEqual(["Led team", "Built features"]);
+    expect((result.experience as ExperienceEntry[])[0].description).toBe("Led team Built features");
+    expect((result.experience as ExperienceEntry[])[0].highlights).toEqual([
+      "Led team",
+      "Built features",
+    ]);
   });
 
   it("preserves experience with string description", () => {
@@ -219,8 +235,8 @@ describe("transformToSchema", () => {
 
     const result = transformToSchema(data);
 
-    expect((result.experience as any[])[0].description).toBe("Already a string");
-    expect((result.experience as any[])[0].highlights).toBeUndefined();
+    expect((result.experience as ExperienceEntry[])[0].description).toBe("Already a string");
+    expect((result.experience as ExperienceEntry[])[0].highlights).toBeUndefined();
   });
 
   it("transforms project description from array to string", () => {
@@ -235,7 +251,7 @@ describe("transformToSchema", () => {
 
     const result = transformToSchema(data);
 
-    expect((result.projects as any[])[0].description).toBe("Feature 1 Feature 2");
+    expect((result.projects as ProjectEntry[])[0].description).toBe("Feature 1 Feature 2");
   });
 
   it("renames project date to year", () => {
@@ -250,8 +266,8 @@ describe("transformToSchema", () => {
 
     const result = transformToSchema(data);
 
-    expect((result.projects as any[])[0].year).toBe("2023");
-    expect((result.projects as any[])[0].date).toBeUndefined();
+    expect((result.projects as ProjectEntry[])[0].year).toBe("2023");
+    expect((result.projects as ProjectEntry[])[0].date).toBeUndefined();
   });
 
   it("preserves existing year when date also present", () => {
@@ -267,7 +283,7 @@ describe("transformToSchema", () => {
 
     const result = transformToSchema(data);
 
-    expect((result.projects as any[])[0].year).toBe("2024");
+    expect((result.projects as ProjectEntry[])[0].year).toBe("2024");
   });
 
   it("handles empty data gracefully", () => {
@@ -332,12 +348,12 @@ describe("transformToSchema", () => {
 
     const result = transformToSchema(data);
 
-    expect((result.experience as any[])[0].description).toBe("Task 1");
-    expect((result.experience as any[])[0].highlights).toEqual(["Task 1"]);
-    expect((result.experience as any[])[1].description).toBe("String description");
-    expect((result.experience as any[])[1].highlights).toBeUndefined();
-    expect((result.experience as any[])[2].description).toBe("Task A Task B");
-    expect((result.experience as any[])[2].highlights).toEqual(["Task A", "Task B"]);
+    expect((result.experience as ExperienceEntry[])[0].description).toBe("Task 1");
+    expect((result.experience as ExperienceEntry[])[0].highlights).toEqual(["Task 1"]);
+    expect((result.experience as ExperienceEntry[])[1].description).toBe("String description");
+    expect((result.experience as ExperienceEntry[])[1].highlights).toBeUndefined();
+    expect((result.experience as ExperienceEntry[])[2].description).toBe("Task A Task B");
+    expect((result.experience as ExperienceEntry[])[2].highlights).toEqual(["Task A", "Task B"]);
   });
 });
 /* eslint-enable @typescript-eslint/no-explicit-any */
