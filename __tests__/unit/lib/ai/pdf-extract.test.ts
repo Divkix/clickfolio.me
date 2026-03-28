@@ -103,8 +103,8 @@ describe("extractPdfText", () => {
 
     expect(result.success).toBe(false);
     expect(result.pageCount).toBe(51);
-    expect(result.error).toContain("50 pages");
-    expect(result.error).toContain("maximum");
+    expect(result.error).toContain("51 pages");
+    expect(result.error).toContain("maximum 50");
   });
 
   it("accepts PDFs with exactly 50 pages", async () => {

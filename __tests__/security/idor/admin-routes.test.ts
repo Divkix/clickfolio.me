@@ -120,6 +120,13 @@ describe("IDOR - Admin Routes Security", () => {
   describe("GET /api/admin/users", () => {
     it("returns 403 for non-admin user", async () => {
       mockedGetSession.mockResolvedValue(createMockSession("user-a", false));
+      // Mock DB to return user without admin flag
+      mockFindFirst.mockResolvedValue({
+        id: "user-a",
+        email: "user-a@test.com",
+        name: "Test User",
+        isAdmin: false,
+      });
 
       const { requireAdminAuthForApi } = await import("@/lib/auth/admin");
       const result = await requireAdminAuthForApi();
@@ -156,6 +163,13 @@ describe("IDOR - Admin Routes Security", () => {
   describe("GET /api/admin/stats", () => {
     it("returns 403 for regular user accessing admin stats", async () => {
       mockedGetSession.mockResolvedValue(createMockSession("user-a", false));
+      // Mock DB to return non-admin user
+      mockFindFirst.mockResolvedValue({
+        id: "user-a",
+        email: "user-a@test.com",
+        name: "Test User",
+        isAdmin: false,
+      });
 
       const { requireAdminAuthForApi } = await import("@/lib/auth/admin");
       const result = await requireAdminAuthForApi();
@@ -266,6 +280,13 @@ describe("IDOR - Admin Routes Security", () => {
   describe("Admin Endpoint Enumeration", () => {
     it("all admin endpoints return 403 for non-admin", async () => {
       mockedGetSession.mockResolvedValue(createMockSession("user-a", false));
+      // Mock DB to return non-admin user
+      mockFindFirst.mockResolvedValue({
+        id: "user-a",
+        email: "user-a@test.com",
+        name: "Test User",
+        isAdmin: false,
+      });
 
       const adminEndpoints = ["users", "stats", "analytics", "referrals", "resumes"];
 

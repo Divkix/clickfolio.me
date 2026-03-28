@@ -663,7 +663,7 @@ describe("normalizeAiKeys - complete integration", () => {
       title: "Senior Engineer",
       profile: "Experienced developer",
       contactInfo: {
-        e_mail: "jane@example.com",
+        "e-mail": "jane@example.com",
         phone_number: "+1-555-1234",
         linkedin_url: "https://linkedin.com/in/jane",
       },

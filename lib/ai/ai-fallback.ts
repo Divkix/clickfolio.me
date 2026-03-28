@@ -8,7 +8,12 @@ export async function parseJsonWithRepair(
   jsonStr: string,
 ): Promise<{ data: Record<string, unknown> | null; repaired: boolean }> {
   try {
-    return { data: JSON.parse(jsonStr) as Record<string, unknown>, repaired: false };
+    const parsed = JSON.parse(jsonStr);
+    // Only return objects (not primitives or arrays)
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+      return { data: null, repaired: false };
+    }
+    return { data: parsed as Record<string, unknown>, repaired: false };
   } catch {
     const repaired = await parsePartialJson(jsonStr);
     if (!repaired.value || typeof repaired.value !== "object" || Array.isArray(repaired.value)) {

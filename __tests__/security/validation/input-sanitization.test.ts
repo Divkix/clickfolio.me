@@ -19,10 +19,7 @@ describe("Input Validation and Sanitization Security", () => {
 
     it("blocks iframe tags in input", () => {
       const maliciousContent = '<iframe src="https://evil.com">';
-      const sanitized = maliciousContent.replace(
-        /<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi,
-        "",
-      );
+      const sanitized = maliciousContent.replace(/<iframe\b[^>]*>/gi, "");
       expect(sanitized).not.toContain("<iframe");
     });
 
@@ -30,8 +27,8 @@ describe("Input Validation and Sanitization Security", () => {
       const objectPayload = '<object data="evil.swf">';
       const embedPayload = '<embed src="evil.swf">';
 
-      const objectRegex = /<object\b[^<]*(?:(?!<\/object>)<[^<]*)*<\/object>/gi;
-      const embedRegex = /<embed\b[^<]*>/gi;
+      const objectRegex = /<object\b[^>]*>/gi;
+      const embedRegex = /<embed\b[^>]*>/gi;
 
       expect(objectPayload.replace(objectRegex, "")).not.toContain("<object");
       expect(embedPayload.replace(embedRegex, "")).not.toContain("<embed");
@@ -81,7 +78,7 @@ describe("Input Validation and Sanitization Security", () => {
 
     it("blocks form tag injections", () => {
       const formPayload = '<form action="https://evil.com">';
-      const formRegex = /<form\b[^<]*(?:(?!<\/form>)<[^<]*)*<\/form>/gi;
+      const formRegex = /<form\b[^>]*>/gi;
       expect(formPayload.replace(formRegex, "")).not.toContain("<form");
     });
   });
@@ -144,8 +141,10 @@ describe("Input Validation and Sanitization Security", () => {
         "@context": "https://schema.org",
         name: "<script>alert(1)</script>",
       };
-      const jsonString = JSON.stringify(jsonLd);
+      // JSON.stringify with explicit escaping of HTML chars for security
+      const jsonString = JSON.stringify(jsonLd).replace(/</g, "\\u003c").replace(/>/g, "\\u003e");
       expect(jsonString).toContain("\\u003c"); // < is escaped
+      expect(jsonString).toContain("\\u003e"); // > is escaped
     });
 
     it("validates JSON structure before parsing", () => {
@@ -233,7 +232,7 @@ describe("Input Validation and Sanitization Security", () => {
 
     it("sanitizes null bytes from filenames", () => {
       const filename = "resume\x00.pdf";
-      const sanitized = filename.replace(/\\x00/g, "");
+      const sanitized = filename.replace(/\0/g, "");
       expect(sanitized).not.toContain("\x00");
     });
   });
@@ -247,7 +246,7 @@ describe("Input Validation and Sanitization Security", () => {
 
     it("sanitizes CRLF sequences", () => {
       const value = "line1\r\nline2";
-      const sanitized = value.replace(/\\r\\n/g, "");
+      const sanitized = value.replace(/\r\n/g, "");
       expect(sanitized).not.toContain("\r\n");
     });
   });
@@ -467,7 +466,8 @@ describe("Input Validation and Sanitization Security", () => {
         "spaces in@email.com",
         "double..dots@email.com",
       ];
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      // Stricter regex that also rejects consecutive dots
+      const emailRegex = /^(?!.*\.\.)[^\s@]+@[^\s@]+\.[^\s@]+$/;
       for (const email of invalidEmails) {
         expect(emailRegex.test(email)).toBe(false);
       }

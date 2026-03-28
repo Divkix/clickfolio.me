@@ -131,9 +131,7 @@ describe("Rate Limit Security Enforcement", () => {
     it("enforces handle check rate limit - 100/hour maximum", async () => {
       mockSelect.mockReturnValue({
         from: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            limit: vi.fn().mockResolvedValue([{ count: 100 }]),
-          }),
+          where: vi.fn().mockResolvedValue([{ count: 100 }]),
         }),
       });
 
@@ -149,9 +147,7 @@ describe("Rate Limit Security Enforcement", () => {
     it("enforces email validate rate limit", async () => {
       mockSelect.mockReturnValue({
         from: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            limit: vi.fn().mockResolvedValue([{ count: 30 }]),
-          }),
+          where: vi.fn().mockResolvedValue([{ count: 30 }]),
         }),
       });
 
@@ -239,20 +235,18 @@ describe("Rate Limit Security Enforcement", () => {
         .fill(null)
         .map(() => "192.168.1.1");
 
+      let callCount = 0;
       // First 10 should be allowed, then blocked
-      mockSelect.mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockImplementation(() => {
-            const callCount = mockSelect.mock.calls.length;
-            return {
-              where: vi
-                .fn()
-                .mockResolvedValue([
-                  { hourly: Math.min(callCount, 10), daily: Math.min(callCount, 50) },
-                ]),
-            };
+      mockSelect.mockImplementation(() => {
+        callCount++;
+        const currentHourly = Math.min(callCount - 1, 10); // Previous count
+        return {
+          from: vi.fn().mockReturnValue({
+            where: vi
+              .fn()
+              .mockResolvedValue([{ hourly: currentHourly, daily: Math.min(currentHourly, 50) }]),
           }),
-        }),
+        };
       });
 
       const { checkIPRateLimit } = await import("@/lib/utils/ip-rate-limit");
@@ -263,7 +257,7 @@ describe("Rate Limit Security Enforcement", () => {
         if (result.allowed) allowedCount++;
       }
 
-      // Should not exceed limit
+      // Should allow up to 10 requests
       expect(allowedCount).toBeLessThanOrEqual(10);
     });
   });
