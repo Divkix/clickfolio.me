@@ -382,7 +382,7 @@ describe("Utility APIs", () => {
         return url.length > maxLength ? url.slice(0, maxLength) : url;
       };
 
-      const longUrl = "https://example.com/" + "path/".repeat(100);
+      const longUrl = `https://example.com/${"path/".repeat(100)}`;
       const sanitized = sanitizeUrl(longUrl);
 
       expect(sanitized.length).toBeLessThanOrEqual(500);

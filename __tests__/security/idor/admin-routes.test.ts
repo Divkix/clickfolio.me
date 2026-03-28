@@ -7,7 +7,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // ── Mocks ────────────────────────────────────────────────────────────
 
-const mockCaptureBookmark = vi.fn().mockResolvedValue(undefined);
+const _mockCaptureBookmark = vi.fn().mockResolvedValue(undefined);
 
 // DB mock
 const mockFindFirst = vi.fn();
@@ -15,7 +15,7 @@ const mockSelect = vi.fn().mockReturnThis();
 const mockFrom = vi.fn().mockReturnThis();
 const mockWhere = vi.fn().mockReturnThis();
 const mockLimit = vi.fn();
-const mockCount = vi.fn().mockReturnThis();
+const _mockCount = vi.fn().mockReturnThis();
 
 const mockDb = {
   query: {

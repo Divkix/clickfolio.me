@@ -77,7 +77,7 @@ describe("validateUrl", () => {
   });
 
   it("returns empty string for URLs exceeding 500 chars", () => {
-    const longUrl = "https://example.com/" + "a".repeat(500);
+    const longUrl = `https://example.com/${"a".repeat(500)}`;
     expect(validateUrl(longUrl)).toBe("");
   });
 
@@ -87,7 +87,7 @@ describe("validateUrl", () => {
   });
 
   it("returns empty string for URLs with excessive path depth", () => {
-    const deepUrl = "https://example.com/" + "a/".repeat(15);
+    const deepUrl = `https://example.com/${"a/".repeat(15)}`;
     expect(validateUrl(deepUrl)).toBe("");
   });
 
@@ -96,7 +96,7 @@ describe("validateUrl", () => {
   });
 
   it("returns empty string for hostnames exceeding 253 chars", () => {
-    const longHostname = "https://" + "a".repeat(260) + ".com";
+    const longHostname = `https://${"a".repeat(260)}.com`;
     expect(validateUrl(longHostname)).toBe("");
   });
 
@@ -133,7 +133,7 @@ describe("truncateString", () => {
 
   it("truncates with ellipsis when over max length", () => {
     const str = "a".repeat(20);
-    expect(truncateString(str, 10)).toBe("a".repeat(7) + "...");
+    expect(truncateString(str, 10)).toBe(`${"a".repeat(7)}...`);
   });
 
   it("handles empty string", () => {
@@ -256,14 +256,15 @@ describe("transformAiResponse", () => {
 
   it("truncates full_name to 100 chars", () => {
     const data = { full_name: "a".repeat(150) };
+    // biome-ignore lint/suspicious/noExplicitAny: test helper
     const result = transformAiResponse(data) as any;
-    expect(result.full_name).toBe("a".repeat(97) + "...");
+    expect(result.full_name).toBe(`${"a".repeat(97)}...`);
   });
 
   it("truncates headline to 150 chars", () => {
     const data = { headline: "a".repeat(200) };
     const result = transformAiResponse(data) as any;
-    expect(result.headline).toBe("a".repeat(147) + "...");
+    expect(result.headline).toBe(`${"a".repeat(147)}...`);
   });
 
   it("generates summary from experience when missing", () => {
@@ -284,7 +285,7 @@ describe("transformAiResponse", () => {
   it("truncates summary to 2000 chars", () => {
     const data = { summary: "a".repeat(3000) };
     const result = transformAiResponse(data) as any;
-    expect(result.summary).toBe("a".repeat(1997) + "...");
+    expect(result.summary).toBe(`${"a".repeat(1997)}...`);
   });
 
   it("sanitizes contact email", () => {

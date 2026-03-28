@@ -157,7 +157,6 @@ describe("writeReferral - server-side", () => {
     expect(result.success).toBe(true);
   });
 
-
   it("handles codes with @ prefix", async () => {
     const userId = "user-001";
     const referrerId = "user-002";

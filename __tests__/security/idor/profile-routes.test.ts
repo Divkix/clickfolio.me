@@ -398,7 +398,7 @@ describe("IDOR - Profile Routes Security", () => {
       // Rapid handle checks should be rate limited
       const handles = ["alice", "bob", "charlie", "dave", "eve"];
 
-      for (const handle of handles) {
+      for (const _handle of handles) {
         mockFindFirst.mockResolvedValue(null); // Available
       }
 

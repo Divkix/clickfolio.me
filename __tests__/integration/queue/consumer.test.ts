@@ -664,7 +664,7 @@ describe("Queue Consumer - Main Processing", () => {
     await handleQueueMessage(message, env);
 
     // Should have notified waiting resumes
-    const waitingNotification = mockWebSocketNotifications.find(
+    const _waitingNotification = mockWebSocketNotifications.find(
       (n) => n.resumeId === waitingResumeId,
     );
     // Note: Full waiting resume logic depends on proper mock setup

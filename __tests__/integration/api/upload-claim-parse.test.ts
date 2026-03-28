@@ -396,7 +396,7 @@ describe("POST /api/upload", () => {
   it("8. Upload with filename too long → 400 error", async () => {
     const { POST } = await import("@/app/api/upload/route");
     const buffer = makePdfBuffer();
-    const longFilename = "a".repeat(300) + ".pdf";
+    const longFilename = `${"a".repeat(300)}.pdf`;
     const request = new Request("http://localhost:3000/api/upload", {
       method: "POST",
       headers: {

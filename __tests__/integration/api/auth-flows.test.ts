@@ -202,7 +202,7 @@ function createAuthRequest(
   const headers: Record<string, string> = {};
 
   if (cookies) {
-    headers["cookie"] = Object.entries(cookies)
+    headers.cookie = Object.entries(cookies)
       .map(([k, v]) => `${k}=${v}`)
       .join("; ");
   }

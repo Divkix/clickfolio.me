@@ -14,7 +14,7 @@ const mockInsert = vi.fn().mockReturnValue({
 const mockSelect = vi.fn().mockReturnThis();
 const mockFrom = vi.fn().mockReturnThis();
 const mockWhere = vi.fn().mockReturnThis();
-const mockCountResult = vi.fn();
+const _mockCountResult = vi.fn();
 
 const mockDb = {
   insert: mockInsert,
@@ -377,7 +377,7 @@ describe("Rate Limit Security Enforcement", () => {
         }),
       }));
 
-      const { checkIPRateLimit, checkHandleRateLimit } = await import("@/lib/utils/ip-rate-limit");
+      const { checkIPRateLimit } = await import("@/lib/utils/ip-rate-limit");
 
       // Upload rate limited
       const uploadResult = await checkIPRateLimit("192.168.1.1");

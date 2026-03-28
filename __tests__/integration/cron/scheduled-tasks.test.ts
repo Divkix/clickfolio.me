@@ -151,7 +151,7 @@ describe("Cron Scheduled Tasks", () => {
     });
 
     it("should handle session expiry at exact boundary", async () => {
-      const now = new Date();
+      const _now = new Date();
       const boundarySession = {
         meta: { changes: 1 },
         results: [],
