@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { performCleanup } from "@/lib/cron/cleanup";
 import { recoverOrphanedResumes } from "@/lib/cron/recover-orphaned";
+import type { ResumeParseMessage } from "@/lib/queue/types";
 
 // Mock Database type
 type MockDb = {
@@ -93,7 +94,7 @@ describe("Cron Scheduled Tasks", () => {
       };
       mockDb.batch.mockResolvedValueOnce([mockResult, mockResult, mockResult]);
 
-      const result = await performCleanup(mockDb as unknown as Database);
+      const result = await performCleanup(mockDb as never);
 
       expect(result.ok).toBe(true);
       expect(result.deleted.sessions).toBe(5);
@@ -106,7 +107,7 @@ describe("Cron Scheduled Tasks", () => {
       };
       mockDb.batch.mockResolvedValueOnce([mockResult, mockResult, mockResult]);
 
-      const result = await performCleanup(mockDb as unknown as Database);
+      const result = await performCleanup(mockDb as never);
 
       expect(result.ok).toBe(true);
     });
@@ -118,7 +119,7 @@ describe("Cron Scheduled Tasks", () => {
 
       mockDb.batch.mockResolvedValueOnce([rateLimitResult, sessionsResult, handleChangesResult]);
 
-      const result = await performCleanup(mockDb as unknown as Database);
+      const result = await performCleanup(mockDb as never);
 
       expect(result.ok).toBe(true);
       expect(result.deleted.handleChanges).toBe(10);
@@ -131,7 +132,7 @@ describe("Cron Scheduled Tasks", () => {
       };
       mockDb.batch.mockResolvedValueOnce([emptyResult, emptyResult, emptyResult]);
 
-      const result = await performCleanup(mockDb as unknown as Database);
+      const result = await performCleanup(mockDb as never);
 
       expect(result.ok).toBe(true);
       expect(result.deleted.sessions).toBe(0);
@@ -140,9 +141,9 @@ describe("Cron Scheduled Tasks", () => {
     });
 
     it("should be idempotent - safe to run multiple times", async () => {
-      const result1 = await performCleanup(mockDb as unknown as Database);
-      const result2 = await performCleanup(mockDb as unknown as Database);
-      const result3 = await performCleanup(mockDb as unknown as Database);
+      const result1 = await performCleanup(mockDb as never);
+      const result2 = await performCleanup(mockDb as never);
+      const result3 = await performCleanup(mockDb as never);
 
       expect(result1.ok).toBe(true);
       expect(result2.ok).toBe(true);
@@ -158,7 +159,7 @@ describe("Cron Scheduled Tasks", () => {
       };
       mockDb.batch.mockResolvedValueOnce([boundarySession, boundarySession, boundarySession]);
 
-      const result = await performCleanup(mockDb as unknown as Database);
+      const result = await performCleanup(mockDb as never);
       expect(result.ok).toBe(true);
     });
 
@@ -170,7 +171,7 @@ describe("Cron Scheduled Tasks", () => {
       };
       mockDb.batch.mockResolvedValueOnce([emptyResult, emptyResult, emptyResult]);
 
-      const result = await performCleanup(mockDb as unknown as Database);
+      const result = await performCleanup(mockDb as never);
       expect(result.deleted.sessions).toBe(0); // Active user sessions preserved
     });
   });
@@ -194,7 +195,7 @@ describe("Cron Scheduled Tasks", () => {
       });
 
       const result = await recoverOrphanedResumes(
-        mockDb as unknown as Database,
+        mockDb as never,
         mockQueue as unknown as Queue<ResumeParseMessage>,
       );
 
@@ -237,7 +238,7 @@ describe("Cron Scheduled Tasks", () => {
         });
 
       const result = await recoverOrphanedResumes(
-        mockDb as unknown as Database,
+        mockDb as never,
         mockQueue as unknown as Queue<ResumeParseMessage>,
       );
 
@@ -262,7 +263,7 @@ describe("Cron Scheduled Tasks", () => {
       });
 
       const result = await recoverOrphanedResumes(
-        mockDb as unknown as Database,
+        mockDb as never,
         mockQueue as unknown as Queue<ResumeParseMessage>,
       );
 
@@ -287,7 +288,7 @@ describe("Cron Scheduled Tasks", () => {
       });
 
       const result = await recoverOrphanedResumes(
-        mockDb as unknown as Database,
+        mockDb as never,
         mockQueue as unknown as Queue<ResumeParseMessage>,
       );
 
@@ -313,7 +314,7 @@ describe("Cron Scheduled Tasks", () => {
       });
 
       await recoverOrphanedResumes(
-        mockDb as unknown as Database,
+        mockDb as never,
         mockQueue as unknown as Queue<ResumeParseMessage>,
       );
 
@@ -338,7 +339,7 @@ describe("Cron Scheduled Tasks", () => {
       });
 
       const result = await recoverOrphanedResumes(
-        mockDb as unknown as Database,
+        mockDb as never,
         mockQueue as unknown as Queue<ResumeParseMessage>,
       );
 
@@ -352,7 +353,7 @@ describe("Cron Scheduled Tasks", () => {
     it("should log cleanup execution", async () => {
       const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 
-      await performCleanup(mockDb as unknown as Database);
+      await performCleanup(mockDb as never);
 
       expect(consoleSpy).not.toHaveBeenCalledWith(
         expect.stringContaining("error"),
@@ -374,7 +375,7 @@ describe("Cron Scheduled Tasks", () => {
       });
 
       await recoverOrphanedResumes(
-        mockDb as unknown as Database,
+        mockDb as never,
         mockQueue as unknown as Queue<ResumeParseMessage>,
       );
 
@@ -386,7 +387,7 @@ describe("Cron Scheduled Tasks", () => {
     it("should handle database errors during cleanup", async () => {
       mockDb.batch.mockRejectedValueOnce(new Error("Database connection failed"));
 
-      await expect(performCleanup(mockDb as unknown as Database)).rejects.toThrow(
+      await expect(performCleanup(mockDb as never)).rejects.toThrow(
         "Database connection failed",
       );
     });
@@ -411,7 +412,7 @@ describe("Cron Scheduled Tasks", () => {
       mockQueue.send.mockRejectedValueOnce(new Error("Queue unavailable"));
 
       const result = await recoverOrphanedResumes(
-        mockDb as unknown as Database,
+        mockDb as never,
         mockQueue as unknown as Queue<ResumeParseMessage>,
       );
 
@@ -420,8 +421,8 @@ describe("Cron Scheduled Tasks", () => {
     });
 
     it("should handle concurrent cron jobs without conflicts", async () => {
-      const cleanup1 = performCleanup(mockDb as unknown as Database);
-      const cleanup2 = performCleanup(mockDb as unknown as Database);
+      const cleanup1 = performCleanup(mockDb as never);
+      const cleanup2 = performCleanup(mockDb as never);
 
       await expect(Promise.all([cleanup1, cleanup2])).resolves.not.toThrow();
     });
@@ -431,14 +432,14 @@ describe("Cron Scheduled Tasks", () => {
     it("should run cleanup at scheduled time", async () => {
       const beforeCleanup = new Date();
 
-      await performCleanup(mockDb as unknown as Database);
+      await performCleanup(mockDb as never);
 
       const afterCleanup = new Date();
       expect(afterCleanup.getTime()).toBeGreaterThanOrEqual(beforeCleanup.getTime());
     });
 
     it("should include timestamp in results", async () => {
-      const result = await performCleanup(mockDb as unknown as Database);
+      const result = await performCleanup(mockDb as never);
 
       expect(result.timestamp).toBeDefined();
       expect(new Date(result.timestamp)).toBeInstanceOf(Date);
@@ -456,9 +457,9 @@ describe("Cron Scheduled Tasks", () => {
       });
 
       const [cleanupResult, recoveryResult] = await Promise.all([
-        performCleanup(mockDb as unknown as Database),
+        performCleanup(mockDb as never),
         recoverOrphanedResumes(
-          mockDb as unknown as Database,
+          mockDb as never,
           mockQueue as unknown as Queue<ResumeParseMessage>,
         ),
       ]);
