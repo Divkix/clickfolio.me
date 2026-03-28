@@ -175,7 +175,7 @@ async function fetchResumeMetadataRaw(handle: string): Promise<ResumeMetadata | 
     },
   });
 
-  if (!userData || !userData.siteData) {
+  if (!userData?.siteData) {
     return null;
   }
 

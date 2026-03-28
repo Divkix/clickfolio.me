@@ -85,7 +85,6 @@
     "@types/node": "^25.5.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "@types/testing-library__jest-dom": "^6.0.0",
     "@vitejs/plugin-rsc": "^0.5.21",
     "@vitest/coverage-v8": "^4.1.2",
     "drizzle-kit": "^0.31.10",

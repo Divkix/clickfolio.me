@@ -352,7 +352,7 @@ describe("Edge Cases & Boundary Tests", () => {
       await expect(circuitBreaker.execute(dbOperation)).resolves.toBe("data");
     });
 
-    test("9. R2 service unavailable → graceful degradation", () => {
+    test("9. R2 service unavailable → graceful degradation", async () => {
       // Simulate R2 unavailability with fallback
       const storageWithFallback = {
         r2Available: false,
@@ -367,7 +367,7 @@ describe("Edge Cases & Boundary Tests", () => {
       };
 
       // Should serve from cache when R2 unavailable
-      expect(storageWithFallback.getFile("test.pdf")).resolves.toEqual({
+      await expect(storageWithFallback.getFile("test.pdf")).resolves.toEqual({
         data: "Cached:test.pdf",
         source: "cache",
       });

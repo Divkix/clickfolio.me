@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+// biome-ignore-all lint/suspicious/noExplicitAny: Test assertions for dynamic normalized properties
 import { describe, expect, it } from "vitest";
 import { coerceArray, coerceRecord, normalizeAiKeys, pickFirstValue } from "@/lib/ai/ai-normalize";
 

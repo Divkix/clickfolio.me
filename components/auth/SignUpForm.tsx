@@ -55,7 +55,7 @@ export function SignUpForm({ onSuccess, callbackURL }: SignUpFormProps) {
 
   const checkEmailDisposable = useCallback(async (emailValue: string) => {
     // Basic format check before calling API
-    if (!emailValue || !emailValue.includes("@") || !emailValue.includes(".")) {
+    if (!emailValue?.includes("@") || !emailValue.includes(".")) {
       return;
     }
 

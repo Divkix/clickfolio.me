@@ -7,6 +7,14 @@
 
 import * as matchers from "@testing-library/jest-dom/matchers";
 import { afterEach, beforeEach, expect } from "vitest";
+import { clearKeyCache } from "@/lib/utils/pending-upload-cookie";
+import {
+  mockDigest,
+  mockGetRandomValues,
+  mockImportKey,
+  mockRandomUUID,
+  mockSign,
+} from "./mocks/crypto";
 
 // Add jest-dom matchers
 expect.extend(matchers);
@@ -46,9 +54,33 @@ Object.defineProperty(globalThis, "localStorage", {
   configurable: true,
 });
 
-// Clear localStorage before each test to ensure test isolation
+// Set up crypto.subtle mock for jsdom environment
+const subtleMock = {
+  digest: mockDigest,
+  importKey: mockImportKey,
+  sign: mockSign,
+};
+
+Object.defineProperty(globalThis, "crypto", {
+  value: {
+    ...globalThis.crypto,
+    subtle: subtleMock,
+    randomUUID: mockRandomUUID,
+    getRandomValues: mockGetRandomValues,
+  },
+  writable: true,
+  configurable: true,
+});
+
+// Clear mocks and storage before each test
 beforeEach(() => {
   localStorageMock.clear();
+  mockDigest.mockClear();
+  mockImportKey.mockClear();
+  mockSign.mockClear();
+  mockRandomUUID.mockClear();
+  mockGetRandomValues.mockClear();
+  clearKeyCache();
 });
 
 afterEach(() => {

@@ -33,7 +33,7 @@ export async function POST(request: Request) {
 
     // 1. Validate Content-Type
     const contentType = request.headers.get("content-type");
-    if (!contentType || !contentType.includes("application/pdf")) {
+    if (!contentType?.includes("application/pdf")) {
       return NextResponse.json({ error: "Content-Type must be application/pdf" }, { status: 400 });
     }
 

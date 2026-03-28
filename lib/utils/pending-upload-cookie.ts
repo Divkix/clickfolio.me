@@ -24,6 +24,14 @@ const encoder = new TextEncoder();
  */
 const keyCache = new Map<string, CryptoKey>();
 
+/**
+ * Clear the key cache. Used in tests to ensure clean state.
+ * @internal
+ */
+export function clearKeyCache(): void {
+  keyCache.clear();
+}
+
 async function getCryptoKey(secret: string): Promise<CryptoKey> {
   const cached = keyCache.get(secret);
   if (cached) return cached;
