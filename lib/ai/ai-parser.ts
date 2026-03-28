@@ -186,7 +186,7 @@ export interface AiParseResult {
  * Environment variables for AI provider configuration
  * These extend the base CloudflareEnv with AI-specific secrets
  */
-interface AiEnvVars {
+export interface AiEnvVars {
   CF_AI_GATEWAY_ACCOUNT_ID?: string;
   CF_AI_GATEWAY_ID?: string;
   CF_AIG_AUTH_TOKEN?: string;

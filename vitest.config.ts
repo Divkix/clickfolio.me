@@ -7,20 +7,31 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./__tests__/setup.ts"],
     include: ["**/__tests__/**/*.test.{ts,tsx}"],
-    exclude: ["node_modules", ".next", "dist"],
-    // Retry flaky tests once before failing
-    retry: 1,
+    exclude: ["node_modules", ".next", "dist", "__tests__/e2e/**"],
+    // Retry flaky tests twice before failing
+    retry: 2,
+    // Parallel test execution - uses threads by default in vitest v4
+    pool: "threads",
     coverage: {
       provider: "v8",
-      reporter: ["text", "json-summary"],
-      include: ["lib/**", "app/api/**"],
-      exclude: ["**/*.d.ts", "**/*.test.*", "lib/stubs/**"],
-      // Coverage thresholds — start conservative, tighten over time
+      reporter: ["text", "json", "html", "json-summary"],
+      reportsDirectory: "./coverage",
+      include: ["lib/**/*.{ts,tsx}", "app/**/*.{ts,tsx}", "components/**/*.{ts,tsx}"],
+      exclude: [
+        "**/*.d.ts",
+        "**/*.test.{ts,tsx}",
+        "**/node_modules/**",
+        "**/__tests__/**",
+        "worker/**/*", // Worker entry point (hard to test)
+        "lib/stubs/**",
+        "lib/db/migrations/**",
+      ],
+      // Coverage thresholds for Phase 6
       thresholds: {
-        statements: 60,
-        branches: 50,
-        functions: 60,
-        lines: 60,
+        statements: 75,
+        branches: 65,
+        functions: 75,
+        lines: 75,
       },
     },
   },

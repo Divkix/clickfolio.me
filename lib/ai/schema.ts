@@ -108,15 +108,19 @@ export const resumeSchema = z.object({
   experience: z.array(experienceSchema).describe("Work experience in reverse chronological order"),
   education: z
     .array(educationSchema)
+    .optional()
     .describe("Education history. Return empty array [] if absent."),
   skills: z
     .array(skillSchema)
+    .optional()
     .describe("Skills grouped by category. Return empty array [] if absent."),
   certifications: z
     .array(certificationSchema)
+    .optional()
     .describe("Professional certifications. Return empty array [] if absent."),
   projects: z
     .array(projectSchema)
+    .optional()
     .describe("Personal projects, side work, portfolio pieces. Return empty array [] if absent."),
   professional_level: z
     .enum(["student", "entry_level", "mid_level", "senior", "executive"])

@@ -28,7 +28,7 @@ interface RateLimitResult {
  *
  * @param existingEnv - Optional pre-fetched CloudflareEnv to override the module-level env
  */
-async function checkRateLimit(
+export async function checkRateLimit(
   userId: string,
   action: RateLimitAction,
   existingEnv?: Pick<CloudflareEnv, "CLICKFOLIO_DB">,

@@ -4,7 +4,12 @@
  * This creates a proper localStorage mock since bun's Node.js runtime
  * may interfere with jsdom's browser globals.
  */
-import { afterEach, beforeEach } from "vitest";
+
+import * as matchers from "@testing-library/jest-dom/matchers";
+import { afterEach, beforeEach, expect } from "vitest";
+
+// Add jest-dom matchers
+expect.extend(matchers);
 
 // Create a proper localStorage mock
 const createLocalStorageMock = () => {

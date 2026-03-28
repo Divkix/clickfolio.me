@@ -96,6 +96,7 @@ export function createMockR2Bucket(initialStore?: MockR2Store) {
         httpMetadata: { contentType: "application/pdf" },
         customMetadata: entry.metadata,
         writeHttpMetadata: vi.fn(),
+        arrayBuffer: async () => entry.body,
       };
     }),
 
