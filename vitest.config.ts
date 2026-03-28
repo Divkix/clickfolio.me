@@ -8,11 +8,20 @@ export default defineConfig({
     setupFiles: ["./__tests__/setup.ts"],
     include: ["**/__tests__/**/*.test.{ts,tsx}"],
     exclude: ["node_modules", ".next", "dist"],
+    // Retry flaky tests once before failing
+    retry: 1,
     coverage: {
       provider: "v8",
       reporter: ["text", "json-summary"],
       include: ["lib/**", "app/api/**"],
       exclude: ["**/*.d.ts", "**/*.test.*", "lib/stubs/**"],
+      // Coverage thresholds — start conservative, tighten over time
+      thresholds: {
+        statements: 60,
+        branches: 50,
+        functions: 60,
+        lines: 60,
+      },
     },
   },
   resolve: {
