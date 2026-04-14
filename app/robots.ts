@@ -15,6 +15,6 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ["/api/", "/dashboard/", "/edit/", "/settings/", "/waiting/", "/wizard/"],
       },
     ],
-    sitemap: `${baseUrl}/api/sitemap`,
+    sitemap: `${baseUrl}/sitemap.xml`,
   };
 }

@@ -13,6 +13,7 @@ import {
   type ThemeId,
 } from "@/lib/templates/theme-ids";
 import type { ResumeContent } from "@/lib/types/database";
+import { parsePreviewSkills } from "@/lib/utils/preview-skills";
 import { extractCityState, parsePrivacySettings } from "@/lib/utils/privacy";
 
 interface ResumeData {
@@ -189,6 +190,7 @@ async function fetchResumeMetadataRaw(handle: string): Promise<ResumeMetadata | 
   // Parse privacy settings for hide_from_search
   const parsedSettings = parsePrivacySettings(userData.privacySettings);
   const hideFromSearch = parsedSettings.hide_from_search;
+  const parsedSkills = parsePreviewSkills(userData.siteData.previewSkills);
 
   return {
     full_name: fullName,
@@ -197,9 +199,7 @@ async function fetchResumeMetadataRaw(handle: string): Promise<ResumeMetadata | 
     avatar_url: userData.image,
     hide_from_search: hideFromSearch,
     location: userData.siteData.previewLocation?.trim() || null,
-    skills: userData.siteData.previewSkills
-      ? (JSON.parse(userData.siteData.previewSkills) as string[])
-      : null,
+    skills: parsedSkills.length > 0 ? parsedSkills : null,
   };
 }
 

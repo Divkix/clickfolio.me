@@ -2,6 +2,7 @@ import { env } from "cloudflare:workers";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { siteData, user } from "@/lib/db/schema";
+import { parsePreviewSkills } from "@/lib/utils/preview-skills";
 
 function escapeXml(str: string): string {
   return str
@@ -81,18 +82,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ han
     const displayName = escapeXml(row.previewName || row.name || handle);
     const headline = row.previewHeadline ? escapeXml(row.previewHeadline) : "";
 
-    // Parse skills JSON — previewSkills is a JSON string array or null
-    let skills: string[] = [];
-    if (row.previewSkills) {
-      try {
-        const parsed = JSON.parse(row.previewSkills);
-        if (Array.isArray(parsed)) {
-          skills = parsed.slice(0, 4).map((s: unknown) => escapeXml(String(s)));
-        }
-      } catch {
-        // Ignore malformed JSON
-      }
-    }
+    const skills = parsePreviewSkills(row.previewSkills)
+      .slice(0, 4)
+      .map((skill) => escapeXml(skill));
 
     // Build skill pills as SVG elements
     let skillsSvg = "";

@@ -293,6 +293,31 @@ describe("POST /api/resume/claim", () => {
     expect(body.resume_id).toBe("existing-resume");
   });
 
+  it("returns already_claimed when R2 throws missing-object error and recent resume exists", async () => {
+    authedAs("user-1");
+    mockR2GetAsArrayBuffer.mockRejectedValue(new Error("No such key"));
+    mockDbLimit.mockResolvedValue([{ id: "existing-resume", status: "processing" }]);
+
+    const { POST } = await import("@/app/api/resume/claim/route");
+    const response = await POST(makeClaimRequest({ key: "temp/uuid/resume.pdf" }));
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { already_claimed: boolean; resume_id: string };
+    expect(body.already_claimed).toBe(true);
+    expect(body.resume_id).toBe("existing-resume");
+  });
+
+  it("returns 500 on transient R2 fetch errors even if a recent resume exists", async () => {
+    authedAs("user-1");
+    mockR2GetAsArrayBuffer.mockRejectedValue(new Error("R2 timeout"));
+    mockDbLimit.mockResolvedValue([{ id: "existing-resume", status: "processing" }]);
+
+    const { POST } = await import("@/app/api/resume/claim/route");
+    const response = await POST(makeClaimRequest({ key: "temp/uuid/resume.pdf" }));
+
+    expect(response.status).toBe(500);
+  });
+
   it("queues a new resume for parsing on valid claim", async () => {
     authedAs("user-1");
 
@@ -308,5 +333,17 @@ describe("POST /api/resume/claim", () => {
     expect(mockR2Put).toHaveBeenCalled();
     // Verify DB insert was called (resume record created)
     expect(mockDbInsert).toHaveBeenCalled();
+  });
+
+  it("marks resume as failed when queue publish fails", async () => {
+    authedAs("user-1");
+    const { publishResumeParse } = await import("@/lib/queue/resume-parse");
+    vi.mocked(publishResumeParse).mockRejectedValueOnce(new Error("Queue unavailable"));
+
+    const { POST } = await import("@/app/api/resume/claim/route");
+    const response = await POST(makeClaimRequest({ key: "temp/uuid/resume.pdf" }));
+
+    expect(response.status).toBe(500);
+    expect(mockDbUpdateSet).toHaveBeenCalledWith(expect.objectContaining({ status: "failed" }));
   });
 });

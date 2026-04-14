@@ -15,6 +15,7 @@ import {
   generatePageBreadcrumbJsonLd,
   serializeJsonLd,
 } from "@/lib/utils/json-ld";
+import { parsePreviewSkills } from "@/lib/utils/preview-skills";
 
 export const revalidate = 300;
 
@@ -112,16 +113,20 @@ export default async function ExplorePage({
 
   const directoryUsers: DirectoryUser[] = usersWithData
     .filter((u) => u.handle !== null)
-    .map((u) => ({
-      handle: u.handle as string,
-      role: u.role,
-      previewName: u.previewName,
-      previewHeadline: u.previewHeadline,
-      previewLocation: u.previewLocation,
-      previewExpCount: u.previewExpCount,
-      previewEduCount: u.previewEduCount,
-      previewSkills: u.previewSkills ? (JSON.parse(u.previewSkills) as string[]) : null,
-    }));
+    .map((u) => {
+      const previewSkills = parsePreviewSkills(u.previewSkills);
+
+      return {
+        handle: u.handle as string,
+        role: u.role,
+        previewName: u.previewName,
+        previewHeadline: u.previewHeadline,
+        previewLocation: u.previewLocation,
+        previewExpCount: u.previewExpCount,
+        previewEduCount: u.previewEduCount,
+        previewSkills: previewSkills.length > 0 ? previewSkills : null,
+      };
+    });
 
   const exploreJsonLd = generateExploreJsonLd(
     directoryUsers.map((u) => ({

@@ -83,6 +83,23 @@ export async function POST(request: Request) {
     const body = bodyResult.data;
     const { key } = body;
 
+    const findRecentResume = async () => {
+      const twoMinAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+      const recentResume = await db
+        .select({ id: resumes.id, status: resumes.status })
+        .from(resumes)
+        .where(and(eq(resumes.userId, userId), gte(resumes.createdAt, twoMinAgo)))
+        .orderBy(desc(resumes.createdAt))
+        .limit(1);
+
+      return recentResume[0] ?? null;
+    };
+
+    const isLikelyMissingObjectError = (error: unknown): boolean => {
+      if (!(error instanceof Error)) return false;
+      return /not\s*found|no\s*such\s*key|does\s*not\s*exist|404/i.test(error.message);
+    };
+
     // 5. Rate limiting check (5 uploads per 24 hours)
     // Pass env to reuse the same binding reference in rate limiter
     const rateLimitResponse = await enforceRateLimit(userId, "resume_upload", env);
@@ -99,19 +116,12 @@ export async function POST(request: Request) {
       if (!buffer) {
         // Double-claim guard: auth redirect causes wizard to mount twice,
         // second mount tries to claim a file already moved by the first.
-        // Check if this user already has a recent resume (created in last 2 min).
-        const twoMinAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
-        const recentResume = await db
-          .select({ id: resumes.id, status: resumes.status })
-          .from(resumes)
-          .where(and(eq(resumes.userId, userId), gte(resumes.createdAt, twoMinAgo)))
-          .orderBy(desc(resumes.createdAt))
-          .limit(1);
+        const recentResume = await findRecentResume();
 
-        if (recentResume[0]) {
+        if (recentResume) {
           return createSuccessResponse({
-            resume_id: recentResume[0].id,
-            status: recentResume[0].status,
+            resume_id: recentResume.id,
+            status: recentResume.status,
             already_claimed: true,
           });
         }
@@ -146,6 +156,23 @@ export async function POST(request: Request) {
       }
     } catch (error) {
       console.error("Error fetching file from R2:", error);
+
+      // Apply the double-claim guard only when R2 indicates the object is missing.
+      if (isLikelyMissingObjectError(error)) {
+        try {
+          const recentResume = await findRecentResume();
+          if (recentResume) {
+            return createSuccessResponse({
+              resume_id: recentResume.id,
+              status: recentResume.status,
+              already_claimed: true,
+            });
+          }
+        } catch (recentResumeError) {
+          console.error("Error checking recent resumes after R2 fetch failure:", recentResumeError);
+        }
+      }
+
       return createErrorResponse(
         "Failed to retrieve file. The upload may have expired.",
         ERROR_CODES.EXTERNAL_SERVICE_ERROR,
@@ -166,6 +193,7 @@ export async function POST(request: Request) {
         id: resumeId,
         userId,
         r2Key: newKey,
+        fileHash: computedFileHash,
         status: "pending_claim",
         createdAt: now,
       });
@@ -352,13 +380,22 @@ export async function POST(request: Request) {
       return await failResume("Queue service unavailable", ERROR_CODES.INTERNAL_ERROR, 500);
     }
 
-    await publishResumeParse(queue, {
-      resumeId,
-      userId,
-      r2Key: newKey,
-      fileHash: computedFileHash,
-      attempt: 1,
-    });
+    try {
+      await publishResumeParse(queue, {
+        resumeId,
+        userId,
+        r2Key: newKey,
+        fileHash: computedFileHash,
+        attempt: 1,
+      });
+    } catch (queueError) {
+      console.error("Failed to publish resume parse job:", queueError);
+      return await failResume(
+        "Failed to queue resume for processing",
+        ERROR_CODES.EXTERNAL_SERVICE_ERROR,
+        500,
+      );
+    }
 
     // 9. Update resume status to queued (include hash for future caching)
     const updatePayload: Partial<NewResume> = {
