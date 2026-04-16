@@ -58,6 +58,12 @@
 			"bucket_name": "clickfolio-bucket"
 		}
 	],
+	// Cloudflare Email Service for transactional emails (password reset, verification)
+	"send_email": [
+		{
+			"name": "EMAIL"
+		}
+	],
 	// Cloudflare Queues for async processing
 	"queues": {
 		"producers": [
@@ -142,9 +148,6 @@
 		//   wrangler secret put BETTER_AUTH_URL                      # Also used as app URL
 		//   wrangler secret put GOOGLE_CLIENT_ID
 		//   wrangler secret put GOOGLE_CLIENT_SECRET
-		//
-		// ===== OPTIONAL: Email (password reset) =====
-		//   wrangler secret put RESEND_API_KEY      # From resend.com (free tier: 3k/month)
 		//
 		// ===== OPTIONAL: DLQ alerting (defaults to Cloudflare Logpush) =====
 		//   wrangler secret put ALERT_CHANNEL       # logpush | webhook | email

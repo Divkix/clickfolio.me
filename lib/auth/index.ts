@@ -23,8 +23,8 @@ import { betterAuth } from "better-auth";
 import { APIError } from "better-auth/api";
 import { drizzle } from "drizzle-orm/d1";
 import * as schema from "@/lib/db/schema";
+import { createEmailSender } from "@/lib/email/cloudflare";
 import { isDisposableEmail } from "@/lib/email/disposable-check";
-import { sendPasswordResetEmail, sendVerificationEmail } from "@/lib/email/resend";
 import { generateReferralCode } from "@/lib/utils/referral-code";
 
 /**
@@ -259,6 +259,7 @@ export async function getAuth() {
     emailAndPassword: {
       enabled: true,
       sendResetPassword: async ({ user, url }) => {
+        const { sendPasswordResetEmail } = createEmailSender(env as CloudflareEnv, baseURL);
         const result = await sendPasswordResetEmail({
           email: user.email,
           resetUrl: url,
@@ -271,6 +272,7 @@ export async function getAuth() {
     },
     emailVerification: {
       sendVerificationEmail: async ({ user, url }) => {
+        const { sendVerificationEmail } = createEmailSender(env as CloudflareEnv, baseURL);
         const result = await sendVerificationEmail({
           email: user.email,
           verificationUrl: url,

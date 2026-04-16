@@ -157,29 +157,31 @@ vi.mock("better-auth/next-js", () => ({
   toNextJsHandler: vi.fn().mockImplementation((auth: { handler: typeof vi.fn }) => auth.handler),
 }));
 
-vi.mock("@/lib/email/resend", () => ({
-  sendVerificationEmail: vi
-    .fn()
-    .mockImplementation(
-      async (params: { email: string; verificationUrl: string; userName: string }) => {
+vi.mock("@/lib/email/cloudflare", () => ({
+  createEmailSender: vi.fn().mockImplementation(() => ({
+    sendVerificationEmail: vi
+      .fn()
+      .mockImplementation(
+        async (params: { email: string; verificationUrl: string; userName: string }) => {
+          mockEmailSent.push({
+            to: params.email,
+            type: "verification",
+            url: params.verificationUrl,
+          });
+          return { success: true };
+        },
+      ),
+    sendPasswordResetEmail: vi
+      .fn()
+      .mockImplementation(async (params: { email: string; resetUrl: string; userName: string }) => {
         mockEmailSent.push({
           to: params.email,
-          type: "verification",
-          url: params.verificationUrl,
+          type: "reset",
+          url: params.resetUrl,
         });
         return { success: true };
-      },
-    ),
-  sendPasswordResetEmail: vi
-    .fn()
-    .mockImplementation(async (params: { email: string; resetUrl: string; userName: string }) => {
-      mockEmailSent.push({
-        to: params.email,
-        type: "reset",
-        url: params.resetUrl,
-      });
-      return { success: true };
-    }),
+      }),
+  })),
 }));
 
 vi.mock("@/lib/email/disposable-check", () => ({
@@ -246,7 +248,11 @@ describe("Better Auth Integration Flows", () => {
   });
 
   it("2. Email/password signup → verification email sent", async () => {
-    const { sendVerificationEmail } = await import("@/lib/email/resend");
+    const { createEmailSender } = await import("@/lib/email/cloudflare");
+    const { sendVerificationEmail } = createEmailSender(
+      {} as CloudflareEnv,
+      "http://localhost:3000",
+    );
 
     const email = "test@example.com";
     const name = "Test User";
@@ -279,7 +285,11 @@ describe("Better Auth Integration Flows", () => {
   });
 
   it("4. Password reset flow → token validation and update", async () => {
-    const { sendPasswordResetEmail } = await import("@/lib/email/resend");
+    const { createEmailSender } = await import("@/lib/email/cloudflare");
+    const { sendPasswordResetEmail } = createEmailSender(
+      {} as CloudflareEnv,
+      "http://localhost:3000",
+    );
 
     const email = "reset@example.com";
     const user = createUser({ email });
