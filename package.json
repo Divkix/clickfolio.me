@@ -42,7 +42,7 @@
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^2.0.41",
-    "@better-auth/drizzle-adapter": "^1.6.3",
+    "@better-auth/drizzle-adapter": "^1.6.5",
     "@hookform/resolvers": "^5.2.2",
     "@neoconfetti/react": "^1.0.0",
     "@radix-ui/react-dialog": "^1.1.15",
@@ -54,13 +54,13 @@
     "@zxcvbn-ts/core": "^3.0.4",
     "@zxcvbn-ts/language-common": "^3.0.4",
     "@zxcvbn-ts/language-en": "^3.0.2",
-    "ai": "^6.0.161",
-    "better-auth": "^1.6.3",
+    "ai": "^6.0.167",
+    "better-auth": "^1.6.5",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.2",
     "lucide-react": "^1.8.0",
-    "next": "^16.2.3",
+    "next": "^16.2.4",
     "next-themes": "^0.4.6",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
@@ -73,7 +73,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.12",
-    "@cloudflare/vite-plugin": "^1.32.2",
+    "@cloudflare/vite-plugin": "^1.32.3",
     "@noble/hashes": "^2.2.0",
     "@playwright/test": "^1.59.1",
     "@tailwindcss/postcss": "^4.2.2",
@@ -91,7 +91,7 @@
     "jsdom": "^29.0.2",
     "lint-staged": "^16.4.0",
     "playwright": "^1.59.1",
-    "postcss": "^8.5.9",
+    "postcss": "^8.5.10",
     "rollup-plugin-visualizer": "^7.0.1",
     "sharp": "^0.34.5",
     "tailwindcss": "^4.2.2",
@@ -101,7 +101,7 @@
     "vinext": "^0.0.41",
     "vite": "^8.0.8",
     "vitest": "^4.1.4",
-    "wrangler": "^4.82.2"
+    "wrangler": "^4.83.0"
   },
   "type": "module"
 }
