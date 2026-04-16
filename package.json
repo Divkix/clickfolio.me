@@ -42,7 +42,7 @@
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^2.0.41",
-    "@better-auth/drizzle-adapter": "^1.6.2",
+    "@better-auth/drizzle-adapter": "^1.6.3",
     "@hookform/resolvers": "^5.2.2",
     "@neoconfetti/react": "^1.0.0",
     "@radix-ui/react-dialog": "^1.1.15",
@@ -54,8 +54,8 @@
     "@zxcvbn-ts/core": "^3.0.4",
     "@zxcvbn-ts/language-common": "^3.0.4",
     "@zxcvbn-ts/language-en": "^3.0.2",
-    "ai": "^6.0.159",
-    "better-auth": "^1.6.2",
+    "ai": "^6.0.161",
+    "better-auth": "^1.6.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.2",
@@ -73,7 +73,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.4.11",
+    "@biomejs/biome": "^2.4.12",
     "@cloudflare/vite-plugin": "^1.32.2",
     "@noble/hashes": "^2.2.0",
     "@playwright/test": "^1.59.1",
