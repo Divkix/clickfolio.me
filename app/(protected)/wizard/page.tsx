@@ -205,12 +205,10 @@ export default function WizardPage() {
               if (tempUpload.expiresAt > Date.now()) {
                 tempKey = tempUpload.key;
                 fileHash = sessionStorage.getItem("temp_file_hash");
-                console.log("[Migration] Using sessionStorage fallback for pending upload");
               } else {
                 // Expired - clean up stale data
                 sessionStorage.removeItem("temp_upload");
                 sessionStorage.removeItem("temp_file_hash");
-                console.log("Cleared expired temp upload data");
               }
             } catch {
               // Invalid JSON - clean up

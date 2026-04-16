@@ -9,45 +9,6 @@
 import { vi } from "vitest";
 
 // ---------------------------------------------------------------------------
-// R2 object metadata (what R2Bucket.get() / head() returns)
-// ---------------------------------------------------------------------------
-
-export interface MockR2Object {
-  body: ReadableStream<Uint8Array> | null;
-  size: number;
-  etag: string;
-  httpMetadata?: { contentType?: string };
-  customMetadata?: Record<string, string>;
-  writeHttpMetadata: (headers: Headers) => void;
-}
-
-/**
- * Create a mock R2 object (the shape returned by `binding.get()`).
- */
-export function createMockR2Object(
-  overrides: Partial<MockR2Object> & { content?: string } = {},
-): MockR2Object {
-  const content = overrides.content ?? "";
-  const bytes = new TextEncoder().encode(content);
-
-  return {
-    body: content
-      ? new ReadableStream({
-          start(controller) {
-            controller.enqueue(bytes);
-            controller.close();
-          },
-        })
-      : null,
-    size: overrides.size ?? bytes.byteLength,
-    etag: overrides.etag ?? "mock-etag-abc123",
-    httpMetadata: overrides.httpMetadata ?? { contentType: "application/pdf" },
-    customMetadata: overrides.customMetadata ?? {},
-    writeHttpMetadata: vi.fn(),
-  };
-}
-
-// ---------------------------------------------------------------------------
 // Mock R2Bucket binding
 // ---------------------------------------------------------------------------
 
@@ -179,15 +140,4 @@ export function createMockR2Bucket(initialStore?: MockR2Store) {
   };
 
   return { bucket, store };
-}
-
-// ---------------------------------------------------------------------------
-// Empty bucket helper
-// ---------------------------------------------------------------------------
-
-/**
- * Create an empty mock R2 bucket (no pre-populated objects).
- */
-export function createEmptyR2Bucket() {
-  return createMockR2Bucket();
 }

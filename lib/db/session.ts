@@ -10,6 +10,34 @@ interface SessionDbResult {
   captureBookmark: () => Promise<void>;
 }
 
+type D1SessionDatabase = D1Database & {
+  getBookmark(): D1SessionBookmark | null;
+};
+
+function createSession(
+  d1: D1Database,
+  constraintOrBookmark: D1SessionBookmark | D1SessionConstraint,
+): D1SessionDatabase {
+  return d1.withSession(constraintOrBookmark) as unknown as D1SessionDatabase;
+}
+
+function createDb(session: D1SessionDatabase) {
+  return drizzle(session, { schema });
+}
+
+function createCaptureBookmark(session: D1SessionDatabase) {
+  return async (): Promise<void> => {
+    try {
+      const bookmark = session.getBookmark();
+      if (bookmark && typeof bookmark === "string") {
+        await setBookmarkCookie(bookmark);
+      }
+    } catch (error) {
+      console.warn("[D1 Session] Failed to capture bookmark:", error);
+    }
+  };
+}
+
 /**
  * Read bookmark from cookie.
  * Returns null if not found or on error.
@@ -59,23 +87,9 @@ export async function getSessionDb(d1: D1Database): Promise<SessionDbResult> {
   const existingBookmark = await readBookmarkFromCookie();
 
   // Create session with existing bookmark or "first-unconstrained" for fresh sessions
-  // D1 session API types are not yet available in @cloudflare/workers-types
-  // biome-ignore lint/suspicious/noExplicitAny: D1 session API not typed
-  const session = (d1 as any).withSession(existingBookmark ?? "first-unconstrained");
-
-  const db = drizzle(session, { schema });
-
-  const captureBookmark = async (): Promise<void> => {
-    try {
-      // biome-ignore lint/suspicious/noExplicitAny: D1 session API not typed
-      const bookmark = (session as any).getBookmark?.();
-      if (bookmark && typeof bookmark === "string") {
-        await setBookmarkCookie(bookmark);
-      }
-    } catch (error) {
-      console.warn("[D1 Session] Failed to capture bookmark:", error);
-    }
-  };
+  const session = createSession(d1, existingBookmark ?? "first-unconstrained");
+  const db = createDb(session);
+  const captureBookmark = createCaptureBookmark(session);
 
   return { db, captureBookmark };
 }
@@ -91,9 +105,8 @@ export async function getSessionDb(d1: D1Database): Promise<SessionDbResult> {
  * ```
  */
 export function getSessionDbForWebhook(d1: D1Database): Pick<SessionDbResult, "db"> {
-  // biome-ignore lint/suspicious/noExplicitAny: D1 session API not typed
-  const session = (d1 as any).withSession("first-primary");
-  const db = drizzle(session, { schema });
+  const session = createSession(d1, "first-primary");
+  const db = createDb(session);
 
   return { db };
 }
@@ -115,21 +128,9 @@ export function getSessionDbForWebhook(d1: D1Database): Pick<SessionDbResult, "d
 export async function getSessionDbWithPrimaryFirst(d1: D1Database): Promise<SessionDbResult> {
   // Use "first-primary" to ensure reads/writes go to primary
   // This handles the case where user was just created and hasn't replicated
-  // biome-ignore lint/suspicious/noExplicitAny: D1 session API not typed
-  const session = (d1 as any).withSession("first-primary");
-  const db = drizzle(session, { schema });
-
-  const captureBookmark = async (): Promise<void> => {
-    try {
-      // biome-ignore lint/suspicious/noExplicitAny: D1 session API not typed
-      const bookmark = (session as any).getBookmark?.();
-      if (bookmark && typeof bookmark === "string") {
-        await setBookmarkCookie(bookmark);
-      }
-    } catch (error) {
-      console.warn("[D1 Session] Failed to capture bookmark:", error);
-    }
-  };
+  const session = createSession(d1, "first-primary");
+  const db = createDb(session);
+  const captureBookmark = createCaptureBookmark(session);
 
   return { db, captureBookmark };
 }

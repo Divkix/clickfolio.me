@@ -8,15 +8,7 @@
  */
 
 import { vi } from "vitest";
-import type {
-  HandleChange,
-  ReferralClick,
-  Resume,
-  Session,
-  SiteData,
-  UploadRateLimit,
-  User,
-} from "@/lib/db/schema";
+import type { Resume } from "@/lib/db/schema";
 
 // ---------------------------------------------------------------------------
 // Query chain builder
@@ -92,75 +84,6 @@ export function createMockDb(): MockDb {
   };
 }
 
-// ---------------------------------------------------------------------------
-// Transaction mock
-// ---------------------------------------------------------------------------
-
-/**
- * Creates a mock transaction wrapper.
- *
- * ```ts
- * const { transaction } = createMockTransaction();
- * await transaction(async (tx) => {
- *   await tx.insert(table).values(data);
- * });
- * expect(transaction).toHaveBeenCalledOnce();
- * ```
- */
-export function createMockTransaction() {
-  const txDb = createMockDb();
-  const transaction = vi.fn().mockImplementation(async (fn: (tx: MockDb) => Promise<unknown>) => {
-    return fn(txDb);
-  });
-
-  return { transaction, txDb };
-}
-
-// ---------------------------------------------------------------------------
-// Factory data helpers — lightweight fixtures for common DB rows
-// ---------------------------------------------------------------------------
-
-export function createMockDbUser(overrides: Partial<User> = {}): User {
-  return {
-    id: "user-db-uuid-001",
-    name: "DB Test User",
-    email: "db-test@example.com",
-    emailVerified: true,
-    image: null,
-    createdAt: "2026-01-15T12:00:00.000Z",
-    updatedAt: "2026-01-15T12:00:00.000Z",
-    handle: "dbtestuser",
-    headline: null,
-    privacySettings:
-      '{"show_phone":false,"show_address":false,"hide_from_search":false,"show_in_directory":true}',
-    onboardingCompleted: false,
-    role: null,
-    roleSource: null,
-    referredBy: null,
-    referredAt: null,
-    isPro: false,
-    referralCount: 0,
-    referralCode: "DBCODE01",
-    isAdmin: false,
-    showInDirectory: true,
-    ...overrides,
-  };
-}
-
-export function createMockDbSession(overrides: Partial<Session> = {}): Session {
-  return {
-    id: "session-db-uuid-001",
-    userId: "user-db-uuid-001",
-    token: "db-mock-token",
-    expiresAt: "2026-01-22T12:00:00.000Z",
-    ipAddress: "127.0.0.1",
-    userAgent: "test",
-    createdAt: "2026-01-15T12:00:00.000Z",
-    updatedAt: "2026-01-15T12:00:00.000Z",
-    ...overrides,
-  };
-}
-
 export function createMockDbResume(overrides: Partial<Resume> = {}): Resume {
   return {
     id: "resume-db-uuid-001",
@@ -178,64 +101,6 @@ export function createMockDbResume(overrides: Partial<Resume> = {}): Resume {
     totalAttempts: 1,
     createdAt: "2026-01-15T12:00:00.000Z",
     updatedAt: "2026-01-15T12:05:00.000Z",
-    ...overrides,
-  };
-}
-
-export function createMockDbSiteData(overrides: Partial<SiteData> = {}): SiteData {
-  return {
-    id: "sitedata-db-uuid-001",
-    userId: "user-db-uuid-001",
-    resumeId: "resume-db-uuid-001",
-    content: "{}",
-    themeId: "minimalist_editorial",
-    lastPublishedAt: null,
-    previewName: null,
-    previewHeadline: null,
-    previewLocation: null,
-    previewExpCount: null,
-    previewEduCount: null,
-    previewSkills: null,
-    createdAt: "2026-01-15T12:00:00.000Z",
-    updatedAt: "2026-01-15T12:05:00.000Z",
-    ...overrides,
-  };
-}
-
-export function createMockHandleChange(overrides: Partial<HandleChange> = {}): HandleChange {
-  return {
-    id: "hc-db-uuid-001",
-    userId: "user-db-uuid-001",
-    oldHandle: "oldhandle",
-    newHandle: "newhandle",
-    createdAt: "2026-01-15T12:00:00.000Z",
-    ...overrides,
-  };
-}
-
-export function createMockUploadRateLimit(
-  overrides: Partial<UploadRateLimit> = {},
-): UploadRateLimit {
-  return {
-    id: "rate-limit-uuid-001",
-    ipHash: "hash123",
-    actionType: "upload",
-    createdAt: "2026-01-15T12:00:00.000Z",
-    expiresAt: "2026-01-16T12:00:00.000Z",
-    ...overrides,
-  };
-}
-
-export function createMockReferralClick(overrides: Partial<ReferralClick> = {}): ReferralClick {
-  return {
-    id: "rc-db-uuid-001",
-    referrerUserId: "user-db-uuid-001",
-    visitorHash: "visitor-hash-abc",
-    source: "homepage",
-    converted: false,
-    convertedUserId: null,
-    convertedAt: null,
-    createdAt: "2026-01-15T12:00:00.000Z",
     ...overrides,
   };
 }
