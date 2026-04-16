@@ -5,7 +5,7 @@ import { classifyError, getErrorMessage, showErrorToast } from "@/lib/utils/erro
 import { useResumeWebSocket } from "./useResumeWebSocket";
 
 interface ResumeStatus {
-  status: "pending_claim" | "processing" | "completed" | "failed";
+  status: "pending_claim" | "queued" | "processing" | "completed" | "failed" | "waiting_for_cache";
   progress_pct: number;
   error: string | null;
   can_retry: boolean;

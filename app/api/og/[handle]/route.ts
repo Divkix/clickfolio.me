@@ -42,9 +42,6 @@ function renderFallbackSvg(): Response {
  * GET /api/og/[handle]
  * Dynamic profile OG image — shows name, headline, top skills.
  * 1200x630 SVG, cached for 1 hour with 24h stale-while-revalidate.
- *
- * NOTE: PNG conversion via workers-og failed due to Turbopack incompatibility
- * with WASM modules. SVG is used with enhanced visual design instead.
  */
 export async function GET(_request: Request, { params }: { params: Promise<{ handle: string }> }) {
   const { handle: rawHandle } = await params;
