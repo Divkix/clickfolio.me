@@ -1,35 +1,36 @@
-import { ofetch } from "ofetch";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { sendPasswordResetEmail, sendVerificationEmail } from "@/lib/email/resend";
+import { describe, expect, it, vi } from "vitest";
+import { createEmailSender } from "@/lib/email/cloudflare";
 
-vi.mock("ofetch", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("ofetch")>();
-  return {
-    ...actual,
-    ofetch: vi.fn(),
-  };
-});
+interface MockEmailResponse {
+  to: string;
+  from: { email: string; name: string };
+  subject: string;
+  html: string;
+  text: string;
+}
 
 describe("email verification", () => {
-  const originalFetch = globalThis.fetch;
+  const mockAppUrl = "https://clickfolio.me";
 
-  beforeEach(() => {
-    vi.stubEnv("RESEND_API_KEY", "re_test_123456789");
-    vi.stubEnv("BETTER_AUTH_URL", "https://clickfolio.me");
-    vi.restoreAllMocks();
-  });
-
-  afterEach(() => {
-    globalThis.fetch = originalFetch;
-    vi.unstubAllEnvs();
-  });
+  function createMockEnv(): CloudflareEnv {
+    return {
+      EMAIL: {
+        send: vi.fn().mockResolvedValue({ messageId: `test-${Date.now()}` }),
+      },
+      // Include other required bindings for type checking
+      CLICKFOLIO_DISPOSABLE_DOMAINS: {} as KVNamespace,
+      CLICKFOLIO_R2_BUCKET: {} as R2Bucket,
+      CLICKFOLIO_DB: {} as D1Database,
+      CLICKFOLIO_PARSE_QUEUE: {} as Queue,
+      ASSETS: {} as Fetcher,
+      CLICKFOLIO_STATUS_DO: {} as DurableObjectNamespace,
+    } as unknown as CloudflareEnv;
+  }
 
   describe("sendVerificationEmail", () => {
     it("sends verification email successfully", async () => {
-      globalThis.fetch = vi.fn().mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ id: "email_123" }),
-      }) as unknown as typeof fetch;
+      const env = createMockEnv();
+      const { sendVerificationEmail } = createEmailSender(env, mockAppUrl);
 
       const result = await sendVerificationEmail({
         email: "test@example.com",
@@ -38,22 +39,17 @@ describe("email verification", () => {
       });
 
       expect(result.success).toBe(true);
-      expect(globalThis.fetch).toHaveBeenCalledWith(
-        "https://api.resend.com/emails",
+      expect(env.EMAIL.send).toHaveBeenCalledWith(
         expect.objectContaining({
-          method: "POST",
-          headers: expect.objectContaining({
-            Authorization: "Bearer re_test_123456789",
-          }),
+          to: "test@example.com",
+          subject: "Verify your email - Clickfolio",
         }),
       );
     });
 
     it("includes user name in greeting when provided", async () => {
-      globalThis.fetch = vi.fn().mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ id: "email_123" }),
-      }) as unknown as typeof fetch;
+      const env = createMockEnv();
+      const { sendVerificationEmail } = createEmailSender(env, mockAppUrl);
 
       await sendVerificationEmail({
         email: "test@example.com",
@@ -61,75 +57,42 @@ describe("email verification", () => {
         userName: "John Doe",
       });
 
-      const fetchCall = vi.mocked(globalThis.fetch).mock.calls[0];
-      const body = JSON.parse(fetchCall?.[1]?.body as string);
-      expect(body.html).toContain("Hi John Doe");
-      expect(body.text).toContain("Hi John Doe");
+      const callArgs = vi.mocked(env.EMAIL.send).mock.calls[0][0] as MockEmailResponse;
+      expect(callArgs.html).toContain("Hi John Doe");
+      expect(callArgs.text).toContain("Hi John Doe");
     });
 
     it("uses generic greeting when user name not provided", async () => {
-      globalThis.fetch = vi.fn().mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ id: "email_123" }),
-      }) as unknown as typeof fetch;
+      const env = createMockEnv();
+      const { sendVerificationEmail } = createEmailSender(env, mockAppUrl);
 
       await sendVerificationEmail({
         email: "test@example.com",
         verificationUrl: "https://clickfolio.me/api/auth/verify-email?token=abc123",
       });
 
-      const fetchCall = vi.mocked(globalThis.fetch).mock.calls[0];
-      const body = JSON.parse(fetchCall?.[1]?.body as string);
-      expect(body.html).toContain("Hi,");
-      expect(body.text).toContain("Hi,");
+      const callArgs = vi.mocked(env.EMAIL.send).mock.calls[0][0] as MockEmailResponse;
+      expect(callArgs.html).toContain("Hi,");
+      expect(callArgs.text).toContain("Hi,");
     });
 
-    it("returns error when API key is missing", async () => {
-      vi.stubEnv("RESEND_API_KEY", "");
+    it("handles email send errors gracefully", async () => {
+      const env = createMockEnv();
+      vi.mocked(env.EMAIL.send).mockRejectedValueOnce(new Error("Domain not onboarded"));
 
+      const { sendVerificationEmail } = createEmailSender(env, mockAppUrl);
       const result = await sendVerificationEmail({
         email: "test@example.com",
         verificationUrl: "https://clickfolio.me/api/auth/verify-email?token=abc123",
       });
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain("RESEND_API_KEY");
-    });
-
-    it("handles API errors gracefully", async () => {
-      globalThis.fetch = vi.fn().mockResolvedValueOnce({
-        ok: false,
-        json: async () => ({ message: "Rate limit exceeded" }),
-      }) as unknown as typeof fetch;
-
-      const result = await sendVerificationEmail({
-        email: "test@example.com",
-        verificationUrl: "https://clickfolio.me/api/auth/verify-email?token=abc123",
-      });
-
-      expect(result.success).toBe(false);
-      expect(result.error).toContain("Rate limit");
-    });
-
-    it("handles network errors gracefully", async () => {
-      globalThis.fetch = vi
-        .fn()
-        .mockRejectedValueOnce(new Error("Network error")) as unknown as typeof fetch;
-
-      const result = await sendVerificationEmail({
-        email: "test@example.com",
-        verificationUrl: "https://clickfolio.me/api/auth/verify-email?token=abc123",
-      });
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe("Network error");
+      expect(result.error).toContain("Domain not onboarded");
     });
 
     it("escapes HTML in user name to prevent XSS", async () => {
-      globalThis.fetch = vi.fn().mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ id: "email_123" }),
-      }) as unknown as typeof fetch;
+      const env = createMockEnv();
+      const { sendVerificationEmail } = createEmailSender(env, mockAppUrl);
 
       await sendVerificationEmail({
         email: "test@example.com",
@@ -137,17 +100,14 @@ describe("email verification", () => {
         userName: "<script>alert('xss')</script>",
       });
 
-      const fetchCall = vi.mocked(globalThis.fetch).mock.calls[0];
-      const body = JSON.parse(fetchCall?.[1]?.body as string);
-      expect(body.html).not.toContain("<script>");
-      expect(body.html).toContain("&lt;script&gt;");
+      const callArgs = vi.mocked(env.EMAIL.send).mock.calls[0][0] as MockEmailResponse;
+      expect(callArgs.html).not.toContain("<script>");
+      expect(callArgs.html).toContain("&lt;script&gt;");
     });
 
     it("does not double-encode pre-encoded URL characters", async () => {
-      globalThis.fetch = vi.fn().mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ id: "email_123" }),
-      }) as unknown as typeof fetch;
+      const env = createMockEnv();
+      const { sendVerificationEmail } = createEmailSender(env, mockAppUrl);
 
       // Better Auth produces URLs with already-encoded query params
       const urlWithEncoded =
@@ -158,16 +118,18 @@ describe("email verification", () => {
         verificationUrl: urlWithEncoded,
       });
 
-      const fetchCall = vi.mocked(globalThis.fetch).mock.calls[0];
-      const body = JSON.parse(fetchCall?.[1]?.body as string);
+      const callArgs = vi.mocked(env.EMAIL.send).mock.calls[0][0] as MockEmailResponse;
       // %2F must NOT become %252F (double-encoded)
-      expect(body.html).toContain("abc%2Fdef");
-      expect(body.html).not.toContain("abc%252Fdef");
-      expect(body.text).toContain("abc%2Fdef");
-      expect(body.text).not.toContain("abc%252Fdef");
+      expect(callArgs.html).toContain("abc%2Fdef");
+      expect(callArgs.html).not.toContain("abc%252Fdef");
+      expect(callArgs.text).toContain("abc%2Fdef");
+      expect(callArgs.text).not.toContain("abc%252Fdef");
     });
 
     it("returns error for invalid verification URL", async () => {
+      const env = createMockEnv();
+      const { sendVerificationEmail } = createEmailSender(env, mockAppUrl);
+
       const result = await sendVerificationEmail({
         email: "test@example.com",
         verificationUrl: "not-a-valid-url",
@@ -175,12 +137,33 @@ describe("email verification", () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toContain("Invalid");
+      expect(env.EMAIL.send).not.toHaveBeenCalled();
     });
   });
 
   describe("sendPasswordResetEmail", () => {
+    it("sends password reset email successfully", async () => {
+      const env = createMockEnv();
+      const { sendPasswordResetEmail } = createEmailSender(env, mockAppUrl);
+
+      const result = await sendPasswordResetEmail({
+        email: "test@example.com",
+        resetUrl: "https://clickfolio.me/api/auth/reset-password?token=abc123",
+        userName: "Test User",
+      });
+
+      expect(result.success).toBe(true);
+      expect(env.EMAIL.send).toHaveBeenCalledWith(
+        expect.objectContaining({
+          to: "test@example.com",
+          subject: "Reset your password - Clickfolio",
+        }),
+      );
+    });
+
     it("does not double-encode pre-encoded URL characters", async () => {
-      vi.mocked(ofetch).mockResolvedValueOnce({ id: "email_456" });
+      const env = createMockEnv();
+      const { sendPasswordResetEmail } = createEmailSender(env, mockAppUrl);
 
       const urlWithEncoded = "https://clickfolio.me/api/auth/reset-password?token=abc%2Fdef";
 
@@ -190,16 +173,17 @@ describe("email verification", () => {
       });
 
       expect(result.success).toBe(true);
-      // Inspect the body passed to ofetch
-      const callArgs = vi.mocked(ofetch).mock.calls[0];
-      const body = (callArgs[1] as { body: { html: string; text: string } }).body;
-      expect(body.html).toContain("abc%2Fdef");
-      expect(body.html).not.toContain("abc%252Fdef");
-      expect(body.text).toContain("abc%2Fdef");
-      expect(body.text).not.toContain("abc%252Fdef");
+      const callArgs = vi.mocked(env.EMAIL.send).mock.calls[0][0] as MockEmailResponse;
+      expect(callArgs.html).toContain("abc%2Fdef");
+      expect(callArgs.html).not.toContain("abc%252Fdef");
+      expect(callArgs.text).toContain("abc%2Fdef");
+      expect(callArgs.text).not.toContain("abc%252Fdef");
     });
 
     it("returns error for invalid reset URL", async () => {
+      const env = createMockEnv();
+      const { sendPasswordResetEmail } = createEmailSender(env, mockAppUrl);
+
       const result = await sendPasswordResetEmail({
         email: "test@example.com",
         resetUrl: "not-a-valid-url",
@@ -207,6 +191,21 @@ describe("email verification", () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toContain("Invalid");
+      expect(env.EMAIL.send).not.toHaveBeenCalled();
+    });
+
+    it("handles email send errors gracefully", async () => {
+      const env = createMockEnv();
+      vi.mocked(env.EMAIL.send).mockRejectedValueOnce(new Error("Rate limit exceeded"));
+
+      const { sendPasswordResetEmail } = createEmailSender(env, mockAppUrl);
+      const result = await sendPasswordResetEmail({
+        email: "test@example.com",
+        resetUrl: "https://clickfolio.me/api/auth/reset-password?token=abc123",
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("Rate limit exceeded");
     });
   });
 });

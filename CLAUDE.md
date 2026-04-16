@@ -271,7 +271,7 @@ Required in `.dev.vars` (dev) and Cloudflare secrets (prod):
 ```
 BETTER_AUTH_SECRET, BETTER_AUTH_URL   # BETTER_AUTH_URL is also used as the app URL
 GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
-RESEND_API_KEY              # For password reset emails (optional, free tier: 3k/month)
+# Email Sending is via Cloudflare Email Service binding - no API key needed
 ```
 
 AI Provider (required for resume parsing):
