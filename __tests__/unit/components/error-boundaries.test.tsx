@@ -2,7 +2,7 @@
  * Error Boundary Component Tests
  *
  * Tests error boundary behavior, error reporting, recovery mechanisms,
- * and edge cases for React error boundaries in Next.js.
+ * and edge cases for React error boundaries in the vinext app.
  *
  * @module __tests__/unit/components/error-boundaries.test
  */

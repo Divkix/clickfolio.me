@@ -28,7 +28,7 @@ export type ResumeParseMessage = z.infer<typeof queueMessageSchema>;
 /**
  * Union type for all queue messages
  */
-export type QueueMessage = z.infer<typeof queueMessageSchema>;
+export type QueueMessage = ResumeParseMessage;
 
 /**
  * Dead letter queue message wrapper

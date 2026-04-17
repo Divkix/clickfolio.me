@@ -27,7 +27,7 @@ export function proxy(request: NextRequest) {
 
   // Session cookie exists, allow access
   // Note: Onboarding completion check is now handled in page components
-  // since we cannot make DB calls from Edge middleware
+  // since this proxy layer cannot make DB calls
   return NextResponse.next();
 }
 

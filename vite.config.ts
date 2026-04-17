@@ -103,7 +103,7 @@ export default defineConfig({
       "@zxcvbn-ts/core": resolve("lib/stubs/zxcvbn-core-stub.mjs"),
       "@zxcvbn-ts/language-common": resolve("lib/stubs/zxcvbn-lang-stub.mjs"),
       "@zxcvbn-ts/language-en": resolve("lib/stubs/zxcvbn-lang-stub.mjs"),
-      // zod/v3 — Zod v4 compat layer, only dead code path
+      // zod/v3 — required bundle shim; only the runtime v3 conversion path is dead
       "zod/v3": resolve("lib/stubs/zod-v3-stub.mjs"),
     },
   },

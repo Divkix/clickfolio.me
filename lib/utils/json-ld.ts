@@ -39,7 +39,7 @@ interface JsonLdProfilePage {
   mainEntity: JsonLdPerson;
 }
 
-export interface JsonLdOptions {
+interface JsonLdOptions {
   profileUrl: string;
   avatarUrl?: string | null;
   dateCreated?: string;

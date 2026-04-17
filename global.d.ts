@@ -1,5 +1,11 @@
 declare module "*.css";
 
+declare global {
+  interface Window {
+    __clickfolioOwner?: boolean;
+  }
+}
+
 // Type declarations for vitest and jest-dom matchers
 import type { matchers } from "@testing-library/jest-dom";
 

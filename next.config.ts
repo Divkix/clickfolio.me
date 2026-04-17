@@ -41,7 +41,7 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        // CSP: 'unsafe-inline' required for React hydration on Cloudflare Workers (no nonce support in edge middleware)
+        // CSP: 'unsafe-inline' required for React hydration on Cloudflare Workers (no nonce support in proxy layer)
         source: "/:path*",
         headers: [
           {

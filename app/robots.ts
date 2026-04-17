@@ -1,11 +1,8 @@
 import type { MetadataRoute } from "next";
-
-function getBaseUrl(): string {
-  return process.env.BETTER_AUTH_URL || "https://clickfolio.me";
-}
+import { getPublicSiteUrl } from "@/lib/utils/site-url";
 
 export default function robots(): MetadataRoute.Robots {
-  const baseUrl = getBaseUrl();
+  const baseUrl = getPublicSiteUrl();
 
   return {
     rules: [

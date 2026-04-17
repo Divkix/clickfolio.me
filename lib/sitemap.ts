@@ -3,6 +3,8 @@ import { and, isNotNull, or, sql } from "drizzle-orm";
 import type { MetadataRoute } from "next";
 import { getDb } from "@/lib/db";
 import { siteData, user } from "@/lib/db/schema";
+import { getPublicSiteUrl } from "@/lib/utils/site-url";
+import { escapeXml } from "@/lib/utils/xml";
 
 const SITEMAP_XMLNS = "http://www.sitemaps.org/schemas/sitemap/0.9";
 
@@ -17,17 +19,8 @@ const notHiddenFromSearch = or(
 
 export const URLS_PER_SITEMAP = 50000; // Google's limit
 
-function escapeXml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
-}
-
 export function getSitemapBaseUrl(): string {
-  return process.env.BETTER_AUTH_URL || "https://clickfolio.me";
+  return getPublicSiteUrl();
 }
 
 /**

@@ -170,7 +170,7 @@ vi.mock("@/lib/db/schema", () => ({
 
 // ── Setup ───────────────────────────────────────────────────────────
 
-import { requireAdminAuthForApi } from "@/lib/auth/admin";
+import { type AdminUser, requireAdminAuthForApi } from "@/lib/auth/admin";
 
 const mockedAdminAuth = vi.mocked(requireAdminAuthForApi);
 
@@ -231,13 +231,6 @@ const mockDb = {
 };
 
 // ── Helper Functions ───────────────────────────────────────────────
-
-interface AdminUser {
-  id: string;
-  email: string;
-  name: string;
-  isAdmin: boolean;
-}
 
 function adminAuthed(userId = "admin-123"): { user: AdminUser; error: null } {
   const user: AdminUser = {

@@ -22,6 +22,11 @@ interface HealthResponse {
   };
 }
 
+type AiProviderEnv = Pick<
+  CloudflareEnv,
+  "CF_AI_GATEWAY_ACCOUNT_ID" | "CF_AI_GATEWAY_ID" | "CF_AIG_AUTH_TOKEN"
+>;
+
 async function checkD1(db: D1Database): Promise<ServiceHealth> {
   const start = Date.now();
   try {
@@ -55,7 +60,7 @@ async function checkR2(r2: R2Bucket): Promise<ServiceHealth> {
  * We can't actually test the provider without making an API call,
  * so we just verify the required env vars are present
  */
-function checkAiProviderConfig(env: Record<string, unknown>): ServiceHealth {
+function checkAiProviderConfig(env: AiProviderEnv): ServiceHealth {
   const hasGateway = env.CF_AI_GATEWAY_ACCOUNT_ID && env.CF_AI_GATEWAY_ID && env.CF_AIG_AUTH_TOKEN;
   if (hasGateway) {
     return { status: "healthy", error: "Using Cloudflare AI Gateway" };
@@ -90,14 +95,14 @@ export async function GET() {
 
     // Run all health checks in parallel
     const [d1Health, r2Health] = await Promise.all([
-      checkD1(env.CLICKFOLIO_DB),
+      checkD1(typedEnv.CLICKFOLIO_DB),
       r2Binding
         ? checkR2(r2Binding)
         : Promise.resolve({ status: "unhealthy" as const, error: "R2 binding not available" }),
     ]);
 
     // Check AI provider config (synchronous)
-    const aiHealth = checkAiProviderConfig(env as unknown as Record<string, unknown>);
+    const aiHealth = checkAiProviderConfig(typedEnv);
 
     const services = {
       d1: d1Health,

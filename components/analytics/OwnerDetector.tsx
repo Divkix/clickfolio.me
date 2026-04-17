@@ -8,7 +8,7 @@ export function OwnerDetector({ profileId }: { profileId: string }) {
 
   useEffect(() => {
     if (session?.user?.id === profileId) {
-      (window as unknown as Record<string, unknown>).__clickfolioOwner = true;
+      window.__clickfolioOwner = true;
     }
   }, [session, profileId]);
 
