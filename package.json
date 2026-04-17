@@ -19,7 +19,7 @@
     "test:ci": "vitest run --coverage --reporter=json",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
-    "ci": "bun run type-check && bun run lint && bun run test && bun run build",
+    "ci": "bun install --frozen-lockfile && bun run type-check && bun run lint && bun run test && bun run build",
     "preview": "vite build && bunx wrangler dev",
     "deploy": "bun run scripts/deploy.ts",
     "db:generate": "drizzle-kit generate",
