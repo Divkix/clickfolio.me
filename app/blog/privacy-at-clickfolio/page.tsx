@@ -6,7 +6,7 @@ import { siteConfig } from "@/lib/config/site";
 
 export const revalidate = 3600;
 
-const post = getPostBySlug("privacy-at-clickfolio")!;
+const post = getPostBySlug("privacy-at-clickfolio");
 
 export function generateMetadata(): Metadata {
   if (!post) return {};
@@ -20,13 +20,14 @@ export function generateMetadata(): Metadata {
       siteName: siteConfig.fullName,
       images: [{ url: "/api/og/home", width: 1200, height: 630 }],
     },
+    twitter: { card: "summary_large_image" },
     robots: { index: true, follow: true },
   };
 }
 
 export default function PrivacyAtClickfolioPage() {
   return (
-    <BlogPostLayout post={post}>
+    <BlogPostLayout post={post!}>
       <section>
         <p>
           Most free online tools have a hidden cost: your data. Resume builders that sell your

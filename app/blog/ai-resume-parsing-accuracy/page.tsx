@@ -6,7 +6,7 @@ import { siteConfig } from "@/lib/config/site";
 
 export const revalidate = 3600;
 
-const post = getPostBySlug("ai-resume-parsing-accuracy")!;
+const post = getPostBySlug("ai-resume-parsing-accuracy");
 
 export function generateMetadata(): Metadata {
   if (!post) return {};
@@ -20,13 +20,14 @@ export function generateMetadata(): Metadata {
       siteName: siteConfig.fullName,
       images: [{ url: "/api/og/home", width: 1200, height: 630 }],
     },
+    twitter: { card: "summary_large_image" },
     robots: { index: true, follow: true },
   };
 }
 
 export default function AiResumeParsingAccuracyPage() {
   return (
-    <BlogPostLayout post={post}>
+    <BlogPostLayout post={post!}>
       <section>
         <p>
           "AI will parse your resume perfectly." That's the promise every resume-to-website tool

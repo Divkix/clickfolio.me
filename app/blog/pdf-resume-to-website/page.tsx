@@ -6,7 +6,7 @@ import { siteConfig } from "@/lib/config/site";
 
 export const revalidate = 3600;
 
-const post = getPostBySlug("pdf-resume-to-website")!;
+const post = getPostBySlug("pdf-resume-to-website");
 
 export function generateMetadata(): Metadata {
   if (!post) return {};
@@ -20,13 +20,14 @@ export function generateMetadata(): Metadata {
       siteName: siteConfig.fullName,
       images: [{ url: "/api/og/home", width: 1200, height: 630 }],
     },
+    twitter: { card: "summary_large_image" },
     robots: { index: true, follow: true },
   };
 }
 
 export default function PdfResumeToWebsitePage() {
   return (
-    <BlogPostLayout post={post}>
+    <BlogPostLayout post={post!}>
       <section>
         <p>
           Your PDF resume has served you well. It got you through job applications, ATS systems, and

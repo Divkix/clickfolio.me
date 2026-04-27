@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
 import { siteConfig } from "@/lib/config/site";
 
-export const revalidate = 3600;
-
 export const metadata: Metadata = {
-  title: "Blog",
+  title: "Blog | clickfolio.me",
   description:
     "Guides, comparisons, and tips for building your online portfolio. Learn how to turn your PDF resume into a professional website.",
   alternates: { canonical: `${siteConfig.url}/blog` },
