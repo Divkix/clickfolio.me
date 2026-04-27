@@ -13,6 +13,7 @@ import type { ResumeContent } from "@/lib/types/database";
 
 interface JsonLdPerson {
   "@type": "Person";
+  "@id"?: string;
   name: string;
   url: string;
   image?: string;
@@ -34,6 +35,7 @@ interface JsonLdPerson {
 interface JsonLdProfilePage {
   "@context": "https://schema.org";
   "@type": "ProfilePage";
+  "@id"?: string;
   dateCreated?: string;
   dateModified?: string;
   mainEntity: JsonLdPerson;
@@ -194,6 +196,7 @@ export function generateResumeJsonLd(
   // Build Person entity
   const person: JsonLdPerson = {
     "@type": "Person",
+    "@id": `${profileUrl}#person`,
     name: content.full_name,
     url: profileUrl,
   };
@@ -245,6 +248,7 @@ export function generateResumeJsonLd(
   const profilePage: JsonLdProfilePage = {
     "@context": "https://schema.org",
     "@type": "ProfilePage",
+    "@id": `${profileUrl}#webpage`,
     mainEntity: person,
   };
 
@@ -292,13 +296,23 @@ export function generateHomepageJsonLd(): Record<string, unknown>[] {
     {
       "@context": "https://schema.org",
       "@type": "WebSite",
+      "@id": `${siteConfig.url}/#website`,
       name: siteConfig.fullName,
       url: siteConfig.url,
       description: siteConfig.tagline,
+      potentialAction: {
+        "@type": "SearchAction",
+        target: {
+          "@type": "EntryPoint",
+          urlTemplate: `${siteConfig.url}/explore?search={search_term_string}`,
+        },
+        "query-input": "required name=search_term_string",
+      },
     },
     {
       "@context": "https://schema.org",
       "@type": "Organization",
+      "@id": `${siteConfig.url}/#organization`,
       name: siteConfig.fullName,
       url: siteConfig.url,
       logo: `${siteConfig.url}/icon-512.png`,
@@ -306,6 +320,7 @@ export function generateHomepageJsonLd(): Record<string, unknown>[] {
     {
       "@context": "https://schema.org",
       "@type": "SoftwareApplication",
+      "@id": `${siteConfig.url}/#software`,
       name: siteConfig.fullName,
       url: siteConfig.url,
       applicationCategory: "BusinessApplication",
@@ -325,17 +340,21 @@ export function generateExploreJsonLd(
   return {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
+    "@id": `${siteConfig.url}/explore#webpage`,
     name: "Professional Portfolio Directory",
     description: "Browse professional portfolios and connect with talented individuals.",
     url: `${siteConfig.url}/explore`,
     isPartOf: {
       "@type": "WebSite",
+      "@id": `${siteConfig.url}/#website`,
       name: siteConfig.fullName,
       url: siteConfig.url,
     },
     mainEntity: {
       "@type": "ItemList",
+      "@id": `${siteConfig.url}/explore#directory`,
       numberOfItems: users.length,
+      itemListOrder: "Unordered",
       itemListElement: users.map((u, i) => ({
         "@type": "ListItem",
         position: i + 1,
@@ -344,6 +363,50 @@ export function generateExploreJsonLd(
         ...(u.headline && { description: u.headline }),
       })),
     },
+  };
+}
+
+/**
+ * Generates FAQPage JSON-LD for the homepage.
+ */
+export function generateFAQJsonLd(): Record<string, unknown> {
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: [
+      {
+        "@type": "Question",
+        name: "What is clickfolio.me?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "clickfolio.me turns your PDF resume into a hosted web portfolio in seconds. Upload your resume, and our AI parses it into a professional website with a custom @handle URL — free forever.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "How does the AI resume parsing work?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "We use advanced language models to extract your work experience, education, skills, projects, and contact info from your PDF resume. The parsing takes about 30 seconds and produces a complete, editable online portfolio.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "Is clickfolio.me really free?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Yes. All 6 base templates are completely free with no time limits. You can upgrade to 4 premium templates by sharing your portfolio with others via our referral system.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "Can I customize my portfolio after publishing?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Absolutely. You get a full editing suite to update your content anytime. Changes auto-save and publish instantly. You can also switch between 10 templates, control what's visible via privacy settings, and update your @handle.",
+        },
+      },
+    ],
   };
 }
 
@@ -387,6 +450,7 @@ export function generateWebPageJsonLd(
   const page: Record<string, unknown> = {
     "@context": "https://schema.org",
     "@type": "WebPage",
+    "@id": `${siteConfig.url}${path}#webpage`,
     name,
     url: `${siteConfig.url}${path}`,
     description,

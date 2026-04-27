@@ -5,13 +5,14 @@ import { FileDropzone } from "@/components/FileDropzone";
 import { Footer } from "@/components/Footer";
 import { BottomCTAButton } from "@/components/home/BottomCTAButton";
 import { ExamplesSection } from "@/components/home/ExamplesSection";
+import { FAQSection } from "@/components/home/FAQSection";
 import { MobileStickyUpload } from "@/components/home/MobileStickyUpload";
 import { WhatYouGetSection } from "@/components/home/WhatYouGetSection";
 import { ReferralCapture } from "@/components/ReferralCapture";
 import { SiteHeader } from "@/components/SiteHeader";
 import { siteConfig } from "@/lib/config/site";
 import { DEMO_PROFILES } from "@/lib/templates/demo-data";
-import { generateHomepageJsonLd, serializeJsonLd } from "@/lib/utils/json-ld";
+import { generateFAQJsonLd, generateHomepageJsonLd, serializeJsonLd } from "@/lib/utils/json-ld";
 
 export const revalidate = 3600;
 
@@ -48,6 +49,7 @@ export const metadata: Metadata = {
 
 export default function Home() {
   const homepageJsonLd = generateHomepageJsonLd();
+  const faqJsonLd = generateFAQJsonLd();
   return (
     <>
       {homepageJsonLd.map((schema, i) => (
@@ -58,6 +60,11 @@ export default function Home() {
           dangerouslySetInnerHTML={{ __html: serializeJsonLd(schema) }}
         />
       ))}
+      <script
+        type="application/ld+json"
+        // biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD from hardcoded FAQ text, serializeJsonLd escapes XSS vectors
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(faqJsonLd) }}
+      />
       {/* Capture referral handle from ?ref= parameter */}
       <Suspense fallback={null}>
         <ReferralCapture />
@@ -417,6 +424,8 @@ export default function Home() {
             </section>
 
             <WhatYouGetSection />
+
+            <FAQSection />
 
             {/* Bottom CTA */}
             <section className="mt-16 lg:mt-20">

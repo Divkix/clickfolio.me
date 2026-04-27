@@ -27,6 +27,8 @@ interface ResumeData {
   content: ResumeContent;
   theme_id: string | null;
   privacy_settings: PrivacySettings;
+  created_at: string;
+  updated_at: string;
 }
 
 interface ResumeMetadata {
@@ -143,6 +145,8 @@ async function fetchResumeDataRaw(handle: string): Promise<ResumeData | null> {
     content,
     theme_id: themeId,
     privacy_settings: privacySettings,
+    created_at: userData.siteData.createdAt,
+    updated_at: userData.siteData.updatedAt,
   };
 }
 

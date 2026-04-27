@@ -162,7 +162,7 @@ export default async function HandlePage({ params }: PageProps) {
     notFound();
   }
 
-  const { content, profile, theme_id, privacy_settings } = data;
+  const { content, profile, theme_id, privacy_settings, created_at, updated_at } = data;
 
   // Dynamically select template based on theme_id
   const Template = await getTemplate(theme_id);
@@ -184,6 +184,8 @@ export default async function HandlePage({ params }: PageProps) {
     ? generateResumeJsonLd(content, {
         profileUrl,
         avatarUrl: profile.avatar_url,
+        dateCreated: created_at,
+        dateModified: updated_at,
       })
     : null;
 
