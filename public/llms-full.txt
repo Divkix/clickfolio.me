@@ -1,0 +1,149 @@
+# clickfolio.me — Full Documentation
+
+Turn your PDF resume into a hosted web portfolio website in seconds. Upload your resume, and AI parses it into a professional website with a custom @handle URL — free forever.
+
+## Product Overview
+
+clickfolio.me is an AI-powered resume-to-website platform. Users upload a PDF resume, and within ~30 seconds the system extracts work experience, education, skills, projects, and contact information using advanced language models. The result is a live, shareable portfolio website at `clickfolio.me/@handle`.
+
+The platform is free for all base features with no time limits. Premium templates are unlockable through a referral system. There is no paywall — the business model relies on viral growth through portfolio sharing.
+
+### Key Differentiators
+
+- **No signup to upload**: Users drop their PDF first, authenticate later
+- **Instant publishing**: ~30 seconds from upload to live portfolio
+- **10 professionally designed templates**: 6 free, 4 referral-gated
+- **Full editing suite**: Inline content editing with auto-save
+- **Privacy controls**: Per-field visibility toggles (phone, address, search indexing)
+- **Custom @handle URLs**: Permanent, memorable URLs
+- **Open source**: MIT licensed, source available on GitHub
+- **AI accuracy**: 95%+ parsing accuracy across 10,000+ resumes
+
+## All 10 Templates
+
+### Free Templates (0 referrals required)
+
+1. **Minimalist Editorial** (default) — Clean magazine-style layout with serif typography. Professional and timeless.
+   - Category: Professional
+
+2. **Neo Brutalist** — Bold design with thick borders and loud colors. High contrast, distinctive personality.
+   - Category: Creative
+
+3. **Glass Morphic** — Dark theme with frosted glass effects. Modern and sleek.
+   - Category: Modern
+
+4. **Bento Grid** — Modern mosaic layout with colorful cards. Organizes content into visually distinct blocks.
+   - Category: Modern
+
+5. **Classic ATS** — Legal brief typography with single-column ATS-optimized layout. Ideal for job applications.
+   - Category: Professional
+
+6. **DevTerminal** — GitHub-inspired dark terminal aesthetic for developers. Monospace typography, console-style presentation.
+   - Category: Developer
+
+### Premium Templates (referral-gated)
+
+7. **DesignFolio** (3 referrals) — Digital brutalism meets Swiss typography. Dark theme with acid lime accents.
+   - Category: Creative
+
+8. **Spotlight** (3 referrals) — Warm creative portfolio with animated sections. Engaging, dynamic presentation.
+   - Category: Creative
+
+9. **Midnight** (5 referrals) — Dark minimal with serif headings and gold accents. Elegant and sophisticated.
+   - Category: Modern
+
+10. **Bold Corporate** (10 referrals) — Executive typography with bold numbered sections. Premium professional look.
+    - Category: Professional
+
+## FAQ
+
+### What is clickfolio.me?
+
+clickfolio.me turns your PDF resume into a hosted web portfolio in seconds. Upload your resume, and our AI parses it into a professional website with a custom @handle URL — free forever.
+
+### How does the AI resume parsing work?
+
+We use advanced language models to extract your work experience, education, skills, projects, and contact info from your PDF resume. The parsing takes about 30 seconds and produces a complete, editable online portfolio.
+
+### Is clickfolio.me really free?
+
+Yes. All 6 base templates are completely free with no time limits. You can upgrade to 4 premium templates by sharing your portfolio with others via our referral system.
+
+### Can I customize my portfolio after publishing?
+
+Absolutely. You get a full editing suite to update your content anytime. Changes auto-save and publish instantly. You can also switch between 10 templates, control what's visible via privacy settings, and update your @handle.
+
+## All Public URLs
+
+### Core Pages
+- Homepage: https://clickfolio.me
+- Browse Portfolios: https://clickfolio.me/explore
+- Privacy Policy: https://clickfolio.me/privacy
+- Terms of Service: https://clickfolio.me/terms
+
+### Profession Landing Pages
+- Software Engineers: https://clickfolio.me/for/software-engineer
+- Designers: https://clickfolio.me/for/designer
+- Marketers: https://clickfolio.me/for/marketer
+- Students: https://clickfolio.me/for/student
+- Consultants: https://clickfolio.me/for/consultant
+- Product Managers: https://clickfolio.me/for/product-manager
+
+### Dynamic Pages
+- Portfolio URLs: https://clickfolio.me/@{handle}
+- OG Images: https://clickfolio.me/api/og/{handle}
+
+### Static Resources
+- robots.txt: https://clickfolio.me/robots.txt
+- sitemap.xml: https://clickfolio.me/sitemap.xml
+- Sitemap Index: https://clickfolio.me/api/sitemap-index
+
+## Tech Stack
+
+### Platform
+- **Runtime**: Cloudflare Workers (edge compute)
+- **Framework**: vinext (Vite-based Next.js on Workers)
+- **Language**: TypeScript
+
+### Storage
+- **Database**: Cloudflare D1 (SQLite-compatible, distributed)
+- **File Storage**: Cloudflare R2 (S3-compatible object storage)
+
+### AI & Parsing
+- **AI Provider**: OpenAI via OpenRouter, proxied through Cloudflare AI Gateway
+- **PDF Extraction**: unpdf (embedded in Worker bundle)
+- **AI SDK**: Vercel AI SDK for structured output parsing
+
+### Authentication
+- **Auth Provider**: Better Auth (Google OAuth + email/password)
+- **Session Management**: Database-backed sessions with cookie transport
+
+### Real-time
+- **WebSocket**: Cloudflare Durable Objects for live parsing status updates
+
+### Infrastructure
+- **Queue**: Cloudflare Queues for async resume parsing
+- **Cron**: Cloudflare Workers Cron Triggers for scheduled cleanup
+- **Email**: Cloudflare Email Service binding
+
+### Tooling
+- **ORM**: Drizzle ORM
+- **Validation**: Zod
+- **Testing**: Vitest
+- **Linting/Formatting**: Biome
+- **Package Manager**: Bun
+
+## Privacy & Security
+
+- All user data stored in D1 (SQLite) and R2 (object storage)
+- Authentication via Better Auth with Google OAuth and email/password
+- Session tokens stored in HTTP-only cookies
+- Privacy controls allow users to selectively hide phone numbers, full addresses, and opt out of search engine indexing
+- R2 file storage uses signed URLs for uploads
+- IP-based rate limiting on file uploads
+- Source code is open source (MIT) — security through transparency
+
+## Contact
+
+- Support: support@clickfolio.me
+- Source Code: https://github.com/divkix/clickfolio.me

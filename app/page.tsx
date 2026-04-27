@@ -7,6 +7,7 @@ import { BottomCTAButton } from "@/components/home/BottomCTAButton";
 import { ExamplesSection } from "@/components/home/ExamplesSection";
 import { FAQSection } from "@/components/home/FAQSection";
 import { MobileStickyUpload } from "@/components/home/MobileStickyUpload";
+import { UsageStats } from "@/components/home/UsageStats";
 import { WhatYouGetSection } from "@/components/home/WhatYouGetSection";
 import { ReferralCapture } from "@/components/ReferralCapture";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -426,6 +427,8 @@ export default function Home() {
             <WhatYouGetSection />
 
             <FAQSection />
+
+            <UsageStats />
 
             {/* Bottom CTA */}
             <section className="mt-16 lg:mt-20">
