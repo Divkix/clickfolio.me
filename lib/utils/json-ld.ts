@@ -4,6 +4,7 @@
  * to enable rich snippets in Google/Bing search results.
  */
 
+import { FAQ_ITEMS } from "@/lib/config/faq";
 import { siteConfig } from "@/lib/config/site";
 import type { ResumeContent } from "@/lib/types/database";
 
@@ -373,40 +374,14 @@ export function generateFAQJsonLd(): Record<string, unknown> {
   return {
     "@context": "https://schema.org",
     "@type": "FAQPage",
-    mainEntity: [
-      {
-        "@type": "Question",
-        name: "What is clickfolio.me?",
-        acceptedAnswer: {
-          "@type": "Answer",
-          text: "clickfolio.me turns your PDF resume into a hosted web portfolio in seconds. Upload your resume, and our AI parses it into a professional website with a custom @handle URL — free forever.",
-        },
+    mainEntity: FAQ_ITEMS.map((faq) => ({
+      "@type": "Question",
+      name: faq.q,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: faq.a,
       },
-      {
-        "@type": "Question",
-        name: "How does the AI resume parsing work?",
-        acceptedAnswer: {
-          "@type": "Answer",
-          text: "We use advanced language models to extract your work experience, education, skills, projects, and contact info from your PDF resume. The parsing takes about 30 seconds and produces a complete, editable online portfolio.",
-        },
-      },
-      {
-        "@type": "Question",
-        name: "Is clickfolio.me really free?",
-        acceptedAnswer: {
-          "@type": "Answer",
-          text: "Yes. All 6 base templates are completely free with no time limits. You can upgrade to 4 premium templates by sharing your portfolio with others via our referral system.",
-        },
-      },
-      {
-        "@type": "Question",
-        name: "Can I customize my portfolio after publishing?",
-        acceptedAnswer: {
-          "@type": "Answer",
-          text: "Absolutely. You get a full editing suite to update your content anytime. Changes auto-save and publish instantly. You can also switch between 10 templates, control what's visible via privacy settings, and update your @handle.",
-        },
-      },
-    ],
+    })),
   };
 }
 
