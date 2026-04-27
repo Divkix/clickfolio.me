@@ -17,7 +17,7 @@ export const revalidate = 3600;
 
 const pageTitle = `${siteConfig.fullName} — ${siteConfig.tagline}`;
 const pageDescription =
-  "Drop your PDF résumé and get a shareable website in seconds. Free, fast, and AI-powered.";
+  "Drop your PDF résumé and get a shareable website in seconds. The best free resume website builder — AI-powered parsing, 10 beautiful templates, custom @handle URLs, and privacy controls. No signup required.";
 
 export const metadata: Metadata = {
   title: pageTitle,

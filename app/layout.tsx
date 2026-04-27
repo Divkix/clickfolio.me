@@ -16,12 +16,16 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
-  title: `${siteConfig.fullName} - ${siteConfig.tagline}`,
+  title: {
+    template: `%s | ${siteConfig.fullName}`,
+    default: `${siteConfig.fullName} - ${siteConfig.tagline}`,
+  },
   description:
     "Drop your PDF résumé and get a shareable website in seconds. Free, fast, and AI-powered.",
   applicationName: siteConfig.fullName,
   authors: [{ name: siteConfig.fullName }],
   creator: siteConfig.fullName,
+  robots: { index: true, follow: true },
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "48x48" },
@@ -34,8 +38,12 @@ export const metadata: Metadata = {
     other: [{ rel: "mask-icon", url: "/safari-pinned-tab.svg", color: "#D94E4E" }],
   },
   manifest: "/manifest.webmanifest",
+  alternates: {
+    canonical: siteConfig.url,
+  },
   openGraph: {
     siteName: siteConfig.fullName,
+    images: [{ url: "/api/og/home", width: 1200, height: 630 }],
   },
   other: {
     "msapplication-TileColor": "#D94E4E",

@@ -312,7 +312,7 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content, profile }) => {
                     {profile.avatar_url ? (
                       <img
                         src={profile.avatar_url}
-                        alt="Profile"
+                        alt={content.full_name}
                         className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500"
                       />
                     ) : (

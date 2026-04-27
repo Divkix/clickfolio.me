@@ -22,6 +22,7 @@ export const metadata: Metadata = {
     title: termsTitle,
     description: termsDescription,
     siteName: siteConfig.fullName,
+    images: [{ url: "/api/og/home", width: 1200, height: 630 }],
   },
   twitter: {
     card: "summary",

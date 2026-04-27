@@ -45,13 +45,13 @@ export async function generateSitemapEntries(id: number): Promise<MetadataRoute.
       },
       {
         url: `${baseUrl}/privacy`,
-        lastModified: new Date("2025-01-01"),
+        lastModified: new Date("2026-02-01"),
         changeFrequency: "yearly",
         priority: 0.3,
       },
       {
         url: `${baseUrl}/terms`,
-        lastModified: new Date("2025-01-01"),
+        lastModified: new Date("2025-12-01"),
         changeFrequency: "yearly",
         priority: 0.3,
       },

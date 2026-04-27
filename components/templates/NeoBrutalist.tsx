@@ -131,7 +131,7 @@ const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={profile.avatar_url}
-                      alt="Avatar"
+                      alt={content.full_name}
                       width={96}
                       height={96}
                       className="w-full h-full object-cover"

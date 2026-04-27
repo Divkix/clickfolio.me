@@ -33,6 +33,7 @@ export const metadata: Metadata = {
     title: exploreTitle,
     description: exploreDescription,
     siteName: siteConfig.fullName,
+    images: [{ url: "/api/og/home", width: 1200, height: 630 }],
   },
   twitter: {
     card: "summary_large_image",
