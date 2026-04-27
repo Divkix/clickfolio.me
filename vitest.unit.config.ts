@@ -31,6 +31,8 @@ export default defineConfig({
         "lib/db/migrations/**",
         "**/__tests__/**",
         "worker/**/*",
+        "app/blog/**", // Static content pages — no testable logic
+        "app/for/**", // Static profession landing pages — no testable logic
       ],
       thresholds: {
         statements: 20,

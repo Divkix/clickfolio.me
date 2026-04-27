@@ -23,13 +23,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Setup Biome
-        uses: biomejs/setup-biome@v2
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          version: latest
+          bun-version: latest
 
       - name: Run Biome
-        run: biome ci .
+        run: bunx biome ci .
 
   type-check:
     name: Type Check
