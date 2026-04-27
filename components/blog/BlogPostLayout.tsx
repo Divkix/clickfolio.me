@@ -98,7 +98,7 @@ export function BlogPostLayout({ post, children, relatedPosts }: BlogPostLayoutP
                   <Link
                     key={related.slug}
                     href={`/blog/${related.slug}`}
-                    className="group block bg-cream border-3 border-ink p-5 shadow-brutal-sm hover:shadow-brutal-md hover:border-coral/30 transition-all duration-200"
+                    className="group block bg-cream border-3 border-ink p-5 shadow-brutal-sm hover:shadow-brutal-md hover:border-coral/30 transition-shadow transition-colors duration-200"
                   >
                     <span className="inline-block bg-ink text-cream text-xs font-bold px-2 py-0.5 mb-2">
                       {related.category}
