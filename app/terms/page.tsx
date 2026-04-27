@@ -15,7 +15,7 @@ const termsTitle = `Terms of Service - ${siteConfig.fullName}`;
 const termsDescription = `Terms of Service for ${siteConfig.fullName}. Read our terms and conditions for using the service.`;
 
 export const metadata: Metadata = {
-  title: termsTitle,
+  title: "Terms of Service",
   description: termsDescription,
   alternates: { canonical: `${siteConfig.url}/terms` },
   openGraph: {

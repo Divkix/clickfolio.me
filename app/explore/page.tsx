@@ -24,7 +24,7 @@ const exploreDescription =
   "Discover professionals in our community. Browse portfolios and connect with talented individuals.";
 
 export const metadata: Metadata = {
-  title: exploreTitle,
+  title: "Browse Professional Portfolios",
   description: exploreDescription,
   alternates: {
     canonical: `${siteConfig.url}/explore`,

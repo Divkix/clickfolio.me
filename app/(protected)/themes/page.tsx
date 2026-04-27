@@ -4,7 +4,6 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { ThemeSelector } from "@/components/dashboard/ThemeSelector";
 import { getServerSession } from "@/lib/auth/session";
-import { siteConfig } from "@/lib/config/site";
 import { getDb } from "@/lib/db";
 import { siteData, user } from "@/lib/db/schema";
 import { DEFAULT_THEME } from "@/lib/templates/theme-ids";
@@ -13,7 +12,7 @@ import type { ResumeContent } from "@/lib/types/database";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: `Themes | ${siteConfig.fullName}`,
+  title: "Themes",
   description: "Choose your resume theme",
 };
 

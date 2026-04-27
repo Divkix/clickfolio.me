@@ -90,7 +90,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const profileUrl = `${siteConfig.url}/@${handle}`;
 
   return {
-    title: `${full_name}'s Resume — ${siteConfig.fullName}`,
+    title: `${full_name}'s Resume`,
     description,
     // Canonical URL for proper SEO
     alternates: {

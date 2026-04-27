@@ -20,7 +20,7 @@ const pageDescription =
   "Drop your PDF resume and get a shareable website in seconds. Free resume builder with 10 templates, @handle URLs, and privacy controls. No signup required.";
 
 export const metadata: Metadata = {
-  title: pageTitle,
+  title: siteConfig.tagline,
   description: pageDescription,
   alternates: { canonical: siteConfig.url },
   openGraph: {

@@ -15,7 +15,7 @@ const privacyTitle = `Privacy Policy - ${siteConfig.fullName}`;
 const privacyDescription = `Privacy Policy for ${siteConfig.fullName}. Learn how we collect, use, and protect your personal information.`;
 
 export const metadata: Metadata = {
-  title: privacyTitle,
+  title: "Privacy Policy",
   description: privacyDescription,
   alternates: { canonical: `${siteConfig.url}/privacy` },
   openGraph: {
