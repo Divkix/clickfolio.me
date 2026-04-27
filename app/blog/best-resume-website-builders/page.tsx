@@ -6,10 +6,12 @@ import { siteConfig } from "@/lib/config/site";
 
 export const revalidate = 3600;
 
-const post = getPostBySlug("best-resume-website-builders");
+const post = getPostBySlug("best-resume-website-builders")!;
+const relatedPosts = ["pdf-resume-to-website", "clickfolio-templates-showcase"]
+  .map((slug) => getPostBySlug(slug))
+  .filter(Boolean) as (typeof post)[];
 
 export function generateMetadata(): Metadata {
-  if (!post) return {};
   return {
     title: post.title,
     description: post.description,
@@ -27,7 +29,7 @@ export function generateMetadata(): Metadata {
 
 export default function BestResumeWebsiteBuildersPage() {
   return (
-    <BlogPostLayout post={post!}>
+    <BlogPostLayout post={post} relatedPosts={relatedPosts}>
       <section>
         <p>
           The tool you choose to build your resume website matters. It affects how fast your site

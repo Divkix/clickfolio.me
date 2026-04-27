@@ -1,6 +1,7 @@
 import { env } from "cloudflare:workers";
 import { and, isNotNull, or, sql } from "drizzle-orm";
 import type { MetadataRoute } from "next";
+import { BLOG_POSTS } from "@/lib/blog/posts";
 import { getDb } from "@/lib/db";
 import { siteData, user } from "@/lib/db/schema";
 import { getPublicSiteUrl } from "@/lib/utils/site-url";
@@ -61,7 +62,39 @@ export async function generateSitemapEntries(id: number): Promise<MetadataRoute.
         changeFrequency: "daily",
         priority: 0.9,
       },
+      {
+        url: `${baseUrl}/blog`,
+        lastModified: new Date(),
+        changeFrequency: "weekly",
+        priority: 0.8,
+      },
     );
+
+    const professionPages = [
+      "software-engineer",
+      "designer",
+      "marketer",
+      "student",
+      "consultant",
+      "product-manager",
+    ];
+    for (const profession of professionPages) {
+      entries.push({
+        url: `${baseUrl}/for/${profession}`,
+        lastModified: new Date("2026-04-01"),
+        changeFrequency: "monthly",
+        priority: 0.7,
+      });
+    }
+
+    for (const post of BLOG_POSTS) {
+      entries.push({
+        url: `${baseUrl}/blog/${post.slug}`,
+        lastModified: new Date(post.date),
+        changeFrequency: "monthly",
+        priority: 0.7,
+      });
+    }
   }
 
   try {

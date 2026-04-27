@@ -23,6 +23,12 @@ export function Footer() {
               Explore
             </Link>
             <Link
+              href="/blog"
+              className="font-mono text-sm text-[#6B6B6B] hover:text-ink underline-offset-4 hover:underline transition-colors"
+            >
+              Blog
+            </Link>
+            <Link
               href="/terms"
               className="font-mono text-sm text-[#6B6B6B] hover:text-ink underline-offset-4 hover:underline transition-colors"
             >

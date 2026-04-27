@@ -6,10 +6,12 @@ import { siteConfig } from "@/lib/config/site";
 
 export const revalidate = 3600;
 
-const post = getPostBySlug("pdf-resume-to-website");
+const post = getPostBySlug("pdf-resume-to-website")!;
+const relatedPosts = ["best-resume-website-builders", "ai-resume-parsing-accuracy"]
+  .map((slug) => getPostBySlug(slug))
+  .filter(Boolean) as (typeof post)[];
 
 export function generateMetadata(): Metadata {
-  if (!post) return {};
   return {
     title: post.title,
     description: post.description,
@@ -27,7 +29,7 @@ export function generateMetadata(): Metadata {
 
 export default function PdfResumeToWebsitePage() {
   return (
-    <BlogPostLayout post={post!}>
+    <BlogPostLayout post={post} relatedPosts={relatedPosts}>
       <section>
         <p>
           Your PDF resume has served you well. It got you through job applications, ATS systems, and

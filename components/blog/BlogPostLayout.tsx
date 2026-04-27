@@ -1,14 +1,16 @@
 import Link from "next/link";
 import { Footer } from "@/components/Footer";
 import { Logo } from "@/components/Logo";
+import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import type { BlogPostMeta } from "@/lib/blog/posts";
 
 interface BlogPostLayoutProps {
   post: BlogPostMeta;
   children: React.ReactNode;
+  relatedPosts?: BlogPostMeta[];
 }
 
-export function BlogPostLayout({ post, children }: BlogPostLayoutProps) {
+export function BlogPostLayout({ post, children, relatedPosts }: BlogPostLayoutProps) {
   return (
     <div className="min-h-screen bg-cream paper-texture flex flex-col">
       <header className="sticky top-0 z-50 border-b-3 border-ink bg-cream">
@@ -28,6 +30,14 @@ export function BlogPostLayout({ post, children }: BlogPostLayoutProps) {
           </Link>
         </div>
       </header>
+
+      <Breadcrumb
+        items={[
+          { label: "Home", href: "/" },
+          { label: "Blog", href: "/blog" },
+          { label: post.title, href: `/blog/${post.slug}` },
+        ]}
+      />
 
       <main className="flex-1 px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
         <article className="max-w-3xl mx-auto">
@@ -79,6 +89,29 @@ export function BlogPostLayout({ post, children }: BlogPostLayoutProps) {
               Back to Blog
             </Link>
           </div>
+
+          {relatedPosts && relatedPosts.length > 0 && (
+            <section className="mt-12 border-t-3 border-ink pt-8">
+              <h2 className="font-black text-2xl text-ink mb-6">Related Posts</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {relatedPosts.map((related) => (
+                  <Link
+                    key={related.slug}
+                    href={`/blog/${related.slug}`}
+                    className="group block bg-cream border-3 border-ink p-5 shadow-brutal-sm hover:shadow-brutal-md hover:border-coral/30 transition-all duration-200"
+                  >
+                    <span className="inline-block bg-ink text-cream text-xs font-bold px-2 py-0.5 mb-2">
+                      {related.category}
+                    </span>
+                    <h3 className="font-bold text-lg text-ink mb-1 group-hover:text-coral transition-colors">
+                      {related.title}
+                    </h3>
+                    <p className="text-sm text-ink/60">{related.description}</p>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          )}
         </article>
       </main>
 

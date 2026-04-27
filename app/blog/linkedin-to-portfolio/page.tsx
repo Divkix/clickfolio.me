@@ -6,10 +6,12 @@ import { siteConfig } from "@/lib/config/site";
 
 export const revalidate = 3600;
 
-const post = getPostBySlug("linkedin-to-portfolio");
+const post = getPostBySlug("linkedin-to-portfolio")!;
+const relatedPosts = ["pdf-resume-vs-portfolio", "pdf-resume-to-website"]
+  .map((slug) => getPostBySlug(slug))
+  .filter(Boolean) as (typeof post)[];
 
 export function generateMetadata(): Metadata {
-  if (!post) return {};
   return {
     title: post.title,
     description: post.description,
@@ -27,7 +29,7 @@ export function generateMetadata(): Metadata {
 
 export default function LinkedInToPortfolioPage() {
   return (
-    <BlogPostLayout post={post!}>
+    <BlogPostLayout post={post} relatedPosts={relatedPosts}>
       <section>
         <p>
           LinkedIn is a powerful professional network — but it's rented land. You don't own your

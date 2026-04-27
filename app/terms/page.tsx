@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Footer } from "@/components/Footer";
 import { Logo } from "@/components/Logo";
+import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { siteConfig } from "@/lib/config/site";
 import {
   generatePageBreadcrumbJsonLd,
@@ -71,6 +72,12 @@ export default function TermsOfServicePage() {
         </div>
       </header>
 
+      <Breadcrumb
+        items={[
+          { label: "Home", href: "/" },
+          { label: "Terms of Service", href: "/terms" },
+        ]}
+      />
       {/* Main Content */}
       <main className="flex-1 px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
         <article className="max-w-3xl mx-auto">

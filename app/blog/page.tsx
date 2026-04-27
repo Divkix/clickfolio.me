@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Footer } from "@/components/Footer";
 import { Logo } from "@/components/Logo";
+import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { BLOG_POSTS } from "@/lib/blog/posts";
 import { siteConfig } from "@/lib/config/site";
 
@@ -53,6 +54,12 @@ export default function BlogPage() {
         </div>
       </header>
 
+      <Breadcrumb
+        items={[
+          { label: "Home", href: "/" },
+          { label: "Blog", href: "/blog" },
+        ]}
+      />
       <main className="flex-1 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 w-full">
         <div className="text-center mb-12">
           <h1 className="text-4xl sm:text-5xl font-extrabold text-ink mb-4 tracking-tight">Blog</h1>

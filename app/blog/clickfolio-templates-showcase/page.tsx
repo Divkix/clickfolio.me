@@ -7,10 +7,12 @@ import { getThemeReferralRequirement, THEME_METADATA } from "@/lib/templates/the
 
 export const revalidate = 3600;
 
-const post = getPostBySlug("clickfolio-templates-showcase");
+const post = getPostBySlug("clickfolio-templates-showcase")!;
+const relatedPosts = ["pdf-resume-to-website", "best-resume-website-builders"]
+  .map((slug) => getPostBySlug(slug))
+  .filter(Boolean) as (typeof post)[];
 
 export function generateMetadata(): Metadata {
-  if (!post) return {};
   return {
     title: post.title,
     description: post.description,
@@ -28,7 +30,7 @@ export function generateMetadata(): Metadata {
 
 export default function TemplatesShowcasePage() {
   return (
-    <BlogPostLayout post={post!}>
+    <BlogPostLayout post={post} relatedPosts={relatedPosts}>
       <section>
         <p>
           Your resume content deserves more than a plain text document. It deserves a design that

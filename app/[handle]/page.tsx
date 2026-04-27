@@ -4,6 +4,7 @@ import { AttributionWidget } from "@/components/AttributionWidget";
 import { OwnerDetector } from "@/components/analytics/OwnerDetector";
 import { CreateYoursCTA } from "@/components/CreateYoursCTA";
 import { SharePopover, type SharePopoverVariant } from "@/components/SharePopover";
+import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { siteConfig } from "@/lib/config/site";
 import { getResumeData, getResumeMetadata } from "@/lib/data/resume";
 import { DEFAULT_THEME, type ThemeId } from "@/lib/templates/theme-ids";
@@ -221,6 +222,15 @@ export default async function HandlePage({ params }: PageProps) {
           type="application/ld+json"
           // biome-ignore lint/security/noDangerouslySetInnerHtml: Breadcrumb JSON-LD from trusted DB data, serialized with XSS-safe escaping via serializeJsonLd
           dangerouslySetInnerHTML={{ __html: breadcrumbJsonLd }}
+        />
+      )}
+      {!privacy_settings.hide_from_search && (
+        <Breadcrumb
+          items={[
+            { label: "Home", href: "/" },
+            { label: "Explore", href: "/explore" },
+            { label: `@${handle}`, href: `/@${handle}` },
+          ]}
         />
       )}
       <Template

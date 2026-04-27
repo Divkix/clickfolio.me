@@ -453,8 +453,16 @@ export default function Home() {
                 <p className="font-mono text-cream/70 mb-8 max-w-md mx-auto">
                   Give it a permanent home on the web. Free forever.
                 </p>
-                <div className="flex justify-center">
-                  <BottomCTAButton />
+                <div className="flex flex-col items-center gap-4">
+                  <div className="flex justify-center">
+                    <BottomCTAButton />
+                  </div>
+                  <a
+                    href="/blog"
+                    className="text-cream/70 hover:text-cream text-sm underline underline-offset-2 transition-colors"
+                  >
+                    Read our guides &rarr;
+                  </a>
                 </div>
               </div>
             </section>
