@@ -31,7 +31,7 @@
         "react-hook-form": "^7.74.0",
         "sonner": "^2.0.7",
         "tailwind-merge": "^3.5.0",
-        "unpdf": "^1.6.0",
+        "unpdf": "^1.6.1",
         "uplot": "^1.6.32",
         "zod": "^4.3.6",
       },
@@ -1452,7 +1452,7 @@
 
     "unicode-trie": ["unicode-trie@2.0.0", "", { "dependencies": { "pako": "^0.2.5", "tiny-inflate": "^1.0.0" } }, "sha512-x7bc76x0bm4prf1VLg79uhAzKw8DVboClSN5VxJuQ+LKDOVEW9CdH+VY7SP+vX7xCYQqzzgQpFqz15zeLvAtZQ=="],
 
-    "unpdf": ["unpdf@1.6.0", "", { "peerDependencies": { "@napi-rs/canvas": "^0.1.69" }, "optionalPeers": ["@napi-rs/canvas"] }, "sha512-DsjbuDe6PDbZzGvAP40QQp0xskrXP3Tm3fd/FLkGObL00Icr7cc28QgrPHYg+6B1lMWydgXwDXauIv5CGyXudA=="],
+    "unpdf": ["unpdf@1.6.1", "", { "peerDependencies": { "@napi-rs/canvas": "^0.1.69" }, "optionalPeers": ["@napi-rs/canvas"] }, "sha512-KLl5XzRa7u40mqrfwRjXiiZ939KlBgLnAu2RsuNyd3jAr6zOYVqIts8AvF/kl/TC+A+b8sYSPUWrnXLrATIrLQ=="],
 
     "unpic": ["unpic@4.2.2", "", {}, "sha512-z6T2ScMgRV2y2H8MwwhY5xHZWXhUx/YxtOCGJwfURSl7ypVy4HpLIMWoIZKnnxQa/RKzM0kg8hUh0paIrpLfvw=="],
 
