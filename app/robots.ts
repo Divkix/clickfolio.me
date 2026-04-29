@@ -11,10 +11,13 @@ export default function robots(): MetadataRoute.Robots {
         allow: ["/", "/api/og/"],
         disallow: [
           "/api/",
+          "/admin/",
           "/dashboard/",
           "/edit/",
           "/preview/",
+          "/reset-password/",
           "/settings/",
+          "/verify-email/",
           "/waiting/",
           "/wizard/",
         ],

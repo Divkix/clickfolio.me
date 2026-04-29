@@ -5,6 +5,11 @@ import { Logo } from "@/components/Logo";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { BLOG_POSTS } from "@/lib/blog/posts";
 import { siteConfig } from "@/lib/config/site";
+import {
+  generatePageBreadcrumbJsonLd,
+  generateWebPageJsonLd,
+  serializeJsonLd,
+} from "@/lib/utils/json-ld";
 
 export const revalidate = 1800;
 
@@ -34,8 +39,21 @@ const sortedPosts = [...BLOG_POSTS].sort(
 );
 
 export default function BlogPage() {
+  const blogJsonLd = generateWebPageJsonLd("Blog", "/blog", blogDescription);
+  const breadcrumbJsonLd = generatePageBreadcrumbJsonLd("Blog", "/blog");
+
   return (
     <div className="min-h-screen bg-cream paper-texture flex flex-col">
+      <script
+        type="application/ld+json"
+        // biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD from hardcoded config, serializeJsonLd escapes XSS vectors
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(blogJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        // biome-ignore lint/security/noDangerouslySetInnerHtml: Breadcrumb JSON-LD from hardcoded path, no user input
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbJsonLd) }}
+      />
       <header className="sticky top-0 z-50 border-b-3 border-ink bg-cream">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
           <Link

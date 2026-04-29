@@ -33,6 +33,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: exploreTitle,
     description: exploreDescription,
+    url: `${siteConfig.url}/explore`,
     siteName: siteConfig.fullName,
     images: [{ url: "/api/og/home", width: 1200, height: 630 }],
   },
@@ -154,6 +155,19 @@ export default async function ExplorePage({
         // biome-ignore lint/security/noDangerouslySetInnerHtml: Breadcrumb JSON-LD from hardcoded config, no user input
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(exploreBreadcrumb) }}
       />
+      {/* Pagination hints for crawlers */}
+      {currentPage > 1 && (
+        <link
+          rel="prev"
+          href={`${siteConfig.url}/explore?page=${currentPage - 1}${roleFilter ? `&role=${roleFilter}` : ""}`}
+        />
+      )}
+      {currentPage < totalPages && (
+        <link
+          rel="next"
+          href={`${siteConfig.url}/explore?page=${currentPage + 1}${roleFilter ? `&role=${roleFilter}` : ""}`}
+        />
+      )}
       <SiteHeader />
       <Breadcrumb
         items={[

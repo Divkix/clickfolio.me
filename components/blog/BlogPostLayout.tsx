@@ -3,6 +3,8 @@ import { Footer } from "@/components/Footer";
 import { Logo } from "@/components/Logo";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import type { BlogPostMeta } from "@/lib/blog/posts";
+import { siteConfig } from "@/lib/config/site";
+import { serializeJsonLd } from "@/lib/utils/json-ld";
 
 interface BlogPostLayoutProps {
   post: BlogPostMeta;
@@ -10,9 +12,88 @@ interface BlogPostLayoutProps {
   relatedPosts?: BlogPostMeta[];
 }
 
+function generateArticleJsonLd(post: BlogPostMeta): Record<string, unknown> {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "@id": `${siteConfig.url}/blog/${post.slug}#article`,
+    headline: post.title,
+    description: post.description,
+    datePublished: post.date,
+    dateModified: post.date,
+    url: `${siteConfig.url}/blog/${post.slug}`,
+    keywords: post.keywords?.join(", "),
+    author: {
+      "@type": "Organization",
+      name: siteConfig.fullName,
+      url: siteConfig.url,
+    },
+    publisher: {
+      "@type": "Organization",
+      name: siteConfig.fullName,
+      url: siteConfig.url,
+      logo: {
+        "@type": "ImageObject",
+        url: `${siteConfig.url}/icon-512.png`,
+      },
+    },
+    isPartOf: {
+      "@type": "Blog",
+      "@id": `${siteConfig.url}/blog#blog`,
+      name: `${siteConfig.fullName} Blog`,
+      url: `${siteConfig.url}/blog`,
+    },
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": `${siteConfig.url}/blog/${post.slug}#webpage`,
+      url: `${siteConfig.url}/blog/${post.slug}`,
+    },
+  };
+}
+
+function generateBlogBreadcrumbJsonLd(post: BlogPostMeta): Record<string, unknown> {
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Home",
+        item: siteConfig.url,
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "Blog",
+        item: `${siteConfig.url}/blog`,
+      },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: post.title,
+        item: `${siteConfig.url}/blog/${post.slug}`,
+      },
+    ],
+  };
+}
+
 export function BlogPostLayout({ post, children, relatedPosts }: BlogPostLayoutProps) {
+  const articleJsonLd = generateArticleJsonLd(post);
+  const breadcrumbJsonLd = generateBlogBreadcrumbJsonLd(post);
+
   return (
     <div className="min-h-screen bg-cream paper-texture flex flex-col">
+      <script
+        type="application/ld+json"
+        // biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD from hardcoded blog post data, serializeJsonLd escapes XSS vectors
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(articleJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        // biome-ignore lint/security/noDangerouslySetInnerHtml: Breadcrumb JSON-LD from blog post data, serializeJsonLd escapes XSS vectors
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbJsonLd) }}
+      />
       <header className="sticky top-0 z-50 border-b-3 border-ink bg-cream">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
           <Link

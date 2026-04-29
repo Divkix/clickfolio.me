@@ -19,7 +19,7 @@ export const revalidate = 3600;
 
 const pageTitle = `${siteConfig.fullName} — ${siteConfig.tagline}`;
 const pageDescription =
-  "Drop your PDF resume and get a shareable website in seconds. Free resume builder with 10 templates, @handle URLs, and privacy controls. No signup required.";
+  "Drop your PDF resume and get a shareable website in seconds. Free resume builder with 10 templates, @handle URLs, and privacy controls. No signup.";
 
 export const metadata: Metadata = {
   title: siteConfig.tagline,
