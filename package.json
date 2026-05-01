@@ -41,7 +41,7 @@
     ]
   },
   "dependencies": {
-    "@ai-sdk/openai-compatible": "^2.0.43",
+    "@ai-sdk/openai-compatible": "^2.0.45",
     "@better-auth/drizzle-adapter": "^1.6.9",
     "@hookform/resolvers": "^5.2.2",
     "@neoconfetti/react": "^1.0.0",
@@ -54,7 +54,7 @@
     "@zxcvbn-ts/core": "^3.0.4",
     "@zxcvbn-ts/language-common": "^3.0.4",
     "@zxcvbn-ts/language-en": "^3.0.2",
-    "ai": "^6.0.172",
+    "ai": "^6.0.174",
     "better-auth": "^1.6.9",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -69,10 +69,10 @@
     "tailwind-merge": "^3.5.0",
     "unpdf": "^1.6.2",
     "uplot": "^1.6.32",
-    "zod": "^4.4.1"
+    "zod": "^4.4.2"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.4.13",
+    "@biomejs/biome": "^2.4.14",
     "@cloudflare/vite-plugin": "^1.35.0",
     "@noble/hashes": "^2.2.0",
     "@playwright/test": "^1.59.1",
