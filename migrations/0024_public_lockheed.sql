@@ -1,0 +1,1 @@
+DROP INDEX `user_handle_idx`;

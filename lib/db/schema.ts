@@ -46,8 +46,6 @@ export const user = sqliteTable(
     showInDirectory: integer("show_in_directory", { mode: "boolean" }).notNull().default(true),
   },
   (table) => [
-    // Index for sitemap queries (WHERE handle IS NOT NULL ORDER BY handle)
-    index("user_handle_idx").on(table.handle),
     // Index for referral count queries and atomic updates on referredBy
     index("user_referred_by_idx").on(table.referredBy),
     // Note: referralCode already has implicit unique index from .unique() constraint
