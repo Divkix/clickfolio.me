@@ -2,6 +2,7 @@ import { env } from "cloudflare:workers";
 import { NextResponse } from "next/server";
 import { getR2Binding, R2 } from "@/lib/r2";
 import { checkIPRateLimit, getClientIP } from "@/lib/utils/ip-rate-limit";
+import { COOKIE_NAME, createSignedCookieValue } from "@/lib/utils/pending-upload-cookie";
 import { generateTempKey, MAX_FILE_SIZE, validatePDFBuffer } from "@/lib/utils/validation";
 
 // Minimum file size for a valid PDF (100 bytes)
@@ -19,6 +20,7 @@ const MIN_PDF_SIZE = 100;
  * Returns:
  *   - key: R2 object key (temp/{uuid}/{filename})
  *   - remaining: { hourly, daily } rate limit remaining
+ *   - Set-Cookie: pending_upload cookie for claim verification
  */
 export async function POST(request: Request) {
   try {
@@ -122,17 +124,36 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Failed to store file" }, { status: 500 });
     }
 
-    // 10. Return success with rate limit info
+    // 10. Create signed cookie for claim verification (Issue #89)
+    const cookieSecret = typedEnv.BETTER_AUTH_SECRET;
+    let setCookieHeader: string | undefined;
+    if (cookieSecret && typeof cookieSecret === "string") {
+      const signedCookieValue = await createSignedCookieValue(key, cookieSecret);
+      // Set HttpOnly cookie (30 minute expiry, secure in production)
+      setCookieHeader = `${COOKIE_NAME}=${signedCookieValue}; HttpOnly; SameSite=Strict; Max-Age=1800; Path=/`;
+      if (typedEnv.NODE_ENV === "production") {
+        setCookieHeader += "; Secure";
+      }
+    } else {
+      console.warn("BETTER_AUTH_SECRET not configured - upload will not be claimable");
+    }
+
+    // 11. Return success with rate limit info and cookie
+    const responseHeaders: Record<string, string> = {
+      "X-RateLimit-Remaining-Hourly": String(rateLimit.remaining.hourly),
+      "X-RateLimit-Remaining-Daily": String(rateLimit.remaining.daily),
+    };
+    if (setCookieHeader) {
+      responseHeaders["Set-Cookie"] = setCookieHeader;
+    }
+
     return NextResponse.json(
       {
         key,
         remaining: rateLimit.remaining,
       },
       {
-        headers: {
-          "X-RateLimit-Remaining-Hourly": String(rateLimit.remaining.hourly),
-          "X-RateLimit-Remaining-Daily": String(rateLimit.remaining.daily),
-        },
+        headers: responseHeaders,
       },
     );
   } catch (error) {
