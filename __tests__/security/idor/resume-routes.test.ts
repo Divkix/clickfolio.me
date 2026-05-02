@@ -384,10 +384,10 @@ describe("IDOR - Resume Routes Security", () => {
   });
 
   describe("POST /api/resume/claim", () => {
-    it("returns 403 when attempting to claim someone else's upload key", async () => {
+    it("returns 403 when attempting to claim someone else's upload key (missing cookie)", async () => {
       authedAs("user-a");
 
-      // User B's R2 key - trying to claim it
+      // User B's R2 key - trying to claim it without cookie
       const maliciousKey = "temp/user-b-uuid/resume.pdf";
 
       // Mock R2.getAsArrayBuffer to return data (file exists)
@@ -402,11 +402,13 @@ describe("IDOR - Resume Routes Security", () => {
       });
       const response = await POST(request);
 
-      // The key doesn't start with temp/ and follow pattern, so validation fails
-      expect(response.status).toBe(400);
+      // Cookie verification blocks the request before key validation
+      expect(response.status).toBe(403);
+      const body = (await response.json()) as { error: string };
+      expect(body.error).toContain("Unauthorized upload attempt");
     });
 
-    it("blocks claim with temp key from another user session", async () => {
+    it("blocks claim with temp key from another user session (cookie key mismatch)", async () => {
       authedAs("user-a");
 
       // Key format is valid but belongs to different upload session
@@ -424,26 +426,11 @@ describe("IDOR - Resume Routes Security", () => {
       });
       const response = await POST(request);
 
-      // Temp keys are anonymous - system processes with authenticated user's ID
-      // Response can be 200 (success), 400 (validation error), 429 (rate limit), or 500 (queue error)
-      expect([200, 400, 429, 500]).toContain(response.status);
+      // Missing cookie blocks the request
+      expect(response.status).toBe(403);
     });
 
-    it("returns 400 for claim with invalid key format", async () => {
-      authedAs("user-a");
-
-      const { POST } = await import("@/app/api/resume/claim/route");
-      const request = new Request("http://localhost:3000/api/resume/claim", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key: "users/user-b/something.pdf" }), // Wrong prefix
-      });
-      const response = await POST(request);
-
-      expect(response.status).toBe(400);
-    });
-
-    it("prevents claim of leaked temp upload key from another user", async () => {
+    it("prevents claim of leaked temp upload key from another user (missing cookie)", async () => {
       authedAs("user-a");
 
       // Key that looks like it could be from another session
@@ -462,9 +449,23 @@ describe("IDOR - Resume Routes Security", () => {
       });
       const response = await POST(request);
 
-      // System processes the file but doesn't expose other users' data
-      // because parsed content lookup includes userId filter
-      expect([200, 400, 429, 500]).toContain(response.status);
+      // Missing cookie blocks the request before any data access
+      expect(response.status).toBe(403);
+    });
+
+    it("returns 400 for claim with invalid key format", async () => {
+      authedAs("user-a");
+
+      const { POST } = await import("@/app/api/resume/claim/route");
+      const request = new Request("http://localhost:3000/api/resume/claim", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: "users/user-b/something.pdf" }), // Wrong prefix
+      });
+      const response = await POST(request);
+
+      // Body validation fails before cookie check (key must start with temp/)
+      expect(response.status).toBe(400);
     });
   });
 

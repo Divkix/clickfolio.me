@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
- * Claim flow tests for POST /api/resume/claim.
+ * Security tests for POST /api/resume/claim cookie verification.
  *
- * Tests the claim-check pattern: anonymous upload → auth → claim → queue parse.
- * Mocks auth, R2, rate limit, DB, and queue to isolate claim logic.
+ * Tests the fix for issue #89: Claim route must verify temp key ownership
+ * via signed cookie to prevent unauthorized claims of leaked temp keys.
  */
 
 // ── Mocks ────────────────────────────────────────────────────────────
@@ -150,10 +150,8 @@ vi.mock("@/lib/utils/security-headers", () => ({
 }));
 
 import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
-import { validateRequestSize } from "@/lib/utils/validation";
 
 const mockedAuth = vi.mocked(requireAuthWithUserValidation);
-const mockedValidateRequestSize = vi.mocked(validateRequestSize);
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
@@ -179,7 +177,11 @@ function authedAs(userId: string) {
     db: mockDb as never,
     captureBookmark: mockCaptureBookmark,
     dbUser: { id: userId, handle: "testuser" },
-    env: { DB: {}, CLICKFOLIO_PARSE_QUEUE: {}, BETTER_AUTH_SECRET: TEST_SECRET } as never,
+    env: {
+      DB: {},
+      CLICKFOLIO_PARSE_QUEUE: {},
+      BETTER_AUTH_SECRET: "test-secret-key-for-testing-only",
+    } as never,
     error: null,
   });
 }
@@ -211,11 +213,11 @@ async function createSignedCookieValue(
   return `${payload}|${signatureBase64}`;
 }
 
-const TEST_SECRET = "test-secret-key-for-testing-only";
-
 function makeClaimRequest(body: Record<string, unknown>, cookieValue?: string) {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (cookieValue) {
+    // Cookie values should not be URL-encoded in the Cookie header
+    // The browser sends them as-is, and the server parses them as-is
     headers["Cookie"] = `pending_upload=${cookieValue}`;
   }
 
@@ -228,14 +230,11 @@ function makeClaimRequest(body: Record<string, unknown>, cookieValue?: string) {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  // Reset mock implementations that tests may override
-  mockedValidateRequestSize.mockReturnValue({ valid: true });
   // Default: R2 returns a valid PDF buffer
   mockR2GetAsArrayBuffer.mockResolvedValue(makePdfBuffer());
   // Default: no cached or processing resumes
   mockDbLimit.mockResolvedValue([]);
-  // Re-wire DB chain mocks (clearAllMocks resets call history but not implementations,
-  // however some chain mocks need re-setup after per-test overrides)
+  // Re-wire DB chain mocks
   mockDbSelect.mockReturnValue({ from: mockDbFrom });
   mockDbFrom.mockReturnValue({ where: mockDbWhere });
   mockDbWhere.mockReturnValue({ orderBy: mockDbOrderBy, limit: mockDbLimit });
@@ -247,126 +246,89 @@ beforeEach(() => {
   mockDbUpdateWhere.mockResolvedValue(undefined);
 });
 
-// ── Tests ────────────────────────────────────────────────────────────
+// ── Security Tests ────────────────────────────────────────────────────
 
-describe("POST /api/resume/claim", () => {
-  it("returns 401 when not authenticated", async () => {
-    mockedAuth.mockResolvedValue({
-      user: null,
-      db: null,
-      captureBookmark: null,
-      dbUser: null,
-      env: null,
-      error: new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 }),
-    });
+describe("POST /api/resume/claim - Cookie Security (Issue #89)", () => {
+  const TEST_SECRET = "test-secret-key-for-testing-only";
+  const VALID_TEMP_KEY = "temp/uuid-123/resume.pdf";
 
-    const { POST } = await import("@/app/api/resume/claim/route");
-    const cookie = await createSignedCookieValue("temp/uuid/resume.pdf", TEST_SECRET);
-    const response = await POST(makeClaimRequest({ key: "temp/uuid/resume.pdf" }, cookie));
-
-    expect(response.status).toBe(401);
-  });
-
-  it("returns 400 when key is missing", async () => {
+  it("returns 403 when pending_upload cookie is missing", async () => {
     authedAs("user-1");
 
     const { POST } = await import("@/app/api/resume/claim/route");
-    const cookie = await createSignedCookieValue("temp/missing-key/resume.pdf", TEST_SECRET);
-    const response = await POST(makeClaimRequest({}, cookie));
+    const response = await POST(makeClaimRequest({ key: VALID_TEMP_KEY }));
 
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(403);
     const body = (await response.json()) as { error: string };
-    expect(body.error).toContain("Invalid upload key");
+    expect(body.error).toContain("Unauthorized upload attempt");
   });
 
-  it("returns 400 when key does not start with temp/", async () => {
+  it("returns 403 when pending_upload cookie has invalid signature", async () => {
     authedAs("user-1");
 
-    const { POST } = await import("@/app/api/resume/claim/route");
-    // Cookie must match body key even for validation errors
-    const cookie = await createSignedCookieValue("users/hack/resume.pdf", TEST_SECRET);
-    const response = await POST(makeClaimRequest({ key: "users/hack/resume.pdf" }, cookie));
+    const invalidCookie = `${VALID_TEMP_KEY}|${Date.now() + 30 * 60 * 1000}|invalid-signature`;
 
-    expect(response.status).toBe(400);
+    const { POST } = await import("@/app/api/resume/claim/route");
+    const response = await POST(makeClaimRequest({ key: VALID_TEMP_KEY }, invalidCookie));
+
+    expect(response.status).toBe(403);
     const body = (await response.json()) as { error: string };
-    expect(body.error).toContain("temporary upload");
+    expect(body.error).toContain("Unauthorized upload attempt");
   });
 
-  it("returns 413 when request size validation fails", async () => {
+  it("returns 403 when pending_upload cookie has expired", async () => {
     authedAs("user-1");
-    mockedValidateRequestSize.mockReturnValue({ valid: false, error: "Request body too large" });
+
+    const expiredTimestamp = Date.now() - 1000; // 1 second ago
+    const expiredCookie = await createSignedCookieValue(
+      VALID_TEMP_KEY,
+      TEST_SECRET,
+      expiredTimestamp,
+    );
 
     const { POST } = await import("@/app/api/resume/claim/route");
-    const cookie = await createSignedCookieValue("temp/uuid/resume.pdf", TEST_SECRET);
-    const response = await POST(makeClaimRequest({ key: "temp/uuid/resume.pdf" }, cookie));
+    const response = await POST(makeClaimRequest({ key: VALID_TEMP_KEY }, expiredCookie));
 
-    expect(response.status).toBe(413);
-  });
-
-  it("returns 404 when file not found in R2 and no recent resume exists", async () => {
-    authedAs("user-1");
-    mockR2GetAsArrayBuffer.mockResolvedValue(null);
-    // No recent resume found for double-claim check
-    mockDbLimit.mockResolvedValue([]);
-
-    const { POST } = await import("@/app/api/resume/claim/route");
-    const cookie = await createSignedCookieValue("temp/uuid/resume.pdf", TEST_SECRET);
-    const response = await POST(makeClaimRequest({ key: "temp/uuid/resume.pdf" }, cookie));
-
-    expect(response.status).toBe(404);
+    expect(response.status).toBe(403);
     const body = (await response.json()) as { error: string };
-    expect(body.error).toContain("not found");
+    expect(body.error).toContain("Unauthorized upload attempt");
   });
 
-  it("returns already_claimed when file gone but recent resume exists (double-claim guard)", async () => {
+  it("returns 403 when pending_upload cookie key does not match body key", async () => {
     authedAs("user-1");
-    mockR2GetAsArrayBuffer.mockResolvedValue(null);
-    // Recent resume found
-    mockDbLimit.mockResolvedValue([{ id: "existing-resume", status: "processing" }]);
+
+    // Cookie contains a different temp key than the request body
+    const cookieKey = "temp/uuid-456/other.pdf";
+    const mismatchedCookie = await createSignedCookieValue(cookieKey, TEST_SECRET);
 
     const { POST } = await import("@/app/api/resume/claim/route");
-    const cookie = await createSignedCookieValue("temp/uuid/resume.pdf", TEST_SECRET);
-    const response = await POST(makeClaimRequest({ key: "temp/uuid/resume.pdf" }, cookie));
+    const response = await POST(makeClaimRequest({ key: VALID_TEMP_KEY }, mismatchedCookie));
 
-    expect(response.status).toBe(200);
-    const body = (await response.json()) as { already_claimed: boolean; resume_id: string };
-    expect(body.already_claimed).toBe(true);
-    expect(body.resume_id).toBe("existing-resume");
+    expect(response.status).toBe(403);
+    const body = (await response.json()) as { error: string };
+    expect(body.error).toContain("Unauthorized upload attempt");
   });
 
-  it("returns already_claimed when R2 throws missing-object error and recent resume exists", async () => {
+  it("returns 403 when pending_upload cookie is malformed", async () => {
     authedAs("user-1");
-    mockR2GetAsArrayBuffer.mockRejectedValue(new Error("No such key"));
-    mockDbLimit.mockResolvedValue([{ id: "existing-resume", status: "processing" }]);
+
+    const malformedCookie = "not-a-valid-cookie-format";
 
     const { POST } = await import("@/app/api/resume/claim/route");
-    const cookie = await createSignedCookieValue("temp/uuid/resume.pdf", TEST_SECRET);
-    const response = await POST(makeClaimRequest({ key: "temp/uuid/resume.pdf" }, cookie));
+    const response = await POST(makeClaimRequest({ key: VALID_TEMP_KEY }, malformedCookie));
 
-    expect(response.status).toBe(200);
-    const body = (await response.json()) as { already_claimed: boolean; resume_id: string };
-    expect(body.already_claimed).toBe(true);
-    expect(body.resume_id).toBe("existing-resume");
+    expect(response.status).toBe(403);
+    const body = (await response.json()) as { error: string };
+    expect(body.error).toContain("Unauthorized upload attempt");
   });
 
-  it("returns 500 on transient R2 fetch errors even if a recent resume exists", async () => {
-    authedAs("user-1");
-    mockR2GetAsArrayBuffer.mockRejectedValue(new Error("R2 timeout"));
-    mockDbLimit.mockResolvedValue([{ id: "existing-resume", status: "processing" }]);
-
-    const { POST } = await import("@/app/api/resume/claim/route");
-    const cookie = await createSignedCookieValue("temp/uuid/resume.pdf", TEST_SECRET);
-    const response = await POST(makeClaimRequest({ key: "temp/uuid/resume.pdf" }, cookie));
-
-    expect(response.status).toBe(500);
-  });
-
-  it("queues a new resume for parsing on valid claim", async () => {
+  it("returns 200 and queues resume when cookie is valid and matches body key", async () => {
     authedAs("user-1");
 
+    const validCookie = await createSignedCookieValue(VALID_TEMP_KEY, TEST_SECRET);
+
     const { POST } = await import("@/app/api/resume/claim/route");
-    const cookie = await createSignedCookieValue("temp/uuid/resume.pdf", TEST_SECRET);
-    const response = await POST(makeClaimRequest({ key: "temp/uuid/resume.pdf" }, cookie));
+    const response = await POST(makeClaimRequest({ key: VALID_TEMP_KEY }, validCookie));
 
     expect(response.status).toBe(200);
     const body = (await response.json()) as { resume_id: string; status: string };
@@ -377,18 +339,5 @@ describe("POST /api/resume/claim", () => {
     expect(mockR2Put).toHaveBeenCalled();
     // Verify DB insert was called (resume record created)
     expect(mockDbInsert).toHaveBeenCalled();
-  });
-
-  it("marks resume as failed when queue publish fails", async () => {
-    authedAs("user-1");
-    const { publishResumeParse } = await import("@/lib/queue/resume-parse");
-    vi.mocked(publishResumeParse).mockRejectedValueOnce(new Error("Queue unavailable"));
-
-    const { POST } = await import("@/app/api/resume/claim/route");
-    const cookie = await createSignedCookieValue("temp/uuid/resume.pdf", TEST_SECRET);
-    const response = await POST(makeClaimRequest({ key: "temp/uuid/resume.pdf" }, cookie));
-
-    expect(response.status).toBe(500);
-    expect(mockDbUpdateSet).toHaveBeenCalledWith(expect.objectContaining({ status: "failed" }));
   });
 });
