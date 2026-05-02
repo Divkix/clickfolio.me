@@ -1,6 +1,6 @@
 "use client";
 
-import { Eye, EyeOff, Info, MapPin, Phone, Shield, Users } from "lucide-react";
+import { Eye, EyeOff, Info, MapPin, Phone, Search, Shield, Users } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -14,11 +14,13 @@ interface PrivacyStepProps {
     show_phone: boolean;
     show_address: boolean;
     show_in_directory: boolean;
+    hide_from_search: boolean;
   };
   onContinue: (settings: {
     show_phone: boolean;
     show_address: boolean;
     show_in_directory: boolean;
+    hide_from_search: boolean;
   }) => void;
 }
 
@@ -28,18 +30,25 @@ interface PrivacyStepProps {
  */
 export function PrivacyStep({
   content,
-  initialSettings = { show_phone: false, show_address: false, show_in_directory: true },
+  initialSettings = {
+    show_phone: false,
+    show_address: false,
+    show_in_directory: true,
+    hide_from_search: false,
+  },
   onContinue,
 }: PrivacyStepProps) {
   const [showPhone, setShowPhone] = useState(initialSettings.show_phone);
   const [showAddress, setShowAddress] = useState(initialSettings.show_address);
   const [showInDirectory, setShowInDirectory] = useState(initialSettings.show_in_directory);
+  const [hideFromSearch, setHideFromSearch] = useState(initialSettings.hide_from_search);
 
   const handleContinue = () => {
     onContinue({
       show_phone: showPhone,
       show_address: showAddress,
       show_in_directory: showInDirectory,
+      hide_from_search: hideFromSearch,
     });
   };
 
@@ -200,6 +209,47 @@ export function PrivacyStep({
               id="show-in-directory"
               checked={showInDirectory}
               onCheckedChange={setShowInDirectory}
+              className="mt-1"
+            />
+          </div>
+        </Card>
+
+        {/* Search Engine Visibility Toggle */}
+        <Card className="p-6 border-ink/10 shadow-sm">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-2">
+                <Search className="w-5 h-5 text-muted-foreground" />
+                <Label
+                  htmlFor="hide-from-search"
+                  className="text-base font-semibold text-foreground"
+                >
+                  Hide from Search Engines
+                </Label>
+              </div>
+              <p className="text-sm text-muted-foreground mb-3">
+                Prevent search engines like Google from indexing your portfolio
+              </p>
+              <div className="bg-muted border border-ink/15 rounded-lg p-3">
+                <p className="text-xs font-medium text-muted-foreground mb-1">Preview:</p>
+                {hideFromSearch ? (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <EyeOff className="w-4 h-4 text-coral" />
+                    <span className="font-medium">Not indexed by search engines</span>
+                    <span className="text-xs text-muted-foreground">(noindex)</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 text-sm text-foreground">
+                    <Eye className="w-4 h-4 text-green-600" />
+                    <span className="font-medium">Visible in search results</span>
+                  </div>
+                )}
+              </div>
+            </div>
+            <Switch
+              id="hide-from-search"
+              checked={hideFromSearch}
+              onCheckedChange={setHideFromSearch}
               className="mt-1"
             />
           </div>
