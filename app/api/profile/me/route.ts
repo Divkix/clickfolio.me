@@ -1,8 +1,6 @@
-import { env } from "cloudflare:workers";
 import { eq } from "drizzle-orm";
-import { requireAuthWithMessage } from "@/lib/auth/middleware";
+import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
 import { user } from "@/lib/db/schema";
-import { getSessionDb } from "@/lib/db/session";
 import { parsePrivacySettings } from "@/lib/utils/privacy";
 import {
   createErrorResponse,
@@ -16,15 +14,15 @@ import {
  */
 export async function GET() {
   try {
-    // 1. Check authentication via requireAuthWithMessage (read-only route)
-    const { user: authUser, error: authError } = await requireAuthWithMessage(
-      "You must be logged in to access your profile",
-    );
+    // 1. Check authentication and validate user exists in database
+    const {
+      user: authUser,
+      db,
+      error: authError,
+    } = await requireAuthWithUserValidation("You must be logged in to access your profile");
     if (authError) return authError;
 
-    // 2. Get D1 database binding
-    const { db } = await getSessionDb(env.CLICKFOLIO_DB);
-
+    // 2. Use the db from auth validation (already connected with primary-first consistency)
     const userId = authUser.id;
 
     // 3. Fetch user from database
