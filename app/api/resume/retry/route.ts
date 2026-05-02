@@ -188,20 +188,7 @@ export async function POST(request: Request) {
         .join("");
     }
 
-    // Publish to queue for background processing
-    const queue = typedEnv.CLICKFOLIO_PARSE_QUEUE;
-    if (!queue) {
-      return createErrorResponse("Queue service unavailable", ERROR_CODES.INTERNAL_ERROR, 500);
-    }
-
-    await publishResumeParse(queue, {
-      resumeId: resume.id as string,
-      userId,
-      r2Key: resume.r2Key as string,
-      fileHash,
-      attempt: (resume.retryCount as number) + 1,
-    });
-
+    // Update resume status to queued BEFORE publishing to queue (prevents race condition)
     const updatePayload: Partial<NewResume> = {
       status: "queued",
       errorMessage: null,
@@ -219,6 +206,20 @@ export async function POST(request: Request) {
       console.error("Failed to update resume for retry");
       return createErrorResponse("Failed to update resume status", ERROR_CODES.DATABASE_ERROR, 500);
     }
+
+    // Publish to queue for background processing (after DB update to prevent race)
+    const queue = typedEnv.CLICKFOLIO_PARSE_QUEUE;
+    if (!queue) {
+      return createErrorResponse("Queue service unavailable", ERROR_CODES.INTERNAL_ERROR, 500);
+    }
+
+    await publishResumeParse(queue, {
+      resumeId: resume.id as string,
+      userId,
+      r2Key: resume.r2Key as string,
+      fileHash,
+      attempt: (resume.retryCount as number) + 1,
+    });
 
     await captureBookmark();
 

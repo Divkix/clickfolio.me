@@ -374,9 +374,26 @@ export async function POST(request: Request) {
       );
     }
 
-    // 8. Publish to queue for background processing
+    // 8. Update resume status to queued BEFORE publishing to queue (prevents race condition)
+    const updatePayload: Partial<NewResume> = {
+      status: "queued",
+      fileHash: computedFileHash,
+    };
+
+    try {
+      await db.update(resumes).set(updatePayload).where(eq(resumes.id, resumeId));
+    } catch (updateError) {
+      console.error("Failed to update resume with queued status:", updateError);
+      return await failResume("Failed to update resume status", ERROR_CODES.DATABASE_ERROR, 500);
+    }
+
+    // 9. Publish to queue for background processing (after DB update to prevent race)
     const queue = env.CLICKFOLIO_PARSE_QUEUE;
     if (!queue) {
+      // Rollback status if queue unavailable
+      try {
+        await db.update(resumes).set({ status: "pending_claim" }).where(eq(resumes.id, resumeId));
+      } catch {}
       return await failResume("Queue service unavailable", ERROR_CODES.INTERNAL_ERROR, 500);
     }
 
@@ -390,24 +407,15 @@ export async function POST(request: Request) {
       });
     } catch (queueError) {
       console.error("Failed to publish resume parse job:", queueError);
+      // Rollback status on queue failure
+      try {
+        await db.update(resumes).set({ status: "pending_claim" }).where(eq(resumes.id, resumeId));
+      } catch {}
       return await failResume(
         "Failed to queue resume for processing",
         ERROR_CODES.EXTERNAL_SERVICE_ERROR,
         500,
       );
-    }
-
-    // 9. Update resume status to queued (include hash for future caching)
-    const updatePayload: Partial<NewResume> = {
-      status: "queued",
-      fileHash: computedFileHash,
-    };
-
-    try {
-      await db.update(resumes).set(updatePayload).where(eq(resumes.id, resumeId));
-    } catch (updateError) {
-      console.error("Failed to update resume with queued status:", updateError);
-      // Continue anyway - status endpoint will handle it
     }
 
     await captureBookmark();
