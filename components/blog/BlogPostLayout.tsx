@@ -142,8 +142,22 @@ export function BlogPostLayout({ post, children, relatedPosts }: BlogPostLayoutP
             </div>
           </header>
 
-          <div className="bg-cream border-3 border-ink shadow-brutal-md p-8 sm:p-12">
-            <div className="prose max-w-none prose-headings:text-ink prose-headings:font-bold prose-h2:text-2xl prose-h2:mt-10 prose-h2:mb-4 prose-h3:text-xl prose-h3:mt-8 prose-h3:mb-3 prose-p:text-ink/70 prose-p:leading-relaxed prose-li:text-ink/70 prose-strong:text-ink prose-a:text-coral prose-a:no-underline hover:prose-a:underline prose-blockquote:border-l-4 prose-blockquote:border-coral prose-blockquote:pl-4 prose-blockquote:text-ink/60 prose-blockquote:italic">
+          <div className="bg-cream border-3 border-ink shadow-brutal-md p-8 sm:p-12 [&_section]:mb-16 [&_section:last-child]:mb-0">
+            <div
+              className="prose max-w-none
+              prose-headings:text-ink prose-headings:font-bold
+              prose-h2:text-2xl prose-h2:mt-12 prose-h2:mb-6 prose-h2:border-b-2 prose-h2:border-ink prose-h2:pb-4
+              prose-h3:text-xl prose-h3:mt-8 prose-h3:mb-4
+              prose-p:text-ink/85 prose-p:leading-[1.8]
+              prose-ul:space-y-3 prose-ol:space-y-3
+              prose-li:text-ink/85
+              prose-strong:text-ink prose-strong:font-bold
+              prose-a:text-coral prose-a:no-underline hover:prose-a:underline
+              prose-blockquote:border-l-4 prose-blockquote:border-coral prose-blockquote:pl-6
+              prose-blockquote:py-2 prose-blockquote:bg-ink/5 prose-blockquote:text-ink/80
+              prose-blockquote:italic prose-blockquote:rounded-r-lg
+            "
+            >
               {children}
             </div>
           </div>
