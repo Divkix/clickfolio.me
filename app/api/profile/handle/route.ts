@@ -1,9 +1,7 @@
-import { env } from "cloudflare:workers";
 import { and, eq, gte, ne, sql } from "drizzle-orm";
-import { requireAuthWithMessage } from "@/lib/auth/middleware";
+import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
 
 import { handleChanges, user } from "@/lib/db/schema";
-import { getSessionDb } from "@/lib/db/session";
 import { handleUpdateSchema } from "@/lib/schemas/profile";
 import {
   createErrorResponse,
@@ -29,13 +27,14 @@ export async function PUT(request: Request) {
       );
     }
 
-    // 2. Authenticate user
-    const authResult = await requireAuthWithMessage("You must be logged in to update your handle");
+    // 2. Authenticate user and validate exists in database
+    const authResult = await requireAuthWithUserValidation(
+      "You must be logged in to update your handle",
+    );
     if (authResult.error) return authResult.error;
-    const { user: authUser } = authResult;
+    const { user: authUser, db, captureBookmark } = authResult;
 
-    // 3. Get database connection
-    const { db, captureBookmark } = await getSessionDb(env.CLICKFOLIO_DB);
+    // 3. Use the db from auth validation (already connected with primary-first consistency)
 
     // 4. Check rate limit (3 handle changes per 24 hours)
     const windowStart = new Date(Date.now() - 24 * 60 * 60 * 1000);

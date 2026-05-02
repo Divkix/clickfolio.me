@@ -374,8 +374,12 @@ describe("IDOR - Profile Routes Security", () => {
     });
 
     it("returns 401 for cross-user data access attempt", async () => {
-      mockedAuthMessage.mockResolvedValue({
+      mockedAuth.mockResolvedValue({
         user: null as never,
+        db: null,
+        captureBookmark: null,
+        dbUser: null,
+        env: null,
         error: new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 }),
       });
 
@@ -387,6 +391,25 @@ describe("IDOR - Profile Routes Security", () => {
 
     it("prevents profile data access via different endpoint", async () => {
       authedAs("user-a");
+
+      // Mock db to return user data for authenticated user
+      mockLimit.mockResolvedValue([
+        {
+          id: "user-a",
+          name: "Test User",
+          email: "user-a@test.com",
+          image: null,
+          handle: "testuser",
+          headline: null,
+          privacySettings: "{}",
+          onboardingCompleted: true,
+          role: "mid_level",
+          roleSource: null,
+          isAdmin: false,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      ]);
 
       // Attempt to access via /api/site-data or other endpoints
       // Should be blocked if not the owner

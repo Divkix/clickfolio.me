@@ -1,7 +1,5 @@
-import { env } from "cloudflare:workers";
 import { eq } from "drizzle-orm";
-import { requireAuthWithMessage } from "@/lib/auth/middleware";
-import { getDb } from "@/lib/db";
+import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
 import { user } from "@/lib/db/schema";
 
 /**
@@ -12,13 +10,13 @@ import { user } from "@/lib/db/schema";
  */
 export async function GET() {
   try {
-    // Check authentication via requireAuthWithMessage (read-only route)
-    const { user: authUser, error: authError } = await requireAuthWithMessage(
-      "You must be logged in to view stats",
-    );
+    // Check authentication and validate user exists in database
+    const {
+      user: authUser,
+      db,
+      error: authError,
+    } = await requireAuthWithUserValidation("You must be logged in to view stats");
     if (authError) return authError;
-
-    const db = getDb(env.CLICKFOLIO_DB);
 
     const userData = await db.query.user.findFirst({
       where: eq(user.id, authUser.id),
