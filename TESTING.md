@@ -49,14 +49,14 @@ bun run test:ui
 
 ## Coverage Thresholds
 
-Coverage is enforced in CI via threshold settings in the Vitest configs:
+Coverage is enforced in CI via threshold settings in `vitest.config.ts`:
 
-| Metric      | Main Config | Unit Tests | Integration | Security |
-|-------------|-------------|------------|-------------|----------|
-| Statements  | 75%         | 75%        | 65%         | 80%      |
-| Branches    | 65%         | 65%        | 55%         | 70%      |
-| Functions   | 75%         | 75%        | 65%         | 80%      |
-| Lines       | 75%         | 75%        | 65%         | 80%      |
+| Metric      | Threshold |
+|-------------|-----------|
+| Statements  | 30%       |
+| Branches    | 30%       |
+| Functions   | 25%       |
+| Lines       | 30%       |
 
 **Note:** Coverage thresholds are enforced in CI. If coverage falls below these thresholds, the build will fail.
 

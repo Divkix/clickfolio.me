@@ -224,8 +224,7 @@ If you followed the steps above, the site should be live at your domain.
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com)
 2. Create a new project (or select existing)
-3. Enable **Google+ API** and **People API**
-4. Go to **APIs & Services > Credentials**
+3. Go to **APIs & Services > Credentials**
 5. Create **OAuth 2.0 Client ID** (Web application type)
 6. Add authorized redirect URIs:
    - Development: `http://localhost:3000/api/auth/callback/google`
@@ -248,7 +247,7 @@ This project uses Cloudflare AI Gateway for AI calls.
 
 ### Step 4: Environment Variables
 
-Create `.env.local` for development:
+Create `.dev.vars` for development:
 
 ```bash
 # Generate a secure secret
