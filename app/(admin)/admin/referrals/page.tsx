@@ -208,7 +208,7 @@ export default function AdminReferralsPage() {
                     </td>
                     <td className="px-4 py-3">
                       <Link
-                        href={`/${referrer.handle}`}
+                        href={`/@${referrer.handle}`}
                         target="_blank"
                         className="text-sm text-coral hover:text-coral"
                       >
@@ -294,7 +294,7 @@ export default function AdminReferralsPage() {
                     <span className="text-muted-foreground/70">
                       via{" "}
                       <Link
-                        href={`/${conv.referrerHandle}`}
+                        href={`/@${conv.referrerHandle}`}
                         target="_blank"
                         className="text-coral hover:text-coral"
                       >

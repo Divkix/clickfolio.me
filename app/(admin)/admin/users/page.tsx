@@ -174,7 +174,7 @@ export default function AdminUsersPage() {
                     <td className="px-4 py-3">
                       {user.handle ? (
                         <Link
-                          href={`/${user.handle}`}
+                          href={`/@${user.handle}`}
                           target="_blank"
                           className="text-sm text-coral hover:text-coral"
                         >
