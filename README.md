@@ -30,7 +30,7 @@ Upload a PDF. AI parses it. Get a shareable link.
 | **Database** | [Cloudflare D1](https://developers.cloudflare.com/d1/) (SQLite) + [Drizzle ORM](https://orm.drizzle.team) |
 | **Auth** | [Better Auth](https://better-auth.com) (Google OAuth) |
 | **Storage** | [Cloudflare R2](https://developers.cloudflare.com/r2/) (S3-compatible) |
-| **AI Parsing** | [OpenAI GPT](https://openai.com) via [OpenRouter](https://openrouter.ai) |
+| **AI Parsing** | [OpenRouter](https://openrouter.ai) via [Cloudflare AI Gateway](https://developers.cloudflare.com/ai-gateway/) (openai/gpt-oss models) |
 | **Styling** | [shadcn/ui](https://ui.shadcn.com) + [Tailwind CSS 4](https://tailwindcss.com) |
 
 ---
@@ -83,7 +83,7 @@ cd clickfolio.me
 bun install
 
 # Copy environment template
-cp .env.example .env.local
+cp .env.example .dev.vars
 
 # Set up local database
 bun run db:migrate
@@ -331,25 +331,68 @@ bun run ci               # type-check + lint + build
 
 ```
 app/
-├── (auth)/              # /api/auth/* - Better Auth handlers
-├── (public)/            # / and /[handle] - no auth required
-│   ├── page.tsx         # Homepage with upload dropzone
-│   └── [handle]/        # Public resume viewer (SSR)
-└── (protected)/         # Auth required pages
-    ├── dashboard/       # User dashboard
-    ├── edit/            # Content editor with auto-save
-    ├── settings/        # Privacy toggles, theme selection
-    └── waiting/         # AI parsing status polling
+├── api/                 # API routes (auth, upload, resume, etc.)
+├── (admin)/             # Admin dashboard pages
+│   ├── admin/
+│   │   ├── users/       # User management
+│   │   ├── referrals/   # Referral analytics
+│   │   ├── resumes/     # Resume management
+│   │   └── analytics/   # Site analytics
+│   └── layout-client.tsx # Admin layout wrapper
+├── (protected)/         # Auth-gated pages
+│   ├── dashboard/       # User dashboard with analytics
+│   ├── edit/            # Resume content editor
+│   ├── settings/        # Privacy & theme settings
+│   ├── themes/          # Theme gallery
+│   ├── waiting/         # AI parsing status (WebSocket)
+│   └── wizard/          # Onboarding wizard
+├── (public)/            # Public pages requiring no auth
+│   └── verify-email/    # Email verification page
+├── [handle]/            # Public resume viewer /@handle
+├── for/                 # Landing pages by profession
+│   ├── student/
+│   ├── software-engineer/
+│   ├── designer/
+│   ├── product-manager/
+│   ├── marketer/
+│   └── consultant/
+├── blog/                # Blog posts & content marketing
+├── preview/[id]/        # Template preview (before claiming)
+├── page.tsx             # Homepage
+├── layout.tsx           # Root layout
+└── globals.css          # Global styles
 
 components/
-├── templates/           # Resume templates (MinimalistEditorial, etc.)
-└── ui/                  # Reusable UI components (shadcn/ui)
+├── templates/           # 10 resume template components
+├── ui/                  # shadcn/ui components
+├── dashboard/           # Dashboard-specific components
+├── icons/               # Custom icon components
+├── analytics/           # Analytics components
+└── *.tsx                # Shared components (Footer, Logo, etc.)
 
 lib/
 ├── auth/                # Better Auth configuration
-├── db/                  # Drizzle schema and client
+├── ai/                  # AI parsing (OpenRouter via CF AI Gateway)
+├── cron/                # Scheduled task implementations
+├── db/                  # Drizzle schema, client, migrations
+├── durable-objects/     # WebSocket Durable Object
+├── email/               # Email service (CF Email)
+├── queue/               # Queue consumer, types, DLQ
 ├── schemas/             # Zod validation schemas
-└── utils/               # Utility functions
+├── templates/           # Theme registry & metadata
+├── types/               # TypeScript type definitions
+├── utils/               # Utility functions
+├── blog/                # Blog post data
+└── config/              # Site config, FAQ, retry policies
+
+worker/
+└── index.ts             # Custom worker entry (vinext + Queue + Cron)
+
+__tests__/
+├── unit/                # Unit tests
+├── integration/         # Integration tests
+├── security/            # Security tests (IDOR, rate limits)
+└── setup.ts             # Test configuration
 ```
 
 ---
@@ -376,32 +419,83 @@ Before rendering public profiles:
 - Email: Public (for contact)
 - User controls visibility in settings
 
+### Real-time Updates (WebSocket)
+
+Live status updates during AI parsing:
+- **Endpoint**: `wss://your-domain.com/ws/resume-status?resume_id={id}`
+- **Technology**: Cloudflare Durable Objects (`ClickfolioStatusDO`)
+- **Flow**: WebSocket connection → DO tracks parsing progress → Real-time status pushed to client
+- **Authentication**: Session token validated before upgrade
+- **Use case**: Waiting room shows live parsing progress instead of polling
+
+### Queue System
+
+Asynchronous resume parsing pipeline:
+- **Queue**: `clickfolio-parse-queue` (Cloudflare Queues)
+- **DLQ**: `clickfolio-parse-dlq` for failed messages
+- **Producer**: `/api/resume/claim` enqueues after upload
+- **Consumer**: `worker/index.ts` processes in background
+- **Retry**: 3 automatic retries with exponential backoff
+- **Alerting**: Optional Slack/Discord/email on permanent failures
+
+### Scheduled Tasks (Cron)
+
+Four cron triggers run automatically:
+
+| Cron | Time (UTC) | Task |
+|------|-----------|------|
+| `0 2 * * *` | 2:00 AM | R2 temp file cleanup (old uploads) |
+| `0 3 * * *` | 3:00 AM | Database cleanup (expired sessions) |
+| `0 4 * * *` | 4:00 AM | Sync disposable email domain blocklist |
+| `*/15 * * * *` | Every 15 min | Recover orphaned resumes (stuck in parsing) |
+
+All run via `worker/index.ts` without self-fetch (avoids double billing).
+
+### Referral Program
+
+Unlock premium templates by sharing:
+- **Mechanism**: Share your unique referral link from dashboard
+- **Tracking**: Friend signs up → your referral count increases
+- **Unlocks**:
+  - 3 referrals: DesignFolio, Spotlight templates
+  - 5 referrals: Midnight template
+  - 10 referrals: Bold Corporate template
+- **View**: Dashboard shows current count and progress to next unlock
+
 ---
 
 ## Resume Templates
 
-Four built-in templates in `components/templates/`:
+10 built-in templates in `components/templates/`:
 
-| Template | Description |
-|----------|-------------|
-| **MinimalistEditorial** | Serif fonts, editorial aesthetic (default) |
-| **NeoBrutalist** | Bold borders, high contrast |
-| **GlassMorphic** | Blur effects, dark background |
-| **BentoGrid** | Mosaic grid layout |
+| Template | Category | Description | Unlock Requirement |
+|----------|----------|-------------|-------------------|
+| **Minimalist Editorial** | Professional | Clean magazine-style layout with serif typography | Free (default) |
+| **Neo Brutalist** | Creative | Bold design with thick borders and loud colors | Free |
+| **Glass Morphic** | Modern | Dark theme with frosted glass effects | Free |
+| **Bento Grid** | Modern | Modern mosaic layout with colorful cards | Free |
+| **Classic ATS** | Professional | Legal brief typography, ATS-optimized single-column layout | Free |
+| **DevTerminal** | Developer | GitHub-inspired dark terminal aesthetic for developers | Free |
+| **DesignFolio** | Creative | Digital brutalism meets Swiss typography with acid lime accents | 3 referrals |
+| **Spotlight** | Creative | Warm creative portfolio with animated sections | 3 referrals |
+| **Midnight** | Modern | Dark minimal with serif headings and gold accents | 5 referrals |
+| **Bold Corporate** | Professional | Executive typography with bold numbered sections | 10 referrals |
 
-All templates receive `content` (ResumeContent) and `user` props, respect privacy settings, and are mobile-responsive.
+All templates receive `content` (ResumeContent) and `user` props, respect privacy settings, and are mobile-responsive. Premium templates unlock through the referral program.
 
 ---
 
 ## Security
 
 - **Application-Level Authorization**: All data access controlled in code
-- **Rate Limiting**: 5 uploads/day, 10 updates/hour per user
+- **Rate Limiting**: 5 resume uploads/day per user, plus IP-based limits (10/hour, 50/day) for anonymous uploads
 - **Input Validation**: Zod schemas on all endpoints
 - **XSS Protection**: React's default sanitization
 - **Encrypted Secrets**: All secrets encrypted in Cloudflare
+- **Privacy Controls**: Users control visibility of phone numbers and addresses
+- **IP Privacy**: IP addresses SHA-256 hashed before storage (GDPR-friendly)
 
-See [SECURITY.md](SECURITY.md) for security policy and vulnerability reporting.
+See [SECURITY.md](SECURITY.md) for detailed security policy, rate limiting details, and vulnerability reporting.
 
 ---
 

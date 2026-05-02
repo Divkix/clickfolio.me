@@ -90,7 +90,7 @@ The real entrypoint. Wraps vinext's handler and adds:
 - Zod schemas in `lib/schemas/`
 - shadcn components in `components/ui/`, resume templates in `components/templates/`
 - `lib/cloudflare-env.d.ts` is auto-generated, excluded from Biome lint/format
-- Rate limits: 5 uploads/day, 10 updates/hour per user
+- Rate limits: 5 uploads/day per user (authenticated), 10/hour & 50/day per IP (anonymous); 3 handle changes/24hr per user
 
 ## Testing
 

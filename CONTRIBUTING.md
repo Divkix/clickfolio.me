@@ -34,7 +34,7 @@ Be respectful, inclusive, and constructive. We're all here to build something us
 3. **Set up environment variables**
 
    ```bash
-   cp .env.example .env.local
+   cp .env.example .dev.vars
    ```
 
    Fill in your credentials. See `.env.example` for detailed instructions.
@@ -145,6 +145,7 @@ The Biome configuration is in `biome.json`. Run `bun run fix` to auto-format.
 - [ ] Self-reviewed the code
 - [ ] Types are correct (`bun run type-check`)
 - [ ] Linting passes (`bun run lint`)
+- [ ] Tests pass (`bun run test`)
 - [ ] Build succeeds (`bun run build`)
 - [ ] Tested locally
 - [ ] Documentation updated (if applicable)
@@ -153,43 +154,114 @@ The Biome configuration is in `biome.json`. Run `bun run fix` to auto-format.
 
 ```
 clickfolio.me/
-├── app/                    # vinext App Router
-│   ├── (auth)/            # Auth API routes
-│   ├── (public)/          # Public pages (/, /[handle])
-│   ├── (protected)/       # Auth-required pages
-│   └── api/               # API routes
+├── app/                   # vinext App Router
+│   ├── api/              # API routes (auth, upload, resume, etc.)
+│   ├── (admin)/          # Admin dashboard pages
+│   ├── (protected)/      # Auth-gated pages (dashboard, edit, settings)
+│   ├── (public)/         # Public pages (verify-email)
+│   ├── [handle]/         # Public resume viewer
+│   ├── for/              # Landing pages by profession
+│   ├── blog/             # Blog posts
+│   └── preview/          # Template previews
 ├── components/
-│   ├── auth/              # Auth components
-│   ├── dashboard/         # Dashboard components
-│   ├── templates/         # Resume templates
-│   └── ui/                # Reusable UI (shadcn/ui)
+│   ├── templates/        # 10 resume templates
+│   ├── ui/               # shadcn/ui components
+│   ├── dashboard/        # Dashboard components
+│   ├── analytics/        # Analytics components
+│   └── icons/            # Custom icons
 ├── lib/
-│   ├── auth/              # Better Auth config
-│   ├── db/                # Drizzle schema and client
-│   ├── schemas/           # Zod validation schemas
-│   └── utils/             # Utility functions
-├── migrations/            # D1 database migrations
-└── public/                # Static assets
+│   ├── auth/             # Better Auth config
+│   ├── ai/               # AI parsing
+│   ├── cron/             # Scheduled tasks
+│   ├── db/               # Drizzle schema and client
+│   ├── durable-objects/  # WebSocket Durable Object
+│   ├── email/            # Email service
+│   ├── queue/            # Queue consumer & DLQ
+│   ├── schemas/          # Zod validation
+│   ├── templates/        # Theme registry
+│   ├── types/            # TypeScript types
+│   └── utils/            # Utilities
+├── worker/               # Custom worker entry (vinext + Queue + Cron)
+├── __tests__/            # Test suites (unit, integration, security)
+├── migrations/           # D1 database migrations
+└── public/               # Static assets
 ```
 
 ## Key Files
 
+- `worker/index.ts` - Custom worker entry (vinext + Queue + Cron + WebSocket)
 - `lib/db/schema.ts` - Database schema (Drizzle ORM)
+- `lib/db/index.ts` - Database client with getDb() helper
 - `lib/auth/index.ts` - Better Auth server configuration
-- `lib/env.ts` - Environment variable handling
+- `lib/auth/client.ts` - Better Auth client configuration
+- `lib/ai/index.ts` - AI parsing configuration (OpenRouter via CF AI Gateway)
+- `lib/queue/consumer.ts` - Queue message processor
+- `lib/durable-objects/resume-status.ts` - WebSocket Durable Object
 - `wrangler.jsonc` - Cloudflare Workers configuration
+- `vite.config.ts` - Vite build configuration
 - `drizzle.config.ts` - Drizzle ORM configuration
 
 ## Testing
 
-Currently, testing is manual. Follow the testing checklist:
+We use Vitest with comprehensive test coverage across unit, integration, and security tests.
+
+### Test Organization
+
+```
+__tests__/
+├── unit/           # Fast, isolated tests (components, utilities)
+├── integration/    # API and DB integration tests
+├── security/       # IDOR, rate limiting, auth tests
+└── setup.ts        # Test configuration (jsdom, matchers)
+```
+
+### Running Tests
+
+```bash
+# All tests
+bun run test
+
+# Unit only (fast, no retries)
+bun run test:unit
+
+# Integration only
+bun run test:integration
+
+# Security only
+bun run test:security
+
+# With coverage
+bun run test:coverage
+
+# Watch mode
+bun run test:watch
+```
+
+### Coverage Requirements
+
+- Lines/Statements: 30% minimum
+- Functions: 25% minimum
+
+Coverage reports are generated in `coverage/` and enforced in CI.
+
+### Writing Tests
+
+- Use `*.test.ts` or `*.test.tsx` naming
+- Import from `@testing-library/react` for component tests
+- Mock Cloudflare bindings via `__tests__/setup/mocks/`
+- Test files should be co-located with related code or in `__tests__/`
+
+### Manual Testing Checklist
+
+For features not covered by automated tests:
 
 1. **Upload flow**: Upload PDF, verify R2 storage
 2. **Auth flow**: Google OAuth login/logout
-3. **Parsing**: AI extraction and waiting room
+3. **Parsing**: AI extraction and WebSocket status updates
 4. **Editing**: Content editor with auto-save
 5. **Privacy**: Toggle settings, verify public profile
 6. **Responsive**: Test on mobile viewports
+7. **Referrals**: Share link, verify unlock progression
 
 ## Areas for Contribution
 
