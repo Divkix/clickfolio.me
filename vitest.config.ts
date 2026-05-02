@@ -7,7 +7,7 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./__tests__/setup.ts"],
     include: ["**/__tests__/**/*.test.{ts,tsx}"],
-    exclude: ["node_modules", ".next", "dist", "__tests__/e2e/**"],
+    exclude: ["node_modules", ".next", "dist", "__tests__/e2e/**", ".worktrees/**"],
     // Retry flaky tests twice before failing
     retry: 2,
     // Parallel test execution - uses threads by default in vitest v4
