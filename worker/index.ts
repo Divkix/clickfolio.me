@@ -4,12 +4,17 @@
  */
 /// <reference path="../lib/cloudflare-env.d.ts" />
 
+import { eq } from "drizzle-orm";
 import handler from "vinext/server/app-router-entry";
+// NEW: Import auth and db session utilities for WebSocket auth
+import { getAuth } from "../lib/auth";
 import { performCleanup } from "../lib/cron/cleanup";
 import { performR2Cleanup } from "../lib/cron/cleanup-r2";
 import { recoverOrphanedResumes } from "../lib/cron/recover-orphaned";
 import { syncDisposableDomains } from "../lib/cron/sync-disposable-domains";
 import { getDb } from "../lib/db";
+import { resumes } from "../lib/db/schema";
+import { getSessionDbForWebhook } from "../lib/db/session";
 import { handleQueueMessage } from "../lib/queue/consumer";
 import { handleDLQMessage } from "../lib/queue/dlq-consumer";
 import { isRetryableError } from "../lib/queue/errors";
@@ -40,6 +45,45 @@ export default {
         return new Response("Missing resume_id query parameter", { status: 400 });
       }
 
+      // NEW: Validate authentication before WebSocket upgrade
+      // Extract session token from Cookie header
+      const cookieHeader = request.headers.get("Cookie") || "";
+      const sessionMatch = cookieHeader.match(/better-auth\.session_token=([^;]+)/);
+      const sessionToken = sessionMatch?.[1];
+
+      if (!sessionToken) {
+        return new Response("Unauthorized: No session token", { status: 401 });
+      }
+
+      // Validate session using Better Auth
+      const auth = await getAuth();
+      // Create a Headers object with the Cookie for auth validation
+      const headersForAuth = new Headers();
+      headersForAuth.set("Cookie", cookieHeader);
+
+      const session = await auth.api.getSession({ headers: headersForAuth });
+
+      if (!session?.user?.id) {
+        return new Response("Unauthorized: Invalid session", { status: 401 });
+      }
+
+      const userId = session.user.id;
+
+      // Verify resume ownership via D1 query
+      const { db } = getSessionDbForWebhook(env.CLICKFOLIO_DB);
+      const resume = await db.query.resumes.findFirst({
+        where: eq(resumes.id, resumeId),
+        columns: { id: true, userId: true },
+      });
+
+      if (!resume) {
+        return new Response("Resume not found", { status: 404 });
+      }
+
+      if (resume.userId !== userId) {
+        return new Response("Forbidden: You don't own this resume", { status: 403 });
+      }
+
       // Route to the Durable Object keyed by resumeId
       if (!env.CLICKFOLIO_STATUS_DO) {
         return new Response("WebSocket not available", { status: 503 });
@@ -48,8 +92,15 @@ export default {
       const doId = env.CLICKFOLIO_STATUS_DO.idFromName(resumeId);
       const stub = env.CLICKFOLIO_STATUS_DO.get(doId);
 
-      // Forward the WebSocket upgrade request to the DO
-      return stub.fetch(request);
+      // NEW: Forward the WebSocket upgrade request to the DO with authenticated user header
+      const modifiedRequest = new Request(request, {
+        headers: {
+          ...Object.fromEntries(request.headers.entries()),
+          "X-Authenticated-User-Id": userId,
+        },
+      });
+
+      return stub.fetch(modifiedRequest);
     }
 
     // All other requests go to vinext handler

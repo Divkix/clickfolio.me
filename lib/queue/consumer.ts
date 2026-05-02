@@ -148,9 +148,10 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
   const pdfBuffer = await R2.getAsArrayBuffer(r2Binding, message.r2Key);
   if (!pdfBuffer) {
     const error = new Error(`Failed to fetch PDF from R2: ${message.r2Key}`);
+    const classifiedError = classifyQueueError(error);
     await db
       .update(resumes)
-      .set({ lastAttemptError: error.message })
+      .set({ lastAttemptError: JSON.stringify(classifiedError.toJSON()) })
       .where(eq(resumes.id, message.resumeId));
     throw error;
   }
@@ -167,11 +168,13 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
     const userError = getUserFriendlyError(rawError);
     // Issue #83 Fix: Don't set status to "failed" here - let handleQueueMessage decide
     // based on whether the error is retryable. Just store error info for later decision.
+    // Issue #91 Fix: Store JSON-serialized classified error for DLQ/retry consumers
+    const classifiedError = classifyQueueError(new Error(rawError));
     await db
       .update(resumes)
       .set({
         errorMessage: userError,
-        lastAttemptError: rawError,
+        lastAttemptError: JSON.stringify(classifiedError.toJSON()),
       })
       .where(eq(resumes.id, message.resumeId));
     // Note: We intentionally do NOT call notifyStatusChange here with "failed" status
@@ -297,7 +300,8 @@ export async function handleQueueMessage(message: QueueMessage, env: CloudflareE
         .update(resumes)
         .set({
           status: "failed",
-          lastAttemptError: classifiedError.message,
+          // Issue #91 Fix: Store JSON format for DLQ/retry consumers to parse
+          lastAttemptError: JSON.stringify(classifiedError.toJSON()),
         })
         .where(eq(resumes.id, message.resumeId));
       await notifyStatusChange({
@@ -311,7 +315,10 @@ export async function handleQueueMessage(message: QueueMessage, env: CloudflareE
       const classifiedError = classifyQueueError(error);
       await db
         .update(resumes)
-        .set({ lastAttemptError: classifiedError.message })
+        .set({
+          // Issue #91 Fix: Store JSON format for DLQ/retry consumers to parse
+          lastAttemptError: JSON.stringify(classifiedError.toJSON()),
+        })
         .where(eq(resumes.id, message.resumeId));
     }
 
