@@ -73,6 +73,7 @@ interface WizardState {
     show_phone: boolean;
     show_address: boolean;
     show_in_directory: boolean;
+    hide_from_search: boolean;
   };
   themeId: ThemeId;
 }
@@ -120,6 +121,7 @@ export default function WizardPage() {
       show_phone: false,
       show_address: false,
       show_in_directory: true,
+      hide_from_search: false,
     },
     themeId: DEFAULT_THEME,
   });
@@ -420,6 +422,7 @@ export default function WizardPage() {
     show_phone: boolean;
     show_address: boolean;
     show_in_directory: boolean;
+    hide_from_search: boolean;
   }) => {
     setState((prev) => ({
       ...prev,
