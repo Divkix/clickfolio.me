@@ -296,6 +296,32 @@ const mockDb = {
 
 // ── Helper Functions ─────────────────────────────────────────────────
 
+// Cookie helper for claim route testing
+const TEST_COOKIE_SECRET = "test-secret-key-for-testing-only";
+
+async function createSignedCookieValue(
+  tempKey: string,
+  secret: string,
+  expiresAt?: number,
+): Promise<string> {
+  const encoder = new TextEncoder();
+  const actualExpiresAt = expiresAt ?? Date.now() + 30 * 60 * 1000; // 30 min default
+  const payload = `${tempKey}|${actualExpiresAt}`;
+
+  const key = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+
+  const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(payload));
+  const signatureBase64 = btoa(String.fromCharCode(...new Uint8Array(signature)));
+
+  return `${payload}|${signatureBase64}`;
+}
+
 function authedAs(
   userId: string,
   isAdmin = false,
@@ -344,6 +370,7 @@ function authedAs(
       DB: {},
       CLICKFOLIO_R2: {},
       CLICKFOLIO_PARSE_QUEUE: {},
+      BETTER_AUTH_SECRET: TEST_COOKIE_SECRET,
     } as never,
     error: null,
   };
@@ -366,12 +393,20 @@ function unauthenticated() {
   return error;
 }
 
-function makeRequest(url: string, method = "GET", body?: unknown): Request {
+function makeRequest(url: string, method = "GET", body?: unknown, cookieValue?: string): Request {
   const init: RequestInit = { method };
+  const headers: Record<string, string> = {};
+
   if (body) {
     init.body = JSON.stringify(body);
-    init.headers = { "Content-Type": "application/json" };
+    headers["Content-Type"] = "application/json";
   }
+
+  if (cookieValue) {
+    headers["Cookie"] = `pending_upload=${cookieValue}`;
+  }
+
+  init.headers = headers;
   return new Request(url, init);
 }
 
@@ -618,11 +653,18 @@ describe("Resume API Integration Tests (25 tests)", () => {
 
       const { POST } = await import("@/app/api/resume/claim/route");
 
-      // Create a properly formatted request
+      // Create a valid cookie for the temp key
+      const tempKey = "temp/uuid/resume.pdf";
+      const cookieValue = await createSignedCookieValue(tempKey, TEST_COOKIE_SECRET);
+
+      // Create a properly formatted request with cookie
       const request = new Request("http://localhost:3000/api/resume/claim", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key: "temp/uuid/resume.pdf" }),
+        headers: {
+          "Content-Type": "application/json",
+          Cookie: `pending_upload=${cookieValue}`,
+        },
+        body: JSON.stringify({ key: tempKey }),
       });
 
       const response = await POST(request);
@@ -676,9 +718,19 @@ describe("Resume API Integration Tests (25 tests)", () => {
       mockLimit.mockResolvedValue([]);
 
       const { POST } = await import("@/app/api/resume/claim/route");
-      const request = makeRequest("http://localhost:3000/api/resume/claim", "POST", {
-        key: "temp/uuid/resume.pdf",
-      });
+
+      // Create a valid cookie for the temp key
+      const tempKey = "temp/uuid/resume.pdf";
+      const cookieValue = await createSignedCookieValue(tempKey, TEST_COOKIE_SECRET);
+
+      const request = makeRequest(
+        "http://localhost:3000/api/resume/claim",
+        "POST",
+        {
+          key: tempKey,
+        },
+        cookieValue,
+      );
       const response = await POST(request);
 
       expect(response.status).toBe(404);
@@ -700,9 +752,19 @@ describe("Resume API Integration Tests (25 tests)", () => {
       ]);
 
       const { POST } = await import("@/app/api/resume/claim/route");
-      const request = makeRequest("http://localhost:3000/api/resume/claim", "POST", {
-        key: "temp/uuid/resume.pdf",
-      });
+
+      // Create a valid cookie for the temp key
+      const tempKey = "temp/uuid/resume.pdf";
+      const cookieValue = await createSignedCookieValue(tempKey, TEST_COOKIE_SECRET);
+
+      const request = makeRequest(
+        "http://localhost:3000/api/resume/claim",
+        "POST",
+        {
+          key: tempKey,
+        },
+        cookieValue,
+      );
       const response = await POST(request);
 
       expect(response.status).toBe(200);
@@ -1094,17 +1156,25 @@ describe("Resume API Integration Tests (25 tests)", () => {
           DB: {},
           CLICKFOLIO_R2: {},
           CLICKFOLIO_PARSE_QUEUE: undefined, // Missing queue
+          BETTER_AUTH_SECRET: TEST_COOKIE_SECRET,
         } as never,
         error: null,
       } as never);
 
       mockLimit.mockResolvedValue([]);
 
+      // Create a valid cookie for the temp key
+      const tempKey = "temp/uuid/resume.pdf";
+      const cookieValue = await createSignedCookieValue(tempKey, TEST_COOKIE_SECRET);
+
       const { POST } = await import("@/app/api/resume/claim/route");
       const request = new Request("http://localhost:3000/api/resume/claim", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key: "temp/uuid/resume.pdf" }),
+        headers: {
+          "Content-Type": "application/json",
+          Cookie: `pending_upload=${cookieValue}`,
+        },
+        body: JSON.stringify({ key: tempKey }),
       });
       const response = await POST(request);
 

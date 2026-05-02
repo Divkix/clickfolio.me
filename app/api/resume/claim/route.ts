@@ -7,6 +7,7 @@ import { resumes } from "@/lib/db/schema";
 import { publishResumeParse } from "@/lib/queue/resume-parse";
 import { getR2Binding, R2 } from "@/lib/r2";
 import { writeReferral } from "@/lib/referral";
+import { COOKIE_NAME, parseSignedCookieValue } from "@/lib/utils/pending-upload-cookie";
 import { enforceRateLimit } from "@/lib/utils/rate-limit";
 import {
   createErrorResponse,
@@ -82,6 +83,50 @@ export async function POST(request: Request) {
     }
     const body = bodyResult.data;
     const { key } = body;
+
+    // 4b. Verify signed cookie to ensure the user owns this temp upload
+    // SECURITY: Prevents unauthorized claims of leaked temp keys (Issue #89)
+    const cookieHeader = request.headers.get("cookie");
+    const pendingUploadCookie = cookieHeader
+      ?.split(";")
+      .map((c) => c.trim())
+      .find((c) => c.startsWith(`${COOKIE_NAME}=`))
+      ?.slice(`${COOKIE_NAME}=`.length);
+
+    if (!pendingUploadCookie) {
+      return createErrorResponse(
+        "Unauthorized upload attempt. Upload verification cookie is missing.",
+        ERROR_CODES.FORBIDDEN,
+        403,
+      );
+    }
+
+    // Get the secret from env for cookie verification
+    const cookieSecret = env.BETTER_AUTH_SECRET;
+    if (!cookieSecret || typeof cookieSecret !== "string") {
+      return createErrorResponse(
+        "Upload verification unavailable. Server configuration error.",
+        ERROR_CODES.INTERNAL_ERROR,
+        500,
+      );
+    }
+
+    const parsedCookie = await parseSignedCookieValue(pendingUploadCookie, cookieSecret);
+    if (!parsedCookie) {
+      return createErrorResponse(
+        "Unauthorized upload attempt. Invalid or expired upload verification.",
+        ERROR_CODES.FORBIDDEN,
+        403,
+      );
+    }
+
+    if (parsedCookie.tempKey !== key) {
+      return createErrorResponse(
+        "Unauthorized upload attempt. Upload key mismatch.",
+        ERROR_CODES.FORBIDDEN,
+        403,
+      );
+    }
 
     const findRecentResume = async () => {
       const twoMinAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();

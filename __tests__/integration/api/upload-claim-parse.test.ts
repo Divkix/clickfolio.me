@@ -100,6 +100,9 @@ const mockQueue = {
   }),
 };
 
+// Cookie helper for claim route testing - declared before mocks so auth mock can use it
+const TEST_COOKIE_SECRET = "test-secret-key-for-testing-only";
+
 // Auth mock
 let mockAuthUser: {
   id: string;
@@ -158,6 +161,7 @@ vi.mock("@/lib/auth/middleware", () => ({
       env: {
         CLICKFOLIO_R2_BUCKET: mockR2Binding,
         CLICKFOLIO_PARSE_QUEUE: mockQueue,
+        BETTER_AUTH_SECRET: TEST_COOKIE_SECRET,
       },
       error: null,
     };
@@ -230,7 +234,7 @@ vi.mock("@/lib/utils/security-headers", () => ({
 
 // ── Helpers ─────────────────────────────────────────────────────────
 
-/** Create a valid PDF buffer with magic number %PDF- */
+/** Create a valid PDF buffer (starts with %PDF- magic bytes) */
 function makePdfBuffer(content = "fake content"): ArrayBuffer {
   const header = new TextEncoder().encode(`%PDF-1.4 ${content}`);
   return header.buffer.slice(header.byteOffset, header.byteOffset + header.byteLength);
@@ -240,6 +244,29 @@ function makePdfBuffer(content = "fake content"): ArrayBuffer {
 function makeInvalidBuffer(): ArrayBuffer {
   const data = new TextEncoder().encode("NOT A PDF FILE");
   return data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
+}
+
+async function createSignedCookieValue(
+  tempKey: string,
+  secret: string,
+  expiresAt?: number,
+): Promise<string> {
+  const encoder = new TextEncoder();
+  const actualExpiresAt = expiresAt ?? Date.now() + 30 * 60 * 1000; // 30 min default
+  const payload = `${tempKey}|${actualExpiresAt}`;
+
+  const key = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+
+  const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(payload));
+  const signatureBase64 = btoa(String.fromCharCode(...new Uint8Array(signature)));
+
+  return `${payload}|${signatureBase64}`;
 }
 
 /** Create upload request */
@@ -260,13 +287,18 @@ function makeUploadRequest(
 }
 
 /** Create claim request */
-function makeClaimRequest(key: string, referralCode?: string): Request {
+function makeClaimRequest(key: string, referralCode?: string, cookieValue?: string): Request {
   const body: Record<string, string> = { key };
   if (referralCode) body.referral_code = referralCode;
 
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (cookieValue) {
+    headers["Cookie"] = `pending_upload=${cookieValue}`;
+  }
+
   return new Request("http://localhost:3000/api/resume/claim", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: JSON.stringify(body),
   });
 }
@@ -662,8 +694,13 @@ describe("POST /api/resume/claim", () => {
     );
 
     setMockAuthUser("user-1");
+
+    // Create a valid cookie for the temp key
+    const tempKey = "temp/test/file.pdf";
+    const cookieValue = await createSignedCookieValue(tempKey, TEST_COOKIE_SECRET);
+
     const { POST } = await import("@/app/api/resume/claim/route");
-    const response = await POST(makeClaimRequest("temp/test/file.pdf"));
+    const response = await POST(makeClaimRequest(tempKey, undefined, cookieValue));
 
     expect(response.status).toBe(429);
   });

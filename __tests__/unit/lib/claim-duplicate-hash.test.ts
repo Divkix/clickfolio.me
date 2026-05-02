@@ -160,6 +160,35 @@ const mockedAuth = vi.mocked(requireAuthWithUserValidation);
 
 // ── Helpers ───────────────────────────────────────────────────────────
 
+const TEST_SECRET = "test-secret-key-for-testing-only";
+
+/**
+ * Create a signed cookie value for the pending upload cookie.
+ * Format: {temp_key}|{expires_timestamp}|{hmac_signature}
+ */
+async function createSignedCookieValue(
+  tempKey: string,
+  secret: string,
+  expiresAt?: number,
+): Promise<string> {
+  const encoder = new TextEncoder();
+  const actualExpiresAt = expiresAt ?? Date.now() + 30 * 60 * 1000; // 30 min default
+  const payload = `${tempKey}|${actualExpiresAt}`;
+
+  const key = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+
+  const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(payload));
+  const signatureBase64 = btoa(String.fromCharCode(...new Uint8Array(signature)));
+
+  return `${payload}|${signatureBase64}`;
+}
+
 /** Create a valid PDF buffer (starts with %PDF- magic bytes) */
 function makePdfBuffer(): ArrayBuffer {
   const header = new TextEncoder().encode("%PDF-1.4 fake content");
@@ -182,15 +211,20 @@ function authedAs(userId: string) {
     db: mockDb as never,
     captureBookmark: mockCaptureBookmark,
     dbUser: { id: userId, handle: "testuser" },
-    env: { DB: {}, CLICKFOLIO_PARSE_QUEUE: {} } as never,
+    env: { DB: {}, CLICKFOLIO_PARSE_QUEUE: {}, BETTER_AUTH_SECRET: TEST_SECRET } as never,
     error: null,
   });
 }
 
-function makeClaimRequest(body: Record<string, unknown>) {
+function makeClaimRequest(body: Record<string, unknown>, cookieValue?: string) {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (cookieValue) {
+    headers["Cookie"] = `pending_upload=${cookieValue}`;
+  }
+
   return new Request("http://localhost:3000/api/resume/claim", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: JSON.stringify(body),
   });
 }
@@ -238,7 +272,8 @@ describe("POST /api/resume/claim — Duplicate file hash detection", () => {
       });
 
       const { POST } = await import("@/app/api/resume/claim/route");
-      const response = await POST(makeClaimRequest({ key: "temp/uuid/resume.pdf" }));
+      const cookie = await createSignedCookieValue("temp/uuid/resume.pdf", TEST_SECRET);
+      const response = await POST(makeClaimRequest({ key: "temp/uuid/resume.pdf" }, cookie));
 
       expect(response.status).toBe(200);
       const body = (await response.json()) as {
@@ -269,7 +304,8 @@ describe("POST /api/resume/claim — Duplicate file hash detection", () => {
       });
 
       const { POST } = await import("@/app/api/resume/claim/route");
-      const response = await POST(makeClaimRequest({ key: "temp/uuid/resume.pdf" }));
+      const cookie = await createSignedCookieValue("temp/uuid/resume.pdf", TEST_SECRET);
+      const response = await POST(makeClaimRequest({ key: "temp/uuid/resume.pdf" }, cookie));
 
       expect(response.status).toBe(200);
       const body = (await response.json()) as { waiting_for_cache?: boolean };
@@ -295,7 +331,8 @@ describe("POST /api/resume/claim — Duplicate file hash detection", () => {
       });
 
       const { POST } = await import("@/app/api/resume/claim/route");
-      const response = await POST(makeClaimRequest({ key: "temp/uuid/resume.pdf" }));
+      const cookie = await createSignedCookieValue("temp/uuid/resume.pdf", TEST_SECRET);
+      const response = await POST(makeClaimRequest({ key: "temp/uuid/resume.pdf" }, cookie));
 
       expect(response.status).toBe(200);
       const body = (await response.json()) as { status: string; cached?: boolean };
@@ -317,7 +354,8 @@ describe("POST /api/resume/claim — Duplicate file hash detection", () => {
       mockDbLimit.mockResolvedValue([]);
 
       const { POST } = await import("@/app/api/resume/claim/route");
-      const response = await POST(makeClaimRequest({ key: "temp/uuid/resume.pdf" }));
+      const cookie = await createSignedCookieValue("temp/uuid/resume.pdf", TEST_SECRET);
+      const response = await POST(makeClaimRequest({ key: "temp/uuid/resume.pdf" }, cookie));
 
       expect(response.status).toBe(200);
       const body = (await response.json()) as { status: string };
@@ -336,7 +374,8 @@ describe("POST /api/resume/claim — Duplicate file hash detection", () => {
       mockDbLimit.mockResolvedValue([]);
 
       const { POST } = await import("@/app/api/resume/claim/route");
-      const response = await POST(makeClaimRequest({ key: "temp/uuid/resume.pdf" }));
+      const cookie = await createSignedCookieValue("temp/uuid/resume.pdf", TEST_SECRET);
+      const response = await POST(makeClaimRequest({ key: "temp/uuid/resume.pdf" }, cookie));
 
       expect(response.status).toBe(200);
       const body = (await response.json()) as { status: string; cached?: boolean };
