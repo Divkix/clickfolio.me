@@ -9,7 +9,7 @@
  * but weren't successfully queued (e.g., due to worker crash after upload).
  */
 
-import { and, eq, inArray, isNotNull, lt, sql } from "drizzle-orm";
+import { and, eq, isNotNull, lt, sql } from "drizzle-orm";
 import type { Database } from "@/lib/db";
 import { resumes } from "@/lib/db/schema";
 import { publishResumeParse } from "@/lib/queue/resume-parse";
@@ -88,7 +88,8 @@ export async function recoverOrphanedResumes(
   const now = new Date().toISOString();
   const successfulIds: string[] = [];
 
-  // Process queue publishes and collect successful IDs
+  // Process resumes: update DB status first, then publish to queue
+  // This prevents race condition where consumer sees old status
   for (const resume of orphanedResumes) {
     // Skip if already at max attempts (6 total = 3 queue retries x 2 manual retries)
     if ((resume.totalAttempts ?? 0) >= 6) {
@@ -97,7 +98,18 @@ export async function recoverOrphanedResumes(
     }
 
     try {
-      // Re-publish to queue
+      // Update DB status to "queued" BEFORE publishing to queue
+      // This ensures consumer always sees the correct status
+      await db
+        .update(resumes)
+        .set({
+          status: "queued",
+          queuedAt: now,
+          totalAttempts: sql`${resumes.totalAttempts} + 1`,
+        })
+        .where(eq(resumes.id, resume.id));
+
+      // Now publish to queue (after DB is updated)
       await publishResumeParse(queue, {
         resumeId: resume.id,
         userId: resume.userId,
@@ -110,19 +122,9 @@ export async function recoverOrphanedResumes(
       console.log(`Recovered orphaned resume: ${resume.id}`);
     } catch (error) {
       console.error(`Failed to recover resume ${resume.id}:`, error);
+      // Note: If queue publish fails, resume remains in "queued" status
+      // which is acceptable for orphaned recovery (resumes already stuck)
     }
-  }
-
-  // Batch update all successful resumes in single DB call
-  if (successfulIds.length > 0) {
-    await db
-      .update(resumes)
-      .set({
-        status: "queued",
-        queuedAt: now,
-        totalAttempts: sql`${resumes.totalAttempts} + 1`,
-      })
-      .where(inArray(resumes.id, successfulIds));
   }
 
   const recovered = successfulIds.length;
