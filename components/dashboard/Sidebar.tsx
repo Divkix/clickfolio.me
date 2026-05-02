@@ -228,7 +228,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
           {/* View Site Link */}
           {profile?.handle && (
             <a
-              href={`/${profile.handle}`}
+              href={`/@${profile.handle}`}
               target="_blank"
               rel="noopener noreferrer"
               className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-foreground/80 hover:bg-muted transition-all duration-300"
