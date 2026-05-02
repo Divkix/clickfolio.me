@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BlogPostLayout } from "@/components/blog/BlogPostLayout";
+import { StatsGrid } from "@/components/blog/StatsGrid";
 import { getPostBySlug } from "@/lib/blog/posts";
 import { siteConfig } from "@/lib/config/site";
 
@@ -86,41 +87,18 @@ export default function AiResumeParsingAccuracyPage() {
           Overall, the AI parser achieved <strong>94.3% accuracy</strong> on field-level extraction.
           That number breaks down like this:
         </p>
-        <ul>
-          <li>
-            <strong>Name: 100%</strong> — Names are reliably extracted every time
-          </li>
-          <li>
-            <strong>Contact info: 98%</strong> — Email, phone, and location are almost always
-            correct
-          </li>
-          <li>
-            <strong>Professional summary: 96%</strong> — The AI captures the core summary paragraph
-            well, though occasionally misses nuance in long summaries
-          </li>
-          <li>
-            <strong>Experience: 93%</strong> — Job titles and dates are solid. Company names
-            sometimes get mangled ("Google Inc." vs "Google, Inc."). Bullet points are captured but
-            occasionally merged or split incorrectly
-          </li>
-          <li>
-            <strong>Education: 97%</strong> — Schools, degrees, and graduation dates are
-            consistently accurate
-          </li>
-          <li>
-            <strong>Skills: 90%</strong> — The weakest area. Skills embedded in experience
-            descriptions are sometimes missed. Skills formatted as comma-separated lists in sidebars
-            work best
-          </li>
-          <li>
-            <strong>Certifications: 95%</strong> — Typically captured correctly when in a dedicated
-            section
-          </li>
-          <li>
-            <strong>Languages: 92%</strong> — Proficiency levels ("fluent", "intermediate") are
-            sometimes lost
-          </li>
-        </ul>
+        <StatsGrid
+          stats={[
+            { value: "100%", label: "Names — reliably extracted every time", percentage: 100 },
+            { value: "98%", label: "Contact info — email, phone, location", percentage: 98 },
+            { value: "97%", label: "Education — schools, degrees, dates", percentage: 97 },
+            { value: "96%", label: "Professional summary", percentage: 96 },
+            { value: "95%", label: "Certifications — when in dedicated section", percentage: 95 },
+            { value: "93%", label: "Experience — job titles, dates, bullets", percentage: 93 },
+            { value: "92%", label: "Languages — proficiency levels", percentage: 92 },
+            { value: "90%", label: "Skills — comma-separated lists work best", percentage: 90 },
+          ]}
+        />
       </section>
 
       <section>
