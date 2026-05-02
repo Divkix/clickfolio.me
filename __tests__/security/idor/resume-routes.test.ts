@@ -622,8 +622,12 @@ describe("IDOR - Resume Routes Security", () => {
     });
 
     it("returns 401 for unauthenticated latest-status request", async () => {
-      mockedAuthMessage.mockResolvedValue({
-        user: null as never,
+      mockedAuth.mockResolvedValue({
+        user: null,
+        db: null,
+        captureBookmark: null,
+        dbUser: null,
+        env: null,
         error: new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 }),
       });
 
