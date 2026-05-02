@@ -37,7 +37,8 @@ export class ClickfolioStatusDO extends DurableObject {
     // WebSocket upgrade — client connecting for live updates
     const upgradeHeader = request.headers.get("Upgrade");
     if (upgradeHeader?.toLowerCase() === "websocket") {
-      return this.handleWebSocketUpgrade();
+      // NEW: Pass request to handleWebSocketUpgrade for auth validation
+      return this.handleWebSocketUpgrade(request);
     }
 
     return new Response("Not found", { status: 404 });
@@ -45,10 +46,17 @@ export class ClickfolioStatusDO extends DurableObject {
 
   /**
    * Accept a WebSocket connection via the Hibernation API.
+   * Requires X-Authenticated-User-Id header (set by worker after auth validation).
    * If there's a cached status, send it immediately so the client
    * doesn't need a separate HTTP fetch.
    */
-  private async handleWebSocketUpgrade(): Promise<Response> {
+  private async handleWebSocketUpgrade(request: Request): Promise<Response> {
+    // NEW: Validate authenticated user header (defense in depth)
+    const userId = request.headers.get("X-Authenticated-User-Id");
+    if (!userId) {
+      return new Response("Unauthorized: Missing authentication", { status: 401 });
+    }
+
     const pair = new WebSocketPair();
     const [client, server] = Object.values(pair);
 
