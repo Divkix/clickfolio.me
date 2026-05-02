@@ -643,6 +643,81 @@ describe("Queue Consumer - Main Processing", () => {
     // Should handle parse failure
     await expect(handleQueueMessage(message, env)).rejects.toThrow();
   });
+
+  it("10b. Retryable AI error should NOT set status to 'failed' — Issue #83", async () => {
+    const { handleQueueMessage } = await import("@/lib/queue/consumer");
+
+    const resumeId = crypto.randomUUID();
+    const userId = "user-1";
+    const r2Key = `users/${userId}/123/resume.pdf`;
+
+    createResume({ id: resumeId, status: "queued", totalAttempts: 0 });
+    mockR2Store.set(r2Key, makePdfBuffer());
+
+    // AI returns retryable error (provider timeout) - this triggers the !parseResult.success path
+    mockAiResult = {
+      success: false,
+      error: "AI provider timeout",
+    };
+
+    const updateCalls: Array<{
+      status?: string;
+      lastAttemptError?: string;
+      errorMessage?: string;
+    }> = [];
+
+    const mockDb = {
+      select: vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([
+              {
+                status: "queued",
+                parsedContent: null,
+                parsedContentStaged: null,
+                totalAttempts: 0,
+              },
+            ]),
+          }),
+        }),
+      }),
+      update: vi.fn().mockImplementation(() => ({
+        set: vi
+          .fn()
+          .mockImplementation(
+            (values: { status?: string; lastAttemptError?: string; errorMessage?: string }) => {
+              updateCalls.push(values);
+              return {
+                where: vi.fn().mockResolvedValue(undefined),
+              };
+            },
+          ),
+      })),
+    };
+
+    // Use mockReturnValue (not mockReturnValueOnce) because getSessionDbForWebhook is called twice:
+    // once in handleResumeParse and once in handleQueueMessage
+    vi.mocked((await import("@/lib/db/session")).getSessionDbForWebhook).mockReturnValue({
+      db: mockDb as never,
+    });
+
+    const message = createMessage({ resumeId, userId, r2Key });
+    const env = createEnv();
+
+    // Should throw for retry
+    await expect(handleQueueMessage(message, env)).rejects.toThrow("AI provider timeout");
+
+    // Critical: Status should NOT be set to "failed" for retryable errors
+    // The error should only be recorded in lastAttemptError/errorMessage
+    const failedStatusUpdate = updateCalls.find((call) => call.status === "failed");
+    expect(failedStatusUpdate).toBeUndefined();
+
+    // But error should be recorded for debugging
+    const errorUpdate = updateCalls.find((call) =>
+      call.lastAttemptError?.includes("AI provider timeout"),
+    );
+    expect(errorUpdate).toBeDefined();
+  });
 });
 
 // ── Tests: Error Classification ──────────────────────────────────────

@@ -3,7 +3,7 @@ import { buildSiteDataUpsert } from "../data/site-data-upsert";
 import { resumes, user } from "../db/schema";
 import { getSessionDbForWebhook } from "../db/session";
 import { getR2Binding, R2 } from "../r2";
-import { classifyQueueError } from "./errors";
+import { classifyQueueError, isRetryableError } from "./errors";
 import { notifyStatusChange, notifyStatusChangeBatch } from "./notify-status";
 import type { QueueMessage, ResumeParseMessage } from "./types";
 
@@ -165,20 +165,19 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
   if (!parseResult.success) {
     const rawError = parseResult.error || "Parsing failed";
     const userError = getUserFriendlyError(rawError);
+    // Issue #83 Fix: Don't set status to "failed" here - let handleQueueMessage decide
+    // based on whether the error is retryable. Just store error info for later decision.
     await db
       .update(resumes)
       .set({
-        status: "failed",
         errorMessage: userError,
         lastAttemptError: rawError,
       })
       .where(eq(resumes.id, message.resumeId));
-    await notifyStatusChange({
-      resumeId: message.resumeId,
-      status: "failed",
-      error: userError,
-      env,
-    });
+    // Note: We intentionally do NOT call notifyStatusChange here with "failed" status
+    // because we don't want to show false negative to the user for retryable errors.
+    // The worker will decide to retry, and the final "failed" notification will only
+    // be sent after retries are exhausted (handled by DLQ consumer).
     // Throw raw error so classifyQueueError pattern matching still works
     throw new Error(rawError);
   }
@@ -287,12 +286,34 @@ export async function handleQueueMessage(message: QueueMessage, env: CloudflareE
     // Add additional handlers here when new message types are added
     await handleResumeParse(message, env);
   } catch (error) {
-    // Record the error for debugging
-    const classifiedError = classifyQueueError(error);
-    await db
-      .update(resumes)
-      .set({ lastAttemptError: classifiedError.message })
-      .where(eq(resumes.id, message.resumeId));
+    // Issue #83 Fix: Only set status to "failed" for non-retryable errors
+    // For retryable errors, keep status as "processing" so client doesn't see false negative
+    const isRetryable = isRetryableError(error);
+
+    if (!isRetryable) {
+      // Non-retryable error - mark as permanently failed
+      const classifiedError = classifyQueueError(error);
+      await db
+        .update(resumes)
+        .set({
+          status: "failed",
+          lastAttemptError: classifiedError.message,
+        })
+        .where(eq(resumes.id, message.resumeId));
+      await notifyStatusChange({
+        resumeId: message.resumeId,
+        status: "failed",
+        error: classifiedError.message,
+        env,
+      });
+    } else {
+      // Retryable error - just record the error for debugging, don't change status
+      const classifiedError = classifyQueueError(error);
+      await db
+        .update(resumes)
+        .set({ lastAttemptError: classifiedError.message })
+        .where(eq(resumes.id, message.resumeId));
+    }
 
     // Re-throw so the worker can decide whether to retry
     throw error;
