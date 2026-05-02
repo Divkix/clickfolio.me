@@ -134,6 +134,7 @@
 	// Cron Triggers for scheduled tasks
 	"triggers": {
 		"crons": [
+			"0 2 * * *", // Daily at 2 AM UTC - R2 temp file cleanup
 			"0 3 * * *", // Daily at 3 AM UTC - runs /api/cron/cleanup
 			"0 4 * * *", // Daily at 4 AM UTC - syncs disposable email domain blocklist
 			"*/15 * * * *" // Every 15 minutes - runs /api/cron/recover-orphaned
