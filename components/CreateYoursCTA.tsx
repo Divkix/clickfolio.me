@@ -19,8 +19,8 @@ const ctaVariants = cva(
       variant: {
         minimalist_editorial: "bg-neutral-900 text-white border border-neutral-800",
         neo_brutalist: "bg-yellow-300 text-black border-2 border-black shadow-[4px_4px_0_0_black]",
-        glass_morphic: "bg-white/10 backdrop-blur-md border border-white/20 text-white",
-        bento_grid:
+        glass: "bg-white/10 backdrop-blur-md border border-white/20 text-white",
+        bento:
           "bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white border border-neutral-200 dark:border-neutral-700",
         spotlight: "bg-linear-to-r from-orange-500 to-amber-500 text-white",
         midnight: "bg-neutral-900 text-amber-200 border border-amber-700/30",
@@ -43,9 +43,8 @@ const buttonVariants = cva(
       variant: {
         minimalist_editorial: "bg-white text-neutral-900 hover:bg-neutral-100",
         neo_brutalist: "bg-black text-yellow-300 hover:bg-neutral-900 font-bold",
-        glass_morphic: "bg-white/20 text-white hover:bg-white/30",
-        bento_grid:
-          "bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 hover:opacity-90",
+        glass: "bg-white/20 text-white hover:bg-white/30",
+        bento: "bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 hover:opacity-90",
         spotlight: "bg-white text-orange-600 hover:bg-orange-50",
         midnight: "bg-amber-500 text-neutral-900 hover:bg-amber-400",
         bold_corporate: "bg-neutral-900 text-white hover:bg-neutral-800",
@@ -65,8 +64,8 @@ const closeButtonVariants = cva("p-1 rounded-full transition-colors", {
     variant: {
       minimalist_editorial: "hover:bg-white/10 text-neutral-400",
       neo_brutalist: "hover:bg-black/10 text-black",
-      glass_morphic: "hover:bg-white/10 text-white/60",
-      bento_grid: "hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-500",
+      glass: "hover:bg-white/10 text-white/60",
+      bento: "hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-500",
       spotlight: "hover:bg-white/10 text-white/80",
       midnight: "hover:bg-amber-900/30 text-amber-400",
       bold_corporate: "hover:bg-neutral-100 text-neutral-400",

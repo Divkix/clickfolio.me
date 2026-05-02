@@ -168,16 +168,8 @@ export default async function HandlePage({ params }: PageProps) {
   // Dynamically select template based on theme_id
   const Template = await getTemplate(theme_id);
 
-  // Map theme_id to CTA variant (use underscore format for CTA)
-  const ctaVariant = (theme_id ?? DEFAULT_THEME) as
-    | "minimalist_editorial"
-    | "neo_brutalist"
-    | "glass_morphic"
-    | "bento_grid"
-    | "spotlight"
-    | "midnight"
-    | "bold_corporate"
-    | "dev_terminal";
+  // Map theme_id to CTA variant (use ThemeId type directly)
+  const ctaVariant: ThemeId = (theme_id ?? DEFAULT_THEME) as ThemeId;
 
   // Generate JSON-LD structured data for SEO (skip if user opted out)
   const profileUrl = `${siteConfig.url}/@${handle}`;

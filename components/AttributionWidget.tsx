@@ -2,18 +2,7 @@
 
 import Link from "next/link";
 import { siteConfig } from "@/lib/config/site";
-
-type ThemeId =
-  | "minimalist_editorial"
-  | "glassmorphic"
-  | "neo_brutalist"
-  | "bento_grid"
-  | "spotlight"
-  | "midnight"
-  | "bold_corporate"
-  | "dev_terminal"
-  | "design_folio"
-  | "classic_ats";
+import type { ThemeId } from "@/lib/templates/theme-ids";
 
 interface AttributionWidgetProps {
   theme: string;
@@ -41,7 +30,7 @@ export function AttributionWidget({ theme }: AttributionWidgetProps) {
       shimmer: "from-transparent via-amber-200/30 to-transparent",
       shadow: "shadow-sm hover:shadow-md",
     },
-    glassmorphic: {
+    glass: {
       container:
         "bg-slate-900/80 sm:bg-slate-900/80 backdrop-blur-md border border-white/20 text-white/90 hover:text-white",
       accent: "text-cyan-400",
@@ -54,7 +43,7 @@ export function AttributionWidget({ theme }: AttributionWidgetProps) {
       shimmer: "from-transparent via-white/40 to-transparent",
       shadow: "shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]",
     },
-    bento_grid: {
+    bento: {
       container:
         "bg-white/95 sm:bg-white border border-slate-200/60 text-slate-600 hover:text-slate-900",
       accent: "bg-linear-to-r from-coral to-coral bg-clip-text text-transparent",
@@ -109,8 +98,8 @@ export function AttributionWidget({ theme }: AttributionWidgetProps) {
     return t in themeStyles;
   };
 
-  // Use theme if valid, otherwise default to bento_grid
-  const currentTheme = isValidTheme(theme) ? themeStyles[theme] : themeStyles.bento_grid;
+  // Use theme if valid, otherwise default to bento
+  const currentTheme = isValidTheme(theme) ? themeStyles[theme] : themeStyles.bento;
 
   return (
     <Link
