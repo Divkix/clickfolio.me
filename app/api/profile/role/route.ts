@@ -7,6 +7,7 @@ import {
   createSuccessResponse,
   ERROR_CODES,
 } from "@/lib/utils/security-headers";
+import { validateRequestSize } from "@/lib/utils/validation";
 
 /**
  * PUT /api/profile/role
@@ -14,6 +15,16 @@ import {
  */
 export async function PUT(request: Request) {
   try {
+    // Validate request size before parsing (prevent DoS)
+    const sizeCheck = validateRequestSize(request);
+    if (!sizeCheck.valid) {
+      return createErrorResponse(
+        sizeCheck.error || "Request body too large",
+        ERROR_CODES.BAD_REQUEST,
+        413,
+      );
+    }
+
     const {
       user: authUser,
       db,
