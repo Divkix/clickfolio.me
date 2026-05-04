@@ -1,18 +1,19 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { ResumeStatus } from "@/lib/db/schema";
 import { classifyError, getErrorMessage, showErrorToast } from "@/lib/utils/errors";
 import { useResumeWebSocket } from "./useResumeWebSocket";
 
-interface ResumeStatus {
-  status: "pending_claim" | "queued" | "processing" | "completed" | "failed" | "waiting_for_cache";
+interface ResumeStatusResponse {
+  status: ResumeStatus;
   progress_pct: number;
   error: string | null;
   can_retry: boolean;
 }
 
 interface UseResumeStatusReturn {
-  status: ResumeStatus["status"] | null;
+  status: ResumeStatus | null;
   progress: number;
   error: string | null;
   canRetry: boolean;
@@ -31,7 +32,7 @@ interface UseResumeStatusReturn {
  * @returns Status state and refetch function
  */
 export function useResumeStatus(resumeId: string | null): UseResumeStatusReturn {
-  const [status, setStatus] = useState<ResumeStatus["status"] | null>(null);
+  const [status, setStatus] = useState<ResumeStatus | null>(null);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [canRetry, setCanRetry] = useState(false);
@@ -45,7 +46,7 @@ export function useResumeStatus(resumeId: string | null): UseResumeStatusReturn 
 
   // Handle status updates from WebSocket
   const handleWSStatus = useCallback((newStatus: string, wsError?: string) => {
-    const s = newStatus as ResumeStatus["status"];
+    const s = newStatus as ResumeStatus;
     setStatus(s);
     if (wsError) {
       setError(wsError);
@@ -104,7 +105,7 @@ export function useResumeStatus(resumeId: string | null): UseResumeStatusReturn 
         throw new Error("Failed to fetch status");
       }
 
-      const data: ResumeStatus = await response.json();
+      const data: ResumeStatusResponse = await response.json();
 
       setStatus(data.status);
       setProgress(data.progress_pct);

@@ -1,8 +1,9 @@
-import { and, eq, gte, ne, sql } from "drizzle-orm";
+import { and, eq, gte, sql } from "drizzle-orm";
 import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
 
 import { handleChanges, user } from "@/lib/db/schema";
 import { handleUpdateSchema } from "@/lib/schemas/profile";
+import { isHandleTaken } from "@/lib/utils/handle-validation";
 import {
   createErrorResponse,
   createSuccessResponse,
@@ -108,13 +109,9 @@ export async function PUT(request: Request) {
     }
 
     // 8. Check if new handle is already taken by another user
-    const existingUser = await db
-      .select({ id: user.id })
-      .from(user)
-      .where(and(eq(user.handle, newHandle), ne(user.id, authUser.id)))
-      .limit(1);
+    const handleTaken = await isHandleTaken(db, authUser.id, newHandle);
 
-    if (existingUser.length > 0) {
+    if (handleTaken) {
       return createErrorResponse(
         "This handle is already taken. Please choose a different one.",
         ERROR_CODES.CONFLICT,

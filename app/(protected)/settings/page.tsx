@@ -29,7 +29,6 @@ function ProfileSection({ name, email, headline, image, handle }: ProfileSection
       {/* Profile header with avatar */}
       <div className="flex items-start gap-4 mb-4">
         {image ? (
-          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={image}
             alt="Profile avatar"

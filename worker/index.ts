@@ -6,7 +6,7 @@
 
 import { eq } from "drizzle-orm";
 import handler from "vinext/server/app-router-entry";
-// NEW: Import auth and db session utilities for WebSocket auth
+// Import auth and db session utilities for WebSocket auth
 import { getAuth } from "../lib/auth";
 import { performCleanup } from "../lib/cron/cleanup";
 import { performR2Cleanup } from "../lib/cron/cleanup-r2";
@@ -45,7 +45,7 @@ export default {
         return new Response("Missing resume_id query parameter", { status: 400 });
       }
 
-      // NEW: Validate authentication before WebSocket upgrade
+      // Validate authentication before WebSocket upgrade
       // Extract session token from Cookie header
       const cookieHeader = request.headers.get("Cookie") || "";
       const sessionMatch = cookieHeader.match(/better-auth\.session_token=([^;]+)/);
@@ -92,7 +92,7 @@ export default {
       const doId = env.CLICKFOLIO_STATUS_DO.idFromName(resumeId);
       const stub = env.CLICKFOLIO_STATUS_DO.get(doId);
 
-      // NEW: Forward the WebSocket upgrade request to the DO with authenticated user header
+      // Forward the WebSocket upgrade request to the DO with authenticated user header
       const modifiedRequest = new Request(request, {
         headers: {
           ...Object.fromEntries(request.headers.entries()),

@@ -1,13 +1,12 @@
 import { and, eq, inArray, isNotNull } from "drizzle-orm";
 import { buildSiteDataUpsert } from "../data/site-data-upsert";
+import type { UserRole } from "../db/schema";
 import { resumes, user } from "../db/schema";
 import { getSessionDbForWebhook } from "../db/session";
 import { getR2Binding, R2 } from "../r2";
 import { classifyQueueError, isRetryableError } from "./errors";
 import { notifyStatusChange, notifyStatusChangeBatch } from "./notify-status";
 import type { QueueMessage, ResumeParseMessage } from "./types";
-
-type UserRole = (typeof user.role.enumValues)[number];
 
 /**
  * Map raw error messages to user-friendly messages.

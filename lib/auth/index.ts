@@ -89,7 +89,7 @@ function wrapD1WithDateSerialization(d1: D1Database): D1Database {
 /**
  * Get env value with Cloudflare binding fallback to process.env
  */
-function getEnvValue(env: Partial<CloudflareEnv>, key: keyof CloudflareEnv): string {
+export function getEnvValue(env: Partial<CloudflareEnv>, key: keyof CloudflareEnv): string {
   const cfValue = env[key];
   if (typeof cfValue === "string" && cfValue.trim() !== "") {
     return cfValue;

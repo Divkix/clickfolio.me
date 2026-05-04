@@ -37,7 +37,7 @@ export class ClickfolioStatusDO extends DurableObject {
     // WebSocket upgrade — client connecting for live updates
     const upgradeHeader = request.headers.get("Upgrade");
     if (upgradeHeader?.toLowerCase() === "websocket") {
-      // NEW: Pass request to handleWebSocketUpgrade for auth validation
+      // Pass request to handleWebSocketUpgrade for auth validation
       return this.handleWebSocketUpgrade(request);
     }
 
@@ -51,7 +51,7 @@ export class ClickfolioStatusDO extends DurableObject {
    * doesn't need a separate HTTP fetch.
    */
   private async handleWebSocketUpgrade(request: Request): Promise<Response> {
-    // NEW: Validate authenticated user header (defense in depth)
+    // Validate authenticated user header (defense in depth)
     const userId = request.headers.get("X-Authenticated-User-Id");
     if (!userId) {
       return new Response("Unauthorized: Missing authentication", { status: 401 });

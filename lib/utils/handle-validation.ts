@@ -1,3 +1,6 @@
+import { and, eq, ne } from "drizzle-orm";
+import type { Database } from "@/lib/db";
+import { user } from "@/lib/db/schema";
 import { handleSchema } from "@/lib/schemas/profile";
 
 /**
@@ -50,4 +53,21 @@ export function isValidHandleFormat(handle: string): boolean {
 
   // Full schema validation (length, character set, format)
   return handleSchema.safeParse(handle).success;
+}
+
+/**
+ * Check if a handle is already taken by another user.
+ * Returns true if the handle exists under a different userId.
+ */
+export async function isHandleTaken(
+  db: Database,
+  userId: string,
+  handle: string,
+): Promise<boolean> {
+  const existing = await db
+    .select({ id: user.id })
+    .from(user)
+    .where(and(eq(user.handle, handle), ne(user.id, userId)))
+    .limit(1);
+  return existing.length > 0;
 }

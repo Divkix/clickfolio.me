@@ -173,7 +173,6 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
                   <div className="absolute inset-0 rounded-full bg-linear-to-r from-coral to-coral p-0.5">
                     <div className="w-full h-full rounded-full bg-card" />
                   </div>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={user.image}
                     alt={user.name || "User avatar"}

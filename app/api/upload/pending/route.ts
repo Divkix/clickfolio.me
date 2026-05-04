@@ -13,28 +13,13 @@
 import { env } from "cloudflare:workers";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { getEnvValue } from "@/lib/auth";
 import {
   COOKIE_MAX_AGE,
   COOKIE_NAME,
   createSignedCookieValue,
   parseSignedCookieValue,
 } from "@/lib/utils/pending-upload-cookie";
-
-/**
- * Get the BETTER_AUTH_SECRET from Cloudflare env or process.env
- * Follows the pattern used in lib/auth/index.ts for env access
- */
-function getSecret(env: Partial<CloudflareEnv>): string {
-  // Try Cloudflare env binding first
-  if (typeof env.BETTER_AUTH_SECRET === "string" && env.BETTER_AUTH_SECRET.trim() !== "") {
-    return env.BETTER_AUTH_SECRET;
-  }
-  // Fall back to process.env for development
-  if (process.env.BETTER_AUTH_SECRET && process.env.BETTER_AUTH_SECRET.trim() !== "") {
-    return process.env.BETTER_AUTH_SECRET;
-  }
-  throw new Error("BETTER_AUTH_SECRET not configured");
-}
 
 /**
  * POST - Set pending upload cookie after R2 upload
@@ -45,7 +30,7 @@ function getSecret(env: Partial<CloudflareEnv>): string {
 export async function POST(request: Request) {
   try {
     const typedEnv = env as Partial<CloudflareEnv>;
-    const secret = getSecret(typedEnv);
+    const secret = getEnvValue(typedEnv, "BETTER_AUTH_SECRET");
 
     const body = (await request.json()) as { key?: string };
     const { key } = body;
@@ -84,7 +69,7 @@ export async function POST(request: Request) {
 export async function GET() {
   try {
     const typedEnv = env as Partial<CloudflareEnv>;
-    const secret = getSecret(typedEnv);
+    const secret = getEnvValue(typedEnv, "BETTER_AUTH_SECRET");
 
     const cookieStore = await cookies();
     const cookie = cookieStore.get(COOKIE_NAME);

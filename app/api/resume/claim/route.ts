@@ -7,6 +7,7 @@ import { resumes } from "@/lib/db/schema";
 import { publishResumeParse } from "@/lib/queue/resume-parse";
 import { getR2Binding, R2 } from "@/lib/r2";
 import { writeReferral } from "@/lib/referral";
+import { sha256Hex } from "@/lib/utils/hash";
 import { COOKIE_NAME, parseSignedCookieValue } from "@/lib/utils/pending-upload-cookie";
 import { enforceRateLimit } from "@/lib/utils/rate-limit";
 import {
@@ -180,10 +181,7 @@ export async function POST(request: Request) {
       fileBuffer = buffer;
 
       // Compute hash (this is now authoritative, not verification)
-      const hashBuffer = await crypto.subtle.digest("SHA-256", fileBuffer);
-      computedFileHash = Array.from(new Uint8Array(hashBuffer))
-        .map((b) => b.toString(16).padStart(2, "0"))
-        .join("");
+      computedFileHash = await sha256Hex(fileBuffer);
 
       // Validate file size using buffer
       if (fileBuffer.byteLength > MAX_FILE_SIZE) {

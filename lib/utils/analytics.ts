@@ -5,6 +5,8 @@
  * All functions are deterministic and testable in isolation.
  */
 
+import { sha256Hex } from "./hash";
+
 /**
  * Common bot/crawler user-agent patterns.
  * Order: most frequent first for early exit.
@@ -34,11 +36,7 @@ export async function generateVisitorHash(ip: string, userAgent: string): Promis
   const dailySalt = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
   const input = `${ip}|${userAgent}|${dailySalt}`;
 
-  const encoder = new TextEncoder();
-  const data = encoder.encode(input);
-  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+  return sha256Hex(new TextEncoder().encode(input));
 }
 
 /**
@@ -55,9 +53,5 @@ export async function generateVisitorHashWithDate(
   dateStr: string,
 ): Promise<string> {
   const input = `${ip}|${userAgent}|${dateStr}`;
-  const encoder = new TextEncoder();
-  const data = encoder.encode(input);
-  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+  return sha256Hex(new TextEncoder().encode(input));
 }

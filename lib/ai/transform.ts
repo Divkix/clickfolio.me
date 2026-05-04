@@ -94,7 +94,7 @@ export function normalizeEndDate(value: unknown): string {
 /**
  * Transform AI response - lenient parsing with XSS protection and URL validation
  */
-export function transformAiResponse(raw: unknown): unknown {
+export function transformAiResponse(raw: unknown): Record<string, unknown> {
   if (!raw || typeof raw !== "object") {
     return {
       full_name: "Unknown",
@@ -256,7 +256,7 @@ export function transformAiResponse(raw: unknown): unknown {
 /**
  * Final cleanup transformations - trim strings, extract LinkedIn from website, remove empty fields
  */
-export function transformAiOutput(raw: ResumeSchema): Record<string, unknown> {
+export function transformAiOutput(raw: ResumeSchema): ResumeSchema {
   const result = structuredClone(raw);
 
   const trimStrings = (obj: Record<string, unknown>): void => {

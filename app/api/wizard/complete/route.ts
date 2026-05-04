@@ -1,16 +1,12 @@
-import { and, eq, ne } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
 
 import { siteData, user } from "@/lib/db/schema";
 import { handleSchema } from "@/lib/schemas/profile";
-import {
-  DEFAULT_THEME,
-  getThemeReferralRequirement,
-  isThemeUnlocked,
-  THEME_IDS,
-  type ThemeId,
-} from "@/lib/templates/theme-ids";
+import { verifyThemeUnlocked } from "@/lib/templates/theme-access";
+import { THEME_IDS, type ThemeId } from "@/lib/templates/theme-ids";
+import { isHandleTaken } from "@/lib/utils/handle-validation";
 import {
   createErrorResponse,
   createSuccessResponse,
@@ -94,40 +90,16 @@ export async function POST(request: Request) {
     }
 
     // 4b. Validate theme access based on referral count
-    const userResult = await db
-      .select({ referralCount: user.referralCount, isPro: user.isPro })
-      .from(user)
-      .where(eq(user.id, authUser.id));
-
-    const referralCount = userResult[0]?.referralCount ?? 0;
-    const isPro = userResult[0]?.isPro ?? false;
-
-    if (!isThemeUnlocked(body.theme_id as ThemeId, referralCount, isPro)) {
-      const required = getThemeReferralRequirement(body.theme_id as ThemeId);
-      return createErrorResponse(
-        `This theme requires ${required} referral${required === 1 ? "" : "s"} to unlock. You have ${referralCount}.`,
-        ERROR_CODES.FORBIDDEN,
-        403,
-        {
-          required_referrals: required,
-          current_referrals: referralCount,
-        },
-      );
-    }
+    const themeError = await verifyThemeUnlocked(db, authUser.id, body.theme_id as ThemeId);
+    if (themeError) return themeError;
 
     // Safety fallback: use DEFAULT_THEME if locked theme somehow got through
-    const finalThemeId = isThemeUnlocked(body.theme_id as ThemeId, referralCount, isPro)
-      ? body.theme_id
-      : DEFAULT_THEME;
+    const finalThemeId = body.theme_id;
 
     // 5. Check if handle is available (not already taken by another user)
-    const existingHandle = await db
-      .select({ id: user.id })
-      .from(user)
-      .where(and(eq(user.handle, body.handle), ne(user.id, authUser.id)))
-      .limit(1);
+    const handleTaken = await isHandleTaken(db, authUser.id, body.handle);
 
-    if (existingHandle.length > 0) {
+    if (handleTaken) {
       return createErrorResponse(
         "This handle is already taken. Please choose another.",
         ERROR_CODES.VALIDATION_ERROR,

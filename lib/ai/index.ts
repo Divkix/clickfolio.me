@@ -66,7 +66,7 @@ function validateParseResult(
   } else {
     // Fallback path: full transformation with garbage filtering and truncation
     const transformed = transformAiResponse(data);
-    withDefaults = transformed as Record<string, unknown>;
+    withDefaults = transformed;
   }
 
   // Inject default empty arrays for optional fields
@@ -168,10 +168,8 @@ export async function parseResumeWithAi(
     const finalData = transformAiOutput(validation.data as ResumeSchema);
 
     // Extract professional_level before serializing — it goes to user.role, not siteData.content
-    const professionalLevel = (finalData as Record<string, unknown>).professional_level as
-      | string
-      | undefined;
-    delete (finalData as Record<string, unknown>).professional_level;
+    const professionalLevel = finalData.professional_level as string | undefined;
+    delete finalData.professional_level;
 
     return {
       success: true,

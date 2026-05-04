@@ -5,6 +5,7 @@ import type { NewResume } from "@/lib/db/schema";
 import { resumes } from "@/lib/db/schema";
 import { publishResumeParse } from "@/lib/queue/resume-parse";
 import { getR2Binding, R2 } from "@/lib/r2";
+import { sha256Hex } from "@/lib/utils/hash";
 import {
   createErrorResponse,
   createSuccessResponse,
@@ -182,10 +183,7 @@ export async function POST(request: Request) {
         pdfBuffer.byteOffset,
         pdfBuffer.byteOffset + pdfBuffer.byteLength,
       ) as ArrayBuffer;
-      const hashBuffer = await crypto.subtle.digest("SHA-256", bufferCopy);
-      fileHash = Array.from(new Uint8Array(hashBuffer))
-        .map((b) => b.toString(16).padStart(2, "0"))
-        .join("");
+      fileHash = await sha256Hex(bufferCopy);
     }
 
     // Update resume status to queued BEFORE publishing to queue (prevents race condition)

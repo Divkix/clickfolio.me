@@ -1,14 +1,9 @@
 import { eq } from "drizzle-orm";
 import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
 
-import { siteData, user } from "@/lib/db/schema";
-import {
-  getThemeReferralRequirement,
-  isThemeUnlocked,
-  isValidThemeId,
-  THEME_IDS,
-  type ThemeId,
-} from "@/lib/templates/theme-ids";
+import { siteData } from "@/lib/db/schema";
+import { verifyThemeUnlocked } from "@/lib/templates/theme-access";
+import { isValidThemeId, THEME_IDS, type ThemeId } from "@/lib/templates/theme-ids";
 import {
   createErrorResponse,
   createSuccessResponse,
@@ -68,27 +63,8 @@ export async function POST(request: Request) {
     }
 
     // 5b. Check if theme is locked behind referral requirement
-    // Use pre-computed referralCount column instead of COUNT query
-    const userResult = await db
-      .select({ referralCount: user.referralCount, isPro: user.isPro })
-      .from(user)
-      .where(eq(user.id, userId));
-
-    const referralCount = userResult[0]?.referralCount ?? 0;
-    const isPro = userResult[0]?.isPro ?? false;
-
-    if (!isThemeUnlocked(theme_id as ThemeId, referralCount, isPro)) {
-      const required = getThemeReferralRequirement(theme_id as ThemeId);
-      return createErrorResponse(
-        `This theme requires ${required} referral${required === 1 ? "" : "s"} to unlock. You have ${referralCount}.`,
-        ERROR_CODES.FORBIDDEN,
-        403,
-        {
-          required_referrals: required,
-          current_referrals: referralCount,
-        },
-      );
-    }
+    const themeError = await verifyThemeUnlocked(db, userId, theme_id as ThemeId);
+    if (themeError) return themeError;
 
     const now = new Date().toISOString();
 

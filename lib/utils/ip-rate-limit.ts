@@ -10,6 +10,7 @@ import { and, eq, gte, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { uploadRateLimits } from "@/lib/db/schema";
 import { isLocalEnvironment } from "./environment";
+import { sha256Hex } from "./hash";
 
 const HOURLY_LIMIT = 10;
 const DAILY_LIMIT = 50;
@@ -39,11 +40,7 @@ interface IPRateLimitResult {
  * Uses SHA-256 which is sufficient for rate limiting (equality checks only)
  */
 async function hashIP(ip: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(ip);
-  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+  return sha256Hex(new TextEncoder().encode(ip));
 }
 
 /**
