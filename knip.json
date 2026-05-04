@@ -7,8 +7,14 @@
     "hooks/**/*.{ts,tsx}",
     "lib/**/*.{ts,tsx}"
   ],
-  "ignore": [],
+  "ignore": ["components/blog/HighlightBlock.tsx"],
   "ignoreBinaries": [],
-  "ignoreDependencies": ["cloudflare", "postcss", "tailwindcss", "tw-animate-css"],
+  "ignoreDependencies": [
+    "cloudflare",
+    "postcss",
+    "tailwindcss",
+    "tw-animate-css",
+    "@tailwindcss/typography"
+  ],
   "ignoreExportsUsedInFile": true
 }
