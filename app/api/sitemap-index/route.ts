@@ -1,8 +1,12 @@
-import { buildSitemapIndexXml, getTotalIndexableUserCount, URLS_PER_SITEMAP } from "@/lib/sitemap";
+import {
+  buildSitemapIndexXml,
+  getSitemapShardCount,
+  getTotalIndexableUserCount,
+} from "@/lib/sitemap";
 
 export async function GET(): Promise<Response> {
   const count = await getTotalIndexableUserCount();
-  const shardCount = Math.max(1, Math.ceil(count / URLS_PER_SITEMAP));
+  const shardCount = getSitemapShardCount(count);
   const xml = buildSitemapIndexXml(shardCount);
 
   return new Response(xml, {

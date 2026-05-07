@@ -116,6 +116,7 @@ export async function checkIPRateLimit(ip: string): Promise<IPRateLimitResult> {
       .where(
         and(
           eq(uploadRateLimits.ipHash, ipHash), // Index prefix first
+          eq(uploadRateLimits.actionType, "upload"),
           gte(uploadRateLimits.createdAt, oneDayAgo),
         ),
       );
@@ -151,6 +152,7 @@ export async function checkIPRateLimit(ip: string): Promise<IPRateLimitResult> {
       await db.insert(uploadRateLimits).values({
         id: crypto.randomUUID(),
         ipHash,
+        actionType: "upload",
         createdAt: now.toISOString(),
         expiresAt,
       });
