@@ -820,6 +820,53 @@ describe("Resume API Integration Tests (25 tests)", () => {
       expect(body.retry_count).toBe(1);
     });
 
+    it("rolls back retry state when queue publish fails", async () => {
+      const { hasExceededMaxAttempts } = await import("@/lib/config/retry");
+      vi.mocked(hasExceededMaxAttempts).mockReturnValue(false);
+      const { publishResumeParse } = await import("@/lib/queue/resume-parse");
+      vi.mocked(publishResumeParse).mockRejectedValueOnce(new Error("Queue unavailable"));
+
+      authedAs("user-123");
+
+      mockFindFirst.mockResolvedValue({
+        id: "resume-123",
+        userId: "user-123",
+        r2Key: "users/user-123/123/resume.pdf",
+        status: "failed",
+        errorMessage: "PDF parsing error",
+        retryCount: 0,
+        totalAttempts: 2,
+        lastAttemptError: null,
+        fileHash: "abc123hash",
+      });
+
+      const { POST } = await import("@/app/api/resume/retry/route");
+      const request = makeRequest("http://localhost:3000/api/resume/retry", "POST", {
+        resume_id: "resume-123",
+      });
+      const response = await POST(request);
+
+      expect(response.status).toBe(500);
+      expect(mockUpdateSet).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({
+          errorMessage: null,
+          retryCount: 1,
+          status: "queued",
+        }),
+      );
+      expect(mockUpdateSet).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({
+          errorMessage: "PDF parsing error",
+          queuedAt: null,
+          retryCount: 0,
+          status: "failed",
+        }),
+      );
+      expect(mockCaptureBookmark).not.toHaveBeenCalled();
+    });
+
     it("returns 403 when retrying another user's resume (IDOR) (test 13)", async () => {
       authedAs("user-a");
 

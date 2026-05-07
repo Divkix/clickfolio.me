@@ -17,6 +17,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mutable reference so each test can swap the rows the mock query chain returns
 let mockSelectRows: unknown[] = [];
+let mockLimitValues: unknown[] = [];
+let mockOffsetValues: unknown[] = [];
 
 /** Build a mock query chain that returns `rows` when awaited */
 function buildQueryChain(rows: unknown[]): Record<string, unknown> {
@@ -29,8 +31,14 @@ function buildQueryChain(rows: unknown[]): Record<string, unknown> {
     from: vi.fn(() => chain()),
     where: vi.fn(() => chain()),
     orderBy: vi.fn(() => chain()),
-    limit: vi.fn(() => chain()),
-    offset: vi.fn(() => chain()),
+    limit: vi.fn((value: unknown) => {
+      mockLimitValues.push(value);
+      return chain();
+    }),
+    offset: vi.fn((value: unknown) => {
+      mockOffsetValues.push(value);
+      return chain();
+    }),
     // biome-ignore lint/suspicious/noThenProperty: mock for Drizzle thenable chain
     then: vi.fn((resolve: (v: unknown) => unknown) => resolve(rows)),
   };
@@ -47,7 +55,13 @@ vi.mock("cloudflare:workers", () => ({
   env: { CLICKFOLIO_DB: {} as D1Database },
 }));
 
-import { generateSitemapEntries, getTotalIndexableUserCount } from "@/lib/sitemap";
+import {
+  generateSitemapEntries,
+  getSitemapShardCount,
+  getTotalIndexableUserCount,
+  STATIC_SITEMAP_ENTRY_COUNT,
+  URLS_PER_SITEMAP,
+} from "@/lib/sitemap";
 
 // ---------------------------------------------------------------------------
 // Tests: generateSitemapEntries
@@ -57,6 +71,8 @@ describe("generateSitemapEntries", () => {
   beforeEach(() => {
     vi.stubEnv("BETTER_AUTH_URL", "https://example.com");
     mockSelectRows = [];
+    mockLimitValues = [];
+    mockOffsetValues = [];
   });
 
   // ── Invalid inputs ──────────────────────────────────────────────
@@ -222,6 +238,20 @@ describe("generateSitemapEntries", () => {
     expect(userEntries).toHaveLength(0);
   });
 
+  it("reserves first shard capacity for static URLs", async () => {
+    await generateSitemapEntries(0);
+
+    expect(mockLimitValues.at(-1)).toBe(URLS_PER_SITEMAP - STATIC_SITEMAP_ENTRY_COUNT);
+    expect(mockOffsetValues.at(-1)).toBe(0);
+  });
+
+  it("offsets later shards after the reduced first-shard user capacity", async () => {
+    await generateSitemapEntries(1);
+
+    expect(mockLimitValues.at(-1)).toBe(URLS_PER_SITEMAP);
+    expect(mockOffsetValues.at(-1)).toBe(URLS_PER_SITEMAP - STATIC_SITEMAP_ENTRY_COUNT);
+  });
+
   // ── Sitemap entry properties ────────────────────────────────────
 
   it("user entries have weekly changeFrequency and 0.8 priority", async () => {
@@ -302,5 +332,14 @@ describe("getTotalIndexableUserCount", () => {
     mockSelectRows = [{ count: 5 }];
     const count = await getTotalIndexableUserCount();
     expect(count).toBe(5);
+  });
+});
+
+describe("getSitemapShardCount", () => {
+  it("accounts for static URLs when deciding whether a second shard is needed", () => {
+    const firstShardUserCapacity = URLS_PER_SITEMAP - STATIC_SITEMAP_ENTRY_COUNT;
+
+    expect(getSitemapShardCount(firstShardUserCapacity)).toBe(1);
+    expect(getSitemapShardCount(firstShardUserCapacity + 1)).toBe(2);
   });
 });

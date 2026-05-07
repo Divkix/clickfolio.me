@@ -19,9 +19,93 @@ const notHiddenFromSearch = or(
 );
 
 export const URLS_PER_SITEMAP = 50000; // Google's limit
+const BASE_STATIC_SITEMAP_ENTRY_COUNT = 5;
+const PROFESSION_PAGE_SLUGS = [
+  "software-engineer",
+  "designer",
+  "marketer",
+  "student",
+  "consultant",
+  "product-manager",
+];
+export const STATIC_SITEMAP_ENTRY_COUNT =
+  BASE_STATIC_SITEMAP_ENTRY_COUNT + PROFESSION_PAGE_SLUGS.length + BLOG_POSTS.length;
 
 export function getSitemapBaseUrl(): string {
   return getPublicSiteUrl();
+}
+
+export function getSitemapShardCount(indexableUserCount: number): number {
+  const safeUserCount = Math.max(0, indexableUserCount);
+  return Math.max(1, Math.ceil((STATIC_SITEMAP_ENTRY_COUNT + safeUserCount) / URLS_PER_SITEMAP));
+}
+
+function getUserShardWindow(id: number): { limit: number; offset: number } {
+  const firstShardUserLimit = Math.max(0, URLS_PER_SITEMAP - STATIC_SITEMAP_ENTRY_COUNT);
+
+  if (id === 0) {
+    return { limit: firstShardUserLimit, offset: 0 };
+  }
+
+  return {
+    limit: URLS_PER_SITEMAP,
+    offset: firstShardUserLimit + (id - 1) * URLS_PER_SITEMAP,
+  };
+}
+
+function buildStaticSitemapEntries(baseUrl: string): MetadataRoute.Sitemap {
+  const entries: MetadataRoute.Sitemap = [
+    {
+      url: baseUrl,
+      lastModified: new Date(),
+      changeFrequency: "daily",
+      priority: 1.0,
+    },
+    {
+      url: `${baseUrl}/privacy`,
+      lastModified: new Date("2026-02-01"),
+      changeFrequency: "yearly",
+      priority: 0.3,
+    },
+    {
+      url: `${baseUrl}/terms`,
+      lastModified: new Date("2025-12-01"),
+      changeFrequency: "yearly",
+      priority: 0.3,
+    },
+    {
+      url: `${baseUrl}/explore`,
+      lastModified: new Date(),
+      changeFrequency: "daily",
+      priority: 0.9,
+    },
+    {
+      url: `${baseUrl}/blog`,
+      lastModified: new Date(),
+      changeFrequency: "weekly",
+      priority: 0.8,
+    },
+  ];
+
+  for (const profession of PROFESSION_PAGE_SLUGS) {
+    entries.push({
+      url: `${baseUrl}/for/${profession}`,
+      lastModified: new Date("2026-04-01"),
+      changeFrequency: "monthly",
+      priority: 0.7,
+    });
+  }
+
+  for (const post of BLOG_POSTS) {
+    entries.push({
+      url: `${baseUrl}/blog/${post.slug}`,
+      lastModified: new Date(post.date),
+      changeFrequency: "monthly",
+      priority: 0.7,
+    });
+  }
+
+  return entries;
 }
 
 /**
@@ -37,69 +121,12 @@ export async function generateSitemapEntries(id: number): Promise<MetadataRoute.
   const entries: MetadataRoute.Sitemap = [];
 
   if (id === 0) {
-    entries.push(
-      {
-        url: baseUrl,
-        lastModified: new Date(),
-        changeFrequency: "daily",
-        priority: 1.0,
-      },
-      {
-        url: `${baseUrl}/privacy`,
-        lastModified: new Date("2026-02-01"),
-        changeFrequency: "yearly",
-        priority: 0.3,
-      },
-      {
-        url: `${baseUrl}/terms`,
-        lastModified: new Date("2025-12-01"),
-        changeFrequency: "yearly",
-        priority: 0.3,
-      },
-      {
-        url: `${baseUrl}/explore`,
-        lastModified: new Date(),
-        changeFrequency: "daily",
-        priority: 0.9,
-      },
-      {
-        url: `${baseUrl}/blog`,
-        lastModified: new Date(),
-        changeFrequency: "weekly",
-        priority: 0.8,
-      },
-    );
-
-    const professionPages = [
-      "software-engineer",
-      "designer",
-      "marketer",
-      "student",
-      "consultant",
-      "product-manager",
-    ];
-    for (const profession of professionPages) {
-      entries.push({
-        url: `${baseUrl}/for/${profession}`,
-        lastModified: new Date("2026-04-01"),
-        changeFrequency: "monthly",
-        priority: 0.7,
-      });
-    }
-
-    for (const post of BLOG_POSTS) {
-      entries.push({
-        url: `${baseUrl}/blog/${post.slug}`,
-        lastModified: new Date(post.date),
-        changeFrequency: "monthly",
-        priority: 0.7,
-      });
-    }
+    entries.push(...buildStaticSitemapEntries(baseUrl));
   }
 
   try {
     const db = getDb(env.CLICKFOLIO_DB);
-    const offset = id * URLS_PER_SITEMAP;
+    const { limit, offset } = getUserShardWindow(id);
 
     const users = await db
       .select({
@@ -111,7 +138,7 @@ export async function generateSitemapEntries(id: number): Promise<MetadataRoute.
       .leftJoin(siteData, sql`${siteData.userId} = ${user.id}`)
       .where(and(isNotNull(user.handle), notHiddenFromSearch))
       .orderBy(user.handle)
-      .limit(URLS_PER_SITEMAP)
+      .limit(limit)
       .offset(offset);
 
     for (const entry of users) {

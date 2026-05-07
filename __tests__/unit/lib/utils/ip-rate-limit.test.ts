@@ -3,6 +3,7 @@
  * Tests for lib/utils/ip-rate-limit.ts
  */
 
+import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createMockDb } from "@/__tests__/setup/mocks/db.mock";
 import {
@@ -24,6 +25,21 @@ vi.mock("@/lib/db", () => ({
 vi.mock("@/lib/utils/environment", () => ({
   isLocalEnvironment: vi.fn().mockReturnValue(false),
 }));
+
+vi.mock("drizzle-orm", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("drizzle-orm")>();
+  return {
+    ...actual,
+    and: vi.fn((...conditions: unknown[]) => ({ conditions, type: "and" })),
+    eq: vi.fn((column: unknown, value: unknown) => ({ column, type: "eq", value })),
+    gte: vi.fn((column: unknown, value: unknown) => ({ column, type: "gte", value })),
+    sql: vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({
+      strings,
+      type: "sql",
+      values,
+    })),
+  };
+});
 
 import { getDb } from "@/lib/db";
 import { isLocalEnvironment } from "@/lib/utils/environment";
@@ -257,17 +273,30 @@ describe("checkIPRateLimit - Production Rate Limiting", () => {
   });
 
   it("records request on success", async () => {
-    const insertMock = vi.fn().mockReturnValue({ values: vi.fn().mockResolvedValue(undefined) });
+    const valuesMock = vi.fn().mockResolvedValue(undefined);
     mockDb.select.mockReturnValue({
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue([{ hourly: 0, daily: 0 }]),
       }),
     } as never);
-    mockDb.insert.mockReturnValue(insertMock as never);
+    mockDb.insert.mockReturnValue({ values: valuesMock } as never);
 
     await checkIPRateLimit("192.168.1.1");
 
     expect(mockDb.insert).toHaveBeenCalled();
+    expect(valuesMock).toHaveBeenCalledWith(expect.objectContaining({ actionType: "upload" }));
+  });
+
+  it("counts only upload actions toward anonymous upload limits", async () => {
+    mockDb.select.mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue([{ hourly: 0, daily: 0 }]),
+      }),
+    } as never);
+
+    await checkIPRateLimit("192.168.1.1");
+
+    expect(vi.mocked(eq).mock.calls.some(([, value]) => value === "upload")).toBe(true);
   });
 
   it("still allows request when record fails (fail open)", async () => {

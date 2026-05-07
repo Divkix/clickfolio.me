@@ -66,6 +66,7 @@ export async function POST(request: Request) {
         userId: true,
         r2Key: true,
         status: true,
+        errorMessage: true,
         retryCount: true,
         totalAttempts: true,
         lastAttemptError: true,
@@ -187,10 +188,12 @@ export async function POST(request: Request) {
     }
 
     // Update resume status to queued BEFORE publishing to queue (prevents race condition)
+    const previousRetryCount = resume.retryCount as number;
+    const nextRetryCount = previousRetryCount + 1;
     const updatePayload: Partial<NewResume> = {
       status: "queued",
       errorMessage: null,
-      retryCount: (resume.retryCount as number) + 1,
+      retryCount: nextRetryCount,
       queuedAt: new Date().toISOString(),
     };
 
@@ -205,26 +208,49 @@ export async function POST(request: Request) {
       return createErrorResponse("Failed to update resume status", ERROR_CODES.DATABASE_ERROR, 500);
     }
 
+    const rollbackRetryUpdate = async () => {
+      try {
+        await db
+          .update(resumes)
+          .set({
+            status: "failed",
+            errorMessage: resume.errorMessage,
+            retryCount: previousRetryCount,
+            queuedAt: null,
+          })
+          .where(eq(resumes.id, resume_id));
+      } catch (rollbackError) {
+        console.error("Failed to roll back retry queue state:", rollbackError);
+      }
+    };
+
     // Publish to queue for background processing (after DB update to prevent race)
     const queue = typedEnv.CLICKFOLIO_PARSE_QUEUE;
     if (!queue) {
+      await rollbackRetryUpdate();
       return createErrorResponse("Queue service unavailable", ERROR_CODES.INTERNAL_ERROR, 500);
     }
 
-    await publishResumeParse(queue, {
-      resumeId: resume.id as string,
-      userId,
-      r2Key: resume.r2Key as string,
-      fileHash,
-      attempt: (resume.retryCount as number) + 1,
-    });
+    try {
+      await publishResumeParse(queue, {
+        resumeId: resume.id as string,
+        userId,
+        r2Key: resume.r2Key as string,
+        fileHash,
+        attempt: nextRetryCount,
+      });
+    } catch (queueError) {
+      await rollbackRetryUpdate();
+      console.error("Failed to publish retry parse job:", queueError);
+      return createErrorResponse("Queue service unavailable", ERROR_CODES.INTERNAL_ERROR, 500);
+    }
 
     await captureBookmark();
 
     return createSuccessResponse({
       resume_id: resume.id as string,
       status: "queued",
-      retry_count: (resume.retryCount as number) + 1,
+      retry_count: nextRetryCount,
     });
   } catch (error) {
     console.error("Error retrying resume parsing:", error);
