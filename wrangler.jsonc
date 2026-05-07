@@ -61,7 +61,10 @@
 	// Cloudflare Email Service for transactional emails (password reset, verification)
 	"send_email": [
 		{
-			"name": "EMAIL"
+			"name": "EMAIL",
+			"allowed_sender_addresses": [
+				"noreply@clickfolio.me"
+			]
 		}
 	],
 	// Cloudflare Queues for async processing
@@ -151,7 +154,7 @@
 		//   wrangler secret put GOOGLE_CLIENT_SECRET
 		//
 		// ===== OPTIONAL: DLQ alerting (defaults to Cloudflare Logpush) =====
-		//   wrangler secret put ALERT_CHANNEL       # logpush | webhook | email
+		//   wrangler secret put ALERT_CHANNEL       # logpush | webhook
 		//   wrangler secret put ALERT_WEBHOOK_URL   # Slack/Discord webhook URL
 		//
 		// ===== ANALYTICS (Umami) =====

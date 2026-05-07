@@ -343,7 +343,7 @@ describe("DLQ Consumer", () => {
       fetchSpy.mockRestore();
     });
 
-    it("should send email alert (fallback to logpush)", async () => {
+    it("should treat unsupported email alert channel as logpush", async () => {
       const mockDb = createMockDb();
       const mockResume = createMockDbResume({
         id: "resume-123",
@@ -380,7 +380,9 @@ describe("DLQ Consumer", () => {
       const emailAlert = consoleSpy.mock.calls.find((call) =>
         call[0].includes("[DLQ_ALERT_EMAIL]"),
       );
-      expect(emailAlert).toBeDefined();
+      const logpushAlert = consoleSpy.mock.calls.find((call) => call[0].includes("[DLQ_ALERT]"));
+      expect(emailAlert).toBeUndefined();
+      expect(logpushAlert).toBeDefined();
 
       consoleSpy.mockRestore();
     });

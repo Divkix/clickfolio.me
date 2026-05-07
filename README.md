@@ -435,7 +435,7 @@ Asynchronous resume parsing pipeline:
 - **Producer**: `/api/resume/claim` enqueues after upload
 - **Consumer**: `worker/index.ts` processes in background
 - **Retry**: 3 automatic retries with exponential backoff
-- **Alerting**: Optional Slack/Discord/email on permanent failures
+- **Alerting**: Cloudflare Logpush by default, optional Slack/Discord webhook on permanent failures
 
 ### Scheduled Tasks (Cron)
 

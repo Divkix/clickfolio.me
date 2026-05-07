@@ -8,7 +8,7 @@ import type { DeadLetterMessage, QueueMessage } from "./types";
 /**
  * Alert channels supported for DLQ notifications
  */
-type AlertChannel = "logpush" | "webhook" | "email";
+type AlertChannel = "logpush" | "webhook";
 
 interface DLQAlertPayload {
   resumeId: string;
@@ -25,7 +25,11 @@ interface DLQAlertPayload {
  */
 interface AlertEnv extends CloudflareEnv {
   ALERT_WEBHOOK_URL?: string;
-  ALERT_CHANNEL?: AlertChannel;
+  ALERT_CHANNEL?: string;
+}
+
+function getAlertChannel(channel: string | undefined): AlertChannel {
+  return channel === "webhook" ? "webhook" : "logpush";
 }
 
 /**
@@ -60,12 +64,6 @@ async function sendAlert(
       }
       break;
     }
-
-    case "email":
-      // Email alerting would require an email service integration
-      // For now, fall back to logpush
-      console.error("[DLQ_ALERT_EMAIL]", JSON.stringify(payload));
-      break;
   }
 }
 
@@ -135,7 +133,7 @@ export async function handleDLQMessage(
 
   // Cast env to AlertEnv for optional alert properties
   const alertEnv = env as AlertEnv;
-  const alertChannel = alertEnv.ALERT_CHANNEL || "logpush";
+  const alertChannel = getAlertChannel(alertEnv.ALERT_CHANNEL);
 
   // Send alert
   const alertPayload: DLQAlertPayload = {
