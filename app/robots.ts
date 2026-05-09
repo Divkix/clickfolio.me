@@ -22,6 +22,30 @@ export default function robots(): MetadataRoute.Robots {
           "/wizard/",
         ],
       },
+      {
+        userAgent: "GPTBot",
+        allow: ["/", "/explore", "/blog"],
+      },
+      {
+        userAgent: "ChatGPT-User",
+        allow: ["/", "/explore", "/blog"],
+      },
+      {
+        userAgent: "ClaudeBot",
+        allow: ["/", "/explore", "/blog"],
+      },
+      {
+        userAgent: "PerplexityBot",
+        allow: ["/", "/explore", "/blog"],
+      },
+      {
+        userAgent: "Google-Extended",
+        allow: ["/", "/explore", "/blog"],
+      },
+      {
+        userAgent: "GoogleOther",
+        allow: ["/", "/explore", "/blog"],
+      },
     ],
     sitemap: `${baseUrl}/sitemap.xml`,
   };

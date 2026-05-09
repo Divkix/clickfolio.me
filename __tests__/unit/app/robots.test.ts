@@ -13,4 +13,22 @@ describe("robots metadata", () => {
 
     expect(config.sitemap).toBe("https://example.com/sitemap.xml");
   });
+
+  it("explicitly allows AI answer and preview crawlers on public pages", () => {
+    const config = robots();
+
+    expect(config.rules).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ userAgent: "GPTBot", allow: ["/", "/explore", "/blog"] }),
+        expect.objectContaining({ userAgent: "ChatGPT-User", allow: ["/", "/explore", "/blog"] }),
+        expect.objectContaining({ userAgent: "ClaudeBot", allow: ["/", "/explore", "/blog"] }),
+        expect.objectContaining({ userAgent: "PerplexityBot", allow: ["/", "/explore", "/blog"] }),
+        expect.objectContaining({
+          userAgent: "Google-Extended",
+          allow: ["/", "/explore", "/blog"],
+        }),
+        expect.objectContaining({ userAgent: "GoogleOther", allow: ["/", "/explore", "/blog"] }),
+      ]),
+    );
+  });
 });

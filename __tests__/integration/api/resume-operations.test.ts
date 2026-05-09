@@ -403,7 +403,7 @@ function makeRequest(url: string, method = "GET", body?: unknown, cookieValue?: 
   }
 
   if (cookieValue) {
-    headers["Cookie"] = `pending_upload=${cookieValue}`;
+    headers.Cookie = `pending_upload=${cookieValue}`;
   }
 
   init.headers = headers;

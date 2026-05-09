@@ -107,6 +107,9 @@ export default defineConfig({
       "zod/v3": resolve("lib/stubs/zod-v3-stub.mjs"),
     },
   },
+  optimizeDeps: {
+    exclude: ["lucide-react"],
+  },
   build: {
     rollupOptions: {
       plugins: [

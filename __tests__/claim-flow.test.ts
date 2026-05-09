@@ -216,7 +216,7 @@ const TEST_SECRET = "test-secret-key-for-testing-only";
 function makeClaimRequest(body: Record<string, unknown>, cookieValue?: string) {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (cookieValue) {
-    headers["Cookie"] = `pending_upload=${cookieValue}`;
+    headers.Cookie = `pending_upload=${cookieValue}`;
   }
 
   return new Request("http://localhost:3000/api/resume/claim", {

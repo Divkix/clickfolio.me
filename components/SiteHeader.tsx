@@ -9,14 +9,14 @@ import { Logo } from "@/components/Logo";
 export function SiteHeader() {
   return (
     <header className="sticky top-0 z-50 border-b-3 border-ink bg-cream">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-        <a href="/" aria-label="clickfolio.me home">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 flex justify-between items-center gap-3">
+        <a href="/" aria-label="clickfolio.me home" className="min-w-0 shrink">
           <Logo size="md" />
         </a>
-        <div className="flex items-center gap-4">
+        <div className="flex shrink-0 items-center gap-3 sm:gap-4">
           <Link
             href="/explore"
-            className="font-mono text-sm text-ink/70 hover:text-ink underline-offset-4 hover:underline transition-colors uppercase tracking-wide"
+            className="hidden font-mono text-sm text-ink/70 hover:text-ink underline-offset-4 hover:underline transition-colors uppercase tracking-wide sm:inline"
           >
             Explore
           </Link>

@@ -179,7 +179,7 @@ export default function Home() {
                           aria-hidden="true"
                           loading={index === 2 ? "eager" : "lazy"}
                           decoding="async"
-                          {...(index === 2 ? { fetchpriority: "high" } : {})}
+                          {...(index === 2 ? { fetchPriority: "high" as const } : {})}
                           className="aspect-3/4 object-cover object-top w-full"
                         />
                       </div>

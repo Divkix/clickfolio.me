@@ -218,7 +218,7 @@ function makeClaimRequest(body: Record<string, unknown>, cookieValue?: string) {
   if (cookieValue) {
     // Cookie values should not be URL-encoded in the Cookie header
     // The browser sends them as-is, and the server parses them as-is
-    headers["Cookie"] = `pending_upload=${cookieValue}`;
+    headers.Cookie = `pending_upload=${cookieValue}`;
   }
 
   return new Request("http://localhost:3000/api/resume/claim", {

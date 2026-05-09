@@ -28,7 +28,8 @@ export function LoginButton() {
         className="
           group
           relative
-          px-5
+          px-4
+          sm:px-5
           py-2.5
           bg-ink
           text-cream
@@ -47,6 +48,7 @@ export function LoginButton() {
           flex
           items-center
           gap-2
+          whitespace-nowrap
         "
       >
         <span>{isPending ? "..." : isLoggedIn ? "Dashboard" : "Sign in"}</span>

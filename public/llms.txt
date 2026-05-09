@@ -1,6 +1,19 @@
 # clickfolio.me
 
-Turn your PDF resume into a hosted web portfolio website in seconds. Upload your resume, and AI parses it into a professional website with a custom @handle URL — free forever.
+Turn your PDF resume into a hosted portfolio website in seconds. Upload a PDF resume, let AI parse it, then publish a professional `clickfolio.me/@handle` website with templates, privacy controls, and a shareable link.
+
+## Search Intent Match
+
+- PDF resume to website
+- resume website builder
+- resume website converter
+- AI resume parser
+- online portfolio builder
+- free portfolio website
+- LinkedIn to portfolio
+- LinkedIn to website
+- DesignFolio resume
+- resume templates for software engineers, designers, marketers, students, consultants, and product managers
 
 ## How It Works
 
@@ -22,6 +35,16 @@ Turn your PDF resume into a hosted web portfolio website in seconds. Upload your
 
 - Homepage: https://clickfolio.me
 - Browse Portfolios: https://clickfolio.me/explore
+- Blog: https://clickfolio.me/blog
+- PDF resume to website guide: https://clickfolio.me/blog/pdf-resume-to-website
+- Resume website builders comparison: https://clickfolio.me/blog/best-resume-website-builders
+- LinkedIn to portfolio guide: https://clickfolio.me/blog/linkedin-to-portfolio
+- Software engineer portfolio builder: https://clickfolio.me/for/software-engineer
+- Designer portfolio builder: https://clickfolio.me/for/designer
+- Marketer portfolio builder: https://clickfolio.me/for/marketer
+- Student portfolio builder: https://clickfolio.me/for/student
+- Consultant portfolio builder: https://clickfolio.me/for/consultant
+- Product manager portfolio builder: https://clickfolio.me/for/product-manager
 - Privacy Policy: https://clickfolio.me/privacy
 - Terms of Service: https://clickfolio.me/terms
 
