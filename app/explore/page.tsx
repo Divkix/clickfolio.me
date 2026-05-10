@@ -114,22 +114,21 @@ export default async function ExplorePage({
   const totalCount = countResult[0]?.count ?? 0;
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
-  const directoryUsers: DirectoryUser[] = usersWithData
-    .filter((u) => u.handle !== null)
-    .map((u) => {
-      const previewSkills = parsePreviewSkills(u.previewSkills);
-
-      return {
-        handle: u.handle as string,
-        role: u.role,
-        previewName: u.previewName,
-        previewHeadline: u.previewHeadline,
-        previewLocation: u.previewLocation,
-        previewExpCount: u.previewExpCount,
-        previewEduCount: u.previewEduCount,
-        previewSkills: previewSkills.length > 0 ? previewSkills : null,
-      };
+  const directoryUsers: DirectoryUser[] = [];
+  for (const u of usersWithData) {
+    if (u.handle === null) continue;
+    const previewSkills = parsePreviewSkills(u.previewSkills);
+    directoryUsers.push({
+      handle: u.handle as string,
+      role: u.role,
+      previewName: u.previewName,
+      previewHeadline: u.previewHeadline,
+      previewLocation: u.previewLocation,
+      previewExpCount: u.previewExpCount,
+      previewEduCount: u.previewEduCount,
+      previewSkills: previewSkills.length > 0 ? previewSkills : null,
     });
+  }
 
   const exploreJsonLd = generateExploreJsonLd(
     directoryUsers.map((u) => ({
@@ -228,27 +227,27 @@ export default async function ExplorePage({
                       {person.previewHeadline || "Professional"}
                     </p>
                   </div>
-                  <ExternalLink className="w-4 h-4 text-muted-foreground/70 group-hover:text-coral shrink-0 ml-2" />
+                  <ExternalLink className="size-4 text-muted-foreground/70 group-hover:text-coral shrink-0 ml-2" />
                 </div>
 
                 {/* Quick stats */}
                 <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
                   {person.previewLocation && (
                     <span className="inline-flex items-center gap-1">
-                      <MapPin className="w-3 h-3" />
+                      <MapPin className="size-3" />
                       {person.previewLocation.split(",")[0]}
                     </span>
                   )}
                   {person.previewExpCount != null && person.previewExpCount > 0 && (
                     <span className="inline-flex items-center gap-1">
-                      <Briefcase className="w-3 h-3" />
+                      <Briefcase className="size-3" />
                       {person.previewExpCount}{" "}
                       {person.previewExpCount === 1 ? "position" : "positions"}
                     </span>
                   )}
                   {person.previewEduCount != null && person.previewEduCount > 0 && (
                     <span className="inline-flex items-center gap-1">
-                      <GraduationCap className="w-3 h-3" />
+                      <GraduationCap className="size-3" />
                       {person.previewEduCount}
                     </span>
                   )}
@@ -290,19 +289,24 @@ export default async function ExplorePage({
             )}
 
             <div className="flex items-center gap-1">
-              {Array.from({ length: totalPages }, (_, i) => i + 1)
-                .filter(
-                  (page) => page === 1 || page === totalPages || Math.abs(page - currentPage) <= 1,
-                )
-                .map((page, index, arr) => {
-                  // Add ellipsis if there's a gap
-                  const showEllipsis = index > 0 && page - arr[index - 1] > 1;
-                  return (
+              {(() => {
+                const elements: React.JSX.Element[] = [];
+                let prevPage: number | null = null;
+                for (let page = 1; page <= totalPages; page++) {
+                  if (page !== 1 && page !== totalPages && Math.abs(page - currentPage) > 1)
+                    continue;
+                  if (prevPage !== null && page - prevPage > 1) {
+                    elements.push(
+                      <span key={`ellipsis-${page}`} className="px-2 text-muted-foreground/70">
+                        ...
+                      </span>,
+                    );
+                  }
+                  elements.push(
                     <span key={page} className="contents">
-                      {showEllipsis && <span className="px-2 text-muted-foreground/70">...</span>}
                       <Link
                         href={`/explore?page=${page}${roleFilter ? `&role=${roleFilter}` : ""}`}
-                        className={`w-10 h-10 flex items-center justify-center text-sm font-medium rounded-lg ${
+                        className={`size-10 flex items-center justify-center text-sm font-medium rounded-lg ${
                           page === currentPage
                             ? "bg-coral text-white"
                             : "text-foreground/80 bg-card border border-ink/15 hover:bg-muted"
@@ -310,9 +314,12 @@ export default async function ExplorePage({
                       >
                         {page}
                       </Link>
-                    </span>
+                    </span>,
                   );
-                })}
+                  prevPage = page;
+                }
+                return elements;
+              })()}
             </div>
 
             {currentPage < totalPages && (

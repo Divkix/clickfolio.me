@@ -75,9 +75,9 @@ export default function Home() {
 
         <main id="main-content" className="flex-1 relative overflow-hidden pb-20 lg:pb-0">
           {/* Decorative elements */}
-          <div className="absolute top-20 left-10 w-32 h-32 bg-amber rounded-full opacity-20 blur-3xl" />
-          <div className="absolute bottom-40 right-10 w-40 h-40 bg-coral rounded-full opacity-20 blur-3xl" />
-          <div className="absolute top-1/2 left-1/4 w-24 h-24 bg-mint rounded-full opacity-15 blur-2xl" />
+          <div className="absolute top-20 left-10 size-32 bg-amber rounded-full opacity-20 blur-3xl" />
+          <div className="absolute bottom-40 right-10 size-40 bg-coral rounded-full opacity-20 blur-3xl" />
+          <div className="absolute top-1/2 left-1/4 size-24 bg-mint rounded-full opacity-15 blur-2xl" />
 
           {/* Hero Section - Asymmetric Bento Layout */}
           <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-20 lg:pt-20">
@@ -99,10 +99,10 @@ export default function Home() {
                 "
                 >
                   {/* Folded corner effect */}
-                  <div className="absolute top-0 right-0 w-16 h-16">
+                  <div className="absolute top-0 right-0 size-16">
                     {/* Shadow under the fold */}
                     <div
-                      className="absolute top-0 right-0 w-0 h-0"
+                      className="absolute top-0 right-0 size-0"
                       style={{
                         borderLeft: "64px solid transparent",
                         borderTop: "64px solid rgba(0,0,0,0.06)",
@@ -110,7 +110,7 @@ export default function Home() {
                     />
                     {/* The fold crease - subtle white */}
                     <div
-                      className="absolute top-0 right-0 w-0 h-0"
+                      className="absolute top-0 right-0 size-0"
                       style={{
                         borderLeft: "60px solid transparent",
                         borderTop: "60px solid #ffffff",
@@ -118,7 +118,7 @@ export default function Home() {
                     />
                     {/* Underside of fold (brand accent) */}
                     <div
-                      className="absolute bottom-0 left-0 w-0 h-0"
+                      className="absolute bottom-0 left-0 size-0"
                       style={{
                         borderRight: "64px solid transparent",
                         borderBottom: "64px solid #D94E4E",
@@ -169,9 +169,9 @@ export default function Home() {
                         className={`${preview.rotate} border-3 border-ink shadow-brutal-sm bg-white overflow-hidden w-20 sm:w-24`}
                       >
                         <div className="bg-ink flex items-center gap-1 px-1.5 py-1">
-                          <div className="w-1.5 h-1.5 rounded-full bg-coral" />
-                          <div className="w-1.5 h-1.5 rounded-full bg-amber" />
-                          <div className="w-1.5 h-1.5 rounded-full bg-mint" />
+                          <div className="size-1.5 rounded-full bg-coral" />
+                          <div className="size-1.5 rounded-full bg-amber" />
+                          <div className="size-1.5 rounded-full bg-mint" />
                         </div>
                         <img
                           src={preview.src}
@@ -247,7 +247,7 @@ export default function Home() {
                     <div className="flex items-center gap-2">
                       <svg
                         aria-hidden="true"
-                        className="h-6 w-6 sm:h-7 sm:w-7 text-ink"
+                        className="size-6 sm:h-7 sm:w-7 text-ink"
                         viewBox="0 0 24 24"
                         fill="currentColor"
                       >
@@ -312,9 +312,9 @@ export default function Home() {
                 "
                 >
                   <div className="flex gap-1.5">
-                    <div className="w-6 h-6 bg-amber border-2 border-ink" />
-                    <div className="w-6 h-6 bg-mint border-2 border-ink" />
-                    <div className="w-6 h-6 bg-lavender border-2 border-ink" />
+                    <div className="size-6 bg-amber border-2 border-ink" />
+                    <div className="size-6 bg-mint border-2 border-ink" />
+                    <div className="size-6 bg-lavender border-2 border-ink" />
                   </div>
                   <div>
                     <div className="font-black text-xl text-white">
@@ -356,7 +356,7 @@ export default function Home() {
                     <span>Explore</span>
                     <svg
                       aria-hidden="true"
-                      className="w-5 h-5 transform group-hover:translate-x-1 transition-transform"
+                      className="size-5 transform group-hover:translate-x-1 transition-transform"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -457,12 +457,12 @@ export default function Home() {
                   <div className="flex justify-center">
                     <BottomCTAButton />
                   </div>
-                  <a
+                  <Link
                     href="/blog"
                     className="text-cream/70 hover:text-cream text-sm underline underline-offset-2 transition-colors"
                   >
                     Read our guides &rarr;
-                  </a>
+                  </Link>
                 </div>
               </div>
             </section>

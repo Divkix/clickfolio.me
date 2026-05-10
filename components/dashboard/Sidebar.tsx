@@ -154,16 +154,16 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
 
         {/* Logo Header */}
         <div className="p-4 border-b border-ink/10">
-          <a href="/" aria-label="clickfolio.me home">
+          <Link href="/" aria-label="clickfolio.me home">
             <Logo size="xs" />
-          </a>
+          </Link>
         </div>
 
         {/* Profile Header */}
         <div className="p-4 border-b border-ink/10">
           {loading ? (
             <div className="animate-pulse">
-              <div className="w-10 h-10 bg-muted rounded-full mb-3" />
+              <div className="size-10 bg-muted rounded-full mb-3" />
               <div className="h-4 bg-muted rounded w-24" />
             </div>
           ) : user ? (
@@ -171,16 +171,16 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
               {user.image ? (
                 <div className="relative">
                   <div className="absolute inset-0 rounded-full bg-linear-to-r from-coral to-coral p-0.5">
-                    <div className="w-full h-full rounded-full bg-card" />
+                    <div className="size-full rounded-full bg-card" />
                   </div>
                   <img
                     src={user.image}
                     alt={user.name || "User avatar"}
-                    className="relative w-10 h-10 rounded-full object-cover"
+                    className="relative size-10 rounded-full object-cover"
                   />
                 </div>
               ) : (
-                <div className="w-10 h-10 rounded-full bg-coral flex items-center justify-center text-white font-semibold text-sm">
+                <div className="size-10 rounded-full bg-coral flex items-center justify-center text-white font-semibold text-sm">
                   {getInitials()}
                 </div>
               )}

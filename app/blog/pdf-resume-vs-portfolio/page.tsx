@@ -33,7 +33,7 @@ export default function PdfResumeVsPortfolioPage() {
       <section>
         <p>
           The PDF-vs-portfolio debate has a false premise: that you have to choose one. You don't.
-          They serve entirely different purposes, and the most effective professionals use both —
+          They serve entirely different purposes, and the most effective professionals use both,
           strategically, in different contexts, for different audiences. Here's how to think about
           each format and when to deploy it.
         </p>
@@ -42,20 +42,20 @@ export default function PdfResumeVsPortfolioPage() {
       <section>
         <h2>When to Use a PDF Resume</h2>
         <p>
-          The PDF resume isn't dead — it's the standard format for specific, high-stakes scenarios:
+          The PDF resume isn't dead. It's the standard format for specific, high-stakes scenarios:
         </p>
         <ul>
           <li>
             <strong>ATS applications.</strong> Most large companies use Applicant Tracking Systems
             that expect a file attachment. PDFs preserve formatting across systems and are
-            universally accepted. A portfolio URL in your application won't get parsed — the PDF
+            universally accepted. A portfolio URL in your application won't get parsed. The PDF
             will. Use a PDF when submitting through job portals, corporate career pages, or
             recruiter platforms.
           </li>
           <li>
             <strong>Email applications.</strong> When a recruiter says "send me your resume," they
             expect an attachment. Attach the PDF and include your portfolio URL in the email body as
-            a bonus — you've satisfied the expectation and added value.
+            a bonus. You've satisfied the expectation and added value.
           </li>
           <li>
             <strong>Formal settings.</strong> Law firms, government agencies, academic institutions,
@@ -63,8 +63,8 @@ export default function PdfResumeVsPortfolioPage() {
             the PDF is the table stakes.
           </li>
           <li>
-            <strong>Offline sharing.</strong> Career fairs, in-person interviews, networking events
-            — sometimes you need something you can print or attach. A PDF is reliable offline. A QR
+            <strong>Offline sharing.</strong> Career fairs, in-person interviews, networking events.
+            Sometimes you need something you can print or attach. A PDF is reliable offline. A QR
             code linking to your portfolio is a powerful complement.
           </li>
           <li>
@@ -80,12 +80,12 @@ export default function PdfResumeVsPortfolioPage() {
         <ul>
           <li>
             <strong>Social media and networking.</strong> Twitter bio, Instagram link, LinkedIn
-            featured section, Discord profile — every platform accepts a URL. None accept a PDF. A
+            featured section, Discord profile. Every platform accepts a URL. None accept a PDF. A
             portfolio link turns every social profile into a gateway to your professional story.
           </li>
           <li>
             <strong>Personal branding.</strong> Your portfolio is your professional home on the
-            internet. It's where you control the narrative — the design, the content, the messaging.
+            internet. It's where you control the narrative: the design, the content, the messaging.
             A PDF is a document. A portfolio is a presence.
           </li>
           <li>
@@ -95,8 +95,8 @@ export default function PdfResumeVsPortfolioPage() {
           </li>
           <li>
             <strong>Analytics and iteration.</strong> Your portfolio tells you how many people
-            viewed it, where they came from, and what they looked at. This data helps you optimize —
-            maybe your skills section gets the most views, or your project descriptions need work. A
+            viewed it, where they came from, and what they looked at. This data helps you optimize.
+            Maybe your skills section gets the most views, or your project descriptions need work. A
             PDF gives you zero insight.
           </li>
           <li>
@@ -116,9 +116,9 @@ export default function PdfResumeVsPortfolioPage() {
         <p>The optimal strategy uses both formats, linked together:</p>
         <ol className="list-decimal pl-6 space-y-3">
           <li>
-            <strong>Maintain a single source of truth.</strong> Your resume content — experience,
-            education, skills — lives in one place: your clickfolio.me account. From there, it
-            powers both your portfolio website and can be exported for PDF use.
+            <strong>Maintain a single source of truth.</strong> Your resume content (experience,
+            education, skills) lives in one place: your clickfolio.me account. From there, it powers
+            both your portfolio website and can be exported for PDF use.
           </li>
           <li>
             <strong>Include your portfolio URL on your PDF.</strong> Add your portfolio URL to the
@@ -136,7 +136,7 @@ export default function PdfResumeVsPortfolioPage() {
             <strong>Match your template to the context.</strong> Use the ClassicATS template on
             clickfolio.me for a portfolio that mirrors your ATS-optimized PDF. Switch to a more
             creative template (NeoBrutalist, Spotlight) when sharing on social media. Same content,
-            different presentation — appropriate for different audiences.
+            different presentation, appropriate for different audiences.
           </li>
         </ol>
       </section>
@@ -149,14 +149,14 @@ export default function PdfResumeVsPortfolioPage() {
           purpose:
         </p>
         <ul>
-          <li>Single-column layout — no columns that confuse parsers</li>
+          <li>Single-column layout: no columns that confuse parsers</li>
           <li>
-            Standard section headings — "Experience," "Education," "Skills" are machine-recognizable
+            Standard section headings: "Experience," "Education," "Skills" are machine-recognizable
           </li>
           <li>
-            Clean typography and font rendering — no fancy ligatures that break text extraction
+            Clean typography and font rendering: no fancy ligatures that break text extraction
           </li>
-          <li>Web-standard HTML semantics — screen-reader friendly and SEO-optimized</li>
+          <li>Web-standard HTML semantics: screen-reader friendly and SEO-optimized</li>
         </ul>
         <p>
           When you use ClassicATS, your portfolio website <em>is</em> an ATS-friendly format. You
@@ -174,14 +174,14 @@ export default function PdfResumeVsPortfolioPage() {
         <p>
           When a recruiter prints your resume for an interview panel (which still happens), the QR
           code gives everyone in the room instant access to your full portfolio on their phones.
-          Your name, face, and experience are already in front of them — the QR code makes your
+          Your name, face, and experience are already in front of them. The QR code makes your
           entire professional story one scan away. It also signals tech-savviness and attention to
           detail.
         </p>
         <p>
           QR codes are free to generate and take seconds to add to a PDF. They cost nothing and add
           a subtle competitive advantage. If 50 candidates submit PDFs and you're the only one with
-          a QR code to a professional portfolio, you stand out — even before anyone reads a word.
+          a QR code to a professional portfolio, you stand out, even before anyone reads a word.
         </p>
       </section>
 
@@ -189,7 +189,7 @@ export default function PdfResumeVsPortfolioPage() {
         <h2>The Bottom Line</h2>
         <p>
           A PDF resume is essential. A portfolio website is transformational. Together, they're the
-          complete professional presence — covering every channel from ATS applications to social
+          complete professional presence, covering every channel from ATS applications to social
           media sharing to Google search. The best part: with AI-powered tools, you can maintain
           both from a single source of truth, with zero duplication of effort.
         </p>

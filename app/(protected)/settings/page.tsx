@@ -32,11 +32,11 @@ function ProfileSection({ name, email, headline, image, handle }: ProfileSection
           <img
             src={image}
             alt="Profile avatar"
-            className="w-14 h-14 rounded-full object-cover border-2 border-ink/10 shrink-0"
+            className="size-14 rounded-full object-cover border-2 border-ink/10 shrink-0"
           />
         ) : (
-          <div className="w-14 h-14 rounded-full bg-linear-to-br from-coral/20 to-coral/20 flex items-center justify-center shrink-0 border-2 border-ink/10">
-            <User className="h-6 w-6 text-coral" />
+          <div className="size-14 rounded-full bg-linear-to-br from-coral/20 to-coral/20 flex items-center justify-center shrink-0 border-2 border-ink/10">
+            <User className="size-6 text-coral" />
           </div>
         )}
         <div className="flex-1 min-w-0">

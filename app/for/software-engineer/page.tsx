@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { siteConfig } from "@/lib/config/site";
 import {
   generatePageBreadcrumbJsonLd,
@@ -62,21 +63,21 @@ export default function SoftwareEngineerPage() {
             </h2>
             <ul className="space-y-3 text-[#6B6B6B] list-disc pl-5">
               <li>
-                <strong>DevTerminal template</strong> — a GitHub-inspired dark terminal aesthetic
+                <strong>DevTerminal template</strong>: a GitHub-inspired dark terminal aesthetic
                 built for developers. Monospace typography, console-style sections, and syntax
                 highlighting vibes.
               </li>
               <li>
-                <strong>GitHub & LinkedIn links</strong> — add your social profiles directly to your
+                <strong>GitHub & LinkedIn links</strong>: add your social profiles directly to your
                 portfolio. Recruiters get one-click access to your repos and professional network.
               </li>
               <li>
-                <strong>Structured skills & projects</strong> — AI extracts your tech stack,
+                <strong>Structured skills & projects</strong>: AI extracts your tech stack,
                 languages, frameworks, and side projects from your resume. Display them in clean,
                 scannable sections.
               </li>
               <li>
-                <strong>ATS-friendly templates</strong> — Classic ATS and Minimalist Editorial
+                <strong>ATS-friendly templates</strong>: Classic ATS and Minimalist Editorial
                 templates are optimized for applicant tracking systems. One PDF, two outputs.
               </li>
             </ul>
@@ -86,8 +87,8 @@ export default function SoftwareEngineerPage() {
             <h2 className="font-black text-xl text-ink mb-4">Built for Engineers, by Engineers</h2>
             <p className="text-[#6B6B6B] mb-4">
               clickfolio.me is open source (MIT), deployed on Cloudflare Workers, and built with
-              modern tools. No bloated page builders, no WYSIWYG clutter — just a clean,
-              fast-loading portfolio from your existing PDF resume.
+              modern tools. No bloated page builders, no WYSIWYG clutter; just a clean, fast-loading
+              portfolio from your existing PDF resume.
             </p>
             <p className="text-[#6B6B6B]">
               The AI parser understands technical resumes: it correctly identifies programming
@@ -96,12 +97,12 @@ export default function SoftwareEngineerPage() {
             </p>
           </section>
 
-          <a
+          <Link
             href="/"
             className="inline-block bg-ink text-cream font-bold px-6 py-3 border-3 border-ink shadow-brutal-sm hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-transform"
           >
             Create Your Free Resume Website →
-          </a>
+          </Link>
         </div>
       </main>
     </>

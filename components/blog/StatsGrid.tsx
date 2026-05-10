@@ -15,7 +15,10 @@ export function StatsGrid({ stats, columns = 2 }: StatsGridProps) {
   return (
     <div className={`grid ${gridCols} gap-4 my-8`}>
       {stats.map((stat, index) => (
-        <div key={index} className="bg-cream border-3 border-ink shadow-brutal-sm p-5">
+        <div
+          key={`${stat.label}-${stat.value}-${index}`}
+          className="bg-cream border-3 border-ink shadow-brutal-sm p-5"
+        >
           <div className="font-black text-3xl text-ink mb-1">{stat.value}</div>
           <div className="text-sm text-ink/70 font-medium">{stat.label}</div>
           {stat.percentage !== undefined && (

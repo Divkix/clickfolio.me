@@ -8,7 +8,7 @@ export function WhatYouGetSection() {
       icon: (
         <svg
           aria-hidden="true"
-          className="w-5 h-5 text-white"
+          className="size-5 text-white"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -29,7 +29,7 @@ export function WhatYouGetSection() {
       icon: (
         <svg
           aria-hidden="true"
-          className="w-5 h-5 text-white"
+          className="size-5 text-white"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -50,7 +50,7 @@ export function WhatYouGetSection() {
       icon: (
         <svg
           aria-hidden="true"
-          className="w-5 h-5 text-white"
+          className="size-5 text-white"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -71,7 +71,7 @@ export function WhatYouGetSection() {
       icon: (
         <svg
           aria-hidden="true"
-          className="w-5 h-5 text-white"
+          className="size-5 text-white"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -92,7 +92,7 @@ export function WhatYouGetSection() {
       icon: (
         <svg
           aria-hidden="true"
-          className="w-5 h-5 text-white"
+          className="size-5 text-white"
           viewBox="0 0 24 24"
           fill="currentColor"
         >
@@ -107,7 +107,7 @@ export function WhatYouGetSection() {
       icon: (
         <svg
           aria-hidden="true"
-          className="w-5 h-5 text-white"
+          className="size-5 text-white"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -148,7 +148,7 @@ export function WhatYouGetSection() {
             `}
             style={{ animationDelay: `${(index + 10) * 100}ms` }}
           >
-            <div className="w-10 h-10 bg-ink flex items-center justify-center mb-4">
+            <div className="size-10 bg-ink flex items-center justify-center mb-4">
               {feature.icon}
             </div>
             <h3 className="font-black text-lg text-ink mb-1">{feature.title}</h3>

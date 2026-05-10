@@ -109,14 +109,14 @@ const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => {
               <p className="text-xl text-neutral-500 mt-6 max-w-md">{safeHeadline}</p>
             </div>
             <div className="md:col-span-4 flex justify-start md:justify-end">
-              <div className="w-20 h-20 md:w-32 md:h-32 rounded-full bg-neutral-100 overflow-hidden flex items-center justify-center">
+              <div className="size-20 md:w-32 md:h-32 rounded-full bg-neutral-100 overflow-hidden flex items-center justify-center">
                 {profile.avatar_url ? (
                   <img
                     src={profile.avatar_url}
                     alt={content.full_name}
                     width={128}
                     height={128}
-                    className="w-full h-full object-cover"
+                    className="size-full object-cover"
                   />
                 ) : (
                   <span className="text-4xl font-black text-neutral-400">
@@ -139,14 +139,14 @@ const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => {
           {/* Bio Card */}
           <section className="mb-20 md:mb-32 bg-neutral-50 rounded-2xl p-8 md:p-12">
             <div className="flex items-center gap-6 mb-8">
-              <div className="w-16 h-16 rounded-full bg-neutral-200 overflow-hidden flex items-center justify-center shrink-0">
+              <div className="size-16 rounded-full bg-neutral-200 overflow-hidden flex items-center justify-center shrink-0">
                 {profile.avatar_url ? (
                   <img
                     src={profile.avatar_url}
                     alt={content.full_name}
                     width={64}
                     height={64}
-                    className="w-full h-full object-cover"
+                    className="size-full object-cover"
                   />
                 ) : (
                   <span className="text-xl font-black text-neutral-500">
@@ -179,7 +179,7 @@ const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => {
                       key={link.type}
                       className="inline-flex items-center gap-1.5 text-sm text-neutral-500"
                     >
-                      <MapPin className="w-4 h-4" aria-hidden="true" />
+                      <MapPin className="size-4" aria-hidden="true" />
                       {link.label}
                     </span>
                   );
@@ -198,7 +198,7 @@ const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => {
                     ) : isDribbble ? (
                       <span className="text-xs font-bold">Dr</span>
                     ) : IconComponent ? (
-                      <IconComponent className="w-4 h-4" aria-hidden={true} />
+                      <IconComponent className="size-4" aria-hidden={true} />
                     ) : null}
                     {link.label}
                   </a>
@@ -246,7 +246,7 @@ const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => {
                       </div>
                       <div className="md:col-span-10">
                         <div className="flex items-start gap-4 mb-3">
-                          <div className="w-10 h-10 rounded-full bg-neutral-100 flex items-center justify-center shrink-0">
+                          <div className="size-10 rounded-full bg-neutral-100 flex items-center justify-center shrink-0">
                             <span className="text-xs font-bold text-neutral-500">
                               {getInitials(job.company)}
                             </span>
@@ -317,7 +317,7 @@ const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => {
                       </div>
                       <div className="md:col-span-10">
                         <div className="flex items-start gap-4">
-                          <div className="w-10 h-10 rounded-full bg-neutral-100 flex items-center justify-center shrink-0">
+                          <div className="size-10 rounded-full bg-neutral-100 flex items-center justify-center shrink-0">
                             <span className="text-xs font-bold text-neutral-500">
                               {getInitials(edu.institution)}
                             </span>
@@ -357,7 +357,7 @@ const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {content.certifications.map((cert, idx) => (
                   <div key={`${cert.name}-${idx}`} className="flex items-start gap-4">
-                    <div className="w-2 h-2 rounded-full bg-neutral-900 mt-2 shrink-0" />
+                    <div className="size-2 rounded-full bg-neutral-900 mt-2 shrink-0" />
                     <div>
                       <h3 className="font-heading-bc font-bold text-lg">
                         {cert.url ? (

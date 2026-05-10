@@ -134,7 +134,7 @@ export default async function AdminOverviewPage() {
         >
           <div className="flex items-center gap-3">
             <div className="bg-coral/20 p-2 rounded-lg">
-              <AlertTriangle className="w-5 h-5 text-coral" aria-hidden="true" />
+              <AlertTriangle className="size-5 text-coral" aria-hidden="true" />
             </div>
             <div>
               <p className="font-semibold text-coral">

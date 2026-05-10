@@ -23,7 +23,7 @@ export function ContactSection({ form }: ContactSectionProps) {
         <div className="relative shrink-0">
           <div className="absolute inset-0 bg-linear-to-r from-purple-500 to-pink-500 rounded-lg blur-md opacity-20" />
           <div className="relative bg-linear-to-r from-purple-100 to-pink-100 p-2.5 rounded-lg">
-            <Mail className="h-5 w-5 text-purple-600" />
+            <Mail className="size-5 text-purple-600" />
           </div>
         </div>
         <div>

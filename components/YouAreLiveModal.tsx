@@ -106,7 +106,7 @@ export function YouAreLiveModal({ open, onOpenChange, handle, url }: YouAreLiveM
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-md text-center">
           <DialogHeader className="items-center">
-            <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-4">
+            <div className="size-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-4">
               <Rocket className="size-8 text-green-600 dark:text-green-400" />
             </div>
             <DialogTitle className="text-2xl">You&apos;re Live!</DialogTitle>

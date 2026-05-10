@@ -55,7 +55,7 @@ const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
             aria-label="Main navigation"
           >
             <div className="font-heading-nb font-black text-xl uppercase tracking-tighter flex items-center gap-2">
-              <div className="w-6 h-6 bg-[#FFDE00] border-2 border-black rounded-full" />
+              <div className="size-6 bg-[#FFDE00] border-2 border-black rounded-full" />
               {content.full_name}
             </div>
             <div className="hidden md:flex gap-6 font-bold text-sm uppercase">
@@ -126,14 +126,14 @@ const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
 
             <div className="lg:col-span-4 flex flex-col gap-6">
               <div className="bg-[#22CCEE] border-2 md:border-4 border-black p-8 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] md:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] flex-1 flex flex-col justify-center items-center text-center hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] md:hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-[transform,box-shadow]">
-                <div className="w-24 h-24 bg-white border-2 md:border-4 border-black rounded-full mb-4 overflow-hidden flex items-center justify-center">
+                <div className="size-24 bg-white border-2 md:border-4 border-black rounded-full mb-4 overflow-hidden flex items-center justify-center">
                   {profile.avatar_url ? (
                     <img
                       src={profile.avatar_url}
                       alt={content.full_name}
                       width={96}
                       height={96}
-                      className="w-full h-full object-cover"
+                      className="size-full object-cover"
                     />
                   ) : (
                     <span className="text-4xl font-black">{getInitials(content.full_name)}</span>
@@ -153,36 +153,34 @@ const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
                 </h3>
                 {content.contact.location && (
                   <div className="flex items-center gap-2 mb-3 font-bold text-sm">
-                    <MapPin className="w-4 h-4" aria-hidden="true" />
+                    <MapPin className="size-4" aria-hidden="true" />
                     {content.contact.location}
                   </div>
                 )}
                 <div className="grid grid-cols-2 gap-3">
-                  {contactLinks
-                    .filter((link) => link.type !== "location")
-                    .map((link) => {
-                      const isBranded = link.type === "behance" || link.type === "dribbble";
-                      const brandBg =
-                        link.type === "behance"
-                          ? "bg-[#1769FF] text-white"
-                          : link.type === "dribbble"
-                            ? "bg-[#EA4C89] text-white"
-                            : "bg-white";
-                      return (
-                        <a
-                          key={link.type}
-                          href={link.href}
-                          target={link.isExternal ? "_blank" : undefined}
-                          rel={link.isExternal ? "noopener noreferrer" : undefined}
-                          className={`flex items-center justify-center p-3 border-2 border-black hover:bg-black hover:text-white transition-colors font-bold text-xs uppercase gap-2 ${isBranded ? brandBg : "bg-white"}`}
-                        >
-                          {link.type === "phone" && (
-                            <Phone className="w-3 h-3" aria-hidden="true" />
-                          )}
-                          {link.label}
-                        </a>
-                      );
-                    })}
+                  {contactLinks.reduce<React.JSX.Element[]>((acc, link) => {
+                    if (link.type === "location") return acc;
+                    const isBranded = link.type === "behance" || link.type === "dribbble";
+                    const brandBg =
+                      link.type === "behance"
+                        ? "bg-[#1769FF] text-white"
+                        : link.type === "dribbble"
+                          ? "bg-[#EA4C89] text-white"
+                          : "bg-white";
+                    acc.push(
+                      <a
+                        key={link.type}
+                        href={link.href}
+                        target={link.isExternal ? "_blank" : undefined}
+                        rel={link.isExternal ? "noopener noreferrer" : undefined}
+                        className={`flex items-center justify-center p-3 border-2 border-black hover:bg-black hover:text-white transition-colors font-bold text-xs uppercase gap-2 ${isBranded ? brandBg : "bg-white"}`}
+                      >
+                        {link.type === "phone" && <Phone className="size-3" aria-hidden="true" />}
+                        {link.label}
+                      </a>,
+                    );
+                    return acc;
+                  }, [])}
                 </div>
                 <div className="mt-4 pt-4 border-t-2 border-black">
                   <ShareBar
@@ -202,12 +200,12 @@ const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
               <div className="inline-block motion-safe:animate-[marquee_20s_linear_infinite] font-black text-2xl md:text-4xl uppercase">
                 {flatSkills.map((skill: string, i: number) => (
                   <span key={`skill-${skill}-${i}`} className="mx-6 inline-flex items-center">
-                    {skill} <Star className="w-6 h-6 ml-6 fill-black" aria-hidden="true" />
+                    {skill} <Star className="size-6 ml-6 fill-black" aria-hidden="true" />
                   </span>
                 ))}
                 {flatSkills.map((skill: string, i: number) => (
                   <span key={`dup-skill-${skill}-${i}`} className="mx-6 inline-flex items-center">
-                    {skill} <Star className="w-6 h-6 ml-6 fill-black" aria-hidden="true" />
+                    {skill} <Star className="size-6 ml-6 fill-black" aria-hidden="true" />
                   </span>
                 ))}
               </div>
@@ -235,9 +233,9 @@ const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
                     >
                       <div className="border-b-2 md:border-b-4 border-black p-3 flex justify-between items-center bg-neutral-100">
                         <div className="flex gap-2">
-                          <div className="w-3 h-3 rounded-full border-2 border-black bg-red-400" />
-                          <div className="w-3 h-3 rounded-full border-2 border-black bg-yellow-400" />
-                          <div className="w-3 h-3 rounded-full border-2 border-black bg-green-400" />
+                          <div className="size-3 rounded-full border-2 border-black bg-red-400" />
+                          <div className="size-3 rounded-full border-2 border-black bg-yellow-400" />
+                          <div className="size-3 rounded-full border-2 border-black bg-green-400" />
                         </div>
                         <span className="font-bold text-xs uppercase">
                           {formatDateRange(job.start_date, job.end_date)}
@@ -253,7 +251,7 @@ const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
                             <p className="font-bold text-lg text-neutral-600">{job.company}</p>
                           </div>
                           <Briefcase
-                            className="w-8 h-8 border-2 border-black p-1 bg-white"
+                            className="size-8 border-2 border-black p-1 bg-white"
                             aria-hidden="true"
                           />
                         </div>
@@ -311,9 +309,9 @@ const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
                   >
                     <div className="border-b-2 md:border-b-4 border-black p-3 flex justify-between items-center bg-neutral-100">
                       <div className="flex gap-2">
-                        <div className="w-3 h-3 rounded-full border-2 border-black bg-red-400" />
-                        <div className="w-3 h-3 rounded-full border-2 border-black bg-yellow-400" />
-                        <div className="w-3 h-3 rounded-full border-2 border-black bg-green-400" />
+                        <div className="size-3 rounded-full border-2 border-black bg-red-400" />
+                        <div className="size-3 rounded-full border-2 border-black bg-yellow-400" />
+                        <div className="size-3 rounded-full border-2 border-black bg-green-400" />
                       </div>
                       {project.url && (
                         <a
@@ -332,7 +330,7 @@ const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
                         {project.title}
                         {project.url && (
                           <ArrowUpRight
-                            className="w-8 h-8 border-2 border-black p-1 bg-white hover:bg-black hover:text-white transition-colors"
+                            className="size-8 border-2 border-black p-1 bg-white hover:bg-black hover:text-white transition-colors"
                             aria-hidden="true"
                           />
                         )}
@@ -375,12 +373,12 @@ const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {content.education.map((edu, index) => (
                   <div
-                    key={index}
+                    key={`${edu.degree}-${edu.institution}-${index}`}
                     className="bg-white border-2 md:border-4 border-black p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
                   >
                     <div className="flex justify-between items-start mb-3">
                       <GraduationCap
-                        className="w-8 h-8 border-2 border-black p-1 bg-[#7B61FF] text-white"
+                        className="size-8 border-2 border-black p-1 bg-[#7B61FF] text-white"
                         aria-hidden="true"
                       />
                       {edu.graduation_date && (
@@ -418,12 +416,12 @@ const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {content.certifications.map((cert, index) => (
                   <div
-                    key={index}
+                    key={`${cert.name}-${index}`}
                     className="bg-white border-2 md:border-4 border-black p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-[transform,box-shadow]"
                   >
                     <div className="flex items-start gap-3">
                       <Award
-                        className="w-6 h-6 border-2 border-black p-1 bg-[#7B61FF] text-white"
+                        className="size-6 border-2 border-black p-1 bg-[#7B61FF] text-white"
                         aria-hidden="true"
                       />
                       <div className="flex-1">

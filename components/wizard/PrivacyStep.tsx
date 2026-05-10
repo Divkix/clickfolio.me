@@ -67,8 +67,8 @@ export function PrivacyStep({
     <div className="space-y-8">
       {/* Header */}
       <div className="text-center">
-        <div className="mx-auto w-16 h-16 bg-linear-to-r from-coral/20 to-coral/20 rounded-xl flex items-center justify-center mb-6">
-          <Shield className="w-8 h-8 text-coral" />
+        <div className="mx-auto size-16 bg-linear-to-r from-coral/20 to-coral/20 rounded-xl flex items-center justify-center mb-6">
+          <Shield className="size-8 text-coral" />
         </div>
         <h1 className="text-3xl sm:text-4xl font-bold text-foreground mb-3 leading-tight">
           Privacy Settings
@@ -83,7 +83,7 @@ export function PrivacyStep({
         {/* Info Banner */}
         <Card className="p-4 bg-coral/10 border-coral/30">
           <div className="flex gap-3">
-            <Info className="w-5 h-5 text-coral shrink-0 mt-0.5" />
+            <Info className="size-5 text-coral shrink-0 mt-0.5" />
             <div>
               <p className="text-sm text-coral font-medium">
                 Your email is always visible to potential employers.
@@ -101,7 +101,7 @@ export function PrivacyStep({
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-2">
-                  <Phone className="w-5 h-5 text-muted-foreground" />
+                  <Phone className="size-5 text-muted-foreground" />
                   <Label htmlFor="show-phone" className="text-base font-semibold text-foreground">
                     Show Phone Number
                   </Label>
@@ -113,12 +113,12 @@ export function PrivacyStep({
                   <p className="text-xs font-medium text-muted-foreground mb-1">Preview:</p>
                   {showPhone ? (
                     <div className="flex items-center gap-2 text-sm text-foreground">
-                      <Eye className="w-4 h-4 text-green-600" />
+                      <Eye className="size-4 text-green-600" />
                       <span className="font-medium">{content.contact.phone}</span>
                     </div>
                   ) : (
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <EyeOff className="w-4 h-4" />
+                      <EyeOff className="size-4" />
                       <span className="italic">Hidden from public view</span>
                     </div>
                   )}
@@ -140,7 +140,7 @@ export function PrivacyStep({
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-2">
-                  <MapPin className="w-5 h-5 text-muted-foreground" />
+                  <MapPin className="size-5 text-muted-foreground" />
                   <Label htmlFor="show-address" className="text-base font-semibold text-foreground">
                     Show Full Address
                   </Label>
@@ -152,12 +152,12 @@ export function PrivacyStep({
                   <p className="text-xs font-medium text-muted-foreground mb-1">Preview:</p>
                   {showAddress ? (
                     <div className="flex items-center gap-2 text-sm text-foreground">
-                      <Eye className="w-4 h-4 text-green-600" />
+                      <Eye className="size-4 text-green-600" />
                       <span className="font-medium">{content.contact.location}</span>
                     </div>
                   ) : (
                     <div className="flex items-center gap-2 text-sm text-foreground">
-                      <EyeOff className="w-4 h-4 text-coral" />
+                      <EyeOff className="size-4 text-coral" />
                       <span className="font-medium">{getCityState(content.contact.location)}</span>
                       <span className="text-xs text-muted-foreground">(City/State only)</span>
                     </div>
@@ -179,7 +179,7 @@ export function PrivacyStep({
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-2">
-                <Users className="w-5 h-5 text-muted-foreground" />
+                <Users className="size-5 text-muted-foreground" />
                 <Label
                   htmlFor="show-in-directory"
                   className="text-base font-semibold text-foreground"
@@ -194,12 +194,12 @@ export function PrivacyStep({
                 <p className="text-xs font-medium text-muted-foreground mb-1">Preview:</p>
                 {showInDirectory ? (
                   <div className="flex items-center gap-2 text-sm text-foreground">
-                    <Eye className="w-4 h-4 text-green-600" />
+                    <Eye className="size-4 text-green-600" />
                     <span className="font-medium">Listed on /explore</span>
                   </div>
                 ) : (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <EyeOff className="w-4 h-4" />
+                    <EyeOff className="size-4" />
                     <span className="italic">Hidden from explore directory</span>
                   </div>
                 )}
@@ -219,7 +219,7 @@ export function PrivacyStep({
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-2">
-                <Search className="w-5 h-5 text-muted-foreground" />
+                <Search className="size-5 text-muted-foreground" />
                 <Label
                   htmlFor="hide-from-search"
                   className="text-base font-semibold text-foreground"
@@ -234,13 +234,13 @@ export function PrivacyStep({
                 <p className="text-xs font-medium text-muted-foreground mb-1">Preview:</p>
                 {hideFromSearch ? (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <EyeOff className="w-4 h-4 text-coral" />
+                    <EyeOff className="size-4 text-coral" />
                     <span className="font-medium">Not indexed by search engines</span>
                     <span className="text-xs text-muted-foreground">(noindex)</span>
                   </div>
                 ) : (
                   <div className="flex items-center gap-2 text-sm text-foreground">
-                    <Eye className="w-4 h-4 text-green-600" />
+                    <Eye className="size-4 text-green-600" />
                     <span className="font-medium">Visible in search results</span>
                   </div>
                 )}
@@ -258,7 +258,7 @@ export function PrivacyStep({
         {/* No sensitive data message */}
         {!content.contact.phone && !content.contact.location && (
           <Card className="p-6 border-ink/10 shadow-sm text-center">
-            <Shield className="w-12 h-12 text-muted-foreground/70 mx-auto mb-3" />
+            <Shield className="size-12 text-muted-foreground/70 mx-auto mb-3" />
             <p className="text-muted-foreground">
               No phone number or address found in your resume.
               <br />

@@ -54,17 +54,24 @@ export async function performR2Cleanup(binding: R2Bucket): Promise<R2CleanupResu
       return uploadTime <= cutoffTime;
     });
 
-    // Delete old objects
-    for (const obj of oldObjects) {
-      try {
-        // Only delete from temp/ prefix as safety check
-        if (obj.key.startsWith(TEMP_PREFIX)) {
+    // Delete old objects in parallel (independent operations)
+    const deletePromises = oldObjects
+      .filter((obj) => obj.key.startsWith(TEMP_PREFIX))
+      .map(async (obj) => {
+        try {
           await binding.delete(obj.key);
-          deleted++;
-          bytesFreed += obj.size;
+          return { ok: true as const, size: obj.size, key: obj.key };
+        } catch (error) {
+          console.error(`Failed to delete R2 object ${obj.key}:`, error);
+          return { ok: false as const, key: obj.key };
         }
-      } catch (error) {
-        console.error(`Failed to delete R2 object ${obj.key}:`, error);
+      });
+    const results = await Promise.all(deletePromises);
+    for (const result of results) {
+      if (result.ok) {
+        deleted++;
+        bytesFreed += result.size;
+      } else {
         failed++;
       }
     }

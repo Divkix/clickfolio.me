@@ -136,7 +136,7 @@ export function ThemeSelector({
       {/* Success/Error Messages */}
       {successMessage && (
         <div className="flex items-center gap-2 p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-900 text-sm">
-          <CheckCircle2 className="h-4 w-4 shrink-0" />
+          <CheckCircle2 className="size-4 shrink-0" />
           <span>{successMessage}</span>
         </div>
       )}
@@ -187,7 +187,7 @@ export function ThemeSelector({
                     src={meta.preview}
                     alt={`${meta.name} preview`}
                     className={cn(
-                      "w-full h-full object-cover object-top",
+                      "size-full object-cover object-top",
                       !isUnlocked && "blur-[2px] grayscale",
                     )}
                     loading="lazy"
@@ -195,7 +195,7 @@ export function ThemeSelector({
                   {/* Lock Overlay for locked themes */}
                   {!isUnlocked && (
                     <div className="absolute inset-0 bg-ink/40 flex flex-col items-center justify-center">
-                      <Lock className="w-5 h-5 text-white mb-1" />
+                      <Lock className="size-5 text-white mb-1" />
                       <span className="text-[10px] text-white font-semibold">
                         {requiredReferrals} referrals
                       </span>
@@ -220,7 +220,7 @@ export function ThemeSelector({
                   )}
                   {!isUnlocked && (
                     <span className="inline-flex items-center gap-1 mt-1 text-[10px] md:text-xs font-medium text-amber">
-                      <Gift className="w-3 h-3" />
+                      <Gift className="size-3" />
                       Locked
                     </span>
                   )}
@@ -228,8 +228,8 @@ export function ThemeSelector({
 
                 {/* Selection Indicator */}
                 {isSelected && isUnlocked && (
-                  <div className="absolute top-2 right-2 w-5 h-5 bg-coral rounded-full flex items-center justify-center">
-                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <div className="absolute top-2 right-2 size-5 bg-coral rounded-full flex items-center justify-center">
+                    <svg className="size-3 text-white" fill="currentColor" viewBox="0 0 20 20">
                       <title>Selected</title>
                       <path
                         fillRule="evenodd"
@@ -274,7 +274,7 @@ export function ThemeSelector({
           >
             {isUpdating ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="size-4 animate-spin" />
                 Applying...
               </>
             ) : (

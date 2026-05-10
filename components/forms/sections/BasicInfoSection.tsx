@@ -29,7 +29,7 @@ export function BasicInfoSection({ form }: BasicInfoSectionProps) {
         <div className="relative shrink-0">
           <div className="absolute inset-0 bg-linear-to-r from-coral to-coral rounded-lg blur-md opacity-20" />
           <div className="relative bg-linear-to-r from-coral/20 to-coral/20 p-2.5 rounded-lg">
-            <User className="h-5 w-5 text-coral" />
+            <User className="size-5 text-coral" />
           </div>
         </div>
         <div>

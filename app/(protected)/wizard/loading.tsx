@@ -17,8 +17,8 @@ export default function WizardLoading() {
           {/* Step Indicators */}
           <div className="flex justify-between mt-3">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <Skeleton className="h-6 w-6 rounded-full" />
+              <div key={`step-skeleton-${i}`} className="flex items-center gap-2">
+                <Skeleton className="size-6 rounded-full" />
                 <Skeleton className="h-4 w-16 hidden sm:block" />
               </div>
             ))}
@@ -33,7 +33,7 @@ export default function WizardLoading() {
           <div className="bg-card rounded-xl shadow-md border border-ink/10 p-8 w-full max-w-xl">
             {/* Card Header */}
             <div className="text-center mb-8">
-              <Skeleton className="h-12 w-12 rounded-xl mx-auto mb-4" />
+              <Skeleton className="size-12 rounded-xl mx-auto mb-4" />
               <Skeleton className="h-8 w-64 mx-auto mb-2" />
               <Skeleton className="h-5 w-80 mx-auto" />
             </div>
@@ -60,7 +60,7 @@ export default function WizardLoading() {
             {/* Footer */}
             <div className="mt-6 pt-6 border-t border-ink/15">
               <div className="flex items-center justify-center gap-2">
-                <Skeleton className="h-4 w-4 rounded-full" />
+                <Skeleton className="size-4 rounded-full" />
                 <Skeleton className="h-4 w-48" />
               </div>
             </div>

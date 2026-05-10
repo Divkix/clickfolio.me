@@ -9,10 +9,15 @@ export function parsePreviewSkills(raw: string | null | undefined): string[] {
     const parsed: unknown = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
 
-    return parsed
-      .filter((item): item is string => typeof item === "string")
-      .map((skill) => skill.trim())
-      .filter((skill) => skill.length > 0);
+    const result: string[] = [];
+    for (const item of parsed) {
+      if (typeof item !== "string") continue;
+      const skill = item.trim();
+      if (skill.length > 0) {
+        result.push(skill);
+      }
+    }
+    return result;
   } catch {
     return [];
   }

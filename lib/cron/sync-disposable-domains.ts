@@ -26,10 +26,13 @@ export async function syncDisposableDomains(kv: KVNamespace): Promise<SyncResult
   }
 
   const text = await response.text();
-  const domains = text
-    .split("\n")
-    .map((line) => line.trim().toLowerCase())
-    .filter((line) => line !== "" && !line.startsWith("#"));
+  const domains: string[] = [];
+  for (const line of text.split("\n")) {
+    const trimmed = line.trim().toLowerCase();
+    if (trimmed !== "" && !trimmed.startsWith("#")) {
+      domains.push(trimmed);
+    }
+  }
 
   if (domains.length < MINIMUM_DOMAIN_COUNT) {
     throw new Error(

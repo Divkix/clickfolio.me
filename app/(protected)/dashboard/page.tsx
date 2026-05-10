@@ -132,7 +132,7 @@ export default async function DashboardPage() {
             <div className="relative inline-block mb-6">
               <div className="absolute inset-0 bg-linear-to-r from-coral to-coral rounded-xl blur-xl opacity-20" />
               <div className="relative bg-linear-to-r from-coral/20 to-coral/20 p-6 rounded-xl">
-                <Upload className="w-12 h-12 text-coral mx-auto" aria-hidden="true" />
+                <Upload className="size-12 text-coral mx-auto" aria-hidden="true" />
               </div>
             </div>
             <h2 className="text-2xl font-bold text-foreground mb-3">No Resume Yet</h2>
@@ -144,7 +144,7 @@ export default async function DashboardPage() {
               variant="default"
               className="w-full bg-linear-to-r from-coral to-coral hover:from-coral/90 hover:to-coral/90 text-white font-semibold transition-all duration-300 shadow-sm hover:shadow-md"
             >
-              <Upload className="h-4 w-4 mr-2" aria-hidden="true" />
+              <Upload className="size-4 mr-2" aria-hidden="true" />
               Upload Your Resume
             </DashboardUploadSection>
           </div>
@@ -189,7 +189,7 @@ export default async function DashboardPage() {
                   <div className="rounded-lg border border-coral/30 bg-coral/10 p-4 mb-4">
                     <div className="flex items-start gap-3">
                       <AlertCircle
-                        className="h-5 w-5 text-coral shrink-0 mt-0.5"
+                        className="size-5 text-coral shrink-0 mt-0.5"
                         aria-hidden="true"
                       />
                       <div className="flex-1">
@@ -221,7 +221,7 @@ export default async function DashboardPage() {
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-3">
-                          <CheckCircle2 className="h-5 w-5 text-ink" aria-hidden="true" />
+                          <CheckCircle2 className="size-5 text-ink" aria-hidden="true" />
                           <h3 className="font-semibold text-ink">Complete Your Profile</h3>
                         </div>
 
@@ -246,7 +246,10 @@ export default async function DashboardPage() {
                           </p>
                           <ul className="space-y-1.5">
                             {suggestions.map((suggestion, index) => (
-                              <li key={index} className="text-sm flex items-start gap-2">
+                              <li
+                                key={`suggestion-${suggestion}-${index}`}
+                                className="text-sm flex items-start gap-2"
+                              >
                                 <span
                                   className="text-muted-foreground/70 mt-0.5"
                                   aria-hidden="true"
@@ -263,7 +266,7 @@ export default async function DashboardPage() {
                             className="mt-4 bg-ink hover:bg-ink/90 text-cream font-semibold"
                           >
                             <Link href="/edit">
-                              <Edit3 className="h-3 w-3 mr-2" aria-hidden="true" />
+                              <Edit3 className="size-3 mr-2" aria-hidden="true" />
                               Complete Now
                             </Link>
                           </Button>
@@ -279,7 +282,7 @@ export default async function DashboardPage() {
                 <div className="col-span-full">
                   <Alert className="border-mint bg-mint/5 rounded-xl shadow-sm hover:shadow-md transition-all duration-300">
                     <div className="flex items-center gap-3">
-                      <CheckCircle2 className="h-5 w-5 text-mint" aria-hidden="true" />
+                      <CheckCircle2 className="size-5 text-mint" aria-hidden="true" />
                       <AlertDescription className="text-foreground font-medium">
                         Your profile is complete! Your resume looks professional and ready to share.
                       </AlertDescription>
@@ -324,7 +327,7 @@ export default async function DashboardPage() {
                       <div className="relative shrink-0">
                         <div className="absolute inset-0 bg-linear-to-r from-coral to-coral rounded-lg blur-md opacity-20" />
                         <div className="relative bg-linear-to-r from-coral/20 to-coral/20 p-2 rounded-lg">
-                          <Briefcase className="h-4 w-4 text-coral" aria-hidden="true" />
+                          <Briefcase className="size-4 text-coral" aria-hidden="true" />
                         </div>
                       </div>
                       <div>
@@ -341,7 +344,7 @@ export default async function DashboardPage() {
                       <div className="relative shrink-0">
                         <div className="absolute inset-0 bg-linear-to-r from-purple-500 to-pink-500 rounded-lg blur-md opacity-20" />
                         <div className="relative bg-linear-to-r from-purple-100 to-pink-100 p-2 rounded-lg">
-                          <GraduationCap className="h-4 w-4 text-purple-600" aria-hidden="true" />
+                          <GraduationCap className="size-4 text-purple-600" aria-hidden="true" />
                         </div>
                       </div>
                       <div>
@@ -356,7 +359,7 @@ export default async function DashboardPage() {
                       <div className="relative shrink-0">
                         <div className="absolute inset-0 bg-linear-to-r from-emerald-500 to-teal-500 rounded-lg blur-md opacity-20" />
                         <div className="relative bg-linear-to-r from-emerald-100 to-teal-100 p-2 rounded-lg">
-                          <Wrench className="h-4 w-4 text-emerald-600" aria-hidden="true" />
+                          <Wrench className="size-4 text-emerald-600" aria-hidden="true" />
                         </div>
                       </div>
                       <div>
@@ -373,7 +376,7 @@ export default async function DashboardPage() {
                       <div className="relative shrink-0">
                         <div className="absolute inset-0 bg-linear-to-r from-orange-500 to-amber-500 rounded-lg blur-md opacity-20" />
                         <div className="relative bg-linear-to-r from-orange-100 to-amber-100 p-2 rounded-lg">
-                          <Award className="h-4 w-4 text-orange-600" aria-hidden="true" />
+                          <Award className="size-4 text-orange-600" aria-hidden="true" />
                         </div>
                       </div>
                       <div>
@@ -403,7 +406,7 @@ export default async function DashboardPage() {
                       className="flex-1 bg-linear-to-r from-coral to-coral hover:from-coral/90 hover:to-coral/90 text-white font-semibold transition-colors duration-300 shadow-sm hover:shadow-md"
                     >
                       <Link href="/edit">
-                        <Edit3 className="h-4 w-4 mr-2" aria-hidden="true" />
+                        <Edit3 className="size-4 mr-2" aria-hidden="true" />
                         Edit Content
                       </Link>
                     </Button>
@@ -432,7 +435,7 @@ export default async function DashboardPage() {
                       <div className="relative shrink-0 mt-0.5">
                         <div className="absolute inset-0 bg-linear-to-r from-coral to-coral rounded-lg blur-md opacity-20" />
                         <div className="relative bg-linear-to-r from-coral/20 to-coral/20 p-2 rounded-lg">
-                          <Mail className="w-4 h-4 text-coral" aria-hidden="true" />
+                          <Mail className="size-4 text-coral" aria-hidden="true" />
                         </div>
                       </div>
                       <div className="flex-1 min-w-0">
@@ -449,7 +452,7 @@ export default async function DashboardPage() {
                           <div className="relative shrink-0 mt-0.5">
                             <div className="absolute inset-0 bg-linear-to-r from-coral to-coral rounded-lg blur-md opacity-20" />
                             <div className="relative bg-linear-to-r from-coral/20 to-coral/20 p-2 rounded-lg">
-                              <LinkIcon className="w-4 h-4 text-coral" aria-hidden="true" />
+                              <LinkIcon className="size-4 text-coral" aria-hidden="true" />
                             </div>
                           </div>
                           <div className="flex-1 min-w-0">
@@ -478,7 +481,7 @@ export default async function DashboardPage() {
                           <div className="relative shrink-0 mt-0.5">
                             <div className="absolute inset-0 bg-linear-to-r from-coral to-coral rounded-lg blur-md opacity-20" />
                             <div className="relative bg-linear-to-r from-coral/20 to-coral/20 p-2 rounded-lg">
-                              <Calendar className="w-4 h-4 text-coral" aria-hidden="true" />
+                              <Calendar className="size-4 text-coral" aria-hidden="true" />
                             </div>
                           </div>
                           <div className="flex-1 min-w-0">
@@ -518,7 +521,7 @@ export default async function DashboardPage() {
                 {resume.status === "failed" && (
                   <div className="space-y-6">
                     <div className="flex items-center gap-4">
-                      <AlertCircle className="h-8 w-8 text-coral shrink-0" aria-hidden="true" />
+                      <AlertCircle className="size-8 text-coral shrink-0" aria-hidden="true" />
                       <div className="flex-1">
                         <h3 className="text-xl font-bold text-coral mb-1">Processing failed</h3>
                         <p className="text-coral">
@@ -542,7 +545,7 @@ export default async function DashboardPage() {
                 {resume.status === "pending_claim" && (
                   <div className="flex items-center gap-4">
                     <Loader2
-                      className="h-8 w-8 animate-spin text-muted-foreground shrink-0"
+                      className="size-8 animate-spin text-muted-foreground shrink-0"
                       aria-hidden="true"
                     />
                     <div className="flex-1">

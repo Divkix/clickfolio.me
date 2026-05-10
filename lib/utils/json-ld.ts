@@ -161,12 +161,15 @@ function buildAlumniOf(
     return undefined;
   }
 
-  const alumni = education
-    .filter((edu) => edu.institution && edu.institution.trim().length > 0)
-    .map((edu) => ({
-      "@type": "EducationalOrganization" as const,
-      name: edu.institution,
-    }));
+  const alumni: Array<{ "@type": "EducationalOrganization"; name: string }> = [];
+  for (const edu of education) {
+    if (edu.institution && edu.institution.trim().length > 0) {
+      alumni.push({
+        "@type": "EducationalOrganization" as const,
+        name: edu.institution,
+      });
+    }
+  }
 
   return alumni.length > 0 ? alumni : undefined;
 }

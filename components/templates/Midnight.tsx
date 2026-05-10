@@ -9,10 +9,10 @@ import { flattenSkills, formatDateRange, formatYear, getInitials } from "@/lib/t
 import type { TemplateProps } from "@/lib/types/template";
 
 const midnightIconMap: Partial<Record<ContactLinkType, ReactNode>> = {
-  phone: <Phone className="w-4 h-4" aria-hidden="true" />,
-  github: <GitHubIcon variant="white" className="w-4 h-4" aria-hidden={true} />,
-  linkedin: <LinkedInIcon variant="white" className="w-4 h-4" aria-hidden={true} />,
-  website: <Globe className="w-4 h-4" aria-hidden="true" />,
+  phone: <Phone className="size-4" aria-hidden="true" />,
+  github: <GitHubIcon variant="white" className="size-4" aria-hidden={true} />,
+  linkedin: <LinkedInIcon variant="white" className="size-4" aria-hidden={true} />,
+  website: <Globe className="size-4" aria-hidden="true" />,
 };
 
 // Pseudo-random star field positions (seeded, deterministic)
@@ -140,17 +140,17 @@ const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
             <header className="flex flex-col items-center text-center mb-32 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4 duration-700">
               <div className="relative mb-8 group">
                 <div className="absolute -inset-1 bg-[#C9A96E]/20 rounded-full blur opacity-40 group-hover:opacity-60 transition-opacity duration-500" />
-                <div className="relative w-20 h-20 md:w-28 md:h-28 rounded-full border border-[#C9A96E]/30 overflow-hidden bg-neutral-900 shadow-2xl">
+                <div className="relative size-20 md:w-28 md:h-28 rounded-full border border-[#C9A96E]/30 overflow-hidden bg-neutral-900 shadow-2xl">
                   {profile.avatar_url ? (
                     <img
                       src={profile.avatar_url}
                       alt={content.full_name}
                       width={112}
                       height={112}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-neutral-900 text-3xl font-display-mn text-[#C9A96E]">
+                    <div className="size-full flex items-center justify-center bg-neutral-900 text-3xl font-display-mn text-[#C9A96E]">
                       {getInitials(content.full_name)}
                     </div>
                   )}
@@ -168,17 +168,17 @@ const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
               <div className="flex items-center gap-4 text-sm text-neutral-500 font-body-mn border border-white/5 bg-white/5 px-4 py-1.5 rounded-full">
                 {content.contact.location && (
                   <div className="flex items-center gap-1.5">
-                    <MapPin className="w-3.5 h-3.5 text-[#C9A96E]/80" aria-hidden="true" />
+                    <MapPin className="size-3.5 text-[#C9A96E]/80" aria-hidden="true" />
                     <span>{content.contact.location}</span>
                   </div>
                 )}
                 {content.contact.location && (
-                  <div className="w-1 h-1 rounded-full bg-neutral-700" aria-hidden="true" />
+                  <div className="size-1 rounded-full bg-neutral-700" aria-hidden="true" />
                 )}
                 <div className="flex items-center gap-1.5 text-green-500/80">
-                  <span className="relative flex h-2 w-2">
-                    <span className="motion-safe:animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
+                  <span className="relative flex size-2">
+                    <span className="motion-safe:animate-ping absolute inline-flex size-full rounded-full bg-green-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full size-2 bg-green-500" />
                   </span>
                   <span>Available</span>
                 </div>
@@ -208,7 +208,7 @@ const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
 
                         return (
                           <div
-                            key={index}
+                            key={`${job.title}-${job.company}-${index}`}
                             className={`bg-white/2 border transition-colors duration-300 rounded-lg overflow-hidden ${
                               isExpanded
                                 ? "border-l-2 border-l-[#C9A96E] border-t-white/5 border-r-white/5 border-b-white/5"
@@ -241,7 +241,7 @@ const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
                                 <div className="px-6 pb-5 pt-1">
                                   {job.location && (
                                     <p className="text-neutral-500 text-xs font-body-mn mb-3 flex items-center gap-1.5">
-                                      <MapPin className="w-3 h-3" aria-hidden="true" />
+                                      <MapPin className="size-3" aria-hidden="true" />
                                       {job.location}
                                     </p>
                                   )}
@@ -260,7 +260,7 @@ const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
                                           className="text-neutral-500 text-sm flex items-start gap-2.5 font-body-mn"
                                         >
                                           <span
-                                            className="mt-1.5 w-1 h-1 rounded-full bg-[#C9A96E]/50 shrink-0"
+                                            className="mt-1.5 size-1 rounded-full bg-[#C9A96E]/50 shrink-0"
                                             aria-hidden="true"
                                           />
                                           <span className="leading-relaxed">{highlight}</span>
@@ -285,7 +285,7 @@ const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
                     <div className="grid grid-cols-1 gap-6">
                       {content.projects.map((project, index) => (
                         <div
-                          key={index}
+                          key={`${project.title}-${index}`}
                           className="group relative bg-white/2 border border-white/5 hover:border-[#C9A96E]/30 rounded-lg p-6 transition-[border-color,box-shadow] duration-300 hover:shadow-[0_0_20px_rgba(201,169,110,0.05)] overflow-hidden"
                         >
                           <div className="flex flex-col md:flex-row gap-4 md:items-start justify-between">
@@ -345,11 +345,11 @@ const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
                     <div className="flex flex-wrap gap-2">
                       {flatSkills.map((skill, i) => (
                         <span
-                          key={i}
+                          key={`skill-${skill}-${i}`}
                           className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/10 text-sm text-neutral-300 font-body-mn hover:border-[#C9A96E]/40 hover:text-[#DFC08A] hover:shadow-[0_0_12px_rgba(201,169,110,0.3)] transition-all duration-300 cursor-default"
                         >
                           <span
-                            className="w-1.5 h-1.5 rounded-full bg-[#C9A96E]/50"
+                            className="size-1.5 rounded-full bg-[#C9A96E]/50"
                             aria-hidden="true"
                           />
                           {skill}
@@ -365,7 +365,10 @@ const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
                     <SectionHeader label="Education" />
                     <div className="space-y-6">
                       {content.education.map((edu, index) => (
-                        <div key={index} className="border-l border-[#C9A96E]/20 pl-4">
+                        <div
+                          key={`${edu.institution}-${index}`}
+                          className="border-l border-[#C9A96E]/20 pl-4"
+                        >
                           <div className="text-white font-display-mn font-medium text-sm">
                             {edu.institution}
                           </div>
@@ -390,7 +393,10 @@ const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
                     <SectionHeader label="Certifications" />
                     <div className="space-y-5">
                       {content.certifications.map((cert, index) => (
-                        <div key={index} className="group border-l border-[#C9A96E]/20 pl-4">
+                        <div
+                          key={`${cert.name}-${index}`}
+                          className="group border-l border-[#C9A96E]/20 pl-4"
+                        >
                           <h3 className="text-neutral-200 text-sm font-body-mn font-medium group-hover:text-[#DFC08A] transition-colors">
                             {cert.name}
                           </h3>
@@ -419,45 +425,44 @@ const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
                 )}
 
                 {/* Contact Links (Sidebar) */}
-                {contactLinks.filter((l) => l.type !== "email" && l.type !== "location").length >
-                  0 && (
+                {contactLinks.some((l) => l.type !== "email" && l.type !== "location") && (
                   <section>
                     <SectionHeader label="Connect" />
                     <div className="flex flex-wrap gap-2">
-                      {contactLinks
-                        .filter((link) => link.type !== "email" && link.type !== "location")
-                        .map((link) => {
-                          const icon = midnightIconMap[link.type];
-                          const isBranded = link.type === "behance" || link.type === "dribbble";
-                          const brandColor =
-                            link.type === "behance"
-                              ? "#1769FF"
-                              : link.type === "dribbble"
-                                ? "#EA4C89"
-                                : undefined;
-                          const brandText =
-                            link.type === "behance" ? "Bē" : link.type === "dribbble" ? "Dr" : null;
+                      {contactLinks.reduce<React.JSX.Element[]>((acc, link) => {
+                        if (link.type === "email" || link.type === "location") return acc;
+                        const icon = midnightIconMap[link.type];
+                        const isBranded = link.type === "behance" || link.type === "dribbble";
+                        const brandColor =
+                          link.type === "behance"
+                            ? "#1769FF"
+                            : link.type === "dribbble"
+                              ? "#EA4C89"
+                              : undefined;
+                        const brandText =
+                          link.type === "behance" ? "Bē" : link.type === "dribbble" ? "Dr" : null;
 
-                          return (
-                            <a
-                              key={link.type}
-                              href={link.href}
-                              target={link.isExternal ? "_blank" : undefined}
-                              rel={link.isExternal ? "noopener noreferrer" : undefined}
-                              aria-label={link.label}
-                              className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center text-neutral-400 hover:text-[#DFC08A] hover:border-[#C9A96E]/40 hover:shadow-[0_0_12px_rgba(201,169,110,0.3)] transition-all duration-300"
-                              style={isBranded ? { color: brandColor } : undefined}
-                            >
-                              {isBranded ? (
-                                <span className="text-xs font-bold" aria-hidden="true">
-                                  {brandText}
-                                </span>
-                              ) : (
-                                icon
-                              )}
-                            </a>
-                          );
-                        })}
+                        acc.push(
+                          <a
+                            key={link.type}
+                            href={link.href}
+                            target={link.isExternal ? "_blank" : undefined}
+                            rel={link.isExternal ? "noopener noreferrer" : undefined}
+                            aria-label={link.label}
+                            className="size-10 rounded-full border border-white/10 flex items-center justify-center text-neutral-400 hover:text-[#DFC08A] hover:border-[#C9A96E]/40 hover:shadow-[0_0_12px_rgba(201,169,110,0.3)] transition-all duration-300"
+                            style={isBranded ? { color: brandColor } : undefined}
+                          >
+                            {isBranded ? (
+                              <span className="text-xs font-bold" aria-hidden="true">
+                                {brandText}
+                              </span>
+                            ) : (
+                              icon
+                            )}
+                          </a>,
+                        );
+                        return acc;
+                      }, [])}
                     </div>
                   </section>
                 )}
@@ -476,7 +481,7 @@ const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
                 href={emailLink.href}
                 className="inline-flex items-center gap-2 px-8 py-3 rounded-full border-2 border-[#C9A96E] text-[#C9A96E] font-display-mn font-medium text-lg hover:bg-[#C9A96E]/10 hover:text-[#DFC08A] hover:border-[#DFC08A] transition-all duration-300"
               >
-                <Mail className="w-5 h-5" aria-hidden="true" />
+                <Mail className="size-5" aria-hidden="true" />
                 <span>Get in touch</span>
               </a>
             )}

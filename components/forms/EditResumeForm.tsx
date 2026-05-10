@@ -119,7 +119,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
               <div className="relative shrink-0">
                 <div className="absolute inset-0 bg-linear-to-r from-coral to-coral rounded-lg blur-md opacity-20" />
                 <div className="relative bg-linear-to-r from-coral/20 to-coral/20 p-2 rounded-lg">
-                  <Save className="h-4 w-4 text-coral" />
+                  <Save className="size-4 text-coral" />
                 </div>
               </div>
               <SaveIndicator status={saveStatus} lastSaved={lastSaved} />
@@ -129,7 +129,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
               disabled={saveStatus === "saving"}
               className="bg-linear-to-r from-coral to-coral hover:from-coral/90 hover:to-coral/90 text-white font-semibold shadow-sm hover:shadow-md transition-all duration-300"
             >
-              <Save className="h-4 w-4 mr-2" />
+              <Save className="size-4 mr-2" />
               Publish Changes
             </Button>
           </div>
@@ -151,7 +151,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
             disabled={saveStatus === "saving"}
             className="bg-linear-to-r from-coral to-coral hover:from-coral/90 hover:to-coral/90 text-white font-semibold shadow-sm hover:shadow-md transition-all duration-300"
           >
-            <Save className="h-4 w-4 mr-2" />
+            <Save className="size-4 mr-2" />
             Publish Changes
           </Button>
         </div>

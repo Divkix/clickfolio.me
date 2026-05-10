@@ -322,7 +322,7 @@ function StatsContent({ stats }: { stats: AnalyticsStats }) {
           <div className="relative shrink-0">
             <div className="absolute inset-0 bg-linear-to-r from-coral to-coral rounded-lg blur-md opacity-20" />
             <div className="relative bg-linear-to-r from-coral/20 to-coral/20 p-2 rounded-lg">
-              <Eye className="w-4 h-4 text-coral" aria-hidden="true" />
+              <Eye className="size-4 text-coral" aria-hidden="true" />
             </div>
           </div>
           <div>
@@ -334,7 +334,7 @@ function StatsContent({ stats }: { stats: AnalyticsStats }) {
           <div className="relative shrink-0">
             <div className="absolute inset-0 bg-linear-to-r from-emerald-500 to-teal-500 rounded-lg blur-md opacity-20" />
             <div className="relative bg-linear-to-r from-emerald-100 to-teal-100 p-2 rounded-lg">
-              <Users className="w-4 h-4 text-emerald-600" aria-hidden="true" />
+              <Users className="size-4 text-emerald-600" aria-hidden="true" />
             </div>
           </div>
           <div>
@@ -386,7 +386,7 @@ function StatsContent({ stats }: { stats: AnalyticsStats }) {
               const Icon = DEVICE_ICONS[d.device] || Globe;
               return (
                 <div key={d.device} className="flex items-center gap-1.5 text-sm">
-                  <Icon className="w-3.5 h-3.5 text-muted-foreground/70" aria-hidden="true" />
+                  <Icon className="size-3.5 text-muted-foreground/70" aria-hidden="true" />
                   <span className="text-muted-foreground capitalize">{d.device}</span>
                   <span className="font-medium text-foreground">{d.count}</span>
                 </div>
@@ -405,7 +405,7 @@ function EmptyState() {
       <div className="relative inline-block mb-3">
         <div className="absolute inset-0 bg-linear-to-r from-coral to-coral rounded-xl blur-lg opacity-20" />
         <div className="relative bg-linear-to-r from-coral/20 to-coral/20 p-4 rounded-xl">
-          <Eye className="w-6 h-6 text-coral" aria-hidden="true" />
+          <Eye className="size-6 text-coral" aria-hidden="true" />
         </div>
       </div>
       <p className="text-sm font-medium text-foreground/80 mb-1">No views yet</p>

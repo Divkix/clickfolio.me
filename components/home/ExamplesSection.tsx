@@ -64,7 +64,7 @@ export function ExamplesSection({ profiles }: { profiles: DemoProfile[] }) {
                   <img
                     src={THEME_METADATA[profile.id].preview}
                     alt={`${profile.name} - ${profile.badgeLabel} template`}
-                    className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-300"
+                    className="size-full object-cover object-top group-hover:scale-105 transition-transform duration-300"
                     loading="lazy"
                     decoding="async"
                   />
@@ -113,7 +113,7 @@ export function ExamplesSection({ profiles }: { profiles: DemoProfile[] }) {
                     <span className="font-mono text-xs">View template</span>
                     <svg
                       aria-hidden="true"
-                      className="w-4 h-4 transform group-hover:translate-x-1 transition-transform"
+                      className="size-4 transform group-hover:translate-x-1 transition-transform"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"

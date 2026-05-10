@@ -11,12 +11,12 @@ import type { TemplateProps } from "@/lib/types/template";
 
 /* ─── Icon map ─── */
 const spotlightIconMap: Partial<Record<ContactLinkType, React.ReactNode>> = {
-  github: <Github className="w-5 h-5" aria-hidden={true} />,
-  linkedin: <Linkedin className="w-5 h-5" aria-hidden={true} />,
-  email: <Mail className="w-5 h-5" aria-hidden="true" />,
-  website: <Globe className="w-5 h-5" aria-hidden="true" />,
-  phone: <Phone className="w-5 h-5" aria-hidden="true" />,
-  location: <MapPin className="w-5 h-5" aria-hidden="true" />,
+  github: <Github className="size-5" aria-hidden={true} />,
+  linkedin: <Linkedin className="size-5" aria-hidden={true} />,
+  email: <Mail className="size-5" aria-hidden="true" />,
+  website: <Globe className="size-5" aria-hidden="true" />,
+  phone: <Phone className="size-5" aria-hidden="true" />,
+  location: <MapPin className="size-5" aria-hidden="true" />,
 };
 
 /* ─── Spotlight card with cursor-tracking radial gradient ─── */
@@ -297,10 +297,10 @@ const Spotlight: React.FC<TemplateProps> = ({ content, profile }) => {
                     alt={content.full_name}
                     width={192}
                     height={192}
-                    className="relative w-32 h-32 md:w-48 md:h-48 rounded-full object-cover border-4 border-[#FFFCF9] shadow-xl shadow-orange-500/10"
+                    className="relative size-32 md:w-48 md:h-48 rounded-full object-cover border-4 border-[#FFFCF9] shadow-xl shadow-orange-500/10"
                   />
                 ) : (
-                  <div className="relative w-32 h-32 md:w-48 md:h-48 rounded-full bg-stone-100 flex items-center justify-center text-3xl font-display-sl font-bold text-stone-300 border-4 border-[#FFFCF9] shadow-xl shadow-orange-500/10">
+                  <div className="relative size-32 md:w-48 md:h-48 rounded-full bg-stone-100 flex items-center justify-center text-3xl font-display-sl font-bold text-stone-300 border-4 border-[#FFFCF9] shadow-xl shadow-orange-500/10">
                     {getInitials(content.full_name)}
                   </div>
                 )}
@@ -329,12 +329,12 @@ const Spotlight: React.FC<TemplateProps> = ({ content, profile }) => {
           {content.experience?.length > 0 && (
             <section id="work" className="mb-24" aria-label="Work history">
               <h3 className="text-sm font-display-sl font-bold uppercase tracking-widest text-[#78716C] mb-10 flex items-center gap-2">
-                <Briefcase className="w-4 h-4" aria-hidden="true" /> Work History
+                <Briefcase className="size-4" aria-hidden="true" /> Work History
               </h3>
 
               <div className="space-y-4">
                 {content.experience.map((job, index) => (
-                  <SpotlightCard key={index}>
+                  <SpotlightCard key={`${job.title}-${job.company}-${index}`}>
                     <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1 mb-2">
                       <h4 className="text-xl font-display-sl font-bold text-[#1C1917]">
                         {job.company}
@@ -374,14 +374,14 @@ const Spotlight: React.FC<TemplateProps> = ({ content, profile }) => {
           {content.projects && content.projects.length > 0 && (
             <section id="projects" className="mb-24" aria-label="Selected projects">
               <h3 className="text-sm font-display-sl font-bold uppercase tracking-widest text-[#78716C] mb-10 flex items-center gap-2">
-                <Globe className="w-4 h-4" aria-hidden="true" /> Selected Projects
+                <Globe className="size-4" aria-hidden="true" /> Selected Projects
               </h3>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {content.projects.map((project, index) => (
-                  <SpotlightCard key={index} className="flex flex-col h-full">
+                  <SpotlightCard key={`${project.title}-${index}`} className="flex flex-col h-full">
                     <div className="flex justify-between items-start mb-4">
-                      <div className="w-10 h-10 rounded-full bg-[#FFFCF9] border border-stone-200 flex items-center justify-center text-[#1C1917] shadow-sm font-display-sl font-bold text-sm">
+                      <div className="size-10 rounded-full bg-[#FFFCF9] border border-stone-200 flex items-center justify-center text-[#1C1917] shadow-sm font-display-sl font-bold text-sm">
                         {getInitials(project.title)}
                       </div>
                       {project.url && (
@@ -392,7 +392,7 @@ const Spotlight: React.FC<TemplateProps> = ({ content, profile }) => {
                           aria-label="View project"
                           className="text-stone-400 hover:text-[#E84D0E] transition-colors"
                         >
-                          <ArrowUpRight className="w-5 h-5" aria-hidden="true" />
+                          <ArrowUpRight className="size-5" aria-hidden="true" />
                         </a>
                       )}
                     </div>
@@ -428,11 +428,11 @@ const Spotlight: React.FC<TemplateProps> = ({ content, profile }) => {
               {content.education && content.education.length > 0 && (
                 <div>
                   <h3 className="text-sm font-display-sl font-bold uppercase tracking-widest text-[#78716C] mb-8 flex items-center gap-2">
-                    <GraduationCap className="w-4 h-4" aria-hidden="true" /> Education
+                    <GraduationCap className="size-4" aria-hidden="true" /> Education
                   </h3>
                   <div className="space-y-6">
                     {content.education.map((edu, index) => (
-                      <div key={index} className="pb-2">
+                      <div key={`${edu.institution}-${index}`} className="pb-2">
                         <h4 className="font-display-sl font-semibold text-[#1C1917]">
                           {edu.institution}
                         </h4>
@@ -449,12 +449,12 @@ const Spotlight: React.FC<TemplateProps> = ({ content, profile }) => {
               {content.certifications && content.certifications.length > 0 && (
                 <div>
                   <h3 className="text-sm font-display-sl font-bold uppercase tracking-widest text-[#78716C] mb-8 flex items-center gap-2">
-                    <AwardIcon className="w-4 h-4" aria-hidden="true" /> Certifications
+                    <AwardIcon className="size-4" aria-hidden="true" /> Certifications
                   </h3>
                   <div className="space-y-4">
                     {content.certifications.map((cert, index) => (
                       <a
-                        key={index}
+                        key={`${cert.name}-${index}`}
                         href={cert.url || "#"}
                         target={cert.url ? "_blank" : undefined}
                         className="flex items-center justify-between p-4 bg-[#FFFCF9] border border-stone-200/60 rounded-xl hover:border-[#E84D0E]/30 transition-colors group"
@@ -467,7 +467,7 @@ const Spotlight: React.FC<TemplateProps> = ({ content, profile }) => {
                         </div>
                         {cert.url && (
                           <ArrowUpRight
-                            className="w-3 h-3 text-stone-300 group-hover:text-[#E84D0E]"
+                            className="size-3 text-stone-300 group-hover:text-[#E84D0E]"
                             aria-hidden="true"
                           />
                         )}
@@ -487,7 +487,7 @@ const Spotlight: React.FC<TemplateProps> = ({ content, profile }) => {
               </h2>
               <p className="text-[#78716C] max-w-md font-body-sl">
                 Currently open for new opportunities. Whether you have a role, a project, or just
-                want to say hi — let&apos;s connect.
+                want to say hi. Let&apos;s connect.
               </p>
 
               {content.contact.email && (

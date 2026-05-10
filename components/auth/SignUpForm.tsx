@@ -248,7 +248,7 @@ export function SignUpForm({ onSuccess, callbackURL }: SignUpFormProps) {
         />
         {isCheckingEmail && (
           <p className="text-sm text-ink/60 font-medium flex items-center gap-1">
-            <Loader2 className="w-3 h-3 animate-spin" />
+            <Loader2 className="size-3 animate-spin" />
             Checking email...
           </p>
         )}
@@ -320,7 +320,7 @@ export function SignUpForm({ onSuccess, callbackURL }: SignUpFormProps) {
       >
         {isSubmitting ? (
           <>
-            <Loader2 className="w-4 h-4 animate-spin" />
+            <Loader2 className="size-4 animate-spin" />
             <span>Creating account...</span>
           </>
         ) : (

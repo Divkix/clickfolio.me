@@ -97,7 +97,7 @@ export function HandleForm({ currentHandle, variant = "default" }: HandleFormPro
           <Label className="text-xs text-muted-foreground mb-1.5 block">Public URL</Label>
           <div className="flex gap-2">
             <div className="flex-1 flex items-center gap-1.5 px-3 py-2 rounded-lg border border-ink/15 bg-muted font-mono text-sm min-w-0">
-              <Link2 className="h-3.5 w-3.5 text-muted-foreground/70 shrink-0" />
+              <Link2 className="size-3.5 text-muted-foreground/70 shrink-0" />
               <span className="text-muted-foreground truncate">{siteConfig.domain}/@</span>
               <span className="font-semibold text-coral truncate">{currentHandle}</span>
             </div>
@@ -106,12 +106,12 @@ export function HandleForm({ currentHandle, variant = "default" }: HandleFormPro
               variant="outline"
               size="icon"
               onClick={handleCopy}
-              className="shrink-0 h-[38px] w-[38px]"
+              className="shrink-0 size-[38px]"
             >
               {copied ? (
-                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                <CheckCircle2 className="size-4 text-green-600" />
               ) : (
-                <Copy className="h-4 w-4" />
+                <Copy className="size-4" />
               )}
             </Button>
           </div>
@@ -138,7 +138,7 @@ export function HandleForm({ currentHandle, variant = "default" }: HandleFormPro
               disabled={isSaving || !isDirty || !!errors.handle}
               className="shrink-0"
             >
-              {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Update"}
+              {isSaving ? <Loader2 className="size-4 animate-spin" /> : "Update"}
             </Button>
           </div>
           {errors.handle && <p className="text-xs text-coral mt-1">{errors.handle.message}</p>}
@@ -156,7 +156,7 @@ export function HandleForm({ currentHandle, variant = "default" }: HandleFormPro
   return (
     <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-6">
       <div className="flex items-center gap-2 mb-4">
-        <Link2 className="h-5 w-5 text-coral" />
+        <Link2 className="size-5 text-coral" />
         <h3 className="text-lg font-semibold text-foreground">Public Handle</h3>
       </div>
 
@@ -168,7 +168,7 @@ export function HandleForm({ currentHandle, variant = "default" }: HandleFormPro
           </Label>
           <div className="flex gap-2">
             <div className="flex-1 flex items-center gap-2 px-3 py-2 rounded-md border border-ink/15 bg-muted font-mono text-sm">
-              <Link2 className="h-4 w-4 text-muted-foreground/70" />
+              <Link2 className="size-4 text-muted-foreground/70" />
               <span className="text-muted-foreground">{siteConfig.domain}/@</span>
               <span className="font-semibold text-coral">{currentHandle}</span>
             </div>
@@ -180,9 +180,9 @@ export function HandleForm({ currentHandle, variant = "default" }: HandleFormPro
               className="shrink-0"
             >
               {copied ? (
-                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                <CheckCircle2 className="size-4 text-green-600" />
               ) : (
-                <Copy className="h-4 w-4" />
+                <Copy className="size-4" />
               )}
             </Button>
           </div>
@@ -223,7 +223,7 @@ export function HandleForm({ currentHandle, variant = "default" }: HandleFormPro
         <Button type="submit" disabled={isSaving || !isDirty || !!errors.handle} className="w-full">
           {isSaving ? (
             <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <Loader2 className="mr-2 size-4 animate-spin" />
               Updating Handle...
             </>
           ) : (

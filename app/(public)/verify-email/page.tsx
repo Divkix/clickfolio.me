@@ -59,7 +59,7 @@ function VerifyEmailContent() {
     return (
       <div className="text-center space-y-4">
         <div className="flex justify-center">
-          <XCircle className="w-12 h-12 text-coral" />
+          <XCircle className="size-12 text-coral" />
         </div>
         <div className="space-y-2">
           <h2 className="font-bold text-ink text-lg">
@@ -102,7 +102,7 @@ function VerifyEmailContent() {
           >
             {isResending ? (
               <span className="flex items-center gap-2">
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className="size-4 animate-spin" />
                 Sending...
               </span>
             ) : resendCooldown > 0 ? (
@@ -137,7 +137,7 @@ function VerifyEmailContent() {
   return (
     <div className="text-center space-y-4">
       <div className="flex justify-center">
-        <CheckCircle className="w-12 h-12 text-green-600" />
+        <CheckCircle className="size-12 text-green-600" />
       </div>
       <div className="space-y-2">
         <h2 className="font-bold text-ink text-lg">Email Verified!</h2>
@@ -177,7 +177,7 @@ function VerifyEmailContent() {
 function LoadingFallback() {
   return (
     <div className="flex items-center justify-center py-8">
-      <Loader2 className="w-8 h-8 animate-spin text-ink/50" />
+      <Loader2 className="size-8 animate-spin text-ink/50" />
     </div>
   );
 }

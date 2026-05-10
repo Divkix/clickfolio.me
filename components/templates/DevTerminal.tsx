@@ -185,7 +185,7 @@ const DevTerminal: React.FC<TemplateProps> = ({ content, profile }) => {
                       const echoLineNum = lineNum;
                       lineNum += 1;
                       return (
-                        <div key={index} className="mb-4 last:mb-0">
+                        <div key={`${skillGroup.category}-${index}`} className="mb-4 last:mb-0">
                           <div className="text-[#7ee787] mb-2 flex items-start">
                             <span className="text-[#484f58] select-none mr-4 text-right inline-block w-8 shrink-0">
                               {echoLineNum}
@@ -227,7 +227,10 @@ const DevTerminal: React.FC<TemplateProps> = ({ content, profile }) => {
                 </div>
                 <div className="divide-y divide-[#21262d]">
                   {experience.map((job, index) => (
-                    <div key={index} className="p-4 hover:bg-[#0d1117] transition-colors">
+                    <div
+                      key={`${job.title}-${job.company}-${index}`}
+                      className="p-4 hover:bg-[#0d1117] transition-colors"
+                    >
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
                         <div>
                           <h3 className="font-sans-term font-semibold text-white">{job.title}</h3>
@@ -272,7 +275,7 @@ const DevTerminal: React.FC<TemplateProps> = ({ content, profile }) => {
                 <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                   {projects.map((project, index) => (
                     <a
-                      key={index}
+                      key={`${project.title}-${index}`}
                       href={
                         project.url
                           ? project.url.startsWith("http")
@@ -333,7 +336,7 @@ const DevTerminal: React.FC<TemplateProps> = ({ content, profile }) => {
                 </div>
                 <div className="p-4 space-y-4">
                   {education.map((edu, index) => (
-                    <div key={index}>
+                    <div key={`${edu.degree}-${edu.institution}-${index}`}>
                       <h3 className="font-sans-term font-semibold text-white text-sm">
                         {edu.degree}
                       </h3>
@@ -361,7 +364,7 @@ const DevTerminal: React.FC<TemplateProps> = ({ content, profile }) => {
                 </div>
                 <div className="p-4 space-y-4">
                   {certifications.map((cert, index) => (
-                    <div key={index}>
+                    <div key={`${cert.name}-${index}`}>
                       <h3 className="font-sans-term font-semibold text-[#F97583] text-sm">
                         {cert.name}
                       </h3>
@@ -390,9 +393,9 @@ const DevTerminal: React.FC<TemplateProps> = ({ content, profile }) => {
                 <span className="text-[#c9d1d9]">cat ./contact.txt</span>
               </div>
               <div className="flex flex-wrap gap-4 text-sm mb-6">
-                {contactLinks
-                  .filter((link) => link.type !== "location")
-                  .map((link) => (
+                {contactLinks.reduce<React.JSX.Element[]>((acc, link) => {
+                  if (link.type === "location") return acc;
+                  acc.push(
                     <a
                       key={link.type}
                       href={link.href}
@@ -401,8 +404,10 @@ const DevTerminal: React.FC<TemplateProps> = ({ content, profile }) => {
                       className="text-[#58a6ff] hover:underline"
                     >
                       {link.label}
-                    </a>
-                  ))}
+                    </a>,
+                  );
+                  return acc;
+                }, [])}
               </div>
 
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-4 border-t border-[#30363d]">

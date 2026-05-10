@@ -95,7 +95,7 @@ export function EmailVerificationBanner({
   return (
     <div className="bg-amber/5 border-2 border-amber rounded-xl p-4 shadow-sm">
       <div className="flex items-start gap-3">
-        <AlertCircle className="h-5 w-5 text-amber shrink-0 mt-0.5" />
+        <AlertCircle className="size-5 text-amber shrink-0 mt-0.5" />
         <div className="flex-1 min-w-0">
           <h3 className="font-semibold text-foreground">Verify your email</h3>
           <p className="mt-1 text-sm text-amber">
@@ -126,7 +126,7 @@ export function EmailVerificationBanner({
             >
               {isResending ? (
                 <>
-                  <Loader2 className="w-3 h-3 animate-spin" />
+                  <Loader2 className="size-3 animate-spin" />
                   Sending...
                 </>
               ) : resendCooldown > 0 ? (
@@ -143,7 +143,7 @@ export function EmailVerificationBanner({
           className="text-amber/80 hover:text-amber p-1 transition-colors"
           aria-label="Dismiss"
         >
-          <X className="h-4 w-4" />
+          <X className="size-4" />
         </button>
       </div>
     </div>

@@ -165,7 +165,7 @@ export default function AdminResumesPage() {
 
       {/* Filter */}
       <div className="flex items-center gap-4">
-        <FileText className="w-5 h-5 text-muted-foreground/70" aria-hidden="true" />
+        <FileText className="size-5 text-muted-foreground/70" aria-hidden="true" />
         <select
           value={statusFilter}
           onChange={(e) => updateParams({ status: e.target.value as StatusFilter })}

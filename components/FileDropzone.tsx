@@ -357,7 +357,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
               ${isDragging ? "bg-brand rotate-3" : "bg-amber group-hover:rotate-3"}
             `}
           >
-            <svg className="w-8 h-8 text-ink" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <svg className="size-8 text-ink" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -441,8 +441,8 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
           rel="noopener noreferrer"
           className="flex items-center justify-center gap-2 text-xs text-[#6B6B6B] hover:text-ink transition-colors mt-3"
         >
-          <ShieldCheck className="w-4 h-4" />
-          <span>Open source &amp; transparent — audit the code yourself</span>
+          <ShieldCheck className="size-4" />
+          <span>Open source &amp; transparent. Audit the code yourself</span>
         </a>
       )}
 
@@ -450,7 +450,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
       {!uploading && !error && !isModal && (
         <div className="flex items-center justify-center gap-2 bg-mint/10 border-2 border-mint/30 px-3 py-2 mt-3">
           <svg
-            className="w-4 h-4 text-mint shrink-0"
+            className="size-4 text-mint shrink-0"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -490,7 +490,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
               "
             >
               <svg
-                className="w-8 h-8 text-ink animate-spin"
+                className="size-8 text-ink animate-spin"
                 viewBox="0 0 24 24"
                 fill="none"
                 aria-hidden="true"
@@ -534,12 +534,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
                 justify-center
               "
             >
-              <svg
-                className="w-8 h-8 text-white"
-                viewBox="0 0 24 24"
-                fill="none"
-                aria-hidden="true"
-              >
+              <svg className="size-8 text-white" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -598,7 +593,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
                 rotate-3
               "
             >
-              <svg className="w-8 h-8 text-ink" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <svg className="size-8 text-ink" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"

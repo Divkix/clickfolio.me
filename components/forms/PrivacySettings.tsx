@@ -55,7 +55,7 @@ function ToggleCard({
               isWarning ? "bg-amber-100 text-amber-600" : "bg-coral/20 text-coral"
             }`}
           >
-            <Icon className="h-4 w-4" />
+            <Icon className="size-4" />
           </div>
           <div className="min-w-0">
             <p className="text-sm font-medium text-foreground truncate">{label}</p>
@@ -136,12 +136,12 @@ export function PrivacySettingsForm({ initialSettings }: PrivacySettingsFormProp
     <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-6">
       <div className="flex items-center justify-between gap-4 mb-4">
         <div className="flex items-center gap-2">
-          <Eye className="h-5 w-5 text-coral" />
+          <Eye className="size-5 text-coral" />
           <h3 className="text-lg font-semibold text-foreground">Privacy</h3>
         </div>
         {isSaving && (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <Loader2 className="size-4 animate-spin" />
             <span>Saving...</span>
           </div>
         )}

@@ -39,7 +39,7 @@ export function HighlightBlock({ children, variant = "default", title }: Highlig
   return (
     <div className={`${bg} border-3 ${border} shadow-brutal-sm p-6 my-8`}>
       <div className="flex items-start gap-3">
-        <Icon className={`w-5 h-5 ${iconColor} mt-0.5 flex-shrink-0`} />
+        <Icon className={`size-5 ${iconColor} mt-0.5 flex-shrink-0`} />
         <div className="flex-1">
           {title && <h4 className="font-bold text-ink mb-2">{title}</h4>}
           <div className="text-ink/85 leading-relaxed">{children}</div>

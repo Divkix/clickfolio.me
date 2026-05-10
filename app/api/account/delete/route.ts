@@ -91,7 +91,10 @@ export async function POST(request: Request) {
       .where(eq(resumes.userId, userId));
 
     // 6. Delete R2 files in parallel (best effort - continue even if some fail)
-    const r2Keys = userResumes.map((r) => r.r2Key).filter((key): key is string => Boolean(key));
+    const r2Keys: string[] = [];
+    for (const r of userResumes) {
+      if (r.r2Key) r2Keys.push(r.r2Key);
+    }
     const deletionResults = await Promise.allSettled(
       r2Keys.map((r2Key) => R2.delete(r2Binding, r2Key)),
     );

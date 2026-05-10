@@ -20,8 +20,8 @@ export function ReviewStep({ content, onContinue }: ReviewStepProps) {
     <div className="space-y-8">
       {/* Header */}
       <div className="text-center">
-        <div className="mx-auto w-16 h-16 bg-linear-to-r from-coral/20 to-coral/20 rounded-xl flex items-center justify-center mb-6">
-          <FileCheck className="w-8 h-8 text-coral" />
+        <div className="mx-auto size-16 bg-linear-to-r from-coral/20 to-coral/20 rounded-xl flex items-center justify-center mb-6">
+          <FileCheck className="size-8 text-coral" />
         </div>
         <h1 className="text-3xl sm:text-4xl font-bold text-foreground mb-3 leading-tight">
           Review Your Information
@@ -45,19 +45,19 @@ export function ReviewStep({ content, onContinue }: ReviewStepProps) {
             <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
               {content.contact.email && (
                 <div className="flex items-center gap-1">
-                  <Mail className="w-4 h-4" />
+                  <Mail className="size-4" />
                   <span>{content.contact.email}</span>
                 </div>
               )}
               {content.contact.phone && (
                 <div className="flex items-center gap-1">
-                  <Phone className="w-4 h-4" />
+                  <Phone className="size-4" />
                   <span>{content.contact.phone}</span>
                 </div>
               )}
               {content.contact.location && (
                 <div className="flex items-center gap-1">
-                  <MapPin className="w-4 h-4" />
+                  <MapPin className="size-4" />
                   <span>{content.contact.location}</span>
                 </div>
               )}
@@ -68,19 +68,19 @@ export function ReviewStep({ content, onContinue }: ReviewStepProps) {
               <div className="flex flex-wrap gap-3">
                 {content.contact.linkedin && (
                   <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                    <Linkedin className="w-4 h-4" />
+                    <Linkedin className="size-4" />
                     <span className="truncate max-w-[200px]">{content.contact.linkedin}</span>
                   </div>
                 )}
                 {content.contact.github && (
                   <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                    <Github className="w-4 h-4" />
+                    <Github className="size-4" />
                     <span className="truncate max-w-[200px]">{content.contact.github}</span>
                   </div>
                 )}
                 {content.contact.website && (
                   <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                    <Globe className="w-4 h-4" />
+                    <Globe className="size-4" />
                     <span className="truncate max-w-[200px]">{content.contact.website}</span>
                   </div>
                 )}
