@@ -34,16 +34,9 @@ export const metadata: Metadata = {
   },
 };
 
-const sortedPosts = [...BLOG_POSTS]
-  .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-  .map((post) => ({
-    ...post,
-    formattedDate: new Date(post.date).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    }),
-  }));
+const sortedPosts = [...BLOG_POSTS].sort(
+  (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+);
 
 export default function BlogPage() {
   const blogJsonLd = generateWebPageJsonLd("Blog", "/blog", blogDescription);
@@ -109,7 +102,11 @@ export default function BlogPage() {
                     className="text-sm text-ink/50"
                     suppressHydrationWarning
                   >
-                    {post.formattedDate}
+                    {new Date(post.date).toLocaleDateString("en-US", {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    })}
                   </time>
                 </div>
                 <h2 className="text-xl sm:text-2xl font-extrabold text-ink mb-2 group-hover:text-coral transition-colors tracking-tight">

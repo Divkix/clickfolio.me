@@ -25,7 +25,7 @@ export function StatCard({
         <div className="relative shrink-0">
           <div className={`absolute inset-0 ${iconBgClass} rounded-lg blur-md opacity-20`} />
           <div className={`relative ${iconBgClass} p-2.5 rounded-lg`}>
-            <Icon className={`size-5 ${iconColorClass}`} aria-hidden="true" />
+            <Icon className={`w-5 h-5 ${iconColorClass}`} aria-hidden="true" />
           </div>
         </div>
         <div className="min-w-0 flex-1">

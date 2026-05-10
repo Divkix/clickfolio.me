@@ -26,7 +26,7 @@ export function EducationSection({ form }: EducationSectionProps) {
         <div className="relative shrink-0">
           <div className="absolute inset-0 bg-linear-to-r from-orange-500 to-amber-500 rounded-lg blur-md opacity-20" />
           <div className="relative bg-linear-to-r from-orange-100 to-amber-100 p-2.5 rounded-lg">
-            <GraduationCap className="size-5 text-orange-600" />
+            <GraduationCap className="h-5 w-5 text-orange-600" />
           </div>
         </div>
         <div>
@@ -40,7 +40,7 @@ export function EducationSection({ form }: EducationSectionProps) {
             <div className="relative inline-block mb-4">
               <div className="absolute inset-0 bg-linear-to-r from-orange-500 to-amber-500 rounded-xl blur-lg opacity-15" />
               <div className="relative bg-linear-to-r from-orange-100 to-amber-100 p-4 rounded-xl">
-                <GraduationCap className="size-8 text-orange-600" />
+                <GraduationCap className="h-8 w-8 text-orange-600" />
               </div>
             </div>
             <p className="text-muted-foreground font-medium mb-1">No education entries yet</p>
@@ -60,7 +60,7 @@ export function EducationSection({ form }: EducationSectionProps) {
                 })
               }
             >
-              <Plus className="size-4 mr-2" />
+              <Plus className="h-4 w-4 mr-2" />
               Add Education
             </Button>
           </div>
@@ -74,7 +74,7 @@ export function EducationSection({ form }: EducationSectionProps) {
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
                     <div className="bg-linear-to-r from-orange-100 to-amber-100 p-1.5 rounded-md">
-                      <GraduationCap className="size-3.5 text-orange-600" />
+                      <GraduationCap className="h-3.5 w-3.5 text-orange-600" />
                     </div>
                     <span className="text-sm font-medium text-foreground/80">
                       Education {index + 1}
@@ -92,7 +92,7 @@ export function EducationSection({ form }: EducationSectionProps) {
                     className="text-muted-foreground/70 hover:text-coral hover:bg-coral/10 transition-colors"
                     aria-label={`Remove education ${index + 1}`}
                   >
-                    <Trash2 className="size-4" />
+                    <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
 
@@ -187,7 +187,7 @@ export function EducationSection({ form }: EducationSectionProps) {
               }
               disabled={educationFields.length >= 10}
             >
-              <Plus className="size-4 mr-2" />
+              <Plus className="h-4 w-4 mr-2" />
               Add Education
             </Button>
           </>

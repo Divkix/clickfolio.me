@@ -64,7 +64,7 @@ export function RealtimeStatusListener({ resumeId, currentStatus }: RealtimeStat
     return (
       <div className="rounded-lg border border-mint bg-mint/5 p-4 mb-4">
         <div className="flex items-start gap-3">
-          <CheckCircle2 className="size-5 text-mint shrink-0" />
+          <CheckCircle2 className="h-5 w-5 text-mint shrink-0" />
           <div className="flex-1">
             <h3 className="font-semibold text-foreground">Processing Complete!</h3>
             <p className="mt-1 text-sm text-foreground/80">
@@ -80,7 +80,7 @@ export function RealtimeStatusListener({ resumeId, currentStatus }: RealtimeStat
     return (
       <div className="rounded-lg border border-coral/30 bg-coral/10 p-4 mb-4">
         <div className="flex items-start gap-3">
-          <AlertCircle className="size-5 text-coral shrink-0" />
+          <AlertCircle className="h-5 w-5 text-coral shrink-0" />
           <div className="flex-1">
             <h3 className="font-semibold text-coral">Processing Failed</h3>
             <p className="mt-1 text-sm text-coral">
@@ -96,7 +96,7 @@ export function RealtimeStatusListener({ resumeId, currentStatus }: RealtimeStat
   return (
     <div className="rounded-lg border border-coral/30 bg-coral/10 p-4 mb-4">
       <div className="flex items-start gap-3">
-        <Loader2 className="size-5 animate-spin text-coral shrink-0" />
+        <Loader2 className="h-5 w-5 animate-spin text-coral shrink-0" />
         <div className="flex-1">
           <h3 className="font-semibold text-coral">Processing Your Resume</h3>
           <p className="mt-1 text-sm text-coral">

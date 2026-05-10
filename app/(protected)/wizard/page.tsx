@@ -487,7 +487,7 @@ export default function WizardPage() {
     return (
       <div className="min-h-screen bg-cream flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="size-12 animate-spin text-coral mx-auto mb-4" />
+          <Loader2 className="w-12 h-12 animate-spin text-coral mx-auto mb-4" />
           <p className="text-muted-foreground font-medium">Loading your resume...</p>
           <p className="text-muted-foreground text-sm mt-2">
             This may take 30-60 seconds if we&apos;re parsing your PDF
@@ -502,10 +502,10 @@ export default function WizardPage() {
     return (
       <div className="min-h-screen bg-cream flex items-center justify-center px-4">
         <div className="bg-card rounded-xl shadow-md border border-coral/30 p-8 max-w-md w-full text-center">
-          <div className="size-16 bg-coral/20 rounded-full flex items-center justify-center mx-auto mb-4">
+          <div className="w-16 h-16 bg-coral/20 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg
               aria-hidden="true"
-              className="size-8 text-coral"
+              className="w-8 h-8 text-coral"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"

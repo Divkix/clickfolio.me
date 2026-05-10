@@ -34,7 +34,7 @@ export function SkillsSection({ form }: SkillsSectionProps) {
         <div className="relative shrink-0">
           <div className="absolute inset-0 bg-linear-to-r from-cyan-500 to-sky-500 rounded-lg blur-md opacity-20" />
           <div className="relative bg-linear-to-r from-cyan-100 to-sky-100 p-2.5 rounded-lg">
-            <Wrench className="size-5 text-cyan-600" />
+            <Wrench className="h-5 w-5 text-cyan-600" />
           </div>
         </div>
         <div>
@@ -48,7 +48,7 @@ export function SkillsSection({ form }: SkillsSectionProps) {
             <div className="relative inline-block mb-4">
               <div className="absolute inset-0 bg-linear-to-r from-cyan-500 to-sky-500 rounded-xl blur-lg opacity-15" />
               <div className="relative bg-linear-to-r from-cyan-100 to-sky-100 p-4 rounded-xl">
-                <Wrench className="size-8 text-cyan-600" />
+                <Wrench className="h-8 w-8 text-cyan-600" />
               </div>
             </div>
             <p className="text-muted-foreground font-medium mb-1">No skills added yet</p>
@@ -65,7 +65,7 @@ export function SkillsSection({ form }: SkillsSectionProps) {
                 })
               }
             >
-              <Plus className="size-4 mr-2" />
+              <Plus className="h-4 w-4 mr-2" />
               Add Skill Category
             </Button>
           </div>
@@ -79,7 +79,7 @@ export function SkillsSection({ form }: SkillsSectionProps) {
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
                     <div className="bg-linear-to-r from-cyan-100 to-sky-100 p-1.5 rounded-md">
-                      <Wrench className="size-3.5 text-cyan-600" />
+                      <Wrench className="h-3.5 w-3.5 text-cyan-600" />
                     </div>
                     <span className="text-sm font-medium text-foreground/80">
                       Skill Category {index + 1}
@@ -97,7 +97,7 @@ export function SkillsSection({ form }: SkillsSectionProps) {
                     className="text-muted-foreground/70 hover:text-coral hover:bg-coral/10 transition-colors"
                     aria-label={`Remove skill group ${index + 1}`}
                   >
-                    <Trash2 className="size-4" />
+                    <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
 
@@ -151,7 +151,7 @@ export function SkillsSection({ form }: SkillsSectionProps) {
               }
               disabled={skillFields.length >= 20}
             >
-              <Plus className="size-4 mr-2" />
+              <Plus className="h-4 w-4 mr-2" />
               Add Skill Category
             </Button>
           </>

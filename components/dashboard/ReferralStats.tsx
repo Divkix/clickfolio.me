@@ -52,7 +52,7 @@ export function ReferralStats({ referralCount, clickCount, referralCode }: Refer
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1">
-              <Gift className="size-5 text-lavender" aria-hidden="true" />
+              <Gift className="w-5 h-5 text-lavender" aria-hidden="true" />
               <h3 className="font-semibold text-foreground">Share Clickfolio</h3>
             </div>
             <p className="text-sm text-muted-foreground">
@@ -70,12 +70,12 @@ export function ReferralStats({ referralCount, clickCount, referralCode }: Refer
             >
               {copied ? (
                 <>
-                  <Share2 className="size-4 mr-2" aria-hidden="true" />
+                  <Share2 className="w-4 h-4 mr-2" aria-hidden="true" />
                   Copied!
                 </>
               ) : (
                 <>
-                  <Copy className="size-4 mr-2" aria-hidden="true" />
+                  <Copy className="w-4 h-4 mr-2" aria-hidden="true" />
                   Copy Link
                 </>
               )}
@@ -87,14 +87,14 @@ export function ReferralStats({ referralCount, clickCount, referralCode }: Refer
         {(clickCount > 0 || referralCount > 0) && (
           <div className="flex items-center gap-6 pt-2 border-t border-lavender/10">
             <div className="flex items-center gap-2">
-              <MousePointerClick className="size-4 text-lavender" aria-hidden="true" />
+              <MousePointerClick className="w-4 h-4 text-lavender" aria-hidden="true" />
               <span className="text-sm text-muted-foreground">
                 <span className="font-semibold text-foreground">{clickCount}</span>{" "}
                 {clickCount === 1 ? "click" : "clicks"}
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <Users className="size-4 text-lavender" aria-hidden="true" />
+              <Users className="w-4 h-4 text-lavender" aria-hidden="true" />
               <span className="text-sm text-muted-foreground">
                 <span className="font-semibold text-foreground">{referralCount}</span>{" "}
                 {referralCount === 1 ? "signup" : "signups"}

@@ -26,7 +26,7 @@ export function CertificationsSection({ form }: CertificationsSectionProps) {
         <div className="relative shrink-0">
           <div className="absolute inset-0 bg-linear-to-r from-coral to-pink-500 rounded-lg blur-md opacity-20" />
           <div className="relative bg-linear-to-r from-coral/20 to-pink-100 p-2.5 rounded-lg">
-            <Award className="size-5 text-coral" />
+            <Award className="h-5 w-5 text-coral" />
           </div>
         </div>
         <div>
@@ -42,7 +42,7 @@ export function CertificationsSection({ form }: CertificationsSectionProps) {
             <div className="relative inline-block mb-4">
               <div className="absolute inset-0 bg-linear-to-r from-coral to-pink-500 rounded-xl blur-lg opacity-15" />
               <div className="relative bg-linear-to-r from-coral/20 to-pink-100 p-4 rounded-xl">
-                <Award className="size-8 text-coral" />
+                <Award className="h-8 w-8 text-coral" />
               </div>
             </div>
             <p className="text-muted-foreground font-medium mb-1">No certifications added yet</p>
@@ -61,7 +61,7 @@ export function CertificationsSection({ form }: CertificationsSectionProps) {
                 })
               }
             >
-              <Plus className="size-4 mr-2" />
+              <Plus className="h-4 w-4 mr-2" />
               Add Certification
             </Button>
           </div>
@@ -75,7 +75,7 @@ export function CertificationsSection({ form }: CertificationsSectionProps) {
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
                     <div className="bg-linear-to-r from-coral/20 to-pink-100 p-1.5 rounded-md">
-                      <Award className="size-3.5 text-coral" />
+                      <Award className="h-3.5 w-3.5 text-coral" />
                     </div>
                     <span className="text-sm font-medium text-foreground/80">
                       Certification {index + 1}
@@ -93,7 +93,7 @@ export function CertificationsSection({ form }: CertificationsSectionProps) {
                     className="text-muted-foreground/70 hover:text-coral hover:bg-coral/10 transition-colors"
                     aria-label={`Remove certification ${index + 1}`}
                   >
-                    <Trash2 className="size-4" />
+                    <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
 
@@ -177,7 +177,7 @@ export function CertificationsSection({ form }: CertificationsSectionProps) {
               }
               disabled={certificationFields.length >= 20}
             >
-              <Plus className="size-4 mr-2" />
+              <Plus className="h-4 w-4 mr-2" />
               Add Certification
             </Button>
           </>

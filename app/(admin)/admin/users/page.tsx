@@ -87,7 +87,7 @@ export default function AdminUsersPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-2">
-          <Users className="size-5 text-muted-foreground/70" aria-hidden="true" />
+          <Users className="w-5 h-5 text-muted-foreground/70" aria-hidden="true" />
           <span className="text-sm text-muted-foreground">
             {total.toLocaleString()} total users
           </span>
@@ -96,7 +96,7 @@ export default function AdminUsersPage() {
         {/* Search */}
         <form onSubmit={handleSearch} className="relative">
           <Search
-            className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground/70"
+            className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/70"
             aria-hidden="true"
           />
           <input

@@ -6,7 +6,6 @@ export interface BlogPostMeta {
   readTime: string;
   category: string;
   keywords: string[];
-  formattedDate?: string;
 }
 
 export const BLOG_POSTS: BlogPostMeta[] = [

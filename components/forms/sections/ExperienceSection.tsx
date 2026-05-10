@@ -34,7 +34,7 @@ export function ExperienceSection({ form }: ExperienceSectionProps) {
         <div className="relative shrink-0">
           <div className="absolute inset-0 bg-linear-to-r from-emerald-500 to-teal-500 rounded-lg blur-md opacity-20" />
           <div className="relative bg-linear-to-r from-emerald-100 to-teal-100 p-2.5 rounded-lg">
-            <Briefcase className="size-5 text-emerald-600" />
+            <Briefcase className="h-5 w-5 text-emerald-600" />
           </div>
         </div>
         <div>
@@ -48,7 +48,7 @@ export function ExperienceSection({ form }: ExperienceSectionProps) {
             <div className="relative inline-block mb-4">
               <div className="absolute inset-0 bg-linear-to-r from-emerald-500 to-teal-500 rounded-xl blur-lg opacity-15" />
               <div className="relative bg-linear-to-r from-emerald-100 to-teal-100 p-4 rounded-xl">
-                <Briefcase className="size-8 text-emerald-600" />
+                <Briefcase className="h-8 w-8 text-emerald-600" />
               </div>
             </div>
             <p className="text-muted-foreground font-medium mb-1">No work experience yet</p>
@@ -68,7 +68,7 @@ export function ExperienceSection({ form }: ExperienceSectionProps) {
                 })
               }
             >
-              <Plus className="size-4 mr-2" />
+              <Plus className="h-4 w-4 mr-2" />
               Add Experience
             </Button>
           </div>
@@ -82,7 +82,7 @@ export function ExperienceSection({ form }: ExperienceSectionProps) {
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
                     <div className="bg-linear-to-r from-emerald-100 to-teal-100 p-1.5 rounded-md">
-                      <Briefcase className="size-3.5 text-emerald-600" />
+                      <Briefcase className="h-3.5 w-3.5 text-emerald-600" />
                     </div>
                     <span className="text-sm font-medium text-foreground/80">
                       Position {index + 1}
@@ -100,7 +100,7 @@ export function ExperienceSection({ form }: ExperienceSectionProps) {
                     className="text-muted-foreground/70 hover:text-coral hover:bg-coral/10 transition-colors"
                     aria-label={`Remove experience ${index + 1}`}
                   >
-                    <Trash2 className="size-4" />
+                    <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
 
@@ -211,7 +211,7 @@ export function ExperienceSection({ form }: ExperienceSectionProps) {
                       return (
                         <FormItem>
                           <FormLabel className="flex items-center gap-2">
-                            <List className="size-4" />
+                            <List className="h-4 w-4" />
                             Key Achievements (Optional)
                           </FormLabel>
                           <FormDescription className="mb-2">
@@ -243,7 +243,7 @@ export function ExperienceSection({ form }: ExperienceSectionProps) {
                                   }}
                                   className="shrink-0 text-muted-foreground/70 hover:text-coral hover:bg-coral/10"
                                 >
-                                  <X className="size-4" />
+                                  <X className="h-4 w-4" />
                                 </Button>
                               </div>
                             ))}
@@ -257,7 +257,7 @@ export function ExperienceSection({ form }: ExperienceSectionProps) {
                               disabled={highlights.length >= 5}
                               className="text-xs"
                             >
-                              <Plus className="size-3 mr-1" />
+                              <Plus className="h-3 w-3 mr-1" />
                               Add Achievement
                             </Button>
                           </div>
@@ -287,7 +287,7 @@ export function ExperienceSection({ form }: ExperienceSectionProps) {
               }
               disabled={experienceFields.length >= 10}
             >
-              <Plus className="size-4 mr-2" />
+              <Plus className="h-4 w-4 mr-2" />
               Add Experience
             </Button>
           </>

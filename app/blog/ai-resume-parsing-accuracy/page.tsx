@@ -49,27 +49,28 @@ export default function AiResumeParsingAccuracyPage() {
         <p>We assembled a test set of 50 PDF resumes covering common real-world scenarios:</p>
         <ul>
           <li>
-            <strong>Standard single-column resumes</strong> (25 files): clean, well-structured,
+            <strong>Standard single-column resumes</strong> (25 files) — clean, well-structured,
             digitally created
           </li>
           <li>
-            <strong>Two-column layouts</strong> (8 files): skills sidebar, split sections, creative
+            <strong>Two-column layouts</strong> (8 files) — skills sidebar, split sections, creative
             formatting
           </li>
           <li>
-            <strong>Scanned documents</strong> (5 files): image-based PDFs from actual scanners
+            <strong>Scanned documents</strong> (5 files) — image-based PDFs from actual scanners
           </li>
           <li>
-            <strong>Resumes with embedded images</strong> (3 files): photos, icons, logos in the PDF
+            <strong>Resumes with embedded images</strong> (3 files) — photos, icons, logos in the
+            PDF
           </li>
           <li>
-            <strong>Multi-page resumes</strong> (4 files): 2+ pages of dense content
+            <strong>Multi-page resumes</strong> (4 files) — 2+ pages of dense content
           </li>
           <li>
-            <strong>Non-English resumes</strong> (3 files): mixed with English sections
+            <strong>Non-English resumes</strong> (3 files) — mixed with English sections
           </li>
           <li>
-            <strong>Edge case formatting</strong> (2 files): tables, columns, unusual fonts
+            <strong>Edge case formatting</strong> (2 files) — tables, columns, unusual fonts
           </li>
         </ul>
         <p>
@@ -88,14 +89,14 @@ export default function AiResumeParsingAccuracyPage() {
         </p>
         <StatsGrid
           stats={[
-            { value: "100%", label: "Names: reliably extracted every time", percentage: 100 },
-            { value: "98%", label: "Contact info: email, phone, location", percentage: 98 },
-            { value: "97%", label: "Education: schools, degrees, dates", percentage: 97 },
+            { value: "100%", label: "Names — reliably extracted every time", percentage: 100 },
+            { value: "98%", label: "Contact info — email, phone, location", percentage: 98 },
+            { value: "97%", label: "Education — schools, degrees, dates", percentage: 97 },
             { value: "96%", label: "Professional summary", percentage: 96 },
-            { value: "95%", label: "Certifications: when in dedicated section", percentage: 95 },
-            { value: "93%", label: "Experience: job titles, dates, bullets", percentage: 93 },
-            { value: "92%", label: "Languages: proficiency levels", percentage: 92 },
-            { value: "90%", label: "Skills: comma-separated lists work best", percentage: 90 },
+            { value: "95%", label: "Certifications — when in dedicated section", percentage: 95 },
+            { value: "93%", label: "Experience — job titles, dates, bullets", percentage: 93 },
+            { value: "92%", label: "Languages — proficiency levels", percentage: 92 },
+            { value: "90%", label: "Skills — comma-separated lists work best", percentage: 90 },
           ]}
         />
       </section>
@@ -107,7 +108,7 @@ export default function AiResumeParsingAccuracyPage() {
         <p>
           When a PDF contains scanned images rather than selectable text, the parser must rely on
           OCR. Even state-of-the-art OCR struggles with low-resolution scans, unusual fonts, or
-          skewed pages. Accuracy drops to about 75-80% on scanned documents, still usable, but
+          skewed pages. Accuracy drops to about 75-80% on scanned documents — still usable, but
           requiring more manual cleanup. The rule of thumb: if you can select and copy text from
           your PDF, the parser will work well. If you can't, expect to do some editing.
         </p>
@@ -120,7 +121,7 @@ export default function AiResumeParsingAccuracyPage() {
         </p>
         <h3>Non-Standard Date Formats</h3>
         <p>
-          "Summer 2019" or "Q2 2021 - Present" or "2019.04 - 2021.11". These creative date formats
+          "Summer 2019" or "Q2 2021 - Present" or "2019.04 - 2021.11" — these creative date formats
           confuse parsers. Standard formats like "Jan 2019 - Mar 2021" or "2019-2021" work best.
         </p>
         <h3>Embedded Charts and Graphics</h3>
@@ -134,7 +135,7 @@ export default function AiResumeParsingAccuracyPage() {
       <section>
         <h2>How clickfolio.me Handles Edge Cases</h2>
         <p>
-          We designed the system with the assumption that parsing won't be perfect, and built
+          We designed the system with the assumption that parsing won't be perfect — and built
           recovery mechanisms accordingly:
         </p>
         <h3>Fallback Parser</h3>
@@ -142,19 +143,19 @@ export default function AiResumeParsingAccuracyPage() {
           If the primary AI parser fails or produces low-confidence output, a secondary parser
           attempts extraction using a different model and prompting strategy. This catches most
           transient failures and improves overall reliability. If both fail, the queue retries with
-          backoff, up to 2 additional attempts.
+          backoff — up to 2 additional attempts.
         </p>
         <h3>Structured Output Schema</h3>
         <p>
           The AI is instructed to produce output in a strict JSON schema. This validation catches
-          malformed responses. If the AI hallucinates fields that don't exist or produces invalid
+          malformed responses — if the AI hallucinates fields that don't exist or produces invalid
           dates, the system flags it for review before storing the data.
         </p>
         <h3>Manual Editing</h3>
         <p>
           Every parsed resume goes through the editor before it goes live. The editor shows the AI's
           output alongside an auto-save system, so you can fix any errors without losing work.
-          Common fixes take under 2 minutes: adjusting a job date, splitting a merged bullet point,
+          Common fixes take under 2 minutes — adjusting a job date, splitting a merged bullet point,
           or adding a missing skill. The AI gets you 95% there; you handle the last 5%.
         </p>
       </section>
@@ -194,9 +195,9 @@ export default function AiResumeParsingAccuracyPage() {
       <section>
         <h2>The Bottom Line</h2>
         <p>
-          AI resume parsing is remarkably good, but it's a starting point, not a finish line. Think
+          AI resume parsing is remarkably good — but it's a starting point, not a finish line. Think
           of it like dictation software: it captures 95% of what you said, but you still need to
-          proofread. The value isn't perfection. It's speed. Typing your entire resume into a form
+          proofread. The value isn't perfection — it's speed. Typing your entire resume into a form
           takes 30 minutes. Uploading a PDF and reviewing the AI output takes 30 seconds, plus 2
           minutes of cleanup.
         </p>
@@ -204,7 +205,7 @@ export default function AiResumeParsingAccuracyPage() {
           For standard, digitally-created resumes, the parser achieves near-perfect accuracy. For
           edge cases, the built-in editor ensures you can fix any issues before your portfolio goes
           live. And because content and design are separate, any changes you make in the editor are
-          instantly reflected on your website. No re-uploading needed.
+          instantly reflected on your website — no re-uploading needed.
         </p>
         <p>
           <Link href="/" className="text-coral font-semibold">

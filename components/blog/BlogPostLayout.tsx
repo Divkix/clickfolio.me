@@ -168,7 +168,7 @@ export function BlogPostLayout({ post, children, relatedPosts }: BlogPostLayoutP
               className="inline-flex items-center gap-2 text-sm font-medium text-ink/70 hover:text-coral transition-colors duration-300"
             >
               <svg
-                className="size-4"
+                className="w-4 h-4"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"

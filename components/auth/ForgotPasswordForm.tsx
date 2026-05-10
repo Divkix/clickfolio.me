@@ -61,7 +61,7 @@ export function ForgotPasswordForm({ onBackToSignIn }: ForgotPasswordFormProps) 
     return (
       <div className="text-center space-y-4">
         <div className="flex justify-center">
-          <CheckCircle className="size-12 text-green-600" />
+          <CheckCircle className="w-12 h-12 text-green-600" />
         </div>
         <div className="space-y-2">
           <h3 className="font-bold text-ink text-lg">Check your email</h3>
@@ -167,7 +167,7 @@ export function ForgotPasswordForm({ onBackToSignIn }: ForgotPasswordFormProps) 
       >
         {isSubmitting ? (
           <>
-            <Loader2 className="size-4 animate-spin" />
+            <Loader2 className="w-4 h-4 animate-spin" />
             <span>Sending...</span>
           </>
         ) : (

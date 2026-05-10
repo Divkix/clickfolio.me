@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { siteConfig } from "@/lib/config/site";
 import {
   generatePageBreadcrumbJsonLd,
@@ -54,7 +53,7 @@ export default function ProductManagerPage() {
           </h1>
           <p className="text-lg text-[#6B6B6B] mb-8">
             You ship products. Now ship your personal brand. Upload your PDF resume and get a
-            polished portfolio website with a custom @handle URL, free, in 30 seconds.
+            polished portfolio website with a custom @handle URL — free, in 30 seconds.
           </p>
 
           <section className="mb-12">
@@ -63,23 +62,23 @@ export default function ProductManagerPage() {
             </h2>
             <ul className="space-y-3 text-[#6B6B6B] list-disc pl-5">
               <li>
-                <strong>Bento Grid template</strong>: modern mosaic layout that organizes your
+                <strong>Bento Grid template</strong> — modern mosaic layout that organizes your
                 product launches, metrics, and cross-functional wins into visually distinct,
                 scannable cards.
               </li>
               <li>
-                <strong>Spotlight template</strong>: warm, animated portfolio that gives each
+                <strong>Spotlight template</strong> — warm, animated portfolio that gives each
                 product or initiative the dedicated space it deserves. Tell your product stories
                 with impact.
               </li>
               <li>
-                <strong>Structured project highlights</strong>: AI extracts and organizes your
+                <strong>Structured project highlights</strong> — AI extracts and organizes your
                 product launches, roadmaps, and cross-functional collaborations into clear,
                 results-focused sections.
               </li>
               <li>
-                <strong>Metrics-forward design</strong>: templates emphasize numbers, impact
-                metrics, and outcomes. Show the ROI you delivered, not just what you did.
+                <strong>Metrics-forward design</strong> — templates emphasize numbers, impact
+                metrics, and outcomes. Show the ROI you delivered — not just what you did.
               </li>
             </ul>
           </section>
@@ -88,7 +87,7 @@ export default function ProductManagerPage() {
             <h2 className="font-black text-xl text-ink mb-4">Your Portfolio Is a Product</h2>
             <p className="text-[#6B6B6B] mb-4">
               As a PM, you know that presentation matters. Your clickfolio.me portfolio is the
-              product that sells you: fast-loading, well-structured, and designed to convert
+              product that sells you — fast-loading, well-structured, and designed to convert
               recruiters and hiring managers into interview requests.
             </p>
             <p className="text-[#6B6B6B]">
@@ -98,12 +97,12 @@ export default function ProductManagerPage() {
             </p>
           </section>
 
-          <Link
+          <a
             href="/"
             className="inline-block bg-ink text-cream font-bold px-6 py-3 border-3 border-ink shadow-brutal-sm hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-transform"
           >
             Create Your Free PM Portfolio →
-          </Link>
+          </a>
         </div>
       </main>
     </>

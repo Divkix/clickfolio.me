@@ -89,8 +89,7 @@ export async function recoverOrphanedResumes(
   const successfulIds: string[] = [];
 
   // Process resumes: update DB status first, then publish to queue
-  // This prevents race condition where consumer sees old status.
-  // Sequential by design: each resume must have DB updated before queue publish.
+  // This prevents race condition where consumer sees old status
   for (const resume of orphanedResumes) {
     // Skip if already at max attempts (6 total = 3 queue retries x 2 manual retries)
     if ((resume.totalAttempts ?? 0) >= 6) {

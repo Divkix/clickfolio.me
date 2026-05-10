@@ -245,8 +245,8 @@ export function UploadStep({ onContinue }: UploadStepProps) {
     <div className="space-y-8">
       {/* Header */}
       <div className="text-center">
-        <div className="mx-auto size-16 bg-linear-to-r from-coral/20 to-coral/20 rounded-xl flex items-center justify-center mb-6">
-          <Upload className="size-8 text-coral" />
+        <div className="mx-auto w-16 h-16 bg-linear-to-r from-coral/20 to-coral/20 rounded-xl flex items-center justify-center mb-6">
+          <Upload className="w-8 h-8 text-coral" />
         </div>
         <h1 className="text-3xl sm:text-4xl font-bold text-foreground mb-3 leading-tight">
           Upload Your Resume
@@ -261,11 +261,11 @@ export function UploadStep({ onContinue }: UploadStepProps) {
         {uploadState === "error" ? (
           /* Error State */
           <div className="bg-card rounded-xl border border-coral/30 p-8 text-center">
-            <div className="relative mx-auto size-16 mb-4">
+            <div className="relative mx-auto w-16 h-16 mb-4">
               <div className="absolute inset-0 bg-coral rounded-full blur-xl opacity-20" />
-              <div className="relative size-16 bg-coral/20 rounded-full flex items-center justify-center">
+              <div className="relative w-16 h-16 bg-coral/20 rounded-full flex items-center justify-center">
                 <svg
-                  className="size-8 text-coral"
+                  className="w-8 h-8 text-coral"
                   viewBox="0 0 24 24"
                   fill="none"
                   aria-hidden="true"
@@ -295,10 +295,10 @@ export function UploadStep({ onContinue }: UploadStepProps) {
         ) : isProcessing ? (
           /* Processing State */
           <div className="bg-card rounded-xl border border-ink/10 p-8 text-center">
-            <div className="relative mx-auto size-16 mb-4">
+            <div className="relative mx-auto w-16 h-16 mb-4">
               <div className="absolute inset-0 bg-linear-to-r from-coral to-coral rounded-full blur-xl opacity-30 animate-pulse" />
-              <div className="relative size-16 bg-linear-to-r from-coral/20 to-coral/20 rounded-full flex items-center justify-center">
-                <Loader2 className="size-8 text-coral animate-spin" />
+              <div className="relative w-16 h-16 bg-linear-to-r from-coral/20 to-coral/20 rounded-full flex items-center justify-center">
+                <Loader2 className="w-8 h-8 text-coral animate-spin" />
               </div>
             </div>
 
@@ -356,7 +356,7 @@ export function UploadStep({ onContinue }: UploadStepProps) {
                 <div
                   className={`relative bg-linear-to-r from-coral/20 to-coral/20 p-4 rounded-xl transition-transform duration-300 ${isDragging ? "scale-110" : "group-hover:scale-110"}`}
                 >
-                  <svg className="size-12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <svg className="w-12 h-12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                     <defs>
                       <linearGradient id="uploadGradientWizard" x1="0%" y1="0%" x2="100%" y2="100%">
                         <stop offset="0%" stopColor="#4F46E5" />

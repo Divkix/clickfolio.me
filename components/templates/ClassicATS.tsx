@@ -73,7 +73,7 @@ const ClassicATS: React.FC<TemplateProps> = ({ content, profile }) => {
                   return (
                     <span key={link.type} className="inline-flex items-center gap-1">
                       {IconComponent && (
-                        <IconComponent className="size-3.5 print:hidden" aria-hidden={true} />
+                        <IconComponent className="w-3.5 h-3.5 print:hidden" aria-hidden={true} />
                       )}
                       {link.label}
                     </span>
@@ -89,7 +89,7 @@ const ClassicATS: React.FC<TemplateProps> = ({ content, profile }) => {
                     className="inline-flex items-center gap-1 hover:text-gray-900 hover:underline"
                   >
                     {IconComponent && (
-                      <IconComponent className="size-3.5 print:hidden" aria-hidden={true} />
+                      <IconComponent className="w-3.5 h-3.5 print:hidden" aria-hidden={true} />
                     )}
                     {isBranded ? (
                       <>
@@ -130,10 +130,7 @@ const ClassicATS: React.FC<TemplateProps> = ({ content, profile }) => {
               </h2>
               <div className="space-y-6">
                 {content.experience.map((job, idx) => (
-                  <article
-                    key={`${job.title}-${job.company}-${idx}`}
-                    className="print:break-inside-avoid"
-                  >
+                  <article key={idx} className="print:break-inside-avoid">
                     <div className="flex flex-wrap justify-between items-baseline gap-x-4 mb-1">
                       <h3 className="font-bold text-base">{job.title}</h3>
                       <span className="text-xs text-gray-600 shrink-0">
@@ -175,10 +172,7 @@ const ClassicATS: React.FC<TemplateProps> = ({ content, profile }) => {
               </h2>
               <div className="space-y-4">
                 {content.education.map((edu, idx) => (
-                  <article
-                    key={`${edu.degree}-${edu.institution}-${idx}`}
-                    className="print:break-inside-avoid"
-                  >
+                  <article key={idx} className="print:break-inside-avoid">
                     <div className="flex flex-wrap justify-between items-baseline gap-x-4 mb-1">
                       <h3 className="font-bold text-base">{edu.degree}</h3>
                       {edu.graduation_date && (
@@ -217,7 +211,7 @@ const ClassicATS: React.FC<TemplateProps> = ({ content, profile }) => {
               <div className="space-y-2">
                 {content.certifications.map((cert, idx) => (
                   <div
-                    key={`${cert.name}-${idx}`}
+                    key={idx}
                     className="flex flex-wrap justify-between items-baseline gap-x-4 text-sm print:break-inside-avoid"
                   >
                     <p className="text-gray-700">
@@ -235,7 +229,7 @@ const ClassicATS: React.FC<TemplateProps> = ({ content, profile }) => {
                           cert.name
                         )}
                       </span>
-                      {cert.issuer && <span className="text-gray-500">, {cert.issuer}</span>}
+                      {cert.issuer && <span className="text-gray-500"> — {cert.issuer}</span>}
                     </p>
                     {cert.date && (
                       <span className="text-xs text-gray-600 shrink-0">
@@ -256,7 +250,7 @@ const ClassicATS: React.FC<TemplateProps> = ({ content, profile }) => {
               </h2>
               <div className="space-y-4">
                 {content.projects.map((proj, idx) => (
-                  <article key={`${proj.title}-${idx}`} className="print:break-inside-avoid">
+                  <article key={idx} className="print:break-inside-avoid">
                     <div className="flex flex-wrap justify-between items-baseline gap-x-4 mb-1">
                       <h3 className="font-bold text-base">
                         {proj.url ? (
@@ -311,7 +305,7 @@ const ClassicATS: React.FC<TemplateProps> = ({ content, profile }) => {
           className="fixed bottom-8 right-8 z-50 print:hidden bg-white border border-gray-300 rounded-full p-3 shadow-lg hover:shadow-xl hover:border-gray-400 transition-shadow"
           aria-label="Print resume"
         >
-          <Printer className="size-5 text-gray-600" />
+          <Printer className="w-5 h-5 text-gray-600" />
         </button>
       </main>
     </>

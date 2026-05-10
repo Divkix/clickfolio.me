@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { siteConfig } from "@/lib/config/site";
 import {
   generatePageBreadcrumbJsonLd,
@@ -54,27 +53,27 @@ export default function MarketerPage() {
           </h1>
           <p className="text-lg text-[#6B6B6B] mb-8">
             Your resume should sell you as well as you sell products. Turn your PDF into a polished
-            marketing portfolio with a custom @handle URL, free, in 30 seconds.
+            marketing portfolio with a custom @handle URL — free, in 30 seconds.
           </p>
 
           <section className="mb-12">
             <h2 className="font-black text-xl text-ink mb-4">Why Marketers Love clickfolio.me</h2>
             <ul className="space-y-3 text-[#6B6B6B] list-disc pl-5">
               <li>
-                <strong>Bold Corporate template</strong>: executive typography with numbered
+                <strong>Bold Corporate template</strong> — executive typography with numbered
                 sections that make your achievements impossible to skim past. Premium look that
                 commands attention.
               </li>
               <li>
-                <strong>Neo Brutalist template</strong>: high-contrast, bold design that stands out
+                <strong>Neo Brutalist template</strong> — high-contrast, bold design that stands out
                 in any link preview. Perfect for marketers who want to show personality.
               </li>
               <li>
-                <strong>Results-focused structure</strong>: AI extracts and highlights your campaign
-                metrics, growth numbers, and brand names. Your impact is front and center.
+                <strong>Results-focused structure</strong> — AI extracts and highlights your
+                campaign metrics, growth numbers, and brand names. Your impact is front and center.
               </li>
               <li>
-                <strong>Privacy controls</strong>: toggle what's visible to recruiters and the
+                <strong>Privacy controls</strong> — toggle what's visible to recruiters and the
                 public. Share a polished version publicly while keeping sensitive details for direct
                 conversations.
               </li>
@@ -85,7 +84,7 @@ export default function MarketerPage() {
             <h2 className="font-black text-xl text-ink mb-4">Your Portfolio, Your Brand</h2>
             <p className="text-[#6B6B6B] mb-4">
               Every marketer knows the power of a strong landing page. Your clickfolio.me portfolio
-              is your personal landing page: a permanent @handle URL you can put on LinkedIn, in
+              is your personal landing page — a permanent @handle URL you can put on LinkedIn, in
               your email signature, and on your business cards.
             </p>
             <p className="text-[#6B6B6B]">
@@ -94,12 +93,12 @@ export default function MarketerPage() {
             </p>
           </section>
 
-          <Link
+          <a
             href="/"
             className="inline-block bg-ink text-cream font-bold px-6 py-3 border-3 border-ink shadow-brutal-sm hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-transform"
           >
             Create Your Free Marketing Portfolio →
-          </Link>
+          </a>
         </div>
       </main>
     </>

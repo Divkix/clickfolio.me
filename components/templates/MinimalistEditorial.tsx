@@ -7,15 +7,15 @@ import { formatDateRange, formatShortDate } from "@/lib/templates/helpers";
 import type { TemplateProps } from "@/lib/types/template";
 
 const navIconMap: Record<ContactLinkType, React.ReactNode> = {
-  email: <Mail className="size-4 text-neutral-600 group-hover:text-black" aria-hidden="true" />,
-  phone: <Phone className="size-4 text-neutral-600 group-hover:text-black" aria-hidden="true" />,
+  email: <Mail className="w-4 h-4 text-neutral-600 group-hover:text-black" aria-hidden="true" />,
+  phone: <Phone className="w-4 h-4 text-neutral-600 group-hover:text-black" aria-hidden="true" />,
   linkedin: (
-    <ArrowUpRight className="size-4 text-neutral-600 group-hover:text-black" aria-hidden="true" />
+    <ArrowUpRight className="w-4 h-4 text-neutral-600 group-hover:text-black" aria-hidden="true" />
   ),
-  github: <Github className="size-4 text-neutral-600 group-hover:text-black" aria-hidden={true} />,
-  website: <Globe className="size-4 text-neutral-600 group-hover:text-black" aria-hidden="true" />,
+  github: <Github className="w-4 h-4 text-neutral-600 group-hover:text-black" aria-hidden={true} />,
+  website: <Globe className="w-4 h-4 text-neutral-600 group-hover:text-black" aria-hidden="true" />,
   location: (
-    <MapPin className="size-4 text-neutral-600 group-hover:text-black" aria-hidden="true" />
+    <MapPin className="w-4 h-4 text-neutral-600 group-hover:text-black" aria-hidden="true" />
   ),
   behance: (
     <span className="text-xs font-bold text-neutral-600 group-hover:text-black" aria-hidden="true">
@@ -93,9 +93,9 @@ const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile }) => {
             <span className="text-xs font-bold tracking-widest uppercase opacity-40 hover:opacity-100 transition-opacity cursor-default">
               {profile.handle}
             </span>
-            {contactLinks.reduce<React.JSX.Element[]>((acc, link) => {
-              if (link.type === "location") return acc;
-              acc.push(
+            {contactLinks
+              .filter((link) => link.type !== "location")
+              .map((link) => (
                 <a
                   key={link.type}
                   href={link.href}
@@ -105,10 +105,8 @@ const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile }) => {
                 >
                   {navIconMap[link.type]}
                   <span className="sr-only">{link.label}</span>
-                </a>,
-              );
-              return acc;
-            }, [])}
+                </a>
+              ))}
           </div>
         </nav>
 
@@ -135,7 +133,7 @@ const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile }) => {
                   </span>
                   {contact.location && (
                     <span className="inline-flex items-center gap-1 px-3 py-1 border border-black/10 rounded-full text-xs font-medium uppercase tracking-widest text-neutral-500">
-                      <MapPin className="size-3" aria-hidden="true" /> {contact.location}
+                      <MapPin className="w-3 h-3" aria-hidden="true" /> {contact.location}
                     </span>
                   )}
                 </div>
@@ -158,7 +156,7 @@ const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile }) => {
               <div className="group/list">
                 {experience.map((job, index) => (
                   <div
-                    key={`${job.title}-${job.company}-${index}`}
+                    key={index}
                     className="grid grid-cols-1 md:grid-cols-12 gap-y-4 py-8 border-b border-black/5 transition-colors duration-500 hover:bg-neutral-50/50 hover:pl-4 group-hover/list:opacity-40 group-hover/list:hover:opacity-100"
                   >
                     <div className="md:col-span-3">
@@ -207,7 +205,7 @@ const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile }) => {
               <div className="flex flex-col">
                 {projects.map((project, index) => (
                   <a
-                    key={`${project.title}-${index}`}
+                    key={index}
                     href={project.url || "#"}
                     target={project.url ? "_blank" : undefined}
                     rel="noopener noreferrer"
@@ -235,7 +233,7 @@ const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile }) => {
 
                     <div className="mt-6 md:mt-0">
                       <ArrowUpRight
-                        className="size-8 opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-[transform,opacity] duration-500"
+                        className="w-8 h-8 opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-[transform,opacity] duration-500"
                         aria-hidden="true"
                       />
                     </div>
@@ -254,7 +252,7 @@ const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile }) => {
                 <div className="space-y-8">
                   {education.map((edu, index) => (
                     <div
-                      key={`${edu.institution}-${index}`}
+                      key={index}
                       className="border-l-2 border-neutral-100 pl-6 py-1 hover:border-black transition-colors duration-300"
                     >
                       <div className="flex justify-between items-baseline mb-1">
@@ -282,25 +280,17 @@ const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile }) => {
               <section aria-label="Technical skills">
                 <SectionTitle title="Technical Skills" />
                 <div className="flex flex-wrap content-start gap-2">
-                  {(() => {
-                    const elements: React.JSX.Element[] = [];
-                    let i = 0;
-                    for (const s of skills) {
-                      for (const skill of s.items) {
-                        elements.push(
-                          <span
-                            key={`skill-${skill}-${i}`}
-                            className="px-4 py-2 bg-white border border-black/10 text-sm hover:bg-[#C4704F] hover:text-white hover:border-[#C4704F] transition-colors duration-300 cursor-default"
-                            style={{ transform: `rotate(${((i % 3) - 1) * 1.2}deg)` }}
-                          >
-                            {skill}
-                          </span>,
-                        );
-                        i++;
-                      }
-                    }
-                    return elements;
-                  })()}
+                  {skills
+                    .flatMap((s) => s.items)
+                    .map((skill, i) => (
+                      <span
+                        key={`skill-${skill}-${i}`}
+                        className="px-4 py-2 bg-white border border-black/10 text-sm hover:bg-[#C4704F] hover:text-white hover:border-[#C4704F] transition-colors duration-300 cursor-default"
+                        style={{ transform: `rotate(${((i % 3) - 1) * 1.2}deg)` }}
+                      >
+                        {skill}
+                      </span>
+                    ))}
                 </div>
               </section>
             )}
@@ -313,11 +303,14 @@ const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile }) => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {certifications.map((cert, index) => (
                   <div
-                    key={`${cert.name}-${index}`}
+                    key={index}
                     className="border border-black/10 p-6 hover:bg-neutral-50/50 transition-colors duration-300"
                   >
                     <div className="flex items-start gap-3">
-                      <Award className="size-5 text-neutral-400 mt-1 shrink-0" aria-hidden="true" />
+                      <Award
+                        className="w-5 h-5 text-neutral-400 mt-1 shrink-0"
+                        aria-hidden="true"
+                      />
                       <div className="flex-1">
                         <h3 className="font-serif-me text-lg italic mb-1">{cert.name}</h3>
                         <p className="text-sm text-neutral-600 font-medium">{cert.issuer}</p>
@@ -333,7 +326,7 @@ const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile }) => {
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-1 text-xs text-neutral-500 hover:text-black mt-2 transition-colors"
                           >
-                            View credential <ArrowUpRight className="size-3" aria-hidden="true" />
+                            View credential <ArrowUpRight className="w-3 h-3" aria-hidden="true" />
                           </a>
                         )}
                       </div>

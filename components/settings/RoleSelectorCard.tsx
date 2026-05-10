@@ -52,12 +52,12 @@ export function RoleSelectorCard({ currentRole, roleSource }: RoleSelectorCardPr
     <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-6">
       <div className="flex items-center justify-between gap-4 mb-4">
         <div className="flex items-center gap-2">
-          <UserCheck className="size-5 text-coral" />
+          <UserCheck className="h-5 w-5 text-coral" />
           <h3 className="text-lg font-semibold text-foreground">Professional Level</h3>
         </div>
         {isSaving && (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="size-4 animate-spin" />
+            <Loader2 className="h-4 w-4 animate-spin" />
             <span>Saving...</span>
           </div>
         )}
@@ -81,8 +81,8 @@ export function RoleSelectorCard({ currentRole, roleSource }: RoleSelectorCardPr
         <p className="mt-2 text-xs text-muted-foreground flex items-center gap-1">
           {source === "ai" ? (
             <>
-              <Sparkles className="size-3 text-amber-500" />
-              Detected by AI. You can change it anytime
+              <Sparkles className="h-3 w-3 text-amber-500" />
+              Detected by AI — you can change it anytime
             </>
           ) : (
             <>Manually set by you</>

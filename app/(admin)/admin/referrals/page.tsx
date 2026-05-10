@@ -77,16 +77,14 @@ export default function AdminReferralsPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-2">
-        <Share2 className="size-5 text-muted-foreground/70" aria-hidden="true" />
+        <Share2 className="w-5 h-5 text-muted-foreground/70" aria-hidden="true" />
         <span className="text-sm text-muted-foreground">Referral Program</span>
       </div>
 
       {/* Stat Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {loading ? (
-          Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={`stat-skeleton-${i}`} className="h-24 rounded-xl" />
-          ))
+          Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)
         ) : (
           <>
             <StatCard
@@ -129,7 +127,7 @@ export default function AdminReferralsPage() {
         {loading ? (
           <div className="space-y-3">
             {Array.from({ length: 3 }).map((_, i) => (
-              <Skeleton key={`funnel-skeleton-${i}`} className="h-8" />
+              <Skeleton key={i} className="h-8" />
             ))}
           </div>
         ) : data ? (
@@ -174,7 +172,7 @@ export default function AdminReferralsPage() {
             <tbody className="divide-y divide-ink/10">
               {loading ? (
                 Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={`referrer-skeleton-${i}`}>
+                  <tr key={i}>
                     <td className="px-4 py-3">
                       <Skeleton className="h-5 w-8" />
                     </td>
@@ -252,7 +250,7 @@ export default function AdminReferralsPage() {
           {loading ? (
             <div className="space-y-2">
               {Array.from({ length: 3 }).map((_, i) => (
-                <Skeleton key={`source-skeleton-${i}`} className="h-6" />
+                <Skeleton key={i} className="h-6" />
               ))}
             </div>
           ) : (
@@ -277,7 +275,7 @@ export default function AdminReferralsPage() {
           {loading ? (
             <div className="space-y-3">
               {Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={`conversion-skeleton-${i}`} className="h-10" />
+                <Skeleton key={i} className="h-10" />
               ))}
             </div>
           ) : data?.recentConversions.length === 0 ? (

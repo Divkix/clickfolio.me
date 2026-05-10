@@ -170,13 +170,9 @@ export function transformAiResponse(raw: unknown): Record<string, unknown> {
       exp.end_date = truncateString(normalizeEndDate(exp.end_date), 50);
       exp.description = truncateString(normalizeString(exp.description), 2000);
       if (Array.isArray(exp.highlights)) {
-        const cleanedHighlights: string[] = [];
-        for (const h of exp.highlights) {
-          if (typeof h === "string" && h.trim().length > 0) {
-            cleanedHighlights.push(truncateString(h.trim(), 500));
-          }
-        }
-        exp.highlights = cleanedHighlights;
+        exp.highlights = exp.highlights
+          .filter((h): h is string => typeof h === "string" && h.trim().length > 0)
+          .map((h) => truncateString(h.trim(), 500));
       }
     }
   } else {
@@ -213,13 +209,9 @@ export function transformAiResponse(raw: unknown): Record<string, unknown> {
     for (const skill of data.skills as Record<string, unknown>[]) {
       skill.category = truncateString(normalizeString(skill.category), 100);
       if (Array.isArray(skill.items)) {
-        const cleanedItems: string[] = [];
-        for (const i of skill.items) {
-          if (typeof i === "string" && i.trim().length > 0) {
-            cleanedItems.push(truncateString(i.trim(), 100));
-          }
-        }
-        skill.items = cleanedItems;
+        skill.items = skill.items
+          .filter((i): i is string => typeof i === "string" && i.trim().length > 0)
+          .map((i) => truncateString(i.trim(), 100));
       }
     }
   }
@@ -251,13 +243,9 @@ export function transformAiResponse(raw: unknown): Record<string, unknown> {
       proj.url = validateUrl(proj.url);
       proj.image_url = validateUrl(proj.image_url);
       if (Array.isArray(proj.technologies)) {
-        const cleanedTech: string[] = [];
-        for (const t of proj.technologies) {
-          if (typeof t === "string" && t.trim().length > 0) {
-            cleanedTech.push(truncateString(t.trim(), 50));
-          }
-        }
-        proj.technologies = cleanedTech;
+        proj.technologies = proj.technologies
+          .filter((t): t is string => typeof t === "string" && t.trim().length > 0)
+          .map((t) => truncateString(t.trim(), 50));
       }
     }
   }

@@ -78,7 +78,7 @@ export function ResumeManagementCard({
     <>
       <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-6 h-full flex flex-col">
         <div className="flex items-center gap-2 mb-4">
-          <FileText className="size-5 text-coral" />
+          <FileText className="h-5 w-5 text-coral" />
           <h3 className="text-lg font-semibold text-foreground">Resume</h3>
         </div>
 
@@ -88,7 +88,7 @@ export function ResumeManagementCard({
             <div className="relative">
               <div className="absolute inset-0 bg-linear-to-r from-coral to-coral rounded-lg blur-md opacity-20" />
               <div className="relative bg-linear-to-r from-coral/20 to-coral/20 p-2.5 rounded-lg">
-                <Upload className="size-4 text-coral" />
+                <Upload className="h-4 w-4 text-coral" />
               </div>
             </div>
             <div>
@@ -108,7 +108,7 @@ export function ResumeManagementCard({
                 </span>
                 {latestResumeDate && (
                   <p className="text-xs text-muted-foreground mt-1">
-                    <Calendar className="inline size-3 mr-1" />
+                    <Calendar className="inline h-3 w-3 mr-1" />
                     {formatDate(latestResumeDate)}
                   </p>
                 )}
@@ -121,7 +121,7 @@ export function ResumeManagementCard({
         {latestResumeStatus === "failed" && latestResumeError && (
           <div className="rounded-lg bg-coral/10 border border-coral/30 p-3 mb-4">
             <div className="flex items-start gap-2">
-              <AlertCircle className="size-4 text-coral shrink-0 mt-0.5" />
+              <AlertCircle className="h-4 w-4 text-coral shrink-0 mt-0.5" />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-coral">Processing failed</p>
                 <p className="text-xs text-coral truncate">{latestResumeError}</p>
@@ -146,7 +146,7 @@ export function ResumeManagementCard({
             onClick={() => setUploadModalOpen(true)}
             className="w-full bg-linear-to-r from-coral to-coral hover:from-coral/90 hover:to-coral/90 text-white font-semibold transition-all duration-300 shadow-sm hover:shadow-md"
           >
-            <Upload className="size-4 mr-2" />
+            <Upload className="h-4 w-4 mr-2" />
             Upload New Resume
           </Button>
           <p className="text-xs text-muted-foreground text-center mt-2">5 uploads per 24 hours</p>

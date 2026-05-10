@@ -45,7 +45,7 @@ const BentoGrid: React.FC<TemplateProps> = ({ content, profile }) => {
 
       <main className="min-h-screen bg-[#FAF8F5] text-[#2D2926] font-sans antialiased selection:bg-coral/30 p-4 md:p-8">
         {/* Background Pattern */}
-        <div className="fixed inset-0 size-full bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] bg-size-[16px_16px] mask-[radial-gradient(ellipse_50%_50%_at_50%_50%,#000_70%,transparent_100%)] pointer-events-none z-0" />
+        <div className="fixed inset-0 h-full w-full bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] bg-size-[16px_16px] mask-[radial-gradient(ellipse_50%_50%_at_50%_50%,#000_70%,transparent_100%)] pointer-events-none z-0" />
 
         <div className="max-w-6xl mx-auto relative z-10">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 auto-rows-[150px] sm:auto-rows-[200px] gap-4">
@@ -54,42 +54,44 @@ const BentoGrid: React.FC<TemplateProps> = ({ content, profile }) => {
               className="col-span-1 sm:col-span-2 row-span-2 bg-white rounded-4xl p-8 shadow-lg border border-gray-200/80 flex flex-col justify-between group hover:shadow-xl hover:shadow-gray-200/50 transition-shadow duration-300 relative overflow-hidden motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4"
               style={{ animationDelay: "0ms" }}
             >
-              <div className="absolute top-0 right-0 size-80 bg-linear-to-br from-gray-100 to-gray-50 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none opacity-50 group-hover:scale-110 transition-transform duration-700"></div>
+              <div className="absolute top-0 right-0 w-80 h-80 bg-linear-to-br from-gray-100 to-gray-50 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none opacity-50 group-hover:scale-110 transition-transform duration-700"></div>
 
               <div className="relative z-10">
                 <div className="flex items-start justify-between mb-6">
-                  <div className="size-20 rounded-2xl bg-[#2D2926] shadow-xl flex items-center justify-center text-white font-medium text-3xl transform group-hover:rotate-3 transition-transform duration-300">
+                  <div className="w-20 h-20 rounded-2xl bg-[#2D2926] shadow-xl flex items-center justify-center text-white font-medium text-3xl transform group-hover:rotate-3 transition-transform duration-300">
                     {getInitials(content.full_name)}
                   </div>
                   <nav aria-label="Contact links" className="hidden sm:flex gap-2">
-                    {contactLinks.reduce<React.JSX.Element[]>((acc, link) => {
-                      if (link.type === "location") return acc;
-                      const IconComponent = bentoIconMap[link.type];
-                      const isBranded = link.type === "behance" || link.type === "dribbble";
-                      const brandColor =
-                        link.type === "behance"
-                          ? "#1769FF"
-                          : link.type === "dribbble"
-                            ? "#EA4C89"
-                            : undefined;
-                      const brandText =
-                        link.type === "behance" ? "Be" : link.type === "dribbble" ? "Dr" : null;
+                    {contactLinks
+                      .filter((link) => link.type !== "location")
+                      .map((link) => {
+                        const IconComponent = bentoIconMap[link.type];
+                        const isBranded = link.type === "behance" || link.type === "dribbble";
+                        const brandColor =
+                          link.type === "behance"
+                            ? "#1769FF"
+                            : link.type === "dribbble"
+                              ? "#EA4C89"
+                              : undefined;
+                        const brandText =
+                          link.type === "behance" ? "Be" : link.type === "dribbble" ? "Dr" : null;
 
-                      if (isBranded) {
-                        acc.push(
-                          <a
-                            key={link.type}
-                            href={link.href}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="p-2.5 bg-gray-50 rounded-full hover:bg-gray-100 border border-gray-100 hover:border-gray-200 transition-[color,background-color,border-color,transform] text-gray-500 hover:text-[#2D2926] hover:scale-105 flex items-center justify-center"
-                            style={{ color: brandColor }}
-                          >
-                            <span className="text-xs font-bold">{brandText}</span>
-                          </a>,
-                        );
-                      } else {
-                        acc.push(
+                        if (isBranded) {
+                          return (
+                            <a
+                              key={link.type}
+                              href={link.href}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="p-2.5 bg-gray-50 rounded-full hover:bg-gray-100 border border-gray-100 hover:border-gray-200 transition-[color,background-color,border-color,transform] text-gray-500 hover:text-[#2D2926] hover:scale-105 flex items-center justify-center"
+                              style={{ color: brandColor }}
+                            >
+                              <span className="text-xs font-bold">{brandText}</span>
+                            </a>
+                          );
+                        }
+
+                        return (
                           <a
                             key={link.type}
                             href={link.href}
@@ -99,11 +101,9 @@ const BentoGrid: React.FC<TemplateProps> = ({ content, profile }) => {
                             className="p-2.5 bg-gray-50 rounded-full hover:bg-gray-100 border border-gray-100 hover:border-gray-200 transition-[color,background-color,border-color,transform] text-gray-500 hover:text-[#2D2926] hover:scale-105"
                           >
                             {IconComponent && <IconComponent size={18} strokeWidth={1.5} />}
-                          </a>,
+                          </a>
                         );
-                      }
-                      return acc;
-                    }, [])}
+                      })}
                   </nav>
                 </div>
 
@@ -127,34 +127,36 @@ const BentoGrid: React.FC<TemplateProps> = ({ content, profile }) => {
                 </p>
 
                 <nav aria-label="Contact links" className="sm:hidden flex gap-3 mb-4 flex-wrap">
-                  {contactLinks.reduce<React.JSX.Element[]>((acc, link) => {
-                    if (link.type === "location") return acc;
-                    const IconComponent = bentoIconMap[link.type];
-                    const isBranded = link.type === "behance" || link.type === "dribbble";
-                    const brandColor =
-                      link.type === "behance"
-                        ? "#1769FF"
-                        : link.type === "dribbble"
-                          ? "#EA4C89"
-                          : undefined;
-                    const brandText =
-                      link.type === "behance" ? "Be" : link.type === "dribbble" ? "Dr" : null;
+                  {contactLinks
+                    .filter((link) => link.type !== "location")
+                    .map((link) => {
+                      const IconComponent = bentoIconMap[link.type];
+                      const isBranded = link.type === "behance" || link.type === "dribbble";
+                      const brandColor =
+                        link.type === "behance"
+                          ? "#1769FF"
+                          : link.type === "dribbble"
+                            ? "#EA4C89"
+                            : undefined;
+                      const brandText =
+                        link.type === "behance" ? "Be" : link.type === "dribbble" ? "Dr" : null;
 
-                    if (isBranded) {
-                      acc.push(
-                        <a
-                          key={link.type}
-                          href={link.href}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="p-2 bg-gray-100 rounded-full flex items-center justify-center size-10"
-                          style={{ color: brandColor }}
-                        >
-                          <span className="text-xs font-bold">{brandText}</span>
-                        </a>,
-                      );
-                    } else {
-                      acc.push(
+                      if (isBranded) {
+                        return (
+                          <a
+                            key={link.type}
+                            href={link.href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-2 bg-gray-100 rounded-full flex items-center justify-center w-10 h-10"
+                            style={{ color: brandColor }}
+                          >
+                            <span className="text-xs font-bold">{brandText}</span>
+                          </a>
+                        );
+                      }
+
+                      return (
                         <a
                           key={link.type}
                           href={link.href}
@@ -164,11 +166,9 @@ const BentoGrid: React.FC<TemplateProps> = ({ content, profile }) => {
                           className="p-2 bg-gray-100 rounded-full text-gray-600"
                         >
                           {IconComponent && <IconComponent size={18} />}
-                        </a>,
+                        </a>
                       );
-                    }
-                    return acc;
-                  }, [])}
+                    })}
                 </nav>
 
                 <div className="w-fit">
@@ -188,9 +188,9 @@ const BentoGrid: React.FC<TemplateProps> = ({ content, profile }) => {
               style={{ animationDelay: "80ms" }}
             >
               <div className="flex justify-between items-start">
-                <div className="relative flex size-3">
-                  <span className="motion-safe:animate-ping absolute inline-flex size-full rounded-full bg-green-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full size-3 bg-green-500"></span>
+                <div className="relative flex h-3 w-3">
+                  <span className="motion-safe:animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
                 </div>
                 <Crown
                   size={20}
@@ -225,7 +225,7 @@ const BentoGrid: React.FC<TemplateProps> = ({ content, profile }) => {
                 <div className="flex flex-wrap gap-2 content-start overflow-y-auto no-scrollbar mask-image-b">
                   {skills.map((skill: string, index: number) => (
                     <span
-                      key={`skill-${skill}-${index}`}
+                      key={index}
                       className="px-3 py-1.5 bg-gray-50 rounded-lg text-xs font-medium text-gray-600 border border-gray-100 hover:border-gray-300 hover:bg-gray-100 transition-colors cursor-default"
                     >
                       {skill}
@@ -238,7 +238,7 @@ const BentoGrid: React.FC<TemplateProps> = ({ content, profile }) => {
             {/* 4. Experience Cards - 1x2 each */}
             {content.experience?.slice(0, 2).map((job, index) => (
               <div
-                key={`${job.title}-${job.company}-${index}`}
+                key={index}
                 className="col-span-1 row-span-2 bg-white rounded-4xl p-6 shadow-lg flex flex-col border border-gray-200/80 group hover:shadow-xl hover:-translate-y-1 transition-[box-shadow,transform] duration-300 relative overflow-hidden motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4"
                 style={{ animationDelay: `${(index + 3) * 80}ms` }}
               >
@@ -247,7 +247,7 @@ const BentoGrid: React.FC<TemplateProps> = ({ content, profile }) => {
                 </div>
 
                 <div className="flex-1">
-                  <div className="size-10 bg-gray-50 rounded-xl flex items-center justify-center mb-4 border border-gray-100 group-hover:scale-110 transition-transform">
+                  <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center mb-4 border border-gray-100 group-hover:scale-110 transition-transform">
                     <Briefcase size={18} className="text-gray-600" aria-hidden="true" />
                   </div>
 
@@ -269,7 +269,7 @@ const BentoGrid: React.FC<TemplateProps> = ({ content, profile }) => {
                   ) : job.highlights && job.highlights.length > 0 ? (
                     <ul className="text-xs text-gray-500 space-y-1.5 list-disc pl-4 line-clamp-3 group-hover:text-gray-600">
                       {job.highlights.map((highlight, i) => (
-                        <li key={`${job.title}-${highlight}-${i}`}>{highlight}</li>
+                        <li key={i}>{highlight}</li>
                       ))}
                     </ul>
                   ) : null}
@@ -280,7 +280,7 @@ const BentoGrid: React.FC<TemplateProps> = ({ content, profile }) => {
             {/* 5. Education Cards - 1x1 */}
             {content.education?.slice(0, 2).map((edu, index) => (
               <div
-                key={`${edu.degree}-${edu.institution}-${index}`}
+                key={index}
                 className="col-span-1 row-span-1 bg-white rounded-4xl p-6 shadow-sm border border-gray-200/80 flex flex-col justify-between hover:shadow-lg transition-shadow duration-300 group motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4"
                 style={{ animationDelay: `${(index + 5) * 80}ms` }}
               >
@@ -346,7 +346,7 @@ const BentoGrid: React.FC<TemplateProps> = ({ content, profile }) => {
                                 .slice(0, 3)
                                 .map((tech: string, idx: number) => (
                                   <span
-                                    key={`${content.projects?.[0]?.title ?? "project"}-${tech}-${idx}`}
+                                    key={idx}
                                     className="text-[10px] font-medium bg-white/10 border border-white/5 px-2.5 py-1 rounded-full text-gray-200"
                                   >
                                     {tech}
@@ -356,7 +356,7 @@ const BentoGrid: React.FC<TemplateProps> = ({ content, profile }) => {
                           )}
                       </div>
                       {content.projects[0].url && (
-                        <div className="bg-white text-black size-12 rounded-full flex items-center justify-center transform scale-90 opacity-0 group-hover:scale-100 group-hover:opacity-100 transition-[transform,opacity] duration-300 shadow-lg shadow-white/10">
+                        <div className="bg-white text-black w-12 h-12 rounded-full flex items-center justify-center transform scale-90 opacity-0 group-hover:scale-100 group-hover:opacity-100 transition-[transform,opacity] duration-300 shadow-lg shadow-white/10">
                           <ArrowUpRight size={20} strokeWidth={2.5} aria-hidden="true" />
                         </div>
                       )}
@@ -414,7 +414,7 @@ const BentoGrid: React.FC<TemplateProps> = ({ content, profile }) => {
                 className="col-span-1 row-span-1 bg-white rounded-4xl p-6 shadow-sm border border-gray-200/80 flex flex-col justify-between group hover:shadow-lg transition-shadow relative overflow-hidden motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4"
                 style={{ animationDelay: "720ms" }}
               >
-                <div className="absolute -right-4 -top-4 size-24 bg-gray-50 rounded-full group-hover:bg-coral/10 transition-colors duration-500"></div>
+                <div className="absolute -right-4 -top-4 w-24 h-24 bg-gray-50 rounded-full group-hover:bg-coral/10 transition-colors duration-500"></div>
 
                 <div className="flex justify-between items-start relative z-10">
                   <Code
@@ -449,7 +449,7 @@ const BentoGrid: React.FC<TemplateProps> = ({ content, profile }) => {
                 className="col-span-1 row-span-1 bg-white rounded-4xl p-6 shadow-sm border border-gray-200/80 flex flex-col justify-center items-center text-center hover:shadow-lg hover:border-yellow-200 transition-[box-shadow,border-color] duration-300 group motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4"
                 style={{ animationDelay: "800ms" }}
               >
-                <div className="size-10 bg-yellow-50 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                <div className="w-10 h-10 bg-yellow-50 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
                   <Award size={20} className="text-yellow-600" aria-hidden="true" />
                 </div>
                 <div>

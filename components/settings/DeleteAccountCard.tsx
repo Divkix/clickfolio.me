@@ -95,7 +95,7 @@ export function DeleteAccountCard({ userEmail }: DeleteAccountCardProps) {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="shrink-0 rounded-lg bg-coral/20 p-2">
-              <AlertTriangle className="size-5 text-coral" />
+              <AlertTriangle className="h-5 w-5 text-coral" />
             </div>
             <div className="min-w-0">
               <h3 className="font-semibold text-coral">Danger Zone</h3>
@@ -107,7 +107,7 @@ export function DeleteAccountCard({ userEmail }: DeleteAccountCardProps) {
             onClick={() => setIsDialogOpen(true)}
             className="shrink-0 gap-2"
           >
-            <Trash2 className="size-4" />
+            <Trash2 className="h-4 w-4" />
             Delete Account
           </Button>
         </div>
@@ -117,7 +117,7 @@ export function DeleteAccountCard({ userEmail }: DeleteAccountCardProps) {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-coral">
-              <AlertTriangle className="size-5 text-coral" />
+              <AlertTriangle className="h-5 w-5 text-coral" />
               Delete Account
             </DialogTitle>
           </DialogHeader>
@@ -172,12 +172,12 @@ export function DeleteAccountCard({ userEmail }: DeleteAccountCardProps) {
               >
                 {isDeleting ? (
                   <>
-                    <Loader2 className="size-4 animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin" />
                     Deleting...
                   </>
                 ) : (
                   <>
-                    <Trash2 className="size-4" />
+                    <Trash2 className="h-4 w-4" />
                     Delete Forever
                   </>
                 )}

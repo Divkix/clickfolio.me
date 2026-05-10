@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { siteConfig } from "@/lib/config/site";
 import {
   generatePageBreadcrumbJsonLd,
@@ -54,29 +53,29 @@ export default function StudentPage() {
           </h1>
           <p className="text-lg text-[#6B6B6B] mb-8">
             Your first online portfolio shouldn't cost anything. Upload your PDF resume and get a
-            shareable website with a custom @handle URL, completely free, no time limits.
+            shareable website with a custom @handle URL — completely free, no time limits.
           </p>
 
           <section className="mb-12">
             <h2 className="font-black text-xl text-ink mb-4">Why Students Love clickfolio.me</h2>
             <ul className="space-y-3 text-[#6B6B6B] list-disc pl-5">
               <li>
-                <strong>100% free, forever</strong>: all 6 base templates have no time limits, no
+                <strong>100% free, forever</strong> — all 6 base templates have no time limits, no
                 trials, and no credit card requirements. Perfect for students building their first
                 online presence.
               </li>
               <li>
-                <strong>Classic ATS template</strong>: optimized for applicant tracking systems used
-                by internship and entry-level job portals. Your portfolio works as both a website
-                and a resume.
+                <strong>Classic ATS template</strong> — optimized for applicant tracking systems
+                used by internship and entry-level job portals. Your portfolio works as both a
+                website and a resume.
               </li>
               <li>
-                <strong>Education-first layout</strong>: AI automatically surfaces your education,
+                <strong>Education-first layout</strong> — AI automatically surfaces your education,
                 coursework, GPA, and academic projects. Ideal for students with limited work
                 experience.
               </li>
               <li>
-                <strong>Bento Grid template</strong>: modern mosaic layout that organizes your
+                <strong>Bento Grid template</strong> — modern mosaic layout that organizes your
                 coursework, projects, skills, and extracurriculars into visually distinct,
                 impressive cards.
               </li>
@@ -97,12 +96,12 @@ export default function StudentPage() {
             </p>
           </section>
 
-          <Link
+          <a
             href="/"
             className="inline-block bg-ink text-cream font-bold px-6 py-3 border-3 border-ink shadow-brutal-sm hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-transform"
           >
             Build Your Free Student Portfolio →
-          </Link>
+          </a>
         </div>
       </main>
     </>

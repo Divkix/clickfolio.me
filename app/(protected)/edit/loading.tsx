@@ -68,7 +68,7 @@ export default function EditLoading() {
                       <Skeleton className="h-5 w-48" />
                       <Skeleton className="h-4 w-36" />
                     </div>
-                    <Skeleton className="size-8 rounded-md" />
+                    <Skeleton className="h-8 w-8 rounded-md" />
                   </div>
                   <Skeleton className="h-4 w-32 mb-2" />
                   <Skeleton className="h-16 w-full rounded-md" />
@@ -85,7 +85,7 @@ export default function EditLoading() {
             </div>
             <div className="flex flex-wrap gap-2">
               {[...Array(8)].map((_, i) => (
-                <Skeleton key={`skill-skeleton-${i}`} className="h-8 w-20 rounded-full" />
+                <Skeleton key={i} className="h-8 w-20 rounded-full" />
               ))}
             </div>
           </div>

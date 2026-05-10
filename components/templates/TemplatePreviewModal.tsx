@@ -117,7 +117,7 @@ export function TemplatePreviewModal({
               )}
               aria-label="Previous template"
             >
-              <ChevronLeft className="size-5" />
+              <ChevronLeft className="w-5 h-5" />
               <span className="hidden sm:inline text-sm font-medium">Prev</span>
             </button>
 
@@ -146,7 +146,7 @@ export function TemplatePreviewModal({
                 aria-label="Next template"
               >
                 <span className="hidden sm:inline text-sm font-medium">Next</span>
-                <ChevronRight className="size-5" />
+                <ChevronRight className="w-5 h-5" />
               </button>
 
               {/* Close Button */}
@@ -159,7 +159,7 @@ export function TemplatePreviewModal({
                 )}
                 aria-label="Close preview"
               >
-                <X className="size-5" />
+                <X className="w-5 h-5" />
               </DialogPrimitive.Close>
             </div>
           </div>

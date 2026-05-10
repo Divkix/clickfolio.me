@@ -32,7 +32,7 @@ export default function LinkedInToPortfolioPage() {
     <BlogPostLayout post={post} relatedPosts={relatedPosts}>
       <section>
         <p>
-          LinkedIn is a powerful professional network, but it's rented land. You don't own your
+          LinkedIn is a powerful professional network — but it's rented land. You don't own your
           LinkedIn profile. LinkedIn controls how it looks, who sees it, what features are
           available, and ultimately whether it exists at all. If LinkedIn changes its algorithm
           tomorrow, your visibility could drop to zero. If they remove a feature you rely on,
@@ -41,19 +41,19 @@ export default function LinkedInToPortfolioPage() {
         <p>
           A portfolio website, on the other hand, is land you own. You control the design, the
           content, the URL, and the analytics. No algorithm decides whether someone sees it. No
-          platform limits what you can show. This guide shows you how to have both: LinkedIn for
+          platform limits what you can show. This guide shows you how to have both — LinkedIn for
           networking, and your own website for ownership.
         </p>
       </section>
 
       <section>
         <h2>Why LinkedIn Isn't Enough</h2>
-        <p>LinkedIn is essential, but it's not sufficient. Here's why:</p>
+        <p>LinkedIn is essential — but it's not sufficient. Here's why:</p>
         <ul>
           <li>
             <strong>Algorithm dependence.</strong> Your profile's visibility depends on LinkedIn's
             algorithm. Post views, profile appearances, and search rankings within LinkedIn are all
-            gatekept by a system you don't control. A website ranks on Google, a fundamentally more
+            gatekept by a system you don't control. A website ranks on Google — a fundamentally more
             open and predictable system.
           </li>
           <li>
@@ -64,7 +64,7 @@ export default function LinkedInToPortfolioPage() {
           </li>
           <li>
             <strong>No custom domain.</strong> Your LinkedIn URL is{" "}
-            <code>linkedin.com/in/yourname</code>. Your portfolio can be <code>yourname.com</code>.
+            <code>linkedin.com/in/yourname</code>. Your portfolio can be <code>yourname.com</code> —
             which looks infinitely more professional on a resume, business card, or email signature.
           </li>
           <li>
@@ -73,7 +73,7 @@ export default function LinkedInToPortfolioPage() {
             own site, you're the only thing a visitor sees.
           </li>
           <li>
-            <strong>No analytics.</strong> LinkedIn tells you who viewed your profile, sometimes. A
+            <strong>No analytics.</strong> LinkedIn tells you who viewed your profile — sometimes. A
             website gives you real analytics: how many visitors, where they came from, what pages
             they read, and how long they stayed.
           </li>
@@ -83,8 +83,8 @@ export default function LinkedInToPortfolioPage() {
       <section>
         <h2>The LinkedIn + Portfolio Combo</h2>
         <p>
-          The smartest strategy isn't LinkedIn <em>or</em> a portfolio. It's LinkedIn <em>and</em> a
-          portfolio. They serve different purposes and complement each other:
+          The smartest strategy isn't LinkedIn <em>or</em> a portfolio — it's LinkedIn <em>and</em>{" "}
+          a portfolio. They serve different purposes and complement each other:
         </p>
         <ul>
           <li>
@@ -94,7 +94,7 @@ export default function LinkedInToPortfolioPage() {
           </li>
           <li>
             <strong>Your portfolio is your destination.</strong> When someone wants to learn more
-            about you (your work, your projects, your full career story), send them to your
+            about you — your work, your projects, your full career story — send them to your
             portfolio. It's your curated, designed, controlled showcase. LinkedIn introduces you;
             your portfolio closes the deal.
           </li>
@@ -117,7 +117,7 @@ export default function LinkedInToPortfolioPage() {
           </li>
           <li>
             <strong>Upload the PDF to clickfolio.me.</strong> The AI parser reads your LinkedIn PDF
-            and extracts your experience, education, skills, and contact information, same as any
+            and extracts your experience, education, skills, and contact information — same as any
             resume PDF.
           </li>
           <li>
@@ -135,7 +135,7 @@ export default function LinkedInToPortfolioPage() {
         <p>
           If you have a resume PDF that mirrors your LinkedIn profile (as most professionals do),
           upload that instead. Resume PDFs are formatted for the AI parser and typically produce
-          more accurate results than LinkedIn's exported PDF. Either method works. Use whichever is
+          more accurate results than LinkedIn's exported PDF. Either method works — use whichever is
           more up-to-date.
         </p>
       </section>
@@ -145,9 +145,9 @@ export default function LinkedInToPortfolioPage() {
         <p>Once your portfolio is live, make sure LinkedIn visitors can find it:</p>
         <h3>Featured Section</h3>
         <p>
-          The Featured section is the most prominent spot on your LinkedIn profile. It sits right
+          The Featured section is the most prominent spot on your LinkedIn profile — it sits right
           below your About section and supports links. Add your portfolio URL here with a
-          description like "My professional portfolio: see my full experience, projects, and
+          description like "My professional portfolio — see my full experience, projects, and
           skills." This is the first thing visitors see after your headline.
         </p>
         <h3>Contact Info</h3>
@@ -173,16 +173,16 @@ export default function LinkedInToPortfolioPage() {
         <h2>SEO Benefits</h2>
         <p>
           Here's something LinkedIn can't do: rank your name on Google. When someone searches for
-          you, your LinkedIn profile will typically appear in results, but so will other people with
-          similar names, your Twitter profile, and random mentions. A portfolio website with your
-          name in the URL, title, and heading has a much better chance of ranking for your name
+          you, your LinkedIn profile will typically appear in results — but so will other people
+          with similar names, your Twitter profile, and random mentions. A portfolio website with
+          your name in the URL, title, and heading has a much better chance of ranking for your name
           specifically.
         </p>
         <p>
           And it compounds over time. Every view, every link from another site, every share on
           social media signals to Google that your portfolio is the authoritative source for your
           professional identity. LinkedIn profiles come and go in search rankings based on
-          LinkedIn's domain authority. Your own domain builds its own authority.
+          LinkedIn's domain authority — your own domain builds its own authority.
         </p>
       </section>
 

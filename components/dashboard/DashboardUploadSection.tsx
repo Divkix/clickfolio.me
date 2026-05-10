@@ -23,7 +23,7 @@ export function DashboardUploadSection({
       <Button onClick={() => setUploadModalOpen(true)} variant={variant} className={className}>
         {children ?? (
           <>
-            <Upload className="size-4 mr-2" />
+            <Upload className="h-4 w-4 mr-2" />
             Upload New Resume
           </>
         )}

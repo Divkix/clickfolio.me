@@ -25,25 +25,25 @@ export function SaveIndicator({ status, lastSaved, className }: SaveIndicatorPro
     <output className={cn("flex items-center gap-2 text-sm", className)} aria-live="polite">
       {status === "saving" && (
         <>
-          <Loader2 className="size-4 animate-spin text-muted-foreground" />
+          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
           <span className="text-muted-foreground">Saving...</span>
         </>
       )}
       {status === "saved" && lastSaved && (
         <>
-          <Check className="size-4 text-emerald-600" />
+          <Check className="h-4 w-4 text-emerald-600" />
           <span className="text-muted-foreground">Saved {formatRelativeTime(lastSaved)}</span>
         </>
       )}
       {status === "error" && (
         <>
-          <AlertCircle className="size-4 text-coral" />
+          <AlertCircle className="h-4 w-4 text-coral" />
           <span className="text-coral">Save failed</span>
         </>
       )}
       {status === "unsaved" && (
         <>
-          <AlertCircle className="size-4 text-amber-500" />
+          <AlertCircle className="h-4 w-4 text-amber-500" />
           <span className="text-amber-500">Unsaved changes</span>
         </>
       )}

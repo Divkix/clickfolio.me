@@ -40,12 +40,12 @@ export function CopyLinkButton({ handle }: CopyLinkButtonProps) {
     >
       {copied ? (
         <>
-          <Check className="size-4" />
+          <Check className="h-4 w-4" />
           Copied!
         </>
       ) : (
         <>
-          <Link2 className="size-4" />
+          <Link2 className="h-4 w-4" />
           Copy Share Link
         </>
       )}

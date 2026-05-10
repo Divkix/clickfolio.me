@@ -36,8 +36,8 @@ export function ThemeStep({
     <div className="space-y-8">
       {/* Header */}
       <div className="text-center">
-        <div className="mx-auto size-16 bg-linear-to-r from-coral/20 to-coral/20 rounded-xl flex items-center justify-center mb-6">
-          <Palette className="size-8 text-coral" />
+        <div className="mx-auto w-16 h-16 bg-linear-to-r from-coral/20 to-coral/20 rounded-xl flex items-center justify-center mb-6">
+          <Palette className="w-8 h-8 text-coral" />
         </div>
         <h1 className="text-3xl sm:text-4xl font-bold text-foreground mb-3 leading-tight">
           Choose Your Template
@@ -73,7 +73,7 @@ export function ThemeStep({
                 {selectedTheme === id && isUnlocked && (
                   <div className="absolute top-4 right-4">
                     <div className="flex items-center gap-1 bg-coral text-white px-3 py-1 rounded-full text-xs font-bold">
-                      <CheckCircle2 className="size-3" />
+                      <CheckCircle2 className="w-3 h-3" />
                       Selected
                     </div>
                   </div>
@@ -97,7 +97,7 @@ export function ThemeStep({
                     </span>
                     {!isUnlocked && (
                       <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-600">
-                        <Gift className="size-3" />
+                        <Gift className="w-3 h-3" />
                         Locked
                       </span>
                     )}
@@ -147,7 +147,7 @@ export function ThemeStep({
                         src={meta.preview}
                         alt={`${meta.name} preview`}
                         className={cn(
-                          "size-full object-cover object-top",
+                          "w-full h-full object-cover object-top",
                           !isUnlocked && "blur-[2px] grayscale",
                         )}
                         loading="lazy"
@@ -155,7 +155,7 @@ export function ThemeStep({
                       {/* Lock Overlay for locked themes */}
                       {!isUnlocked && (
                         <div className="absolute inset-0 bg-ink/40 flex flex-col items-center justify-center">
-                          <Lock className="size-5 text-white mb-1" />
+                          <Lock className="w-5 h-5 text-white mb-1" />
                           <span className="text-[10px] text-white font-semibold">
                             {requiredReferrals} referrals
                           </span>

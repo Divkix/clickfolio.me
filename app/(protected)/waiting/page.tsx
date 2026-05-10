@@ -160,7 +160,7 @@ function WaitingContent() {
             <div className="flex flex-col items-center justify-center py-8 space-y-4">
               <div className="relative">
                 <div className="absolute inset-0 animate-ping opacity-30 rounded-full bg-coral" />
-                <Sparkles className="size-8 text-coral relative" />
+                <Sparkles className="h-8 w-8 text-coral relative" />
               </div>
               <p className="text-sm text-muted-foreground font-medium">Connecting...</p>
             </div>
@@ -174,7 +174,7 @@ function WaitingContent() {
                   <div className="absolute inset-0 animate-pulse rounded-full bg-coral/20 scale-150" />
                   <div className="absolute inset-0 animate-ping opacity-20 rounded-full bg-coral" />
                   <div className="relative bg-cream border-2 border-ink rounded-full p-4 shadow-brutal-sm">
-                    <Sparkles className="size-10 text-coral animate-pulse" />
+                    <Sparkles className="h-10 w-10 text-coral animate-pulse" />
                   </div>
                 </div>
                 <div className="text-center space-y-1">
@@ -204,7 +204,7 @@ function WaitingContent() {
                     return (
                       <div className="flex items-center gap-3">
                         <div className="bg-coral/10 border border-coral/20 rounded-lg p-2">
-                          <StageIcon className="size-5 text-coral" />
+                          <StageIcon className="h-5 w-5 text-coral" />
                         </div>
                         <div>
                           <p className="text-sm font-semibold text-ink">{currentStage.stage}</p>
@@ -231,7 +231,7 @@ function WaitingContent() {
           {status === "completed" && (
             <div className="flex flex-col items-center justify-center py-8 space-y-4">
               <div className="bg-mint/20 border-2 border-ink rounded-full p-4 shadow-brutal-sm">
-                <CheckCircle2 className="size-10 text-mint" />
+                <CheckCircle2 className="h-10 w-10 text-mint" />
               </div>
               <div className="text-center space-y-2">
                 <p className="font-bold text-lg">Parsing Complete!</p>
@@ -243,7 +243,7 @@ function WaitingContent() {
           {status === "failed" && (
             <div className="space-y-4">
               <Alert variant="destructive" className="border-2 border-ink">
-                <AlertCircle className="size-4" />
+                <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
                   <p className="font-bold">Processing Failed</p>
                   <p className="text-sm mt-1">{error || "Unknown error occurred"}</p>
@@ -272,7 +272,7 @@ function WaitingContent() {
 
           {error && status === "processing" && (
             <Alert className="border-2 border-ink">
-              <AlertCircle className="size-4" />
+              <AlertCircle className="h-4 w-4" />
               <AlertDescription className="text-sm">{error}</AlertDescription>
             </Alert>
           )}
@@ -289,7 +289,7 @@ export default function WaitingPage() {
         <div className="min-h-screen flex items-center justify-center bg-cream">
           <div className="relative">
             <div className="absolute inset-0 animate-ping opacity-30 rounded-full bg-coral" />
-            <Sparkles className="size-8 text-coral relative animate-pulse" />
+            <Sparkles className="h-8 w-8 text-coral relative animate-pulse" />
           </div>
         </div>
       }

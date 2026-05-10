@@ -12,11 +12,9 @@ export function Pagination({ currentPage, totalPages, onPageChange }: Pagination
   if (totalPages <= 1) return null;
 
   const pages: (number | "...")[] = [];
-  const seen = new Set<number>();
 
   // Always show first page
   pages.push(1);
-  seen.add(1);
 
   // Show ellipsis if needed
   if (currentPage > 3) {
@@ -25,9 +23,8 @@ export function Pagination({ currentPage, totalPages, onPageChange }: Pagination
 
   // Show pages around current
   for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
-    if (!seen.has(i)) {
+    if (!pages.includes(i)) {
       pages.push(i);
-      seen.add(i);
     }
   }
 
@@ -37,9 +34,8 @@ export function Pagination({ currentPage, totalPages, onPageChange }: Pagination
   }
 
   // Always show last page
-  if (totalPages > 1 && !seen.has(totalPages)) {
+  if (totalPages > 1 && !pages.includes(totalPages)) {
     pages.push(totalPages);
-    seen.add(totalPages);
   }
 
   return (

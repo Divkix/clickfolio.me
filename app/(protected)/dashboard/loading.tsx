@@ -10,12 +10,9 @@ export default function DashboardLoading() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {/* Stat Card Skeletons */}
               {[...Array(4)].map((_, i) => (
-                <div
-                  key={`stat-skeleton-${i}`}
-                  className="bg-card rounded-xl shadow-sm border border-ink/10 p-4"
-                >
+                <div key={i} className="bg-card rounded-xl shadow-sm border border-ink/10 p-4">
                   <div className="flex items-start gap-3">
-                    <Skeleton className="size-9 rounded-xl shrink-0" />
+                    <Skeleton className="h-9 w-9 rounded-xl shrink-0" />
                     <div className="flex-1 min-w-0 space-y-2">
                       <Skeleton className="h-3 w-20" />
                       <Skeleton className="h-5 w-16" />
@@ -48,8 +45,8 @@ export default function DashboardLoading() {
             {/* Stats Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
               {[...Array(4)].map((_, i) => (
-                <div key={`stats-grid-skeleton-${i}`} className="flex items-center gap-3">
-                  <Skeleton className="size-10 rounded-lg shrink-0" />
+                <div key={i} className="flex items-center gap-3">
+                  <Skeleton className="h-10 w-10 rounded-lg shrink-0" />
                   <div className="space-y-1">
                     <Skeleton className="h-5 w-8" />
                     <Skeleton className="h-3 w-16" />
@@ -73,7 +70,7 @@ export default function DashboardLoading() {
             <div className="space-y-4">
               {/* Email */}
               <div className="flex items-start gap-3">
-                <Skeleton className="size-8 rounded-lg shrink-0" />
+                <Skeleton className="h-8 w-8 rounded-lg shrink-0" />
                 <div className="flex-1 min-w-0 space-y-1">
                   <Skeleton className="h-3 w-12" />
                   <Skeleton className="h-4 w-40" />
@@ -84,7 +81,7 @@ export default function DashboardLoading() {
 
               {/* Handle */}
               <div className="flex items-start gap-3">
-                <Skeleton className="size-8 rounded-lg shrink-0" />
+                <Skeleton className="h-8 w-8 rounded-lg shrink-0" />
                 <div className="flex-1 min-w-0 space-y-1">
                   <Skeleton className="h-3 w-14" />
                   <Skeleton className="h-4 w-36" />
@@ -96,7 +93,7 @@ export default function DashboardLoading() {
 
               {/* Member since */}
               <div className="flex items-start gap-3">
-                <Skeleton className="size-8 rounded-lg shrink-0" />
+                <Skeleton className="h-8 w-8 rounded-lg shrink-0" />
                 <div className="flex-1 min-w-0 space-y-1">
                   <Skeleton className="h-3 w-20" />
                   <Skeleton className="h-4 w-28" />

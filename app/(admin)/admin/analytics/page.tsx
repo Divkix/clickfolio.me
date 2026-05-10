@@ -78,7 +78,7 @@ export default function AdminAnalyticsPage() {
       {/* Period Toggle */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <BarChart3 className="size-5 text-muted-foreground/70" aria-hidden="true" />
+          <BarChart3 className="w-5 h-5 text-muted-foreground/70" aria-hidden="true" />
           <span className="text-sm text-muted-foreground">Platform Analytics</span>
         </div>
         <div className="flex gap-1 bg-muted rounded-lg p-0.5">

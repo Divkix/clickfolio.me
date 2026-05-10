@@ -121,39 +121,36 @@ export default {
   async queue(batch: MessageBatch<unknown>, env: CloudflareEnv): Promise<void> {
     const isDLQ = batch.queue === "clickfolio-parse-dlq";
 
-    // Process messages in parallel (independent operations)
-    await Promise.all(
-      batch.messages.map(async (message) => {
-        try {
-          const parsed = queueMessageSchema.safeParse(message.body);
-          if (!parsed.success) {
-            console.error("Invalid queue message shape:", parsed.error.flatten());
-            message.ack(); // discard malformed messages
-            return;
-          }
-
-          if (isDLQ) {
-            await handleDLQMessage(parsed.data, env);
-            message.ack();
-            return;
-          }
-
-          await handleQueueMessage(parsed.data, env);
-          message.ack();
-        } catch (error) {
-          console.error("Queue message processing failed:", error);
-
-          // Use error classification to determine retry strategy
-          if (isRetryableError(error)) {
-            message.retry();
-          } else {
-            // Permanent error - ack to send to DLQ
-            console.error("Permanent error, sending to DLQ");
-            message.ack();
-          }
+    for (const message of batch.messages) {
+      try {
+        const parsed = queueMessageSchema.safeParse(message.body);
+        if (!parsed.success) {
+          console.error("Invalid queue message shape:", parsed.error.flatten());
+          message.ack(); // discard malformed messages
+          continue;
         }
-      }),
-    );
+
+        if (isDLQ) {
+          await handleDLQMessage(parsed.data, env);
+          message.ack();
+          continue;
+        }
+
+        await handleQueueMessage(parsed.data, env);
+        message.ack();
+      } catch (error) {
+        console.error("Queue message processing failed:", error);
+
+        // Use error classification to determine retry strategy
+        if (isRetryableError(error)) {
+          message.retry();
+        } else {
+          // Permanent error - ack to send to DLQ
+          console.error("Permanent error, sending to DLQ");
+          message.ack();
+        }
+      }
+    }
   },
 
   // Cloudflare Cron trigger handler

@@ -229,9 +229,9 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content, profile }) => {
       <div className="min-h-screen bg-[#030303] text-slate-300 relative selection:bg-lavender/30 selection:text-white font-display-gm overflow-x-hidden">
         {/* --- Background Ambient Layer --- */}
         <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-0 left-1/4 size-[50vw] bg-lavender/20 rounded-full mix-blend-screen filter blur-[100px] opacity-20 animate-blob" />
-          <div className="absolute top-0 right-1/4 size-[50vw] bg-[#2DD4BF]/10 rounded-full mix-blend-screen filter blur-[100px] opacity-20 animate-blob animation-delay-2000" />
-          <div className="absolute -bottom-32 left-1/3 size-[60vw] bg-[#F472B6]/10 rounded-full mix-blend-screen filter blur-[120px] opacity-20 animate-blob animation-delay-4000" />
+          <div className="absolute top-0 left-1/4 w-[50vw] h-[50vw] bg-lavender/20 rounded-full mix-blend-screen filter blur-[100px] opacity-20 animate-blob" />
+          <div className="absolute top-0 right-1/4 w-[50vw] h-[50vw] bg-[#2DD4BF]/10 rounded-full mix-blend-screen filter blur-[100px] opacity-20 animate-blob animation-delay-2000" />
+          <div className="absolute -bottom-32 left-1/3 w-[60vw] h-[60vw] bg-[#F472B6]/10 rounded-full mix-blend-screen filter blur-[120px] opacity-20 animate-blob animation-delay-4000" />
 
           {/* Noise Overlay */}
           <div
@@ -251,7 +251,7 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content, profile }) => {
                 <a
                   key={section.id}
                   href={`#${section.id}`}
-                  className="group relative flex items-center justify-center size-10 md:w-12 md:h-12 rounded-full hover:bg-white/10 transition-all duration-300"
+                  className="group relative flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-full hover:bg-white/10 transition-all duration-300"
                   aria-label={section.label}
                 >
                   <Icon
@@ -270,7 +270,7 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content, profile }) => {
             {content.contact.email && (
               <a
                 href={`mailto:${content.contact.email}`}
-                className="flex items-center justify-center size-10 md:w-12 md:h-12 rounded-full bg-white text-black hover:scale-110 transition-transform duration-300 ml-2"
+                className="flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-full bg-white text-black hover:scale-110 transition-transform duration-300 ml-2"
                 aria-label="Contact"
               >
                 <Mail size={18} strokeWidth={2.5} aria-hidden="true" />
@@ -286,9 +286,9 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content, profile }) => {
             <div className="flex flex-col gap-8">
               {/* Status Indicator */}
               <div className="inline-flex items-center gap-2 self-start px-3 py-1 rounded-full border border-lavender/30 bg-lavender/5 backdrop-blur-md">
-                <span className="relative flex size-2">
-                  <span className="animate-ping absolute inline-flex size-full rounded-full bg-lavender opacity-75"></span>
-                  <span className="relative inline-flex rounded-full size-2 bg-lavender"></span>
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-lavender opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-lavender"></span>
                 </span>
                 <span className="text-xs font-mono-gm text-[#D8B4FE]">ONLINE_V2.0</span>
               </div>
@@ -307,16 +307,16 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content, profile }) => {
                 </div>
 
                 {/* Abstract Avatar / Photo */}
-                <div className="relative size-32 md:w-48 md:h-48 rounded-full border-2 border-white/10 p-1">
-                  <div className="size-full rounded-full overflow-hidden relative group">
+                <div className="relative w-32 h-32 md:w-48 md:h-48 rounded-full border-2 border-white/10 p-1">
+                  <div className="w-full h-full rounded-full overflow-hidden relative group">
                     {profile.avatar_url ? (
                       <img
                         src={profile.avatar_url}
                         alt={content.full_name}
-                        className="size-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500"
+                        className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500"
                       />
                     ) : (
-                      <div className="size-full bg-[#111] flex items-center justify-center text-4xl font-bold text-[#333]">
+                      <div className="w-full h-full bg-[#111] flex items-center justify-center text-4xl font-bold text-[#333]">
                         {getInitials(content.full_name)}
                       </div>
                     )}
@@ -335,49 +335,49 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content, profile }) => {
 
                     {/* Socials */}
                     <div className="flex flex-wrap gap-3 pt-2">
-                      {contactLinks.reduce<React.JSX.Element[]>((acc, link) => {
-                        if (link.type === "location") return acc;
-                        const Icon = glassIconMap[link.type] || ExternalLink;
-                        const isBranded = link.type === "behance" || link.type === "dribbble";
-                        const brandColor =
-                          link.type === "behance"
-                            ? "#1769FF"
-                            : link.type === "dribbble"
-                              ? "#EA4C89"
-                              : undefined;
-                        const brandText =
-                          link.type === "behance" ? "Be" : link.type === "dribbble" ? "Dr" : null;
+                      {contactLinks
+                        .filter((l) => l.type !== "location")
+                        .map((link) => {
+                          const Icon = glassIconMap[link.type] || ExternalLink;
+                          const isBranded = link.type === "behance" || link.type === "dribbble";
+                          const brandColor =
+                            link.type === "behance"
+                              ? "#1769FF"
+                              : link.type === "dribbble"
+                                ? "#EA4C89"
+                                : undefined;
+                          const brandText =
+                            link.type === "behance" ? "Be" : link.type === "dribbble" ? "Dr" : null;
 
-                        acc.push(
-                          <a
-                            key={link.type}
-                            href={link.href}
-                            target={link.isExternal ? "_blank" : undefined}
-                            rel={link.isExternal ? "noopener noreferrer" : undefined}
-                            aria-label={link.label}
-                            className="group flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 transition-all"
-                          >
-                            {isBranded ? (
-                              <span
-                                className="text-xs font-bold font-mono-gm"
-                                style={{ color: brandColor }}
-                              >
-                                {brandText}
+                          return (
+                            <a
+                              key={link.type}
+                              href={link.href}
+                              target={link.isExternal ? "_blank" : undefined}
+                              rel={link.isExternal ? "noopener noreferrer" : undefined}
+                              aria-label={link.label}
+                              className="group flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 transition-all"
+                            >
+                              {isBranded ? (
+                                <span
+                                  className="text-xs font-bold font-mono-gm"
+                                  style={{ color: brandColor }}
+                                >
+                                  {brandText}
+                                </span>
+                              ) : (
+                                <Icon
+                                  size={14}
+                                  className="text-white/60 group-hover:text-white"
+                                  aria-hidden="true"
+                                />
+                              )}
+                              <span className="text-sm font-mono-gm text-white/60 group-hover:text-white capitalize">
+                                {link.label}
                               </span>
-                            ) : (
-                              <Icon
-                                size={14}
-                                className="text-white/60 group-hover:text-white"
-                                aria-hidden="true"
-                              />
-                            )}
-                            <span className="text-sm font-mono-gm text-white/60 group-hover:text-white capitalize">
-                              {link.label}
-                            </span>
-                          </a>,
-                        );
-                        return acc;
-                      }, [])}
+                            </a>
+                          );
+                        })}
                     </div>
                   </div>
 
@@ -436,10 +436,7 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content, profile }) => {
 
               <div className="space-y-4">
                 {content.experience.map((job, index) => (
-                  <SpotlightCard
-                    key={`${job.title}-${job.company}-${index}`}
-                    className="group p-6 md:p-8"
-                  >
+                  <SpotlightCard key={index} className="group p-6 md:p-8">
                     <div className="flex flex-col md:flex-row gap-4 md:items-start justify-between mb-4">
                       <div>
                         <h3 className="text-xl font-bold text-white group-hover:text-lavender transition-colors">
@@ -449,7 +446,7 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content, profile }) => {
                           <span className="font-medium">{job.company}</span>
                           {job.location && (
                             <>
-                              <span className="size-1 rounded-full bg-slate-600" />
+                              <span className="w-1 h-1 rounded-full bg-slate-600" />
                               <span className="text-sm text-slate-500">{job.location}</span>
                             </>
                           )}
@@ -475,7 +472,7 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content, profile }) => {
                             key={`${job.title}-${item}-${i}`}
                             className="flex items-start gap-3 text-sm text-slate-400/80"
                           >
-                            <span className="mt-1.5 size-1 rounded-full bg-lavender/50 shrink-0" />
+                            <span className="mt-1.5 w-1 h-1 rounded-full bg-lavender/50 shrink-0" />
                             <span>{item}</span>
                           </div>
                         ))}
@@ -504,7 +501,7 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content, profile }) => {
                   >
                     <div className="p-6 md:p-8 flex flex-col h-full">
                       <div className="flex justify-between items-start mb-6">
-                        <div className="size-12 rounded-xl bg-linear-to-br from-white/10 to-transparent border border-white/5 flex items-center justify-center">
+                        <div className="w-12 h-12 rounded-xl bg-linear-to-br from-white/10 to-transparent border border-white/5 flex items-center justify-center">
                           <span className="font-display-gm font-bold text-xl text-white">
                             {project.title.charAt(0)}
                           </span>
@@ -639,7 +636,7 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content, profile }) => {
           {/* FOOTER */}
           <footer className="pt-20 pb-32 text-center">
             <div className="inline-flex items-center justify-center p-1 rounded-full border border-white/10 bg-white/5 mb-8">
-              <div className="size-2 bg-green-500 rounded-full mx-3 animate-pulse" />
+              <div className="w-2 h-2 bg-green-500 rounded-full mx-3 animate-pulse" />
               <span className="text-xs font-mono-gm text-white/50 pr-4 py-1">
                 System Operational
               </span>

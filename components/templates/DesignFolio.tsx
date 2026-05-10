@@ -111,7 +111,7 @@ const DesignFolio: React.FC<TemplateProps> = ({ content, profile }) => {
               <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
                 {experience.map((job, index) => (
                   <div
-                    key={`${job.title}-${job.company}-${index}`}
+                    key={index}
                     className={`bg-[#1a1a1a] border border-[#333] p-8 flex flex-col justify-between transition-[border-color,transform] duration-300 hover:border-[#CCFF00] hover:-translate-y-1 ${getSpanClass(index)}`}
                   >
                     <div className="mb-8">
@@ -148,10 +148,7 @@ const DesignFolio: React.FC<TemplateProps> = ({ content, profile }) => {
 
                 <div className="space-y-8">
                   {skills.map((skillGroup, index) => (
-                    <div
-                      key={`${skillGroup.category}-${index}`}
-                      className="border-b border-[#333] pb-6"
-                    >
+                    <div key={index} className="border-b border-[#333] pb-6">
                       <h4 className="font-mono-df text-[#888] text-xs uppercase mb-3 tracking-widest">
                         {skillGroup.category}
                       </h4>
@@ -183,7 +180,7 @@ const DesignFolio: React.FC<TemplateProps> = ({ content, profile }) => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {projects.map((project, index) => (
                   <a
-                    key={`${project.title}-${index}`}
+                    key={index}
                     href={project.url || "#"}
                     target={project.url ? "_blank" : "_self"}
                     rel="noopener noreferrer"
@@ -244,7 +241,7 @@ const DesignFolio: React.FC<TemplateProps> = ({ content, profile }) => {
                   </h3>
                   <ul className="space-y-6">
                     {education.map((edu, index) => (
-                      <li key={`${edu.degree}-${edu.institution}-${index}`} className="group">
+                      <li key={index} className="group">
                         <span className="block text-[#CCFF00] text-xs mb-1 font-mono-df">
                           {edu.graduation_date}
                         </span>
@@ -265,7 +262,7 @@ const DesignFolio: React.FC<TemplateProps> = ({ content, profile }) => {
                   </h3>
                   <ul className="space-y-6">
                     {certifications.map((cert, index) => (
-                      <li key={`${cert.name}-${index}`} className="group">
+                      <li key={index} className="group">
                         <span className="block text-[#CCFF00] text-xs mb-1 font-mono-df">
                           {cert.date}
                         </span>

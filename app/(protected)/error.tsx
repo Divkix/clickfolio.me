@@ -34,9 +34,9 @@ export default function ProtectedError({
     <div className="min-h-screen flex items-center justify-center bg-cream px-4">
       <div className="max-w-md w-full bg-card rounded-xl shadow-md border border-ink/10 p-8 text-center">
         <div className="mb-6">
-          <div className="mx-auto size-16 bg-coral/20 rounded-full flex items-center justify-center">
+          <div className="mx-auto w-16 h-16 bg-coral/20 rounded-full flex items-center justify-center">
             <svg
-              className="size-8 text-coral"
+              className="w-8 h-8 text-coral"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"

@@ -54,12 +54,12 @@ export default function ResumeWritingTipsPage() {
           <li>
             <strong>Contact Information.</strong> Name, email, phone (optional if you have privacy
             concerns), location (city + state is sufficient), portfolio URL, LinkedIn URL. Keep it
-            clean: no "Email:" or "Phone:" labels. The format is self-evident.
+            clean — no "Email:" or "Phone:" labels. The format is self-evident.
           </li>
           <li>
             <strong>Professional Summary.</strong> 2-4 sentences that answer three questions: Who
             are you? What do you do? What makes you effective? Avoid buzzwords like "passionate,"
-            "motivated," or "results-driven"; they mean nothing without evidence. Instead: "Senior
+            "motivated," or "results-driven" — they mean nothing without evidence. Instead: "Senior
             frontend engineer with 7 years of experience shipping accessible component libraries
             used by 2M+ monthly users."
           </li>
@@ -77,7 +77,7 @@ export default function ResumeWritingTipsPage() {
           <li>
             <strong>Skills.</strong> Group by category: Languages, Frameworks, Tools, Platforms. Be
             specific. "JavaScript" is better than "Programming Languages." "React, Next.js,
-            TypeScript" is better than "Frontend Development." ATS systems match exact keywords. Be
+            TypeScript" is better than "Frontend Development." ATS systems match exact keywords — be
             precise.
           </li>
           <li>
@@ -93,8 +93,8 @@ export default function ResumeWritingTipsPage() {
         <p>
           The single highest-impact improvement you can make to any resume: replace vague
           descriptions with numbers. Hiring managers see hundreds of resumes claiming "improved
-          efficiency" or "increased revenue." Almost none provide evidence. The ones that do, with
-          specific metrics, stand out immediately.
+          efficiency" or "increased revenue." Almost none provide evidence. The ones that do — with
+          specific metrics — stand out immediately.
         </p>
         <p>
           Every bullet point should answer: what did you do, and how do you know it worked? If you
@@ -125,7 +125,7 @@ export default function ResumeWritingTipsPage() {
           budget managed, satisfaction scores, error rates, deployment frequency, or any objective
           measure of impact. If you truly can't find a number, ask yourself: was the work measurable
           at all? If not, describe the
-          <em>scope</em> (the scale of the problem or the breadth of your responsibility).
+          <em>scope</em> — the scale of the problem or the breadth of your responsibility.
         </p>
       </section>
 
@@ -139,8 +139,8 @@ export default function ResumeWritingTipsPage() {
         <p>
           Traditional ATS systems match keywords from the job description against your resume. The
           strategy is straightforward: mirror the language of the job posting. If the job asks for
-          "cross-functional collaboration," use that phrase, not "worked with different teams." If
-          they list "AWS, Docker, Kubernetes," include those exact terms, not "cloud
+          "cross-functional collaboration," use that phrase — not "worked with different teams." If
+          they list "AWS, Docker, Kubernetes," include those exact terms — not "cloud
           infrastructure." Customize your resume for each application. Generic resumes fail ATS
           screening.
         </p>
@@ -150,7 +150,7 @@ export default function ResumeWritingTipsPage() {
           density, and role alignment. They can distinguish between "was involved in" (weak) and
           "led" (strong). They penalize buzzword stuffing and reward concrete examples. The best
           strategy for both systems: write for humans first, then check for keyword alignment
-          second. Good human writing passes AI screening naturally; keyword-stuffed writing fails
+          second. Good human writing passes AI screening naturally — keyword-stuffed writing fails
           with both.
         </p>
       </section>
@@ -158,7 +158,7 @@ export default function ResumeWritingTipsPage() {
       <section>
         <h2>The Visual Resume</h2>
         <p>
-          Design matters, even for ATS filtering. A well-designed resume isn't just about
+          Design matters — even for ATS filtering. A well-designed resume isn't just about
           aesthetics; it's about scannability. A busy hiring manager spends 6-7 seconds on a
           first-pass scan. In that time, they need to absorb your name, current role, and one
           standout achievement. Good design makes that possible.
@@ -167,7 +167,7 @@ export default function ResumeWritingTipsPage() {
         <ul>
           <li>
             <strong>Hierarchy.</strong> Section headers should be visually distinct from body text.
-            Use font size, weight, and spacing, not color (ATS may strip color).
+            Use font size, weight, and spacing — not color (ATS may strip color).
           </li>
           <li>
             <strong>Whitespace.</strong> Generous margins and line spacing. A cramped resume signals
@@ -182,13 +182,13 @@ export default function ResumeWritingTipsPage() {
             page is sufficient. Two pages for senior roles with extensive experience. Never three.
           </li>
           <li>
-            <strong>File format.</strong> PDF, always. Never send a Word document. Formatting breaks
-            across systems.
+            <strong>File format.</strong> PDF, always. Never send a Word document — formatting
+            breaks across systems.
           </li>
         </ul>
         <p>
-          This is where templates shine. clickfolio.me's templates handle all the design decisions:
-          typography, spacing, hierarchy, mobile responsiveness, so your content looks polished by
+          This is where templates shine. clickfolio.me's templates handle all the design decisions —
+          typography, spacing, hierarchy, mobile responsiveness — so your content looks polished by
           default. And because your website is separate from your PDF, you can have an ATS-optimized
           template for applications and a creative template for social sharing.
         </p>
@@ -203,24 +203,24 @@ export default function ResumeWritingTipsPage() {
             the specific role, remove it.
           </li>
           <li>
-            <strong>Generic language.</strong> "Team player," "hard worker," "good communicator",
+            <strong>Generic language.</strong> "Team player," "hard worker," "good communicator" —
             these phrases appear on virtually every resume and convey zero information. Show, don't
             tell. Instead of "good communicator," write "Presented quarterly results to C-suite
             stakeholders across 5 business units."
           </li>
           <li>
-            <strong>No metrics.</strong> If your entire resume has zero numbers, it's not a resume.
+            <strong>No metrics.</strong> If your entire resume has zero numbers, it's not a resume —
             it's a job description. Fix this first.
           </li>
           <li>
             <strong>Responsibilities over achievements.</strong> A job title already implies
-            responsibilities. Your bullets should describe achievements: what you accomplished in
+            responsibilities. Your bullets should describe achievements — what you accomplished in
             the role, not what the role required of you.
           </li>
           <li>
             <strong>Outdated information.</strong> That part-time retail job from 2012? Unless it's
             relevant to your target role, drop it. GPA from 10 years ago? Drop it. "References
-            available upon request"? Always drop it. It's assumed.
+            available upon request"? Always drop it — it's assumed.
           </li>
           <li>
             <strong>Neglecting the portfolio link.</strong> Your resume PDF is the appetizer. Your

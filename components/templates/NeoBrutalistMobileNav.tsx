@@ -26,7 +26,7 @@ export function NeoBrutalistMobileNav({ links }: NeoBrutalistMobileNavProps) {
         aria-label={isOpen ? "Close navigation menu" : "Open navigation menu"}
         className="p-2 border-2 border-black bg-white hover:bg-[#FFDE00] transition-colors"
       >
-        {isOpen ? <X className="size-5" /> : <Menu className="size-5" />}
+        {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
       </button>
 
       {isOpen && (

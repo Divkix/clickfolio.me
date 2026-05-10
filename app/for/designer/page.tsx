@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { siteConfig } from "@/lib/config/site";
 import {
   generatePageBreadcrumbJsonLd,
@@ -54,27 +53,27 @@ export default function DesignerPage() {
           </h1>
           <p className="text-lg text-[#6B6B6B] mb-8">
             Your work deserves a canvas, not a template. Upload your PDF resume and get a
-            designer-quality portfolio website with a custom @handle URL, free, no signup needed.
+            designer-quality portfolio website with a custom @handle URL — free, no signup needed.
           </p>
 
           <section className="mb-12">
             <h2 className="font-black text-xl text-ink mb-4">Why Designers Love clickfolio.me</h2>
             <ul className="space-y-3 text-[#6B6B6B] list-disc pl-5">
               <li>
-                <strong>DesignFolio template</strong>: digital brutalism meets Swiss typography.
+                <strong>DesignFolio template</strong> — digital brutalism meets Swiss typography.
                 Dark theme with acid lime accents. Bold, distinctive, and impossible to ignore.
               </li>
               <li>
-                <strong>Spotlight template</strong>: warm creative portfolio with animated sections.
-                Designed to give your work the breathing room it needs.
+                <strong>Spotlight template</strong> — warm creative portfolio with animated
+                sections. Designed to give your work the breathing room it needs.
               </li>
               <li>
-                <strong>Visual-first layouts</strong>: every template prioritizes typography,
+                <strong>Visual-first layouts</strong> — every template prioritizes typography,
                 whitespace, and visual hierarchy. Your portfolio looks like it was custom-built.
               </li>
               <li>
-                <strong>Project gallery display</strong>: AI extracts your projects from your resume
-                and presents them in structured, scannable layouts with role, timeline, and
+                <strong>Project gallery display</strong> — AI extracts your projects from your
+                resume and presents them in structured, scannable layouts with role, timeline, and
                 description.
               </li>
             </ul>
@@ -85,7 +84,7 @@ export default function DesignerPage() {
               From PDF to Published in 30 Seconds
             </h2>
             <p className="text-[#6B6B6B] mb-4">
-              Drop your existing PDF resume (the one you already have). Our AI extracts your
+              Drop your existing PDF resume — the one you already have. Our AI extracts your
               experience, education, skills, and projects. In 30 seconds, you have a live portfolio
               you can share with studios, agencies, and clients.
             </p>
@@ -95,12 +94,12 @@ export default function DesignerPage() {
             </p>
           </section>
 
-          <Link
+          <a
             href="/"
             className="inline-block bg-ink text-cream font-bold px-6 py-3 border-3 border-ink shadow-brutal-sm hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-transform"
           >
             Create Your Free Design Portfolio →
-          </Link>
+          </a>
         </div>
       </main>
     </>

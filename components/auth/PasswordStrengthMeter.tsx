@@ -119,7 +119,7 @@ export function PasswordStrengthMeter({
           {result.feedback.suggestions.length > 0 && (
             <ul className="list-disc list-inside space-y-0.5">
               {result.feedback.suggestions.map((suggestion, i) => (
-                <li key={`${suggestion.slice(0, 20)}-${i}`}>{suggestion}</li>
+                <li key={i}>{suggestion}</li>
               ))}
             </ul>
           )}

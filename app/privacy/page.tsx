@@ -113,7 +113,7 @@ export default function PrivacyPolicyPage() {
                   "Changes to This Policy",
                   "Contact Us",
                 ].map((item, index) => (
-                  <li key={`${item}-${index}`}>
+                  <li key={index}>
                     <a
                       href={`#section-${index + 1}`}
                       className="text-ink/70 hover:text-coral transition-colors duration-300"
@@ -129,7 +129,7 @@ export default function PrivacyPolicyPage() {
             <div className="prose max-w-none">
               <section id="section-1" className="mb-10">
                 <h2 className="text-xl font-bold text-ink mb-4 flex items-center gap-3">
-                  <span className="flex items-center justify-center size-8 rounded-lg bg-linear-to-r from-coral/20 to-coral/20 text-coral text-sm font-bold">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-r from-coral/20 to-coral/20 text-coral text-sm font-bold">
                     1
                   </span>
                   Introduction
@@ -145,7 +145,7 @@ export default function PrivacyPolicyPage() {
 
               <section id="section-2" className="mb-10">
                 <h2 className="text-xl font-bold text-ink mb-4 flex items-center gap-3">
-                  <span className="flex items-center justify-center size-8 rounded-lg bg-linear-to-r from-coral/20 to-coral/20 text-coral text-sm font-bold">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-r from-coral/20 to-coral/20 text-coral text-sm font-bold">
                     2
                   </span>
                   Information We Collect
@@ -187,7 +187,7 @@ export default function PrivacyPolicyPage() {
 
               <section id="section-3" className="mb-10">
                 <h2 className="text-xl font-bold text-ink mb-4 flex items-center gap-3">
-                  <span className="flex items-center justify-center size-8 rounded-lg bg-linear-to-r from-coral/20 to-coral/20 text-coral text-sm font-bold">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-r from-coral/20 to-coral/20 text-coral text-sm font-bold">
                     3
                   </span>
                   How We Use Your Information
@@ -223,7 +223,7 @@ export default function PrivacyPolicyPage() {
 
               <section id="section-4" className="mb-10">
                 <h2 className="text-xl font-bold text-ink mb-4 flex items-center gap-3">
-                  <span className="flex items-center justify-center size-8 rounded-lg bg-linear-to-r from-coral/20 to-coral/20 text-coral text-sm font-bold">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-r from-coral/20 to-coral/20 text-coral text-sm font-bold">
                     4
                   </span>
                   Third-Party Services
@@ -292,7 +292,7 @@ export default function PrivacyPolicyPage() {
 
               <section id="section-5" className="mb-10">
                 <h2 className="text-xl font-bold text-ink mb-4 flex items-center gap-3">
-                  <span className="flex items-center justify-center size-8 rounded-lg bg-linear-to-r from-coral/20 to-coral/20 text-coral text-sm font-bold">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-r from-coral/20 to-coral/20 text-coral text-sm font-bold">
                     5
                   </span>
                   Data Storage and Security
@@ -311,7 +311,8 @@ export default function PrivacyPolicyPage() {
                   </li>
                   <li>All data in transit is encrypted using TLS 1.3</li>
                   <li>
-                    Database access is restricted to our application only. No direct external access
+                    Database access is restricted to our application only — no direct external
+                    access
                   </li>
                   <li>We implement access controls and regularly review our security practices</li>
                   <li>
@@ -322,7 +323,7 @@ export default function PrivacyPolicyPage() {
 
               <section id="section-6" className="mb-10">
                 <h2 className="text-xl font-bold text-ink mb-4 flex items-center gap-3">
-                  <span className="flex items-center justify-center size-8 rounded-lg bg-linear-to-r from-coral/20 to-coral/20 text-coral text-sm font-bold">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-r from-coral/20 to-coral/20 text-coral text-sm font-bold">
                     6
                   </span>
                   Data Retention
@@ -338,7 +339,7 @@ export default function PrivacyPolicyPage() {
 
               <section id="section-7" className="mb-10">
                 <h2 className="text-xl font-bold text-ink mb-4 flex items-center gap-3">
-                  <span className="flex items-center justify-center size-8 rounded-lg bg-linear-to-r from-coral/20 to-coral/20 text-coral text-sm font-bold">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-r from-coral/20 to-coral/20 text-coral text-sm font-bold">
                     7
                   </span>
                   Your Rights (GDPR/CCPA)
@@ -350,9 +351,9 @@ export default function PrivacyPolicyPage() {
 
                 <div className="space-y-4">
                   <div className="flex items-start gap-3">
-                    <div className="shrink-0 size-6 rounded-full bg-coral/20 flex items-center justify-center">
+                    <div className="shrink-0 w-6 h-6 rounded-full bg-coral/20 flex items-center justify-center">
                       <svg
-                        className="size-3.5 text-coral"
+                        className="w-3.5 h-3.5 text-coral"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -375,9 +376,9 @@ export default function PrivacyPolicyPage() {
                   </div>
 
                   <div className="flex items-start gap-3">
-                    <div className="shrink-0 size-6 rounded-full bg-coral/20 flex items-center justify-center">
+                    <div className="shrink-0 w-6 h-6 rounded-full bg-coral/20 flex items-center justify-center">
                       <svg
-                        className="size-3.5 text-coral"
+                        className="w-3.5 h-3.5 text-coral"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -400,9 +401,9 @@ export default function PrivacyPolicyPage() {
                   </div>
 
                   <div className="flex items-start gap-3">
-                    <div className="shrink-0 size-6 rounded-full bg-coral/20 flex items-center justify-center">
+                    <div className="shrink-0 w-6 h-6 rounded-full bg-coral/20 flex items-center justify-center">
                       <svg
-                        className="size-3.5 text-coral"
+                        className="w-3.5 h-3.5 text-coral"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -425,9 +426,9 @@ export default function PrivacyPolicyPage() {
                   </div>
 
                   <div className="flex items-start gap-3">
-                    <div className="shrink-0 size-6 rounded-full bg-ink/10 flex items-center justify-center">
+                    <div className="shrink-0 w-6 h-6 rounded-full bg-ink/10 flex items-center justify-center">
                       <svg
-                        className="size-3.5 text-ink"
+                        className="w-3.5 h-3.5 text-ink"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -461,7 +462,7 @@ export default function PrivacyPolicyPage() {
 
               <section id="section-8" className="mb-10">
                 <h2 className="text-xl font-bold text-ink mb-4 flex items-center gap-3">
-                  <span className="flex items-center justify-center size-8 rounded-lg bg-linear-to-r from-coral/20 to-coral/20 text-coral text-sm font-bold">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-r from-coral/20 to-coral/20 text-coral text-sm font-bold">
                     8
                   </span>
                   Cookies & Analytics
@@ -498,8 +499,8 @@ export default function PrivacyPolicyPage() {
                     <li>Visitor identifiers rotate daily (no long-term tracking)</li>
                     <li>No cross-site tracking or advertising cookies</li>
                     <li>
-                      All analytics are self-hosted on our infrastructure. No data shared with third
-                      parties
+                      All analytics are self-hosted on our infrastructure — no data shared with
+                      third parties
                     </li>
                   </ul>
                 </div>
@@ -507,7 +508,7 @@ export default function PrivacyPolicyPage() {
 
               <section id="section-9" className="mb-10">
                 <h2 className="text-xl font-bold text-ink mb-4 flex items-center gap-3">
-                  <span className="flex items-center justify-center size-8 rounded-lg bg-linear-to-r from-coral/20 to-coral/20 text-coral text-sm font-bold">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-r from-coral/20 to-coral/20 text-coral text-sm font-bold">
                     9
                   </span>
                   Children&apos;s Privacy
@@ -529,7 +530,7 @@ export default function PrivacyPolicyPage() {
 
               <section id="section-10" className="mb-10">
                 <h2 className="text-xl font-bold text-ink mb-4 flex items-center gap-3">
-                  <span className="flex items-center justify-center size-8 rounded-lg bg-linear-to-r from-coral/20 to-coral/20 text-coral text-sm font-bold">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-r from-coral/20 to-coral/20 text-coral text-sm font-bold">
                     10
                   </span>
                   Changes to This Policy
@@ -546,7 +547,7 @@ export default function PrivacyPolicyPage() {
 
               <section id="section-11" className="mb-4">
                 <h2 className="text-xl font-bold text-ink mb-4 flex items-center gap-3">
-                  <span className="flex items-center justify-center size-8 rounded-lg bg-linear-to-r from-coral/20 to-coral/20 text-coral text-sm font-bold">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-r from-coral/20 to-coral/20 text-coral text-sm font-bold">
                     11
                   </span>
                   Contact Us
@@ -581,7 +582,7 @@ export default function PrivacyPolicyPage() {
               className="inline-flex items-center gap-2 text-sm font-medium text-ink/70 hover:text-coral transition-colors duration-300"
             >
               <svg
-                className="size-4"
+                className="w-4 h-4"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"

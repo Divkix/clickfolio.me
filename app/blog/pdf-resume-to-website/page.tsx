@@ -39,7 +39,7 @@ export default function PdfResumeToWebsitePage() {
         </p>
         <p>
           The good news? You don't need to learn HTML, CSS, or hire a developer. AI-powered tools
-          can now turn your existing PDF resume into a professional, hosted website in under 30
+          can now turn your existing PDF resume into a professional, hosted website — in under 30
           seconds. This guide covers everything you need to know about PDF-to-website conversion,
           how the technology works, and why it's the fastest way to build your online presence.
         </p>
@@ -49,7 +49,7 @@ export default function PdfResumeToWebsitePage() {
         <h2>The Problem with PDF-Only Resumes</h2>
         <p>
           PDFs were designed for print. They're static documents that look the same on every screen
-          , which sounds like a feature until you realize it's actually a limitation:
+          — which sounds like a feature until you realize it's actually a limitation:
         </p>
         <ul>
           <li>
@@ -59,7 +59,7 @@ export default function PdfResumeToWebsitePage() {
           <li>
             <strong>Hard to update.</strong> Changed jobs? Learned a new skill? You need to update
             the PDF, re-export it, and redistribute it everywhere you've sent it. Most people don't
-            bother, so their resume goes stale.
+            bother — so their resume goes stale.
           </li>
           <li>
             <strong>Poor mobile experience.</strong> Pinch-zooming a PDF on a phone screen is
@@ -68,12 +68,12 @@ export default function PdfResumeToWebsitePage() {
           </li>
           <li>
             <strong>No shareable URL.</strong> You can't put a PDF in your Twitter bio, LinkedIn
-            featured section, or Instagram link. A website URL works everywhere, and it's one click
+            featured section, or Instagram link. A website URL works everywhere — and it's one click
             away from your full professional story.
           </li>
           <li>
             <strong>Zero SEO.</strong> A PDF sitting in someone's downloads folder doesn't show up
-            on Google. A website with your name can rank for it, making you discoverable by
+            on Google. A website with your name can rank for it — making you discoverable by
             recruiters searching for your skills.
           </li>
         </ul>
@@ -105,11 +105,11 @@ export default function PdfResumeToWebsitePage() {
           </li>
           <li>
             <strong>SEO optimized.</strong> So when someone searches your name, your portfolio shows
-            up, not someone else's LinkedIn profile.
+            up — not someone else's LinkedIn profile.
           </li>
         </ul>
         <p>
-          The best resume websites don't just replicate your PDF; they enhance it. They add
+          The best resume websites don't just replicate your PDF — they enhance it. They add
           analytics so you know who's viewing. They let you switch designs instantly. And they give
           you a link you can share anywhere in one click.
         </p>
@@ -121,8 +121,8 @@ export default function PdfResumeToWebsitePage() {
         <h3>1. PDF Text Extraction</h3>
         <p>
           The system reads the raw text from your PDF using a combination of PDF parsing and OCR
-          (optical character recognition). This works even for scanned documents, though results are
-          best with digitally-created PDFs. The extracted text includes your name, contact info,
+          (optical character recognition). This works even for scanned documents — though results
+          are best with digitally-created PDFs. The extracted text includes your name, contact info,
           work history, education, skills, and any other content in your resume.
         </p>
         <h3>2. AI-Powered Structure Extraction</h3>
@@ -133,7 +133,7 @@ export default function PdfResumeToWebsitePage() {
           distinguishes skills from education from contact details.
         </p>
         <p>
-          The AI is trained to handle dozens of resume formats: chronological, functional, hybrid,
+          The AI is trained to handle dozens of resume formats — chronological, functional, hybrid —
           and hundreds of formatting variations. It understands when "2018-2022" means employment
           dates versus education dates. It groups bullet points under the right job entry. And it
           extracts quantified achievements separately from routine responsibilities.
@@ -153,21 +153,21 @@ export default function PdfResumeToWebsitePage() {
         <p>Several tools promise to turn your resume into a website. Here's how they compare:</p>
         <ul>
           <li>
-            <strong>Magic Self</strong>: Open source and self-hostable, which appeals to developers.
-            But it requires technical setup, has basic templates, and offers no hosting. You'll need
-            to deploy it yourself.
+            <strong>Magic Self</strong> — Open source and self-hostable, which appeals to
+            developers. But it requires technical setup, has basic templates, and offers no hosting.
+            You'll need to deploy it yourself.
           </li>
           <li>
-            <strong>DockPage</strong>: Imports from LinkedIn, which is convenient. But the free tier
-            is extremely limited, and the designs look dated. If you want customization, you'll need
-            to pay.
+            <strong>DockPage</strong> — Imports from LinkedIn, which is convenient. But the free
+            tier is extremely limited, and the designs look dated. If you want customization, you'll
+            need to pay.
           </li>
           <li>
-            <strong>SpaceLoom</strong>: Fast generation with clean templates. But editing is
-            minimal: what you get is what you're stuck with. No privacy controls, no analytics.
+            <strong>SpaceLoom</strong> — Fast generation with clean templates. But editing is
+            minimal — what you get is what you're stuck with. No privacy controls, no analytics.
           </li>
           <li>
-            <strong>clickfolio.me</strong>: Upload a PDF, get a website in 30 seconds. 10 templates
+            <strong>clickfolio.me</strong> — Upload a PDF, get a website in 30 seconds. 10 templates
             (6 free, 4 premium), full editing, privacy controls, analytics, and real web hosting on
             Cloudflare's global network. Free forever with no paywalls on core features.
           </li>
@@ -182,7 +182,7 @@ export default function PdfResumeToWebsitePage() {
             homepage. No account needed for upload.
           </li>
           <li>
-            <strong>Sign in with Google.</strong> One-click authentication. We use Google OAuth: no
+            <strong>Sign in with Google.</strong> One-click authentication. We use Google OAuth — no
             password to remember, no email verification to wait for.
           </li>
           <li>
@@ -214,7 +214,7 @@ export default function PdfResumeToWebsitePage() {
           </li>
           <li>
             <strong>Switch templates.</strong> Found a design you like better? Switch templates in
-            one click. All your content stays intact. Only the design changes.
+            one click. All your content stays intact — only the design changes.
           </li>
           <li>
             <strong>Track views.</strong> See how many people are viewing your portfolio, where
@@ -237,7 +237,7 @@ export default function PdfResumeToWebsitePage() {
         <h2>Ready to Go Live?</h2>
         <p>
           In 2026, a PDF resume is the minimum. A live portfolio website is the standard. The
-          barrier to entry has never been lower: no coding, no hosting setup, no design skills
+          barrier to entry has never been lower — no coding, no hosting setup, no design skills
           needed. Just your existing resume and 30 seconds of your time.
         </p>
         <p>

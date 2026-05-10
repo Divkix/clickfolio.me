@@ -204,7 +204,7 @@ export function SignInForm({ onSuccess, onForgotPassword, callbackURL }: SignInF
       >
         {isSubmitting ? (
           <>
-            <Loader2 className="size-4 animate-spin" />
+            <Loader2 className="w-4 h-4 animate-spin" />
             <span>Signing in...</span>
           </>
         ) : (

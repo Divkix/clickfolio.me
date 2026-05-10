@@ -143,8 +143,8 @@ export function HandleStep({ initialHandle = "", onContinue }: HandleStepProps) 
     <div className="space-y-8">
       {/* Header */}
       <div className="text-center">
-        <div className="mx-auto size-16 bg-linear-to-r from-coral/20 to-coral/20 rounded-xl flex items-center justify-center mb-6">
-          <User className="size-8 text-coral" />
+        <div className="mx-auto w-16 h-16 bg-linear-to-r from-coral/20 to-coral/20 rounded-xl flex items-center justify-center mb-6">
+          <User className="w-8 h-8 text-coral" />
         </div>
         <h1 className="text-3xl sm:text-4xl font-bold text-foreground mb-3 leading-tight">
           Choose Your Handle
@@ -172,11 +172,11 @@ export function HandleStep({ initialHandle = "", onContinue }: HandleStepProps) 
             />
             {/* Status Icon */}
             <div className="absolute right-3 top-1/2 -translate-y-1/2">
-              {isChecking && <Loader2 className="size-5 text-muted-foreground/70 animate-spin" />}
+              {isChecking && <Loader2 className="w-5 h-5 text-muted-foreground/70 animate-spin" />}
               {!isChecking && isAvailable === true && (
-                <Check className={`size-5 ${isCurrentHandle ? "text-coral" : "text-green-600"}`} />
+                <Check className={`w-5 h-5 ${isCurrentHandle ? "text-coral" : "text-green-600"}`} />
               )}
-              {!isChecking && isAvailable === false && <X className="size-5 text-coral" />}
+              {!isChecking && isAvailable === false && <X className="w-5 h-5 text-coral" />}
             </div>
           </div>
 
@@ -193,14 +193,14 @@ export function HandleStep({ initialHandle = "", onContinue }: HandleStepProps) 
           {/* Error/Success Messages */}
           {error && (
             <p className="text-sm text-coral font-medium flex items-center gap-1">
-              <X className="size-4" />
+              <X className="w-4 h-4" />
               {error}
             </p>
           )}
           {!isChecking && isAvailable === false && (
             <div className="space-y-3">
               <p className="text-sm text-coral font-medium flex items-center gap-1">
-                <X className="size-4" />
+                <X className="w-4 h-4" />
                 This handle is already taken
               </p>
 
@@ -226,13 +226,13 @@ export function HandleStep({ initialHandle = "", onContinue }: HandleStepProps) 
           )}
           {!isChecking && isAvailable === true && isCurrentHandle && (
             <p className="text-sm text-coral font-medium flex items-center gap-1">
-              <Check className="size-4" />
+              <Check className="w-4 h-4" />
               This is your current handle
             </p>
           )}
           {!isChecking && isAvailable === true && !isCurrentHandle && (
             <p className="text-sm text-green-600 font-medium flex items-center gap-1">
-              <Check className="size-4" />
+              <Check className="w-4 h-4" />
               This handle is available!
             </p>
           )}

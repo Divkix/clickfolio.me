@@ -37,8 +37,8 @@ export default function PrivacyAtClickfolioPage() {
           "Free" services that turn your professional identity into someone else's product.
         </p>
         <p>
-          At clickfolio.me, privacy isn't an afterthought or a checkbox. It's a core feature, one of
-          the main reasons we built this platform. Here's exactly how we handle your data, what
+          At clickfolio.me, privacy isn't an afterthought or a checkbox. It's a core feature — one
+          of the main reasons we built this platform. Here's exactly how we handle your data, what
           controls you have, and how we compare to the alternatives.
         </p>
       </section>
@@ -47,7 +47,7 @@ export default function PrivacyAtClickfolioPage() {
         <h2>Privacy Controls</h2>
         <p>
           Your resume contains sensitive information. Your phone number, your home address, your
-          employment history. This is personal data that deserves granular control. clickfolio.me
+          employment history — this is personal data that deserves granular control. clickfolio.me
           gives you per-field privacy toggles:
         </p>
         <ul>
@@ -58,12 +58,12 @@ export default function PrivacyAtClickfolioPage() {
           </li>
           <li>
             <strong>Show full address.</strong> On by default. Toggle off to show only city and
-            state, enough for recruiters to know your general location without exposing your street
+            state — enough for recruiters to know your general location without exposing your street
             address.
           </li>
           <li>
             <strong>Show in public directory.</strong> On by default. Toggle off to remove your
-            portfolio from the Explore page and our public directory. Your portfolio still exists,
+            portfolio from the Explore page and our public directory. Your portfolio still exists —
             it's just not listed alongside others. People can only find it if you share the link
             directly.
           </li>
@@ -82,16 +82,16 @@ export default function PrivacyAtClickfolioPage() {
         <ul>
           <li>
             <strong>Authentication data.</strong> When you sign in with Google, we receive your
-            name, email, and profile picture URL. We don't store your Google password; we never see
+            name, email, and profile picture URL. We don't store your Google password — we never see
             it.
           </li>
           <li>
             <strong>Resume content.</strong> Your uploaded PDF and the parsed, structured data
-            extracted from it, including name, experience, education, skills, and contact
+            extracted from it — including name, experience, education, skills, and contact
             information. This is the content of your portfolio.
           </li>
           <li>
-            <strong>Usage analytics.</strong> Page views on your public portfolio: how many
+            <strong>Usage analytics.</strong> Page views on your public portfolio — how many
             visitors, where they came from, what devices they use. This helps you understand your
             reach. It's also aggregated anonymously for our own platform analytics.
           </li>
@@ -136,13 +136,13 @@ export default function PrivacyAtClickfolioPage() {
             <p className="text-ink/70 text-sm">
               Your resume PDF text is sent to an AI model through OpenRouter for parsing. OpenRouter
               does not store or train on API inputs. The AI reads your resume content to extract
-              structured data and returns it. The content is not retained by the AI provider.
+              structured data and returns it — the content is not retained by the AI provider.
             </p>
           </div>
           <div className="bg-cream/50 border-2 border-ink p-4">
             <h3 className="font-bold text-ink mb-1">Cloudflare</h3>
             <p className="text-ink/70 text-sm">
-              All data (your account, your resume, your portfolio) is stored on Cloudflare's
+              All data — your account, your resume, your portfolio — is stored on Cloudflare's
               infrastructure (Workers, D1 database, R2 storage). Cloudflare is SOC 2 Type II and ISO
               27001 certified. They provide infrastructure-level encryption at rest. They do not
               access or use your data.
@@ -177,7 +177,7 @@ export default function PrivacyAtClickfolioPage() {
           <li>Your analytics data is deleted</li>
         </ul>
         <p>
-          Some anonymized, aggregated data may be retained for platform analytics. For example, "X
+          Some anonymized, aggregated data may be retained for platform analytics — for example, "X
           resumes were uploaded in April 2026." This data cannot be used to identify you or
           reconstruct your profile.
         </p>
@@ -195,8 +195,8 @@ export default function PrivacyAtClickfolioPage() {
         <ul>
           <li>
             <strong>Cloudflare Workers.</strong> Your portfolio website is served from Cloudflare's
-            edge network, over 330 cities worldwide. Requests are handled at the data center closest
-            to your visitor, which means fast load times and reduced latency for everyone,
+            edge network — over 330 cities worldwide. Requests are handled at the data center
+            closest to your visitor, which means fast load times and reduced latency for everyone,
             everywhere.
           </li>
           <li>
@@ -234,8 +234,8 @@ export default function PrivacyAtClickfolioPage() {
             <p className="text-ink/70 text-sm">
               Many free tools monetize by selling anonymized resume data to recruiters or job
               boards. Some embed third-party trackers from dozens of ad networks. Privacy controls
-              are often limited to "public" or "private", with no per-field toggles. Account
-              deletion may be opaque or unavailable.
+              are often limited to "public" or "private" — no per-field toggles. Account deletion
+              may be opaque or unavailable.
             </p>
           </div>
           <div className="bg-cream/50 border-2 border-ink p-4">
@@ -251,14 +251,14 @@ export default function PrivacyAtClickfolioPage() {
         <p>
           Our business model doesn't rely on selling data. Premium templates are unlocked through
           referrals. There's no advertising revenue, no recruiter marketplace, no data licensing.
-          Your privacy isn't a compromise we make. It's a feature we built the product around.
+          Your privacy isn't a compromise we make — it's a feature we built the product around.
         </p>
       </section>
 
       <section>
         <h2>Your Data, Your Control</h2>
         <p>
-          The best privacy policy is one you don't have to read, because the controls are visible,
+          The best privacy policy is one you don't have to read — because the controls are visible,
           understandable, and in your hands. We've tried to design clickfolio.me that way. Toggle
           your phone number off with one click. Hide your address just as easily. Delete your
           account and walk away with nothing left behind.
