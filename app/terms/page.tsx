@@ -113,7 +113,7 @@ export default function TermsOfServicePage() {
                   "Governing Law",
                   "Contact",
                 ].map((item, index) => (
-                  <li key={index}>
+                  <li key={`${item}-${index}`}>
                     <a
                       href={`#section-${index + 1}`}
                       className="text-ink/70 hover:text-coral transition-colors duration-300"

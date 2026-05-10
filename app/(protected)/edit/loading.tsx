@@ -62,7 +62,7 @@ export default function EditLoading() {
             </div>
             <div className="space-y-4">
               {[...Array(2)].map((_, i) => (
-                <div key={i} className="border border-ink/15 rounded-lg p-4">
+                <div key={`exp-skeleton-${i}`} className="border border-ink/15 rounded-lg p-4">
                   <div className="flex items-start justify-between mb-3">
                     <div className="space-y-2 flex-1">
                       <Skeleton className="h-5 w-48" />

@@ -82,9 +82,8 @@ export async function GET() {
     // Parse and verify the signed cookie
     const parsed = await parseSignedCookieValue(cookie.value, secret);
 
-    // Invalid or expired cookie - clean up and return null
+    // Invalid or expired cookie - return null (client calls DELETE to clean up)
     if (!parsed) {
-      cookieStore.delete(COOKIE_NAME);
       return NextResponse.json({ key: null });
     }
 

@@ -314,7 +314,7 @@ const Spotlight: React.FC<TemplateProps> = ({ content, profile }) => {
               <div className="flex whitespace-nowrap motion-safe:animate-[marquee_40s_linear_infinite]">
                 {[...allSkills, ...allSkills, ...allSkills].map((skill, i) => (
                   <span
-                    key={i}
+                    key={`skill-${skill}-${i}`}
                     className={`inline-flex items-center text-4xl md:text-6xl font-display-sl font-bold text-[#1C1917] mx-8 uppercase tracking-tighter ${getMarqueeOpacity(i)}`}
                   >
                     {skill}
@@ -356,7 +356,7 @@ const Spotlight: React.FC<TemplateProps> = ({ content, profile }) => {
                       <div className="flex flex-wrap gap-2">
                         {job.highlights.map((tag, i) => (
                           <span
-                            key={i}
+                            key={`${job.title}-${tag}-${i}`}
                             className="px-2 py-1 text-xs text-stone-600 bg-stone-100 rounded border border-stone-200/60 font-body-sl"
                           >
                             {tag}
@@ -408,7 +408,7 @@ const Spotlight: React.FC<TemplateProps> = ({ content, profile }) => {
                     <div className="flex flex-wrap gap-2 mt-auto">
                       {project.technologies?.slice(0, 4).map((tech, i) => (
                         <span
-                          key={i}
+                          key={`${project.title}-${tech}-${i}`}
                           className="text-xs font-body-sl font-medium text-[#78716C] px-2 py-1 bg-[#FFFCF9] rounded-md border border-stone-200 shadow-sm"
                         >
                           {tech}

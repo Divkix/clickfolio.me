@@ -179,7 +179,10 @@ const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile }) => {
                       )}
                       <ul className="space-y-1">
                         {job.highlights?.slice(0, 3).map((highlight, i) => (
-                          <li key={i} className="text-sm text-neutral-500 leading-relaxed">
+                          <li
+                            key={`${job.title}-${highlight}-${i}`}
+                            className="text-sm text-neutral-500 leading-relaxed"
+                          >
                             • {highlight}
                           </li>
                         ))}
@@ -214,7 +217,10 @@ const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile }) => {
                       </h3>
                       <div className="flex gap-3 opacity-60 group-hover:opacity-80">
                         {project.technologies?.slice(0, 3).map((tech, i) => (
-                          <span key={i} className="text-xs uppercase tracking-widest">
+                          <span
+                            key={`${project.title}-${tech}-${i}`}
+                            className="text-xs uppercase tracking-widest"
+                          >
                             {tech}
                           </span>
                         ))}
@@ -278,7 +284,7 @@ const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile }) => {
                     .flatMap((s) => s.items)
                     .map((skill, i) => (
                       <span
-                        key={i}
+                        key={`skill-${skill}-${i}`}
                         className="px-4 py-2 bg-white border border-black/10 text-sm hover:bg-[#C4704F] hover:text-white hover:border-[#C4704F] transition-colors duration-300 cursor-default"
                         style={{ transform: `rotate(${((i % 3) - 1) * 1.2}deg)` }}
                       >

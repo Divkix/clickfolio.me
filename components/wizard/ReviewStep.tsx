@@ -103,7 +103,10 @@ export function ReviewStep({ content, onContinue }: ReviewStepProps) {
             <h3 className="text-lg font-bold text-foreground mb-4">Experience</h3>
             <div className="space-y-4">
               {content.experience.slice(0, 3).map((exp, index) => (
-                <div key={index} className="border-l-2 border-coral/30 pl-4">
+                <div
+                  key={`${exp.title}-${exp.company}-${index}`}
+                  className="border-l-2 border-coral/30 pl-4"
+                >
                   <div className="flex justify-between items-start mb-1">
                     <div>
                       <h4 className="font-semibold text-foreground">{exp.title}</h4>
@@ -135,7 +138,7 @@ export function ReviewStep({ content, onContinue }: ReviewStepProps) {
             <h3 className="text-lg font-bold text-foreground mb-4">Education</h3>
             <div className="space-y-3">
               {content.education.map((edu, index) => (
-                <div key={index}>
+                <div key={`${edu.degree}-${edu.institution}-${index}`}>
                   <h4 className="font-semibold text-foreground">{edu.degree}</h4>
                   <p className="text-sm text-muted-foreground">{edu.institution}</p>
                   {edu.graduation_date && (
@@ -153,14 +156,14 @@ export function ReviewStep({ content, onContinue }: ReviewStepProps) {
             <h3 className="text-lg font-bold text-foreground mb-4">Skills</h3>
             <div className="space-y-3">
               {content.skills.map((skillGroup, index) => (
-                <div key={index}>
+                <div key={`${skillGroup.category}-${index}`}>
                   <h4 className="text-sm font-semibold text-foreground/80 mb-1">
                     {skillGroup.category}
                   </h4>
                   <div className="flex flex-wrap gap-2">
                     {skillGroup.items.map((skill, skillIndex) => (
                       <span
-                        key={skillIndex}
+                        key={`${skillGroup.category}-${skill}-${skillIndex}`}
                         className="px-2 py-1 bg-muted text-foreground/80 rounded text-xs font-medium"
                       >
                         {skill}

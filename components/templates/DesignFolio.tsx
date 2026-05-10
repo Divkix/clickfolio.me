@@ -155,7 +155,7 @@ const DesignFolio: React.FC<TemplateProps> = ({ content, profile }) => {
                       <div className="flex flex-wrap gap-x-4 gap-y-2">
                         {skillGroup.items.map((item, i) => (
                           <span
-                            key={i}
+                            key={`${skillGroup.category}-${item}-${i}`}
                             className="text-lg md:text-xl text-[#e0e0e0] hover:text-[#CCFF00] transition-colors cursor-default"
                           >
                             {item}

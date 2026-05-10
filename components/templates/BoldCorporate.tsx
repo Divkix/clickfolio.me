@@ -37,7 +37,7 @@ const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => {
       const firstSpaceIdx = sentence.indexOf(" ");
       if (firstSpaceIdx === -1) {
         return (
-          <span key={i}>
+          <span key={`sentence-${sentence.slice(0, 10)}-${i}`}>
             <strong>{sentence}</strong>{" "}
           </span>
         );
@@ -45,7 +45,7 @@ const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => {
       const firstWord = sentence.slice(0, firstSpaceIdx);
       const rest = sentence.slice(firstSpaceIdx);
       return (
-        <span key={i}>
+        <span key={`sentence-${firstWord}-${i}`}>
           <strong>{firstWord}</strong>
           {rest}{" "}
         </span>
@@ -229,7 +229,10 @@ const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => {
                   const number = String(idx + 1).padStart(2, "0");
                   const limitedHighlights = job.highlights?.slice(0, 4) ?? [];
                   return (
-                    <div key={idx} className="grid grid-cols-1 md:grid-cols-12 gap-6 group">
+                    <div
+                      key={`${job.title}-${idx}`}
+                      className="grid grid-cols-1 md:grid-cols-12 gap-6 group"
+                    >
                       <div className="md:col-span-2">
                         <span
                           className="text-6xl font-black leading-none select-none"
@@ -268,7 +271,7 @@ const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => {
                           <div className="flex flex-wrap gap-2">
                             {limitedHighlights.map((highlight, i) => (
                               <span
-                                key={i}
+                                key={`${job.title}-${highlight}-${i}`}
                                 className="bg-neutral-100 rounded-full px-3 py-1 text-xs text-neutral-600"
                               >
                                 {highlight}
@@ -297,7 +300,10 @@ const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => {
                 {content.education.map((edu, idx) => {
                   const number = String(idx + 1).padStart(2, "0");
                   return (
-                    <div key={idx} className="grid grid-cols-1 md:grid-cols-12 gap-6">
+                    <div
+                      key={`${edu.institution}-${idx}`}
+                      className="grid grid-cols-1 md:grid-cols-12 gap-6"
+                    >
                       <div className="md:col-span-2">
                         <span
                           className="text-6xl font-black leading-none select-none"
@@ -350,7 +356,7 @@ const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {content.certifications.map((cert, idx) => (
-                  <div key={idx} className="flex items-start gap-4">
+                  <div key={`${cert.name}-${idx}`} className="flex items-start gap-4">
                     <div className="w-2 h-2 rounded-full bg-neutral-900 mt-2 shrink-0" />
                     <div>
                       <h3 className="font-heading-bc font-bold text-lg">
@@ -389,7 +395,7 @@ const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {content.projects.map((project, idx) => (
-                  <div key={idx} className="group">
+                  <div key={`${project.title}-${idx}`} className="group">
                     <div className="flex items-start justify-between mb-2">
                       <h3 className="font-heading-bc text-xl font-bold group-hover:underline group-hover:text-[#0055FF] transition-colors">
                         {project.url ? (
@@ -411,7 +417,7 @@ const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => {
                       <div className="flex flex-wrap gap-1.5">
                         {project.technologies.map((tech, i) => (
                           <span
-                            key={i}
+                            key={`${project.title}-${tech}-${i}`}
                             className="border border-neutral-200 rounded-full px-3 py-1 text-xs text-neutral-500"
                           >
                             {tech}
@@ -440,7 +446,7 @@ const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => {
                   <div className="inline-block motion-safe:animate-[marquee_30s_linear_infinite]">
                     {flatSkills.map((skill, i) => (
                       <span
-                        key={i}
+                        key={`row1-${skill}-${i}`}
                         className="inline-block border border-neutral-200 rounded-full px-4 py-2 text-sm font-medium mx-1.5"
                       >
                         {skill}
@@ -448,7 +454,7 @@ const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => {
                     ))}
                     {flatSkills.map((skill, i) => (
                       <span
-                        key={`dup-${i}`}
+                        key={`row1-dup-${skill}-${i}`}
                         className="inline-block border border-neutral-200 rounded-full px-4 py-2 text-sm font-medium mx-1.5"
                       >
                         {skill}
@@ -461,7 +467,7 @@ const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => {
                   <div className="inline-block motion-safe:animate-[marquee-reverse_35s_linear_infinite]">
                     {flatSkills.map((skill, i) => (
                       <span
-                        key={i}
+                        key={`row2-${skill}-${i}`}
                         className="inline-block border border-neutral-200 rounded-full px-4 py-2 text-sm font-medium mx-1.5"
                       >
                         {skill}
@@ -469,7 +475,7 @@ const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => {
                     ))}
                     {flatSkills.map((skill, i) => (
                       <span
-                        key={`dup-${i}`}
+                        key={`row2-dup-${skill}-${i}`}
                         className="inline-block border border-neutral-200 rounded-full px-4 py-2 text-sm font-medium mx-1.5"
                       >
                         {skill}
@@ -482,7 +488,7 @@ const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => {
                   <div className="inline-block motion-safe:animate-[marquee_25s_linear_infinite]">
                     {flatSkills.map((skill, i) => (
                       <span
-                        key={i}
+                        key={`row3-${skill}-${i}`}
                         className="inline-block border border-neutral-200 rounded-full px-4 py-2 text-sm font-medium mx-1.5"
                       >
                         {skill}
@@ -490,7 +496,7 @@ const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => {
                     ))}
                     {flatSkills.map((skill, i) => (
                       <span
-                        key={`dup-${i}`}
+                        key={`row3-dup-${skill}-${i}`}
                         className="inline-block border border-neutral-200 rounded-full px-4 py-2 text-sm font-medium mx-1.5"
                       >
                         {skill}

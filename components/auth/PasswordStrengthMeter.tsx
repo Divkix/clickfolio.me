@@ -75,7 +75,7 @@ export function PasswordStrengthMeter({
       >
         {segments.map((segment, i) => (
           <div
-            key={i}
+            key={`${segment.color}-${i}`}
             className={cn(
               "h-1.5 flex-1 rounded-full transition-colors duration-200",
               segment.active ? segment.color : "bg-ink/10",

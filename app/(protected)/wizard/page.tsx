@@ -112,6 +112,7 @@ export default function WizardPage() {
   // Refs to prevent race conditions during wizard initialization
   const initializingRef = useRef(false);
   const hasClaimedRef = useRef(false);
+  const navigateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [state, setState] = useState<WizardState>({
     currentStepId: "handle",
@@ -147,7 +148,7 @@ export default function WizardPage() {
 
       // Failed
       setError(result.error || "Resume parsing failed. Please try again.");
-      setTimeout(() => router.push("/dashboard"), 3000);
+      navigateTimeoutRef.current = setTimeout(() => router.push("/dashboard"), 3000);
       return false;
     },
     [router],
@@ -313,7 +314,7 @@ export default function WizardPage() {
             // Reset claim ref on error to allow retry
             hasClaimedRef.current = false;
 
-            setTimeout(() => router.push("/dashboard"), 3000);
+            navigateTimeoutRef.current = setTimeout(() => router.push("/dashboard"), 3000);
             return;
           }
         }
@@ -375,7 +376,13 @@ export default function WizardPage() {
     };
 
     initializeWizard();
-    // No cleanup needed — waitForResumeCompletion handles its own cleanup internally
+
+    return () => {
+      if (navigateTimeoutRef.current) {
+        clearTimeout(navigateTimeoutRef.current);
+        navigateTimeoutRef.current = null;
+      }
+    };
   }, [router, userId, sessionLoading, awaitResumeComplete, onboardingCompleted]);
 
   // Abandonment prevention - warn users before leaving mid-wizard

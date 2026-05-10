@@ -200,6 +200,13 @@ export function useResumeStatus(resumeId: string | null): UseResumeStatusReturn 
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
   }, [connectionState, resumeId, fetchStatus]);
 
   return {

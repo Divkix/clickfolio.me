@@ -38,6 +38,8 @@ export function MilestoneToasts({ totalViews }: MilestoneToastsProps) {
     if (hasChecked.current) return;
     hasChecked.current = true;
 
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
     // Check each milestone
     for (const milestone of MILESTONES) {
       if (totalViews >= milestone.threshold) {
@@ -46,7 +48,7 @@ export function MilestoneToasts({ totalViews }: MilestoneToastsProps) {
 
         if (!alreadyShown) {
           // Show toast with slight delay to let dashboard render first
-          setTimeout(() => {
+          timeoutId = setTimeout(() => {
             toast.success(milestone.message, {
               duration: 5000,
             });
@@ -58,6 +60,10 @@ export function MilestoneToasts({ totalViews }: MilestoneToastsProps) {
         }
       }
     }
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
   }, [totalViews]);
 
   // This component renders nothing - it's purely for side effects

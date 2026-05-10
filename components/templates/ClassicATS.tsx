@@ -149,7 +149,7 @@ const ClassicATS: React.FC<TemplateProps> = ({ content, profile }) => {
                     {job.highlights && job.highlights.length > 0 && (
                       <ul className="text-sm text-gray-700 space-y-1 ml-4">
                         {job.highlights.map((highlight, i) => (
-                          <li key={i} className="pl-4">
+                          <li key={`${job.title}-${highlight}-${i}`} className="pl-4">
                             <span className="text-gray-400 mr-2" aria-hidden="true">
                               &mdash;
                             </span>

@@ -200,7 +200,7 @@ const DevTerminal: React.FC<TemplateProps> = ({ content, profile }) => {
                           <div className="pl-12 flex flex-wrap gap-2">
                             {skillGroup.items.map((item, i) => (
                               <span
-                                key={i}
+                                key={`${skillGroup.category}-${item}-${i}`}
                                 className="px-2 py-1 bg-[#21262d] border border-[#30363d] rounded text-[#c9d1d9] hover:border-[#58a6ff] transition-colors"
                               >
                                 {item}
@@ -242,7 +242,7 @@ const DevTerminal: React.FC<TemplateProps> = ({ content, profile }) => {
                         <ul className="space-y-1">
                           {job.highlights.map((highlight, i) => (
                             <li
-                              key={i}
+                              key={`${job.title}-${highlight}-${i}`}
                               className="font-mono-term text-xs text-[#7ee787] flex items-start gap-2"
                             >
                               <span className="text-[#7ee787] font-bold" aria-hidden="true">
@@ -299,7 +299,7 @@ const DevTerminal: React.FC<TemplateProps> = ({ content, profile }) => {
                         <div className="flex flex-wrap gap-2">
                           {project.technologies.map((tech, i) => (
                             <span
-                              key={i}
+                              key={`${project.title}-${tech}-${i}`}
                               className="flex items-center gap-1 text-xs text-[#8b949e]"
                             >
                               <span

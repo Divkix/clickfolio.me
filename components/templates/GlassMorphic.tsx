@@ -468,7 +468,10 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content, profile }) => {
                     {job.highlights && (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         {job.highlights.map((item, i) => (
-                          <div key={i} className="flex items-start gap-3 text-sm text-slate-400/80">
+                          <div
+                            key={`${job.title}-${item}-${i}`}
+                            className="flex items-start gap-3 text-sm text-slate-400/80"
+                          >
                             <span className="mt-1.5 w-1 h-1 rounded-full bg-lavender/50 shrink-0" />
                             <span>{item}</span>
                           </div>
@@ -492,7 +495,10 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content, profile }) => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {content.projects.map((project: Project, i: number) => (
-                  <SpotlightCard key={i} className="group flex flex-col h-full">
+                  <SpotlightCard
+                    key={`${project.title}-${i}`}
+                    className="group flex flex-col h-full"
+                  >
                     <div className="p-6 md:p-8 flex flex-col h-full">
                       <div className="flex justify-between items-start mb-6">
                         <div className="w-12 h-12 rounded-xl bg-linear-to-br from-white/10 to-transparent border border-white/5 flex items-center justify-center">
@@ -551,7 +557,7 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content, profile }) => {
                 <div className="flex flex-wrap justify-center gap-3">
                   {flatSkills.map((skill, i) => (
                     <span
-                      key={i}
+                      key={`skill-${skill}-${i}`}
                       className="px-4 py-2 rounded-lg bg-white/3 border border-white/6 text-sm text-slate-300 hover:bg-white/8 hover:text-white hover:border-lavender/30 hover:shadow-[0_0_15px_rgba(167,139,250,0.3)] transition-all duration-300 cursor-default select-none"
                     >
                       {skill}
@@ -576,7 +582,7 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content, profile }) => {
                 {/* Edu Column */}
                 <div className="space-y-4">
                   {content.education?.map((edu, i) => (
-                    <SpotlightCard key={i} className="p-6">
+                    <SpotlightCard key={`edu-${edu.institution}-${i}`} className="p-6">
                       <div className="text-xs font-mono-gm text-lavender mb-2">
                         {edu.graduation_date ? formatYear(edu.graduation_date) : "Present"}
                       </div>
@@ -592,7 +598,10 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content, profile }) => {
                 {/* Certs Column */}
                 <div className="space-y-4">
                   {content.certifications?.map((cert, i) => (
-                    <SpotlightCard key={i} className="p-6 h-full flex flex-col justify-center">
+                    <SpotlightCard
+                      key={`cert-${cert.name}-${i}`}
+                      className="p-6 h-full flex flex-col justify-center"
+                    >
                       <div className="flex justify-between items-start">
                         <div>
                           <h4 className="text-base font-bold text-white mb-1">{cert.name}</h4>

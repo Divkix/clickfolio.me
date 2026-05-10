@@ -120,7 +120,7 @@ const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
           {/* Stars */}
           {STAR_POSITIONS.map((star, i) => (
             <div
-              key={i}
+              key={`star-${star.x}-${star.y}-${i}`}
               className="absolute rounded-full bg-white"
               style={{
                 left: `${star.x}%`,
@@ -256,7 +256,7 @@ const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
                                     <ul className="space-y-2">
                                       {limitedHighlights.map((highlight, i) => (
                                         <li
-                                          key={i}
+                                          key={`${job.title}-${highlight}-${i}`}
                                           className="text-neutral-500 text-sm flex items-start gap-2.5 font-body-mn"
                                         >
                                           <span
@@ -302,7 +302,7 @@ const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
                                 <div className="flex flex-wrap gap-2">
                                   {project.technologies.slice(0, 5).map((tech, i) => (
                                     <span
-                                      key={i}
+                                      key={`${project.title}-${tech}-${i}`}
                                       className="text-[10px] uppercase tracking-wider text-neutral-400 bg-white/5 border border-white/5 px-2.5 py-1 rounded-md font-body-mn"
                                     >
                                       {tech}

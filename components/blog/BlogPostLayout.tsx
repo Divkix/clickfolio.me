@@ -130,7 +130,7 @@ export function BlogPostLayout({ post, children, relatedPosts }: BlogPostLayoutP
               {post.title}
             </h1>
             <div className="flex items-center gap-4 text-ink/60 text-sm">
-              <time dateTime={post.date}>
+              <time dateTime={post.date} suppressHydrationWarning>
                 {new Date(post.date).toLocaleDateString("en-US", {
                   year: "numeric",
                   month: "long",

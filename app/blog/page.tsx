@@ -97,7 +97,11 @@ export default function BlogPage() {
                   <span className="inline-block bg-ink text-cream text-xs font-bold px-2 py-0.5">
                     {post.category}
                   </span>
-                  <time dateTime={post.date} className="text-sm text-ink/50">
+                  <time
+                    dateTime={post.date}
+                    className="text-sm text-ink/50"
+                    suppressHydrationWarning
+                  >
                     {new Date(post.date).toLocaleDateString("en-US", {
                       year: "numeric",
                       month: "long",

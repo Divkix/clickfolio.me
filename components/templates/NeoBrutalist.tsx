@@ -201,12 +201,12 @@ const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
             <div className="bg-[#FFDE00] border-2 md:border-4 border-black py-4 overflow-hidden whitespace-nowrap shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transform -rotate-1 my-12">
               <div className="inline-block motion-safe:animate-[marquee_20s_linear_infinite] font-black text-2xl md:text-4xl uppercase">
                 {flatSkills.map((skill: string, i: number) => (
-                  <span key={i} className="mx-6 inline-flex items-center">
+                  <span key={`skill-${skill}-${i}`} className="mx-6 inline-flex items-center">
                     {skill} <Star className="w-6 h-6 ml-6 fill-black" aria-hidden="true" />
                   </span>
                 ))}
                 {flatSkills.map((skill: string, i: number) => (
-                  <span key={`dup-${i}`} className="mx-6 inline-flex items-center">
+                  <span key={`dup-skill-${skill}-${i}`} className="mx-6 inline-flex items-center">
                     {skill} <Star className="w-6 h-6 ml-6 fill-black" aria-hidden="true" />
                   </span>
                 ))}
@@ -264,7 +264,7 @@ const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
                         ) : limitedHighlights.length > 0 ? (
                           <ul className="font-medium text-sm mb-4 border-l-2 md:border-l-4 border-black pl-5 space-y-2 list-disc">
                             {limitedHighlights.map((highlight: string, i: number) => (
-                              <li key={i} className="font-bold">
+                              <li key={`${job.title}-${highlight}-${i}`} className="font-bold">
                                 {highlight}
                               </li>
                             ))}
@@ -276,7 +276,7 @@ const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
                             <div className="flex flex-wrap gap-2 mt-4">
                               {limitedHighlights.map((highlight: string, i: number) => (
                                 <span
-                                  key={i}
+                                  key={`tag-${job.title}-${highlight}-${i}`}
                                   className="px-2 py-1 bg-[#22CCEE] border-2 border-black text-xs font-bold uppercase"
                                 >
                                   • {highlight}
@@ -346,7 +346,7 @@ const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
                         <div className="mt-auto flex flex-wrap gap-2">
                           {project.technologies.map((tech: string, i: number) => (
                             <span
-                              key={i}
+                              key={`${project.title}-${tech}-${i}`}
                               className="px-2 py-1 bg-[#FF90E8] border-2 border-black text-xs font-bold uppercase"
                             >
                               {tech}
