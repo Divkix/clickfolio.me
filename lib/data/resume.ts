@@ -253,7 +253,14 @@ export const getRelatedProfiles = cache(
       })
       .from(user)
       .leftJoin(siteData, sql`${siteData.userId} = ${user.id}`)
-      .where(and(isNotNull(user.handle), ne(user.handle, currentHandle), notHiddenFromSearch))
+      .where(
+        and(
+          isNotNull(user.handle),
+          ne(user.handle, currentHandle),
+          notHiddenFromSearch,
+          isNotNull(siteData.userId),
+        ),
+      )
       .orderBy(sql`random()`)
       .limit(3);
 

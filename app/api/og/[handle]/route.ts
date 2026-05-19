@@ -1,18 +1,16 @@
 import { env } from "cloudflare:workers";
-import type { ResvgRenderOptions } from "@resvg/resvg-js";
-import { renderAsync } from "@resvg/resvg-js";
+import { Resvg } from "@cf-wasm/resvg/workerd";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { siteData, user } from "@/lib/db/schema";
 import { parsePreviewSkills } from "@/lib/utils/preview-skills";
 import { escapeXml } from "@/lib/utils/xml";
 
-const RESVG_OPTIONS: ResvgRenderOptions = {
-  fitTo: { mode: "width", value: 1200 },
+const RESVG_OPTIONS = {
+  fitTo: { mode: "width" as const, value: 1200 },
 };
 
-async function renderFallbackPng(): Promise<Response> {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+const FALLBACK_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
   <defs>
     <linearGradient id="bgGrad" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0%" stop-color="#1a1a2e"/>
@@ -28,14 +26,30 @@ async function renderFallbackPng(): Promise<Response> {
   </text>
 </svg>`;
 
-  const png = await renderAsync(svg, RESVG_OPTIONS);
-
-  return new Response(new Uint8Array(png.asPng()), {
+/** Last-resort response that never invokes resvg. */
+function renderLastResort(): Response {
+  return new Response(FALLBACK_SVG, {
     headers: {
-      "Content-Type": "image/png",
+      "Content-Type": "image/svg+xml",
       "Cache-Control": "public, max-age=300",
     },
   });
+}
+
+/** Attempts to render a PNG via resvg; falls back to a raw SVG if resvg fails. */
+async function renderFallbackPng(): Promise<Response> {
+  try {
+    const resvg = await Resvg.async(FALLBACK_SVG, RESVG_OPTIONS);
+    const png = resvg.render();
+    return new Response(new Uint8Array(png.asPng()), {
+      headers: {
+        "Content-Type": "image/png",
+        "Cache-Control": "public, max-age=300",
+      },
+    });
+  } catch {
+    return renderLastResort();
+  }
 }
 
 /**
@@ -160,7 +174,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ han
   </text>
 </svg>`;
 
-    const png = await renderAsync(svg, RESVG_OPTIONS);
+    const resvg = await Resvg.async(svg, RESVG_OPTIONS);
+    const png = resvg.render();
 
     return new Response(new Uint8Array(png.asPng()), {
       headers: {
@@ -170,6 +185,6 @@ export async function GET(_request: Request, { params }: { params: Promise<{ han
     });
   } catch (error) {
     console.error("OG image generation error:", error);
-    return renderFallbackPng();
+    return renderLastResort();
   }
 }

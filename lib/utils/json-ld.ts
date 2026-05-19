@@ -12,9 +12,15 @@ import type { ResumeContent } from "@/lib/types/database";
 // Types
 // =============================================================================
 
-interface JsonLdWorkExperience {
-  "@type": "EmployeeRole";
+interface JsonLdOccupation {
+  "@type": "Occupation";
+  name: string;
+}
+
+interface JsonLdRole {
+  "@type": "Role";
   roleName: string;
+  hasOccupation: JsonLdOccupation;
   worksFor: {
     "@type": "Organization";
     name: string;
@@ -34,7 +40,7 @@ interface JsonLdPerson {
     "@type": "Organization";
     name: string;
   };
-  hasOccupation?: JsonLdWorkExperience[];
+  hasOccupation?: JsonLdRole[];
   alumniOf?: Array<{
     "@type": "EducationalOrganization";
     name: string;
@@ -149,9 +155,7 @@ function getCurrentEmployer(
  * Includes company, title, and dates. Omits endDate for current roles.
  * Limited to 5 entries to keep payload reasonable.
  */
-function buildWorkExperiences(
-  experience: ResumeContent["experience"],
-): JsonLdWorkExperience[] | undefined {
+function buildWorkExperiences(experience: ResumeContent["experience"]): JsonLdRole[] | undefined {
   if (!experience || experience.length === 0) {
     return undefined;
   }
@@ -163,9 +167,13 @@ function buildWorkExperiences(
     )
     .slice(0, 5)
     .map((exp) => {
-      const role: JsonLdWorkExperience = {
-        "@type": "EmployeeRole",
+      const role: JsonLdRole = {
+        "@type": "Role",
         roleName: exp.title.trim(),
+        hasOccupation: {
+          "@type": "Occupation",
+          name: exp.title.trim(),
+        },
         worksFor: {
           "@type": "Organization",
           name: exp.company.trim(),
