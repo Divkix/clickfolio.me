@@ -21,10 +21,6 @@ interface JsonLdRole {
   "@type": "Role";
   roleName: string;
   hasOccupation: JsonLdOccupation;
-  worksFor: {
-    "@type": "Organization";
-    name: string;
-  };
   startDate: string;
   endDate?: string;
 }
@@ -173,10 +169,6 @@ function buildWorkExperiences(experience: ResumeContent["experience"]): JsonLdRo
         hasOccupation: {
           "@type": "Occupation",
           name: exp.title.trim(),
-        },
-        worksFor: {
-          "@type": "Organization",
-          name: exp.company.trim(),
         },
         startDate: exp.start_date.trim(),
       };
