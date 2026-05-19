@@ -294,9 +294,11 @@ const Spotlight: React.FC<TemplateProps> = ({ content, profile }) => {
                 {profile.avatar_url ? (
                   <img
                     src={profile.avatar_url}
-                    alt={content.full_name}
+                    alt={`Portrait of ${content.full_name}`}
                     width={192}
                     height={192}
+                    fetchPriority="high"
+                    decoding="async"
                     className="relative w-32 h-32 md:w-48 md:h-48 rounded-full object-cover border-4 border-[#FFFCF9] shadow-xl shadow-orange-500/10"
                   />
                 ) : (

@@ -193,6 +193,8 @@ const DesignFolio: React.FC<TemplateProps> = ({ content, profile }) => {
                           alt={project.title}
                           width={800}
                           height={450}
+                          loading="lazy"
+                          decoding="async"
                           className="w-full aspect-video object-cover transition-transform duration-500 group-hover:scale-105"
                         />
                         <div className="absolute inset-0 bg-linear-to-t from-[#1a1a1a] to-transparent opacity-60" />

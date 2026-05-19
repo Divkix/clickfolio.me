@@ -144,9 +144,11 @@ const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
                   {profile.avatar_url ? (
                     <img
                       src={profile.avatar_url}
-                      alt={content.full_name}
+                      alt={`Portrait of ${content.full_name}`}
                       width={112}
                       height={112}
+                      fetchPriority="high"
+                      decoding="async"
                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                     />
                   ) : (

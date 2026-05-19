@@ -3,10 +3,12 @@ import { notFound } from "next/navigation";
 import { AttributionWidget } from "@/components/AttributionWidget";
 import { OwnerDetector } from "@/components/analytics/OwnerDetector";
 import { CreateYoursCTA } from "@/components/CreateYoursCTA";
+import { RelatedProfiles } from "@/components/RelatedProfiles";
 import { SharePopover, type SharePopoverVariant } from "@/components/SharePopover";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { siteConfig } from "@/lib/config/site";
-import { getResumeData, getResumeMetadata } from "@/lib/data/resume";
+import { getRelatedProfiles, getResumeData, getResumeMetadata } from "@/lib/data/resume";
+import { flattenSkills } from "@/lib/templates/helpers";
 import { DEFAULT_THEME, type ThemeId } from "@/lib/templates/theme-ids";
 import { getTemplate } from "@/lib/templates/theme-registry";
 import { isValidHandleFormat } from "@/lib/utils/handle-validation";
@@ -79,7 +81,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     };
   }
 
-  const { full_name, headline, hide_from_search, location, skills } = data;
+  const { full_name, headline, hide_from_search, location, skills, created_at, updated_at } = data;
 
   const descParts: string[] = [full_name];
   if (headline) descParts.push(`— ${headline}`);
@@ -89,9 +91,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const description = assembled.length > 157 ? `${assembled.slice(0, 157)}...` : assembled;
 
   const profileUrl = `${siteConfig.url}/@${handle}`;
+  const nameParts = full_name.split(" ");
+  const firstName = nameParts[0] ?? full_name;
+  const lastName = nameParts.slice(1).join(" ") || undefined;
 
   return {
-    title: `${full_name}'s Resume`,
+    title: `${full_name}${headline ? ` — ${headline}` : ""}`,
     description,
     // Canonical URL for proper SEO
     alternates: {
@@ -105,11 +110,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       },
     }),
     openGraph: {
-      title: `${full_name} — ${headline ?? "Resume"}`,
+      title: `${full_name}${headline ? ` — ${headline}` : ""}`,
       description,
       type: "profile",
       url: profileUrl,
       siteName: siteConfig.fullName,
+      firstName,
+      lastName,
+      username: handle,
       images: [
         {
           url: `${siteConfig.url}/api/og/${handle}`,
@@ -119,9 +127,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
         },
       ],
     },
+    other: {
+      "article:published_time": created_at,
+      "article:modified_time": updated_at,
+    },
     twitter: {
       card: "summary_large_image",
-      title: `${full_name} — ${headline ?? "Resume"}`,
+      title: `${full_name}${headline ? ` — ${headline}` : ""}`,
       description,
       images: [`${siteConfig.url}/api/og/${handle}`],
     },
@@ -164,6 +176,14 @@ export default async function HandlePage({ params }: PageProps) {
   }
 
   const { content, profile, theme_id, privacy_settings, created_at, updated_at } = data;
+
+  const relatedProfiles = !privacy_settings.hide_from_search
+    ? await getRelatedProfiles(
+        handle,
+        content.skills ? flattenSkills(content.skills) : null,
+        content.headline,
+      )
+    : [];
 
   // Dynamically select template based on theme_id
   const Template = await getTemplate(theme_id);
@@ -243,6 +263,7 @@ export default async function HandlePage({ params }: PageProps) {
         title={pageTitle}
         variant={shareVariant}
       />
+      <RelatedProfiles profiles={relatedProfiles} />
       <AttributionWidget theme={theme_id ?? DEFAULT_THEME} />
     </>
   );

@@ -12,6 +12,17 @@ import type { ResumeContent } from "@/lib/types/database";
 // Types
 // =============================================================================
 
+interface JsonLdWorkExperience {
+  "@type": "EmployeeRole";
+  roleName: string;
+  worksFor: {
+    "@type": "Organization";
+    name: string;
+  };
+  startDate: string;
+  endDate?: string;
+}
+
 interface JsonLdPerson {
   "@type": "Person";
   "@id"?: string;
@@ -23,6 +34,7 @@ interface JsonLdPerson {
     "@type": "Organization";
     name: string;
   };
+  hasOccupation?: JsonLdWorkExperience[];
   alumniOf?: Array<{
     "@type": "EducationalOrganization";
     name: string;
@@ -72,6 +84,18 @@ const GITHUB_PATTERN = /^https?:\/\/(www\.)?github\.com\/[\w-]+\/?$/i;
  */
 const WEBSITE_PATTERN = /^https?:\/\/[\w.-]+\.[a-z]{2,}(\/.*)?$/i;
 
+/**
+ * Validates Dribbble profile URLs
+ * Accepts: dribbble.com/username
+ */
+const DRIBBBLE_PATTERN = /^https?:\/\/(www\.)?dribbble\.com\/[\w-]+\/?$/i;
+
+/**
+ * Validates Behance profile URLs
+ * Accepts: behance.net/username
+ */
+const BEHANCE_PATTERN = /^https?:\/\/(www\.)?behance\.net\/[\w-]+\/?$/i;
+
 function isValidLinkedInUrl(url: string): boolean {
   return LINKEDIN_PATTERN.test(url.trim());
 }
@@ -82,6 +106,14 @@ function isValidGitHubUrl(url: string): boolean {
 
 function isValidWebsiteUrl(url: string): boolean {
   return WEBSITE_PATTERN.test(url.trim());
+}
+
+function isValidDribbbleUrl(url: string): boolean {
+  return DRIBBBLE_PATTERN.test(url.trim());
+}
+
+function isValidBehanceUrl(url: string): boolean {
+  return BEHANCE_PATTERN.test(url.trim());
 }
 
 // =============================================================================
@@ -113,6 +145,45 @@ function getCurrentEmployer(
 }
 
 /**
+ * Builds schema.org EmployeeRole nodes from resume experience
+ * Includes company, title, and dates. Omits endDate for current roles.
+ * Limited to 5 entries to keep payload reasonable.
+ */
+function buildWorkExperiences(
+  experience: ResumeContent["experience"],
+): JsonLdWorkExperience[] | undefined {
+  if (!experience || experience.length === 0) {
+    return undefined;
+  }
+
+  const roles = experience
+    .filter(
+      (exp) =>
+        exp.title && exp.title.trim().length > 0 && exp.company && exp.company.trim().length > 0,
+    )
+    .slice(0, 5)
+    .map((exp) => {
+      const role: JsonLdWorkExperience = {
+        "@type": "EmployeeRole",
+        roleName: exp.title.trim(),
+        worksFor: {
+          "@type": "Organization",
+          name: exp.company.trim(),
+        },
+        startDate: exp.start_date.trim(),
+      };
+
+      if (exp.end_date && exp.end_date.trim().length > 0) {
+        role.endDate = exp.end_date.trim();
+      }
+
+      return role;
+    });
+
+  return roles.length > 0 ? roles : undefined;
+}
+
+/**
  * Builds array of validated social profile URLs
  * Only includes URLs that pass validation
  */
@@ -129,6 +200,14 @@ function buildSameAsArray(contact: ResumeContent["contact"]): string[] | undefin
 
   if (contact.website && isValidWebsiteUrl(contact.website)) {
     urls.push(contact.website.trim());
+  }
+
+  if (contact.dribbble && isValidDribbbleUrl(contact.dribbble)) {
+    urls.push(contact.dribbble.trim());
+  }
+
+  if (contact.behance && isValidBehanceUrl(contact.behance)) {
+    urls.push(contact.behance.trim());
   }
 
   return urls.length > 0 ? urls : undefined;
@@ -215,6 +294,12 @@ export function generateResumeJsonLd(
       "@type": "Organization",
       name: currentEmployer.company,
     };
+  }
+
+  // Add work experience as hasOccupation (EmployeeRole nodes)
+  const hasOccupation = buildWorkExperiences(content.experience);
+  if (hasOccupation) {
+    person.hasOccupation = hasOccupation;
   }
 
   // Add education as alumniOf

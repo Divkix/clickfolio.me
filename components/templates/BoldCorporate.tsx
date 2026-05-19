@@ -113,9 +113,11 @@ const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => {
                 {profile.avatar_url ? (
                   <img
                     src={profile.avatar_url}
-                    alt={content.full_name}
+                    alt={`Portrait of ${content.full_name}`}
                     width={128}
                     height={128}
+                    fetchPriority="high"
+                    decoding="async"
                     className="w-full h-full object-cover"
                   />
                 ) : (
@@ -143,9 +145,11 @@ const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => {
                 {profile.avatar_url ? (
                   <img
                     src={profile.avatar_url}
-                    alt={content.full_name}
+                    alt={`Portrait of ${content.full_name}`}
                     width={64}
                     height={64}
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-cover"
                   />
                 ) : (
