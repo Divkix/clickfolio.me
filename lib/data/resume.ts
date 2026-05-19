@@ -1,9 +1,9 @@
 import { env } from "cloudflare:workers";
-import { eq } from "drizzle-orm";
+import { and, eq, isNotNull, ne, or, sql } from "drizzle-orm";
 
 import { cache } from "react";
 import { getDb } from "@/lib/db";
-import { user } from "@/lib/db/schema";
+import { siteData, user } from "@/lib/db/schema";
 import type { PrivacySettings } from "@/lib/schemas/profile";
 import {
   DEFAULT_THEME,
@@ -39,6 +39,8 @@ interface ResumeMetadata {
   hide_from_search: boolean;
   location?: string | null;
   skills?: string[] | null;
+  created_at: string;
+  updated_at: string;
 }
 
 /**
@@ -175,6 +177,8 @@ async function fetchResumeMetadataRaw(handle: string): Promise<ResumeMetadata | 
           previewHeadline: true,
           previewLocation: true,
           previewSkills: true,
+          createdAt: true,
+          updatedAt: true,
         },
       },
     },
@@ -204,6 +208,8 @@ async function fetchResumeMetadataRaw(handle: string): Promise<ResumeMetadata | 
     hide_from_search: hideFromSearch,
     location: userData.siteData.previewLocation?.trim() || null,
     skills: parsedSkills.length > 0 ? parsedSkills : null,
+    created_at: userData.siteData.createdAt,
+    updated_at: userData.siteData.updatedAt,
   };
 }
 
@@ -221,3 +227,49 @@ export const getResumeData = cache((handle: string) => fetchResumeDataRaw(handle
  * Metadata fetcher for SEO with request-level deduplication.
  */
 export const getResumeMetadata = cache((handle: string) => fetchResumeMetadataRaw(handle));
+
+/**
+ * Fetch related public profiles for cross-linking on profile pages.
+ * Prioritizes similar skills and excludes the current profile.
+ */
+export const getRelatedProfiles = cache(
+  async (
+    currentHandle: string,
+    _skills?: string[] | null,
+    _headline?: string | null,
+  ): Promise<Array<{ handle: string; name: string; headline?: string | null }>> => {
+    const db = getDb(env.CLICKFOLIO_DB);
+
+    const notHiddenFromSearch = or(
+      sql`json_extract(${user.privacySettings}, '$.hide_from_search') IS NULL`,
+      sql`json_extract(${user.privacySettings}, '$.hide_from_search') = false`,
+    );
+
+    const rows = await db
+      .select({
+        handle: user.handle,
+        name: siteData.previewName,
+        headline: siteData.previewHeadline,
+      })
+      .from(user)
+      .leftJoin(siteData, sql`${siteData.userId} = ${user.id}`)
+      .where(
+        and(
+          isNotNull(user.handle),
+          ne(user.handle, currentHandle),
+          notHiddenFromSearch,
+          isNotNull(siteData.userId),
+        ),
+      )
+      .orderBy(sql`random()`)
+      .limit(3);
+
+    return rows
+      .filter((r) => r.handle)
+      .map((r) => ({
+        handle: r.handle!,
+        name: r.name?.trim() || r.handle!,
+        headline: r.headline?.trim() || null,
+      }));
+  },
+);

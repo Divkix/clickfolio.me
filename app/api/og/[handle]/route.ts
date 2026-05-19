@@ -1,12 +1,16 @@
 import { env } from "cloudflare:workers";
+import { Resvg } from "@cf-wasm/resvg/workerd";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { siteData, user } from "@/lib/db/schema";
 import { parsePreviewSkills } from "@/lib/utils/preview-skills";
 import { escapeXml } from "@/lib/utils/xml";
 
-function renderFallbackSvg(): Response {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+const RESVG_OPTIONS = {
+  fitTo: { mode: "width" as const, value: 1200 },
+};
+
+const FALLBACK_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
   <defs>
     <linearGradient id="bgGrad" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0%" stop-color="#1a1a2e"/>
@@ -22,7 +26,9 @@ function renderFallbackSvg(): Response {
   </text>
 </svg>`;
 
-  return new Response(svg, {
+/** Last-resort response that never invokes resvg. */
+function renderLastResort(): Response {
+  return new Response(FALLBACK_SVG, {
     headers: {
       "Content-Type": "image/svg+xml",
       "Cache-Control": "public, max-age=300",
@@ -30,10 +36,26 @@ function renderFallbackSvg(): Response {
   });
 }
 
+/** Attempts to render a PNG via resvg; falls back to a raw SVG if resvg fails. */
+async function renderFallbackPng(): Promise<Response> {
+  try {
+    const resvg = await Resvg.async(FALLBACK_SVG, RESVG_OPTIONS);
+    const png = resvg.render();
+    return new Response(new Uint8Array(png.asPng()), {
+      headers: {
+        "Content-Type": "image/png",
+        "Cache-Control": "public, max-age=300",
+      },
+    });
+  } catch {
+    return renderLastResort();
+  }
+}
+
 /**
  * GET /api/og/[handle]
  * Dynamic profile OG image — shows name, headline, top skills.
- * 1200x630 SVG, cached for 1 hour with 24h stale-while-revalidate.
+ * 1200x630 PNG, cached for 1 hour with 24h stale-while-revalidate.
  */
 export async function GET(_request: Request, { params }: { params: Promise<{ handle: string }> }) {
   const { handle: rawHandle } = await params;
@@ -42,7 +64,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ han
   const handle = decodeURIComponent(rawHandle).replace(/^@/, "");
 
   if (!handle) {
-    return renderFallbackSvg();
+    return renderFallbackPng();
   }
 
   try {
@@ -65,7 +87,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ han
     const row = rows[0];
 
     if (!row) {
-      return renderFallbackSvg();
+      return renderFallbackPng();
     }
 
     const displayName = escapeXml(row.previewName || row.name || handle);
@@ -152,14 +174,17 @@ export async function GET(_request: Request, { params }: { params: Promise<{ han
   </text>
 </svg>`;
 
-    return new Response(svg, {
+    const resvg = await Resvg.async(svg, RESVG_OPTIONS);
+    const png = resvg.render();
+
+    return new Response(new Uint8Array(png.asPng()), {
       headers: {
-        "Content-Type": "image/svg+xml",
+        "Content-Type": "image/png",
         "Cache-Control": "public, max-age=3600, stale-while-revalidate=86400",
       },
     });
   } catch (error) {
     console.error("OG image generation error:", error);
-    return renderFallbackSvg();
+    return renderLastResort();
   }
 }

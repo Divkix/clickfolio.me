@@ -130,9 +130,11 @@ const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
                   {profile.avatar_url ? (
                     <img
                       src={profile.avatar_url}
-                      alt={content.full_name}
+                      alt={`Portrait of ${content.full_name}`}
                       width={96}
                       height={96}
+                      fetchPriority="high"
+                      decoding="async"
                       className="w-full h-full object-cover"
                     />
                   ) : (

@@ -133,6 +133,7 @@ export async function generateSitemapEntries(id: number): Promise<MetadataRoute.
         handle: user.handle,
         userUpdatedAt: user.updatedAt,
         siteUpdatedAt: siteData.updatedAt,
+        lastPublishedAt: siteData.lastPublishedAt,
       })
       .from(user)
       .leftJoin(siteData, sql`${siteData.userId} = ${user.id}`)
@@ -144,12 +145,18 @@ export async function generateSitemapEntries(id: number): Promise<MetadataRoute.
     for (const entry of users) {
       if (!entry.handle) continue;
 
-      const lastModified = entry.siteUpdatedAt || entry.userUpdatedAt;
+      // Use lastPublishedAt for accuracy — this only changes when content is
+      // explicitly published, not on privacy/theme/demo-data changes.
+      const lastModified = entry.lastPublishedAt || entry.siteUpdatedAt || entry.userUpdatedAt;
+
+      // Fresh profiles (published in last 7 days) get daily crawl priority
+      const publishDate = entry.lastPublishedAt ? new Date(entry.lastPublishedAt) : null;
+      const isRecent = publishDate && Date.now() - publishDate.getTime() < 7 * 24 * 60 * 60 * 1000;
 
       entries.push({
         url: `${baseUrl}/@${entry.handle}`,
         lastModified: lastModified ? new Date(lastModified) : new Date(),
-        changeFrequency: "weekly",
+        changeFrequency: isRecent ? "daily" : "weekly",
         priority: 0.8,
       });
     }
