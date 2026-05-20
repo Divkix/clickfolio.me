@@ -28,6 +28,9 @@ vi.mock("@/hooks/useResumeStatus", () => ({
 }));
 
 describe("WaitingPage", () => {
+  const originalFetch = globalThis.fetch;
+  const originalAlert = globalThis.alert;
+
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.searchParams = "resume_id=res_123";
@@ -42,6 +45,8 @@ describe("WaitingPage", () => {
 
   afterEach(() => {
     vi.useRealTimers();
+    globalThis.fetch = originalFetch;
+    globalThis.alert = originalAlert;
   });
 
   it("redirects to dashboard when no resume id is present", async () => {

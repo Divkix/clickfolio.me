@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ResumeContent } from "@/lib/types/database";
 
 const mocks = vi.hoisted(() => ({
@@ -203,6 +203,8 @@ function installFetchScenario(scenario: FetchScenario) {
 }
 
 describe("wizard page flow", () => {
+  const originalFetch = globalThis.fetch;
+
   beforeEach(() => {
     vi.clearAllMocks();
     sessionStorage.clear();
@@ -212,6 +214,10 @@ describe("wizard page flow", () => {
     };
     mocks.waitForResumeCompletion.mockResolvedValue({ status: "completed" });
     installFetchScenario("site-data");
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
   });
 
   it("shows loading while session state is pending and redirects unauthenticated users", async () => {

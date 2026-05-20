@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, type MockInstance, vi } from "vitest";
 import type { ResumeContent } from "@/lib/types/database";
 import { copyToClipboard } from "@/lib/utils/clipboard";
 import { isLocalEnvironment } from "@/lib/utils/environment";
@@ -157,7 +157,11 @@ describe("upload validation utilities", () => {
 describe("clipboard utilities", () => {
   const originalClipboard = navigator.clipboard;
   const originalExecCommand = document.execCommand;
-  const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+  let consoleError: MockInstance;
+
+  beforeEach(() => {
+    consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+  });
 
   afterEach(() => {
     Object.defineProperty(navigator, "clipboard", {
@@ -165,7 +169,7 @@ describe("clipboard utilities", () => {
       configurable: true,
     });
     document.execCommand = originalExecCommand;
-    consoleError.mockClear();
+    consoleError.mockRestore();
   });
 
   it("uses the Clipboard API when available", async () => {

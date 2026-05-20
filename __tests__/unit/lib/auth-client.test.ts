@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   requestPasswordReset,
   resetPassword,
@@ -30,8 +30,15 @@ vi.mock("better-auth/react", () => ({
 }));
 
 describe("auth client helpers", () => {
+  const originalFetch = global.fetch;
+
   beforeEach(() => {
     global.fetch = vi.fn() as unknown as typeof fetch;
+  });
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+    vi.clearAllMocks();
   });
 
   it("creates the Better Auth client with the browser origin and re-exports auth helpers", () => {

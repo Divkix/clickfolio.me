@@ -150,6 +150,7 @@ describe("PrivacySettingsForm", () => {
 });
 
 describe("ThemeSelector", () => {
+  const originalFetch = globalThis.fetch;
   const originalOffsetWidth = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "offsetWidth");
 
   beforeEach(() => {
@@ -165,6 +166,7 @@ describe("ThemeSelector", () => {
 
   afterEach(() => {
     vi.useRealTimers();
+    globalThis.fetch = originalFetch;
     if (originalOffsetWidth !== undefined) {
       Object.defineProperty(HTMLElement.prototype, "offsetWidth", originalOffsetWidth);
     } else {

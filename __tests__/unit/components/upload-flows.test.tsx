@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { FileDropzone } from "@/components/FileDropzone";
 import { UploadStep } from "@/components/wizard/UploadStep";
 import type { ResumeContent } from "@/lib/types/database";
@@ -101,6 +101,8 @@ function dropFile(file: File) {
 }
 
 describe("upload flow components", () => {
+  const originalFetch = globalThis.fetch;
+
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useRealTimers();
@@ -108,6 +110,10 @@ describe("upload flow components", () => {
     mocks.sessionState.current = { data: null, isPending: false };
     mocks.waitResult = { status: "completed", error: undefined };
     mocks.getReferral.mockReturnValue(null);
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
   });
 
   it("rejects invalid files in the public dropzone before hitting upload APIs", () => {
