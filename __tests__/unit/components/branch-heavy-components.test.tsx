@@ -148,6 +148,22 @@ const resumeContent: ResumeContent = {
   certifications: [],
 };
 
+const originalFetch = global.fetch;
+const originalWindowOpen = window.open;
+const originalNavigatorDescriptors = {
+  canShare: Object.getOwnPropertyDescriptor(navigator, "canShare"),
+  share: Object.getOwnPropertyDescriptor(navigator, "share"),
+};
+
+function restoreNavigatorProperty(property: "canShare" | "share") {
+  const descriptor = originalNavigatorDescriptors[property];
+  if (descriptor) {
+    Object.defineProperty(navigator, property, descriptor);
+    return;
+  }
+  Reflect.deleteProperty(navigator, property);
+}
+
 describe("branch-heavy component interactions", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
@@ -182,13 +198,17 @@ describe("branch-heavy component interactions", () => {
   afterEach(() => {
     vi.useRealTimers();
     vi.restoreAllMocks();
+    global.fetch = originalFetch;
+    window.open = originalWindowOpen;
+    restoreNavigatorProperty("canShare");
+    restoreNavigatorProperty("share");
   });
 
   describe("HandleForm", () => {
     it("copies the public URL and resets the copied state", async () => {
       render(<HandleForm currentHandle="avery" />);
 
-      fireEvent.click(screen.getAllByRole("button")[0]);
+      fireEvent.click(screen.getByRole("button", { name: "Copy public URL" }));
 
       await waitFor(() =>
         expect(mocks.copyToClipboard).toHaveBeenCalledWith("https://clickfolio.me/@avery"),
@@ -201,7 +221,7 @@ describe("branch-heavy component interactions", () => {
 
       render(<HandleForm currentHandle="avery" variant="compact" />);
 
-      fireEvent.click(screen.getAllByRole("button")[0]);
+      fireEvent.click(screen.getByRole("button", { name: "Copy public URL" }));
       await waitFor(() => expect(mocks.toast.error).toHaveBeenCalledWith("Failed to copy URL"));
 
       fireEvent.submit(screen.getByLabelText("Change Handle").closest("form") as HTMLFormElement);
@@ -855,7 +875,7 @@ describe("branch-heavy component interactions", () => {
         "noopener,noreferrer",
       );
 
-      await user.click(screen.getAllByRole("button", { name: "" }).at(-1) as HTMLButtonElement);
+      await user.click(screen.getByRole("button", { name: "Copy referral link" }));
       expect(mocks.copyToClipboard).toHaveBeenCalledWith("http://localhost:3000/?ref=avery");
 
       await user.click(screen.getByRole("link", { name: /view my resume/i }));
@@ -881,7 +901,7 @@ describe("branch-heavy component interactions", () => {
       expect(mocks.copyToClipboard).toHaveBeenCalledWith("https://example.com/resume");
       expect(mocks.toast.error).toHaveBeenCalledWith("Failed to copy link");
 
-      await user.click(screen.getAllByRole("button", { name: "" }).at(-1) as HTMLButtonElement);
+      await user.click(screen.getByRole("button", { name: "Copy referral link" }));
       expect(mocks.toast.error).toHaveBeenCalledWith("Failed to copy link");
     });
   });

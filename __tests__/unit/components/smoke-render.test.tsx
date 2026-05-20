@@ -380,7 +380,10 @@ describe("component smoke rendering", () => {
       if (url.includes("/api/wizard/complete")) {
         return new Response(JSON.stringify({ success: true }), { status: 200 });
       }
-      return new Response(JSON.stringify({ ok: true, available: true }), { status: 200 });
+      if (url.includes("/api/handle/check")) {
+        return new Response(JSON.stringify({ ok: true, available: true }), { status: 200 });
+      }
+      throw new Error(`Unhandled fetch mock URL: ${url}`);
     }) as unknown as typeof fetch;
   });
 

@@ -159,11 +159,14 @@ vi.mock("@/lib/rate-limit/ip", () => ({
   checkEmailValidateRateLimit: vi.fn(async () => mocks.state.emailRateLimit),
 }));
 
-vi.mock("@/lib/rate-limit/handle-validation", () => ({
-  RESERVED_HANDLES: new Set(["admin", "api"]),
-  isHandleTaken: vi.fn(async () => mocks.state.handleTaken),
-  isValidHandleFormat: vi.fn((handle: string) => /^[a-z0-9-]{3,30}$/.test(handle)),
-}));
+vi.mock("@/lib/rate-limit/handle-validation", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/rate-limit/handle-validation")>();
+  return {
+    ...actual,
+    RESERVED_HANDLES: new Set(["admin", "api"]),
+    isHandleTaken: vi.fn(async () => mocks.state.handleTaken),
+  };
+});
 
 vi.mock("@/lib/email/disposable-check", () => ({
   isDisposableEmail: vi.fn(async () => mocks.state.disposableResult),

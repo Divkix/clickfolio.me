@@ -4,7 +4,7 @@ import {
   isRetryableError,
   QueueError,
   QueueErrorType,
-} from "../../../../lib/queue/errors";
+} from "@/lib/queue/errors";
 
 describe("queue error handling", () => {
   describe("QueueError.toJSON()", () => {

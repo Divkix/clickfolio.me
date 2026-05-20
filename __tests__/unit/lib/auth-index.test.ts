@@ -1,9 +1,25 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 type EmailSendResult = {
   success: boolean;
   error?: string;
 };
+
+const originalEnv = {
+  BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
+  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
+  NODE_ENV: process.env.NODE_ENV,
+};
+
+function restoreEnv(key: keyof typeof originalEnv) {
+  const mutableEnv = process.env as Record<string, string | undefined>;
+  const value = originalEnv[key];
+  if (value === undefined) {
+    delete mutableEnv[key];
+    return;
+  }
+  mutableEnv[key] = value;
+}
 
 const mocks = vi.hoisted(() => {
   class APIError extends Error {
@@ -84,6 +100,13 @@ describe("server auth configuration", () => {
     const mutableEnv = process.env as Record<string, string | undefined>;
     mutableEnv.NODE_ENV = "test";
     delete mutableEnv.BETTER_AUTH_SECRET;
+    delete mutableEnv.GOOGLE_CLIENT_ID;
+  });
+
+  afterEach(() => {
+    restoreEnv("BETTER_AUTH_SECRET");
+    restoreEnv("GOOGLE_CLIENT_ID");
+    restoreEnv("NODE_ENV");
   });
 
   it("reads environment values from bindings, process fallback, and throws when missing", async () => {

@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type React from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ForgotPasswordForm } from "@/components/auth/ForgotPasswordForm";
 import { SignInForm } from "@/components/auth/SignInForm";
 import { SignUpForm } from "@/components/auth/SignUpForm";
@@ -13,6 +13,8 @@ const mocks = vi.hoisted(() => ({
   signInEmail: vi.fn(),
   requestPasswordReset: vi.fn(),
 }));
+
+const originalFetch = globalThis.fetch;
 
 vi.mock("next/navigation", () => ({
   useRouter: () => mocks.router,
@@ -87,6 +89,10 @@ describe("auth form flows", () => {
     mocks.signUpEmail.mockResolvedValue({ data: {}, error: null });
     mocks.signInEmail.mockResolvedValue({ data: {}, error: null });
     mocks.requestPasswordReset.mockResolvedValue({ data: {}, error: null });
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
   });
 
   it("blocks sign up when disposable email validation returns a reason", async () => {

@@ -258,7 +258,7 @@ function siteDataRow(overrides: Record<string, unknown> = {}) {
 
 function installDbDefaults() {
   mocks.db.query.user.findFirst.mockImplementation(
-    async (args: { with?: Record<string, unknown>; columns?: Record<string, boolean> }) => {
+    async (args: { with?: Record<string, unknown>; columns?: Record<string, boolean> } = {}) => {
       if (args.with && "resumes" in args.with) {
         if (mocks.state.dashboardMode === "empty") {
           return {
