@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event";
 import { Users } from "lucide-react";
 import type React from "react";
-import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import AdminAnalyticsPage from "@/app/(admin)/admin/analytics/page";
 import AdminReferralsPage from "@/app/(admin)/admin/referrals/page";
 import AdminResumesPage from "@/app/(admin)/admin/resumes/page";
@@ -309,6 +309,8 @@ afterAll(() => {
 });
 
 describe("component smoke rendering", () => {
+  const originalFetch = globalThis.fetch;
+
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.sessionState.current = { data: null, isPending: false };
@@ -444,6 +446,10 @@ describe("component smoke rendering", () => {
       }
       throw new Error(`Unhandled fetch mock URL: ${url}`);
     }) as unknown as typeof fetch;
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
   });
 
   it("renders standalone brand, share, admin, and dashboard components", async () => {

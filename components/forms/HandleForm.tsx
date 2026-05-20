@@ -105,7 +105,7 @@ export function HandleForm({ currentHandle, variant = "default" }: HandleFormPro
               type="button"
               variant="outline"
               size="icon"
-              aria-label="Copy public URL"
+              aria-label={copied ? "Public URL copied" : "Copy public URL"}
               onClick={handleCopy}
               className="shrink-0 h-[38px] w-[38px]"
             >
@@ -177,7 +177,7 @@ export function HandleForm({ currentHandle, variant = "default" }: HandleFormPro
               type="button"
               variant="outline"
               size="icon"
-              aria-label="Copy public URL"
+              aria-label={copied ? "Public URL copied" : "Copy public URL"}
               onClick={handleCopy}
               className="shrink-0"
             >

@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SharePopover, type SharePopoverVariant } from "@/components/SharePopover";
 import { DeleteAccountCard } from "@/components/settings/DeleteAccountCard";
 
@@ -32,6 +32,11 @@ vi.mock("sonner", () => ({
   Toaster: () => null,
 }));
 
+const origClipboard = navigator.clipboard;
+const origShare = navigator.share;
+const origCanShare = navigator.canShare;
+const origWindowOpen = window.open;
+
 function installShareMocks() {
   const writeText = vi.fn(async () => undefined);
   const share = vi.fn(async () => undefined);
@@ -55,6 +60,29 @@ describe("SharePopover", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     installShareMocks();
+  });
+
+  afterEach(() => {
+    if (origClipboard !== undefined) {
+      Object.defineProperty(navigator, "clipboard", { value: origClipboard, configurable: true });
+    } else {
+      delete (navigator as { clipboard?: typeof navigator.clipboard }).clipboard;
+    }
+    if (origShare !== undefined) {
+      Object.defineProperty(navigator, "share", { value: origShare, configurable: true });
+    } else {
+      delete (navigator as { share?: typeof navigator.share }).share;
+    }
+    if (origCanShare !== undefined) {
+      Object.defineProperty(navigator, "canShare", { value: origCanShare, configurable: true });
+    } else {
+      delete (navigator as { canShare?: typeof navigator.canShare }).canShare;
+    }
+    if (origWindowOpen !== undefined) {
+      window.open = origWindowOpen;
+    } else {
+      delete (window as { open?: typeof window.open }).open;
+    }
   });
 
   it("supports native sharing, social share URLs, copy, Escape, and outside close", async () => {

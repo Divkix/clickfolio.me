@@ -36,7 +36,14 @@ const mocks = vi.hoisted(() => {
     cookieStore,
   };
 
-  const nextSelectResult = () => state.selectResults.shift() ?? [];
+  const nextSelectResult = () => {
+    if (state.selectResults.length === 0) {
+      throw new Error(
+        "No select result queued — push to mocks.state.selectResults before querying",
+      );
+    }
+    return state.selectResults.shift() as unknown[];
+  };
   const createChain = (): Record<string, unknown> => {
     const chain: Record<string, unknown> = {
       from: vi.fn(() => chain),
@@ -53,7 +60,15 @@ const mocks = vi.hoisted(() => {
       onConflictDoUpdate: vi.fn(() => chain),
       returning: vi.fn(() => chain),
       // biome-ignore lint/suspicious/noThenProperty: Drizzle query mocks must be awaitable.
-      then: vi.fn((resolve: (value: unknown[]) => unknown) => resolve(nextSelectResult())),
+      then: vi.fn(
+        (resolve: (value: unknown[]) => unknown, reject?: (reason: unknown) => unknown) => {
+          try {
+            return Promise.resolve(resolve(nextSelectResult()));
+          } catch (error) {
+            return reject ? Promise.reject(reject(error)) : Promise.reject(error);
+          }
+        },
+      ),
     };
     return chain;
   };
@@ -246,6 +261,18 @@ function jsonRequest(path: string, body: unknown, init: RequestInit = {}) {
 }
 
 function authed(overrides: Record<string, unknown> = {}) {
+  if ("error" in overrides && overrides.error != null) {
+    mocks.state.authResult = {
+      user: null,
+      dbUser: null,
+      db: null,
+      env: null,
+      captureBookmark: null,
+      error: overrides.error,
+    };
+    return;
+  }
+
   mocks.state.authResult = {
     user: { id: "user_1", email: "avery@example.com" },
     dbUser: { id: "user_1", handle: "avery" },
@@ -302,6 +329,7 @@ describe("API route coverage", () => {
     } else {
       process.env.CRON_SECRET = originalCronSecret;
     }
+    expect(mocks.state.selectResults).toEqual([]);
   });
 
   it("exercises handle availability validation and ownership branches", async () => {

@@ -64,11 +64,17 @@ const resumeContent: ResumeContent = {
 };
 
 describe("PrivacySettingsForm", () => {
+  const originalFetch = globalThis.fetch;
+
   beforeEach(() => {
     vi.clearAllMocks();
     globalThis.fetch = vi.fn(async () =>
       Response.json({ success: true }),
     ) as unknown as typeof fetch;
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
   });
 
   it("saves each privacy toggle and updates visible status labels", async () => {
