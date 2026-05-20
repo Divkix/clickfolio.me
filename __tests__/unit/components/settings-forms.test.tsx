@@ -159,8 +159,10 @@ describe("ThemeSelector", () => {
 
   afterEach(() => {
     vi.useRealTimers();
-    if (originalOffsetWidth) {
+    if (originalOffsetWidth !== undefined) {
       Object.defineProperty(HTMLElement.prototype, "offsetWidth", originalOffsetWidth);
+    } else {
+      delete (HTMLElement.prototype as { offsetWidth?: number }).offsetWidth;
     }
   });
 

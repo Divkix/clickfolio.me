@@ -266,16 +266,42 @@ function installBrowserMocks() {
 }
 
 afterAll(() => {
-  if (_origResizeObserver) globalThis.ResizeObserver = _origResizeObserver;
-  if (_origIntersectionObserver) globalThis.IntersectionObserver = _origIntersectionObserver;
-  if (_origMatchMedia)
+  if (_origResizeObserver !== undefined) {
+    globalThis.ResizeObserver = _origResizeObserver;
+  } else {
+    delete (globalThis as { ResizeObserver?: typeof ResizeObserver }).ResizeObserver;
+  }
+  if (_origIntersectionObserver !== undefined) {
+    globalThis.IntersectionObserver = _origIntersectionObserver;
+  } else {
+    delete (globalThis as { IntersectionObserver?: typeof IntersectionObserver })
+      .IntersectionObserver;
+  }
+  if (_origMatchMedia !== undefined) {
     Object.defineProperty(window, "matchMedia", { value: _origMatchMedia, configurable: true });
-  if (_origClipboard)
+  } else {
+    delete (window as { matchMedia?: typeof window.matchMedia }).matchMedia;
+  }
+  if (_origClipboard !== undefined) {
     Object.defineProperty(navigator, "clipboard", { value: _origClipboard, configurable: true });
-  if (_origShare)
+  } else {
+    delete (navigator as { clipboard?: typeof navigator.clipboard }).clipboard;
+  }
+  if (_origShare !== undefined) {
     Object.defineProperty(navigator, "share", { value: _origShare, configurable: true });
-  if (_origWindowOpen) window.open = _origWindowOpen;
-  if (_origWindowConfirm) window.confirm = _origWindowConfirm;
+  } else {
+    delete (navigator as { share?: typeof navigator.share }).share;
+  }
+  if (_origWindowOpen !== undefined) {
+    window.open = _origWindowOpen;
+  } else {
+    delete (window as { open?: typeof window.open }).open;
+  }
+  if (_origWindowConfirm !== undefined) {
+    window.confirm = _origWindowConfirm;
+  } else {
+    delete (window as { confirm?: typeof window.confirm }).confirm;
+  }
 });
 
 describe("component smoke rendering", () => {
