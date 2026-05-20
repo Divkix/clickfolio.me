@@ -93,7 +93,7 @@ describe("auth form flows", () => {
 
   afterEach(() => {
     if (originalFetch === undefined) {
-      delete (globalThis as any).fetch;
+      delete (globalThis as { fetch?: typeof fetch }).fetch;
     } else {
       globalThis.fetch = originalFetch;
     }

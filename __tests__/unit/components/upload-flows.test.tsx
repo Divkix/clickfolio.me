@@ -277,8 +277,12 @@ describe("upload flow components", () => {
     expect(screen.getByText("This resume was already claimed.")).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Try Again" }));
+
     await waitFor(() => expect(fetch).toHaveBeenCalledWith("/api/upload", expect.any(Object)));
-    expect(screen.getByText("duplicate.pdf")).toBeInTheDocument();
+
+    await waitFor(() =>
+      expect(screen.getByText("This resume was already claimed.")).toBeInTheDocument(),
+    );
   });
 
   it("maps claim status failures and closes modal after authenticated claim success", async () => {

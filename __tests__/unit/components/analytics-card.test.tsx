@@ -102,12 +102,12 @@ describe("AnalyticsCard", () => {
 
   afterEach(() => {
     if (originalResizeObserver === undefined) {
-      delete (globalThis as any).ResizeObserver;
+      delete (globalThis as { ResizeObserver?: typeof ResizeObserver }).ResizeObserver;
     } else {
       globalThis.ResizeObserver = originalResizeObserver;
     }
     if (originalFetch === undefined) {
-      delete (globalThis as any).fetch;
+      delete (globalThis as { fetch?: typeof fetch }).fetch;
     } else {
       globalThis.fetch = originalFetch;
     }
