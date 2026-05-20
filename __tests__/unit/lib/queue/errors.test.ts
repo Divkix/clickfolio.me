@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { classifyQueueError, QueueError, QueueErrorType } from "../../../../lib/queue/errors";
+import {
+  classifyQueueError,
+  isRetryableError,
+  QueueError,
+  QueueErrorType,
+} from "@/lib/queue/errors";
 
 describe("queue error handling", () => {
   describe("QueueError.toJSON()", () => {
@@ -56,6 +61,92 @@ describe("queue error handling", () => {
 
       expect(error.type).toBe(QueueErrorType.DB_CONNECTION_ERROR);
       expect(error.isRetryable()).toBe(true);
+    });
+
+    it.each([
+      ["database unavailable", QueueErrorType.DB_CONNECTION_ERROR],
+      ["db timeout while opening transaction", QueueErrorType.DB_CONNECTION_ERROR],
+      ["deadline exceeded in worker timeout", QueueErrorType.SERVICE_BINDING_TIMEOUT],
+      ["request took too long and exceeded time limit", QueueErrorType.SERVICE_BINDING_TIMEOUT],
+      ["R2 throttle: too many requests 429", QueueErrorType.R2_THROTTLE],
+      ["R2 service temporarily unavailable", QueueErrorType.R2_THROTTLE],
+      ["not a pdf and cannot parse pdf", QueueErrorType.INVALID_PDF],
+      ["encrypted pdf password protected", QueueErrorType.INVALID_PDF],
+      ["extracted resume text is empty", QueueErrorType.INVALID_PDF],
+      ["NoObjectGeneratedError from provider", QueueErrorType.AI_PROVIDER_ERROR],
+      ["API request failed with provider error", QueueErrorType.AI_PROVIDER_ERROR],
+      ["model unavailable due to insufficient credits", QueueErrorType.AI_PROVIDER_ERROR],
+      ["HTTP 502 bad gateway service unavailable", QueueErrorType.AI_PROVIDER_ERROR],
+      ["invalid json unexpected token", QueueErrorType.MALFORMED_RESPONSE],
+      ["invalid json response from ai", QueueErrorType.MALFORMED_RESPONSE],
+      ["ai parsing failed", QueueErrorType.MALFORMED_RESPONSE],
+      ["worker not available service not found", QueueErrorType.SERVICE_BINDING_NOT_FOUND],
+      ["pdf worker not available", QueueErrorType.SERVICE_BINDING_NOT_FOUND],
+      ["R2 binding not available", QueueErrorType.SERVICE_BINDING_NOT_FOUND],
+      ["object not found 404", QueueErrorType.FILE_NOT_FOUND],
+      ["failed to fetch pdf from r2", QueueErrorType.FILE_NOT_FOUND],
+      ["r2 object does not exist no such key", QueueErrorType.FILE_NOT_FOUND],
+      ["schema validation zod error", QueueErrorType.PARSE_VALIDATION_ERROR],
+      ["required field missing type mismatch", QueueErrorType.PARSE_VALIDATION_ERROR],
+    ])("classifies %s", (message, expectedType) => {
+      const error = classifyQueueError(new Error(message));
+
+      expect(error.type).toBe(expectedType);
+      expect(error.isRetryable()).toBe(
+        [
+          QueueErrorType.DB_CONNECTION_ERROR,
+          QueueErrorType.SERVICE_BINDING_TIMEOUT,
+          QueueErrorType.R2_THROTTLE,
+          QueueErrorType.AI_PROVIDER_ERROR,
+        ].includes(expectedType),
+      );
+    });
+
+    it("extracts messages from strings, causes, response-like objects, and unknown values", () => {
+      expect(classifyQueueError("api request failed").type).toBe(QueueErrorType.AI_PROVIDER_ERROR);
+      expect(classifyQueueError(new Error("outer", { cause: new Error("invalid pdf") })).type).toBe(
+        QueueErrorType.INVALID_PDF,
+      );
+      expect(classifyQueueError({ message: "binding not available" }).type).toBe(
+        QueueErrorType.SERVICE_BINDING_NOT_FOUND,
+      );
+      expect(classifyQueueError({ error: "validation error" }).type).toBe(
+        QueueErrorType.PARSE_VALIDATION_ERROR,
+      );
+      expect(classifyQueueError({ status: 429 }).type).toBe(QueueErrorType.R2_THROTTLE);
+      expect(classifyQueueError(null).type).toBe(QueueErrorType.UNKNOWN);
+    });
+
+    it("serializes non-Error original errors and checks retryability for unknown values", () => {
+      const original = { error: "validation error" };
+      const queueError = new QueueError(
+        QueueErrorType.PARSE_VALIDATION_ERROR,
+        "schema validation",
+        original,
+      );
+
+      expect(queueError.toJSON().originalError).toBe(original);
+      expect(isRetryableError("timeout")).toBe(true);
+      expect(isRetryableError({ error: "invalid pdf" })).toBe(false);
+    });
+
+    it("handles missing V8 stack helpers and malformed response-like objects", () => {
+      const errorConstructor = Error as unknown as {
+        captureStackTrace?: typeof Error.captureStackTrace | undefined;
+      };
+      const originalCaptureStackTrace = errorConstructor.captureStackTrace;
+      errorConstructor.captureStackTrace = undefined;
+
+      try {
+        const queueError = new QueueError(QueueErrorType.UNKNOWN, "no stack helper");
+        expect(queueError.name).toBe("QueueError");
+      } finally {
+        errorConstructor.captureStackTrace = originalCaptureStackTrace;
+      }
+
+      expect(classifyQueueError({ message: 123, error: 456, status: "429" }).type).toBe(
+        QueueErrorType.UNKNOWN,
+      );
     });
 
     it("should allow proper JSON serialization for DLQ/retry consumers", () => {

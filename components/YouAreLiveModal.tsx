@@ -185,6 +185,7 @@ export function YouAreLiveModal({ open, onOpenChange, handle, url }: YouAreLiveM
                 <Button
                   variant="secondary"
                   size="sm"
+                  aria-label={referralCopied ? "Referral link copied" : "Copy referral link"}
                   onClick={handleCopyReferralLink}
                   className="shrink-0"
                 >

@@ -26,12 +26,11 @@ export default defineConfig({
         "lib/stubs/**",
         "lib/db/migrations/**",
       ],
-      // Coverage thresholds - set to current baseline to prevent regressions
       thresholds: {
-        statements: 30,
-        branches: 30,
-        functions: 25,
-        lines: 30,
+        statements: 80,
+        branches: 80,
+        functions: 80,
+        lines: 80,
       },
     },
   },
