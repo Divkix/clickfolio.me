@@ -43,8 +43,6 @@ export const handleUpdateSchema = z.object({
   handle: handleSchema,
 });
 
-// Type exports for TypeScript inference
-export type PrivacySettings = z.infer<typeof privacySettingsSchema>;
 export type HandleUpdate = z.infer<typeof handleUpdateSchema>;
 
 export const ROLE_OPTIONS = [

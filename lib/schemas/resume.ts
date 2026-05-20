@@ -403,13 +403,7 @@ export const resumeContentSchema = createResumeContentSchema(contactSchemaLenien
 export const resumeContentSchemaStrict = createResumeContentSchema(contactSchemaStrict);
 
 /**
- * Alias for AI parsing pipeline — uses the lenient variant.
- */
-export const resumeSchemaLenient = resumeContentSchema;
-
-/**
  * Type inference for TypeScript
  * Both schemas have the same output type after transformation
  */
 export type ResumeContentFormData = z.infer<typeof resumeContentSchema>;
-export type ResumeData = z.infer<typeof resumeContentSchema>;

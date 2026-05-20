@@ -1,4 +1,4 @@
-import { type ResumeContentFormData, resumeSchemaLenient } from "@/lib/schemas/resume";
+import { type ResumeContentFormData, resumeContentSchema } from "@/lib/schemas/resume";
 import { sanitizeEmail } from "@/lib/utils/sanitization";
 import { parseWithAi } from "./ai-parser";
 import { extractPdfText } from "./pdf-extract";
@@ -74,7 +74,7 @@ function validateParseResult(
     if (!Array.isArray(withDefaults[key])) withDefaults[key] = [];
   }
 
-  const result = resumeSchemaLenient.safeParse(withDefaults);
+  const result = resumeContentSchema.safeParse(withDefaults);
   if (result.success) {
     return { success: true, data: result.data as Record<string, unknown> };
   }

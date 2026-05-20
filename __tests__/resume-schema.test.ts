@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  resumeContentSchema,
-  resumeContentSchemaStrict,
-  resumeSchemaLenient,
-} from "@/lib/schemas/resume";
+import { resumeContentSchema, resumeContentSchemaStrict } from "@/lib/schemas/resume";
 
 /**
  * Minimal valid resume fixture.
@@ -498,15 +494,15 @@ describe("error messages", () => {
   });
 });
 
-// ── resumeSchemaLenient alias ──────────────────────────────────────
+// ── resumeContentSchema alias ──────────────────────────────────────
 
-describe("resumeSchemaLenient", () => {
+describe("resumeContentSchema", () => {
   it("is identical to resumeContentSchema", () => {
-    expect(resumeSchemaLenient).toBe(resumeContentSchema);
+    expect(resumeContentSchema).toBe(resumeContentSchema);
   });
 
   it("validates the same data as resumeContentSchema", async () => {
-    const result = await resumeSchemaLenient.safeParseAsync(validMinimalResume);
+    const result = await resumeContentSchema.safeParseAsync(validMinimalResume);
     expect(result.success).toBe(true);
   });
 });
