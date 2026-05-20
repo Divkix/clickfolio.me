@@ -185,7 +185,7 @@ vi.mock("@/lib/db/session", () => ({
   }),
 }));
 
-vi.mock("@/lib/utils/ip-rate-limit", () => ({
+vi.mock("@/lib/rate-limit/ip", () => ({
   checkIPRateLimit: vi.fn().mockResolvedValue({
     allowed: true,
     remaining: { hourly: 10, daily: 50 },
@@ -193,7 +193,7 @@ vi.mock("@/lib/utils/ip-rate-limit", () => ({
   getClientIP: vi.fn().mockReturnValue("127.0.0.1"),
 }));
 
-vi.mock("@/lib/utils/rate-limit", () => ({
+vi.mock("@/lib/rate-limit/user", () => ({
   enforceRateLimit: vi.fn().mockResolvedValue(null),
 }));
 
@@ -349,7 +349,7 @@ describe("POST /api/upload", () => {
   });
 
   it.skip("3. Upload rate limit exceeded → 429 too many requests", async () => {
-    const { checkIPRateLimit } = await import("@/lib/utils/ip-rate-limit");
+    const { checkIPRateLimit } = await import("@/lib/rate-limit/ip");
     vi.mocked(checkIPRateLimit).mockResolvedValueOnce({
       allowed: false,
       remaining: { hourly: 0, daily: 50 },
@@ -688,7 +688,7 @@ describe("POST /api/resume/claim", () => {
   });
 
   it("20. Claim with rate limit exceeded → 429 error", async () => {
-    const { enforceRateLimit } = await import("@/lib/utils/rate-limit");
+    const { enforceRateLimit } = await import("@/lib/rate-limit/user");
     vi.mocked(enforceRateLimit).mockResolvedValueOnce(
       new Response(JSON.stringify({ error: "Rate limit exceeded" }), { status: 429 }),
     );

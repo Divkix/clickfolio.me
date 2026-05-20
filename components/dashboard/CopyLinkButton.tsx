@@ -3,8 +3,8 @@
 import { Check, Link2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
 import { copyToClipboard } from "@/lib/utils/clipboard";
+import { cn } from "@/lib/utils/cn";
 
 interface CopyLinkButtonProps {
   handle: string;

@@ -1,8 +1,8 @@
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { generateText, NoObjectGeneratedError, Output } from "ai";
+import { resumeContentSchema } from "@/lib/schemas/resume";
 import { parseJsonWithRepair, transformToSchema } from "./ai-fallback";
 import { normalizeAiKeys } from "./ai-normalize";
-import { resumeSchema } from "./schema";
 
 const DEFAULT_AI_MODEL = "openai/gpt-oss-120b:nitro";
 
@@ -351,7 +351,7 @@ export async function parseWithAi(
       try {
         const { output } = await generateText({
           model: provider(modelId),
-          output: Output.object({ schema: resumeSchema, name: "resume" }),
+          output: Output.object({ schema: resumeContentSchema, name: "resume" }),
           system: STRUCTURED_SYSTEM_PROMPT,
           prompt,
           temperature: 0,

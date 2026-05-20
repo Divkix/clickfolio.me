@@ -5,7 +5,7 @@ import { Sparkles, X } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useSession } from "@/lib/auth/client";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils/cn";
 
 const DISMISS_KEY = "cta_dismissed";
 const DISMISS_DURATION_MS = 7 * 24 * 60 * 60 * 1000; // 7 days

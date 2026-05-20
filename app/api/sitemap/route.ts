@@ -1,4 +1,4 @@
-import { buildSitemapXml, generateSitemapEntries } from "@/lib/sitemap";
+import { buildSitemapXml, generateSitemapEntries } from "@/lib/seo/sitemap";
 
 export async function GET(): Promise<Response> {
   const entries = await generateSitemapEntries(0);

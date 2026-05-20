@@ -2,8 +2,8 @@ import { env } from "cloudflare:workers";
 import { and, eq, gte, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { handleChanges, resumes } from "@/lib/db/schema";
-import { isLocalEnvironment } from "./environment";
-import { SECURITY_HEADERS } from "./security-headers";
+import { isLocalEnvironment } from "@/lib/utils/environment";
+import { SECURITY_HEADERS } from "@/lib/utils/security-headers";
 
 const RATE_LIMITS = {
   handle_change: { limit: 3, windowHours: 24 },

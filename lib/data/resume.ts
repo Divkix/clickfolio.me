@@ -2,9 +2,11 @@ import { env } from "cloudflare:workers";
 import { and, eq, isNotNull, ne, or, sql } from "drizzle-orm";
 
 import { cache } from "react";
+import { siteConfig } from "@/lib/config/site";
 import { getDb } from "@/lib/db";
 import { siteData, user } from "@/lib/db/schema";
-import type { PrivacySettings } from "@/lib/schemas/profile";
+import type { PrivacySettings } from "@/lib/db/schema/auth";
+import { generateBreadcrumbJsonLd, generateResumeJsonLd, serializeJsonLd } from "@/lib/seo/json-ld";
 import {
   DEFAULT_THEME,
   isThemeUnlocked,
@@ -41,6 +43,10 @@ interface ResumeMetadata {
   skills?: string[] | null;
   created_at: string;
   updated_at: string;
+  /** Serialized JSON-LD script for the resume/Person schema, or null if hidden */
+  jsonLdResumeScript: string | null;
+  /** Serialized JSON-LD script for the breadcrumb schema, or null if hidden */
+  jsonLdBreadcrumbScript: string | null;
 }
 
 /**
@@ -177,6 +183,7 @@ async function fetchResumeMetadataRaw(handle: string): Promise<ResumeMetadata | 
           previewHeadline: true,
           previewLocation: true,
           previewSkills: true,
+          content: true,
           createdAt: true,
           updatedAt: true,
         },
@@ -200,6 +207,28 @@ async function fetchResumeMetadataRaw(handle: string): Promise<ResumeMetadata | 
   const hideFromSearch = parsedSettings.hide_from_search;
   const parsedSkills = parsePreviewSkills(userData.siteData.previewSkills);
 
+  // Generate JSON-LD structured data for rich search results
+  let jsonLdResumeScript: string | null = null;
+  let jsonLdBreadcrumbScript: string | null = null;
+
+  if (!hideFromSearch && userData.siteData.content) {
+    try {
+      const content = JSON.parse(userData.siteData.content) as ResumeContent;
+      const profileUrl = `${siteConfig.url}/@${handle}`;
+
+      const jsonLd = generateResumeJsonLd(content, {
+        profileUrl,
+        avatarUrl: userData.image,
+        dateCreated: userData.siteData.createdAt,
+        dateModified: userData.siteData.updatedAt,
+      });
+      jsonLdResumeScript = serializeJsonLd(jsonLd);
+      jsonLdBreadcrumbScript = serializeJsonLd(generateBreadcrumbJsonLd(handle, fullName));
+    } catch (error) {
+      console.error("Failed to generate JSON-LD for handle:", handle, error);
+    }
+  }
+
   return {
     full_name: fullName,
     headline: userData.siteData.previewHeadline?.trim() || userData.headline || null,
@@ -210,6 +239,8 @@ async function fetchResumeMetadataRaw(handle: string): Promise<ResumeMetadata | 
     skills: parsedSkills.length > 0 ? parsedSkills : null,
     created_at: userData.siteData.createdAt,
     updated_at: userData.siteData.updatedAt,
+    jsonLdResumeScript,
+    jsonLdBreadcrumbScript,
   };
 }
 

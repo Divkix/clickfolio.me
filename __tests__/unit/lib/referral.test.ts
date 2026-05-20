@@ -25,7 +25,7 @@ vi.mock("@/lib/utils/analytics", () => ({
   generateVisitorHashWithDate: vi.fn().mockResolvedValue("mock-hash"),
 }));
 
-vi.mock("@/lib/utils/ip-rate-limit", () => ({
+vi.mock("@/lib/rate-limit/ip", () => ({
   getClientIP: vi.fn().mockReturnValue("192.168.1.1"),
 }));
 

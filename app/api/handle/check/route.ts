@@ -4,8 +4,8 @@ import { headers } from "next/headers";
 import { getAuth } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import { user } from "@/lib/db/schema";
-import { RESERVED_HANDLES } from "@/lib/utils/handle-validation";
-import { checkHandleRateLimit, getClientIP } from "@/lib/utils/ip-rate-limit";
+import { RESERVED_HANDLES } from "@/lib/rate-limit/handle-validation";
+import { checkHandleRateLimit, getClientIP } from "@/lib/rate-limit/ip";
 import {
   createErrorResponse,
   createSuccessResponse,

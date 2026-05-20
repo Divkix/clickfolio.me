@@ -12,7 +12,7 @@ import {
 } from "@/lib/templates/theme-ids";
 import { DYNAMIC_TEMPLATES } from "@/lib/templates/theme-registry.client";
 import type { ResumeContent } from "@/lib/types/database";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils/cn";
 
 interface ThemeSelectorProps {
   initialThemeId: string;

@@ -2,7 +2,7 @@ import {
   buildSitemapIndexXml,
   getSitemapShardCount,
   getTotalIndexableUserCount,
-} from "@/lib/sitemap";
+} from "@/lib/seo/sitemap";
 
 export async function GET(): Promise<Response> {
   const count = await getTotalIndexableUserCount();

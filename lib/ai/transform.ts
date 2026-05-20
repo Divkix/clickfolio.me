@@ -1,5 +1,5 @@
+import type { ResumeContentFormData } from "@/lib/schemas/resume";
 import { sanitizeEmail } from "@/lib/utils/sanitization";
-import type { ResumeSchema } from "./schema";
 
 // Pre-compiled regex for URL validation (avoid per-call compilation overhead)
 const REPEATING_SEGMENT_PATTERN = /\/([^/]+)\/\1(?:\/|$)/;
@@ -256,7 +256,7 @@ export function transformAiResponse(raw: unknown): Record<string, unknown> {
 /**
  * Final cleanup transformations - trim strings, extract LinkedIn from website, remove empty fields
  */
-export function transformAiOutput(raw: ResumeSchema): ResumeSchema {
+export function transformAiOutput(raw: ResumeContentFormData): ResumeContentFormData {
   const result = structuredClone(raw);
 
   const trimStrings = (obj: Record<string, unknown>): void => {

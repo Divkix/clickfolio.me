@@ -61,7 +61,7 @@ import {
   getTotalIndexableUserCount,
   STATIC_SITEMAP_ENTRY_COUNT,
   URLS_PER_SITEMAP,
-} from "@/lib/sitemap";
+} from "@/lib/seo/sitemap";
 
 // ---------------------------------------------------------------------------
 // Tests: generateSitemapEntries

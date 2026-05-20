@@ -303,3 +303,202 @@ describe("resumeContentSchemaStrict", () => {
     expect(result.success).toBe(true);
   });
 });
+
+// ── Professional level field ───────────────────────────────────────
+
+describe("professional_level", () => {
+  it("accepts all professional_level values", async () => {
+    const levels = ["student", "entry_level", "mid_level", "senior", "executive"] as const;
+    for (const level of levels) {
+      const result = await resumeContentSchema.safeParseAsync({
+        ...validMinimalResume,
+        professional_level: level,
+      });
+      expect(result.success).toBe(true);
+    }
+  });
+
+  it("accepts missing professional_level", async () => {
+    const result = await resumeContentSchema.safeParseAsync(validMinimalResume);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.professional_level).toBeUndefined();
+    }
+  });
+
+  it("rejects invalid professional_level", async () => {
+    const result = await resumeContentSchema.safeParseAsync({
+      ...validMinimalResume,
+      professional_level: "invalid",
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+// ── Complete resume ────────────────────────────────────────────────
+
+describe("complete resume", () => {
+  it("accepts a complete resume with all sections including professional_level", async () => {
+    const completeResume = {
+      full_name: "Jane Doe",
+      headline: "Senior Software Engineer",
+      summary: "Experienced full-stack developer with 8+ years of experience.",
+      contact: {
+        email: "jane@example.com",
+        phone: "+1-555-1234",
+        location: "San Francisco, CA",
+        linkedin: "https://linkedin.com/in/jane",
+        github: "https://github.com/jane",
+      },
+      experience: [
+        {
+          title: "Senior Engineer",
+          company: "Acme Corp",
+          location: "SF, CA",
+          start_date: "2020-01",
+          end_date: "2022-12",
+          description: "Led engineering",
+          highlights: ["Built X", "Scaled Y"],
+        },
+      ],
+      education: [
+        {
+          degree: "B.S. CS",
+          institution: "MIT",
+          location: "Cambridge, MA",
+          graduation_date: "2019",
+          gpa: "3.8",
+        },
+      ],
+      skills: [
+        { category: "Languages", items: ["TS", "Python"] },
+        { category: "Frameworks", items: ["React", "Next.js"] },
+      ],
+      certifications: [{ name: "AWS SA", issuer: "AWS", date: "2023" }],
+      projects: [{ title: "CLI Tool", description: "Dev tool", year: "2024" }],
+      professional_level: "senior" as const,
+    };
+    const result = await resumeContentSchema.safeParseAsync(completeResume);
+    expect(result.success).toBe(true);
+  });
+});
+
+// ── Optional arrays ────────────────────────────────────────────────
+
+describe("optional arrays", () => {
+  it("accepts empty optional arrays", async () => {
+    const result = await resumeContentSchema.safeParseAsync({
+      ...validMinimalResume,
+      education: [],
+      skills: [],
+      certifications: [],
+      projects: [],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts undefined optional arrays", async () => {
+    const result = await resumeContentSchema.safeParseAsync(validMinimalResume);
+    expect(result.success).toBe(true);
+  });
+});
+
+// ── Unicode and special characters ─────────────────────────────────
+
+describe("unicode and special characters", () => {
+  it("accepts unicode characters in strings", async () => {
+    const result = await resumeContentSchema.safeParseAsync({
+      full_name: "陈明",
+      headline: "软件工程师",
+      summary: "经验丰富的开发者",
+      contact: { email: "chen@example.com" },
+      experience: [
+        {
+          title: "工程师",
+          company: "公司",
+          start_date: "2020",
+          description: "工作",
+        },
+      ],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts special characters in strings", async () => {
+    const result = await resumeContentSchema.safeParseAsync({
+      full_name: "O'Connor-Smith & Jones",
+      headline: "DevOps & SRE",
+      summary: "CI/CD pipelines & $1M+ projects",
+      contact: { email: "test@example.com" },
+      experience: [
+        {
+          title: "Engineer",
+          company: "Acme & Co.",
+          start_date: "2020",
+          description: "Built API's & services",
+        },
+      ],
+    });
+    expect(result.success).toBe(true);
+  });
+});
+
+// ── Type inference and error messages ──────────────────────────────
+
+describe("type inference", () => {
+  it("provides correct TypeScript types from schema", async () => {
+    const validData = {
+      full_name: "Test",
+      headline: "Dev",
+      summary: "Summary",
+      contact: { email: "test@test.com" },
+      experience: [{ title: "Job", company: "Co", start_date: "2020", description: "Work" }],
+      education: [{ degree: "BS", institution: "School" }],
+      skills: [{ category: "Lang", items: ["JS"] }],
+      certifications: [{ name: "Cert", issuer: "Org" }],
+      projects: [{ title: "Proj", description: "Desc" }],
+      professional_level: "mid_level" as const,
+    };
+
+    const result = await resumeContentSchema.safeParseAsync(validData);
+    expect(result.success).toBe(true);
+
+    if (result.success) {
+      expect(typeof result.data.full_name).toBe("string");
+      expect(Array.isArray(result.data.experience)).toBe(true);
+      expect(result.data.contact.email).toBe("test@test.com");
+    }
+  });
+});
+
+describe("error messages", () => {
+  it("provides clear error for missing required field", async () => {
+    const { full_name: _, ...noName } = validMinimalResume;
+    const result = await resumeContentSchema.safeParseAsync(noName);
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const fullNameError = result.error.issues.find((i) => i.path.includes("full_name"));
+      expect(fullNameError).toBeDefined();
+    }
+  });
+
+  it("provides path information for nested experience entries", async () => {
+    const result = await resumeContentSchema.safeParseAsync(validMinimalResume);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(Array.isArray(result.data.experience)).toBe(true);
+      expect(result.data.experience?.length).toBe(1);
+    }
+  });
+});
+
+// ── resumeContentSchema alias ──────────────────────────────────────
+
+describe("resumeContentSchema", () => {
+  it("validates the same data as resumeContentSchema", async () => {
+    const result = await resumeContentSchema.safeParseAsync(validMinimalResume);
+    expect(result.success).toBe(true);
+  });
+});

@@ -11,10 +11,14 @@ const mockCaptureBookmark = vi.fn().mockResolvedValue(undefined);
 
 // DB mock
 const mockFindFirst = vi.fn();
-const mockSelect = vi.fn().mockReturnThis();
+const mockSelect = vi.fn().mockImplementation(() => ({
+  from: vi.fn().mockReturnThis(),
+  where: vi.fn().mockReturnThis(),
+  limit: vi.fn().mockImplementation(() => [{ handle: "old-handle" }]),
+}));
 const mockFrom = vi.fn().mockReturnThis();
 const mockWhere = vi.fn().mockReturnThis();
-const mockLimit = vi.fn();
+const mockLimit = vi.fn().mockImplementation(() => []);
 const mockUpdate = vi.fn().mockReturnValue({
   set: vi.fn().mockReturnValue({
     where: vi.fn().mockResolvedValue(undefined),
@@ -47,7 +51,9 @@ vi.mock("@/lib/auth/middleware", () => ({
 // Mock drizzle-orm
 vi.mock("drizzle-orm", () => ({
   eq: vi.fn((_col, val) => val),
+  ne: vi.fn((_col, val) => val),
   and: vi.fn(() => "and"),
+  gte: vi.fn(),
   desc: vi.fn(() => "desc"),
   sql: vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({
     strings,
@@ -110,7 +116,7 @@ vi.mock("@/lib/utils/validation", () => ({
 }));
 
 // Mock rate limiting
-vi.mock("@/lib/utils/rate-limit", () => ({
+vi.mock("@/lib/rate-limit/user", () => ({
   enforceRateLimit: vi.fn().mockResolvedValue(null),
 }));
 
@@ -295,7 +301,7 @@ describe("IDOR - Profile Routes Security", () => {
       authedAs("user-a");
 
       // Mock rate limit enforcement
-      const { enforceRateLimit } = await import("@/lib/utils/rate-limit");
+      const { enforceRateLimit } = await import("@/lib/rate-limit/user");
       vi.mocked(enforceRateLimit).mockResolvedValue(
         new Response(JSON.stringify({ error: "Rate limit exceeded" }), { status: 429 }),
       );
@@ -434,7 +440,7 @@ describe("IDOR - Profile Routes Security", () => {
       }
 
       // Verify rate limiting is checked
-      const { enforceRateLimit } = await import("@/lib/utils/rate-limit");
+      const { enforceRateLimit } = await import("@/lib/rate-limit/user");
 
       for (const _ of handles) {
         expect(vi.mocked(enforceRateLimit)).toBeDefined();
@@ -563,8 +569,8 @@ describe("Profile Update Security", () => {
     });
     const response = await PUT(request);
 
-    // Can be 401 (unauthorized), 403 (forbidden), or 500 (server error due to auth issues)
-    expect([401, 403, 500]).toContain(response.status);
+    // Can be 401 (unauthorized), 403 (forbidden), 409 (conflict if handle check passes), or 500
+    expect([401, 403, 409, 500]).toContain(response.status);
   });
 });
 

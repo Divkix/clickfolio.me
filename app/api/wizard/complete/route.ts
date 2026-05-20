@@ -3,10 +3,10 @@ import { z } from "zod";
 import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
 
 import { siteData, user } from "@/lib/db/schema";
+import { isHandleTaken } from "@/lib/rate-limit/handle-validation";
 import { handleSchema } from "@/lib/schemas/profile";
 import { verifyThemeUnlocked } from "@/lib/templates/theme-access";
 import { THEME_IDS, type ThemeId } from "@/lib/templates/theme-ids";
-import { isHandleTaken } from "@/lib/utils/handle-validation";
 import {
   createErrorResponse,
   createSuccessResponse,

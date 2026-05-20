@@ -4,33 +4,14 @@ import { AttributionWidget } from "@/components/AttributionWidget";
 import { OwnerDetector } from "@/components/analytics/OwnerDetector";
 import { CreateYoursCTA } from "@/components/CreateYoursCTA";
 import { RelatedProfiles } from "@/components/RelatedProfiles";
-import { SharePopover, type SharePopoverVariant } from "@/components/SharePopover";
+import { SharePopover } from "@/components/SharePopover";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { siteConfig } from "@/lib/config/site";
 import { getRelatedProfiles, getResumeData, getResumeMetadata } from "@/lib/data/resume";
+import { isValidHandleFormat } from "@/lib/rate-limit/handle-validation";
 import { flattenSkills } from "@/lib/templates/helpers";
-import { DEFAULT_THEME, type ThemeId } from "@/lib/templates/theme-ids";
+import { DEFAULT_THEME, type ThemeId, themeToShareVariant } from "@/lib/templates/theme-ids";
 import { getTemplate } from "@/lib/templates/theme-registry";
-import { isValidHandleFormat } from "@/lib/utils/handle-validation";
-import {
-  generateBreadcrumbJsonLd,
-  generateResumeJsonLd,
-  serializeJsonLd,
-} from "@/lib/utils/json-ld";
-
-// Map database theme IDs (underscore) to share popover variants (kebab-case)
-const themeToShareVariant: Record<ThemeId, SharePopoverVariant> = {
-  minimalist_editorial: "minimalist-editorial",
-  neo_brutalist: "neo-brutalist",
-  glass: "glass-morphic",
-  bento: "bento-grid",
-  spotlight: "spotlight",
-  midnight: "midnight",
-  bold_corporate: "bold-corporate",
-  classic_ats: "classic-ats",
-  design_folio: "design-folio",
-  dev_terminal: "dev-terminal",
-};
 
 // Dynamic params are always allowed (new handles can be created)
 export const dynamicParams = true;
@@ -175,7 +156,10 @@ export default async function HandlePage({ params }: PageProps) {
     notFound();
   }
 
-  const { content, profile, theme_id, privacy_settings, created_at, updated_at } = data;
+  const { content, profile, theme_id, privacy_settings } = data;
+
+  // Fetch SEO metadata with pre-serialized JSON-LD (uses React.cache, no extra DB call)
+  const metadata = await getResumeMetadata(handle);
 
   const relatedProfiles = !privacy_settings.hide_from_search
     ? await getRelatedProfiles(
@@ -191,28 +175,6 @@ export default async function HandlePage({ params }: PageProps) {
   // Map theme_id to CTA variant (use ThemeId type directly)
   const ctaVariant: ThemeId = (theme_id ?? DEFAULT_THEME) as ThemeId;
 
-  // Generate JSON-LD structured data for SEO (skip if user opted out)
-  const profileUrl = `${siteConfig.url}/@${handle}`;
-  const jsonLd = !privacy_settings.hide_from_search
-    ? generateResumeJsonLd(content, {
-        profileUrl,
-        avatarUrl: profile.avatar_url,
-        dateCreated: created_at,
-        dateModified: updated_at,
-      })
-    : null;
-
-  // JSON-LD is safe to inject:
-  // - Content is validated at write time (/api/resume/update)
-  // - JSON.stringify properly escapes special characters
-  // - Data is from trusted D1 database, not user input
-  const jsonLdScript = jsonLd ? serializeJsonLd(jsonLd) : null;
-
-  // Breadcrumb JSON-LD for navigation context in search results
-  const breadcrumbJsonLd = !privacy_settings.hide_from_search
-    ? serializeJsonLd(generateBreadcrumbJsonLd(handle, content.full_name))
-    : null;
-
   // Map theme_id to share popover variant (kebab-case format)
   // Cast theme_id to ThemeId since it's validated against the enum in the database
   const shareVariant = themeToShareVariant[(theme_id ?? DEFAULT_THEME) as ThemeId];
@@ -221,19 +183,19 @@ export default async function HandlePage({ params }: PageProps) {
   return (
     <>
       {/* JSON-LD structured data for rich search results */}
-      {jsonLdScript && (
+      {metadata?.jsonLdResumeScript && (
         <script
           type="application/ld+json"
-          // biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD from trusted DB, JSON.stringify escapes special chars
-          dangerouslySetInnerHTML={{ __html: jsonLdScript }}
+          // biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD generated server-side from trusted DB content, serialized with XSS-safe escaping
+          dangerouslySetInnerHTML={{ __html: metadata.jsonLdResumeScript }}
         />
       )}
       {/* Breadcrumb JSON-LD for navigation context in search results */}
-      {breadcrumbJsonLd && (
+      {metadata?.jsonLdBreadcrumbScript && (
         <script
           type="application/ld+json"
-          // biome-ignore lint/security/noDangerouslySetInnerHtml: Breadcrumb JSON-LD from trusted DB data, serialized with XSS-safe escaping via serializeJsonLd
-          dangerouslySetInnerHTML={{ __html: breadcrumbJsonLd }}
+          // biome-ignore lint/security/noDangerouslySetInnerHtml: Breadcrumb JSON-LD generated server-side from trusted DB data, serialized with XSS-safe escaping
+          dangerouslySetInnerHTML={{ __html: metadata.jsonLdBreadcrumbScript }}
         />
       )}
       {!privacy_settings.hide_from_search && (

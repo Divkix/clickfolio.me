@@ -50,6 +50,7 @@ vi.mock("@/lib/auth/middleware", () => ({
 // Mock drizzle-orm eq
 vi.mock("drizzle-orm", () => ({
   eq: vi.fn((_col, val) => val),
+  gte: vi.fn(),
 }));
 
 // Mock the schema

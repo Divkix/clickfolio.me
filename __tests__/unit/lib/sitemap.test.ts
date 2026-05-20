@@ -9,7 +9,7 @@ import {
   buildSitemapXml,
   getSitemapBaseUrl,
   URLS_PER_SITEMAP,
-} from "@/lib/sitemap";
+} from "@/lib/seo/sitemap";
 
 describe("URLS_PER_SITEMAP", () => {
   it("equals Google's limit of 50000", () => {

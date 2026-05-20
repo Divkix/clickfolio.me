@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // biome-ignore-all lint/suspicious/noExplicitAny: Test assertions for dynamic normalized properties
 import { describe, expect, it } from "vitest";
-import type { ResumeSchema } from "@/lib/ai/schema";
 import {
   normalizeEndDate,
   normalizeString,
@@ -11,6 +10,7 @@ import {
   truncateString,
   validateUrl,
 } from "@/lib/ai/transform";
+import type { ResumeContentFormData } from "@/lib/schemas/resume";
 
 describe("normalizeUrl", () => {
   it("returns empty string for non-string input", () => {
@@ -444,7 +444,7 @@ describe("transformAiResponse", () => {
 
 describe("transformAiOutput", () => {
   it("trims all string fields recursively", () => {
-    const data: Partial<ResumeSchema> = {
+    const data: Partial<ResumeContentFormData> = {
       full_name: "  Jane Doe  ",
       headline: "  Developer  ",
       contact: {
@@ -452,7 +452,7 @@ describe("transformAiOutput", () => {
         phone: "  +1-555-1234  ",
       },
     };
-    const result = transformAiOutput(data as ResumeSchema);
+    const result = transformAiOutput(data as ResumeContentFormData);
     expect(result.full_name).toBe("Jane Doe");
     expect(result.headline).toBe("Developer");
     expect((result.contact as any)?.email).toBe("jane@example.com");
@@ -460,20 +460,20 @@ describe("transformAiOutput", () => {
   });
 
   it("extracts LinkedIn from website field", () => {
-    const data: Partial<ResumeSchema> = {
+    const data: Partial<ResumeContentFormData> = {
       full_name: "Jane",
       contact: {
         email: "jane@example.com",
         website: "https://linkedin.com/in/janedoe",
       },
     };
-    const result = transformAiOutput(data as ResumeSchema);
+    const result = transformAiOutput(data as ResumeContentFormData);
     expect((result.contact as any)?.linkedin).toBe("https://linkedin.com/in/janedoe");
     expect((result.contact as any)?.website).toBeUndefined();
   });
 
   it("preserves existing linkedin when extracting from website", () => {
-    const data: Partial<ResumeSchema> = {
+    const data: Partial<ResumeContentFormData> = {
       full_name: "Jane",
       contact: {
         email: "jane@example.com",
@@ -481,13 +481,13 @@ describe("transformAiOutput", () => {
         website: "https://linkedin.com/in/janedoe",
       },
     };
-    const result = transformAiOutput(data as ResumeSchema);
+    const result = transformAiOutput(data as ResumeContentFormData);
     expect((result.contact as any)?.linkedin).toBe("https://linkedin.com/in/existing");
     expect((result.contact as any)?.website).toBe("https://linkedin.com/in/janedoe");
   });
 
   it("removes empty contact fields", () => {
-    const data: Partial<ResumeSchema> = {
+    const data: Partial<ResumeContentFormData> = {
       full_name: "Jane",
       contact: {
         email: "jane@example.com",
@@ -495,14 +495,14 @@ describe("transformAiOutput", () => {
         location: "",
       },
     };
-    const result = transformAiOutput(data as ResumeSchema);
+    const result = transformAiOutput(data as ResumeContentFormData);
     expect((result.contact as any)?.email).toBe("jane@example.com");
     expect((result.contact as any)?.phone).toBeUndefined();
     expect((result.contact as any)?.location).toBeUndefined();
   });
 
   it("extracts year from project date range", () => {
-    const data: Partial<ResumeSchema> = {
+    const data: Partial<ResumeContentFormData> = {
       full_name: "Jane",
       contact: { email: "jane@example.com" },
       projects: [
@@ -510,48 +510,48 @@ describe("transformAiOutput", () => {
         { title: "Another", description: "Desc", year: "Started 2022" },
       ],
     };
-    const result = transformAiOutput(data as ResumeSchema);
+    const result = transformAiOutput(data as ResumeContentFormData);
     expect((result.projects as any[])[0].year).toBe("2023");
     expect((result.projects as any[])[1].year).toBe("2022");
   });
 
   it("removes empty experience location fields", () => {
-    const data: Partial<ResumeSchema> = {
+    const data: Partial<ResumeContentFormData> = {
       full_name: "Jane",
       contact: { email: "jane@example.com" },
       experience: [
         { title: "Job", company: "Acme", start_date: "2020", description: "Work", location: "" },
       ],
     };
-    const result = transformAiOutput(data as ResumeSchema);
+    const result = transformAiOutput(data as ResumeContentFormData);
     expect((result.experience as any[])[0].location).toBeUndefined();
   });
 
   it("removes empty experience end_date fields", () => {
-    const data: Partial<ResumeSchema> = {
+    const data: Partial<ResumeContentFormData> = {
       full_name: "Jane",
       contact: { email: "jane@example.com" },
       experience: [
         { title: "Job", company: "Acme", start_date: "2020", description: "Work", end_date: "" },
       ],
     };
-    const result = transformAiOutput(data as ResumeSchema);
+    const result = transformAiOutput(data as ResumeContentFormData);
     expect((result.experience as any[])[0].end_date).toBeUndefined();
   });
 
   it("removes empty education location and gpa", () => {
-    const data: Partial<ResumeSchema> = {
+    const data: Partial<ResumeContentFormData> = {
       full_name: "Jane",
       contact: { email: "jane@example.com" },
       education: [{ degree: "BS", institution: "MIT", location: "", gpa: "" }],
     };
-    const result = transformAiOutput(data as ResumeSchema);
+    const result = transformAiOutput(data as ResumeContentFormData);
     expect((result.education as any[])[0].location).toBeUndefined();
     expect((result.education as any[])[0].gpa).toBeUndefined();
   });
 
   it("removes empty optional arrays", () => {
-    const data: Partial<ResumeSchema> = {
+    const data: Partial<ResumeContentFormData> = {
       full_name: "Jane",
       contact: { email: "jane@example.com" },
       skills: [],
@@ -559,7 +559,7 @@ describe("transformAiOutput", () => {
       projects: [],
       education: [],
     };
-    const result = transformAiOutput(data as ResumeSchema);
+    const result = transformAiOutput(data as ResumeContentFormData);
     expect(result.skills).toBeUndefined();
     expect(result.certifications).toBeUndefined();
     expect(result.projects).toBeUndefined();
@@ -567,17 +567,17 @@ describe("transformAiOutput", () => {
   });
 
   it("keeps non-empty optional arrays", () => {
-    const data: Partial<ResumeSchema> = {
+    const data: Partial<ResumeContentFormData> = {
       full_name: "Jane",
       contact: { email: "jane@example.com" },
       skills: [{ category: "Languages", items: ["JS"] }],
     };
-    const result = transformAiOutput(data as ResumeSchema);
+    const result = transformAiOutput(data as ResumeContentFormData);
     expect(result.skills).toHaveLength(1);
   });
 
   it("removes duplicate website when same as linkedin", () => {
-    const data: Partial<ResumeSchema> = {
+    const data: Partial<ResumeContentFormData> = {
       full_name: "Jane",
       contact: {
         email: "jane@example.com",
@@ -585,13 +585,13 @@ describe("transformAiOutput", () => {
         website: "https://linkedin.com/in/jane",
       },
     };
-    const result = transformAiOutput(data as ResumeSchema);
+    const result = transformAiOutput(data as ResumeContentFormData);
     expect((result.contact as any)?.linkedin).toBe("https://linkedin.com/in/jane");
     expect((result.contact as any)?.website).toBeUndefined();
   });
 
   it("handles deeply nested string trimming", () => {
-    const data: Partial<ResumeSchema> = {
+    const data: Partial<ResumeContentFormData> = {
       full_name: "Jane",
       contact: { email: "jane@example.com" },
       experience: [
@@ -604,7 +604,7 @@ describe("transformAiOutput", () => {
         },
       ],
     };
-    const result = transformAiOutput(data as ResumeSchema);
+    const result = transformAiOutput(data as ResumeContentFormData);
     expect((result.experience as any[])[0].title).toBe("Engineer");
     expect((result.experience as any[])[0].company).toBe("Acme");
     // Note: The current implementation doesn't trim strings inside arrays like highlights

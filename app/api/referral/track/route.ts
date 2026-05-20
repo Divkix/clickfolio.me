@@ -15,8 +15,8 @@ import { env } from "cloudflare:workers";
 import { eq, or } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { referralClicks, user } from "@/lib/db/schema";
+import { getClientIP } from "@/lib/rate-limit/ip";
 import { generateVisitorHash, isBot } from "@/lib/utils/analytics";
-import { getClientIP } from "@/lib/utils/ip-rate-limit";
 
 const EMPTY_204 = new Response(null, { status: 204 });
 

@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { isThemeUnlocked, THEME_METADATA, type ThemeId } from "@/lib/templates/theme-ids";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils/cn";
 
 interface ThemeStepProps {
   initialTheme?: ThemeId;

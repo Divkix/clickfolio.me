@@ -7,7 +7,11 @@
     "hooks/**/*.{ts,tsx}",
     "lib/**/*.{ts,tsx}"
   ],
-  "ignore": ["components/blog/HighlightBlock.tsx"],
+  "ignore": [
+    "components/blog/HighlightBlock.tsx",
+    "lib/db/schema/**",
+    "lib/db/schema/relations.ts"
+  ],
   "ignoreBinaries": [],
   "ignoreDependencies": [
     "cloudflare",

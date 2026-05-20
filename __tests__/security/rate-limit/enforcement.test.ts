@@ -90,7 +90,7 @@ describe("Rate Limit Security Enforcement", () => {
         }),
       });
 
-      const { checkIPRateLimit } = await import("@/lib/utils/ip-rate-limit");
+      const { checkIPRateLimit } = await import("@/lib/rate-limit/ip");
       const result = await checkIPRateLimit("192.168.1.1");
 
       expect(result.allowed).toBe(false);
@@ -105,7 +105,7 @@ describe("Rate Limit Security Enforcement", () => {
         }),
       });
 
-      const { checkIPRateLimit } = await import("@/lib/utils/ip-rate-limit");
+      const { checkIPRateLimit } = await import("@/lib/rate-limit/ip");
       const result = await checkIPRateLimit("192.168.1.1");
 
       expect(result.allowed).toBe(false);
@@ -119,7 +119,7 @@ describe("Rate Limit Security Enforcement", () => {
         }),
       });
 
-      const { checkIPRateLimit } = await import("@/lib/utils/ip-rate-limit");
+      const { checkIPRateLimit } = await import("@/lib/rate-limit/ip");
       const result = await checkIPRateLimit("192.168.1.1");
 
       expect(result.allowed).toBe(true);
@@ -135,7 +135,7 @@ describe("Rate Limit Security Enforcement", () => {
         }),
       });
 
-      const { checkHandleRateLimit } = await import("@/lib/utils/ip-rate-limit");
+      const { checkHandleRateLimit } = await import("@/lib/rate-limit/ip");
       const result = await checkHandleRateLimit("192.168.1.1");
 
       expect(result.allowed).toBe(false);
@@ -151,7 +151,7 @@ describe("Rate Limit Security Enforcement", () => {
         }),
       });
 
-      const { checkEmailValidateRateLimit } = await import("@/lib/utils/ip-rate-limit");
+      const { checkEmailValidateRateLimit } = await import("@/lib/rate-limit/ip");
       const result = await checkEmailValidateRateLimit("192.168.1.1");
 
       expect(result.allowed).toBe(false);
@@ -166,7 +166,7 @@ describe("Rate Limit Security Enforcement", () => {
         }),
       });
 
-      const { checkRateLimit } = await import("@/lib/utils/rate-limit");
+      const { checkRateLimit } = await import("@/lib/rate-limit/user");
       const result = await checkRateLimit("user-123", "resume_upload");
 
       expect(result.allowed).toBe(false);
@@ -179,7 +179,7 @@ describe("Rate Limit Security Enforcement", () => {
         }),
       });
 
-      const { checkRateLimit } = await import("@/lib/utils/rate-limit");
+      const { checkRateLimit } = await import("@/lib/rate-limit/user");
       const result = await checkRateLimit("user-123", "handle_change");
 
       expect(result.allowed).toBe(false);
@@ -189,7 +189,7 @@ describe("Rate Limit Security Enforcement", () => {
   describe("Rate Limit Bypass Prevention", () => {
     it("blocks X-Forwarded-For spoofing attempts by using first IP", async () => {
       // The getClientIP function uses CF-Connecting-IP header which cannot be spoofed
-      const { getClientIP } = await import("@/lib/utils/ip-rate-limit");
+      const { getClientIP } = await import("@/lib/rate-limit/ip");
 
       // Request with spoofed X-Forwarded-For
       const request = new Request("http://localhost:3000/api/upload", {
@@ -204,7 +204,7 @@ describe("Rate Limit Security Enforcement", () => {
     });
 
     it("ignores X-Forwarded-For when CF-Connecting-IP is present", async () => {
-      const { getClientIP } = await import("@/lib/utils/ip-rate-limit");
+      const { getClientIP } = await import("@/lib/rate-limit/ip");
 
       const request = new Request("http://localhost:3000/api/upload", {
         headers: {
@@ -217,7 +217,7 @@ describe("Rate Limit Security Enforcement", () => {
     });
 
     it("falls back to first X-Forwarded-IP when CF header absent", async () => {
-      const { getClientIP } = await import("@/lib/utils/ip-rate-limit");
+      const { getClientIP } = await import("@/lib/rate-limit/ip");
 
       const request = new Request("http://localhost:3000/api/upload", {
         headers: {
@@ -249,7 +249,7 @@ describe("Rate Limit Security Enforcement", () => {
         };
       });
 
-      const { checkIPRateLimit } = await import("@/lib/utils/ip-rate-limit");
+      const { checkIPRateLimit } = await import("@/lib/rate-limit/ip");
 
       let allowedCount = 0;
       for (const ip of requests) {
@@ -270,7 +270,7 @@ describe("Rate Limit Security Enforcement", () => {
         }),
       });
 
-      const { enforceRateLimit } = await import("@/lib/utils/rate-limit");
+      const { enforceRateLimit } = await import("@/lib/rate-limit/user");
 
       // Mock production environment
       vi.stubGlobal("process", {
@@ -301,7 +301,7 @@ describe("Rate Limit Security Enforcement", () => {
         }),
       });
 
-      const { checkIPRateLimit } = await import("@/lib/utils/ip-rate-limit");
+      const { checkIPRateLimit } = await import("@/lib/rate-limit/ip");
       const result = await checkIPRateLimit("192.168.1.1");
 
       expect(result.allowed).toBe(true);
@@ -320,7 +320,7 @@ describe("Rate Limit Security Enforcement", () => {
         }),
       });
 
-      const { checkIPRateLimit } = await import("@/lib/utils/ip-rate-limit");
+      const { checkIPRateLimit } = await import("@/lib/rate-limit/ip");
       const result = await checkIPRateLimit("192.168.1.1");
 
       expect(result.allowed).toBe(true);
@@ -338,7 +338,7 @@ describe("Rate Limit Security Enforcement", () => {
         }),
       }));
 
-      const { checkIPRateLimit } = await import("@/lib/utils/ip-rate-limit");
+      const { checkIPRateLimit } = await import("@/lib/rate-limit/ip");
 
       // IP1 at limit
       const result1 = await checkIPRateLimit(ip1);
@@ -370,7 +370,7 @@ describe("Rate Limit Security Enforcement", () => {
         }),
       }));
 
-      const { checkIPRateLimit } = await import("@/lib/utils/ip-rate-limit");
+      const { checkIPRateLimit } = await import("@/lib/rate-limit/ip");
 
       // Upload rate limited
       const uploadResult = await checkIPRateLimit("192.168.1.1");
@@ -386,7 +386,7 @@ describe("Rate Limit Security Enforcement", () => {
         }),
       });
 
-      const { checkIPRateLimit } = await import("@/lib/utils/ip-rate-limit");
+      const { checkIPRateLimit } = await import("@/lib/rate-limit/ip");
       const result = await checkIPRateLimit("192.168.1.1");
 
       // Should allow 10th request
@@ -395,7 +395,7 @@ describe("Rate Limit Security Enforcement", () => {
     });
 
     it("handles null or empty IP gracefully", async () => {
-      const { checkIPRateLimit } = await import("@/lib/utils/ip-rate-limit");
+      const { checkIPRateLimit } = await import("@/lib/rate-limit/ip");
 
       // Empty IP should be handled
       const result = await checkIPRateLimit("");
@@ -411,7 +411,7 @@ describe("Rate Limit Security Enforcement", () => {
         }),
       });
 
-      const { checkIPRateLimit } = await import("@/lib/utils/ip-rate-limit");
+      const { checkIPRateLimit } = await import("@/lib/rate-limit/ip");
       const result = await checkIPRateLimit(ipv6);
 
       // Should handle IPv6 without error
@@ -428,7 +428,7 @@ describe("Rate Limit Security Enforcement", () => {
         }),
       });
 
-      const { checkIPRateLimit } = await import("@/lib/utils/ip-rate-limit");
+      const { checkIPRateLimit } = await import("@/lib/rate-limit/ip");
 
       // Multiple calls from same IP
       const results = await Promise.all([
@@ -451,7 +451,7 @@ describe("Rate Limit Security Enforcement", () => {
         throw new Error("DB connection failed");
       });
 
-      const { checkIPRateLimit } = await import("@/lib/utils/ip-rate-limit");
+      const { checkIPRateLimit } = await import("@/lib/rate-limit/ip");
       const result = await checkIPRateLimit("192.168.1.1");
 
       // IP rate limiting fails open to avoid blocking legitimate users
@@ -464,7 +464,7 @@ describe("Rate Limit Security Enforcement", () => {
         throw new Error("DB connection failed");
       });
 
-      const { checkRateLimit } = await import("@/lib/utils/rate-limit");
+      const { checkRateLimit } = await import("@/lib/rate-limit/user");
       const result = await checkRateLimit("user-123", "resume_upload");
 
       // Auth rate limiting fails closed for security
@@ -483,7 +483,7 @@ describe("Rate Limit Security Enforcement", () => {
         },
       });
 
-      const { checkIPRateLimit } = await import("@/lib/utils/ip-rate-limit");
+      const { checkIPRateLimit } = await import("@/lib/rate-limit/ip");
       const result = await checkIPRateLimit("192.168.1.1");
 
       expect(result.allowed).toBe(true);
@@ -505,7 +505,7 @@ describe("Rate Limit Security Enforcement", () => {
         }),
       });
 
-      const { checkIPRateLimit } = await import("@/lib/utils/ip-rate-limit");
+      const { checkIPRateLimit } = await import("@/lib/rate-limit/ip");
       const result = await checkIPRateLimit("192.168.1.1");
 
       // Should still enforce rate limit

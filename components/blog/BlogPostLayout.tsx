@@ -4,7 +4,7 @@ import { Logo } from "@/components/Logo";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import type { BlogPostMeta } from "@/lib/blog/posts";
 import { siteConfig } from "@/lib/config/site";
-import { serializeJsonLd } from "@/lib/utils/json-ld";
+import { serializeJsonLd } from "@/lib/seo/json-ld";
 
 interface BlogPostLayoutProps {
   post: BlogPostMeta;

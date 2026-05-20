@@ -34,6 +34,7 @@ vi.mock("@/lib/auth/session", () => ({
 // Mock drizzle-orm
 vi.mock("drizzle-orm", () => ({
   eq: vi.fn((_col, val) => val),
+  gte: vi.fn(),
   count: vi.fn(() => ({ as: vi.fn() })),
   sql: vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({
     strings,

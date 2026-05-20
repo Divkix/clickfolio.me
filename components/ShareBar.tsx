@@ -5,8 +5,8 @@ import { Check, Copy, Share2, XIcon } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { type BrandIconVariant, LinkedInIcon } from "@/components/icons/BrandIcons";
-import { cn } from "@/lib/utils";
 import { copyToClipboard } from "@/lib/utils/clipboard";
+import { cn } from "@/lib/utils/cn";
 import {
   generateLinkedInShareUrl,
   generateShareText,
