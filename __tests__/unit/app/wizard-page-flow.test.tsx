@@ -349,45 +349,54 @@ describe("wizard page flow", () => {
   });
 
   it("uses sessionStorage fallback, handles parsing failure redirects, and reports init crashes", async () => {
-    const { default: WizardPage } = await import("@/app/(protected)/wizard/page");
-    sessionStorage.setItem(
-      "temp_upload",
-      JSON.stringify({
-        key: "temp/session.pdf",
-        timestamp: Date.now(),
-        expiresAt: Date.now() + 30_000,
-      }),
-    );
-    sessionStorage.setItem("temp_file_hash", "hash_1");
-    globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
-      const url = String(input);
-      if (url === "/api/upload/pending") {
-        throw new Error("cookie unavailable");
-      }
-      if (url === "/api/resume/claim") {
-        return Response.json({ resume_id: "res_session", cached: false });
-      }
-      return Response.json(null);
-    }) as unknown as typeof fetch;
-    mocks.waitForResumeCompletion.mockResolvedValueOnce({
-      status: "failed",
-      error: "Parser failed",
-    });
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      const { default: WizardPage } = await import("@/app/(protected)/wizard/page");
+      sessionStorage.setItem(
+        "temp_upload",
+        JSON.stringify({
+          key: "temp/session.pdf",
+          timestamp: Date.now(),
+          expiresAt: Date.now() + 30_000,
+        }),
+      );
+      sessionStorage.setItem("temp_file_hash", "hash_1");
+      globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url === "/api/upload/pending") {
+          throw new Error("cookie unavailable");
+        }
+        if (url === "/api/resume/claim") {
+          return Response.json({ resume_id: "res_session", cached: false });
+        }
+        return Response.json(null);
+      }) as unknown as typeof fetch;
+      mocks.waitForResumeCompletion.mockResolvedValueOnce({
+        status: "failed",
+        error: "Parser failed",
+      });
 
-    const failed = render(<WizardPage />);
-    await waitFor(() => expect(mocks.waitForResumeCompletion).toHaveBeenCalledWith("res_session"));
-    failed.unmount();
+      const failed = render(<WizardPage />);
+      await waitFor(() =>
+        expect(mocks.waitForResumeCompletion).toHaveBeenCalledWith("res_session"),
+      );
+      failed.unmount();
 
-    globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
-      if (String(input) === "/api/site-data") {
-        throw new Error("site-data down");
-      }
-      return Response.json({ key: null, file_hash: null });
-    }) as unknown as typeof fetch;
-    render(<WizardPage />);
-    await waitFor(() =>
-      expect(screen.getByText("Failed to load resume data. Please try again.")).toBeInTheDocument(),
-    );
+      globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
+        if (String(input) === "/api/site-data") {
+          throw new Error("site-data down");
+        }
+        return Response.json({ key: null, file_hash: null });
+      }) as unknown as typeof fetch;
+      render(<WizardPage />);
+      await waitFor(() =>
+        expect(
+          screen.getByText("Failed to load resume data. Please try again."),
+        ).toBeInTheDocument(),
+      );
+    } finally {
+      errorSpy.mockRestore();
+    }
   });
 
   it("cleans expired and invalid fallback uploads and warns before abandoning later steps", async () => {

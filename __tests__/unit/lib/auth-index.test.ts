@@ -143,41 +143,46 @@ describe("server auth configuration", () => {
   });
 
   it("runs signup and email hooks with disposable, referral, and mail failure branches", async () => {
-    const { getAuth } = await import("@/lib/auth");
-    const auth = await getAuth();
-    const config = auth.config;
-    const beforeCreate = config.databaseHooks.user.create.before;
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      const { getAuth } = await import("@/lib/auth");
+      const auth = await getAuth();
+      const config = auth.config;
+      const beforeCreate = config.databaseHooks.user.create.before;
 
-    await expect(beforeCreate({ email: "temp@example.com" })).resolves.toEqual({
-      data: { email: "temp@example.com", referralCode: "REF123" },
-    });
+      await expect(beforeCreate({ email: "temp@example.com" })).resolves.toEqual({
+        data: { email: "temp@example.com", referralCode: "REF123" },
+      });
 
-    mocks.isDisposableEmail.mockResolvedValueOnce({ disposable: true });
-    await expect(beforeCreate({ email: "blocked@example.com" })).rejects.toBeInstanceOf(
-      mocks.APIError,
-    );
+      mocks.isDisposableEmail.mockResolvedValueOnce({ disposable: true });
+      await expect(beforeCreate({ email: "blocked@example.com" })).rejects.toBeInstanceOf(
+        mocks.APIError,
+      );
 
-    mocks.isDisposableEmail.mockRejectedValueOnce(new Error("kv down"));
-    mocks.generateReferralCode.mockImplementationOnce(() => {
-      throw new Error("rng down");
-    });
-    await expect(beforeCreate({ email: "fallback@example.com" })).resolves.toEqual({
-      data: { email: "fallback@example.com" },
-    });
+      mocks.isDisposableEmail.mockRejectedValueOnce(new Error("kv down"));
+      mocks.generateReferralCode.mockImplementationOnce(() => {
+        throw new Error("rng down");
+      });
+      await expect(beforeCreate({ email: "fallback@example.com" })).resolves.toEqual({
+        data: { email: "fallback@example.com" },
+      });
 
-    mocks.sendPasswordResetEmail.mockResolvedValueOnce({ success: false, error: "mail down" });
-    await config.emailAndPassword.sendResetPassword({
-      user: { email: "avery@example.com", name: "Avery" },
-      url: "https://clickfolio.me/reset",
-    });
+      mocks.sendPasswordResetEmail.mockResolvedValueOnce({ success: false, error: "mail down" });
+      await config.emailAndPassword.sendResetPassword({
+        user: { email: "avery@example.com", name: "Avery" },
+        url: "https://clickfolio.me/reset",
+      });
 
-    mocks.sendVerificationEmail.mockResolvedValueOnce({ success: false, error: "mail down" });
-    await config.emailVerification.sendVerificationEmail({
-      user: { email: "avery@example.com", name: "Avery" },
-      url: "https://clickfolio.me/verify",
-    });
+      mocks.sendVerificationEmail.mockResolvedValueOnce({ success: false, error: "mail down" });
+      await config.emailVerification.sendVerificationEmail({
+        user: { email: "avery@example.com", name: "Avery" },
+        url: "https://clickfolio.me/verify",
+      });
 
-    expect(mocks.sendPasswordResetEmail).toHaveBeenCalled();
-    expect(mocks.sendVerificationEmail).toHaveBeenCalled();
+      expect(mocks.sendPasswordResetEmail).toHaveBeenCalled();
+      expect(mocks.sendVerificationEmail).toHaveBeenCalled();
+    } finally {
+      errorSpy.mockRestore();
+    }
   });
 });

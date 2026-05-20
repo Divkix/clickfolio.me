@@ -157,14 +157,19 @@ describe("auth action pages", () => {
     );
     password.unmount();
 
-    mocks.resetPassword.mockRejectedValueOnce(new Error("network"));
-    render(<ResetPasswordPage />);
-    await user.type(screen.getByLabelText("New Password"), "StrongPass123!");
-    await user.type(screen.getByLabelText("Confirm Password"), "StrongPass123!");
-    fireEvent.submit(screen.getByRole("button", { name: "Reset Password" }).closest("form")!);
-    await waitFor(() =>
-      expect(mocks.toast.error).toHaveBeenCalledWith("Something went wrong. Please try again."),
-    );
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      mocks.resetPassword.mockRejectedValueOnce(new Error("network"));
+      render(<ResetPasswordPage />);
+      await user.type(screen.getByLabelText("New Password"), "StrongPass123!");
+      await user.type(screen.getByLabelText("Confirm Password"), "StrongPass123!");
+      fireEvent.submit(screen.getByRole("button", { name: "Reset Password" }).closest("form")!);
+      await waitFor(() =>
+        expect(mocks.toast.error).toHaveBeenCalledWith("Something went wrong. Please try again."),
+      );
+    } finally {
+      errorSpy.mockRestore();
+    }
   });
 
   it("renders verify-email success, error, resend success, cooldown, and failures", async () => {
@@ -202,11 +207,16 @@ describe("auth action pages", () => {
     await waitFor(() => expect(mocks.toast.error).toHaveBeenCalledWith("Rate limited"));
     failed.unmount();
 
-    mocks.sendVerificationEmail.mockRejectedValueOnce(new Error("network"));
-    render(<VerifyEmailPage />);
-    await user.click(screen.getByRole("button", { name: "Resend Verification Email" }));
-    await waitFor(() =>
-      expect(mocks.toast.error).toHaveBeenCalledWith("Something went wrong. Please try again."),
-    );
+    const errorSpy2 = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      mocks.sendVerificationEmail.mockRejectedValueOnce(new Error("network"));
+      render(<VerifyEmailPage />);
+      await user.click(screen.getByRole("button", { name: "Resend Verification Email" }));
+      await waitFor(() =>
+        expect(mocks.toast.error).toHaveBeenCalledWith("Something went wrong. Please try again."),
+      );
+    } finally {
+      errorSpy2.mockRestore();
+    }
   });
 });

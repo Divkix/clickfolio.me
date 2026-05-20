@@ -144,6 +144,8 @@ describe("PrivacySettingsForm", () => {
 });
 
 describe("ThemeSelector", () => {
+  const originalOffsetWidth = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "offsetWidth");
+
   beforeEach(() => {
     vi.clearAllMocks();
     globalThis.fetch = vi.fn(async () =>
@@ -157,6 +159,9 @@ describe("ThemeSelector", () => {
 
   afterEach(() => {
     vi.useRealTimers();
+    if (originalOffsetWidth) {
+      Object.defineProperty(HTMLElement.prototype, "offsetWidth", originalOffsetWidth);
+    }
   });
 
   it("prevents locked click selection and applies an unlocked theme", async () => {

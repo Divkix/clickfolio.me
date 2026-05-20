@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event";
 import { Users } from "lucide-react";
 import type React from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import AdminAnalyticsPage from "@/app/(admin)/admin/analytics/page";
 import AdminReferralsPage from "@/app/(admin)/admin/referrals/page";
 import AdminResumesPage from "@/app/(admin)/admin/resumes/page";
@@ -201,7 +201,23 @@ const resumeContent: ResumeContent = {
   ],
 };
 
+let _origResizeObserver: typeof ResizeObserver | undefined;
+let _origIntersectionObserver: typeof IntersectionObserver | undefined;
+let _origMatchMedia: typeof window.matchMedia | undefined;
+let _origClipboard: typeof navigator.clipboard | undefined;
+let _origShare: typeof navigator.share | undefined;
+let _origWindowOpen: typeof window.open | undefined;
+let _origWindowConfirm: typeof window.confirm | undefined;
+
 function installBrowserMocks() {
+  _origResizeObserver = _origResizeObserver ?? globalThis.ResizeObserver;
+  _origIntersectionObserver = _origIntersectionObserver ?? globalThis.IntersectionObserver;
+  _origMatchMedia = _origMatchMedia ?? window.matchMedia;
+  _origClipboard = _origClipboard ?? navigator.clipboard;
+  _origShare = _origShare ?? navigator.share;
+  _origWindowOpen = _origWindowOpen ?? window.open;
+  _origWindowConfirm = _origWindowConfirm ?? window.confirm;
+
   globalThis.ResizeObserver = class {
     callback: ResizeObserverCallback;
 
@@ -248,6 +264,19 @@ function installBrowserMocks() {
   window.open = vi.fn();
   window.confirm = vi.fn().mockReturnValue(true);
 }
+
+afterAll(() => {
+  if (_origResizeObserver) globalThis.ResizeObserver = _origResizeObserver;
+  if (_origIntersectionObserver) globalThis.IntersectionObserver = _origIntersectionObserver;
+  if (_origMatchMedia)
+    Object.defineProperty(window, "matchMedia", { value: _origMatchMedia, configurable: true });
+  if (_origClipboard)
+    Object.defineProperty(navigator, "clipboard", { value: _origClipboard, configurable: true });
+  if (_origShare)
+    Object.defineProperty(navigator, "share", { value: _origShare, configurable: true });
+  if (_origWindowOpen) window.open = _origWindowOpen;
+  if (_origWindowConfirm) window.confirm = _origWindowConfirm;
+});
 
 describe("component smoke rendering", () => {
   beforeEach(() => {

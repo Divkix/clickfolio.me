@@ -21,6 +21,8 @@ class MockWebSocket {
 }
 
 describe("waitForResumeCompletion", () => {
+  const originalLocation = window.location;
+
   beforeEach(() => {
     vi.useFakeTimers();
     MockWebSocket.instances = [];
@@ -34,6 +36,10 @@ describe("waitForResumeCompletion", () => {
   afterEach(() => {
     vi.useRealTimers();
     vi.unstubAllGlobals();
+    Object.defineProperty(window, "location", {
+      value: originalLocation,
+      configurable: true,
+    });
   });
 
   it("resolves from a terminal WebSocket status and cleans up keepalive timers", async () => {
