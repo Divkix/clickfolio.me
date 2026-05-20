@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AnalyticsCard } from "@/components/dashboard/AnalyticsCard";
 
 const chartEvents = vi.hoisted(() => ({
@@ -50,6 +50,9 @@ vi.mock("@/components/dashboard/MilestoneToasts", () => ({
   ),
 }));
 
+const originalResizeObserver = globalThis.ResizeObserver;
+const originalFetch = globalThis.fetch;
+
 function installResizeObserver(width = 420) {
   globalThis.ResizeObserver = class {
     callback: ResizeObserverCallback;
@@ -95,6 +98,19 @@ describe("AnalyticsCard", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     installResizeObserver();
+  });
+
+  afterEach(() => {
+    if (originalResizeObserver === undefined) {
+      delete (globalThis as any).ResizeObserver;
+    } else {
+      globalThis.ResizeObserver = originalResizeObserver;
+    }
+    if (originalFetch === undefined) {
+      delete (globalThis as any).fetch;
+    } else {
+      globalThis.fetch = originalFetch;
+    }
   });
 
   it("renders loaded analytics, formats large numbers, and refetches selected periods", async () => {

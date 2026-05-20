@@ -388,12 +388,13 @@ describe("wizard page flow", () => {
         }
         return Response.json({ key: null, file_hash: null });
       }) as unknown as typeof fetch;
-      render(<WizardPage />);
+      const loader = render(<WizardPage />);
       await waitFor(() =>
         expect(
           screen.getByText("Failed to load resume data. Please try again."),
         ).toBeInTheDocument(),
       );
+      loader.unmount();
     } finally {
       errorSpy.mockRestore();
     }

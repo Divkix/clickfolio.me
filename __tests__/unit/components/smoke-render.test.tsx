@@ -201,6 +201,7 @@ const resumeContent: ResumeContent = {
   ],
 };
 
+let _originalsCaptured = false;
 let _origResizeObserver: typeof ResizeObserver | undefined;
 let _origIntersectionObserver: typeof IntersectionObserver | undefined;
 let _origMatchMedia: typeof window.matchMedia | undefined;
@@ -210,13 +211,16 @@ let _origWindowOpen: typeof window.open | undefined;
 let _origWindowConfirm: typeof window.confirm | undefined;
 
 function installBrowserMocks() {
-  _origResizeObserver = _origResizeObserver ?? globalThis.ResizeObserver;
-  _origIntersectionObserver = _origIntersectionObserver ?? globalThis.IntersectionObserver;
-  _origMatchMedia = _origMatchMedia ?? window.matchMedia;
-  _origClipboard = _origClipboard ?? navigator.clipboard;
-  _origShare = _origShare ?? navigator.share;
-  _origWindowOpen = _origWindowOpen ?? window.open;
-  _origWindowConfirm = _origWindowConfirm ?? window.confirm;
+  if (!_originalsCaptured) {
+    _origResizeObserver = globalThis.ResizeObserver;
+    _origIntersectionObserver = globalThis.IntersectionObserver;
+    _origMatchMedia = window.matchMedia;
+    _origClipboard = navigator.clipboard;
+    _origShare = navigator.share;
+    _origWindowOpen = window.open;
+    _origWindowConfirm = window.confirm;
+    _originalsCaptured = true;
+  }
 
   globalThis.ResizeObserver = class {
     callback: ResizeObserverCallback;

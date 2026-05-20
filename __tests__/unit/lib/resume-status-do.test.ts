@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const runtime = vi.hoisted(() => ({
   nextClient: null as FakeSocket | null,
@@ -96,6 +96,10 @@ describe("ClickfolioStatusDO", () => {
     vi.restoreAllMocks();
   });
 
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it("rejects non-upgrade requests, unauthenticated sockets, and malformed notify bodies", async () => {
     const { instance } = await createObject();
 
@@ -189,7 +193,12 @@ describe("ClickfolioStatusDO", () => {
     await instance.webSocketMessage(socket as never, "ping");
     await instance.webSocketMessage(socket as never, "status");
     await instance.webSocketClose(socket as never, 1000, "done", true);
-    await instance.webSocketError(socket as never, new Error("boom"));
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      await instance.webSocketError(socket as never, new Error("boom"));
+    } finally {
+      errorSpy.mockRestore();
+    }
     await instance.alarm();
 
     expect(socket.sent[0]).toBe("pong");

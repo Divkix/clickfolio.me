@@ -92,7 +92,11 @@ describe("auth form flows", () => {
   });
 
   afterEach(() => {
-    globalThis.fetch = originalFetch;
+    if (originalFetch === undefined) {
+      delete (globalThis as any).fetch;
+    } else {
+      globalThis.fetch = originalFetch;
+    }
   });
 
   it("blocks sign up when disposable email validation returns a reason", async () => {

@@ -222,32 +222,37 @@ describe("DeleteAccountCard", () => {
   });
 
   it("shows API errors, clears state on cancel, and handles network failures", async () => {
-    const user = userEvent.setup();
-    vi.mocked(globalThis.fetch)
-      .mockResolvedValueOnce(
-        Response.json({ error: "Email confirmation mismatch" }, { status: 400 }),
-      )
-      .mockRejectedValueOnce(new Error("network down"));
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      const user = userEvent.setup();
+      vi.mocked(globalThis.fetch)
+        .mockResolvedValueOnce(
+          Response.json({ error: "Email confirmation mismatch" }, { status: 400 }),
+        )
+        .mockRejectedValueOnce(new Error("network down"));
 
-    render(<DeleteAccountCard userEmail="avery@example.com" />);
-    await user.click(screen.getByRole("button", { name: "Delete Account" }));
-    await user.type(screen.getByLabelText(/Type/), "avery@example.com");
-    await user.click(screen.getByRole("button", { name: /delete forever/i }));
+      render(<DeleteAccountCard userEmail="avery@example.com" />);
+      await user.click(screen.getByRole("button", { name: "Delete Account" }));
+      await user.type(screen.getByLabelText(/Type/), "avery@example.com");
+      await user.click(screen.getByRole("button", { name: /delete forever/i }));
 
-    expect(await screen.findByText("Email confirmation mismatch")).toBeInTheDocument();
-    expect(mocks.toast.error).toHaveBeenCalledWith("Email confirmation mismatch");
+      expect(await screen.findByText("Email confirmation mismatch")).toBeInTheDocument();
+      expect(mocks.toast.error).toHaveBeenCalledWith("Email confirmation mismatch");
 
-    await user.click(screen.getByRole("button", { name: "Cancel" }));
-    await user.click(screen.getByRole("button", { name: "Delete Account" }));
-    expect(screen.getByLabelText(/Type/)).toHaveValue("");
+      await user.click(screen.getByRole("button", { name: "Cancel" }));
+      await user.click(screen.getByRole("button", { name: "Delete Account" }));
+      expect(screen.getByLabelText(/Type/)).toHaveValue("");
 
-    await user.type(screen.getByLabelText(/Type/), "avery@example.com");
-    await user.click(screen.getByRole("button", { name: /delete forever/i }));
-    expect(
-      await screen.findByText("An unexpected error occurred. Please try again."),
-    ).toBeInTheDocument();
-    expect(mocks.toast.error).toHaveBeenCalledWith(
-      "An unexpected error occurred. Please try again.",
-    );
+      await user.type(screen.getByLabelText(/Type/), "avery@example.com");
+      await user.click(screen.getByRole("button", { name: /delete forever/i }));
+      expect(
+        await screen.findByText("An unexpected error occurred. Please try again."),
+      ).toBeInTheDocument();
+      expect(mocks.toast.error).toHaveBeenCalledWith(
+        "An unexpected error occurred. Please try again.",
+      );
+    } finally {
+      errorSpy.mockRestore();
+    }
   });
 });

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => {
   const cookieStore = {
@@ -258,7 +258,10 @@ function authed(overrides: Record<string, unknown> = {}) {
 }
 
 describe("API route coverage", () => {
+  let originalCronSecret: string | undefined;
+
   beforeEach(() => {
+    originalCronSecret = process.env.CRON_SECRET;
     process.env.CRON_SECRET = "cron-secret";
     vi.clearAllMocks();
     mocks.state.selectResults = [];
@@ -291,6 +294,14 @@ describe("API route coverage", () => {
         asPng: () => new Uint8Array([137, 80, 78, 71]),
       }),
     });
+  });
+
+  afterEach(() => {
+    if (originalCronSecret === undefined) {
+      delete process.env.CRON_SECRET;
+    } else {
+      process.env.CRON_SECRET = originalCronSecret;
+    }
   });
 
   it("exercises handle availability validation and ownership branches", async () => {

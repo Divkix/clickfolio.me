@@ -150,11 +150,16 @@ describe("public page rendering", () => {
   });
 
   it("renders the global error surface", () => {
-    const { container } = render(
-      <GlobalError error={new Error("fatal render failure")} reset={vi.fn()} />,
-    );
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      const { container } = render(
+        <GlobalError error={new Error("fatal render failure")} reset={vi.fn()} />,
+      );
 
-    expect(container.textContent).toContain("Something went wrong");
+      expect(container.textContent).toContain("Something went wrong");
+    } finally {
+      errorSpy.mockRestore();
+    }
   });
 
   it("keeps blog metadata generators wired to titles", () => {
