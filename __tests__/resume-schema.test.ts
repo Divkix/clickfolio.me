@@ -497,10 +497,6 @@ describe("error messages", () => {
 // ── resumeContentSchema alias ──────────────────────────────────────
 
 describe("resumeContentSchema", () => {
-  it("is identical to resumeContentSchema", () => {
-    expect(resumeContentSchema).toBe(resumeContentSchema);
-  });
-
   it("validates the same data as resumeContentSchema", async () => {
     const result = await resumeContentSchema.safeParseAsync(validMinimalResume);
     expect(result.success).toBe(true);

@@ -37,6 +37,7 @@ export default defineConfig({
         "lib/utils/**/*.{ts,tsx}",
         "app/api/**/*.{ts,tsx}",
         "lib/schemas/**/*.{ts,tsx}",
+        "lib/rate-limit/**/*.{ts,tsx}",
       ],
       exclude: ["**/*.d.ts", "**/*.test.{ts,tsx}", "lib/stubs/**", "**/__tests__/**"],
       // Security tests require high coverage
