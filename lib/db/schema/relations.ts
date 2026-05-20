@@ -17,7 +17,8 @@ export const userRelations = relations(user, ({ many, one }) => ({
     references: [siteData.userId],
   }),
   handleChanges: many(handleChanges),
-  referralClicks: many(referralClicks),
+  referralClicks: many(referralClicks, { relationName: "referrer" }),
+  convertedReferrals: many(referralClicks, { relationName: "convertedUser" }),
 }));
 
 export const sessionRelations = relations(session, ({ one }) => ({
@@ -64,9 +65,11 @@ export const referralClicksRelations = relations(referralClicks, ({ one }) => ({
   referrer: one(user, {
     fields: [referralClicks.referrerUserId],
     references: [user.id],
+    relationName: "referrer",
   }),
   convertedUser: one(user, {
     fields: [referralClicks.convertedUserId],
     references: [user.id],
+    relationName: "convertedUser",
   }),
 }));

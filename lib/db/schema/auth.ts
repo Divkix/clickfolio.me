@@ -1,4 +1,4 @@
-import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 // =============================================================================
 // Better Auth Core Tables
@@ -97,6 +97,8 @@ export const account = sqliteTable(
   (table) => [
     // Index for auth lookups by userId
     index("account_user_id_idx").on(table.userId),
+    // Composite unique index for provider accounts
+    uniqueIndex("account_provider_account_id_idx").on(table.providerId, table.accountId),
   ],
 );
 

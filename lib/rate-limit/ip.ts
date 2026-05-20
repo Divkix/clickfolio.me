@@ -9,8 +9,8 @@ import { env } from "cloudflare:workers";
 import { and, eq, gte, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { uploadRateLimits } from "@/lib/db/schema";
-import { isLocalEnvironment } from "../utils/environment";
-import { sha256Hex } from "../utils/hash";
+import { isLocalEnvironment } from "@/lib/utils/environment";
+import { sha256Hex } from "@/lib/utils/hash";
 
 const HOURLY_LIMIT = 10;
 const DAILY_LIMIT = 50;

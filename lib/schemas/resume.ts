@@ -156,11 +156,11 @@ const experienceSchema = z.object({
     .min(1, "Description is required")
     .max(5000, "Description is too long (max 5000 characters)")
     .refine(noXssPattern, { message: "Invalid content detected" })
-    .describe("Role description (2-4 sentences, max 500 characters)"),
+    .describe("Role description (max 5000 characters)"),
   highlights: z
     .array(z.string().trim().max(500).refine(noXssPattern, { message: "Invalid content detected" }))
     .optional()
-    .describe("Key achievements or responsibilities"),
+    .describe("Key achievements or responsibilities (max 500 characters per item)"),
 });
 
 /**

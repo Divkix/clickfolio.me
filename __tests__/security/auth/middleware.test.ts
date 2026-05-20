@@ -68,6 +68,7 @@ vi.mock("next/headers", () => ({
 // Mock drizzle-orm
 vi.mock("drizzle-orm", () => ({
   eq: vi.fn((_col, val) => val),
+  gte: vi.fn(),
   relations: vi.fn(),
 }));
 
