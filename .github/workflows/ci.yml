@@ -210,11 +210,43 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           title: Unit Test Coverage
 
+  coverage-gate:
+    name: 80% Coverage Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [unit-tests, integration-tests, security-tests]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Get bun cache directory
+        id: bun-cache-dir
+        run: echo "dir=$(bun pm cache)" >> $GITHUB_OUTPUT
+
+      - name: Cache bun dependencies
+        uses: actions/cache@v5
+        with:
+          path: ${{ steps.bun-cache-dir.outputs.dir }}
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Run full coverage gate
+        run: bun run test:coverage
+
   build:
     name: Build & Verify
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    needs: [quality, type-check, unit-tests, integration-tests, security-tests]
+    needs: [quality, type-check, unit-tests, integration-tests, security-tests, coverage-gate]
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -254,7 +286,7 @@ jobs:
     name: CI Success
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    needs: [quality, type-check, unit-tests, integration-tests, security-tests, build]
+    needs: [quality, type-check, unit-tests, integration-tests, security-tests, coverage-gate, build]
     if: always()
     steps:
       - name: Check all jobs status
@@ -264,6 +296,7 @@ jobs:
              [[ "${{ needs.unit-tests.result }}" != "success" ]] || \
              [[ "${{ needs.integration-tests.result }}" != "success" ]] || \
              [[ "${{ needs.security-tests.result }}" != "success" ]] || \
+             [[ "${{ needs.coverage-gate.result }}" != "success" ]] || \
              [[ "${{ needs.build.result }}" != "success" ]]; then
             echo "One or more CI jobs failed"
             exit 1
