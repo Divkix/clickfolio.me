@@ -2,7 +2,12 @@
  * Pure data module for theme IDs, metadata, and type guards.
  * ZERO component imports — safe for API routes, client components, and anywhere
  * that should not pull in template component bundles.
+ *
+ * Type imports from components are fine — they're erased at compile time
+ * and do not pull component bundles into server routes.
  */
+
+import type { SharePopoverVariant } from "@/components/SharePopover";
 
 export const THEME_IDS = [
   "bento",
@@ -132,3 +137,19 @@ export function isThemeUnlocked(themeId: ThemeId, referralCount: number, isPro =
 export function getThemeReferralRequirement(themeId: ThemeId): number {
   return THEME_METADATA[themeId].referralsRequired;
 }
+
+/**
+ * Map database theme IDs (underscore) to share popover variants (kebab-case).
+ */
+export const themeToShareVariant: Record<ThemeId, SharePopoverVariant> = {
+  minimalist_editorial: "minimalist-editorial",
+  neo_brutalist: "neo-brutalist",
+  glass: "glass-morphic",
+  bento: "bento-grid",
+  spotlight: "spotlight",
+  midnight: "midnight",
+  bold_corporate: "bold-corporate",
+  classic_ats: "classic-ats",
+  design_folio: "design-folio",
+  dev_terminal: "dev-terminal",
+};

@@ -12,8 +12,8 @@ import { env } from "cloudflare:workers";
 import { and, eq, isNull, or } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { referralClicks, user } from "@/lib/db/schema";
+import { getClientIP } from "@/lib/rate-limit/ip";
 import { generateVisitorHashWithDate } from "@/lib/utils/analytics";
-import { getClientIP } from "@/lib/utils/ip-rate-limit";
 
 const REFERRAL_CODE_KEY = "referral_code";
 

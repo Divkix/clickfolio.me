@@ -7,7 +7,8 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
-import { type PrivacySettings, privacySettingsSchema } from "@/lib/schemas/profile";
+import type { PrivacySettings } from "@/lib/db/schema/auth";
+import { privacySettingsSchema } from "@/lib/schemas/profile";
 
 interface PrivacySettingsFormProps {
   initialSettings: PrivacySettings;

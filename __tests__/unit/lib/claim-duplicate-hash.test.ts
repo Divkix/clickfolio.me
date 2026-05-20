@@ -106,7 +106,7 @@ vi.mock("@/lib/r2", () => ({
 }));
 
 // Rate limit mock
-vi.mock("@/lib/utils/rate-limit", () => ({
+vi.mock("@/lib/rate-limit/user", () => ({
   enforceRateLimit: vi.fn().mockResolvedValue(null),
 }));
 

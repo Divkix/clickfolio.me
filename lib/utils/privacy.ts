@@ -98,7 +98,7 @@ export function extractCityState(location: string | undefined): string {
   return normalized;
 }
 
-import type { PrivacySettings } from "@/lib/schemas/profile";
+import type { PrivacySettings } from "@/lib/db/schema/auth";
 
 export type { PrivacySettings };
 

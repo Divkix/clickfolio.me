@@ -110,7 +110,7 @@ vi.mock("@/lib/utils/validation", () => ({
 }));
 
 // Mock rate limiting
-vi.mock("@/lib/utils/rate-limit", () => ({
+vi.mock("@/lib/rate-limit/user", () => ({
   enforceRateLimit: vi.fn().mockResolvedValue(null),
 }));
 
@@ -295,7 +295,7 @@ describe("IDOR - Profile Routes Security", () => {
       authedAs("user-a");
 
       // Mock rate limit enforcement
-      const { enforceRateLimit } = await import("@/lib/utils/rate-limit");
+      const { enforceRateLimit } = await import("@/lib/rate-limit/user");
       vi.mocked(enforceRateLimit).mockResolvedValue(
         new Response(JSON.stringify({ error: "Rate limit exceeded" }), { status: 429 }),
       );
@@ -434,7 +434,7 @@ describe("IDOR - Profile Routes Security", () => {
       }
 
       // Verify rate limiting is checked
-      const { enforceRateLimit } = await import("@/lib/utils/rate-limit");
+      const { enforceRateLimit } = await import("@/lib/rate-limit/user");
 
       for (const _ of handles) {
         expect(vi.mocked(enforceRateLimit)).toBeDefined();

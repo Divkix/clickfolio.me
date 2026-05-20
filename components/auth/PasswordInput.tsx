@@ -4,7 +4,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { forwardRef, useCallback, useEffect, useMemo, useState } from "react";
 import { checkBreached } from "@/lib/password/hibp";
 import { checkPasswordStrength, type PasswordStrengthResult } from "@/lib/password/strength";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils/cn";
 import { PasswordStrengthMeter } from "./PasswordStrengthMeter";
 
 interface PasswordInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "type"> {

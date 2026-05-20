@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildSitemapIndexXml, buildSitemapXml } from "@/lib/sitemap";
+import { buildSitemapIndexXml, buildSitemapXml } from "@/lib/seo/sitemap";
 
 describe("sitemap xml builders", () => {
   it("builds sitemap xml for url entries", () => {

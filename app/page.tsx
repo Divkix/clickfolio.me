@@ -12,8 +12,8 @@ import { WhatYouGetSection } from "@/components/home/WhatYouGetSection";
 import { ReferralCapture } from "@/components/ReferralCapture";
 import { SiteHeader } from "@/components/SiteHeader";
 import { siteConfig } from "@/lib/config/site";
+import { generateFAQJsonLd, generateHomepageJsonLd, serializeJsonLd } from "@/lib/seo/json-ld";
 import { DEMO_PROFILES } from "@/lib/templates/demo-data";
-import { generateFAQJsonLd, generateHomepageJsonLd, serializeJsonLd } from "@/lib/utils/json-ld";
 
 export const revalidate = 3600;
 

@@ -2,8 +2,8 @@ import { and, eq, gte, sql } from "drizzle-orm";
 import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
 
 import { handleChanges, user } from "@/lib/db/schema";
+import { isHandleTaken } from "@/lib/rate-limit/handle-validation";
 import { handleUpdateSchema } from "@/lib/schemas/profile";
-import { isHandleTaken } from "@/lib/utils/handle-validation";
 import {
   createErrorResponse,
   createSuccessResponse,

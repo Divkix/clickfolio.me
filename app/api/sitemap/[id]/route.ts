@@ -1,4 +1,4 @@
-import { buildSitemapXml, generateSitemapEntries } from "@/lib/sitemap";
+import { buildSitemapXml, generateSitemapEntries } from "@/lib/seo/sitemap";
 
 function parseSitemapId(rawId: string): number | null {
   if (!/^\d+$/.test(rawId)) return null;

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { _resetCache, extractDomain, isDisposableEmail } from "@/lib/email/disposable-check";
+import { RESERVED_HANDLES } from "@/lib/rate-limit/handle-validation";
 import { generateVisitorHash } from "@/lib/utils/analytics";
-import { RESERVED_HANDLES } from "@/lib/utils/handle-validation";
 import { createSignedCookieValue, parseSignedCookieValue } from "@/lib/utils/pending-upload-cookie";
 
 // Mock the Better Auth module

@@ -4,7 +4,7 @@ import {
   generatePageBreadcrumbJsonLd,
   generateWebPageJsonLd,
   serializeJsonLd,
-} from "@/lib/utils/json-ld";
+} from "@/lib/seo/json-ld";
 
 export const revalidate = 3600;
 

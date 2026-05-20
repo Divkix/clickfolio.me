@@ -81,7 +81,7 @@ vi.mock("@/lib/config/retry", () => ({
   RETRY_LIMITS: { MANUAL_MAX_RETRIES: 2, TOTAL_MAX_ATTEMPTS: 5 },
 }));
 
-vi.mock("@/lib/utils/rate-limit", () => ({
+vi.mock("@/lib/rate-limit/user", () => ({
   enforceRateLimit: vi.fn().mockResolvedValue(null),
 }));
 

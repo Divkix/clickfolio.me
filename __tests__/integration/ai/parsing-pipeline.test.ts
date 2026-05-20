@@ -3,7 +3,7 @@ import { parseJsonWithRepair, transformToSchema } from "@/lib/ai/ai-fallback";
 import { normalizeAiKeys } from "@/lib/ai/ai-normalize";
 import { parseWithAi } from "@/lib/ai/ai-parser";
 import { parseResumeWithAi } from "@/lib/ai/index";
-import { resumeSchema } from "@/lib/ai/schema";
+import { resumeSchemaLenient } from "@/lib/schemas/resume";
 
 vi.mock("@ai-sdk/openai-compatible", () => ({
   createOpenAICompatible: vi.fn(() => (modelId: string) => ({
@@ -580,7 +580,7 @@ describe("AI Parsing Pipeline", () => {
         projects: [],
       };
 
-      const validation = resumeSchema.safeParse(validData);
+      const validation = resumeSchemaLenient.safeParse(validData);
       expect(validation.success).toBe(true);
     });
 
@@ -592,7 +592,7 @@ describe("AI Parsing Pipeline", () => {
         experience: [],
       };
 
-      const validation = resumeSchema.safeParse(invalidData);
+      const validation = resumeSchemaLenient.safeParse(invalidData);
       expect(validation.success).toBe(false);
     });
 
@@ -614,7 +614,7 @@ describe("AI Parsing Pipeline", () => {
         another_extra: 123,
       };
 
-      const validation = resumeSchema.safeParse(dataWithExtras);
+      const validation = resumeSchemaLenient.safeParse(dataWithExtras);
       // Zod strips unknown keys by default - validation should pass
       expect(validation.success).toBe(true);
       if (validation.success) {
@@ -638,7 +638,7 @@ describe("AI Parsing Pipeline", () => {
         },
       };
 
-      const validation = resumeSchema.safeParse(data);
+      const validation = resumeSchemaLenient.safeParse(data);
       expect(validation.success).toBe(true);
     });
 
@@ -660,7 +660,7 @@ describe("AI Parsing Pipeline", () => {
         ],
       };
 
-      const validation = resumeSchema.safeParse(data);
+      const validation = resumeSchemaLenient.safeParse(data);
       expect(validation.success).toBe(true);
       if (validation.success) {
         expect(Array.isArray(validation.data.skills)).toBe(true);
@@ -687,7 +687,7 @@ describe("AI Parsing Pipeline", () => {
         ],
       };
 
-      const result = resumeSchema.safeParse(requiredFields);
+      const result = resumeSchemaLenient.safeParse(requiredFields);
       expect(result.success).toBe(true);
     });
 
@@ -702,7 +702,7 @@ describe("AI Parsing Pipeline", () => {
         ],
       };
 
-      const validation = resumeSchema.safeParse(data);
+      const validation = resumeSchemaLenient.safeParse(data);
       expect(validation.success).toBe(true);
     });
 
@@ -770,7 +770,7 @@ describe("AI Parsing Pipeline", () => {
         projects: [],
       };
 
-      const result = resumeSchema.safeParse(minimalData);
+      const result = resumeSchemaLenient.safeParse(minimalData);
       expect(result.success).toBe(true);
     });
   });

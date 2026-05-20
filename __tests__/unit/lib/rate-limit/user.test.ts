@@ -1,11 +1,11 @@
 /**
  * User rate limiting unit tests
- * Tests for lib/utils/rate-limit.ts
+ * Tests for lib/rate-limit/user.ts
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createMockDb } from "@/__tests__/setup/mocks/db.mock";
-import { checkRateLimit, enforceRateLimit } from "@/lib/utils/rate-limit";
+import { checkRateLimit, enforceRateLimit } from "@/lib/rate-limit/user";
 
 // Mock dependencies
 vi.mock("cloudflare:workers", () => ({

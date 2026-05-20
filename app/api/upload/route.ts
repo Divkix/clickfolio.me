@@ -1,7 +1,7 @@
 import { env } from "cloudflare:workers";
 import { NextResponse } from "next/server";
 import { getR2Binding, R2 } from "@/lib/r2";
-import { checkIPRateLimit, getClientIP } from "@/lib/utils/ip-rate-limit";
+import { checkIPRateLimit, getClientIP } from "@/lib/rate-limit/ip";
 import { COOKIE_NAME, createSignedCookieValue } from "@/lib/utils/pending-upload-cookie";
 import { generateTempKey, MAX_FILE_SIZE, validatePDFBuffer } from "@/lib/utils/validation";
 

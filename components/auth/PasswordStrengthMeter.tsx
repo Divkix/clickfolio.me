@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import type { PasswordStrengthResult } from "@/lib/password/strength";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils/cn";
 
 interface PasswordStrengthMeterProps {
   /** Result from checkPasswordStrength() */

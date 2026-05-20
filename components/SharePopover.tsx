@@ -6,8 +6,8 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react"
 import { toast } from "sonner";
 import { type BrandIconVariant, LinkedInIcon } from "@/components/icons/BrandIcons";
 import { siteConfig } from "@/lib/config/site";
-import { cn } from "@/lib/utils";
 import { copyToClipboard } from "@/lib/utils/clipboard";
+import { cn } from "@/lib/utils/cn";
 import {
   generateLinkedInShareUrl,
   generateShareText,

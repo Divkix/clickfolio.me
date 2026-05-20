@@ -15,7 +15,7 @@ import {
   generateExploreJsonLd,
   generatePageBreadcrumbJsonLd,
   serializeJsonLd,
-} from "@/lib/utils/json-ld";
+} from "@/lib/seo/json-ld";
 import { parsePreviewSkills } from "@/lib/utils/preview-skills";
 
 export const revalidate = 300;

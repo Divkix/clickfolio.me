@@ -1,6 +1,6 @@
 /**
  * IP-based rate limiting unit tests
- * Tests for lib/utils/ip-rate-limit.ts
+ * Tests for lib/rate-limit/ip.ts
  */
 
 import { eq } from "drizzle-orm";
@@ -11,7 +11,7 @@ import {
   checkHandleRateLimit,
   checkIPRateLimit,
   getClientIP,
-} from "@/lib/utils/ip-rate-limit";
+} from "@/lib/rate-limit/ip";
 
 // Mock the modules
 vi.mock("cloudflare:workers", () => ({

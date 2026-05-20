@@ -53,7 +53,7 @@ describe("production SEO and AI discovery assets", () => {
   });
 
   it("uses an existing public logo asset in homepage Organization JSON-LD", () => {
-    const jsonLdSource = readFileSync(join(root, "lib", "utils", "json-ld.ts"), "utf8");
+    const jsonLdSource = readFileSync(join(root, "lib", "seo", "json-ld.ts"), "utf8");
     const logoMatch = jsonLdSource.match(/logo:\s*`\$\{siteConfig\.url\}\/([^`]+)`/);
     const logoPath = logoMatch?.[1] ?? "";
 

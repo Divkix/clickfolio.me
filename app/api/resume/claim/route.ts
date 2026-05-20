@@ -6,10 +6,10 @@ import type { NewResume } from "@/lib/db/schema";
 import { resumes } from "@/lib/db/schema";
 import { publishResumeParse } from "@/lib/queue/resume-parse";
 import { getR2Binding, R2 } from "@/lib/r2";
+import { enforceRateLimit } from "@/lib/rate-limit/user";
 import { writeReferral } from "@/lib/referral";
 import { sha256Hex } from "@/lib/utils/hash";
 import { COOKIE_NAME, parseSignedCookieValue } from "@/lib/utils/pending-upload-cookie";
-import { enforceRateLimit } from "@/lib/utils/rate-limit";
 import {
   createErrorResponse,
   createSuccessResponse,

@@ -1,7 +1,7 @@
+import { type ResumeContentFormData, resumeSchemaLenient } from "@/lib/schemas/resume";
 import { sanitizeEmail } from "@/lib/utils/sanitization";
 import { parseWithAi } from "./ai-parser";
 import { extractPdfText } from "./pdf-extract";
-import { type ResumeSchema, resumeSchema } from "./schema";
 import { normalizeEndDate, transformAiOutput, transformAiResponse, validateUrl } from "./transform";
 
 export interface ParseResumeResult {
@@ -74,7 +74,7 @@ function validateParseResult(
     if (!Array.isArray(withDefaults[key])) withDefaults[key] = [];
   }
 
-  const result = resumeSchema.safeParse(withDefaults);
+  const result = resumeSchemaLenient.safeParse(withDefaults);
   if (result.success) {
     return { success: true, data: result.data as Record<string, unknown> };
   }
@@ -165,7 +165,7 @@ export async function parseResumeWithAi(
     }
 
     // Step 4: Final cleanup
-    const finalData = transformAiOutput(validation.data as ResumeSchema);
+    const finalData = transformAiOutput(validation.data as ResumeContentFormData);
 
     // Extract professional_level before serializing — it goes to user.role, not siteData.content
     const professionalLevel = finalData.professional_level as string | undefined;

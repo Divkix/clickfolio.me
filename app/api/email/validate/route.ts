@@ -1,7 +1,7 @@
 import { env } from "cloudflare:workers";
 import { z } from "zod";
 import { isDisposableEmail } from "@/lib/email/disposable-check";
-import { checkEmailValidateRateLimit, getClientIP } from "@/lib/utils/ip-rate-limit";
+import { checkEmailValidateRateLimit, getClientIP } from "@/lib/rate-limit/ip";
 import {
   createErrorResponse,
   createSuccessResponse,

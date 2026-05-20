@@ -10,7 +10,7 @@ import {
 } from "@/lib/templates/demo-data";
 import { THEME_METADATA } from "@/lib/templates/theme-ids";
 import { DYNAMIC_TEMPLATES } from "@/lib/templates/theme-registry.client";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils/cn";
 
 interface TemplatePreviewModalProps {
   isOpen: boolean;
