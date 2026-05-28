@@ -11,7 +11,17 @@ import {
 
 /**
  * PUT /api/profile/privacy
- * Update user's privacy settings (show_phone, show_address)
+ * Update user's privacy settings.
+ *
+ * Request body fields:
+ *   - show_phone: boolean
+ *   - show_address: boolean
+ *   - hide_from_search: boolean
+ *   - show_in_directory: boolean
+ *
+ * Error codes:
+ *   - 400: invalid JSON or validation failure
+ *   - 500: unexpected error
  */
 export async function PUT(request: Request) {
   try {

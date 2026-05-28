@@ -17,6 +17,37 @@ interface RetryRequestBody {
   resume_id?: string;
 }
 
+/**
+ * POST /api/resume/retry
+ * Retry endpoint for failed resumes.
+ *
+ * Request body:
+ *   { resume_id: string }
+ *
+ * Retry eligibility checks:
+ *   - Max total attempts not exceeded (RETRY_LIMITS.TOTAL_MAX_ATTEMPTS)
+ *   - Last error is not a permanent error type
+ *   - Resume status is "failed"
+ *   - Manual retry count < RETRY_LIMITS.MANUAL_MAX_RETRIES
+ *
+ * R2 fallback chain:
+ *   - Uses stored fileHash if available
+ *   - Falls back to downloading from R2 and computing SHA-256 for legacy rows
+ *
+ * Queue publishing:
+ *   - Updates resume status to "queued" BEFORE publishing to prevent race conditions
+ *   - Publishes to CLICKFOLIO_PARSE_QUEUE with resumeId, userId, r2Key, fileHash, attempt
+ *
+ * Rollback behavior:
+ *   - On queue publish failure, rolls back status to "failed" and restores previous retryCount
+ *
+ * Error codes:
+ *   - 400: missing resume_id, permanent error type, or resume not in failed state
+ *   - 403: resume belongs to another user
+ *   - 404: resume not found
+ *   - 429: max total attempts or manual retries exceeded
+ *   - 500: storage unavailable, download failure, queue unavailable, or unexpected error
+ */
 export async function POST(request: Request) {
   try {
     // 1. Check authentication and validate user exists in database
@@ -46,7 +77,7 @@ export async function POST(request: Request) {
     try {
       body = (await request.json()) as RetryRequestBody;
     } catch {
-      return Response.json({ error: "Invalid JSON body" }, { status: 400 });
+      return createErrorResponse("Invalid JSON body", ERROR_CODES.BAD_REQUEST, 400);
     }
     const { resume_id } = body;
 

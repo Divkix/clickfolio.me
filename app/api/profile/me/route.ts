@@ -10,7 +10,17 @@ import {
 
 /**
  * GET /api/profile/me
- * Fetch the current user's profile
+ * Fetch the current user's profile.
+ *
+ * Response:
+ *   Profile object with privacy settings parsed from JSON string.
+ *   Includes fields: id, name, email, image, handle, headline,
+ *   privacySettings, onboardingCompleted, role, roleSource, isAdmin,
+ *   createdAt, updatedAt.
+ *
+ * Error codes:
+ *   - 404: user not found
+ *   - 500: unexpected error
  */
 export async function GET() {
   try {

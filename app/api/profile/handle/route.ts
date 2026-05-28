@@ -13,8 +13,22 @@ import { validateRequestSize } from "@/lib/utils/validation";
 
 /**
  * PUT /api/profile/handle
- * Update user's handle (old handle becomes immediately available)
- * Rate limit: 3 handle changes per 24 hours (prevent abuse)
+ * Update user's handle (old handle becomes immediately available).
+ *
+ * Rate limit: 3 handle changes per 24 hours (prevent abuse).
+ *
+ * Request body:
+ *   { handle: string }
+ *
+ * Response:
+ *   { success: true, handle: string, old_handle: string | null }
+ *
+ * Error codes:
+ *   - 400: invalid JSON, invalid handle format, or handle already set to this value
+ *   - 409: handle is already taken by another user
+ *   - 413: request body too large
+ *   - 429: rate limit exceeded (3 changes per 24 hours)
+ *   - 500: database error or unexpected error
  */
 export async function PUT(request: Request) {
   try {

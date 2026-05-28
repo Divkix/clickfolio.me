@@ -6,8 +6,12 @@
  *
  * Endpoints:
  * - POST: Set cookie after successful R2 upload
+ *     Response: { success: boolean }
+ *     Error codes: 400 (invalid key), 500
  * - GET: Retrieve pending upload key for claim flow
+ *     Response: { key: string | null }
  * - DELETE: Clear cookie after successful claim
+ *     Response: { success: boolean }
  */
 
 import { env } from "cloudflare:workers";

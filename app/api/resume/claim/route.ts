@@ -28,8 +28,25 @@ const claimRequestSchema = z.object({
 
 /**
  * POST /api/resume/claim
- * Claims an anonymous upload and triggers AI parsing
- * Rate limit: 5 uploads per 24 hours
+ * Claims an anonymous upload and triggers AI parsing.
+ *
+ * Rate limit: 5 uploads per 24 hours per authenticated user.
+ *
+ * Request body:
+ *   {
+ *     key: string (required, must start with "temp/"),
+ *     referral_code: string (optional, max 50 chars, alphanumeric + @ _ -)
+ *   }
+ *
+ * Response:
+ *   { resume_id: string, status: string, cached?: boolean, already_claimed?: boolean }
+ *
+ * Error codes:
+ *   - 400: invalid JSON, invalid key format, file too large, or invalid PDF
+ *   - 403: missing or invalid upload verification cookie, or key mismatch
+ *   - 404: file not found (expired upload)
+ *   - 413: request body too large
+ *   - 500: storage unavailable, database error, or unexpected error
  */
 export async function POST(request: Request) {
   try {

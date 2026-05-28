@@ -10,6 +10,34 @@ import {
 // 10 minute timeout for waiting_for_cache status
 const WAITING_FOR_CACHE_TIMEOUT_MS = 10 * 60 * 1000;
 
+/**
+ * GET /api/resume/status
+ * Lightweight polling endpoint for resume parsing status.
+ *
+ * Query parameter:
+ *   - resume_id: string (required)
+ *
+ * Status states:
+ *   - waiting_for_cache: 10-minute timeout, then transitions to failed
+ *   - queued: shown as processing with early progress (25%)
+ *   - processing: intermediate progress (50%)
+ *   - completed: includes parsed_content JSON
+ *   - failed: includes error message and can_retry flag
+ *
+ * Response fields vary by status:
+ *   - progress_pct: number (0-100)
+ *   - error: string | null
+ *   - can_retry: boolean (true when failed and retryCount < 2)
+ *   - parsed_content: object | null (only when completed)
+ *   - waiting_for_cache: boolean (only when waiting)
+ *   - queued: boolean (only when queued)
+ *
+ * Error codes:
+ *   - 400: missing resume_id
+ *   - 403: resume belongs to another user
+ *   - 404: resume not found
+ *   - 500: unexpected error or invalid stored JSON
+ */
 export async function GET(request: Request) {
   try {
     // 1. Check authentication and validate user exists in database

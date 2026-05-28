@@ -15,6 +15,22 @@ interface ThemeUpdateRequestBody {
   theme_id?: string;
 }
 
+/**
+ * POST /api/resume/update-theme
+ * Updates the theme for a user's resume.
+ *
+ * Request body:
+ *   { theme_id: string }
+ *
+ * Validation:
+ *   - theme_id must be a valid entry in THEME_IDS
+ *   - Premium/locked themes require referral unlock via verifyThemeUnlocked
+ *
+ * Error codes:
+ *   - 400: missing or invalid theme_id, or theme locked behind referral requirement
+ *   - 404: site_data not found (resume not uploaded yet)
+ *   - 500: unexpected error
+ */
 export async function POST(request: Request) {
   try {
     // 1. Authenticate user and validate existence in database

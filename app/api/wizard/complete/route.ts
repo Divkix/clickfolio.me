@@ -33,20 +33,30 @@ type WizardCompleteRequest = z.infer<typeof wizardCompleteSchema>;
 
 /**
  * POST /api/wizard/complete
- * Completes the onboarding wizard by setting handle, privacy, and theme
+ * Completes the onboarding wizard by setting handle, privacy, and theme.
  *
  * Request body:
- * {
- *   handle: string,
- *   privacy_settings: { show_phone: boolean, show_address: boolean },
- *   theme_id: ThemeId (any registered theme from theme-registry)
- * }
+ *   {
+ *     handle: string,
+ *     privacy_settings: {
+ *       show_phone: boolean,
+ *       show_address: boolean,
+ *       hide_from_search: boolean (optional, default false),
+ *       show_in_directory: boolean (optional, default true)
+ *     },
+ *     theme_id: ThemeId (any registered theme from theme-registry)
+ *   }
+ *
+ * Theme access is validated via verifyThemeUnlocked (premium themes may require referrals).
  *
  * Response:
- * {
- *   success: true,
- *   handle: string
- * }
+ *   { success: true, handle: string }
+ *
+ * Error codes:
+ *   - 400: invalid JSON, validation failure, or handle already taken
+ *   - 409: handle was just taken (race condition / unique constraint)
+ *   - 413: request body too large
+ *   - 500: database error or unexpected error
  */
 export async function POST(request: Request) {
   try {

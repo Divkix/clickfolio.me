@@ -10,17 +10,29 @@ const MIN_PDF_SIZE = 100;
 
 /**
  * POST /api/upload
- * Direct file upload to R2 via Worker binding (replaces presigned URLs)
+ * Direct file upload to R2 via Worker binding (replaces presigned URLs).
  *
- * Headers:
+ * Request headers:
  *   - Content-Type: application/pdf (required)
  *   - Content-Length: file size in bytes (required)
  *   - X-Filename: original filename (required)
+ *
+ * Rate limits:
+ *   - 10 uploads per hour per IP
+ *   - 50 uploads per day per IP
  *
  * Returns:
  *   - key: R2 object key (temp/{uuid}/{filename})
  *   - remaining: { hourly, daily } rate limit remaining
  *   - Set-Cookie: pending_upload cookie for claim verification
+ *
+ * Error codes:
+ *   - 400: invalid Content-Type, missing/invalid Content-Length, empty file,
+ *           filename too long, Content-Length mismatch, or invalid PDF
+ *   - 411: missing Content-Length header
+ *   - 413: file size exceeds MAX_FILE_SIZE
+ *   - 429: rate limit exceeded (per IP)
+ *   - 500: R2 storage error or unexpected error
  */
 export async function POST(request: Request) {
   try {

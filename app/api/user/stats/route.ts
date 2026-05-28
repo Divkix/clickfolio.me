@@ -2,11 +2,24 @@ import { eq } from "drizzle-orm";
 import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
 import { user } from "@/lib/db/schema";
 
+import {
+  createErrorResponse,
+  createSuccessResponse,
+  ERROR_CODES,
+} from "@/lib/utils/security-headers";
+
 /**
  * GET /api/user/stats
  *
  * Returns the current user's stats including referral count and pro status.
  * Used by the wizard and other client components that need this data.
+ *
+ * Response:
+ *   { referralCount: number, isPro: boolean }
+ *
+ * Error codes:
+ *   - 404: user not found
+ *   - 500: unexpected error
  */
 export async function GET() {
   try {
@@ -27,15 +40,15 @@ export async function GET() {
     });
 
     if (!userData) {
-      return Response.json({ error: "User not found" }, { status: 404 });
+      return createErrorResponse("User not found", ERROR_CODES.NOT_FOUND, 404);
     }
 
-    return Response.json({
+    return createSuccessResponse({
       referralCount: userData.referralCount ?? 0,
       isPro: userData.isPro ?? false,
     });
   } catch (error) {
     console.error("Error fetching user stats:", error);
-    return Response.json({ error: "Internal server error" }, { status: 500 });
+    return createErrorResponse("Internal server error", ERROR_CODES.INTERNAL_ERROR, 500);
   }
 }

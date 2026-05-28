@@ -9,7 +9,19 @@ import {
 
 /**
  * GET /api/resume/latest-status
- * Get the latest resume status for the currently authenticated user
+ * Get the latest resume status for the currently authenticated user.
+ *
+ * Response:
+ *   {
+ *     id: string,
+ *     status: string,
+ *     error: string | null,
+ *     can_retry: boolean,
+ *     createdAt: string
+ *   } | null
+ *
+ * Error codes:
+ *   - 500: unexpected error
  */
 export async function GET() {
   try {

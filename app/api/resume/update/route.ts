@@ -18,19 +18,22 @@ interface UpdateRequestBody {
 
 /**
  * PUT /api/resume/update
- * Updates the user's resume content in site_data
- * Includes comprehensive validation
+ * Updates the user's resume content in site_data.
+ * Includes comprehensive validation.
  *
  * Request body:
- * {
- *   content: ResumeContent
- * }
+ *   { content: ResumeContent }
  *
  * Response:
- * {
- *   success: true,
- *   data: { id, last_published_at }
- * }
+ *   { success: true, data: { id, last_published_at } }
+ *
+ * Rate limits:
+ *   - 5 uploads per 24 hours per authenticated user
+ *
+ * Error codes:
+ *   - 400: invalid JSON or validation failure
+ *   - 413: request body too large
+ *   - 500: database error or unexpected error
  */
 export async function PUT(request: Request) {
   try {
