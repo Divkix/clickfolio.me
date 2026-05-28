@@ -108,4 +108,4 @@ The application sets appropriate security headers through Cloudflare Workers. Fo
 - X-Frame-Options
 - X-Content-Type-Options
 
-These can be configured in `middleware.ts` or via Cloudflare Page Rules.
+These can be configured in `next.config.ts` or via Cloudflare Page Rules.

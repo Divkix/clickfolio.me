@@ -28,7 +28,7 @@ Upload a PDF. AI parses it. Get a shareable link.
 | **Framework** | [vinext](https://github.com/cloudflare/vinext) (Vite-based Next.js) |
 | **Runtime** | [Cloudflare Workers](https://workers.cloudflare.com) |
 | **Database** | [Cloudflare D1](https://developers.cloudflare.com/d1/) (SQLite) + [Drizzle ORM](https://orm.drizzle.team) |
-| **Auth** | [Better Auth](https://better-auth.com) (Google OAuth) |
+| **Auth** | [Better Auth](https://better-auth.com) (Google OAuth + email/password) |
 | **Storage** | [Cloudflare R2](https://developers.cloudflare.com/r2/) (S3-compatible) |
 | **AI Parsing** | [OpenRouter](https://openrouter.ai) via [Cloudflare AI Gateway](https://developers.cloudflare.com/ai-gateway/) (openai/gpt-oss models) |
 | **Styling** | [shadcn/ui](https://ui.shadcn.com) + [Tailwind CSS 4](https://tailwindcss.com) |
@@ -322,8 +322,17 @@ bun run db:migrate:prod  # Apply migrations to production
 bun run db:studio        # Drizzle Studio UI (port 4984)
 bun run db:reset         # Wipe local D1 and re-migrate
 
+# Testing
+bun run test             # All tests
+bun run test:unit        # Unit tests (fast, no retries)
+bun run test:integration # Integration tests
+bun run test:security    # Security tests
+bun run test:coverage    # All tests + coverage
+bun run test:ci          # CI mode (JSON reporter)
+bun run test:ui          # Interactive UI mode
+
 # Quality
-bun run ci               # type-check + lint + build
+bun run ci               # type-check + lint + test + build
 ```
 
 ### Project Structure

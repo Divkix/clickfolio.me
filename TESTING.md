@@ -53,10 +53,10 @@ Coverage is enforced in CI via threshold settings in `vitest.config.ts`:
 
 | Metric      | Threshold |
 |-------------|-----------|
-| Statements  | 30%       |
-| Branches    | 30%       |
-| Functions   | 25%       |
-| Lines       | 30%       |
+| Statements  | 80%       |
+| Branches    | 80%       |
+| Functions   | 80%       |
+| Lines       | 80%       |
 
 **Note:** Coverage thresholds are enforced in CI. If coverage falls below these thresholds, the build will fail.
 

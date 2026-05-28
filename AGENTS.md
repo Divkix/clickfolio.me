@@ -6,7 +6,7 @@
 - **Framework**: [vinext](https://github.com/cloudflare/vinext) (Vite-based Next.js) — NOT standard Next.js
 - **Package manager**: `bun`
 - **DB**: Cloudflare D1 + Drizzle ORM (SQLite)
-- **Auth**: Better Auth (Google OAuth only)
+- **Auth**: Better Auth (Google OAuth + email/password)
 - **Storage**: Cloudflare R2 (binding `CLICKFOLIO_R2_BUCKET`)
 - **Styling**: shadcn/ui (new-york style) + Tailwind CSS 4
 - **Validation**: Zod
@@ -19,7 +19,7 @@
 bun run dev              # Vite dev server on :3000
 bun run type-check       # tsc --noEmit
 bun run lint             # biome check .
-bun run fix              # biome --write .
+bun run fix              # biome check --write .
 bun run test             # all tests
 bun run test:unit        # unit only (fast, no retries)
 bun run test:integration # integration only
@@ -97,7 +97,7 @@ The real entrypoint. Wraps vinext's handler and adds:
 - `__tests__/unit/`, `__tests__/integration/`, `__tests__/security/` (trophy model)
 - Test files: `*.test.ts` or `*.test.tsx`
 - Setup: `__tests__/setup.ts` (jsdom, jest-dom matchers)
-- Coverage thresholds enforced in CI (30% lines/statements, 25% functions)
+- Coverage thresholds enforced in CI (80% lines/statements, 80% functions)
 
 ## Known platform constraints
 

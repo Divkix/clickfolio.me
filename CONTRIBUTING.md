@@ -143,10 +143,7 @@ The Biome configuration is in `biome.json`. Run `bun run fix` to auto-format.
 
 - [ ] Code follows project style guidelines
 - [ ] Self-reviewed the code
-- [ ] Types are correct (`bun run type-check`)
-- [ ] Linting passes (`bun run lint`)
-- [ ] Tests pass (`bun run test`)
-- [ ] Build succeeds (`bun run build`)
+- [ ] All checks pass (`bun run ci` — runs type-check, lint, test, and build)
 - [ ] Tested locally
 - [ ] Documentation updated (if applicable)
 
