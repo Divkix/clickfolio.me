@@ -1,4 +1,12 @@
 /**
+ * Environment detection utilities.
+ *
+ * Detects local environment via BETTER_AUTH_URL rather than NODE_ENV,
+ * which is more reliable because wrangler preview/build bakes
+ * NODE_ENV=production at compile time.
+ */
+
+/**
  * Detect local environment via BETTER_AUTH_URL.
  * More robust than NODE_ENV checks since wrangler preview/build
  * bakes NODE_ENV=production at compile time, but BETTER_AUTH_URL

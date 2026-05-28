@@ -32,6 +32,16 @@ export function clearKeyCache(): void {
   keyCache.clear();
 }
 
+/**
+ * Derives a cached CryptoKey from the signing secret for HMAC-SHA256.
+ *
+ * Uses a module-level cache to avoid re-importing the same key on every
+ * sign/verify call. If the secret changes at runtime (e.g., key rotation),
+ * a new CryptoKey is derived for the new secret.
+ *
+ * @param secret - The raw signing secret (e.g., BETTER_AUTH_SECRET)
+ * @returns CryptoKey ready for HMAC-SHA256 signing
+ */
 async function getCryptoKey(secret: string): Promise<CryptoKey> {
   const cached = keyCache.get(secret);
   if (cached) return cached;

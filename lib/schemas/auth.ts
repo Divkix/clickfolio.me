@@ -1,3 +1,11 @@
+/**
+ * Zod schemas and inferred types for authentication forms.
+ *
+ * Covers sign-up, sign-in, forgot-password, and reset-password flows.
+ * Password strength (zxcvbn) is enforced client-side only to avoid
+ * bundling dictionaries into the Cloudflare Worker.
+ */
+
 import { z } from "zod";
 import { noXssPattern } from "@/lib/utils/sanitization";
 
@@ -42,6 +50,7 @@ export const signUpSchema = z.object({
   password: passwordSchema,
 });
 
+/** Inferred type for sign-up form values. */
 export type SignUpFormData = z.infer<typeof signUpSchema>;
 
 /**
@@ -55,6 +64,7 @@ export const signInSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
+/** Inferred type for sign-in form values. */
 export type SignInFormData = z.infer<typeof signInSchema>;
 
 /**
@@ -67,6 +77,7 @@ export const forgotPasswordSchema = z.object({
   email: emailSchema,
 });
 
+/** Inferred type for forgot-password form values. */
 export type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
 
 /**
@@ -85,4 +96,5 @@ export const resetPasswordSchema = z
     path: ["confirmPassword"],
   });
 
+/** Inferred type for reset-password form values. */
 export type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;

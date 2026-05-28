@@ -1,3 +1,10 @@
+/**
+ * Client-side theme registry.
+ *
+ * Provides `next/dynamic` wrappers for all resume templates so they can be
+ * lazily loaded in client components with a shared loading fallback.
+ */
+
 "use client";
 
 import dynamic from "next/dynamic";

@@ -1,6 +1,14 @@
+/**
+ * Error classification and user-facing error messaging utilities.
+ *
+ * Maps HTTP status codes to error categories (transient, fatal, auth, etc.)
+ * and provides toast-friendly messages with context-aware actions.
+ */
+
 import { toast } from "sonner";
 import { MAX_FILE_SIZE_LABEL } from "@/lib/utils/validation";
 
+/** Classification of HTTP errors for retry logic and UI behavior. */
 type ErrorCategory = "transient" | "fatal" | "auth" | "validation" | "rate_limit";
 
 /**

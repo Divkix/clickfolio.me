@@ -1,8 +1,27 @@
+/**
+ * File validation utilities for PDF uploads and request body size checks.
+ *
+ * Enforces file type, size limits, and magic-number validation for PDFs.
+ * All size limits are configurable via MAX_UPLOAD_SIZE_MB env var.
+ */
+
 const DEFAULT_MAX_FILE_SIZE_MB = 5;
+
+/** Maximum allowed file size in bytes (default 5MB, configurable via env). */
 export const MAX_FILE_SIZE =
   (Number(process.env.MAX_UPLOAD_SIZE_MB) || DEFAULT_MAX_FILE_SIZE_MB) * 1024 * 1024;
+
+/** Human-readable label for the max file size (e.g., "5MB"). */
 export const MAX_FILE_SIZE_LABEL = `${DEFAULT_MAX_FILE_SIZE_MB}MB`;
 
+/**
+ * Validates a client-side File object for upload.
+ *
+ * Checks file type is PDF and size is within MAX_FILE_SIZE.
+ *
+ * @param file - The File object to validate
+ * @returns Validation result with optional error message
+ */
 export function validatePDF(file: File): { valid: boolean; error?: string } {
   if (file.size > MAX_FILE_SIZE) {
     return { valid: false, error: `File size must be less than ${MAX_FILE_SIZE_LABEL}` };
@@ -40,6 +59,15 @@ function sanitizeFilename(filename: string): string {
   return safe;
 }
 
+/**
+ * Generates a secure temporary R2 key for an uploaded file.
+ *
+ * Format: `temp/{uuid}/{sanitized-filename}`.
+ * Sanitizes the filename to prevent path traversal and injection.
+ *
+ * @param filename - Original filename from the upload
+ * @returns Safe temporary R2 object key
+ */
 export function generateTempKey(filename: string): string {
   const uuid = crypto.randomUUID();
   const safeFilename = sanitizeFilename(filename);

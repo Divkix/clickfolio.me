@@ -11,8 +11,13 @@ interface WaitResult {
   error?: string;
 }
 
+/** Maximum number of WebSocket connection attempts before falling back to HTTP polling. */
 const MAX_WS_CONNECT_ATTEMPTS = 3;
+
+/** Interval between HTTP polling requests in milliseconds (3 seconds). */
 const POLL_INTERVAL_MS = 3000;
+
+/** Interval between WebSocket ping keepalive messages in milliseconds (30 seconds). */
 const PING_INTERVAL_MS = 30000;
 
 /**

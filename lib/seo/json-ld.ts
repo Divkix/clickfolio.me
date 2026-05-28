@@ -27,32 +27,49 @@ interface JsonLdRole {
 
 interface JsonLdPerson {
   "@type": "Person";
+  /** Canonical identifier for the person (e.g., profile URL + #person). */
   "@id"?: string;
+  /** Full name of the person. */
   name: string;
+  /** URL of the profile page. */
   url: string;
+  /** Avatar or profile image URL. */
   image?: string;
+  /** Current job title. */
   jobTitle?: string;
+  /** Current employer as an Organization. */
   worksFor?: {
     "@type": "Organization";
     name: string;
   };
+  /** Work experience as schema.org Role nodes. */
   hasOccupation?: JsonLdRole[];
+  /** Educational institutions attended. */
   alumniOf?: Array<{
     "@type": "EducationalOrganization";
     name: string;
   }>;
+  /** Validated social profile URLs (LinkedIn, GitHub, etc.). */
   sameAs?: string[];
+  /** Flattened skill names for the knowsAbout field. */
   knowsAbout?: string[];
+  /** Email address (only included when privacy allows). */
   email?: string;
+  /** Resume summary or bio. */
   description?: string;
 }
 
+/** schema.org ProfilePage wrapping the Person entity. */
 interface JsonLdProfilePage {
   "@context": "https://schema.org";
   "@type": "ProfilePage";
+  /** Canonical identifier for the profile page (e.g., profile URL + #webpage). */
   "@id"?: string;
+  /** ISO date string when the profile was first created. */
   dateCreated?: string;
+  /** ISO date string when the profile was last modified. */
   dateModified?: string;
+  /** The Person entity that is the main subject of this page. */
   mainEntity: JsonLdPerson;
 }
 

@@ -1,5 +1,6 @@
 /**
  * Pure data module for theme IDs, metadata, and type guards.
+ *
  * ZERO component imports — safe for API routes, client components, and anywhere
  * that should not pull in template component bundles.
  *
@@ -9,6 +10,7 @@
 
 import type { SharePopoverVariant } from "@/components/SharePopover";
 
+/** Registry of all available theme IDs. */
 export const THEME_IDS = [
   "bento",
   "bold_corporate",
@@ -22,8 +24,10 @@ export const THEME_IDS = [
   "spotlight",
 ] as const;
 
+/** Union type of all valid theme IDs. */
 export type ThemeId = (typeof THEME_IDS)[number];
 
+/** Default theme ID used when none is selected or an invalid ID is provided. */
 export const DEFAULT_THEME: ThemeId = "minimalist_editorial";
 
 /**

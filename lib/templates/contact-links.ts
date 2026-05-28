@@ -1,5 +1,14 @@
+/**
+ * Contact link generation for resume templates.
+ *
+ * Centralizes null-checking and href generation for all contact fields
+ * (email, phone, socials, etc.). Templates iterate the returned array
+ * with their own styling.
+ */
+
 import type { ResumeContent } from "@/lib/types/database";
 
+/** Supported contact link types for icons and routing. */
 export type ContactLinkType =
   | "email"
   | "phone"
@@ -10,11 +19,17 @@ export type ContactLinkType =
   | "behance"
   | "dribbble";
 
+/** Descriptor for a single contact link in a resume template. */
 export interface ContactLinkDescriptor {
+  /** URL or mailto/tel href for the link. */
   href: string;
+  /** Human-readable label displayed for the link. */
   label: string;
+  /** Icon variant to render. */
   icon: ContactLinkType;
+  /** Whether the link opens in a new tab (external). */
   isExternal: boolean;
+  /** The contact type for styling or routing. */
   type: ContactLinkType;
 }
 

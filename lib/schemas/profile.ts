@@ -1,3 +1,9 @@
+/**
+ * Zod schemas and types for profile settings.
+ *
+ * Covers privacy settings, handle validation, and role selection.
+ */
+
 import { z } from "zod";
 import { noXssPattern } from "@/lib/utils/sanitization";
 
@@ -43,8 +49,10 @@ export const handleUpdateSchema = z.object({
   handle: handleSchema,
 });
 
+/** Inferred type for handle update request values. */
 export type HandleUpdate = z.infer<typeof handleUpdateSchema>;
 
+/** Available role options for the user's experience level. */
 export const ROLE_OPTIONS = [
   { value: "student", label: "Student" },
   { value: "entry_level", label: "Entry Level" },
@@ -53,6 +61,7 @@ export const ROLE_OPTIONS = [
   { value: "executive", label: "Executive" },
 ] as const;
 
+/** Schema for updating the user's experience role. */
 export const roleUpdateSchema = z.object({
   role: z.enum(["student", "entry_level", "mid_level", "senior", "executive"]),
 });

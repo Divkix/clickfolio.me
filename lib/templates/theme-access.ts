@@ -1,3 +1,10 @@
+/**
+ * Theme access verification for protected routes.
+ *
+ * Checks if a user has unlocked a premium theme based on their referral
+ * count or pro status. Returns an error Response if access is denied.
+ */
+
 import { eq } from "drizzle-orm";
 import type { Database } from "@/lib/db";
 import { user } from "@/lib/db/schema";

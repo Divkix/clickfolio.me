@@ -1,3 +1,10 @@
+/**
+ * Server-side theme registry.
+ *
+ * Provides async template loading for server components via dynamic import().
+ * Falls back to the default theme when an invalid ID is requested.
+ */
+
 import type { TemplateProps } from "@/lib/types/template";
 import { DEFAULT_THEME, isValidThemeId, type ThemeId } from "./theme-ids";
 
