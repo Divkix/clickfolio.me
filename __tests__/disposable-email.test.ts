@@ -1,3 +1,8 @@
+/**
+ * Tests for disposable email detection and domain validation.
+ * Covers domain extraction, trusted domain allow-list, KV blocklist lookups, and fail-open behavior.
+ */
+
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   _resetCache,

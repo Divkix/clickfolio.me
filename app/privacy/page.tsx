@@ -10,11 +10,13 @@ import {
   serializeJsonLd,
 } from "@/lib/seo/json-ld";
 
+/** Revalidate privacy page daily since it's static content. */
 export const revalidate = 86400;
 
 const privacyTitle = `Privacy Policy - ${siteConfig.fullName}`;
 const privacyDescription = `Privacy Policy for ${siteConfig.fullName}. Learn how we collect, use, and protect your personal information.`;
 
+/** SEO metadata for the privacy policy page. */
 export const metadata: Metadata = {
   title: "Privacy Policy",
   description: privacyDescription,
@@ -32,6 +34,9 @@ export const metadata: Metadata = {
   },
 };
 
+/**
+ * Privacy policy page — full legal disclosure with structured data and breadcrumbs.
+ */
 export default function PrivacyPolicyPage() {
   const breadcrumb = generatePageBreadcrumbJsonLd("Privacy Policy", "/privacy");
   const webPage = generateWebPageJsonLd(

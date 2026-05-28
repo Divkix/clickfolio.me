@@ -20,9 +20,12 @@ import { handleDLQMessage } from "../lib/queue/dlq-consumer";
 import { isRetryableError } from "../lib/queue/errors";
 import { queueMessageSchema } from "../lib/queue/types";
 
-// Re-export Durable Object class for Wrangler to discover
+/** Re-exported Durable Object for WebSocket resume status updates. */
 export { ClickfolioStatusDO } from "../lib/durable-objects/resume-status";
 
+/**
+ * Security headers appended to every response by the fetch handler.
+ */
 const SECURITY_HEADERS: Record<string, string> = {
   "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
   "X-Content-Type-Options": "nosniff",
@@ -32,6 +35,23 @@ const SECURITY_HEADERS: Record<string, string> = {
 };
 
 export default {
+  /**
+   * Main request handler. Routes WebSocket upgrade requests to the
+   * `ClickfolioStatusDO` Durable Object and all other requests to the vinext
+   * app-router handler.
+   *
+   * WebSocket flow:
+   * 1. Intercept `/ws/resume-status` with `Upgrade: websocket`.
+   * 2. Extract `resume_id` from query params.
+   * 3. Validate the Better Auth session cookie.
+   * 4. Verify the user owns the resume via D1.
+   * 5. Forward the request to the DO keyed by `resumeId`.
+   *
+   * @param request - The incoming HTTP request.
+   * @param env - Cloudflare environment bindings (DB, R2, DO, etc.).
+   * @param _ctx - Execution context (unused, required by Cloudflare handler signature).
+   * @returns The response from the DO or the vinext handler.
+   */
   async fetch(request: Request, env: CloudflareEnv, _ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
 
@@ -67,6 +87,7 @@ export default {
         return new Response("Unauthorized: Invalid session", { status: 401 });
       }
 
+      // TODO(vinext): Remove once vinext fixes this upstream
       const userId = session.user.id;
 
       // Verify resume ownership via D1 query
@@ -117,7 +138,17 @@ export default {
     });
   },
 
-  // Cloudflare Queue consumer handler
+  /**
+   * Cloudflare Queue consumer handler.
+   *
+   * Processes messages from `clickfolio-parse-queue` and its dead-letter queue
+   * (`clickfolio-parse-dlq`). Messages are validated against `queueMessageSchema`
+   * and discarded if malformed. Retryable errors trigger a message retry; permanent
+   * errors are acked so the message moves to the DLQ.
+   *
+   * @param batch - The message batch delivered by the queue binding.
+   * @param env - Cloudflare environment bindings.
+   */
   async queue(batch: MessageBatch<unknown>, env: CloudflareEnv): Promise<void> {
     const isDLQ = batch.queue === "clickfolio-parse-dlq";
 
@@ -153,8 +184,21 @@ export default {
     }
   },
 
-  // Cloudflare Cron trigger handler
-  // Calls shared functions directly to avoid self-fetch (which doubles Worker invocations billed).
+  /**
+   * Cloudflare Cron trigger handler.
+   *
+   * Calls shared cleanup functions directly to avoid self-fetch, which would
+   * double billed Worker invocations.
+   *
+   * Supported triggers:
+   * - `0 2 * * *` – R2 temp file cleanup (`performR2Cleanup`).
+   * - `0 3 * * *` – DB cleanup (`performCleanup`).
+   * - `0 4 * * *` – Disposable domain sync (`syncDisposableDomains`).
+   * - `* /15 * * * *` (every 15 minutes) – Orphaned resume recovery (`recoverOrphanedResumes`).
+   *
+   * @param controller - The scheduled controller containing the cron expression.
+   * @param env - Cloudflare environment bindings.
+   */
   async scheduled(controller: ScheduledController, env: CloudflareEnv): Promise<void> {
     const db = getDb(env.CLICKFOLIO_DB);
 

@@ -1,3 +1,9 @@
+/**
+ * Tests for transactional email sending via Cloudflare Email Service.
+ * Covers verification and password reset emails, greeting personalization,
+ * XSS escaping, URL encoding safety, and graceful error handling.
+ */
+
 import { describe, expect, it, vi } from "vitest";
 import { createEmailSender } from "@/lib/email/cloudflare";
 

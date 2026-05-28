@@ -13,6 +13,10 @@ interface ForgotPasswordFormProps {
   onBackToSignIn?: () => void;
 }
 
+/**
+ * Forgot password form that sends a password reset link via email.
+ * Displays a generic success message to prevent email enumeration.
+ */
 export function ForgotPasswordForm({ onBackToSignIn }: ForgotPasswordFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);

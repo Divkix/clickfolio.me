@@ -1,5 +1,6 @@
 "use client";
 
+/** Revalidate waiting page daily since it's a client-side flow. */
 export const revalidate = 86400;
 
 /**
@@ -72,6 +73,9 @@ const PROCESSING_STAGES = [
 
 const INITIAL_COUNTDOWN = 35;
 
+/**
+ * Client component that displays resume processing status, countdown, and retry UI.
+ */
 function WaitingContent() {
   const router = useRouter();
   const searchParams = useSearchParams();

@@ -1,3 +1,9 @@
+/**
+ * Tests for password strength validation and HIBP breach checking.
+ * Covers zxcvbn-based scoring, user context penalties, feedback, crack-time estimates,
+ * and Have I Been Pwned API integration with fail-open behavior.
+ */
+
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { checkBreached } from "@/lib/password/hibp";
 import { checkPasswordStrength, MINIMUM_SCORE } from "@/lib/password/strength";

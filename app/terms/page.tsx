@@ -10,11 +10,13 @@ import {
   serializeJsonLd,
 } from "@/lib/seo/json-ld";
 
+/** Revalidate terms page daily since it's static content. */
 export const revalidate = 86400;
 
 const termsTitle = `Terms of Service - ${siteConfig.fullName}`;
 const termsDescription = `Terms of Service for ${siteConfig.fullName}. Read our terms and conditions for using the service.`;
 
+/** SEO metadata for the terms of service page. */
 export const metadata: Metadata = {
   title: "Terms of Service",
   description: termsDescription,
@@ -32,6 +34,9 @@ export const metadata: Metadata = {
   },
 };
 
+/**
+ * Terms of service page — full legal terms with structured data and breadcrumbs.
+ */
 export default function TermsOfServicePage() {
   const breadcrumb = generatePageBreadcrumbJsonLd("Terms of Service", "/terms");
   const webPage = generateWebPageJsonLd(

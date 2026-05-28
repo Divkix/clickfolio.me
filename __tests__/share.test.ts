@@ -1,3 +1,8 @@
+/**
+ * Tests for social share URL generation and share text formatting.
+ * Covers Twitter, LinkedIn, WhatsApp URL builders with proper URL encoding and XSS prevention.
+ */
+
 import { describe, expect, it } from "vitest";
 import {
   generateLinkedInShareUrl,

@@ -21,6 +21,7 @@ const pageTitle = `${siteConfig.fullName} — ${siteConfig.tagline}`;
 const pageDescription =
   "Drop your PDF resume and get a shareable website in seconds. Free resume builder with 10 templates, @handle URLs, and privacy controls. No signup.";
 
+/** SEO metadata for the marketing homepage. */
 export const metadata: Metadata = {
   title: siteConfig.tagline,
   description: pageDescription,
@@ -48,6 +49,10 @@ export const metadata: Metadata = {
   },
 };
 
+/**
+ * Marketing homepage — landing page with hero, upload, examples, and FAQ.
+ * Revalidated every hour for fresh content.
+ */
 export default function Home() {
   const homepageJsonLd = generateHomepageJsonLd();
   const faqJsonLd = generateFAQJsonLd();

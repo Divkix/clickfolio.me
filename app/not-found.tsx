@@ -1,5 +1,8 @@
 import Link from "next/link";
 
+/**
+ * Generic 404 page for unmatched routes.
+ */
 export default function NotFound() {
   return (
     <div className="min-h-screen bg-cream paper-texture flex items-center justify-center px-6">

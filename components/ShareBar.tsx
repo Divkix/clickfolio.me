@@ -69,6 +69,10 @@ const buttonVariants = cva(
   },
 );
 
+/**
+ * Returns the appropriate LinkedIn icon color variant for the given theme.
+ * Dark themes use the white variant; all others use black.
+ */
 function getLinkedInIconVariant(
   variant?: VariantProps<typeof shareBarVariants>["variant"],
 ): BrandIconVariant {

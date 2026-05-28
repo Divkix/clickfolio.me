@@ -1,3 +1,9 @@
+/**
+ * Tests for client-side milestone, confetti, and CTA dismiss logic.
+ * Covers localStorage-backed milestone tracking, view-count thresholds,
+ * confetti trigger conditions, and 7-day CTA dismissal expiry.
+ */
+
 import { describe, expect, it, vi } from "vitest";
 
 // Milestone configuration matching MilestoneToasts.tsx

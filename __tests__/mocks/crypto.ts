@@ -1,5 +1,18 @@
 import { vi } from "vitest";
 
+/**
+ * Web Crypto API mocks for test environments that lack native crypto support.
+ * These mock implementations are deterministic and avoid real hashing/signature
+ * operations so tests run fast and consistently across Node.js versions.
+ *
+ * Mocks:
+ * - digest: SHA-1/SHA-256 uses node:crypto for real hashing; other algorithms fall back to a pseudo-hash.
+ * - importKey: Returns a fake CryptoKey with the secret embedded for signing.
+ * - sign: Produces a deterministic pseudo-signature based on key secret and data.
+ * - randomUUID: Generates sequential UUIDs (00000000-0000-0000-0000-000000000001, etc.) for reproducibility.
+ * - getRandomValues: Fills typed arrays with a predictable pattern.
+ */
+
 export const mockDigest = vi.fn(
   async (algorithm: string, data: BufferSource): Promise<ArrayBuffer> => {
     const input = new Uint8Array(data as ArrayBuffer);

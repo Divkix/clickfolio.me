@@ -10,10 +10,10 @@ import { getServerSession } from "./session";
  * User shape returned by admin auth checks (requireAdminAuth / requireAdminAuthForApi).
  */
 export interface AdminUser {
-	id: string;
-	email: string;
-	name: string;
-	isAdmin: boolean;
+  id: string;
+  email: string;
+  name: string;
+  isAdmin: boolean;
 }
 
 /**
@@ -21,33 +21,33 @@ export interface AdminUser {
  * Redirects to / if not logged in, /dashboard if not admin.
  */
 export async function requireAdminAuth(): Promise<AdminUser> {
-	const session = await getServerSession();
+  const session = await getServerSession();
 
-	if (!session?.user) {
-		redirect("/");
-	}
+  if (!session?.user) {
+    redirect("/");
+  }
 
-	const db = getDb(env.CLICKFOLIO_DB);
+  const db = getDb(env.CLICKFOLIO_DB);
 
-	const dbUser = await db.query.user.findFirst({
-		where: eq(users.id, session.user.id),
-		columns: {
-			id: true,
-			email: true,
-			name: true,
-			isAdmin: true,
-		},
-	});
+  const dbUser = await db.query.user.findFirst({
+    where: eq(users.id, session.user.id),
+    columns: {
+      id: true,
+      email: true,
+      name: true,
+      isAdmin: true,
+    },
+  });
 
-	if (!dbUser) {
-		redirect("/");
-	}
+  if (!dbUser) {
+    redirect("/");
+  }
 
-	if (!dbUser.isAdmin) {
-		redirect("/dashboard");
-	}
+  if (!dbUser.isAdmin) {
+    redirect("/dashboard");
+  }
 
-	return dbUser as AdminUser;
+  return dbUser as AdminUser;
 }
 
 /**
@@ -55,50 +55,42 @@ export async function requireAdminAuth(): Promise<AdminUser> {
  * Returns user or error Response.
  */
 export async function requireAdminAuthForApi(): Promise<
-	{ user: AdminUser; error: null } | { user: null; error: Response }
+  { user: AdminUser; error: null } | { user: null; error: Response }
 > {
-	const session = await getServerSession();
+  const session = await getServerSession();
 
-	if (!session?.user) {
-		return {
-			user: null,
-			error: createErrorResponse("Unauthorized", ERROR_CODES.UNAUTHORIZED, 401),
-		};
-	}
+  if (!session?.user) {
+    return {
+      user: null,
+      error: createErrorResponse("Unauthorized", ERROR_CODES.UNAUTHORIZED, 401),
+    };
+  }
 
-	const db = getDb(env.CLICKFOLIO_DB);
+  const db = getDb(env.CLICKFOLIO_DB);
 
-	const dbUser = await db.query.user.findFirst({
-		where: eq(users.id, session.user.id),
-		columns: {
-			id: true,
-			email: true,
-			name: true,
-			isAdmin: true,
-		},
-	});
+  const dbUser = await db.query.user.findFirst({
+    where: eq(users.id, session.user.id),
+    columns: {
+      id: true,
+      email: true,
+      name: true,
+      isAdmin: true,
+    },
+  });
 
-	if (!dbUser) {
-		return {
-			user: null,
-			error: createErrorResponse(
-				"User not found",
-				ERROR_CODES.UNAUTHORIZED,
-				401,
-			),
-		};
-	}
+  if (!dbUser) {
+    return {
+      user: null,
+      error: createErrorResponse("User not found", ERROR_CODES.UNAUTHORIZED, 401),
+    };
+  }
 
-	if (!dbUser.isAdmin) {
-		return {
-			user: null,
-			error: createErrorResponse(
-				"Admin access required",
-				ERROR_CODES.FORBIDDEN,
-				403,
-			),
-		};
-	}
+  if (!dbUser.isAdmin) {
+    return {
+      user: null,
+      error: createErrorResponse("Admin access required", ERROR_CODES.FORBIDDEN, 403),
+    };
+  }
 
-	return { user: dbUser as AdminUser, error: null };
+  return { user: dbUser as AdminUser, error: null };
 }

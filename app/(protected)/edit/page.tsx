@@ -1,5 +1,6 @@
 import { env } from "cloudflare:workers";
 import { eq } from "drizzle-orm";
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { EditResumeFormWrapper } from "@/components/forms/EditResumeFormWrapper";
 import { getServerSession } from "@/lib/auth/session";
@@ -7,8 +8,18 @@ import { getDb } from "@/lib/db";
 import { siteData } from "@/lib/db/schema";
 import type { ResumeContent } from "@/lib/types/database";
 
+/** Force dynamic rendering for the editable resume page. */
 export const dynamic = "force-dynamic";
 
+/** Metadata for the edit page — disallows search indexing. */
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
+
+/**
+ * Resume editing page — loads the user's current site data and
+ * renders a form for updating resume content.
+ */
 export default async function EditPage() {
   // Use cached session helper to deduplicate auth calls within request
   const session = await getServerSession();

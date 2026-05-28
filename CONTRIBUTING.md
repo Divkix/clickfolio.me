@@ -125,7 +125,7 @@ bun run build
 - **Trailing commas**: Required
 - **Images**: Use `<img>` tags (not Next.js `<Image />`)
 
-The Biome configuration is in `biome.json`. Run `bun run fix` to auto-format.
+The Biome configuration is in `biome.jsonc`. Run `bun run fix` to auto-format.
 
 ## Pull Request Process
 

@@ -11,12 +11,14 @@ import {
   serializeJsonLd,
 } from "@/lib/seo/json-ld";
 
+/** Revalidate blog listing every 30 minutes for fresh content. */
 export const revalidate = 1800;
 
 const blogTitle = `Blog | ${siteConfig.fullName}`;
 const blogDescription =
   "Guides, comparisons, and tips for building your online portfolio. Learn how to turn your PDF resume into a professional website.";
 
+/** SEO metadata for the blog listing page. */
 export const metadata: Metadata = {
   title: "Blog",
   description: blogDescription,
@@ -38,6 +40,9 @@ const sortedPosts = [...BLOG_POSTS].sort(
   (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
 );
 
+/**
+ * Blog listing page — displays all published posts with structured data.
+ */
 export default function BlogPage() {
   const blogJsonLd = generateWebPageJsonLd("Blog", "/blog", blogDescription);
   const breadcrumbJsonLd = generatePageBreadcrumbJsonLd("Blog", "/blog");

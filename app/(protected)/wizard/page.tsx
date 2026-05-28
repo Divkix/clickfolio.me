@@ -1,5 +1,6 @@
 "use client";
 
+/** Revalidate wizard page daily since it's a client-side flow. */
 export const revalidate = 86400;
 
 import { Loader2 } from "lucide-react";

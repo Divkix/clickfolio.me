@@ -13,27 +13,27 @@ const DEFAULT_AI_MODEL = "openai/gpt-oss-120b:nitro";
  * - allow_fallbacks: false prevents silent routing to providers that ignore the schema
  */
 const STRUCTURED_PROVIDER_ROUTING = {
-	openrouter: {
-		plugins: [{ id: "response-healing" }],
-		provider: {
-			quantizations: ["fp16", "bf16"],
-			require_parameters: true,
-			allow_fallbacks: false,
-		},
-	},
+  openrouter: {
+    plugins: [{ id: "response-healing" }],
+    provider: {
+      quantizations: ["fp16", "bf16"],
+      require_parameters: true,
+      allow_fallbacks: false,
+    },
+  },
 };
 
 /**
  * Text fallback: prefer fp16/bf16 for quality, fall back to any provider if unavailable.
  */
 const TEXT_PROVIDER_ROUTING = {
-	openrouter: {
-		plugins: [{ id: "response-healing" }],
-		provider: {
-			quantizations: ["fp16", "bf16"],
-			allow_fallbacks: true,
-		},
-	},
+  openrouter: {
+    plugins: [{ id: "response-healing" }],
+    provider: {
+      quantizations: ["fp16", "bf16"],
+      allow_fallbacks: true,
+    },
+  },
 };
 
 const STRUCTURED_TIMEOUT_MS = 90_000;
@@ -41,25 +41,25 @@ const FALLBACK_TIMEOUT_MS = 60_000;
 const MAX_OUTPUT_TOKENS = 16_384;
 
 interface ParseEvent {
-	modelId: string;
-	path:
-		| "structured"
-		| "structured-salvage"
-		| "text-fallback"
-		| "text-fallback-retry"
-		| "error-feedback-retry";
-	durationMs: number;
-	success: boolean;
-	error?: string;
-	repaired?: boolean;
+  modelId: string;
+  path:
+    | "structured"
+    | "structured-salvage"
+    | "text-fallback"
+    | "text-fallback-retry"
+    | "error-feedback-retry";
+  durationMs: number;
+  success: boolean;
+  error?: string;
+  repaired?: boolean;
 }
 
 /**
  * Log a structured parse event for observability (info on success, warn on failure).
  */
 function logParseEvent(event: ParseEvent): void {
-	const level = event.success ? "info" : "warn";
-	console[level](`[ai-parse:${event.path}]`, JSON.stringify(event));
+  const level = event.success ? "info" : "warn";
+  console[level](`[ai-parse:${event.path}]`, JSON.stringify(event));
 }
 
 /**
@@ -183,10 +183,10 @@ Rules:
  * `structuredOutput` flags whether the AI SDK already validated against the Zod schema.
  */
 export interface AiParseResult {
-	success: boolean;
-	data: unknown;
-	error?: string;
-	structuredOutput?: boolean;
+  success: boolean;
+  data: unknown;
+  error?: string;
+  structuredOutput?: boolean;
 }
 
 /**
@@ -194,10 +194,10 @@ export interface AiParseResult {
  * These extend the base CloudflareEnv with AI-specific secrets
  */
 export interface AiEnvVars {
-	CF_AI_GATEWAY_ACCOUNT_ID?: string;
-	CF_AI_GATEWAY_ID?: string;
-	CF_AIG_AUTH_TOKEN?: string;
-	AI_MODEL?: string;
+  CF_AI_GATEWAY_ACCOUNT_ID?: string;
+  CF_AI_GATEWAY_ID?: string;
+  CF_AIG_AUTH_TOKEN?: string;
+  AI_MODEL?: string;
 }
 
 /**
@@ -205,24 +205,24 @@ export interface AiEnvVars {
  * Gateway vars are required — no direct OpenRouter fallback.
  */
 export function createAiProvider(env: Partial<CloudflareEnv> & AiEnvVars) {
-	const gatewayAccountId = env.CF_AI_GATEWAY_ACCOUNT_ID;
-	const gatewayId = env.CF_AI_GATEWAY_ID;
-	const gatewayAuthToken = env.CF_AIG_AUTH_TOKEN;
+  const gatewayAccountId = env.CF_AI_GATEWAY_ACCOUNT_ID;
+  const gatewayId = env.CF_AI_GATEWAY_ID;
+  const gatewayAuthToken = env.CF_AIG_AUTH_TOKEN;
 
-	if (!gatewayAccountId || !gatewayId || !gatewayAuthToken) {
-		throw new Error(
-			"Cloudflare AI Gateway not configured (need CF_AI_GATEWAY_ACCOUNT_ID, CF_AI_GATEWAY_ID, CF_AIG_AUTH_TOKEN)",
-		);
-	}
+  if (!gatewayAccountId || !gatewayId || !gatewayAuthToken) {
+    throw new Error(
+      "Cloudflare AI Gateway not configured (need CF_AI_GATEWAY_ACCOUNT_ID, CF_AI_GATEWAY_ID, CF_AIG_AUTH_TOKEN)",
+    );
+  }
 
-	return createOpenAICompatible({
-		name: "openrouter",
-		baseURL: `https://gateway.ai.cloudflare.com/v1/${gatewayAccountId}/${gatewayId}/openrouter`,
-		headers: {
-			"cf-aig-authorization": `Bearer ${gatewayAuthToken}`,
-		},
-		supportsStructuredOutputs: true,
-	});
+  return createOpenAICompatible({
+    name: "openrouter",
+    baseURL: `https://gateway.ai.cloudflare.com/v1/${gatewayAccountId}/${gatewayId}/openrouter`,
+    headers: {
+      "cf-aig-authorization": `Bearer ${gatewayAuthToken}`,
+    },
+    supportsStructuredOutputs: true,
+  });
 }
 
 /**
@@ -234,12 +234,11 @@ let cachedProvider: ReturnType<typeof createAiProvider> | null = null;
 let cachedEnvKey: string | null = null;
 
 function getAiProvider(env: Partial<CloudflareEnv> & AiEnvVars) {
-	const key =
-		(env.CF_AI_GATEWAY_ACCOUNT_ID || "") + (env.CF_AI_GATEWAY_ID || "");
-	if (cachedProvider && cachedEnvKey === key) return cachedProvider;
-	cachedProvider = createAiProvider(env);
-	cachedEnvKey = key;
-	return cachedProvider;
+  const key = (env.CF_AI_GATEWAY_ACCOUNT_ID || "") + (env.CF_AI_GATEWAY_ID || "");
+  if (cachedProvider && cachedEnvKey === key) return cachedProvider;
+  cachedProvider = createAiProvider(env);
+  cachedEnvKey = key;
+  return cachedProvider;
 }
 
 /**
@@ -247,27 +246,27 @@ function getAiProvider(env: Partial<CloudflareEnv> & AiEnvVars) {
  * Handles responses that may have markdown code blocks or extra text
  */
 function extractJson(text: string): string {
-	// Try to find JSON in markdown code block first
-	const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-	if (codeBlockMatch) {
-		return codeBlockMatch[1].trim();
-	}
+  // Try to find JSON in markdown code block first
+  const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (codeBlockMatch) {
+    return codeBlockMatch[1].trim();
+  }
 
-	// Find the first { and last } to extract JSON object
-	const firstBrace = text.indexOf("{");
-	const lastBrace = text.lastIndexOf("}");
-	if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-		return text.slice(firstBrace, lastBrace + 1);
-	}
+  // Find the first { and last } to extract JSON object
+  const firstBrace = text.indexOf("{");
+  const lastBrace = text.lastIndexOf("}");
+  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+    return text.slice(firstBrace, lastBrace + 1);
+  }
 
-	return text.trim();
+  return text.trim();
 }
 
 /**
  * Wrap extracted resume text into the prompt format expected by the AI parser.
  */
 function buildPrompt(text: string): string {
-	return `Resume Text:\n"""\n${text}\n"""`;
+  return `Resume Text:\n"""\n${text}\n"""`;
 }
 
 const RETRY_MAX_CHARS = 32000;
@@ -280,10 +279,10 @@ const RETRY_MARKER = "\n\n...[truncated]...\n\n";
  * Keeps the head and tail sections to preserve the most important resume parts.
  */
 function truncateForRetry(text: string): string {
-	if (text.length <= RETRY_MAX_CHARS) return text;
-	const head = text.slice(0, RETRY_HEAD_CHARS);
-	const tail = text.slice(-RETRY_TAIL_CHARS);
-	return `${head}${RETRY_MARKER}${tail}`;
+  if (text.length <= RETRY_MAX_CHARS) return text;
+  const head = text.slice(0, RETRY_HEAD_CHARS);
+  const tail = text.slice(-RETRY_TAIL_CHARS);
+  return `${head}${RETRY_MARKER}${tail}`;
 }
 
 /**
@@ -293,288 +292,274 @@ function truncateForRetry(text: string): string {
  * Final Zod validation happens in index.ts (parseResumeWithAi step 4).
  */
 export async function parseWithAi(
-	text: string,
-	env: Partial<CloudflareEnv> & AiEnvVars,
-	model?: string,
-	retryContext?: { previousOutput: string; errors: string },
+  text: string,
+  env: Partial<CloudflareEnv> & AiEnvVars,
+  model?: string,
+  retryContext?: { previousOutput: string; errors: string },
 ): Promise<AiParseResult> {
-	try {
-		const modelId = model || env.AI_MODEL || DEFAULT_AI_MODEL;
-		const prompt = buildPrompt(text);
+  try {
+    const modelId = model || env.AI_MODEL || DEFAULT_AI_MODEL;
+    const prompt = buildPrompt(text);
 
-		const provider = getAiProvider(env);
+    const provider = getAiProvider(env);
 
-		// When retrying with error feedback, use a focused prompt with the previous output
-		if (retryContext) {
-			const retrySystem = `${RETRY_SYSTEM_PROMPT}\n\nValidation errors found:\n${retryContext.errors}`;
+    // When retrying with error feedback, use a focused prompt with the previous output
+    if (retryContext) {
+      const retrySystem = `${RETRY_SYSTEM_PROMPT}\n\nValidation errors found:\n${retryContext.errors}`;
 
-			const startTime = Date.now();
-			try {
-				const { text: responseText } = await generateText({
-					model: provider(modelId),
-					system: retrySystem,
-					prompt: truncateForRetry(retryContext.previousOutput),
-					temperature: 0,
-					maxOutputTokens: MAX_OUTPUT_TOKENS,
-					abortSignal: AbortSignal.timeout(FALLBACK_TIMEOUT_MS),
-					providerOptions: TEXT_PROVIDER_ROUTING,
-				});
+      const startTime = Date.now();
+      try {
+        const { text: responseText } = await generateText({
+          model: provider(modelId),
+          system: retrySystem,
+          prompt: truncateForRetry(retryContext.previousOutput),
+          temperature: 0,
+          maxOutputTokens: MAX_OUTPUT_TOKENS,
+          abortSignal: AbortSignal.timeout(FALLBACK_TIMEOUT_MS),
+          providerOptions: TEXT_PROVIDER_ROUTING,
+        });
 
-				const jsonStr = extractJson(responseText);
-				const { data: parsed } = await parseJsonWithRepair(jsonStr);
-				if (!parsed) {
-					logParseEvent({
-						modelId,
-						path: "error-feedback-retry",
-						durationMs: Date.now() - startTime,
-						success: false,
-						error: "Failed to parse retry response as JSON",
-					});
-					return {
-						success: false,
-						data: null,
-						error: `Retry failed to produce valid JSON: ${jsonStr.slice(0, 200)}...`,
-					};
-				}
+        const jsonStr = extractJson(responseText);
+        const { data: parsed } = await parseJsonWithRepair(jsonStr);
+        if (!parsed) {
+          logParseEvent({
+            modelId,
+            path: "error-feedback-retry",
+            durationMs: Date.now() - startTime,
+            success: false,
+            error: "Failed to parse retry response as JSON",
+          });
+          return {
+            success: false,
+            data: null,
+            error: `Retry failed to produce valid JSON: ${jsonStr.slice(0, 200)}...`,
+          };
+        }
 
-				const normalized = normalizeAiKeys(parsed);
-				const transformed = transformToSchema(normalized);
-				logParseEvent({
-					modelId,
-					path: "error-feedback-retry",
-					durationMs: Date.now() - startTime,
-					success: true,
-				});
-				return { success: true, data: transformed };
-			} catch (retryError) {
-				logParseEvent({
-					modelId,
-					path: "error-feedback-retry",
-					durationMs: Date.now() - startTime,
-					success: false,
-					error:
-						retryError instanceof Error
-							? retryError.message
-							: String(retryError),
-				});
-				throw retryError;
-			}
-		}
+        const normalized = normalizeAiKeys(parsed);
+        const transformed = transformToSchema(normalized);
+        logParseEvent({
+          modelId,
+          path: "error-feedback-retry",
+          durationMs: Date.now() - startTime,
+          success: true,
+        });
+        return { success: true, data: transformed };
+      } catch (retryError) {
+        logParseEvent({
+          modelId,
+          path: "error-feedback-retry",
+          durationMs: Date.now() - startTime,
+          success: false,
+          error: retryError instanceof Error ? retryError.message : String(retryError),
+        });
+        throw retryError;
+      }
+    }
 
-		// Primary path: structured output via Output.object()
-		// SDK sends response_format: { type: "json_schema" } with full schema enforcement
-		// require_parameters: true ensures only providers supporting this are selected
-		try {
-			const startTime = Date.now();
-			try {
-				const { output } = await generateText({
-					model: provider(modelId),
-					output: Output.object({
-						schema: resumeContentSchema,
-						name: "resume",
-					}),
-					system: STRUCTURED_SYSTEM_PROMPT,
-					prompt,
-					temperature: 0,
-					maxOutputTokens: MAX_OUTPUT_TOKENS,
-					abortSignal: AbortSignal.timeout(STRUCTURED_TIMEOUT_MS),
-					providerOptions: STRUCTURED_PROVIDER_ROUTING,
-				});
+    // Primary path: structured output via Output.object()
+    // SDK sends response_format: { type: "json_schema" } with full schema enforcement
+    // require_parameters: true ensures only providers supporting this are selected
+    try {
+      const startTime = Date.now();
+      try {
+        const { output } = await generateText({
+          model: provider(modelId),
+          output: Output.object({
+            schema: resumeContentSchema,
+            name: "resume",
+          }),
+          system: STRUCTURED_SYSTEM_PROMPT,
+          prompt,
+          temperature: 0,
+          maxOutputTokens: MAX_OUTPUT_TOKENS,
+          abortSignal: AbortSignal.timeout(STRUCTURED_TIMEOUT_MS),
+          providerOptions: STRUCTURED_PROVIDER_ROUTING,
+        });
 
-				// SDK validated against Zod schema — output is typed ResumeSchema
-				logParseEvent({
-					modelId,
-					path: "structured",
-					durationMs: Date.now() - startTime,
-					success: true,
-				});
-				return { success: true, data: output, structuredOutput: true };
-			} catch (structuredError) {
-				// Config errors should bubble up — no point trying fallback
-				if (
-					structuredError instanceof Error &&
-					structuredError.message.includes("AI Gateway not configured")
-				) {
-					throw structuredError;
-				}
+        // SDK validated against Zod schema — output is typed ResumeSchema
+        logParseEvent({
+          modelId,
+          path: "structured",
+          durationMs: Date.now() - startTime,
+          success: true,
+        });
+        return { success: true, data: output, structuredOutput: true };
+      } catch (structuredError) {
+        // Config errors should bubble up — no point trying fallback
+        if (
+          structuredError instanceof Error &&
+          structuredError.message.includes("AI Gateway not configured")
+        ) {
+          throw structuredError;
+        }
 
-				if (NoObjectGeneratedError.isInstance(structuredError)) {
-					logParseEvent({
-						modelId,
-						path: "structured",
-						durationMs: Date.now() - startTime,
-						success: false,
-						error: `finishReason: ${structuredError.finishReason}`,
-					});
+        if (NoObjectGeneratedError.isInstance(structuredError)) {
+          logParseEvent({
+            modelId,
+            path: "structured",
+            durationMs: Date.now() - startTime,
+            success: false,
+            error: `finishReason: ${structuredError.finishReason}`,
+          });
 
-					// Attempt to salvage raw text from the failed structured output
-					if (structuredError.text) {
-						const salvageStartTime = Date.now();
-						const jsonStr = extractJson(structuredError.text);
-						const { data: parsed, repaired } =
-							await parseJsonWithRepair(jsonStr);
-						if (parsed) {
-							const normalized = normalizeAiKeys(parsed);
-							const transformed = transformToSchema(normalized);
-							logParseEvent({
-								modelId,
-								path: "structured-salvage",
-								durationMs: Date.now() - salvageStartTime,
-								success: true,
-								repaired,
-							});
-							return { success: true, data: transformed };
-						}
-						logParseEvent({
-							modelId,
-							path: "structured-salvage",
-							durationMs: Date.now() - salvageStartTime,
-							success: false,
-							error: "Failed to parse salvaged text",
-						});
-					}
-				} else {
-					// Network/provider errors — log and fall through to text fallback
-					logParseEvent({
-						modelId,
-						path: "structured",
-						durationMs: Date.now() - startTime,
-						success: false,
-						error:
-							structuredError instanceof Error
-								? structuredError.message
-								: String(structuredError),
-					});
-				}
-			}
-		} catch (outerError) {
-			// Re-throw config errors; everything else was already logged
-			if (
-				outerError instanceof Error &&
-				outerError.message.includes("AI Gateway not configured")
-			) {
-				throw outerError;
-			}
-		}
+          // Attempt to salvage raw text from the failed structured output
+          if (structuredError.text) {
+            const salvageStartTime = Date.now();
+            const jsonStr = extractJson(structuredError.text);
+            const { data: parsed, repaired } = await parseJsonWithRepair(jsonStr);
+            if (parsed) {
+              const normalized = normalizeAiKeys(parsed);
+              const transformed = transformToSchema(normalized);
+              logParseEvent({
+                modelId,
+                path: "structured-salvage",
+                durationMs: Date.now() - salvageStartTime,
+                success: true,
+                repaired,
+              });
+              return { success: true, data: transformed };
+            }
+            logParseEvent({
+              modelId,
+              path: "structured-salvage",
+              durationMs: Date.now() - salvageStartTime,
+              success: false,
+              error: "Failed to parse salvaged text",
+            });
+          }
+        } else {
+          // Network/provider errors — log and fall through to text fallback
+          logParseEvent({
+            modelId,
+            path: "structured",
+            durationMs: Date.now() - startTime,
+            success: false,
+            error:
+              structuredError instanceof Error ? structuredError.message : String(structuredError),
+          });
+        }
+      }
+    } catch (outerError) {
+      // Re-throw config errors; everything else was already logged
+      if (outerError instanceof Error && outerError.message.includes("AI Gateway not configured")) {
+        throw outerError;
+      }
+    }
 
-		// Last resort: text-based generation with full SYSTEM_PROMPT (includes JSON schema example)
-		const runFallbackParse = async (system: string) => {
-			const startTime = Date.now();
-			try {
-				const { text: responseText } = await generateText({
-					model: provider(modelId),
-					system,
-					prompt,
-					temperature: 0,
-					maxOutputTokens: MAX_OUTPUT_TOKENS,
-					abortSignal: AbortSignal.timeout(FALLBACK_TIMEOUT_MS),
-					providerOptions: TEXT_PROVIDER_ROUTING,
-				});
+    // Last resort: text-based generation with full SYSTEM_PROMPT (includes JSON schema example)
+    const runFallbackParse = async (system: string) => {
+      const startTime = Date.now();
+      try {
+        const { text: responseText } = await generateText({
+          model: provider(modelId),
+          system,
+          prompt,
+          temperature: 0,
+          maxOutputTokens: MAX_OUTPUT_TOKENS,
+          abortSignal: AbortSignal.timeout(FALLBACK_TIMEOUT_MS),
+          providerOptions: TEXT_PROVIDER_ROUTING,
+        });
 
-				const jsonStr = extractJson(responseText);
-				const { data: parsed, repaired } = await parseJsonWithRepair(jsonStr);
-				if (repaired) {
-					logParseEvent({
-						modelId,
-						path: "text-fallback",
-						durationMs: Date.now() - startTime,
-						success: true,
-						repaired: true,
-					});
-				} else if (parsed) {
-					logParseEvent({
-						modelId,
-						path: "text-fallback",
-						durationMs: Date.now() - startTime,
-						success: true,
-					});
-				} else {
-					logParseEvent({
-						modelId,
-						path: "text-fallback",
-						durationMs: Date.now() - startTime,
-						success: false,
-						error: "Failed to parse response as JSON",
-					});
-				}
-				return { parsed, jsonStr };
-			} catch (fallbackError) {
-				logParseEvent({
-					modelId,
-					path: "text-fallback",
-					durationMs: Date.now() - startTime,
-					success: false,
-					error:
-						fallbackError instanceof Error
-							? fallbackError.message
-							: String(fallbackError),
-				});
-				throw fallbackError;
-			}
-		};
+        const jsonStr = extractJson(responseText);
+        const { data: parsed, repaired } = await parseJsonWithRepair(jsonStr);
+        if (repaired) {
+          logParseEvent({
+            modelId,
+            path: "text-fallback",
+            durationMs: Date.now() - startTime,
+            success: true,
+            repaired: true,
+          });
+        } else if (parsed) {
+          logParseEvent({
+            modelId,
+            path: "text-fallback",
+            durationMs: Date.now() - startTime,
+            success: true,
+          });
+        } else {
+          logParseEvent({
+            modelId,
+            path: "text-fallback",
+            durationMs: Date.now() - startTime,
+            success: false,
+            error: "Failed to parse response as JSON",
+          });
+        }
+        return { parsed, jsonStr };
+      } catch (fallbackError) {
+        logParseEvent({
+          modelId,
+          path: "text-fallback",
+          durationMs: Date.now() - startTime,
+          success: false,
+          error: fallbackError instanceof Error ? fallbackError.message : String(fallbackError),
+        });
+        throw fallbackError;
+      }
+    };
 
-		let fallbackResult = await runFallbackParse(SYSTEM_PROMPT);
+    let fallbackResult = await runFallbackParse(SYSTEM_PROMPT);
 
-		if (!fallbackResult.parsed) {
-			const retryText = truncateForRetry(text);
-			const retryPrompt = buildPrompt(retryText);
-			const retrySystem = `${SYSTEM_PROMPT}\n\nIMPORTANT: Output a single valid JSON object only.`;
+    if (!fallbackResult.parsed) {
+      const retryText = truncateForRetry(text);
+      const retryPrompt = buildPrompt(retryText);
+      const retrySystem = `${SYSTEM_PROMPT}\n\nIMPORTANT: Output a single valid JSON object only.`;
 
-			const startTime = Date.now();
-			try {
-				const { text: responseText } = await generateText({
-					model: provider(modelId),
-					system: retrySystem,
-					prompt: retryPrompt,
-					temperature: 0,
-					maxOutputTokens: MAX_OUTPUT_TOKENS,
-					abortSignal: AbortSignal.timeout(FALLBACK_TIMEOUT_MS),
-					providerOptions: TEXT_PROVIDER_ROUTING,
-				});
+      const startTime = Date.now();
+      try {
+        const { text: responseText } = await generateText({
+          model: provider(modelId),
+          system: retrySystem,
+          prompt: retryPrompt,
+          temperature: 0,
+          maxOutputTokens: MAX_OUTPUT_TOKENS,
+          abortSignal: AbortSignal.timeout(FALLBACK_TIMEOUT_MS),
+          providerOptions: TEXT_PROVIDER_ROUTING,
+        });
 
-				const jsonStr = extractJson(responseText);
-				const { data: parsed, repaired } = await parseJsonWithRepair(jsonStr);
-				logParseEvent({
-					modelId,
-					path: "text-fallback-retry",
-					durationMs: Date.now() - startTime,
-					success: !!parsed,
-					repaired: repaired || undefined,
-					error: parsed ? undefined : "Failed to parse retry response as JSON",
-				});
-				fallbackResult = { parsed, jsonStr };
-				if (!parsed) {
-					return {
-						success: false,
-						data: null,
-						error: `Failed to parse AI response as JSON: ${jsonStr.slice(0, 200)}...`,
-					};
-				}
-			} catch (retryFallbackError) {
-				logParseEvent({
-					modelId,
-					path: "text-fallback-retry",
-					durationMs: Date.now() - startTime,
-					success: false,
-					error:
-						retryFallbackError instanceof Error
-							? retryFallbackError.message
-							: String(retryFallbackError),
-				});
-				throw retryFallbackError;
-			}
-		}
+        const jsonStr = extractJson(responseText);
+        const { data: parsed, repaired } = await parseJsonWithRepair(jsonStr);
+        logParseEvent({
+          modelId,
+          path: "text-fallback-retry",
+          durationMs: Date.now() - startTime,
+          success: !!parsed,
+          repaired: repaired || undefined,
+          error: parsed ? undefined : "Failed to parse retry response as JSON",
+        });
+        fallbackResult = { parsed, jsonStr };
+        if (!parsed) {
+          return {
+            success: false,
+            data: null,
+            error: `Failed to parse AI response as JSON: ${jsonStr.slice(0, 200)}...`,
+          };
+        }
+      } catch (retryFallbackError) {
+        logParseEvent({
+          modelId,
+          path: "text-fallback-retry",
+          durationMs: Date.now() - startTime,
+          success: false,
+          error:
+            retryFallbackError instanceof Error
+              ? retryFallbackError.message
+              : String(retryFallbackError),
+        });
+        throw retryFallbackError;
+      }
+    }
 
-		const normalized = normalizeAiKeys(
-			fallbackResult.parsed as Record<string, unknown>,
-		);
-		const transformed = transformToSchema(normalized);
-		return { success: true, data: transformed };
-	} catch (error) {
-		return {
-			success: false,
-			data: null,
-			error: error instanceof Error ? error.message : "AI parsing failed",
-		};
-	}
+    const normalized = normalizeAiKeys(fallbackResult.parsed as Record<string, unknown>);
+    const transformed = transformToSchema(normalized);
+    return { success: true, data: transformed };
+  } catch (error) {
+    return {
+      success: false,
+      data: null,
+      error: error instanceof Error ? error.message : "AI parsing failed",
+    };
+  }
 }

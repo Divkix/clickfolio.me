@@ -1,6 +1,7 @@
 import { env } from "cloudflare:workers";
 import { count, desc, eq, sql } from "drizzle-orm";
 import { User } from "lucide-react";
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { HandleForm } from "@/components/forms/HandleForm";
 import { PrivacySettingsForm } from "@/components/forms/PrivacySettings";
@@ -15,6 +16,12 @@ import { parsePrivacySettings } from "@/lib/utils/privacy";
 
 export const dynamic = "force-dynamic";
 
+/** Metadata for the settings page — disallows search indexing. */
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
+
+/** Props for the profile card shown in settings. */
 interface ProfileSectionProps {
   name: string;
   email: string;
@@ -23,6 +30,9 @@ interface ProfileSectionProps {
   handle: string | null;
 }
 
+/**
+ * Compact profile card showing avatar, name, email, and handle management.
+ */
 function ProfileSection({ name, email, headline, image, handle }: ProfileSectionProps) {
   return (
     <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-6 h-full flex flex-col">
@@ -69,6 +79,9 @@ function ProfileSection({ name, email, headline, image, handle }: ProfileSection
   );
 }
 
+/**
+ * Settings page — account info, privacy controls, resume history, and deletion.
+ */
 export default async function SettingsPage() {
   const session = await getServerSession();
 

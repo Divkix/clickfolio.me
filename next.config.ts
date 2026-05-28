@@ -1,10 +1,14 @@
 import type { NextConfig } from "next";
 
+/**
+ * Next.js configuration for the vinext + Cloudflare Workers runtime.
+ */
 const nextConfig: NextConfig = {
   allowedDevOrigins: ["*.ngrok-free.app"],
 
   experimental: {
     serverActions: {
+      // The `as` cast is required because the template literal is built dynamically at runtime.
       bodySizeLimit: `${process.env.MAX_UPLOAD_SIZE_MB || "5"}mb` as `${number}mb`,
     },
   },

@@ -30,10 +30,12 @@
 		"global_fetch_strictly_public"
 	],
 	"assets": {
+		// dist/client is the static asset directory produced by the vinext build.
 		"directory": "dist/client",
 		"binding": "ASSETS"
 	},
 	"placement": {
+		// Cloudflare smart placement routes requests to the nearest data center.
 		"mode": "smart"
 	},
 	// D1 Database binding
@@ -100,12 +102,14 @@
 	},
 	"migrations": [
 		{
+			// v1: Initial migration creating the DOShardedTagCache Durable Object class.
 			"tag": "v1",
 			"new_sqlite_classes": [
 				"DOShardedTagCache"
 			]
 		},
 		{
+			// v2: Removed DOShardedTagCache and introduced ResumeStatusDO for real-time resume parsing status.
 			"tag": "v2",
 			"deleted_classes": [
 				"DOShardedTagCache"
@@ -115,6 +119,7 @@
 			]
 		},
 		{
+			// v3: Renamed ResumeStatusDO to ClickfolioStatusDO for broader real-time status tracking.
 			"tag": "v3",
 			"renamed_classes": [
 				{
@@ -126,6 +131,7 @@
 	],
 	"observability": {
 		"enabled": true,
+		// 10% sampling rate to balance cost and visibility in production.
 		"head_sampling_rate": 0.1,
 		"logs": {
 			"enabled": true,
@@ -170,7 +176,9 @@
 		//   wrangler secret put CF_AIG_AUTH_TOKEN
 		//
 		// Note: R2 is accessed via binding (CLICKFOLIO_R2_BUCKET) - no API credentials needed
+		// NODE_ENV: Runtime environment for the Cloudflare Worker.
 		"NODE_ENV": "production",
+		// AI_MODEL: OpenRouter model accessed via Cloudflare AI Gateway for resume parsing.
 		"AI_MODEL": "openai/gpt-oss-120b:nitro"
 	}
 }

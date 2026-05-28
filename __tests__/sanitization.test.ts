@@ -1,3 +1,9 @@
+/**
+ * Tests for input sanitization and XSS detection utilities.
+ * Covers HTML entity encoding, dangerous protocol blocking, XSS pattern detection,
+ * and safe normalization for email, phone, URL, and free-text fields.
+ */
+
 import { describe, expect, it } from "vitest";
 import {
   containsXssPattern,

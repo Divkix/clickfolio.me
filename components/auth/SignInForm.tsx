@@ -18,6 +18,10 @@ interface SignInFormProps {
   callbackURL?: string;
 }
 
+/**
+ * Email/password sign-in form with validation and error handling.
+ * Integrates with Better Auth for credential-based authentication.
+ */
 export function SignInForm({ onSuccess, onForgotPassword, callbackURL }: SignInFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();

@@ -17,6 +17,7 @@ import { getTemplate } from "@/lib/templates/theme-registry";
 export const dynamicParams = true;
 export const revalidate = 3600;
 
+/** Props for the public resume viewer page. */
 interface PageProps {
   params: Promise<{
     handle: string;

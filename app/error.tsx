@@ -8,13 +8,20 @@ import { useEffect } from "react";
  * Catches errors within the application and provides recovery options
  * Note: Does not include html/body tags - those are in global-error.tsx
  */
-export default function ErrorPage({
-  error,
-  reset,
-}: {
+/**
+ * Error boundary props for route-level error handling.
+ */
+interface ErrorPageProps {
   error: globalThis.Error & { digest?: string };
   reset: () => void;
-}) {
+}
+
+/**
+ * Error Boundary for route segments
+ * Catches errors within the application and provides recovery options
+ * Note: Does not include html/body tags - those are in global-error.tsx
+ */
+export default function ErrorPage({ error, reset }: ErrorPageProps) {
   useEffect(() => {
     // Log error to console for debugging
     console.error("Error boundary caught:", error);

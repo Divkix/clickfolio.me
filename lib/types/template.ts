@@ -5,11 +5,11 @@ import type { ResumeContent } from "./database";
  * Combines parsed resume content with the user's public profile metadata.
  */
 export interface TemplateProps {
-	content: ResumeContent;
-	profile: {
-		/** User avatar URL or null if no avatar is set. */
-		avatar_url: string | null;
-		/** Public handle used in portfolio URLs (e.g., /@handle). */
-		handle: string;
-	};
+  content: ResumeContent;
+  profile: {
+    /** User avatar URL or null if no avatar is set. */
+    avatar_url: string | null;
+    /** Public handle used in portfolio URLs (e.g., /@handle). */
+    handle: string;
+  };
 }

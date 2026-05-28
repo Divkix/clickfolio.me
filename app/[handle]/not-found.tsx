@@ -1,5 +1,8 @@
 import Link from "next/link";
 
+/**
+ * 404 page shown when a requested resume handle does not exist.
+ */
 export default function NotFound() {
   return (
     <div className="min-h-screen bg-cream paper-texture flex items-center justify-center px-6">

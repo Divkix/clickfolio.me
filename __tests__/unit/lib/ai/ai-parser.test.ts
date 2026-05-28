@@ -1,3 +1,16 @@
+/**
+ * AI Parser Unit Tests
+ *
+ * Covers the resume parsing pipeline via the AI SDK:
+ * - Structured output path (generateObject with Zod schema)
+ * - Text fallback path (generateText + manual JSON parsing with repair)
+ * - Retry logic for transient failures and NoObjectGeneratedError
+ * - Edge cases: empty input, malformed JSON, network errors, timeout
+ * - Provider initialization via Cloudflare AI Gateway (OpenRouter)
+ *
+ * Coverage goal: 100% branch coverage for parseWithAi and createAiProvider.
+ */
+
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { setupMockCleanup, suppressConsole } from "@/__tests__/setup/helpers/test-utils";
 import { type AiEnvVars, createAiProvider, parseWithAi } from "@/lib/ai/ai-parser";

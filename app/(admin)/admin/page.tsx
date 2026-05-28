@@ -1,6 +1,7 @@
 import { env } from "cloudflare:workers";
 import { count, sql } from "drizzle-orm";
 import { AlertTriangle, Eye, FileText, Loader2, Users } from "lucide-react";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { AdminSparkline } from "@/components/admin/AdminSparkline";
 import { StatCard } from "@/components/admin/StatCard";
@@ -11,6 +12,15 @@ import { getPageviews, getStats } from "@/lib/umami/client";
 
 export const dynamic = "force-dynamic";
 
+/** Metadata for the admin overview page — disallows search indexing. */
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
+
+/**
+ * Aggregates D1 and Umami analytics into admin dashboard stats.
+ * Umami failures are handled gracefully so the page never crashes.
+ */
 async function getAdminStats() {
   const db = getDb(env.CLICKFOLIO_DB);
 
@@ -74,6 +84,9 @@ async function getAdminStats() {
   };
 }
 
+/**
+ * Formats a date string into a human-readable relative time (e.g. "2h ago").
+ */
 function formatRelativeTime(dateStr: string): string {
   const date = new Date(dateStr);
   const now = new Date();

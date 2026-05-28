@@ -14,6 +14,7 @@ import {
   Upload,
   Wrench,
 } from "lucide-react";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AnalyticsCard } from "@/components/dashboard/AnalyticsCard";
@@ -33,8 +34,18 @@ import type { ResumeContent } from "@/lib/types/database";
 import { formatRelativeTime, truncateText } from "@/lib/utils/format";
 import { calculateCompleteness, getProfileSuggestions } from "@/lib/utils/profile-completeness";
 
+/** Force dynamic rendering for real-time dashboard data. */
 export const dynamic = "force-dynamic";
 
+/** Metadata for the dashboard — disallows search indexing. */
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
+
+/**
+ * User dashboard — resume status, analytics, profile completeness, and upload.
+ * Displays real-time data so it is forced dynamic.
+ */
 export default async function DashboardPage() {
   // Use cached session helper to deduplicate auth calls within request
   const session = await getServerSession();

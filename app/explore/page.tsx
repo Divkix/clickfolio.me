@@ -18,12 +18,14 @@ import {
 } from "@/lib/seo/json-ld";
 import { parsePreviewSkills } from "@/lib/utils/preview-skills";
 
+/** Revalidate explore page every 5 minutes for directory freshness. */
 export const revalidate = 300;
 
 const exploreTitle = `Browse Professional Portfolios | ${siteConfig.fullName}`;
 const exploreDescription =
   "Discover professionals in our community. Browse portfolios and connect with talented individuals.";
 
+/** SEO metadata for the explore directory page. */
 export const metadata: Metadata = {
   title: "Browse Professional Portfolios",
   description: exploreDescription,
@@ -44,6 +46,7 @@ export const metadata: Metadata = {
   },
 };
 
+/** Shape of a user entry in the public directory. */
 interface DirectoryUser {
   handle: string;
   role: string | null;
@@ -57,6 +60,10 @@ interface DirectoryUser {
 
 const ITEMS_PER_PAGE = 12;
 
+/**
+ * Explore directory — paginated, filterable listing of public portfolios.
+ * Fetches preview columns from the database for fast rendering.
+ */
 export default async function ExplorePage({
   searchParams,
 }: {

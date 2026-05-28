@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { siteConfig } from "@/lib/config/site";
 
+/** SEO metadata for the blog section. */
 export const metadata: Metadata = {
   title: "Blog | clickfolio.me",
   description:
@@ -15,6 +16,9 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
+/**
+ * Blog section layout — simple wrapper with consistent background styling.
+ */
 export default function BlogLayout({ children }: { children: React.ReactNode }) {
   return (
     <main className="min-h-screen bg-cream paper-texture" id="main-content">

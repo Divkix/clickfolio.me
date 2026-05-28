@@ -20,6 +20,10 @@ interface AuthDialogProps {
   callbackURL?: string;
 }
 
+/**
+ * Authentication dialog supporting sign-in, sign-up, and forgot-password modes.
+ * Switches between modes internally and delegates to sub-forms.
+ */
 export function AuthDialog({
   open,
   onOpenChange,

@@ -1,6 +1,10 @@
 import type { MetadataRoute } from "next";
 import { getPublicSiteUrl } from "@/lib/utils/site-url";
 
+/**
+ * Generates the robots.txt rules for search engine crawlers.
+ * Allows public pages and AI crawlers; blocks protected routes.
+ */
 export default function robots(): MetadataRoute.Robots {
   const baseUrl = getPublicSiteUrl();
 

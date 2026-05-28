@@ -1,3 +1,8 @@
+/**
+ * Tests for client-side referral utilities.
+ * Covers localStorage-based capture, retrieval, and clearing of referral codes.
+ */
+
 import { describe, expect, it } from "vitest";
 import {
   captureReferralCode,

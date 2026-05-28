@@ -3,6 +3,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { siteConfig } from "@/lib/config/site";
 import "./globals.css";
 
+/** Viewport configuration for responsive design and theme color. */
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
@@ -14,6 +15,7 @@ export const viewport: Viewport = {
   ],
 };
 
+/** Site-wide metadata defaults used for SEO and social sharing. */
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
   title: {
@@ -51,6 +53,10 @@ export const metadata: Metadata = {
   },
 };
 
+/**
+ * Root layout wrapping all pages with global HTML structure,
+ * skip-link accessibility, toast notifications, and analytics.
+ */
 export default function RootLayout({
   children,
 }: Readonly<{
