@@ -3,6 +3,26 @@
  *
  * Authenticated endpoint returning aggregated page view analytics
  * for the logged-in user's resume page. Proxies Umami Analytics API.
+ *
+ * @returns Response with shape:
+ * ```json
+ * {
+ *   "totalViews": number,
+ *   "uniqueVisitors": number,
+ *   "viewsByDay": Array<{ date: string; views: number; uniques: number }>,
+ *   "topReferrers": Array<{ referrer: string; count: number }>,
+ *   "directVisits": number,
+ *   "deviceBreakdown": Array<{ device: string; count: number }>,
+ *   "countryBreakdown": Array<{ country: string; count: number }>,
+ *   "period": "7d" | "30d" | "90d"
+ * }
+ * ```
+ *
+ * Error codes:
+ * - 400 for invalid period.
+ * - 503 for Umami API failures.
+ *
+ * Caching: `Cache-Control: private, max-age=60, stale-while-revalidate=120`
  */
 
 import { eq } from "drizzle-orm";

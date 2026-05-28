@@ -5,8 +5,10 @@
  * Logs with [client-error] prefix. Always returns 204 — must never leak info or break recovery.
  */
 
+/** Empty 204 response used for all non-error paths. */
 const EMPTY_204 = new Response(null, { status: 204 });
 
+/** Request body shape for client error reports. */
 interface ClientErrorBody {
   message?: unknown;
   stack?: unknown;
@@ -14,6 +16,13 @@ interface ClientErrorBody {
   url?: unknown;
 }
 
+/**
+ * Truncates a string to a maximum length.
+ *
+ * @param value - The value to truncate.
+ * @param maxLength - The maximum allowed length.
+ * @returns The truncated string, or `undefined` if the value is not a string.
+ */
 function truncate(value: unknown, maxLength: number): string | undefined {
   if (typeof value !== "string") return undefined;
   return value.length > maxLength ? value.slice(0, maxLength) : value;

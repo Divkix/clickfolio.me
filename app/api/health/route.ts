@@ -27,6 +27,12 @@ type AiProviderEnv = Pick<
   "CF_AI_GATEWAY_ACCOUNT_ID" | "CF_AI_GATEWAY_ID" | "CF_AIG_AUTH_TOKEN"
 >;
 
+/**
+ * Checks D1 database connectivity by running a lightweight `SELECT 1` query.
+ *
+ * @param db - The D1 database binding.
+ * @returns ServiceHealth with latency and status.
+ */
 async function checkD1(db: D1Database): Promise<ServiceHealth> {
   const start = Date.now();
   try {
@@ -41,6 +47,12 @@ async function checkD1(db: D1Database): Promise<ServiceHealth> {
   }
 }
 
+/**
+ * Checks R2 bucket connectivity by listing a single object.
+ *
+ * @param r2 - The R2 bucket binding.
+ * @returns ServiceHealth with latency and status.
+ */
 async function checkR2(r2: R2Bucket): Promise<ServiceHealth> {
   const start = Date.now();
   try {
@@ -56,9 +68,9 @@ async function checkR2(r2: R2Bucket): Promise<ServiceHealth> {
 }
 
 /**
- * Check if AI provider is configured
+ * Check if AI provider is configured.
  * We can't actually test the provider without making an API call,
- * so we just verify the required env vars are present
+ * so we just verify the required env vars are present.
  */
 function checkAiProviderConfig(env: AiProviderEnv): ServiceHealth {
   const hasGateway = env.CF_AI_GATEWAY_ACCOUNT_ID && env.CF_AI_GATEWAY_ID && env.CF_AIG_AUTH_TOKEN;
@@ -72,6 +84,12 @@ function checkAiProviderConfig(env: AiProviderEnv): ServiceHealth {
   };
 }
 
+/**
+ * Aggregates individual service statuses into an overall health status.
+ *
+ * @param services - The health statuses of all checked services.
+ * @returns The aggregated status: "healthy", "unhealthy", or "degraded".
+ */
 function aggregateStatus(services: HealthResponse["services"]): ServiceStatus {
   const statuses = Object.values(services).map((s) => s.status);
   if (statuses.every((s) => s === "healthy")) return "healthy";
@@ -86,6 +104,8 @@ function aggregateStatus(services: HealthResponse["services"]): ServiceStatus {
  * - D1 database
  * - R2 bucket
  * - AI provider configuration
+ *
+ * Response shape: {@link HealthResponse}
  */
 export async function GET() {
   try {

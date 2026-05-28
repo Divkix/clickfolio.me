@@ -5,6 +5,10 @@
  * syncDisposableDomains() directly to avoid double Worker invocation billing.
  *
  * Scheduled daily at 4 AM UTC via wrangler.jsonc
+ *
+ * @returns Response from {@link syncDisposableDomains} on success.
+ * Returns 401 if cron secret is missing or invalid.
+ * Returns 500 on server misconfiguration or sync failure.
  */
 
 import { env } from "cloudflare:workers";

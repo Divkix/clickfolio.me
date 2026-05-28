@@ -2,6 +2,24 @@
  * GET /api/admin/users?page=1&search=query
  *
  * Returns paginated user list with search.
+ *
+ * @returns Response with shape:
+ * ```json
+ * {
+ *   "users": Array<{
+ *     id: string;
+ *     name: string;
+ *     email: string;
+ *     handle: string;
+ *     status: "live" | "processing" | "no_resume" | "failed";
+ *     createdAt: string;
+ *     isPro: boolean;
+ *   }>,
+ *   "total": number,
+ *   "page": number,
+ *   "pageSize": number
+ * }
+ * ```
  */
 
 import { env } from "cloudflare:workers";

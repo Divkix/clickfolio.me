@@ -9,6 +9,10 @@
  * - Expired rate limits (expiresAt < now)
  * - Expired sessions (expiresAt < now)
  * - Old handleChanges (older than 90 days)
+ *
+ * @returns Response from {@link performCleanup} on success.
+ * Returns 401 if cron secret is missing or invalid.
+ * Returns 500 on server misconfiguration or cleanup failure.
  */
 
 import { env } from "cloudflare:workers";

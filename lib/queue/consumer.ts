@@ -14,314 +14,382 @@ import type { QueueMessage, ResumeParseMessage } from "./types";
  * user-friendly message goes into errorMessage (shown to user).
  */
 function getUserFriendlyError(rawError: string): string {
-  const lower = rawError.toLowerCase();
+	const lower = rawError.toLowerCase();
 
-  if (/password.protected|encrypted/.test(lower)) {
-    return "Your PDF is password-protected. Please upload an unprotected version.";
-  }
-  if (/invalid.*pdf|corrupt/.test(lower)) {
-    return "Your PDF couldn't be read. Please upload a valid PDF file.";
-  }
-  if (/extracted.*text.*is.*empty/.test(lower)) {
-    return "No text could be extracted from your PDF. It may be a scanned image.";
-  }
-  if (/pdf.*has.*\d+.*pages/.test(lower)) {
-    return "Your PDF is too long. Please upload a resume under 50 pages.";
-  }
-  if (/schema.*validation/.test(lower)) {
-    return "We couldn't parse your resume format. Please try again.";
-  }
-  if (/timeout|timed.*out/.test(lower)) {
-    return "Processing timed out. Please try again.";
-  }
-  return "Something went wrong while parsing your resume. Please try again.";
+	if (/password.protected|encrypted/.test(lower)) {
+		return "Your PDF is password-protected. Please upload an unprotected version.";
+	}
+	if (/invalid.*pdf|corrupt/.test(lower)) {
+		return "Your PDF couldn't be read. Please upload a valid PDF file.";
+	}
+	if (/extracted.*text.*is.*empty/.test(lower)) {
+		return "No text could be extracted from your PDF. It may be a scanned image.";
+	}
+	if (/pdf.*has.*\d+.*pages/.test(lower)) {
+		return "Your PDF is too long. Please upload a resume under 50 pages.";
+	}
+	if (/schema.*validation/.test(lower)) {
+		return "We couldn't parse your resume format. Please try again.";
+	}
+	if (/timeout|timed.*out/.test(lower)) {
+		return "Processing timed out. Please try again.";
+	}
+	return "Something went wrong while parsing your resume. Please try again.";
 }
 
 /**
- * Handle resume parsing from queue
+ * Handle resume parsing from queue.
+ *
+ * Full flow:
+ * 1. **Cache lookup** — query for a completed resume with the same `fileHash` to
+ *    avoid re-parsing identical PDFs.
+ * 2. **Staged content** — if a previous attempt left `parsedContentStaged`, use it
+ *    directly (idempotency / recovery from a crash after parse but before completion).
+ * 3. **Waiting-for-cache fan-out** — after marking the current resume as completed,
+ *    find all other resumes waiting on the same `fileHash` and complete them in a
+ *    batch update + siteData upsert, then notify all connected clients.
  */
-async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv): Promise<void> {
-  const { db } = getSessionDbForWebhook(env.CLICKFOLIO_DB);
-  const r2Binding = getR2Binding(env);
+async function handleResumeParse(
+	message: ResumeParseMessage,
+	env: CloudflareEnv,
+): Promise<void> {
+	const { db } = getSessionDbForWebhook(env.CLICKFOLIO_DB);
+	const r2Binding = getR2Binding(env);
 
-  if (!r2Binding) {
-    throw new Error("R2 binding not available");
-  }
+	if (!r2Binding) {
+		throw new Error("R2 binding not available");
+	}
 
-  // Run status check and cache-by-fileHash lookup in parallel.
-  // The cache query is cheap (indexed on fileHash+status) and rarely wasted.
-  const [currentResume, cached] = await Promise.all([
-    // Check for staged content from previous attempt (idempotency)
-    db
-      .select({
-        status: resumes.status,
-        parsedContent: resumes.parsedContent,
-        parsedContentStaged: resumes.parsedContentStaged,
-        totalAttempts: resumes.totalAttempts,
-      })
-      .from(resumes)
-      .where(eq(resumes.id, message.resumeId))
-      .limit(1),
+	// Run status check and cache-by-fileHash lookup in parallel.
+	// The cache query is cheap (indexed on fileHash+status) and rarely wasted.
+	const [currentResume, cached] = await Promise.all([
+		// Check for staged content from previous attempt (idempotency)
+		db
+			.select({
+				status: resumes.status,
+				parsedContent: resumes.parsedContent,
+				parsedContentStaged: resumes.parsedContentStaged,
+				totalAttempts: resumes.totalAttempts,
+			})
+			.from(resumes)
+			.where(eq(resumes.id, message.resumeId))
+			.limit(1),
 
-    // Check for cached result with same fileHash (deduplication)
-    db
-      .select({ id: resumes.id, parsedContent: resumes.parsedContent })
-      .from(resumes)
-      .where(
-        and(
-          eq(resumes.userId, message.userId),
-          eq(resumes.fileHash, message.fileHash),
-          eq(resumes.status, "completed"),
-          isNotNull(resumes.parsedContent),
-        ),
-      )
-      .limit(1),
-  ]);
+		// Check for cached result with same fileHash (deduplication)
+		db
+			.select({ id: resumes.id, parsedContent: resumes.parsedContent })
+			.from(resumes)
+			.where(
+				and(
+					eq(resumes.userId, message.userId),
+					eq(resumes.fileHash, message.fileHash),
+					eq(resumes.status, "completed"),
+					isNotNull(resumes.parsedContent),
+				),
+			)
+			.limit(1),
+	]);
 
-  // If already completed with parsed content, skip (full idempotency)
-  if (currentResume[0]?.status === "completed" && currentResume[0]?.parsedContent) {
-    console.log(`Resume ${message.resumeId} already completed, skipping`);
-    return;
-  }
+	// If already completed with parsed content, skip (full idempotency)
+	if (
+		currentResume[0]?.status === "completed" &&
+		currentResume[0]?.parsedContent
+	) {
+		console.log(`Resume ${message.resumeId} already completed, skipping`);
+		return;
+	}
 
-  // If staged content exists, use it instead of re-parsing
-  if (currentResume[0]?.parsedContentStaged) {
-    console.log(`Using staged content for resume ${message.resumeId}`);
-    const now = new Date().toISOString();
-    const stagedContent = currentResume[0].parsedContentStaged as string;
+	// If staged content exists, use it instead of re-parsing
+	if (currentResume[0]?.parsedContentStaged) {
+		console.log(`Using staged content for resume ${message.resumeId}`);
+		const now = new Date().toISOString();
+		const stagedContent = currentResume[0].parsedContentStaged as string;
 
-    // M7: Batch resume completion + siteData upsert atomically
-    await db.batch([
-      db
-        .update(resumes)
-        .set({
-          status: "completed",
-          parsedAt: now,
-          parsedContent: stagedContent,
-          parsedContentStaged: null,
-          lastAttemptError: null,
-        })
-        .where(eq(resumes.id, message.resumeId)),
-      buildSiteDataUpsert(db, message.userId, message.resumeId, stagedContent, now),
-    ]);
+		// M7: Batch resume completion + siteData upsert atomically
+		await db.batch([
+			db
+				.update(resumes)
+				.set({
+					status: "completed",
+					parsedAt: now,
+					parsedContent: stagedContent,
+					parsedContentStaged: null,
+					lastAttemptError: null,
+				})
+				.where(eq(resumes.id, message.resumeId)),
+			buildSiteDataUpsert(
+				db,
+				message.userId,
+				message.resumeId,
+				stagedContent,
+				now,
+			),
+		]);
 
-    await notifyStatusChange({ resumeId: message.resumeId, status: "completed", env });
-    return;
-  }
+		await notifyStatusChange({
+			resumeId: message.resumeId,
+			status: "completed",
+			env,
+		});
+		return;
+	}
 
-  // M7: Fold totalAttempts increment into later updates to eliminate standalone UPDATE.
-  const nextAttemptCount = (currentResume[0]?.totalAttempts || 0) + 1;
+	// M7: Fold totalAttempts increment into later updates to eliminate standalone UPDATE.
+	const nextAttemptCount = (currentResume[0]?.totalAttempts || 0) + 1;
 
-  if (cached[0]?.parsedContent) {
-    // Use cached result — M7: include totalAttempts increment in same UPDATE
-    const now = new Date().toISOString();
-    const cachedContent = cached[0].parsedContent as string;
+	if (cached[0]?.parsedContent) {
+		// Use cached result — M7: include totalAttempts increment in same UPDATE
+		const now = new Date().toISOString();
+		const cachedContent = cached[0].parsedContent as string;
 
-    // M7: Batch resume completion + siteData upsert atomically
-    await db.batch([
-      db
-        .update(resumes)
-        .set({
-          status: "completed",
-          parsedAt: now,
-          parsedContent: cachedContent,
-          lastAttemptError: null,
-          totalAttempts: nextAttemptCount,
-        })
-        .where(eq(resumes.id, message.resumeId)),
-      buildSiteDataUpsert(db, message.userId, message.resumeId, cachedContent, now),
-    ]);
+		// M7: Batch resume completion + siteData upsert atomically
+		await db.batch([
+			db
+				.update(resumes)
+				.set({
+					status: "completed",
+					parsedAt: now,
+					parsedContent: cachedContent,
+					lastAttemptError: null,
+					totalAttempts: nextAttemptCount,
+				})
+				.where(eq(resumes.id, message.resumeId)),
+			buildSiteDataUpsert(
+				db,
+				message.userId,
+				message.resumeId,
+				cachedContent,
+				now,
+			),
+		]);
 
-    await notifyStatusChange({ resumeId: message.resumeId, status: "completed", env });
-    return;
-  }
+		await notifyStatusChange({
+			resumeId: message.resumeId,
+			status: "completed",
+			env,
+		});
+		return;
+	}
 
-  // Update status to processing — M7: include totalAttempts increment in same UPDATE
-  await db
-    .update(resumes)
-    .set({ status: "processing", totalAttempts: nextAttemptCount })
-    .where(eq(resumes.id, message.resumeId));
-  await notifyStatusChange({ resumeId: message.resumeId, status: "processing", env });
+	// Update status to processing — M7: include totalAttempts increment in same UPDATE
+	await db
+		.update(resumes)
+		.set({ status: "processing", totalAttempts: nextAttemptCount })
+		.where(eq(resumes.id, message.resumeId));
+	await notifyStatusChange({
+		resumeId: message.resumeId,
+		status: "processing",
+		env,
+	});
 
-  // M9: Fetch PDF from R2 as ArrayBuffer directly — no intermediate Uint8Array copy
-  const pdfBuffer = await R2.getAsArrayBuffer(r2Binding, message.r2Key);
-  if (!pdfBuffer) {
-    const error = new Error(`Failed to fetch PDF from R2: ${message.r2Key}`);
-    const classifiedError = classifyQueueError(error);
-    await db
-      .update(resumes)
-      .set({ lastAttemptError: JSON.stringify(classifiedError.toJSON()) })
-      .where(eq(resumes.id, message.resumeId));
-    throw error;
-  }
+	// M9: Fetch PDF from R2 as ArrayBuffer directly — no intermediate Uint8Array copy
+	const pdfBuffer = await R2.getAsArrayBuffer(r2Binding, message.r2Key);
+	if (!pdfBuffer) {
+		const error = new Error(`Failed to fetch PDF from R2: ${message.r2Key}`);
+		const classifiedError = classifyQueueError(error);
+		await db
+			.update(resumes)
+			.set({ lastAttemptError: JSON.stringify(classifiedError.toJSON()) })
+			.where(eq(resumes.id, message.resumeId));
+		throw error;
+	}
 
-  // Lazy-load AI modules only when actually needed for parsing.
-  // Normal HTTP requests (page views, API calls) never evaluate unpdf/Vercel AI SDK.
-  const { parseResumeWithAi } = await import("../ai");
+	// Lazy-load AI modules only when actually needed for parsing.
+	// Normal HTTP requests (page views, API calls) never evaluate unpdf/Vercel AI SDK.
+	const { parseResumeWithAi } = await import("../ai");
 
-  // M9: Pass ArrayBuffer directly — parseResumeWithAi now accepts ArrayBuffer
-  const parseResult = await parseResumeWithAi(pdfBuffer, env);
+	// M9: Pass ArrayBuffer directly — parseResumeWithAi now accepts ArrayBuffer
+	const parseResult = await parseResumeWithAi(pdfBuffer, env);
 
-  if (!parseResult.success) {
-    const rawError = parseResult.error || "Parsing failed";
-    const userError = getUserFriendlyError(rawError);
-    // Issue #83 Fix: Don't set status to "failed" here - let handleQueueMessage decide
-    // based on whether the error is retryable. Just store error info for later decision.
-    // Issue #91 Fix: Store JSON-serialized classified error for DLQ/retry consumers
-    const classifiedError = classifyQueueError(new Error(rawError));
-    await db
-      .update(resumes)
-      .set({
-        errorMessage: userError,
-        lastAttemptError: JSON.stringify(classifiedError.toJSON()),
-      })
-      .where(eq(resumes.id, message.resumeId));
-    // Note: We intentionally do NOT call notifyStatusChange here with "failed" status
-    // because we don't want to show false negative to the user for retryable errors.
-    // The worker will decide to retry, and the final "failed" notification will only
-    // be sent after retries are exhausted (handled by DLQ consumer).
-    // Throw raw error so classifyQueueError pattern matching still works
-    throw new Error(rawError);
-  }
+	if (!parseResult.success) {
+		const rawError = parseResult.error || "Parsing failed";
+		const userError = getUserFriendlyError(rawError);
+		// Issue #83 Fix: Don't set status to "failed" here - let handleQueueMessage decide
+		// based on whether the error is retryable. Just store error info for later decision.
+		// Issue #91 Fix: Store JSON-serialized classified error for DLQ/retry consumers
+		const classifiedError = classifyQueueError(new Error(rawError));
+		await db
+			.update(resumes)
+			.set({
+				errorMessage: userError,
+				lastAttemptError: JSON.stringify(classifiedError.toJSON()),
+			})
+			.where(eq(resumes.id, message.resumeId));
+		// Note: We intentionally do NOT call notifyStatusChange here with "failed" status
+		// because we don't want to show false negative to the user for retryable errors.
+		// The worker will decide to retry, and the final "failed" notification will only
+		// be sent after retries are exhausted (handled by DLQ consumer).
+		// Throw raw error so classifyQueueError pattern matching still works
+		throw new Error(rawError);
+	}
 
-  // parsedContent is produced by JSON.stringify() in parseResumeWithAi — guaranteed valid JSON
-  const parsedContent = parseResult.parsedContent;
-  const professionalLevel = parseResult.professionalLevel as UserRole | undefined;
+	// parsedContent is produced by JSON.stringify() in parseResumeWithAi — guaranteed valid JSON
+	const parsedContent = parseResult.parsedContent;
+	const professionalLevel = parseResult.professionalLevel as
+		| UserRole
+		| undefined;
 
-  const now = new Date().toISOString();
+	const now = new Date().toISOString();
 
-  // M10: Batch resume completion + siteData upsert atomically.
-  // Without batching, a crash between the UPDATE and upsert leaves the resume
-  // marked "completed" with no siteData, and the idempotency guard at line 93
-  // skips it on retry. db.batch() executes both in a single D1 transaction.
-  await db.batch([
-    db
-      .update(resumes)
-      .set({
-        status: "completed",
-        parsedAt: now,
-        parsedContent,
-        parsedContentStaged: null,
-        lastAttemptError: null,
-      })
-      .where(eq(resumes.id, message.resumeId)),
-    buildSiteDataUpsert(db, message.userId, message.resumeId, parsedContent, now),
-  ]);
+	// M10: Batch resume completion + siteData upsert atomically.
+	// Without batching, a crash between the UPDATE and upsert leaves the resume
+	// marked "completed" with no siteData, and the idempotency guard at line 93
+	// skips it on retry. db.batch() executes both in a single D1 transaction.
+	await db.batch([
+		db
+			.update(resumes)
+			.set({
+				status: "completed",
+				parsedAt: now,
+				parsedContent,
+				parsedContentStaged: null,
+				lastAttemptError: null,
+			})
+			.where(eq(resumes.id, message.resumeId)),
+		buildSiteDataUpsert(
+			db,
+			message.userId,
+			message.resumeId,
+			parsedContent,
+			now,
+		),
+	]);
 
-  // Write AI-inferred professional level to user.role separately from the
-  // critical resume+siteData batch. If this fails, the resume is still
-  // completed and the user can set their role manually via settings.
-  // Intentionally overwrites user-set roles on re-upload — the new resume
-  // may reflect a different career stage.
-  if (professionalLevel) {
-    await db
-      .update(user)
-      .set({ role: professionalLevel, roleSource: "ai", updatedAt: now })
-      .where(eq(user.id, message.userId));
-  }
+	// Write AI-inferred professional level to user.role separately from the
+	// critical resume+siteData batch. If this fails, the resume is still
+	// completed and the user can set their role manually via settings.
+	// Intentionally overwrites user-set roles on re-upload — the new resume
+	// may reflect a different career stage.
+	if (professionalLevel) {
+		await db
+			.update(user)
+			.set({ role: professionalLevel, roleSource: "ai", updatedAt: now })
+			.where(eq(user.id, message.userId));
+	}
 
-  await notifyStatusChange({ resumeId: message.resumeId, status: "completed", env });
+	await notifyStatusChange({
+		resumeId: message.resumeId,
+		status: "completed",
+		env,
+	});
 
-  // Notify ALL resumes waiting for this fileHash
-  const waitingResumes = await db
-    .select({ id: resumes.id, userId: resumes.userId })
-    .from(resumes)
-    .where(and(eq(resumes.fileHash, message.fileHash), eq(resumes.status, "waiting_for_cache")));
+	// Notify ALL resumes waiting for this fileHash
+	const waitingResumes = await db
+		.select({ id: resumes.id, userId: resumes.userId })
+		.from(resumes)
+		.where(
+			and(
+				eq(resumes.fileHash, message.fileHash),
+				eq(resumes.status, "waiting_for_cache"),
+			),
+		);
 
-  // Batch status update + all siteData upserts atomically.
-  // Without batching, a crash between the bulk UPDATE and individual upserts
-  // leaves some resumes marked "completed" with no siteData, and the
-  // idempotency guard at line 93 skips them on retry.
-  if (waitingResumes.length > 0) {
-    await db.batch([
-      db
-        .update(resumes)
-        .set({
-          status: "completed",
-          parsedAt: now,
-          parsedContent,
-          parsedContentStaged: null,
-        })
-        .where(
-          and(eq(resumes.fileHash, message.fileHash), eq(resumes.status, "waiting_for_cache")),
-        ),
-      ...waitingResumes.map((w) =>
-        buildSiteDataUpsert(db, w.userId as string, w.id as string, parsedContent, now),
-      ),
-    ]);
+	// Batch status update + all siteData upserts atomically.
+	// Without batching, a crash between the bulk UPDATE and individual upserts
+	// leaves some resumes marked "completed" with no siteData, and the
+	// idempotency guard at line 93 skips them on retry.
+	if (waitingResumes.length > 0) {
+		await db.batch([
+			db
+				.update(resumes)
+				.set({
+					status: "completed",
+					parsedAt: now,
+					parsedContent,
+					parsedContentStaged: null,
+				})
+				.where(
+					and(
+						eq(resumes.fileHash, message.fileHash),
+						eq(resumes.status, "waiting_for_cache"),
+					),
+				),
+			...waitingResumes.map((w) =>
+				buildSiteDataUpsert(
+					db,
+					w.userId as string,
+					w.id as string,
+					parsedContent,
+					now,
+				),
+			),
+		]);
 
-    // Set AI role for waiting users (same fileHash = same resume content).
-    // Separate from batch to avoid Drizzle heterogeneous table type errors.
-    // Uses inArray for a single UPDATE instead of N sequential queries.
-    if (professionalLevel) {
-      await db
-        .update(user)
-        .set({ role: professionalLevel, roleSource: "ai", updatedAt: now })
-        .where(
-          inArray(
-            user.id,
-            waitingResumes.map((w) => w.userId as string),
-          ),
-        );
-    }
-  }
+		// Set AI role for waiting users (same fileHash = same resume content).
+		// Separate from batch to avoid Drizzle heterogeneous table type errors.
+		// Uses inArray for a single UPDATE instead of N sequential queries.
+		if (professionalLevel) {
+			await db
+				.update(user)
+				.set({ role: professionalLevel, roleSource: "ai", updatedAt: now })
+				.where(
+					inArray(
+						user.id,
+						waitingResumes.map((w) => w.userId as string),
+					),
+				);
+		}
+	}
 
-  // Notify waiting resumes via WebSocket
-  if (waitingResumes.length > 0) {
-    await notifyStatusChangeBatch(
-      waitingResumes.map((r) => r.id as string),
-      "completed",
-      env,
-    );
-  }
+	// Notify waiting resumes via WebSocket
+	if (waitingResumes.length > 0) {
+		await notifyStatusChangeBatch(
+			waitingResumes.map((r) => r.id as string),
+			"completed",
+			env,
+		);
+	}
 }
 
 /**
  * Main queue consumer handler
  * Export this from the worker entry point
  */
-export async function handleQueueMessage(message: QueueMessage, env: CloudflareEnv): Promise<void> {
-  const { db } = getSessionDbForWebhook(env.CLICKFOLIO_DB);
+export async function handleQueueMessage(
+	message: QueueMessage,
+	env: CloudflareEnv,
+): Promise<void> {
+	const { db } = getSessionDbForWebhook(env.CLICKFOLIO_DB);
 
-  try {
-    // Currently only supporting parse messages
-    // Add additional handlers here when new message types are added
-    await handleResumeParse(message, env);
-  } catch (error) {
-    // Issue #83 Fix: Only set status to "failed" for non-retryable errors
-    // For retryable errors, keep status as "processing" so client doesn't see false negative
-    const isRetryable = isRetryableError(error);
+	try {
+		// Currently only supporting parse messages
+		// Add additional handlers here when new message types are added
+		await handleResumeParse(message, env);
+	} catch (error) {
+		// Issue #83 Fix: Only set status to "failed" for non-retryable errors
+		// For retryable errors, keep status as "processing" so client doesn't see false negative
+		const isRetryable = isRetryableError(error);
 
-    if (!isRetryable) {
-      // Non-retryable error - mark as permanently failed
-      const classifiedError = classifyQueueError(error);
-      await db
-        .update(resumes)
-        .set({
-          status: "failed",
-          // Issue #91 Fix: Store JSON format for DLQ/retry consumers to parse
-          lastAttemptError: JSON.stringify(classifiedError.toJSON()),
-        })
-        .where(eq(resumes.id, message.resumeId));
-      await notifyStatusChange({
-        resumeId: message.resumeId,
-        status: "failed",
-        error: classifiedError.message,
-        env,
-      });
-    } else {
-      // Retryable error - just record the error for debugging, don't change status
-      const classifiedError = classifyQueueError(error);
-      await db
-        .update(resumes)
-        .set({
-          // Issue #91 Fix: Store JSON format for DLQ/retry consumers to parse
-          lastAttemptError: JSON.stringify(classifiedError.toJSON()),
-        })
-        .where(eq(resumes.id, message.resumeId));
-    }
+		if (!isRetryable) {
+			// Non-retryable error - mark as permanently failed
+			const classifiedError = classifyQueueError(error);
+			await db
+				.update(resumes)
+				.set({
+					status: "failed",
+					// Issue #91 Fix: Store JSON format for DLQ/retry consumers to parse
+					lastAttemptError: JSON.stringify(classifiedError.toJSON()),
+				})
+				.where(eq(resumes.id, message.resumeId));
+			await notifyStatusChange({
+				resumeId: message.resumeId,
+				status: "failed",
+				error: classifiedError.message,
+				env,
+			});
+		} else {
+			// Retryable error - just record the error for debugging, don't change status
+			const classifiedError = classifyQueueError(error);
+			await db
+				.update(resumes)
+				.set({
+					// Issue #91 Fix: Store JSON format for DLQ/retry consumers to parse
+					lastAttemptError: JSON.stringify(classifiedError.toJSON()),
+				})
+				.where(eq(resumes.id, message.resumeId));
+		}
 
-    // Re-throw so the worker can decide whether to retry
-    throw error;
-  }
+		// Re-throw so the worker can decide whether to retry
+		throw error;
+	}
 }

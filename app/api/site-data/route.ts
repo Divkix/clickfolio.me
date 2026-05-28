@@ -9,7 +9,12 @@ import {
 
 /**
  * GET /api/site-data
- * Fetch site_data for the currently authenticated user
+ * Fetch site_data for the currently authenticated user.
+ *
+ * Requires authentication. Returns `null` if no site data exists for the user.
+ * The `content` field is parsed from a JSON string before being returned.
+ *
+ * Error codes: 500 on unexpected errors.
  */
 export async function GET() {
   try {

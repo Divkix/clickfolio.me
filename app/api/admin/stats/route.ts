@@ -3,6 +3,21 @@
  *
  * Returns overview statistics for admin dashboard.
  * User/resume stats from D1, traffic stats from Umami.
+ *
+ * @returns Response with shape:
+ * ```json
+ * {
+ *   "totalUsers": number,
+ *   "publishedResumes": number,
+ *   "processingResumes": number,
+ *   "viewsToday": number,
+ *   "failedResumes": number,
+ *   "recentSignups": Array<{ email: string; createdAt: string }>,
+ *   "dailyViews": Array<{ date: string; views: number }>
+ * }
+ * ```
+ *
+ * Error codes: 503 for Umami API failures.
  */
 
 import { env } from "cloudflare:workers";

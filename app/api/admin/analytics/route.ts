@@ -2,6 +2,25 @@
  * GET /api/admin/analytics?period=7d|30d|90d
  *
  * Returns platform-wide traffic analytics via Umami API.
+ *
+ * @returns Response with shape:
+ * ```json
+ * {
+ *   "totals": { "views": number, "unique": number, "avgPerDay": number, "profilesViewed": number },
+ *   "changes": { "views": number, "unique": number, "avgPerDay": number },
+ *   "daily": Array<{ date: string; views: number; unique: number }>,
+ *   "topProfiles": Array<{ handle: string; views: number }>,
+ *   "referrers": Array<{ domain: string; count: number; percent: number }>,
+ *   "countries": Array<{ code: string; name: string; percent: number }>,
+ *   "devices": Array<{ type: string; percent: number }>
+ * }
+ * ```
+ *
+ * Error codes:
+ * - 400 for invalid period.
+ * - 503 for Umami API failures.
+ *
+ * Caching: `Cache-Control: private, max-age=30, stale-while-revalidate=60`
  */
 
 import { env } from "cloudflare:workers";

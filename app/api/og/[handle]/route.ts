@@ -56,6 +56,12 @@ async function renderFallbackPng(): Promise<Response> {
  * GET /api/og/[handle]
  * Dynamic profile OG image — shows name, headline, top skills.
  * 1200x630 PNG, cached for 1 hour with 24h stale-while-revalidate.
+ *
+ * Fallback chain: PNG → SVG. If the profile is not found or resvg fails,
+ * falls back to a static SVG (`renderLastResort`).
+ *
+ * @param _request - Intentionally ignored (vinext pattern).
+ * @param params - Route parameters containing the user `handle`.
  */
 export async function GET(_request: Request, { params }: { params: Promise<{ handle: string }> }) {
   const { handle: rawHandle } = await params;

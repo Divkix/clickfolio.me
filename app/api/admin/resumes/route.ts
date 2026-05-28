@@ -2,6 +2,24 @@
  * GET /api/admin/resumes?status=all&page=1
  *
  * Returns resume processing status breakdown.
+ *
+ * The `status` query parameter accepts:
+ * - `all` (default)
+ * - `completed`
+ * - `processing`
+ * - `queued`
+ * - `failed`
+ *
+ * @returns Response with shape:
+ * ```json
+ * {
+ *   "stats": { "completed": number, "processing": number, "queued": number, "failed": number },
+ *   "resumes": Array<{ id: string; userEmail: string; status: string; retryCount: number; totalAttempts: number; lastAttemptError: string | null; updatedAt: string }>,
+ *   "total": number,
+ *   "page": number,
+ *   "pageSize": number
+ * }
+ * ```
  */
 
 import { env } from "cloudflare:workers";

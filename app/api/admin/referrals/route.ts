@@ -2,6 +2,26 @@
  * GET /api/admin/referrals
  *
  * Returns referral program statistics.
+ *
+ * @returns Response with nested shape:
+ * ```json
+ * {
+ *   "stats": {
+ *     "totalReferrers": number,
+ *     "totalClicks": number,
+ *     "conversions": number,
+ *     "conversionRate": number,
+ *     "uniqueClicks": number,
+ *     "attributedConversions": number,
+ *     "attributedConversionRate": number,
+ *     "unattributedConversions": number
+ *   },
+ *   "funnel": { "clicks": number, "unique": number, "signups": number },
+ *   "topReferrers": Array<{ handle: string; clicks: number; conversions: number; rate: string }>,
+ *   "sources": Array<{ source: string; percent: number }>,
+ *   "recentConversions": Array<{ newUserEmail: string; referrerHandle: string; createdAt: string }>
+ * }
+ * ```
  */
 
 import { env } from "cloudflare:workers";

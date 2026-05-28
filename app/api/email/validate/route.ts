@@ -8,6 +8,9 @@ import {
   ERROR_CODES,
 } from "@/lib/utils/security-headers";
 
+/**
+ * Zod schema for email validation request body.
+ */
 const emailValidateSchema = z.object({
   email: z.string().trim().min(1).email({ message: "Invalid email address" }),
 });

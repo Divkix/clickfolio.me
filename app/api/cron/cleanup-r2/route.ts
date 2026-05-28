@@ -7,6 +7,10 @@
  * Scheduled daily at 2 AM UTC via wrangler.jsonc
  * Deletes:
  * - Orphaned temp files in R2 older than 24 hours
+ *
+ * @returns Response from {@link performR2Cleanup} on success.
+ * Returns 401 if cron secret is missing or invalid.
+ * Returns 500 on server misconfiguration or cleanup failure.
  */
 
 import { env } from "cloudflare:workers";

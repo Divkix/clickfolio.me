@@ -1,14 +1,21 @@
 /**
  * GET /api/og/home
  * Homepage OG image — branded SVG card with browser mockup and template preview.
- * 1200x630, cached for 1 week.
+ * 1200x630 SVG, cached for 1 week.
  *
  * NOTE: PNG conversion via workers-og failed due to Turbopack incompatibility
  * with WASM modules. SVG OG images are supported by Facebook, LinkedIn, and most
  * crawlers. Twitter/X has limited SVG support but falls back to meta description.
+ *
+ * Response headers:
+ * - `Content-Type: image/svg+xml`
+ * - `Cache-Control: public, max-age=604800`
+ *
+ * Returns 500 on unexpected errors.
  */
 export async function GET() {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  try {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
   <defs>
     <linearGradient id="bgGrad" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0%" stop-color="#1a1a2e"/>
@@ -117,10 +124,14 @@ export async function GET() {
   </text>
 </svg>`;
 
-  return new Response(svg, {
-    headers: {
-      "Content-Type": "image/svg+xml",
-      "Cache-Control": "public, max-age=604800",
-    },
-  });
+    return new Response(svg, {
+      headers: {
+        "Content-Type": "image/svg+xml",
+        "Cache-Control": "public, max-age=604800",
+      },
+    });
+  } catch (error) {
+    console.error("[og/home] Error generating OG image:", error);
+    return new Response("Internal Server Error", { status: 500 });
+  }
 }

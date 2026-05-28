@@ -9,12 +9,12 @@
  * Escape HTML special characters to prevent XSS in email templates
  */
 function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
+	return str
+		.replace(/&/g, "&amp;")
+		.replace(/</g, "&lt;")
+		.replace(/>/g, "&gt;")
+		.replace(/"/g, "&quot;")
+		.replace(/'/g, "&#039;");
 }
 
 /**
@@ -22,29 +22,35 @@ function escapeHtml(str: string): string {
  * Uses the configured domain from BETTER_AUTH_URL
  */
 function getFromEmail(appUrl: string): { email: string; name: string } {
-  try {
-    const url = new URL(appUrl);
-    // For localhost dev, use a placeholder domain (emails won't actually send without onboarding)
-    if (url.hostname === "localhost" || url.hostname === "127.0.0.1") {
-      return { email: "noreply@clickfolio.me", name: "Clickfolio" };
-    }
-    return { email: `noreply@${url.hostname}`, name: "Clickfolio" };
-  } catch {
-    // Invalid URL, fall back to default
-    return { email: "noreply@clickfolio.me", name: "Clickfolio" };
-  }
+	try {
+		const url = new URL(appUrl);
+		// For localhost dev, use a placeholder domain (emails won't actually send without onboarding)
+		if (url.hostname === "localhost" || url.hostname === "127.0.0.1") {
+			return { email: "noreply@clickfolio.me", name: "Clickfolio" };
+		}
+		return { email: `noreply@${url.hostname}`, name: "Clickfolio" };
+	} catch {
+		// Invalid URL, fall back to default
+		return { email: "noreply@clickfolio.me", name: "Clickfolio" };
+	}
 }
 
+/**
+ * Parameters for sending a password reset email via Cloudflare Email Service.
+ */
 interface SendPasswordResetEmailParams {
-  email: string;
-  resetUrl: string;
-  userName?: string;
+	email: string;
+	resetUrl: string;
+	userName?: string;
 }
 
+/**
+ * Parameters for sending an email verification email via Cloudflare Email Service.
+ */
 interface SendVerificationEmailParams {
-  email: string;
-  verificationUrl: string;
-  userName?: string;
+	email: string;
+	verificationUrl: string;
+	userName?: string;
 }
 
 /**
@@ -55,33 +61,33 @@ interface SendVerificationEmailParams {
  * @returns Object with sendPasswordResetEmail and sendVerificationEmail functions
  */
 export function createEmailSender(env: CloudflareEnv, appUrl: string) {
-  const from = getFromEmail(appUrl);
+	const from = getFromEmail(appUrl);
 
-  /**
-   * Sends a password reset email via Cloudflare Email Service
-   */
-  async function sendPasswordResetEmail({
-    email,
-    resetUrl,
-    userName,
-  }: SendPasswordResetEmailParams): Promise<{
-    success: boolean;
-    error?: string;
-  }> {
-    try {
-      // Validate URL structure — Better Auth already produces properly-encoded URLs.
-      // Do NOT use encodeURI() here: it re-encodes % to %25, mangling query params.
-      try {
-        new URL(resetUrl);
-      } catch {
-        return { success: false, error: "Invalid reset URL" };
-      }
+	/**
+	 * Sends a password reset email via Cloudflare Email Service
+	 */
+	async function sendPasswordResetEmail({
+		email,
+		resetUrl,
+		userName,
+	}: SendPasswordResetEmailParams): Promise<{
+		success: boolean;
+		error?: string;
+	}> {
+		try {
+			// Validate URL structure — Better Auth already produces properly-encoded URLs.
+			// Do NOT use encodeURI() here: it re-encodes % to %25, mangling query params.
+			try {
+				new URL(resetUrl);
+			} catch {
+				return { success: false, error: "Invalid reset URL" };
+			}
 
-      // Escape user-controlled values for HTML safety
-      const safeUserName = userName ? escapeHtml(userName) : null;
-      const greeting = safeUserName ? `Hi ${safeUserName},` : "Hi,";
+			// Escape user-controlled values for HTML safety
+			const safeUserName = userName ? escapeHtml(userName) : null;
+			const greeting = safeUserName ? `Hi ${safeUserName},` : "Hi,";
 
-      const textContent = `${greeting}
+			const textContent = `${greeting}
 
 You requested to reset your password for your Clickfolio account.
 
@@ -94,7 +100,7 @@ If you didn't request this, you can safely ignore this email. Your password won'
 
 - The Clickfolio Team`;
 
-      const htmlContent = `
+			const htmlContent = `
 <!DOCTYPE html>
 <html>
 <head>
@@ -128,48 +134,48 @@ If you didn't request this, you can safely ignore this email. Your password won'
 </body>
 </html>`;
 
-      await env.EMAIL.send({
-        to: email,
-        from,
-        subject: "Reset your password - Clickfolio",
-        html: htmlContent,
-        text: textContent,
-      });
+			await env.EMAIL.send({
+				to: email,
+				from,
+				subject: "Reset your password - Clickfolio",
+				html: htmlContent,
+				text: textContent,
+			});
 
-      console.log(`[EMAIL] Password reset sent to ${email}`);
-      return { success: true };
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Unknown error";
-      console.error("[EMAIL] Error sending password reset:", message);
-      return { success: false, error: message };
-    }
-  }
+			console.log(`[EMAIL] Password reset sent to ${email}`);
+			return { success: true };
+		} catch (err) {
+			const message = err instanceof Error ? err.message : "Unknown error";
+			console.error("[EMAIL] Error sending password reset:", message);
+			return { success: false, error: message };
+		}
+	}
 
-  /**
-   * Sends an email verification email via Cloudflare Email Service
-   */
-  async function sendVerificationEmail({
-    email,
-    verificationUrl,
-    userName,
-  }: SendVerificationEmailParams): Promise<{
-    success: boolean;
-    error?: string;
-  }> {
-    try {
-      // Validate URL structure — Better Auth already produces properly-encoded URLs.
-      // Do NOT use encodeURI() here: it re-encodes % to %25, mangling query params.
-      try {
-        new URL(verificationUrl);
-      } catch {
-        return { success: false, error: "Invalid verification URL" };
-      }
+	/**
+	 * Sends an email verification email via Cloudflare Email Service
+	 */
+	async function sendVerificationEmail({
+		email,
+		verificationUrl,
+		userName,
+	}: SendVerificationEmailParams): Promise<{
+		success: boolean;
+		error?: string;
+	}> {
+		try {
+			// Validate URL structure — Better Auth already produces properly-encoded URLs.
+			// Do NOT use encodeURI() here: it re-encodes % to %25, mangling query params.
+			try {
+				new URL(verificationUrl);
+			} catch {
+				return { success: false, error: "Invalid verification URL" };
+			}
 
-      // Escape user-controlled values for HTML safety
-      const safeUserName = userName ? escapeHtml(userName) : null;
-      const greeting = safeUserName ? `Hi ${safeUserName},` : "Hi,";
+			// Escape user-controlled values for HTML safety
+			const safeUserName = userName ? escapeHtml(userName) : null;
+			const greeting = safeUserName ? `Hi ${safeUserName},` : "Hi,";
 
-      const textContent = `${greeting}
+			const textContent = `${greeting}
 
 Thanks for signing up for Clickfolio! Please verify your email address to complete your registration.
 
@@ -182,7 +188,7 @@ If you didn't create a Clickfolio account, you can safely ignore this email.
 
 - The Clickfolio Team`;
 
-      const htmlContent = `
+			const htmlContent = `
 <!DOCTYPE html>
 <html>
 <head>
@@ -216,25 +222,25 @@ If you didn't create a Clickfolio account, you can safely ignore this email.
 </body>
 </html>`;
 
-      await env.EMAIL.send({
-        to: email,
-        from,
-        subject: "Verify your email - Clickfolio",
-        html: htmlContent,
-        text: textContent,
-      });
+			await env.EMAIL.send({
+				to: email,
+				from,
+				subject: "Verify your email - Clickfolio",
+				html: htmlContent,
+				text: textContent,
+			});
 
-      console.log(`[EMAIL] Verification email sent to ${email}`);
-      return { success: true };
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Unknown error";
-      console.error("[EMAIL] Error sending verification email:", message);
-      return { success: false, error: message };
-    }
-  }
+			console.log(`[EMAIL] Verification email sent to ${email}`);
+			return { success: true };
+		} catch (err) {
+			const message = err instanceof Error ? err.message : "Unknown error";
+			console.error("[EMAIL] Error sending verification email:", message);
+			return { success: false, error: message };
+		}
+	}
 
-  return {
-    sendPasswordResetEmail,
-    sendVerificationEmail,
-  };
+	return {
+		sendPasswordResetEmail,
+		sendVerificationEmail,
+	};
 }

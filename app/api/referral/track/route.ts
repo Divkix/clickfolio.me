@@ -18,11 +18,16 @@ import { referralClicks, user } from "@/lib/db/schema";
 import { getClientIP } from "@/lib/rate-limit/ip";
 import { generateVisitorHash, isBot } from "@/lib/utils/analytics";
 
+/** Empty 204 response used for all non-error paths. */
 const EMPTY_204 = new Response(null, { status: 204 });
 
+/** Request body shape for referral click tracking. */
 interface TrackRequestBody {
+  /** Referral code (preferred). */
   code?: string;
-  handle?: string; // Backward compatibility
+  /** User handle (backward compatibility). */
+  handle?: string;
+  /** Where the referral link was clicked. */
   source?: "homepage" | "cta" | "share";
 }
 
