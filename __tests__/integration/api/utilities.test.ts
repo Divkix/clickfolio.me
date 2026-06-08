@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { _resetCache, extractDomain, isDisposableEmail } from "@/lib/email/disposable-check";
 import { RESERVED_HANDLES } from "@/lib/rate-limit/handle-validation";
 import { generateVisitorHash } from "@/lib/utils/analytics";

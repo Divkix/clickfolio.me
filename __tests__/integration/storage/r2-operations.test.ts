@@ -5,7 +5,7 @@
  * partial content, and error handling scenarios.
  */
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { getR2Binding, R2 } from "@/lib/r2";
 
 // Mock R2Bucket for testing - using separate interface to avoid type conflicts

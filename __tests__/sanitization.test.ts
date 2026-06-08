@@ -4,7 +4,7 @@
  * and safe normalization for email, phone, URL, and free-text fields.
  */
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import {
   containsXssPattern,
   noXssPattern,

@@ -23,15 +23,15 @@ Upload a PDF. AI parses it. Get a shareable link.
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|------------|
-| **Framework** | [vinext](https://github.com/cloudflare/vinext) (Vite-based Next.js) |
-| **Runtime** | [Cloudflare Workers](https://workers.cloudflare.com) |
-| **Database** | [Cloudflare D1](https://developers.cloudflare.com/d1/) (SQLite) + [Drizzle ORM](https://orm.drizzle.team) |
-| **Auth** | [Better Auth](https://better-auth.com) (Google OAuth + email/password) |
-| **Storage** | [Cloudflare R2](https://developers.cloudflare.com/r2/) (S3-compatible) |
+| Layer          | Technology                                                                                                                             |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| **Framework**  | [vinext](https://github.com/cloudflare/vinext) (Vite-based Next.js)                                                                    |
+| **Runtime**    | [Cloudflare Workers](https://workers.cloudflare.com)                                                                                   |
+| **Database**   | [Cloudflare D1](https://developers.cloudflare.com/d1/) (SQLite) + [Drizzle ORM](https://orm.drizzle.team)                              |
+| **Auth**       | [Better Auth](https://better-auth.com) (Google OAuth + email/password)                                                                 |
+| **Storage**    | [Cloudflare R2](https://developers.cloudflare.com/r2/) (S3-compatible)                                                                 |
 | **AI Parsing** | [OpenRouter](https://openrouter.ai) via [Cloudflare AI Gateway](https://developers.cloudflare.com/ai-gateway/) (openai/gpt-oss models) |
-| **Styling** | [shadcn/ui](https://ui.shadcn.com) + [Tailwind CSS 4](https://tailwindcss.com) |
+| **Styling**    | [shadcn/ui](https://ui.shadcn.com) + [Tailwind CSS 4](https://tailwindcss.com)                                                         |
 
 ---
 
@@ -40,22 +40,26 @@ Upload a PDF. AI parses it. Get a shareable link.
 We chose Cloudflare Workers over traditional hosting for several reasons:
 
 ### Performance
+
 - **Edge Computing**: Code runs in 300+ data centers worldwide, closest to your users
 - **Cold Start**: ~0ms cold starts vs. 200-500ms on traditional serverless
 - **Latency**: Sub-50ms response times globally
 
 ### Cost Efficiency
+
 - **Free Tier**: 100,000 requests/day free
 - **D1 Database**: 5GB free, built-in SQLite
 - **R2 Storage**: 10GB free, no egress fees
 - **Total**: A production app can run free for most use cases
 
 ### Developer Experience
+
 - **No Container Management**: Just deploy code
 - **Automatic Scaling**: From 0 to millions of requests
 - **Integrated Stack**: D1, R2, and Workers work seamlessly together
 
 ### Trade-offs
+
 - **No `fs` Module**: Must use R2 for file operations
 - **No Next.js `<Image />` Component**: Use `<img>` with CSS instead
 - **Edge Middleware Limits**: No D1 access in middleware
@@ -103,6 +107,7 @@ Open [http://localhost:3000](http://localhost:3000)
 If you are not technical, follow this exact checklist. You only need a terminal and browser.
 
 **What you need**
+
 - A Cloudflare account (free is fine)
 - A Google Cloud account (for Google Sign-In)
 - An OpenRouter account (for AI parsing)
@@ -112,6 +117,7 @@ If you are not technical, follow this exact checklist. You only need a terminal 
   ```
 
 **Step 0: Get the code**
+
 1. Download the repo ZIP from GitHub and unzip it, **or** use:
    ```bash
    git clone https://github.com/divkix/clickfolio.me.git
@@ -123,6 +129,7 @@ If you are not technical, follow this exact checklist. You only need a terminal 
    ```
 
 **Step 1: Create Cloudflare D1 database**
+
 1. In Terminal:
    ```bash
    bunx wrangler d1 create clickfolio-db
@@ -131,12 +138,14 @@ If you are not technical, follow this exact checklist. You only need a terminal 
 3. Open `wrangler.jsonc` and replace the `database_id` value.
 
 **Step 2: Create Cloudflare R2 bucket**
+
 1. Go to Cloudflare Dashboard → R2 → Create bucket.
 2. Name it **`clickfolio-bucket`**.
 3. The bucket is accessed via binding in wrangler.jsonc - no API tokens needed.
 
 **Step 3: Configure R2 CORS**
 In Cloudflare R2 bucket settings → CORS, paste:
+
 ```json
 [
   {
@@ -149,6 +158,7 @@ In Cloudflare R2 bucket settings → CORS, paste:
 ```
 
 **Step 4: Set up Google OAuth**
+
 1. Go to Google Cloud Console.
 2. Create project → APIs & Services → Credentials.
 3. Create OAuth Client ID (Web app).
@@ -158,11 +168,13 @@ In Cloudflare R2 bucket settings → CORS, paste:
 5. Copy **Client ID** and **Client Secret**.
 
 **Step 5: Set up OpenRouter**
+
 1. Create OpenRouter account → API Keys.
 2. Copy your API key.
 
 **Step 6: Add secrets to Cloudflare (production)**
 Run each command and paste the value when prompted:
+
 ```bash
 bunx wrangler secret put BETTER_AUTH_SECRET
 bunx wrangler secret put BETTER_AUTH_URL              # Also used as app URL
@@ -174,6 +186,7 @@ bunx wrangler secret put CF_AIG_AUTH_TOKEN
 ```
 
 **Step 7: Deploy**
+
 ```bash
 bun run db:migrate:prod
 bun run deploy
@@ -183,9 +196,11 @@ bun run deploy
 Cloudflare Dashboard → Workers & Pages → your worker → Settings → Domains & Routes.
 
 **Important:** After domain is connected, **update this secret**:
+
 - `BETTER_AUTH_URL` = `https://your-domain.com`
 
 Then redeploy:
+
 ```bash
 bun run deploy
 ```
@@ -197,9 +212,11 @@ If you followed the steps above, the site should be live at your domain.
 1. **Create a Cloudflare account** at [cloudflare.com](https://cloudflare.com)
 
 2. **Create D1 Database**
+
    ```bash
    bunx wrangler d1 create clickfolio-db
    ```
+
    Copy the `database_id` to `wrangler.jsonc`
 
 3. **Create R2 Bucket**
@@ -225,11 +242,11 @@ If you followed the steps above, the site should be live at your domain.
 1. Go to [Google Cloud Console](https://console.cloud.google.com)
 2. Create a new project (or select existing)
 3. Go to **APIs & Services > Credentials**
-5. Create **OAuth 2.0 Client ID** (Web application type)
-6. Add authorized redirect URIs:
+4. Create **OAuth 2.0 Client ID** (Web application type)
+5. Add authorized redirect URIs:
    - Development: `http://localhost:3000/api/auth/callback/google`
    - Production: `https://your-domain.com/api/auth/callback/google`
-7. Copy Client ID and Client Secret
+6. Copy Client ID and Client Secret
 
 ### Step 3: OpenRouter + Cloudflare AI Gateway (required)
 
@@ -240,6 +257,7 @@ If you followed the steps above, the site should be live at your domain.
 
 **Cloudflare AI Gateway**
 This project uses Cloudflare AI Gateway for AI calls.
+
 1. Go to Cloudflare Dashboard > AI > AI Gateway
 2. Create a gateway
 3. Store your OpenRouter token in Cloudflare Secrets Store
@@ -272,11 +290,13 @@ See `.env.example` for complete template with all options.
 ### Step 5: Deploy to Cloudflare
 
 1. **Apply database migrations**
+
    ```bash
    bun run db:migrate:prod
    ```
 
 2. **Set production secrets**
+
    ```bash
    bunx wrangler secret put BETTER_AUTH_SECRET
    bunx wrangler secret put BETTER_AUTH_URL              # Also used as app URL
@@ -288,6 +308,7 @@ See `.env.example` for complete template with all options.
    ```
 
 3. **Deploy**
+
    ```bash
    bun run deploy
    ```
@@ -422,6 +443,7 @@ Allows anonymous users to upload before authenticating:
 ### Privacy Filtering
 
 Before rendering public profiles:
+
 - Phone numbers: Hidden by default
 - Addresses: City/State only (full address hidden)
 - Email: Public (for contact)
@@ -430,6 +452,7 @@ Before rendering public profiles:
 ### Real-time Updates (WebSocket)
 
 Live status updates during AI parsing:
+
 - **Endpoint**: `wss://your-domain.com/ws/resume-status?resume_id={id}`
 - **Technology**: Cloudflare Durable Objects (`ClickfolioStatusDO`)
 - **Flow**: WebSocket connection → DO tracks parsing progress → Real-time status pushed to client
@@ -439,6 +462,7 @@ Live status updates during AI parsing:
 ### Queue System
 
 Asynchronous resume parsing pipeline:
+
 - **Queue**: `clickfolio-parse-queue` (Cloudflare Queues)
 - **DLQ**: `clickfolio-parse-dlq` for failed messages
 - **Producer**: `/api/resume/claim` enqueues after upload
@@ -450,11 +474,11 @@ Asynchronous resume parsing pipeline:
 
 Four cron triggers run automatically:
 
-| Cron | Time (UTC) | Task |
-|------|-----------|------|
-| `0 2 * * *` | 2:00 AM | R2 temp file cleanup (old uploads) |
-| `0 3 * * *` | 3:00 AM | Database cleanup (expired sessions) |
-| `0 4 * * *` | 4:00 AM | Sync disposable email domain blocklist |
+| Cron           | Time (UTC)   | Task                                        |
+| -------------- | ------------ | ------------------------------------------- |
+| `0 2 * * *`    | 2:00 AM      | R2 temp file cleanup (old uploads)          |
+| `0 3 * * *`    | 3:00 AM      | Database cleanup (expired sessions)         |
+| `0 4 * * *`    | 4:00 AM      | Sync disposable email domain blocklist      |
 | `*/15 * * * *` | Every 15 min | Recover orphaned resumes (stuck in parsing) |
 
 All run via `worker/index.ts` without self-fetch (avoids double billing).
@@ -462,6 +486,7 @@ All run via `worker/index.ts` without self-fetch (avoids double billing).
 ### Referral Program
 
 Unlock premium templates by sharing:
+
 - **Mechanism**: Share your unique referral link from dashboard
 - **Tracking**: Friend signs up → your referral count increases
 - **Unlocks**:
@@ -476,18 +501,18 @@ Unlock premium templates by sharing:
 
 10 built-in templates in `components/templates/`:
 
-| Template | Category | Description | Unlock Requirement |
-|----------|----------|-------------|-------------------|
-| **Minimalist Editorial** | Professional | Clean magazine-style layout with serif typography | Free (default) |
-| **Neo Brutalist** | Creative | Bold design with thick borders and loud colors | Free |
-| **Glass Morphic** | Modern | Dark theme with frosted glass effects | Free |
-| **Bento Grid** | Modern | Modern mosaic layout with colorful cards | Free |
-| **Classic ATS** | Professional | Legal brief typography, ATS-optimized single-column layout | Free |
-| **DevTerminal** | Developer | GitHub-inspired dark terminal aesthetic for developers | Free |
-| **DesignFolio** | Creative | Digital brutalism meets Swiss typography with acid lime accents | 3 referrals |
-| **Spotlight** | Creative | Warm creative portfolio with animated sections | 3 referrals |
-| **Midnight** | Modern | Dark minimal with serif headings and gold accents | 5 referrals |
-| **Bold Corporate** | Professional | Executive typography with bold numbered sections | 10 referrals |
+| Template                 | Category     | Description                                                     | Unlock Requirement |
+| ------------------------ | ------------ | --------------------------------------------------------------- | ------------------ |
+| **Minimalist Editorial** | Professional | Clean magazine-style layout with serif typography               | Free (default)     |
+| **Neo Brutalist**        | Creative     | Bold design with thick borders and loud colors                  | Free               |
+| **Glass Morphic**        | Modern       | Dark theme with frosted glass effects                           | Free               |
+| **Bento Grid**           | Modern       | Modern mosaic layout with colorful cards                        | Free               |
+| **Classic ATS**          | Professional | Legal brief typography, ATS-optimized single-column layout      | Free               |
+| **DevTerminal**          | Developer    | GitHub-inspired dark terminal aesthetic for developers          | Free               |
+| **DesignFolio**          | Creative     | Digital brutalism meets Swiss typography with acid lime accents | 3 referrals        |
+| **Spotlight**            | Creative     | Warm creative portfolio with animated sections                  | 3 referrals        |
+| **Midnight**             | Modern       | Dark minimal with serif headings and gold accents               | 5 referrals        |
+| **Bold Corporate**       | Professional | Executive typography with bold numbered sections                | 10 referrals       |
 
 All templates receive `content` (ResumeContent) and `user` props, respect privacy settings, and are mobile-responsive. Premium templates unlock through the referral program.
 
@@ -524,27 +549,32 @@ Contributions welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for guidel
 ## Troubleshooting
 
 ### Build Fails with TypeScript Errors
+
 ```bash
 bun run type-check  # See all errors
 bun run build       # Fix errors and rebuild
 ```
 
 ### OAuth Redirect Loop
+
 1. Verify `BETTER_AUTH_URL` includes `https://` for production
 2. Check redirect URIs match in Google Cloud Console
 3. Clear browser cookies
 
 ### R2 Upload Fails
+
 1. Check R2 CORS includes your domain
 2. Verify R2 bucket binding is configured in `wrangler.jsonc`
 3. Confirm bucket name in binding matches actual bucket
 
 ### Parsing Stuck in "Processing"
+
 1. Verify CF AI Gateway config and OpenRouter BYOK setup
 2. Check PDF isn't corrupted
 3. Use retry button (max 2 retries)
 
 ### "Cannot find module 'fs'"
+
 You're on Cloudflare Workers. Use R2 bindings for file operations.
 
 ---

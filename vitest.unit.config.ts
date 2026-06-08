@@ -5,7 +5,7 @@
  * Fast execution, no external service dependencies.
  */
 
-import { defineConfig } from "vitest/config";
+import { defineConfig } from "vite-plus";
 
 export default defineConfig({
   test: {

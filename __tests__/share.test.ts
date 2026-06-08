@@ -3,7 +3,7 @@
  * Covers Twitter, LinkedIn, WhatsApp URL builders with proper URL encoding and XSS prevention.
  */
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import {
   generateLinkedInShareUrl,
   generateShareText,

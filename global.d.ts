@@ -9,11 +9,15 @@ declare global {
 // Type declarations for vitest and jest-dom matchers
 import type { matchers } from "@testing-library/jest-dom";
 
-declare module "vitest" {
+declare module "vite-plus/test" {
   // @ts-expect-error - vitest's interface merging
-  interface Assertion<T = unknown>
-    extends matchers.TestingLibraryMatchers<typeof expect.stringContaining, T> {}
+  interface Assertion<T = unknown> extends matchers.TestingLibraryMatchers<
+    typeof expect.stringContaining,
+    T
+  > {}
   // @ts-expect-error - vitest's interface merging
-  interface AsymmetricMatchersContaining
-    extends matchers.TestingLibraryMatchers<typeof expect.stringContaining, unknown> {}
+  interface AsymmetricMatchersContaining extends matchers.TestingLibraryMatchers<
+    typeof expect.stringContaining,
+    unknown
+  > {}
 }

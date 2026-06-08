@@ -4,7 +4,7 @@
  * XSS escaping, URL encoding safety, and graceful error handling.
  */
 
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vite-plus/test";
 import { createEmailSender } from "@/lib/email/cloudflare";
 
 interface MockEmailResponse {

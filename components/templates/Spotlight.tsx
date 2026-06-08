@@ -40,7 +40,6 @@ function SpotlightCard({
   }, []);
 
   return (
-    // biome-ignore lint/a11y/noStaticElementInteractions: decorative spotlight cursor effect, no interactive semantics
     <div
       ref={cardRef}
       onMouseMove={handleMouseMove}
@@ -122,7 +121,6 @@ const Spotlight: React.FC<TemplateProps> = ({ content, profile }) => {
         rel="stylesheet"
       />
 
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: decorative page-level spotlight tracking, no interactive semantics */}
       <div
         ref={containerRef}
         onMouseMove={handlePageMouseMove}

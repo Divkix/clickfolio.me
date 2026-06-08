@@ -78,6 +78,7 @@ We use [Conventional Commits](https://www.conventionalcommits.org/):
 ```
 
 **Types:**
+
 - `feat`: New feature
 - `fix`: Bug fix
 - `docs`: Documentation only
@@ -88,6 +89,7 @@ We use [Conventional Commits](https://www.conventionalcommits.org/):
 - `chore`: Maintenance tasks
 
 **Examples:**
+
 ```
 feat(templates): add dark mode template variant
 
@@ -118,14 +120,15 @@ bun run build
 
 ### Code Style
 
-- **Formatter**: [Biome](https://biomejs.dev/)
+- **Formatter**: [Oxfmt](https://oxc.rs/docs/guide/usage/formatter/) via `vp fmt`
+- **Linter**: [Oxlint](https://oxc.rs/docs/guide/usage/linter/) via `vp lint`
 - **Indentation**: 2 spaces (not tabs)
 - **Quotes**: Double quotes
 - **Semicolons**: Required
 - **Trailing commas**: Required
 - **Images**: Use `<img>` tags (not Next.js `<Image />`)
 
-The Biome configuration is in `biome.jsonc`. Run `bun run fix` to auto-format.
+Lint and format are configured in the `lint` and `fmt` blocks of `vite.config.ts`. Run `bun run fix` to auto-format and fix lint issues.
 
 ## Pull Request Process
 

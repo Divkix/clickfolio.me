@@ -13,11 +13,13 @@ Tests are organized into three categories based on the [Trophy Testing methodolo
 ## Running Tests
 
 ### All Tests
+
 ```bash
 bun run test
 ```
 
 ### Individual Test Suites
+
 ```bash
 # Unit tests only (fastest, no retries)
 bun run test:unit
@@ -30,6 +32,7 @@ bun run test:security
 ```
 
 ### With Coverage
+
 ```bash
 # All tests with coverage report
 bun run test:coverage
@@ -39,6 +42,7 @@ bun run test:ci
 ```
 
 ### Development Mode
+
 ```bash
 # Watch mode - re-runs tests on file changes
 bun run test:watch
@@ -51,12 +55,12 @@ bun run test:ui
 
 Coverage is enforced in CI via threshold settings in `vitest.config.ts`:
 
-| Metric      | Threshold |
-|-------------|-----------|
-| Statements  | 80%       |
-| Branches    | 80%       |
-| Functions   | 80%       |
-| Lines       | 80%       |
+| Metric     | Threshold |
+| ---------- | --------- |
+| Statements | 80%       |
+| Branches   | 80%       |
+| Functions  | 80%       |
+| Lines      | 80%       |
 
 **Note:** Coverage thresholds are enforced in CI. If coverage falls below these thresholds, the build will fail.
 
@@ -70,6 +74,7 @@ Coverage is enforced in CI via threshold settings in `vitest.config.ts`:
 ## Writing Tests
 
 ### Test File Naming
+
 - Unit tests: `__tests__/unit/**/*.test.ts`
 - Integration tests: `__tests__/integration/**/*.test.ts`
 - Security tests: `__tests__/security/**/*.test.ts`
@@ -77,6 +82,7 @@ Coverage is enforced in CI via threshold settings in `vitest.config.ts`:
 ### Mocking Patterns
 
 See `__tests__/setup/mocks/` for examples of common mocking patterns:
+
 - Database operations via Drizzle
 - Cloudflare Workers bindings
 - Better Auth sessions
@@ -100,14 +106,14 @@ describe("someFunction", () => {
   it("should return expected result for valid input", () => {
     // Arrange
     const input = { id: "123", name: "Test" };
-    
+
     // Act
     const result = someFunction(input);
-    
+
     // Assert
     expect(result).toEqual({ success: true, data: input });
   });
-  
+
   it("should throw error for invalid input", () => {
     expect(() => someFunction(null)).toThrow("Invalid input");
   });
@@ -126,6 +132,7 @@ Tests run automatically on every push and pull request via GitHub Actions:
 ### Coverage Reports
 
 After each CI run, coverage reports are:
+
 - Uploaded as artifacts (accessible from the Actions tab)
 - Commented on pull requests (via lcov-reporter-action)
 - Used to generate coverage badges on the main branch
@@ -133,6 +140,7 @@ After each CI run, coverage reports are:
 ### Required Checks
 
 All test jobs must pass before merging:
+
 - `unit-tests`
 - `integration-tests`
 - `security-tests`
@@ -140,11 +148,13 @@ All test jobs must pass before merging:
 ## Troubleshooting
 
 ### Tests Fail Locally But Pass in CI
+
 - Check for environment-specific differences (case sensitivity on macOS vs Linux)
 - Ensure all mocks are properly reset between tests
 - Check for race conditions in async tests
 
 ### Flaky Tests
+
 - Integration tests have 2 retries configured
 - If tests are consistently flaky, consider:
   - Increasing timeout
@@ -152,6 +162,7 @@ All test jobs must pass before merging:
   - Fixing the underlying race condition
 
 ### Coverage Not Generated
+
 - Ensure `@vitest/coverage-v8` is installed
 - Check that source files are included in the `coverage.include` pattern
 - Verify tests are actually running (not just passing with 0 tests)

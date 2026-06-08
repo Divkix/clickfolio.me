@@ -4,7 +4,7 @@
  */
 
 import { eq } from "drizzle-orm";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { createMockDb } from "@/__tests__/setup/mocks/db.mock";
 import {
   checkEmailValidateRateLimit,

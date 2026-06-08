@@ -7,7 +7,7 @@
  * @module __tests__/integration/edge-cases.test
  */
 
-import { describe, expect, test } from "vitest";
+import { describe, expect, test } from "vite-plus/test";
 
 // ============================================================================
 // Edge Case Test Utilities

@@ -14,18 +14,19 @@
 
 ## File Structure
 
-| File | Action | Responsibility |
-|------|--------|----------------|
-| `components/blog/HighlightBlock.tsx` | Create | Reusable callout component with variants (tip, stat, warning) |
-| `components/blog/StatsGrid.tsx` | Create | Grid component for displaying numerical data |
-| `components/blog/BlogPostLayout.tsx` | Modify | Update prose styling: contrast, spacing, heading hierarchy |
-| `app/blog/ai-resume-parsing-accuracy/page.tsx` | Modify | Pilot StatsGrid usage for accuracy metrics |
+| File                                           | Action | Responsibility                                                |
+| ---------------------------------------------- | ------ | ------------------------------------------------------------- |
+| `components/blog/HighlightBlock.tsx`           | Create | Reusable callout component with variants (tip, stat, warning) |
+| `components/blog/StatsGrid.tsx`                | Create | Grid component for displaying numerical data                  |
+| `components/blog/BlogPostLayout.tsx`           | Modify | Update prose styling: contrast, spacing, heading hierarchy    |
+| `app/blog/ai-resume-parsing-accuracy/page.tsx` | Modify | Pilot StatsGrid usage for accuracy metrics                    |
 
 ---
 
 ## Task 1: Create HighlightBlock Component
 
 **Files:**
+
 - Create: `components/blog/HighlightBlock.tsx`
 - Test: `bun run type-check && bun run lint`
 
@@ -68,23 +69,15 @@ const variantStyles = {
   },
 };
 
-export function HighlightBlock({
-  children,
-  variant = "default",
-  title,
-}: HighlightBlockProps) {
+export function HighlightBlock({ children, variant = "default", title }: HighlightBlockProps) {
   const { bg, border, iconColor, Icon } = variantStyles[variant];
 
   return (
-    <div
-      className={`${bg} border-3 ${border} shadow-brutal-sm p-6 my-8`}
-    >
+    <div className={`${bg} border-3 ${border} shadow-brutal-sm p-6 my-8`}>
       <div className="flex items-start gap-3">
         <Icon className={`w-5 h-5 ${iconColor} mt-0.5 flex-shrink-0`} />
         <div className="flex-1">
-          {title && (
-            <h4 className="font-bold text-ink mb-2">{title}</h4>
-          )}
+          {title && <h4 className="font-bold text-ink mb-2">{title}</h4>}
           <div className="text-ink/85 leading-relaxed">{children}</div>
         </div>
       </div>
@@ -98,11 +91,13 @@ export function HighlightBlock({
 ```bash
 bun run type-check
 ```
+
 Expected: No TypeScript errors
 
 ```bash
 bun run lint
 ```
+
 Expected: No Biome errors
 
 - [ ] **Step 3: Commit**
@@ -126,6 +121,7 @@ border/shadow styling consistent with design system."
 ## Task 2: Create StatsGrid Component
 
 **Files:**
+
 - Create: `components/blog/StatsGrid.tsx`
 - Test: `bun run type-check && bun run lint`
 
@@ -149,16 +145,9 @@ export function StatsGrid({ stats, columns = 2 }: StatsGridProps) {
   return (
     <div className={`grid ${gridCols} gap-4 my-8`}>
       {stats.map((stat, index) => (
-        <div
-          key={index}
-          className="bg-cream border-3 border-ink shadow-brutal-sm p-5"
-        >
-          <div className="font-black text-3xl text-ink mb-1">
-            {stat.value}
-          </div>
-          <div className="text-sm text-ink/70 font-medium">
-            {stat.label}
-          </div>
+        <div key={index} className="bg-cream border-3 border-ink shadow-brutal-sm p-5">
+          <div className="font-black text-3xl text-ink mb-1">{stat.value}</div>
+          <div className="text-sm text-ink/70 font-medium">{stat.label}</div>
           {stat.percentage !== undefined && (
             <div className="mt-3">
               <div className="h-2 bg-ink/10 rounded-full overflow-hidden">
@@ -181,11 +170,13 @@ export function StatsGrid({ stats, columns = 2 }: StatsGridProps) {
 ```bash
 bun run type-check
 ```
+
 Expected: No TypeScript errors
 
 ```bash
 bun run lint
 ```
+
 Expected: No Biome errors
 
 - [ ] **Step 3: Commit**
@@ -209,12 +200,14 @@ and optional percentage for progress bars."
 ## Task 3: Update BlogPostLayout with Enhanced Typography
 
 **Files:**
+
 - Modify: `components/blog/BlogPostLayout.tsx` (prose styling changes)
 - Test: Manual verification + `bun run type-check`
 
 - [ ] **Step 1: Read current file to understand existing prose classes**
 
 Current prose className at line 146:
+
 ```tsx
 <div className="prose max-w-none prose-headings:text-ink prose-headings:font-bold prose-h2:text-2xl prose-h2:mt-10 prose-h2:mb-4 prose-h3:text-xl prose-h3:mt-8 prose-h3:mb-3 prose-p:text-ink/70 prose-p:leading-relaxed prose-li:text-ink/70 prose-strong:text-ink prose-a:text-coral prose-a:no-underline hover:prose-a:underline prose-blockquote:border-l-4 prose-blockquote:border-coral prose-blockquote:pl-4 prose-blockquote:text-ink/60 prose-blockquote:italic">
 ```
@@ -229,18 +222,18 @@ Replace the entire prose className (line 146) with:
   prose-headings:text-ink prose-headings:font-bold
   prose-h2:text-2xl prose-h2:mt-12 prose-h2:mb-6 prose-h2:border-b-2 prose-h2:border-ink prose-h2:pb-4
   prose-h3:text-xl prose-h3:mt-8 prose-h3:mb-4
-  
+
   /* Paragraphs - increased contrast and line-height */
   prose-p:text-ink/85 prose-p:leading-[1.8]
-  
+
   /* Lists - increased spacing */
   prose-ul:space-y-3 prose-ol:space-y-3
   prose-li:text-ink/85
-  
+
   /* Emphasis and links */
   prose-strong:text-ink prose-strong:font-bold
   prose-a:text-coral prose-a:no-underline hover:prose-a:underline
-  
+
   /* Blockquotes - enhanced styling */
   prose-blockquote:border-l-4 prose-blockquote:border-coral prose-blockquote:pl-6
   prose-blockquote:py-2 prose-blockquote:bg-ink/5 prose-blockquote:text-ink/80
@@ -266,11 +259,13 @@ Add this CSS-in-JS style block after the JSON-LD scripts (around line 96, before
 Or alternatively, if `jsx` style doesn't work with vinext/Cloudflare Workers, add a global style class approach by wrapping the children in a div with a specific class and adding CSS utility:
 
 Change line 145 from:
+
 ```tsx
 <div className="bg-cream border-3 border-ink shadow-brutal-md p-8 sm:p-12">
 ```
 
 To:
+
 ```tsx
 <div className="bg-cream border-3 border-ink shadow-brutal-md p-8 sm:p-12 [&_section]:mb-16 [&_section:last-child]:mb-0">
 ```
@@ -280,6 +275,7 @@ To:
 ```bash
 bun run type-check
 ```
+
 Expected: No TypeScript errors
 
 - [ ] **Step 5: Commit**
@@ -305,12 +301,14 @@ All blog posts automatically benefit from these changes."
 ## Task 4: Pilot StatsGrid on AI Resume Parsing Post
 
 **Files:**
+
 - Modify: `app/blog/ai-resume-parsing-accuracy/page.tsx`
 - Test: `bun run dev` and manual verification at `http://localhost:3000/blog/ai-resume-parsing-accuracy`
 
 - [ ] **Step 1: Add import for StatsGrid component**
 
 Add to imports at top of file (line 3):
+
 ```tsx
 import { StatsGrid } from "@/components/blog/StatsGrid";
 ```
@@ -340,8 +338,8 @@ The paragraph before the list (lines 85-88) can stay as-is, but consider whether
 
 ```tsx
 <p>
-  Overall, the AI parser achieved <strong>94.3% accuracy</strong> on field-level extraction.
-  That number breaks down like this:
+  Overall, the AI parser achieved <strong>94.3% accuracy</strong> on field-level extraction. That
+  number breaks down like this:
 </p>
 ```
 
@@ -352,6 +350,7 @@ This works well as context before the StatsGrid.
 ```bash
 bun run type-check && bun run lint
 ```
+
 Expected: No errors
 
 - [ ] **Step 5: Verify in browser**
@@ -363,6 +362,7 @@ bun run dev
 Navigate to `http://localhost:3000/blog/ai-resume-parsing-accuracy`
 
 Verify:
+
 - Stats display in a 2-column grid on desktop
 - Each stat has large number, label, and progress bar
 - Cards have neubrutalist borders and shadows
@@ -398,6 +398,7 @@ Expected: All checks pass
 - [ ] **Step 2: Verify all blog posts have improved styling**
 
 Visit these URLs and confirm enhanced typography:
+
 - `http://localhost:3000/blog/pdf-resume-to-website` — check spacing and contrast
 - `http://localhost:3000/blog/best-resume-website-builders` — check H2 underline separators
 - `http://localhost:3000/blog` — listing page (no changes expected, but verify no regressions)
@@ -405,6 +406,7 @@ Visit these URLs and confirm enhanced typography:
 - [ ] **Step 3: Document what changed**
 
 All blog posts now have:
+
 - Better text contrast (85% vs 70%)
 - More breathing room between sections (64px)
 - Improved list spacing (12px between items)
@@ -419,17 +421,17 @@ If no additional changes needed, mark complete.
 
 ## Spec Coverage Check
 
-| Spec Requirement | Implementation Task | Status |
-|------------------|---------------------|--------|
-| Text contrast: 70% → 85% opacity | Task 3, prose class update | ✅ Covered |
-| Section spacing: 64px (mb-16) | Task 3, [&_section] variant | ✅ Covered |
-| List spacing: 12px (space-y-3) | Task 3, prose class update | ✅ Covered |
-| H2 underline separator | Task 3, prose-h2:border-b-2 | ✅ Covered |
-| HighlightBlock component | Task 1 | ✅ Covered |
-| StatsGrid component | Task 2 | ✅ Covered |
-| AI accuracy post uses StatsGrid | Task 4 | ✅ Covered |
-| Preserve neubrutalist design | All tasks use existing tokens | ✅ Covered |
-| No breaking changes | Only additions to prose styling | ✅ Covered |
+| Spec Requirement                    | Implementation Task                  | Status     |
+| ----------------------------------- | ------------------------------------ | ---------- |
+| Text contrast: 70% → 85% opacity    | Task 3, prose class update           | ✅ Covered |
+| Section spacing: 64px (mb-16)       | Task 3, [&_section] variant          | ✅ Covered |
+| List spacing: 12px (space-y-3)      | Task 3, prose class update           | ✅ Covered |
+| H2 underline separator              | Task 3, prose-h2:border-b-2          | ✅ Covered |
+| HighlightBlock component            | Task 1                               | ✅ Covered |
+| StatsGrid component                 | Task 2                               | ✅ Covered |
+| AI accuracy post uses StatsGrid     | Task 4                               | ✅ Covered |
+| Preserve neubrutalist design        | All tasks use existing tokens        | ✅ Covered |
+| No breaking changes                 | Only additions to prose styling      | ✅ Covered |
 | Accessibility (contrast meets WCAG) | 85% on cream meets AA for large text | ✅ Covered |
 
 ---
@@ -450,22 +452,26 @@ If no additional changes needed, mark complete.
 ## Notes for Implementation
 
 **Design System Compliance:**
+
 - All borders use `border-3` (standard neubrutalist thickness)
 - All shadows use `shadow-brutal-sm` or `shadow-brutal-md`
 - Colors: cream (#FDF8F3), ink (#0D0D0D), coral (#D94E4E), mint (#4ECDC4), amber (#FFB84D)
 - Typography: Use `font-black` for headlines, `font-bold` for emphasis
 
 **Cloudflare Workers Constraints:**
+
 - No issues expected — these are all client-side React/Tailwind changes
 - No D1/database access in these components
 - No server-side rendering dependencies
 
 **File Naming:**
+
 - Components use PascalCase
 - Props interfaces exported for potential reuse
 - Follow existing patterns in `components/blog/`
 
 **Testing Strategy:**
+
 - Manual browser verification is primary (visual changes)
 - Type checking and linting catch code issues
 - Unit tests not required for presentational components

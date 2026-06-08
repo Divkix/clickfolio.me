@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, type MockInstance, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, type MockInstance, vi } from "vite-plus/test";
 import type { ResumeContent } from "@/lib/types/database";
 import { copyToClipboard } from "@/lib/utils/clipboard";
 import { isLocalEnvironment } from "@/lib/utils/environment";

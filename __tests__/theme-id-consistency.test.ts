@@ -2,7 +2,7 @@
  * Test to verify theme ID consistency across components
  * Issue #81: Theme ID drift in CTA and AttributionWidget
  */
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { isValidThemeId, THEME_IDS } from "@/lib/templates/theme-ids";
 
 describe("Theme ID Consistency", () => {

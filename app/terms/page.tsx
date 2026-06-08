@@ -50,12 +50,10 @@ export default function TermsOfServicePage() {
     <div className="min-h-screen bg-cream paper-texture flex flex-col">
       <script
         type="application/ld+json"
-        // biome-ignore lint/security/noDangerouslySetInnerHtml: Safe - all values are hardcoded strings from siteConfig, escaped via serializeJsonLd
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumb) }}
       />
       <script
         type="application/ld+json"
-        // biome-ignore lint/security/noDangerouslySetInnerHtml: Safe - all values are hardcoded strings from siteConfig, escaped via serializeJsonLd
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(webPage) }}
       />
       {/* Header */}

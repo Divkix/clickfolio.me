@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { FileDropzone } from "@/components/FileDropzone";
 import { UploadStep } from "@/components/wizard/UploadStep";
 import type { ResumeContent } from "@/lib/types/database";

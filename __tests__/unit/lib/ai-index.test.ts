@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { parseResumeWithAi } from "@/lib/ai";
 
 const mocks = vi.hoisted(() => ({

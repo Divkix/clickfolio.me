@@ -5,7 +5,7 @@
  * with Durable Objects for real-time updates.
  */
 
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vite-plus/test";
 import { notifyStatusChange, notifyStatusChangeBatch } from "@/lib/queue/notify-status";
 
 describe("Notify Status", () => {

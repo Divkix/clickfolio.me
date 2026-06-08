@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type React from "react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { GoogleButton } from "@/components/auth/GoogleButton";
 import { PasswordInput } from "@/components/auth/PasswordInput";
 import { CopyLinkButton } from "@/components/dashboard/CopyLinkButton";

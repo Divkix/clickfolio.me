@@ -21,17 +21,18 @@
 
 ## Files Overview
 
-| File | Action | Purpose |
-|------|--------|---------|
-| `package.json` | Modify | Add `@tailwindcss/typography` to devDependencies |
-| `bun.lock` | Auto-generated | Package lockfile (updated by bun install) |
-| `app/globals.css` | Modify | Import typography plugin using Tailwind v4 syntax |
+| File              | Action         | Purpose                                           |
+| ----------------- | -------------- | ------------------------------------------------- |
+| `package.json`    | Modify         | Add `@tailwindcss/typography` to devDependencies  |
+| `bun.lock`        | Auto-generated | Package lockfile (updated by bun install)         |
+| `app/globals.css` | Modify         | Import typography plugin using Tailwind v4 syntax |
 
 ---
 
 ## Task 1: Install @tailwindcss/typography Plugin
 
 **Files:**
+
 - Modify: `package.json`
 
 - [ ] **Step 1: Add typography plugin to devDependencies**
@@ -78,6 +79,7 @@ git commit -m "deps: add @tailwindcss/typography plugin for blog heading styles"
 ## Task 2: Configure Typography Plugin in globals.css
 
 **Files:**
+
 - Modify: `app/globals.css`
 
 - [ ] **Step 1: Add typography plugin import**
@@ -121,6 +123,7 @@ git commit -m "config: import @tailwindcss/typography plugin for prose styles"
 ## Task 3: Build and Verify Styles Work
 
 **Files:**
+
 - Test: Blog post page to verify visual styling
 
 - [ ] **Step 1: Run type-check to catch any type errors**
@@ -158,6 +161,7 @@ bun run dev
 Then open `http://localhost:3000/blog/pdf-resume-vs-portfolio` in browser.
 
 **Visual Checklist:**
+
 - [ ] "When to Use a PDF Resume" heading appears with:
   - Bold font weight
   - Bottom border (2px, ink color)
@@ -187,6 +191,7 @@ Fixes heading inconsistency on /blog/pdf-resume-vs-portfolio"
 ## Task 4: Test All Blog Posts
 
 **Files:**
+
 - Test: All blog pages using BlogPostLayout
 
 - [ ] **Step 1: Verify styling on all blog posts**
@@ -203,6 +208,7 @@ With dev server running, check these URLs:
 8. `http://localhost:3000/blog/linkedin-to-portfolio` - Verify h2 headings
 
 **Expected:** All h2 headings render with consistent styling:
+
 - Border-bottom (2px ink)
 - Bold weight
 - text-2xl size
@@ -259,12 +265,14 @@ All commands should pass/succeed.
 If issues arise:
 
 1. **Revert package.json changes:**
+
    ```bash
    git checkout package.json
    bun install
    ```
 
 2. **Revert globals.css changes:**
+
    ```bash
    git checkout app/globals.css
    ```
@@ -278,13 +286,13 @@ If issues arise:
 
 ## Spec Coverage Check
 
-| Spec Requirement | Plan Task |
-|------------------|-----------|
-| Install @tailwindcss/typography plugin | Task 1 |
-| Configure plugin in globals.css | Task 2 |
-| Verify h2 headings render correctly | Task 3 |
-| Test all blog posts | Task 4 |
-| type-check passes | Task 3 Step 1 |
-| lint passes | Task 3 Step 2 |
+| Spec Requirement                       | Plan Task     |
+| -------------------------------------- | ------------- |
+| Install @tailwindcss/typography plugin | Task 1        |
+| Configure plugin in globals.css        | Task 2        |
+| Verify h2 headings render correctly    | Task 3        |
+| Test all blog posts                    | Task 4        |
+| type-check passes                      | Task 3 Step 1 |
+| lint passes                            | Task 3 Step 2 |
 
 All requirements covered ✓

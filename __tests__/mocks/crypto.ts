@@ -1,4 +1,4 @@
-import { vi } from "vitest";
+import { vi } from "vite-plus/test";
 
 /**
  * Web Crypto API mocks for test environments that lack native crypto support.

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 const mocks = vi.hoisted(() => {
   const cookieStore = {
@@ -59,7 +59,7 @@ const mocks = vi.hoisted(() => {
       onConflictDoNothing: vi.fn(() => chain),
       onConflictDoUpdate: vi.fn(() => chain),
       returning: vi.fn(() => chain),
-      // biome-ignore lint/suspicious/noThenProperty: Drizzle query mocks must be awaitable.
+      // eslint-disable-next-line unicorn/no-thenable -- Drizzle query mocks must be awaitable.
       then: vi.fn(
         (resolve: (value: unknown[]) => unknown, reject?: (reason: unknown) => unknown) => {
           try {

@@ -86,12 +86,10 @@ export function BlogPostLayout({ post, children, relatedPosts }: BlogPostLayoutP
     <div className="min-h-screen bg-cream paper-texture flex flex-col">
       <script
         type="application/ld+json"
-        // biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD from hardcoded blog post data, serializeJsonLd escapes XSS vectors
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(articleJsonLd) }}
       />
       <script
         type="application/ld+json"
-        // biome-ignore lint/security/noDangerouslySetInnerHtml: Breadcrumb JSON-LD from blog post data, serializeJsonLd escapes XSS vectors
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbJsonLd) }}
       />
       <header className="sticky top-0 z-50 border-b-3 border-ink bg-cream">

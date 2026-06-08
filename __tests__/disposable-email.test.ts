@@ -3,7 +3,7 @@
  * Covers domain extraction, trusted domain allow-list, KV blocklist lookups, and fail-open behavior.
  */
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import {
   _resetCache,
   extractDomain,

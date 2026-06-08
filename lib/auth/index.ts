@@ -38,7 +38,7 @@ import { generateReferralCode } from "@/lib/utils/referral-code";
  * are passed at call sites), so sharing it across requests is safe.
  */
 const d1ProxyCache = new WeakMap<D1Database, D1Database>();
-// biome-ignore lint/suspicious/noExplicitAny: Auth generic variance prevents storing specific config types in WeakMap<D1Database, Auth<BetterAuthOptions>>
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Auth generic variance prevents storing specific config types in WeakMap<D1Database, Auth<BetterAuthOptions>>
 const authInstanceCache = new WeakMap<D1Database, any>();
 
 /**

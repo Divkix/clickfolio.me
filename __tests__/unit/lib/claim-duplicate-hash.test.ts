@@ -9,7 +9,7 @@
  * cross-user data access.
  */
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 // ── Mocks ─────────────────────────────────────────────────────────────
 

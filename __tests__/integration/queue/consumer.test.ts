@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 /**
  * Integration tests for Queue Consumer and DLQ
@@ -516,7 +516,7 @@ describe("Queue Consumer - Main Processing", () => {
                 return Promise.resolve([]);
               }),
               // For the waiting resumes query (no limit)
-              // biome-ignore lint/suspicious/noThenProperty: mock for testing
+              // eslint-disable-next-line unicorn/no-thenable -- mock for testing
               then: vi.fn().mockImplementation((cb: (value: unknown[]) => unknown) => {
                 if (callCount === 2) {
                   return Promise.resolve(cb([{ id: waitingResumeId, userId }]));

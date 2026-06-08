@@ -187,7 +187,6 @@ export default async function HandlePage({ params }: PageProps) {
       {metadata?.jsonLdResumeScript && (
         <script
           type="application/ld+json"
-          // biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD generated server-side from trusted DB content, serialized with XSS-safe escaping
           dangerouslySetInnerHTML={{ __html: metadata.jsonLdResumeScript }}
         />
       )}
@@ -195,7 +194,6 @@ export default async function HandlePage({ params }: PageProps) {
       {metadata?.jsonLdBreadcrumbScript && (
         <script
           type="application/ld+json"
-          // biome-ignore lint/security/noDangerouslySetInnerHtml: Breadcrumb JSON-LD generated server-side from trusted DB data, serialized with XSS-safe escaping
           dangerouslySetInnerHTML={{ __html: metadata.jsonLdBreadcrumbScript }}
         />
       )}

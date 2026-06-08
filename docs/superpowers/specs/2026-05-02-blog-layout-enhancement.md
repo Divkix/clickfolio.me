@@ -22,24 +22,25 @@ The current blog layout feels "squished" and cluttered:
 
 ### 1. Typography & Spacing Improvements (BlogPostLayout.tsx)
 
-| Element | Current | New |
-|---------|---------|-----|
-| Paragraph text | `text-ink/70` | `text-ink/85` |
-| List item text | Default (low contrast) | `text-ink/85` |
-| Section spacing | None | `mb-16` (64px) between sections |
-| Paragraph line-height | `leading-relaxed` (1.625) | `leading-[1.8]` |
-| List item spacing | Tight | `space-y-3` (12px between items) |
-| H2 top margin | `mt-10` | `mt-12` |
-| H2 bottom margin | `mb-4` | `mb-6` |
-| H2 visual | Plain | `border-b-2 border-ink pb-4` (underline separator) |
-| H3 top margin | `mt-8` | `mt-8` (keep) |
-| H3 bottom margin | `mb-3` | `mb-4` |
+| Element               | Current                   | New                                                |
+| --------------------- | ------------------------- | -------------------------------------------------- |
+| Paragraph text        | `text-ink/70`             | `text-ink/85`                                      |
+| List item text        | Default (low contrast)    | `text-ink/85`                                      |
+| Section spacing       | None                      | `mb-16` (64px) between sections                    |
+| Paragraph line-height | `leading-relaxed` (1.625) | `leading-[1.8]`                                    |
+| List item spacing     | Tight                     | `space-y-3` (12px between items)                   |
+| H2 top margin         | `mt-10`                   | `mt-12`                                            |
+| H2 bottom margin      | `mb-4`                    | `mb-6`                                             |
+| H2 visual             | Plain                     | `border-b-2 border-ink pb-4` (underline separator) |
+| H3 top margin         | `mt-8`                    | `mt-8` (keep)                                      |
+| H3 bottom margin      | `mb-3`                    | `mb-4`                                             |
 
 ### 2. New Component: HighlightBlock
 
 **Purpose:** Visual callouts for key takeaways, tips, warnings, and important stats
 
 **Design Spec:**
+
 - Border: `border-3 border-ink` (matches neubrutalist theme)
 - Background: Cream with subtle tint (`bg-coral/5`, `bg-mint/5`, or `bg-amber/5` based on variant)
 - Padding: `p-6` (24px)
@@ -58,6 +59,7 @@ The current blog layout feels "squished" and cluttered:
 **Purpose:** Display numerical data in a scannable, visual format
 
 **Design Spec:**
+
 - Layout: CSS Grid, 2 columns on desktop (`sm:grid-cols-2`), 1 column on mobile
 - Gap: `gap-4` (16px)
 - Each stat card:
@@ -74,11 +76,13 @@ The current blog layout feels "squished" and cluttered:
 ### 4. Enhanced Blockquotes
 
 **Current:**
+
 ```
 border-l-4 border-coral pl-4 text-ink/60 italic
 ```
 
 **New:**
+
 ```
 border-l-4 border-coral pl-6 py-2 bg-ink/5 text-ink/80 italic
 ```
@@ -90,38 +94,46 @@ Add subtle background tint and more horizontal padding
 ## Files to Modify
 
 ### 1. `components/blog/BlogPostLayout.tsx`
+
 **Changes:**
+
 - Update prose className with new spacing and contrast values
 - Add `section` spacing via CSS selector or wrapper div styling
 - Update prose-h2, prose-h3, prose-p, prose-ul, prose-li modifiers
 
 ### 2. Create `components/blog/HighlightBlock.tsx`
+
 **New file:** Reusable callout component with variants
 
 ### 3. Create `components/blog/StatsGrid.tsx`
+
 **New file:** Grid component for displaying stat cards
 
 ### 4. `app/blog/ai-resume-parsing-accuracy/page.tsx`
+
 **Changes:**
+
 - Replace accuracy metrics list with `<StatsGrid>` component
 - Wrap "Tips for Better Parsing Results" section with `<HighlightBlock variant="tip">`
 
 ### 5. `app/blog/pdf-resume-to-website/page.tsx` (example enhancement)
+
 **Changes:**
+
 - Wrap "What Makes a Great Resume Website" checklist with styled callouts
 
 ---
 
 ## Visual Impact Summary
 
-| Before | After |
-|--------|-------|
-| Dense wall of text | Generous breathing room between sections |
-| 70% opacity (hard to read) | 85% opacity (comfortable reading) |
-| Lists crammed together | 12px spacing between items |
-| Flat heading hierarchy | H2 with underline separator, stronger visual breaks |
-| Stats buried in text | Visual stat cards with neubrutalist borders |
-| Generic content blocks | Contextual highlight blocks (tips, stats, warnings) |
+| Before                     | After                                               |
+| -------------------------- | --------------------------------------------------- |
+| Dense wall of text         | Generous breathing room between sections            |
+| 70% opacity (hard to read) | 85% opacity (comfortable reading)                   |
+| Lists crammed together     | 12px spacing between items                          |
+| Flat heading hierarchy     | H2 with underline separator, stronger visual breaks |
+| Stats buried in text       | Visual stat cards with neubrutalist borders         |
+| Generic content blocks     | Contextual highlight blocks (tips, stats, warnings) |
 
 ---
 

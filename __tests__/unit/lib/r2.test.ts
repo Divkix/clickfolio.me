@@ -5,7 +5,7 @@
  * @jest-environment node
  */
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { createMockR2Bucket } from "@/__tests__/setup/mocks/r2.mock";
 import { getR2Binding, R2 } from "@/lib/r2";
 

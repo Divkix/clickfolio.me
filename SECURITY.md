@@ -65,11 +65,13 @@ When deploying your own instance, follow these security practices:
 The application uses two-layer rate limiting:
 
 **IP-based (anonymous endpoints):**
+
 - Upload requests: 10/hour, 50/day per IP
 - Handle availability checks: 100/hour per IP
 - Email validation checks: 30/hour per IP
 
 **User-based (authenticated endpoints):**
+
 - Resume uploads: 5 per day per user (default, configurable via RATE_LIMIT_UPLOADS_PER_DAY)
 - Handle changes: 3 per 24 hours per user
 - Content updates: Rate limited via database constraints

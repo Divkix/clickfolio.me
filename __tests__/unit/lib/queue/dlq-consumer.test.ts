@@ -5,7 +5,7 @@
  * failed messages and sends alerts.
  */
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { handleDLQMessage } from "@/lib/queue/dlq-consumer";
 import { QueueErrorType } from "@/lib/queue/errors";
 import type { DeadLetterMessage, QueueMessage } from "@/lib/queue/types";

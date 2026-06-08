@@ -9,7 +9,7 @@
  */
 
 import type { MetadataRoute } from "next";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 // ---------------------------------------------------------------------------
 // Mock dependencies
@@ -39,7 +39,7 @@ function buildQueryChain(rows: unknown[]): Record<string, unknown> {
       mockOffsetValues.push(value);
       return chain();
     }),
-    // biome-ignore lint/suspicious/noThenProperty: mock for Drizzle thenable chain
+    // eslint-disable-next-line unicorn/no-thenable -- mock for Drizzle thenable chain
     then: vi.fn((resolve: (v: unknown) => unknown) => resolve(rows)),
   };
 }

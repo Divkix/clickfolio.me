@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { buildSitemapIndexXml, buildSitemapXml } from "@/lib/seo/sitemap";
 
 describe("sitemap xml builders", () => {

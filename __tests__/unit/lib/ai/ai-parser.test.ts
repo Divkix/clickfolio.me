@@ -11,7 +11,7 @@
  * Coverage goal: 100% branch coverage for parseWithAi and createAiProvider.
  */
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { setupMockCleanup, suppressConsole } from "@/__tests__/setup/helpers/test-utils";
 import { type AiEnvVars, createAiProvider, parseWithAi } from "@/lib/ai/ai-parser";
 

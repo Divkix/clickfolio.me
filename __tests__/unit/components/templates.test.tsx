@@ -8,7 +8,7 @@
  */
 
 import { render } from "@testing-library/react";
-import { describe, expect, test } from "vitest";
+import { describe, expect, test } from "vite-plus/test";
 import BentoGrid from "@/components/templates/BentoGrid";
 import BoldCorporate from "@/components/templates/BoldCorporate";
 import ClassicATS from "@/components/templates/ClassicATS";

@@ -6,7 +6,7 @@
  * arguments and control return values per-test.
  */
 
-import { vi } from "vitest";
+import { vi } from "vite-plus/test";
 
 // ---------------------------------------------------------------------------
 // Mock R2Bucket binding

@@ -10,7 +10,7 @@
  * filtering logic in isolation using test data.
  */
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 
 // ---------------------------------------------------------------------------
 // Types replicated from app/explore/page.tsx

@@ -8,6 +8,7 @@
 ## Problem Statement
 
 The heading "When to Use a PDF Resume" on the `/blog/pdf-resume-vs-portfolio` page appears as plain text instead of a styled heading. This is inconsistent with the intended design where section headings should have:
+
 - Larger font size (text-2xl)
 - Bold weight
 - Bottom border (border-b-2)
@@ -25,18 +26,22 @@ The heading "When to Use a PDF Resume" on the `/blog/pdf-resume-vs-portfolio` pa
 ## Requirements
 
 ### Functional Requirements
+
 - [ ] Install `@tailwindcss/typography` plugin compatible with Tailwind CSS v4
 - [ ] Configure the plugin in `app/globals.css` following Tailwind v4 syntax
 - [ ] Verify all `<h2>` elements in blog posts render with proper styling
 - [ ] Ensure existing prose classes work as intended
 
 ### Design Requirements (from ui-ux-pro-max skill)
+
 - [ ] Maintain consistent heading hierarchy (h1→h2→h3) across blog posts
 - [ ] Ensure contrast ratio meets WCAG 4.5:1 for text readability
 - [ ] Preserve the brutalist design aesthetic (borders, shadows, ink/cream color scheme)
 
 ### Affected Pages
+
 All blog posts using `BlogPostLayout`:
+
 - `/blog/pdf-resume-vs-portfolio`
 - `/blog/resume-writing-tips`
 - `/blog/ai-resume-parsing-accuracy`
@@ -49,6 +54,7 @@ All blog posts using `BlogPostLayout`:
 ## Technical Details
 
 ### Current State
+
 ```tsx
 // BlogPostLayout.tsx line 147-159
 <div
@@ -62,9 +68,11 @@ All blog posts using `BlogPostLayout`:
 ```
 
 ### Tailwind v4 Configuration
+
 The project uses Tailwind CSS v4.2.4 with the new `@theme inline` configuration in `app/globals.css`. The typography plugin must be imported following v4 syntax.
 
 ### Expected Visual Result
+
 - h2 headings: text-2xl (24px), bold, bottom border, proper margins
 - Consistent with brutalist design system (ink border color)
 - Proper spacing between sections
@@ -72,19 +80,24 @@ The project uses Tailwind CSS v4.2.4 with the new `@theme inline` configuration 
 ## Implementation Approach
 
 ### Option A: Install @tailwindcss/typography Plugin (Recommended)
+
 **Rationale:**
+
 - Minimal code changes
 - Follows existing design intent (prose classes already defined)
 - Standard Tailwind ecosystem solution
 - Maintains semantic HTML structure
 
 **Steps:**
+
 1. Add `@tailwindcss/typography` to devDependencies
 2. Import plugin in `app/globals.css` using Tailwind v4 syntax
 3. Build and verify styles are applied
 
 ### Option B: Manual CSS Classes on Headings (Not Recommended)
+
 **Rationale:**
+
 - Would require changing all `<h2>` elements in every blog post
 - Duplicates styling logic already in BlogPostLayout
 - Violates DRY principle

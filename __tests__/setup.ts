@@ -6,7 +6,7 @@
  */
 
 import * as matchers from "@testing-library/jest-dom/matchers";
-import { afterEach, beforeEach, expect } from "vitest";
+import { afterEach, beforeEach, expect } from "vite-plus/test";
 import { clearKeyCache } from "@/lib/utils/pending-upload-cookie";
 import {
   mockDigest,

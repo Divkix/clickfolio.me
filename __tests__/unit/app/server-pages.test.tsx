@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type React from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { ResumeContent } from "@/lib/types/database";
 
 const mocks = vi.hoisted(() => {
@@ -25,7 +25,7 @@ const mocks = vi.hoisted(() => {
       limit: vi.fn(() => chain),
       offset: vi.fn(() => chain),
       values: vi.fn(() => chain),
-      // biome-ignore lint/suspicious/noThenProperty: Drizzle query mocks must be awaitable.
+      // eslint-disable-next-line unicorn/no-thenable -- Drizzle query mocks must be awaitable.
       then: vi.fn((resolve: (value: unknown[]) => unknown) => resolve(nextSelectResult())),
     };
     return chain;

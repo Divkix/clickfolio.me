@@ -7,7 +7,7 @@
  * - Edge cases: invalid/missing createdAt
  */
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 // ── Constants from source ─────────────────────────────────────────────
 

@@ -154,12 +154,10 @@ export default async function ExplorePage({
     <div className="min-h-screen bg-cream flex flex-col">
       <script
         type="application/ld+json"
-        // biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD from trusted DB data, serialized with XSS-safe escaping via serializeJsonLd which escapes < > U+2028 U+2029
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(exploreJsonLd) }}
       />
       <script
         type="application/ld+json"
-        // biome-ignore lint/security/noDangerouslySetInnerHtml: Breadcrumb JSON-LD from hardcoded config, no user input
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(exploreBreadcrumb) }}
       />
       {/* Pagination hints for crawlers */}

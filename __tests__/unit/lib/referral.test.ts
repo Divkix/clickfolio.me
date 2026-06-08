@@ -3,7 +3,7 @@
  * Tests for lib/referral.ts
  */
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { createMockDb } from "@/__tests__/setup/mocks/db.mock";
 import {
   captureReferralCode,

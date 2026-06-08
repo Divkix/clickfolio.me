@@ -1,6 +1,6 @@
 import { render } from "@testing-library/react";
 import type React from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import ProfileNotFound from "@/app/[handle]/not-found";
 import AiResumeParsingAccuracyPage, {
   generateMetadata as generateAiResumeParsingMetadata,

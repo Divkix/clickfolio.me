@@ -4,7 +4,7 @@
  * confetti trigger conditions, and 7-day CTA dismissal expiry.
  */
 
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vite-plus/test";
 
 // Milestone configuration matching MilestoneToasts.tsx
 const MILESTONE_PREFIX = "milestone_shown_";

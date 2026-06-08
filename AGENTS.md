@@ -10,24 +10,26 @@
 - **Storage**: Cloudflare R2 (binding `CLICKFOLIO_R2_BUCKET`)
 - **Styling**: shadcn/ui (new-york style) + Tailwind CSS 4
 - **Validation**: Zod
-- **Lint/format**: Biome (not ESLint/Prettier)
+- **Lint/format**: Oxlint + Oxfmt via Vite+ (`vp check`) — NOT Biome/ESLint/Prettier
 - **Testing**: Vitest + jsdom + @testing-library/react
 
 ## Essential commands
 
 ```bash
-bun run dev              # Vite dev server on :3000
+bun run dev              # Vite+ dev server on :3000
 bun run type-check       # tsc --noEmit
-bun run lint             # biome check .
-bun run fix              # biome check --write .
+bun run lint             # vp lint (Oxlint)
+bun run fix              # vp check --fix (Oxlint + Oxfmt with auto-fix)
+vp check                 # lint + format + type-check (all at once)
+vp fmt                   # format only (Oxfmt)
 bun run test             # all tests
 bun run test:unit        # unit only (fast, no retries)
 bun run test:integration # integration only
 bun run test:security    # security only
 bun run test:coverage    # all tests + coverage
-bun run build            # vite build (vinext)
+bun run build            # vp build (vinext)
 bun run preview          # local CF Workers preview (build + wrangler dev)
-bun run ci               # frozen lockfile install + type-check + lint + test + build
+bun run ci               # frozen lockfile install + type-check + vp check + test + build
 bun run deploy           # build + deploy to CF Workers
 bun run db:generate      # drizzle-kit generate
 bun run db:migrate       # apply migrations to local D1
@@ -38,20 +40,23 @@ bun run cf-typegen       # regen lib/cloudflare-env.d.ts
 ## Pre-push checklist
 
 ```
-bun run type-check && bun run lint && bun run test
+bun run type-check && vp check && bun run test
 ```
 
-CI runs these in parallel, plus `knip` (unused exports) and `build`. `quality` job runs Biome without installing deps.
+CI runs these in parallel, plus `knip` (unused exports) and `build`. `quality` job runs `vp check` (Oxlint + Oxfmt).
 
 ## Architecture
 
 ### Custom worker wrapper (`worker/index.ts`)
+
 The real entrypoint. Wraps vinext's handler and adds:
+
 - Queue consumer (`CLICKFOLIO_PARSE_QUEUE`) + DLQ handler
 - 4 cron triggers (R2 cleanup, DB cleanup, disposable domain sync, orphan recovery)
 - WebSocket upgrade routing (`/ws/resume-status`) → Durable Object
 
 ### Route structure
+
 - `app/(public)/` — no auth required (home, [handle] viewer)
 - `app/(protected)/` — auth-gated (dashboard, edit, settings, waiting)
 - `app/api/` — API routes
@@ -59,28 +64,32 @@ The real entrypoint. Wraps vinext's handler and adds:
 - Old URL shape `/handle` → 308 redirect to `/@handle` (exclusion list in `next.config.ts`)
 
 ### DB bindings
-| Binding | Type | Name |
-|---|---|---|
-| `CLICKFOLIO_DB` | D1 | `clickfolio-db` |
-| `CLICKFOLIO_R2_BUCKET` | R2 | `clickfolio-bucket` |
-| `CLICKFOLIO_DISPOSABLE_DOMAINS` | KV | — |
-| `CLICKFOLIO_PARSE_QUEUE` | Queue | `clickfolio-parse-queue` |
-| `CLICKFOLIO_STATUS_DO` | DO | `ClickfolioStatusDO` |
+
+| Binding                         | Type  | Name                     |
+| ------------------------------- | ----- | ------------------------ |
+| `CLICKFOLIO_DB`                 | D1    | `clickfolio-db`          |
+| `CLICKFOLIO_R2_BUCKET`          | R2    | `clickfolio-bucket`      |
+| `CLICKFOLIO_DISPOSABLE_DOMAINS` | KV    | —                        |
+| `CLICKFOLIO_PARSE_QUEUE`        | Queue | `clickfolio-parse-queue` |
+| `CLICKFOLIO_STATUS_DO`          | DO    | `ClickfolioStatusDO`     |
 
 `getDb(env.CLICKFOLIO_DB)` — use this function, not raw drizzle. It caches per-isolate via WeakMap.
 
 ### Env variables
+
 - `BETTER_AUTH_URL` = single source of truth for app URL
 - Local dev: secrets in `.dev.vars` (auto-loaded by Vite)
 - Production: `wrangler secret put ...`
 - AI gateway (OpenRouter via CF AI Gateway): `CF_AI_GATEWAY_ACCOUNT_ID`, `CF_AI_GATEWAY_ID`, `CF_AIG_AUTH_TOKEN`
 
 ### Stubs
+
 - `cloudflare:workers` → stubbed for client/vitest (`lib/stubs/cloudflare-workers-client-stub.mjs`)
 - `@vercel/og` → stubbed (doesn't work on CF Workers)
 - `@zxcvbn-ts/*` → stubbed in SSR (password strength runs client-side only)
 
 ### Module aliases
+
 `@/*` → project root. Defined in both `tsconfig.json` and `vite.config.ts`.
 
 ## Code conventions
@@ -106,3 +115,20 @@ The real entrypoint. Wraps vinext's handler and adds:
 - `unsafe-inline` in CSP required for React hydration on Workers (no nonce support)
 - Build requires `dist/client/` directory to exist before `writeBundle` (handled by `ensureClientDir` plugin)
 - `vinext` uses `@cloudflare/vite-plugin` — don't add raw wrangler CLI to the build pipeline
+
+<!--VITE PLUS START-->
+
+# Using Vite+, the Unified Toolchain for the Web
+
+This project is using Vite+, a unified toolchain built on top of Vite, Rolldown, Vitest, tsdown, Oxlint, Oxfmt, and Vite Task. Vite+ wraps runtime management, package management, and frontend tooling in a single global CLI called `vp`. Vite+ is distinct from Vite, and it invokes Vite through `vp dev` and `vp build`. Run `vp help` to print a list of commands and `vp <command> --help` for information about a specific command.
+
+Docs are local at `node_modules/vite-plus/docs` or online at https://viteplus.dev/guide/.
+
+## Review Checklist
+
+- [ ] Run `vp install` after pulling remote changes and before getting started.
+- [ ] Run `vp check` to format, lint, and type-check; run `vp test` to test changes.
+- [ ] Suppress lint warnings with `// eslint-disable-next-line <rule> -- <reason>` (not `biome-ignore`).
+- [ ] If setup, runtime, or package-manager behavior looks wrong, run `vp env doctor` and include its output when asking for help.
+
+<!--VITE PLUS END-->

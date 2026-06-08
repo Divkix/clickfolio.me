@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { parseJsonWithRepair, transformToSchema } from "@/lib/ai/ai-fallback";
 import { normalizeAiKeys } from "@/lib/ai/ai-normalize";
 import { parseWithAi } from "@/lib/ai/ai-parser";

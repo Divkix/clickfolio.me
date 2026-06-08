@@ -90,7 +90,6 @@ const SpotlightCard = ({
   const handleMouseLeave = () => setOpacity(0);
 
   return (
-    // biome-ignore lint/a11y/noStaticElementInteractions: decorative spotlight cursor effect, no interactive semantics
     <div
       ref={divRef}
       onMouseMove={handleMouseMove}

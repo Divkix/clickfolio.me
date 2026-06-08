@@ -3,7 +3,7 @@
  * Tests for lib/cron/cleanup-r2.ts - orphaned temp file cleanup
  */
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { createMockR2Bucket } from "@/__tests__/setup/mocks/r2.mock";
 import { performR2Cleanup } from "@/lib/cron/cleanup-r2";
 

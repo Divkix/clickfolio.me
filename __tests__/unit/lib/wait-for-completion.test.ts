@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { waitForResumeCompletion } from "@/lib/utils/wait-for-completion";
 
 class MockWebSocket {

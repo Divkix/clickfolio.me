@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { performCleanup } from "@/lib/cron/cleanup";
 import { recoverOrphanedResumes } from "@/lib/cron/recover-orphaned";
 import type { ResumeParseMessage } from "@/lib/queue/types";

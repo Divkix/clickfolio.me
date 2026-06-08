@@ -62,13 +62,11 @@ export default function Home() {
         <script
           key={`homepage-jsonld-${i}`}
           type="application/ld+json"
-          // biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD from hardcoded siteConfig, serializeJsonLd escapes XSS vectors
           dangerouslySetInnerHTML={{ __html: serializeJsonLd(schema) }}
         />
       ))}
       <script
         type="application/ld+json"
-        // biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD from hardcoded FAQ text, serializeJsonLd escapes XSS vectors
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(faqJsonLd) }}
       />
       {/* Capture referral handle from ?ref= parameter */}

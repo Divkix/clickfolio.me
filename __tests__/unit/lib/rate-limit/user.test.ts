@@ -3,7 +3,7 @@
  * Tests for lib/rate-limit/user.ts
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { createMockDb } from "@/__tests__/setup/mocks/db.mock";
 import { checkRateLimit, enforceRateLimit } from "@/lib/rate-limit/user";
 

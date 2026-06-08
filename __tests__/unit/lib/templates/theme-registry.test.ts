@@ -3,7 +3,7 @@
  * Tests for lib/templates/theme-registry.ts
  */
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { DEFAULT_THEME, isValidThemeId } from "@/lib/templates/theme-ids";
 import { getTemplate } from "@/lib/templates/theme-registry";
 

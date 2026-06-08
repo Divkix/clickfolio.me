@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 import { cloudflare } from "@cloudflare/vite-plugin";
 import { visualizer } from "rollup-plugin-visualizer";
 import vinext from "vinext";
-import { defineConfig, type Plugin } from "vite";
+import { defineConfig, type Plugin } from "vite-plus";
 
 /**
  * Vite plugin that stubs server-only modules for client environments.
@@ -85,6 +85,28 @@ function ensureClientDir(): Plugin {
 }
 
 export default defineConfig({
+  // Oxfmt: matches previous Biome formatter settings (all defaults already match)
+  fmt: {
+    ignorePatterns: ["dist/**", "lib/cloudflare-env.d.ts"],
+  },
+  // Oxlint: matches previous Biome linter rule set
+  lint: {
+    ignorePatterns: ["dist/**", "lib/cloudflare-env.d.ts"],
+    plugins: ["react", "typescript", "jsx-a11y", "oxc"],
+    options: {
+      typeAware: true,
+      typeCheck: true,
+    },
+    rules: {
+      "vite-plus/prefer-vite-plus-imports": "error",
+      "typescript/no-explicit-any": "warn",
+      "typescript/no-unused-vars": "error",
+    },
+    jsPlugins: [{ name: "vite-plus", specifier: "vite-plus/oxlint-plugin" }],
+  },
+  staged: {
+    "*.{ts,tsx,js,jsx,json,css}": ["vp check --fix"],
+  },
   plugins: [
     ensureClientDir(),
     vinext(),

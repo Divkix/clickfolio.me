@@ -7,7 +7,7 @@
  * per test via `.mockResolvedValue()` / `.mockReturnValue()`.
  */
 
-import { vi } from "vitest";
+import { vi } from "vite-plus/test";
 import type { Resume } from "@/lib/db/schema";
 
 // ---------------------------------------------------------------------------

@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vite-plus/test";
 import { setupMockCleanup } from "@/__tests__/setup/helpers/test-utils";
 import { parseJsonWithRepair, transformToSchema } from "@/lib/ai/ai-fallback";
 

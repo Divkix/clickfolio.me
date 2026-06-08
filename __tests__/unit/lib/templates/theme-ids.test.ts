@@ -3,7 +3,7 @@
  * Tests for lib/templates/theme-ids.ts
  */
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import {
   DEFAULT_THEME,
   getThemeReferralRequirement,

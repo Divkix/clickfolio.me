@@ -38,12 +38,10 @@ export default function DesignerPage() {
     <>
       <script
         type="application/ld+json"
-        // biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD from hardcoded config, serializeJsonLd escapes XSS vectors
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(webPageJsonLd) }}
       />
       <script
         type="application/ld+json"
-        // biome-ignore lint/security/noDangerouslySetInnerHtml: Breadcrumb JSON-LD from hardcoded path, no user input
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbJsonLd) }}
       />
       <main className="min-h-screen bg-cream paper-texture" id="main-content">

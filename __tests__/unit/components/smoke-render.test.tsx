@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event";
 import { Users } from "lucide-react";
 import type React from "react";
-import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import AdminAnalyticsPage from "@/app/(admin)/admin/analytics/page";
 import AdminReferralsPage from "@/app/(admin)/admin/referrals/page";
 import AdminResumesPage from "@/app/(admin)/admin/resumes/page";

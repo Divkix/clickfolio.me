@@ -13,7 +13,7 @@
  */
 
 import { render } from "@testing-library/react";
-import { describe, expect, test } from "vitest";
+import { describe, expect, test } from "vite-plus/test";
 import BentoGrid from "@/components/templates/BentoGrid";
 import BoldCorporate from "@/components/templates/BoldCorporate";
 import ClassicATS from "@/components/templates/ClassicATS";
@@ -337,12 +337,13 @@ describe("Template edge case rendering", () => {
   // ── Missing avatar_url ──────────────────────────────────────────
 
   describe("missing avatar_url (null)", () => {
-    test.each(ALL_TEMPLATES)("$name renders without crashing with null avatar_url", ({
-      Component,
-    }) => {
-      const { container } = testTemplateRenders(Component, bareMinimumContent, profileNoAvatar);
-      expect(container).toBeTruthy();
-    });
+    test.each(ALL_TEMPLATES)(
+      "$name renders without crashing with null avatar_url",
+      ({ Component }) => {
+        const { container } = testTemplateRenders(Component, bareMinimumContent, profileNoAvatar);
+        expect(container).toBeTruthy();
+      },
+    );
   });
 
   describe("present avatar_url (non-null)", () => {
@@ -378,14 +379,15 @@ describe("Template edge case rendering", () => {
   // ── Nullish/empty items in arrays ───────────────────────────────
 
   describe("nullish/empty items in array fields", () => {
-    test.each(ALL_TEMPLATES)("$name renders without crashing with empty strings in data", ({
-      Component,
-    }) => {
-      const { container } = testTemplateRenders(Component, nullishItemsContent);
-      expect(container).toBeTruthy();
-      expect(container.textContent).toContain("Nullish");
-      expect(container.textContent).toContain("Items");
-    });
+    test.each(ALL_TEMPLATES)(
+      "$name renders without crashing with empty strings in data",
+      ({ Component }) => {
+        const { container } = testTemplateRenders(Component, nullishItemsContent);
+        expect(container).toBeTruthy();
+        expect(container.textContent).toContain("Nullish");
+        expect(container.textContent).toContain("Items");
+      },
+    );
   });
 
   // ── Summary contains only whitespace ────────────────────────────
@@ -425,12 +427,13 @@ describe("Template edge case rendering", () => {
       education: [],
     };
 
-    test.each(ALL_TEMPLATES)("$name renders without crashing with very long fields", ({
-      Component,
-    }) => {
-      const { container } = testTemplateRenders(Component, longFields);
-      expect(container).toBeTruthy();
-    });
+    test.each(ALL_TEMPLATES)(
+      "$name renders without crashing with very long fields",
+      ({ Component }) => {
+        const { container } = testTemplateRenders(Component, longFields);
+        expect(container).toBeTruthy();
+      },
+    );
   });
 
   // ── Single-character fields ─────────────────────────────────────
@@ -454,12 +457,13 @@ describe("Template edge case rendering", () => {
       education: [],
     };
 
-    test.each(ALL_TEMPLATES)("$name renders without crashing with single-char fields", ({
-      Component,
-    }) => {
-      const { container } = testTemplateRenders(Component, singleChar);
-      expect(container).toBeTruthy();
-    });
+    test.each(ALL_TEMPLATES)(
+      "$name renders without crashing with single-char fields",
+      ({ Component }) => {
+        const { container } = testTemplateRenders(Component, singleChar);
+        expect(container).toBeTruthy();
+      },
+    );
   });
 
   // ── Unicode/emoji content ───────────────────────────────────────
@@ -484,12 +488,13 @@ describe("Template edge case rendering", () => {
       education: [],
     };
 
-    test.each(ALL_TEMPLATES)("$name renders without crashing with unicode content", ({
-      Component,
-    }) => {
-      const { container } = testTemplateRenders(Component, unicodeContent);
-      expect(container).toBeTruthy();
-    });
+    test.each(ALL_TEMPLATES)(
+      "$name renders without crashing with unicode content",
+      ({ Component }) => {
+        const { container } = testTemplateRenders(Component, unicodeContent);
+        expect(container).toBeTruthy();
+      },
+    );
   });
 
   // ── HTML-like content in fields (XSS safety) ────────────────────
@@ -520,24 +525,25 @@ describe("Template edge case rendering", () => {
       ],
     };
 
-    test.each(ALL_TEMPLATES)("$name renders without executing HTML-like content", ({
-      Component,
-    }) => {
-      const { container } = testTemplateRenders(Component, htmlLikeContent);
-      expect(container).toBeTruthy();
-      // HTML-like content should appear as text, not as DOM elements.
-      // Templates may legitimately include <img> tags (LinkedIn icons, theme assets),
-      // so we check that no <script>, <iframe>, or malicious <img> elements exist.
-      expect(container.querySelector("script")).toBeNull();
-      expect(container.querySelector("iframe")).toBeNull();
-      // Verify no <img> with data-derived src exists
-      const images = container.querySelectorAll("img");
-      for (const img of images) {
-        const src = img.getAttribute("src") || "";
-        expect(src).not.toContain("onerror");
-        expect(src).not.toContain("<script>");
-      }
-    });
+    test.each(ALL_TEMPLATES)(
+      "$name renders without executing HTML-like content",
+      ({ Component }) => {
+        const { container } = testTemplateRenders(Component, htmlLikeContent);
+        expect(container).toBeTruthy();
+        // HTML-like content should appear as text, not as DOM elements.
+        // Templates may legitimately include <img> tags (LinkedIn icons, theme assets),
+        // so we check that no <script>, <iframe>, or malicious <img> elements exist.
+        expect(container.querySelector("script")).toBeNull();
+        expect(container.querySelector("iframe")).toBeNull();
+        // Verify no <img> with data-derived src exists
+        const images = container.querySelectorAll("img");
+        for (const img of images) {
+          const src = img.getAttribute("src") || "";
+          expect(src).not.toContain("onerror");
+          expect(src).not.toContain("<script>");
+        }
+      },
+    );
   });
 
   // ── Combined extreme edge case ──────────────────────────────────
@@ -584,11 +590,12 @@ describe("Template edge case rendering", () => {
       ],
     };
 
-    test.each(ALL_TEMPLATES)("$name renders without crashing with extreme minimal data", ({
-      Component,
-    }) => {
-      const { container } = testTemplateRenders(Component, combinedExtreme);
-      expect(container).toBeTruthy();
-    });
+    test.each(ALL_TEMPLATES)(
+      "$name renders without crashing with extreme minimal data",
+      ({ Component }) => {
+        const { container } = testTemplateRenders(Component, combinedExtreme);
+        expect(container).toBeTruthy();
+      },
+    );
   });
 });

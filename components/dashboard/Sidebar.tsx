@@ -33,7 +33,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
 
   const STALE_TIME_MS = 30_000;
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: pathname triggers refetch on route change (wizard → dashboard)
+  // eslint-disable-next-line react/exhaustive-deps -- pathname triggers refetch on route change (wizard → dashboard)
   useEffect(() => {
     async function loadProfile() {
       if (!session?.user?.id) {

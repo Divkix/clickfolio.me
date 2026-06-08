@@ -51,12 +51,10 @@ export default function BlogPage() {
     <div className="min-h-screen bg-cream paper-texture flex flex-col">
       <script
         type="application/ld+json"
-        // biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD from hardcoded config, serializeJsonLd escapes XSS vectors
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(blogJsonLd) }}
       />
       <script
         type="application/ld+json"
-        // biome-ignore lint/security/noDangerouslySetInnerHtml: Breadcrumb JSON-LD from hardcoded path, no user input
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbJsonLd) }}
       />
       <header className="sticky top-0 z-50 border-b-3 border-ink bg-cream">

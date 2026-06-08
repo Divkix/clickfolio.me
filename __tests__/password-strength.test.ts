@@ -4,7 +4,7 @@
  * and Have I Been Pwned API integration with fail-open behavior.
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { checkBreached } from "@/lib/password/hibp";
 import { checkPasswordStrength, MINIMUM_SCORE } from "@/lib/password/strength";
 

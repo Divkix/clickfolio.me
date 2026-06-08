@@ -3,7 +3,7 @@
  * setup/teardown convenience wrappers for vitest.
  */
 
-import { afterEach, vi } from "vitest";
+import { afterEach, vi } from "vite-plus/test";
 
 // ---------------------------------------------------------------------------
 // Mock cleanup
