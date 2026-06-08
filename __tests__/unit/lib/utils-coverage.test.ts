@@ -156,6 +156,7 @@ describe("upload validation utilities", () => {
 
 describe("clipboard utilities", () => {
   const originalClipboard = navigator.clipboard;
+  // eslint-disable-next-line typescript/unbound-method -- vitest mock assertion
   const originalExecCommand = document.execCommand;
   let consoleError: MockInstance;
 
@@ -191,6 +192,7 @@ describe("clipboard utilities", () => {
     document.execCommand = vi.fn().mockReturnValue(true);
 
     await expect(copyToClipboard("fallback")).resolves.toBe(true);
+    // eslint-disable-next-line typescript/unbound-method -- vitest mock assertion
     expect(document.execCommand).toHaveBeenCalledWith("copy");
 
     document.execCommand = vi.fn(() => {

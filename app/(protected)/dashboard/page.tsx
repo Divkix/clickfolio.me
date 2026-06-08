@@ -238,6 +238,7 @@ export default async function DashboardPage() {
 
                         {/* Progress Bar */}
                         <div
+                          // eslint-disable-next-line jsx-a11y/prefer-tag-over-role -- custom progressbar with aria attributes; <progress> element lacks styling flexibility
                           role="progressbar"
                           aria-valuenow={completeness}
                           aria-valuemin={0}

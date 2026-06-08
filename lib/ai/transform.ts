@@ -74,6 +74,7 @@ export function truncateString(value: string, maxLength: number): string {
  */
 export function normalizeString(value: unknown, defaultVal = ""): string {
   if (value === null || value === undefined) return defaultVal;
+  // eslint-disable-next-line typescript/no-base-to-string -- value is unknown; String() is intentional for non-object primitives
   if (typeof value !== "string") return String(value);
   return value.trim() || defaultVal;
 }

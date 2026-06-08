@@ -54,6 +54,7 @@ export function LogoIcon({ size = "md", colorScheme = "dark", className = "" }: 
       xmlns="http://www.w3.org/2000/svg"
       className={className}
       aria-label="clickfolio.me icon"
+      // eslint-disable-next-line jsx-a11y/prefer-tag-over-role -- SVG with role="img" is correct ARIA pattern
       role="img"
     >
       {/* Shadow layer */}

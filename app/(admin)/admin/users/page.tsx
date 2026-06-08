@@ -71,7 +71,7 @@ export default function AdminUsersPage() {
   }, []);
 
   useEffect(() => {
-    fetchUsers(page, search);
+    void fetchUsers(page, search);
   }, [page, search, fetchUsers]);
 
   const handleSearch = (e: React.FormEvent) => {
@@ -160,6 +160,7 @@ export default function AdminUsersPage() {
               ) : (
                 users.map((user) => (
                   <tr key={user.id} className="hover:bg-muted/50 transition-colors">
+                    {/* eslint-disable-next-line jsx-a11y/control-has-associated-label -- false positive: <td> is not an interactive control */}
                     <td className="px-4 py-3">
                       <div>
                         <p className="font-medium text-foreground">

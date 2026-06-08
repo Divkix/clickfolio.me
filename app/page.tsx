@@ -235,6 +235,7 @@ export default function Home() {
                     href="https://github.com/divkix/clickfolio.me"
                     target="_blank"
                     rel="noopener noreferrer"
+                    aria-label="View source on GitHub"
                     className="
                     bg-lavender
                     border-3
@@ -299,6 +300,7 @@ export default function Home() {
                 {/* Templates Feature Anchor */}
                 <a
                   href="#examples"
+                  aria-label="View resume template examples"
                   className="
                   bg-coral
                   border-3

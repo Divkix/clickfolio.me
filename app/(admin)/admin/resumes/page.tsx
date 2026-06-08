@@ -88,7 +88,7 @@ export default function AdminResumesPage() {
   }, [statusFilter, page]);
 
   useEffect(() => {
-    fetchResumes();
+    void fetchResumes();
   }, [fetchResumes]);
 
   const updateParams = (updates: { status?: StatusFilter; page?: number }) => {
@@ -273,15 +273,17 @@ export default function AdminResumesPage() {
                         {formatRelativeTime(resume.updatedAt)}
                       </td>
                     </tr>
-                    {expandedRow === resume.id && resume.lastAttemptError && (
-                      <tr key={`${resume.id}-error`}>
-                        <td colSpan={5} className="px-4 py-3 bg-coral/10">
-                          <pre className="text-xs text-coral font-mono whitespace-pre-wrap wrap-break-word">
-                            {resume.lastAttemptError}
-                          </pre>
-                        </td>
-                      </tr>
-                    )}
+                    {expandedRow === resume.id &&
+                      resume.lastAttemptError && (
+                        // eslint-disable-next-line jsx-a11y/control-has-associated-label -- false positive: <tr> is not an interactive control
+                        <tr key={`${resume.id}-error`}>
+                          <td colSpan={5} className="px-4 py-3 bg-coral/10">
+                            <pre className="text-xs text-coral font-mono whitespace-pre-wrap wrap-break-word">
+                              {resume.lastAttemptError}
+                            </pre>
+                          </td>
+                        </tr>
+                      )}
                   </>
                 ))
               )}

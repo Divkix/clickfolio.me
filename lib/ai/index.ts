@@ -81,7 +81,7 @@ function validateParseResult(
       for (const urlField of ["linkedin", "github", "website", "behance", "dribbble"]) {
         if (c[urlField]) c[urlField] = validateUrl(c[urlField]);
       }
-      if (c.email) c.email = sanitizeEmail(String(c.email));
+      if (c.email) c.email = sanitizeEmail(c.email as string);
     }
 
     // Normalize "Present"/"Current" end dates

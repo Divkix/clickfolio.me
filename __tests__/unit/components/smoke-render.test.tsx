@@ -216,6 +216,7 @@ function installBrowserMocks() {
     _origIntersectionObserver = globalThis.IntersectionObserver;
     _origMatchMedia = window.matchMedia;
     _origClipboard = navigator.clipboard;
+    // eslint-disable-next-line typescript/unbound-method -- vitest mock assertion
     _origShare = navigator.share;
     _origWindowOpen = window.open;
     _origWindowConfirm = window.confirm;
@@ -316,6 +317,7 @@ describe("component smoke rendering", () => {
     mocks.sessionState.current = { data: null, isPending: false };
     installBrowserMocks();
     globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
+      // eslint-disable-next-line typescript/no-base-to-string -- RequestInfo|URL; String() is idiomatic in test fetch mocks
       const url = String(input);
       if (url.includes("/api/admin/analytics")) {
         return new Response(
@@ -517,6 +519,7 @@ describe("component smoke rendering", () => {
     expect(screen.getByText("Share Clickfolio")).toBeInTheDocument();
     expect(screen.getAllByText("Users").length).toBeGreaterThan(0);
     await userEvent.click(screen.getAllByRole("button", { name: /copy/i })[0]);
+    // eslint-disable-next-line typescript/unbound-method -- vitest mock assertion
     expect(navigator.clipboard.writeText).toHaveBeenCalled();
 
     rerender(

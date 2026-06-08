@@ -33,7 +33,6 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
 
   const STALE_TIME_MS = 30_000;
 
-  // eslint-disable-next-line react/exhaustive-deps -- pathname triggers refetch on route change (wizard → dashboard)
   useEffect(() => {
     async function loadProfile() {
       if (!session?.user?.id) {
@@ -62,8 +61,9 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
     }
 
     if (!isPending) {
-      loadProfile();
+      void loadProfile();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- profile intentionally omitted to prevent infinite refetch loop
   }, [session?.user, isPending, pathname]);
 
   const handleLogout = async () => {

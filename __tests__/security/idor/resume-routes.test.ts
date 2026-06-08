@@ -392,6 +392,7 @@ describe("IDOR - Resume Routes Security", () => {
 
       // Mock R2.getAsArrayBuffer to return data (file exists)
       const { R2 } = await import("@/lib/r2");
+      // eslint-disable-next-line typescript/unbound-method -- vitest mock assertion
       vi.mocked(R2.getAsArrayBuffer).mockResolvedValue(new ArrayBuffer(100));
 
       const { POST } = await import("@/app/api/resume/claim/route");
@@ -416,6 +417,7 @@ describe("IDOR - Resume Routes Security", () => {
 
       // File exists - the system processes temp keys anonymously
       const { R2 } = await import("@/lib/r2");
+      // eslint-disable-next-line typescript/unbound-method -- vitest mock assertion
       vi.mocked(R2.getAsArrayBuffer).mockResolvedValue(new ArrayBuffer(100));
 
       const { POST } = await import("@/app/api/resume/claim/route");
@@ -439,6 +441,7 @@ describe("IDOR - Resume Routes Security", () => {
       // The system will compute hash and check for existing cache
       // This doesn't leak User B's data because cache lookup is user-scoped
       const { R2 } = await import("@/lib/r2");
+      // eslint-disable-next-line typescript/unbound-method -- vitest mock assertion
       vi.mocked(R2.getAsArrayBuffer).mockResolvedValue(new ArrayBuffer(100));
 
       const { POST } = await import("@/app/api/resume/claim/route");

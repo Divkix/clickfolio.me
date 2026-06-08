@@ -263,7 +263,7 @@ export function AnalyticsCard() {
   }, []);
 
   useEffect(() => {
-    fetchStats(period);
+    void fetchStats(period);
   }, [period, fetchStats]);
 
   const handlePeriodChange = (p: Period) => {

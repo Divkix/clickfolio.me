@@ -255,6 +255,8 @@ vi.mock("drizzle-orm", () => ({
 function jsonRequest(path: string, body: unknown, init: RequestInit = {}) {
   return new Request(`https://clickfolio.me${path}`, {
     method: init.method ?? "POST",
+    // eslint-disable-next-line typescript/no-base-to-string -- RequestInfo|URL; String() is idiomatic in test fetch mocks
+    // eslint-disable-next-line typescript/no-misused-spread -- HeadersInit spread; known to be plain object in tests
     headers: { "content-type": "application/json", ...(init.headers ?? {}) },
     body: JSON.stringify(body),
   });
@@ -558,6 +560,8 @@ describe("API route coverage", () => {
             (overrides.body as Uint8Array | undefined)?.byteLength ?? pdf.byteLength,
           ),
           "x-filename": "resume.pdf",
+          // eslint-disable-next-line typescript/no-base-to-string -- RequestInfo|URL; String() is idiomatic in test fetch mocks
+          // eslint-disable-next-line typescript/no-misused-spread -- HeadersInit spread; known to be plain object in tests
           ...(overrides.headers ?? {}),
         },
         body: overrides.body ?? pdf,

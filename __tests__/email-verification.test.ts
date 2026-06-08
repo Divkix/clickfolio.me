@@ -45,6 +45,7 @@ describe("email verification", () => {
       });
 
       expect(result.success).toBe(true);
+      // eslint-disable-next-line typescript/unbound-method -- vitest mock assertion
       expect(env.EMAIL.send).toHaveBeenCalledWith(
         expect.objectContaining({
           to: "test@example.com",
@@ -63,6 +64,7 @@ describe("email verification", () => {
         userName: "John Doe",
       });
 
+      // eslint-disable-next-line typescript/unbound-method -- vitest mock assertion
       const callArgs = vi.mocked(env.EMAIL.send).mock.calls[0][0] as MockEmailResponse;
       expect(callArgs.html).toContain("Hi John Doe");
       expect(callArgs.text).toContain("Hi John Doe");
@@ -77,6 +79,7 @@ describe("email verification", () => {
         verificationUrl: "https://clickfolio.me/api/auth/verify-email?token=abc123",
       });
 
+      // eslint-disable-next-line typescript/unbound-method -- vitest mock assertion
       const callArgs = vi.mocked(env.EMAIL.send).mock.calls[0][0] as MockEmailResponse;
       expect(callArgs.html).toContain("Hi,");
       expect(callArgs.text).toContain("Hi,");
@@ -84,6 +87,7 @@ describe("email verification", () => {
 
     it("handles email send errors gracefully", async () => {
       const env = createMockEnv();
+      // eslint-disable-next-line typescript/unbound-method -- vitest mock assertion
       vi.mocked(env.EMAIL.send).mockRejectedValueOnce(new Error("Domain not onboarded"));
 
       const { sendVerificationEmail } = createEmailSender(env, mockAppUrl);
@@ -106,6 +110,7 @@ describe("email verification", () => {
         userName: "<script>alert('xss')</script>",
       });
 
+      // eslint-disable-next-line typescript/unbound-method -- vitest mock assertion
       const callArgs = vi.mocked(env.EMAIL.send).mock.calls[0][0] as MockEmailResponse;
       expect(callArgs.html).not.toContain("<script>");
       expect(callArgs.html).toContain("&lt;script&gt;");
@@ -124,6 +129,7 @@ describe("email verification", () => {
         verificationUrl: urlWithEncoded,
       });
 
+      // eslint-disable-next-line typescript/unbound-method -- vitest mock assertion
       const callArgs = vi.mocked(env.EMAIL.send).mock.calls[0][0] as MockEmailResponse;
       // %2F must NOT become %252F (double-encoded)
       expect(callArgs.html).toContain("abc%2Fdef");
@@ -143,6 +149,7 @@ describe("email verification", () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toContain("Invalid");
+      // eslint-disable-next-line typescript/unbound-method -- vitest mock assertion
       expect(env.EMAIL.send).not.toHaveBeenCalled();
     });
   });
@@ -159,6 +166,7 @@ describe("email verification", () => {
       });
 
       expect(result.success).toBe(true);
+      // eslint-disable-next-line typescript/unbound-method -- vitest mock assertion
       expect(env.EMAIL.send).toHaveBeenCalledWith(
         expect.objectContaining({
           to: "test@example.com",
@@ -179,6 +187,7 @@ describe("email verification", () => {
       });
 
       expect(result.success).toBe(true);
+      // eslint-disable-next-line typescript/unbound-method -- vitest mock assertion
       const callArgs = vi.mocked(env.EMAIL.send).mock.calls[0][0] as MockEmailResponse;
       expect(callArgs.html).toContain("abc%2Fdef");
       expect(callArgs.html).not.toContain("abc%252Fdef");
@@ -197,11 +206,13 @@ describe("email verification", () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toContain("Invalid");
+      // eslint-disable-next-line typescript/unbound-method -- vitest mock assertion
       expect(env.EMAIL.send).not.toHaveBeenCalled();
     });
 
     it("handles email send errors gracefully", async () => {
       const env = createMockEnv();
+      // eslint-disable-next-line typescript/unbound-method -- vitest mock assertion
       vi.mocked(env.EMAIL.send).mockRejectedValueOnce(new Error("Rate limit exceeded"));
 
       const { sendPasswordResetEmail } = createEmailSender(env, mockAppUrl);

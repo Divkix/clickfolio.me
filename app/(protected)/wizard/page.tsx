@@ -376,7 +376,7 @@ export default function WizardPage() {
       }
     };
 
-    initializeWizard();
+    void initializeWizard();
 
     return () => {
       if (navigateTimeoutRef.current) {

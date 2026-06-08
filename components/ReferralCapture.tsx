@@ -52,7 +52,7 @@ export function ReferralCapture() {
       // Track the click only once per page load
       if (!hasTracked.current) {
         hasTracked.current = true;
-        trackReferralClick(ref, "homepage");
+        void trackReferralClick(ref, "homepage");
       }
     }
   }, [searchParams]);

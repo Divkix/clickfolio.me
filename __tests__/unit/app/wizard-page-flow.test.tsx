@@ -165,6 +165,7 @@ type FetchScenario =
 
 function installFetchScenario(scenario: FetchScenario) {
   globalThis.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+    // eslint-disable-next-line typescript/no-base-to-string -- RequestInfo|URL; String() is idiomatic in test fetch mocks
     const url = String(input);
     if (url === "/api/upload/pending") {
       return Response.json(
@@ -320,6 +321,7 @@ describe("wizard page flow", () => {
 
     vi.clearAllMocks();
     globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
+      // eslint-disable-next-line typescript/no-base-to-string -- RequestInfo|URL; String() is idiomatic in test fetch mocks
       const url = String(input);
       if (url === "/api/upload/pending") {
         return Response.json({ key: "temp/new.pdf", file_hash: null });
@@ -340,6 +342,7 @@ describe("wizard page flow", () => {
 
     vi.clearAllMocks();
     globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
+      // eslint-disable-next-line typescript/no-base-to-string -- RequestInfo|URL; String() is idiomatic in test fetch mocks
       const url = String(input);
       if (url === "/api/upload/pending") {
         return Response.json({ key: "temp/bad.pdf", file_hash: null });
@@ -368,6 +371,7 @@ describe("wizard page flow", () => {
       );
       sessionStorage.setItem("temp_file_hash", "hash_1");
       globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
+        // eslint-disable-next-line typescript/no-base-to-string -- RequestInfo|URL; String() is idiomatic in test fetch mocks
         const url = String(input);
         if (url === "/api/upload/pending") {
           throw new Error("cookie unavailable");
@@ -389,6 +393,7 @@ describe("wizard page flow", () => {
       failed.unmount();
 
       globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
+        // eslint-disable-next-line typescript/no-base-to-string -- RequestInfo|URL; String() is idiomatic in test fetch mocks
         if (String(input) === "/api/site-data") {
           throw new Error("site-data down");
         }

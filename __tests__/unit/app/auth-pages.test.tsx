@@ -6,7 +6,7 @@ import VerifyEmailPage from "@/app/(public)/verify-email/page";
 import ResetPasswordPage from "@/app/reset-password/page";
 
 type AuthActionResult = {
-  data: unknown | null;
+  data: unknown;
   error: { message?: string } | null;
 };
 
@@ -77,6 +77,7 @@ vi.mock("@/components/auth/PasswordInput", () => ({
     onStrengthChange?: (result: { isAcceptable: boolean } | null) => void;
     disabled?: boolean;
   }) => (
+    // eslint-disable-next-line jsx-a11y/control-has-associated-label -- test mock input, no label needed
     <input
       id={id}
       type="password"

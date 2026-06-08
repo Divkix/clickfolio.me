@@ -75,4 +75,4 @@ async function seed() {
   db.close();
 }
 
-seed();
+void seed();

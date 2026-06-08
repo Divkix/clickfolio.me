@@ -2,6 +2,7 @@
  * Custom worker entry point that wraps vinext's generated handler
  * and adds Cloudflare Queue consumer support and Durable Object exports.
  */
+// eslint-disable-next-line typescript/triple-slash-reference -- required for Cloudflare Workers env types; import-style not supported here
 /// <reference path="../lib/cloudflare-env.d.ts" />
 
 import { eq } from "drizzle-orm";

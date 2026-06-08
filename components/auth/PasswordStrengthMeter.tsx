@@ -66,6 +66,7 @@ export function PasswordStrengthMeter({
       {/* Strength bar - 4 segments */}
       <div
         className="flex gap-1"
+        // eslint-disable-next-line jsx-a11y/prefer-tag-over-role -- custom segmented meter; <meter> semantics differ
         role="meter"
         aria-label="Password strength"
         aria-valuenow={result.score}

@@ -92,7 +92,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
     }
 
     setFile(selectedFile);
-    uploadFile(selectedFile);
+    void uploadFile(selectedFile);
   };
 
   const uploadFile = async (fileToUpload: File) => {
@@ -280,7 +280,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
     if (!currentUser) return;
     if (claiming) return;
 
-    claimUpload(uploadedKey);
+    void claimUpload(uploadedKey);
   }, [sessionLoading, uploadedKey, session?.user, claiming, claimUpload]);
 
   const handleReset = () => {
@@ -295,7 +295,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
     setError(null);
     setUploadProgress(0);
     if (file) {
-      uploadFile(file);
+      void uploadFile(file);
     }
   };
 
@@ -339,6 +339,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
           className="hidden"
           disabled={uploading}
           tabIndex={-1}
+          aria-label="Upload PDF file"
         />
 
         <div className="flex flex-col items-center gap-4">

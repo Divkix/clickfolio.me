@@ -70,7 +70,7 @@ export default function AdminReferralsPage() {
   }, []);
 
   useEffect(() => {
-    fetchReferrals();
+    void fetchReferrals();
   }, [fetchReferrals]);
 
   return (

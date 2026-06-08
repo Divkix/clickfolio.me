@@ -87,6 +87,7 @@ function pdfFile(name = "resume.pdf") {
 
 function installFetch(handler: (url: string, init?: RequestInit) => Response | Promise<Response>) {
   globalThis.fetch = vi.fn((input: RequestInfo | URL, init?: RequestInit) =>
+    // eslint-disable-next-line typescript/no-base-to-string -- RequestInfo|URL; String() is idiomatic in test fetch mocks
     Promise.resolve(handler(String(input), init)),
   ) as unknown as typeof fetch;
 }
@@ -195,6 +196,7 @@ describe("upload flow components", () => {
     unmount();
 
     globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
+      // eslint-disable-next-line typescript/no-base-to-string -- RequestInfo|URL; String() is idiomatic in test fetch mocks
       if (String(input) === "/api/upload") {
         throw new Response(null, { status: 413 });
       }
@@ -206,6 +208,7 @@ describe("upload flow components", () => {
     tooLarge.unmount();
 
     globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
+      // eslint-disable-next-line typescript/no-base-to-string -- RequestInfo|URL; String() is idiomatic in test fetch mocks
       if (String(input) === "/api/upload") {
         throw new Response(null, { status: 401 });
       }
@@ -217,6 +220,7 @@ describe("upload flow components", () => {
     expired.unmount();
 
     globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
+      // eslint-disable-next-line typescript/no-base-to-string -- RequestInfo|URL; String() is idiomatic in test fetch mocks
       if (String(input) === "/api/upload") {
         throw new Error("Network offline");
       }
@@ -298,6 +302,7 @@ describe("upload flow components", () => {
       isPending: false,
     };
     globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
+      // eslint-disable-next-line typescript/no-base-to-string -- RequestInfo|URL; String() is idiomatic in test fetch mocks
       const url = String(input);
       if (url === "/api/upload") {
         return Response.json({ key: "temp/auth/missing.pdf", remaining: { hourly: 9, daily: 49 } });
@@ -316,6 +321,7 @@ describe("upload flow components", () => {
     unmount();
 
     globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
+      // eslint-disable-next-line typescript/no-base-to-string -- RequestInfo|URL; String() is idiomatic in test fetch mocks
       const url = String(input);
       if (url === "/api/upload") {
         return Response.json({ key: "temp/auth/modal.pdf", remaining: { hourly: 9, daily: 49 } });

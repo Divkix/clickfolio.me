@@ -207,6 +207,7 @@ class MockR2Bucket {
       customMetadata?: Record<string, string>;
     },
   ): MockR2Object {
+    // eslint-disable-next-line typescript/no-this-alias -- self alias needed for inner object literal methods that lose this context
     const self = this;
     return {
       key,

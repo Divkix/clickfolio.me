@@ -175,7 +175,7 @@ export function useResumeStatus(resumeId: string | null): UseResumeStatusReturn 
     setIsLoading(true);
 
     // Always do an initial HTTP fetch for immediate state
-    fetchStatus();
+    void fetchStatus();
 
     return () => {
       if (intervalRef.current) {

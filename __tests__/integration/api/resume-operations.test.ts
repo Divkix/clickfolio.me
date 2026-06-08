@@ -640,6 +640,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
   describe("POST /api/resume/claim", () => {
     it("queues a new resume for parsing on valid claim (test 3)", async () => {
       const { R2 } = await import("@/lib/r2");
+      // eslint-disable-next-line typescript/unbound-method -- vitest mock assertion
       const mockedR2 = vi.mocked(R2.getAsArrayBuffer);
       mockedR2.mockResolvedValue(new ArrayBuffer(8)); // Minimal PDF buffer
 
@@ -711,6 +712,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
 
     it("returns 404 when file not found in R2 (test 7)", async () => {
       const { R2 } = await import("@/lib/r2");
+      // eslint-disable-next-line typescript/unbound-method -- vitest mock assertion
       const mockedR2 = vi.mocked(R2.getAsArrayBuffer);
       mockedR2.mockResolvedValue(null);
 
@@ -738,6 +740,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
 
     it("returns already_claimed when double-claim detected (test 16)", async () => {
       const { R2 } = await import("@/lib/r2");
+      // eslint-disable-next-line typescript/unbound-method -- vitest mock assertion
       const mockedR2 = vi.mocked(R2.getAsArrayBuffer);
       mockedR2.mockResolvedValue(null);
 
@@ -1180,6 +1183,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
 
     it("handles queue trigger failure gracefully (test 25)", async () => {
       const { R2 } = await import("@/lib/r2");
+      // eslint-disable-next-line typescript/unbound-method -- vitest mock assertion
       const mockedR2 = vi.mocked(R2.getAsArrayBuffer);
       mockedR2.mockResolvedValue(new ArrayBuffer(8));
 

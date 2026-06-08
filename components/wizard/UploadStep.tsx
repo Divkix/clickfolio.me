@@ -93,7 +93,7 @@ export function UploadStep({ onContinue }: UploadStepProps) {
     }
 
     setFile(selectedFile);
-    uploadAndParse(selectedFile);
+    void uploadAndParse(selectedFile);
   };
 
   // Wait for resume parsing completion via WebSocket (with polling fallback)
@@ -345,6 +345,7 @@ export function UploadStep({ onContinue }: UploadStepProps) {
               onChange={handleFileSelect}
               className="hidden"
               tabIndex={-1}
+              aria-label="Upload PDF file"
             />
 
             <div className="relative z-10 flex flex-col items-center gap-4">

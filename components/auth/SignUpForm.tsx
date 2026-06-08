@@ -93,7 +93,7 @@ export function SignUpForm({ onSuccess, callbackURL }: SignUpFormProps) {
 
     // Debounce the check (400ms)
     emailCheckTimeoutRef.current = setTimeout(() => {
-      checkEmailDisposable(email);
+      void checkEmailDisposable(email);
     }, 400);
   }, [email, checkEmailDisposable]);
 
@@ -101,7 +101,7 @@ export function SignUpForm({ onSuccess, callbackURL }: SignUpFormProps) {
   const emailRegister = register("email");
   const emailBlurHandler = useCallback(
     (e: React.FocusEvent<HTMLInputElement>) => {
-      emailRegister.onBlur(e); // react-hook-form blur
+      void emailRegister.onBlur(e); // react-hook-form blur
       handleEmailBlur(); // disposable check
     },
     [emailRegister, handleEmailBlur],
@@ -219,6 +219,7 @@ export function SignUpForm({ onSuccess, callbackURL }: SignUpFormProps) {
           type="email"
           autoComplete="email"
           placeholder="you@example.com"
+          aria-label="Email address"
           disabled={isSubmitting}
           ref={emailRegister.ref}
           name={emailRegister.name}

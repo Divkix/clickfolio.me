@@ -29,6 +29,7 @@ describe("syncDisposableDomains", () => {
     const result = await syncDisposableDomains(kv);
 
     expect(fetch).toHaveBeenCalledOnce();
+    // eslint-disable-next-line typescript/unbound-method -- vitest mock assertion
     expect(kv.put).toHaveBeenCalledOnce();
     const [key, value] = (kv.put as ReturnType<typeof vi.fn>).mock.calls[0];
     expect(key).toBe("disposable-domains");
@@ -45,6 +46,7 @@ describe("syncDisposableDomains", () => {
     const kv = createKvMock();
 
     await expect(syncDisposableDomains(kv)).rejects.toThrow();
+    // eslint-disable-next-line typescript/unbound-method -- vitest mock assertion
     expect(kv.put).not.toHaveBeenCalled();
   });
 
@@ -54,6 +56,7 @@ describe("syncDisposableDomains", () => {
     const kv = createKvMock();
 
     await expect(syncDisposableDomains(kv)).rejects.toThrow();
+    // eslint-disable-next-line typescript/unbound-method -- vitest mock assertion
     expect(kv.put).not.toHaveBeenCalled();
   });
 

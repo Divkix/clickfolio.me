@@ -110,7 +110,7 @@ vi.mock("@/lib/db/session", () => ({
             const q = query as { toSQL?: () => unknown };
             if (q.toSQL) {
               // Just resolve for now
-              Promise.resolve(q);
+              void Promise.resolve(q);
             }
           }
         }

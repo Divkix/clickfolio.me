@@ -94,7 +94,7 @@ export function HandleStep({ initialHandle = "", onContinue }: HandleStepProps) 
   useEffect(() => {
     const timer = setTimeout(() => {
       if (handle && handle.length >= 3) {
-        checkAvailability(handle);
+        void checkAvailability(handle);
       }
     }, 500);
 
@@ -128,7 +128,7 @@ export function HandleStep({ initialHandle = "", onContinue }: HandleStepProps) 
     setIsCurrentHandle(false);
     setError(null);
     // Trigger immediate availability check
-    checkAvailability(suggestion);
+    void checkAvailability(suggestion);
   };
 
   const handleSubmit = () => {
@@ -168,6 +168,7 @@ export function HandleStep({ initialHandle = "", onContinue }: HandleStepProps) 
               onChange={handleChange}
               placeholder="johnsmith"
               className="pr-10 text-lg"
+              // eslint-disable-next-line jsx-a11y/no-autofocus -- intentional: focus handle input on mount
               autoFocus
             />
             {/* Status Icon */}

@@ -87,7 +87,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
         const result = resumeContentSchemaStrict.safeParse(values);
 
         if (result.success) {
-          handleSave(result.data, true);
+          void handleSave(result.data, true);
         } else {
           const fieldErrors = result.error.issues.map((i) => i.path.join(".")).slice(0, 3);
           toast.warning(`Fix validation errors: ${fieldErrors.join(", ")}`, {

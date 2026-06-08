@@ -169,6 +169,7 @@ describe("parseWithAi - structured output path", () => {
     const noObjectError = new Error("No object generated");
     (noObjectError as Error & { finishReason: string }).finishReason = "content-filter";
 
+    // eslint-disable-next-line typescript/unbound-method -- vitest mock assertion
     vi.mocked(NoObjectGeneratedError.isInstance).mockReturnValue(true);
     vi.mocked(generateText)
       .mockRejectedValueOnce(noObjectError)
@@ -213,6 +214,7 @@ describe("parseWithAi - structured output path", () => {
       experience: [],
     });
 
+    // eslint-disable-next-line typescript/unbound-method -- vitest mock assertion
     vi.mocked(NoObjectGeneratedError.isInstance).mockReturnValue(true);
     vi.mocked(generateText).mockRejectedValueOnce(noObjectError);
 
@@ -240,6 +242,7 @@ describe("parseWithAi - structured output path", () => {
     noObjectError.finishReason = "length";
     noObjectError.text = "Not valid JSON";
 
+    // eslint-disable-next-line typescript/unbound-method -- vitest mock assertion
     vi.mocked(NoObjectGeneratedError.isInstance).mockReturnValue(true);
     vi.mocked(generateText)
       .mockRejectedValueOnce(noObjectError)
@@ -383,6 +386,7 @@ describe("parseWithAi - text fallback path", () => {
     };
     noObjectError.finishReason = "content-filter";
 
+    // eslint-disable-next-line typescript/unbound-method -- vitest mock assertion
     vi.mocked(NoObjectGeneratedError.isInstance).mockReturnValue(true);
     vi.mocked(generateText)
       .mockRejectedValueOnce(noObjectError) // structured fails
@@ -425,6 +429,7 @@ describe("parseWithAi - text fallback path", () => {
     };
     noObjectError.finishReason = "content-filter";
 
+    // eslint-disable-next-line typescript/unbound-method -- vitest mock assertion
     vi.mocked(NoObjectGeneratedError.isInstance).mockReturnValue(true);
     vi.mocked(generateText)
       .mockRejectedValueOnce(noObjectError)
@@ -463,6 +468,7 @@ describe("parseWithAi - text fallback path", () => {
     };
     noObjectError.finishReason = "content-filter";
 
+    // eslint-disable-next-line typescript/unbound-method -- vitest mock assertion
     vi.mocked(NoObjectGeneratedError.isInstance).mockReturnValue(true);
     vi.mocked(generateText)
       .mockRejectedValueOnce(noObjectError)
@@ -492,6 +498,7 @@ describe("parseWithAi - text fallback path", () => {
     };
     noObjectError.finishReason = "content-filter";
 
+    // eslint-disable-next-line typescript/unbound-method -- vitest mock assertion
     vi.mocked(NoObjectGeneratedError.isInstance).mockReturnValue(true);
     vi.mocked(generateText)
       .mockRejectedValueOnce(noObjectError)
@@ -701,6 +708,7 @@ describe("parseWithAi - edge cases", () => {
     };
     noObjectError.finishReason = "content-filter";
 
+    // eslint-disable-next-line typescript/unbound-method -- vitest mock assertion
     vi.mocked(NoObjectGeneratedError.isInstance).mockReturnValue(true);
     vi.mocked(generateText)
       .mockRejectedValueOnce(noObjectError)
@@ -835,6 +843,7 @@ describe("parseWithAi - error handling", () => {
     const unavailableError = new Error("Service temporarily unavailable: 503");
 
     // Provider error should trigger fallback path
+    // eslint-disable-next-line typescript/unbound-method -- vitest mock assertion
     vi.mocked(NoObjectGeneratedError.isInstance).mockReturnValue(false);
     vi.mocked(generateText)
       .mockRejectedValueOnce(unavailableError)
@@ -871,6 +880,7 @@ describe("parseWithAi - error handling", () => {
     };
     noObjectError.finishReason = "content-filter";
 
+    // eslint-disable-next-line typescript/unbound-method -- vitest mock assertion
     vi.mocked(NoObjectGeneratedError.isInstance).mockReturnValue(true);
     vi.mocked(generateText)
       .mockRejectedValueOnce(noObjectError) // structured fails
@@ -928,6 +938,7 @@ describe("parseWithAi - logging", () => {
     const error = new Error("Failed") as Error & { finishReason: string };
     error.finishReason = "content-filter";
 
+    // eslint-disable-next-line typescript/unbound-method -- vitest mock assertion
     vi.mocked(NoObjectGeneratedError.isInstance).mockReturnValue(true);
     vi.mocked(generateText)
       .mockRejectedValueOnce(error)

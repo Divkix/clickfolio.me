@@ -235,6 +235,7 @@ export function SharePopover({ url, handle, title, name, variant, className }: S
       {open && (
         <div
           id={popoverId}
+          // eslint-disable-next-line jsx-a11y/prefer-tag-over-role -- custom popover; dialog element would require different focus management
           role="dialog"
           aria-label="Share options"
           className={cn(panelVariants({ variant }))}

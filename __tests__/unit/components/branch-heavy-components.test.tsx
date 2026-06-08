@@ -606,6 +606,7 @@ describe("branch-heavy component interactions", () => {
       expect(await screen.findByRole("button", { name: "Share this page" })).toBeInTheDocument();
 
       await user.click(screen.getByRole("button", { name: "Share this page" }));
+      // eslint-disable-next-line typescript/unbound-method -- vitest mock assertion
       expect(navigator.share).toHaveBeenCalledWith({
         title: "Avery Portfolio",
         text: "Check out someone's portfolio",

@@ -232,6 +232,7 @@ describe("Input Validation and Sanitization Security", () => {
 
     it("sanitizes null bytes from filenames", () => {
       const filename = "resume\x00.pdf";
+      // eslint-disable-next-line no-control-regex -- intentional: testing null byte detection
       const sanitized = filename.replace(/\0/g, "");
       expect(sanitized).not.toContain("\x00");
     });

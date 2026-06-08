@@ -56,6 +56,7 @@ vi.mock("@/components/auth/PasswordInput", () => ({
     }) => void;
     disabled?: boolean;
   }) => (
+    // eslint-disable-next-line jsx-a11y/control-has-associated-label -- test mock input, no label needed
     <input
       id={id}
       type="password"

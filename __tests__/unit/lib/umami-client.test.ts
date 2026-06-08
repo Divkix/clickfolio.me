@@ -20,9 +20,11 @@ describe("Umami analytics client", () => {
 
   it("authenticates once and sends filtered stats, pageview, and metric requests", async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      // eslint-disable-next-line typescript/no-base-to-string -- RequestInfo|URL; String() is idiomatic in test fetch mocks
       const url = String(input);
       if (url.endsWith("/api/auth/login")) {
         expect(init?.method).toBe("POST");
+        // eslint-disable-next-line typescript/no-base-to-string -- RequestInfo|URL; String() is idiomatic in test fetch mocks
         expect(JSON.parse(String(init?.body))).toEqual({
           username: "avery",
           password: "secret",
@@ -83,12 +85,17 @@ describe("Umami analytics client", () => {
     ).resolves.toEqual([{ x: "linkedin.com", y: 2 }]);
 
     expect(fetchMock).toHaveBeenCalledTimes(4);
+    // eslint-disable-next-line typescript/no-base-to-string -- RequestInfo|URL; String() is idiomatic in test fetch mocks
     expect(String(fetchMock.mock.calls[1][0])).toBe(
       "https://umami.example/api/websites/site_123/stats?startAt=1&endAt=2&path=%2F%40avery",
     );
+    // eslint-disable-next-line typescript/no-base-to-string -- RequestInfo|URL; String() is idiomatic in test fetch mocks
     expect(String(fetchMock.mock.calls[2][0])).toContain("unit=day");
+    // eslint-disable-next-line typescript/no-base-to-string -- RequestInfo|URL; String() is idiomatic in test fetch mocks
     expect(String(fetchMock.mock.calls[2][0])).toContain("timezone=America%2FPhoenix");
+    // eslint-disable-next-line typescript/no-base-to-string -- RequestInfo|URL; String() is idiomatic in test fetch mocks
     expect(String(fetchMock.mock.calls[3][0])).toContain("limit=5");
+    // eslint-disable-next-line typescript/unbound-method -- vitest mock assertion
     expect(fetchMock.mock.calls[1][1]?.headers).toEqual({ Authorization: "Bearer token-1" });
   });
 

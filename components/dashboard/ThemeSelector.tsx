@@ -150,9 +150,11 @@ export function ThemeSelector({
       {/* Thumbnail Strip */}
       <div
         className="overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0"
+        // eslint-disable-next-line jsx-a11y/prefer-tag-over-role -- custom keyboard-navigable theme strip; native select would not support thumbnail previews
         role="listbox"
         aria-label="Theme selection"
         onKeyDown={handleKeyDown}
+        tabIndex={0}
       >
         <div className="flex gap-3 min-w-max">
           {THEME_IDS.map((themeId) => {
@@ -166,6 +168,7 @@ export function ThemeSelector({
               <button
                 key={themeId}
                 type="button"
+                // eslint-disable-next-line jsx-a11y/prefer-tag-over-role -- button with role="option" inside listbox is correct ARIA pattern
                 role="option"
                 aria-selected={isSelected}
                 aria-disabled={!isUnlocked}

@@ -70,7 +70,7 @@ export default function AdminAnalyticsPage() {
   }, []);
 
   useEffect(() => {
-    fetchAnalytics(period);
+    void fetchAnalytics(period);
   }, [period, fetchAnalytics]);
 
   return (

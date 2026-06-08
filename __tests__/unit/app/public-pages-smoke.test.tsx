@@ -130,6 +130,7 @@ describe("public page rendering", () => {
     expect(container.textContent).toContain("Your Resume");
     expect(container.textContent).toContain("Drop your PDF");
     expect(container.textContent).toContain("Open source");
+    // eslint-disable-next-line typescript/unbound-method -- vitest mock assertion
     expect(navigator.sendBeacon).toHaveBeenCalledWith(
       "/api/referral/track",
       JSON.stringify({ code: "ABCD1234", source: "homepage" }),
@@ -174,6 +175,7 @@ describe("public page rendering", () => {
       generateResumeWritingTipsMetadata(),
     ];
 
+    // eslint-disable-next-line typescript/no-base-to-string -- entry.title is unknown; String() is intentional here
     const titles = metadata.map((entry) => String(entry.title)).join("\n");
 
     expect(titles).toContain("AI Resume Parsing");

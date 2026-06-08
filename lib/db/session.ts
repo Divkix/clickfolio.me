@@ -14,10 +14,7 @@ type D1SessionDatabase = D1Database & {
   getBookmark(): D1SessionBookmark | null;
 };
 
-function createSession(
-  d1: D1Database,
-  constraintOrBookmark: D1SessionBookmark | D1SessionConstraint,
-): D1SessionDatabase {
+function createSession(d1: D1Database, constraintOrBookmark: string): D1SessionDatabase {
   return d1.withSession(constraintOrBookmark) as unknown as D1SessionDatabase;
 }
 

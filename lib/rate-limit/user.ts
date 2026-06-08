@@ -74,7 +74,7 @@ export async function checkRateLimit(
 
       default: {
         const _exhaustive: never = action;
-        throw new Error(`Unknown rate limit action: ${_exhaustive}`);
+        throw new Error(`Unknown rate limit action: ${_exhaustive as string}`);
       }
     }
 

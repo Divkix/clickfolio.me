@@ -97,7 +97,7 @@ export function waitForResumeCompletion(resumeId: string, timeoutMs = 90_000): P
       };
 
       // Poll immediately, then on interval
-      poll();
+      void poll();
       pollInterval = setInterval(poll, POLL_INTERVAL_MS);
     }
 
