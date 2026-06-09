@@ -47,9 +47,6 @@ export const privacySettingsInputSchema = z.object({
     .default(true),
 });
 
-/** Inferred type for privacy settings input (with defaults applied). */
-export type PrivacySettingsInput = z.infer<typeof privacySettingsInputSchema>;
-
 /**
  * Handle validation schema
  * Enforces uniqueness, format, and length constraints
@@ -101,10 +98,3 @@ export function buildWizardCompleteSchema(themeIds: readonly [string, ...string[
     theme_id: z.enum(themeIds),
   });
 }
-
-/** Referral code validation — shared between claim and track endpoints. */
-export const referralCodeSchema = z
-  .string()
-  .max(50)
-  .regex(/^[A-Za-z0-9@_-]+$/, "Invalid referral code")
-  .optional();
