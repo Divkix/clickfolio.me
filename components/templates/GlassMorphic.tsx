@@ -314,7 +314,7 @@ export const GlassMorphic: React.FC<TemplateProps> = ({ content, profile }) => {
                         alt={`Portrait of ${content.full_name}`}
                         fetchPriority="high"
                         decoding="async"
-                        className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-colors duration-500"
+                        className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500"
                       />
                     ) : (
                       <div className="w-full h-full bg-[#111] flex items-center justify-center text-4xl font-bold text-[#333]">
@@ -559,7 +559,7 @@ export const GlassMorphic: React.FC<TemplateProps> = ({ content, profile }) => {
                   {flatSkills.map((skill, i) => (
                     <span
                       key={`skill-${skill}-${i}`}
-                      className="px-4 py-2 rounded-lg bg-white/3 border border-white/6 text-sm text-slate-300 hover:bg-white/8 hover:text-white hover:border-lavender/30 hover:shadow-[0_0_15px_rgba(167,139,250,0.3)] transition-colors duration-300 cursor-default select-none"
+                      className="px-4 py-2 rounded-lg bg-white/3 border border-white/6 text-sm text-slate-300 hover:bg-white/8 hover:text-white hover:border-lavender/30 hover:shadow-[0_0_15px_rgba(167,139,250,0.3)] transition-all duration-300 cursor-default select-none"
                     >
                       {skill}
                     </span>

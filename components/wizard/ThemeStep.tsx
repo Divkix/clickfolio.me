@@ -60,7 +60,7 @@ export function ThemeStep({
                 key={id}
                 onClick={() => isUnlocked && setSelectedTheme(themeId)}
                 className={cn(
-                  "group relative overflow-hidden transition-colors duration-300 p-6",
+                  "group relative overflow-hidden transition-all duration-300 p-6",
                   "shadow-sm",
                   isUnlocked
                     ? selectedTheme === id

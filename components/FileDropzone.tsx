@@ -391,7 +391,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
         <div className="space-y-2">
           <div className="h-3 bg-cream border-2 border-ink overflow-hidden">
             <div
-              className="h-full bg-mint transition-colors duration-300"
+              className="h-full bg-mint transition-all duration-300"
               style={{ width: `${uploadProgress}%` }}
             />
           </div>

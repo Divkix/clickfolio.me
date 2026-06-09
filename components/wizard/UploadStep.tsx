@@ -327,7 +327,7 @@ export function UploadStep({ onContinue }: UploadStepProps) {
             onClick={() => fileInputRef.current?.click()}
             aria-label="Drop your PDF resume here or click to browse files"
             className={`
-              group relative bg-card rounded-xl border border-ink/10 p-12 cursor-pointer transition-colors duration-300 overflow-hidden
+              group relative bg-card rounded-xl border border-ink/10 p-12 cursor-pointer transition-all duration-300 overflow-hidden
               ${
                 isDragging
                   ? "border-coral bg-linear-to-br from-coral/10 to-coral/10 shadow-lg -translate-y-1"

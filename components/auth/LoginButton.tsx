@@ -43,7 +43,7 @@ export function LoginButton() {
           active:translate-x-0
           active:translate-y-0
           active:shadow-none
-          transition-colors
+          transition-all
           duration-150
           flex
           items-center

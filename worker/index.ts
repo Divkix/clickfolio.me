@@ -16,7 +16,7 @@ import { syncDisposableDomains } from "../lib/cron/sync-disposable-domains";
 import { getDb } from "../lib/db";
 import { resumes } from "../lib/db/schema";
 import { getSessionDbForWebhook } from "../lib/db/session";
-import { INFRA } from "../lib/config/retry";
+import { INFRA } from "@/lib/config/retry";
 import { handleQueueMessage } from "../lib/queue/consumer";
 import { handleDLQMessage } from "../lib/queue/dlq-consumer";
 import { isRetryableError } from "../lib/queue/errors";

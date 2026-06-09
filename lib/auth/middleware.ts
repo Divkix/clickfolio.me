@@ -210,13 +210,16 @@ export async function requireAuthWithUserValidation(errorMessage: string): Promi
  * ```ts
  * export async function GET(request: Request) {
  *   const authError = requireCronAuth(request);
+ *   const authError = handleCronRequest(request, env);
  *   if (authError) return authError;
  *   // ... run cron task
  * }
  * ```
  */
-export function requireCronAuth(request: Request): Response | null {
-  const cronSecret = process.env.CRON_SECRET;
+export function requireCronAuth(request: Request, env: CloudflareEnv): Response | null {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- CRON_SECRET is not typed
+  const cronSecret = (env as any).CRON_SECRET;
+
   if (!cronSecret) {
     console.error("CRON_SECRET environment variable is not configured");
     return createErrorResponse(

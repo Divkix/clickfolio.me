@@ -94,7 +94,7 @@ export async function GET(request: Request) {
     if (userIds.length === 0) {
       return createSuccessResponse({
         users: [],
-        total: 0,
+        total: totalResult?.count ?? 0,
         page,
         pageSize: PAGE_SIZE,
       });

@@ -26,7 +26,7 @@ import {
 } from "@/lib/utils/security-headers";
 
 export async function GET(request: Request) {
-  const authError = requireCronAuth(request);
+  const authError = requireCronAuth(request, env);
   if (authError) return authError;
 
   try {

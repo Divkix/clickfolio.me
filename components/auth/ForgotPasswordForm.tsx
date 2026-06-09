@@ -85,7 +85,7 @@ export function ForgotPasswordForm({ onBackToSignIn }: ForgotPasswordFormProps) 
               hover:text-ink
               underline
               underline-offset-2
-              transition-colors
+              transition
               ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}
             `}
           >
@@ -125,7 +125,7 @@ export function ForgotPasswordForm({ onBackToSignIn }: ForgotPasswordFormProps) 
             focus:shadow-brutal-md
             focus:translate-x-[-2px]
             focus:translate-y-[-2px]
-            transition-colors
+            transition
             duration-150
             disabled:opacity-50
             disabled:cursor-not-allowed
@@ -156,7 +156,7 @@ export function ForgotPasswordForm({ onBackToSignIn }: ForgotPasswordFormProps) 
           active:translate-x-0
           active:translate-y-0
           active:shadow-none
-          transition-colors
+          transition
           duration-150
           disabled:opacity-50
           disabled:cursor-not-allowed
@@ -193,7 +193,7 @@ export function ForgotPasswordForm({ onBackToSignIn }: ForgotPasswordFormProps) 
             hover:text-ink
             underline
             underline-offset-2
-            transition-colors
+            transition
             ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}
           `}
         >

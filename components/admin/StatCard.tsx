@@ -20,7 +20,7 @@ export function StatCard({
   href,
 }: StatCardProps) {
   const content = (
-    <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-4 hover:shadow-md hover:-translate-y-0.5 transition-colors duration-300">
+    <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
       <div className="flex items-center gap-3">
         <div className="relative shrink-0">
           <div className={`absolute inset-0 ${iconBgClass} rounded-lg blur-md opacity-20`} />

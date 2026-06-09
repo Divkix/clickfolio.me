@@ -348,7 +348,7 @@ export const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
                       {flatSkills.map((skill, i) => (
                         <span
                           key={i}
-                          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/10 text-sm text-neutral-300 font-body-mn hover:border-[#C9A96E]/40 hover:text-[#DFC08A] hover:shadow-[0_0_12px_rgba(201,169,110,0.3)] transition-colors duration-300 cursor-default"
+                          className="px-3 py-1 bg-stone-900/50 border border-[#C9A96E]/20 text-stone-300 text-sm hover:border-[#C9A96E]/50 hover:text-[#C9A96E] hover:shadow-[0_0_12px_rgba(201,169,110,0.3)] transition-all duration-300 cursor-default rounded-full inline-flex items-center gap-2"
                         >
                           <span
                             className="w-1.5 h-1.5 rounded-full bg-[#C9A96E]/50"
