@@ -1,8 +1,12 @@
 import { env } from "cloudflare:workers";
-import { NextResponse } from "next/server";
 import { getR2Binding, R2 } from "@/lib/r2";
 import { checkIPRateLimit, getClientIP } from "@/lib/rate-limit/ip";
 import { COOKIE_NAME, createSignedCookieValue } from "@/lib/utils/pending-upload-cookie";
+import {
+  createErrorResponse,
+  createSuccessResponse,
+  ERROR_CODES,
+} from "@/lib/utils/security-headers";
 import { generateTempKey, MAX_FILE_SIZE, validatePDFBuffer } from "@/lib/utils/validation";
 
 // Minimum file size for a valid PDF (100 bytes)
@@ -42,47 +46,61 @@ export async function POST(request: Request) {
     // Get R2 binding for direct operations
     const r2Binding = getR2Binding(typedEnv);
     if (!r2Binding) {
-      return NextResponse.json({ error: "Storage service unavailable" }, { status: 503 });
+      return createErrorResponse(
+        "Storage service unavailable",
+        ERROR_CODES.EXTERNAL_SERVICE_ERROR,
+        503,
+      );
     }
 
     // 1. Validate Content-Type
     const contentType = request.headers.get("content-type");
     if (!contentType?.includes("application/pdf")) {
-      return NextResponse.json({ error: "Content-Type must be application/pdf" }, { status: 400 });
+      return createErrorResponse(
+        "Content-Type must be application/pdf",
+        ERROR_CODES.BAD_REQUEST,
+        400,
+      );
     }
 
     // 2. Validate Content-Length before reading body
     const contentLengthHeader = request.headers.get("content-length");
     if (!contentLengthHeader) {
-      return NextResponse.json({ error: "Content-Length header is required" }, { status: 411 });
+      return createErrorResponse("Content-Length header is required", ERROR_CODES.BAD_REQUEST, 411);
     }
 
     const contentLength = parseInt(contentLengthHeader, 10);
     if (Number.isNaN(contentLength) || contentLength <= 0) {
-      return NextResponse.json({ error: "Invalid Content-Length header" }, { status: 400 });
+      return createErrorResponse("Invalid Content-Length header", ERROR_CODES.BAD_REQUEST, 400);
     }
 
     if (contentLength > MAX_FILE_SIZE) {
-      return NextResponse.json(
-        { error: `File size exceeds limit (${Math.round(MAX_FILE_SIZE / 1024 / 1024)}MB maximum)` },
-        { status: 413 },
+      return createErrorResponse(
+        `File size exceeds limit (${Math.round(MAX_FILE_SIZE / 1024 / 1024)}MB maximum)`,
+        ERROR_CODES.BAD_REQUEST,
+        413,
       );
     }
 
     if (contentLength < MIN_PDF_SIZE) {
-      return NextResponse.json({ error: "File appears to be empty or corrupted" }, { status: 400 });
+      return createErrorResponse(
+        "File appears to be empty or corrupted",
+        ERROR_CODES.BAD_REQUEST,
+        400,
+      );
     }
 
     // 3. Get filename from header
     const filename = request.headers.get("x-filename");
     if (!filename || typeof filename !== "string" || filename.trim().length === 0) {
-      return NextResponse.json({ error: "X-Filename header is required" }, { status: 400 });
+      return createErrorResponse("X-Filename header is required", ERROR_CODES.BAD_REQUEST, 400);
     }
 
     if (filename.length > 255) {
-      return NextResponse.json(
-        { error: "Filename too long (max 255 characters)" },
-        { status: 400 },
+      return createErrorResponse(
+        "Filename too long (max 255 characters)",
+        ERROR_CODES.BAD_REQUEST,
+        400,
       );
     }
 
@@ -92,13 +110,11 @@ export async function POST(request: Request) {
     // 5. Check IP-based rate limit BEFORE any processing
     const rateLimit = await checkIPRateLimit(clientIP);
     if (!rateLimit.allowed) {
-      return NextResponse.json(
-        {
-          error: "Rate Limit Exceeded",
-          message: rateLimit.message,
-          remaining: rateLimit.remaining,
-        },
-        { status: 429 },
+      return createErrorResponse(
+        rateLimit.message || "Rate limit exceeded",
+        ERROR_CODES.RATE_LIMIT_EXCEEDED,
+        429,
+        { remaining: rateLimit.remaining },
       );
     }
 
@@ -107,15 +123,16 @@ export async function POST(request: Request) {
 
     // Verify actual size matches Content-Length
     if (buffer.byteLength !== contentLength) {
-      return NextResponse.json({ error: "Content-Length mismatch" }, { status: 400 });
+      return createErrorResponse("Content-Length mismatch", ERROR_CODES.BAD_REQUEST, 400);
     }
 
     // 7. Validate PDF magic number
     const pdfValidation = validatePDFBuffer(buffer);
     if (!pdfValidation.valid) {
-      return NextResponse.json(
-        { error: pdfValidation.error || "Invalid PDF file" },
-        { status: 400 },
+      return createErrorResponse(
+        pdfValidation.error || "Invalid PDF file",
+        ERROR_CODES.BAD_REQUEST,
+        400,
       );
     }
 
@@ -133,7 +150,7 @@ export async function POST(request: Request) {
       });
     } catch (r2Error) {
       console.error("R2 upload error:", r2Error);
-      return NextResponse.json({ error: "Failed to store file" }, { status: 500 });
+      return createErrorResponse("Failed to store file", ERROR_CODES.EXTERNAL_SERVICE_ERROR, 500);
     }
 
     // 10. Create signed cookie for claim verification (Issue #89)
@@ -151,25 +168,15 @@ export async function POST(request: Request) {
     }
 
     // 11. Return success with rate limit info and cookie
-    const responseHeaders: Record<string, string> = {
-      "X-RateLimit-Remaining-Hourly": String(rateLimit.remaining.hourly),
-      "X-RateLimit-Remaining-Daily": String(rateLimit.remaining.daily),
-    };
+    const response = createSuccessResponse({ key, remaining: rateLimit.remaining });
+    response.headers.set("X-RateLimit-Remaining-Hourly", String(rateLimit.remaining.hourly));
+    response.headers.set("X-RateLimit-Remaining-Daily", String(rateLimit.remaining.daily));
     if (setCookieHeader) {
-      responseHeaders["Set-Cookie"] = setCookieHeader;
+      response.headers.set("Set-Cookie", setCookieHeader);
     }
-
-    return NextResponse.json(
-      {
-        key,
-        remaining: rateLimit.remaining,
-      },
-      {
-        headers: responseHeaders,
-      },
-    );
+    return response;
   } catch (error) {
     console.error("Error uploading file:", error);
-    return NextResponse.json({ error: "Failed to upload file" }, { status: 500 });
+    return createErrorResponse("Failed to upload file", ERROR_CODES.INTERNAL_ERROR, 500);
   }
 }

@@ -1,6 +1,10 @@
 import { env } from "cloudflare:workers";
-import { NextResponse } from "next/server";
 import { getR2Binding } from "@/lib/r2";
+import {
+  createErrorResponse,
+  createSuccessResponse,
+  ERROR_CODES,
+} from "@/lib/utils/security-headers";
 
 export const dynamic = "force-dynamic";
 
@@ -139,16 +143,13 @@ export async function GET() {
     const httpStatus =
       response.status === "healthy" ? 200 : response.status === "degraded" ? 200 : 503;
 
-    return NextResponse.json(response, { status: httpStatus });
+    return createSuccessResponse(response, httpStatus);
   } catch (error) {
     console.error("Health check error:", error);
-    return NextResponse.json(
-      {
-        status: "unhealthy",
-        timestamp: new Date().toISOString(),
-        error: error instanceof Error ? error.message : "Unknown error",
-      },
-      { status: 503 },
+    return createErrorResponse(
+      error instanceof Error ? error.message : "Unknown error",
+      ERROR_CODES.INTERNAL_ERROR,
+      503,
     );
   }
 }

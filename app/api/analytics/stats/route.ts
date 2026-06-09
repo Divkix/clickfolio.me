@@ -29,6 +29,11 @@ import { eq } from "drizzle-orm";
 import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
 import { handleChanges } from "@/lib/db/schema";
 import { getMetrics, getPageviews, getStats } from "@/lib/umami/client";
+import {
+  createErrorResponse,
+  createSuccessResponse,
+  ERROR_CODES,
+} from "@/lib/utils/security-headers";
 
 const VALID_PERIODS = new Set(["7d", "30d", "90d"]);
 
@@ -59,12 +64,16 @@ export async function GET(request: Request) {
   const period = url.searchParams.get("period") || "7d";
 
   if (!VALID_PERIODS.has(period)) {
-    return Response.json({ error: "Invalid period. Use 7d, 30d, or 90d." }, { status: 400 });
+    return createErrorResponse(
+      "Invalid period. Use 7d, 30d, or 90d.",
+      ERROR_CODES.VALIDATION_ERROR,
+      400,
+    );
   }
 
   const currentHandle = dbUser.handle;
   if (!currentHandle) {
-    return Response.json({
+    return createSuccessResponse({
       totalViews: 0,
       uniqueVisitors: 0,
       viewsByDay: [],
@@ -227,26 +236,25 @@ export async function GET(request: Request) {
     const days = periodToDays(period);
     const viewsByDay = fillMissingDates(dailyMap, dailyUniquesMap, days);
 
-    return Response.json(
-      {
-        totalViews,
-        uniqueVisitors,
-        viewsByDay,
-        topReferrers,
-        directVisits,
-        deviceBreakdown,
-        countryBreakdown,
-        period,
-      },
-      {
-        headers: {
-          "Cache-Control": "private, max-age=60, stale-while-revalidate=120",
-        },
-      },
-    );
+    const response = createSuccessResponse({
+      totalViews,
+      uniqueVisitors,
+      viewsByDay,
+      topReferrers,
+      directVisits,
+      deviceBreakdown,
+      countryBreakdown,
+      period,
+    });
+    response.headers.set("Cache-Control", "private, max-age=60, stale-while-revalidate=120");
+    return response;
   } catch (err) {
     console.error("[analytics/stats] Umami API error:", err);
-    return Response.json({ error: "Analytics temporarily unavailable" }, { status: 503 });
+    return createErrorResponse(
+      "Analytics temporarily unavailable",
+      ERROR_CODES.INTERNAL_ERROR,
+      503,
+    );
   }
 }
 

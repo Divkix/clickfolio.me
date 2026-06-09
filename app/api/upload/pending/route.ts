@@ -16,7 +16,6 @@
 
 import { env } from "cloudflare:workers";
 import { cookies } from "next/headers";
-import { NextResponse } from "next/server";
 import { getEnvValue } from "@/lib/auth";
 import {
   COOKIE_MAX_AGE,
@@ -24,6 +23,11 @@ import {
   createSignedCookieValue,
   parseSignedCookieValue,
 } from "@/lib/utils/pending-upload-cookie";
+import {
+  createErrorResponse,
+  createSuccessResponse,
+  ERROR_CODES,
+} from "@/lib/utils/security-headers";
 
 /**
  * POST - Set pending upload cookie after R2 upload
@@ -41,7 +45,7 @@ export async function POST(request: Request) {
 
     // Validate the key format (must be temp upload)
     if (!key || typeof key !== "string" || !key.startsWith("temp/")) {
-      return NextResponse.json({ error: "Invalid upload key" }, { status: 400 });
+      return createErrorResponse("Invalid upload key", ERROR_CODES.BAD_REQUEST, 400);
     }
 
     // Create signed cookie value
@@ -57,10 +61,10 @@ export async function POST(request: Request) {
       path: "/", // Available site-wide
     });
 
-    return NextResponse.json({ success: true });
+    return createSuccessResponse({ success: true });
   } catch (error) {
     console.error("Error setting pending upload cookie:", error);
-    return NextResponse.json({ error: "Failed to save upload" }, { status: 500 });
+    return createErrorResponse("Failed to save upload", ERROR_CODES.INTERNAL_ERROR, 500);
   }
 }
 
@@ -80,7 +84,7 @@ export async function GET() {
 
     // No cookie present
     if (!cookie?.value) {
-      return NextResponse.json({ key: null });
+      return createSuccessResponse({ key: null });
     }
 
     // Parse and verify the signed cookie
@@ -88,15 +92,13 @@ export async function GET() {
 
     // Invalid or expired cookie - return null (client calls DELETE to clean up)
     if (!parsed) {
-      return NextResponse.json({ key: null });
+      return createSuccessResponse({ key: null });
     }
 
-    return NextResponse.json({
-      key: parsed.tempKey,
-    });
+    return createSuccessResponse({ key: parsed.tempKey });
   } catch (error) {
     console.error("Error reading pending upload cookie:", error);
-    return NextResponse.json({ key: null });
+    return createSuccessResponse({ key: null });
   }
 }
 
@@ -110,10 +112,10 @@ export async function DELETE() {
   try {
     const cookieStore = await cookies();
     cookieStore.delete(COOKIE_NAME);
-    return NextResponse.json({ success: true });
+    return createSuccessResponse({ success: true });
   } catch (error) {
     console.error("Error clearing pending upload cookie:", error);
     // Still return success - cookie deletion is best effort
-    return NextResponse.json({ success: true });
+    return createSuccessResponse({ success: true });
   }
 }

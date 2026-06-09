@@ -199,3 +199,37 @@ export async function requireAuthWithUserValidation(errorMessage: string): Promi
     error: null,
   };
 }
+
+/**
+ * Helper to require cron authentication for manual trigger endpoints.
+ * Fail-closed: rejects all requests when CRON_SECRET is not configured.
+ *
+ * @returns null if the request is authorized, or an error Response if not
+ *
+ * @example
+ * ```ts
+ * export async function GET(request: Request) {
+ *   const authError = requireCronAuth(request);
+ *   if (authError) return authError;
+ *   // ... run cron task
+ * }
+ * ```
+ */
+export function requireCronAuth(request: Request): Response | null {
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret) {
+    console.error("CRON_SECRET environment variable is not configured");
+    return createErrorResponse(
+      "Server misconfiguration: CRON_SECRET not set",
+      ERROR_CODES.INTERNAL_ERROR,
+      500,
+    );
+  }
+
+  const authHeader = request.headers.get("Authorization");
+  if (authHeader !== `Bearer ${cronSecret}`) {
+    return createErrorResponse("Unauthorized", ERROR_CODES.UNAUTHORIZED, 401);
+  }
+
+  return null;
+}

@@ -39,6 +39,7 @@ export async function PUT(request: Request) {
     const {
       user: authUser,
       db,
+      captureBookmark,
       error: authError,
     } = await requireAuthWithUserValidation("You must be logged in to update your role");
     if (authError) return authError;
@@ -69,6 +70,7 @@ export async function PUT(request: Request) {
       })
       .where(eq(user.id, authUser.id));
 
+    await captureBookmark();
     return createSuccessResponse({ role: validation.data.role, roleSource: "user" });
   } catch (err) {
     console.error("Unexpected error in role update:", err);

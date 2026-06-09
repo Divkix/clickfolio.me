@@ -14,37 +14,29 @@
  */
 
 import { env } from "cloudflare:workers";
+import { requireCronAuth } from "@/lib/auth/middleware";
 import { performR2Cleanup } from "@/lib/cron/cleanup-r2";
 import { getR2Binding } from "@/lib/r2";
-
-const CRON_SECRET = process.env.CRON_SECRET;
+import {
+  createErrorResponse,
+  createSuccessResponse,
+  ERROR_CODES,
+} from "@/lib/utils/security-headers";
 
 export async function GET(request: Request) {
-  // Verify cron secret header (basic auth for cron endpoints)
-  // SECURITY: Fail-closed - reject all requests if CRON_SECRET is not configured
-  if (!CRON_SECRET) {
-    console.error("CRON_SECRET environment variable is not configured");
-    return Response.json(
-      { error: "Server misconfiguration: CRON_SECRET not set" },
-      { status: 500 },
-    );
-  }
-
-  const authHeader = request.headers.get("Authorization");
-  if (authHeader !== `Bearer ${CRON_SECRET}`) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const authError = requireCronAuth(request);
+  if (authError) return authError;
 
   try {
     const r2Binding = getR2Binding(env);
     if (!r2Binding) {
-      return Response.json({ error: "R2 bucket not available" }, { status: 500 });
+      return createErrorResponse("R2 bucket not available", ERROR_CODES.INTERNAL_ERROR, 500);
     }
 
     const result = await performR2Cleanup(r2Binding);
-    return Response.json(result);
+    return createSuccessResponse(result);
   } catch (error) {
     console.error("R2 cleanup cron failed:", error);
-    return Response.json({ error: "R2 cleanup failed", details: String(error) }, { status: 500 });
+    return createErrorResponse("R2 cleanup failed", ERROR_CODES.INTERNAL_ERROR, 500);
   }
 }

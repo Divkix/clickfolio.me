@@ -26,6 +26,11 @@ import { requireAdminAuthForApi } from "@/lib/auth/admin";
 import { getDb } from "@/lib/db";
 import { resumes, siteData, user } from "@/lib/db/schema";
 import { getPageviews, getStats } from "@/lib/umami/client";
+import {
+  createErrorResponse,
+  createSuccessResponse,
+  ERROR_CODES,
+} from "@/lib/utils/security-headers";
 
 export async function GET() {
   const { error } = await requireAdminAuthForApi();
@@ -97,7 +102,7 @@ export async function GET() {
       7,
     );
 
-    return Response.json({
+    return createSuccessResponse({
       totalUsers: userStats[0]?.total ?? 0,
       publishedResumes: siteDataCount[0]?.count ?? 0,
       processingResumes,
@@ -111,7 +116,7 @@ export async function GET() {
     });
   } catch (err) {
     console.error("[admin/stats] Error:", err);
-    return Response.json({ error: "Stats temporarily unavailable" }, { status: 503 });
+    return createErrorResponse("Stats temporarily unavailable", ERROR_CODES.INTERNAL_ERROR, 503);
   }
 }
 
