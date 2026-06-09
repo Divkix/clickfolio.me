@@ -23,7 +23,6 @@ interface UploadResponse {
   key: string;
   remaining: { hourly: number; daily: number };
   error?: string;
-  message?: string;
 }
 
 interface ClaimResponse {
@@ -120,7 +119,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
         const data = (await uploadResponse.json()) as UploadResponse;
         // Handle rate limiting specifically
         if (uploadResponse.status === 429) {
-          throw new Error(data.message || "Too many upload attempts. Please wait and try again.");
+          throw new Error(data.error || "Too many upload attempts. Please wait and try again.");
         }
         throw new Error(data.error || "Failed to upload file");
       }
