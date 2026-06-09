@@ -8,13 +8,15 @@
  * Source: https://github.com/disposable-email-domains/disposable-email-domains
  */
 
+import { INFRA } from "@/lib/config/retry";
+
 const BLOCKLIST_URL =
   "https://raw.githubusercontent.com/disposable-email-domains/disposable-email-domains/master/disposable_email_blocklist.conf";
 
 const MINIMUM_DOMAIN_COUNT = 1000;
 
 export interface SyncResult {
-  ok: boolean;
+  ok: true;
   domainCount: number;
   timestamp: string;
 }
@@ -37,7 +39,7 @@ export async function syncDisposableDomains(kv: KVNamespace): Promise<SyncResult
     );
   }
 
-  await kv.put("disposable-domains", JSON.stringify(domains));
+  await kv.put(INFRA.DISPOSABLE_DOMAINS_KEY, JSON.stringify(domains));
 
   return {
     ok: true,
