@@ -326,8 +326,8 @@ See `.env.example` for complete template with all options.
 ```bash
 # Development
 bun run dev              # Start dev server at localhost:3000
-bun run lint             # Biome linting
-bun run fix              # Biome auto-fix
+bun run lint             # Oxlint linting (via vp lint)
+bun run fix              # Oxlint + Oxfmt auto-fix (via vp check --fix)
 bun run type-check       # TypeScript check
 
 # Build & Deploy

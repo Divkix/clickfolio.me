@@ -5,6 +5,7 @@
  * Fast execution, no external service dependencies.
  */
 
+import { resolve } from "node:path";
 import { defineConfig } from "vite-plus";
 
 export default defineConfig({
@@ -13,8 +14,17 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     setupFiles: ["./__tests__/setup.ts"],
-    include: ["__tests__/unit/**/*.test.{ts,tsx}"],
-    exclude: ["node_modules", ".next", "dist", "__tests__/e2e/**"],
+    include: [
+      "__tests__/unit/**/*.test.{ts,tsx}",
+      // Root-level tests that belong to the unit suite
+      "__tests__/privacy.test.ts",
+      "__tests__/profile-schema.test.ts",
+      "__tests__/resume-schema.test.ts",
+      "__tests__/sitemap.test.ts",
+      "__tests__/sync-disposable-domains.test.ts",
+      "__tests__/theme-id-consistency.test.ts",
+    ],
+    exclude: ["node_modules", ".next", "dist", "__tests__/e2e/**", ".worktrees/**"],
     // Unit tests should be fast - no retries needed
     retry: 0,
     // Isolate each test file
@@ -44,9 +54,8 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      "@": new URL("./", import.meta.url).pathname,
-      "cloudflare:workers": new URL("lib/stubs/cloudflare-workers-client-stub.mjs", import.meta.url)
-        .pathname,
+      "@": resolve(__dirname, "./"),
+      "cloudflare:workers": resolve(__dirname, "lib/stubs/cloudflare-workers-client-stub.mjs"),
     },
   },
 });

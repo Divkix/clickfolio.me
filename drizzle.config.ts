@@ -28,7 +28,7 @@ function getLocalD1Path(): string {
  * the local Worker sees.
  */
 export default {
-  schema: "./lib/db/schema.ts",
+  schema: "./lib/db/schema/index.ts",
   out: "./migrations",
   dialect: "sqlite",
   dbCredentials: {
