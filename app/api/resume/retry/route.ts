@@ -61,7 +61,7 @@ export async function POST(request: Request) {
     if (authError) return authError;
 
     const userId = authUser.id;
-    const typedEnv = env as Partial<CloudflareEnv>;
+    const typedEnv = env as CloudflareEnv;
 
     // Validate request size before parsing (prevent DoS)
     const sizeCheck = validateRequestSize(request);

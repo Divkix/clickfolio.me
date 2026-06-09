@@ -8,6 +8,15 @@
 import { describe, expect, it, vi } from "vite-plus/test";
 import { notifyStatusChange, notifyStatusChangeBatch } from "@/lib/queue/notify-status";
 
+/** Build a minimal env object accepted by notifyStatus* functions. */
+function makeStatusEnv(binding: object | undefined): {
+  CLICKFOLIO_STATUS_DO: CloudflareEnv["CLICKFOLIO_STATUS_DO"] | undefined;
+} {
+  return {
+    CLICKFOLIO_STATUS_DO: binding as unknown as CloudflareEnv["CLICKFOLIO_STATUS_DO"],
+  };
+}
+
 describe("Notify Status", () => {
   // Mock Durable Object binding
   const createMockDOBinding = () => {
@@ -19,7 +28,7 @@ describe("Notify Status", () => {
       binding: {
         idFromName: idFromNameMock,
         get: getMock,
-      },
+      } as unknown as CloudflareEnv["CLICKFOLIO_STATUS_DO"],
       fetchMock,
       getMock,
       idFromNameMock,
@@ -29,7 +38,7 @@ describe("Notify Status", () => {
   describe("notifyStatusChange", () => {
     it("should send notification to DO for status update", async () => {
       const { binding, fetchMock, idFromNameMock, getMock } = createMockDOBinding();
-      const env = { CLICKFOLIO_STATUS_DO: binding } as unknown as CloudflareEnv;
+      const env = { CLICKFOLIO_STATUS_DO: binding };
 
       await notifyStatusChange({ resumeId: "resume-123", status: "processing", env });
 
@@ -44,7 +53,7 @@ describe("Notify Status", () => {
 
     it("should include error in payload when provided", async () => {
       const { binding, fetchMock } = createMockDOBinding();
-      const env = { CLICKFOLIO_STATUS_DO: binding } as unknown as CloudflareEnv;
+      const env = { CLICKFOLIO_STATUS_DO: binding };
 
       await notifyStatusChange({
         resumeId: "resume-123",
@@ -63,7 +72,7 @@ describe("Notify Status", () => {
 
     it("should not include error field when not provided", async () => {
       const { binding, fetchMock } = createMockDOBinding();
-      const env = { CLICKFOLIO_STATUS_DO: binding } as unknown as CloudflareEnv;
+      const env = { CLICKFOLIO_STATUS_DO: binding };
 
       await notifyStatusChange({ resumeId: "resume-123", status: "completed", env });
 
@@ -74,7 +83,7 @@ describe("Notify Status", () => {
     });
 
     it("should return silently when DO binding not configured", async () => {
-      const env = { CLICKFOLIO_STATUS_DO: undefined } as unknown as CloudflareEnv;
+      const env = { CLICKFOLIO_STATUS_DO: undefined };
       const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
       await expect(
@@ -89,12 +98,7 @@ describe("Notify Status", () => {
       const getMock = vi.fn().mockReturnValue({ fetch: fetchMock });
       const idFromNameMock = vi.fn().mockReturnValue({ toString: () => "do-id-123" });
 
-      const env = {
-        CLICKFOLIO_STATUS_DO: {
-          idFromName: idFromNameMock,
-          get: getMock,
-        },
-      } as unknown as CloudflareEnv;
+      const env = makeStatusEnv({ idFromName: idFromNameMock, get: getMock });
 
       const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
@@ -113,12 +117,7 @@ describe("Notify Status", () => {
       const getMock = vi.fn().mockReturnValue({ fetch: fetchMock });
       const idFromNameMock = vi.fn().mockReturnValue({ toString: () => "do-id-123" });
 
-      const env = {
-        CLICKFOLIO_STATUS_DO: {
-          idFromName: idFromNameMock,
-          get: getMock,
-        },
-      } as unknown as CloudflareEnv;
+      const env = makeStatusEnv({ idFromName: idFromNameMock, get: getMock });
 
       const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
@@ -134,12 +133,7 @@ describe("Notify Status", () => {
       const getMock = vi.fn().mockReturnValue({ fetch: fetchMock });
       const idFromNameMock = vi.fn().mockReturnValue({ toString: () => "do-id-123" });
 
-      const env = {
-        CLICKFOLIO_STATUS_DO: {
-          idFromName: idFromNameMock,
-          get: getMock,
-        },
-      } as unknown as CloudflareEnv;
+      const env = makeStatusEnv({ idFromName: idFromNameMock, get: getMock });
 
       const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
@@ -155,12 +149,7 @@ describe("Notify Status", () => {
       const fetchMock = vi.fn().mockResolvedValue(new Response("OK"));
       const getMock = vi.fn().mockReturnValue({ fetch: fetchMock });
 
-      const env = {
-        CLICKFOLIO_STATUS_DO: {
-          idFromName: idFromNameMock,
-          get: getMock,
-        },
-      } as unknown as CloudflareEnv;
+      const env = makeStatusEnv({ idFromName: idFromNameMock, get: getMock });
 
       await notifyStatusChange({ resumeId: "resume-abc", status: "processing", env });
       await notifyStatusChange({ resumeId: "resume-def", status: "processing", env });
@@ -172,7 +161,7 @@ describe("Notify Status", () => {
 
     it("should not include empty error string in payload", async () => {
       const { binding, fetchMock } = createMockDOBinding();
-      const env = { CLICKFOLIO_STATUS_DO: binding } as unknown as CloudflareEnv;
+      const env = { CLICKFOLIO_STATUS_DO: binding };
 
       await notifyStatusChange({
         resumeId: "resume-123",
@@ -190,7 +179,7 @@ describe("Notify Status", () => {
     it("should handle various status values", async () => {
       const statuses = ["pending", "processing", "completed", "failed", "waiting_for_cache"];
       const { binding, fetchMock } = createMockDOBinding();
-      const env = { CLICKFOLIO_STATUS_DO: binding } as unknown as CloudflareEnv;
+      const env = { CLICKFOLIO_STATUS_DO: binding };
 
       for (const status of statuses) {
         fetchMock.mockClear();
@@ -205,7 +194,7 @@ describe("Notify Status", () => {
 
     it("should handle UUID resume IDs", async () => {
       const { binding, idFromNameMock } = createMockDOBinding();
-      const env = { CLICKFOLIO_STATUS_DO: binding } as unknown as CloudflareEnv;
+      const env = { CLICKFOLIO_STATUS_DO: binding };
       const uuid = "550e8400-e29b-41d4-a716-446655440000";
 
       await notifyStatusChange({ resumeId: uuid, status: "processing", env });
@@ -215,7 +204,7 @@ describe("Notify Status", () => {
 
     it("should handle long error messages", async () => {
       const { binding, fetchMock } = createMockDOBinding();
-      const env = { CLICKFOLIO_STATUS_DO: binding } as unknown as CloudflareEnv;
+      const env = { CLICKFOLIO_STATUS_DO: binding };
       const longError = "Error: ".repeat(1000);
 
       await notifyStatusChange({
@@ -237,12 +226,7 @@ describe("Notify Status", () => {
       const getMock = vi.fn().mockReturnValue({ fetch: fetchMock });
       const idFromNameMock = vi.fn().mockReturnValue({ toString: () => "do-id-123" });
 
-      const env = {
-        CLICKFOLIO_STATUS_DO: {
-          idFromName: idFromNameMock,
-          get: getMock,
-        },
-      } as unknown as CloudflareEnv;
+      const env = makeStatusEnv({ idFromName: idFromNameMock, get: getMock });
 
       await notifyStatusChangeBatch(["resume-1", "resume-2", "resume-3"], "completed", env);
 
@@ -254,14 +238,14 @@ describe("Notify Status", () => {
 
     it("should handle empty array gracefully", async () => {
       const { binding } = createMockDOBinding();
-      const env = { CLICKFOLIO_STATUS_DO: binding } as unknown as CloudflareEnv;
+      const env = { CLICKFOLIO_STATUS_DO: binding };
 
       await expect(notifyStatusChangeBatch([], "completed", env)).resolves.toBeUndefined();
     });
 
     it("should handle single resume in batch", async () => {
       const { binding, fetchMock } = createMockDOBinding();
-      const env = { CLICKFOLIO_STATUS_DO: binding } as unknown as CloudflareEnv;
+      const env = { CLICKFOLIO_STATUS_DO: binding };
 
       await notifyStatusChangeBatch(["resume-1"], "completed", env);
 
@@ -278,12 +262,7 @@ describe("Notify Status", () => {
       const getMock = vi.fn().mockReturnValue({ fetch: fetchMock });
       const idFromNameMock = vi.fn().mockReturnValue({ toString: () => "do-id-123" });
 
-      const env = {
-        CLICKFOLIO_STATUS_DO: {
-          idFromName: idFromNameMock,
-          get: getMock,
-        },
-      } as unknown as CloudflareEnv;
+      const env = makeStatusEnv({ idFromName: idFromNameMock, get: getMock });
 
       const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
@@ -295,7 +274,7 @@ describe("Notify Status", () => {
     });
 
     it("should return silently when DO binding not configured", async () => {
-      const env = { CLICKFOLIO_STATUS_DO: undefined } as unknown as CloudflareEnv;
+      const env = { CLICKFOLIO_STATUS_DO: undefined };
 
       await expect(
         notifyStatusChangeBatch(["resume-1", "resume-2"], "completed", env),
@@ -307,12 +286,7 @@ describe("Notify Status", () => {
       const getMock = vi.fn().mockReturnValue({ fetch: fetchMock });
       const idFromNameMock = vi.fn().mockReturnValue({ toString: () => "do-id-123" });
 
-      const env = {
-        CLICKFOLIO_STATUS_DO: {
-          idFromName: idFromNameMock,
-          get: getMock,
-        },
-      } as unknown as CloudflareEnv;
+      const env = makeStatusEnv({ idFromName: idFromNameMock, get: getMock });
 
       const resumes = Array.from({ length: 100 }, (_, i) => `resume-${i}`);
 
@@ -326,12 +300,7 @@ describe("Notify Status", () => {
       const getMock = vi.fn().mockReturnValue({ fetch: fetchMock });
       const idFromNameMock = vi.fn().mockReturnValue({ toString: () => "do-id-123" });
 
-      const env = {
-        CLICKFOLIO_STATUS_DO: {
-          idFromName: idFromNameMock,
-          get: getMock,
-        },
-      } as unknown as CloudflareEnv;
+      const env = makeStatusEnv({ idFromName: idFromNameMock, get: getMock });
 
       await notifyStatusChangeBatch(["resume-1", "resume-2", "resume-3"], "processing", env);
 
@@ -344,12 +313,7 @@ describe("Notify Status", () => {
       const getMock = vi.fn().mockReturnValue({ fetch: fetchMock });
       const idFromNameMock = vi.fn().mockReturnValue({ toString: () => "do-id-123" });
 
-      const env = {
-        CLICKFOLIO_STATUS_DO: {
-          idFromName: idFromNameMock,
-          get: getMock,
-        },
-      } as unknown as CloudflareEnv;
+      const env = makeStatusEnv({ idFromName: idFromNameMock, get: getMock });
 
       await notifyStatusChangeBatch(["resume-1", "resume-2"], "waiting_for_cache", env);
 

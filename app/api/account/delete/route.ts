@@ -37,7 +37,7 @@ export async function POST(request: Request) {
     } = await requireAuthWithUserValidation("You must be logged in to delete your account");
     if (authError) return authError;
 
-    const typedEnv = env as Partial<CloudflareEnv>;
+    const typedEnv = env as CloudflareEnv;
 
     // Get R2 binding for direct operations
     const r2Binding = getR2Binding(typedEnv);

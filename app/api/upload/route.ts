@@ -37,7 +37,7 @@ const MIN_PDF_SIZE = 100;
 export async function POST(request: Request) {
   try {
     // 0. Get Cloudflare env bindings for R2
-    const typedEnv = env as Partial<CloudflareEnv>;
+    const typedEnv = env as CloudflareEnv;
 
     // Get R2 binding for direct operations
     const r2Binding = getR2Binding(typedEnv);

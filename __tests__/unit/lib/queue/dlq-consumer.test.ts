@@ -24,11 +24,13 @@ import { getSessionDbForWebhook } from "@/lib/db/session";
 import { notifyStatusChange } from "@/lib/queue/notify-status";
 
 describe("DLQ Consumer", () => {
-  const createMockEnv = (overrides: Record<string, string> = {}): CloudflareEnv =>
-    ({
-      CLICKFOLIO_DB: {} as D1Database,
-      ...overrides,
-    }) as unknown as CloudflareEnv;
+  const createMockEnv = (
+    overrides: Record<string, string> = {},
+  ): { CLICKFOLIO_DB: CloudflareEnv["CLICKFOLIO_DB"]; CLICKFOLIO_STATUS_DO: undefined } => ({
+    CLICKFOLIO_DB: {} as D1Database,
+    CLICKFOLIO_STATUS_DO: undefined,
+    ...overrides,
+  });
 
   const createMockDeadLetterMessage = (
     overrides: Partial<DeadLetterMessage> = {},

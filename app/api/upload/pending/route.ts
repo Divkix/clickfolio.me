@@ -33,7 +33,7 @@ import {
  */
 export async function POST(request: Request) {
   try {
-    const typedEnv = env as Partial<CloudflareEnv>;
+    const typedEnv = env as CloudflareEnv;
     const secret = getEnvValue(typedEnv, "BETTER_AUTH_SECRET");
 
     const body = (await request.json()) as { key?: string };
@@ -72,7 +72,7 @@ export async function POST(request: Request) {
  */
 export async function GET() {
   try {
-    const typedEnv = env as Partial<CloudflareEnv>;
+    const typedEnv = env as CloudflareEnv;
     const secret = getEnvValue(typedEnv, "BETTER_AUTH_SECRET");
 
     const cookieStore = await cookies();

@@ -19,7 +19,7 @@ export async function notifyStatusChange({
   resumeId: string;
   status: string;
   error?: string;
-  env: CloudflareEnv;
+  env: { CLICKFOLIO_STATUS_DO: CloudflareEnv["CLICKFOLIO_STATUS_DO"] | undefined };
 }): Promise<void> {
   try {
     if (!env.CLICKFOLIO_STATUS_DO) {
@@ -53,7 +53,7 @@ export async function notifyStatusChange({
 export async function notifyStatusChangeBatch(
   resumeIds: string[],
   status: string,
-  env: CloudflareEnv,
+  env: { CLICKFOLIO_STATUS_DO: CloudflareEnv["CLICKFOLIO_STATUS_DO"] | undefined },
 ): Promise<void> {
   await Promise.allSettled(
     resumeIds.map((resumeId) => notifyStatusChange({ resumeId, status, env })),

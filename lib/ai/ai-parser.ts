@@ -190,21 +190,18 @@ export interface AiParseResult {
 }
 
 /**
- * Environment variables for AI provider configuration
- * These extend the base CloudflareEnv with AI-specific secrets
+ * AI-specific env keys — subset of CloudflareEnv used by the AI provider.
  */
-export interface AiEnvVars {
-  CF_AI_GATEWAY_ACCOUNT_ID?: string;
-  CF_AI_GATEWAY_ID?: string;
-  CF_AIG_AUTH_TOKEN?: string;
-  AI_MODEL?: string;
-}
+export type AiEnvVars = Pick<
+  CloudflareEnv,
+  "CF_AI_GATEWAY_ACCOUNT_ID" | "CF_AI_GATEWAY_ID" | "CF_AIG_AUTH_TOKEN" | "AI_MODEL"
+>;
 
 /**
  * Create AI provider via Cloudflare AI Gateway.
  * Gateway vars are required — no direct OpenRouter fallback.
  */
-export function createAiProvider(env: Partial<CloudflareEnv> & AiEnvVars) {
+export function createAiProvider(env: Partial<AiEnvVars>) {
   const gatewayAccountId = env.CF_AI_GATEWAY_ACCOUNT_ID;
   const gatewayId = env.CF_AI_GATEWAY_ID;
   const gatewayAuthToken = env.CF_AIG_AUTH_TOKEN;
@@ -233,7 +230,7 @@ export function createAiProvider(env: Partial<CloudflareEnv> & AiEnvVars) {
 let cachedProvider: ReturnType<typeof createAiProvider> | null = null;
 let cachedEnvKey: string | null = null;
 
-function getAiProvider(env: Partial<CloudflareEnv> & AiEnvVars) {
+function getAiProvider(env: Partial<AiEnvVars>) {
   const key = (env.CF_AI_GATEWAY_ACCOUNT_ID || "") + (env.CF_AI_GATEWAY_ID || "");
   if (cachedProvider && cachedEnvKey === key) return cachedProvider;
   cachedProvider = createAiProvider(env);
@@ -293,7 +290,7 @@ function truncateForRetry(text: string): string {
  */
 export async function parseWithAi(
   text: string,
-  env: Partial<CloudflareEnv> & AiEnvVars,
+  env: Partial<AiEnvVars>,
   model?: string,
   retryContext?: { previousOutput: string; errors: string },
 ): Promise<AiParseResult> {

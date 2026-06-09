@@ -23,7 +23,9 @@ interface DLQAlertPayload {
  * Extended env type for optional alert configuration.
  * These env vars are only set in production via Cloudflare secrets.
  */
-interface AlertEnv extends CloudflareEnv {
+interface AlertEnv {
+  CLICKFOLIO_DB: CloudflareEnv["CLICKFOLIO_DB"];
+  CLICKFOLIO_STATUS_DO: CloudflareEnv["CLICKFOLIO_STATUS_DO"] | undefined;
   ALERT_WEBHOOK_URL?: string;
   ALERT_CHANNEL?: string;
 }
@@ -80,7 +82,10 @@ async function sendAlert(
  */
 export async function handleDLQMessage(
   message: QueueMessage | DeadLetterMessage,
-  env: CloudflareEnv,
+  env: {
+    CLICKFOLIO_DB: CloudflareEnv["CLICKFOLIO_DB"];
+    CLICKFOLIO_STATUS_DO: CloudflareEnv["CLICKFOLIO_STATUS_DO"] | undefined;
+  },
 ): Promise<void> {
   // Extract the original message if wrapped in DeadLetterMessage
   const originalMessage = "originalMessage" in message ? message.originalMessage : message;
