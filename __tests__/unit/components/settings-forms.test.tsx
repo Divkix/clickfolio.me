@@ -81,7 +81,6 @@ describe("PrivacySettingsForm", () => {
     const user = userEvent.setup();
     render(
       <PrivacySettingsForm
-        userHandle="avery"
         initialSettings={{
           show_phone: false,
           show_address: false,
@@ -128,7 +127,6 @@ describe("PrivacySettingsForm", () => {
 
     render(
       <PrivacySettingsForm
-        userHandle={null}
         initialSettings={{
           show_phone: true,
           show_address: true,

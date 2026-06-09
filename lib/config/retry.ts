@@ -7,9 +7,6 @@
  * - Orphan recovery cron
  */
 export const RETRY_LIMITS = {
-  /** Max retries by Cloudflare Queue before DLQ */
-  QUEUE_MAX_RETRIES: 3,
-
   /** Max manual retries via /api/resume/retry */
   MANUAL_MAX_RETRIES: 2,
 

@@ -12,7 +12,6 @@ import { privacySettingsSchema } from "@/lib/schemas/profile";
 
 interface PrivacySettingsFormProps {
   initialSettings: PrivacySettings;
-  userHandle: string | null;
 }
 
 interface ErrorResponse {

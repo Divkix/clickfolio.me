@@ -50,9 +50,7 @@ describe("RealtimeStatusListener", () => {
   });
 
   it.each(["processing", "queued"])("connects while %s and renders processing state", (status) => {
-    render(
-      <RealtimeStatusListener currentStatus={status} resumeId="resume_123" userId="user_123" />,
-    );
+    render(<RealtimeStatusListener currentStatus={status} resumeId="resume_123" />);
 
     expect(screen.getByText("Processing Your Resume")).toBeInTheDocument();
     expect(mocks.socketArgs?.resumeId).toBe("resume_123");
@@ -60,7 +58,7 @@ describe("RealtimeStatusListener", () => {
 
   it("does not connect for terminal initial statuses", () => {
     const { unmount } = render(
-      <RealtimeStatusListener currentStatus="completed" resumeId="resume_123" userId="user_123" />,
+      <RealtimeStatusListener currentStatus="completed" resumeId="resume_123" />,
     );
 
     expect(screen.getByText("Processing Complete!")).toBeInTheDocument();
@@ -69,9 +67,7 @@ describe("RealtimeStatusListener", () => {
 
     unmount();
     mocks.socketArgs = null;
-    render(
-      <RealtimeStatusListener currentStatus="failed" resumeId="resume_456" userId="user_123" />,
-    );
+    render(<RealtimeStatusListener currentStatus="failed" resumeId="resume_456" />);
 
     expect(screen.getByText("Processing Failed")).toBeInTheDocument();
     expect(screen.getByText("An error occurred while processing your resume.")).toBeInTheDocument();
@@ -80,9 +76,7 @@ describe("RealtimeStatusListener", () => {
   });
 
   it("reacts to completed and failed socket updates with one debounced refresh", async () => {
-    render(
-      <RealtimeStatusListener currentStatus="processing" resumeId="resume_123" userId="user_123" />,
-    );
+    render(<RealtimeStatusListener currentStatus="processing" resumeId="resume_123" />);
 
     await act(async () => {
       mocks.socketArgs?.onStatusChange("completed");
@@ -104,9 +98,7 @@ describe("RealtimeStatusListener", () => {
   });
 
   it("replaces a pending refresh timer when a later terminal update arrives", async () => {
-    render(
-      <RealtimeStatusListener currentStatus="queued" resumeId="resume_123" userId="user_123" />,
-    );
+    render(<RealtimeStatusListener currentStatus="queued" resumeId="resume_123" />);
 
     await act(async () => {
       mocks.socketArgs?.onStatusChange("completed");

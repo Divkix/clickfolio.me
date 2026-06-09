@@ -2,19 +2,19 @@
 
 ## Stack
 
-| Layer | Technology |
-|---|---|
-| Runtime | Cloudflare Workers |
-| Framework | [vinext](https://github.com/cloudflare/vinext) (Vite-based Next.js — NOT standard Next.js) |
-| Package manager | `bun` |
-| DB | Cloudflare D1 + Drizzle ORM (SQLite) |
-| Auth | Better Auth (Google OAuth + email/password) |
-| Storage | Cloudflare R2 (`CLICKFOLIO_R2_BUCKET`) |
-| Email | Cloudflare Email Workers (`EMAIL` binding) |
-| Styling | shadcn/ui (new-york) + Tailwind CSS 4 |
-| Validation | Zod |
-| Lint/format | Oxlint + Oxfmt via `vp check` — NOT Biome/ESLint/Prettier |
-| Testing | Vitest + jsdom + @testing-library/react |
+| Layer           | Technology                                                                                 |
+| --------------- | ------------------------------------------------------------------------------------------ |
+| Runtime         | Cloudflare Workers                                                                         |
+| Framework       | [vinext](https://github.com/cloudflare/vinext) (Vite-based Next.js — NOT standard Next.js) |
+| Package manager | `bun`                                                                                      |
+| DB              | Cloudflare D1 + Drizzle ORM (SQLite)                                                       |
+| Auth            | Better Auth (Google OAuth + email/password)                                                |
+| Storage         | Cloudflare R2 (`CLICKFOLIO_R2_BUCKET`)                                                     |
+| Email           | Cloudflare Email Workers (`EMAIL` binding)                                                 |
+| Styling         | shadcn/ui (new-york) + Tailwind CSS 4                                                      |
+| Validation      | Zod                                                                                        |
+| Lint/format     | Oxlint + Oxfmt via `vp check` — NOT Biome/ESLint/Prettier                                  |
+| Testing         | Vitest + jsdom + @testing-library/react                                                    |
 
 ## Project Structure
 
@@ -134,12 +134,12 @@ bun run generate:favicons # regen favicons from scripts/generate-favicons.ts
 
 Tests follow the trophy model. Four vitest config files exist — one per suite and one combined:
 
-| Suite | Command | Config | Pool | Retry | Timeout | Coverage gate |
-|---|---|---|---|---|---|---|
-| Unit | `test:unit` | `vitest.unit.config.ts` | threads | 0 | default | stmts/lines/fns: 20%, branches: 15% |
-| Integration | `test:integration` | `vitest.integration.config.ts` | default | 2 | 10s | stmts/lines: 34%, branches: 24%, fns: 27% |
-| Security | `test:security` | `vitest.security.config.ts` | forks | 0 | 15s | stmts/lines: 20%, branches/fns: 15% |
-| Combined | `test:coverage` | `vitest.config.ts` | — | — | — | **80% (CI gate)** |
+| Suite       | Command            | Config                         | Pool    | Retry | Timeout | Coverage gate                             |
+| ----------- | ------------------ | ------------------------------ | ------- | ----- | ------- | ----------------------------------------- |
+| Unit        | `test:unit`        | `vitest.unit.config.ts`        | threads | 0     | default | stmts/lines/fns: 20%, branches: 15%       |
+| Integration | `test:integration` | `vitest.integration.config.ts` | default | 2     | 10s     | stmts/lines: 34%, branches: 24%, fns: 27% |
+| Security    | `test:security`    | `vitest.security.config.ts`    | forks   | 0     | 15s     | stmts/lines: 20%, branches/fns: 15%       |
+| Combined    | `test:coverage`    | `vitest.config.ts`             | —       | —     | —       | **80% (CI gate)**                         |
 
 > The 80% coverage threshold (lines, statements, functions, branches) is enforced only by `test:coverage`. Individual suite runs enforce lower thresholds. CI runs all four; the `coverage-gate` job uses `test:coverage`.
 
@@ -174,6 +174,7 @@ Types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `chore`
 Branch naming: `feat/add-dark-mode`, `fix/oauth-redirect`, `chore/update-deps`
 
 PR requirements:
+
 - Title follows conventional commit format
 - Description explains the change
 - Screenshots for UI changes
@@ -196,15 +197,15 @@ The real entrypoint. Wraps vinext handler and adds:
 
 ### Cloudflare bindings
 
-| Binding | Type | Name | Notes |
-|---|---|---|---|
-| `CLICKFOLIO_DB` | D1 | `clickfolio-db` | Use via `getDb()` / session variants |
-| `CLICKFOLIO_R2_BUCKET` | R2 | `clickfolio-bucket` | Use via `lib/r2.ts` helpers |
-| `CLICKFOLIO_DISPOSABLE_DOMAINS` | KV | — | Disposable email domain list |
-| `CLICKFOLIO_PARSE_QUEUE` | Queue | `clickfolio-parse-queue` | Resume parse jobs |
-| `CLICKFOLIO_STATUS_DO` | DO | `ClickfolioStatusDO` | WebSocket parse status |
-| `EMAIL` | Email | `send_email` | Transactional email via CF Email Workers; sender: `noreply@clickfolio.me` |
-| `ASSETS` | Static | `dist/client` | Static asset binding |
+| Binding                         | Type   | Name                     | Notes                                                                     |
+| ------------------------------- | ------ | ------------------------ | ------------------------------------------------------------------------- |
+| `CLICKFOLIO_DB`                 | D1     | `clickfolio-db`          | Use via `getDb()` / session variants                                      |
+| `CLICKFOLIO_R2_BUCKET`          | R2     | `clickfolio-bucket`      | Use via `lib/r2.ts` helpers                                               |
+| `CLICKFOLIO_DISPOSABLE_DOMAINS` | KV     | —                        | Disposable email domain list                                              |
+| `CLICKFOLIO_PARSE_QUEUE`        | Queue  | `clickfolio-parse-queue` | Resume parse jobs                                                         |
+| `CLICKFOLIO_STATUS_DO`          | DO     | `ClickfolioStatusDO`     | WebSocket parse status                                                    |
+| `EMAIL`                         | Email  | `send_email`             | Transactional email via CF Email Workers; sender: `noreply@clickfolio.me` |
+| `ASSETS`                        | Static | `dist/client`            | Static asset binding                                                      |
 
 **Smart placement** is enabled (`placement.mode: "smart"`). Observability is on (10% head sampling, logs persisted).
 
@@ -215,6 +216,7 @@ The real entrypoint. Wraps vinext handler and adds:
 **Static wrangler vars** (in `wrangler.jsonc`): `NODE_ENV: "production"`, `AI_MODEL: "openai/gpt-oss-120b:nitro"`
 
 **Required secrets** (`wrangler secret put <name>`):
+
 - `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`
 - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`
 - `CF_AI_GATEWAY_ACCOUNT_ID`, `CF_AI_GATEWAY_ID`, `CF_AIG_AUTH_TOKEN` (AI gateway via OpenRouter)
@@ -227,12 +229,12 @@ The real entrypoint. Wraps vinext handler and adds:
 
 All in `lib/db/session.ts`. Using the wrong variant causes stale-read bugs or FK errors.
 
-| Function | When to use |
-|---|---|
-| `getDb(env.CLICKFOLIO_DB)` | Read-only or non-user-facing queries |
-| `getSessionDb(d1)` | Authenticated page/API routes (reads/writes `d1-session-bookmark` cookie for read-your-own-writes) |
-| `getSessionDbWithPrimaryFirst(d1)` | Immediately after user creation (avoids FK errors before D1 replication) |
-| `getSessionDbForWebhook(d1)` | Queue consumers, cron handlers, WebSocket handlers (no cookies available; uses `"first-primary"`) |
+| Function                           | When to use                                                                                        |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `getDb(env.CLICKFOLIO_DB)`         | Read-only or non-user-facing queries                                                               |
+| `getSessionDb(d1)`                 | Authenticated page/API routes (reads/writes `d1-session-bookmark` cookie for read-your-own-writes) |
+| `getSessionDbWithPrimaryFirst(d1)` | Immediately after user creation (avoids FK errors before D1 replication)                           |
+| `getSessionDbForWebhook(d1)`       | Queue consumers, cron handlers, WebSocket handlers (no cookies available; uses `"first-primary"`)  |
 
 Schema is split: `lib/db/schema/auth.ts`, `resume.ts`, `site.ts`, `rate-limit.ts`, `relations.ts`, `index.ts`.
 

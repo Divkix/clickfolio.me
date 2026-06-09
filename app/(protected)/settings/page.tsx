@@ -1,5 +1,5 @@
 import { env } from "cloudflare:workers";
-import { count, desc, eq, sql } from "drizzle-orm";
+import { count, desc, eq } from "drizzle-orm";
 import { User } from "lucide-react";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
@@ -108,8 +108,6 @@ export default async function SettingsPage() {
     db
       .select({
         count: count(),
-        latestId: sql<string | null>`MAX(${resumes.id})`,
-        latestCreatedAt: sql<string | null>`MAX(${resumes.createdAt})`,
       })
       .from(resumes)
       .where(eq(resumes.userId, session.user.id)),
@@ -173,7 +171,7 @@ export default async function SettingsPage() {
         />
 
         {/* Full width: Privacy horizontal */}
-        <PrivacySettingsForm initialSettings={privacySettings} userHandle={profile.handle} />
+        <PrivacySettingsForm initialSettings={privacySettings} />
 
         {/* Full width: Danger zone inline */}
         <DeleteAccountCard userEmail={profile.email} />

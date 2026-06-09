@@ -188,7 +188,6 @@ export default async function DashboardPage() {
                 <div className="col-span-full">
                   <RealtimeStatusListener
                     resumeId={resume.id as string}
-                    userId={session.user.id}
                     currentStatus={resume.status}
                   />
                 </div>
@@ -521,7 +520,6 @@ export default async function DashboardPage() {
                   <div>
                     <RealtimeStatusListener
                       resumeId={resume.id as string}
-                      userId={session.user.id}
                       currentStatus={resume.status}
                     />
                   </div>

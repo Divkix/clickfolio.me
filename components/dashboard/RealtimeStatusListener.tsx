@@ -7,7 +7,6 @@ import { useResumeWebSocket } from "@/hooks/useResumeWebSocket";
 
 interface RealtimeStatusListenerProps {
   resumeId: string;
-  userId: string;
   currentStatus: string;
 }
 

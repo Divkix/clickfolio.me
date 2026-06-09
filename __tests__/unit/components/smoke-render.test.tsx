@@ -509,7 +509,7 @@ describe("component smoke rendering", () => {
           isOAuthUser={false}
         />
         <MilestoneToasts totalViews={1000} />
-        <RealtimeStatusListener resumeId="res_123" userId="user_1" currentStatus="processing" />
+        <RealtimeStatusListener resumeId="res_123" currentStatus="processing" />
         <ReferralStats referralCount={2} clickCount={10} referralCode="ABCD1234" />
         <Sidebar isOpen onClose={vi.fn()} />
       </div>,
@@ -610,7 +610,6 @@ describe("component smoke rendering", () => {
             hide_from_search: false,
             show_in_directory: true,
           }}
-          userHandle="avery"
         />
         <DeleteAccountCard userEmail="avery@example.com" />
         <ResumeManagementCard
