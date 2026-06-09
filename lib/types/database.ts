@@ -1,55 +1,11 @@
-// Project structure extracted from resume (personal projects, side work, portfolio)
-export interface Project {
-  title: string;
-  description: string;
-  year?: string;
-  technologies?: string[];
-  url?: string;
-  /** URL to project screenshot or thumbnail image. Optional. */
-  image_url?: string;
-}
+/**
+ * Single source of truth for resume content types — derived from the Zod schema.
+ * Keeps types and runtime validation always in sync.
+ */
+import type { ResumeContentFormData } from "@/lib/schemas/resume";
 
-// Resume content structure (from AI parsing)
-export interface ResumeContent {
-  full_name: string;
-  headline: string;
-  summary: string;
-  contact: {
-    email: string;
-    phone?: string;
-    location?: string;
-    linkedin?: string;
-    github?: string;
-    website?: string;
-    behance?: string;
-    dribbble?: string;
-  };
-  experience: Array<{
-    title: string;
-    company: string;
-    location?: string;
-    start_date: string;
-    end_date?: string;
-    description: string;
-    highlights?: string[];
-  }>;
-  education?: Array<{
-    degree: string;
-    institution: string;
-    location?: string;
-    graduation_date?: string;
-    /** GPA if applicable. Optional. */
-    gpa?: string;
-  }>;
-  skills?: Array<{
-    category: string;
-    items: string[];
-  }>;
-  certifications?: Array<{
-    name: string;
-    issuer: string;
-    date?: string;
-    url?: string;
-  }>;
-  projects?: Project[];
-}
+/** Resume content type derived from the canonical Zod schema. */
+export type ResumeContent = ResumeContentFormData;
+
+/** Project entry type derived from ResumeContent. */
+export type Project = NonNullable<ResumeContent["projects"]>[number];

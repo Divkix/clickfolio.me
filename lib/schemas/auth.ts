@@ -24,9 +24,10 @@ const passwordSchema = z
   .max(128, "Password is too long");
 
 /**
- * Email validation with proper format check
+ * Email validation with proper format check.
+ * Exported for reuse across auth-related schemas.
  */
-const emailSchema = z
+export const emailSchema = z
   .string()
   .trim()
   .min(1, "Email is required")
@@ -98,3 +99,10 @@ export const resetPasswordSchema = z
 
 /** Inferred type for reset-password form values. */
 export type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;
+
+/**
+ * Email validation request schema for the /api/email/validate endpoint.
+ */
+export const emailValidateSchema = z.object({
+  email: emailSchema,
+});

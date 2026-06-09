@@ -8,8 +8,8 @@ import { z } from "zod";
 import { noXssPattern } from "@/lib/utils/sanitization";
 
 /**
- * Privacy settings schema
- * Controls what information is visible on the public resume page
+ * Privacy settings schema — strict, all fields required.
+ * Use for read-validated data and profile/privacy API.
  */
 export const privacySettingsSchema = z.object({
   show_phone: z.boolean({
@@ -25,6 +25,30 @@ export const privacySettingsSchema = z.object({
     message: "Directory visibility setting must be a boolean",
   }),
 });
+
+/**
+ * Privacy settings input schema — optional fields with defaults.
+ * Use for user-submitted data that may omit newer fields (backward-compatible).
+ */
+export const privacySettingsInputSchema = z.object({
+  show_phone: z.boolean({
+    message: "Phone visibility setting must be a boolean",
+  }),
+  show_address: z.boolean({
+    message: "Address visibility setting must be a boolean",
+  }),
+  hide_from_search: z
+    .boolean({ message: "Search visibility setting must be a boolean" })
+    .optional()
+    .default(false),
+  show_in_directory: z
+    .boolean({ message: "Directory visibility setting must be a boolean" })
+    .optional()
+    .default(true),
+});
+
+/** Inferred type for privacy settings input (with defaults applied). */
+export type PrivacySettingsInput = z.infer<typeof privacySettingsInputSchema>;
 
 /**
  * Handle validation schema
@@ -65,3 +89,22 @@ export const ROLE_OPTIONS = [
 export const roleUpdateSchema = z.object({
   role: z.enum(["student", "entry_level", "mid_level", "senior", "executive"]),
 });
+
+/**
+ * Wizard completion request schema.
+ * Imported from lib/templates to avoid duplicating theme ID validation.
+ */
+export function buildWizardCompleteSchema(themeIds: readonly [string, ...string[]]) {
+  return z.object({
+    handle: handleSchema,
+    privacy_settings: privacySettingsInputSchema,
+    theme_id: z.enum(themeIds),
+  });
+}
+
+/** Referral code validation — shared between claim and track endpoints. */
+export const referralCodeSchema = z
+  .string()
+  .max(50)
+  .regex(/^[A-Za-z0-9@_-]+$/, "Invalid referral code")
+  .optional();
