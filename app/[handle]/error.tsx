@@ -71,7 +71,7 @@ export default function ProfileError({
           <button
             type="button"
             onClick={reset}
-            className="flex-1 px-4 py-2 bg-linear-to-r from-coral to-coral text-white rounded-lg hover:from-coral/90 hover:to-coral/90 transition-all font-semibold shadow-sm hover:shadow-md"
+            className="flex-1 px-4 py-2 bg-coral text-white rounded-lg hover:from-coral/90 hover:to-coral/90 transition-colors font-semibold shadow-sm hover:shadow-md"
           >
             Try Again
           </button>

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Footer } from "@/components/Footer";
 import { Logo } from "@/components/Logo";
-import { Breadcrumb } from "@/components/ui/Breadcrumb";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { BLOG_POSTS } from "@/lib/blog/posts";
 import { siteConfig } from "@/lib/config/site";
 import {
@@ -94,7 +94,7 @@ export default function BlogPage() {
             <article key={post.slug}>
               <Link
                 href={`/blog/${post.slug}`}
-                className="group block bg-cream border-3 border-ink shadow-brutal-sm p-6 sm:p-8 hover:shadow-brutal-md hover:border-coral/30 transition-all duration-200"
+                className="group block bg-cream border-3 border-ink shadow-brutal-sm p-6 sm:p-8 hover:shadow-brutal-md hover:border-coral/30 transition-colors duration-200"
               >
                 <div className="flex items-center gap-3 mb-3">
                   <span className="inline-block bg-ink text-cream text-xs font-bold px-2 py-0.5">

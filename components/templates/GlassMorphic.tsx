@@ -133,7 +133,7 @@ const SectionHeading = ({
 
 // --- Main Template ---
 
-const GlassMorphic: React.FC<TemplateProps> = ({ content, profile }) => {
+export const GlassMorphic: React.FC<TemplateProps> = ({ content, profile }) => {
   const flatSkills = content.skills ? flattenSkills(content.skills) : [];
   const contactLinks = getContactLinks(content.contact);
 
@@ -250,7 +250,7 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content, profile }) => {
                 <a
                   key={section.id}
                   href={`#${section.id}`}
-                  className="group relative flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-full hover:bg-white/10 transition-all duration-300"
+                  className="group relative flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-full hover:bg-white/10 transition-colors duration-300"
                   aria-label={section.label}
                 >
                   <Icon
@@ -314,7 +314,7 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content, profile }) => {
                         alt={`Portrait of ${content.full_name}`}
                         fetchPriority="high"
                         decoding="async"
-                        className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500"
+                        className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-colors duration-500"
                       />
                     ) : (
                       <div className="w-full h-full bg-[#111] flex items-center justify-center text-4xl font-bold text-[#333]">
@@ -357,7 +357,7 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content, profile }) => {
                               target={link.isExternal ? "_blank" : undefined}
                               rel={link.isExternal ? "noopener noreferrer" : undefined}
                               aria-label={link.label}
-                              className="group flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 transition-all"
+                              className="group flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 transition-colors"
                             >
                               {isBranded ? (
                                 <span
@@ -513,7 +513,7 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content, profile }) => {
                             target="_blank"
                             rel="noopener noreferrer"
                             aria-label={`View ${project.title}`}
-                            className="p-2 rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-all"
+                            className="p-2 rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-colors"
                           >
                             <ArrowUpRight size={20} aria-hidden="true" />
                           </a>
@@ -559,7 +559,7 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content, profile }) => {
                   {flatSkills.map((skill, i) => (
                     <span
                       key={`skill-${skill}-${i}`}
-                      className="px-4 py-2 rounded-lg bg-white/3 border border-white/6 text-sm text-slate-300 hover:bg-white/8 hover:text-white hover:border-lavender/30 hover:shadow-[0_0_15px_rgba(167,139,250,0.3)] transition-all duration-300 cursor-default select-none"
+                      className="px-4 py-2 rounded-lg bg-white/3 border border-white/6 text-sm text-slate-300 hover:bg-white/8 hover:text-white hover:border-lavender/30 hover:shadow-[0_0_15px_rgba(167,139,250,0.3)] transition-colors duration-300 cursor-default select-none"
                     >
                       {skill}
                     </span>
@@ -653,5 +653,3 @@ const GlassMorphic: React.FC<TemplateProps> = ({ content, profile }) => {
     </>
   );
 };
-
-export default GlassMorphic;

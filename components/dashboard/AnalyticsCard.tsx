@@ -271,7 +271,7 @@ export function AnalyticsCard() {
   };
 
   return (
-    <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-6 hover:shadow-md transition-all duration-300">
+    <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-6 hover:shadow-md transition-colors duration-300">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-foreground">Analytics</h3>
@@ -281,7 +281,7 @@ export function AnalyticsCard() {
               key={opt.value}
               type="button"
               onClick={() => handlePeriodChange(opt.value)}
-              className={`px-2.5 py-1 text-xs font-medium rounded-md transition-all ${
+              className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
                 period === opt.value
                   ? "bg-card text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground/80"
@@ -320,8 +320,8 @@ function StatsContent({ stats }: { stats: AnalyticsStats }) {
       <div className="grid grid-cols-2 gap-3">
         <div className="flex items-center gap-2.5">
           <div className="relative shrink-0">
-            <div className="absolute inset-0 bg-linear-to-r from-coral to-coral rounded-lg blur-md opacity-20" />
-            <div className="relative bg-linear-to-r from-coral/20 to-coral/20 p-2 rounded-lg">
+            <div className="absolute inset-0 bg-coral rounded-lg blur-md opacity-20" />
+            <div className="relative bg-coral/20 p-2 rounded-lg">
               <Eye className="w-4 h-4 text-coral" aria-hidden="true" />
             </div>
           </div>
@@ -403,8 +403,8 @@ function EmptyState() {
   return (
     <div className="text-center py-8">
       <div className="relative inline-block mb-3">
-        <div className="absolute inset-0 bg-linear-to-r from-coral to-coral rounded-xl blur-lg opacity-20" />
-        <div className="relative bg-linear-to-r from-coral/20 to-coral/20 p-4 rounded-xl">
+        <div className="absolute inset-0 bg-coral rounded-xl blur-lg opacity-20" />
+        <div className="relative bg-coral/20 p-4 rounded-xl">
           <Eye className="w-6 h-6 text-coral" aria-hidden="true" />
         </div>
       </div>

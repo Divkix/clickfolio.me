@@ -13,7 +13,11 @@ const TemplatePreviewModal = dynamic(
   { ssr: false },
 );
 
-export function ExamplesSection({ profiles }: { profiles: DemoProfile[] }) {
+interface ExamplesSectionProps {
+  profiles: DemoProfile[];
+}
+
+export function ExamplesSection({ profiles }: ExamplesSectionProps) {
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
 
   return (

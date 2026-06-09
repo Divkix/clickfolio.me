@@ -32,7 +32,7 @@ export function BottomCTAButton() {
           active:translate-x-0
           active:translate-y-0
           active:shadow-[3px_3px_0px_#eff6ff]
-          transition-all
+          transition-colors
           duration-150
         "
       >

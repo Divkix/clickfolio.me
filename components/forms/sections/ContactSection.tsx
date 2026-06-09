@@ -18,7 +18,7 @@ interface ContactSectionProps {
 
 export function ContactSection({ form }: ContactSectionProps) {
   return (
-    <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-6 hover:shadow-md transition-all duration-300">
+    <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-6 hover:shadow-md transition-colors duration-300">
       <div className="flex items-center gap-3 mb-6">
         <div className="relative shrink-0">
           <div className="absolute inset-0 bg-linear-to-r from-purple-500 to-pink-500 rounded-lg blur-md opacity-20" />

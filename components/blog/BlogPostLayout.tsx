@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Footer } from "@/components/Footer";
 import { Logo } from "@/components/Logo";
-import { Breadcrumb } from "@/components/ui/Breadcrumb";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
 import type { BlogPostMeta } from "@/lib/blog/posts";
 import { siteConfig } from "@/lib/config/site";
 import { serializeJsonLd } from "@/lib/seo/json-ld";

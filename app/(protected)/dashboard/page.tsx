@@ -139,10 +139,10 @@ export default async function DashboardPage() {
     return (
       <div className="min-h-screen bg-cream">
         <main className="flex items-center justify-center min-h-[80vh] px-4">
-          <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-12 max-w-md w-full text-center hover:shadow-md transition-all duration-300">
+          <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-12 max-w-md w-full text-center hover:shadow-md transition-colors duration-300">
             <div className="relative inline-block mb-6">
-              <div className="absolute inset-0 bg-linear-to-r from-coral to-coral rounded-xl blur-xl opacity-20" />
-              <div className="relative bg-linear-to-r from-coral/20 to-coral/20 p-6 rounded-xl">
+              <div className="absolute inset-0 bg-coral rounded-xl blur-xl opacity-20" />
+              <div className="relative bg-coral/20 p-6 rounded-xl">
                 <Upload className="w-12 h-12 text-coral mx-auto" aria-hidden="true" />
               </div>
             </div>
@@ -153,7 +153,7 @@ export default async function DashboardPage() {
             </p>
             <DashboardUploadSection
               variant="default"
-              className="w-full bg-linear-to-r from-coral to-coral hover:from-coral/90 hover:to-coral/90 text-white font-semibold transition-all duration-300 shadow-sm hover:shadow-md"
+              className="w-full bg-coral hover:bg-coral/90 text-white font-semibold transition-colors duration-300 shadow-sm hover:shadow-md"
             >
               <Upload className="h-4 w-4 mr-2" aria-hidden="true" />
               Upload Your Resume
@@ -227,7 +227,7 @@ export default async function DashboardPage() {
               {/* Profile Completeness - Shown at top when incomplete */}
               {completeness < 100 && suggestions.length > 0 && (
                 <div className="col-span-full">
-                  <Alert className="border-ink/15 bg-card rounded-xl shadow-md hover:shadow-lg transition-all duration-300">
+                  <Alert className="border-ink/15 bg-card rounded-xl shadow-md hover:shadow-lg transition-colors duration-300">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-3">
@@ -246,7 +246,7 @@ export default async function DashboardPage() {
                           className="w-full bg-muted rounded-full h-2 mb-4"
                         >
                           <div
-                            className="h-2 rounded-full bg-coral transition-all duration-500"
+                            className="h-2 rounded-full bg-coral transition-colors duration-500"
                             style={{ width: `${completeness}%` }}
                           />
                         </div>
@@ -288,7 +288,7 @@ export default async function DashboardPage() {
               {/* Success Alert - Shown at top when profile is complete */}
               {completeness === 100 && (
                 <div className="col-span-full">
-                  <Alert className="border-mint bg-mint/5 rounded-xl shadow-sm hover:shadow-md transition-all duration-300">
+                  <Alert className="border-mint bg-mint/5 rounded-xl shadow-sm hover:shadow-md transition-colors duration-300">
                     <div className="flex items-center gap-3">
                       <CheckCircle2 className="h-5 w-5 text-mint" aria-hidden="true" />
                       <AlertDescription className="text-foreground font-medium">
@@ -333,8 +333,8 @@ export default async function DashboardPage() {
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
                     <div className="flex items-center gap-3">
                       <div className="relative shrink-0">
-                        <div className="absolute inset-0 bg-linear-to-r from-coral to-coral rounded-lg blur-md opacity-20" />
-                        <div className="relative bg-linear-to-r from-coral/20 to-coral/20 p-2 rounded-lg">
+                        <div className="absolute inset-0 bg-coral rounded-lg blur-md opacity-20" />
+                        <div className="relative bg-coral/20 p-2 rounded-lg">
                           <Briefcase className="h-4 w-4 text-coral" aria-hidden="true" />
                         </div>
                       </div>
@@ -411,7 +411,7 @@ export default async function DashboardPage() {
                   <div className="flex flex-col sm:flex-row gap-3">
                     <Button
                       asChild
-                      className="flex-1 bg-linear-to-r from-coral to-coral hover:from-coral/90 hover:to-coral/90 text-white font-semibold transition-colors duration-300 shadow-sm hover:shadow-md"
+                      className="flex-1 bg-coral hover:bg-coral/90 text-white font-semibold transition-colors duration-300 shadow-sm hover:shadow-md"
                     >
                       <Link href="/edit">
                         <Edit3 className="h-4 w-4 mr-2" aria-hidden="true" />
@@ -435,14 +435,14 @@ export default async function DashboardPage() {
               {/* Right Column - Account + Analytics */}
               <div className="space-y-4">
                 {/* Account Info Card */}
-                <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-6 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
+                <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-6 hover:shadow-md hover:-translate-y-0.5 transition-colors duration-300">
                   <h3 className="text-lg font-semibold text-foreground mb-4">Account</h3>
                   <div className="space-y-4">
                     {/* Email */}
                     <div className="flex items-start gap-3">
                       <div className="relative shrink-0 mt-0.5">
-                        <div className="absolute inset-0 bg-linear-to-r from-coral to-coral rounded-lg blur-md opacity-20" />
-                        <div className="relative bg-linear-to-r from-coral/20 to-coral/20 p-2 rounded-lg">
+                        <div className="absolute inset-0 bg-coral rounded-lg blur-md opacity-20" />
+                        <div className="relative bg-coral/20 p-2 rounded-lg">
                           <Mail className="w-4 h-4 text-coral" aria-hidden="true" />
                         </div>
                       </div>
@@ -458,8 +458,8 @@ export default async function DashboardPage() {
                         <Separator />
                         <div className="flex items-start gap-3">
                           <div className="relative shrink-0 mt-0.5">
-                            <div className="absolute inset-0 bg-linear-to-r from-coral to-coral rounded-lg blur-md opacity-20" />
-                            <div className="relative bg-linear-to-r from-coral/20 to-coral/20 p-2 rounded-lg">
+                            <div className="absolute inset-0 bg-coral rounded-lg blur-md opacity-20" />
+                            <div className="relative bg-coral/20 p-2 rounded-lg">
                               <LinkIcon className="w-4 h-4 text-coral" aria-hidden="true" />
                             </div>
                           </div>
@@ -487,8 +487,8 @@ export default async function DashboardPage() {
                         <Separator />
                         <div className="flex items-start gap-3">
                           <div className="relative shrink-0 mt-0.5">
-                            <div className="absolute inset-0 bg-linear-to-r from-coral to-coral rounded-lg blur-md opacity-20" />
-                            <div className="relative bg-linear-to-r from-coral/20 to-coral/20 p-2 rounded-lg">
+                            <div className="absolute inset-0 bg-coral rounded-lg blur-md opacity-20" />
+                            <div className="relative bg-coral/20 p-2 rounded-lg">
                               <Calendar className="w-4 h-4 text-coral" aria-hidden="true" />
                             </div>
                           </div>
@@ -513,7 +513,7 @@ export default async function DashboardPage() {
           ) : (
             /* Show processing/failed state in main content area */
             <div className="col-span-full">
-              <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-8 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
+              <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-8 hover:shadow-md hover:-translate-y-0.5 transition-colors duration-300">
                 {(resume.status === "processing" ||
                   resume.status === "pending_claim" ||
                   resume.status === "queued") && (
@@ -540,7 +540,7 @@ export default async function DashboardPage() {
                     <div className="flex flex-col sm:flex-row gap-3">
                       <Button
                         asChild
-                        className="flex-1 bg-linear-to-r from-coral to-coral hover:from-coral/90 hover:to-coral/90 text-white font-semibold transition-all duration-300 shadow-sm hover:shadow-md"
+                        className="flex-1 bg-coral hover:bg-coral/90 text-white font-semibold transition-colors duration-300 shadow-sm hover:shadow-md"
                       >
                         <Link href={`/waiting?resume_id=${resume.id}`}>Try Again</Link>
                       </Button>

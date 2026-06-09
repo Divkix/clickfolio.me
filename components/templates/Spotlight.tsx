@@ -91,7 +91,7 @@ function getMarqueeOpacity(index: number): string {
 }
 
 /* ─── Main component ─── */
-const Spotlight: React.FC<TemplateProps> = ({ content, profile }) => {
+export const Spotlight: React.FC<TemplateProps> = ({ content, profile }) => {
   const firstName = content.full_name.split(" ")[0] || content.full_name;
   const allSkills = flattenSkills(content.skills);
   const contactLinks = getContactLinks(content.contact);
@@ -518,5 +518,3 @@ const Spotlight: React.FC<TemplateProps> = ({ content, profile }) => {
     </>
   );
 };
-
-export default Spotlight;

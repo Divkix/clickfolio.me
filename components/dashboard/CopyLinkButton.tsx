@@ -32,10 +32,10 @@ export function CopyLinkButton({ handle }: CopyLinkButtonProps) {
       type="button"
       onClick={handleCopy}
       className={cn(
-        "inline-flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all duration-300",
+        "inline-flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-colors duration-300",
         copied
           ? "bg-linear-to-r from-emerald-600 to-emerald-700 text-white shadow-sm"
-          : "bg-linear-to-r from-coral to-coral hover:from-coral/90 hover:to-coral/90 text-white shadow-sm hover:shadow-md focus:ring-2 focus:ring-coral focus:ring-offset-2",
+          : "bg-coral hover:bg-coral/90 text-white shadow-sm hover:shadow-md focus:ring-2 focus:ring-coral focus:ring-offset-2",
       )}
     >
       {copied ? (

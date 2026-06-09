@@ -42,7 +42,7 @@ function ToggleCard({
 
   return (
     <div
-      className={`relative rounded-xl border p-4 transition-all duration-200 ${
+      className={`relative rounded-xl border p-4 transition-colors duration-200 ${
         isWarning
           ? "border-amber-200 bg-amber-50/50"
           : "border-ink/10 bg-muted/50 hover:border-ink/25"

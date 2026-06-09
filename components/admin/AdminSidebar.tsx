@@ -81,7 +81,7 @@ export function AdminSidebar({ isOpen, onClose, adminEmail }: AdminSidebarProps)
                 onClick={onClose}
                 className={`
                   flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium
-                  transition-all duration-200
+                  transition-colors duration-200
                   ${
                     active
                       ? "bg-muted text-foreground border-l-2 border-ink"

@@ -67,7 +67,7 @@ export function PrivacyStep({
     <div className="space-y-8">
       {/* Header */}
       <div className="text-center">
-        <div className="mx-auto w-16 h-16 bg-linear-to-r from-coral/20 to-coral/20 rounded-xl flex items-center justify-center mb-6">
+        <div className="mx-auto w-16 h-16 bg-coral/20 rounded-xl flex items-center justify-center mb-6">
           <Shield className="w-8 h-8 text-coral" />
         </div>
         <h1 className="text-3xl sm:text-4xl font-bold text-foreground mb-3 leading-tight">
@@ -271,7 +271,7 @@ export function PrivacyStep({
         <div className="pt-4">
           <Button
             onClick={handleContinue}
-            className="w-full bg-linear-to-r from-coral to-coral hover:from-coral/90 hover:to-coral/90 text-white font-semibold shadow-sm hover:shadow-md transition-all duration-300"
+            className="w-full bg-coral hover:bg-coral/90 text-white font-semibold shadow-sm hover:shadow-md transition-colors duration-300"
             size="lg"
           >
             Continue

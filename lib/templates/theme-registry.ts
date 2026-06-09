@@ -17,7 +17,7 @@ export { isThemeUnlocked, THEME_IDS, THEME_METADATA } from "./theme-ids";
  */
 const TEMPLATE_LOADERS: Record<
   ThemeId,
-  () => Promise<{ default: React.ComponentType<TemplateProps> }>
+  () => Promise<{ [key: string]: React.ComponentType<TemplateProps> }>
 > = {
   bento: () => import("@/components/templates/BentoGrid"),
   bold_corporate: () => import("@/components/templates/BoldCorporate"),
@@ -31,6 +31,19 @@ const TEMPLATE_LOADERS: Record<
   spotlight: () => import("@/components/templates/Spotlight"),
 };
 
+const TEMPLATE_EXPORT_NAME: Record<ThemeId, string> = {
+  bento: "BentoGrid",
+  bold_corporate: "BoldCorporate",
+  classic_ats: "ClassicATS",
+  design_folio: "DesignFolio",
+  dev_terminal: "DevTerminal",
+  glass: "GlassMorphic",
+  midnight: "Midnight",
+  minimalist_editorial: "MinimalistEditorial",
+  neo_brutalist: "NeoBrutalist",
+  spotlight: "Spotlight",
+};
+
 /**
  * Get template component by theme ID (async — for server components).
  * Falls back to default theme if ID is invalid.
@@ -40,5 +53,5 @@ export async function getTemplate(
 ): Promise<React.ComponentType<TemplateProps>> {
   const resolvedId: ThemeId = themeId && isValidThemeId(themeId) ? themeId : DEFAULT_THEME;
   const mod = await TEMPLATE_LOADERS[resolvedId]();
-  return mod.default;
+  return mod[TEMPLATE_EXPORT_NAME[resolvedId]];
 }

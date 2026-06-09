@@ -23,7 +23,7 @@ export function HorizontalBarChart({ items, colorClass = "bg-coral" }: Horizonta
           </span>
           <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
             <div
-              className={`h-full ${colorClass} rounded-full transition-all duration-300`}
+              className={`h-full ${colorClass} rounded-full transition-colors duration-300`}
               style={{ width: `${Math.max(item.percent, 2)}%` }}
             />
           </div>

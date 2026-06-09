@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Footer } from "@/components/Footer";
 import { Logo } from "@/components/Logo";
-import { Breadcrumb } from "@/components/ui/Breadcrumb";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { siteConfig } from "@/lib/config/site";
 import {
   generatePageBreadcrumbJsonLd,
@@ -132,7 +132,7 @@ export default function TermsOfServicePage() {
             <div className="prose max-w-none">
               <section id="section-1" className="mb-10">
                 <h2 className="text-xl font-bold text-ink mb-4 flex items-center gap-3">
-                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-r from-coral/20 to-coral/20 text-coral text-sm font-bold">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-coral/20 text-coral text-sm font-bold">
                     1
                   </span>
                   Service Description
@@ -148,7 +148,7 @@ export default function TermsOfServicePage() {
 
               <section id="section-2" className="mb-10">
                 <h2 className="text-xl font-bold text-ink mb-4 flex items-center gap-3">
-                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-r from-coral/20 to-coral/20 text-coral text-sm font-bold">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-coral/20 text-coral text-sm font-bold">
                     2
                   </span>
                   Eligibility
@@ -162,7 +162,7 @@ export default function TermsOfServicePage() {
 
               <section id="section-3" className="mb-10">
                 <h2 className="text-xl font-bold text-ink mb-4 flex items-center gap-3">
-                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-r from-coral/20 to-coral/20 text-coral text-sm font-bold">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-coral/20 text-coral text-sm font-bold">
                     3
                   </span>
                   Account Responsibilities
@@ -183,7 +183,7 @@ export default function TermsOfServicePage() {
 
               <section id="section-4" className="mb-10">
                 <h2 className="text-xl font-bold text-ink mb-4 flex items-center gap-3">
-                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-r from-coral/20 to-coral/20 text-coral text-sm font-bold">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-coral/20 text-coral text-sm font-bold">
                     4
                   </span>
                   Acceptable Use
@@ -203,7 +203,7 @@ export default function TermsOfServicePage() {
 
               <section id="section-5" className="mb-10">
                 <h2 className="text-xl font-bold text-ink mb-4 flex items-center gap-3">
-                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-r from-coral/20 to-coral/20 text-coral text-sm font-bold">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-coral/20 text-coral text-sm font-bold">
                     5
                   </span>
                   Content Ownership
@@ -228,7 +228,7 @@ export default function TermsOfServicePage() {
 
               <section id="section-6" className="mb-10">
                 <h2 className="text-xl font-bold text-ink mb-4 flex items-center gap-3">
-                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-r from-coral/20 to-coral/20 text-coral text-sm font-bold">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-coral/20 text-coral text-sm font-bold">
                     6
                   </span>
                   AI Processing
@@ -245,7 +245,7 @@ export default function TermsOfServicePage() {
 
               <section id="section-7" className="mb-10">
                 <h2 className="text-xl font-bold text-ink mb-4 flex items-center gap-3">
-                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-r from-coral/20 to-coral/20 text-coral text-sm font-bold">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-coral/20 text-coral text-sm font-bold">
                     7
                   </span>
                   Limitation of Liability
@@ -269,7 +269,7 @@ export default function TermsOfServicePage() {
 
               <section id="section-8" className="mb-10">
                 <h2 className="text-xl font-bold text-ink mb-4 flex items-center gap-3">
-                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-r from-coral/20 to-coral/20 text-coral text-sm font-bold">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-coral/20 text-coral text-sm font-bold">
                     8
                   </span>
                   Termination
@@ -294,7 +294,7 @@ export default function TermsOfServicePage() {
 
               <section id="section-9" className="mb-10">
                 <h2 className="text-xl font-bold text-ink mb-4 flex items-center gap-3">
-                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-r from-coral/20 to-coral/20 text-coral text-sm font-bold">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-coral/20 text-coral text-sm font-bold">
                     9
                   </span>
                   Changes to Terms
@@ -310,7 +310,7 @@ export default function TermsOfServicePage() {
 
               <section id="section-10" className="mb-10">
                 <h2 className="text-xl font-bold text-ink mb-4 flex items-center gap-3">
-                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-r from-coral/20 to-coral/20 text-coral text-sm font-bold">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-coral/20 text-coral text-sm font-bold">
                     10
                   </span>
                   Governing Law
@@ -325,7 +325,7 @@ export default function TermsOfServicePage() {
 
               <section id="section-11" className="mb-4">
                 <h2 className="text-xl font-bold text-ink mb-4 flex items-center gap-3">
-                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-r from-coral/20 to-coral/20 text-coral text-sm font-bold">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-coral/20 text-coral text-sm font-bold">
                     11
                   </span>
                   Contact

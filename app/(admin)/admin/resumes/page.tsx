@@ -145,7 +145,7 @@ export default function AdminResumesPage() {
             value={data?.stats.queued ?? 0}
             icon={Clock}
             iconColorClass="text-coral"
-            iconBgClass="bg-linear-to-r from-coral/20 to-coral/20"
+            iconBgClass="bg-coral/20"
           />
         </button>
         <button
@@ -158,7 +158,7 @@ export default function AdminResumesPage() {
             value={data?.stats.failed ?? 0}
             icon={AlertTriangle}
             iconColorClass="text-coral"
-            iconBgClass="bg-linear-to-r from-coral/20 to-coral/20"
+            iconBgClass="bg-coral/20"
           />
         </button>
       </div>

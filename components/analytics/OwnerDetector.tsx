@@ -3,7 +3,11 @@
 import { useEffect } from "react";
 import { useSession } from "@/lib/auth/client";
 
-export function OwnerDetector({ profileId }: { profileId: string }) {
+interface OwnerDetectorProps {
+  profileId: string;
+}
+
+export function OwnerDetector({ profileId }: OwnerDetectorProps) {
   const { data: session } = useSession();
 
   useEffect(() => {

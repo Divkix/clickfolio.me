@@ -134,7 +134,7 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
                 focus:shadow-brutal-md
                 focus:translate-x-[-2px]
                 focus:translate-y-[-2px]
-                transition-all
+                transition-colors
                 duration-150
                 disabled:opacity-50
                 disabled:cursor-not-allowed

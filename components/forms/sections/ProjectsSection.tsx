@@ -30,7 +30,7 @@ export function ProjectsSection({ form }: ProjectsSectionProps) {
   });
 
   return (
-    <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-6 hover:shadow-md transition-all duration-300">
+    <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-6 hover:shadow-md transition-colors duration-300">
       <div className="flex items-center gap-3 mb-6">
         <div className="relative shrink-0">
           <div className="absolute inset-0 bg-linear-to-r from-violet-500 to-purple-500 rounded-lg blur-md opacity-20" />
@@ -81,7 +81,7 @@ export function ProjectsSection({ form }: ProjectsSectionProps) {
             {projectFields.map((field, index) => (
               <div
                 key={field.id}
-                className="bg-muted/50 rounded-xl border border-ink/10 p-5 hover:border-ink/25 transition-all duration-200"
+                className="bg-muted/50 rounded-xl border border-ink/10 p-5 hover:border-ink/25 transition-colors duration-200"
               >
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
@@ -237,7 +237,7 @@ export function ProjectsSection({ form }: ProjectsSectionProps) {
             <Button
               type="button"
               variant="outline"
-              className="w-full border-dashed border-2 border-ink/20 hover:border-violet-400 hover:bg-violet-50/50 text-muted-foreground hover:text-violet-700 transition-all duration-200"
+              className="w-full border-dashed border-2 border-ink/20 hover:border-violet-400 hover:bg-violet-50/50 text-muted-foreground hover:text-violet-700 transition-colors duration-200"
               onClick={() =>
                 appendProject({
                   title: "",

@@ -200,7 +200,7 @@ vi.mock("@/components/admin/StatCard", () => ({
 
 vi.mock("@/components/SiteHeader", () => ({ SiteHeader: () => <header>site-header</header> }));
 vi.mock("@/components/Footer", () => ({ Footer: () => <footer>footer</footer> }));
-vi.mock("@/components/ui/Breadcrumb", () => ({ Breadcrumb: () => <nav>breadcrumb</nav> }));
+vi.mock("@/components/ui/breadcrumb", () => ({ Breadcrumb: () => <nav>breadcrumb</nav> }));
 vi.mock("@/components/analytics/OwnerDetector", () => ({
   OwnerDetector: ({ profileId }: { profileId: string }) => <div>owner {profileId}</div>,
 }));

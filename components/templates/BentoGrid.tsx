@@ -28,7 +28,7 @@ const bentoIconMap: Partial<
   website: Globe,
 };
 
-const BentoGrid: React.FC<TemplateProps> = ({ content, profile }) => {
+export const BentoGrid: React.FC<TemplateProps> = ({ content, profile }) => {
   const skills = flattenSkills(content.skills);
   const contactLinks = getContactLinks(content.contact);
 
@@ -468,5 +468,3 @@ const BentoGrid: React.FC<TemplateProps> = ({ content, profile }) => {
     </>
   );
 };
-
-export default BentoGrid;

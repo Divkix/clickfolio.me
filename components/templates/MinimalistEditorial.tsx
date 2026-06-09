@@ -49,7 +49,7 @@ const SectionTitle = ({ title, count }: { title: string; count?: number }) => (
   </div>
 );
 
-const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile }) => {
+export const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile }) => {
   const {
     full_name,
     summary,
@@ -351,5 +351,3 @@ const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile }) => {
     </>
   );
 };
-
-export default MinimalistEditorial;

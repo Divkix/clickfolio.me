@@ -43,14 +43,14 @@ export function SidebarLayoutClient({ children }: { children: React.ReactNode })
       <button
         type="button"
         onClick={() => setSidebarOpen(true)}
-        className="fixed top-4 right-4 z-50 p-3 bg-card border border-ink/10 rounded-lg shadow-sm md:hidden hover:shadow-md transition-all duration-300"
+        className="fixed top-4 right-4 z-50 p-3 bg-card border border-ink/10 rounded-lg shadow-sm md:hidden hover:shadow-md transition-colors duration-300"
         aria-label="Open navigation menu"
       >
         <Menu size={24} className="text-foreground" />
       </button>
 
       {/* Main content area */}
-      <main id="main-content" className="md:ml-60 min-h-screen transition-all duration-300">
+      <main id="main-content" className="md:ml-60 min-h-screen transition-colors duration-300">
         {children}
       </main>
     </div>

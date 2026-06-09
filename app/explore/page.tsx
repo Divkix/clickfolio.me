@@ -6,7 +6,7 @@ import Link from "next/link";
 import { RoleFilterSelect } from "@/components/explore/role-filter-select";
 import { Footer } from "@/components/Footer";
 import { SiteHeader } from "@/components/SiteHeader";
-import { Breadcrumb } from "@/components/ui/Breadcrumb";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { siteConfig } from "@/lib/config/site";
 import { getDb } from "@/lib/db";
 import { siteData, user } from "@/lib/db/schema";
@@ -222,7 +222,7 @@ export default async function ExplorePage({
               <Link
                 key={person.handle}
                 href={`/@${person.handle}`}
-                className="group bg-card rounded-xl border border-ink/10 p-6 hover:shadow-lg hover:border-coral/30 transition-all duration-200"
+                className="group bg-card rounded-xl border border-ink/10 p-6 hover:shadow-lg hover:border-coral/30 transition-colors duration-200"
               >
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1 min-w-0">

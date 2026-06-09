@@ -174,7 +174,7 @@ export function ThemeSelector({
                 aria-disabled={!isUnlocked}
                 onClick={() => isUnlocked && setSelectedTheme(themeId)}
                 className={cn(
-                  "relative shrink-0 w-28 md:w-36 rounded-lg overflow-hidden transition-all duration-200",
+                  "relative shrink-0 w-28 md:w-36 rounded-lg overflow-hidden transition-colors duration-200",
                   "border-2 bg-card",
                   "focus:outline-none focus:ring-2 focus:ring-coral focus:ring-offset-2",
                   isUnlocked

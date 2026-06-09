@@ -42,7 +42,7 @@ export function MobileStickyUpload() {
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="bg-ink text-cream font-black w-full py-3 border-3 border-ink shadow-brutal-sm active:shadow-none active:translate-y-0.5 transition-all duration-150"
+          className="bg-ink text-cream font-black w-full py-3 border-3 border-ink shadow-brutal-sm active:shadow-none active:translate-y-0.5 transition-colors duration-150"
         >
           Upload Your Resume →
         </button>

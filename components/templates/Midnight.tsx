@@ -73,7 +73,7 @@ function SectionHeader({ label }: { label: string }) {
   );
 }
 
-const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
+export const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
   const [expandedJobs, setExpandedJobs] = useState<number[]>([]);
   const flatSkills = content.skills ? flattenSkills(content.skills) : [];
   const contactLinks = getContactLinks(content.contact);
@@ -348,7 +348,7 @@ const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
                       {flatSkills.map((skill, i) => (
                         <span
                           key={i}
-                          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/10 text-sm text-neutral-300 font-body-mn hover:border-[#C9A96E]/40 hover:text-[#DFC08A] hover:shadow-[0_0_12px_rgba(201,169,110,0.3)] transition-all duration-300 cursor-default"
+                          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/10 text-sm text-neutral-300 font-body-mn hover:border-[#C9A96E]/40 hover:text-[#DFC08A] hover:shadow-[0_0_12px_rgba(201,169,110,0.3)] transition-colors duration-300 cursor-default"
                         >
                           <span
                             className="w-1.5 h-1.5 rounded-full bg-[#C9A96E]/50"
@@ -447,7 +447,7 @@ const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
                               target={link.isExternal ? "_blank" : undefined}
                               rel={link.isExternal ? "noopener noreferrer" : undefined}
                               aria-label={link.label}
-                              className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center text-neutral-400 hover:text-[#DFC08A] hover:border-[#C9A96E]/40 hover:shadow-[0_0_12px_rgba(201,169,110,0.3)] transition-all duration-300"
+                              className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center text-neutral-400 hover:text-[#DFC08A] hover:border-[#C9A96E]/40 hover:shadow-[0_0_12px_rgba(201,169,110,0.3)] transition-colors duration-300"
                               style={isBranded ? { color: brandColor } : undefined}
                             >
                               {isBranded ? (
@@ -476,7 +476,7 @@ const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
             {emailLink && (
               <a
                 href={emailLink.href}
-                className="inline-flex items-center gap-2 px-8 py-3 rounded-full border-2 border-[#C9A96E] text-[#C9A96E] font-display-mn font-medium text-lg hover:bg-[#C9A96E]/10 hover:text-[#DFC08A] hover:border-[#DFC08A] transition-all duration-300"
+                className="inline-flex items-center gap-2 px-8 py-3 rounded-full border-2 border-[#C9A96E] text-[#C9A96E] font-display-mn font-medium text-lg hover:bg-[#C9A96E]/10 hover:text-[#DFC08A] hover:border-[#DFC08A] transition-colors duration-300"
               >
                 <Mail className="w-5 h-5" aria-hidden="true" />
                 <span>Get in touch</span>
@@ -500,5 +500,3 @@ const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
     </>
   );
 };
-
-export default Midnight;

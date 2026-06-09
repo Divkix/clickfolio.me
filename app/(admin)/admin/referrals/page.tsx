@@ -99,7 +99,7 @@ export default function AdminReferralsPage() {
               value={data?.stats.totalClicks ?? 0}
               icon={MousePointerClick}
               iconColorClass="text-coral"
-              iconBgClass="bg-linear-to-r from-coral/20 to-coral/20"
+              iconBgClass="bg-coral/20"
             />
             <StatCard
               title="Signups"

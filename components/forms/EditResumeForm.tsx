@@ -117,8 +117,8 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="relative shrink-0">
-                <div className="absolute inset-0 bg-linear-to-r from-coral to-coral rounded-lg blur-md opacity-20" />
-                <div className="relative bg-linear-to-r from-coral/20 to-coral/20 p-2 rounded-lg">
+                <div className="absolute inset-0 bg-coral rounded-lg blur-md opacity-20" />
+                <div className="relative bg-coral/20 p-2 rounded-lg">
                   <Save className="h-4 w-4 text-coral" />
                 </div>
               </div>
@@ -127,7 +127,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
             <Button
               type="submit"
               disabled={saveStatus === "saving"}
-              className="bg-linear-to-r from-coral to-coral hover:from-coral/90 hover:to-coral/90 text-white font-semibold shadow-sm hover:shadow-md transition-all duration-300"
+              className="bg-coral hover:bg-coral/90 text-white font-semibold shadow-sm hover:shadow-md transition-colors duration-300"
             >
               <Save className="h-4 w-4 mr-2" />
               Publish Changes
@@ -149,7 +149,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
             type="submit"
             size="lg"
             disabled={saveStatus === "saving"}
-            className="bg-linear-to-r from-coral to-coral hover:from-coral/90 hover:to-coral/90 text-white font-semibold shadow-sm hover:shadow-md transition-all duration-300"
+            className="bg-coral hover:bg-coral/90 text-white font-semibold shadow-sm hover:shadow-md transition-colors duration-300"
           >
             <Save className="h-4 w-4 mr-2" />
             Publish Changes

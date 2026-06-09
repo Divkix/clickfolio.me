@@ -94,7 +94,7 @@ function VerifyEmailContent() {
               active:translate-x-0
               active:translate-y-0
               active:shadow-none
-              transition-all
+              transition-colors
               duration-150
               disabled:opacity-50
               disabled:cursor-not-allowed
@@ -164,7 +164,7 @@ function VerifyEmailContent() {
           active:translate-x-0
           active:translate-y-0
           active:shadow-none
-          transition-all
+          transition-colors
           duration-150
         "
       >

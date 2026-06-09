@@ -22,7 +22,7 @@ import type { Project } from "@/lib/types/database";
 import type { TemplateProps } from "@/lib/types/template";
 import { NeoBrutalistMobileNav } from "./NeoBrutalistMobileNav";
 
-const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
+export const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
   const safeHeadline =
     content.headline && content.headline.trim() !== "" ? content.headline : content.full_name;
   const headlineWords = safeHeadline.split(/\s+/);
@@ -476,5 +476,3 @@ const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
     </>
   );
 };
-
-export default NeoBrutalist;

@@ -5,7 +5,7 @@ import { OwnerDetector } from "@/components/analytics/OwnerDetector";
 import { CreateYoursCTA } from "@/components/CreateYoursCTA";
 import { RelatedProfiles } from "@/components/RelatedProfiles";
 import { SharePopover } from "@/components/SharePopover";
-import { Breadcrumb } from "@/components/ui/Breadcrumb";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { siteConfig } from "@/lib/config/site";
 import { getRelatedProfiles, getResumeData, getResumeMetadata } from "@/lib/data/resume";
 import { isValidHandleFormat } from "@/lib/rate-limit/handle-validation";
