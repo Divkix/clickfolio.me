@@ -208,9 +208,10 @@ export async function requireAuthWithUserValidation(errorMessage: string): Promi
  *
  * @example
  * ```ts
+ * import { env } from "cloudflare:workers";
+ *
  * export async function GET(request: Request) {
- *   const authError = requireCronAuth(request);
- *   const authError = handleCronRequest(request, env);
+ *   const authError = requireCronAuth(request, env);
  *   if (authError) return authError;
  *   // ... run cron task
  * }
