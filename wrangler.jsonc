@@ -123,11 +123,10 @@
   ],
   "observability": {
     "enabled": true,
-    // 10% sampling rate to balance cost and visibility in production.
-    "head_sampling_rate": 0.1,
+    "head_sampling_rate": 1,
     "logs": {
       "enabled": true,
-      "head_sampling_rate": 0.1,
+      "head_sampling_rate": 1,
       "persist": true,
       "invocation_logs": true,
     },
