@@ -170,7 +170,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
             <div className="flex items-center gap-3">
               {user.image ? (
                 <div className="relative">
-                  <div className="absolute inset-0 rounded-full bg-linear-to-r from-coral to-coral p-0.5">
+                  <div className="absolute inset-0 rounded-full bg-coral p-0.5">
                     <div className="w-full h-full rounded-full bg-card" />
                   </div>
                   <img
@@ -206,12 +206,8 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
                 onClick={() => onClose?.()}
                 className={`
                   w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium
-                  transition-all duration-300
-                  ${
-                    active
-                      ? "bg-linear-to-r from-coral to-coral text-white shadow-sm"
-                      : "text-foreground/80 hover:bg-muted"
-                  }
+                  transition-colors duration-300
+                  ${active ? "bg-coral text-white shadow-sm" : "text-foreground/80 hover:bg-muted"}
                 `}
               >
                 <Icon
@@ -230,7 +226,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
               href={`/@${profile.handle}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-foreground/80 hover:bg-muted transition-all duration-300"
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-foreground/80 hover:bg-muted transition-colors duration-300"
               onClick={onClose}
             >
               <ExternalLink size={20} />
@@ -243,7 +239,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
             <Link
               href="/admin"
               onClick={() => onClose?.()}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-lavender hover:bg-lavender/5 transition-all duration-300"
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-lavender hover:bg-lavender/5 transition-colors duration-300"
             >
               <Shield size={20} />
               <span>Admin</span>
@@ -256,7 +252,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
           <button
             type="button"
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-foreground/80 hover:text-coral hover:bg-coral/10 transition-all duration-300"
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-foreground/80 hover:text-coral hover:bg-coral/10 transition-colors duration-300"
           >
             <LogOut size={20} />
             <span>Logout</span>

@@ -29,6 +29,11 @@ import { count, desc, gt, isNotNull, sql } from "drizzle-orm";
 import { requireAdminAuthForApi } from "@/lib/auth/admin";
 import { getDb } from "@/lib/db";
 import { referralClicks, user } from "@/lib/db/schema";
+import {
+  createErrorResponse,
+  createSuccessResponse,
+  ERROR_CODES,
+} from "@/lib/utils/security-headers";
 
 export async function GET() {
   const { error } = await requireAdminAuthForApi();
@@ -155,7 +160,7 @@ export async function GET() {
 
     const recentReferrerHandleMap = new Map(recentReferrers.map((u) => [u.id, u.handle]));
 
-    return Response.json({
+    return createSuccessResponse({
       stats: {
         totalReferrers: referrerCount[0]?.count ?? 0,
         totalClicks,
@@ -192,6 +197,6 @@ export async function GET() {
     });
   } catch (err) {
     console.error("[admin/referrals] Error:", err);
-    return Response.json({ error: "Failed to fetch referrals" }, { status: 500 });
+    return createErrorResponse("Failed to fetch referrals", ERROR_CODES.INTERNAL_ERROR, 500);
   }
 }

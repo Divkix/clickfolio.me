@@ -364,7 +364,7 @@ describe("upload flow components", () => {
   it("shows wizard upload errors and retry state", async () => {
     installFetch((url) => {
       if (url === "/api/upload") {
-        return Response.json({ message: "Too many upload attempts" }, { status: 429 });
+        return Response.json({ error: "Too many upload attempts" }, { status: 429 });
       }
       return Response.json({ ok: true });
     });

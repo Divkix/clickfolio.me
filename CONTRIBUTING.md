@@ -190,7 +190,7 @@ clickfolio.me/
 ## Key Files
 
 - `worker/index.ts` - Custom worker entry (vinext + Queue + Cron + WebSocket)
-- `lib/db/schema.ts` - Database schema (Drizzle ORM)
+- `lib/db/schema/` - Database schema (Drizzle ORM, split by domain)
 - `lib/db/index.ts` - Database client with getDb() helper
 - `lib/auth/index.ts` - Better Auth server configuration
 - `lib/auth/client.ts` - Better Auth client configuration
@@ -239,8 +239,11 @@ bun run test:watch
 
 ### Coverage Requirements
 
-- Lines/Statements: 30% minimum
-- Functions: 25% minimum
+The CI `coverage-gate` job enforces **80%** across all four metrics
+(lines, statements, functions, branches) via the combined `test:coverage` run.
+
+Individual suite runs (`test:unit`, `test:integration`, `test:security`) use lower
+per-suite thresholds — these are not the final gate.
 
 Coverage reports are generated in `coverage/` and enforced in CI.
 

@@ -23,7 +23,6 @@ interface UploadResponse {
   key: string;
   remaining: { hourly: number; daily: number };
   error?: string;
-  message?: string;
 }
 
 interface ClaimResponse {
@@ -120,7 +119,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
         const data = (await uploadResponse.json()) as UploadResponse;
         // Handle rate limiting specifically
         if (uploadResponse.status === 429) {
-          throw new Error(data.message || "Too many upload attempts. Please wait and try again.");
+          throw new Error(data.error || "Too many upload attempts. Please wait and try again.");
         }
         throw new Error(data.error || "Failed to upload file");
       }
@@ -321,7 +320,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
           border-ink
           p-8
           cursor-pointer
-          transition-all
+          transition-colors
           duration-200
           ${
             isDragging
@@ -353,7 +352,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
               flex
               items-center
               justify-center
-              transition-all
+              transition-colors
               duration-200
               ${isDragging ? "bg-brand rotate-3" : "bg-amber group-hover:rotate-3"}
             `}
@@ -374,11 +373,11 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
             <p className="font-black text-lg text-ink mb-1">
               {file ? file.name : "Drop your PDF here"}
             </p>
-            <p className="font-mono text-sm text-[#6B6B6B]">
+            <p className="font-mono text-sm text-muted-foreground">
               or click to browse • Max {MAX_FILE_SIZE_LABEL}
             </p>
             {!uploading && !error && !file && (
-              <div className="bg-ink text-cream font-black text-sm py-2.5 px-6 border-3 border-ink shadow-brutal-sm inline-block group-hover:shadow-brutal-md group-hover:-translate-y-0.5 transition-all duration-200 mt-2">
+              <div className="bg-ink text-cream font-black text-sm py-2.5 px-6 border-3 border-ink shadow-brutal-sm inline-block group-hover:shadow-brutal-md group-hover:-translate-y-0.5 transition-colors duration-200 mt-2">
                 Choose PDF →
               </div>
             )}
@@ -395,7 +394,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
               style={{ width: `${uploadProgress}%` }}
             />
           </div>
-          <p className="font-mono text-xs text-center text-[#6B6B6B]" aria-live="polite">
+          <p className="font-mono text-xs text-center text-muted-foreground" aria-live="polite">
             {uploadProgress < 40
               ? "Preparing upload..."
               : uploadProgress < 90
@@ -440,7 +439,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
           href="https://github.com/divkix/clickfolio.me"
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center justify-center gap-2 text-xs text-[#6B6B6B] hover:text-ink transition-colors mt-3"
+          className="flex items-center justify-center gap-2 text-xs text-muted-foreground hover:text-ink transition-colors mt-3"
         >
           <ShieldCheck className="w-4 h-4" />
           <span>Open source &amp; transparent — audit the code yourself</span>
@@ -514,10 +513,12 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
 
             <div className="text-center">
               <h3 className="font-black text-lg text-ink mb-2">AI Parsing Your Resume...</h3>
-              <p className="font-medium text-sm text-[#6B6B6B] mb-1" aria-live="polite">
+              <p className="font-medium text-sm text-muted-foreground mb-1" aria-live="polite">
                 Extracting your experience, skills, and achievements
               </p>
-              <p className="font-mono text-xs text-[#6B6B6B]">This typically takes ~30 seconds</p>
+              <p className="font-mono text-xs text-muted-foreground">
+                This typically takes ~30 seconds
+              </p>
             </div>
           </div>
         ) : error ? (
@@ -576,7 +577,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
                 active:translate-x-0
                 active:translate-y-0
                 active:shadow-none
-                transition-all
+                transition-colors
                 duration-150
               "
             >
@@ -612,14 +613,14 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
 
             <div className="text-center">
               <h3 className="font-black text-lg text-ink mb-2">Upload Complete!</h3>
-              <p className="font-medium text-sm text-[#6B6B6B] mb-4">
+              <p className="font-medium text-sm text-muted-foreground mb-4">
                 {file?.name} has been uploaded successfully.
               </p>
             </div>
 
             {user ? (
               /* Authenticated user - shouldn't reach here as auto-claim happens */
-              <p className="font-mono text-xs text-[#6B6B6B] text-center" aria-live="polite">
+              <p className="font-mono text-xs text-muted-foreground text-center" aria-live="polite">
                 Redirecting to dashboard...
               </p>
             ) : (
@@ -646,7 +647,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
                     active:translate-x-0
                     active:translate-y-0
                     active:shadow-none
-                    transition-all
+                    transition-colors
                     duration-150
                     disabled:opacity-50
                     disabled:cursor-not-allowed
@@ -658,14 +659,14 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
                   Sign in to Publish →
                 </button>
 
-                <p className="font-mono text-xs text-[#6B6B6B] text-center">
+                <p className="font-mono text-xs text-muted-foreground text-center">
                   Your upload will be automatically claimed after login
                 </p>
 
                 <button
                   type="button"
                   onClick={handleReset}
-                  className="font-mono text-xs text-[#6B6B6B] hover:text-ink underline transition-colors"
+                  className="font-mono text-xs text-muted-foreground hover:text-ink underline transition-colors"
                 >
                   Upload a different file
                 </button>

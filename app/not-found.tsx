@@ -7,7 +7,7 @@ export default function NotFound() {
   return (
     <div className="min-h-screen bg-cream paper-texture flex items-center justify-center px-6">
       <div className="max-w-md">
-        <div className="bg-cream border-3 border-ink shadow-brutal-lg p-8 text-center hover:-translate-y-1 transition-all duration-300">
+        <div className="bg-cream border-3 border-ink shadow-brutal-lg p-8 text-center hover:-translate-y-1 transition-colors duration-300">
           <div className="mb-8">
             <div className="text-8xl font-extrabold mb-4 text-muted-foreground/50">404</div>
             <h1 className="text-3xl font-bold text-ink mb-2">Page Not Found</h1>
@@ -19,7 +19,7 @@ export default function NotFound() {
           <div className="space-y-4">
             <Link
               href="/"
-              className="inline-block px-6 py-3 bg-ink text-cream font-semibold shadow-brutal hover:shadow-brutal-lg hover:-translate-y-1 transition-all duration-300"
+              className="inline-block px-6 py-3 bg-ink text-cream font-semibold shadow-brutal hover:shadow-brutal-lg hover:-translate-y-1 transition-colors duration-300"
             >
               Go to Homepage
             </Link>

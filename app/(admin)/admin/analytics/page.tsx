@@ -87,7 +87,7 @@ export default function AdminAnalyticsPage() {
               key={opt.value}
               type="button"
               onClick={() => setPeriod(opt.value)}
-              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
+              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                 period === opt.value
                   ? "bg-card text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground/80"
@@ -110,7 +110,7 @@ export default function AdminAnalyticsPage() {
               value={data?.totals.views ?? 0}
               icon={Eye}
               iconColorClass="text-coral"
-              iconBgClass="bg-linear-to-r from-coral/20 to-coral/20"
+              iconBgClass="bg-coral/20"
               change={data?.changes.views}
             />
             <StatCard

@@ -6,6 +6,8 @@
  * Fails open on any infrastructure failure — email verification is the safety net.
  */
 
+import { INFRA } from "@/lib/config/retry";
+
 export interface DisposableCheckResult {
   disposable: boolean;
 }
@@ -131,7 +133,7 @@ export async function isDisposableEmail(
 
     // Refresh cache if expired or missing
     if (!cachedDomains || now - cacheTimestamp > CACHE_TTL_MS) {
-      const raw = await kv.get("disposable-domains");
+      const raw = await kv.get(INFRA.DISPOSABLE_DOMAINS_KEY);
       if (!raw) return { disposable: false };
 
       const domains: string[] = JSON.parse(raw);

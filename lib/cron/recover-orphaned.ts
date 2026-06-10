@@ -11,6 +11,7 @@
 
 import { and, eq, isNotNull, lt, sql } from "drizzle-orm";
 import type { Database } from "@/lib/db";
+import { hasExceededMaxAttempts } from "@/lib/config/retry";
 import { resumes } from "@/lib/db/schema";
 import { publishResumeParse } from "@/lib/queue/resume-parse";
 import type { ResumeParseMessage } from "@/lib/queue/types";
@@ -91,8 +92,8 @@ export async function recoverOrphanedResumes(
   // Process resumes: update DB status first, then publish to queue
   // This prevents race condition where consumer sees old status
   for (const resume of orphanedResumes) {
-    // Skip if already at max attempts (6 total = 3 queue retries x 2 manual retries)
-    if ((resume.totalAttempts ?? 0) >= 6) {
+    // Skip if already at max attempts
+    if (hasExceededMaxAttempts(resume.totalAttempts ?? 0)) {
       console.log(`Skipping resume ${resume.id} - max attempts reached`);
       continue;
     }

@@ -5,7 +5,7 @@ import { getContactLinks } from "@/lib/templates/contact-links";
 import { formatDateRange } from "@/lib/templates/helpers";
 import type { TemplateProps } from "@/lib/types/template";
 
-const DevTerminal: React.FC<TemplateProps> = ({ content, profile }) => {
+export const DevTerminal: React.FC<TemplateProps> = ({ content, profile }) => {
   const {
     full_name,
     headline,
@@ -423,5 +423,3 @@ const DevTerminal: React.FC<TemplateProps> = ({ content, profile }) => {
     </>
   );
 };
-
-export default DevTerminal;

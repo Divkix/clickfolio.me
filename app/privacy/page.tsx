@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Footer } from "@/components/Footer";
 import { Logo } from "@/components/Logo";
-import { Breadcrumb } from "@/components/ui/Breadcrumb";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { siteConfig } from "@/lib/config/site";
 import {
   generatePageBreadcrumbJsonLd,
@@ -132,7 +132,7 @@ export default function PrivacyPolicyPage() {
             <div className="prose max-w-none">
               <section id="section-1" className="mb-10">
                 <h2 className="text-xl font-bold text-ink mb-4 flex items-center gap-3">
-                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-r from-coral/20 to-coral/20 text-coral text-sm font-bold">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-coral/20 text-coral text-sm font-bold">
                     1
                   </span>
                   Introduction
@@ -148,7 +148,7 @@ export default function PrivacyPolicyPage() {
 
               <section id="section-2" className="mb-10">
                 <h2 className="text-xl font-bold text-ink mb-4 flex items-center gap-3">
-                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-r from-coral/20 to-coral/20 text-coral text-sm font-bold">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-coral/20 text-coral text-sm font-bold">
                     2
                   </span>
                   Information We Collect
@@ -190,7 +190,7 @@ export default function PrivacyPolicyPage() {
 
               <section id="section-3" className="mb-10">
                 <h2 className="text-xl font-bold text-ink mb-4 flex items-center gap-3">
-                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-r from-coral/20 to-coral/20 text-coral text-sm font-bold">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-coral/20 text-coral text-sm font-bold">
                     3
                   </span>
                   How We Use Your Information
@@ -226,7 +226,7 @@ export default function PrivacyPolicyPage() {
 
               <section id="section-4" className="mb-10">
                 <h2 className="text-xl font-bold text-ink mb-4 flex items-center gap-3">
-                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-r from-coral/20 to-coral/20 text-coral text-sm font-bold">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-coral/20 text-coral text-sm font-bold">
                     4
                   </span>
                   Third-Party Services
@@ -295,7 +295,7 @@ export default function PrivacyPolicyPage() {
 
               <section id="section-5" className="mb-10">
                 <h2 className="text-xl font-bold text-ink mb-4 flex items-center gap-3">
-                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-r from-coral/20 to-coral/20 text-coral text-sm font-bold">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-coral/20 text-coral text-sm font-bold">
                     5
                   </span>
                   Data Storage and Security
@@ -326,7 +326,7 @@ export default function PrivacyPolicyPage() {
 
               <section id="section-6" className="mb-10">
                 <h2 className="text-xl font-bold text-ink mb-4 flex items-center gap-3">
-                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-r from-coral/20 to-coral/20 text-coral text-sm font-bold">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-coral/20 text-coral text-sm font-bold">
                     6
                   </span>
                   Data Retention
@@ -342,7 +342,7 @@ export default function PrivacyPolicyPage() {
 
               <section id="section-7" className="mb-10">
                 <h2 className="text-xl font-bold text-ink mb-4 flex items-center gap-3">
-                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-r from-coral/20 to-coral/20 text-coral text-sm font-bold">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-coral/20 text-coral text-sm font-bold">
                     7
                   </span>
                   Your Rights (GDPR/CCPA)
@@ -465,7 +465,7 @@ export default function PrivacyPolicyPage() {
 
               <section id="section-8" className="mb-10">
                 <h2 className="text-xl font-bold text-ink mb-4 flex items-center gap-3">
-                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-r from-coral/20 to-coral/20 text-coral text-sm font-bold">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-coral/20 text-coral text-sm font-bold">
                     8
                   </span>
                   Cookies & Analytics
@@ -511,7 +511,7 @@ export default function PrivacyPolicyPage() {
 
               <section id="section-9" className="mb-10">
                 <h2 className="text-xl font-bold text-ink mb-4 flex items-center gap-3">
-                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-r from-coral/20 to-coral/20 text-coral text-sm font-bold">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-coral/20 text-coral text-sm font-bold">
                     9
                   </span>
                   Children&apos;s Privacy
@@ -533,7 +533,7 @@ export default function PrivacyPolicyPage() {
 
               <section id="section-10" className="mb-10">
                 <h2 className="text-xl font-bold text-ink mb-4 flex items-center gap-3">
-                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-r from-coral/20 to-coral/20 text-coral text-sm font-bold">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-coral/20 text-coral text-sm font-bold">
                     10
                   </span>
                   Changes to This Policy
@@ -550,7 +550,7 @@ export default function PrivacyPolicyPage() {
 
               <section id="section-11" className="mb-4">
                 <h2 className="text-xl font-bold text-ink mb-4 flex items-center gap-3">
-                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-r from-coral/20 to-coral/20 text-coral text-sm font-bold">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-coral/20 text-coral text-sm font-bold">
                     11
                   </span>
                   Contact Us

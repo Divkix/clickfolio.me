@@ -59,7 +59,7 @@ export async function POST(request: Request) {
     try {
       body = (await request.json()) as ThemeUpdateRequestBody;
     } catch {
-      return Response.json({ error: "Invalid JSON body" }, { status: 400 });
+      return createErrorResponse("Invalid JSON in request body", ERROR_CODES.BAD_REQUEST, 400);
     }
     const { theme_id } = body;
 

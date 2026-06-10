@@ -86,8 +86,8 @@ export function ResumeManagementCard({
         <div className="flex items-center gap-6 mb-4">
           <div className="flex items-center gap-3">
             <div className="relative">
-              <div className="absolute inset-0 bg-linear-to-r from-coral to-coral rounded-lg blur-md opacity-20" />
-              <div className="relative bg-linear-to-r from-coral/20 to-coral/20 p-2.5 rounded-lg">
+              <div className="absolute inset-0 bg-coral rounded-lg blur-md opacity-20" />
+              <div className="relative bg-coral/20 p-2.5 rounded-lg">
                 <Upload className="h-4 w-4 text-coral" />
               </div>
             </div>
@@ -144,7 +144,7 @@ export function ResumeManagementCard({
         <div className="mt-auto">
           <Button
             onClick={() => setUploadModalOpen(true)}
-            className="w-full bg-linear-to-r from-coral to-coral hover:from-coral/90 hover:to-coral/90 text-white font-semibold transition-all duration-300 shadow-sm hover:shadow-md"
+            className="w-full bg-coral hover:bg-coral/90 text-white font-semibold transition-colors duration-300 shadow-sm hover:shadow-md"
           >
             <Upload className="h-4 w-4 mr-2" />
             Upload New Resume

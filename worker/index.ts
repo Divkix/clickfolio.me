@@ -16,6 +16,7 @@ import { syncDisposableDomains } from "../lib/cron/sync-disposable-domains";
 import { getDb } from "../lib/db";
 import { resumes } from "../lib/db/schema";
 import { getSessionDbForWebhook } from "../lib/db/session";
+import { INFRA } from "@/lib/config/retry";
 import { handleQueueMessage } from "../lib/queue/consumer";
 import { handleDLQMessage } from "../lib/queue/dlq-consumer";
 import { isRetryableError } from "../lib/queue/errors";
@@ -151,7 +152,7 @@ export default {
    * @param env - Cloudflare environment bindings.
    */
   async queue(batch: MessageBatch<unknown>, env: CloudflareEnv): Promise<void> {
-    const isDLQ = batch.queue === "clickfolio-parse-dlq";
+    const isDLQ = batch.queue === INFRA.DLQ_NAME;
 
     for (const message of batch.messages) {
       try {

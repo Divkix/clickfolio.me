@@ -1,5 +1,4 @@
 import { and, desc, eq, gte, isNotNull, ne } from "drizzle-orm";
-import { z } from "zod";
 import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
 import { buildSiteDataUpsert } from "@/lib/data/site-data-upsert";
 import type { NewResume } from "@/lib/db/schema";
@@ -8,6 +7,7 @@ import { publishResumeParse } from "@/lib/queue/resume-parse";
 import { getR2Binding, R2 } from "@/lib/r2";
 import { enforceRateLimit } from "@/lib/rate-limit/user";
 import { writeReferral } from "@/lib/referral";
+import { claimRequestSchema } from "@/lib/schemas/resume";
 import { sha256Hex } from "@/lib/utils/hash";
 import { COOKIE_NAME, parseSignedCookieValue } from "@/lib/utils/pending-upload-cookie";
 import {
@@ -16,15 +16,6 @@ import {
   ERROR_CODES,
 } from "@/lib/utils/security-headers";
 import { MAX_FILE_SIZE, MAX_FILE_SIZE_LABEL, validateRequestSize } from "@/lib/utils/validation";
-
-const claimRequestSchema = z.object({
-  key: z.string().min(1).startsWith("temp/"),
-  referral_code: z
-    .string()
-    .max(50)
-    .regex(/^[A-Za-z0-9@_-]+$/, "Invalid referral code")
-    .optional(),
-});
 
 /**
  * POST /api/resume/claim

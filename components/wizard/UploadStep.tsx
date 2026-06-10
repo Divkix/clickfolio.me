@@ -21,7 +21,6 @@ interface UploadResponse {
   key: string;
   remaining: number;
   error?: string;
-  message?: string;
 }
 
 interface ClaimResponse {
@@ -140,7 +139,7 @@ export function UploadStep({ onContinue }: UploadStepProps) {
       if (!uploadResponse.ok) {
         const data = (await uploadResponse.json()) as UploadResponse;
         if (uploadResponse.status === 429) {
-          throw new Error(data.message || "Too many upload attempts. Please wait and try again.");
+          throw new Error(data.error || "Too many upload attempts. Please wait and try again.");
         }
         throw new Error(data.error || "Failed to upload file");
       }
@@ -245,7 +244,7 @@ export function UploadStep({ onContinue }: UploadStepProps) {
     <div className="space-y-8">
       {/* Header */}
       <div className="text-center">
-        <div className="mx-auto w-16 h-16 bg-linear-to-r from-coral/20 to-coral/20 rounded-xl flex items-center justify-center mb-6">
+        <div className="mx-auto w-16 h-16 bg-coral/20 rounded-xl flex items-center justify-center mb-6">
           <Upload className="w-8 h-8 text-coral" />
         </div>
         <h1 className="text-3xl sm:text-4xl font-bold text-foreground mb-3 leading-tight">
@@ -286,7 +285,7 @@ export function UploadStep({ onContinue }: UploadStepProps) {
 
             <Button
               onClick={handleRetry}
-              className="w-full bg-linear-to-r from-coral to-coral hover:from-coral/90 hover:to-coral/90 text-white font-semibold shadow-sm hover:shadow-md transition-all duration-300"
+              className="w-full bg-coral hover:bg-coral/90 text-white font-semibold shadow-sm hover:shadow-md transition-colors duration-300"
               size="lg"
             >
               Try Again
@@ -296,8 +295,8 @@ export function UploadStep({ onContinue }: UploadStepProps) {
           /* Processing State */
           <div className="bg-card rounded-xl border border-ink/10 p-8 text-center">
             <div className="relative mx-auto w-16 h-16 mb-4">
-              <div className="absolute inset-0 bg-linear-to-r from-coral to-coral rounded-full blur-xl opacity-30 animate-pulse" />
-              <div className="relative w-16 h-16 bg-linear-to-r from-coral/20 to-coral/20 rounded-full flex items-center justify-center">
+              <div className="absolute inset-0 bg-coral rounded-full blur-xl opacity-30 animate-pulse" />
+              <div className="relative w-16 h-16 bg-coral/20 rounded-full flex items-center justify-center">
                 <Loader2 className="w-8 h-8 text-coral animate-spin" />
               </div>
             </div>
@@ -352,10 +351,10 @@ export function UploadStep({ onContinue }: UploadStepProps) {
               {/* Icon with gradient background */}
               <div className="relative">
                 <div
-                  className={`absolute inset-0 bg-linear-to-r from-coral to-coral rounded-xl blur-xl transition-opacity duration-300 ${isDragging ? "opacity-40" : "opacity-20 group-hover:opacity-40"}`}
+                  className={`absolute inset-0 bg-coral rounded-xl blur-xl transition-opacity duration-300 ${isDragging ? "opacity-40" : "opacity-20 group-hover:opacity-40"}`}
                 />
                 <div
-                  className={`relative bg-linear-to-r from-coral/20 to-coral/20 p-4 rounded-xl transition-transform duration-300 ${isDragging ? "scale-110" : "group-hover:scale-110"}`}
+                  className={`relative bg-coral/20 p-4 rounded-xl transition-transform duration-300 ${isDragging ? "scale-110" : "group-hover:scale-110"}`}
                 >
                   <svg className="w-12 h-12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                     <defs>

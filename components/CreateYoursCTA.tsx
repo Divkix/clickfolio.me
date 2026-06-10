@@ -37,7 +37,7 @@ const ctaVariants = cva(
 );
 
 const buttonVariants = cva(
-  "inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200",
+  "inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium transition-colors duration-200",
   {
     variants: {
       variant: {

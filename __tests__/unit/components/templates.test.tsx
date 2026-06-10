@@ -9,17 +9,17 @@
 
 import { render } from "@testing-library/react";
 import { describe, expect, test } from "vite-plus/test";
-import BentoGrid from "@/components/templates/BentoGrid";
-import BoldCorporate from "@/components/templates/BoldCorporate";
-import ClassicATS from "@/components/templates/ClassicATS";
-import DesignFolio from "@/components/templates/DesignFolio";
-import DevTerminal from "@/components/templates/DevTerminal";
-import GlassMorphic from "@/components/templates/GlassMorphic";
-import Midnight from "@/components/templates/Midnight";
+import { BentoGrid } from "@/components/templates/BentoGrid";
+import { BoldCorporate } from "@/components/templates/BoldCorporate";
+import { ClassicATS } from "@/components/templates/ClassicATS";
+import { DesignFolio } from "@/components/templates/DesignFolio";
+import { DevTerminal } from "@/components/templates/DevTerminal";
+import { GlassMorphic } from "@/components/templates/GlassMorphic";
+import { Midnight } from "@/components/templates/Midnight";
 // Import all templates
-import MinimalistEditorial from "@/components/templates/MinimalistEditorial";
-import NeoBrutalist from "@/components/templates/NeoBrutalist";
-import Spotlight from "@/components/templates/Spotlight";
+import { MinimalistEditorial } from "@/components/templates/MinimalistEditorial";
+import { NeoBrutalist } from "@/components/templates/NeoBrutalist";
+import { Spotlight } from "@/components/templates/Spotlight";
 import type { ResumeContent } from "@/lib/types/database";
 import type { TemplateProps } from "@/lib/types/template";
 

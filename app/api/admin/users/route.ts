@@ -27,6 +27,11 @@ import { count, or, sql } from "drizzle-orm";
 import { requireAdminAuthForApi } from "@/lib/auth/admin";
 import { getDb } from "@/lib/db";
 import { resumes, siteData, user } from "@/lib/db/schema";
+import {
+  createErrorResponse,
+  createSuccessResponse,
+  ERROR_CODES,
+} from "@/lib/utils/security-headers";
 
 const PAGE_SIZE = 25;
 
@@ -87,9 +92,9 @@ export async function GET(request: Request) {
     const userIds = users.map((u) => u.id);
 
     if (userIds.length === 0) {
-      return Response.json({
+      return createSuccessResponse({
         users: [],
-        total: 0,
+        total: totalResult?.count ?? 0,
         page,
         pageSize: PAGE_SIZE,
       });
@@ -160,7 +165,7 @@ export async function GET(request: Request) {
       };
     });
 
-    return Response.json({
+    return createSuccessResponse({
       users: enrichedUsers,
       total: totalResult?.count ?? 0,
       page,
@@ -168,6 +173,6 @@ export async function GET(request: Request) {
     });
   } catch (err) {
     console.error("[admin/users] Error:", err);
-    return Response.json({ error: "Failed to fetch users" }, { status: 500 });
+    return createErrorResponse("Failed to fetch users", ERROR_CODES.INTERNAL_ERROR, 500);
   }
 }

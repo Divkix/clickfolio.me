@@ -26,6 +26,11 @@
 import { env } from "cloudflare:workers";
 import { requireAdminAuthForApi } from "@/lib/auth/admin";
 import { getMetrics, getPageviews, getStats } from "@/lib/umami/client";
+import {
+  createErrorResponse,
+  createSuccessResponse,
+  ERROR_CODES,
+} from "@/lib/utils/security-headers";
 
 const VALID_PERIODS = new Set(["7d", "30d", "90d"]);
 
@@ -56,7 +61,7 @@ export async function GET(request: Request) {
   const period = url.searchParams.get("period") || "7d";
 
   if (!VALID_PERIODS.has(period)) {
-    return Response.json({ error: "Invalid period" }, { status: 400 });
+    return createErrorResponse("Invalid period", ERROR_CODES.VALIDATION_ERROR, 400);
   }
 
   try {
@@ -137,48 +142,49 @@ export async function GET(request: Request) {
     // Devices — compute percentages
     const totalDevice = deviceMetrics.reduce((sum, d) => sum + d.y, 0);
 
-    return Response.json(
-      {
-        totals: {
-          views: totalViews,
-          unique: totalUnique,
-          avgPerDay,
-          profilesViewed,
-        },
-        changes: {
-          views: viewsChange,
-          unique: uniqueChange,
-          avgPerDay: avgChange,
-        },
-        daily,
-        topProfiles: profileMetrics.map((m) => ({
-          handle: m.x.replace(/^\/@/, ""),
-          views: m.y,
-        })),
-        referrers: referrerMetrics.map((r) => ({
-          domain: r.x || "Direct",
-          count: r.y,
-          percent: totalReferrer > 0 ? Math.round((r.y / totalReferrer) * 100) : 0,
-        })),
-        countries: countryMetrics.map((c) => ({
-          code: c.x || "unknown",
-          name: c.x || "Unknown",
-          percent: totalCountry > 0 ? Math.round((c.y / totalCountry) * 100) : 0,
-        })),
-        devices: deviceMetrics.map((d) => ({
-          type: d.x || "unknown",
-          percent: totalDevice > 0 ? Math.round((d.y / totalDevice) * 100) : 0,
-        })),
+    const responseData = {
+      totals: {
+        views: totalViews,
+        unique: totalUnique,
+        avgPerDay,
+        profilesViewed,
       },
-      {
-        headers: {
-          "Cache-Control": "private, max-age=30, stale-while-revalidate=60",
-        },
+      changes: {
+        views: viewsChange,
+        unique: uniqueChange,
+        avgPerDay: avgChange,
       },
-    );
+      daily,
+      topProfiles: profileMetrics.map((m) => ({
+        handle: m.x.replace(/^\/@/, ""),
+        views: m.y,
+      })),
+      referrers: referrerMetrics.map((r) => ({
+        domain: r.x || "Direct",
+        count: r.y,
+        percent: totalReferrer > 0 ? Math.round((r.y / totalReferrer) * 100) : 0,
+      })),
+      countries: countryMetrics.map((c) => ({
+        code: c.x || "unknown",
+        name: c.x || "Unknown",
+        percent: totalCountry > 0 ? Math.round((c.y / totalCountry) * 100) : 0,
+      })),
+      devices: deviceMetrics.map((d) => ({
+        type: d.x || "unknown",
+        percent: totalDevice > 0 ? Math.round((d.y / totalDevice) * 100) : 0,
+      })),
+    };
+
+    const response = createSuccessResponse(responseData);
+    response.headers.set("Cache-Control", "private, max-age=30, stale-while-revalidate=60");
+    return response;
   } catch (err) {
     console.error("[admin/analytics] Umami API error:", err);
-    return Response.json({ error: "Analytics temporarily unavailable" }, { status: 503 });
+    return createErrorResponse(
+      "Analytics temporarily unavailable",
+      ERROR_CODES.INTERNAL_ERROR,
+      503,
+    );
   }
 }
 

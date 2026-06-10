@@ -411,3 +411,15 @@ export const resumeContentSchemaStrict = createResumeContentSchema(contactSchema
  * Both schemas have the same output type after transformation
  */
 export type ResumeContentFormData = z.infer<typeof resumeContentSchema>;
+
+/**
+ * Claim request schema for POST /api/resume/claim
+ */
+export const claimRequestSchema = z.object({
+  key: z.string().min(1).startsWith("temp/"),
+  referral_code: z
+    .string()
+    .max(50)
+    .regex(/^[A-Za-z0-9@_-]+$/, "Invalid referral code")
+    .optional(),
+});

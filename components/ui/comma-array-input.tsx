@@ -3,17 +3,14 @@
 import { useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 
-export function CommaArrayInput({
-  value,
-  onChange,
-  onBlur,
-  placeholder,
-}: {
+interface CommaArrayInputProps {
   value: string[] | undefined;
   onChange: (value: string[]) => void;
   onBlur?: () => void;
   placeholder?: string;
-}) {
+}
+
+export function CommaArrayInput({ value, onChange, onBlur, placeholder }: CommaArrayInputProps) {
   const [text, setText] = useState(value?.join(", ") || "");
   const focusedRef = useRef(false);
 

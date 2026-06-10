@@ -1,19 +1,12 @@
 import { env } from "cloudflare:workers";
-import { z } from "zod";
 import { isDisposableEmail } from "@/lib/email/disposable-check";
 import { checkEmailValidateRateLimit, getClientIP } from "@/lib/rate-limit/ip";
+import { emailValidateSchema } from "@/lib/schemas/auth";
 import {
   createErrorResponse,
   createSuccessResponse,
   ERROR_CODES,
 } from "@/lib/utils/security-headers";
-
-/**
- * Zod schema for email validation request body.
- */
-const emailValidateSchema = z.object({
-  email: z.string().trim().min(1).email({ message: "Invalid email address" }),
-});
 
 /**
  * POST /api/email/validate

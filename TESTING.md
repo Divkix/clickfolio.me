@@ -6,9 +6,10 @@ This document describes the testing strategy for Clickfolio, including how to ru
 
 Tests are organized into three categories based on the [Trophy Testing methodology](https://kentcdodds.com/blog/write-tests):
 
-- **`__tests__/unit/`** — Pure function tests, utilities, and isolated logic (fast, no external dependencies)
-- **`__tests__/integration/`** — API routes, service interactions, database operations, and queue processing
-- **`__tests__/security/`** — Security-specific tests (authorization, IDOR protection, rate limiting, input sanitization)
+- `__tests__/unit/` — unit tests
+- `__tests__/integration/` — integration tests
+- `__tests__/security/` — security tests
+- Additional tests following the `**/*test.{ts,tsx}` glob in those folders or others
 
 ## Running Tests
 

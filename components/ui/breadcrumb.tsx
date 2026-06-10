@@ -3,7 +3,11 @@ export interface BreadcrumbItem {
   href: string;
 }
 
-export function Breadcrumb({ items }: { items: BreadcrumbItem[] }) {
+interface BreadcrumbProps {
+  items: BreadcrumbItem[];
+}
+
+export function Breadcrumb({ items }: BreadcrumbProps) {
   return (
     <nav aria-label="Breadcrumb" className="py-3 px-4 max-w-6xl mx-auto">
       <ol className="flex flex-wrap items-center gap-1 text-sm text-[#6B6B6B]">

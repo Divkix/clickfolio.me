@@ -18,7 +18,7 @@ const corporateIconMap: Partial<
   website: Globe,
 };
 
-const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => {
+export const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => {
   const nameParts = content.full_name.split(" ");
   const firstName = nameParts[0] ?? "";
   const lastName = nameParts.slice(1).join(" ") || "";
@@ -610,5 +610,3 @@ const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => {
     </>
   );
 };
-
-export default BoldCorporate;

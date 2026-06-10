@@ -157,6 +157,16 @@ vi.mock("@/lib/auth", () => ({
 
 vi.mock("@/lib/auth/middleware", () => ({
   requireAuthWithUserValidation: vi.fn(async () => mocks.state.authResult),
+  requireCronAuth: vi.fn((request: Request) => {
+    const auth = request.headers.get("Authorization");
+    if (auth !== `Bearer ${process.env.CRON_SECRET ?? "cron-secret"}`) {
+      return new Response(JSON.stringify({ error: "Unauthorized", code: "UNAUTHORIZED" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    return null;
+  }),
 }));
 
 vi.mock("@/lib/auth/admin", () => ({

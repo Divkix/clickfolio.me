@@ -1,7 +1,6 @@
 import { eq } from "drizzle-orm";
 import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
 
-import { getDb } from "@/lib/db";
 import { resumes, user, verification } from "@/lib/db/schema";
 import { getR2Binding, R2 } from "@/lib/r2";
 import { deleteAccountSchema } from "@/lib/schemas/account";
@@ -32,6 +31,8 @@ export async function POST(request: Request) {
     // 1. Check authentication and validate user exists in database
     const {
       user: authUser,
+      db,
+      captureBookmark,
       env,
       error: authError,
     } = await requireAuthWithUserValidation("You must be logged in to delete your account");
@@ -81,9 +82,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // 4. Initialize database
-    const db = getDb(env.CLICKFOLIO_DB);
-
     // 5. Fetch all resume R2 keys before deletion
     const userResumes = await db
       .select({ r2Key: resumes.r2Key })
@@ -121,10 +119,11 @@ export async function POST(request: Request) {
       return createErrorResponse("Failed to delete account", ERROR_CODES.DATABASE_ERROR, 500);
     }
 
-    // 8. Return success response with both cookie variants cleared
+    // 8. Capture session bookmark (write path), then clear cookies in response
     // Clear both cookie names to handle different deployment environments:
     // - "better-auth.session_token" (dev / non-HTTPS)
     // - "__Secure-better-auth.session_token" (production HTTPS with Secure prefix)
+    await captureBookmark();
     const response = createSuccessResponse({
       success: true,
       message: "Your account has been permanently deleted",

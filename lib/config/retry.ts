@@ -1,4 +1,15 @@
 /**
+ * Infrastructure binding / queue name constants
+ * Single source of truth — avoids magic string duplication across worker/cron/email.
+ */
+export const INFRA = {
+  /** Dead-letter queue name (must match wrangler.jsonc dead_letter_queue) */
+  DLQ_NAME: "clickfolio-parse-dlq",
+  /** KV key used to store/fetch the disposable domains list */
+  DISPOSABLE_DOMAINS_KEY: "disposable-domains",
+} as const;
+
+/**
  * Unified retry limits configuration
  *
  * These limits apply across all retry mechanisms:

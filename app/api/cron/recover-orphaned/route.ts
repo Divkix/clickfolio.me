@@ -14,28 +14,20 @@
  */
 
 import { env } from "cloudflare:workers";
+import { requireCronAuth } from "@/lib/auth/middleware";
 import { recoverOrphanedResumes } from "@/lib/cron/recover-orphaned";
 import { getDb } from "@/lib/db";
-
-const CRON_SECRET = process.env.CRON_SECRET;
+import {
+  createErrorResponse,
+  createSuccessResponse,
+  ERROR_CODES,
+} from "@/lib/utils/security-headers";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
-  // Verify cron secret header (basic auth for cron endpoints)
-  // SECURITY: Fail-closed - reject all requests if CRON_SECRET is not configured
-  if (!CRON_SECRET) {
-    console.error("CRON_SECRET environment variable is not configured");
-    return Response.json(
-      { error: "Server misconfiguration: CRON_SECRET not set" },
-      { status: 500 },
-    );
-  }
-
-  const authHeader = request.headers.get("Authorization");
-  if (authHeader !== `Bearer ${CRON_SECRET}`) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const authError = requireCronAuth(request, env);
+  if (authError) return authError;
 
   try {
     const db = getDb(env.CLICKFOLIO_DB);
@@ -43,13 +35,13 @@ export async function GET(request: Request) {
     const queue = env.CLICKFOLIO_PARSE_QUEUE;
     if (!queue) {
       console.error("CLICKFOLIO_PARSE_QUEUE not available");
-      return Response.json({ error: "Queue unavailable" }, { status: 500 });
+      return createErrorResponse("Queue unavailable", ERROR_CODES.INTERNAL_ERROR, 500);
     }
 
     const result = await recoverOrphanedResumes(db, queue);
-    return Response.json(result);
+    return createSuccessResponse(result);
   } catch (error) {
     console.error("Orphan recovery cron error:", error);
-    return Response.json({ error: "Recovery failed", details: String(error) }, { status: 500 });
+    return createErrorResponse("Recovery failed", ERROR_CODES.INTERNAL_ERROR, 500);
   }
 }

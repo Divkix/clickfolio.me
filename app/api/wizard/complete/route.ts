@@ -1,10 +1,10 @@
 import { eq } from "drizzle-orm";
-import { z } from "zod";
+import type { z } from "zod";
 import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
 
 import { siteData, user } from "@/lib/db/schema";
 import { isHandleTaken } from "@/lib/rate-limit/handle-validation";
-import { handleSchema } from "@/lib/schemas/profile";
+import { buildWizardCompleteSchema } from "@/lib/schemas/profile";
 import { verifyThemeUnlocked } from "@/lib/templates/theme-access";
 import { THEME_IDS, type ThemeId } from "@/lib/templates/theme-ids";
 import {
@@ -18,16 +18,7 @@ import { validateRequestSize } from "@/lib/utils/validation";
  * Wizard completion request schema
  * Validates handle, privacy settings, and theme selection
  */
-const wizardCompleteSchema = z.object({
-  handle: handleSchema,
-  privacy_settings: z.object({
-    show_phone: z.boolean(),
-    show_address: z.boolean(),
-    hide_from_search: z.boolean().optional().default(false),
-    show_in_directory: z.boolean().optional().default(true),
-  }),
-  theme_id: z.enum([...THEME_IDS] as [ThemeId, ...ThemeId[]]),
-});
+const wizardCompleteSchema = buildWizardCompleteSchema([...THEME_IDS] as [ThemeId, ...ThemeId[]]);
 
 type WizardCompleteRequest = z.infer<typeof wizardCompleteSchema>;
 

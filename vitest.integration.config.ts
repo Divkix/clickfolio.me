@@ -6,6 +6,7 @@
  * May use mocked external services.
  */
 
+import { resolve } from "node:path";
 import { defineConfig } from "vite-plus";
 
 export default defineConfig({
@@ -21,7 +22,7 @@ export default defineConfig({
       "__tests__/share.test.ts",
       "__tests__/milestones.test.ts",
     ],
-    exclude: ["node_modules", ".next", "dist", "__tests__/e2e/**"],
+    exclude: ["node_modules", ".next", "dist", "__tests__/e2e/**", ".worktrees/**"],
     // Integration tests may have timing issues - allow retries
     retry: 2,
     // Longer timeout for integration tests
@@ -48,9 +49,8 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      "@": new URL("./", import.meta.url).pathname,
-      "cloudflare:workers": new URL("lib/stubs/cloudflare-workers-client-stub.mjs", import.meta.url)
-        .pathname,
+      "@": resolve(__dirname, "./"),
+      "cloudflare:workers": resolve(__dirname, "lib/stubs/cloudflare-workers-client-stub.mjs"),
     },
   },
 });

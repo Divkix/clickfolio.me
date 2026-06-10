@@ -122,7 +122,7 @@ function ResetPasswordForm() {
             active:translate-x-0
             active:translate-y-0
             active:shadow-none
-            transition-all
+            transition-colors
             duration-150
           "
         >
@@ -164,7 +164,7 @@ function ResetPasswordForm() {
             active:translate-x-0
             active:translate-y-0
             active:shadow-none
-            transition-all
+            transition-colors
             duration-150
           "
         >
@@ -231,7 +231,7 @@ function ResetPasswordForm() {
             focus:shadow-brutal-md
             focus:translate-x-[-2px]
             focus:translate-y-[-2px]
-            transition-all
+            transition-colors
             duration-150
             disabled:opacity-50
             disabled:cursor-not-allowed
@@ -264,7 +264,7 @@ function ResetPasswordForm() {
           active:translate-x-0
           active:translate-y-0
           active:shadow-none
-          transition-all
+          transition-colors
           duration-150
           disabled:opacity-50
           disabled:cursor-not-allowed

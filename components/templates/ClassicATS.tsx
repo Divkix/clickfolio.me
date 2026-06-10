@@ -32,7 +32,7 @@ const atsIconMap: Partial<
  * - Em-dash list markers for highlights
  * - Print-optimized with Tailwind print: classes
  */
-const ClassicATS: React.FC<TemplateProps> = ({ content, profile }) => {
+export const ClassicATS: React.FC<TemplateProps> = ({ content, profile }) => {
   const flatSkills = content.skills ? flattenSkills(content.skills) : [];
   const contactLinks = getContactLinks(content.contact);
 
@@ -311,5 +311,3 @@ const ClassicATS: React.FC<TemplateProps> = ({ content, profile }) => {
     </>
   );
 };
-
-export default ClassicATS;

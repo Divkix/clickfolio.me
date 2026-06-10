@@ -27,6 +27,11 @@ import { count, eq, sql } from "drizzle-orm";
 import { requireAdminAuthForApi } from "@/lib/auth/admin";
 import { getDb } from "@/lib/db";
 import { resumes, user } from "@/lib/db/schema";
+import {
+  createErrorResponse,
+  createSuccessResponse,
+  ERROR_CODES,
+} from "@/lib/utils/security-headers";
 
 const PAGE_SIZE = 25;
 const VALID_STATUSES = new Set(["all", "completed", "processing", "queued", "failed"]);
@@ -41,7 +46,7 @@ export async function GET(request: Request) {
   const offset = (page - 1) * PAGE_SIZE;
 
   if (!VALID_STATUSES.has(statusFilter)) {
-    return Response.json({ error: "Invalid status filter" }, { status: 400 });
+    return createErrorResponse("Invalid status filter", ERROR_CODES.VALIDATION_ERROR, 400);
   }
 
   try {
@@ -112,7 +117,7 @@ export async function GET(request: Request) {
       .limit(PAGE_SIZE)
       .offset(offset);
 
-    return Response.json({
+    return createSuccessResponse({
       stats,
       resumes: resumeList.map((r) => ({
         id: r.id,
@@ -129,6 +134,6 @@ export async function GET(request: Request) {
     });
   } catch (err) {
     console.error("[admin/resumes] Error:", err);
-    return Response.json({ error: "Failed to fetch resumes" }, { status: 500 });
+    return createErrorResponse("Failed to fetch resumes", ERROR_CODES.INTERNAL_ERROR, 500);
   }
 }

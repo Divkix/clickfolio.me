@@ -5,6 +5,7 @@
  * rate limiting, input sanitization, and authentication middleware.
  */
 
+import { resolve } from "node:path";
 import { defineConfig } from "vite-plus";
 
 export default defineConfig({
@@ -20,8 +21,9 @@ export default defineConfig({
       "__tests__/disposable-email.test.ts",
       "__tests__/password-strength.test.ts",
       "__tests__/email-verification.test.ts",
+      "__tests__/claim-security-cookie.test.ts",
     ],
-    exclude: ["node_modules", ".next", "dist", "__tests__/e2e/**"],
+    exclude: ["node_modules", ".next", "dist", "__tests__/e2e/**", ".worktrees/**"],
     // Security tests must be reliable - no retries
     retry: 0,
     // Use forks for security test isolation
@@ -51,9 +53,8 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      "@": new URL("./", import.meta.url).pathname,
-      "cloudflare:workers": new URL("lib/stubs/cloudflare-workers-client-stub.mjs", import.meta.url)
-        .pathname,
+      "@": resolve(__dirname, "./"),
+      "cloudflare:workers": resolve(__dirname, "lib/stubs/cloudflare-workers-client-stub.mjs"),
     },
   },
 });

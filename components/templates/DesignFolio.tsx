@@ -10,7 +10,7 @@ const dfIconMap: Partial<Record<ContactLinkType, React.ReactNode>> = {
   location: <MapPin size={18} aria-hidden="true" />,
 };
 
-const DesignFolio: React.FC<TemplateProps> = ({ content, profile }) => {
+export const DesignFolio: React.FC<TemplateProps> = ({ content, profile }) => {
   const {
     full_name,
     headline,
@@ -348,5 +348,3 @@ const DesignFolio: React.FC<TemplateProps> = ({ content, profile }) => {
     </>
   );
 };
-
-export default DesignFolio;
