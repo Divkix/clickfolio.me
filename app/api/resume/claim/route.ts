@@ -15,7 +15,12 @@ import {
   createSuccessResponse,
   ERROR_CODES,
 } from "@/lib/utils/security-headers";
-import { MAX_FILE_SIZE, MAX_FILE_SIZE_LABEL, validateRequestSize } from "@/lib/utils/validation";
+import {
+  MAX_FILE_SIZE,
+  MAX_FILE_SIZE_LABEL,
+  readJsonWithLimit,
+  validateRequestSize,
+} from "@/lib/utils/validation";
 
 /**
  * POST /api/resume/claim
@@ -74,15 +79,17 @@ export async function POST(request: Request) {
       );
     }
 
-    // 4. Parse and validate request body
-    let rawBody: unknown;
-    try {
-      rawBody = await request.json();
-    } catch {
-      return createErrorResponse("Invalid JSON in request body", ERROR_CODES.BAD_REQUEST, 400);
+    // 4. Parse and validate request body (size-capped read, no trust in Content-Length)
+    const rawBodyResult = await readJsonWithLimit(request);
+    if (!rawBodyResult.ok) {
+      return createErrorResponse(
+        rawBodyResult.error,
+        ERROR_CODES.BAD_REQUEST,
+        rawBodyResult.reason === "too_large" ? 413 : 400,
+      );
     }
 
-    const bodyResult = claimRequestSchema.safeParse(rawBody);
+    const bodyResult = claimRequestSchema.safeParse(rawBodyResult.data);
     if (!bodyResult.success) {
       return createErrorResponse(
         "Invalid upload key. Must be a temporary upload.",

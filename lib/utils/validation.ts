@@ -133,3 +133,52 @@ export function validateRequestSize(
 
   return { valid: true };
 }
+
+/**
+ * Reads and JSON-parses a request body with a hard byte cap, independent of the
+ * Content-Length header (which a client may omit or lie about). Returns a
+ * discriminated result so callers can map failures to HTTP 413 / 400.
+ *
+ * @param request - The incoming HTTP request
+ * @param maxSizeBytes - Maximum allowed body size in bytes (default: 5MB)
+ */
+export async function readJsonWithLimit(
+  request: Request,
+  maxSizeBytes: number = 5_000_000,
+): Promise<
+  { ok: true; data: unknown } | { ok: false; reason: "too_large" | "invalid_json"; error: string }
+> {
+  if (!request.body) {
+    return { ok: true, data: undefined };
+  }
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    if (value) {
+      total += value.byteLength;
+      if (total > maxSizeBytes) {
+        await reader.cancel();
+        return {
+          ok: false,
+          reason: "too_large",
+          error: `Request body too large. Maximum size is ${(maxSizeBytes / 1_000_000).toFixed(1)}MB.`,
+        };
+      }
+      chunks.push(value);
+    }
+  }
+  const buf = new Uint8Array(total);
+  let offset = 0;
+  for (const c of chunks) {
+    buf.set(c, offset);
+    offset += c.byteLength;
+  }
+  try {
+    return { ok: true, data: JSON.parse(new TextDecoder().decode(buf)) };
+  } catch {
+    return { ok: false, reason: "invalid_json", error: "Invalid JSON in request body" };
+  }
+}

@@ -89,6 +89,13 @@ vi.mock("@/lib/utils/validation", () => ({
   MAX_FILE_SIZE: 5 * 1024 * 1024,
   MAX_FILE_SIZE_LABEL: "5MB",
   validateRequestSize: vi.fn(() => ({ valid: true })),
+  readJsonWithLimit: vi.fn(async (req: Request) => {
+    try {
+      return { ok: true, data: await req.json() };
+    } catch {
+      return { ok: false, reason: "invalid_json", error: "Invalid JSON in request body" };
+    }
+  }),
 }));
 
 vi.mock("@/lib/data/site-data-upsert", () => ({
