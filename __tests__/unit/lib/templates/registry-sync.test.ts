@@ -48,16 +48,11 @@ describe("Registry sync guard", () => {
     expect(seen.size).toBe(THEME_IDS.length);
   });
 
-  it("adding a new ID to THEME_IDS without updating maps would fail type-check (documented)", () => {
-    /**
-     * This test documents the compile-time guard:
-     * Both THEME_METADATA and themeToShareVariant are Record<ThemeId, …>.
-     * theme-registry.ts TEMPLATE_LOADERS and TEMPLATE_EXPORT_NAME are also Record<ThemeId, …>.
-     * theme-registry.client.tsx DYNAMIC_TEMPLATES is Record<ThemeId, …>.
-     *
-     * Adding a new string to THEME_IDS without filling in these maps causes
-     * a TypeScript error at build time — verified manually during plan 015.
-     */
-    expect(true).toBe(true);
+  it("THEME_METADATA and themeToShareVariant have the same key set (cross-check)", () => {
+    const metadataKeys = Object.keys(THEME_METADATA).sort();
+    const variantKeys = Object.keys(themeToShareVariant).sort();
+    // Both maps must be keyed by exactly the same set of ids.
+    // If they diverge, one registry surface was updated and the other was not.
+    expect(metadataKeys).toEqual(variantKeys);
   });
 });

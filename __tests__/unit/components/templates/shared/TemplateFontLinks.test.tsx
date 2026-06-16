@@ -1,8 +1,11 @@
 /**
  * TemplateFontLinks shared component tests
  *
- * Verifies that the shared font-link helper renders the expected
- * three-link pattern (preconnect × 2 + stylesheet) for any given href.
+ * Verifies that the shared font-link helper renders the exact three-tag
+ * structure every template depends on:
+ *   1. <link rel="preconnect" href="https://fonts.googleapis.com">
+ *   2. <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous">
+ *   3. <link rel="stylesheet" href={the passed href}>
  *
  * Note: React renders <link> elements to document.head in modern React
  * (React 19+), so we query document.head rather than the container.
@@ -12,6 +15,13 @@ import { render } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vite-plus/test";
 import { TemplateFontLinks } from "@/components/templates/shared/TemplateFontLinks";
 
+function collectLinks(container: Element) {
+  return [
+    ...Array.from(container.querySelectorAll("link")),
+    ...Array.from(document.head.querySelectorAll("link")),
+  ];
+}
+
 afterEach(() => {
   // Clean up any link elements added to document.head between tests
   for (const link of Array.from(document.head.querySelectorAll("link"))) {
@@ -20,49 +30,54 @@ afterEach(() => {
 });
 
 describe("TemplateFontLinks", () => {
-  it("renders link elements for the provided font URL (container or head)", () => {
+  it("renders exactly 3 link elements (2 preconnects + 1 stylesheet)", () => {
     const href =
       "https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,700;1,400&display=swap";
     const { container } = render(<TemplateFontLinks href={href} />);
-
-    // React may render <link> elements into document.head or the container
-    const allLinks = [
-      ...Array.from(container.querySelectorAll("link")),
-      ...Array.from(document.head.querySelectorAll("link")),
-    ];
-    expect(allLinks.length).toBeGreaterThan(0);
+    const allLinks = collectLinks(container);
+    expect(allLinks).toHaveLength(3);
   });
 
-  it("passes the font href through to a stylesheet link element", () => {
+  it("renders a preconnect to fonts.googleapis.com (no crossOrigin)", () => {
     const href =
       "https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;700;800&display=swap";
     const { container } = render(<TemplateFontLinks href={href} />);
+    const allLinks = collectLinks(container);
+    const googlePreconnect = allLinks.find(
+      (l) =>
+        l.getAttribute("rel") === "preconnect" &&
+        l.getAttribute("href") === "https://fonts.googleapis.com",
+    );
+    expect(googlePreconnect).toBeDefined();
+    expect(googlePreconnect?.getAttribute("crossorigin")).toBeNull();
+  });
 
-    // Check both container and document.head for the stylesheet link
-    const allLinks = [
-      ...Array.from(container.querySelectorAll("link")),
-      ...Array.from(document.head.querySelectorAll("link")),
-    ];
-    const stylesheetLink = allLinks.find((l) => l.getAttribute("href") === href);
+  it("renders a preconnect to fonts.gstatic.com with crossOrigin=anonymous", () => {
+    const href = "https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap";
+    const { container } = render(<TemplateFontLinks href={href} />);
+    const allLinks = collectLinks(container);
+    const gstaticPreconnect = allLinks.find(
+      (l) =>
+        l.getAttribute("rel") === "preconnect" &&
+        l.getAttribute("href") === "https://fonts.gstatic.com",
+    );
+    expect(gstaticPreconnect).toBeDefined();
+    // crossOrigin="anonymous" serialises to the crossorigin attribute value "anonymous"
+    expect(gstaticPreconnect?.getAttribute("crossorigin")).toBe("anonymous");
+  });
+
+  it("renders a rel=stylesheet whose href equals the passed href", () => {
+    const href =
+      "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&display=swap";
+    const { container } = render(<TemplateFontLinks href={href} />);
+    const allLinks = collectLinks(container);
+    const stylesheetLink = allLinks.find(
+      (l) => l.getAttribute("rel") === "stylesheet" && l.getAttribute("href") === href,
+    );
     expect(stylesheetLink).toBeDefined();
   });
 
-  it("includes a googleapis.com reference in the rendered output", () => {
-    const href = "https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap";
-    const { container } = render(<TemplateFontLinks href={href} />);
-
-    const allLinks = [
-      ...Array.from(container.querySelectorAll("link")),
-      ...Array.from(document.head.querySelectorAll("link")),
-    ];
-    const hrefs = allLinks.map((l) => l.getAttribute("href") ?? "");
-    const hasGoogleFontsRef =
-      hrefs.some((h) => h.includes("fonts.googleapis.com")) ||
-      hrefs.some((h) => h.includes("fonts.gstatic.com"));
-    expect(hasGoogleFontsRef).toBe(true);
-  });
-
-  it("passes through different font URLs unchanged", () => {
+  it("passes through different font URLs unchanged to the stylesheet link", () => {
     const urls = [
       "https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,700;1,400&display=swap",
       "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&display=swap",
@@ -70,12 +85,11 @@ describe("TemplateFontLinks", () => {
     ];
     for (const href of urls) {
       const { container, unmount } = render(<TemplateFontLinks href={href} />);
-      const allLinks = [
-        ...Array.from(container.querySelectorAll("link")),
-        ...Array.from(document.head.querySelectorAll("link")),
-      ];
-      const found = allLinks.some((l) => l.getAttribute("href") === href);
-      expect(found).toBe(true);
+      const allLinks = collectLinks(container);
+      const stylesheetLink = allLinks.find(
+        (l) => l.getAttribute("rel") === "stylesheet" && l.getAttribute("href") === href,
+      );
+      expect(stylesheetLink).toBeDefined();
       unmount();
       // Clean up head
       for (const link of Array.from(document.head.querySelectorAll("link"))) {
