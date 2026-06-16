@@ -190,6 +190,13 @@
       "when": 1750100000000,
       "tag": "0026_referral_count_triggers",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "6",
+      "when": 1781632577154,
+      "tag": "0027_yellow_captain_cross",
+      "breakpoints": true
     }
   ]
 }

@@ -1,5 +1,5 @@
 /**
- * R2 storage cleanup for orphaned temp uploads
+ * R2 storage cleanup for orphaned temp uploads and durable pending deletions.
  *
  * Called by:
  * - worker.ts scheduled handler (direct invocation, no extra Worker billing)
@@ -7,11 +7,28 @@
  *
  * Deletes:
  * - Temp files in R2 older than 24 hours that were never claimed
+ * - R2 files that failed deletion during account deletion (GDPR retry path)
  */
+
+import { eq } from "drizzle-orm";
+import type { Database } from "@/lib/db";
+import { pendingR2Deletions } from "@/lib/db/schema";
 
 const TEMP_PREFIX = "temp/";
 const TEMP_CUTOFF_HOURS = 24;
 const LIST_PAGE_SIZE = 1000;
+
+/**
+ * Maximum number of pending deletions to sweep per cron invocation.
+ * Keeps each invocation bounded; remaining rows are picked up on the next run.
+ */
+const PENDING_DELETIONS_BATCH = 100;
+
+/**
+ * After this many attempts the row is left in place (with an error log) for
+ * manual review rather than endlessly retried.
+ */
+const PENDING_DELETIONS_MAX_ATTEMPTS = 10;
 
 export interface R2CleanupResult {
   ok: true;
@@ -88,6 +105,81 @@ export async function performR2Cleanup(binding: R2Bucket): Promise<R2CleanupResu
     deleted,
     failed,
     bytesFreed,
+    timestamp: nowIso,
+  };
+}
+
+export interface PendingDeletionsResult {
+  ok: true;
+  retried: number;
+  succeeded: number;
+  failed: number;
+  skipped: number;
+  timestamp: string;
+}
+
+/**
+ * Sweeps the `pending_r2_deletions` table and retries each outstanding delete.
+ *
+ * On success the row is removed. On failure the `attempts` counter and
+ * `lastError` are updated. Once a row reaches {@link PENDING_DELETIONS_MAX_ATTEMPTS}
+ * it is left untouched and an error is logged for manual review.
+ *
+ * @param db      - Drizzle D1 database instance
+ * @param binding - R2Bucket binding from Cloudflare environment
+ * @returns Result counts and timestamp
+ */
+export async function retryPendingR2Deletions(
+  db: Database,
+  binding: R2Bucket,
+): Promise<PendingDeletionsResult> {
+  const nowIso = new Date().toISOString();
+
+  const pending = await db.select().from(pendingR2Deletions).limit(PENDING_DELETIONS_BATCH);
+
+  let succeeded = 0;
+  let failed = 0;
+  let skipped = 0;
+
+  for (const row of pending) {
+    if (row.attempts >= PENDING_DELETIONS_MAX_ATTEMPTS) {
+      console.error(
+        `Pending R2 deletion ${row.id} (key=${row.r2Key}) has reached max attempts (${row.attempts}); skipping for manual review`,
+      );
+      skipped++;
+      continue;
+    }
+
+    try {
+      await binding.delete(row.r2Key);
+      await db.delete(pendingR2Deletions).where(eq(pendingR2Deletions.id, row.id));
+      succeeded++;
+    } catch (error) {
+      const errMessage = error instanceof Error ? error.message : String(error);
+      console.error(`Failed to retry pending R2 deletion ${row.id} (key=${row.r2Key}):`, error);
+      await db
+        .update(pendingR2Deletions)
+        .set({
+          attempts: row.attempts + 1,
+          lastError: errMessage,
+        })
+        .where(eq(pendingR2Deletions.id, row.id));
+      failed++;
+    }
+  }
+
+  if (succeeded > 0 || failed > 0 || skipped > 0) {
+    console.log(
+      `Pending R2 deletions sweep: ${succeeded} succeeded, ${failed} failed, ${skipped} skipped (max attempts)`,
+    );
+  }
+
+  return {
+    ok: true,
+    retried: pending.length,
+    succeeded,
+    failed,
+    skipped,
     timestamp: nowIso,
   };
 }
