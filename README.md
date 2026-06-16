@@ -1,5 +1,7 @@
 # clickfolio.me
 
+<img width="1624" height="964" alt="Screenshot 2026-06-16 at 4 35 36 PM" src="https://github.com/user-attachments/assets/c2075f44-b11d-4b20-bbe8-68652ebb7f53" />
+
 **Turn your PDF resume into a hosted web portfolio in under 60 seconds.**
 
 Upload a PDF. AI parses it. Get a shareable link.
