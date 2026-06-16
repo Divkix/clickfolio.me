@@ -11,7 +11,7 @@
  * (React 19+), so we query document.head rather than the container.
  */
 
-import { render } from "@testing-library/react";
+import { cleanup, render } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vite-plus/test";
 import { TemplateFontLinks } from "@/components/templates/shared/TemplateFontLinks";
 
@@ -23,7 +23,13 @@ function collectLinks(container: Element) {
 }
 
 afterEach(() => {
-  // Clean up any link elements added to document.head between tests
+  // Unmount any rendered tree FIRST so React removes the <link> elements it
+  // hoisted into <head> itself (React 19 hoists <link>s). Sweeping <head>
+  // before React unmounts races React's own removal and throws
+  // "Cannot read properties of null (reading 'removeChild')" under the unit
+  // test config (vitest.unit.config.ts). cleanup() forces the unmount first;
+  // the sweep below then only clears any stragglers.
+  cleanup();
   for (const link of Array.from(document.head.querySelectorAll("link"))) {
     link.remove();
   }
