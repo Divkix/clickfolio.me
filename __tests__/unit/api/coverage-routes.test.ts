@@ -73,6 +73,29 @@ const mocks = vi.hoisted(() => {
     return chain;
   };
 
+  // Insert chains must not consume a select result — they resolve to undefined so
+  // that awaiting db.insert(...).values(...) does not dequeue from selectResults.
+  // All chain methods still return `insertChain` so that builder expressions like
+  // .values(...).onConflictDoUpdate(...) work when passed into db.batch([...]).
+  const createInsertChain = (): Record<string, unknown> => {
+    const chain: Record<string, unknown> = {
+      values: vi.fn(() => chain),
+      set: vi.fn(() => chain),
+      onConflictDoNothing: vi.fn(() => chain),
+      onConflictDoUpdate: vi.fn(() => chain),
+      returning: vi.fn(() => chain),
+      where: vi.fn(() => chain),
+      // eslint-disable-next-line unicorn/no-thenable -- resolves to undefined so the insert
+      // does not consume a queued select result when awaited directly.
+      then: vi.fn(
+        (resolve: (value: undefined) => unknown, _reject?: (reason: unknown) => unknown) => {
+          return Promise.resolve(resolve(undefined));
+        },
+      ),
+    };
+    return chain;
+  };
+
   const db = {
     query: {
       user: { findFirst: vi.fn() },
@@ -80,7 +103,7 @@ const mocks = vi.hoisted(() => {
       resumes: { findFirst: vi.fn() },
     },
     select: vi.fn(() => createChain()),
-    insert: vi.fn(() => createChain()),
+    insert: vi.fn(() => createInsertChain()),
     update: vi.fn(() => createChain()),
     delete: vi.fn(() => createChain()),
     batch: vi.fn(async () => undefined),
