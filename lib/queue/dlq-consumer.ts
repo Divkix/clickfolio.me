@@ -106,6 +106,13 @@ export async function handleDLQMessage(
     .where(eq(resumes.id, originalMessage.resumeId))
     .limit(1);
 
+  // Do not clobber a resume that already completed via a concurrent path
+  // (waiting-for-cache fan-out, cache hit, or orphan-recovery re-queue).
+  if (currentResume[0]?.status === "completed") {
+    console.log(`DLQ: resume ${originalMessage.resumeId} already completed, skipping failure mark`);
+    return;
+  }
+
   // Parse last attempt error if available
   let errorType = QueueErrorType.UNKNOWN;
   try {

@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
 import { resumes } from "@/lib/db/schema";
 import {
@@ -103,7 +103,7 @@ export async function GET(request: Request) {
             errorMessage:
               "Parsing timed out while waiting for cached result. Please try uploading again.",
           })
-          .where(eq(resumes.id, resumeId));
+          .where(and(eq(resumes.id, resumeId), eq(resumes.status, "waiting_for_cache")));
 
         await captureBookmark();
         return createSuccessResponse({

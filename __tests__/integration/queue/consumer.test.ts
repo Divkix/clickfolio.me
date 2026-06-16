@@ -1143,6 +1143,74 @@ describe("DLQ Consumer", () => {
     // Should handle wrapped message without errors
     await expect(handleDLQMessage(deadLetterMessage, env)).resolves.not.toThrow();
   });
+
+  it("26. DLQ does NOT clobber an already-completed resume", async () => {
+    const { handleDLQMessage } = await import("@/lib/queue/dlq-consumer");
+    const { notifyStatusChange } = await import("@/lib/queue/notify-status");
+
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const updateCalls: Array<{ status?: string; errorMessage?: string }> = [];
+
+    const mockDb = {
+      select: vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([
+              {
+                status: "completed",
+                totalAttempts: 1,
+                lastAttemptError: null,
+              },
+            ]),
+          }),
+        }),
+      }),
+      update: vi.fn().mockImplementation(() => ({
+        set: vi.fn().mockImplementation((values: { status?: string; errorMessage?: string }) => {
+          updateCalls.push(values);
+          return {
+            where: vi.fn().mockResolvedValue(undefined),
+          };
+        }),
+      })),
+    };
+
+    vi.mocked((await import("@/lib/db/session")).getSessionDbForWebhook).mockReturnValueOnce({
+      db: mockDb as never,
+    });
+
+    const message = {
+      type: "parse" as const,
+      resumeId: crypto.randomUUID(),
+      userId: "user-1",
+      r2Key: "users/user-1/123/resume.pdf",
+      fileHash: "hash123",
+      attempt: 3,
+    };
+
+    const env = {
+      CLICKFOLIO_DB: {} as D1Database,
+      CLICKFOLIO_STATUS_DO: {
+        idFromName: vi.fn().mockReturnValue({} as DurableObjectId),
+        get: vi.fn().mockReturnValue({
+          fetch: vi.fn().mockResolvedValue(new Response("OK")),
+        }),
+      } as unknown as DurableObjectNamespace,
+    } as unknown as CloudflareEnv;
+
+    await handleDLQMessage(message, env);
+
+    // The failed-status write must be skipped for an already-completed resume
+    expect(mockDb.update).not.toHaveBeenCalled();
+    expect(updateCalls.find((c) => c.status === "failed")).toBeUndefined();
+
+    // No WebSocket failure notification and no alert should be sent
+    expect(notifyStatusChange).not.toHaveBeenCalled();
+    expect(consoleErrorSpy).not.toHaveBeenCalledWith("[DLQ_ALERT]", expect.any(String));
+
+    consoleErrorSpy.mockRestore();
+  });
 });
 
 // ── Tests: Worker Queue Handler ───────────────────────────────────
