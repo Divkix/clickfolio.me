@@ -5,6 +5,7 @@ import { ShareBar } from "@/components/ShareBar";
 import { type ContactLinkType, getContactLinks } from "@/lib/templates/contact-links";
 import { formatDateRange, formatShortDate } from "@/lib/templates/helpers";
 import type { TemplateProps } from "@/lib/types/template";
+import { TemplateFontLinks } from "./shared/TemplateFontLinks";
 
 const navIconMap: Record<ContactLinkType, React.ReactNode> = {
   email: <Mail className="w-4 h-4 text-neutral-600 group-hover:text-black" aria-hidden="true" />,
@@ -68,12 +69,7 @@ export const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile 
 
   return (
     <>
-      <link rel="preconnect" href="https://fonts.googleapis.com" />
-      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-      <link
-        href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap"
-        rel="stylesheet"
-      />
+      <TemplateFontLinks href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap" />
       <style>{`
         .font-serif-me { font-family: 'Instrument Serif', serif; }
       `}</style>

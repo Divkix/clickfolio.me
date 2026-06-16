@@ -1,23 +1,13 @@
 "use client";
 
-import { Globe, Mail, MapPin, Phone, Printer } from "lucide-react";
+import { Printer } from "lucide-react";
 import type React from "react";
-import { Github, Linkedin } from "@/components/icons/BrandIcons";
 import { ShareBar } from "@/components/ShareBar";
-import { type ContactLinkType, getContactLinks } from "@/lib/templates/contact-links";
+import { getContactLinks } from "@/lib/templates/contact-links";
 import { flattenSkills, formatDateRange, formatYear } from "@/lib/templates/helpers";
 import type { TemplateProps } from "@/lib/types/template";
-
-const atsIconMap: Partial<
-  Record<ContactLinkType, React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>>
-> = {
-  location: MapPin,
-  phone: Phone,
-  email: Mail,
-  linkedin: Linkedin,
-  github: Github,
-  website: Globe,
-};
+import { getContactIcon } from "./shared/ContactIcon";
+import { TemplateFontLinks } from "./shared/TemplateFontLinks";
 
 /**
  * ClassicATS Template
@@ -38,12 +28,7 @@ export const ClassicATS: React.FC<TemplateProps> = ({ content, profile }) => {
 
   return (
     <>
-      <link rel="preconnect" href="https://fonts.googleapis.com" />
-      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-      <link
-        href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,700;1,400&display=swap"
-        rel="stylesheet"
-      />
+      <TemplateFontLinks href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,700;1,400&display=swap" />
       <style>{`
         .font-serif-ats { font-family: 'Lora', serif; }
       `}</style>
@@ -62,7 +47,6 @@ export const ClassicATS: React.FC<TemplateProps> = ({ content, profile }) => {
               className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-sm text-gray-700"
             >
               {contactLinks.map((link) => {
-                const IconComponent = atsIconMap[link.type];
                 const isNonClickable = link.type === "location" || link.type === "phone";
                 const showPrintUrl = link.isExternal;
                 const isBranded = link.type === "behance" || link.type === "dribbble";
@@ -72,9 +56,10 @@ export const ClassicATS: React.FC<TemplateProps> = ({ content, profile }) => {
                 if (isNonClickable) {
                   return (
                     <span key={link.type} className="inline-flex items-center gap-1">
-                      {IconComponent && (
-                        <IconComponent className="w-3.5 h-3.5 print:hidden" aria-hidden={true} />
-                      )}
+                      {getContactIcon(link.type, {
+                        className: "w-3.5 h-3.5 print:hidden",
+                        "aria-hidden": true,
+                      })}
                       {link.label}
                     </span>
                   );
@@ -88,9 +73,10 @@ export const ClassicATS: React.FC<TemplateProps> = ({ content, profile }) => {
                     rel={link.isExternal ? "noopener noreferrer" : undefined}
                     className="inline-flex items-center gap-1 hover:text-gray-900 hover:underline"
                   >
-                    {IconComponent && (
-                      <IconComponent className="w-3.5 h-3.5 print:hidden" aria-hidden={true} />
-                    )}
+                    {getContactIcon(link.type, {
+                      className: "w-3.5 h-3.5 print:hidden",
+                      "aria-hidden": true,
+                    })}
                     {isBranded ? (
                       <>
                         <span className="print:hidden">{brandText}</span>

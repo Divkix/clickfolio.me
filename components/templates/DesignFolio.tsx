@@ -4,6 +4,7 @@ import { ShareBar } from "@/components/ShareBar";
 import { type ContactLinkType, getContactLinks } from "@/lib/templates/contact-links";
 import { formatDateRange } from "@/lib/templates/helpers";
 import type { TemplateProps } from "@/lib/types/template";
+import { TemplateFontLinks } from "./shared/TemplateFontLinks";
 
 const dfIconMap: Partial<Record<ContactLinkType, React.ReactNode>> = {
   phone: <Phone size={18} aria-hidden="true" />,
@@ -47,12 +48,7 @@ export const DesignFolio: React.FC<TemplateProps> = ({ content, profile }) => {
   return (
     <>
       {/* Font preloading */}
-      <link rel="preconnect" href="https://fonts.googleapis.com" />
-      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-      <link
-        href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap"
-        rel="stylesheet"
-      />
+      <TemplateFontLinks href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" />
 
       <div className="min-h-screen bg-[#0f0f0f] text-[#e0e0e0] selection:bg-[#CCFF00] selection:text-black w-full overflow-x-hidden relative">
         {/* Custom font classes */}

@@ -4,6 +4,7 @@ import { ShareBar } from "@/components/ShareBar";
 import { getContactLinks } from "@/lib/templates/contact-links";
 import { formatDateRange } from "@/lib/templates/helpers";
 import type { TemplateProps } from "@/lib/types/template";
+import { TemplateFontLinks } from "./shared/TemplateFontLinks";
 
 export const DevTerminal: React.FC<TemplateProps> = ({ content, profile }) => {
   const {
@@ -36,12 +37,7 @@ export const DevTerminal: React.FC<TemplateProps> = ({ content, profile }) => {
   return (
     <>
       {/* Font preloading */}
-      <link rel="preconnect" href="https://fonts.googleapis.com" />
-      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-      <link
-        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap"
-        rel="stylesheet"
-      />
+      <TemplateFontLinks href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" />
 
       <div className="min-h-screen bg-[#0d1117] text-[#c9d1d9] selection:bg-[#388bfd] selection:text-white w-full overflow-x-hidden">
         {/* Custom font classes + typing animation */}

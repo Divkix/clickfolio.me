@@ -1,22 +1,13 @@
 "use client";
 
-import { Globe, Mail, MapPin } from "lucide-react";
+import { MapPin } from "lucide-react";
 import type React from "react";
-import { Github, Linkedin } from "@/components/icons/BrandIcons";
 import { ShareBar } from "@/components/ShareBar";
-import { type ContactLinkType, getContactLinks } from "@/lib/templates/contact-links";
+import { getContactLinks } from "@/lib/templates/contact-links";
 import { flattenSkills, formatDateRange, formatYear, getInitials } from "@/lib/templates/helpers";
 import type { TemplateProps } from "@/lib/types/template";
-
-const corporateIconMap: Partial<
-  Record<ContactLinkType, React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>>
-> = {
-  location: MapPin,
-  email: Mail,
-  linkedin: Linkedin,
-  github: Github,
-  website: Globe,
-};
+import { getContactIcon } from "./shared/ContactIcon";
+import { TemplateFontLinks } from "./shared/TemplateFontLinks";
 
 export const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => {
   const nameParts = content.full_name.split(" ");
@@ -56,12 +47,7 @@ export const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => 
   return (
     <>
       {/* Font preloading */}
-      <link rel="preconnect" href="https://fonts.googleapis.com" />
-      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-      <link
-        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&display=swap"
-        rel="stylesheet"
-      />
+      <TemplateFontLinks href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&display=swap" />
 
       <main className="min-h-screen bg-white text-neutral-900 font-sans selection:bg-[#0055FF] selection:text-white overflow-y-auto scroll-smooth">
         <style>{`
@@ -172,7 +158,6 @@ export const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => 
             )}
             <nav aria-label="Contact information" className="flex flex-wrap items-center gap-4">
               {contactLinks.map((link) => {
-                const IconComponent = corporateIconMap[link.type];
                 const isLocation = link.type === "location";
                 const isBehance = link.type === "behance";
                 const isDribbble = link.type === "dribbble";
@@ -201,9 +186,9 @@ export const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => 
                       <span className="text-xs font-bold">Be</span>
                     ) : isDribbble ? (
                       <span className="text-xs font-bold">Dr</span>
-                    ) : IconComponent ? (
-                      <IconComponent className="w-4 h-4" aria-hidden={true} />
-                    ) : null}
+                    ) : (
+                      getContactIcon(link.type, { className: "w-4 h-4", "aria-hidden": true })
+                    )}
                     {link.label}
                   </a>
                 );
