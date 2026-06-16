@@ -1,5 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
+import { canRetryResume } from "@/lib/config/retry";
 import { resumes } from "@/lib/db/schema";
 import {
   createErrorResponse,
@@ -27,7 +28,7 @@ const WAITING_FOR_CACHE_TIMEOUT_MS = 10 * 60 * 1000;
  * Response fields vary by status:
  *   - progress_pct: number (0-100)
  *   - error: string | null
- *   - can_retry: boolean (true when failed and retryCount < 2)
+ *   - can_retry: boolean (true when the resume is actually retry-eligible; see canRetryResume)
  *   - parsed_content: object | null (only when completed)
  *   - waiting_for_cache: boolean (only when waiting)
  *   - queued: boolean (only when queued)
@@ -72,6 +73,7 @@ export async function GET(request: Request) {
         errorMessage: true,
         retryCount: true,
         totalAttempts: true,
+        lastAttemptError: true,
         createdAt: true,
       },
     });
@@ -110,7 +112,15 @@ export async function GET(request: Request) {
           status: "failed",
           progress_pct: 0,
           error: "Parsing timed out while waiting for cached result. Please try uploading again.",
-          can_retry: resume.retryCount < 2,
+          can_retry: canRetryResume({
+            // Row was just transitioned to "failed"; in-memory status is still
+            // "waiting_for_cache", so pass "failed" explicitly. lastAttemptError
+            // is not loaded here (timeout message only), so treat as transient.
+            status: "failed",
+            retryCount: resume.retryCount,
+            totalAttempts: resume.totalAttempts,
+            lastAttemptErrorType: null,
+          }),
         });
       }
 
@@ -171,11 +181,25 @@ export async function GET(request: Request) {
     }
 
     if (resume.status === "failed") {
+      let lastAttemptErrorType: string | null = null;
+      if (resume.lastAttemptError) {
+        try {
+          lastAttemptErrorType =
+            (JSON.parse(resume.lastAttemptError) as { type?: string }).type ?? null;
+        } catch {
+          lastAttemptErrorType = null;
+        }
+      }
       return createSuccessResponse({
         status: "failed",
         progress_pct: 0,
         error: resume.errorMessage ?? null,
-        can_retry: resume.retryCount < 2,
+        can_retry: canRetryResume({
+          status: resume.status,
+          retryCount: resume.retryCount,
+          totalAttempts: resume.totalAttempts,
+          lastAttemptErrorType,
+        }),
       });
     }
 

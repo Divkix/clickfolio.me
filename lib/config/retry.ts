@@ -49,3 +49,23 @@ export function hasExceededMaxAttempts(totalAttempts: number): boolean {
 export function isPermanentErrorType(errorType: string): boolean {
   return PERMANENT_ERROR_TYPES.includes(errorType as (typeof PERMANENT_ERROR_TYPES)[number]);
 }
+
+/**
+ * Whether a resume is eligible for a manual retry. Mirrors the checks enforced
+ * by POST /api/resume/retry so the status endpoint's `can_retry` flag never
+ * advertises a retry the retry route will reject.
+ */
+export function canRetryResume(input: {
+  status: string;
+  retryCount: number;
+  totalAttempts: number;
+  lastAttemptErrorType?: string | null;
+}): boolean {
+  if (input.status !== "failed") return false;
+  if (hasExceededMaxAttempts(input.totalAttempts)) return false;
+  if (input.retryCount >= RETRY_LIMITS.MANUAL_MAX_RETRIES) return false;
+  if (input.lastAttemptErrorType && isPermanentErrorType(input.lastAttemptErrorType)) {
+    return false;
+  }
+  return true;
+}
