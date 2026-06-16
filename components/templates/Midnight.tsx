@@ -1,20 +1,13 @@
 "use client";
 
-import { Globe, Mail, MapPin, Phone } from "lucide-react";
-import { type ReactNode, useState } from "react";
-import { GitHubIcon, LinkedInIcon } from "@/components/icons/BrandIcons";
+import { Mail, MapPin } from "lucide-react";
+import { useState } from "react";
 import { ShareBar } from "@/components/ShareBar";
-import { type ContactLinkType, getContactLinks } from "@/lib/templates/contact-links";
+import { getContactLinks } from "@/lib/templates/contact-links";
 import { flattenSkills, formatDateRange, formatYear, getInitials } from "@/lib/templates/helpers";
 import type { TemplateProps } from "@/lib/types/template";
+import { getContactIcon } from "./shared/ContactIcon";
 import { TemplateFontLinks } from "./shared/TemplateFontLinks";
-
-const midnightIconMap: Partial<Record<ContactLinkType, ReactNode>> = {
-  phone: <Phone className="w-4 h-4" aria-hidden="true" />,
-  github: <GitHubIcon variant="white" className="w-4 h-4" aria-hidden={true} />,
-  linkedin: <LinkedInIcon variant="white" className="w-4 h-4" aria-hidden={true} />,
-  website: <Globe className="w-4 h-4" aria-hidden="true" />,
-};
 
 // Pseudo-random star field positions (seeded, deterministic)
 const STAR_POSITIONS = [
@@ -425,7 +418,11 @@ export const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
                       {contactLinks
                         .filter((link) => link.type !== "email" && link.type !== "location")
                         .map((link) => {
-                          const icon = midnightIconMap[link.type];
+                          const icon = getContactIcon(link.type, {
+                            className: "w-4 h-4",
+                            variant: "white",
+                            "aria-hidden": true,
+                          });
                           const isBranded = link.type === "behance" || link.type === "dribbble";
                           const brandColor =
                             link.type === "behance"

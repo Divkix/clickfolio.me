@@ -1,24 +1,14 @@
 "use client";
 
-import { ArrowUpRight, Briefcase, Globe, GraduationCap, Mail, MapPin, Phone } from "lucide-react";
+import { ArrowUpRight, Briefcase, Globe, GraduationCap } from "lucide-react";
 import type React from "react";
 import { useCallback, useRef, useState } from "react";
-import { Github, Linkedin } from "@/components/icons/BrandIcons";
 import { ShareBar } from "@/components/ShareBar";
-import { type ContactLinkType, getContactLinks } from "@/lib/templates/contact-links";
+import { getContactLinks } from "@/lib/templates/contact-links";
 import { flattenSkills, formatDateRange, formatYear, getInitials } from "@/lib/templates/helpers";
 import type { TemplateProps } from "@/lib/types/template";
+import { getContactIcon } from "./shared/ContactIcon";
 import { TemplateFontLinks } from "./shared/TemplateFontLinks";
-
-/* ─── Icon map ─── */
-const spotlightIconMap: Partial<Record<ContactLinkType, React.ReactNode>> = {
-  github: <Github className="w-5 h-5" aria-hidden={true} />,
-  linkedin: <Linkedin className="w-5 h-5" aria-hidden={true} />,
-  email: <Mail className="w-5 h-5" aria-hidden="true" />,
-  website: <Globe className="w-5 h-5" aria-hidden="true" />,
-  phone: <Phone className="w-5 h-5" aria-hidden="true" />,
-  location: <MapPin className="w-5 h-5" aria-hidden="true" />,
-};
 
 /* ─── Spotlight card with cursor-tracking radial gradient ─── */
 function SpotlightCard({
@@ -230,7 +220,10 @@ export const Spotlight: React.FC<TemplateProps> = ({ content, profile }) => {
                 {/* Contact icons */}
                 <div className="flex gap-3 pt-4">
                   {contactLinks.map((link) => {
-                    const icon = spotlightIconMap[link.type];
+                    const icon = getContactIcon(link.type, {
+                      className: "w-5 h-5",
+                      "aria-hidden": true,
+                    });
                     const isBranded = link.type === "behance" || link.type === "dribbble";
                     const brandColor =
                       link.type === "behance"

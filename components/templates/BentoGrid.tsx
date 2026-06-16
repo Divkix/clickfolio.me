@@ -4,30 +4,17 @@ import {
   Briefcase,
   Code,
   Crown,
-  Globe,
   GraduationCap,
   Layers,
-  Mail,
   MapPin,
-  Phone,
 } from "lucide-react";
 import type React from "react";
-import { Github, Linkedin } from "@/components/icons/BrandIcons";
 import { ShareBar } from "@/components/ShareBar";
-import { type ContactLinkType, getContactLinks } from "@/lib/templates/contact-links";
+import { getContactLinks } from "@/lib/templates/contact-links";
 import { flattenSkills, formatDateRange, formatYear, getInitials } from "@/lib/templates/helpers";
 import type { TemplateProps } from "@/lib/types/template";
+import { getContactIcon } from "./shared/ContactIcon";
 import { TemplateFontLinks } from "./shared/TemplateFontLinks";
-
-const bentoIconMap: Partial<
-  Record<ContactLinkType, React.ComponentType<{ size?: number; strokeWidth?: number }>>
-> = {
-  email: Mail,
-  phone: Phone,
-  github: Github,
-  linkedin: Linkedin,
-  website: Globe,
-};
 
 export const BentoGrid: React.FC<TemplateProps> = ({ content, profile }) => {
   const skills = flattenSkills(content.skills);
@@ -61,7 +48,6 @@ export const BentoGrid: React.FC<TemplateProps> = ({ content, profile }) => {
                     {contactLinks
                       .filter((link) => link.type !== "location")
                       .map((link) => {
-                        const IconComponent = bentoIconMap[link.type];
                         const isBranded = link.type === "behance" || link.type === "dribbble";
                         const brandColor =
                           link.type === "behance"
@@ -96,7 +82,7 @@ export const BentoGrid: React.FC<TemplateProps> = ({ content, profile }) => {
                             aria-label={link.label}
                             className="p-2.5 bg-gray-50 rounded-full hover:bg-gray-100 border border-gray-100 hover:border-gray-200 transition-[color,background-color,border-color,transform] text-gray-500 hover:text-[#2D2926] hover:scale-105"
                           >
-                            {IconComponent && <IconComponent size={18} strokeWidth={1.5} />}
+                            {getContactIcon(link.type, { size: 18, strokeWidth: 1.5 })}
                           </a>
                         );
                       })}
@@ -126,7 +112,6 @@ export const BentoGrid: React.FC<TemplateProps> = ({ content, profile }) => {
                   {contactLinks
                     .filter((link) => link.type !== "location")
                     .map((link) => {
-                      const IconComponent = bentoIconMap[link.type];
                       const isBranded = link.type === "behance" || link.type === "dribbble";
                       const brandColor =
                         link.type === "behance"
@@ -161,7 +146,7 @@ export const BentoGrid: React.FC<TemplateProps> = ({ content, profile }) => {
                           aria-label={link.label}
                           className="p-2 bg-gray-100 rounded-full text-gray-600"
                         >
-                          {IconComponent && <IconComponent size={18} />}
+                          {getContactIcon(link.type, { size: 18 })}
                         </a>
                       );
                     })}
