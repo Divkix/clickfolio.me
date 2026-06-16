@@ -26,6 +26,7 @@ import * as schema from "@/lib/db/schema";
 import { createEmailSender } from "@/lib/email/cloudflare";
 import { isDisposableEmail } from "@/lib/email/disposable-check";
 import { generateReferralCode } from "@/lib/utils/referral-code";
+import { DEFAULT_PRIVACY_SETTINGS_JSON } from "@/lib/utils/privacy";
 
 /**
  * Module-level caches scoped to isolate lifetime.
@@ -180,8 +181,7 @@ export async function getAuth() {
         privacySettings: {
           type: "string",
           required: false,
-          defaultValue:
-            '{"show_phone":false,"show_address":false,"hide_from_search":false,"show_in_directory":true}',
+          defaultValue: DEFAULT_PRIVACY_SETTINGS_JSON,
         },
         onboardingCompleted: {
           type: "boolean",

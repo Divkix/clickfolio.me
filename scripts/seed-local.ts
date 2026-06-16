@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { scryptAsync } from "@noble/hashes/scrypt.js";
 import { bytesToHex, utf8ToBytes } from "@noble/hashes/utils.js";
+import { DEFAULT_PRIVACY_SETTINGS_JSON } from "@/lib/utils/privacy";
 
 // Hash password using scrypt to match Better Auth's internal format
 async function hashPassword(password: string): Promise<string> {
@@ -56,7 +57,7 @@ async function seed() {
     1,
     now,
     now,
-    '{"show_phone":false,"show_address":false,"hide_from_search":false,"show_in_directory":true}',
+    DEFAULT_PRIVACY_SETTINGS_JSON,
     0,
     0,
     0,
