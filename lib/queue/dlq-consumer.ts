@@ -4,6 +4,7 @@ import { getSessionDbForWebhook } from "../db/session";
 import { QueueErrorType } from "./errors";
 import { notifyStatusChange } from "./notify-status";
 import type { DeadLetterMessage, QueueMessage } from "./types";
+import { log } from "../utils/log";
 
 /**
  * Alert channels supported for DLQ notifications
@@ -48,7 +49,8 @@ async function sendAlert(
   switch (channel) {
     case "logpush":
       // Structured log for Cloudflare Logpush integration
-      console.error("[DLQ_ALERT]", JSON.stringify(payload));
+      // Field names from DLQAlertPayload are preserved as top-level JSON fields
+      log("error", "DLQ_ALERT", payload as unknown as Record<string, unknown>);
       break;
 
     case "webhook": {
@@ -64,7 +66,7 @@ async function sendAlert(
             }),
           });
         } catch (error) {
-          console.error("Webhook alert failed:", error);
+          log("error", "webhook alert failed", { error: String(error) });
         }
       }
       break;
@@ -109,7 +111,9 @@ export async function handleDLQMessage(
   // Do not clobber a resume that already completed via a concurrent path
   // (waiting-for-cache fan-out, cache hit, or orphan-recovery re-queue).
   if (currentResume[0]?.status === "completed") {
-    console.log(`DLQ: resume ${originalMessage.resumeId} already completed, skipping failure mark`);
+    log("info", "DLQ: resume already completed, skipping failure mark", {
+      resumeId: originalMessage.resumeId,
+    });
     return;
   }
 
@@ -162,5 +166,5 @@ export async function handleDLQMessage(
 
   await sendAlert(alertPayload, alertChannel, alertEnv);
 
-  console.log(`DLQ: Marked resume ${originalMessage.resumeId} as permanently failed`);
+  log("info", "DLQ: marked resume as permanently failed", { resumeId: originalMessage.resumeId });
 }

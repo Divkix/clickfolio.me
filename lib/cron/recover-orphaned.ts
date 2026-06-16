@@ -15,6 +15,7 @@ import { hasExceededMaxAttempts } from "@/lib/config/retry";
 import { resumes } from "@/lib/db/schema";
 import { publishResumeParse } from "@/lib/queue/resume-parse";
 import type { ResumeParseMessage } from "@/lib/queue/types";
+import { log } from "@/lib/utils/log";
 
 export interface RecoverOrphanedResult {
   ok: true;
@@ -120,7 +121,7 @@ export async function recoverOrphanedResumes(
   for (const resume of orphanedResumes) {
     // Skip if already at max attempts
     if (hasExceededMaxAttempts(resume.totalAttempts ?? 0)) {
-      console.log(`Skipping resume ${resume.id} - max attempts reached`);
+      log("info", "skipping resume - max attempts reached", { resumeId: resume.id });
       continue;
     }
 
@@ -146,9 +147,9 @@ export async function recoverOrphanedResumes(
       });
 
       successfulIds.push(resume.id);
-      console.log(`Recovered orphaned resume: ${resume.id}`);
+      log("info", "recovered orphaned resume", { resumeId: resume.id });
     } catch (error) {
-      console.error(`Failed to recover resume ${resume.id}:`, error);
+      log("error", "failed to recover resume", { resumeId: resume.id, error: String(error) });
       // Roll status back to pending_claim so the next recovery pass retries it
       // rather than leaving it stuck in "queued".
       try {
@@ -157,7 +158,10 @@ export async function recoverOrphanedResumes(
           .set({ status: "pending_claim", queuedAt: null })
           .where(eq(resumes.id, resume.id));
       } catch (rollbackError) {
-        console.error(`Failed to roll back resume ${resume.id}:`, rollbackError);
+        log("error", "failed to roll back resume", {
+          resumeId: resume.id,
+          error: String(rollbackError),
+        });
       }
     }
   }

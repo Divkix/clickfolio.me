@@ -21,6 +21,7 @@ import { handleQueueMessage } from "../lib/queue/consumer";
 import { handleDLQMessage } from "../lib/queue/dlq-consumer";
 import { isRetryableError } from "../lib/queue/errors";
 import { queueMessageSchema } from "../lib/queue/types";
+import { log } from "../lib/utils/log";
 
 /** Re-exported Durable Object for WebSocket resume status updates. */
 export { ClickfolioStatusDO } from "../lib/durable-objects/resume-status";
@@ -158,7 +159,10 @@ export default {
       try {
         const parsed = queueMessageSchema.safeParse(message.body);
         if (!parsed.success) {
-          console.error("Invalid queue message shape:", parsed.error.flatten());
+          log("error", "invalid queue message shape", {
+            queue: batch.queue,
+            error: JSON.stringify(parsed.error.flatten()),
+          });
           message.ack(); // discard malformed messages
           continue;
         }
@@ -172,14 +176,17 @@ export default {
         await handleQueueMessage(parsed.data, env);
         message.ack();
       } catch (error) {
-        console.error("Queue message processing failed:", error);
+        log("error", "queue message processing failed", {
+          queue: batch.queue,
+          error: String(error),
+        });
 
         // Use error classification to determine retry strategy
         if (isRetryableError(error)) {
           message.retry();
         } else {
           // Permanent error - ack to send to DLQ
-          console.error("Permanent error, sending to DLQ");
+          log("error", "permanent error, sending to DLQ", { queue: batch.queue });
           message.ack();
         }
       }
@@ -210,45 +217,54 @@ export default {
           // Daily at 2 AM UTC - R2 temp file cleanup + pending deletion retry
           const r2Binding = env.CLICKFOLIO_R2_BUCKET;
           if (!r2Binding) {
-            console.error("CLICKFOLIO_R2_BUCKET not available for R2 cleanup");
+            log("error", "CLICKFOLIO_R2_BUCKET not available for R2 cleanup", {
+              cron: controller.cron,
+            });
             return;
           }
           const result = await performR2Cleanup(r2Binding);
-          console.log(`Cron ${controller.cron} R2 cleanup completed:`, result);
+          log("info", "cron R2 cleanup completed", { cron: controller.cron, result });
           const pendingResult = await retryPendingR2Deletions(db, r2Binding);
-          console.log(`Cron ${controller.cron} pending deletions sweep completed:`, pendingResult);
+          log("info", "cron pending deletions sweep completed", {
+            cron: controller.cron,
+            result: pendingResult,
+          });
           break;
         }
         case "0 3 * * *": {
           const result = await performCleanup(db);
-          console.log(`Cron ${controller.cron} completed:`, result);
+          log("info", "cron completed", { cron: controller.cron, result });
           break;
         }
         case "0 4 * * *": {
           const kv = env.CLICKFOLIO_DISPOSABLE_DOMAINS;
           if (!kv) {
-            console.error("CLICKFOLIO_DISPOSABLE_DOMAINS KV not available for domain sync");
+            log("error", "CLICKFOLIO_DISPOSABLE_DOMAINS KV not available for domain sync", {
+              cron: controller.cron,
+            });
             return;
           }
           const syncResult = await syncDisposableDomains(kv);
-          console.log(`Cron ${controller.cron} completed:`, syncResult);
+          log("info", "cron completed", { cron: controller.cron, result: syncResult });
           break;
         }
         case "*/15 * * * *": {
           const queue = env.CLICKFOLIO_PARSE_QUEUE;
           if (!queue) {
-            console.error("CLICKFOLIO_PARSE_QUEUE not available for orphan recovery");
+            log("error", "CLICKFOLIO_PARSE_QUEUE not available for orphan recovery", {
+              cron: controller.cron,
+            });
             return;
           }
           const result = await recoverOrphanedResumes(db, queue);
-          console.log(`Cron ${controller.cron} completed:`, result);
+          log("info", "cron completed", { cron: controller.cron, result });
           break;
         }
         default:
-          console.error(`Unknown cron trigger: ${controller.cron}`);
+          log("error", "unknown cron trigger", { cron: controller.cron });
       }
     } catch (error) {
-      console.error(`Cron ${controller.cron} error:`, error);
+      log("error", "cron error", { cron: controller.cron, error: String(error) });
     }
   },
 } satisfies ExportedHandler<CloudflareEnv>;
