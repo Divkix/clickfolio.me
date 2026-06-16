@@ -1,8 +1,7 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import pngToIco from "png-to-ico";
 import sharp from "sharp";
-// @ts-expect-error - no type declarations for to-ico
-import toIco from "to-ico";
 
 const ROOT = join(import.meta.dirname, "..");
 const PUBLIC = join(ROOT, "public");
@@ -44,7 +43,7 @@ async function main() {
   console.log("Generating favicon.ico (16x16 + 32x32)...");
   const ico16 = pngBuffers.get(16)!;
   const ico32 = pngBuffers.get(32)!;
-  const ico = await toIco([ico16, ico32]);
+  const ico = await pngToIco([ico16, ico32]);
   await writeFile(join(PUBLIC, "favicon.ico"), ico);
 
   console.log("Done! Generated:");
