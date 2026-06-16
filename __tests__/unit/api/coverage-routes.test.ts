@@ -123,6 +123,7 @@ const mocks = vi.hoisted(() => {
     r2Put: vi.fn(async () => undefined),
     r2Delete: vi.fn(async () => undefined),
     r2GetAsUint8Array: vi.fn(async () => new Uint8Array([1, 2, 3])),
+    r2Head: vi.fn(async () => ({ exists: true })),
     resvgAsync: vi.fn(async (_svg: string, _options?: unknown) => ({
       render: () => ({
         asPng: () => new Uint8Array([137, 80, 78, 71]),
@@ -237,6 +238,7 @@ vi.mock("@/lib/r2", () => ({
     put: mocks.r2Put,
     delete: mocks.r2Delete,
     getAsUint8Array: mocks.r2GetAsUint8Array,
+    head: mocks.r2Head,
   },
 }));
 
@@ -328,6 +330,7 @@ describe("API route coverage", () => {
     mocks.r2Put.mockResolvedValue(undefined);
     mocks.r2Delete.mockResolvedValue(undefined);
     mocks.r2GetAsUint8Array.mockResolvedValue(new Uint8Array([1, 2, 3]));
+    mocks.r2Head.mockResolvedValue({ exists: true });
     mocks.resvgAsync.mockResolvedValue({
       render: () => ({
         asPng: () => new Uint8Array([137, 80, 78, 71]),
@@ -542,6 +545,13 @@ describe("API route coverage", () => {
 
     expect((await POST(jsonRequest("/api/upload/pending", { key: "bad/key" }))).status).toBe(400);
 
+    // Plan 004 guard: object not found in R2 → 404
+    mocks.r2Head.mockResolvedValueOnce({ exists: false });
+    expect(
+      (await POST(jsonRequest("/api/upload/pending", { key: "temp/upload.pdf" }))).status,
+    ).toBe(404);
+
+    // Plan 004 guard: object exists in R2 → 200 and cookie set
     expect(
       (await POST(jsonRequest("/api/upload/pending", { key: "temp/upload.pdf" }))).status,
     ).toBe(200);
