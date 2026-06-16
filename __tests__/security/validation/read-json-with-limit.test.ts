@@ -91,6 +91,22 @@ describe("readJsonWithLimit", () => {
     }
   });
 
+  it("allows a body whose byteLength equals maxSizeBytes exactly (true boundary)", async () => {
+    // Construct a payload whose UTF-8 byte length is exactly maxSizeBytes.
+    // Template: '{"x":"' (6 bytes) + inner + '"}' (2 bytes) = 8 bytes overhead.
+    // So inner length = cap - 8. ASCII-only so byteLength === length.
+    const cap = 32;
+    const inner = "A".repeat(cap - 8); // 24 chars
+    const payload = `{"x":"${inner}"}`; // exactly 32 bytes
+    expect(new TextEncoder().encode(payload).byteLength).toBe(cap); // sanity
+    const req = makeRequest(payload, undefined);
+    const result = await readJsonWithLimit(req, cap);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data).toEqual({ x: inner });
+    }
+  });
+
   it("returns invalid_json for a malformed body under the cap", async () => {
     const req = makeRequest("not valid json {{{");
     const result = await readJsonWithLimit(req);

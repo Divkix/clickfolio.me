@@ -73,6 +73,13 @@ vi.mock("@/lib/utils/security-headers", () => ({
 
 vi.mock("@/lib/utils/validation", () => ({
   validateRequestSize: vi.fn(() => ({ valid: true })),
+  readJsonWithLimit: vi.fn(async (req: Request) => {
+    try {
+      return { ok: true, data: await req.json() };
+    } catch {
+      return { ok: false, reason: "invalid_json", error: "Invalid JSON in request body" };
+    }
+  }),
 }));
 
 vi.mock("@/lib/utils/privacy", () => ({
