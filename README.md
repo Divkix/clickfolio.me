@@ -271,7 +271,7 @@ Create `.dev.vars` for development:
 # Generate a secure secret
 openssl rand -base64 32
 
-# Copy to .env.local
+# Copy to .dev.vars
 BETTER_AUTH_SECRET=your-generated-secret
 BETTER_AUTH_URL=http://localhost:3000
 
@@ -528,13 +528,13 @@ All templates receive `content` (ResumeContent) and `user` props, respect privac
 - **Privacy Controls**: Users control visibility of phone numbers and addresses
 - **IP Privacy**: IP addresses SHA-256 hashed before storage (GDPR-friendly)
 
-See [SECURITY.md](SECURITY.md) for detailed security policy, rate limiting details, and vulnerability reporting.
+To report a vulnerability, open a GitHub issue with the "security" label or contact the maintainers directly via the repository's GitHub page.
 
 ---
 
 ## Contributing
 
-Contributions welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+Contributions welcome! See [`AGENTS.md`](AGENTS.md) for branch conventions, commit style, and the `bun run ci` quality gate.
 
 ### Quick Contribution Guide
 
