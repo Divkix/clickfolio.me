@@ -33,14 +33,17 @@ const mockSelectChain = {
   leftJoin: vi.fn(),
   orderBy: vi.fn(),
   limit: vi.fn(),
+  offset: vi.fn(),
 };
 
-// Wire up the select chain
+// Wire up the select chain — all intermediate methods return the chain itself.
+// Terminal calls (.limit / .offset / .where used as await target) are set per-test.
 mockSelectChain.from.mockReturnValue(mockSelectChain);
 mockSelectChain.where.mockReturnValue(mockSelectChain);
 mockSelectChain.leftJoin.mockReturnValue(mockSelectChain);
 mockSelectChain.orderBy.mockReturnValue(mockSelectChain);
-mockSelectChain.limit.mockResolvedValue([]);
+mockSelectChain.limit.mockReturnValue(mockSelectChain);
+mockSelectChain.offset.mockResolvedValue([]);
 
 const mockDb = {
   query: {
@@ -150,7 +153,8 @@ describe("getResumeData - phone/address privacy filtering", () => {
     mockSelectChain.where.mockReturnValue(mockSelectChain);
     mockSelectChain.leftJoin.mockReturnValue(mockSelectChain);
     mockSelectChain.orderBy.mockReturnValue(mockSelectChain);
-    mockSelectChain.limit.mockResolvedValue([]);
+    mockSelectChain.limit.mockReturnValue(mockSelectChain);
+    mockSelectChain.offset.mockResolvedValue([]);
     mockDb.select.mockReturnValue(mockSelectChain);
   });
 
@@ -243,7 +247,8 @@ describe("getResumeData - locked theme fallback", () => {
     mockSelectChain.where.mockReturnValue(mockSelectChain);
     mockSelectChain.leftJoin.mockReturnValue(mockSelectChain);
     mockSelectChain.orderBy.mockReturnValue(mockSelectChain);
-    mockSelectChain.limit.mockResolvedValue([]);
+    mockSelectChain.limit.mockReturnValue(mockSelectChain);
+    mockSelectChain.offset.mockResolvedValue([]);
     mockDb.select.mockReturnValue(mockSelectChain);
   });
 
@@ -313,61 +318,82 @@ describe("getResumeData - locked theme fallback", () => {
   });
 });
 
-// ── Tests: getRelatedProfiles — hide_from_search exclusion ────────────
+// ── Tests: getRelatedProfiles — bounded-window strategy ──────────────
 
-describe("getRelatedProfiles - hide_from_search and current handle exclusion", () => {
+describe("getRelatedProfiles - bounded random window", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockSelectChain.from.mockReturnValue(mockSelectChain);
     mockSelectChain.where.mockReturnValue(mockSelectChain);
     mockSelectChain.leftJoin.mockReturnValue(mockSelectChain);
     mockSelectChain.orderBy.mockReturnValue(mockSelectChain);
-    mockSelectChain.limit.mockResolvedValue([]);
+    mockSelectChain.limit.mockReturnValue(mockSelectChain);
+    mockSelectChain.offset.mockResolvedValue([]);
     mockDb.select.mockReturnValue(mockSelectChain);
   });
 
-  it("applies privacy and handle exclusion filters to the DB query", async () => {
+  it("returns at most 3 entries from a larger pool", async () => {
     const { getRelatedProfiles } = await import("@/lib/data/resume");
-    const { and, ne, isNotNull } = await import("drizzle-orm");
 
-    mockSelectChain.limit.mockResolvedValueOnce([
+    // First select call: count query — .where() resolves with count row
+    mockSelectChain.where.mockResolvedValueOnce([{ n: 20 }]);
+    // Second select call: window query — .offset() resolves with 5 rows
+    mockSelectChain.offset.mockResolvedValueOnce([
       { handle: "alice", name: "Alice", headline: "Designer" },
       { handle: "bob", name: "Bob", headline: null },
+      { handle: "carol", name: "Carol", headline: "PM" },
+      { handle: "dave", name: "Dave", headline: "Engineer" },
+      { handle: "eve", name: "Eve", headline: "Data" },
     ]);
 
     const result = await getRelatedProfiles("janedoe");
 
-    expect(result).toHaveLength(2);
-    expect(result[0]).toMatchObject({ handle: "alice", name: "Alice" });
-    expect(result[1]).toMatchObject({ handle: "bob", name: "Bob" });
-    // Verify the filter was applied (ne called with current handle)
+    expect(result.length).toBeLessThanOrEqual(3);
+    // All returned handles must be from the pool
+    const validHandles = new Set(["alice", "bob", "carol", "dave", "eve"]);
+    for (const r of result) {
+      expect(validHandles.has(r.handle)).toBe(true);
+    }
+  });
+
+  it("excludes currentHandle — filters applied via drizzle-orm helpers", async () => {
+    const { getRelatedProfiles } = await import("@/lib/data/resume");
+    const { and, ne, isNotNull } = await import("drizzle-orm");
+
+    mockSelectChain.where.mockResolvedValueOnce([{ n: 5 }]);
+    mockSelectChain.offset.mockResolvedValueOnce([
+      { handle: "alice", name: "Alice", headline: "Designer" },
+    ]);
+
+    await getRelatedProfiles("janedoe");
+
+    // Verify where-clause builders were called (ne guards currentHandle)
     expect(ne).toHaveBeenCalled();
     expect(isNotNull).toHaveBeenCalled();
     expect(and).toHaveBeenCalled();
   });
 
-  it("returns empty array when no public profiles exist", async () => {
+  it("returns [] when count is 0", async () => {
     const { getRelatedProfiles } = await import("@/lib/data/resume");
 
-    mockSelectChain.limit.mockResolvedValueOnce([]);
+    mockSelectChain.where.mockResolvedValueOnce([{ n: 0 }]);
 
     const result = await getRelatedProfiles("janedoe");
 
     expect(result).toHaveLength(0);
   });
 
-  it("filters out rows with null handle", async () => {
+  it("filters out rows with null handle from the window", async () => {
     const { getRelatedProfiles } = await import("@/lib/data/resume");
 
-    // Simulate a row with null handle (shouldn't happen due to WHERE isNotNull, but defensive)
-    mockSelectChain.limit.mockResolvedValueOnce([
+    mockSelectChain.where.mockResolvedValueOnce([{ n: 3 }]);
+    mockSelectChain.offset.mockResolvedValueOnce([
       { handle: null, name: "Ghost", headline: null },
       { handle: "visible", name: "Visible User", headline: "Engineer" },
     ]);
 
     const result = await getRelatedProfiles("janedoe");
 
-    // Null-handle rows are filtered in the map/filter step
     expect(result).toHaveLength(1);
     expect(result[0].handle).toBe("visible");
   });
