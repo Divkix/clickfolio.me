@@ -261,7 +261,7 @@ export const getResumeMetadata = cache((handle: string) => fetchResumeMetadataRa
 
 /**
  * Fetch related public profiles for cross-linking on profile pages.
- * Prioritizes similar skills and excludes the current profile.
+ * Returns a small randomized set of public profiles excluding the current one.
  */
 export const getRelatedProfiles = cache(
   async (
@@ -276,6 +276,25 @@ export const getRelatedProfiles = cache(
       sql`json_extract(${user.privacySettings}, '$.hide_from_search') = false`,
     );
 
+    const whereClause = and(
+      isNotNull(user.handle),
+      ne(user.handle, currentHandle),
+      notHiddenFromSearch,
+      isNotNull(siteData.userId),
+    );
+
+    const WINDOW = 12; // small pool to randomize within
+    const countRows = await db
+      .select({ n: sql<number>`count(*)` })
+      .from(user)
+      .leftJoin(siteData, sql`${siteData.userId} = ${user.id}`)
+      .where(whereClause);
+    const total = Number(countRows[0]?.n ?? 0);
+    if (total === 0) return [];
+
+    const maxOffset = Math.max(0, total - WINDOW);
+    const offset = maxOffset > 0 ? Math.floor(Math.random() * (maxOffset + 1)) : 0;
+
     const rows = await db
       .select({
         handle: user.handle,
@@ -284,23 +303,21 @@ export const getRelatedProfiles = cache(
       })
       .from(user)
       .leftJoin(siteData, sql`${siteData.userId} = ${user.id}`)
-      .where(
-        and(
-          isNotNull(user.handle),
-          ne(user.handle, currentHandle),
-          notHiddenFromSearch,
-          isNotNull(siteData.userId),
-        ),
-      )
-      .orderBy(sql`random()`)
-      .limit(3);
+      .where(whereClause)
+      .orderBy(user.handle) // stable, indexable ordering — no random() sort
+      .limit(WINDOW)
+      .offset(offset);
 
-    return rows
-      .filter((r) => r.handle)
-      .map((r) => ({
-        handle: r.handle!,
-        name: r.name?.trim() || r.handle!,
-        headline: r.headline?.trim() || null,
-      }));
+    // shuffle the small window in memory and take 3
+    const pool = rows.filter((r) => r.handle);
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    return pool.slice(0, 3).map((r) => ({
+      handle: r.handle!,
+      name: r.name?.trim() || r.handle!,
+      headline: r.headline?.trim() || null,
+    }));
   },
 );
