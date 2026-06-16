@@ -10,7 +10,7 @@ import {
   createSuccessResponse,
   ERROR_CODES,
 } from "@/lib/utils/security-headers";
-import { validateRequestSize } from "@/lib/utils/validation";
+import { readJsonWithLimit, validateRequestSize } from "@/lib/utils/validation";
 
 interface UpdateRequestBody {
   content?: ResumeContent;
@@ -58,13 +58,16 @@ export async function PUT(request: Request) {
 
     const userId = authUser.id;
 
-    // 3. Parse and validate request body
-    let body: UpdateRequestBody;
-    try {
-      body = (await request.json()) as UpdateRequestBody;
-    } catch {
-      return createErrorResponse("Invalid JSON in request body", ERROR_CODES.BAD_REQUEST, 400);
+    // 3. Parse and validate request body (size-capped read, no trust in Content-Length)
+    const rawBodyResult = await readJsonWithLimit(request);
+    if (!rawBodyResult.ok) {
+      return createErrorResponse(
+        rawBodyResult.error,
+        ERROR_CODES.BAD_REQUEST,
+        rawBodyResult.reason === "too_large" ? 413 : 400,
+      );
     }
+    const body = rawBodyResult.data as UpdateRequestBody;
 
     const validation = resumeContentSchemaStrict.safeParse(body.content);
 

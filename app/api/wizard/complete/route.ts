@@ -12,7 +12,7 @@ import {
   createSuccessResponse,
   ERROR_CODES,
 } from "@/lib/utils/security-headers";
-import { validateRequestSize } from "@/lib/utils/validation";
+import { readJsonWithLimit, validateRequestSize } from "@/lib/utils/validation";
 
 /**
  * Wizard completion request schema
@@ -70,25 +70,26 @@ export async function POST(request: Request) {
     } = await requireAuthWithUserValidation("You must be logged in to complete onboarding");
     if (authError) return authError;
 
-    // 4. Parse and validate request body
-    let body: WizardCompleteRequest;
-    try {
-      const rawBody = await request.json();
-      const validation = wizardCompleteSchema.safeParse(rawBody);
-
-      if (!validation.success) {
-        return createErrorResponse(
-          "Validation failed. Please check your input.",
-          ERROR_CODES.VALIDATION_ERROR,
-          400,
-          validation.error.issues,
-        );
-      }
-
-      body = validation.data;
-    } catch {
-      return createErrorResponse("Invalid JSON in request body", ERROR_CODES.BAD_REQUEST, 400);
+    // 4. Parse and validate request body (size-capped read, no trust in Content-Length)
+    const rawBodyResult = await readJsonWithLimit(request);
+    if (!rawBodyResult.ok) {
+      return createErrorResponse(
+        rawBodyResult.error,
+        ERROR_CODES.BAD_REQUEST,
+        rawBodyResult.reason === "too_large" ? 413 : 400,
+      );
     }
+
+    const validation = wizardCompleteSchema.safeParse(rawBodyResult.data);
+    if (!validation.success) {
+      return createErrorResponse(
+        "Validation failed. Please check your input.",
+        ERROR_CODES.VALIDATION_ERROR,
+        400,
+        validation.error.issues,
+      );
+    }
+    const body: WizardCompleteRequest = validation.data;
 
     // 4b. Validate theme access based on referral count
     const themeError = await verifyThemeUnlocked(db, authUser.id, body.theme_id as ThemeId);

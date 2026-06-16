@@ -9,7 +9,7 @@ import {
   createSuccessResponse,
   ERROR_CODES,
 } from "@/lib/utils/security-headers";
-import { validateRequestSize } from "@/lib/utils/validation";
+import { readJsonWithLimit, validateRequestSize } from "@/lib/utils/validation";
 
 /**
  * PUT /api/profile/handle
@@ -75,15 +75,17 @@ export async function PUT(request: Request) {
       );
     }
 
-    // 5. Parse and validate request body
-    let body;
-    try {
-      body = await request.json();
-    } catch {
-      return createErrorResponse("Invalid JSON in request body", ERROR_CODES.BAD_REQUEST, 400);
+    // 5. Parse and validate request body (size-capped read, no trust in Content-Length)
+    const rawBodyResult = await readJsonWithLimit(request);
+    if (!rawBodyResult.ok) {
+      return createErrorResponse(
+        rawBodyResult.error,
+        ERROR_CODES.BAD_REQUEST,
+        rawBodyResult.reason === "too_large" ? 413 : 400,
+      );
     }
 
-    const validation = handleUpdateSchema.safeParse(body);
+    const validation = handleUpdateSchema.safeParse(rawBodyResult.data);
 
     if (!validation.success) {
       return createErrorResponse(
