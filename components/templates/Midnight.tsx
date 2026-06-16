@@ -7,6 +7,7 @@ import { ShareBar } from "@/components/ShareBar";
 import { type ContactLinkType, getContactLinks } from "@/lib/templates/contact-links";
 import { flattenSkills, formatDateRange, formatYear, getInitials } from "@/lib/templates/helpers";
 import type { TemplateProps } from "@/lib/types/template";
+import { TemplateFontLinks } from "./shared/TemplateFontLinks";
 
 const midnightIconMap: Partial<Record<ContactLinkType, ReactNode>> = {
   phone: <Phone className="w-4 h-4" aria-hidden="true" />,
@@ -88,12 +89,7 @@ export const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
   return (
     <>
       {/* Font preloading */}
-      <link rel="preconnect" href="https://fonts.googleapis.com" />
-      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-      <link
-        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=DM+Sans:wght@400;500&display=swap"
-        rel="stylesheet"
-      />
+      <TemplateFontLinks href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=DM+Sans:wght@400;500&display=swap" />
 
       <div className="min-h-screen bg-[#0a0a0a] text-neutral-200 selection:bg-[#C9A96E]/30 selection:text-[#C9A96E] relative overflow-x-hidden">
         {/* Custom font classes + animations */}

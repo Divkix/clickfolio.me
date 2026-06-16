@@ -21,6 +21,7 @@ import {
 import type { Project } from "@/lib/types/database";
 import type { TemplateProps } from "@/lib/types/template";
 import { NeoBrutalistMobileNav } from "./NeoBrutalistMobileNav";
+import { TemplateFontLinks } from "./shared/TemplateFontLinks";
 
 export const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
   const safeHeadline =
@@ -41,12 +42,7 @@ export const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
 
   return (
     <>
-      <link rel="preconnect" href="https://fonts.googleapis.com" />
-      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-      <link
-        href="https://fonts.googleapis.com/css2?family=Archivo+Black&display=swap"
-        rel="stylesheet"
-      />
+      <TemplateFontLinks href="https://fonts.googleapis.com/css2?family=Archivo+Black&display=swap" />
       <div className="min-h-screen bg-[#FFFDF5] font-mono p-4 md:p-6 overflow-y-auto selection:bg-[#FF90E8] selection:text-black">
         <main className="max-w-6xl mx-auto space-y-8 pb-20">
           {/* Navigation Bar */}

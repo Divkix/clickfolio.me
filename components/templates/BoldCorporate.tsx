@@ -7,6 +7,7 @@ import { ShareBar } from "@/components/ShareBar";
 import { type ContactLinkType, getContactLinks } from "@/lib/templates/contact-links";
 import { flattenSkills, formatDateRange, formatYear, getInitials } from "@/lib/templates/helpers";
 import type { TemplateProps } from "@/lib/types/template";
+import { TemplateFontLinks } from "./shared/TemplateFontLinks";
 
 const corporateIconMap: Partial<
   Record<ContactLinkType, React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>>
@@ -56,12 +57,7 @@ export const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => 
   return (
     <>
       {/* Font preloading */}
-      <link rel="preconnect" href="https://fonts.googleapis.com" />
-      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-      <link
-        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&display=swap"
-        rel="stylesheet"
-      />
+      <TemplateFontLinks href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&display=swap" />
 
       <main className="min-h-screen bg-white text-neutral-900 font-sans selection:bg-[#0055FF] selection:text-white overflow-y-auto scroll-smooth">
         <style>{`

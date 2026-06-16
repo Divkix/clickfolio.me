@@ -29,6 +29,7 @@ import {
 } from "@/lib/templates/helpers";
 import type { Project } from "@/lib/types/database";
 import type { TemplateProps } from "@/lib/types/template";
+import { TemplateFontLinks } from "./shared/TemplateFontLinks";
 
 // --- Configuration & Assets ---
 
@@ -170,9 +171,7 @@ export const GlassMorphic: React.FC<TemplateProps> = ({ content, profile }) => {
 
   return (
     <>
-      <link rel="preconnect" href="https://fonts.googleapis.com" />
-      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-      <link href={FONT_URL} rel="stylesheet" />
+      <TemplateFontLinks href={FONT_URL} />
 
       <style>{`
         :root {

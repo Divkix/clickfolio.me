@@ -17,6 +17,7 @@ import { ShareBar } from "@/components/ShareBar";
 import { type ContactLinkType, getContactLinks } from "@/lib/templates/contact-links";
 import { flattenSkills, formatDateRange, formatYear, getInitials } from "@/lib/templates/helpers";
 import type { TemplateProps } from "@/lib/types/template";
+import { TemplateFontLinks } from "./shared/TemplateFontLinks";
 
 const bentoIconMap: Partial<
   Record<ContactLinkType, React.ComponentType<{ size?: number; strokeWidth?: number }>>
@@ -35,12 +36,7 @@ export const BentoGrid: React.FC<TemplateProps> = ({ content, profile }) => {
   return (
     <>
       {/* Font preloading */}
-      <link rel="preconnect" href="https://fonts.googleapis.com" />
-      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-      <link
-        href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap"
-        rel="stylesheet"
-      />
+      <TemplateFontLinks href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" />
       <style>{`.font-heading-bg { font-family: 'Sora', sans-serif; }`}</style>
 
       <main className="min-h-screen bg-[#FAF8F5] text-[#2D2926] font-sans antialiased selection:bg-coral/30 p-4 md:p-8">
