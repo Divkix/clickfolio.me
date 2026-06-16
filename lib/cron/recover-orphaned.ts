@@ -9,7 +9,7 @@
  * but weren't successfully queued (e.g., due to worker crash after upload).
  */
 
-import { and, eq, isNotNull, lt, sql } from "drizzle-orm";
+import { and, eq, isNotNull, isNull, lt, or, sql } from "drizzle-orm";
 import type { Database } from "@/lib/db";
 import { hasExceededMaxAttempts } from "@/lib/config/retry";
 import { resumes } from "@/lib/db/schema";
@@ -39,8 +39,8 @@ export async function recoverOrphanedResumes(
     totalAttempts: resumes.totalAttempts,
   };
 
-  // Run both queries in parallel — they hit different index prefixes
-  const [pendingOrphans, processingOrphans] = await Promise.all([
+  // Run all queries in parallel — they hit different index prefixes
+  const [pendingOrphans, processingOrphans, queuedOrphans] = await Promise.all([
     // Resumes stuck in pending_claim (never queued, e.g. worker crash after upload)
     db
       .select(selectColumns)
@@ -54,7 +54,10 @@ export async function recoverOrphanedResumes(
         ),
       )
       .limit(10),
-    // Resumes stuck in processing (consumer crashed mid-parse)
+    // Resumes stuck in processing (consumer crashed mid-parse).
+    // Age-gate on queuedAt (time-in-processing), not createdAt (row age), so a
+    // manual retry of an old resume isn't treated as orphaned. Fall back to
+    // createdAt for legacy rows that predate queuedAt.
     db
       .select(selectColumns)
       .from(resumes)
@@ -63,7 +66,28 @@ export async function recoverOrphanedResumes(
           eq(resumes.status, "processing"),
           isNotNull(resumes.r2Key),
           isNotNull(resumes.fileHash),
-          lt(resumes.createdAt, fifteenMinutesAgo),
+          or(
+            lt(resumes.queuedAt, fifteenMinutesAgo),
+            and(isNull(resumes.queuedAt), lt(resumes.createdAt, fifteenMinutesAgo)),
+          ),
+        ),
+      )
+      .limit(10),
+    // Resumes stuck in queued (publish failed after status write, never consumed).
+    // Age-gate on queuedAt to avoid racing rows that were legitimately queued
+    // moments ago. Fall back to createdAt for legacy rows with a null queuedAt.
+    db
+      .select(selectColumns)
+      .from(resumes)
+      .where(
+        and(
+          eq(resumes.status, "queued"),
+          isNotNull(resumes.r2Key),
+          isNotNull(resumes.fileHash),
+          or(
+            lt(resumes.queuedAt, fifteenMinutesAgo),
+            and(isNull(resumes.queuedAt), lt(resumes.createdAt, fifteenMinutesAgo)),
+          ),
         ),
       )
       .limit(10),
@@ -71,11 +95,13 @@ export async function recoverOrphanedResumes(
 
   // Merge and deduplicate (shouldn't overlap, but defensive)
   const seenIds = new Set<string>();
-  const orphanedResumes = [...pendingOrphans, ...processingOrphans].filter((r) => {
-    if (seenIds.has(r.id)) return false;
-    seenIds.add(r.id);
-    return true;
-  });
+  const orphanedResumes = [...pendingOrphans, ...processingOrphans, ...queuedOrphans].filter(
+    (r) => {
+      if (seenIds.has(r.id)) return false;
+      seenIds.add(r.id);
+      return true;
+    },
+  );
 
   if (orphanedResumes.length === 0) {
     return {
@@ -123,8 +149,16 @@ export async function recoverOrphanedResumes(
       console.log(`Recovered orphaned resume: ${resume.id}`);
     } catch (error) {
       console.error(`Failed to recover resume ${resume.id}:`, error);
-      // Note: If queue publish fails, resume remains in "queued" status
-      // which is acceptable for orphaned recovery (resumes already stuck)
+      // Roll status back to pending_claim so the next recovery pass retries it
+      // rather than leaving it stuck in "queued".
+      try {
+        await db
+          .update(resumes)
+          .set({ status: "pending_claim", queuedAt: null })
+          .where(eq(resumes.id, resume.id));
+      } catch (rollbackError) {
+        console.error(`Failed to roll back resume ${resume.id}:`, rollbackError);
+      }
     }
   }
 
