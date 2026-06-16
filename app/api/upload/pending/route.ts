@@ -17,6 +17,7 @@
 import { env } from "cloudflare:workers";
 import { cookies } from "next/headers";
 import { getEnvValue } from "@/lib/auth";
+import { getR2Binding, R2 } from "@/lib/r2";
 import {
   COOKIE_MAX_AGE,
   COOKIE_NAME,
@@ -46,6 +47,15 @@ export async function POST(request: Request) {
     // Validate the key format (must be temp upload)
     if (!key || typeof key !== "string" || !key.startsWith("temp/")) {
       return createErrorResponse("Invalid upload key", ERROR_CODES.BAD_REQUEST, 400);
+    }
+
+    // Verify the temp object actually exists in R2 before signing.
+    // This prevents an attacker who learns a temp key from minting a valid
+    // pending_upload cookie for an object they did not upload.
+    const r2 = getR2Binding(typedEnv);
+    const head = r2 ? await R2.head(r2, key) : null;
+    if (!head?.exists) {
+      return createErrorResponse("Upload not found", ERROR_CODES.NOT_FOUND, 404);
     }
 
     // Create signed cookie value

@@ -83,6 +83,11 @@ const mockR2 = {
   delete: vi.fn().mockImplementation(async (_binding: R2Bucket, key: string) => {
     mockR2Store.delete(key);
   }),
+  head: vi.fn().mockImplementation(async (_binding: R2Bucket, key: string) => {
+    const buf = mockR2Store.get(key);
+    if (!buf) return { exists: false };
+    return { exists: true, size: buf.byteLength };
+  }),
 };
 
 // Queue mock
@@ -138,6 +143,7 @@ vi.mock("cloudflare:workers", () => ({
   env: {
     CLICKFOLIO_R2_BUCKET: mockR2Binding,
     CLICKFOLIO_PARSE_QUEUE: mockQueue,
+    BETTER_AUTH_SECRET: TEST_COOKIE_SECRET,
   },
 }));
 
@@ -171,6 +177,15 @@ vi.mock("@/lib/auth/middleware", () => ({
 vi.mock("@/lib/r2", () => ({
   getR2Binding: vi.fn().mockReturnValue(mockR2Binding),
   R2: mockR2,
+}));
+
+// Minimal next/headers mock needed by app/api/upload/pending/route.ts
+vi.mock("next/headers", () => ({
+  cookies: vi.fn().mockResolvedValue({
+    get: vi.fn().mockReturnValue(undefined),
+    set: vi.fn(),
+    delete: vi.fn(),
+  }),
 }));
 
 vi.mock("@/lib/db", () => ({
@@ -958,5 +973,63 @@ describe("Queue Processing → siteData Creation", () => {
 
     // Should use cache without calling AI
     expect(mockDb.batch).toHaveBeenCalled();
+  });
+});
+
+// ── Security Tests: POST /api/upload/pending R2 Existence Check ─────
+
+describe("POST /api/upload/pending - R2 existence check (hardening)", () => {
+  beforeEach(resetAll);
+
+  it("26. POST /api/upload/pending with unknown temp key → 404 (object not in R2)", async () => {
+    const { POST } = await import("@/app/api/upload/pending/route");
+    // mockR2Store is empty, so head() will return { exists: false }
+    const request = new Request("http://localhost:3000/api/upload/pending", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key: "temp/attacker-invented-uuid/victim.pdf" }),
+    });
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(404);
+    const body = (await response.json()) as { error: string };
+    expect(body.error).toContain("Upload not found");
+    // Crucially, no cookie should be set
+    expect(response.headers.get("set-cookie")).toBeNull();
+  });
+
+  it("27. POST /api/upload/pending with invalid key prefix → 400", async () => {
+    const { POST } = await import("@/app/api/upload/pending/route");
+    const request = new Request("http://localhost:3000/api/upload/pending", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key: "users/some-user/legitimate.pdf" }),
+    });
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(400);
+    const body = (await response.json()) as { error: string };
+    expect(body.error).toContain("Invalid upload key");
+  });
+
+  it("28. POST /api/upload/pending with key that exists in R2 → 200 and cookie set", async () => {
+    const { POST } = await import("@/app/api/upload/pending/route");
+    const tempKey = "temp/real-uuid/my-resume.pdf";
+    // Seed the R2 store so head() returns exists: true
+    mockR2Store.set(tempKey, makePdfBuffer());
+
+    const request = new Request("http://localhost:3000/api/upload/pending", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key: tempKey }),
+    });
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { success: boolean };
+    expect(body.success).toBe(true);
   });
 });
