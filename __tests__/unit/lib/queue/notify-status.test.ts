@@ -105,9 +105,20 @@ describe("Notify Status", () => {
       await notifyStatusChange({ resumeId: "resume-123", status: "processing", env });
 
       expect(consoleSpy).toHaveBeenCalled();
-      const errorCall = consoleSpy.mock.calls.find((call) => call[0].includes("[notify-status]"));
+      // log() emits a single JSON string; find by msg field containing notify-status
+      const errorCall = consoleSpy.mock.calls.find((call) => {
+        try {
+          const parsed = JSON.parse(call[0]) as Record<string, unknown>;
+          return (
+            typeof parsed["msg"] === "string" &&
+            parsed["msg"].includes("notify-status") &&
+            parsed["resumeId"] === "resume-123"
+          );
+        } catch {
+          return false;
+        }
+      });
       expect(errorCall).toBeDefined();
-      expect(errorCall?.[0]).toContain("resume-123");
 
       consoleSpy.mockRestore();
     });

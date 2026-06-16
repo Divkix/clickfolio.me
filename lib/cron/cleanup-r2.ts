@@ -13,6 +13,7 @@
 import { eq } from "drizzle-orm";
 import type { Database } from "@/lib/db";
 import { pendingR2Deletions } from "@/lib/db/schema";
+import { log } from "@/lib/utils/log";
 
 const TEMP_PREFIX = "temp/";
 const TEMP_CUTOFF_HOURS = 24;
@@ -81,7 +82,7 @@ export async function performR2Cleanup(binding: R2Bucket): Promise<R2CleanupResu
           bytesFreed += obj.size;
         }
       } catch (error) {
-        console.error(`Failed to delete R2 object ${obj.key}:`, error);
+        log("error", "failed to delete R2 object", { key: obj.key, error: String(error) });
         failed++;
       }
     }
@@ -95,9 +96,7 @@ export async function performR2Cleanup(binding: R2Bucket): Promise<R2CleanupResu
   }
 
   if (deleted > 0 || failed > 0) {
-    console.log(
-      `R2 cleanup completed: ${deleted} deleted, ${failed} failed, ${bytesFreed} bytes freed`,
-    );
+    log("info", "R2 cleanup completed", { deleted, failed, bytesFreed });
   }
 
   return {
@@ -143,9 +142,11 @@ export async function retryPendingR2Deletions(
 
   for (const row of pending) {
     if (row.attempts >= PENDING_DELETIONS_MAX_ATTEMPTS) {
-      console.error(
-        `Pending R2 deletion ${row.id} (key=${row.r2Key}) has reached max attempts (${row.attempts}); skipping for manual review`,
-      );
+      log("error", "pending R2 deletion reached max attempts; skipping for manual review", {
+        id: row.id,
+        r2Key: row.r2Key,
+        attempts: row.attempts,
+      });
       skipped++;
       continue;
     }
@@ -156,7 +157,11 @@ export async function retryPendingR2Deletions(
       succeeded++;
     } catch (error) {
       const errMessage = error instanceof Error ? error.message : String(error);
-      console.error(`Failed to retry pending R2 deletion ${row.id} (key=${row.r2Key}):`, error);
+      log("error", "failed to retry pending R2 deletion", {
+        id: row.id,
+        r2Key: row.r2Key,
+        error: errMessage,
+      });
       await db
         .update(pendingR2Deletions)
         .set({
@@ -169,9 +174,7 @@ export async function retryPendingR2Deletions(
   }
 
   if (succeeded > 0 || failed > 0 || skipped > 0) {
-    console.log(
-      `Pending R2 deletions sweep: ${succeeded} succeeded, ${failed} failed, ${skipped} skipped (max attempts)`,
-    );
+    log("info", "pending R2 deletions sweep", { succeeded, failed, skipped });
   }
 
   return {

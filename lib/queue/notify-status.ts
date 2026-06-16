@@ -5,6 +5,7 @@
  * Used by both the main queue consumer and DLQ consumer.
  * Failures are logged but never thrown — polling fallback covers missed notifications.
  */
+import { log } from "../utils/log";
 
 /**
  * Notify a single resume's Durable Object of a status change.
@@ -42,7 +43,7 @@ export async function notifyStatusChange({
     });
   } catch (err) {
     // Best-effort: log but don't throw. Polling fallback covers this.
-    console.error(`[notify-status] Failed to notify DO for resume ${resumeId}:`, err);
+    log("error", "notify-status: failed to notify DO for resume", { resumeId, error: String(err) });
   }
 }
 

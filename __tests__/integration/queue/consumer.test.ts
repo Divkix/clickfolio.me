@@ -1017,8 +1017,15 @@ describe("DLQ Consumer", () => {
 
     await handleDLQMessage(message, env);
 
-    // Verify log was written
-    expect(consoleSpy).toHaveBeenCalledWith("[DLQ_ALERT]", expect.any(String));
+    // Verify log was written; log() emits a single JSON string with msg:"DLQ_ALERT"
+    const dlqAlert = consoleSpy.mock.calls.find((call) => {
+      try {
+        return (JSON.parse(call[0]) as Record<string, unknown>)["msg"] === "DLQ_ALERT";
+      } catch {
+        return false;
+      }
+    });
+    expect(dlqAlert).toBeDefined();
 
     consoleSpy.mockRestore();
   });
@@ -1207,7 +1214,15 @@ describe("DLQ Consumer", () => {
 
     // No WebSocket failure notification and no alert should be sent
     expect(notifyStatusChange).not.toHaveBeenCalled();
-    expect(consoleErrorSpy).not.toHaveBeenCalledWith("[DLQ_ALERT]", expect.any(String));
+    // log() emits a single JSON string; verify DLQ_ALERT was not emitted
+    const dlqAlertCall = consoleErrorSpy.mock.calls.find((call) => {
+      try {
+        return (JSON.parse(call[0]) as Record<string, unknown>)["msg"] === "DLQ_ALERT";
+      } catch {
+        return false;
+      }
+    });
+    expect(dlqAlertCall).toBeUndefined();
 
     consoleErrorSpy.mockRestore();
   });

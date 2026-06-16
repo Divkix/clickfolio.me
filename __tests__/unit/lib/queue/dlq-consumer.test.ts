@@ -181,6 +181,7 @@ describe("DLQ Consumer", () => {
       const mockResume = createMockDbResume({
         id: "resume-123",
         totalAttempts: 3,
+        status: "processing",
       });
 
       mockDb.select.mockReturnValue({
@@ -208,7 +209,14 @@ describe("DLQ Consumer", () => {
 
       await handleDLQMessage(message, env);
 
-      const dlqAlert = consoleSpy.mock.calls.find((call) => call[0].includes("[DLQ_ALERT]"));
+      // log() emits a single JSON string; find the DLQ_ALERT entry by msg field
+      const dlqAlert = consoleSpy.mock.calls.find((call) => {
+        try {
+          return (JSON.parse(call[0]) as Record<string, unknown>)["msg"] === "DLQ_ALERT";
+        } catch {
+          return false;
+        }
+      });
       expect(dlqAlert).toBeDefined();
 
       consoleSpy.mockRestore();
@@ -219,6 +227,7 @@ describe("DLQ Consumer", () => {
       const mockResume = createMockDbResume({
         id: "resume-123",
         totalAttempts: 3,
+        status: "processing",
       });
 
       mockDb.select.mockReturnValue({
@@ -265,6 +274,7 @@ describe("DLQ Consumer", () => {
       const mockResume = createMockDbResume({
         id: "resume-123",
         totalAttempts: 3,
+        status: "processing",
       });
 
       mockDb.select.mockReturnValue({
@@ -296,7 +306,15 @@ describe("DLQ Consumer", () => {
 
       await handleDLQMessage(message, env);
 
-      expect(consoleSpy).toHaveBeenCalledWith("Webhook alert failed:", expect.any(Error));
+      // log() emits a single JSON string; find the webhook alert failure entry by msg field
+      const webhookFailLog = consoleSpy.mock.calls.find((call) => {
+        try {
+          return (JSON.parse(call[0]) as Record<string, unknown>)["msg"] === "webhook alert failed";
+        } catch {
+          return false;
+        }
+      });
+      expect(webhookFailLog).toBeDefined();
 
       fetchSpy.mockRestore();
       consoleSpy.mockRestore();
@@ -307,6 +325,7 @@ describe("DLQ Consumer", () => {
       const mockResume = createMockDbResume({
         id: "resume-123",
         totalAttempts: 3,
+        status: "processing",
       });
 
       mockDb.select.mockReturnValue({
@@ -350,6 +369,7 @@ describe("DLQ Consumer", () => {
       const mockResume = createMockDbResume({
         id: "resume-123",
         totalAttempts: 3,
+        status: "processing",
       });
 
       mockDb.select.mockReturnValue({
@@ -379,10 +399,16 @@ describe("DLQ Consumer", () => {
 
       await handleDLQMessage(message, env);
 
-      const emailAlert = consoleSpy.mock.calls.find((call) =>
-        call[0].includes("[DLQ_ALERT_EMAIL]"),
-      );
-      const logpushAlert = consoleSpy.mock.calls.find((call) => call[0].includes("[DLQ_ALERT]"));
+      // log() emits a single JSON string; unsupported channel falls back to logpush (DLQ_ALERT msg)
+      const parsedCalls = consoleSpy.mock.calls.map((call) => {
+        try {
+          return JSON.parse(call[0]) as Record<string, unknown>;
+        } catch {
+          return null;
+        }
+      });
+      const emailAlert = parsedCalls.find((p) => p?.["msg"] === "DLQ_ALERT_EMAIL");
+      const logpushAlert = parsedCalls.find((p) => p?.["msg"] === "DLQ_ALERT");
       expect(emailAlert).toBeUndefined();
       expect(logpushAlert).toBeDefined();
 
@@ -396,6 +422,7 @@ describe("DLQ Consumer", () => {
       const mockResume = createMockDbResume({
         id: "resume-123",
         totalAttempts: 3,
+        status: "processing",
         lastAttemptError: JSON.stringify({
           type: QueueErrorType.AI_PROVIDER_ERROR,
           message: "AI service down",
@@ -427,10 +454,17 @@ describe("DLQ Consumer", () => {
 
       await handleDLQMessage(message, env);
 
-      const dlqAlert = consoleSpy.mock.calls.find((call) => call[0].includes("[DLQ_ALERT]"));
+      // log() emits a single JSON string with all payload fields at the top level
+      const dlqAlert = consoleSpy.mock.calls.find((call) => {
+        try {
+          return (JSON.parse(call[0]) as Record<string, unknown>)["msg"] === "DLQ_ALERT";
+        } catch {
+          return false;
+        }
+      });
       expect(dlqAlert).toBeDefined();
-      const payload = JSON.parse(dlqAlert![1]);
-      expect(payload.errorType).toBe(QueueErrorType.AI_PROVIDER_ERROR);
+      const payload = JSON.parse(dlqAlert![0]) as Record<string, unknown>;
+      expect(payload["errorType"]).toBe(QueueErrorType.AI_PROVIDER_ERROR);
 
       consoleSpy.mockRestore();
     });
@@ -440,6 +474,7 @@ describe("DLQ Consumer", () => {
       const mockResume = createMockDbResume({
         id: "resume-123",
         totalAttempts: 3,
+        status: "processing",
         lastAttemptError: null,
       });
 
@@ -468,10 +503,17 @@ describe("DLQ Consumer", () => {
 
       await handleDLQMessage(message, env);
 
-      const dlqAlert = consoleSpy.mock.calls.find((call) => call[0].includes("[DLQ_ALERT]"));
+      // log() emits a single JSON string with all payload fields at the top level
+      const dlqAlert = consoleSpy.mock.calls.find((call) => {
+        try {
+          return (JSON.parse(call[0]) as Record<string, unknown>)["msg"] === "DLQ_ALERT";
+        } catch {
+          return false;
+        }
+      });
       expect(dlqAlert).toBeDefined();
-      const payload = JSON.parse(dlqAlert![1]);
-      expect(payload.errorType).toBe(QueueErrorType.UNKNOWN);
+      const payload = JSON.parse(dlqAlert![0]) as Record<string, unknown>;
+      expect(payload["errorType"]).toBe(QueueErrorType.UNKNOWN);
 
       consoleSpy.mockRestore();
     });
@@ -481,6 +523,7 @@ describe("DLQ Consumer", () => {
       const mockResume = createMockDbResume({
         id: "resume-123",
         totalAttempts: 3,
+        status: "processing",
         lastAttemptError: "not valid json",
       });
 
@@ -509,8 +552,14 @@ describe("DLQ Consumer", () => {
 
       await handleDLQMessage(message, env);
 
-      // Should not throw and should default to UNKNOWN
-      const dlqAlert = consoleSpy.mock.calls.find((call) => call[0].includes("[DLQ_ALERT]"));
+      // Should not throw and should default to UNKNOWN; log() emits single JSON string
+      const dlqAlert = consoleSpy.mock.calls.find((call) => {
+        try {
+          return (JSON.parse(call[0]) as Record<string, unknown>)["msg"] === "DLQ_ALERT";
+        } catch {
+          return false;
+        }
+      });
       expect(dlqAlert).toBeDefined();
 
       consoleSpy.mockRestore();
@@ -550,6 +599,7 @@ describe("DLQ Consumer", () => {
       const mockResume = createMockDbResume({
         id: "resume-123",
         totalAttempts: 3,
+        status: "processing",
       });
 
       mockDb.select.mockReturnValue({
@@ -587,6 +637,7 @@ describe("DLQ Consumer", () => {
       const mockResume = createMockDbResume({
         id: "resume-123",
         totalAttempts: 10,
+        status: "processing",
       });
 
       mockDb.select.mockReturnValue({
@@ -624,6 +675,7 @@ describe("DLQ Consumer", () => {
       const mockResume = createMockDbResume({
         id: "resume-123",
         totalAttempts: 3,
+        status: "processing",
       });
 
       mockDb.select.mockReturnValue({
@@ -651,12 +703,19 @@ describe("DLQ Consumer", () => {
 
       await handleDLQMessage(message, env);
 
-      const successLog = consoleSpy.mock.calls.find((call) =>
-        call[0].includes("DLQ: Marked resume"),
-      );
+      // log() emits a single JSON string; find the success entry by msg and resumeId fields
+      const successLog = consoleSpy.mock.calls.find((call) => {
+        try {
+          const parsed = JSON.parse(call[0]) as Record<string, unknown>;
+          return (
+            parsed["msg"] === "DLQ: marked resume as permanently failed" &&
+            parsed["resumeId"] === "resume-123"
+          );
+        } catch {
+          return false;
+        }
+      });
       expect(successLog).toBeDefined();
-      expect(successLog?.[0]).toContain("resume-123");
-      expect(successLog?.[0]).toContain("permanently failed");
 
       consoleSpy.mockRestore();
     });
@@ -666,6 +725,7 @@ describe("DLQ Consumer", () => {
       const mockResume = createMockDbResume({
         id: "resume-123",
         totalAttempts: 3,
+        status: "processing",
       });
 
       mockDb.select.mockReturnValue({
@@ -696,10 +756,17 @@ describe("DLQ Consumer", () => {
 
       await handleDLQMessage(message, env);
 
-      const dlqAlert = consoleSpy.mock.calls.find((call) => call[0].includes("[DLQ_ALERT]"));
+      // log() emits a single JSON string with all DLQAlertPayload fields at the top level
+      const dlqAlert = consoleSpy.mock.calls.find((call) => {
+        try {
+          return (JSON.parse(call[0]) as Record<string, unknown>)["msg"] === "DLQ_ALERT";
+        } catch {
+          return false;
+        }
+      });
       expect(dlqAlert).toBeDefined();
 
-      const payload = JSON.parse(dlqAlert![1]);
+      const payload = JSON.parse(dlqAlert![0]) as Record<string, unknown>;
       expect(payload).toHaveProperty("resumeId", "resume-123");
       expect(payload).toHaveProperty("userId", "user-456");
       expect(payload).toHaveProperty("failureReason", "Specific failure reason");

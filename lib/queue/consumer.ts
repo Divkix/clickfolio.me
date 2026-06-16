@@ -7,6 +7,7 @@ import { getR2Binding, R2 } from "../r2";
 import { classifyQueueError, isRetryableError } from "./errors";
 import { notifyStatusChange, notifyStatusChangeBatch } from "./notify-status";
 import type { QueueMessage, ResumeParseMessage } from "./types";
+import { log } from "../utils/log";
 
 /**
  * Map raw error messages to user-friendly messages.
@@ -89,13 +90,13 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
 
   // If already completed with parsed content, skip (full idempotency)
   if (currentResume[0]?.status === "completed" && currentResume[0]?.parsedContent) {
-    console.log(`Resume ${message.resumeId} already completed, skipping`);
+    log("info", "resume already completed, skipping", { resumeId: message.resumeId });
     return;
   }
 
   // If staged content exists, use it instead of re-parsing
   if (currentResume[0]?.parsedContentStaged) {
-    console.log(`Using staged content for resume ${message.resumeId}`);
+    log("info", "using staged content for resume", { resumeId: message.resumeId });
     const now = new Date().toISOString();
     const stagedContent = currentResume[0].parsedContentStaged as string;
 
