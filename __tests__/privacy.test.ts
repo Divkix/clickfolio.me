@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vite-plus/test";
 import {
+  DEFAULT_PRIVACY_SETTINGS,
+  DEFAULT_PRIVACY_SETTINGS_JSON,
   extractCityState,
   isValidPrivacySettings,
   normalizePrivacySettings,
@@ -115,7 +117,7 @@ describe("normalizePrivacySettings", () => {
       show_phone: false,
       show_address: false,
       hide_from_search: false,
-      show_in_directory: false,
+      show_in_directory: true,
     });
   });
 
@@ -128,7 +130,7 @@ describe("normalizePrivacySettings", () => {
       show_phone: true,
       show_address: true,
       hide_from_search: false,
-      show_in_directory: false,
+      show_in_directory: true,
     });
   });
 
@@ -152,7 +154,7 @@ describe("parsePrivacySettings", () => {
     expect(result.show_phone).toBe(true);
     expect(result.show_address).toBe(false);
     expect(result.hide_from_search).toBe(false);
-    expect(result.show_in_directory).toBe(false);
+    expect(result.show_in_directory).toBe(true);
   });
 
   it("returns defaults for null input", () => {
@@ -160,7 +162,7 @@ describe("parsePrivacySettings", () => {
       show_phone: false,
       show_address: false,
       hide_from_search: false,
-      show_in_directory: false,
+      show_in_directory: true,
     });
   });
 
@@ -169,7 +171,7 @@ describe("parsePrivacySettings", () => {
       show_phone: false,
       show_address: false,
       hide_from_search: false,
-      show_in_directory: false,
+      show_in_directory: true,
     });
   });
 
@@ -178,7 +180,7 @@ describe("parsePrivacySettings", () => {
       show_phone: false,
       show_address: false,
       hide_from_search: false,
-      show_in_directory: false,
+      show_in_directory: true,
     });
   });
 
@@ -187,7 +189,23 @@ describe("parsePrivacySettings", () => {
       show_phone: false,
       show_address: false,
       hide_from_search: false,
-      show_in_directory: false,
+      show_in_directory: true,
     });
+  });
+});
+
+// ── DEFAULT_PRIVACY_SETTINGS alignment (Step 4) ──────────────────────
+
+describe("DEFAULT_PRIVACY_SETTINGS alignment", () => {
+  it("normalizePrivacySettings(null) deep-equals DEFAULT_PRIVACY_SETTINGS", () => {
+    expect(normalizePrivacySettings(null)).toEqual(DEFAULT_PRIVACY_SETTINGS);
+  });
+
+  it("DEFAULT_PRIVACY_SETTINGS.show_in_directory is true", () => {
+    expect(DEFAULT_PRIVACY_SETTINGS.show_in_directory).toBe(true);
+  });
+
+  it("JSON.parse(DEFAULT_PRIVACY_SETTINGS_JSON) deep-equals DEFAULT_PRIVACY_SETTINGS", () => {
+    expect(JSON.parse(DEFAULT_PRIVACY_SETTINGS_JSON)).toEqual(DEFAULT_PRIVACY_SETTINGS);
   });
 });

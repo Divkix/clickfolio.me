@@ -24,6 +24,8 @@ export const user = sqliteTable(
     /** One-line professional headline displayed on the portfolio. */
     headline: text("headline"),
     /** JSON-in-TEXT privacy settings. Parsed/stringified at runtime. Controls phone, address, search, and directory visibility. */
+    // MUST equal DEFAULT_PRIVACY_SETTINGS_JSON in lib/utils/privacy.ts — kept as
+    // a literal here to avoid a circular import (schema → utils → schema for types).
     privacySettings: text("privacy_settings")
       .notNull()
       .default(

@@ -103,6 +103,22 @@ import type { PrivacySettings } from "@/lib/db/schema/auth";
 export type { PrivacySettings };
 
 /**
+ * Canonical default privacy settings for a new user. Single source of truth —
+ * the DB column default, Better Auth additionalFields default, the seed script,
+ * and the parse fallback must all derive from this. New users are
+ * directory-visible by default (opt-out).
+ */
+export const DEFAULT_PRIVACY_SETTINGS: PrivacySettings = {
+  show_phone: false,
+  show_address: false,
+  hide_from_search: false,
+  show_in_directory: true,
+};
+
+/** Serialized form for storing in the JSON-in-TEXT column. */
+export const DEFAULT_PRIVACY_SETTINGS_JSON = JSON.stringify(DEFAULT_PRIVACY_SETTINGS);
+
+/**
  * Type guard to check if privacy settings are valid
  * Backward compatible: hide_from_search and show_in_directory are optional (defaults to false)
  */
@@ -141,19 +157,14 @@ export function normalizePrivacySettings(
   } | null,
 ): PrivacySettings {
   if (!settings) {
-    return {
-      show_phone: false,
-      show_address: false,
-      hide_from_search: false,
-      show_in_directory: false,
-    };
+    return { ...DEFAULT_PRIVACY_SETTINGS };
   }
 
   return {
     show_phone: settings.show_phone,
     show_address: settings.show_address,
-    hide_from_search: settings.hide_from_search ?? false,
-    show_in_directory: settings.show_in_directory ?? false,
+    hide_from_search: settings.hide_from_search ?? DEFAULT_PRIVACY_SETTINGS.hide_from_search,
+    show_in_directory: settings.show_in_directory ?? DEFAULT_PRIVACY_SETTINGS.show_in_directory,
   };
 }
 
