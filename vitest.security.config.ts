@@ -24,6 +24,9 @@ export default defineConfig({
       "__tests__/claim-security-cookie.test.ts",
     ],
     exclude: ["node_modules", ".next", "dist", "__tests__/e2e/**", ".worktrees/**"],
+    // zxcvbn-ts v4 language packs ship a broken CJS interop for their decompressor
+    // (see resolve.alias below); inline them so Vite transforms the ESM build.
+    server: { deps: { inline: [/@zxcvbn-ts\//] } },
     // Security tests must be reliable - no retries
     retry: 0,
     // Use forks for security test isolation
@@ -55,6 +58,16 @@ export default defineConfig({
     alias: {
       "@": resolve(__dirname, "./"),
       "cloudflare:workers": resolve(__dirname, "lib/stubs/cloudflare-workers-client-stub.mjs"),
+      // zxcvbn-ts v4's `main` points to a CJS build whose decompressor interop is
+      // broken under Node require; resolve the working ESM entry points instead.
+      "@zxcvbn-ts/language-common": resolve(
+        __dirname,
+        "node_modules/@zxcvbn-ts/language-common/dist/index.mjs",
+      ),
+      "@zxcvbn-ts/language-en": resolve(
+        __dirname,
+        "node_modules/@zxcvbn-ts/language-en/dist/index.mjs",
+      ),
     },
   },
 });

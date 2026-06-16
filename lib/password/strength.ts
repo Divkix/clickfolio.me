@@ -10,7 +10,7 @@
  * @see https://github.com/zxcvbn-ts/zxcvbn
  */
 
-import type { ZxcvbnResult } from "@zxcvbn-ts/core";
+import type { ZxcvbnFactory } from "@zxcvbn-ts/core";
 
 /**
  * Minimum acceptable password strength score
@@ -23,18 +23,18 @@ export const MINIMUM_SCORE = 2;
  * Cached zxcvbn function after first dynamic import + initialization.
  * Avoids re-importing and re-configuring on subsequent calls.
  */
-let cachedZxcvbn: ((password: string, userInputs?: string[]) => ZxcvbnResult) | null = null;
+let cachedZxcvbn: ZxcvbnFactory | null = null;
 
 async function getZxcvbn() {
   if (cachedZxcvbn) return cachedZxcvbn;
 
-  const [{ zxcvbn, zxcvbnOptions }, zxcvbnCommonPackage, zxcvbnEnPackage] = await Promise.all([
+  const [{ ZxcvbnFactory }, zxcvbnCommonPackage, zxcvbnEnPackage] = await Promise.all([
     import("@zxcvbn-ts/core"),
     import("@zxcvbn-ts/language-common"),
     import("@zxcvbn-ts/language-en"),
   ]);
 
-  zxcvbnOptions.setOptions({
+  cachedZxcvbn = new ZxcvbnFactory({
     translations: zxcvbnEnPackage.translations,
     graphs: zxcvbnCommonPackage.adjacencyGraphs,
     dictionary: {
@@ -42,8 +42,6 @@ async function getZxcvbn() {
       ...zxcvbnEnPackage.dictionary,
     },
   });
-
-  cachedZxcvbn = zxcvbn;
   return cachedZxcvbn;
 }
 
@@ -145,7 +143,7 @@ export async function checkPasswordStrength(
 
   // Lazily load zxcvbn (cached after first call)
   const zxcvbn = await getZxcvbn();
-  const result = zxcvbn(password, expandedInputs);
+  const result = zxcvbn.check(password, expandedInputs);
 
   return {
     score: result.score,
@@ -154,7 +152,7 @@ export async function checkPasswordStrength(
       warning: result.feedback.warning || "",
       suggestions: result.feedback.suggestions || [],
     },
-    crackTimeDisplay: result.crackTimesDisplay.offlineSlowHashing1e4PerSecond,
-    crackTimeSeconds: result.crackTimesSeconds.offlineSlowHashing1e4PerSecond,
+    crackTimeDisplay: result.crackTimes.offlineSlowHashingXPerSecond.display,
+    crackTimeSeconds: result.crackTimes.offlineSlowHashingXPerSecond.seconds,
   };
 }
