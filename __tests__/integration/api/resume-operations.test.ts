@@ -79,6 +79,14 @@ vi.mock("@/lib/config/retry", () => ({
   hasExceededMaxAttempts: vi.fn(() => false),
   isPermanentErrorType: vi.fn(() => false),
   RETRY_LIMITS: { MANUAL_MAX_RETRIES: 2, TOTAL_MAX_ATTEMPTS: 5 },
+  canRetryResume: vi.fn(
+    (input: {
+      status: string;
+      retryCount: number;
+      totalAttempts: number;
+      lastAttemptErrorType?: string | null;
+    }) => input.status === "failed" && input.totalAttempts < 5 && input.retryCount < 2,
+  ),
 }));
 
 vi.mock("@/lib/rate-limit/user", () => ({
