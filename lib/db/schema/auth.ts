@@ -44,7 +44,14 @@ export const user = sqliteTable(
     referredAt: text("referred_at"),
     /** Pro subscription flag — unlocks all portfolio themes. */
     isPro: integer("is_pro", { mode: "boolean" }).notNull().default(false),
-    /** Denormalized count of users successfully referred by this user. */
+    /**
+     * Denormalized count of users successfully referred by this user.
+     * Maintained by SQLite triggers (see migrations/0026_referral_count_triggers.sql).
+     * IMPORTANT: triggers are NOT tracked by Drizzle snapshots and are dropped
+     * whenever the `user` table is rebuilt (the pattern drizzle-kit emits for
+     * column changes). After ANY migration that rebuilds `user`, re-append the
+     * idempotent triggers migration so referral_count keeps updating.
+     */
     referralCount: integer("referral_count").notNull().default(0),
     /** Permanent referral code generated once at signup and never changed. */
     referralCode: text("referral_code").unique(),
