@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
 
-import { resumes, user, verification } from "@/lib/db/schema";
+import { pendingR2Deletions, resumes, user, verification } from "@/lib/db/schema";
 import { getR2Binding, R2 } from "@/lib/r2";
 import { deleteAccountSchema } from "@/lib/schemas/account";
 import {
@@ -93,6 +93,7 @@ export async function POST(request: Request) {
     const deletionResults = await Promise.allSettled(
       r2Keys.map((r2Key) => R2.delete(r2Binding, r2Key)),
     );
+    const failedKeys: string[] = [];
     deletionResults.forEach((result, index) => {
       if (result.status === "rejected") {
         console.error(`Failed to delete R2 file ${r2Keys[index]}:`, result.reason);
@@ -100,8 +101,24 @@ export async function POST(request: Request) {
           type: "r2",
           message: `Failed to delete file: ${r2Keys[index]}`,
         });
+        failedKeys.push(r2Keys[index]);
       }
     });
+
+    // Durably track failed R2 deletes so the 2 AM cron can retry them.
+    // Must happen BEFORE the db.batch() below because that batch removes the user
+    // and all cascade-linked rows — after that we'd have no record of which files
+    // still need to be purged (GDPR obligation).
+    if (failedKeys.length > 0) {
+      await db.insert(pendingR2Deletions).values(
+        failedKeys.map((key) => ({
+          id: crypto.randomUUID(),
+          r2Key: key,
+          createdAt: new Date().toISOString(),
+          attempts: 1,
+        })),
+      );
+    }
 
     // 7. Delete database records in a transaction using batch
     // D1 supports atomic transactions via db.batch() - all operations succeed or all fail

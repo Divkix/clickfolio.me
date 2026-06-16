@@ -10,7 +10,7 @@ import handler from "vinext/server/app-router-entry";
 // Import auth and db session utilities for WebSocket auth
 import { getAuth } from "../lib/auth";
 import { performCleanup } from "../lib/cron/cleanup";
-import { performR2Cleanup } from "../lib/cron/cleanup-r2";
+import { performR2Cleanup, retryPendingR2Deletions } from "../lib/cron/cleanup-r2";
 import { recoverOrphanedResumes } from "../lib/cron/recover-orphaned";
 import { syncDisposableDomains } from "../lib/cron/sync-disposable-domains";
 import { getDb } from "../lib/db";
@@ -207,14 +207,16 @@ export default {
     try {
       switch (controller.cron) {
         case "0 2 * * *": {
-          // Daily at 2 AM UTC - R2 temp file cleanup
+          // Daily at 2 AM UTC - R2 temp file cleanup + pending deletion retry
           const r2Binding = env.CLICKFOLIO_R2_BUCKET;
           if (!r2Binding) {
             console.error("CLICKFOLIO_R2_BUCKET not available for R2 cleanup");
             return;
           }
           const result = await performR2Cleanup(r2Binding);
-          console.log(`Cron ${controller.cron} completed:`, result);
+          console.log(`Cron ${controller.cron} R2 cleanup completed:`, result);
+          const pendingResult = await retryPendingR2Deletions(db, r2Binding);
+          console.log(`Cron ${controller.cron} pending deletions sweep completed:`, pendingResult);
           break;
         }
         case "0 3 * * *": {
