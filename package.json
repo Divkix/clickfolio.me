@@ -51,7 +51,7 @@
     "@zxcvbn-ts/core": "^4.1.2",
     "@zxcvbn-ts/language-common": "^4.1.2",
     "@zxcvbn-ts/language-en": "^4.1.1",
-    "ai": "^6.0.207",
+    "ai": "^6.0.208",
     "better-auth": "^1.6.19",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -94,7 +94,7 @@
     "typescript": "^6.0.3",
     "vinext": "^0.1.4",
     "vite": "npm:@voidzero-dev/vite-plus-core@0.1.24",
-    "vite-plus": "0.1.24",
+    "vite-plus": "0.2.0",
     "vitest": "npm:@voidzero-dev/vite-plus-test@0.1.24",
     "wrangler": "^4.101.0"
   },
