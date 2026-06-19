@@ -29,6 +29,7 @@ import { eq } from "drizzle-orm";
 import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
 import { handleChanges } from "@/lib/db/schema";
 import { getMetrics, getPageviews, getStats } from "@/lib/umami/client";
+import { lastNUtcDays } from "@/lib/utils/date-axis";
 import {
   createErrorResponse,
   createSuccessResponse,
@@ -234,7 +235,11 @@ export async function GET(request: Request) {
 
     // Fill missing dates for chart continuity
     const days = periodToDays(period);
-    const viewsByDay = fillMissingDates(dailyMap, dailyUniquesMap, days);
+    const viewsByDay = lastNUtcDays(days).map((date) => ({
+      date,
+      views: dailyMap.get(date) ?? 0,
+      uniques: dailyUniquesMap.get(date) ?? 0,
+    }));
 
     const response = createSuccessResponse({
       totalViews,
@@ -256,22 +261,4 @@ export async function GET(request: Request) {
       503,
     );
   }
-}
-
-/**
- * Fill in missing dates with zero values so the chart has continuous data points.
- */
-function fillMissingDates(
-  dailyMap: Map<string, number>,
-  dailyUniquesMap: Map<string, number>,
-  days: number,
-): Array<{ date: string; views: number; uniques: number }> {
-  const result: Array<{ date: string; views: number; uniques: number }> = [];
-
-  for (let i = days - 1; i >= 0; i--) {
-    const date = new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-    result.push({ date, views: dailyMap.get(date) ?? 0, uniques: dailyUniquesMap.get(date) ?? 0 });
-  }
-
-  return result;
 }

@@ -6,8 +6,7 @@ import uPlot from "uplot";
 import "uplot/dist/uPlot.min.css";
 import { MilestoneToasts } from "@/components/dashboard/MilestoneToasts";
 import { Skeleton } from "@/components/ui/skeleton";
-
-type Period = "7d" | "30d" | "90d";
+import type { Period } from "@/lib/types/api";
 
 interface AnalyticsStats {
   totalViews: number;

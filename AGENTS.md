@@ -4,7 +4,7 @@
 
 ## How to read & maintain this file
 
-**This file is the single source of truth for how clickfolio.me works.** An agent reading it once should understand the structure, runtime, CI, data flows, the key user-facing flows, and the *why* behind major decisions. Read it top-to-bottom before touching unfamiliar code.
+**This file is the single source of truth for how clickfolio.me works.** An agent reading it once should understand the structure, runtime, CI, data flows, the key user-facing flows, and the _why_ behind major decisions. Read it top-to-bottom before touching unfamiliar code.
 
 **MAINTENANCE PROTOCOL (mandatory).** When you discover a new important fact, decision, constraint, or gotcha while working — or you find something here that is now wrong — you **MUST** update AGENTS.md in the same change. Rules:
 
@@ -14,27 +14,27 @@
 - **Fix, don't stack.** If a statement is now inaccurate, replace it; do not leave the old claim alongside the new one.
 - Keep it dense and scannable (tables, short bullets, command blocks). Don't pad.
 
-If a decision's rationale isn't obvious from code, capture the *why* in **Design decisions & rationale**.
+If a decision's rationale isn't obvious from code, capture the _why_ in **Design decisions & rationale**.
 
 ## Stack
 
-| Layer           | Technology                                                                                 |
-| --------------- | ------------------------------------------------------------------------------------------ |
-| Runtime         | Cloudflare Workers                                                                         |
-| Framework       | [vinext](https://github.com/cloudflare/vinext) (Vite-based Next.js — NOT standard Next.js) `^0.1.4` |
+| Layer           | Technology                                                                                                                                           |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Runtime         | Cloudflare Workers                                                                                                                                   |
+| Framework       | [vinext](https://github.com/cloudflare/vinext) (Vite-based Next.js — NOT standard Next.js) `^0.1.4`                                                  |
 | Toolchain       | Vite+ (`vp`) — `vite`/`vitest` aliased via package.json `overrides` to `@voidzero-dev/vite-plus-core@0.1.24` / `@voidzero-dev/vite-plus-test@0.1.24` |
-| Package manager | `bun` (pinned `bun@1.3.14` via `packageManager`)                                            |
-| DB              | Cloudflare D1 + Drizzle ORM (SQLite)                                                       |
-| Auth            | Better Auth (Google OAuth + email/password)                                                |
-| AI parsing      | OpenRouter via Cloudflare AI Gateway (`openai/gpt-oss` models) + `unpdf` + Vercel AI SDK   |
-| Storage         | Cloudflare R2 (`CLICKFOLIO_R2_BUCKET`)                                                     |
-| Queue           | Cloudflare Queues (`CLICKFOLIO_PARSE_QUEUE`) + DLQ                                         |
-| Realtime        | Cloudflare Durable Objects (`ClickfolioStatusDO`) over WebSocket                           |
-| Email           | Cloudflare Email Workers (`EMAIL` binding)                                                 |
-| Styling         | shadcn/ui (new-york, `rsc:true`, lucide) + Tailwind CSS 4 (PostCSS-only, no `tailwind.config`) |
-| Validation      | Zod (v4 throughout)                                                                        |
-| Lint/format     | Oxlint + Oxfmt via `vp check` — NOT Biome/ESLint/Prettier                                  |
-| Testing         | Vitest (via `vite-plus/test`) + jsdom + @testing-library/react                             |
+| Package manager | `bun` (pinned `bun@1.3.14` via `packageManager`)                                                                                                     |
+| DB              | Cloudflare D1 + Drizzle ORM (SQLite)                                                                                                                 |
+| Auth            | Better Auth (Google OAuth + email/password)                                                                                                          |
+| AI parsing      | OpenRouter via Cloudflare AI Gateway (`openai/gpt-oss` models) + `unpdf` + Vercel AI SDK                                                             |
+| Storage         | Cloudflare R2 (`CLICKFOLIO_R2_BUCKET`)                                                                                                               |
+| Queue           | Cloudflare Queues (`CLICKFOLIO_PARSE_QUEUE`) + DLQ                                                                                                   |
+| Realtime        | Cloudflare Durable Objects (`ClickfolioStatusDO`) over WebSocket                                                                                     |
+| Email           | Cloudflare Email Workers (`EMAIL` binding)                                                                                                           |
+| Styling         | shadcn/ui (new-york, `rsc:true`, lucide) + Tailwind CSS 4 (PostCSS-only, no `tailwind.config`)                                                       |
+| Validation      | Zod (v4 throughout)                                                                                                                                  |
+| Lint/format     | Oxlint + Oxfmt via `vp check` — NOT Biome/ESLint/Prettier                                                                                            |
+| Testing         | Vitest (via `vite-plus/test`) + jsdom + @testing-library/react                                                                                       |
 
 ## Project Structure
 
@@ -238,17 +238,17 @@ PR requirements:
 
 CI (`.github/workflows/ci.yml`) is **9 jobs**. The five primary jobs run **in parallel** (no inter-dependencies); only the downstream jobs have `needs`. `ci-success` is the single required gate. Workflow-level `permissions: { contents: read, pull-requests: write }`. `concurrency` group `${{ github.workflow }}-${{ github.ref }}` with `cancel-in-progress: true`. Triggers: push + PR on `main`/`master`. **All actions are pinned to full commit SHAs**; every checkout sets `persist-credentials: false`.
 
-| Job                 | `needs`                                                 | Command (reproduce locally)                | Gates / notes                                                                 |
-| ------------------- | ------------------------------------------------------- | ------------------------------------------ | ----------------------------------------------------------------------------- |
-| `quality`           | —                                                       | `vp check` (via `voidzero-dev/setup-vp@v1`, `node-version:22`, `cache:true`)| Lint+format+type-check (Vite+). Only job using setup-vp; no setup-node. |
-| `type-check`        | —                                                       | `bun run type-check` (`tsc --noEmit`)      | Strict TS flags are errors. `oven-sh/setup-bun` only. Parallel.               |
-| `unit-tests`        | —                                                       | `bun run test:unit -- --coverage`          | `pool:threads`,`retry:0`. Uploads `unit-coverage-report` → `coverage/unit/` (`if: always()`). |
-| `integration-tests` | —                                                       | `bun run test:integration -- --coverage`   | `retry:2`,10s. Uploads `integration-coverage-report` → `coverage/integration/`. |
-| `security-tests`    | —                                                       | `bun run test:security -- --coverage`      | `pool:forks`,`retry:0`,15s. Uploads `security-coverage-report` → `coverage/security/`. |
-| `coverage-summary`  | unit, integration, security                             | (PR-only) `romeovs/lcov-reporter-action`   | **PR events only.** Downloads all 3 artifacts but feeds ONLY `coverage/unit/coverage.lcov` (title 'Unit Test Coverage'). |
-| `coverage-gate`     | unit, integration, security                             | `bun run test:coverage`                    | **Hard 80% gate** across lines/statements/functions/branches.                 |
-| `build`             | quality, type-check, unit, integration, security, coverage-gate | `bunx knip` + `bun run build`      | Production build; `knip` fails on unused exports. Uses BOTH `setup-node@22` + `oven-sh/setup-bun`. |
-| `ci-success`        | all 7 above (`if: always()`)                            | shell check of each `needs.*.result`       | **The required status check.** Fails if any upstream job != success.          |
+| Job                 | `needs`                                                         | Command (reproduce locally)                                                  | Gates / notes                                                                                                            |
+| ------------------- | --------------------------------------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `quality`           | —                                                               | `vp check` (via `voidzero-dev/setup-vp@v1`, `node-version:22`, `cache:true`) | Lint+format+type-check (Vite+). Only job using setup-vp; no setup-node.                                                  |
+| `type-check`        | —                                                               | `bun run type-check` (`tsc --noEmit`)                                        | Strict TS flags are errors. `oven-sh/setup-bun` only. Parallel.                                                          |
+| `unit-tests`        | —                                                               | `bun run test:unit -- --coverage`                                            | `pool:threads`,`retry:0`. Uploads `unit-coverage-report` → `coverage/unit/` (`if: always()`).                            |
+| `integration-tests` | —                                                               | `bun run test:integration -- --coverage`                                     | `retry:2`,10s. Uploads `integration-coverage-report` → `coverage/integration/`.                                          |
+| `security-tests`    | —                                                               | `bun run test:security -- --coverage`                                        | `pool:forks`,`retry:0`,15s. Uploads `security-coverage-report` → `coverage/security/`.                                   |
+| `coverage-summary`  | unit, integration, security                                     | (PR-only) `romeovs/lcov-reporter-action`                                     | **PR events only.** Downloads all 3 artifacts but feeds ONLY `coverage/unit/coverage.lcov` (title 'Unit Test Coverage'). |
+| `coverage-gate`     | unit, integration, security                                     | `bun run test:coverage`                                                      | **Hard 80% gate** across lines/statements/functions/branches.                                                            |
+| `build`             | quality, type-check, unit, integration, security, coverage-gate | `bunx knip` + `bun run build`                                                | Production build; `knip` fails on unused exports. Uses BOTH `setup-node@22` + `oven-sh/setup-bun`.                       |
+| `ci-success`        | all 7 above (`if: always()`)                                    | shell check of each `needs.*.result`                                         | **The required status check.** Fails if any upstream job != success.                                                     |
 
 Because the test npm scripts already inject `--config vitest.<suite>.config.ts`, the trailing `-- --coverage` is appended to that. Bun cache key = `${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}` (lockfile is `bun.lock`).
 
@@ -270,20 +270,20 @@ The real entrypoint. Wraps the vinext handler and adds:
   - `"0 3 * * *"` — DB cleanup / expired sessions (`lib/cron/cleanup.ts` `performCleanup`)
   - `"0 4 * * *"` — disposable domain KV sync (`lib/cron/sync-disposable-domains.ts`)
   - `"*/15 * * * *"` — orphan resume recovery (`lib/cron/recover-orphaned.ts`)
-- **WebSocket upgrade routing** (`/ws/resume-status`) → Durable Object. Regex-extracts the session token from the raw `Cookie` header (`/better-auth\.session_token=([^;]+)/`) as a **cheap presence pre-check only** — the real auth passes the FULL raw Cookie header to `auth.api.getSession({ headers })`. Verifies D1 resume ownership via `getSessionDbForWebhook` (`"first-primary"`, no cookies — *not* `getDb`), then forwards to the DO (`idFromName(resumeId)`) injecting the `X-Authenticated-User-Id` header.
+- **WebSocket upgrade routing** (`/ws/resume-status`) → Durable Object. Regex-extracts the session token from the raw `Cookie` header (`/better-auth\.session_token=([^;]+)/`) as a **cheap presence pre-check only** — the real auth passes the FULL raw Cookie header to `auth.api.getSession({ headers })`. Verifies D1 resume ownership via `getSessionDbForWebhook` (`"first-primary"`, no cookies — _not_ `getDb`), then forwards to the DO (`idFromName(resumeId)`) injecting the `X-Authenticated-User-Id` header.
 - **Security headers** injected on every non-WS response via a **local `SECURITY_HEADERS` constant defined in `worker/index.ts`** (lines 32–38): HSTS `max-age=31536000; includeSubDomains` (**1yr, NO `preload`**), X-Content-Type-Options, X-Frame-Options:DENY, Referrer-Policy, Permissions-Policy `camera=(), microphone=(), geolocation=()`, and **NO X-XSS-Protection**. ⚠️ This is DISTINCT from the `SECURITY_HEADERS` in `lib/utils/security-headers.ts` (see API Routes) — editing one does NOT change the other. The Content-Security-Policy itself originates in `next.config.ts` `headers()`, not here (see below).
 
 ### Cloudflare bindings (`wrangler.jsonc`)
 
-| Binding                         | Type   | Name                     | Notes                                                                     |
-| ------------------------------- | ------ | ------------------------ | ------------------------------------------------------------------------- |
-| `CLICKFOLIO_DB`                 | D1     | `clickfolio-db`          | `database_id 37cf1935-96c5-40c8-aa2e-0d0655f9b652`. Use via `getDb()` / session variants |
-| `CLICKFOLIO_R2_BUCKET`          | R2     | `clickfolio-bucket`      | Use via `lib/r2.ts` helpers                                               |
-| `CLICKFOLIO_DISPOSABLE_DOMAINS` | KV     | `id 6fe2480a4f4d46a9970eb2c441ecf38a` | Disposable email list (synced by cron, KV key `disposable-domains`) |
-| `CLICKFOLIO_PARSE_QUEUE`        | Queue  | `clickfolio-parse-queue` | `max_batch_size:1`, `max_retries:3`, DLQ `clickfolio-parse-dlq` (`max_batch_size:1,max_retries:0`) |
-| `CLICKFOLIO_STATUS_DO`          | DO     | `ClickfolioStatusDO`     | Hibernatable WebSocket parse status                                       |
-| `EMAIL`                         | Email  | `send_email`             | Transactional email via CF Email Workers; sender: `noreply@clickfolio.me` |
-| `ASSETS`                        | Static | `dist/client`            | Static asset binding                                                      |
+| Binding                         | Type   | Name                                  | Notes                                                                                              |
+| ------------------------------- | ------ | ------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `CLICKFOLIO_DB`                 | D1     | `clickfolio-db`                       | `database_id 37cf1935-96c5-40c8-aa2e-0d0655f9b652`. Use via `getDb()` / session variants           |
+| `CLICKFOLIO_R2_BUCKET`          | R2     | `clickfolio-bucket`                   | Use via `lib/r2.ts` helpers                                                                        |
+| `CLICKFOLIO_DISPOSABLE_DOMAINS` | KV     | `id 6fe2480a4f4d46a9970eb2c441ecf38a` | Disposable email list (synced by cron, KV key `disposable-domains`)                                |
+| `CLICKFOLIO_PARSE_QUEUE`        | Queue  | `clickfolio-parse-queue`              | `max_batch_size:1`, `max_retries:3`, DLQ `clickfolio-parse-dlq` (`max_batch_size:1,max_retries:0`) |
+| `CLICKFOLIO_STATUS_DO`          | DO     | `ClickfolioStatusDO`                  | Hibernatable WebSocket parse status                                                                |
+| `EMAIL`                         | Email  | `send_email`                          | Transactional email via CF Email Workers; sender: `noreply@clickfolio.me`                          |
+| `ASSETS`                        | Static | `dist/client`                         | Static asset binding                                                                               |
 
 **Compat:** `compatibility_date: "2026-01-22"`, `compatibility_flags: ["nodejs_compat","global_fetch_strictly_public"]`. `workers_dev: true` but `preview_urls: false` (intentionally disabled). Custom-domain routes (`clickfolio.me`, `www.clickfolio.me`) are kept in wrangler.jsonc specifically so CI/wrangler deploy does not remove them. **Smart placement** is on (`placement.mode: "smart"`) since the Worker is origin-bound (D1/R2/AI), not edge-latency-bound. **Observability at 100% head sampling** (`head_sampling_rate: 1` top-level + under `logs`, `persist: true`, `invocation_logs: true`).
 
@@ -320,12 +320,12 @@ The real entrypoint. Wraps the vinext handler and adds:
 
 All in `lib/db/session.ts`. Using the wrong variant causes stale-read bugs, FK errors, or read-your-own-writes inconsistency.
 
-| Function                           | When to use                                                                                        |
-| ---------------------------------- | -------------------------------------------------------------------------------------------------- |
-| `getDb(env.CLICKFOLIO_DB)`         | Read-only or non-user-facing queries. **WeakMap-cached** per binding (once-per-isolate drizzle parse) |
+| Function                           | When to use                                                                                                                                              |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `getDb(env.CLICKFOLIO_DB)`         | Read-only or non-user-facing queries. **WeakMap-cached** per binding (once-per-isolate drizzle parse)                                                    |
 | `getSessionDb(d1)`                 | Authenticated page/API routes — reads `d1-session-bookmark` cookie (else `"first-unconstrained"`), provides `captureBookmark()` for read-your-own-writes |
-| `getSessionDbWithPrimaryFirst(d1)` | Immediately after user creation (`"first-primary"` — avoids FK errors before D1 replication)       |
-| `getSessionDbForWebhook(d1)`       | Queue consumers, cron handlers, WebSocket handlers (no cookies; `"first-primary"`, no bookmark)    |
+| `getSessionDbWithPrimaryFirst(d1)` | Immediately after user creation (`"first-primary"` — avoids FK errors before D1 replication)                                                             |
+| `getSessionDbForWebhook(d1)`       | Queue consumers, cron handlers, WebSocket handlers (no cookies; `"first-primary"`, no bookmark)                                                          |
 
 ⚠️ The three session variants build a **FRESH `drizzle(session, {schema})` on every call** (each wraps a per-request `d1.withSession(...)`); they are NOT WeakMap-cached. Only `getDb()` gets the once-per-isolate cache.
 
@@ -380,7 +380,7 @@ Key routes not obvious from directory names:
 - `GET /api/cron/*` — manual cron triggers (`cleanup`, `cleanup-r2`, `recover-orphaned`, `sync-domains`); `Bearer ${CRON_SECRET}` (`requireCronAuth`, fail-closed).
 - `GET /api/health` — `dynamic='force-dynamic'`, unauthenticated public liveness probe. Checks D1 (`SELECT 1`), R2 (`list({limit:1})`), AI gateway **config presence only** (no AI call). all healthy→200 `healthy`; any unhealthy→503; else 200 `degraded`. Returns per-service `latencyMs`.
 - `GET /api/og/home` — **SVG-only** hardcoded branded 1200×630 SVG (`max-age=604800`, no DB/auth/params).
-- `GET /api/og/[handle]` — **renders a REAL PNG** via `@cf-wasm/resvg/workerd` (`Resvg.async(svg,{fitTo:{mode:'width',value:1200}}).render().asPng()`), 1200×630, `Cache-Control: public, max-age=3600, swr=86400`. Fallback chain on not-found OR resvg failure: `renderFallbackPng` → `renderLastResort` (raw SVG, `max-age=300`). Only the `@vercel/og` *import path* is stubbed (`lib/stubs/og-stub.js`); `@cf-wasm/resvg` is a LIVE dependency.
+- `GET /api/og/[handle]` — **renders a REAL PNG** via `@cf-wasm/resvg/workerd` (`Resvg.async(svg,{fitTo:{mode:'width',value:1200}}).render().asPng()`), 1200×630, `Cache-Control: public, max-age=3600, swr=86400`. Fallback chain on not-found OR resvg failure: `renderFallbackPng` → `renderLastResort` (raw SVG, `max-age=300`). Only the `@vercel/og` _import path_ is stubbed (`lib/stubs/og-stub.js`); `@cf-wasm/resvg` is a LIVE dependency.
 - Sitemap: `/sitemap.xml` → `/api/sitemap-index`; `/sitemap/:id.xml` → `/api/sitemap/:id` (`next.config.ts` `rewrites()`). `redirects()` 308s bare `/:handle` → `/@handle` (reserved-path negative-lookahead). See SEO section for sharding.
 
 ### Auth patterns
@@ -420,6 +420,7 @@ Auth is **Better Auth** (Google OAuth + email/password) backed by D1 via the Dri
 - **`lib/utils/format.ts`** `formatRelativeTime()` is deterministic (no `Intl.RelativeTimeFormat`/locale) to avoid SSR hydration mismatches. **NOT shared, despite the name:** all 4 admin pages (`admin/page.tsx`, `referrals/`, `resumes/`, `users/`) each define their OWN local `formatRelativeTime(dateStr)` with DIVERGING output ('Xh/Xd ago' vs adds 'Xm ago' vs 'Today'/'Yesterday'/'Xw ago' with `toLocaleDateString`); `components/ui/save-indicator.tsx` has yet another taking a `Date` (uses locale-dependent `toLocaleTimeString`, safe only because it's `"use client"` and never SSRs). Don't assume "the shared formatter" is used. **`lib/utils/site-url.ts`** `getPublicSiteUrl()` & **`lib/utils/environment.ts`** `isLocalEnvironment()` both read `BETTER_AUTH_URL` (default `https://clickfolio.me`) NOT `NODE_ENV` (wrangler bakes NODE_ENV=production at build time).
 
 **Client-only vs server-only split** (importing the wrong one breaks):
+
 - **Client-only** (browser APIs): `lib/utils/clipboard.ts`, `share.ts`, `wait-for-completion.ts`, `errors.ts` (imports `sonner`+`window.location`), `pending-upload-client.ts`, client fns in `referral.ts`.
 - **Server-only** (import `cloudflare:workers` env at module top): `lib/rate-limit/ip.ts`, `user.ts`, `referral.ts`.
 - **Isomorphic** (Web Crypto only): `lib/utils/hash.ts`, `pending-upload-cookie.ts`, `lib/password/hibp.ts`, `sanitization.ts`, `xml.ts`, `analytics.ts`.
@@ -445,7 +446,7 @@ Auth is **Better Auth** (Google OAuth + email/password) backed by D1 via the Dri
 
 **A request, end to end:**
 
-1. **`proxy.ts` (edge).** For `protectedRoutes` (`/dashboard /edit /settings /waiting /wizard`) checks only that a session cookie is *present* — no D1, no signature/expiry validation. Cookie name has two forms: `better-auth.session_token` (dev/HTTP) and `__Secure-better-auth.session_token` (prod HTTPS); proxy checks both.
+1. **`proxy.ts` (edge).** For `protectedRoutes` (`/dashboard /edit /settings /waiting /wizard`) checks only that a session cookie is _present_ — no D1, no signature/expiry validation. Cookie name has two forms: `better-auth.session_token` (dev/HTTP) and `__Secure-better-auth.session_token` (prod HTTPS); proxy checks both.
 2. **`worker/index.ts`.** The real entrypoint. WebSocket upgrades to `/ws/resume-status` are intercepted here (auth + ownership → DO). Everything else flows to the vinext handler. Queue and cron invocations also enter here. The worker's `SECURITY_HEADERS` are injected on every response.
 3. **Page (RSC) or API route.** Pages call `getServerSession()` and self-redirect; APIs call the `requireAuth*` helpers. DB access goes through the correct session variant. On first call this isolate, `getAuth()` builds + caches the Better Auth instance.
 
@@ -568,6 +569,7 @@ Auth is **Better Auth** (Google OAuth + email/password) backed by D1 via the Dri
 ### Resume templates & theme registry
 
 **Adding a template — update ALL of these together** (TS `Record<ThemeId,...>` catches most; the registry-sync test catches the rest):
+
 1. `THEME_IDS` const tuple in `lib/templates/theme-ids.ts` (single source of truth; `ThemeId = typeof THEME_IDS[number]`).
 2. `THEME_METADATA[id]` (`name/description/category/preview/referralsRequired`).
 3. `themeToShareVariant[id]` (UNDERSCORE id → KEBAB `SharePopoverVariant`).
@@ -591,33 +593,33 @@ Auth is **Better Auth** (Google OAuth + email/password) backed by D1 via the Dri
 
 ## Design decisions & rationale
 
-| Decision | Why |
-| -------- | --- |
-| **`getAuth()` built once per isolate, WeakMap-cached by D1 binding** (`authInstanceCache`) | Avoids re-running schema parsing / plugin init / route generation on every request. The instance is stateless — headers/cookies are passed per call. |
-| **D1 binding wrapped in a date-serializing `Proxy`** (`wrapD1WithDateSerialization`, cached in `d1ProxyCache` WeakMap) | Better Auth's drizzle-adapter accepts `supportsDates:false` but never forwards it, and D1 can't `.bind()` `Date` objects. The Proxy converts `Date` → ISO string on `.bind()`. (This is also why ALL timestamp columns are stored as `text`.) |
-| **Proxy does cookie-presence-only checks (no D1)** | D1 is not available in proxy/middleware on Workers. Real enforcement is deferred to page/API layers; the proxy is just a cheap edge bounce. |
-| **Admin re-reads `isAdmin` from D1 every time** | So revoking admin is immediate and a stale `cookieCache` can't grant admin. Never trust session claims for admin. |
-| **Four DB session variants; only `getDb()` is cached** | Read-your-own-writes needs the `d1-session-bookmark` cookie; post-signup needs `"first-primary"` to avoid FK errors before replication; webhook/cron/WS have no cookies. Session variants wrap per-request `d1.withSession()` so they can't be isolate-cached. |
-| **Resume-complete UPDATE + siteData upsert always in one `db.batch()`** | A crash between them leaves the resume `completed` with no siteData, which the idempotency guard then permanently skips — silent data loss. |
-| **`pendingR2Deletions` rows written BEFORE the delete batch; no user FK** | The user row is gone when the 2 AM cron retries the R2 delete; recording the key durably first preserves GDPR cleanup. |
-| **fileHash dedup/cache is PER-USER** | Security: never leak parsed content across users; still saves a re-parse on identical re-uploads by the same user. |
-| **RETRYABLE errors keep status `processing` (no `failed`)** | Avoids showing the user a false-negative failure mid-retry; `failed` is written only on non-retryable errors or by the DLQ after exhaustion (Issues #83/#91). |
-| **`unknown` queue error is NON-retryable** | An unrecognized error message goes straight to DLQ rather than burning retries on something we can't classify as transient. |
-| **Cron triggers called directly in `worker/index.ts`** (not HTTP self-fetch) | Avoids double-billing the Worker for each scheduled run. |
-| **Smart placement enabled** | The Worker is origin-bound (D1/R2/AI), not edge-latency-bound, so running near the bindings beats running near the user. |
-| **Server password validation is length-only; strength is client-side** | Bundling ~1.73 MB of zxcvbn dictionaries into the Worker is unacceptable; `@zxcvbn-ts/*` is SSR-stubbed. |
-| **Stubs for CF-incompatible packages** (`@vercel/og`, `@zxcvbn-ts/*`, `zod/v3`, `async_hooks`, `cloudflare:workers`) | These don't run on Workers / cause dual-bundle issues; stubs keep the bundle valid and small. `zod/v3` stub drops a dead 128 KB AI-SDK path; `@vercel/og` stub drops ~2 MB resvg+yoga (the live OG PNG path uses `@cf-wasm/resvg`). |
-| **IP addresses SHA-256 hashed before storage** | GDPR-friendly rate limiting with no raw PII at rest. |
-| **Claim-check pattern (`pending_upload` signed cookie)** | Lets anonymous users upload *before* authenticating, then bind the temp R2 object to the new account on claim. |
-| **Disposable-email check is fail-OPEN** | Only an explicit `APIError` from the hook blocks signup; KV/network errors let signup through (availability over strictness). Email verification is the safety net. |
-| **`theme-ids.ts` is a zero-component-import data module** | Lets API routes / server code read theme metadata + unlock logic without pulling template component bundles into server routes. |
-| **`getRelatedProfiles` avoids `ORDER BY random()`** | Random sort isn't indexable on D1; a random OFFSET into a stable `orderBy(handle)` window + in-memory shuffle is cheap and indexable. |
-| **Public reads skip Zod re-validation of D1 content** | D1 is a trusted source; skipping redundant validation saves 200–400 ms (JSON.parse-with-try/catch only). |
-| **Env detection keys off `BETTER_AUTH_URL`, not `NODE_ENV`** | wrangler bakes `NODE_ENV=production` at build time, so it's unreliable for local-vs-prod (e.g. `bun run preview`). |
+| Decision                                                                                                               | Why                                                                                                                                                                                                                                                            |
+| ---------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`getAuth()` built once per isolate, WeakMap-cached by D1 binding** (`authInstanceCache`)                             | Avoids re-running schema parsing / plugin init / route generation on every request. The instance is stateless — headers/cookies are passed per call.                                                                                                           |
+| **D1 binding wrapped in a date-serializing `Proxy`** (`wrapD1WithDateSerialization`, cached in `d1ProxyCache` WeakMap) | Better Auth's drizzle-adapter accepts `supportsDates:false` but never forwards it, and D1 can't `.bind()` `Date` objects. The Proxy converts `Date` → ISO string on `.bind()`. (This is also why ALL timestamp columns are stored as `text`.)                  |
+| **Proxy does cookie-presence-only checks (no D1)**                                                                     | D1 is not available in proxy/middleware on Workers. Real enforcement is deferred to page/API layers; the proxy is just a cheap edge bounce.                                                                                                                    |
+| **Admin re-reads `isAdmin` from D1 every time**                                                                        | So revoking admin is immediate and a stale `cookieCache` can't grant admin. Never trust session claims for admin.                                                                                                                                              |
+| **Four DB session variants; only `getDb()` is cached**                                                                 | Read-your-own-writes needs the `d1-session-bookmark` cookie; post-signup needs `"first-primary"` to avoid FK errors before replication; webhook/cron/WS have no cookies. Session variants wrap per-request `d1.withSession()` so they can't be isolate-cached. |
+| **Resume-complete UPDATE + siteData upsert always in one `db.batch()`**                                                | A crash between them leaves the resume `completed` with no siteData, which the idempotency guard then permanently skips — silent data loss.                                                                                                                    |
+| **`pendingR2Deletions` rows written BEFORE the delete batch; no user FK**                                              | The user row is gone when the 2 AM cron retries the R2 delete; recording the key durably first preserves GDPR cleanup.                                                                                                                                         |
+| **fileHash dedup/cache is PER-USER**                                                                                   | Security: never leak parsed content across users; still saves a re-parse on identical re-uploads by the same user.                                                                                                                                             |
+| **RETRYABLE errors keep status `processing` (no `failed`)**                                                            | Avoids showing the user a false-negative failure mid-retry; `failed` is written only on non-retryable errors or by the DLQ after exhaustion (Issues #83/#91).                                                                                                  |
+| **`unknown` queue error is NON-retryable**                                                                             | An unrecognized error message goes straight to DLQ rather than burning retries on something we can't classify as transient.                                                                                                                                    |
+| **Cron triggers called directly in `worker/index.ts`** (not HTTP self-fetch)                                           | Avoids double-billing the Worker for each scheduled run.                                                                                                                                                                                                       |
+| **Smart placement enabled**                                                                                            | The Worker is origin-bound (D1/R2/AI), not edge-latency-bound, so running near the bindings beats running near the user.                                                                                                                                       |
+| **Server password validation is length-only; strength is client-side**                                                 | Bundling ~1.73 MB of zxcvbn dictionaries into the Worker is unacceptable; `@zxcvbn-ts/*` is SSR-stubbed.                                                                                                                                                       |
+| **Stubs for CF-incompatible packages** (`@vercel/og`, `@zxcvbn-ts/*`, `zod/v3`, `async_hooks`, `cloudflare:workers`)   | These don't run on Workers / cause dual-bundle issues; stubs keep the bundle valid and small. `zod/v3` stub drops a dead 128 KB AI-SDK path; `@vercel/og` stub drops ~2 MB resvg+yoga (the live OG PNG path uses `@cf-wasm/resvg`).                            |
+| **IP addresses SHA-256 hashed before storage**                                                                         | GDPR-friendly rate limiting with no raw PII at rest.                                                                                                                                                                                                           |
+| **Claim-check pattern (`pending_upload` signed cookie)**                                                               | Lets anonymous users upload _before_ authenticating, then bind the temp R2 object to the new account on claim.                                                                                                                                                 |
+| **Disposable-email check is fail-OPEN**                                                                                | Only an explicit `APIError` from the hook blocks signup; KV/network errors let signup through (availability over strictness). Email verification is the safety net.                                                                                            |
+| **`theme-ids.ts` is a zero-component-import data module**                                                              | Lets API routes / server code read theme metadata + unlock logic without pulling template component bundles into server routes.                                                                                                                                |
+| **`getRelatedProfiles` avoids `ORDER BY random()`**                                                                    | Random sort isn't indexable on D1; a random OFFSET into a stable `orderBy(handle)` window + in-memory shuffle is cheap and indexable.                                                                                                                          |
+| **Public reads skip Zod re-validation of D1 content**                                                                  | D1 is a trusted source; skipping redundant validation saves 200–400 ms (JSON.parse-with-try/catch only).                                                                                                                                                       |
+| **Env detection keys off `BETTER_AUTH_URL`, not `NODE_ENV`**                                                           | wrangler bakes `NODE_ENV=production` at build time, so it's unreliable for local-vs-prod (e.g. `bun run preview`).                                                                                                                                             |
 
 ## Common gotchas / footguns
 
-- **TWO different `SECURITY_HEADERS` constants exist and DIFFER.** `worker/index.ts` (every response): HSTS 1yr, NO preload, NO X-XSS-Protection. `lib/utils/security-headers.ts` (API helper responses + `lib/rate-limit/user.ts`): HSTS 2yr WITH preload + `X-XSS-Protection: 0`. They're separate constants — editing one doesn't change the other; on API JSON responses both merge and the worker's HSTS wins. The CSP+HSTS *origin* is `next.config.ts` `headers()`.
+- **TWO different `SECURITY_HEADERS` constants exist and DIFFER.** `worker/index.ts` (every response): HSTS 1yr, NO preload, NO X-XSS-Protection. `lib/utils/security-headers.ts` (API helper responses + `lib/rate-limit/user.ts`): HSTS 2yr WITH preload + `X-XSS-Protection: 0`. They're separate constants — editing one doesn't change the other; on API JSON responses both merge and the worker's HSTS wins. The CSP+HSTS _origin_ is `next.config.ts` `headers()`.
 - **`(protected)/layout.tsx` does NOT enforce auth.** Every page under it must call `getServerSession()` and `redirect('/')` itself. `/themes` relies entirely on its own page check (not in proxy's `protectedRoutes`).
 - **`proxy.ts` is presence-only.** A forged/expired-but-present cookie passes. `/admin` and `/themes` are not in proxy's `protectedRoutes` at all.
 - **Cookie name has two forms.** `better-auth.session_token` (dev/HTTP) and `__Secure-better-auth.session_token` (prod HTTPS). `proxy.ts`/account-delete handle both. The WS regex `/better-auth\.session_token=([^;]+)/` matches the prefixed name in prod **by coincidence**. Any EXACT lookup of only the unprefixed name breaks in production.

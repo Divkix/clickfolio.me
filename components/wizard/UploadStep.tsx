@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { clearStoredReferralCode, getStoredReferralCode } from "@/lib/referral";
+import type { ClaimResponse } from "@/lib/types/api";
 import type { ResumeContent } from "@/lib/types/database";
 import { MAX_FILE_SIZE_LABEL, validatePDF } from "@/lib/utils/validation";
 import { waitForResumeCompletion } from "@/lib/utils/wait-for-completion";
@@ -20,12 +21,6 @@ type UploadState = "idle" | "uploading" | "claiming" | "parsing" | "error";
 interface UploadResponse {
   key: string;
   remaining: number;
-  error?: string;
-}
-
-interface ClaimResponse {
-  resume_id: string;
-  cached?: boolean;
   error?: string;
 }
 

@@ -120,12 +120,10 @@ export async function enforceRateLimit(
   }
 
   // Feature flag bypass for temporary testing (non-production only)
+  // Note: this code only runs when NODE_ENV === "production" (the early return above
+  // handles all non-production cases), so DISABLE_RATE_LIMITS is always ignored here.
   if (process.env.DISABLE_RATE_LIMITS === "true") {
-    if (process.env.NODE_ENV === "production") {
-      console.warn("[SECURITY] DISABLE_RATE_LIMITS ignored in production environment");
-    } else {
-      return null;
-    }
+    console.warn("[SECURITY] DISABLE_RATE_LIMITS ignored in production environment");
   }
 
   // Skip for local environment (local preview runs in production mode)

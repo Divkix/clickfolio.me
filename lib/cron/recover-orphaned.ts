@@ -2,7 +2,7 @@
  * Shared orphaned resume recovery logic.
  *
  * Called by:
- * - worker.ts scheduled handler (direct invocation, no extra Worker billing)
+ * - worker/index.ts scheduled handler (direct invocation, no extra Worker billing)
  * - /api/cron/recover-orphaned route handler (manual trigger via HTTP)
  *
  * Finds resumes stuck in pending_claim status that have valid r2Key and fileHash

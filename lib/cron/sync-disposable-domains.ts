@@ -2,7 +2,7 @@
  * Sync disposable email domain blocklist from GitHub to KV.
  *
  * Called by:
- * - worker.ts scheduled handler (cron)
+ * - worker/index.ts scheduled handler (cron)
  * - /api/cron/sync-disposable-domains route handler (manual trigger)
  *
  * Source: https://github.com/disposable-email-domains/disposable-email-domains

@@ -2,15 +2,12 @@
 
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import type { ApiErrorBody } from "@/lib/types/api";
 import type { ResumeContent } from "@/lib/types/database";
 import { EditResumeForm } from "./EditResumeForm";
 
 interface EditResumeFormWrapperProps {
   initialData: ResumeContent;
-}
-
-interface ErrorResponse {
-  error?: string;
 }
 
 export function EditResumeFormWrapper({ initialData }: EditResumeFormWrapperProps) {
@@ -26,7 +23,7 @@ export function EditResumeFormWrapper({ initialData }: EditResumeFormWrapperProp
     });
 
     if (!response.ok) {
-      const error = (await response.json()) as ErrorResponse;
+      const error = (await response.json()) as ApiErrorBody;
       const errorMessage = error.error || "Failed to update resume";
 
       // Display specific error messages to user

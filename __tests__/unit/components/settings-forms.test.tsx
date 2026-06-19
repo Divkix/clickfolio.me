@@ -122,7 +122,7 @@ describe("PrivacySettingsForm", () => {
   it("surfaces API and thrown privacy update failures", async () => {
     const user = userEvent.setup();
     vi.mocked(globalThis.fetch)
-      .mockResolvedValueOnce(Response.json({ message: "Privacy rejected" }, { status: 400 }))
+      .mockResolvedValueOnce(Response.json({ error: "Privacy rejected" }, { status: 400 }))
       .mockRejectedValueOnce("network");
 
     render(

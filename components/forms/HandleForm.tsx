@@ -9,23 +9,19 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { siteConfig } from "@/lib/config/site";
 import { type HandleUpdate, handleUpdateSchema } from "@/lib/schemas/profile";
-import { copyToClipboard } from "@/lib/utils/clipboard";
+import type { ApiErrorBody } from "@/lib/types/api";
 
 interface HandleFormProps {
   currentHandle: string;
   variant?: "default" | "compact";
 }
 
-interface ErrorResponse {
-  error?: string;
-  message?: string;
-}
-
 export function HandleForm({ currentHandle, variant = "default" }: HandleFormProps) {
   const [isSaving, setIsSaving] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const { copied, copy } = useCopyToClipboard();
   const router = useRouter();
 
   const {
@@ -44,15 +40,10 @@ export function HandleForm({ currentHandle, variant = "default" }: HandleFormPro
   const publicUrl = `${siteConfig.domain}/@${newHandle || currentHandle}`;
 
   const handleCopy = async () => {
-    const success = await copyToClipboard(`https://${publicUrl}`);
-
-    if (success) {
-      setCopied(true);
-      toast.success("URL copied to clipboard");
-      setTimeout(() => setCopied(false), 2000);
-    } else {
-      toast.error("Failed to copy URL");
-    }
+    await copy(`https://${publicUrl}`, {
+      successMessage: "URL copied to clipboard",
+      errorMessage: "Failed to copy URL",
+    });
   };
 
   const onSubmit = async (data: HandleUpdate) => {
@@ -73,8 +64,8 @@ export function HandleForm({ currentHandle, variant = "default" }: HandleFormPro
       });
 
       if (!response.ok) {
-        const errorData = (await response.json()) as ErrorResponse;
-        throw new Error(errorData.message || "Failed to update handle");
+        const errorData = (await response.json()) as ApiErrorBody;
+        throw new Error(errorData.error || "Failed to update handle");
       }
 
       await response.json();

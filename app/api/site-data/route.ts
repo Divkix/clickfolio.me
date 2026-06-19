@@ -54,8 +54,8 @@ export async function GET() {
           typeof userSiteData.content === "string"
             ? JSON.parse(userSiteData.content)
             : userSiteData.content;
-      } catch {
-        console.error("Failed to parse site_data content");
+      } catch (error) {
+        console.error("Failed to parse site_data content", error);
       }
     }
 

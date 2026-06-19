@@ -58,7 +58,9 @@ export default {
   async fetch(request: Request, env: CloudflareEnv, _ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
 
-    // Intercept WebSocket upgrade requests for resume status
+    // Manually intercept WebSocket upgrade requests for resume status.
+    // TODO(vinext): Remove once vinext handles WebSocket upgrades upstream;
+    // this auth interception exists only because vinext does not route them.
     if (
       url.pathname === "/ws/resume-status" &&
       request.headers.get("Upgrade")?.toLowerCase() === "websocket"
@@ -90,7 +92,6 @@ export default {
         return new Response("Unauthorized: Invalid session", { status: 401 });
       }
 
-      // TODO(vinext): Remove once vinext fixes this upstream
       const userId = session.user.id;
 
       // Verify resume ownership via D1 query

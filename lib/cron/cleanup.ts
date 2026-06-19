@@ -2,7 +2,7 @@
  * Shared cleanup logic for database maintenance.
  *
  * Called by:
- * - worker.ts scheduled handler (direct invocation, no extra Worker billing)
+ * - worker/index.ts scheduled handler (direct invocation, no extra Worker billing)
  * - /api/cron/cleanup route handler (manual trigger via HTTP)
  *
  * Deletes:

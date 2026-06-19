@@ -1,7 +1,7 @@
 /**
  * Cloudflare Cron Trigger handler for R2 storage cleanup (HTTP endpoint)
  *
- * Exists for manual triggers; the scheduled handler in worker.ts calls
+ * Exists for manual triggers; the scheduled handler in worker/index.ts calls
  * performR2Cleanup() directly to avoid double Worker invocation billing.
  *
  * Scheduled daily at 2 AM UTC via wrangler.jsonc

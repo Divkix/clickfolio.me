@@ -1,30 +1,23 @@
 "use client";
 
 import { Check, Link2 } from "lucide-react";
-import { useState } from "react";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { copyToClipboard } from "@/lib/utils/clipboard";
+import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 
 interface CopyLinkButtonProps {
   handle: string;
 }
 
 export function CopyLinkButton({ handle }: CopyLinkButtonProps) {
-  const [copied, setCopied] = useState(false);
+  const { copied, copy } = useCopyToClipboard();
 
   const handleCopy = async () => {
     const url = `${window.location.origin}/@${handle}`;
 
-    const success = await copyToClipboard(url);
-
-    if (success) {
-      setCopied(true);
-      toast.success("Link copied to clipboard!");
-      setTimeout(() => setCopied(false), 2000);
-    } else {
-      toast.error("Failed to copy link. Please copy manually.");
-    }
+    await copy(url, {
+      successMessage: "Link copied to clipboard!",
+      errorMessage: "Failed to copy link. Please copy manually.",
+    });
   };
 
   return (

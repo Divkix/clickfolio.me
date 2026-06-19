@@ -12,6 +12,7 @@ import {
   type ThemeId,
 } from "@/lib/templates/theme-ids";
 import { DYNAMIC_TEMPLATES } from "@/lib/templates/theme-registry.client";
+import type { ApiErrorBody } from "@/lib/types/api";
 import type { ResumeContent } from "@/lib/types/database";
 import { cn } from "@/lib/utils/cn";
 
@@ -26,10 +27,6 @@ interface ThemeSelectorProps {
   referralCount: number;
   /** Whether user has pro status (unlocks all themes) */
   isPro: boolean;
-}
-
-interface ErrorResponse {
-  error?: string;
 }
 
 export function ThemeSelector({
@@ -94,7 +91,7 @@ export function ThemeSelector({
       });
 
       if (!response.ok) {
-        const errorData = (await response.json()) as ErrorResponse;
+        const errorData = (await response.json()) as ApiErrorBody;
         throw new Error(errorData.error || "Failed to update theme");
       }
 

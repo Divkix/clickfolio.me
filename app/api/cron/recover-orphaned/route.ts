@@ -1,7 +1,7 @@
 /**
  * Cloudflare Cron Trigger handler for orphaned resume recovery (HTTP endpoint)
  *
- * Exists for manual triggers; the scheduled handler in worker.ts calls
+ * Exists for manual triggers; the scheduled handler in worker/index.ts calls
  * recoverOrphanedResumes() directly to avoid double Worker invocation billing.
  *
  * Scheduled every 15 minutes via wrangler.jsonc
