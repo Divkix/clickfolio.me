@@ -486,9 +486,9 @@ export default function WizardPage() {
   // Loading state (including session loading)
   if (loading || sessionLoading) {
     return (
-      <div className="min-h-screen bg-cream flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="w-12 h-12 animate-spin text-coral mx-auto mb-4" />
+          <Loader2 className="w-12 h-12 animate-spin text-brand mx-auto mb-4" />
           <p className="text-muted-foreground font-medium">Loading your resume...</p>
           <p className="text-muted-foreground text-sm mt-2">
             This may take 30-60 seconds if we&apos;re parsing your PDF
@@ -501,12 +501,12 @@ export default function WizardPage() {
   // Error state (only for actual errors, not for "no resume" case which is handled by UploadStep)
   if (error && state.currentStepId === "handle" && !needsUpload) {
     return (
-      <div className="min-h-screen bg-cream flex items-center justify-center px-4">
-        <div className="bg-card rounded-xl shadow-md border border-coral/30 p-8 max-w-md w-full text-center">
-          <div className="w-16 h-16 bg-coral/20 rounded-full flex items-center justify-center mx-auto mb-4">
+      <div className="min-h-screen bg-background flex items-center justify-center px-4">
+        <div className="bg-card rounded-xl shadow-md border border-border p-8 max-w-md w-full text-center">
+          <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg
               aria-hidden="true"
-              className="w-8 h-8 text-coral"
+              className="w-8 h-8 text-destructive"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -528,7 +528,7 @@ export default function WizardPage() {
 
   // Main wizard UI
   return (
-    <div className="min-h-screen bg-cream">
+    <div className="min-h-screen bg-background">
       {/* Celebration Effects */}
       {showCelebration && <Confetti />}
       <YouAreLiveModal
@@ -549,8 +549,8 @@ export default function WizardPage() {
       <main className="max-w-5xl mx-auto px-4 py-12">
         {/* Error Alert (shown inline for steps past the first) */}
         {error && stepOrder.indexOf(state.currentStepId) > 0 && (
-          <Alert className="mb-6 border-coral/30 bg-coral/10">
-            <AlertDescription className="text-coral">{error}</AlertDescription>
+          <Alert variant="destructive" className="mb-6">
+            <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
 

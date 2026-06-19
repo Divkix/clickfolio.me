@@ -24,13 +24,10 @@ export function BasicInfoSection({ form }: BasicInfoSectionProps) {
   };
 
   return (
-    <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-6 hover:shadow-md transition-colors duration-300">
+    <div className="bg-card rounded-xl shadow-sm border border-border p-6 transition-shadow hover:shadow-md">
       <div className="flex items-center gap-3 mb-6">
-        <div className="relative shrink-0">
-          <div className="absolute inset-0 bg-coral rounded-lg blur-md opacity-20" />
-          <div className="relative bg-coral/20 p-2.5 rounded-lg">
-            <User className="h-5 w-5 text-coral" />
-          </div>
+        <div className="shrink-0 bg-brand-subtle p-2.5 rounded-lg">
+          <User className="h-5 w-5 text-brand" />
         </div>
         <div>
           <h2 className="text-lg font-semibold text-foreground">Basic Information</h2>

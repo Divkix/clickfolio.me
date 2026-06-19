@@ -38,15 +38,50 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
 
   return (
     <html lang="en">
-      <body>
-        <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-gray-50 to-gray-100 px-4">
-          <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
-            <div className="mb-6">
-              <div className="mx-auto w-16 h-16 bg-coral/20 rounded-full flex items-center justify-center">
+      <body style={{ margin: 0 }}>
+        <div
+          style={{
+            minHeight: "100vh",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "1rem",
+            backgroundColor: "#FBFAF9",
+            color: "#1B1A18",
+            fontFamily:
+              "ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+          }}
+        >
+          <div
+            style={{
+              maxWidth: "28rem",
+              width: "100%",
+              backgroundColor: "#FFFFFF",
+              border: "1px solid #E7E3DF",
+              borderRadius: "0.75rem",
+              boxShadow: "0 1px 2px rgba(27, 26, 24, 0.06)",
+              padding: "2rem",
+              textAlign: "center",
+            }}
+          >
+            <div style={{ marginBottom: "1.5rem" }}>
+              <div
+                style={{
+                  margin: "0 auto",
+                  width: "4rem",
+                  height: "4rem",
+                  borderRadius: "9999px",
+                  backgroundColor: "rgba(224, 70, 52, 0.12)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
                 <svg
-                  className="w-8 h-8 text-coral"
+                  width="32"
+                  height="32"
                   fill="none"
-                  stroke="currentColor"
+                  stroke="#E04634"
                   viewBox="0 0 24 24"
                   aria-hidden="true"
                 >
@@ -60,38 +95,79 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
               </div>
             </div>
 
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Something went wrong</h1>
+            <h1 style={{ fontSize: "1.5rem", fontWeight: 700, margin: "0 0 0.5rem" }}>
+              Something went wrong
+            </h1>
 
-            <p className="text-gray-600 mb-6">
+            <p style={{ color: "#6B6862", margin: "0 0 1.5rem" }}>
               We encountered an unexpected error. Please try again or go back to the dashboard.
             </p>
 
             {process.env.NODE_ENV === "development" && (
-              <div className="mb-6 p-4 bg-gray-50 rounded-lg text-left">
-                <p className="text-xs font-mono text-gray-700 break-all">{error.message}</p>
+              <div
+                style={{
+                  marginBottom: "1.5rem",
+                  padding: "1rem",
+                  backgroundColor: "#F4F1EE",
+                  borderRadius: "0.5rem",
+                  textAlign: "left",
+                }}
+              >
+                <p
+                  style={{
+                    fontSize: "0.75rem",
+                    fontFamily: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
+                    color: "#3A3833",
+                    wordBreak: "break-all",
+                    margin: 0,
+                  }}
+                >
+                  {error.message}
+                </p>
                 {error.digest && (
-                  <p className="text-xs text-gray-500 mt-2">Error ID: {error.digest}</p>
+                  <p style={{ fontSize: "0.75rem", color: "#6B6862", margin: "0.5rem 0 0" }}>
+                    Error ID: {error.digest}
+                  </p>
                 )}
               </div>
             )}
 
-            <div className="flex flex-col sm:flex-row gap-3">
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
               <button
                 type="button"
                 onClick={reset}
-                className="flex-1 px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors"
+                style={{
+                  flex: 1,
+                  padding: "0.625rem 1rem",
+                  backgroundColor: "#E04634",
+                  color: "#FFFFFF",
+                  border: "none",
+                  borderRadius: "0.5rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
               >
                 Try Again
               </button>
               <Link
                 href="/dashboard"
-                className="flex-1 px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                style={{
+                  flex: 1,
+                  padding: "0.625rem 1rem",
+                  backgroundColor: "#FFFFFF",
+                  color: "#1B1A18",
+                  border: "1px solid #D8D3CD",
+                  borderRadius: "0.5rem",
+                  fontWeight: 500,
+                  textAlign: "center",
+                  textDecoration: "none",
+                }}
               >
                 Go to Dashboard
               </Link>
             </div>
 
-            <p className="mt-6 text-sm text-gray-500">
+            <p style={{ marginTop: "1.5rem", fontSize: "0.875rem", color: "#6B6862" }}>
               If the problem persists, please contact support.
             </p>
           </div>

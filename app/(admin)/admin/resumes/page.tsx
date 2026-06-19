@@ -118,8 +118,8 @@ export default function AdminResumesPage() {
             title="Completed"
             value={data?.stats.completed ?? 0}
             icon={CheckCircle2}
-            iconColorClass="text-emerald-600"
-            iconBgClass="bg-linear-to-r from-emerald-100 to-teal-100"
+            iconColorClass="text-success"
+            iconBgClass="bg-success/10"
           />
         </button>
         <button
@@ -131,8 +131,8 @@ export default function AdminResumesPage() {
             title="Processing"
             value={data?.stats.processing ?? 0}
             icon={Loader2}
-            iconColorClass="text-amber-600"
-            iconBgClass="bg-linear-to-r from-amber-100 to-orange-100"
+            iconColorClass="text-warning"
+            iconBgClass="bg-warning/10"
           />
         </button>
         <button
@@ -144,8 +144,8 @@ export default function AdminResumesPage() {
             title="Queued"
             value={data?.stats.queued ?? 0}
             icon={Clock}
-            iconColorClass="text-coral"
-            iconBgClass="bg-coral/20"
+            iconColorClass="text-info"
+            iconBgClass="bg-info/10"
           />
         </button>
         <button
@@ -157,19 +157,19 @@ export default function AdminResumesPage() {
             title="Failed"
             value={data?.stats.failed ?? 0}
             icon={AlertTriangle}
-            iconColorClass="text-coral"
-            iconBgClass="bg-coral/20"
+            iconColorClass="text-destructive"
+            iconBgClass="bg-destructive/10"
           />
         </button>
       </div>
 
       {/* Filter */}
       <div className="flex items-center gap-4">
-        <FileText className="w-5 h-5 text-muted-foreground/70" aria-hidden="true" />
+        <FileText className="w-5 h-5 text-muted-foreground" aria-hidden="true" />
         <select
           value={statusFilter}
           onChange={(e) => updateParams({ status: e.target.value as StatusFilter })}
-          className="text-sm border border-ink/15 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-coral/20 focus:border-coral"
+          className="text-sm bg-card text-foreground border border-border-strong rounded-lg px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-ring"
           aria-label="Filter by status"
         >
           {STATUS_OPTIONS.map((opt) => (
@@ -184,11 +184,11 @@ export default function AdminResumesPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-card rounded-xl shadow-sm border border-ink/10 overflow-hidden">
+      <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-ink/10 bg-muted/50">
+              <tr className="border-b border-border bg-muted/50">
                 <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3">
                   User
                 </th>
@@ -206,7 +206,7 @@ export default function AdminResumesPage() {
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-ink/10">
+            <tbody className="divide-y divide-border">
               {loading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i}>
@@ -239,7 +239,7 @@ export default function AdminResumesPage() {
                     <tr
                       key={resume.id}
                       className={`hover:bg-muted/50 transition-colors ${
-                        resume.status === "failed" ? "bg-coral/10" : ""
+                        resume.status === "failed" ? "bg-destructive/10" : ""
                       }`}
                     >
                       <td className="px-4 py-3 text-sm text-foreground">{resume.userEmail}</td>
@@ -259,7 +259,7 @@ export default function AdminResumesPage() {
                             onClick={() =>
                               setExpandedRow(expandedRow === resume.id ? null : resume.id)
                             }
-                            className="text-sm text-coral hover:text-coral truncate max-w-[200px] block text-left"
+                            className="text-sm text-destructive hover:underline truncate max-w-[200px] block text-left"
                             title="Click to expand"
                           >
                             {resume.lastAttemptError.slice(0, 50)}
@@ -277,8 +277,8 @@ export default function AdminResumesPage() {
                       resume.lastAttemptError && (
                         // eslint-disable-next-line jsx-a11y/control-has-associated-label -- false positive: <tr> is not an interactive control
                         <tr key={`${resume.id}-error`}>
-                          <td colSpan={5} className="px-4 py-3 bg-coral/10">
-                            <pre className="text-xs text-coral font-mono whitespace-pre-wrap wrap-break-word">
+                          <td colSpan={5} className="px-4 py-3 bg-destructive/10">
+                            <pre className="text-xs text-destructive font-mono whitespace-pre-wrap wrap-break-word">
                               {resume.lastAttemptError}
                             </pre>
                           </td>
@@ -293,7 +293,7 @@ export default function AdminResumesPage() {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="border-t border-ink/10 px-4 py-3">
+          <div className="border-t border-border px-4 py-3">
             <Pagination
               currentPage={page}
               totalPages={totalPages}

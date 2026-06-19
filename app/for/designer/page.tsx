@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Button } from "@/components/ui/button";
 import { siteConfig } from "@/lib/config/site";
 import {
   generatePageBreadcrumbJsonLd,
@@ -44,19 +45,21 @@ export default function DesignerPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbJsonLd) }}
       />
-      <main className="min-h-screen bg-cream paper-texture" id="main-content">
+      <main className="min-h-screen bg-background" id="main-content">
         <div className="max-w-3xl mx-auto px-4 py-16">
-          <h1 className="font-black text-3xl sm:text-4xl text-ink mb-4">
+          <h1 className="font-extrabold text-3xl sm:text-4xl text-foreground mb-4">
             Portfolio Websites for Designers
           </h1>
-          <p className="text-lg text-[#6B6B6B] mb-8">
+          <p className="text-lg text-muted-foreground mb-8">
             Your work deserves a canvas, not a template. Upload your PDF resume and get a
             designer-quality portfolio website with a custom @handle URL — free, no signup needed.
           </p>
 
           <section className="mb-12">
-            <h2 className="font-black text-xl text-ink mb-4">Why Designers Love clickfolio.me</h2>
-            <ul className="space-y-3 text-[#6B6B6B] list-disc pl-5">
+            <h2 className="font-bold text-xl text-foreground mb-4">
+              Why Designers Love clickfolio.me
+            </h2>
+            <ul className="space-y-3 text-muted-foreground list-disc pl-5">
               <li>
                 <strong>DesignFolio template</strong> — digital brutalism meets Swiss typography.
                 Dark theme with acid lime accents. Bold, distinctive, and impossible to ignore.
@@ -78,26 +81,23 @@ export default function DesignerPage() {
           </section>
 
           <section className="mb-12">
-            <h2 className="font-black text-xl text-ink mb-4">
+            <h2 className="font-bold text-xl text-foreground mb-4">
               From PDF to Published in 30 Seconds
             </h2>
-            <p className="text-[#6B6B6B] mb-4">
+            <p className="text-muted-foreground mb-4">
               Drop your existing PDF resume — the one you already have. Our AI extracts your
               experience, education, skills, and projects. In 30 seconds, you have a live portfolio
               you can share with studios, agencies, and clients.
             </p>
-            <p className="text-[#6B6B6B]">
+            <p className="text-muted-foreground">
               Not happy with the first template? Switch between 10 professionally designed themes
               with one click. No design skills needed to make your work look great.
             </p>
           </section>
 
-          <a
-            href="/"
-            className="inline-block bg-ink text-cream font-bold px-6 py-3 border-3 border-ink shadow-brutal-sm hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-transform"
-          >
-            Create Your Free Design Portfolio →
-          </a>
+          <Button asChild size="lg">
+            <a href="/">Create Your Free Design Portfolio</a>
+          </Button>
         </div>
       </main>
     </>

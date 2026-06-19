@@ -20,8 +20,8 @@ export function ReviewStep({ content, onContinue }: ReviewStepProps) {
     <div className="space-y-8">
       {/* Header */}
       <div className="text-center">
-        <div className="mx-auto w-16 h-16 bg-coral/20 rounded-xl flex items-center justify-center mb-6">
-          <FileCheck className="w-8 h-8 text-coral" />
+        <div className="mx-auto w-16 h-16 bg-brand-subtle rounded-xl flex items-center justify-center mb-6">
+          <FileCheck className="w-8 h-8 text-brand" />
         </div>
         <h1 className="text-3xl sm:text-4xl font-bold text-foreground mb-3 leading-tight">
           Review Your Information
@@ -34,11 +34,11 @@ export function ReviewStep({ content, onContinue }: ReviewStepProps) {
       {/* Content Preview */}
       <div className="max-w-3xl mx-auto space-y-6">
         {/* Header Section */}
-        <Card className="p-6 border-ink/10 shadow-sm">
+        <Card className="p-6 border-border shadow-sm">
           <div className="space-y-4">
             <div>
               <h2 className="text-2xl font-bold text-foreground">{content.full_name}</h2>
-              <p className="text-lg text-coral font-semibold">{content.headline}</p>
+              <p className="text-lg text-brand font-semibold">{content.headline}</p>
             </div>
 
             {/* Contact Info */}
@@ -91,21 +91,21 @@ export function ReviewStep({ content, onContinue }: ReviewStepProps) {
 
         {/* Summary */}
         {content.summary && (
-          <Card className="p-6 border-ink/10 shadow-sm">
+          <Card className="p-6 border-border shadow-sm">
             <h3 className="text-lg font-bold text-foreground mb-3">Summary</h3>
-            <p className="text-sm text-foreground/80 leading-relaxed">{content.summary}</p>
+            <p className="text-sm text-foreground leading-relaxed">{content.summary}</p>
           </Card>
         )}
 
         {/* Experience */}
         {content.experience && content.experience.length > 0 && (
-          <Card className="p-6 border-ink/10 shadow-sm">
+          <Card className="p-6 border-border shadow-sm">
             <h3 className="text-lg font-bold text-foreground mb-4">Experience</h3>
             <div className="space-y-4">
               {content.experience.slice(0, 3).map((exp, index) => (
                 <div
                   key={`${exp.title}-${exp.company}-${index}`}
-                  className="border-l-2 border-coral/30 pl-4"
+                  className="border-l-2 border-border pl-4"
                 >
                   <div className="flex justify-between items-start mb-1">
                     <div>
@@ -117,7 +117,7 @@ export function ReviewStep({ content, onContinue }: ReviewStepProps) {
                     </span>
                   </div>
                   {exp.description && (
-                    <p className="text-sm text-foreground/80 leading-relaxed line-clamp-3">
+                    <p className="text-sm text-foreground leading-relaxed line-clamp-3">
                       {exp.description}
                     </p>
                   )}
@@ -134,7 +134,7 @@ export function ReviewStep({ content, onContinue }: ReviewStepProps) {
 
         {/* Education */}
         {content.education && content.education.length > 0 && (
-          <Card className="p-6 border-ink/10 shadow-sm">
+          <Card className="p-6 border-border shadow-sm">
             <h3 className="text-lg font-bold text-foreground mb-4">Education</h3>
             <div className="space-y-3">
               {content.education.map((edu, index) => (
@@ -152,19 +152,19 @@ export function ReviewStep({ content, onContinue }: ReviewStepProps) {
 
         {/* Skills */}
         {content.skills && content.skills.length > 0 && (
-          <Card className="p-6 border-ink/10 shadow-sm">
+          <Card className="p-6 border-border shadow-sm">
             <h3 className="text-lg font-bold text-foreground mb-4">Skills</h3>
             <div className="space-y-3">
               {content.skills.map((skillGroup, index) => (
                 <div key={`${skillGroup.category}-${index}`}>
-                  <h4 className="text-sm font-semibold text-foreground/80 mb-1">
+                  <h4 className="text-sm font-semibold text-foreground mb-1">
                     {skillGroup.category}
                   </h4>
                   <div className="flex flex-wrap gap-2">
                     {skillGroup.items.map((skill, skillIndex) => (
                       <span
                         key={`${skillGroup.category}-${skill}-${skillIndex}`}
-                        className="px-2 py-1 bg-muted text-foreground/80 rounded text-xs font-medium"
+                        className="px-2 py-1 bg-secondary text-secondary-foreground rounded text-xs font-medium"
                       >
                         {skill}
                       </span>
@@ -178,11 +178,7 @@ export function ReviewStep({ content, onContinue }: ReviewStepProps) {
 
         {/* Continue Button */}
         <div className="pt-4">
-          <Button
-            onClick={onContinue}
-            className="w-full bg-coral hover:bg-coral/90 text-white font-semibold shadow-sm hover:shadow-md transition-colors duration-300"
-            size="lg"
-          >
+          <Button onClick={onContinue} className="w-full" size="lg">
             Looks Good, Continue
           </Button>
         </div>

@@ -2,9 +2,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function WizardLoading() {
   return (
-    <div className="min-h-screen bg-linear-to-br from-coral/10 via-coral/10 to-orange-50">
+    <div className="min-h-screen bg-background">
       {/* Progress Bar Header */}
-      <div className="sticky top-0 z-10 bg-card/80 backdrop-blur-sm border-b border-ink/10">
+      <div className="sticky top-0 z-10 bg-card/80 backdrop-blur-sm border-b border-border">
         <div className="max-w-5xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between mb-2">
             <Skeleton className="h-5 w-24" />
@@ -30,7 +30,7 @@ export default function WizardLoading() {
       <main className="max-w-5xl mx-auto px-4 py-12">
         <div className="flex items-center justify-center">
           {/* Centered Wizard Card */}
-          <div className="bg-card rounded-xl shadow-md border border-ink/10 p-8 w-full max-w-xl">
+          <div className="bg-card rounded-xl shadow-md border border-border p-8 w-full max-w-xl">
             {/* Card Header */}
             <div className="text-center mb-8">
               <Skeleton className="h-12 w-12 rounded-xl mx-auto mb-4" />
@@ -58,7 +58,7 @@ export default function WizardLoading() {
             </div>
 
             {/* Footer */}
-            <div className="mt-6 pt-6 border-t border-ink/15">
+            <div className="mt-6 pt-6 border-t border-border">
               <div className="flex items-center justify-center gap-2">
                 <Skeleton className="h-4 w-4 rounded-full" />
                 <Skeleton className="h-4 w-48" />

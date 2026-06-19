@@ -36,8 +36,8 @@ export function ThemeStep({
     <div className="space-y-8">
       {/* Header */}
       <div className="text-center">
-        <div className="mx-auto w-16 h-16 bg-coral/20 rounded-xl flex items-center justify-center mb-6">
-          <Palette className="w-8 h-8 text-coral" />
+        <div className="mx-auto w-16 h-16 bg-brand-subtle rounded-xl flex items-center justify-center mb-6">
+          <Palette className="w-8 h-8 text-brand" />
         </div>
         <h1 className="text-3xl sm:text-4xl font-bold text-foreground mb-3 leading-tight">
           Choose Your Template
@@ -60,19 +60,18 @@ export function ThemeStep({
                 key={id}
                 onClick={() => isUnlocked && setSelectedTheme(themeId)}
                 className={cn(
-                  "group relative overflow-hidden transition-all duration-300 p-6",
-                  "shadow-sm",
+                  "group relative overflow-hidden transition-colors p-6 shadow-sm",
                   isUnlocked
                     ? selectedTheme === id
-                      ? "border-coral ring-2 ring-coral/20 bg-coral/10 cursor-pointer hover:shadow-lg hover:-translate-y-1"
-                      : "border-ink/10 hover:border-coral/40 bg-card cursor-pointer hover:shadow-lg hover:-translate-y-1"
-                    : "border-ink/10 bg-muted cursor-not-allowed opacity-75",
+                      ? "ring-2 ring-brand border-brand bg-brand-subtle cursor-pointer"
+                      : "border-border hover:border-border-strong bg-card cursor-pointer"
+                    : "border-border bg-surface-2 cursor-not-allowed opacity-75",
                 )}
               >
                 {/* Selected Indicator */}
                 {selectedTheme === id && isUnlocked && (
                   <div className="absolute top-4 right-4">
-                    <div className="flex items-center gap-1 bg-coral text-white px-3 py-1 rounded-full text-xs font-bold">
+                    <div className="flex items-center gap-1 bg-brand text-brand-foreground px-3 py-1 rounded-full text-xs font-bold">
                       <CheckCircle2 className="w-3 h-3" />
                       Selected
                     </div>
@@ -85,18 +84,16 @@ export function ThemeStep({
                   <div className="flex items-center gap-2">
                     <span
                       className={cn(
-                        "inline-block text-xs uppercase tracking-wide font-bold px-2 py-1 rounded",
-                        isUnlocked
-                          ? selectedTheme === id
-                            ? "bg-coral/30 text-coral"
-                            : "bg-muted text-muted-foreground"
-                          : "bg-muted text-muted-foreground",
+                        "inline-block text-xs font-medium px-2 py-1 rounded-full",
+                        isUnlocked && selectedTheme === id
+                          ? "bg-brand text-brand-foreground"
+                          : "bg-secondary text-secondary-foreground",
                       )}
                     >
                       {meta.category}
                     </span>
                     {!isUnlocked && (
-                      <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-600">
+                      <span className="inline-flex items-center gap-1 text-xs font-medium text-warning">
                         <Gift className="w-3 h-3" />
                         Locked
                       </span>
@@ -107,27 +104,14 @@ export function ThemeStep({
                   <h3
                     className={cn(
                       "text-xl font-bold transition-colors",
-                      isUnlocked
-                        ? selectedTheme === id
-                          ? "text-coral"
-                          : "text-foreground group-hover:text-coral"
-                        : "text-muted-foreground",
+                      isUnlocked && selectedTheme === id ? "text-brand" : "text-foreground",
                     )}
                   >
                     {meta.name}
                   </h3>
 
                   {/* Description */}
-                  <p
-                    className={cn(
-                      "text-sm leading-relaxed",
-                      isUnlocked
-                        ? selectedTheme === id
-                          ? "text-foreground/80"
-                          : "text-muted-foreground"
-                        : "text-muted-foreground",
-                    )}
-                  >
+                  <p className="text-sm leading-relaxed text-muted-foreground">
                     {meta.description}
                   </p>
 
@@ -135,12 +119,8 @@ export function ThemeStep({
                   <div className="pt-2">
                     <div
                       className={cn(
-                        "aspect-16/10 rounded-lg overflow-hidden border-2 transition-colors relative",
-                        isUnlocked
-                          ? selectedTheme === id
-                            ? "border-coral"
-                            : "border-ink/15"
-                          : "border-ink/15",
+                        "aspect-16/10 rounded-lg overflow-hidden border transition-colors relative",
+                        isUnlocked && selectedTheme === id ? "border-brand" : "border-border",
                       )}
                     >
                       <img
@@ -154,9 +134,9 @@ export function ThemeStep({
                       />
                       {/* Lock Overlay for locked themes */}
                       {!isUnlocked && (
-                        <div className="absolute inset-0 bg-ink/40 flex flex-col items-center justify-center">
-                          <Lock className="w-5 h-5 text-white mb-1" />
-                          <span className="text-[10px] text-white font-semibold">
+                        <div className="absolute inset-0 bg-foreground/40 flex flex-col items-center justify-center">
+                          <Lock className="w-5 h-5 text-background mb-1" />
+                          <span className="text-[10px] text-background font-semibold">
                             {requiredReferrals} referrals
                           </span>
                         </div>
@@ -173,17 +153,13 @@ export function ThemeStep({
         <div className="mt-6 text-center">
           <p className="text-sm text-muted-foreground">
             Currently selected:{" "}
-            <span className="font-bold text-coral">{THEME_METADATA[selectedTheme].name}</span>
+            <span className="font-bold text-brand">{THEME_METADATA[selectedTheme].name}</span>
           </p>
         </div>
 
         {/* Continue Button */}
         <div className="pt-6">
-          <Button
-            onClick={handleContinue}
-            className="w-full bg-coral hover:bg-coral/90 text-white font-semibold shadow-sm hover:shadow-md transition-colors duration-300"
-            size="lg"
-          >
+          <Button onClick={handleContinue} className="w-full" size="lg">
             Complete Setup
           </Button>
         </div>

@@ -9,6 +9,7 @@ import { Suspense, useCallback, useState } from "react";
 import { toast } from "sonner";
 import { Footer } from "@/components/Footer";
 import { Logo } from "@/components/Logo";
+import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
 import { sendVerificationEmail } from "@/lib/auth/client";
 
@@ -59,13 +60,13 @@ function VerifyEmailContent() {
     return (
       <div className="text-center space-y-4">
         <div className="flex justify-center">
-          <XCircle className="w-12 h-12 text-coral" />
+          <XCircle className="w-12 h-12 text-destructive" />
         </div>
         <div className="space-y-2">
-          <h2 className="font-bold text-ink text-lg">
+          <h2 className="font-bold text-foreground text-lg">
             {error === "invalid_token" ? "Invalid Verification Link" : "Verification Failed"}
           </h2>
-          <p className="text-ink/70 text-sm">
+          <p className="text-muted-foreground text-sm">
             {error === "invalid_token"
               ? "This verification link is invalid or has expired."
               : "There was a problem verifying your email."}
@@ -73,44 +74,19 @@ function VerifyEmailContent() {
         </div>
 
         {email && (
-          <button
+          <Button
             type="button"
             onClick={handleResend}
-            disabled={isResending || resendCooldown > 0}
-            className="
-              inline-block
-              mt-4
-              px-5
-              py-2.5
-              bg-ink
-              text-cream
-              font-black
-              border-3
-              border-ink
-              shadow-brutal-sm
-              hover:-translate-x-0.5
-              hover:-translate-y-0.5
-              hover:shadow-brutal-md
-              active:translate-x-0
-              active:translate-y-0
-              active:shadow-none
-              transition-colors
-              duration-150
-              disabled:opacity-50
-              disabled:cursor-not-allowed
-            "
+            loading={isResending}
+            disabled={resendCooldown > 0}
+            className="mt-4"
           >
-            {isResending ? (
-              <span className="flex items-center gap-2">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Sending...
-              </span>
-            ) : resendCooldown > 0 ? (
-              `Resend in ${resendCooldown}s`
-            ) : (
-              "Resend Verification Email"
-            )}
-          </button>
+            {isResending
+              ? "Sending..."
+              : resendCooldown > 0
+                ? `Resend in ${resendCooldown}s`
+                : "Resend Verification Email"}
+          </Button>
         )}
 
         <Link
@@ -119,8 +95,8 @@ function VerifyEmailContent() {
             block
             text-sm
             font-medium
-            text-ink/70
-            hover:text-ink
+            text-muted-foreground
+            hover:text-foreground
             underline
             underline-offset-2
             transition-colors
@@ -137,39 +113,17 @@ function VerifyEmailContent() {
   return (
     <div className="text-center space-y-4">
       <div className="flex justify-center">
-        <CheckCircle className="w-12 h-12 text-green-600" />
+        <CheckCircle className="w-12 h-12 text-success" />
       </div>
       <div className="space-y-2">
-        <h2 className="font-bold text-ink text-lg">Email Verified!</h2>
-        <p className="text-ink/70 text-sm">
+        <h2 className="font-bold text-foreground text-lg">Email Verified!</h2>
+        <p className="text-muted-foreground text-sm">
           Your email has been successfully verified. You can now access all features.
         </p>
       </div>
-      <Link
-        href="/dashboard"
-        className="
-          inline-block
-          mt-4
-          px-5
-          py-2.5
-          bg-ink
-          text-cream
-          font-black
-          border-3
-          border-ink
-          shadow-brutal-sm
-          hover:-translate-x-0.5
-          hover:-translate-y-0.5
-          hover:shadow-brutal-md
-          active:translate-x-0
-          active:translate-y-0
-          active:shadow-none
-          transition-colors
-          duration-150
-        "
-      >
-        Go to Dashboard
-      </Link>
+      <Button asChild className="mt-4">
+        <Link href="/dashboard">Go to Dashboard</Link>
+      </Button>
     </div>
   );
 }
@@ -177,18 +131,18 @@ function VerifyEmailContent() {
 function LoadingFallback() {
   return (
     <div className="flex items-center justify-center py-8">
-      <Loader2 className="w-8 h-8 animate-spin text-ink/50" />
+      <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
     </div>
   );
 }
 
 export default function VerifyEmailPage() {
   return (
-    <div className="min-h-screen bg-cream flex flex-col paper-texture">
+    <div className="min-h-screen bg-background flex flex-col">
       <Toaster />
 
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b-3 border-ink bg-cream">
+      <header className="sticky top-0 z-50 border-b border-border bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
           <Link href="/" aria-label="clickfolio.me home">
             <Logo size="md" />
@@ -198,17 +152,7 @@ export default function VerifyEmailPage() {
 
       {/* Main Content */}
       <main className="flex-1 flex items-center justify-center px-4 py-12">
-        <div
-          className="
-            w-full
-            max-w-md
-            bg-white
-            border-3
-            border-ink
-            shadow-brutal-lg
-            p-8
-          "
-        >
+        <div className="w-full max-w-md bg-card rounded-xl border border-border shadow-sm p-8">
           <Suspense fallback={<LoadingFallback />}>
             <VerifyEmailContent />
           </Suspense>

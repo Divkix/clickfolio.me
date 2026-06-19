@@ -56,14 +56,14 @@ export function AdminTrafficChart({ data }: AdminTrafficChartProps) {
         {},
         {
           label: "Views",
-          stroke: "#6366f1",
+          stroke: "#D94E4E",
           width: 2,
-          fill: "rgba(99, 102, 241, 0.1)",
+          fill: "rgba(217, 78, 78, 0.1)",
           paths: uPlot.paths.spline?.() ?? undefined,
         },
         {
           label: "Unique",
-          stroke: "#10b981",
+          stroke: "#94a3b8",
           width: 2,
           dash: [4, 4],
           paths: uPlot.paths.spline?.() ?? undefined,

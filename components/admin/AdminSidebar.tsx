@@ -32,7 +32,7 @@ export function AdminSidebar({ isOpen, onClose, adminEmail }: AdminSidebarProps)
       {/* Mobile backdrop */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-ink/20 backdrop-blur-sm z-40 lg:hidden"
+          className="fixed inset-0 bg-foreground/20 backdrop-blur-sm z-40 lg:hidden"
           onClick={onClose}
           aria-hidden="true"
         />
@@ -41,7 +41,7 @@ export function AdminSidebar({ isOpen, onClose, adminEmail }: AdminSidebarProps)
       {/* Sidebar */}
       <aside
         className={`
-          fixed top-0 left-0 h-full w-64 bg-card border-r border-ink/10
+          fixed top-0 left-0 h-full w-64 bg-card border-r border-border
           flex flex-col z-50 transition-transform duration-300
           ${isOpen ? "translate-x-0" : "-translate-x-full"}
           lg:translate-x-0
@@ -59,7 +59,7 @@ export function AdminSidebar({ isOpen, onClose, adminEmail }: AdminSidebarProps)
         </button>
 
         {/* Logo Header */}
-        <div className="p-4 border-b border-ink/10">
+        <div className="p-4 border-b border-border">
           <Link href="/" aria-label="clickfolio.me home">
             <Logo size="xs" />
           </Link>
@@ -81,11 +81,11 @@ export function AdminSidebar({ isOpen, onClose, adminEmail }: AdminSidebarProps)
                 onClick={onClose}
                 className={`
                   flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium
-                  transition-colors duration-200
+                  transition-colors
                   ${
                     active
-                      ? "bg-muted text-foreground border-l-2 border-ink"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                      ? "bg-brand-subtle text-brand-active"
+                      : "text-muted-foreground hover:bg-surface-2 hover:text-foreground"
                   }
                 `}
                 aria-current={active ? "page" : undefined}
@@ -98,9 +98,9 @@ export function AdminSidebar({ isOpen, onClose, adminEmail }: AdminSidebarProps)
         </nav>
 
         {/* Admin Info */}
-        <div className="p-4 border-t border-ink/10">
+        <div className="p-4 border-t border-border">
           <p className="text-xs text-muted-foreground">Logged in as</p>
-          <p className="text-sm font-medium text-foreground/80 truncate">{adminEmail}</p>
+          <p className="text-sm font-medium text-foreground truncate">{adminEmail}</p>
         </div>
       </aside>
     </>

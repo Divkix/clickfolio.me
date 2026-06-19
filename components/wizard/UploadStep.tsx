@@ -244,8 +244,8 @@ export function UploadStep({ onContinue }: UploadStepProps) {
     <div className="space-y-8">
       {/* Header */}
       <div className="text-center">
-        <div className="mx-auto w-16 h-16 bg-coral/20 rounded-xl flex items-center justify-center mb-6">
-          <Upload className="w-8 h-8 text-coral" />
+        <div className="mx-auto w-16 h-16 bg-brand-subtle rounded-xl flex items-center justify-center mb-6">
+          <Upload className="w-8 h-8 text-brand" />
         </div>
         <h1 className="text-3xl sm:text-4xl font-bold text-foreground mb-3 leading-tight">
           Upload Your Resume
@@ -259,46 +259,36 @@ export function UploadStep({ onContinue }: UploadStepProps) {
       <div className="max-w-md mx-auto space-y-4">
         {uploadState === "error" ? (
           /* Error State */
-          <div className="bg-card rounded-xl border border-coral/30 p-8 text-center">
-            <div className="relative mx-auto w-16 h-16 mb-4">
-              <div className="absolute inset-0 bg-coral rounded-full blur-xl opacity-20" />
-              <div className="relative w-16 h-16 bg-coral/20 rounded-full flex items-center justify-center">
-                <svg
-                  className="w-8 h-8 text-coral"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  aria-hidden="true"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    stroke="currentColor"
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </div>
+          <div className="bg-card rounded-xl border border-border p-8 text-center shadow-sm">
+            <div className="mx-auto w-16 h-16 mb-4 bg-destructive/10 rounded-full flex items-center justify-center">
+              <svg
+                className="w-8 h-8 text-destructive"
+                viewBox="0 0 24 24"
+                fill="none"
+                aria-hidden="true"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  stroke="currentColor"
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
             </div>
 
             <h3 className="text-lg font-bold text-foreground mb-2">Something Went Wrong</h3>
-            <p className="text-sm text-coral mb-6">{error}</p>
+            <p className="text-sm text-destructive mb-6">{error}</p>
 
-            <Button
-              onClick={handleRetry}
-              className="w-full bg-coral hover:bg-coral/90 text-white font-semibold shadow-sm hover:shadow-md transition-colors duration-300"
-              size="lg"
-            >
+            <Button onClick={handleRetry} className="w-full" size="lg">
               Try Again
             </Button>
           </div>
         ) : isProcessing ? (
           /* Processing State */
-          <div className="bg-card rounded-xl border border-ink/10 p-8 text-center">
-            <div className="relative mx-auto w-16 h-16 mb-4">
-              <div className="absolute inset-0 bg-coral rounded-full blur-xl opacity-30 animate-pulse" />
-              <div className="relative w-16 h-16 bg-coral/20 rounded-full flex items-center justify-center">
-                <Loader2 className="w-8 h-8 text-coral animate-spin" />
-              </div>
+          <div className="bg-card rounded-xl border border-border p-8 text-center shadow-sm">
+            <div className="mx-auto w-16 h-16 mb-4 bg-brand-subtle rounded-full flex items-center justify-center">
+              <Loader2 className="w-8 h-8 text-brand animate-spin" />
             </div>
 
             <h3 className="text-lg font-bold text-foreground mb-2">
@@ -307,12 +297,12 @@ export function UploadStep({ onContinue }: UploadStepProps) {
             <p className="text-sm text-muted-foreground mb-4">{getProgressMessage()}</p>
 
             {uploadState === "parsing" && (
-              <p className="text-xs text-muted-foreground/70 font-medium mb-4">
+              <p className="text-xs text-muted-foreground font-medium mb-4">
                 This typically takes ~30 seconds
               </p>
             )}
 
-            <Progress value={uploadProgress} className="h-2 bg-muted" />
+            <Progress value={uploadProgress} className="h-2" />
             <p className="text-xs text-muted-foreground mt-2 font-medium">{uploadProgress}%</p>
           </div>
         ) : (
@@ -326,17 +316,14 @@ export function UploadStep({ onContinue }: UploadStepProps) {
             onClick={() => fileInputRef.current?.click()}
             aria-label="Drop your PDF resume here or click to browse files"
             className={`
-              group relative bg-card rounded-xl border border-ink/10 p-12 cursor-pointer transition-all duration-300 overflow-hidden
+              group relative w-full bg-card rounded-xl border border-dashed border-border-strong p-12 cursor-pointer transition-colors
               ${
                 isDragging
-                  ? "border-coral bg-linear-to-br from-coral/10 to-coral/10 shadow-lg -translate-y-1"
-                  : "hover:border-coral/40 hover:shadow-md"
+                  ? "border-brand bg-brand-subtle"
+                  : "hover:border-border-strong hover:bg-surface-2"
               }
             `}
           >
-            {/* Subtle gradient overlay on hover */}
-            <div className="absolute inset-0 bg-linear-to-br from-coral/10 via-transparent to-coral/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-
             <input
               ref={fileInputRef}
               type="file"
@@ -348,30 +335,11 @@ export function UploadStep({ onContinue }: UploadStepProps) {
             />
 
             <div className="relative z-10 flex flex-col items-center gap-4">
-              {/* Icon with gradient background */}
-              <div className="relative">
-                <div
-                  className={`absolute inset-0 bg-coral rounded-xl blur-xl transition-opacity duration-300 ${isDragging ? "opacity-40" : "opacity-20 group-hover:opacity-40"}`}
-                />
-                <div
-                  className={`relative bg-coral/20 p-4 rounded-xl transition-transform duration-300 ${isDragging ? "scale-110" : "group-hover:scale-110"}`}
-                >
-                  <svg className="w-12 h-12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <defs>
-                      <linearGradient id="uploadGradientWizard" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="#4F46E5" />
-                        <stop offset="100%" stopColor="#3B82F6" />
-                      </linearGradient>
-                    </defs>
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      stroke="url(#uploadGradientWizard)"
-                      d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                    />
-                  </svg>
-                </div>
+              {/* Icon */}
+              <div
+                className={`p-4 rounded-xl transition-colors ${isDragging ? "bg-brand text-brand-foreground" : "bg-brand-subtle text-brand"}`}
+              >
+                <Upload className="w-12 h-12" aria-hidden="true" />
               </div>
 
               {/* Title text */}
@@ -389,8 +357,8 @@ export function UploadStep({ onContinue }: UploadStepProps) {
 
         {/* Help Text */}
         {uploadState === "idle" && (
-          <div className="bg-muted border border-ink/10 rounded-xl p-4">
-            <p className="text-xs font-semibold text-foreground/80 mb-2">Supported formats:</p>
+          <div className="bg-surface-2 border border-border rounded-xl p-4">
+            <p className="text-xs font-semibold text-foreground mb-2">Supported formats:</p>
             <ul className="text-xs text-muted-foreground space-y-1">
               <li>* PDF files only</li>
               <li>* Maximum file size: {MAX_FILE_SIZE_LABEL}</li>

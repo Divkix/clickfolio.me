@@ -6,6 +6,9 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { signUp } from "@/lib/auth/client";
 import type { PasswordStrengthResult } from "@/lib/password/strength";
 import { type SignUpFormData, signUpSchema } from "@/lib/schemas/auth";
@@ -174,98 +177,54 @@ export function SignUpForm({ onSuccess, callbackURL }: SignUpFormProps) {
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       {/* Name Field */}
       <div className="space-y-1.5">
-        <label htmlFor="signup-name" className="block text-sm font-bold text-ink">
-          Name
-        </label>
-        <input
+        <Label htmlFor="signup-name">Name</Label>
+        <Input
           id="signup-name"
           type="text"
           autoComplete="name"
           placeholder="Your name"
           disabled={isSubmitting}
+          aria-invalid={!!errors.name}
           {...register("name")}
-          className={`
-            w-full
-            px-4
-            py-2.5
-            bg-cream
-            text-ink
-            font-medium
-            border-3
-            border-ink
-            shadow-brutal-sm
-            placeholder:text-ink/40
-            focus:outline-none
-            focus:shadow-brutal-md
-            focus:translate-x-[-2px]
-            focus:translate-y-[-2px]
-            transition-colors
-            duration-150
-            disabled:opacity-50
-            disabled:cursor-not-allowed
-            ${errors.name ? "border-brand" : ""}
-          `}
         />
-        {errors.name && <p className="text-sm text-brand font-medium">{errors.name.message}</p>}
+        {errors.name && (
+          <p className="text-sm text-destructive font-medium">{errors.name.message}</p>
+        )}
       </div>
 
       {/* Email Field */}
       <div className="space-y-1.5">
-        <label htmlFor="signup-email" className="block text-sm font-bold text-ink">
-          Email
-        </label>
-        <input
+        <Label htmlFor="signup-email">Email</Label>
+        <Input
           id="signup-email"
           type="email"
           autoComplete="email"
           placeholder="you@example.com"
           aria-label="Email address"
           disabled={isSubmitting}
+          aria-invalid={!!errors.email || !!emailDisposableError}
           ref={emailRegister.ref}
           name={emailRegister.name}
           onChange={emailRegister.onChange}
           onBlur={emailBlurHandler}
-          className={`
-            w-full
-            px-4
-            py-2.5
-            bg-cream
-            text-ink
-            font-medium
-            border-3
-            border-ink
-            shadow-brutal-sm
-            placeholder:text-ink/40
-            focus:outline-none
-            focus:shadow-brutal-md
-            focus:translate-x-[-2px]
-            focus:translate-y-[-2px]
-            transition-colors
-            duration-150
-            disabled:opacity-50
-            disabled:cursor-not-allowed
-            ${errors.email || emailDisposableError ? "border-brand" : ""}
-          `}
         />
         {isCheckingEmail && (
-          <p className="text-sm text-ink/60 font-medium flex items-center gap-1">
+          <p className="text-sm text-muted-foreground font-medium flex items-center gap-1">
             <Loader2 className="w-3 h-3 animate-spin" />
             Checking email...
           </p>
         )}
         {emailDisposableError && (
-          <p className="text-sm text-brand font-medium">{emailDisposableError}</p>
+          <p className="text-sm text-destructive font-medium">{emailDisposableError}</p>
         )}
         {errors.email && !emailDisposableError && (
-          <p className="text-sm text-brand font-medium">{errors.email.message}</p>
+          <p className="text-sm text-destructive font-medium">{errors.email.message}</p>
         )}
       </div>
 
       {/* Password Field with Strength Meter */}
       <div className="space-y-1.5">
-        <label htmlFor="signup-password" className="block text-sm font-bold text-ink">
-          Password
-        </label>
+        <Label htmlFor="signup-password">Password</Label>
         <PasswordInput
           id="signup-password"
           autoComplete="new-password"
@@ -281,53 +240,19 @@ export function SignUpForm({ onSuccess, callbackURL }: SignUpFormProps) {
           hasError={!!errors.password}
         />
         {errors.password && (
-          <p className="text-sm text-brand font-medium">{errors.password.message}</p>
+          <p className="text-sm text-destructive font-medium">{errors.password.message}</p>
         )}
       </div>
 
       {/* Submit Button */}
-      <button
+      <Button
         type="submit"
-        disabled={isSubmitting || !!emailDisposableError}
-        className="
-          w-full
-          mt-2
-          px-5
-          py-2.5
-          bg-ink
-          text-cream
-          font-black
-          border-3
-          border-ink
-          shadow-brutal-sm
-          hover:-translate-x-0.5
-          hover:-translate-y-0.5
-          hover:shadow-brutal-md
-          active:translate-x-0
-          active:translate-y-0
-          active:shadow-none
-          transition-colors
-          duration-150
-          disabled:opacity-50
-          disabled:cursor-not-allowed
-          disabled:hover:translate-x-0
-          disabled:hover:translate-y-0
-          disabled:hover:shadow-brutal-sm
-          flex
-          items-center
-          justify-center
-          gap-2
-        "
+        loading={isSubmitting}
+        disabled={!!emailDisposableError}
+        className="w-full mt-2"
       >
-        {isSubmitting ? (
-          <>
-            <Loader2 className="w-4 h-4 animate-spin" />
-            <span>Creating account...</span>
-          </>
-        ) : (
-          <span>Create account</span>
-        )}
-      </button>
+        {isSubmitting ? "Creating account..." : "Create account"}
+      </Button>
     </form>
   );
 }

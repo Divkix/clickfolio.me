@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Button } from "@/components/ui/button";
 import { siteConfig } from "@/lib/config/site";
 import {
   generatePageBreadcrumbJsonLd,
@@ -44,19 +45,21 @@ export default function StudentPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbJsonLd) }}
       />
-      <main className="min-h-screen bg-cream paper-texture" id="main-content">
+      <main className="min-h-screen bg-background" id="main-content">
         <div className="max-w-3xl mx-auto px-4 py-16">
-          <h1 className="font-black text-3xl sm:text-4xl text-ink mb-4">
+          <h1 className="font-extrabold text-3xl sm:text-4xl text-foreground mb-4">
             Free Resume Websites for Students
           </h1>
-          <p className="text-lg text-[#6B6B6B] mb-8">
+          <p className="text-lg text-muted-foreground mb-8">
             Your first online portfolio shouldn't cost anything. Upload your PDF resume and get a
             shareable website with a custom @handle URL — completely free, no time limits.
           </p>
 
           <section className="mb-12">
-            <h2 className="font-black text-xl text-ink mb-4">Why Students Love clickfolio.me</h2>
-            <ul className="space-y-3 text-[#6B6B6B] list-disc pl-5">
+            <h2 className="font-bold text-xl text-foreground mb-4">
+              Why Students Love clickfolio.me
+            </h2>
+            <ul className="space-y-3 text-muted-foreground list-disc pl-5">
               <li>
                 <strong>100% free, forever</strong> — all 6 base templates have no time limits, no
                 trials, and no credit card requirements. Perfect for students building their first
@@ -81,25 +84,22 @@ export default function StudentPage() {
           </section>
 
           <section className="mb-12">
-            <h2 className="font-black text-xl text-ink mb-4">Stand Out from the Stack</h2>
-            <p className="text-[#6B6B6B] mb-4">
+            <h2 className="font-bold text-xl text-foreground mb-4">Stand Out from the Stack</h2>
+            <p className="text-muted-foreground mb-4">
               Most students apply with a PDF. You'll apply with a live website. Share your @handle
               URL on internship applications, LinkedIn, and with recruiters at career fairs. It
               shows initiative, technical skill, and attention to detail.
             </p>
-            <p className="text-[#6B6B6B]">
+            <p className="text-muted-foreground">
               No design skills? No problem. Drop your existing resume PDF and the AI handles
               everything. Switch templates anytime as you discover your style. Your portfolio grows
               with you.
             </p>
           </section>
 
-          <a
-            href="/"
-            className="inline-block bg-ink text-cream font-bold px-6 py-3 border-3 border-ink shadow-brutal-sm hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-transform"
-          >
-            Build Your Free Student Portfolio →
-          </a>
+          <Button asChild size="lg">
+            <a href="/">Build Your Free Student Portfolio</a>
+          </Button>
         </div>
       </main>
     </>

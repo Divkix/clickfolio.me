@@ -1,11 +1,13 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { signIn } from "@/lib/auth/client";
 import { type SignInFormData, signInSchema } from "@/lib/schemas/auth";
 
@@ -77,47 +79,25 @@ export function SignInForm({ onSuccess, onForgotPassword, callbackURL }: SignInF
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       {/* Email Field */}
       <div className="space-y-1.5">
-        <label htmlFor="signin-email" className="block text-sm font-bold text-ink">
-          Email
-        </label>
-        <input
+        <Label htmlFor="signin-email">Email</Label>
+        <Input
           id="signin-email"
           type="email"
           autoComplete="email"
           placeholder="you@example.com"
           disabled={isSubmitting}
+          aria-invalid={!!errors.email}
           {...register("email")}
-          className={`
-            w-full
-            px-4
-            py-2.5
-            bg-cream
-            text-ink
-            font-medium
-            border-3
-            border-ink
-            shadow-brutal-sm
-            placeholder:text-ink/40
-            focus:outline-none
-            focus:shadow-brutal-md
-            focus:translate-x-[-2px]
-            focus:translate-y-[-2px]
-            transition-colors
-            duration-150
-            disabled:opacity-50
-            disabled:cursor-not-allowed
-            ${errors.email ? "border-brand" : ""}
-          `}
         />
-        {errors.email && <p className="text-sm text-brand font-medium">{errors.email.message}</p>}
+        {errors.email && (
+          <p className="text-sm text-destructive font-medium">{errors.email.message}</p>
+        )}
       </div>
 
       {/* Password Field */}
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">
-          <label htmlFor="signin-password" className="block text-sm font-bold text-ink">
-            Password
-          </label>
+          <Label htmlFor="signin-password">Password</Label>
           {onForgotPassword && (
             <button
               type="button"
@@ -126,8 +106,8 @@ export function SignInForm({ onSuccess, onForgotPassword, callbackURL }: SignInF
               className={`
                 text-sm
                 font-medium
-                text-ink/70
-                hover:text-ink
+                text-muted-foreground
+                hover:text-foreground
                 underline
                 underline-offset-2
                 transition-colors
@@ -138,83 +118,24 @@ export function SignInForm({ onSuccess, onForgotPassword, callbackURL }: SignInF
             </button>
           )}
         </div>
-        <input
+        <Input
           id="signin-password"
           type="password"
           autoComplete="current-password"
           placeholder="Your password"
           disabled={isSubmitting}
+          aria-invalid={!!errors.password}
           {...register("password")}
-          className={`
-            w-full
-            px-4
-            py-2.5
-            bg-cream
-            text-ink
-            font-medium
-            border-3
-            border-ink
-            shadow-brutal-sm
-            placeholder:text-ink/40
-            focus:outline-none
-            focus:shadow-brutal-md
-            focus:translate-x-[-2px]
-            focus:translate-y-[-2px]
-            transition-colors
-            duration-150
-            disabled:opacity-50
-            disabled:cursor-not-allowed
-            ${errors.password ? "border-brand" : ""}
-          `}
         />
         {errors.password && (
-          <p className="text-sm text-brand font-medium">{errors.password.message}</p>
+          <p className="text-sm text-destructive font-medium">{errors.password.message}</p>
         )}
       </div>
 
       {/* Submit Button */}
-      <button
-        type="submit"
-        disabled={isSubmitting}
-        className="
-          w-full
-          mt-2
-          px-5
-          py-2.5
-          bg-ink
-          text-cream
-          font-black
-          border-3
-          border-ink
-          shadow-brutal-sm
-          hover:-translate-x-0.5
-          hover:-translate-y-0.5
-          hover:shadow-brutal-md
-          active:translate-x-0
-          active:translate-y-0
-          active:shadow-none
-          transition-colors
-          duration-150
-          disabled:opacity-50
-          disabled:cursor-not-allowed
-          disabled:hover:translate-x-0
-          disabled:hover:translate-y-0
-          disabled:hover:shadow-brutal-sm
-          flex
-          items-center
-          justify-center
-          gap-2
-        "
-      >
-        {isSubmitting ? (
-          <>
-            <Loader2 className="w-4 h-4 animate-spin" />
-            <span>Signing in...</span>
-          </>
-        ) : (
-          <span>Sign in</span>
-        )}
-      </button>
+      <Button type="submit" loading={isSubmitting} className="w-full mt-2">
+        {isSubmitting ? "Signing in..." : "Sign in"}
+      </Button>
     </form>
   );
 }

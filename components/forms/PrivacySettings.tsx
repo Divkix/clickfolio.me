@@ -44,24 +44,22 @@ function ToggleCard({
     <div
       className={`relative rounded-xl border p-4 transition-colors duration-200 ${
         isWarning
-          ? "border-amber-200 bg-amber-50/50"
-          : "border-ink/10 bg-muted/50 hover:border-ink/25"
+          ? "border-warning/30 bg-warning/10"
+          : "border-border bg-surface-2 hover:border-border-strong"
       }`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
           <div
             className={`shrink-0 rounded-lg p-2 ${
-              isWarning ? "bg-amber-100 text-amber-600" : "bg-coral/20 text-coral"
+              isWarning ? "bg-warning/10 text-warning" : "bg-brand-subtle text-brand"
             }`}
           >
             <Icon className="h-4 w-4" />
           </div>
           <div className="min-w-0">
             <p className="text-sm font-medium text-foreground truncate">{label}</p>
-            <p
-              className={`text-xs mt-0.5 ${isWarning ? "text-amber-700" : "text-muted-foreground"}`}
-            >
+            <p className={`text-xs mt-0.5 ${isWarning ? "text-warning" : "text-muted-foreground"}`}>
               {description}
             </p>
           </div>
@@ -133,10 +131,10 @@ export function PrivacySettingsForm({ initialSettings }: PrivacySettingsFormProp
   };
 
   return (
-    <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-6">
+    <div className="bg-card rounded-xl shadow-sm border border-border p-6">
       <div className="flex items-center justify-between gap-4 mb-4">
         <div className="flex items-center gap-2">
-          <Eye className="h-5 w-5 text-coral" />
+          <Eye className="h-5 w-5 text-brand" />
           <h3 className="text-lg font-semibold text-foreground">Privacy</h3>
         </div>
         {isSaving && (
@@ -186,33 +184,35 @@ export function PrivacySettingsForm({ initialSettings }: PrivacySettingsFormProp
 
       {/* Inline status badges */}
       <div className="flex flex-wrap gap-2 text-xs">
-        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-muted text-muted-foreground">
+        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-secondary text-secondary-foreground">
           Email: <span className="font-medium">Always visible</span>
         </span>
         <span
           className={`inline-flex items-center gap-1 px-2 py-1 rounded-md ${
-            showPhone ? "bg-green-100 text-green-700" : "bg-muted text-muted-foreground"
+            showPhone ? "bg-success/10 text-success" : "bg-secondary text-secondary-foreground"
           }`}
         >
           Phone: <span className="font-medium">{showPhone ? "Visible" : "Hidden"}</span>
         </span>
         <span
           className={`inline-flex items-center gap-1 px-2 py-1 rounded-md ${
-            showAddress ? "bg-green-100 text-green-700" : "bg-muted text-muted-foreground"
+            showAddress ? "bg-success/10 text-success" : "bg-secondary text-secondary-foreground"
           }`}
         >
           Address: <span className="font-medium">{showAddress ? "Full" : "City only"}</span>
         </span>
         <span
           className={`inline-flex items-center gap-1 px-2 py-1 rounded-md ${
-            hideFromSearch ? "bg-amber-100 text-amber-700" : "bg-green-100 text-green-700"
+            hideFromSearch ? "bg-warning/10 text-warning" : "bg-success/10 text-success"
           }`}
         >
           Search: <span className="font-medium">{hideFromSearch ? "Hidden" : "Indexed"}</span>
         </span>
         <span
           className={`inline-flex items-center gap-1 px-2 py-1 rounded-md ${
-            showInDirectory ? "bg-green-100 text-green-700" : "bg-muted text-muted-foreground"
+            showInDirectory
+              ? "bg-success/10 text-success"
+              : "bg-secondary text-secondary-foreground"
           }`}
         >
           Directory:{" "}

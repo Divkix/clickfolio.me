@@ -1,8 +1,9 @@
 "use client";
 
-import { AlertCircle, Loader2, X } from "lucide-react";
+import { AlertCircle, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import { sendVerificationEmail } from "@/lib/auth/client";
 
 interface EmailVerificationBannerProps {
@@ -93,57 +94,38 @@ export function EmailVerificationBanner({
   }
 
   return (
-    <div className="bg-amber/5 border-2 border-amber rounded-xl p-4 shadow-sm">
+    <div className="bg-warning/10 border border-warning/30 rounded-xl p-4 shadow-sm">
       <div className="flex items-start gap-3">
-        <AlertCircle className="h-5 w-5 text-amber shrink-0 mt-0.5" />
+        <AlertCircle className="h-5 w-5 text-warning shrink-0 mt-0.5" aria-hidden="true" />
         <div className="flex-1 min-w-0">
           <h3 className="font-semibold text-foreground">Verify your email</h3>
-          <p className="mt-1 text-sm text-amber">
+          <p className="mt-1 text-sm text-muted-foreground">
             Please verify your email address ({email}) to ensure account security and receive
             important notifications.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
-            <button
+            <Button
               type="button"
+              size="sm"
               onClick={handleResend}
+              loading={isResending}
               disabled={isResending || resendCooldown > 0}
-              className="
-                px-3
-                py-1.5
-                bg-amber
-                hover:bg-amber/90
-                text-white
-                text-sm
-                font-semibold
-                rounded-md
-                transition-colors
-                disabled:opacity-50
-                disabled:cursor-not-allowed
-                flex
-                items-center
-                gap-2
-              "
             >
-              {isResending ? (
-                <>
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                  Sending...
-                </>
-              ) : resendCooldown > 0 ? (
-                `Resend in ${resendCooldown}s`
-              ) : (
-                "Resend verification email"
-              )}
-            </button>
+              {isResending
+                ? "Sending..."
+                : resendCooldown > 0
+                  ? `Resend in ${resendCooldown}s`
+                  : "Resend verification email"}
+            </Button>
           </div>
         </div>
         <button
           type="button"
           onClick={handleDismiss}
-          className="text-amber/80 hover:text-amber p-1 transition-colors"
+          className="text-muted-foreground hover:text-foreground p-1 transition-colors"
           aria-label="Dismiss"
         >
-          <X className="h-4 w-4" />
+          <X className="h-4 w-4" aria-hidden="true" />
         </button>
       </div>
     </div>

@@ -194,7 +194,7 @@ export default function PdfResumeVsPortfolioPage() {
           both from a single source of truth, with zero duplication of effort.
         </p>
         <p>
-          <Link href="/" className="text-coral font-semibold">
+          <Link href="/" className="text-brand font-semibold">
             Upload your resume and get both a PDF and a portfolio →
           </Link>
         </p>

@@ -69,32 +69,29 @@ export function GoogleButton({
       onClick={handleGoogleSignIn}
       disabled={isDisabled}
       className={`
-        group
-        relative
-        px-5
-        py-2.5
-        bg-ink
-        text-cream
-        font-black
-        border-3
-        border-ink
-        shadow-brutal-sm
-        hover:-translate-x-0.5
-        hover:-translate-y-0.5
-        hover:shadow-brutal-md
-        active:translate-x-0
-        active:translate-y-0
-        active:shadow-none
-        transition-all
-        duration-150
-        disabled:opacity-50
-        disabled:cursor-not-allowed
-        disabled:hover:translate-x-0
-        disabled:hover:translate-y-0
-        disabled:hover:shadow-brutal-sm
-        flex
+        inline-flex
         items-center
         gap-2
+        h-9
+        px-4
+        py-2
+        rounded-md
+        border
+        border-border-strong
+        bg-card
+        text-foreground
+        text-sm
+        font-medium
+        shadow-xs
+        transition-colors
+        hover:bg-surface-2
+        focus-visible:outline-none
+        focus-visible:ring-2
+        focus-visible:ring-ring
+        focus-visible:ring-offset-2
+        focus-visible:ring-offset-background
+        disabled:opacity-50
+        disabled:pointer-events-none
         ${fullWidth ? "w-full justify-center" : ""}
       `}
     >

@@ -8,41 +8,37 @@ interface HighlightBlockProps {
 
 const variantStyles = {
   default: {
-    bg: "bg-cream",
-    border: "border-ink",
-    iconColor: "text-ink",
+    bg: "bg-card border-border",
+    iconColor: "text-muted-foreground",
     Icon: Info,
   },
   tip: {
-    bg: "bg-mint/10",
-    border: "border-mint",
-    iconColor: "text-mint",
+    bg: "bg-success/10 border-success/30",
+    iconColor: "text-success",
     Icon: Lightbulb,
   },
   stat: {
-    bg: "bg-coral/10",
-    border: "border-coral",
-    iconColor: "text-coral",
+    bg: "bg-brand-subtle border-brand/30",
+    iconColor: "text-brand",
     Icon: BarChart3,
   },
   warning: {
-    bg: "bg-amber/10",
-    border: "border-amber",
-    iconColor: "text-amber",
+    bg: "bg-warning/10 border-warning/30",
+    iconColor: "text-warning",
     Icon: AlertTriangle,
   },
 };
 
 export function HighlightBlock({ children, variant = "default", title }: HighlightBlockProps) {
-  const { bg, border, iconColor, Icon } = variantStyles[variant];
+  const { bg, iconColor, Icon } = variantStyles[variant];
 
   return (
-    <div className={`${bg} border-3 ${border} shadow-brutal-sm p-6 my-8`}>
+    <div className={`${bg} rounded-xl border shadow-sm p-6 my-8`}>
       <div className="flex items-start gap-3">
-        <Icon className={`w-5 h-5 ${iconColor} mt-0.5 flex-shrink-0`} />
+        <Icon className={`w-5 h-5 ${iconColor} mt-0.5 flex-shrink-0`} aria-hidden="true" />
         <div className="flex-1">
-          {title && <h4 className="font-bold text-ink mb-2">{title}</h4>}
-          <div className="text-ink/85 leading-relaxed">{children}</div>
+          {title && <h4 className="font-semibold text-foreground mb-2">{title}</h4>}
+          <div className="text-muted-foreground leading-relaxed">{children}</div>
         </div>
       </div>
     </div>

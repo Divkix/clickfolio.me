@@ -241,7 +241,7 @@ export default function PdfResumeToWebsitePage() {
           needed. Just your existing resume and 30 seconds of your time.
         </p>
         <p>
-          <Link href="/" className="text-coral font-semibold">
+          <Link href="/" className="text-brand font-semibold">
             Upload your PDF and get your website →
           </Link>
         </p>

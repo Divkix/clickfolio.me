@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect } from "react";
+import { Button } from "@/components/ui/button";
 import { siteConfig } from "@/lib/config/site";
 
 /**
@@ -31,12 +32,12 @@ export default function ProtectedError({
   }, [error]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-cream px-4">
-      <div className="max-w-md w-full bg-card rounded-xl shadow-md border border-ink/10 p-8 text-center">
+    <div className="min-h-screen flex items-center justify-center bg-background px-4">
+      <div className="max-w-md w-full bg-card rounded-xl shadow-md border border-border p-8 text-center">
         <div className="mb-6">
-          <div className="mx-auto w-16 h-16 bg-coral/20 rounded-full flex items-center justify-center">
+          <div className="mx-auto w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center">
             <svg
-              className="w-8 h-8 text-coral"
+              className="w-8 h-8 text-destructive"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -60,7 +61,7 @@ export default function ProtectedError({
 
         {process.env.NODE_ENV === "development" && (
           <div className="mb-6 p-4 bg-muted rounded-lg text-left">
-            <p className="text-xs font-mono text-foreground/80 break-all">{error.message}</p>
+            <p className="text-xs font-mono text-muted-foreground break-all">{error.message}</p>
             {error.digest && (
               <p className="text-xs text-muted-foreground mt-2">Error ID: {error.digest}</p>
             )}
@@ -68,28 +69,18 @@ export default function ProtectedError({
         )}
 
         <div className="flex flex-col sm:flex-row gap-3">
-          <button
-            type="button"
-            onClick={reset}
-            className="flex-1 px-4 py-2 bg-coral text-white rounded-lg hover:bg-coral/90 transition-colors font-semibold shadow-sm hover:shadow-md"
-          >
+          <Button type="button" onClick={reset} className="flex-1">
             Try Again
-          </button>
-          <Link
-            href="/dashboard"
-            className="flex-1 px-4 py-2 bg-card text-foreground border border-ink/15 rounded-lg hover:bg-muted transition-colors font-medium text-center"
-          >
-            Back to Dashboard
-          </Link>
+          </Button>
+          <Button asChild variant="outline" className="flex-1">
+            <Link href="/dashboard">Back to Dashboard</Link>
+          </Button>
         </div>
 
-        <div className="mt-6 pt-6 border-t border-ink/15">
+        <div className="mt-6 pt-6 border-t border-border">
           <p className="text-sm text-muted-foreground">
             Need help?{" "}
-            <a
-              href={`mailto:${siteConfig.supportEmail}`}
-              className="text-foreground hover:underline"
-            >
+            <a href={`mailto:${siteConfig.supportEmail}`} className="text-brand hover:underline">
               Contact Support
             </a>
           </p>

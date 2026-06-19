@@ -137,24 +137,18 @@ export default async function DashboardPage() {
   // Empty State - No Resume
   if (!hasResume) {
     return (
-      <div className="min-h-screen bg-cream">
+      <div className="min-h-screen bg-background">
         <main className="flex items-center justify-center min-h-[80vh] px-4">
-          <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-12 max-w-md w-full text-center hover:shadow-md transition-colors duration-300">
-            <div className="relative inline-block mb-6">
-              <div className="absolute inset-0 bg-coral rounded-xl blur-xl opacity-20" />
-              <div className="relative bg-coral/20 p-6 rounded-xl">
-                <Upload className="w-12 h-12 text-coral mx-auto" aria-hidden="true" />
-              </div>
+          <div className="bg-card rounded-xl shadow-sm border border-border p-12 max-w-md w-full text-center transition-colors hover:border-border-strong">
+            <div className="inline-flex items-center justify-center mb-6 bg-brand-subtle p-6 rounded-xl">
+              <Upload className="w-12 h-12 text-brand mx-auto" aria-hidden="true" />
             </div>
             <h2 className="text-2xl font-bold text-foreground mb-3">No Resume Yet</h2>
             <p className="text-muted-foreground mb-6">
               Upload your first PDF to get started and create your professional web resume in
               minutes.
             </p>
-            <DashboardUploadSection
-              variant="default"
-              className="w-full bg-coral hover:bg-coral/90 text-white font-semibold transition-colors duration-300 shadow-sm hover:shadow-md"
-            >
+            <DashboardUploadSection variant="default" className="w-full">
               <Upload className="h-4 w-4 mr-2" aria-hidden="true" />
               Upload Your Resume
             </DashboardUploadSection>
@@ -165,7 +159,7 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-cream">
+    <div className="min-h-screen bg-background">
       <main className="max-w-[1400px] mx-auto px-4 lg:px-6 py-8">
         {/* Email Verification Banner (client component) */}
         {profile?.email && (
@@ -196,24 +190,20 @@ export default async function DashboardPage() {
               {/* Show error message when resume processing failed */}
               {resume.status === "failed" && (
                 <div className="col-span-full">
-                  <div className="rounded-lg border border-coral/30 bg-coral/10 p-4 mb-4">
+                  <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 mb-4">
                     <div className="flex items-start gap-3">
                       <AlertCircle
-                        className="h-5 w-5 text-coral shrink-0 mt-0.5"
+                        className="h-5 w-5 text-destructive shrink-0 mt-0.5"
                         aria-hidden="true"
                       />
                       <div className="flex-1">
-                        <h3 className="font-semibold text-coral">Processing Failed</h3>
-                        <p className="mt-1 text-sm text-coral">
+                        <h3 className="font-semibold text-destructive">Processing Failed</h3>
+                        <p className="mt-1 text-sm text-destructive">
                           {(resume.errorMessage as string | undefined | null) ||
                             "An error occurred while processing your resume."}
                         </p>
                         <div className="mt-3 flex gap-2">
-                          <Button
-                            asChild
-                            size="sm"
-                            className="bg-coral hover:bg-coral/90 text-white"
-                          >
+                          <Button asChild size="sm">
                             <Link href={`/waiting?resume_id=${resume.id}`}>Retry</Link>
                           </Button>
                           <DashboardUploadSection />
@@ -227,12 +217,12 @@ export default async function DashboardPage() {
               {/* Profile Completeness - Shown at top when incomplete */}
               {completeness < 100 && suggestions.length > 0 && (
                 <div className="col-span-full">
-                  <Alert className="border-ink/15 bg-card rounded-xl shadow-md hover:shadow-lg transition-colors duration-300">
+                  <Alert className="border-border bg-card rounded-xl shadow-sm">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-3">
-                          <CheckCircle2 className="h-5 w-5 text-ink" aria-hidden="true" />
-                          <h3 className="font-semibold text-ink">Complete Your Profile</h3>
+                          <CheckCircle2 className="h-5 w-5 text-foreground" aria-hidden="true" />
+                          <h3 className="font-semibold text-foreground">Complete Your Profile</h3>
                         </div>
 
                         {/* Progress Bar */}
@@ -246,12 +236,12 @@ export default async function DashboardPage() {
                           className="w-full bg-muted rounded-full h-2 mb-4"
                         >
                           <div
-                            className="h-2 rounded-full bg-coral transition-colors duration-500"
+                            className="h-2 rounded-full bg-brand transition-[width] duration-500"
                             style={{ width: `${completeness}%` }}
                           />
                         </div>
 
-                        <AlertDescription className="text-foreground/80">
+                        <AlertDescription className="text-muted-foreground">
                           <p className="text-sm font-medium mb-2">
                             Your profile is {completeness}% complete. Add these to reach 100%:
                           </p>
@@ -268,11 +258,7 @@ export default async function DashboardPage() {
                               </li>
                             ))}
                           </ul>
-                          <Button
-                            asChild
-                            size="sm"
-                            className="mt-4 bg-ink hover:bg-ink/90 text-cream font-semibold"
-                          >
+                          <Button asChild size="sm" variant="outline" className="mt-4">
                             <Link href="/edit">
                               <Edit3 className="h-3 w-3 mr-2" aria-hidden="true" />
                               Complete Now
@@ -288,9 +274,9 @@ export default async function DashboardPage() {
               {/* Success Alert - Shown at top when profile is complete */}
               {completeness === 100 && (
                 <div className="col-span-full">
-                  <Alert className="border-mint bg-mint/5 rounded-xl shadow-sm hover:shadow-md transition-colors duration-300">
+                  <Alert className="border-success/30 bg-success/10 rounded-xl shadow-sm">
                     <div className="flex items-center gap-3">
-                      <CheckCircle2 className="h-5 w-5 text-mint" aria-hidden="true" />
+                      <CheckCircle2 className="h-5 w-5 text-success" aria-hidden="true" />
                       <AlertDescription className="text-foreground font-medium">
                         Your profile is complete! Your resume looks professional and ready to share.
                       </AlertDescription>
@@ -302,7 +288,7 @@ export default async function DashboardPage() {
               {/* Left Column - Resume Preview + Referral (spans 2 on desktop) */}
               <div className="lg:col-span-2 space-y-4">
                 {/* Resume Preview Card */}
-                <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-4 md:p-6 lg:p-8 hover:shadow-md hover:-translate-y-0.5 transition-shadow duration-300">
+                <div className="bg-card rounded-xl shadow-sm border border-border p-4 md:p-6 lg:p-8 transition-colors hover:border-border-strong">
                   {/* Header */}
                   <div className="mb-6">
                     <h2 className="text-2xl font-bold text-foreground">{content.full_name}</h2>
@@ -320,7 +306,7 @@ export default async function DashboardPage() {
                         {content.summary.length > 200 && (
                           <Link
                             href="/edit"
-                            className="text-coral hover:text-coral ml-1 font-medium"
+                            className="text-brand hover:underline ml-1 font-medium"
                           >
                             Read more
                           </Link>
@@ -332,11 +318,8 @@ export default async function DashboardPage() {
                   {/* Stats Grid */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
                     <div className="flex items-center gap-3">
-                      <div className="relative shrink-0">
-                        <div className="absolute inset-0 bg-coral rounded-lg blur-md opacity-20" />
-                        <div className="relative bg-coral/20 p-2 rounded-lg">
-                          <Briefcase className="h-4 w-4 text-coral" aria-hidden="true" />
-                        </div>
+                      <div className="shrink-0 bg-surface-2 p-2 rounded-lg">
+                        <Briefcase className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
                       </div>
                       <div>
                         <p className="text-lg font-semibold text-foreground">
@@ -349,11 +332,11 @@ export default async function DashboardPage() {
                     </div>
 
                     <div className="flex items-center gap-3">
-                      <div className="relative shrink-0">
-                        <div className="absolute inset-0 bg-linear-to-r from-purple-500 to-pink-500 rounded-lg blur-md opacity-20" />
-                        <div className="relative bg-linear-to-r from-purple-100 to-pink-100 p-2 rounded-lg">
-                          <GraduationCap className="h-4 w-4 text-purple-600" aria-hidden="true" />
-                        </div>
+                      <div className="shrink-0 bg-surface-2 p-2 rounded-lg">
+                        <GraduationCap
+                          className="h-4 w-4 text-muted-foreground"
+                          aria-hidden="true"
+                        />
                       </div>
                       <div>
                         <p className="text-lg font-semibold text-foreground">
@@ -364,11 +347,8 @@ export default async function DashboardPage() {
                     </div>
 
                     <div className="flex items-center gap-3">
-                      <div className="relative shrink-0">
-                        <div className="absolute inset-0 bg-linear-to-r from-emerald-500 to-teal-500 rounded-lg blur-md opacity-20" />
-                        <div className="relative bg-linear-to-r from-emerald-100 to-teal-100 p-2 rounded-lg">
-                          <Wrench className="h-4 w-4 text-emerald-600" aria-hidden="true" />
-                        </div>
+                      <div className="shrink-0 bg-surface-2 p-2 rounded-lg">
+                        <Wrench className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
                       </div>
                       <div>
                         <p className="text-lg font-semibold text-foreground">
@@ -381,11 +361,8 @@ export default async function DashboardPage() {
                     </div>
 
                     <div className="flex items-center gap-3">
-                      <div className="relative shrink-0">
-                        <div className="absolute inset-0 bg-linear-to-r from-orange-500 to-amber-500 rounded-lg blur-md opacity-20" />
-                        <div className="relative bg-linear-to-r from-orange-100 to-amber-100 p-2 rounded-lg">
-                          <Award className="h-4 w-4 text-orange-600" aria-hidden="true" />
-                        </div>
+                      <div className="shrink-0 bg-surface-2 p-2 rounded-lg">
+                        <Award className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
                       </div>
                       <div>
                         <p className="text-lg font-semibold text-foreground">
@@ -394,7 +371,7 @@ export default async function DashboardPage() {
                         {content.certifications?.length === 0 ? (
                           <Link
                             href="/edit"
-                            className="text-xs text-orange-600 hover:text-orange-700 font-medium"
+                            className="text-xs text-brand hover:underline font-medium"
                           >
                             Add certs
                           </Link>
@@ -409,10 +386,7 @@ export default async function DashboardPage() {
 
                   {/* Footer - Action Buttons */}
                   <div className="flex flex-col sm:flex-row gap-3">
-                    <Button
-                      asChild
-                      className="flex-1 bg-coral hover:bg-coral/90 text-white font-semibold transition-colors duration-300 shadow-sm hover:shadow-md"
-                    >
+                    <Button asChild className="flex-1">
                       <Link href="/edit">
                         <Edit3 className="h-4 w-4 mr-2" aria-hidden="true" />
                         Edit Content
@@ -435,16 +409,13 @@ export default async function DashboardPage() {
               {/* Right Column - Account + Analytics */}
               <div className="space-y-4">
                 {/* Account Info Card */}
-                <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-6 hover:shadow-md hover:-translate-y-0.5 transition-colors duration-300">
+                <div className="bg-card rounded-xl shadow-sm border border-border p-6 transition-colors hover:border-border-strong">
                   <h3 className="text-lg font-semibold text-foreground mb-4">Account</h3>
                   <div className="space-y-4">
                     {/* Email */}
                     <div className="flex items-start gap-3">
-                      <div className="relative shrink-0 mt-0.5">
-                        <div className="absolute inset-0 bg-coral rounded-lg blur-md opacity-20" />
-                        <div className="relative bg-coral/20 p-2 rounded-lg">
-                          <Mail className="w-4 h-4 text-coral" aria-hidden="true" />
-                        </div>
+                      <div className="shrink-0 mt-0.5 bg-surface-2 p-2 rounded-lg">
+                        <Mail className="w-4 h-4 text-muted-foreground" aria-hidden="true" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-medium text-muted-foreground mb-1">Email</p>
@@ -457,18 +428,18 @@ export default async function DashboardPage() {
                       <>
                         <Separator />
                         <div className="flex items-start gap-3">
-                          <div className="relative shrink-0 mt-0.5">
-                            <div className="absolute inset-0 bg-coral rounded-lg blur-md opacity-20" />
-                            <div className="relative bg-coral/20 p-2 rounded-lg">
-                              <LinkIcon className="w-4 h-4 text-coral" aria-hidden="true" />
-                            </div>
+                          <div className="shrink-0 mt-0.5 bg-surface-2 p-2 rounded-lg">
+                            <LinkIcon
+                              className="w-4 h-4 text-muted-foreground"
+                              aria-hidden="true"
+                            />
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-xs font-medium text-muted-foreground mb-1">Handle</p>
                             <div className="flex items-center gap-2">
                               <Link
                                 href={`/@${profile.handle}`}
-                                className="text-sm text-coral hover:text-coral font-medium truncate block"
+                                className="text-sm font-mono text-brand hover:underline truncate block"
                               >
                                 {siteConfig.domain}/@{profile.handle}
                               </Link>
@@ -486,11 +457,11 @@ export default async function DashboardPage() {
                       <>
                         <Separator />
                         <div className="flex items-start gap-3">
-                          <div className="relative shrink-0 mt-0.5">
-                            <div className="absolute inset-0 bg-coral rounded-lg blur-md opacity-20" />
-                            <div className="relative bg-coral/20 p-2 rounded-lg">
-                              <Calendar className="w-4 h-4 text-coral" aria-hidden="true" />
-                            </div>
+                          <div className="shrink-0 mt-0.5 bg-surface-2 p-2 rounded-lg">
+                            <Calendar
+                              className="w-4 h-4 text-muted-foreground"
+                              aria-hidden="true"
+                            />
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-xs font-medium text-muted-foreground mb-1">
@@ -513,7 +484,7 @@ export default async function DashboardPage() {
           ) : (
             /* Show processing/failed state in main content area */
             <div className="col-span-full">
-              <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-8 hover:shadow-md hover:-translate-y-0.5 transition-colors duration-300">
+              <div className="bg-card rounded-xl shadow-sm border border-border p-8 transition-colors hover:border-border-strong">
                 {(resume.status === "processing" ||
                   resume.status === "pending_claim" ||
                   resume.status === "queued") && (
@@ -528,20 +499,22 @@ export default async function DashboardPage() {
                 {resume.status === "failed" && (
                   <div className="space-y-6">
                     <div className="flex items-center gap-4">
-                      <AlertCircle className="h-8 w-8 text-coral shrink-0" aria-hidden="true" />
+                      <AlertCircle
+                        className="h-8 w-8 text-destructive shrink-0"
+                        aria-hidden="true"
+                      />
                       <div className="flex-1">
-                        <h3 className="text-xl font-bold text-coral mb-1">Processing failed</h3>
-                        <p className="text-coral">
+                        <h3 className="text-xl font-bold text-destructive mb-1">
+                          Processing failed
+                        </h3>
+                        <p className="text-destructive">
                           {(resume.errorMessage as string | undefined | null) ||
                             "Unknown error occurred. Please try uploading again."}
                         </p>
                       </div>
                     </div>
                     <div className="flex flex-col sm:flex-row gap-3">
-                      <Button
-                        asChild
-                        className="flex-1 bg-coral hover:bg-coral/90 text-white font-semibold transition-colors duration-300 shadow-sm hover:shadow-md"
-                      >
+                      <Button asChild className="flex-1">
                         <Link href={`/waiting?resume_id=${resume.id}`}>Try Again</Link>
                       </Button>
                       <DashboardUploadSection />

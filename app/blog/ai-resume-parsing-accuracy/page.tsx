@@ -208,7 +208,7 @@ export default function AiResumeParsingAccuracyPage() {
           instantly reflected on your website — no re-uploading needed.
         </p>
         <p>
-          <Link href="/" className="text-coral font-semibold">
+          <Link href="/" className="text-brand font-semibold">
             Upload your resume and see the AI parser in action →
           </Link>
         </p>

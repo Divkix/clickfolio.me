@@ -113,22 +113,15 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         {/* Save Status Bar */}
-        <div className="sticky top-0 z-10 bg-card/95 backdrop-blur-md py-4 -mx-4 px-4 border-b border-ink/10 shadow-sm mb-6">
+        <div className="sticky top-0 z-10 bg-card/95 backdrop-blur-md py-4 -mx-4 px-4 border-b border-border shadow-sm mb-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="relative shrink-0">
-                <div className="absolute inset-0 bg-coral rounded-lg blur-md opacity-20" />
-                <div className="relative bg-coral/20 p-2 rounded-lg">
-                  <Save className="h-4 w-4 text-coral" />
-                </div>
+              <div className="shrink-0 bg-brand-subtle p-2 rounded-lg">
+                <Save className="h-4 w-4 text-brand" />
               </div>
               <SaveIndicator status={saveStatus} lastSaved={lastSaved} />
             </div>
-            <Button
-              type="submit"
-              disabled={saveStatus === "saving"}
-              className="bg-coral hover:bg-coral/90 text-white font-semibold shadow-sm hover:shadow-md transition-colors duration-300"
-            >
+            <Button type="submit" loading={saveStatus === "saving"}>
               <Save className="h-4 w-4 mr-2" />
               Publish Changes
             </Button>
@@ -145,12 +138,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
 
         {/* Submit Button */}
         <div className="flex justify-end">
-          <Button
-            type="submit"
-            size="lg"
-            disabled={saveStatus === "saving"}
-            className="bg-coral hover:bg-coral/90 text-white font-semibold shadow-sm hover:shadow-md transition-colors duration-300"
-          >
+          <Button type="submit" size="lg" loading={saveStatus === "saving"}>
             <Save className="h-4 w-4 mr-2" />
             Publish Changes
           </Button>

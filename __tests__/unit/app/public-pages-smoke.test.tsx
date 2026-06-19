@@ -127,7 +127,7 @@ describe("public page rendering", () => {
   it("renders the homepage with its upload CTA and discovery content", () => {
     const { container } = render(<Home />);
 
-    expect(container.textContent).toContain("Your Resume");
+    expect(container.textContent).toContain("Your resume is already a website");
     expect(container.textContent).toContain("Drop your PDF");
     expect(container.textContent).toContain("Open source");
     // eslint-disable-next-line typescript/unbound-method -- vitest mock assertion

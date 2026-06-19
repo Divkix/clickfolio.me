@@ -22,11 +22,11 @@ export function FunnelChart({ steps }: FunnelChartProps) {
             <span className="text-sm text-muted-foreground w-20">{step.label}</span>
             <div className="flex-1 h-8 bg-muted rounded-full overflow-hidden">
               <div
-                className="h-full bg-foreground/50 rounded-full transition-all duration-500 flex items-center justify-end pr-3"
+                className="h-full bg-brand rounded-full transition-[width] duration-500 flex items-center justify-end pr-3"
                 style={{ width: `${Math.max(width, 5)}%` }}
               >
                 <span
-                  className="text-sm font-medium text-white"
+                  className="text-sm font-medium text-brand-foreground"
                   style={{ fontVariantNumeric: "tabular-nums" }}
                 >
                   {step.value.toLocaleString()}

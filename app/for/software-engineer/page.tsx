@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Button } from "@/components/ui/button";
 import { siteConfig } from "@/lib/config/site";
 import {
   generatePageBreadcrumbJsonLd,
@@ -44,21 +45,21 @@ export default function SoftwareEngineerPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbJsonLd) }}
       />
-      <main className="min-h-screen bg-cream paper-texture" id="main-content">
+      <main className="min-h-screen bg-background" id="main-content">
         <div className="max-w-3xl mx-auto px-4 py-16">
-          <h1 className="font-black text-3xl sm:text-4xl text-ink mb-4">
+          <h1 className="font-extrabold text-3xl sm:text-4xl text-foreground mb-4">
             Resume Websites for Software Engineers
           </h1>
-          <p className="text-lg text-[#6B6B6B] mb-8">
+          <p className="text-lg text-muted-foreground mb-8">
             Your code speaks for itself. Let your resume website do the same. Upload your PDF and
             get a developer-ready portfolio with a custom @handle URL in 30 seconds.
           </p>
 
           <section className="mb-12">
-            <h2 className="font-black text-xl text-ink mb-4">
+            <h2 className="font-bold text-xl text-foreground mb-4">
               Why Software Engineers Love clickfolio.me
             </h2>
-            <ul className="space-y-3 text-[#6B6B6B] list-disc pl-5">
+            <ul className="space-y-3 text-muted-foreground list-disc pl-5">
               <li>
                 <strong>DevTerminal template</strong> — a GitHub-inspired dark terminal aesthetic
                 built for developers. Monospace typography, console-style sections, and syntax
@@ -81,25 +82,24 @@ export default function SoftwareEngineerPage() {
           </section>
 
           <section className="mb-12">
-            <h2 className="font-black text-xl text-ink mb-4">Built for Engineers, by Engineers</h2>
-            <p className="text-[#6B6B6B] mb-4">
+            <h2 className="font-bold text-xl text-foreground mb-4">
+              Built for Engineers, by Engineers
+            </h2>
+            <p className="text-muted-foreground mb-4">
               clickfolio.me is open source (MIT), deployed on Cloudflare Workers, and built with
               modern tools. No bloated page builders, no WYSIWYG clutter — just a clean,
               fast-loading portfolio from your existing PDF resume.
             </p>
-            <p className="text-[#6B6B6B]">
+            <p className="text-muted-foreground">
               The AI parser understands technical resumes: it correctly identifies programming
               languages, frameworks, databases, cloud platforms, and distinguishes between work
               experience and side projects.
             </p>
           </section>
 
-          <a
-            href="/"
-            className="inline-block bg-ink text-cream font-bold px-6 py-3 border-3 border-ink shadow-brutal-sm hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-transform"
-          >
-            Create Your Free Resume Website →
-          </a>
+          <Button asChild size="lg">
+            <a href="/">Create Your Free Resume Website</a>
+          </Button>
         </div>
       </main>
     </>

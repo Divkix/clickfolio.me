@@ -46,8 +46,8 @@ export function AttributionWidget({ theme }: AttributionWidgetProps) {
     bento: {
       container:
         "bg-white/95 sm:bg-white border border-slate-200/60 text-slate-600 hover:text-slate-900",
-      accent: "bg-coral bg-clip-text text-transparent",
-      shimmer: "from-transparent via-coral/30 to-transparent",
+      accent: "text-brand",
+      shimmer: "from-transparent via-brand/30 to-transparent",
       shadow: "shadow-sm hover:shadow-md",
     },
     spotlight: {
@@ -108,7 +108,6 @@ export function AttributionWidget({ theme }: AttributionWidgetProps) {
         group fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-30
         px-3 py-2 sm:px-4 sm:py-3 rounded-lg
         flex items-center gap-2
-        hover:-translate-y-0.5
         transition-colors duration-300
         overflow-hidden
         ${currentTheme.container}

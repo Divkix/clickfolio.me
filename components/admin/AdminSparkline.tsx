@@ -49,9 +49,9 @@ export function AdminSparkline({ data }: AdminSparklineProps) {
       series: [
         {},
         {
-          stroke: "#6366f1",
+          stroke: "#D94E4E",
           width: 2,
-          fill: "rgba(99, 102, 241, 0.1)",
+          fill: "rgba(217, 78, 78, 0.1)",
           paths: uPlot.paths.spline?.() ?? undefined,
         },
       ],

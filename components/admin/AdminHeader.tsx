@@ -27,7 +27,7 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
   };
 
   return (
-    <header className="sticky top-0 z-10 bg-card/80 backdrop-blur-sm border-b border-ink/10">
+    <header className="sticky top-0 z-10 bg-card/80 backdrop-blur-sm border-b border-border">
       <div className="flex items-center justify-between h-14 px-4 lg:px-6">
         <div className="flex items-center gap-3">
           {/* Mobile menu button */}
@@ -47,7 +47,7 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
           <button
             type="button"
             onClick={handleRefresh}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
+            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-surface-2 rounded-lg transition-colors"
             aria-label="Refresh data"
           >
             <RefreshCw size={16} aria-hidden="true" />
@@ -56,7 +56,7 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
 
           <Link
             href="/dashboard"
-            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
+            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-surface-2 rounded-lg transition-colors"
           >
             <ArrowLeft size={16} aria-hidden="true" />
             <span className="hidden sm:inline">Back to Dashboard</span>
