@@ -23,8 +23,6 @@ export const siteConfig = {
   url: `https://${domain}`,
   /** Brand alternate spellings for entity recognition (Knowledge Graph). */
   alternateNames: ["clickfolio", "click folio", "Clickfolio"],
-  /** Public source repository. */
-  githubUrl: "https://github.com/divkix/clickfolio.me",
   /**
    * Verified public profiles for the Organization `sameAs` entity graph.
    * Only the project's own profiles belong here. Personal/maker profiles are

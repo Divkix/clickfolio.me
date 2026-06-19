@@ -14,8 +14,6 @@ import { siteConfig } from "@/lib/config/site";
 export const authorPersona = {
   /** Byline name shown on posts. */
   name: "The clickfolio Careers Desk",
-  /** Short role descriptor. */
-  role: "Careers & Portfolio Editorial Team",
   /** Honest one-line bio (no fabricated credentials). */
   bio: "The clickfolio Careers Desk is the editorial team behind clickfolio.me. We test resume and portfolio tools hands-on, study how recruiters read profiles, and write practical guides on turning a resume into a website that gets noticed.",
   /** Canonical URL representing the author entity. */
