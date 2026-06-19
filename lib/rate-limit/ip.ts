@@ -78,15 +78,10 @@ export async function checkIPRateLimit(ip: string): Promise<IPRateLimitResult> {
   }
 
   // Feature flag bypass for temporary testing (non-production only)
+  // Note: this code only runs when NODE_ENV === "production" (the early return above
+  // handles all non-production cases), so DISABLE_RATE_LIMITS is always ignored here.
   if (process.env.DISABLE_RATE_LIMITS === "true") {
-    if (process.env.NODE_ENV === "production") {
-      console.warn("[SECURITY] DISABLE_RATE_LIMITS ignored in production environment");
-    } else {
-      return {
-        allowed: true,
-        remaining: { hourly: 999, daily: 999 },
-      };
-    }
+    console.warn("[SECURITY] DISABLE_RATE_LIMITS ignored in production environment");
   }
 
   // Skip for localhost IPs or local environment (local preview runs in production mode)
@@ -193,94 +188,13 @@ export async function checkIPRateLimit(ip: string): Promise<IPRateLimitResult> {
  * - DoS via rapid checks
  */
 export async function checkHandleRateLimit(ip: string): Promise<IPRateLimitResult> {
-  // Skip in development
-  if (process.env.NODE_ENV !== "production") {
-    return {
-      allowed: true,
-      remaining: { hourly: HANDLE_CHECK_HOURLY_LIMIT, daily: 1000 },
-    };
-  }
-
-  // Feature flag bypass for temporary testing (non-production only)
-  if (process.env.DISABLE_RATE_LIMITS === "true") {
-    if (process.env.NODE_ENV === "production") {
-      console.warn("[SECURITY] DISABLE_RATE_LIMITS ignored in production environment");
-    } else {
-      return {
-        allowed: true,
-        remaining: { hourly: 999, daily: 999 },
-      };
-    }
-  }
-
-  // Skip for localhost IPs or local environment (local preview runs in production mode)
-  if (LOCAL_IPS.has(ip) || isLocalEnvironment()) {
-    return {
-      allowed: true,
-      remaining: { hourly: HANDLE_CHECK_HOURLY_LIMIT, daily: 1000 },
-    };
-  }
-
-  const ipHash = await hashIP(ip);
-  const now = new Date();
-  const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000).toISOString();
-
-  try {
-    const db = getDb(env.CLICKFOLIO_DB);
-
-    // Count handle checks in the last hour
-    const result = await db
-      .select({ count: sql<number>`COUNT(*)` })
-      .from(uploadRateLimits)
-      .where(
-        and(
-          eq(uploadRateLimits.ipHash, ipHash),
-          eq(uploadRateLimits.actionType, "handle_check"),
-          gte(uploadRateLimits.createdAt, oneHourAgo),
-        ),
-      );
-
-    const count = result[0]?.count ?? 0;
-
-    if (count >= HANDLE_CHECK_HOURLY_LIMIT) {
-      return {
-        allowed: false,
-        remaining: { hourly: 0, daily: 0 },
-        message: "Too many handle checks. Please try again later.",
-      };
-    }
-
-    // Record this check (separate from uploads)
-    try {
-      const expiresAt = new Date(now.getTime() + 60 * 60 * 1000).toISOString(); // 1hr TTL
-      await db.insert(uploadRateLimits).values({
-        id: crypto.randomUUID(),
-        ipHash,
-        actionType: "handle_check",
-        createdAt: now.toISOString(),
-        expiresAt,
-      });
-    } catch (insertError) {
-      console.error("Failed to record handle check rate limit:", insertError);
-      // Continue anyway - fail open for legitimate users
-    }
-
-    return {
-      allowed: true,
-      remaining: {
-        hourly: HANDLE_CHECK_HOURLY_LIMIT - count - 1,
-        daily: 1000,
-      },
-    };
-  } catch (error) {
-    console.error("Handle rate limit check failed:", error);
-
-    // SECURITY: Fail OPEN - same rationale as upload rate limiting
-    return {
-      allowed: true,
-      remaining: { hourly: 1, daily: 1 },
-    };
-  }
+  return checkHourlyActionLimit(ip, {
+    actionType: "handle_check",
+    limit: HANDLE_CHECK_HOURLY_LIMIT,
+    blockedMessage: "Too many handle checks. Please try again later.",
+    insertErrorLabel: "Failed to record handle check rate limit:",
+    checkErrorLabel: "Handle rate limit check failed:",
+  });
 }
 
 /**
@@ -293,31 +207,56 @@ export async function checkHandleRateLimit(ip: string): Promise<IPRateLimitResul
  * - DoS via rapid validation checks
  */
 export async function checkEmailValidateRateLimit(ip: string): Promise<IPRateLimitResult> {
+  return checkHourlyActionLimit(ip, {
+    actionType: "email_validate",
+    limit: EMAIL_VALIDATE_HOURLY_LIMIT,
+    blockedMessage: "Too many email validation checks. Please try again later.",
+    insertErrorLabel: "Failed to record email validate rate limit:",
+    checkErrorLabel: "Email validate rate limit check failed:",
+  });
+}
+
+/**
+ * Shared implementation for single-hourly-limit IP rate limits
+ * (handle availability checks and email validation checks).
+ *
+ * Both actions share the same shape: skip in development, ignore
+ * DISABLE_RATE_LIMITS in production, skip for local IPs/environment,
+ * count actions of `actionType` in the last hour, block at `limit`,
+ * otherwise record the action (1hr TTL) and fail open on any DB error.
+ */
+async function checkHourlyActionLimit(
+  ip: string,
+  options: {
+    actionType: "handle_check" | "email_validate";
+    limit: number;
+    blockedMessage: string;
+    insertErrorLabel: string;
+    checkErrorLabel: string;
+  },
+): Promise<IPRateLimitResult> {
+  const { actionType, limit, blockedMessage, insertErrorLabel, checkErrorLabel } = options;
+
   // Skip in development
   if (process.env.NODE_ENV !== "production") {
     return {
       allowed: true,
-      remaining: { hourly: EMAIL_VALIDATE_HOURLY_LIMIT, daily: 1000 },
+      remaining: { hourly: limit, daily: 1000 },
     };
   }
 
   // Feature flag bypass for temporary testing (non-production only)
+  // Note: this code only runs when NODE_ENV === "production" (the early return above
+  // handles all non-production cases), so DISABLE_RATE_LIMITS is always ignored here.
   if (process.env.DISABLE_RATE_LIMITS === "true") {
-    if (process.env.NODE_ENV === "production") {
-      console.warn("[SECURITY] DISABLE_RATE_LIMITS ignored in production environment");
-    } else {
-      return {
-        allowed: true,
-        remaining: { hourly: 999, daily: 999 },
-      };
-    }
+    console.warn("[SECURITY] DISABLE_RATE_LIMITS ignored in production environment");
   }
 
   // Skip for localhost IPs or local environment (local preview runs in production mode)
   if (LOCAL_IPS.has(ip) || isLocalEnvironment()) {
     return {
       allowed: true,
-      remaining: { hourly: EMAIL_VALIDATE_HOURLY_LIMIT, daily: 1000 },
+      remaining: { hourly: limit, daily: 1000 },
     };
   }
 
@@ -328,52 +267,52 @@ export async function checkEmailValidateRateLimit(ip: string): Promise<IPRateLim
   try {
     const db = getDb(env.CLICKFOLIO_DB);
 
-    // Count email validation checks in the last hour
+    // Count actions of this type in the last hour
     const result = await db
       .select({ count: sql<number>`COUNT(*)` })
       .from(uploadRateLimits)
       .where(
         and(
           eq(uploadRateLimits.ipHash, ipHash),
-          eq(uploadRateLimits.actionType, "email_validate"),
+          eq(uploadRateLimits.actionType, actionType),
           gte(uploadRateLimits.createdAt, oneHourAgo),
         ),
       );
 
     const count = result[0]?.count ?? 0;
 
-    if (count >= EMAIL_VALIDATE_HOURLY_LIMIT) {
+    if (count >= limit) {
       return {
         allowed: false,
         remaining: { hourly: 0, daily: 0 },
-        message: "Too many email validation checks. Please try again later.",
+        message: blockedMessage,
       };
     }
 
-    // Record this check (separate from uploads and handle checks)
+    // Record this check (separate action type, not shared with uploads)
     try {
       const expiresAt = new Date(now.getTime() + 60 * 60 * 1000).toISOString(); // 1hr TTL
       await db.insert(uploadRateLimits).values({
         id: crypto.randomUUID(),
         ipHash,
-        actionType: "email_validate",
+        actionType,
         createdAt: now.toISOString(),
         expiresAt,
       });
     } catch (insertError) {
-      console.error("Failed to record email validate rate limit:", insertError);
+      console.error(insertErrorLabel, insertError);
       // Continue anyway - fail open for legitimate users
     }
 
     return {
       allowed: true,
       remaining: {
-        hourly: EMAIL_VALIDATE_HOURLY_LIMIT - count - 1,
+        hourly: limit - count - 1,
         daily: 1000,
       },
     };
   } catch (error) {
-    console.error("Email validate rate limit check failed:", error);
+    console.error(checkErrorLabel, error);
 
     // SECURITY: Fail OPEN - same rationale as upload rate limiting
     return {
