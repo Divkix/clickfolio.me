@@ -26,6 +26,7 @@
 import { env } from "cloudflare:workers";
 import { requireAdminAuthForApi } from "@/lib/auth/admin";
 import { getMetrics, getPageviews, getStats } from "@/lib/umami/client";
+import { lastNUtcDays } from "@/lib/utils/date-axis";
 import {
   createErrorResponse,
   createSuccessResponse,
@@ -118,15 +119,16 @@ export async function GET(request: Request) {
 
     // Daily breakdown — map Umami {x, y} to {date, views, unique}
     // Umami returns x as full ISO timestamp (e.g. "2026-02-09T00:00:00Z") when timezone=UTC,
-    // so normalize to YYYY-MM-DD for consistent date matching in fillMissingDates.
+    // so normalize to YYYY-MM-DD for consistent date matching across the date axis.
     const sessionMap = new Map(pageviews.sessions.map((s) => [s.x.slice(0, 10), s.y]));
-    const daily = fillMissingDates(
-      pageviews.pageviews.map((p) => ({
-        date: p.x.slice(0, 10),
-        views: p.y,
-        unique: sessionMap.get(p.x.slice(0, 10)) ?? 0,
-      })),
-      days,
+    const dailyData = pageviews.pageviews.map((p) => ({
+      date: p.x.slice(0, 10),
+      views: p.y,
+      unique: sessionMap.get(p.x.slice(0, 10)) ?? 0,
+    }));
+    const dailyMap = new Map(dailyData.map((d) => [d.date, d]));
+    const daily = lastNUtcDays(days).map(
+      (date) => dailyMap.get(date) ?? { date, views: 0, unique: 0 },
     );
 
     // Top profiles — filter URL metrics to profile paths only
@@ -186,20 +188,4 @@ export async function GET(request: Request) {
       503,
     );
   }
-}
-
-function fillMissingDates(
-  data: Array<{ date: string; views: number; unique: number }>,
-  days: number,
-): Array<{ date: string; views: number; unique: number }> {
-  const dataMap = new Map(data.map((d) => [d.date, d]));
-  const result: Array<{ date: string; views: number; unique: number }> = [];
-
-  for (let i = days - 1; i >= 0; i--) {
-    const date = new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-    const existing = dataMap.get(date);
-    result.push(existing ?? { date, views: 0, unique: 0 });
-  }
-
-  return result;
 }

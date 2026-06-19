@@ -26,6 +26,7 @@ import { requireAdminAuthForApi } from "@/lib/auth/admin";
 import { getDb } from "@/lib/db";
 import { resumes, siteData, user } from "@/lib/db/schema";
 import { getPageviews, getStats } from "@/lib/umami/client";
+import { lastNUtcDays } from "@/lib/utils/date-axis";
 import {
   createErrorResponse,
   createSuccessResponse,
@@ -97,10 +98,11 @@ export async function GET() {
     // Fill missing dates for sparkline from Umami pageviews
     // Umami returns x as full ISO timestamp (e.g. "2026-02-09T00:00:00Z") when timezone=UTC,
     // so normalize to YYYY-MM-DD for consistent date matching.
-    const filledDailyViews = fillMissingDates(
-      umamiPageviews.pageviews.map((p) => ({ date: p.x.slice(0, 10), views: p.y })),
-      7,
-    );
+    const viewsMap = new Map(umamiPageviews.pageviews.map((p) => [p.x.slice(0, 10), p.y]));
+    const filledDailyViews = lastNUtcDays(7).map((date) => ({
+      date,
+      views: viewsMap.get(date) ?? 0,
+    }));
 
     return createSuccessResponse({
       totalUsers: userStats[0]?.total ?? 0,
@@ -118,19 +120,4 @@ export async function GET() {
     console.error("[admin/stats] Error:", err);
     return createErrorResponse("Stats temporarily unavailable", ERROR_CODES.INTERNAL_ERROR, 503);
   }
-}
-
-function fillMissingDates(
-  data: Array<{ date: string; views: number }>,
-  days: number,
-): Array<{ date: string; views: number }> {
-  const dataMap = new Map(data.map((d) => [d.date, d.views]));
-  const result: Array<{ date: string; views: number }> = [];
-
-  for (let i = days - 1; i >= 0; i--) {
-    const date = new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-    result.push({ date, views: dataMap.get(date) ?? 0 });
-  }
-
-  return result;
 }
