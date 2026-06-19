@@ -254,7 +254,7 @@ describe("branch-heavy component interactions", () => {
       expect(mocks.router.refresh).toHaveBeenCalled();
 
       vi.mocked(fetch).mockResolvedValueOnce(
-        Response.json({ message: "Handle is taken" }, { status: 409 }),
+        Response.json({ error: "Handle is taken" }, { status: 409 }),
       );
       rerender(<HandleForm currentHandle="avery" />);
 

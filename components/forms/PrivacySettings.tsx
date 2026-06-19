@@ -9,14 +9,10 @@ import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import type { PrivacySettings } from "@/lib/db/schema/auth";
 import { privacySettingsSchema } from "@/lib/schemas/profile";
+import type { ApiErrorBody } from "@/lib/types/api";
 
 interface PrivacySettingsFormProps {
   initialSettings: PrivacySettings;
-}
-
-interface ErrorResponse {
-  error?: string;
-  message?: string;
 }
 
 interface ToggleCardProps {
@@ -102,8 +98,8 @@ export function PrivacySettingsForm({ initialSettings }: PrivacySettingsFormProp
       });
 
       if (!response.ok) {
-        const errorData = (await response.json()) as ErrorResponse;
-        throw new Error(errorData.message || "Failed to update privacy settings");
+        const errorData = (await response.json()) as ApiErrorBody;
+        throw new Error(errorData.error || "Failed to update privacy settings");
       }
 
       toast.success("Privacy settings updated");

@@ -9,8 +9,7 @@ import { AdminTrafficChart } from "@/components/admin/AdminTrafficChart";
 import { HorizontalBarChart } from "@/components/admin/HorizontalBarChart";
 import { StatCard } from "@/components/admin/StatCard";
 import { Skeleton } from "@/components/ui/skeleton";
-
-type Period = "7d" | "30d" | "90d";
+import type { Period } from "@/lib/types/api";
 
 interface AnalyticsData {
   totals: {

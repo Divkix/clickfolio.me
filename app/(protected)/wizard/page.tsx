@@ -18,17 +18,12 @@ import { UploadStep } from "@/components/wizard/UploadStep";
 import { YouAreLiveModal } from "@/components/YouAreLiveModal";
 import { useSession } from "@/lib/auth/client";
 import { DEFAULT_THEME, type ThemeId } from "@/lib/templates/theme-ids";
+import type { ClaimResponse } from "@/lib/types/api";
 import type { ResumeContent } from "@/lib/types/database";
 import { clearPendingUploadCookie } from "@/lib/utils/pending-upload-client";
 import { waitForResumeCompletion } from "@/lib/utils/wait-for-completion";
 
 // Type definitions for API responses
-interface ClaimResponse {
-  resume_id: string;
-  cached?: boolean;
-  error?: string;
-}
-
 interface SiteDataResponse {
   id?: string;
   content?: ResumeContent;

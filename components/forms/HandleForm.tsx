@@ -11,16 +11,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { siteConfig } from "@/lib/config/site";
 import { type HandleUpdate, handleUpdateSchema } from "@/lib/schemas/profile";
+import type { ApiErrorBody } from "@/lib/types/api";
 import { copyToClipboard } from "@/lib/utils/clipboard";
 
 interface HandleFormProps {
   currentHandle: string;
   variant?: "default" | "compact";
-}
-
-interface ErrorResponse {
-  error?: string;
-  message?: string;
 }
 
 export function HandleForm({ currentHandle, variant = "default" }: HandleFormProps) {
@@ -73,8 +69,8 @@ export function HandleForm({ currentHandle, variant = "default" }: HandleFormPro
       });
 
       if (!response.ok) {
-        const errorData = (await response.json()) as ErrorResponse;
-        throw new Error(errorData.message || "Failed to update handle");
+        const errorData = (await response.json()) as ApiErrorBody;
+        throw new Error(errorData.error || "Failed to update handle");
       }
 
       await response.json();
