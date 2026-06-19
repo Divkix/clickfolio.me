@@ -1,3 +1,5 @@
+import { cn } from "@/lib/utils/cn";
+
 type LogoTextSize = "xs" | "sm" | "md" | "lg" | "xl";
 
 interface LogoTextProps {
@@ -22,7 +24,11 @@ const sizeConfig: Record<LogoTextSize, string> = {
 export function LogoText({ size = "md", className = "" }: LogoTextProps) {
   return (
     <span
-      className={`font-display font-extrabold tracking-tight text-foreground ${sizeConfig[size]} ${className}`}
+      className={cn(
+        "font-display font-extrabold tracking-tight text-foreground",
+        sizeConfig[size],
+        className,
+      )}
     >
       clickfolio<span className="text-brand">.me</span>
     </span>

@@ -1,3 +1,4 @@
+import { cn } from "@/lib/utils/cn";
 import { LogoIcon } from "./LogoIcon";
 import { LogoText } from "./LogoText";
 
@@ -30,7 +31,7 @@ export function Logo({ size = "md", variant = "full", className = "" }: LogoProp
   }
 
   return (
-    <span className={`inline-flex items-center gap-2 ${className}`}>
+    <span className={cn("inline-flex items-center gap-2", className)}>
       <LogoIcon size={size} />
       <LogoText size={size} />
     </span>
