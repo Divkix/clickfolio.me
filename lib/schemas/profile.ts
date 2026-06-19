@@ -89,7 +89,9 @@ export const roleUpdateSchema = z.object({
 
 /**
  * Wizard completion request schema.
- * Imported from lib/templates to avoid duplicating theme ID validation.
+ * Theme IDs are injected via the `themeIds` parameter rather than imported here,
+ * keeping lib/templates as the single source of truth for valid theme IDs
+ * (the caller passes THEME_IDS from lib/templates).
  */
 export function buildWizardCompleteSchema(themeIds: readonly [string, ...string[]]) {
   return z.object({
