@@ -12,6 +12,9 @@ import { toast } from "sonner";
 import { PasswordInput } from "@/components/auth/PasswordInput";
 import { Footer } from "@/components/Footer";
 import { Logo } from "@/components/Logo";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Toaster } from "@/components/ui/sonner";
 import { resetPassword } from "@/lib/auth/client";
 import type { PasswordStrengthResult } from "@/lib/password/strength";
@@ -97,37 +100,17 @@ function ResetPasswordForm() {
     return (
       <div className="text-center space-y-4">
         <div className="flex justify-center">
-          <XCircle className="w-12 h-12 text-brand" />
+          <XCircle className="w-12 h-12 text-destructive" />
         </div>
         <div className="space-y-2">
-          <h2 className="font-bold text-ink text-lg">Invalid Reset Link</h2>
-          <p className="text-ink/70 text-sm">This password reset link is invalid or has expired.</p>
+          <h2 className="font-bold text-foreground text-lg">Invalid Reset Link</h2>
+          <p className="text-muted-foreground text-sm">
+            This password reset link is invalid or has expired.
+          </p>
         </div>
-        <Link
-          href="/"
-          className="
-            inline-block
-            mt-4
-            px-5
-            py-2.5
-            bg-ink
-            text-cream
-            font-black
-            border-3
-            border-ink
-            shadow-brutal-sm
-            hover:-translate-x-0.5
-            hover:-translate-y-0.5
-            hover:shadow-brutal-md
-            active:translate-x-0
-            active:translate-y-0
-            active:shadow-none
-            transition-colors
-            duration-150
-          "
-        >
-          Back to Home
-        </Link>
+        <Button asChild className="mt-4">
+          <Link href="/">Back to Home</Link>
+        </Button>
       </div>
     );
   }
@@ -137,39 +120,17 @@ function ResetPasswordForm() {
     return (
       <div className="text-center space-y-4">
         <div className="flex justify-center">
-          <CheckCircle className="w-12 h-12 text-green-600" />
+          <CheckCircle className="w-12 h-12 text-success" />
         </div>
         <div className="space-y-2">
-          <h2 className="font-bold text-ink text-lg">Password Reset Successfully</h2>
-          <p className="text-ink/70 text-sm">
+          <h2 className="font-bold text-foreground text-lg">Password Reset Successfully</h2>
+          <p className="text-muted-foreground text-sm">
             Your password has been updated. You can now sign in with your new password.
           </p>
         </div>
-        <Link
-          href="/"
-          className="
-            inline-block
-            mt-4
-            px-5
-            py-2.5
-            bg-ink
-            text-cream
-            font-black
-            border-3
-            border-ink
-            shadow-brutal-sm
-            hover:-translate-x-0.5
-            hover:-translate-y-0.5
-            hover:shadow-brutal-md
-            active:translate-x-0
-            active:translate-y-0
-            active:shadow-none
-            transition-colors
-            duration-150
-          "
-        >
-          Sign In
-        </Link>
+        <Button asChild className="mt-4">
+          <Link href="/">Sign In</Link>
+        </Button>
       </div>
     );
   }
@@ -178,15 +139,13 @@ function ResetPasswordForm() {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="space-y-2 mb-6">
-        <h2 className="font-black text-2xl text-ink">Reset Password</h2>
-        <p className="text-ink/70 text-sm">Enter your new password below.</p>
+        <h2 className="font-bold text-2xl text-foreground">Reset Password</h2>
+        <p className="text-muted-foreground text-sm">Enter your new password below.</p>
       </div>
 
       {/* New Password Field with Strength Meter */}
       <div className="space-y-1.5">
-        <label htmlFor="reset-new-password" className="block text-sm font-bold text-ink">
-          New Password
-        </label>
+        <Label htmlFor="reset-new-password">New Password</Label>
         <PasswordInput
           id="reset-new-password"
           autoComplete="new-password"
@@ -200,92 +159,31 @@ function ResetPasswordForm() {
           hasError={!!errors.newPassword}
         />
         {errors.newPassword && (
-          <p className="text-sm text-brand font-medium">{errors.newPassword.message}</p>
+          <p className="text-sm text-destructive font-medium">{errors.newPassword.message}</p>
         )}
       </div>
 
       {/* Confirm Password Field */}
       <div className="space-y-1.5">
-        <label htmlFor="reset-confirm-password" className="block text-sm font-bold text-ink">
-          Confirm Password
-        </label>
-        <input
+        <Label htmlFor="reset-confirm-password">Confirm Password</Label>
+        <Input
           id="reset-confirm-password"
           type="password"
           autoComplete="new-password"
           placeholder="Repeat your password"
           disabled={isSubmitting}
+          aria-invalid={!!errors.confirmPassword}
           {...register("confirmPassword")}
-          className={`
-            w-full
-            px-4
-            py-2.5
-            bg-cream
-            text-ink
-            font-medium
-            border-3
-            border-ink
-            shadow-brutal-sm
-            placeholder:text-ink/40
-            focus:outline-none
-            focus:shadow-brutal-md
-            focus:translate-x-[-2px]
-            focus:translate-y-[-2px]
-            transition-colors
-            duration-150
-            disabled:opacity-50
-            disabled:cursor-not-allowed
-            ${errors.confirmPassword ? "border-brand" : ""}
-          `}
         />
         {errors.confirmPassword && (
-          <p className="text-sm text-brand font-medium">{errors.confirmPassword.message}</p>
+          <p className="text-sm text-destructive font-medium">{errors.confirmPassword.message}</p>
         )}
       </div>
 
       {/* Submit Button */}
-      <button
-        type="submit"
-        disabled={isSubmitting}
-        className="
-          w-full
-          mt-2
-          px-5
-          py-2.5
-          bg-ink
-          text-cream
-          font-black
-          border-3
-          border-ink
-          shadow-brutal-sm
-          hover:-translate-x-0.5
-          hover:-translate-y-0.5
-          hover:shadow-brutal-md
-          active:translate-x-0
-          active:translate-y-0
-          active:shadow-none
-          transition-colors
-          duration-150
-          disabled:opacity-50
-          disabled:cursor-not-allowed
-          disabled:hover:translate-x-0
-          disabled:hover:translate-y-0
-          disabled:hover:shadow-brutal-sm
-          flex
-          items-center
-          justify-center
-          gap-2
-        "
-      >
-        {isSubmitting ? (
-          <>
-            <Loader2 className="w-4 h-4 animate-spin" />
-            <span>Resetting...</span>
-          </>
-        ) : (
-          <span>Reset Password</span>
-        )}
-      </button>
+      <Button type="submit" loading={isSubmitting} className="w-full mt-2">
+        {isSubmitting ? "Resetting..." : "Reset Password"}
+      </Button>
 
       {/* Back to home link */}
       <Link
@@ -296,8 +194,8 @@ function ResetPasswordForm() {
           text-center
           text-sm
           font-medium
-          text-ink/70
-          hover:text-ink
+          text-muted-foreground
+          hover:text-foreground
           underline
           underline-offset-2
           transition-colors
@@ -312,18 +210,18 @@ function ResetPasswordForm() {
 function LoadingFallback() {
   return (
     <div className="flex items-center justify-center py-8">
-      <Loader2 className="w-8 h-8 animate-spin text-ink/50" />
+      <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
     </div>
   );
 }
 
 export default function ResetPasswordPage() {
   return (
-    <div className="min-h-screen bg-cream flex flex-col paper-texture">
+    <div className="min-h-screen bg-background flex flex-col">
       <Toaster />
 
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b-3 border-ink bg-cream">
+      <header className="sticky top-0 z-50 border-b border-border bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
           <Link href="/" aria-label="clickfolio.me home">
             <Logo size="md" />
@@ -333,17 +231,7 @@ export default function ResetPasswordPage() {
 
       {/* Main Content */}
       <main className="flex-1 flex items-center justify-center px-4 py-12">
-        <div
-          className="
-            w-full
-            max-w-md
-            bg-white
-            border-3
-            border-ink
-            shadow-brutal-lg
-            p-8
-          "
-        >
+        <div className="w-full max-w-md bg-card rounded-xl border border-border shadow-sm p-8">
           <Suspense fallback={<LoadingFallback />}>
             <ResetPasswordForm />
           </Suspense>

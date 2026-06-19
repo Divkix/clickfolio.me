@@ -18,13 +18,10 @@ interface ContactSectionProps {
 
 export function ContactSection({ form }: ContactSectionProps) {
   return (
-    <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-6 hover:shadow-md transition-colors duration-300">
+    <div className="bg-card rounded-xl shadow-sm border border-border p-6 transition-shadow hover:shadow-md">
       <div className="flex items-center gap-3 mb-6">
-        <div className="relative shrink-0">
-          <div className="absolute inset-0 bg-linear-to-r from-purple-500 to-pink-500 rounded-lg blur-md opacity-20" />
-          <div className="relative bg-linear-to-r from-purple-100 to-pink-100 p-2.5 rounded-lg">
-            <Mail className="h-5 w-5 text-purple-600" />
-          </div>
+        <div className="shrink-0 bg-brand-subtle p-2.5 rounded-lg">
+          <Mail className="h-5 w-5 text-brand" />
         </div>
         <div>
           <h2 className="text-lg font-semibold text-foreground">Contact Information</h2>
@@ -121,9 +118,7 @@ export function ContactSection({ form }: ContactSectionProps) {
         />
 
         <Separator className="my-2" />
-        <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
-          Design Portfolio Links
-        </p>
+        <p className="text-sm text-foreground font-medium">Design Portfolio Links</p>
 
         <FormField
           control={form.control}

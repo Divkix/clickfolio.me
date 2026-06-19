@@ -78,7 +78,7 @@ export default function AdminAnalyticsPage() {
       {/* Period Toggle */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <BarChart3 className="w-5 h-5 text-muted-foreground/70" aria-hidden="true" />
+          <BarChart3 className="w-5 h-5 text-muted-foreground" aria-hidden="true" />
           <span className="text-sm text-muted-foreground">Platform Analytics</span>
         </div>
         <div className="flex gap-1 bg-muted rounded-lg p-0.5">
@@ -90,7 +90,7 @@ export default function AdminAnalyticsPage() {
               className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                 period === opt.value
                   ? "bg-card text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground/80"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               {opt.label}
@@ -109,39 +109,39 @@ export default function AdminAnalyticsPage() {
               title="Total Views"
               value={data?.totals.views ?? 0}
               icon={Eye}
-              iconColorClass="text-coral"
-              iconBgClass="bg-coral/20"
+              iconColorClass="text-brand"
+              iconBgClass="bg-brand-subtle"
               change={data?.changes.views}
             />
             <StatCard
               title="Unique Visitors"
               value={data?.totals.unique ?? 0}
               icon={Users}
-              iconColorClass="text-emerald-600"
-              iconBgClass="bg-linear-to-r from-emerald-100 to-teal-100"
+              iconColorClass="text-muted-foreground"
+              iconBgClass="bg-surface-2"
               change={data?.changes.unique}
             />
             <StatCard
               title="Avg/Day"
               value={data?.totals.avgPerDay ?? 0}
               icon={TrendingUp}
-              iconColorClass="text-amber-600"
-              iconBgClass="bg-linear-to-r from-amber-100 to-orange-100"
+              iconColorClass="text-muted-foreground"
+              iconBgClass="bg-surface-2"
               change={data?.changes.avgPerDay}
             />
             <StatCard
               title="Profiles Viewed"
               value={data?.totals.profilesViewed ?? 0}
               icon={BarChart3}
-              iconColorClass="text-purple-600"
-              iconBgClass="bg-linear-to-r from-purple-100 to-pink-100"
+              iconColorClass="text-muted-foreground"
+              iconBgClass="bg-surface-2"
             />
           </>
         )}
       </div>
 
       {/* Traffic Chart */}
-      <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-6">
+      <div className="bg-card rounded-xl shadow-sm border border-border p-6">
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
           Platform Traffic
         </h2>
@@ -154,7 +154,7 @@ export default function AdminAnalyticsPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Top Profiles */}
-        <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-6">
+        <div className="bg-card rounded-xl shadow-sm border border-border p-6">
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
             Top Profiles
           </h2>
@@ -175,7 +175,7 @@ export default function AdminAnalyticsPage() {
                     <Link
                       href={`/@${profile.handle}`}
                       target="_blank"
-                      className="text-sm text-coral hover:text-coral"
+                      className="text-sm font-mono text-brand hover:underline"
                     >
                       @{profile.handle}
                     </Link>
@@ -193,7 +193,7 @@ export default function AdminAnalyticsPage() {
         </div>
 
         {/* Traffic Sources */}
-        <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-6">
+        <div className="bg-card rounded-xl shadow-sm border border-border p-6">
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
             Traffic Sources
           </h2>
@@ -212,13 +212,13 @@ export default function AdminAnalyticsPage() {
                   percent: r.percent,
                 })) ?? []
               }
-              colorClass="bg-coral"
+              colorClass="bg-brand"
             />
           )}
         </div>
 
         {/* Countries */}
-        <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-6">
+        <div className="bg-card rounded-xl shadow-sm border border-border p-6">
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
             Top Countries
           </h2>
@@ -250,7 +250,7 @@ export default function AdminAnalyticsPage() {
         </div>
 
         {/* Devices */}
-        <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-6">
+        <div className="bg-card rounded-xl shadow-sm border border-border p-6">
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
             Devices
           </h2>
@@ -269,7 +269,7 @@ export default function AdminAnalyticsPage() {
                   percent: d.percent,
                 })) ?? []
               }
-              colorClass="bg-amber-500"
+              colorClass="bg-chart-2"
             />
           )}
         </div>

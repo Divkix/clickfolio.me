@@ -112,30 +112,30 @@ export default async function AdminOverviewPage() {
           title="Total Users"
           value={stats.totalUsers}
           icon={Users}
-          iconColorClass="text-coral"
-          iconBgClass="bg-coral/20"
+          iconColorClass="text-brand"
+          iconBgClass="bg-brand-subtle"
         />
         <StatCard
           title="Published Resumes"
           value={stats.publishedResumes}
           icon={FileText}
-          iconColorClass="text-emerald-600"
-          iconBgClass="bg-linear-to-r from-emerald-100 to-teal-100"
+          iconColorClass="text-muted-foreground"
+          iconBgClass="bg-surface-2"
         />
         <StatCard
           title="Processing"
           value={stats.processingResumes}
           icon={Loader2}
-          iconColorClass="text-amber-600"
-          iconBgClass="bg-linear-to-r from-amber-100 to-orange-100"
+          iconColorClass="text-warning"
+          iconBgClass="bg-warning/10"
           href="/admin/resumes?status=processing"
         />
         <StatCard
           title="Views Today"
           value={stats.viewsToday}
           icon={Eye}
-          iconColorClass="text-purple-600"
-          iconBgClass="bg-linear-to-r from-purple-100 to-pink-100"
+          iconColorClass="text-muted-foreground"
+          iconBgClass="bg-surface-2"
         />
       </div>
 
@@ -143,17 +143,17 @@ export default async function AdminOverviewPage() {
       {stats.failedResumes > 0 && (
         <Link
           href="/admin/resumes?status=failed"
-          className="block bg-coral/10 border border-coral/30 rounded-xl p-4 hover:bg-coral/20 transition-colors"
+          className="block bg-destructive/10 border border-destructive/30 rounded-xl p-4 hover:bg-destructive/15 transition-colors"
         >
           <div className="flex items-center gap-3">
-            <div className="bg-coral/20 p-2 rounded-lg">
-              <AlertTriangle className="w-5 h-5 text-coral" aria-hidden="true" />
+            <div className="bg-destructive/15 p-2 rounded-lg">
+              <AlertTriangle className="w-5 h-5 text-destructive" aria-hidden="true" />
             </div>
             <div>
-              <p className="font-semibold text-coral">
+              <p className="font-semibold text-destructive">
                 {stats.failedResumes} Failed Resume{stats.failedResumes > 1 ? "s" : ""}
               </p>
-              <p className="text-sm text-coral">Click to view details</p>
+              <p className="text-sm text-destructive">Click to view details</p>
             </div>
           </div>
         </Link>
@@ -161,7 +161,7 @@ export default async function AdminOverviewPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Signups */}
-        <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-6">
+        <div className="bg-card rounded-xl shadow-sm border border-border p-6">
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
             Recent Signups
           </h2>
@@ -190,7 +190,7 @@ export default async function AdminOverviewPage() {
         </div>
 
         {/* Views Sparkline */}
-        <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-6">
+        <div className="bg-card rounded-xl shadow-sm border border-border p-6">
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
             Views (Last 7 Days)
           </h2>

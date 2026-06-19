@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Button } from "@/components/ui/button";
 import { siteConfig } from "@/lib/config/site";
 import {
   generatePageBreadcrumbJsonLd,
@@ -44,19 +45,21 @@ export default function ConsultantPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbJsonLd) }}
       />
-      <main className="min-h-screen bg-cream paper-texture" id="main-content">
+      <main className="min-h-screen bg-background" id="main-content">
         <div className="max-w-3xl mx-auto px-4 py-16">
-          <h1 className="font-black text-3xl sm:text-4xl text-ink mb-4">
+          <h1 className="font-extrabold text-3xl sm:text-4xl text-foreground mb-4">
             Resume Websites for Consultants
           </h1>
-          <p className="text-lg text-[#6B6B6B] mb-8">
+          <p className="text-lg text-muted-foreground mb-8">
             Your expertise deserves a professional online presence. Turn your PDF resume into a
             polished consulting portfolio with a custom @handle URL — free, in 30 seconds.
           </p>
 
           <section className="mb-12">
-            <h2 className="font-black text-xl text-ink mb-4">Why Consultants Love clickfolio.me</h2>
-            <ul className="space-y-3 text-[#6B6B6B] list-disc pl-5">
+            <h2 className="font-bold text-xl text-foreground mb-4">
+              Why Consultants Love clickfolio.me
+            </h2>
+            <ul className="space-y-3 text-muted-foreground list-disc pl-5">
               <li>
                 <strong>Midnight template</strong> — dark minimal with serif headings and gold
                 accents. Elegant and sophisticated, perfect for high-end consulting professionals.
@@ -79,25 +82,22 @@ export default function ConsultantPage() {
           </section>
 
           <section className="mb-12">
-            <h2 className="font-black text-xl text-ink mb-4">Your Digital Business Card</h2>
-            <p className="text-[#6B6B6B] mb-4">
+            <h2 className="font-bold text-xl text-foreground mb-4">Your Digital Business Card</h2>
+            <p className="text-muted-foreground mb-4">
               A clickfolio.me @handle URL is the modern consultant's business card. Put it on
               LinkedIn, in your email signature, and on proposals. Clients get a complete picture of
               your expertise before the first call.
             </p>
-            <p className="text-[#6B6B6B]">
+            <p className="text-muted-foreground">
               Rich Open Graph previews ensure your portfolio looks professional when shared. Every
               detail — from typography to layout — is designed to project competence and
               credibility.
             </p>
           </section>
 
-          <a
-            href="/"
-            className="inline-block bg-ink text-cream font-bold px-6 py-3 border-3 border-ink shadow-brutal-sm hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-transform"
-          >
-            Create Your Consulting Portfolio →
-          </a>
+          <Button asChild size="lg">
+            <a href="/">Create Your Consulting Portfolio</a>
+          </Button>
         </div>
       </main>
     </>

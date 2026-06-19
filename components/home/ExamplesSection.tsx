@@ -1,7 +1,9 @@
 "use client";
 
+import { ArrowRight } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useState } from "react";
+import { Badge } from "@/components/ui/badge";
 import type { DemoProfile } from "@/lib/templates/demo-data";
 import { THEME_METADATA } from "@/lib/templates/theme-ids";
 
@@ -22,118 +24,51 @@ export function ExamplesSection({ profiles }: ExamplesSectionProps) {
 
   return (
     <>
-      <section id="examples" className="mt-16 lg:mt-20">
-        <div className="flex items-center gap-4 mb-8">
-          <h2 className="font-black text-2xl sm:text-3xl text-ink">
-            Choose from {profiles.length} themes
-          </h2>
-          <div className="flex-1 h-1 bg-ink" />
-        </div>
+      <section id="examples" className="mt-20 lg:mt-28">
+        <h2 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">
+          Choose from {profiles.length} themes
+        </h2>
+        <p className="mt-2 max-w-xl text-muted-foreground">
+          Every template is responsive, fast, and yours to switch anytime.
+        </p>
 
-        <div className="flex flex-wrap justify-center gap-4">
-          {profiles.map((profile, index) => {
-            const cardColors = [
-              { avatar: "bg-coral text-white", badge: "bg-coral/10 text-coral" },
-              { avatar: "bg-mint text-ink", badge: "bg-mint/10 text-ink" },
-              { avatar: "bg-lavender text-white", badge: "bg-lavender/10 text-lavender" },
-              { avatar: "bg-amber text-ink", badge: "bg-amber/10 text-ink" },
-            ];
-            const color = cardColors[index % cardColors.length];
-            return (
-              <button
-                key={profile.id}
-                type="button"
-                onClick={() => setPreviewIndex(index)}
-                className={`
-                      group
-                      bg-white
-                      border-3
-                      border-ink
-                      p-0
-                      overflow-hidden
-                      shadow-brutal-sm
-                      hover-brutal-shift
-                      text-left
-                      animate-fade-in-up
-                      focus:outline-none
-                      focus:ring-4
-                      focus:ring-coral
-                      w-full
-                      sm:w-[calc(50%-0.5rem)]
-                      lg:w-[calc(25%-0.75rem)]
-                    `}
-                style={{ animationDelay: `${(index + 4) * 100}ms` }}
-              >
-                <div className="border-b-3 border-ink overflow-hidden bg-cream aspect-4/3">
-                  <img
-                    src={THEME_METADATA[profile.id].preview}
-                    alt={`${profile.name} - ${profile.badgeLabel} template`}
-                    className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-300"
-                    loading="lazy"
-                    decoding="async"
-                  />
-                </div>
-                <div className="p-4">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div
-                      className={`
-                            w-12
-                            h-12
-                            rounded-full
-                            border-3
-                            border-ink
-                            flex
-                            items-center
-                            justify-center
-                            font-black
-                            text-sm
-                            ${color.avatar}
-                          `}
-                    >
-                      {profile.initials}
-                    </div>
-                    <div>
-                      <div className="font-bold text-ink">{profile.name}</div>
-                      <div className="font-mono text-xs text-[#6B6B6B]">{profile.role}</div>
-                    </div>
+        <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {profiles.map((profile, index) => (
+            <button
+              key={profile.id}
+              type="button"
+              onClick={() => setPreviewIndex(index)}
+              className="group overflow-hidden rounded-xl border border-border bg-card text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-border-strong hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            >
+              <div className="aspect-4/3 overflow-hidden border-b border-border bg-surface-2">
+                <img
+                  src={THEME_METADATA[profile.id].preview}
+                  alt={`${profile.name} - ${profile.badgeLabel} template`}
+                  className="size-full object-cover object-top transition-transform duration-300 group-hover:scale-105"
+                  loading="lazy"
+                  decoding="async"
+                />
+              </div>
+              <div className="p-4">
+                <div className="mb-3 flex items-center gap-3">
+                  <div className="flex size-10 items-center justify-center rounded-full bg-brand-subtle text-sm font-semibold text-brand-active">
+                    {profile.initials}
                   </div>
-                  <div
-                    className={`
-                          inline-block
-                          px-2
-                          py-1
-                          border-2
-                          border-ink
-                          font-mono
-                          text-xs
-                          uppercase
-                          tracking-wide
-                          ${color.badge}
-                        `}
-                  >
-                    {profile.badgeLabel}
-                  </div>
-                  <div className="mt-3 flex items-center gap-2 text-[#6B6B6B] group-hover:text-ink transition-colors">
-                    <span className="font-mono text-xs">View template</span>
-                    <svg
-                      aria-hidden="true"
-                      className="w-4 h-4 transform group-hover:translate-x-1 transition-transform"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M17 8l4 4m0 0l-4 4m4-4H3"
-                      />
-                    </svg>
+                  <div className="min-w-0">
+                    <div className="truncate font-semibold">{profile.name}</div>
+                    <div className="truncate text-xs text-muted-foreground">{profile.role}</div>
                   </div>
                 </div>
-              </button>
-            );
-          })}
+                <div className="flex items-center justify-between">
+                  <Badge variant="outline">{profile.badgeLabel}</Badge>
+                  <span className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors group-hover:text-brand">
+                    View
+                    <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
+                  </span>
+                </div>
+              </div>
+            </button>
+          ))}
         </div>
       </section>
 

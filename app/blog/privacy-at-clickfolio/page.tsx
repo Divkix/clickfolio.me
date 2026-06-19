@@ -123,34 +123,34 @@ export default function PrivacyAtClickfolioPage() {
         <h2>Third-Party Services</h2>
         <p>We use a minimal set of third-party services, chosen for their privacy posture:</p>
         <div className="space-y-4">
-          <div className="bg-cream/50 border-2 border-ink p-4">
-            <h3 className="font-bold text-ink mb-1">Google OAuth</h3>
-            <p className="text-ink/70 text-sm">
+          <div className="rounded-lg border border-border bg-card p-4">
+            <h3 className="font-semibold text-foreground mb-1">Google OAuth</h3>
+            <p className="text-muted-foreground text-sm">
               For authentication only. Google receives only the fact that you're signing into
               clickfolio.me. We don't access your Google Drive, contacts, or any other Google
               service.
             </p>
           </div>
-          <div className="bg-cream/50 border-2 border-ink p-4">
-            <h3 className="font-bold text-ink mb-1">OpenRouter (AI API)</h3>
-            <p className="text-ink/70 text-sm">
+          <div className="rounded-lg border border-border bg-card p-4">
+            <h3 className="font-semibold text-foreground mb-1">OpenRouter (AI API)</h3>
+            <p className="text-muted-foreground text-sm">
               Your resume PDF text is sent to an AI model through OpenRouter for parsing. OpenRouter
               does not store or train on API inputs. The AI reads your resume content to extract
               structured data and returns it — the content is not retained by the AI provider.
             </p>
           </div>
-          <div className="bg-cream/50 border-2 border-ink p-4">
-            <h3 className="font-bold text-ink mb-1">Cloudflare</h3>
-            <p className="text-ink/70 text-sm">
+          <div className="rounded-lg border border-border bg-card p-4">
+            <h3 className="font-semibold text-foreground mb-1">Cloudflare</h3>
+            <p className="text-muted-foreground text-sm">
               All data — your account, your resume, your portfolio — is stored on Cloudflare's
               infrastructure (Workers, D1 database, R2 storage). Cloudflare is SOC 2 Type II and ISO
               27001 certified. They provide infrastructure-level encryption at rest. They do not
               access or use your data.
             </p>
           </div>
-          <div className="bg-cream/50 border-2 border-ink p-4">
-            <h3 className="font-bold text-ink mb-1">Self-Hosted Analytics</h3>
-            <p className="text-ink/70 text-sm">
+          <div className="rounded-lg border border-border bg-card p-4">
+            <h3 className="font-semibold text-foreground mb-1">Self-Hosted Analytics</h3>
+            <p className="text-muted-foreground text-sm">
               We run our own analytics instance (Umami, self-hosted). Unlike Google Analytics, Umami
               doesn't use cookies for tracking, doesn't collect personal data, and doesn't share
               data with third parties. All analytics data stays on our infrastructure.
@@ -221,26 +221,26 @@ export default function PrivacyAtClickfolioPage() {
         <h2>Comparison: clickfolio.me vs Other Tools</h2>
         <p>Privacy practices vary dramatically across resume and portfolio platforms:</p>
         <div className="space-y-4">
-          <div className="bg-cream/50 border-2 border-ink p-4">
-            <h3 className="font-bold text-ink mb-1">clickfolio.me</h3>
-            <p className="text-ink/70 text-sm">
+          <div className="rounded-lg border border-border bg-card p-4">
+            <h3 className="font-semibold text-foreground mb-1">clickfolio.me</h3>
+            <p className="text-muted-foreground text-sm">
               No data selling. No ad targeting. Granular per-field privacy controls. Self-hosted
               analytics. 30-day auto-deletion for unclaimed data. Account deletion with full data
               removal.
             </p>
           </div>
-          <div className="bg-cream/50 border-2 border-ink p-4">
-            <h3 className="font-bold text-ink mb-1">Typical Free Resume Builders</h3>
-            <p className="text-ink/70 text-sm">
+          <div className="rounded-lg border border-border bg-card p-4">
+            <h3 className="font-semibold text-foreground mb-1">Typical Free Resume Builders</h3>
+            <p className="text-muted-foreground text-sm">
               Many free tools monetize by selling anonymized resume data to recruiters or job
               boards. Some embed third-party trackers from dozens of ad networks. Privacy controls
               are often limited to "public" or "private" — no per-field toggles. Account deletion
               may be opaque or unavailable.
             </p>
           </div>
-          <div className="bg-cream/50 border-2 border-ink p-4">
-            <h3 className="font-bold text-ink mb-1">LinkedIn</h3>
-            <p className="text-ink/70 text-sm">
+          <div className="rounded-lg border border-border bg-card p-4">
+            <h3 className="font-semibold text-foreground mb-1">LinkedIn</h3>
+            <p className="text-muted-foreground text-sm">
               LinkedIn's business model is data. They track your activity, profile views, and
               engagement to sell recruitment tools and advertising. Your profile data feeds their
               talent marketplace. You can control some visibility settings, but the platform
@@ -265,17 +265,17 @@ export default function PrivacyAtClickfolioPage() {
         </p>
         <p>
           For the full legal details, read our{" "}
-          <Link href="/privacy" className="text-coral font-semibold">
+          <Link href="/privacy" className="text-brand font-semibold">
             Privacy Policy
           </Link>
           . For questions about your data or our practices, email us at{" "}
-          <a href={`mailto:${siteConfig.supportEmail}`} className="text-coral font-semibold">
+          <a href={`mailto:${siteConfig.supportEmail}`} className="text-brand font-semibold">
             {siteConfig.supportEmail}
           </a>
           .
         </p>
         <p>
-          <Link href="/" className="text-coral font-semibold">
+          <Link href="/" className="text-brand font-semibold">
             Build your private, controlled portfolio →
           </Link>
         </p>

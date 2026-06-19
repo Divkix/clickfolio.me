@@ -1,6 +1,8 @@
+import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { Footer } from "@/components/Footer";
 import { Logo } from "@/components/Logo";
+import { Badge } from "@/components/ui/badge";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import type { BlogPostMeta } from "@/lib/blog/posts";
 import { siteConfig } from "@/lib/config/site";
@@ -83,7 +85,7 @@ export function BlogPostLayout({ post, children, relatedPosts }: BlogPostLayoutP
   const breadcrumbJsonLd = generateBlogBreadcrumbJsonLd(post);
 
   return (
-    <div className="min-h-screen bg-cream paper-texture flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(articleJsonLd) }}
@@ -92,7 +94,7 @@ export function BlogPostLayout({ post, children, relatedPosts }: BlogPostLayoutP
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbJsonLd) }}
       />
-      <header className="sticky top-0 z-50 border-b-3 border-ink bg-cream">
+      <header className="sticky top-0 z-50 border-b border-border bg-background/90 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
           <Link
             href="/"
@@ -103,7 +105,7 @@ export function BlogPostLayout({ post, children, relatedPosts }: BlogPostLayoutP
           </Link>
           <Link
             href="/blog"
-            className="text-sm font-medium text-ink/70 hover:text-coral transition-colors duration-300"
+            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
           >
             All Posts
           </Link>
@@ -121,13 +123,13 @@ export function BlogPostLayout({ post, children, relatedPosts }: BlogPostLayoutP
       <main className="flex-1 px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
         <article className="max-w-3xl mx-auto">
           <header className="mb-12">
-            <span className="inline-block bg-ink text-cream text-sm font-bold px-3 py-1 mb-4">
+            <Badge variant="brand" className="mb-4">
               {post.category}
-            </span>
-            <h1 className="font-black text-3xl sm:text-4xl lg:text-5xl text-ink mb-4 leading-tight tracking-tight">
+            </Badge>
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground mb-4 leading-tight tracking-tight">
               {post.title}
             </h1>
-            <div className="flex items-center gap-4 text-ink/60 text-sm">
+            <div className="flex items-center gap-4 text-muted-foreground text-sm">
               <time dateTime={post.date} suppressHydrationWarning>
                 {new Date(post.date).toLocaleDateString("en-US", {
                   year: "numeric",
@@ -140,19 +142,20 @@ export function BlogPostLayout({ post, children, relatedPosts }: BlogPostLayoutP
             </div>
           </header>
 
-          <div className="bg-cream border-3 border-ink shadow-brutal-md p-8 sm:p-12 [&_section]:mb-16 [&_section:last-child]:mb-0">
+          <div className="rounded-xl border border-border bg-card shadow-sm p-8 sm:p-12 [&_section]:mb-16 [&_section:last-child]:mb-0">
             <div
               className="prose max-w-none
-              prose-headings:text-ink prose-headings:font-bold
-              prose-h2:text-2xl prose-h2:mt-12 prose-h2:mb-6 prose-h2:border-b-2 prose-h2:border-ink prose-h2:pb-4
+              prose-headings:text-foreground prose-headings:font-semibold
+              prose-h2:text-2xl prose-h2:mt-12 prose-h2:mb-6 prose-h2:border-b prose-h2:border-border prose-h2:pb-4
               prose-h3:text-xl prose-h3:mt-8 prose-h3:mb-4
-              prose-p:text-ink/85 prose-p:leading-[1.8]
+              prose-p:text-muted-foreground prose-p:leading-[1.8]
               prose-ul:space-y-3 prose-ol:space-y-3
-              prose-li:text-ink/85
-              prose-strong:text-ink prose-strong:font-bold
-              prose-a:text-coral prose-a:no-underline hover:prose-a:underline
-              prose-blockquote:border-l-4 prose-blockquote:border-coral prose-blockquote:pl-6
-              prose-blockquote:py-2 prose-blockquote:bg-ink/5 prose-blockquote:text-ink/80
+              prose-li:text-muted-foreground
+              prose-strong:text-foreground prose-strong:font-semibold
+              prose-a:text-brand prose-a:no-underline hover:prose-a:underline
+              prose-code:text-foreground prose-code:font-mono
+              prose-blockquote:border-l-4 prose-blockquote:border-brand prose-blockquote:pl-6
+              prose-blockquote:py-2 prose-blockquote:bg-surface-2 prose-blockquote:text-muted-foreground
               prose-blockquote:italic prose-blockquote:rounded-r-lg
             "
             >
@@ -163,43 +166,30 @@ export function BlogPostLayout({ post, children, relatedPosts }: BlogPostLayoutP
           <div className="mt-8 text-center">
             <Link
               href="/blog"
-              className="inline-flex items-center gap-2 text-sm font-medium text-ink/70 hover:text-coral transition-colors duration-300"
+              className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                aria-hidden="true"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M10 19l-7-7m0 0l7-7m-7 7h18"
-                />
-              </svg>
+              <ArrowLeft className="w-4 h-4" aria-hidden="true" />
               Back to Blog
             </Link>
           </div>
 
           {relatedPosts && relatedPosts.length > 0 && (
-            <section className="mt-12 border-t-3 border-ink pt-8">
-              <h2 className="font-black text-2xl text-ink mb-6">Related Posts</h2>
+            <section className="mt-12 border-t border-border pt-8">
+              <h2 className="text-2xl font-semibold text-foreground mb-6">Related Posts</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {relatedPosts.map((related) => (
                   <Link
                     key={related.slug}
                     href={`/blog/${related.slug}`}
-                    className="group block bg-cream border-3 border-ink p-5 shadow-brutal-sm hover:shadow-brutal-md hover:border-coral/30 transition-shadow transition-colors duration-200"
+                    className="group block rounded-xl border border-border bg-card p-5 shadow-sm transition-colors hover:bg-surface-2 hover:border-border-strong"
                   >
-                    <span className="inline-block bg-ink text-cream text-xs font-bold px-2 py-0.5 mb-2">
+                    <Badge variant="brand" className="mb-2">
                       {related.category}
-                    </span>
-                    <h3 className="font-bold text-lg text-ink mb-1 group-hover:text-coral transition-colors">
+                    </Badge>
+                    <h3 className="font-semibold text-lg text-foreground mb-1 group-hover:text-brand transition-colors">
                       {related.title}
                     </h3>
-                    <p className="text-sm text-ink/60">{related.description}</p>
+                    <p className="text-sm text-muted-foreground">{related.description}</p>
                   </Link>
                 ))}
               </div>

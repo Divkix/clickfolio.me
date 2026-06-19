@@ -195,7 +195,7 @@ export default function LinkedInToPortfolioPage() {
           PDF.
         </p>
         <p>
-          <Link href="/" className="text-coral font-semibold">
+          <Link href="/" className="text-brand font-semibold">
             Upload your resume and build your portfolio now →
           </Link>
         </p>

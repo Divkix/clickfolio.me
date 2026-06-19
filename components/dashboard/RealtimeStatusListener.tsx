@@ -61,12 +61,12 @@ export function RealtimeStatusListener({ resumeId, currentStatus }: RealtimeStat
 
   if (detected.status === "completed") {
     return (
-      <div className="rounded-lg border border-mint bg-mint/5 p-4 mb-4">
+      <div className="rounded-lg border border-success/30 bg-success/10 p-4 mb-4">
         <div className="flex items-start gap-3">
-          <CheckCircle2 className="h-5 w-5 text-mint shrink-0" />
+          <CheckCircle2 className="h-5 w-5 text-success shrink-0" aria-hidden="true" />
           <div className="flex-1">
             <h3 className="font-semibold text-foreground">Processing Complete!</h3>
-            <p className="mt-1 text-sm text-foreground/80">
+            <p className="mt-1 text-sm text-muted-foreground">
               Your resume has been processed. Refreshing page...
             </p>
           </div>
@@ -77,15 +77,15 @@ export function RealtimeStatusListener({ resumeId, currentStatus }: RealtimeStat
 
   if (detected.status === "failed") {
     return (
-      <div className="rounded-lg border border-coral/30 bg-coral/10 p-4 mb-4">
+      <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 mb-4">
         <div className="flex items-start gap-3">
-          <AlertCircle className="h-5 w-5 text-coral shrink-0" />
+          <AlertCircle className="h-5 w-5 text-destructive shrink-0" aria-hidden="true" />
           <div className="flex-1">
-            <h3 className="font-semibold text-coral">Processing Failed</h3>
-            <p className="mt-1 text-sm text-coral">
+            <h3 className="font-semibold text-destructive">Processing Failed</h3>
+            <p className="mt-1 text-sm text-destructive">
               {detected.errorMessage || "An error occurred while processing your resume."}
             </p>
-            <p className="mt-2 text-xs text-coral">Refreshing page...</p>
+            <p className="mt-2 text-xs text-destructive">Refreshing page...</p>
           </div>
         </div>
       </div>
@@ -93,15 +93,15 @@ export function RealtimeStatusListener({ resumeId, currentStatus }: RealtimeStat
   }
 
   return (
-    <div className="rounded-lg border border-coral/30 bg-coral/10 p-4 mb-4">
+    <div className="rounded-lg border border-info/30 bg-info/10 p-4 mb-4">
       <div className="flex items-start gap-3">
-        <Loader2 className="h-5 w-5 animate-spin text-coral shrink-0" />
+        <Loader2 className="h-5 w-5 animate-spin text-info shrink-0" aria-hidden="true" />
         <div className="flex-1">
-          <h3 className="font-semibold text-coral">Processing Your Resume</h3>
-          <p className="mt-1 text-sm text-coral">
+          <h3 className="font-semibold text-info">Processing Your Resume</h3>
+          <p className="mt-1 text-sm text-muted-foreground">
             Our AI is analyzing your resume. This usually takes 30-40 seconds.
           </p>
-          <p className="mt-2 text-xs text-coral">
+          <p className="mt-2 text-xs text-muted-foreground">
             This page will automatically refresh when processing completes.
           </p>
         </div>

@@ -9,7 +9,7 @@ interface HorizontalBarChartProps {
   colorClass?: string;
 }
 
-export function HorizontalBarChart({ items, colorClass = "bg-coral" }: HorizontalBarChartProps) {
+export function HorizontalBarChart({ items, colorClass = "bg-brand" }: HorizontalBarChartProps) {
   if (items.length === 0) {
     return <p className="text-sm text-muted-foreground/70">No data available</p>;
   }

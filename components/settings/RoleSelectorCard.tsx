@@ -49,10 +49,10 @@ export function RoleSelectorCard({ currentRole, roleSource }: RoleSelectorCardPr
   };
 
   return (
-    <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-6">
+    <div className="bg-card rounded-xl shadow-sm border border-border p-6">
       <div className="flex items-center justify-between gap-4 mb-4">
         <div className="flex items-center gap-2">
-          <UserCheck className="h-5 w-5 text-coral" />
+          <UserCheck className="h-5 w-5 text-brand" />
           <h3 className="text-lg font-semibold text-foreground">Professional Level</h3>
         </div>
         {isSaving && (
@@ -67,7 +67,7 @@ export function RoleSelectorCard({ currentRole, roleSource }: RoleSelectorCardPr
         value={role}
         onChange={(e) => handleChange(e.target.value)}
         disabled={isSaving}
-        className="w-full px-3 py-2 border border-ink/15 rounded-lg text-sm bg-card focus:ring-2 focus:ring-coral focus:border-coral disabled:opacity-50"
+        className="w-full px-3 py-2 border border-border-strong rounded-lg text-sm bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-brand disabled:opacity-50"
       >
         <option value="">Select your professional level</option>
         {ROLE_OPTIONS.map((option) => (
@@ -81,7 +81,7 @@ export function RoleSelectorCard({ currentRole, roleSource }: RoleSelectorCardPr
         <p className="mt-2 text-xs text-muted-foreground flex items-center gap-1">
           {source === "ai" ? (
             <>
-              <Sparkles className="h-3 w-3 text-amber-500" />
+              <Sparkles className="h-3 w-3 text-brand" />
               Detected by AI — you can change it anytime
             </>
           ) : (

@@ -152,9 +152,9 @@ function WaitingContent() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-cream">
-      <Card className="w-full max-w-md border-2 border-ink shadow-brutal-md bg-card">
-        <CardHeader className="border-b-2 border-ink">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-background">
+      <Card className="w-full max-w-md border border-border shadow-sm bg-card">
+        <CardHeader className="border-b border-border">
           <CardTitle className="text-center text-xl font-bold">
             {status === "completed" ? "Resume Ready!" : "Analyzing Your Resume"}
           </CardTitle>
@@ -163,8 +163,8 @@ function WaitingContent() {
           {isLoading && !status && (
             <div className="flex flex-col items-center justify-center py-8 space-y-4">
               <div className="relative">
-                <div className="absolute inset-0 animate-ping opacity-30 rounded-full bg-coral" />
-                <Sparkles className="h-8 w-8 text-coral relative" />
+                <div className="absolute inset-0 animate-ping opacity-30 rounded-full bg-brand" />
+                <Sparkles className="h-8 w-8 text-brand relative" />
               </div>
               <p className="text-sm text-muted-foreground font-medium">Connecting...</p>
             </div>
@@ -175,10 +175,10 @@ function WaitingContent() {
               {/* Animated processing icon */}
               <div className="flex flex-col items-center justify-center py-4 space-y-4">
                 <div className="relative">
-                  <div className="absolute inset-0 animate-pulse rounded-full bg-coral/20 scale-150" />
-                  <div className="absolute inset-0 animate-ping opacity-20 rounded-full bg-coral" />
-                  <div className="relative bg-cream border-2 border-ink rounded-full p-4 shadow-brutal-sm">
-                    <Sparkles className="h-10 w-10 text-coral animate-pulse" />
+                  <div className="absolute inset-0 animate-pulse rounded-full bg-brand-subtle scale-150" />
+                  <div className="absolute inset-0 animate-ping opacity-20 rounded-full bg-brand" />
+                  <div className="relative bg-card border border-border rounded-full p-4 shadow-sm">
+                    <Sparkles className="h-10 w-10 text-brand animate-pulse" />
                   </div>
                 </div>
                 <div className="text-center space-y-1">
@@ -191,14 +191,14 @@ function WaitingContent() {
 
               {/* Progress bar */}
               <div className="space-y-2">
-                <Progress value={progress} className="w-full h-3 border border-ink" />
+                <Progress value={progress} className="w-full h-3" />
                 <p className="text-xs text-center text-muted-foreground font-medium">
                   {progress}% complete
                 </p>
               </div>
 
               {/* Processing stage info */}
-              <div className="border-2 border-ink bg-secondary/50 p-4 shadow-brutal-sm">
+              <div className="border border-border bg-surface-2 rounded-lg p-4">
                 <div className="space-y-3">
                   {(() => {
                     const currentStage =
@@ -207,11 +207,13 @@ function WaitingContent() {
                     const StageIcon = currentStage.icon;
                     return (
                       <div className="flex items-center gap-3">
-                        <div className="bg-coral/10 border border-coral/20 rounded-lg p-2">
-                          <StageIcon className="h-5 w-5 text-coral" />
+                        <div className="bg-brand-subtle rounded-lg p-2">
+                          <StageIcon className="h-5 w-5 text-brand" />
                         </div>
                         <div>
-                          <p className="text-sm font-semibold text-ink">{currentStage.stage}</p>
+                          <p className="text-sm font-semibold text-foreground">
+                            {currentStage.stage}
+                          </p>
                           <p className="text-xs text-muted-foreground">{currentStage.message}</p>
                         </div>
                       </div>
@@ -220,8 +222,10 @@ function WaitingContent() {
                 </div>
 
                 {/* What You'll Get preview */}
-                <div className="mt-4 pt-4 border-t border-ink/10">
-                  <p className="text-xs font-semibold text-ink/70 mb-2">What you&apos;ll get:</p>
+                <div className="mt-4 pt-4 border-t border-border">
+                  <p className="text-xs font-semibold text-foreground mb-2">
+                    What you&apos;ll get:
+                  </p>
                   <ul className="text-xs text-muted-foreground space-y-1">
                     <li>• Your own clickfolio.me/@yourname URL</li>
                     <li>• Mobile-optimized design</li>
@@ -234,8 +238,8 @@ function WaitingContent() {
 
           {status === "completed" && (
             <div className="flex flex-col items-center justify-center py-8 space-y-4">
-              <div className="bg-mint/20 border-2 border-ink rounded-full p-4 shadow-brutal-sm">
-                <CheckCircle2 className="h-10 w-10 text-mint" />
+              <div className="bg-success/10 border border-success/30 rounded-full p-4">
+                <CheckCircle2 className="h-10 w-10 text-success" />
               </div>
               <div className="text-center space-y-2">
                 <p className="font-bold text-lg">Parsing Complete!</p>
@@ -246,7 +250,7 @@ function WaitingContent() {
 
           {status === "failed" && (
             <div className="space-y-4">
-              <Alert variant="destructive" className="border-2 border-ink">
+              <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
                   <p className="font-bold">Processing Failed</p>
@@ -256,17 +260,14 @@ function WaitingContent() {
 
               <div className="flex flex-col gap-2">
                 {canRetry && (
-                  <Button
-                    onClick={handleRetry}
-                    className="w-full border-2 border-ink shadow-brutal-sm hover:shadow-brutal-md transition-shadow bg-ink text-cream hover:bg-ink/90"
-                  >
+                  <Button onClick={handleRetry} className="w-full">
                     Try Again
                   </Button>
                 )}
                 <Button
                   variant="outline"
                   onClick={() => router.push("/dashboard")}
-                  className="w-full border-2 border-ink shadow-brutal-sm hover:shadow-brutal-md transition-shadow"
+                  className="w-full"
                 >
                   Go to Dashboard
                 </Button>
@@ -275,7 +276,7 @@ function WaitingContent() {
           )}
 
           {error && status === "processing" && (
-            <Alert className="border-2 border-ink">
+            <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription className="text-sm">{error}</AlertDescription>
             </Alert>
@@ -290,10 +291,10 @@ export default function WaitingPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center bg-cream">
+        <div className="min-h-screen flex items-center justify-center bg-background">
           <div className="relative">
-            <div className="absolute inset-0 animate-ping opacity-30 rounded-full bg-coral" />
-            <Sparkles className="h-8 w-8 text-coral relative animate-pulse" />
+            <div className="absolute inset-0 animate-ping opacity-30 rounded-full bg-brand" />
+            <Sparkles className="h-8 w-8 text-brand relative animate-pulse" />
           </div>
         </div>
       }

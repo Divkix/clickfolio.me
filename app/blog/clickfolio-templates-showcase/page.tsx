@@ -207,39 +207,45 @@ export default function TemplatesShowcasePage() {
         <h2>Which Template Should You Choose?</h2>
 
         <div className="space-y-4">
-          <div className="bg-cream/50 border-2 border-ink p-4">
-            <h3 className="text-lg font-bold text-ink mb-1">Software Engineer / Developer</h3>
-            <p className="text-ink/70">
+          <div className="rounded-lg border border-border bg-card p-4">
+            <h3 className="text-lg font-semibold text-foreground mb-1">
+              Software Engineer / Developer
+            </h3>
+            <p className="text-muted-foreground">
               DevTerminal or Bento Grid — both speak to technical audiences in their own language.
             </p>
           </div>
-          <div className="bg-cream/50 border-2 border-ink p-4">
-            <h3 className="text-lg font-bold text-ink mb-1">Designer / Creative</h3>
-            <p className="text-ink/70">
+          <div className="rounded-lg border border-border bg-card p-4">
+            <h3 className="text-lg font-semibold text-foreground mb-1">Designer / Creative</h3>
+            <p className="text-muted-foreground">
               DesignFolio or NeoBrutalist — your portfolio should demonstrate design taste.
             </p>
           </div>
-          <div className="bg-cream/50 border-2 border-ink p-4">
-            <h3 className="text-lg font-bold text-ink mb-1">Executive / Consultant</h3>
-            <p className="text-ink/70">
+          <div className="rounded-lg border border-border bg-card p-4">
+            <h3 className="text-lg font-semibold text-foreground mb-1">Executive / Consultant</h3>
+            <p className="text-muted-foreground">
               Midnight or Minimalist Editorial — gravitas and sophistication.
             </p>
           </div>
-          <div className="bg-cream/50 border-2 border-ink p-4">
-            <h3 className="text-lg font-bold text-ink mb-1">Active Job Seeker</h3>
-            <p className="text-ink/70">
+          <div className="rounded-lg border border-border bg-card p-4">
+            <h3 className="text-lg font-semibold text-foreground mb-1">Active Job Seeker</h3>
+            <p className="text-muted-foreground">
               ClassicATS — ATS-optimized for maximum compatibility with application systems.
             </p>
           </div>
-          <div className="bg-cream/50 border-2 border-ink p-4">
-            <h3 className="text-lg font-bold text-ink mb-1">Marketer / Content Creator</h3>
-            <p className="text-ink/70">
+          <div className="rounded-lg border border-border bg-card p-4">
+            <h3 className="text-lg font-semibold text-foreground mb-1">
+              Marketer / Content Creator
+            </h3>
+            <p className="text-muted-foreground">
               Spotlight or Bento Grid — visually engaging and narrative-driven.
             </p>
           </div>
-          <div className="bg-cream/50 border-2 border-ink p-4">
-            <h3 className="text-lg font-bold text-ink mb-1">Finance / Law / Traditional</h3>
-            <p className="text-ink/70">
+          <div className="rounded-lg border border-border bg-card p-4">
+            <h3 className="text-lg font-semibold text-foreground mb-1">
+              Finance / Law / Traditional
+            </h3>
+            <p className="text-muted-foreground">
               Bold Corporate or ClassicATS — structured, authoritative, formal.
             </p>
           </div>
@@ -254,7 +260,7 @@ export default function TemplatesShowcasePage() {
           share with your network to unlock them.
         </p>
         <p>
-          <Link href="/" className="text-coral font-semibold">
+          <Link href="/" className="text-brand font-semibold">
             Upload your resume and try all 10 templates →
           </Link>
         </p>

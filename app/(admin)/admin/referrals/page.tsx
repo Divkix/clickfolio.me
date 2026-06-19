@@ -77,7 +77,7 @@ export default function AdminReferralsPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-2">
-        <Share2 className="w-5 h-5 text-muted-foreground/70" aria-hidden="true" />
+        <Share2 className="w-5 h-5 text-muted-foreground" aria-hidden="true" />
         <span className="text-sm text-muted-foreground">Referral Program</span>
       </div>
 
@@ -91,36 +91,36 @@ export default function AdminReferralsPage() {
               title="Total Referrers"
               value={data?.stats.totalReferrers ?? 0}
               icon={Share2}
-              iconColorClass="text-purple-600"
-              iconBgClass="bg-linear-to-r from-purple-100 to-pink-100"
+              iconColorClass="text-muted-foreground"
+              iconBgClass="bg-surface-2"
             />
             <StatCard
               title="Total Clicks"
               value={data?.stats.totalClicks ?? 0}
               icon={MousePointerClick}
-              iconColorClass="text-coral"
-              iconBgClass="bg-coral/20"
+              iconColorClass="text-brand"
+              iconBgClass="bg-brand-subtle"
             />
             <StatCard
               title="Signups"
               value={data?.stats.conversions ?? 0}
               icon={UserPlus}
-              iconColorClass="text-emerald-600"
-              iconBgClass="bg-linear-to-r from-emerald-100 to-teal-100"
+              iconColorClass="text-muted-foreground"
+              iconBgClass="bg-surface-2"
             />
             <StatCard
               title="Signup Rate"
               value={`${data?.stats.conversionRate ?? 0}%`}
               icon={TrendingUp}
-              iconColorClass="text-amber-600"
-              iconBgClass="bg-linear-to-r from-amber-100 to-orange-100"
+              iconColorClass="text-muted-foreground"
+              iconBgClass="bg-surface-2"
             />
           </>
         )}
       </div>
 
       {/* Funnel */}
-      <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-6">
+      <div className="bg-card rounded-xl shadow-sm border border-border p-6">
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
           Referral Funnel
         </h2>
@@ -142,8 +142,8 @@ export default function AdminReferralsPage() {
       </div>
 
       {/* Top Referrers Table */}
-      <div className="bg-card rounded-xl shadow-sm border border-ink/10 overflow-hidden">
-        <div className="p-6 border-b border-ink/10">
+      <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
+        <div className="p-6 border-b border-border">
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
             Top Referrers
           </h2>
@@ -151,7 +151,7 @@ export default function AdminReferralsPage() {
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-ink/10 bg-muted/50">
+              <tr className="border-b border-border bg-muted/50">
                 <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3">
                   Rank
                 </th>
@@ -169,7 +169,7 @@ export default function AdminReferralsPage() {
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-ink/10">
+            <tbody className="divide-y divide-border">
               {loading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i}>
@@ -210,7 +210,7 @@ export default function AdminReferralsPage() {
                       <Link
                         href={`/@${referrer.handle}`}
                         target="_blank"
-                        className="text-sm text-coral hover:text-coral"
+                        className="text-sm font-mono text-brand hover:underline"
                       >
                         @{referrer.handle}
                       </Link>
@@ -243,7 +243,7 @@ export default function AdminReferralsPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Click Sources */}
-        <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-6">
+        <div className="bg-card rounded-xl shadow-sm border border-border p-6">
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
             Click Sources
           </h2>
@@ -262,13 +262,13 @@ export default function AdminReferralsPage() {
                   percent: s.percent,
                 })) ?? []
               }
-              colorClass="bg-purple-500"
+              colorClass="bg-chart-4"
             />
           )}
         </div>
 
         {/* Recent Conversions */}
-        <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-6">
+        <div className="bg-card rounded-xl shadow-sm border border-border p-6">
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
             Recent Signups
           </h2>
@@ -296,7 +296,7 @@ export default function AdminReferralsPage() {
                       <Link
                         href={`/@${conv.referrerHandle}`}
                         target="_blank"
-                        className="text-coral hover:text-coral"
+                        className="font-mono text-brand hover:underline"
                       >
                         @{conv.referrerHandle}
                       </Link>

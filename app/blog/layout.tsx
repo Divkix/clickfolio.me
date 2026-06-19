@@ -21,7 +21,7 @@ export const metadata: Metadata = {
  */
 export default function BlogLayout({ children }: { children: React.ReactNode }) {
   return (
-    <main className="min-h-screen bg-cream paper-texture" id="main-content">
+    <main className="min-h-screen bg-background" id="main-content">
       {children}
     </main>
   );

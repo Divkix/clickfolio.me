@@ -1,6 +1,10 @@
 import type { Metadata, Viewport } from "next";
+import { ThemeProvider } from "@/components/ThemeProvider";
 import { Toaster } from "@/components/ui/sonner";
 import { siteConfig } from "@/lib/config/site";
+import "@fontsource-variable/hanken-grotesk/index.css";
+import "@fontsource-variable/bricolage-grotesque/index.css";
+import "@fontsource-variable/jetbrains-mono/index.css";
 import "./globals.css";
 
 /** Viewport configuration for responsive design and theme color. */
@@ -10,8 +14,8 @@ export const viewport: Viewport = {
   maximumScale: 5,
   userScalable: true,
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#eff6ff" },
-    { media: "(prefers-color-scheme: dark)", color: "#0f172a" },
+    { media: "(prefers-color-scheme: light)", color: "#fbfaf9" },
+    { media: "(prefers-color-scheme: dark)", color: "#121211" },
   ],
 };
 
@@ -63,16 +67,23 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className="antialiased">
-        <a
-          href="#main-content"
-          className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-coral focus:text-white focus:rounded-md"
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
         >
-          Skip to main content
-        </a>
-        {children}
-        <Toaster />
+          <a
+            href="#main-content"
+            className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-brand focus:text-brand-foreground focus:rounded-md"
+          >
+            Skip to main content
+          </a>
+          {children}
+          <Toaster />
+        </ThemeProvider>
         <script
           dangerouslySetInnerHTML={{
             __html:

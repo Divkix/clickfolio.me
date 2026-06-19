@@ -14,7 +14,7 @@ export function AdminLayoutClient({ children }: AdminLayoutClientProps) {
   const { data: session } = useSession();
 
   return (
-    <div className="min-h-screen bg-cream">
+    <div className="min-h-screen bg-background">
       <AdminSidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}

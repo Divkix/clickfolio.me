@@ -91,15 +91,17 @@ export function DeleteAccountCard({ userEmail }: DeleteAccountCardProps) {
   return (
     <>
       {/* Compact inline danger zone row */}
-      <div className="rounded-xl border border-coral/30 bg-coral/5 p-4">
+      <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="shrink-0 rounded-lg bg-coral/20 p-2">
-              <AlertTriangle className="h-5 w-5 text-coral" />
+            <div className="shrink-0 rounded-lg bg-destructive/10 p-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
             </div>
             <div className="min-w-0">
-              <h3 className="font-semibold text-coral">Danger Zone</h3>
-              <p className="text-sm text-coral">Delete your account and all data permanently</p>
+              <h3 className="font-semibold text-destructive">Danger Zone</h3>
+              <p className="text-sm text-destructive">
+                Delete your account and all data permanently
+              </p>
             </div>
           </div>
           <Button
@@ -116,21 +118,21 @@ export function DeleteAccountCard({ userEmail }: DeleteAccountCardProps) {
       <Dialog open={isDialogOpen} onOpenChange={handleDialogClose}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-coral">
-              <AlertTriangle className="h-5 w-5 text-coral" />
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
               Delete Account
             </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
-            <div className="rounded-lg border border-coral/30 bg-coral/10 p-4">
-              <p className="text-sm font-medium text-coral">
+            <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4">
+              <p className="text-sm font-medium text-destructive">
                 This action is permanent and cannot be undone.
               </p>
-              <p className="text-sm text-coral mt-2">
+              <p className="text-sm text-destructive mt-2">
                 The following data will be permanently deleted:
               </p>
-              <ul className="text-sm text-coral mt-2 space-y-1 list-disc list-inside">
+              <ul className="text-sm text-destructive mt-2 space-y-1 list-disc list-inside">
                 <li>Your profile information</li>
                 <li>All uploaded resume files</li>
                 <li>Your published portfolio page</li>
@@ -140,7 +142,7 @@ export function DeleteAccountCard({ userEmail }: DeleteAccountCardProps) {
 
             <div className="space-y-2">
               <label htmlFor="confirmation" className="text-sm font-medium text-foreground">
-                Type <span className="font-mono text-coral">{userEmail}</span> to confirm
+                Type <span className="font-mono text-destructive">{userEmail}</span> to confirm
               </label>
               <Input
                 id="confirmation"
@@ -149,10 +151,10 @@ export function DeleteAccountCard({ userEmail }: DeleteAccountCardProps) {
                 value={confirmation}
                 onChange={(e) => setConfirmation(e.target.value)}
                 disabled={isDeleting}
-                className={error ? "border-coral" : ""}
+                className={error ? "border-destructive" : ""}
                 autoComplete="off"
               />
-              {error && <p className="text-sm text-coral">{error}</p>}
+              {error && <p className="text-sm text-destructive">{error}</p>}
             </div>
 
             <div className="flex gap-3 pt-2">

@@ -35,18 +35,18 @@ interface ProfileSectionProps {
  */
 function ProfileSection({ name, email, headline, image, handle }: ProfileSectionProps) {
   return (
-    <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-6 h-full flex flex-col">
+    <div className="bg-card rounded-xl shadow-sm border border-border p-6 h-full flex flex-col">
       {/* Profile header with avatar */}
       <div className="flex items-start gap-4 mb-4">
         {image ? (
           <img
             src={image}
             alt="Profile avatar"
-            className="w-14 h-14 rounded-full object-cover border-2 border-ink/10 shrink-0"
+            className="w-14 h-14 rounded-full object-cover border border-border shrink-0"
           />
         ) : (
-          <div className="w-14 h-14 rounded-full bg-linear-to-br from-coral/20 to-coral/20 flex items-center justify-center shrink-0 border-2 border-ink/10">
-            <User className="h-6 w-6 text-coral" />
+          <div className="w-14 h-14 rounded-full bg-brand-subtle flex items-center justify-center shrink-0 border border-border">
+            <User className="h-6 w-6 text-brand" />
           </div>
         )}
         <div className="flex-1 min-w-0">
@@ -68,10 +68,8 @@ function ProfileSection({ name, email, headline, image, handle }: ProfileSection
       {!handle && (
         <>
           <Separator className="my-4" />
-          <div className="rounded-lg bg-amber-50 border border-amber-200 p-3">
-            <p className="text-sm text-amber-800">
-              Complete your profile setup to get a public URL.
-            </p>
+          <div className="rounded-lg bg-warning/10 border border-warning/30 p-3">
+            <p className="text-sm text-warning">Complete your profile setup to get a public URL.</p>
           </div>
         </>
       )}
@@ -133,7 +131,7 @@ export default async function SettingsPage() {
   const resumeCount = resumeData[0]?.count ?? 0;
 
   return (
-    <div className="min-h-screen bg-cream py-8">
+    <div className="min-h-screen bg-background py-8">
       <div className="max-w-5xl mx-auto px-4 lg:px-6 space-y-6">
         {/* Page Header */}
         <div className="mb-2">

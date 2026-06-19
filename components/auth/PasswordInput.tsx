@@ -117,29 +117,16 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
             type={showPassword ? "text" : "password"}
             value={passwordValue}
             onChange={handleChange}
+            aria-invalid={hasError || undefined}
             className={cn(
               `
-                w-full
-                px-4
-                py-2.5
-                pr-10
-                bg-cream
-                text-ink
-                font-medium
-                border-3
-                border-ink
-                shadow-brutal-sm
-                placeholder:text-ink/40
-                focus:outline-none
-                focus:shadow-brutal-md
-                focus:translate-x-[-2px]
-                focus:translate-y-[-2px]
-                transition-colors
-                duration-150
-                disabled:opacity-50
-                disabled:cursor-not-allowed
+                placeholder:text-muted-foreground border-border-strong bg-card
+                h-9 w-full min-w-0 rounded-md border px-3 py-1 pr-10 text-base shadow-xs
+                transition-[color,box-shadow,border-color] outline-none
+                disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm
+                focus-visible:border-ring focus-visible:ring-ring/40 focus-visible:ring-2
               `,
-              hasError && "border-brand",
+              hasError && "border-destructive ring-destructive/30",
               className,
             )}
             {...props}
@@ -152,8 +139,8 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
               right-3
               top-1/2
               -translate-y-1/2
-              text-ink/50
-              hover:text-ink
+              text-muted-foreground
+              hover:text-foreground
               transition-colors
               p-1
             "

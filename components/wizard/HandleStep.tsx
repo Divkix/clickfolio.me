@@ -143,8 +143,8 @@ export function HandleStep({ initialHandle = "", onContinue }: HandleStepProps) 
     <div className="space-y-8">
       {/* Header */}
       <div className="text-center">
-        <div className="mx-auto w-16 h-16 bg-coral/20 rounded-xl flex items-center justify-center mb-6">
-          <User className="w-8 h-8 text-coral" />
+        <div className="mx-auto w-16 h-16 bg-brand-subtle rounded-xl flex items-center justify-center mb-6">
+          <User className="w-8 h-8 text-brand" />
         </div>
         <h1 className="text-3xl sm:text-4xl font-bold text-foreground mb-3 leading-tight">
           Choose Your Handle
@@ -157,7 +157,7 @@ export function HandleStep({ initialHandle = "", onContinue }: HandleStepProps) 
       {/* Handle Input */}
       <div className="max-w-md mx-auto space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="handle" className="text-sm font-semibold text-foreground/80">
+          <Label htmlFor="handle" className="text-sm font-semibold text-foreground">
             Your Handle
           </Label>
           <div className="relative">
@@ -173,11 +173,11 @@ export function HandleStep({ initialHandle = "", onContinue }: HandleStepProps) 
             />
             {/* Status Icon */}
             <div className="absolute right-3 top-1/2 -translate-y-1/2">
-              {isChecking && <Loader2 className="w-5 h-5 text-muted-foreground/70 animate-spin" />}
+              {isChecking && <Loader2 className="w-5 h-5 text-muted-foreground animate-spin" />}
               {!isChecking && isAvailable === true && (
-                <Check className={`w-5 h-5 ${isCurrentHandle ? "text-coral" : "text-green-600"}`} />
+                <Check className={`w-5 h-5 ${isCurrentHandle ? "text-brand" : "text-success"}`} />
               )}
-              {!isChecking && isAvailable === false && <X className="w-5 h-5 text-coral" />}
+              {!isChecking && isAvailable === false && <X className="w-5 h-5 text-destructive" />}
             </div>
           </div>
 
@@ -185,7 +185,7 @@ export function HandleStep({ initialHandle = "", onContinue }: HandleStepProps) 
           {handle && (
             <p className="text-sm text-muted-foreground font-medium">
               Your resume will be at:{" "}
-              <span className="text-coral font-semibold">
+              <span className="text-brand font-semibold font-mono">
                 {siteConfig.domain}/{handle}
               </span>
             </p>
@@ -193,14 +193,14 @@ export function HandleStep({ initialHandle = "", onContinue }: HandleStepProps) 
 
           {/* Error/Success Messages */}
           {error && (
-            <p className="text-sm text-coral font-medium flex items-center gap-1">
+            <p className="text-sm text-destructive font-medium flex items-center gap-1">
               <X className="w-4 h-4" />
               {error}
             </p>
           )}
           {!isChecking && isAvailable === false && (
             <div className="space-y-3">
-              <p className="text-sm text-coral font-medium flex items-center gap-1">
+              <p className="text-sm text-destructive font-medium flex items-center gap-1">
                 <X className="w-4 h-4" />
                 This handle is already taken
               </p>
@@ -215,7 +215,7 @@ export function HandleStep({ initialHandle = "", onContinue }: HandleStepProps) 
                         key={suggestion}
                         type="button"
                         onClick={() => handleSuggestionClick(suggestion)}
-                        className="px-3 py-1.5 text-sm font-medium bg-muted border-2 border-ink rounded-md hover:bg-coral/10 hover:border-coral transition-colors cursor-pointer"
+                        className="px-3 py-1.5 text-sm font-medium font-mono bg-card border border-border-strong rounded-md hover:bg-brand-subtle hover:border-brand transition-colors cursor-pointer"
                       >
                         {suggestion}
                       </button>
@@ -226,13 +226,13 @@ export function HandleStep({ initialHandle = "", onContinue }: HandleStepProps) 
             </div>
           )}
           {!isChecking && isAvailable === true && isCurrentHandle && (
-            <p className="text-sm text-coral font-medium flex items-center gap-1">
+            <p className="text-sm text-brand font-medium flex items-center gap-1">
               <Check className="w-4 h-4" />
               This is your current handle
             </p>
           )}
           {!isChecking && isAvailable === true && !isCurrentHandle && (
-            <p className="text-sm text-green-600 font-medium flex items-center gap-1">
+            <p className="text-sm text-success font-medium flex items-center gap-1">
               <Check className="w-4 h-4" />
               This handle is available!
             </p>
@@ -240,26 +240,21 @@ export function HandleStep({ initialHandle = "", onContinue }: HandleStepProps) 
         </div>
 
         {/* Requirements */}
-        <div className="bg-muted border border-ink/10 rounded-xl p-4">
-          <p className="text-xs font-semibold text-foreground/80 mb-2">Requirements:</p>
+        <div className="bg-surface-2 border border-border rounded-xl p-4">
+          <p className="text-xs font-semibold text-foreground mb-2">Requirements:</p>
           <ul className="text-xs text-muted-foreground space-y-1">
-            <li className={handle.length >= 3 ? "text-green-600" : ""}>• At least 3 characters</li>
-            <li className={/^[a-z0-9-]+$/.test(handle) ? "text-green-600" : ""}>
+            <li className={handle.length >= 3 ? "text-success" : ""}>• At least 3 characters</li>
+            <li className={/^[a-z0-9-]+$/.test(handle) ? "text-success" : ""}>
               • Only lowercase letters, numbers, and hyphens
             </li>
-            <li className={!/^-|-$/.test(handle) ? "text-green-600" : ""}>
+            <li className={!/^-|-$/.test(handle) ? "text-success" : ""}>
               • Cannot start or end with a hyphen
             </li>
           </ul>
         </div>
 
         {/* Continue Button */}
-        <Button
-          onClick={handleSubmit}
-          disabled={!canContinue}
-          className="w-full bg-coral hover:bg-coral/90 text-white font-semibold shadow-sm hover:shadow-md transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-          size="lg"
-        >
+        <Button onClick={handleSubmit} disabled={!canContinue} className="w-full" size="lg">
           Continue
         </Button>
       </div>

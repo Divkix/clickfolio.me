@@ -31,20 +31,20 @@ export function SaveIndicator({ status, lastSaved, className }: SaveIndicatorPro
       )}
       {status === "saved" && lastSaved && (
         <>
-          <Check className="h-4 w-4 text-emerald-600" />
+          <Check className="h-4 w-4 text-success" />
           <span className="text-muted-foreground">Saved {formatRelativeTime(lastSaved)}</span>
         </>
       )}
       {status === "error" && (
         <>
-          <AlertCircle className="h-4 w-4 text-coral" />
-          <span className="text-coral">Save failed</span>
+          <AlertCircle className="h-4 w-4 text-destructive" />
+          <span className="text-destructive">Save failed</span>
         </>
       )}
       {status === "unsaved" && (
         <>
-          <AlertCircle className="h-4 w-4 text-amber-500" />
-          <span className="text-amber-500">Unsaved changes</span>
+          <AlertCircle className="h-4 w-4 text-warning" />
+          <span className="text-warning">Unsaved changes</span>
         </>
       )}
     </output>

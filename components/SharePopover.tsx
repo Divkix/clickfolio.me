@@ -290,7 +290,7 @@ export function SharePopover({ url, handle, title, name, variant, className }: S
               aria-label={copied ? "Link copied" : "Copy link"}
             >
               {copied ? (
-                <Check className="size-4 text-green-500" aria-hidden="true" />
+                <Check className="size-4 text-success" aria-hidden="true" />
               ) : (
                 <Copy className="size-4" aria-hidden="true" />
               )}

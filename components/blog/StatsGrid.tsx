@@ -15,14 +15,14 @@ export function StatsGrid({ stats, columns = 2 }: StatsGridProps) {
   return (
     <div className={`grid ${gridCols} gap-4 my-8`}>
       {stats.map((stat, index) => (
-        <div key={index} className="bg-cream border-3 border-ink shadow-brutal-sm p-5">
-          <div className="font-black text-3xl text-ink mb-1">{stat.value}</div>
-          <div className="text-sm text-ink/70 font-medium">{stat.label}</div>
+        <div key={index} className="rounded-xl border border-border bg-card shadow-sm p-5">
+          <div className="text-3xl font-bold text-foreground mb-1">{stat.value}</div>
+          <div className="text-sm text-muted-foreground font-medium">{stat.label}</div>
           {stat.percentage !== undefined && (
             <div className="mt-3">
-              <div className="h-2 bg-ink/10 rounded-full overflow-hidden">
+              <div className="h-2 bg-surface-2 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-coral rounded-full"
+                  className="h-full bg-brand rounded-full"
                   style={{ width: `${Math.min(stat.percentage, 100)}%` }}
                 />
               </div>

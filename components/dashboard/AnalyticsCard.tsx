@@ -71,13 +71,13 @@ function buildChartOpts(width: number, height: number): uPlot.Options {
     series: [
       {},
       {
-        stroke: "#ef4444",
+        stroke: "#D94E4E",
         width: 2,
         fill: (self: uPlot) => {
           const ctx = self.ctx;
           const gradient = ctx.createLinearGradient(0, 0, 0, self.bbox.height / devicePixelRatio);
-          gradient.addColorStop(0, "#ef444480");
-          gradient.addColorStop(1, "#ef444400");
+          gradient.addColorStop(0, "#D94E4E80");
+          gradient.addColorStop(1, "#D94E4E00");
           return gradient;
         },
         paths: uPlot.paths.spline?.() ?? undefined,
@@ -271,7 +271,7 @@ export function AnalyticsCard() {
   };
 
   return (
-    <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-6 hover:shadow-md transition-colors duration-300">
+    <div className="bg-card rounded-xl shadow-sm border border-border p-6 transition-colors hover:border-border-strong">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-foreground">Analytics</h3>
@@ -284,7 +284,7 @@ export function AnalyticsCard() {
               className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
                 period === opt.value
                   ? "bg-card text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground/80"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               {opt.label}
@@ -319,11 +319,8 @@ function StatsContent({ stats }: { stats: AnalyticsStats }) {
       {/* Big Numbers */}
       <div className="grid grid-cols-2 gap-3">
         <div className="flex items-center gap-2.5">
-          <div className="relative shrink-0">
-            <div className="absolute inset-0 bg-coral rounded-lg blur-md opacity-20" />
-            <div className="relative bg-coral/20 p-2 rounded-lg">
-              <Eye className="w-4 h-4 text-coral" aria-hidden="true" />
-            </div>
+          <div className="shrink-0 bg-brand-subtle p-2 rounded-lg">
+            <Eye className="w-4 h-4 text-brand" aria-hidden="true" />
           </div>
           <div>
             <p className="text-xs font-medium text-muted-foreground">Views</p>
@@ -331,11 +328,8 @@ function StatsContent({ stats }: { stats: AnalyticsStats }) {
           </div>
         </div>
         <div className="flex items-center gap-2.5">
-          <div className="relative shrink-0">
-            <div className="absolute inset-0 bg-linear-to-r from-emerald-500 to-teal-500 rounded-lg blur-md opacity-20" />
-            <div className="relative bg-linear-to-r from-emerald-100 to-teal-100 p-2 rounded-lg">
-              <Users className="w-4 h-4 text-emerald-600" aria-hidden="true" />
-            </div>
+          <div className="shrink-0 bg-surface-2 p-2 rounded-lg">
+            <Users className="w-4 h-4 text-muted-foreground" aria-hidden="true" />
           </div>
           <div>
             <p className="text-xs font-medium text-muted-foreground">Visitors</p>
@@ -402,13 +396,10 @@ function StatsContent({ stats }: { stats: AnalyticsStats }) {
 function EmptyState() {
   return (
     <div className="text-center py-8">
-      <div className="relative inline-block mb-3">
-        <div className="absolute inset-0 bg-coral rounded-xl blur-lg opacity-20" />
-        <div className="relative bg-coral/20 p-4 rounded-xl">
-          <Eye className="w-6 h-6 text-coral" aria-hidden="true" />
-        </div>
+      <div className="inline-flex items-center justify-center mb-3 bg-brand-subtle p-4 rounded-xl">
+        <Eye className="w-6 h-6 text-brand" aria-hidden="true" />
       </div>
-      <p className="text-sm font-medium text-foreground/80 mb-1">No views yet</p>
+      <p className="text-sm font-medium text-foreground mb-1">No views yet</p>
       <p className="text-xs text-muted-foreground">
         Share your resume link to start tracking visits.
       </p>

@@ -20,13 +20,10 @@ export function StatCard({
   href,
 }: StatCardProps) {
   const content = (
-    <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
+    <div className="bg-card rounded-xl shadow-sm border border-border p-4 transition-colors hover:border-border-strong">
       <div className="flex items-center gap-3">
-        <div className="relative shrink-0">
-          <div className={`absolute inset-0 ${iconBgClass} rounded-lg blur-md opacity-20`} />
-          <div className={`relative ${iconBgClass} p-2.5 rounded-lg`}>
-            <Icon className={`w-5 h-5 ${iconColorClass}`} aria-hidden="true" />
-          </div>
+        <div className={`shrink-0 ${iconBgClass} p-2.5 rounded-lg`}>
+          <Icon className={`w-5 h-5 ${iconColorClass}`} aria-hidden="true" />
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-xs font-medium text-muted-foreground truncate">{title}</p>
@@ -39,7 +36,7 @@ export function StatCard({
             </p>
             {change !== undefined && (
               <span
-                className={`text-xs font-medium ${change >= 0 ? "text-emerald-600" : "text-coral"}`}
+                className={`text-xs font-medium ${change >= 0 ? "text-success" : "text-destructive"}`}
               >
                 {change >= 0 ? "+" : ""}
                 {change}%

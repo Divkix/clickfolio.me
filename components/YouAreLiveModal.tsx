@@ -98,8 +98,8 @@ export function YouAreLiveModal({ open, onOpenChange, handle, url }: YouAreLiveM
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-md text-center">
           <DialogHeader className="items-center">
-            <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-4">
-              <Rocket className="size-8 text-green-600 dark:text-green-400" />
+            <div className="w-16 h-16 rounded-full bg-success/10 flex items-center justify-center mb-4">
+              <Rocket className="size-8 text-success" />
             </div>
             <DialogTitle className="text-2xl">You&apos;re Live!</DialogTitle>
           </DialogHeader>
@@ -110,7 +110,7 @@ export function YouAreLiveModal({ open, onOpenChange, handle, url }: YouAreLiveM
             </p>
 
             {/* Resume URL */}
-            <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
+            <div className="flex items-center gap-2 p-3 bg-secondary rounded-lg">
               <code className="flex-1 text-sm truncate font-mono">clickfolio.me/@{handle}</code>
               <button
                 type="button"
@@ -119,7 +119,7 @@ export function YouAreLiveModal({ open, onOpenChange, handle, url }: YouAreLiveM
                 aria-label={copied ? "Link copied" : "Copy link"}
               >
                 {copied ? (
-                  <Check className="size-4 text-green-500" />
+                  <Check className="size-4 text-success" />
                 ) : (
                   <Copy className="size-4 text-muted-foreground" />
                 )}
@@ -127,10 +127,7 @@ export function YouAreLiveModal({ open, onOpenChange, handle, url }: YouAreLiveM
             </div>
 
             {/* Primary CTA: LinkedIn */}
-            <Button
-              className="w-full bg-[#0077B5] hover:bg-[#006399] text-white"
-              onClick={handleLinkedInShare}
-            >
+            <Button className="w-full" onClick={handleLinkedInShare}>
               <LinkedInIcon variant="white" className="size-5 mr-2" aria-hidden={true} />
               Share on LinkedIn
             </Button>
@@ -152,7 +149,7 @@ export function YouAreLiveModal({ open, onOpenChange, handle, url }: YouAreLiveM
             </div>
 
             {/* Next Steps */}
-            <div className="border-t pt-4 mt-4 text-sm text-muted-foreground text-left">
+            <div className="border-t border-border pt-4 mt-4 text-sm text-muted-foreground text-left">
               <p className="font-semibold text-foreground mb-2">What to do next:</p>
               <ul className="space-y-1">
                 <li>&#10003; Add your link to your LinkedIn profile</li>
@@ -162,16 +159,16 @@ export function YouAreLiveModal({ open, onOpenChange, handle, url }: YouAreLiveM
             </div>
 
             {/* Referral Section */}
-            <div className="bg-linear-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg p-4 border border-purple-200/60 dark:border-purple-700/40">
+            <div className="bg-brand-subtle rounded-lg p-4 border border-brand/20">
               <div className="flex items-center gap-2 mb-2">
-                <Gift className="size-4 text-purple-600 dark:text-purple-400" aria-hidden="true" />
+                <Gift className="size-4 text-brand" aria-hidden="true" />
                 <span className="text-sm font-semibold text-foreground">Share with friends</span>
               </div>
               <p className="text-xs text-muted-foreground mb-3">
                 Know someone job hunting? Share your referral link.
               </p>
               <div className="flex items-center gap-2">
-                <code className="flex-1 text-xs bg-white/80 dark:bg-ink/80 px-2 py-1.5 rounded font-mono text-muted-foreground truncate">
+                <code className="flex-1 text-xs bg-card px-2 py-1.5 rounded font-mono text-muted-foreground truncate">
                   ?ref={handle}
                 </code>
                 <Button
@@ -182,7 +179,7 @@ export function YouAreLiveModal({ open, onOpenChange, handle, url }: YouAreLiveM
                   className="shrink-0"
                 >
                   {referralCopied ? (
-                    <Check className="size-3 text-green-500" />
+                    <Check className="size-3 text-success" />
                   ) : (
                     <Copy className="size-3" />
                   )}
@@ -193,7 +190,7 @@ export function YouAreLiveModal({ open, onOpenChange, handle, url }: YouAreLiveM
             {/* View Resume Link */}
             <Link
               href={`/@${handle}`}
-              className="inline-flex items-center gap-2 text-primary hover:underline font-medium"
+              className="inline-flex items-center gap-2 text-brand hover:underline font-medium"
               onClick={() => onOpenChange(false)}
             >
               View My Resume

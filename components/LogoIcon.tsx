@@ -1,95 +1,52 @@
 type LogoIconSize = "xs" | "sm" | "md" | "lg" | "xl";
-type LogoIconColorScheme = "dark" | "light";
 
 interface LogoIconProps {
   /** Size variant */
   size?: LogoIconSize;
-  /** Color scheme for different backgrounds */
-  colorScheme?: LogoIconColorScheme;
   /** Additional classes */
   className?: string;
 }
 
 const sizeConfig: Record<LogoIconSize, number> = {
-  xs: 16,
+  xs: 18,
   sm: 24,
-  md: 32,
-  lg: 48,
-  xl: 64,
-};
-
-const colorConfig: Record<
-  LogoIconColorScheme,
-  { shadow: string; document: string; documentStroke: string; lines: string; lightning: string }
-> = {
-  dark: {
-    shadow: "#0d0d0d",
-    document: "#fdf8f3",
-    documentStroke: "#0d0d0d",
-    lines: "#0d0d0d",
-    lightning: "#d94e4e",
-  },
-  light: {
-    shadow: "#0d0d0d",
-    document: "#fdf8f3",
-    documentStroke: "#0d0d0d",
-    lines: "#0d0d0d",
-    lightning: "#d94e4e",
-  },
+  md: 30,
+  lg: 44,
+  xl: 60,
 };
 
 /**
- * Icon-only version of the logo (cream document with lightning bolt)
- * Use for favicons, small spaces, or alongside text
+ * Icon-only brand mark — a rounded tile with a document and brand lightning bolt.
+ * Theme-aware: the tile inherits `currentColor`, the bolt uses the brand token.
  */
-export function LogoIcon({ size = "md", colorScheme = "dark", className = "" }: LogoIconProps) {
+export function LogoIcon({ size = "md", className = "" }: LogoIconProps) {
   const dimension = sizeConfig[size];
-  const colors = colorConfig[colorScheme];
 
   return (
     <svg
       width={dimension}
       height={dimension}
-      viewBox="0 0 44 44"
+      viewBox="0 0 40 40"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
       aria-label="clickfolio.me icon"
       // eslint-disable-next-line jsx-a11y/prefer-tag-over-role -- SVG with role="img" is correct ARIA pattern
       role="img"
     >
-      {/* Shadow layer */}
-      <rect x="3" y="3" width="40" height="40" rx="4" fill={colors.shadow} />
-
-      {/* Cream document */}
-      <rect
-        x="0"
-        y="0"
-        width="40"
-        height="40"
-        rx="4"
-        fill={colors.document}
-        stroke={colors.documentStroke}
-        strokeWidth="3"
-      />
-
-      {/* Fold line diagonal */}
-      <path d="m22 0-8 40" stroke={colors.documentStroke} strokeWidth="3" />
-
-      {/* Black text lines */}
+      <rect x="1" y="1" width="38" height="38" rx="9" className="fill-foreground" />
       <path
-        stroke={colors.lines}
-        strokeWidth="2.5"
+        d="M13 11h9M13 17h7M13 23h5"
+        stroke="var(--color-background)"
+        strokeWidth="2.2"
         strokeLinecap="round"
-        d="M6 10h10M6 18h8M6 26h6"
       />
-
-      {/* Coral lightning bolt */}
       <path
-        d="m26 6 6 12h-6l6 12"
-        stroke={colors.lightning}
-        strokeWidth="3"
+        d="m25 9-5 12h5l-5 11"
+        stroke="var(--color-brand)"
+        strokeWidth="2.6"
         strokeLinecap="round"
         strokeLinejoin="round"
+        fill="none"
       />
     </svg>
   );

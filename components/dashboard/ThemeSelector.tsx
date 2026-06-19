@@ -1,8 +1,9 @@
 "use client";
 
-import { CheckCircle2, Gift, Loader2, Lock } from "lucide-react";
+import { CheckCircle2, Gift, Lock } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
 import { TEMPLATE_BACKGROUNDS } from "@/lib/templates/demo-data";
 import {
   isThemeUnlocked,
@@ -135,14 +136,14 @@ export function ThemeSelector({
 
       {/* Success/Error Messages */}
       {successMessage && (
-        <div className="flex items-center gap-2 p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-900 text-sm">
-          <CheckCircle2 className="h-4 w-4 shrink-0" />
+        <div className="flex items-center gap-2 p-3 bg-success/10 border border-success/30 rounded-lg text-success text-sm">
+          <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
           <span>{successMessage}</span>
         </div>
       )}
 
       {errorMessage && (
-        <div className="flex items-center gap-2 p-3 bg-coral/10 border border-coral/30 rounded-lg text-coral text-sm">
+        <div className="flex items-center gap-2 p-3 bg-destructive/10 border border-destructive/30 rounded-lg text-destructive text-sm">
           <span>{errorMessage}</span>
         </div>
       )}
@@ -174,14 +175,14 @@ export function ThemeSelector({
                 aria-disabled={!isUnlocked}
                 onClick={() => isUnlocked && setSelectedTheme(themeId)}
                 className={cn(
-                  "relative shrink-0 w-28 md:w-36 rounded-lg overflow-hidden transition-colors duration-200",
-                  "border-2 bg-card",
-                  "focus:outline-none focus:ring-2 focus:ring-coral focus:ring-offset-2",
+                  "relative shrink-0 w-28 md:w-36 rounded-lg overflow-hidden transition-colors",
+                  "border bg-card",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                   isUnlocked
                     ? isSelected
-                      ? "border-coral ring-2 ring-coral/20 shadow-lg"
-                      : "border-ink/15 hover:border-ink/25 hover:shadow-md cursor-pointer"
-                    : "border-ink/15 opacity-75 cursor-not-allowed",
+                      ? "border-brand ring-2 ring-brand/30 shadow-md"
+                      : "border-border hover:border-border-strong cursor-pointer"
+                    : "border-border opacity-75 cursor-not-allowed",
                 )}
               >
                 {/* Thumbnail Image */}
@@ -197,9 +198,9 @@ export function ThemeSelector({
                   />
                   {/* Lock Overlay for locked themes */}
                   {!isUnlocked && (
-                    <div className="absolute inset-0 bg-ink/40 flex flex-col items-center justify-center">
-                      <Lock className="w-5 h-5 text-white mb-1" />
-                      <span className="text-[10px] text-white font-semibold">
+                    <div className="absolute inset-0 bg-foreground/40 flex flex-col items-center justify-center">
+                      <Lock className="w-5 h-5 text-background mb-1" aria-hidden="true" />
+                      <span className="text-[10px] text-background font-semibold">
                         {requiredReferrals} referrals
                       </span>
                     </div>
@@ -217,13 +218,13 @@ export function ThemeSelector({
                     {meta.name}
                   </span>
                   {isActive && isUnlocked && (
-                    <span className="inline-block mt-1 text-[10px] md:text-xs font-bold text-coral uppercase tracking-wide">
+                    <span className="inline-block mt-1 text-[10px] md:text-xs font-semibold text-brand">
                       Active
                     </span>
                   )}
                   {!isUnlocked && (
-                    <span className="inline-flex items-center gap-1 mt-1 text-[10px] md:text-xs font-medium text-amber">
-                      <Gift className="w-3 h-3" />
+                    <span className="inline-flex items-center gap-1 mt-1 text-[10px] md:text-xs font-medium text-warning">
+                      <Gift className="w-3 h-3" aria-hidden="true" />
                       Locked
                     </span>
                   )}
@@ -231,8 +232,12 @@ export function ThemeSelector({
 
                 {/* Selection Indicator */}
                 {isSelected && isUnlocked && (
-                  <div className="absolute top-2 right-2 w-5 h-5 bg-coral rounded-full flex items-center justify-center">
-                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <div className="absolute top-2 right-2 w-5 h-5 bg-brand rounded-full flex items-center justify-center">
+                    <svg
+                      className="w-3 h-3 text-brand-foreground"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
                       <title>Selected</title>
                       <path
                         fillRule="evenodd"
@@ -249,7 +254,7 @@ export function ThemeSelector({
       </div>
 
       {/* Selected Theme Info + Apply Button */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 bg-card rounded-xl border border-ink/15 shadow-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 bg-card rounded-xl border border-border shadow-sm">
         <div>
           <h2 className="text-lg font-bold text-foreground">
             {THEME_METADATA[selectedTheme].name}
@@ -257,33 +262,15 @@ export function ThemeSelector({
           <p className="text-sm text-muted-foreground">
             {THEME_METADATA[selectedTheme].description}
           </p>
-          <span className="inline-block mt-1 text-xs uppercase tracking-wide text-muted-foreground font-medium">
+          <span className="inline-block mt-1 text-xs text-muted-foreground font-medium">
             {THEME_METADATA[selectedTheme].category}
           </span>
         </div>
 
         {hasChanges && (
-          <button
-            type="button"
-            onClick={handleApplyTheme}
-            disabled={isUpdating}
-            className={cn(
-              "inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg font-semibold text-sm",
-              "bg-ink text-cream hover:bg-ink/90",
-              "focus:outline-none focus:ring-2 focus:ring-coral focus:ring-offset-2",
-              "disabled:opacity-50 disabled:cursor-not-allowed",
-              "transition-colors duration-200",
-            )}
-          >
-            {isUpdating ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Applying...
-              </>
-            ) : (
-              "Apply Theme"
-            )}
-          </button>
+          <Button type="button" onClick={handleApplyTheme} loading={isUpdating}>
+            {isUpdating ? "Applying..." : "Apply Theme"}
+          </Button>
         )}
       </div>
 
@@ -291,7 +278,7 @@ export function ThemeSelector({
       <div
         ref={previewContainerRef}
         className={cn(
-          "relative rounded-xl border border-ink/15 overflow-hidden shadow-lg",
+          "relative rounded-xl border border-border overflow-hidden shadow-md",
           bgConfig.bg,
         )}
         style={{ height: "60vh", minHeight: "400px" }}

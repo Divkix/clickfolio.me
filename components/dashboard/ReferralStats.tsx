@@ -46,13 +46,13 @@ export function ReferralStats({ referralCount, clickCount, referralCode }: Refer
   const conversionRate = clickCount > 0 ? Math.round((referralCount / clickCount) * 100) : 0;
 
   return (
-    <div className="bg-linear-to-r from-lavender/5 to-lavender/5 rounded-xl border border-lavender/10 p-6 shadow-sm hover:shadow-md transition-shadow duration-300">
+    <div className="bg-card rounded-xl border border-border p-6 shadow-sm transition-colors hover:border-border-strong">
       <div className="flex flex-col gap-4">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1">
-              <Gift className="w-5 h-5 text-lavender" aria-hidden="true" />
+              <Gift className="w-5 h-5 text-brand" aria-hidden="true" />
               <h3 className="font-semibold text-foreground">Share Clickfolio</h3>
             </div>
             <p className="text-sm text-muted-foreground">
@@ -60,14 +60,10 @@ export function ReferralStats({ referralCount, clickCount, referralCode }: Refer
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <code className="bg-card/80 px-3 py-2 rounded-lg text-sm font-mono text-muted-foreground hidden sm:block">
+            <code className="bg-surface-2 px-3 py-2 rounded-lg text-sm font-mono text-muted-foreground hidden sm:block">
               clickfolio.me/?ref={referralCode}
             </code>
-            <Button
-              variant="default"
-              onClick={handleCopyLink}
-              className="shrink-0 bg-lavender hover:bg-lavender/90 focus-visible:ring-2 focus-visible:ring-lavender focus-visible:ring-offset-2"
-            >
+            <Button variant="default" onClick={handleCopyLink} className="shrink-0">
               {copied ? (
                 <>
                   <Share2 className="w-4 h-4 mr-2" aria-hidden="true" />
@@ -85,25 +81,23 @@ export function ReferralStats({ referralCount, clickCount, referralCode }: Refer
 
         {/* Stats Row - Only show if there's activity */}
         {(clickCount > 0 || referralCount > 0) && (
-          <div className="flex items-center gap-6 pt-2 border-t border-lavender/10">
+          <div className="flex items-center gap-6 pt-2 border-t border-border">
             <div className="flex items-center gap-2">
-              <MousePointerClick className="w-4 h-4 text-lavender" aria-hidden="true" />
+              <MousePointerClick className="w-4 h-4 text-muted-foreground" aria-hidden="true" />
               <span className="text-sm text-muted-foreground">
                 <span className="font-semibold text-foreground">{clickCount}</span>{" "}
                 {clickCount === 1 ? "click" : "clicks"}
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <Users className="w-4 h-4 text-lavender" aria-hidden="true" />
+              <Users className="w-4 h-4 text-muted-foreground" aria-hidden="true" />
               <span className="text-sm text-muted-foreground">
                 <span className="font-semibold text-foreground">{referralCount}</span>{" "}
                 {referralCount === 1 ? "signup" : "signups"}
               </span>
             </div>
             {clickCount > 0 && (
-              <span className="text-xs text-lavender font-medium">
-                {conversionRate}% conversion
-              </span>
+              <span className="text-xs text-brand font-medium">{conversionRate}% conversion</span>
             )}
           </div>
         )}

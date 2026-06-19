@@ -87,7 +87,7 @@ export default function AdminUsersPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-2">
-          <Users className="w-5 h-5 text-muted-foreground/70" aria-hidden="true" />
+          <Users className="w-5 h-5 text-muted-foreground" aria-hidden="true" />
           <span className="text-sm text-muted-foreground">
             {total.toLocaleString()} total users
           </span>
@@ -96,7 +96,7 @@ export default function AdminUsersPage() {
         {/* Search */}
         <form onSubmit={handleSearch} className="relative">
           <Search
-            className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/70"
+            className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"
             aria-hidden="true"
           />
           <input
@@ -104,18 +104,18 @@ export default function AdminUsersPage() {
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             placeholder="Search name, email, handle..."
-            className="w-full sm:w-64 pl-9 pr-4 py-2 text-sm border border-ink/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-coral/20 focus:border-coral"
+            className="w-full sm:w-64 pl-9 pr-4 py-2 text-sm bg-card text-foreground border border-border-strong rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-ring"
             aria-label="Search users"
           />
         </form>
       </div>
 
       {/* Table */}
-      <div className="bg-card rounded-xl shadow-sm border border-ink/10 overflow-hidden">
+      <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-ink/10 bg-muted/50">
+              <tr className="border-b border-border bg-muted/50">
                 <th className="text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3">
                   User
                 </th>
@@ -130,7 +130,7 @@ export default function AdminUsersPage() {
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-ink/10">
+            <tbody className="divide-y divide-border">
               {loading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i}>
@@ -166,7 +166,7 @@ export default function AdminUsersPage() {
                         <p className="font-medium text-foreground">
                           {user.name || "Unnamed"}
                           {user.isPro && (
-                            <span className="ml-1.5 text-xs text-purple-600 font-medium">PRO</span>
+                            <span className="ml-1.5 text-xs text-brand font-medium">PRO</span>
                           )}
                         </p>
                         <p className="text-sm text-muted-foreground">{user.email}</p>
@@ -177,7 +177,7 @@ export default function AdminUsersPage() {
                         <Link
                           href={`/@${user.handle}`}
                           target="_blank"
-                          className="text-sm text-coral hover:text-coral"
+                          className="text-sm font-mono text-brand hover:underline"
                         >
                           @{user.handle}
                         </Link>
@@ -200,7 +200,7 @@ export default function AdminUsersPage() {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="border-t border-ink/10 px-4 py-3">
+          <div className="border-t border-border px-4 py-3">
             <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
           </div>
         )}

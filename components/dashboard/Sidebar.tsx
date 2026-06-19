@@ -124,7 +124,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
       {/* Mobile backdrop */}
       {isOpen && onClose && (
         <div
-          className="fixed inset-0 bg-ink/20 backdrop-blur-sm z-40 md:hidden"
+          className="fixed inset-0 bg-foreground/20 backdrop-blur-sm z-40 md:hidden"
           onClick={onClose}
           aria-hidden="true"
         />
@@ -133,7 +133,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
       {/* Sidebar */}
       <aside
         className={`
-          fixed top-0 left-0 h-full w-60 bg-card border-r border-ink/10 shadow-sm
+          fixed top-0 left-0 h-full w-60 bg-card border-r border-border
           flex flex-col z-50 transition-transform duration-300
           ${isOpen ? "translate-x-0" : "-translate-x-full"}
           md:translate-x-0
@@ -153,14 +153,14 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
         )}
 
         {/* Logo Header */}
-        <div className="p-4 border-b border-ink/10">
+        <div className="p-4 border-b border-border">
           <a href="/" aria-label="clickfolio.me home">
             <Logo size="xs" />
           </a>
         </div>
 
         {/* Profile Header */}
-        <div className="p-4 border-b border-ink/10">
+        <div className="p-4 border-b border-border">
           {loading ? (
             <div className="animate-pulse">
               <div className="w-10 h-10 bg-muted rounded-full mb-3" />
@@ -169,18 +169,13 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
           ) : user ? (
             <div className="flex items-center gap-3">
               {user.image ? (
-                <div className="relative">
-                  <div className="absolute inset-0 rounded-full bg-coral p-0.5">
-                    <div className="w-full h-full rounded-full bg-card" />
-                  </div>
-                  <img
-                    src={user.image}
-                    alt={user.name || "User avatar"}
-                    className="relative w-10 h-10 rounded-full object-cover"
-                  />
-                </div>
+                <img
+                  src={user.image}
+                  alt={user.name || "User avatar"}
+                  className="w-10 h-10 rounded-full object-cover ring-1 ring-border"
+                />
               ) : (
-                <div className="w-10 h-10 rounded-full bg-coral flex items-center justify-center text-white font-semibold text-sm">
+                <div className="w-10 h-10 rounded-full bg-brand flex items-center justify-center text-brand-foreground font-semibold text-sm">
                   {getInitials()}
                 </div>
               )}
@@ -204,17 +199,18 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
                 href={item.href}
                 key={item.href}
                 onClick={() => onClose?.()}
+                aria-current={active ? "page" : undefined}
                 className={`
                   w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium
-                  transition-colors duration-300
-                  ${active ? "bg-coral text-white shadow-sm" : "text-foreground/80 hover:bg-muted"}
+                  transition-colors
+                  ${
+                    active
+                      ? "bg-brand-subtle text-brand-active"
+                      : "text-muted-foreground hover:bg-surface-2 hover:text-foreground"
+                  }
                 `}
               >
-                <Icon
-                  size={20}
-                  className={active ? "stroke-[url(#iconGradient)]" : ""}
-                  style={active ? { stroke: "currentColor" } : undefined}
-                />
+                <Icon size={20} aria-hidden="true" />
                 <span>{item.name}</span>
               </Link>
             );
@@ -226,10 +222,10 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
               href={`/@${profile.handle}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-foreground/80 hover:bg-muted transition-colors duration-300"
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-muted-foreground hover:bg-surface-2 hover:text-foreground transition-colors"
               onClick={onClose}
             >
-              <ExternalLink size={20} />
+              <ExternalLink size={20} aria-hidden="true" />
               <span>View Site</span>
             </a>
           )}
@@ -239,35 +235,25 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
             <Link
               href="/admin"
               onClick={() => onClose?.()}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-lavender hover:bg-lavender/5 transition-colors duration-300"
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-muted-foreground hover:bg-surface-2 hover:text-foreground transition-colors"
             >
-              <Shield size={20} />
+              <Shield size={20} aria-hidden="true" />
               <span>Admin</span>
             </Link>
           )}
         </nav>
 
         {/* Logout Button */}
-        <div className="p-4 border-t border-ink/10 mt-auto">
+        <div className="p-4 border-t border-border mt-auto">
           <button
             type="button"
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-foreground/80 hover:text-coral hover:bg-coral/10 transition-colors duration-300"
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
           >
-            <LogOut size={20} />
+            <LogOut size={20} aria-hidden="true" />
             <span>Logout</span>
           </button>
         </div>
-
-        {/* SVG Gradient Definition for Active Icons */}
-        <svg aria-hidden="true" width="0" height="0" className="absolute">
-          <defs>
-            <linearGradient id="iconGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#EF4444" />
-              <stop offset="100%" stopColor="#F43F5E" />
-            </linearGradient>
-          </defs>
-        </svg>
       </aside>
     </>
   );

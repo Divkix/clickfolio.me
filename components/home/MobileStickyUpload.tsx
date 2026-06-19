@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { FileDropzone } from "@/components/FileDropzone";
+import { Button } from "@/components/ui/button";
 
 /**
  * Mobile-only sticky bottom bar with upload CTA.
@@ -32,20 +33,13 @@ export function MobileStickyUpload() {
   return (
     <>
       <div
-        className={`
-          fixed bottom-0 left-0 right-0 z-40 lg:hidden
-          bg-cream border-t-3 border-ink p-3
-          transition-transform duration-300
-          ${visible ? "translate-y-0" : "translate-y-full"}
-        `}
+        className={`fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-background/90 p-3 backdrop-blur-md transition-transform duration-300 lg:hidden ${
+          visible ? "translate-y-0" : "translate-y-full"
+        }`}
       >
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          className="bg-ink text-cream font-black w-full py-3 border-3 border-ink shadow-brutal-sm active:shadow-none active:translate-y-0.5 transition-colors duration-150"
-        >
-          Upload Your Resume →
-        </button>
+        <Button type="button" size="lg" className="w-full" onClick={() => setOpen(true)}>
+          Upload your resume
+        </Button>
       </div>
       <FileDropzone open={open} onOpenChange={setOpen} />
     </>

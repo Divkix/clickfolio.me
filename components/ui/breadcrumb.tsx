@@ -10,14 +10,14 @@ interface BreadcrumbProps {
 export function Breadcrumb({ items }: BreadcrumbProps) {
   return (
     <nav aria-label="Breadcrumb" className="py-3 px-4 max-w-6xl mx-auto">
-      <ol className="flex flex-wrap items-center gap-1 text-sm text-[#6B6B6B]">
+      <ol className="flex flex-wrap items-center gap-1 text-sm text-muted-foreground">
         {items.map((item, i) => (
           <li key={item.href} className="flex items-center gap-1">
             {i < items.length - 1 ? (
               <>
                 <a
                   href={item.href}
-                  className="hover:text-ink transition-colors underline underline-offset-2"
+                  className="underline underline-offset-2 transition-colors hover:text-foreground"
                 >
                   {item.label}
                 </a>
@@ -26,7 +26,7 @@ export function Breadcrumb({ items }: BreadcrumbProps) {
                 </span>
               </>
             ) : (
-              <span className="text-ink font-medium" aria-current="page">
+              <span className="font-medium text-foreground" aria-current="page">
                 {item.label}
               </span>
             )}

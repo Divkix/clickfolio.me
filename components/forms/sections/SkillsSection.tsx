@@ -29,13 +29,10 @@ export function SkillsSection({ form }: SkillsSectionProps) {
   });
 
   return (
-    <div className="bg-card rounded-xl shadow-sm border border-ink/10 p-6 hover:shadow-md transition-colors duration-300">
+    <div className="bg-card rounded-xl shadow-sm border border-border p-6 transition-shadow hover:shadow-md">
       <div className="flex items-center gap-3 mb-6">
-        <div className="relative shrink-0">
-          <div className="absolute inset-0 bg-linear-to-r from-cyan-500 to-sky-500 rounded-lg blur-md opacity-20" />
-          <div className="relative bg-linear-to-r from-cyan-100 to-sky-100 p-2.5 rounded-lg">
-            <Wrench className="h-5 w-5 text-cyan-600" />
-          </div>
+        <div className="shrink-0 bg-brand-subtle p-2.5 rounded-lg">
+          <Wrench className="h-5 w-5 text-brand" />
         </div>
         <div>
           <h2 className="text-lg font-semibold text-foreground">Skills</h2>
@@ -44,20 +41,16 @@ export function SkillsSection({ form }: SkillsSectionProps) {
       </div>
       <div className="space-y-4">
         {skillFields.length === 0 ? (
-          <div className="text-center py-8 px-4 bg-muted/50 rounded-xl border border-dashed border-ink/15">
-            <div className="relative inline-block mb-4">
-              <div className="absolute inset-0 bg-linear-to-r from-cyan-500 to-sky-500 rounded-xl blur-lg opacity-15" />
-              <div className="relative bg-linear-to-r from-cyan-100 to-sky-100 p-4 rounded-xl">
-                <Wrench className="h-8 w-8 text-cyan-600" />
-              </div>
+          <div className="text-center py-8 px-4 bg-surface-2 rounded-xl border border-dashed border-border">
+            <div className="inline-flex mb-4 bg-brand-subtle p-4 rounded-xl">
+              <Wrench className="h-8 w-8 text-brand" />
             </div>
-            <p className="text-muted-foreground font-medium mb-1">No skills added yet</p>
+            <p className="text-foreground font-medium mb-1">No skills added yet</p>
             <p className="text-sm text-muted-foreground mb-4">
               Add your skills grouped by category
             </p>
             <Button
               type="button"
-              className="bg-linear-to-r from-cyan-600 to-sky-600 hover:from-cyan-700 hover:to-sky-700 text-white font-semibold shadow-sm hover:shadow-md"
               onClick={() =>
                 appendSkill({
                   category: "",
@@ -74,14 +67,14 @@ export function SkillsSection({ form }: SkillsSectionProps) {
             {skillFields.map((field, index) => (
               <div
                 key={field.id}
-                className="bg-muted/50 rounded-xl border border-ink/10 p-5 hover:border-ink/25 transition-colors duration-200"
+                className="bg-surface-2 rounded-xl border border-border p-5 hover:border-border-strong transition-colors duration-200"
               >
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
-                    <div className="bg-linear-to-r from-cyan-100 to-sky-100 p-1.5 rounded-md">
-                      <Wrench className="h-3.5 w-3.5 text-cyan-600" />
+                    <div className="bg-brand-subtle p-1.5 rounded-md">
+                      <Wrench className="h-3.5 w-3.5 text-brand" />
                     </div>
-                    <span className="text-sm font-medium text-foreground/80">
+                    <span className="text-sm font-medium text-foreground">
                       Skill Category {index + 1}
                     </span>
                   </div>
@@ -94,7 +87,7 @@ export function SkillsSection({ form }: SkillsSectionProps) {
                         removeSkill(index);
                       }
                     }}
-                    className="text-muted-foreground/70 hover:text-coral hover:bg-coral/10 transition-colors"
+                    className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
                     aria-label={`Remove skill group ${index + 1}`}
                   >
                     <Trash2 className="h-4 w-4" />
@@ -142,7 +135,7 @@ export function SkillsSection({ form }: SkillsSectionProps) {
             <Button
               type="button"
               variant="outline"
-              className="w-full border-dashed border-2 border-ink/20 hover:border-cyan-400 hover:bg-cyan-50/50 text-muted-foreground hover:text-cyan-700 transition-colors duration-200"
+              className="w-full border-dashed"
               onClick={() =>
                 appendSkill({
                   category: "",

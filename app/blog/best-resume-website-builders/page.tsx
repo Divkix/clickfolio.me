@@ -45,72 +45,84 @@ export default function BestResumeWebsiteBuildersPage() {
       <section>
         <h2>The Comparison at a Glance</h2>
         <div className="overflow-x-auto my-8 not-prose">
-          <table className="w-full border-collapse border-2 border-ink text-sm">
+          <table className="w-full border-collapse overflow-hidden rounded-lg border border-border text-sm">
             <thead>
-              <tr className="bg-ink text-cream">
-                <th className="border-2 border-ink p-3 text-left font-bold">Tool</th>
-                <th className="border-2 border-ink p-3 text-left font-bold">Templates</th>
-                <th className="border-2 border-ink p-3 text-left font-bold">Free Tier</th>
-                <th className="border-2 border-ink p-3 text-left font-bold">Real Hosting</th>
-                <th className="border-2 border-ink p-3 text-left font-bold">Privacy Controls</th>
+              <tr className="bg-surface-2 text-foreground">
+                <th className="border border-border p-3 text-left font-semibold">Tool</th>
+                <th className="border border-border p-3 text-left font-semibold">Templates</th>
+                <th className="border border-border p-3 text-left font-semibold">Free Tier</th>
+                <th className="border border-border p-3 text-left font-semibold">Real Hosting</th>
+                <th className="border border-border p-3 text-left font-semibold">
+                  Privacy Controls
+                </th>
               </tr>
             </thead>
-            <tbody className="text-ink/70">
-              <tr className="bg-cream">
-                <td className="border-2 border-ink p-3 font-semibold text-ink">clickfolio.me</td>
-                <td className="border-2 border-ink p-3">10</td>
-                <td className="border-2 border-ink p-3 text-coral font-semibold">Free forever</td>
-                <td className="border-2 border-ink p-3">Yes (Cloudflare)</td>
-                <td className="border-2 border-ink p-3">Granular field-level</td>
+            <tbody className="text-muted-foreground">
+              <tr className="bg-card">
+                <td className="border border-border p-3 font-semibold text-foreground">
+                  clickfolio.me
+                </td>
+                <td className="border border-border p-3">10</td>
+                <td className="border border-border p-3 text-brand font-semibold">Free forever</td>
+                <td className="border border-border p-3">Yes (Cloudflare)</td>
+                <td className="border border-border p-3">Granular field-level</td>
               </tr>
               <tr>
-                <td className="border-2 border-ink p-3 font-semibold text-ink">Magic Self</td>
-                <td className="border-2 border-ink p-3">3</td>
-                <td className="border-2 border-ink p-3">Open source</td>
-                <td className="border-2 border-ink p-3">Self-hosted only</td>
-                <td className="border-2 border-ink p-3">None</td>
+                <td className="border border-border p-3 font-semibold text-foreground">
+                  Magic Self
+                </td>
+                <td className="border border-border p-3">3</td>
+                <td className="border border-border p-3">Open source</td>
+                <td className="border border-border p-3">Self-hosted only</td>
+                <td className="border border-border p-3">None</td>
               </tr>
-              <tr className="bg-cream">
-                <td className="border-2 border-ink p-3 font-semibold text-ink">DockPage</td>
-                <td className="border-2 border-ink p-3">5</td>
-                <td className="border-2 border-ink p-3">Limited</td>
-                <td className="border-2 border-ink p-3">Yes</td>
-                <td className="border-2 border-ink p-3">Basic</td>
-              </tr>
-              <tr>
-                <td className="border-2 border-ink p-3 font-semibold text-ink">SpaceLoom</td>
-                <td className="border-2 border-ink p-3">4</td>
-                <td className="border-2 border-ink p-3">1 page free</td>
-                <td className="border-2 border-ink p-3">Subdomain</td>
-                <td className="border-2 border-ink p-3">None</td>
-              </tr>
-              <tr className="bg-cream">
-                <td className="border-2 border-ink p-3 font-semibold text-ink">EZfolio CV</td>
-                <td className="border-2 border-ink p-3">6</td>
-                <td className="border-2 border-ink p-3">Free</td>
-                <td className="border-2 border-ink p-3">Subdomain</td>
-                <td className="border-2 border-ink p-3">None</td>
+              <tr className="bg-card">
+                <td className="border border-border p-3 font-semibold text-foreground">DockPage</td>
+                <td className="border border-border p-3">5</td>
+                <td className="border border-border p-3">Limited</td>
+                <td className="border border-border p-3">Yes</td>
+                <td className="border border-border p-3">Basic</td>
               </tr>
               <tr>
-                <td className="border-2 border-ink p-3 font-semibold text-ink">Refolio</td>
-                <td className="border-2 border-ink p-3">8</td>
-                <td className="border-2 border-ink p-3">7-day trial</td>
-                <td className="border-2 border-ink p-3">Yes</td>
-                <td className="border-2 border-ink p-3">None</td>
+                <td className="border border-border p-3 font-semibold text-foreground">
+                  SpaceLoom
+                </td>
+                <td className="border border-border p-3">4</td>
+                <td className="border border-border p-3">1 page free</td>
+                <td className="border border-border p-3">Subdomain</td>
+                <td className="border border-border p-3">None</td>
               </tr>
-              <tr className="bg-cream">
-                <td className="border-2 border-ink p-3 font-semibold text-ink">CVPage</td>
-                <td className="border-2 border-ink p-3">3</td>
-                <td className="border-2 border-ink p-3">Free</td>
-                <td className="border-2 border-ink p-3">Subdomain</td>
-                <td className="border-2 border-ink p-3">None</td>
+              <tr className="bg-card">
+                <td className="border border-border p-3 font-semibold text-foreground">
+                  EZfolio CV
+                </td>
+                <td className="border border-border p-3">6</td>
+                <td className="border border-border p-3">Free</td>
+                <td className="border border-border p-3">Subdomain</td>
+                <td className="border border-border p-3">None</td>
               </tr>
               <tr>
-                <td className="border-2 border-ink p-3 font-semibold text-ink">Reactive Resume</td>
-                <td className="border-2 border-ink p-3">2 (PDF only)</td>
-                <td className="border-2 border-ink p-3">Open source</td>
-                <td className="border-2 border-ink p-3">Self-hosted only</td>
-                <td className="border-2 border-ink p-3">None</td>
+                <td className="border border-border p-3 font-semibold text-foreground">Refolio</td>
+                <td className="border border-border p-3">8</td>
+                <td className="border border-border p-3">7-day trial</td>
+                <td className="border border-border p-3">Yes</td>
+                <td className="border border-border p-3">None</td>
+              </tr>
+              <tr className="bg-card">
+                <td className="border border-border p-3 font-semibold text-foreground">CVPage</td>
+                <td className="border border-border p-3">3</td>
+                <td className="border border-border p-3">Free</td>
+                <td className="border border-border p-3">Subdomain</td>
+                <td className="border border-border p-3">None</td>
+              </tr>
+              <tr>
+                <td className="border border-border p-3 font-semibold text-foreground">
+                  Reactive Resume
+                </td>
+                <td className="border border-border p-3">2 (PDF only)</td>
+                <td className="border border-border p-3">Open source</td>
+                <td className="border border-border p-3">Self-hosted only</td>
+                <td className="border border-border p-3">None</td>
               </tr>
             </tbody>
           </table>
@@ -253,7 +265,7 @@ export default function BestResumeWebsiteBuildersPage() {
           account anytime.
         </p>
         <p>
-          <Link href="/" className="text-coral font-semibold">
+          <Link href="/" className="text-brand font-semibold">
             Upload your resume and build your portfolio →
           </Link>
         </p>

@@ -245,7 +245,7 @@ export default function ResumeWritingTipsPage() {
           hiring actually works.
         </p>
         <p>
-          <Link href="/" className="text-coral font-semibold">
+          <Link href="/" className="text-brand font-semibold">
             Upload your resume and deploy it everywhere →
           </Link>
         </p>

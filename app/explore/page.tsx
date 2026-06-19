@@ -6,7 +6,9 @@ import Link from "next/link";
 import { RoleFilterSelect } from "@/components/explore/role-filter-select";
 import { Footer } from "@/components/Footer";
 import { SiteHeader } from "@/components/SiteHeader";
+import { Badge } from "@/components/ui/badge";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
+import { Button } from "@/components/ui/button";
 import { siteConfig } from "@/lib/config/site";
 import { getDb } from "@/lib/db";
 import { siteData, user } from "@/lib/db/schema";
@@ -151,7 +153,7 @@ export default async function ExplorePage({
   const roleOptions = [{ value: "", label: "All Roles" }, ...ROLE_OPTIONS];
 
   return (
-    <div className="min-h-screen bg-cream flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(exploreJsonLd) }}
@@ -194,7 +196,7 @@ export default async function ExplorePage({
         {/* Filters */}
         <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
           <div className="flex items-center gap-3">
-            <label htmlFor="role-filter" className="text-sm font-medium text-foreground/80">
+            <label htmlFor="role-filter" className="text-sm font-medium text-foreground">
               Filter by role:
             </label>
             <RoleFilterSelect roleFilter={roleFilter} roleOptions={roleOptions} />
@@ -206,11 +208,11 @@ export default async function ExplorePage({
 
         {/* Grid of users */}
         {directoryUsers.length === 0 ? (
-          <div className="text-center py-16 bg-card rounded-xl border border-ink/10">
+          <div className="text-center py-16 bg-card rounded-xl border border-border shadow-sm">
             <p className="text-muted-foreground text-lg">
               No professionals found.{" "}
               {roleFilter && (
-                <Link href="/explore" className="text-coral hover:underline">
+                <Link href="/explore" className="text-brand hover:underline">
                   Clear filters
                 </Link>
               )}
@@ -222,18 +224,18 @@ export default async function ExplorePage({
               <Link
                 key={person.handle}
                 href={`/@${person.handle}`}
-                className="group bg-card rounded-xl border border-ink/10 p-6 hover:shadow-lg hover:border-coral/30 transition-colors duration-200"
+                className="group bg-card rounded-xl border border-border shadow-sm p-6 transition-colors hover:border-border-strong hover:bg-surface-2"
               >
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-lg font-bold text-foreground truncate group-hover:text-coral transition-colors">
+                    <h3 className="text-lg font-bold text-foreground truncate group-hover:text-brand transition-colors">
                       {person.previewName || "Unknown"}
                     </h3>
                     <p className="text-sm text-muted-foreground truncate">
                       {person.previewHeadline || "Professional"}
                     </p>
                   </div>
-                  <ExternalLink className="w-4 h-4 text-muted-foreground/70 group-hover:text-coral shrink-0 ml-2" />
+                  <ExternalLink className="w-4 h-4 text-muted-foreground group-hover:text-brand shrink-0 ml-2" />
                 </div>
 
                 {/* Quick stats */}
@@ -261,17 +263,14 @@ export default async function ExplorePage({
 
                 {/* Skills preview */}
                 {person.previewSkills && person.previewSkills.length > 0 && (
-                  <div className="mt-4 flex flex-wrap gap-1">
+                  <div className="mt-4 flex flex-wrap gap-1.5">
                     {person.previewSkills.slice(0, 4).map((skill, idx) => (
-                      <span
-                        key={`${skill}-${idx}`}
-                        className="inline-block px-2 py-0.5 bg-muted text-muted-foreground text-xs rounded-md"
-                      >
+                      <Badge key={`${skill}-${idx}`} variant="outline">
                         {skill}
-                      </span>
+                      </Badge>
                     ))}
                     {person.previewSkills.length > 4 && (
-                      <span className="inline-block px-2 py-0.5 text-muted-foreground/70 text-xs">
+                      <span className="inline-block px-1 py-0.5 text-muted-foreground text-xs">
                         +{person.previewSkills.length - 4} more
                       </span>
                     )}
@@ -286,12 +285,13 @@ export default async function ExplorePage({
         {totalPages > 1 && (
           <div className="mt-12 flex items-center justify-center gap-2">
             {currentPage > 1 && (
-              <Link
-                href={`/explore?page=${currentPage - 1}${roleFilter ? `&role=${roleFilter}` : ""}`}
-                className="px-4 py-2 text-sm font-medium text-foreground/80 bg-card border border-ink/15 rounded-lg hover:bg-muted"
-              >
-                Previous
-              </Link>
+              <Button asChild variant="outline" size="sm">
+                <Link
+                  href={`/explore?page=${currentPage - 1}${roleFilter ? `&role=${roleFilter}` : ""}`}
+                >
+                  Previous
+                </Link>
+              </Button>
             )}
 
             <div className="flex items-center gap-1">
@@ -304,46 +304,46 @@ export default async function ExplorePage({
                   const showEllipsis = index > 0 && page - arr[index - 1] > 1;
                   return (
                     <span key={page} className="contents">
-                      {showEllipsis && <span className="px-2 text-muted-foreground/70">...</span>}
-                      <Link
-                        href={`/explore?page=${page}${roleFilter ? `&role=${roleFilter}` : ""}`}
-                        className={`w-10 h-10 flex items-center justify-center text-sm font-medium rounded-lg ${
-                          page === currentPage
-                            ? "bg-coral text-white"
-                            : "text-foreground/80 bg-card border border-ink/15 hover:bg-muted"
-                        }`}
+                      {showEllipsis && <span className="px-2 text-muted-foreground">...</span>}
+                      <Button
+                        asChild
+                        variant={page === currentPage ? "default" : "outline"}
+                        size="icon"
                       >
-                        {page}
-                      </Link>
+                        <Link
+                          href={`/explore?page=${page}${roleFilter ? `&role=${roleFilter}` : ""}`}
+                          aria-current={page === currentPage ? "page" : undefined}
+                        >
+                          {page}
+                        </Link>
+                      </Button>
                     </span>
                   );
                 })}
             </div>
 
             {currentPage < totalPages && (
-              <Link
-                href={`/explore?page=${currentPage + 1}${roleFilter ? `&role=${roleFilter}` : ""}`}
-                className="px-4 py-2 text-sm font-medium text-foreground/80 bg-card border border-ink/15 rounded-lg hover:bg-muted"
-              >
-                Next
-              </Link>
+              <Button asChild variant="outline" size="sm">
+                <Link
+                  href={`/explore?page=${currentPage + 1}${roleFilter ? `&role=${roleFilter}` : ""}`}
+                >
+                  Next
+                </Link>
+              </Button>
             )}
           </div>
         )}
 
         {/* CTA for non-listed users */}
-        <div className="mt-16 text-center bg-linear-to-r from-coral/10 to-coral/10 rounded-xl border border-coral/20 p-8">
+        <div className="mt-16 text-center bg-brand-subtle rounded-xl border border-border p-8">
           <h2 className="text-2xl font-bold text-foreground mb-3">Join Our Directory</h2>
           <p className="text-muted-foreground mb-6 max-w-xl mx-auto">
             Want to be featured here? Enable &ldquo;Show in Directory&rdquo; in your privacy
             settings to get discovered by recruiters and collaborators.
           </p>
-          <Link
-            href="/settings"
-            className="inline-flex items-center justify-center px-6 py-3 bg-ink text-cream font-semibold rounded-lg hover:bg-ink/90 transition-colors"
-          >
-            Update Privacy Settings
-          </Link>
+          <Button asChild size="lg">
+            <Link href="/settings">Update Privacy Settings</Link>
+          </Button>
         </div>
       </main>
       <Footer />

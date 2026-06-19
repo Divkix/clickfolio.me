@@ -55,21 +55,10 @@ export function AuthDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent
-        className="
-          bg-cream
-          border-3
-          border-ink
-          shadow-brutal-lg
-          rounded-none
-          sm:max-w-md
-          p-0
-          overflow-hidden
-        "
-      >
+      <DialogContent className="sm:max-w-md p-0 overflow-hidden">
         <div className="p-6">
           <DialogHeader className="mb-6">
-            <DialogTitle className="text-2xl font-black text-ink text-center">
+            <DialogTitle className="text-2xl font-display font-bold text-center">
               {mode === "signin" && "Welcome back"}
               {mode === "signup" && "Create an account"}
               {mode === "forgot-password" && "Reset password"}
@@ -78,36 +67,26 @@ export function AuthDialog({
 
           {/* Mode Toggle - Only show for signin/signup */}
           {mode !== "forgot-password" && (
-            <div className="flex mb-6 border-3 border-ink">
+            <div className="flex mb-6 rounded-lg border border-border bg-surface-2 p-1">
               <button
                 type="button"
                 onClick={() => setMode("signin")}
-                className={`
-                  flex-1
-                  px-4
-                  py-2
-                  font-bold
-                  text-sm
-                  transition-colors
-                  ${mode === "signin" ? "bg-ink text-cream" : "bg-cream text-ink hover:bg-ink/10"}
-                `}
+                className={`flex-1 rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
+                  mode === "signin"
+                    ? "bg-card text-foreground shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
               >
                 Sign in
               </button>
               <button
                 type="button"
                 onClick={() => setMode("signup")}
-                className={`
-                  flex-1
-                  px-4
-                  py-2
-                  font-bold
-                  text-sm
-                  border-l-3
-                  border-ink
-                  transition-colors
-                  ${mode === "signup" ? "bg-ink text-cream" : "bg-cream text-ink hover:bg-ink/10"}
-                `}
+                className={`flex-1 rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
+                  mode === "signup"
+                    ? "bg-card text-foreground shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
               >
                 Sign up
               </button>
@@ -150,7 +129,7 @@ export function AuthDialog({
 
           {mode === "forgot-password" && (
             <div className="space-y-6">
-              <p className="text-ink/70 text-sm text-center">
+              <p className="text-muted-foreground text-sm text-center">
                 Enter your email address and we'll send you a link to reset your password.
               </p>
 
@@ -167,10 +146,12 @@ function Divider() {
   return (
     <div className="relative">
       <div className="absolute inset-0 flex items-center">
-        <div className="w-full border-t-2 border-ink/20" />
+        <div className="w-full border-t border-border" />
       </div>
       <div className="relative flex justify-center text-xs">
-        <span className="px-3 bg-cream text-ink/50 font-medium">or continue with email</span>
+        <span className="px-3 bg-card text-muted-foreground font-medium">
+          or continue with email
+        </span>
       </div>
     </div>
   );

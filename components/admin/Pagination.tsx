@@ -44,7 +44,7 @@ export function Pagination({ currentPage, totalPages, onPageChange }: Pagination
         type="button"
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 1}
-        className="p-2 rounded-lg text-muted-foreground hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        className="p-2 rounded-lg text-muted-foreground hover:bg-surface-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         aria-label="Previous page"
       >
         <ChevronLeft size={16} />
@@ -61,7 +61,9 @@ export function Pagination({ currentPage, totalPages, onPageChange }: Pagination
             type="button"
             onClick={() => onPageChange(page)}
             className={`min-w-[32px] h-8 px-2 rounded-lg text-sm font-medium transition-colors ${
-              page === currentPage ? "bg-ink text-cream" : "text-muted-foreground hover:bg-muted"
+              page === currentPage
+                ? "bg-brand text-brand-foreground"
+                : "text-muted-foreground hover:bg-surface-2"
             }`}
             aria-current={page === currentPage ? "page" : undefined}
           >
@@ -74,7 +76,7 @@ export function Pagination({ currentPage, totalPages, onPageChange }: Pagination
         type="button"
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
-        className="p-2 rounded-lg text-muted-foreground hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        className="p-2 rounded-lg text-muted-foreground hover:bg-surface-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         aria-label="Next page"
       >
         <ChevronRight size={16} />
