@@ -1,12 +1,14 @@
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { FaqAccordion } from "@/components/Faq";
 import { Footer } from "@/components/Footer";
 import { Logo } from "@/components/Logo";
 import { Badge } from "@/components/ui/badge";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import type { BlogPostMeta } from "@/lib/blog/posts";
+import { authorPersona } from "@/lib/config/author";
 import { siteConfig } from "@/lib/config/site";
-import { serializeJsonLd } from "@/lib/seo/json-ld";
+import { generateFAQPageJsonLd, serializeJsonLd } from "@/lib/seo/json-ld";
 
 interface BlogPostLayoutProps {
   post: BlogPostMeta;
@@ -22,13 +24,14 @@ function generateArticleJsonLd(post: BlogPostMeta): Record<string, unknown> {
     headline: post.title,
     description: post.description,
     datePublished: post.date,
-    dateModified: post.date,
+    dateModified: post.dateModified ?? post.date,
     url: `${siteConfig.url}/blog/${post.slug}`,
     keywords: post.keywords?.join(", "),
     author: {
-      "@type": "Organization",
-      name: siteConfig.fullName,
-      url: siteConfig.url,
+      "@type": "Person",
+      name: authorPersona.name,
+      description: authorPersona.bio,
+      url: authorPersona.url,
     },
     publisher: {
       "@type": "Organization",
@@ -83,6 +86,9 @@ function generateBlogBreadcrumbJsonLd(post: BlogPostMeta): Record<string, unknow
 export function BlogPostLayout({ post, children, relatedPosts }: BlogPostLayoutProps) {
   const articleJsonLd = generateArticleJsonLd(post);
   const breadcrumbJsonLd = generateBlogBreadcrumbJsonLd(post);
+  const faqJsonLd = post.faq && post.faq.length > 0 ? generateFAQPageJsonLd(post.faq) : null;
+  const updatedDate = post.dateModified ?? post.date;
+  const wasUpdated = Boolean(post.dateModified && post.dateModified !== post.date);
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -94,6 +100,12 @@ export function BlogPostLayout({ post, children, relatedPosts }: BlogPostLayoutP
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbJsonLd) }}
       />
+      {faqJsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: serializeJsonLd(faqJsonLd) }}
+        />
+      )}
       <header className="sticky top-0 z-50 border-b border-border bg-background/90 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
           <Link
@@ -129,9 +141,12 @@ export function BlogPostLayout({ post, children, relatedPosts }: BlogPostLayoutP
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground mb-4 leading-tight tracking-tight">
               {post.title}
             </h1>
-            <div className="flex items-center gap-4 text-muted-foreground text-sm">
-              <time dateTime={post.date} suppressHydrationWarning>
-                {new Date(post.date).toLocaleDateString("en-US", {
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-muted-foreground text-sm">
+              <span className="font-medium text-foreground">{authorPersona.name}</span>
+              <span aria-hidden="true">·</span>
+              <time dateTime={updatedDate} suppressHydrationWarning>
+                {wasUpdated ? "Updated " : ""}
+                {new Date(updatedDate).toLocaleDateString("en-US", {
                   year: "numeric",
                   month: "long",
                   day: "numeric",
@@ -162,6 +177,24 @@ export function BlogPostLayout({ post, children, relatedPosts }: BlogPostLayoutP
               {children}
             </div>
           </div>
+
+          {post.faq && post.faq.length > 0 && (
+            <section className="mt-12 border-t border-border pt-8">
+              <h2 className="text-2xl font-semibold text-foreground mb-6">
+                Frequently asked questions
+              </h2>
+              <FaqAccordion items={post.faq} />
+            </section>
+          )}
+
+          <section className="mt-12 border-t border-border pt-8">
+            <div className="rounded-xl border border-border bg-surface-2 p-6">
+              <p className="text-sm font-semibold text-foreground">{authorPersona.name}</p>
+              <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                {authorPersona.bio}
+              </p>
+            </div>
+          </section>
 
           <div className="mt-8 text-center">
             <Link

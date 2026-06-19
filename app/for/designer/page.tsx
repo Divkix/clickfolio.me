@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { RoleFaqSection } from "@/components/Faq";
 import { Button } from "@/components/ui/button";
 import { siteConfig } from "@/lib/config/site";
 import {
@@ -30,6 +31,25 @@ export const metadata: Metadata = {
     description,
   },
 };
+
+const faqs = [
+  {
+    q: "Do I need design skills to build a designer portfolio website?",
+    a: "No. You upload your existing PDF resume and the AI lays out a polished site for you. Every template is built by designers, so the typography, spacing, and hierarchy are already handled. You just pick the look you like and publish.",
+  },
+  {
+    q: "Can I show project work, not just a resume?",
+    a: "Yes. The AI pulls your projects from your resume and presents each one with its role, timeline, and description in a structured gallery. You can edit the details after import, so your strongest work leads and the rest supports it.",
+  },
+  {
+    q: "Is it actually free?",
+    a: "Yes. Six templates are free with no time limit and no credit card. Four more unlock through referrals rather than payment. There is no paid plan. The whole project is open source under the MIT license, so there is no catch.",
+  },
+  {
+    q: "What link do I share with studios and clients?",
+    a: "You get a clickfolio.me/@handle address hosted on real Cloudflare infrastructure. It loads fast and shows a rich preview when pasted into messages or social posts. Custom domains are on the roadmap, but your @handle link is permanent today.",
+  },
+];
 
 export default function DesignerPage() {
   const webPageJsonLd = generateWebPageJsonLd(title, path, description);
@@ -85,15 +105,80 @@ export default function DesignerPage() {
               From PDF to Published in 30 Seconds
             </h2>
             <p className="text-muted-foreground mb-4">
-              Drop your existing PDF resume — the one you already have. Our AI extracts your
-              experience, education, skills, and projects. In 30 seconds, you have a live portfolio
-              you can share with studios, agencies, and clients.
+              Drop the PDF resume you already have. The AI extracts your experience, education,
+              skills, and projects. In about 30 seconds you have a live designer portfolio website
+              you can send to studios, agencies, and clients.
             </p>
             <p className="text-muted-foreground">
-              Not happy with the first template? Switch between 10 professionally designed themes
-              with one click. No design skills needed to make your work look great.
+              Not happy with the first look? Switch between 10 themes with one click. You never
+              touch a layout grid or a font menu unless you want to.
             </p>
           </section>
+
+          <section className="mb-12">
+            <h2 className="font-bold text-xl text-foreground mb-4">
+              What hiring designers look for
+            </h2>
+            <p className="text-muted-foreground mb-4">
+              Recruiters spend about 7.4 seconds on a first scan (The Ladders, 2018). For design
+              roles, that glance is about taste and clarity, so your page has to look intentional in
+              the first second.
+            </p>
+            <ul className="space-y-3 text-muted-foreground list-disc pl-5">
+              <li>
+                <strong>A clear point of view</strong> — a few strong projects beat a wall of
+                thumbnails. Lead with the work you want more of.
+              </li>
+              <li>
+                <strong>Context per project</strong> — your role, the problem, and the outcome.
+                Designers get hired on thinking, not just pixels.
+              </li>
+              <li>
+                <strong>Craft in the details</strong> — consistent type, spacing, and alignment. A
+                tidy page signals a tidy designer.
+              </li>
+            </ul>
+          </section>
+
+          <section className="mb-12">
+            <h2 className="font-bold text-xl text-foreground mb-4">
+              Templates with a designer's eye
+            </h2>
+            <ul className="space-y-3 text-muted-foreground list-disc pl-5">
+              <li>
+                <strong>DesignFolio</strong> — digital brutalism with Swiss typography and acid lime
+                accents. Bold and memorable.
+              </li>
+              <li>
+                <strong>Spotlight</strong> — warm and animated, with room for each project to
+                breathe.
+              </li>
+              <li>
+                <strong>Glass Morphic</strong> — soft, layered, and modern when you want a lighter
+                feel.
+              </li>
+            </ul>
+          </section>
+
+          <section className="mb-12">
+            <h2 className="font-bold text-xl text-foreground mb-4">
+              "Shouldn't I hand-build my own site?"
+            </h2>
+            <p className="text-muted-foreground mb-4">
+              You can, and some designers do. But a hand-built site is a project that competes with
+              your actual work. clickfolio.me gives you a clean, fast page today, so your time goes
+              into the portfolio pieces instead of CSS.
+            </p>
+            <p className="text-muted-foreground">
+              Looking for inspiration first? Browse{" "}
+              <a className="underline" href="/blog/resume-website-examples">
+                resume website examples
+              </a>{" "}
+              to see layouts you can recreate in minutes.
+            </p>
+          </section>
+
+          <RoleFaqSection items={faqs} />
 
           <Button asChild size="lg">
             <a href="/">Create Your Free Design Portfolio</a>

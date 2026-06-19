@@ -12,6 +12,12 @@ Turn your PDF resume into a hosted portfolio website in seconds. Upload a PDF re
 - free portfolio website
 - LinkedIn to portfolio
 - LinkedIn to website
+- personal resume website
+- how to make a resume website
+- cv website builder
+- resume hosting site
+- Read.cv alternative (Read.cv shut down after its 2025 Perplexity acquisition)
+- resume website vs LinkedIn
 - DesignFolio resume
 - resume templates for software engineers, designers, marketers, students, consultants, and product managers
 
@@ -39,6 +45,15 @@ Turn your PDF resume into a hosted portfolio website in seconds. Upload a PDF re
 - PDF resume to website guide: https://clickfolio.me/blog/pdf-resume-to-website
 - Resume website builders comparison: https://clickfolio.me/blog/best-resume-website-builders
 - LinkedIn to portfolio guide: https://clickfolio.me/blog/linkedin-to-portfolio
+- How to make a resume website: https://clickfolio.me/blog/how-to-make-a-resume-website
+- Resume website examples: https://clickfolio.me/blog/resume-website-examples
+- What is a personal resume website: https://clickfolio.me/blog/personal-resume-website
+- CV website builder guide: https://clickfolio.me/blog/cv-website-builder
+- Resume hosting guide: https://clickfolio.me/blog/resume-hosting
+- Resume website vs LinkedIn: https://clickfolio.me/blog/resume-website-vs-linkedin
+- Read.cv alternatives (Read.cv shut down in 2025): https://clickfolio.me/blog/read-cv-alternatives
+- Product manager portfolio website: https://clickfolio.me/blog/product-manager-portfolio-website
+- Student resume website guide: https://clickfolio.me/blog/student-resume-website
 - Software engineer portfolio builder: https://clickfolio.me/for/software-engineer
 - Designer portfolio builder: https://clickfolio.me/for/designer
 - Marketer portfolio builder: https://clickfolio.me/for/marketer

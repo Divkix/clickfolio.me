@@ -10,6 +10,7 @@ import { env } from "cloudflare:workers";
 import { and, isNotNull, or, sql } from "drizzle-orm";
 import type { MetadataRoute } from "next";
 import { BLOG_POSTS } from "@/lib/blog/posts";
+import { PROFESSIONS } from "@/lib/config/professions";
 import { getDb } from "@/lib/db";
 import { siteData, user } from "@/lib/db/schema";
 import { getPublicSiteUrl } from "@/lib/utils/site-url";
@@ -27,19 +28,11 @@ const notHiddenFromSearch = or(
 );
 
 export const URLS_PER_SITEMAP = 50000; // Google's limit
-const BASE_STATIC_SITEMAP_ENTRY_COUNT = 5;
-const PROFESSION_PAGE_SLUGS = [
-  "software-engineer",
-  "designer",
-  "marketer",
-  "student",
-  "consultant",
-  "product-manager",
-];
+const BASE_STATIC_SITEMAP_ENTRY_COUNT = 7;
 
 /** Total number of static entries (homepage, legal, blog, professions, etc.). */
 export const STATIC_SITEMAP_ENTRY_COUNT =
-  BASE_STATIC_SITEMAP_ENTRY_COUNT + PROFESSION_PAGE_SLUGS.length + BLOG_POSTS.length;
+  BASE_STATIC_SITEMAP_ENTRY_COUNT + PROFESSIONS.length + BLOG_POSTS.length;
 
 /**
  * Returns the base URL for all sitemap entries.
@@ -112,11 +105,23 @@ function buildStaticSitemapEntries(baseUrl: string): MetadataRoute.Sitemap {
       changeFrequency: "weekly",
       priority: 0.8,
     },
+    {
+      url: `${baseUrl}/about`,
+      lastModified: new Date("2026-04-01"),
+      changeFrequency: "monthly",
+      priority: 0.5,
+    },
+    {
+      url: `${baseUrl}/faq`,
+      lastModified: new Date("2026-04-01"),
+      changeFrequency: "monthly",
+      priority: 0.6,
+    },
   ];
 
-  for (const profession of PROFESSION_PAGE_SLUGS) {
+  for (const profession of PROFESSIONS) {
     entries.push({
-      url: `${baseUrl}/for/${profession}`,
+      url: `${baseUrl}/for/${profession.slug}`,
       lastModified: new Date("2026-04-01"),
       changeFrequency: "monthly",
       priority: 0.7,
@@ -126,7 +131,7 @@ function buildStaticSitemapEntries(baseUrl: string): MetadataRoute.Sitemap {
   for (const post of BLOG_POSTS) {
     entries.push({
       url: `${baseUrl}/blog/${post.slug}`,
-      lastModified: new Date(post.date),
+      lastModified: new Date(post.dateModified ?? post.date),
       changeFrequency: "monthly",
       priority: 0.7,
     });

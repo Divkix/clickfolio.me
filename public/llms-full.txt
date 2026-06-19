@@ -17,7 +17,7 @@ The platform is free for all base features with no time limits. Premium template
 - **Privacy controls**: Per-field visibility toggles (phone, address, search indexing)
 - **Custom @handle URLs**: Permanent, memorable URLs
 - **Open source**: MIT licensed, source available on GitHub
-- **AI accuracy**: 95%+ parsing accuracy across 10,000+ resumes
+- **AI parsing**: extracts experience, education, skills, and projects from your PDF, with an editor to review and correct anything before publishing
 
 ## All 10 Templates
 
@@ -95,10 +95,19 @@ Absolutely. You get a full editing suite to update your content anytime. Changes
 - Best Free Resume Website Builders Compared (2026): https://clickfolio.me/blog/best-resume-website-builders
 - clickfolio.me Templates: Complete Showcase & Guide: https://clickfolio.me/blog/clickfolio-templates-showcase
 - How Accurate is AI Resume Parsing? We Tested It: https://clickfolio.me/blog/ai-resume-parsing-accuracy
-- LinkedIn to Portfolio Website: The Complete Guide: https://clickfolio.me/blog/linkedin-to-portfolio
+- LinkedIn to Portfolio Website: The Complete Guide (2026): https://clickfolio.me/blog/linkedin-to-portfolio
 - PDF Resume vs Portfolio Website: Why You Need Both: https://clickfolio.me/blog/pdf-resume-vs-portfolio
 - How to Write a Resume That Converts (2026): https://clickfolio.me/blog/resume-writing-tips
 - Your Data, Your Control: Privacy at clickfolio.me: https://clickfolio.me/blog/privacy-at-clickfolio
+- How to Make a Resume Website: A Step-by-Step Guide (2026): https://clickfolio.me/blog/how-to-make-a-resume-website
+- 12 Resume Website Examples to Inspire Your Own (2026): https://clickfolio.me/blog/resume-website-examples
+- What Is a Personal Resume Website? (And Why You Need One in 2026): https://clickfolio.me/blog/personal-resume-website
+- CV Website Builder: Turn Your CV Into a Site in 2026: https://clickfolio.me/blog/cv-website-builder
+- Resume Hosting: How to Put Your Resume Online With a Shareable Link (2026): https://clickfolio.me/blog/resume-hosting
+- Resume Website vs LinkedIn: Which Do You Need? (2026): https://clickfolio.me/blog/resume-website-vs-linkedin
+- Read.cv Alternatives: Where to Move Your Profile After the Shutdown (2026): https://clickfolio.me/blog/read-cv-alternatives
+- How to Build a Product Manager Portfolio Website (2026): https://clickfolio.me/blog/product-manager-portfolio-website
+- How to Make a Student Resume Website With No Experience (2026): https://clickfolio.me/blog/student-resume-website
 
 ### Dynamic Pages
 - Portfolio URLs: https://clickfolio.me/@{handle}
@@ -141,7 +150,7 @@ Absolutely. You get a full editing suite to update your content anytime. Changes
 - **ORM**: Drizzle ORM
 - **Validation**: Zod
 - **Testing**: Vitest
-- **Linting/Formatting**: Biome
+- **Linting/Formatting**: Oxlint + Oxfmt (via Vite+)
 - **Package Manager**: Bun
 
 ## Privacy & Security

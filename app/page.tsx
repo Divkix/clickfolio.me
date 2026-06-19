@@ -13,19 +13,22 @@ import { WhatYouGetSection } from "@/components/home/WhatYouGetSection";
 import { ReferralCapture } from "@/components/ReferralCapture";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Badge } from "@/components/ui/badge";
+import { PROFESSIONS } from "@/lib/config/professions";
 import { siteConfig } from "@/lib/config/site";
 import { generateFAQJsonLd, generateHomepageJsonLd, serializeJsonLd } from "@/lib/seo/json-ld";
 import { DEMO_PROFILES } from "@/lib/templates/demo-data";
 
 export const revalidate = 3600;
 
-const pageTitle = `${siteConfig.fullName} — ${siteConfig.tagline}`;
+const pageTitle = `Free Resume Website Builder — ${siteConfig.fullName}`;
 const pageDescription =
-  "Drop your PDF resume and get a shareable website in seconds. Free resume builder with 10 templates, @handle URLs, and privacy controls. No signup.";
+  "Free resume website builder. Turn your PDF resume or LinkedIn into a personal portfolio website in 30 seconds — 10 templates, custom @handle URL, privacy controls. No signup to start.";
 
 /** SEO metadata for the marketing homepage. */
 export const metadata: Metadata = {
-  title: siteConfig.tagline,
+  title: {
+    absolute: `Free Resume Website Builder — Turn Your PDF Into a Site | ${siteConfig.fullName}`,
+  },
   description: pageDescription,
   alternates: { canonical: siteConfig.url },
   openGraph: {
@@ -92,7 +95,10 @@ export default function Home() {
                     Your resume is already a <span className="text-brand">website</span>.
                   </h1>
                   <p className="mt-5 max-w-lg text-lg text-muted-foreground">
-                    Drop your PDF and get a shareable portfolio link in about{" "}
+                    clickfolio.me is a free{" "}
+                    <strong className="font-medium text-foreground">resume website builder</strong>{" "}
+                    that turns your PDF or LinkedIn into a personal portfolio site. Drop your resume
+                    and get a shareable link in about{" "}
                     <span className="font-medium text-foreground">30 seconds</span>.
                   </p>
 
@@ -238,6 +244,29 @@ export default function Home() {
                     <h3 className="mt-4 font-semibold">{item.title}</h3>
                     <p className="mt-1.5 text-sm text-muted-foreground">{item.desc}</p>
                   </div>
+                ))}
+              </div>
+            </section>
+
+            {/* Built for your role — internal links to profession landing pages */}
+            <section className="mt-20 lg:mt-28">
+              <h2 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">
+                A resume website built for your role
+              </h2>
+              <p className="mt-2 max-w-2xl text-muted-foreground">
+                Whether you write code, design products, or pitch clients, clickfolio.me turns your
+                resume into a portfolio website that fits how your field gets hired.
+              </p>
+              <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {PROFESSIONS.map((role) => (
+                  <Link
+                    key={role.slug}
+                    href={`/for/${role.slug}`}
+                    className="group flex items-center justify-between gap-2 rounded-xl border border-border bg-card p-4 shadow-sm transition-colors hover:border-border-strong"
+                  >
+                    <span className="text-sm font-medium">{role.label}</span>
+                    <ArrowRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                  </Link>
                 ))}
               </div>
             </section>

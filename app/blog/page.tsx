@@ -17,13 +17,13 @@ import {
 /** Revalidate blog listing every 30 minutes for fresh content. */
 export const revalidate = 1800;
 
-const blogTitle = `Blog | ${siteConfig.fullName}`;
+const blogTitle = `Resume Website & Portfolio Guides | ${siteConfig.fullName}`;
 const blogDescription =
-  "Guides, comparisons, and tips for building your online portfolio. Learn how to turn your PDF resume into a professional website.";
+  "Guides, comparisons, and tips on building a resume website and online portfolio. Compare builders, see examples, and learn how to turn your PDF resume into a site.";
 
 /** SEO metadata for the blog listing page. */
 export const metadata: Metadata = {
-  title: "Blog",
+  title: "Resume Website & Portfolio Guides",
   description: blogDescription,
   alternates: { canonical: `${siteConfig.url}/blog` },
   openGraph: {

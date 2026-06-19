@@ -32,28 +32,36 @@ export default function BestResumeWebsiteBuildersPage() {
     <BlogPostLayout post={post} relatedPosts={relatedPosts}>
       <section>
         <p>
-          The tool you choose to build your resume website matters. It affects how fast your site
-          loads, how it looks on mobile, whether recruiters can find you on Google, and how much
-          control you have over your data.
+          Most "best resume website builder" lists compare tools that do completely different jobs.
+          A resume builder that exports a PDF is not the same as a one-page site builder, and
+          neither is the same as a tool that turns your existing resume into a hosted portfolio. The
+          right pick depends on what you already have and what you want to end up with.
         </p>
         <p>
-          We tested 8 resume-to-website tools — ranking them on template quality, ease of use,
-          pricing, privacy, editing flexibility, and real web hosting. Here's what we found.
+          This guide compares seven tools that real people actually use in 2026, plus one that
+          recently shut down. For each one we cover what it is, what the free tier gives you,
+          whether you can use your own domain, and whether it can import a resume you already wrote.
+          We build{" "}
+          <Link href="/" className="text-brand font-semibold">
+            clickfolio.me
+          </Link>
+          , so treat us as a biased-but-honest source: we have noted where we fall short, including
+          the fact that we do not support custom domains yet.
         </p>
       </section>
 
       <section>
-        <h2>The Comparison at a Glance</h2>
+        <h2>The comparison at a glance</h2>
         <div className="overflow-x-auto my-8 not-prose">
           <table className="w-full border-collapse overflow-hidden rounded-lg border border-border text-sm">
             <thead>
               <tr className="bg-surface-2 text-foreground">
                 <th className="border border-border p-3 text-left font-semibold">Tool</th>
-                <th className="border border-border p-3 text-left font-semibold">Templates</th>
-                <th className="border border-border p-3 text-left font-semibold">Free Tier</th>
-                <th className="border border-border p-3 text-left font-semibold">Real Hosting</th>
+                <th className="border border-border p-3 text-left font-semibold">What it is</th>
+                <th className="border border-border p-3 text-left font-semibold">Free tier</th>
+                <th className="border border-border p-3 text-left font-semibold">Custom domain</th>
                 <th className="border border-border p-3 text-left font-semibold">
-                  Privacy Controls
+                  Imports your resume?
                 </th>
               </tr>
             </thead>
@@ -62,211 +70,218 @@ export default function BestResumeWebsiteBuildersPage() {
                 <td className="border border-border p-3 font-semibold text-foreground">
                   clickfolio.me
                 </td>
-                <td className="border border-border p-3">10</td>
+                <td className="border border-border p-3">AI resume-to-website</td>
                 <td className="border border-border p-3 text-brand font-semibold">Free forever</td>
-                <td className="border border-border p-3">Yes (Cloudflare)</td>
-                <td className="border border-border p-3">Granular field-level</td>
+                <td className="border border-border p-3">Not yet (clickfolio.me/@handle)</td>
+                <td className="border border-border p-3">Yes — PDF, parsed by AI</td>
               </tr>
               <tr>
                 <td className="border border-border p-3 font-semibold text-foreground">
-                  Magic Self
+                  Standard Resume
                 </td>
-                <td className="border border-border p-3">3</td>
-                <td className="border border-border p-3">Open source</td>
-                <td className="border border-border p-3">Self-hosted only</td>
-                <td className="border border-border p-3">None</td>
+                <td className="border border-border p-3">Resume builder + hosted web resume</td>
+                <td className="border border-border p-3">Free Basic</td>
+                <td className="border border-border p-3">Custom slug only (Pro $19/mo)</td>
+                <td className="border border-border p-3">LinkedIn import</td>
               </tr>
               <tr className="bg-card">
-                <td className="border border-border p-3 font-semibold text-foreground">DockPage</td>
-                <td className="border border-border p-3">5</td>
-                <td className="border border-border p-3">Limited</td>
-                <td className="border border-border p-3">Yes</td>
-                <td className="border border-border p-3">Basic</td>
+                <td className="border border-border p-3 font-semibold text-foreground">Carrd</td>
+                <td className="border border-border p-3">General one-page site builder</td>
+                <td className="border border-border p-3">3 sites on a subdomain</td>
+                <td className="border border-border p-3">Yes, Pro Standard $19/yr</td>
+                <td className="border border-border p-3">No — build by hand</td>
               </tr>
               <tr>
-                <td className="border border-border p-3 font-semibold text-foreground">
-                  SpaceLoom
-                </td>
-                <td className="border border-border p-3">4</td>
-                <td className="border border-border p-3">1 page free</td>
-                <td className="border border-border p-3">Subdomain</td>
-                <td className="border border-border p-3">None</td>
+                <td className="border border-border p-3 font-semibold text-foreground">Super.so</td>
+                <td className="border border-border p-3">Notion-to-website builder</td>
+                <td className="border border-border p-3">1 site on super.site</td>
+                <td className="border border-border p-3">Yes, from $16/mo</td>
+                <td className="border border-border p-3">No — content lives in Notion</td>
               </tr>
               <tr className="bg-card">
-                <td className="border border-border p-3 font-semibold text-foreground">
-                  EZfolio CV
-                </td>
-                <td className="border border-border p-3">6</td>
-                <td className="border border-border p-3">Free</td>
-                <td className="border border-border p-3">Subdomain</td>
-                <td className="border border-border p-3">None</td>
-              </tr>
-              <tr>
-                <td className="border border-border p-3 font-semibold text-foreground">Refolio</td>
-                <td className="border border-border p-3">8</td>
-                <td className="border border-border p-3">7-day trial</td>
-                <td className="border border-border p-3">Yes</td>
-                <td className="border border-border p-3">None</td>
-              </tr>
-              <tr className="bg-card">
-                <td className="border border-border p-3 font-semibold text-foreground">CVPage</td>
-                <td className="border border-border p-3">3</td>
-                <td className="border border-border p-3">Free</td>
-                <td className="border border-border p-3">Subdomain</td>
-                <td className="border border-border p-3">None</td>
-              </tr>
-              <tr>
                 <td className="border border-border p-3 font-semibold text-foreground">
                   Reactive Resume
                 </td>
-                <td className="border border-border p-3">2 (PDF only)</td>
-                <td className="border border-border p-3">Open source</td>
-                <td className="border border-border p-3">Self-hosted only</td>
-                <td className="border border-border p-3">None</td>
+                <td className="border border-border p-3">Open-source resume builder</td>
+                <td className="border border-border p-3">Free / self-hostable</td>
+                <td className="border border-border p-3">Only if self-hosted</td>
+                <td className="border border-border p-3">JSON / LinkedIn</td>
+              </tr>
+              <tr>
+                <td className="border border-border p-3 font-semibold text-foreground">
+                  JSON Resume
+                </td>
+                <td className="border border-border p-3">Open JSON standard + themes</td>
+                <td className="border border-border p-3">Free</td>
+                <td className="border border-border p-3">Depends on where you deploy</td>
+                <td className="border border-border p-3">JSON / CLI / gists</td>
+              </tr>
+              <tr className="bg-card">
+                <td className="border border-border p-3 font-semibold text-foreground">
+                  Kickresume
+                </td>
+                <td className="border border-border p-3">AI resume builder + website feature</td>
+                <td className="border border-border p-3">Free plan (Premium ~$8/mo)</td>
+                <td className="border border-border p-3">Not clearly documented</td>
+                <td className="border border-border p-3">AI-assisted entry</td>
               </tr>
             </tbody>
           </table>
         </div>
-      </section>
-
-      <section>
-        <h2>Detailed Reviews</h2>
-
-        <h3>clickfolio.me — Best Overall</h3>
         <p>
-          clickfolio.me takes the top spot for one simple reason: it's the only tool that combines
-          AI-powered PDF parsing, real web hosting, generous free tier, and granular privacy
-          controls in one package. Upload your existing PDF resume, and within 30 seconds you have a
-          live, hosted website at <code>@yourname</code>. Ten templates range from ATS-friendly
-          classics to bold creative designs, and you can switch between them instantly without
-          losing content. Built-in analytics show who's viewing your portfolio. Privacy controls let
-          you toggle individual fields on or off. And it's free forever — premium templates unlock
-          through referrals, not payment.
-        </p>
-
-        <h3>Magic Self — Best for Developers Who Want Full Control</h3>
-        <p>
-          Magic Self is an open-source project that generates a static portfolio site from your
-          resume data. It's well-built, and if you're comfortable with Git, npm, and deploying to
-          Vercel or Netlify, it works. But that's the catch — you need to be a developer. There's no
-          hosted version, no AI parsing, and only 3 basic templates. It's a good starting point for
-          a dev who wants to customize everything, but it's not a turnkey solution for most
-          professionals.
-        </p>
-
-        <h3>DockPage — Good LinkedIn Integration, Weak Free Tier</h3>
-        <p>
-          DockPage's strength is LinkedIn import — it pulls your profile data and builds a page from
-          it. This saves time if your LinkedIn is up to date. But the free tier is bare-bones:
-          limited customization, watermarks, and no analytics. Templates feel dated compared to
-          modern design standards. If you're willing to pay, the premium tier unlocks more, but for
-          most users, a free alternative with more features makes more sense.
-        </p>
-
-        <h3>SpaceLoom — Fast, but Inflexible</h3>
-        <p>
-          SpaceLoom generates a portfolio quickly from your resume, and the templates are clean and
-          modern. But once generated, editing is minimal — you can't add sections, rearrange
-          content, or switch designs. You get one free page on a subdomain. For a quick one-off
-          page, it works. For an ongoing professional presence you can update and control, it falls
-          short.
-        </p>
-
-        <h3>EZfolio CV — Decent Free Option, Limited Polish</h3>
-        <p>
-          EZfolio CV offers 6 templates and a free tier, which is generous. But the hosting is on a
-          subdomain (ezfolio.com/yourname), the templates lack polish, and there are no privacy
-          controls or analytics. It's a step above a PDF, but not by much.
-        </p>
-
-        <h3>Refolio — Beautiful Designs, No Free Tier</h3>
-        <p>
-          Refolio has some of the best-looking templates in this comparison — they're modern,
-          animated, and visually striking. But there's no free tier beyond a 7-day trial, and the
-          pricing is steep for what you get. If design is your absolute priority and you don't mind
-          paying, it's worth a look. For everyone else, free tools with comparable design quality
-          exist.
-        </p>
-
-        <h3>CVPage — Basic but Functional</h3>
-        <p>
-          CVPage is a simple, free tool with 3 templates. It gets the job done if you want something
-          basic. But it lacks AI parsing, so you're entering data manually. No privacy controls, no
-          analytics, and templates that look like they're from 2019. Fine for a first portfolio, but
-          you'll outgrow it quickly.
-        </p>
-
-        <h3>Reactive Resume — PDF Builder, Not a Portfolio Site</h3>
-        <p>
-          Reactive Resume is an excellent open-source resume builder — for PDFs. It creates
-          beautiful resume documents with a drag-and-drop editor. But it doesn't create websites. If
-          you need a PDF resume, it's one of the best tools out there. If you need a live portfolio
-          website, it's not what you're looking for.
+          Read.cv used to belong on this list. It was acquired by Perplexity in January 2025 and
+          wound down through the year, with data export ending May 16, 2025. It is no longer
+          available, so if you had a profile there, head to our{" "}
+          <Link href="/blog/read-cv-alternatives" className="text-brand font-semibold">
+            Read.cv alternatives guide
+          </Link>{" "}
+          instead.
         </p>
       </section>
 
       <section>
-        <h2>Why clickfolio.me Wins for Most People</h2>
+        <h2>The reviews</h2>
+
+        <h3>clickfolio.me — best for turning an existing resume into a hosted site for free</h3>
+        <p>
+          If you already have a PDF resume, clickfolio.me is the fastest way to get a hosted site
+          out of it. You upload the PDF, the AI reads it into structured sections, and about thirty
+          seconds later you have a live page at clickfolio.me/@yourhandle. There are ten templates
+          (six free, four unlocked through referrals rather than money), field-level privacy toggles
+          so you can hide a phone number or address, and built-in analytics. Hosting runs on
+          Cloudflare, and the project is open source under the MIT license.
+        </p>
+        <p>
+          The honest weaknesses: there is no custom-domain support yet, so every site lives on a
+          clickfolio.me/@handle URL for now. And the nicest four templates require you to refer
+          other people before they unlock. If a personal domain is a hard requirement today, one of
+          the paid tools below will serve you better. If free hosting and a thirty-second setup
+          matter more, start with{" "}
+          <Link href="/" className="text-brand font-semibold">
+            the builder
+          </Link>{" "}
+          and read{" "}
+          <Link href="/blog/how-to-make-a-resume-website" className="text-brand font-semibold">
+            how to make a resume website
+          </Link>{" "}
+          if you want the full walkthrough.
+        </p>
+
+        <h3>Standard Resume — clean recruiter-friendly web resume</h3>
+        <p>
+          Standard Resume builds a polished single-page web resume from your details and can pull
+          from a LinkedIn import to save typing. The templates look great in front of recruiters,
+          which is the whole point. The catch is that the web features sit behind the Pro plan at
+          $19/month, including the custom web-resume URL and view tracking. The free Basic tier is
+          usable, but the result is a web resume rather than a customizable portfolio with multiple
+          sections. Good fit if you want a tidy online version of your resume and do not mind the
+          monthly cost.
+        </p>
+
+        <h3>Carrd — cheap and flexible, but you design everything</h3>
+        <p>
+          Carrd is a general one-page site builder, not a resume tool. You get three sites free on a
+          Carrd subdomain with light branding, and a custom domain starts at $19/year on the Pro
+          Standard plan (the $9/year Pro Lite tier does not include a custom domain). It is
+          genuinely cheap and very flexible. The trade-off is that there is no resume import at all.
+          You start from a blank canvas and lay out every block yourself, so plan for an afternoon
+          of design work if you go this route.
+        </p>
+
+        <h3>Super.so — fast pages if you already live in Notion</h3>
+        <p>
+          Super.so turns a Notion workspace into a website, so if your resume and projects already
+          live in Notion, you can publish quickly and keep editing in a tool you know. Free sites
+          run on a super.site subdomain with a small badge, and a custom domain starts at $16/month
+          on the Personal plan. It is not resume-specific and it assumes you are comfortable
+          structuring content in Notion, which makes it a better fit for people who already use
+          Notion daily than for someone starting from a PDF.
+        </p>
+
+        <h3>Reactive Resume — free and private, but the output is a resume</h3>
+        <p>
+          Reactive Resume is a well-regarded open-source resume builder. It is free to use, you can
+          self-host it, and it imports from JSON or LinkedIn. For privacy-minded people who want
+          full control, it is hard to beat on principle. The thing to understand is what it
+          produces: a resume document or a shareable link and PDF, not a full portfolio site. The
+          hosted version has no custom domain, and a custom domain is only possible if you
+          self-host. Pick it if a clean, free resume is the goal rather than a website.
+        </p>
+
+        <h3>JSON Resume — an open standard for developers</h3>
+        <p>
+          JSON Resume is a community-built open standard: you describe your resume in a JSON file
+          and render it with any of 400-plus themes. It is free and refreshingly portable, since
+          your data is not locked into one company. It is also clearly a developer workflow built
+          around JSON, a CLI, and gists, with no polished AI parsing or PDF import. If you are
+          technical and want a format you fully own, it is excellent. Everyone else will find the
+          setup fiddly.
+        </p>
+
+        <h3>Kickresume — resume builder with a website add-on</h3>
+        <p>
+          Kickresume is primarily an AI resume builder with strong writing help and ATS-oriented
+          features, and it includes a one-click personal website option. There is a free plan, with
+          Premium starting around $8/month. The website is a secondary feature rather than the main
+          event, and custom-domain support is not clearly documented, since published sites appear
+          on a Kickresume URL. Worth a look if you want resume writing help first and a simple
+          website second.
+        </p>
+      </section>
+
+      <section>
+        <h2>How to choose</h2>
         <ul>
           <li>
-            <strong>10 templates</strong> — from ATS-optimized (ClassicATS) to bold creative
-            (NeoBrutalist) to developer-focused (DevTerminal). Something for every profession.
+            <strong>You already have a PDF resume and want it hosted for free:</strong> start with{" "}
+            <Link href="/" className="text-brand font-semibold">
+              clickfolio.me
+            </Link>
+            . Just know the URL stays on clickfolio.me/@handle for now.
           </li>
           <li>
-            <strong>Real web hosting</strong> — your site lives on Cloudflare's global edge network,
-            not a third-party subdomain. Fast load times everywhere.
+            <strong>You need a personal domain today:</strong> Carrd ($19/year) is the cheapest
+            path, with Standard Resume and Super.so as paid alternatives.
           </li>
           <li>
-            <strong>Privacy controls</strong> — granular toggles for phone, address, and directory
-            visibility. No other free tool offers this.
+            <strong>You want a resume document, not a website:</strong> Reactive Resume or JSON
+            Resume, both free and open source.
           </li>
           <li>
-            <strong>Free forever</strong> — core features are free. Premium templates unlock via
-            referrals, not a credit card.
+            <strong>You want help writing the resume itself:</strong> Kickresume leans into AI
+            writing and ATS checks.
           </li>
           <li>
-            <strong>AI parsing + editing</strong> — don't type anything. Upload your PDF, review the
-            AI output, and publish. Full editor available for changes.
-          </li>
-        </ul>
-      </section>
-
-      <section>
-        <h2>When to Choose Another Tool</h2>
-        <p>clickfolio.me isn't for everyone. Here's when alternatives might be better:</p>
-        <ul>
-          <li>
-            If you're a developer who wants complete code control and custom deployment, Magic Self
-            gives you that.
-          </li>
-          <li>
-            If your LinkedIn is your single source of truth and you never touch a PDF, DockPage's
-            import might be faster.
-          </li>
-          <li>
-            If you need a PDF resume (not a website), Reactive Resume builds beautiful documents.
-          </li>
-          <li>
-            If you have budget for a paid tool and design is your top priority, Refolio's templates
-            are gorgeous.
+            <strong>You came from Read.cv:</strong> it is gone, so see our{" "}
+            <Link href="/blog/read-cv-alternatives" className="text-brand font-semibold">
+              Read.cv alternatives guide
+            </Link>
+            .
           </li>
         </ul>
         <p>
-          For everyone else — especially if you already have a PDF resume — clickfolio.me is the
-          fastest path from document to live portfolio.
+          If your starting point is LinkedIn rather than a PDF, our guide on{" "}
+          <Link href="/blog/linkedin-to-portfolio" className="text-brand font-semibold">
+            turning a LinkedIn profile into a portfolio
+          </Link>{" "}
+          covers that path, and you can browse{" "}
+          <Link href="/explore" className="text-brand font-semibold">
+            real published sites
+          </Link>{" "}
+          to see what each style looks like in practice.
         </p>
       </section>
 
       <section>
-        <h2>Try It Yourself</h2>
+        <h2>Try it yourself</h2>
         <p>
-          The best way to compare tools is to try them. Upload your resume to clickfolio.me and see
-          what you get in 30 seconds. It's free, no credit card required, and you can delete your
-          account anytime.
+          The fastest way to compare these tools is to publish with one and judge the result. With a
+          PDF in hand, clickfolio.me gets you a live page in about thirty seconds, free, with no
+          credit card, and you can delete everything whenever you want.
         </p>
         <p>
           <Link href="/" className="text-brand font-semibold">
-            Upload your resume and build your portfolio →
+            Upload your resume and compare for yourself →
           </Link>
         </p>
       </section>
