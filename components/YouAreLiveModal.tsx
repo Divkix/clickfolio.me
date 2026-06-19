@@ -2,13 +2,12 @@
 
 import { Check, Copy, ExternalLink, Gift, Rocket, XIcon } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useState } from "react";
-import { toast } from "sonner";
+import { useCallback } from "react";
 import { Confetti } from "@/components/Confetti";
 import { LinkedInIcon, WhatsAppIcon } from "@/components/icons/BrandIcons";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { copyToClipboard } from "@/lib/utils/clipboard";
+import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import {
   generateLinkedInShareUrl,
   generateTwitterShareUrl,
@@ -41,8 +40,8 @@ interface YouAreLiveModalProps {
  * ```
  */
 export function YouAreLiveModal({ open, onOpenChange, handle, url }: YouAreLiveModalProps) {
-  const [copied, setCopied] = useState(false);
-  const [referralCopied, setReferralCopied] = useState(false);
+  const { copied, copy } = useCopyToClipboard();
+  const { copied: referralCopied, copy: copyReferral } = useCopyToClipboard();
 
   const resumeUrl =
     url ||
@@ -58,26 +57,18 @@ export function YouAreLiveModal({ open, onOpenChange, handle, url }: YouAreLiveM
   const shareText = "Just published my professional resume! Check it out:";
 
   const handleCopyLink = useCallback(async () => {
-    try {
-      await copyToClipboard(resumeUrl);
-      setCopied(true);
-      toast.success("Link copied!");
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      toast.error("Failed to copy link");
-    }
-  }, [resumeUrl]);
+    await copy(resumeUrl, {
+      successMessage: "Link copied!",
+      errorMessage: "Failed to copy link",
+    });
+  }, [resumeUrl, copy]);
 
   const handleCopyReferralLink = useCallback(async () => {
-    try {
-      await copyToClipboard(referralUrl);
-      setReferralCopied(true);
-      toast.success("Referral link copied!");
-      setTimeout(() => setReferralCopied(false), 2000);
-    } catch {
-      toast.error("Failed to copy link");
-    }
-  }, [referralUrl]);
+    await copyReferral(referralUrl, {
+      successMessage: "Referral link copied!",
+      errorMessage: "Failed to copy link",
+    });
+  }, [referralUrl, copyReferral]);
 
   const handleTwitterShare = useCallback(() => {
     window.open(generateTwitterShareUrl(shareText, resumeUrl), "_blank", "noopener,noreferrer");

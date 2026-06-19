@@ -1,10 +1,9 @@
 "use client";
 
 import { Copy, Gift, MousePointerClick, Share2, Users } from "lucide-react";
-import { useCallback, useState } from "react";
-import { toast } from "sonner";
+import { useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { copyToClipboard } from "@/lib/utils/clipboard";
+import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 
 interface ReferralStatsProps {
   /** Number of users who signed up via this user's referral link */
@@ -24,7 +23,7 @@ interface ReferralStatsProps {
  * - Prominent copy button with focus ring
  */
 export function ReferralStats({ referralCount, clickCount, referralCode }: ReferralStatsProps) {
-  const [copied, setCopied] = useState(false);
+  const { copied, copy } = useCopyToClipboard();
 
   const referralUrl =
     typeof window !== "undefined"
@@ -32,15 +31,11 @@ export function ReferralStats({ referralCount, clickCount, referralCode }: Refer
       : `https://clickfolio.me/?ref=${referralCode}`;
 
   const handleCopyLink = useCallback(async () => {
-    try {
-      await copyToClipboard(referralUrl);
-      setCopied(true);
-      toast.success("Referral link copied!");
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      toast.error("Failed to copy link");
-    }
-  }, [referralUrl]);
+    await copy(referralUrl, {
+      successMessage: "Referral link copied!",
+      errorMessage: "Failed to copy link",
+    });
+  }, [referralUrl, copy]);
 
   // Calculate conversion rate
   const conversionRate = clickCount > 0 ? Math.round((referralCount / clickCount) * 100) : 0;

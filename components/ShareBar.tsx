@@ -3,9 +3,8 @@
 import { cva, type VariantProps } from "class-variance-authority";
 import { Check, Copy, Share2, XIcon } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { toast } from "sonner";
 import { type BrandIconVariant, LinkedInIcon, WhatsAppIcon } from "@/components/icons/BrandIcons";
-import { copyToClipboard } from "@/lib/utils/clipboard";
+import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { cn } from "@/lib/utils/cn";
 import {
   generateLinkedInShareUrl,
@@ -118,7 +117,7 @@ interface ShareBarProps extends VariantProps<typeof shareBarVariants> {
  * ```
  */
 export function ShareBar({ url, handle, title, name, variant, className }: ShareBarProps) {
-  const [copied, setCopied] = useState(false);
+  const { copied, copy } = useCopyToClipboard();
   const [hasWebShare, setHasWebShare] = useState(false);
   const shareText = generateShareText(name);
 
@@ -157,15 +156,11 @@ export function ShareBar({ url, handle, title, name, variant, className }: Share
   }, [shareText, shareUrl]);
 
   const handleCopyLink = useCallback(async () => {
-    try {
-      await copyToClipboard(shareUrl);
-      setCopied(true);
-      toast.success("Link copied!");
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      toast.error("Failed to copy link");
-    }
-  }, [shareUrl]);
+    await copy(shareUrl, {
+      successMessage: "Link copied!",
+      errorMessage: "Failed to copy link",
+    });
+  }, [shareUrl, copy]);
 
   return (
     <fieldset

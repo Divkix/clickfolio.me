@@ -3,10 +3,9 @@
 import { cva, type VariantProps } from "class-variance-authority";
 import { Check, Copy, Share2, XIcon } from "lucide-react";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
-import { toast } from "sonner";
 import { type BrandIconVariant, LinkedInIcon, WhatsAppIcon } from "@/components/icons/BrandIcons";
+import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { siteConfig } from "@/lib/config/site";
-import { copyToClipboard } from "@/lib/utils/clipboard";
 import { cn } from "@/lib/utils/cn";
 import {
   generateLinkedInShareUrl,
@@ -133,7 +132,7 @@ interface SharePopoverProps extends VariantProps<typeof triggerVariants> {
  */
 export function SharePopover({ url, handle, title, name, variant, className }: SharePopoverProps) {
   const [open, setOpen] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const { copied, copy } = useCopyToClipboard();
   const popoverId = useId();
   const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -204,16 +203,12 @@ export function SharePopover({ url, handle, title, name, variant, className }: S
   }, [shareText, shareUrl]);
 
   const handleCopyLink = useCallback(async () => {
-    try {
-      await copyToClipboard(shareUrl);
-      setCopied(true);
-      toast.success("Link copied!");
-      setTimeout(() => setCopied(false), 2000);
-      setOpen(false);
-    } catch {
-      toast.error("Failed to copy link");
-    }
-  }, [shareUrl]);
+    await copy(shareUrl, {
+      successMessage: "Link copied!",
+      errorMessage: "Failed to copy link",
+      onSuccess: () => setOpen(false),
+    });
+  }, [shareUrl, copy]);
 
   return (
     <div
