@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BlogPostLayout } from "@/components/blog/BlogPostLayout";
-import { getPostBySlug } from "@/lib/blog/posts";
-import { siteConfig } from "@/lib/config/site";
+import { buildBlogPostMetadata, getPostBySlug } from "@/lib/blog/posts";
 
 export const revalidate = 3600;
 
@@ -12,19 +11,7 @@ const relatedPosts = ["clickfolio-templates-showcase", "how-to-make-a-resume-web
   .filter(Boolean) as (typeof post)[];
 
 export function generateMetadata(): Metadata {
-  return {
-    title: post.title,
-    description: post.description,
-    alternates: { canonical: `${siteConfig.url}/blog/${post.slug}` },
-    openGraph: {
-      title: `${post.title} | ${siteConfig.fullName}`,
-      description: post.description,
-      siteName: siteConfig.fullName,
-      images: [{ url: "/api/og/home", width: 1200, height: 630 }],
-    },
-    twitter: { card: "summary_large_image" },
-    robots: { index: true, follow: true },
-  };
+  return buildBlogPostMetadata(post);
 }
 
 export default function ResumeWebsiteExamplesPage() {

@@ -4,6 +4,7 @@
  * to enable rich snippets in Google/Bing search results.
  */
 
+import type { Metadata } from "next";
 import { FAQ_ITEMS } from "@/lib/config/faq";
 import { siteConfig } from "@/lib/config/site";
 import type { ResumeContent } from "@/lib/types/database";
@@ -569,6 +570,35 @@ export function generateWebPageJsonLd(
     page.dateModified = dateModified;
   }
   return page;
+}
+
+/**
+ * Builds the Next.js Metadata object for a /for/<role> profession landing page.
+ * Shared by every app/for/<role>/page.tsx so the per-page `export const metadata`
+ * stays a one-line call. Output is identical to the previous inline definition.
+ */
+export function buildRolePageMetadata(params: {
+  title: string;
+  description: string;
+  path: string;
+}): Metadata {
+  const { title, description, path } = params;
+  return {
+    title,
+    description,
+    alternates: { canonical: `${siteConfig.url}${path}` },
+    openGraph: {
+      title,
+      description,
+      siteName: siteConfig.fullName,
+      images: [{ url: `${siteConfig.url}/api/og/home`, width: 1200, height: 630 }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+    },
+  };
 }
 
 /**

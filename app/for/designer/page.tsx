@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { RoleFaqSection } from "@/components/Faq";
 import { Button } from "@/components/ui/button";
-import { siteConfig } from "@/lib/config/site";
 import {
+  buildRolePageMetadata,
   generatePageBreadcrumbJsonLd,
   generateWebPageJsonLd,
   serializeJsonLd,
@@ -15,22 +15,7 @@ const description =
   "Turn your PDF into a stunning design portfolio website. Showcase your work with 10 beautiful templates — free, no signup required. Custom @handle URL included.";
 const path = "/for/designer";
 
-export const metadata: Metadata = {
-  title,
-  description,
-  alternates: { canonical: `${siteConfig.url}${path}` },
-  openGraph: {
-    title,
-    description,
-    siteName: siteConfig.fullName,
-    images: [{ url: `${siteConfig.url}/api/og/home`, width: 1200, height: 630 }],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title,
-    description,
-  },
-};
+export const metadata: Metadata = buildRolePageMetadata({ title, description, path });
 
 const faqs = [
   {

@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { RoleFaqSection } from "@/components/Faq";
 import { Button } from "@/components/ui/button";
-import { siteConfig } from "@/lib/config/site";
 import {
+  buildRolePageMetadata,
   generatePageBreadcrumbJsonLd,
   generateWebPageJsonLd,
   serializeJsonLd,
@@ -15,22 +15,7 @@ const description =
   "Showcase your code, projects, and experience with a free resume website. 10 templates including DevTerminal, GitHub & LinkedIn integration, and AI-powered PDF parsing.";
 const path = "/for/software-engineer";
 
-export const metadata: Metadata = {
-  title,
-  description,
-  alternates: { canonical: `${siteConfig.url}${path}` },
-  openGraph: {
-    title,
-    description,
-    siteName: siteConfig.fullName,
-    images: [{ url: `${siteConfig.url}/api/og/home`, width: 1200, height: 630 }],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title,
-    description,
-  },
-};
+export const metadata: Metadata = buildRolePageMetadata({ title, description, path });
 
 const faqs = [
   {

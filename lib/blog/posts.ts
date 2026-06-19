@@ -1,3 +1,6 @@
+import type { Metadata } from "next";
+import { siteConfig } from "@/lib/config/site";
+
 export interface BlogPostFaq {
   q: string;
   a: string;
@@ -463,4 +466,26 @@ export const BLOG_POSTS: BlogPostMeta[] = [
 
 export function getPostBySlug(slug: string): BlogPostMeta | undefined {
   return BLOG_POSTS.find((p) => p.slug === slug);
+}
+
+/**
+ * Builds the Next.js Metadata object for an individual blog post page.
+ * Shared by every app/blog/<slug>/page.tsx so the per-page generateMetadata()
+ * stays a one-line delegation. Output is identical to the previous inline
+ * definition.
+ */
+export function buildBlogPostMetadata(post: BlogPostMeta): Metadata {
+  return {
+    title: post.title,
+    description: post.description,
+    alternates: { canonical: `${siteConfig.url}/blog/${post.slug}` },
+    openGraph: {
+      title: `${post.title} | ${siteConfig.fullName}`,
+      description: post.description,
+      siteName: siteConfig.fullName,
+      images: [{ url: "/api/og/home", width: 1200, height: 630 }],
+    },
+    twitter: { card: "summary_large_image" },
+    robots: { index: true, follow: true },
+  };
 }
