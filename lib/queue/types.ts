@@ -6,7 +6,7 @@ import { z } from "zod";
 
 /**
  * Zod schema for resume parse queue messages.
- * Used at system boundaries (worker.ts queue consumer) to validate untrusted input.
+ * Used at system boundaries (worker/index.ts queue consumer) to validate untrusted input.
  *
  * Currently a single-variant discriminated union.
  * Add more message types here when needed — z.discriminatedUnion("type", [...]).

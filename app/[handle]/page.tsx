@@ -46,7 +46,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const handle = rawHandle.slice(1);
 
   // Early reject invalid formats — skips DB query for bot probes, missing files, malformed paths
-  // See: lib/utils/handle-validation.ts for why this exists
+  // See: lib/rate-limit/handle-validation.ts for why this exists
   if (!isValidHandleFormat(handle)) {
     return {
       title: "Not Found",
@@ -145,7 +145,7 @@ export default async function HandlePage({ params }: PageProps) {
   const handle = rawHandle.slice(1);
 
   // Early reject invalid formats — skips DB query for bot probes, missing files, malformed paths
-  // See: lib/utils/handle-validation.ts for why this exists
+  // See: lib/rate-limit/handle-validation.ts for why this exists
   if (!isValidHandleFormat(handle)) {
     notFound();
   }

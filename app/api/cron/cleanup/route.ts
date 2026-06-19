@@ -1,7 +1,7 @@
 /**
  * Cloudflare Cron Trigger handler for database cleanup (HTTP endpoint)
  *
- * Exists for manual triggers; the scheduled handler in worker.ts calls
+ * Exists for manual triggers; the scheduled handler in worker/index.ts calls
  * performCleanup() directly to avoid double Worker invocation billing.
  *
  * Scheduled daily at 3 AM UTC via wrangler.jsonc

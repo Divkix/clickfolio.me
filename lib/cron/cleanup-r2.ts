@@ -2,7 +2,7 @@
  * R2 storage cleanup for orphaned temp uploads and durable pending deletions.
  *
  * Called by:
- * - worker.ts scheduled handler (direct invocation, no extra Worker billing)
+ * - worker/index.ts scheduled handler (direct invocation, no extra Worker billing)
  * - /api/cron/cleanup-r2 route handler (manual trigger via HTTP)
  *
  * Deletes:
