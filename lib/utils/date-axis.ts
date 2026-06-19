@@ -3,9 +3,9 @@
  */
 
 /**
- * Returns the last `days` UTC calendar days as YYYY-MM-DD strings, in ascending
- * order ending today (UTC). Used to build a continuous descending-built date
- * axis for analytics responses (callers map each date to their own row shape).
+ * Returns the last `days` UTC calendar days as YYYY-MM-DD strings, oldest first
+ * and ending today (UTC). Used to build a gap-free date axis for analytics
+ * responses (callers map each date to their own row shape).
  *
  * Anchored on Date.now() so it tracks the current wall clock per request.
  *
