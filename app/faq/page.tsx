@@ -1,6 +1,6 @@
-import { ChevronDown } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { FaqAccordion } from "@/components/Faq";
 import { Footer } from "@/components/Footer";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Button } from "@/components/ui/button";
@@ -85,23 +85,7 @@ export default function FAQPage() {
           </div>
 
           {/* Accordion */}
-          <div className="mt-12 space-y-3">
-            {FAQ_ITEMS.map((faq) => (
-              <details
-                key={faq.q}
-                className="group rounded-xl border border-border bg-card shadow-sm transition-colors open:border-border-strong"
-              >
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 p-6 font-semibold text-foreground [&::-webkit-details-marker]:hidden">
-                  {faq.q}
-                  <ChevronDown
-                    className="size-5 shrink-0 text-muted-foreground transition-transform duration-200 group-open:rotate-180"
-                    aria-hidden="true"
-                  />
-                </summary>
-                <p className="px-6 pb-6 leading-relaxed text-muted-foreground">{faq.a}</p>
-              </details>
-            ))}
-          </div>
+          <FaqAccordion items={FAQ_ITEMS} className="mt-12" />
 
           {/* CTA */}
           <div className="mt-16 rounded-2xl border border-border bg-brand-subtle p-8 text-center sm:p-12">

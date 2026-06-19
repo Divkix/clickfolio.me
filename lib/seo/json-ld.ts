@@ -417,8 +417,25 @@ export function generateHomepageJsonLd(): Record<string, unknown>[] {
       "@type": "Organization",
       "@id": `${siteConfig.url}/#organization`,
       name: siteConfig.fullName,
+      alternateName: siteConfig.alternateNames,
       url: siteConfig.url,
       logo: `${siteConfig.url}/icon-512.png`,
+      description:
+        "clickfolio.me is a free AI resume website builder that turns a PDF resume into a hosted personal portfolio website with a custom @handle URL.",
+      foundingDate: "2025",
+      sameAs: siteConfig.sameAs,
+      founder: {
+        "@type": "Person",
+        name: siteConfig.founder.name,
+        url: siteConfig.founder.url,
+        sameAs: siteConfig.founder.sameAs,
+      },
+      contactPoint: {
+        "@type": "ContactPoint",
+        contactType: "customer support",
+        email: siteConfig.supportEmail,
+        url: `${siteConfig.url}/faq`,
+      },
     },
     {
       "@context": "https://schema.org",
@@ -473,10 +490,21 @@ export function generateExploreJsonLd(
  * Generates FAQPage JSON-LD for the homepage.
  */
 export function generateFAQJsonLd(): Record<string, unknown> {
+  return generateFAQPageJsonLd(FAQ_ITEMS);
+}
+
+/**
+ * Generates FAQPage JSON-LD from an arbitrary list of Q&A items.
+ * Used by profession landing pages and blog posts to expose their own FAQs
+ * as rich results and AI-extractable answers.
+ */
+export function generateFAQPageJsonLd(
+  items: Array<{ q: string; a: string }>,
+): Record<string, unknown> {
   return {
     "@context": "https://schema.org",
     "@type": "FAQPage",
-    mainEntity: FAQ_ITEMS.map((faq) => ({
+    mainEntity: items.map((faq) => ({
       "@type": "Question",
       name: faq.q,
       acceptedAnswer: {

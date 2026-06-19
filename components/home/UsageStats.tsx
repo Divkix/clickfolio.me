@@ -1,9 +1,9 @@
 export function UsageStats() {
   const stats = [
-    { stat: "95%+", label: "Accuracy", desc: "AI parsing accuracy across 10,000+ resumes" },
     { stat: "~30s", label: "Setup", desc: "Average time from upload to live portfolio" },
     { stat: "10", label: "Templates", desc: "Professionally designed, mobile-responsive themes" },
-    { stat: "Free", label: "Forever", desc: "No trials, no credit card, no time limits" },
+    { stat: "$0", label: "Forever", desc: "No trials, no credit card, no time limits" },
+    { stat: "MIT", label: "Open source", desc: "Transparent code you can inspect on GitHub" },
   ];
 
   return (
