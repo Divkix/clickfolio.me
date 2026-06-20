@@ -37,6 +37,18 @@ const SECURITY_HEADERS: Record<string, string> = {
   "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
 };
 
+/**
+ * Vulnerability-scanner probe paths (WordPress, exposed secrets, DB admin tools).
+ * These never map to a real app route, so we 404 them at the edge of the worker
+ * instead of running the full vinext/React 404 render — saving CPU on the high
+ * volume of automated scanner traffic. Compiled once per isolate.
+ *
+ * Kept deliberately narrow so legitimate routes (`/@handle`, `/for/*`, `/api/*`,
+ * `/blog/*`) can never match.
+ */
+const BLOCKED_PATHS =
+  /(?:\.php$|^\/\.env|^\/\.git\/|^\/\.aws\/|^\/wp-|xmlrpc|adminer|^\/config\.json$|application\.ya?ml$)/i;
+
 export default {
   /**
    * Main request handler. Routes WebSocket upgrade requests to the
@@ -57,6 +69,12 @@ export default {
    */
   async fetch(request: Request, env: CloudflareEnv, _ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
+
+    // Short-circuit known vulnerability-scanner probes with a cheap 404, skipping
+    // the full vinext/React 404 render. See BLOCKED_PATHS for the (narrow) denylist.
+    if (BLOCKED_PATHS.test(url.pathname)) {
+      return new Response("Not Found", { status: 404, headers: SECURITY_HEADERS });
+    }
 
     // Manually intercept WebSocket upgrade requests for resume status.
     // TODO(vinext): Remove once vinext handles WebSocket upgrades upstream;

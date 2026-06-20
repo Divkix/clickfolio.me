@@ -36,29 +36,14 @@ function renderLastResort(): Response {
   });
 }
 
-/** Attempts to render a PNG via resvg; falls back to a raw SVG if resvg fails. */
-async function renderFallbackPng(): Promise<Response> {
-  try {
-    const resvg = await Resvg.async(FALLBACK_SVG, RESVG_OPTIONS);
-    const png = resvg.render();
-    return new Response(new Uint8Array(png.asPng()), {
-      headers: {
-        "Content-Type": "image/png",
-        "Cache-Control": "public, max-age=300",
-      },
-    });
-  } catch {
-    return renderLastResort();
-  }
-}
-
 /**
  * GET /api/og/[handle]
  * Dynamic profile OG image — shows name, headline, top skills.
- * 1200x630 PNG, cached for 1 hour with 24h stale-while-revalidate.
+ * 1200x630 PNG, cached for 24h with 7d stale-while-revalidate.
  *
- * Fallback chain: PNG → SVG. If the profile is not found or resvg fails,
- * falls back to a static SVG (`renderLastResort`).
+ * Not-found handles and empty input return a static SVG (`renderLastResort`,
+ * no resvg) to avoid WASM rasterization cost for bot probes. A genuine resvg
+ * failure on a real profile also falls back to the static SVG.
  *
  * @param _request - Intentionally ignored (vinext pattern).
  * @param params - Route parameters containing the user `handle`.
@@ -70,7 +55,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ han
   const handle = decodeURIComponent(rawHandle).replace(/^@/, "");
 
   if (!handle) {
-    return renderFallbackPng();
+    // Static SVG (no resvg) — avoids paying WASM rasterization for empty/bot probes.
+    return renderLastResort();
   }
 
   try {
@@ -93,7 +79,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ han
     const row = rows[0];
 
     if (!row) {
-      return renderFallbackPng();
+      // Static SVG (no resvg) — avoids paying WASM rasterization for unknown handles (bot probes).
+      return renderLastResort();
     }
 
     const displayName = escapeXml(row.previewName || row.name || handle);
@@ -186,7 +173,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ han
     return new Response(new Uint8Array(png.asPng()), {
       headers: {
         "Content-Type": "image/png",
-        "Cache-Control": "public, max-age=3600, stale-while-revalidate=86400",
+        "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800",
       },
     });
   } catch (error) {

@@ -8,7 +8,7 @@ import {
   serializeJsonLd,
 } from "@/lib/seo/json-ld";
 
-export const revalidate = 3600;
+export const revalidate = 86400;
 
 const title = "Free Resume Website for Students";
 const description =

@@ -4,7 +4,7 @@ import { BlogPostLayout } from "@/components/blog/BlogPostLayout";
 import { buildBlogPostMetadata, getPostBySlug } from "@/lib/blog/posts";
 import { siteConfig } from "@/lib/config/site";
 
-export const revalidate = 3600;
+export const revalidate = 86400;
 
 const post = getPostBySlug("privacy-at-clickfolio")!;
 const relatedPosts = ["pdf-resume-to-website", "best-resume-website-builders"]

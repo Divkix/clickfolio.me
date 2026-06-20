@@ -4,7 +4,7 @@ import { BlogPostLayout } from "@/components/blog/BlogPostLayout";
 import { StatsGrid } from "@/components/blog/StatsGrid";
 import { buildBlogPostMetadata, getPostBySlug } from "@/lib/blog/posts";
 
-export const revalidate = 3600;
+export const revalidate = 86400;
 
 const post = getPostBySlug("ai-resume-parsing-accuracy")!;
 const relatedPosts = ["pdf-resume-to-website", "resume-writing-tips"]
