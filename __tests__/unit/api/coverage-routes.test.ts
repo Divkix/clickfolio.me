@@ -744,16 +744,18 @@ describe("API route coverage", () => {
     expect(homeResponse.headers.get("Content-Type")).toBe("image/svg+xml");
     expect(await homeResponse.text()).toContain("clickfolio");
 
+    // Empty handle → static SVG (no resvg) to avoid WASM cost for bot probes.
     const emptyHandle = await dynamic.GET(new Request("https://clickfolio.me/api/og/"), {
       params: Promise.resolve({ handle: "" }),
     });
-    expect(emptyHandle.headers.get("Content-Type")).toBe("image/png");
+    expect(emptyHandle.headers.get("Content-Type")).toBe("image/svg+xml");
 
+    // Unknown handle → static SVG (no resvg).
     mocks.state.selectResults = [[]];
     const missing = await dynamic.GET(new Request("https://clickfolio.me/api/og/missing"), {
       params: Promise.resolve({ handle: "missing" }),
     });
-    expect(missing.headers.get("Content-Type")).toBe("image/png");
+    expect(missing.headers.get("Content-Type")).toBe("image/svg+xml");
 
     mocks.state.selectResults = [
       [

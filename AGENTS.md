@@ -49,9 +49,9 @@ app/                        # vinext App Router
   (admin)/admin/            # Admin-only: analytics, referrals, resumes, users (requireAdminAuth())
                             #   ONLY the layout gates auth; the 4 sub-pages are "use client", no own gate
   api/                      # API routes (see API Routes section)
-  blog/                     # Static blog pages — 17 hardcoded route folders, not DB-driven
+  blog/                     # Static blog pages — 17 hardcoded route folders, not DB-driven — ISR 86400 (list page too)
                             #   (lib/blog/posts.ts BLOG_POSTS lists 17 entries; 1:1 with route folders)
-  for/                      # SEO landing pages by role (6: software-engineer, designer, ...)
+  for/                      # SEO landing pages by role (6: software-engineer, designer, ...) — ISR 86400
   explore/                  # Single static explore page (lists users where showInDirectory=true) — ISR 300
   preview/[id]/             # Demo-data-only template preview (noindex, ISR 7d) for thumbnail script
   privacy/                  # Privacy policy
@@ -264,6 +264,7 @@ Because the test npm scripts already inject `--config vitest.<suite>.config.ts`,
 
 The real entrypoint. Wraps the vinext handler and adds:
 
+- **Scanner-probe short-circuit** (FIRST thing in `fetch()`, before the WS block): a module-scope `BLOCKED_PATHS` RegExp matches obvious vuln-scanner paths (`*.php`, `/.env`, `/.git/`, `/.aws/`, `/wp-*`, `xmlrpc`, `adminer`, `/config.json`, `application.ya?ml`) and returns a bare `404` with `SECURITY_HEADERS` — skipping the full vinext/React 404 render (these were ~10% of fetch CPU). Kept deliberately narrow so `/@handle`, `/for/*`, `/api/*`, `/blog/*` never match.
 - **Queue consumer** (`CLICKFOLIO_PARSE_QUEUE`) + **DLQ handler** (`clickfolio-parse-dlq`), detected via `batch.queue === INFRA.DLQ_NAME`. Every message is `queueMessageSchema.safeParse`'d; **malformed messages are `ack()`'d (DISCARDED — they do NOT go to DLQ)**. On a processing throw, `isRetryableError(error)` → `retry()`; otherwise `ack()` (lets Cloudflare's `dead_letter_queue` config route it to the DLQ). The parse queue has `max_retries:3`; the **DLQ is a SECOND consumer on the same worker with `max_batch_size:1, max_retries:0`** — a DLQ message that throws is dropped, not retried.
 - **4 cron triggers** called **directly** (not via HTTP self-fetch — avoids double-billing). Dispatched by `controller.cron` in `scheduled()`. Each case early-returns with an error log if its required binding is missing (R2 for `0 2`, KV for `0 4`, Queue for `*/15`); the whole switch is wrapped in try/catch (a throwing cron does NOT crash the worker); unknown expressions log `unknown cron trigger`.
   - `"0 2 * * *"` — R2 temp cleanup + pending-deletion retry (`lib/cron/cleanup-r2.ts`)
@@ -271,7 +272,7 @@ The real entrypoint. Wraps the vinext handler and adds:
   - `"0 4 * * *"` — disposable domain KV sync (`lib/cron/sync-disposable-domains.ts`)
   - `"*/15 * * * *"` — orphan resume recovery (`lib/cron/recover-orphaned.ts`)
 - **WebSocket upgrade routing** (`/ws/resume-status`) → Durable Object. Regex-extracts the session token from the raw `Cookie` header (`/better-auth\.session_token=([^;]+)/`) as a **cheap presence pre-check only** — the real auth passes the FULL raw Cookie header to `auth.api.getSession({ headers })`. Verifies D1 resume ownership via `getSessionDbForWebhook` (`"first-primary"`, no cookies — _not_ `getDb`), then forwards to the DO (`idFromName(resumeId)`) injecting the `X-Authenticated-User-Id` header.
-- **Security headers** injected on every non-WS response via a **local `SECURITY_HEADERS` constant defined in `worker/index.ts`** (lines 32–38): HSTS `max-age=31536000; includeSubDomains` (**1yr, NO `preload`**), X-Content-Type-Options, X-Frame-Options:DENY, Referrer-Policy, Permissions-Policy `camera=(), microphone=(), geolocation=()`, and **NO X-XSS-Protection**. ⚠️ This is DISTINCT from the `SECURITY_HEADERS` in `lib/utils/security-headers.ts` (see API Routes) — editing one does NOT change the other. The Content-Security-Policy itself originates in `next.config.ts` `headers()`, not here (see below).
+- **Security headers** injected on every non-WS response via a **local `SECURITY_HEADERS` constant defined in `worker/index.ts`** (also applied to the scanner-probe early-404 above): HSTS `max-age=31536000; includeSubDomains` (**1yr, NO `preload`**), X-Content-Type-Options, X-Frame-Options:DENY, Referrer-Policy, Permissions-Policy `camera=(), microphone=(), geolocation=()`, and **NO X-XSS-Protection**. ⚠️ This is DISTINCT from the `SECURITY_HEADERS` in `lib/utils/security-headers.ts` (see API Routes) — editing one does NOT change the other. The Content-Security-Policy itself originates in `next.config.ts` `headers()`, not here (see below).
 
 ### Cloudflare bindings (`wrangler.jsonc`)
 
@@ -380,7 +381,7 @@ Key routes not obvious from directory names:
 - `GET /api/cron/*` — manual cron triggers (`cleanup`, `cleanup-r2`, `recover-orphaned`, `sync-domains`); `Bearer ${CRON_SECRET}` (`requireCronAuth`, fail-closed).
 - `GET /api/health` — `dynamic='force-dynamic'`, unauthenticated public liveness probe. Checks D1 (`SELECT 1`), R2 (`list({limit:1})`), AI gateway **config presence only** (no AI call). all healthy→200 `healthy`; any unhealthy→503; else 200 `degraded`. Returns per-service `latencyMs`.
 - `GET /api/og/home` — **SVG-only** hardcoded branded 1200×630 SVG (`max-age=604800`, no DB/auth/params).
-- `GET /api/og/[handle]` — **renders a REAL PNG** via `@cf-wasm/resvg/workerd` (`Resvg.async(svg,{fitTo:{mode:'width',value:1200}}).render().asPng()`), 1200×630, `Cache-Control: public, max-age=3600, swr=86400`. Fallback chain on not-found OR resvg failure: `renderFallbackPng` → `renderLastResort` (raw SVG, `max-age=300`). Only the `@vercel/og` _import path_ is stubbed (`lib/stubs/og-stub.js`); `@cf-wasm/resvg` is a LIVE dependency.
+- `GET /api/og/[handle]` — **renders a REAL PNG** via `@cf-wasm/resvg/workerd` (`Resvg.async(svg,{fitTo:{mode:'width',value:1200}}).render().asPng()`), 1200×630, `Cache-Control: public, max-age=86400, swr=604800`. **Empty/unknown handle → `renderLastResort()` (static raw SVG, NO resvg, `max-age=300`)** to avoid paying ~150 ms WASM rasterization for bot probes; only a genuine resvg failure on a REAL profile falls through `catch` → `renderLastResort`. Only the `@vercel/og` _import path_ is stubbed (`lib/stubs/og-stub.js`); `@cf-wasm/resvg` is a LIVE dependency.
 - Sitemap: `/sitemap.xml` → `/api/sitemap-index`; `/sitemap/:id.xml` → `/api/sitemap/:id` (`next.config.ts` `rewrites()`). `redirects()` 308s bare `/:handle` → `/@handle` (reserved-path negative-lookahead). See SEO section for sharding.
 
 ### Auth patterns

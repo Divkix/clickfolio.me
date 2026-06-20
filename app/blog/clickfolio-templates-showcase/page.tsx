@@ -4,7 +4,7 @@ import { BlogPostLayout } from "@/components/blog/BlogPostLayout";
 import { buildBlogPostMetadata, getPostBySlug } from "@/lib/blog/posts";
 import { getThemeReferralRequirement, THEME_METADATA } from "@/lib/templates/theme-ids";
 
-export const revalidate = 3600;
+export const revalidate = 86400;
 
 const post = getPostBySlug("clickfolio-templates-showcase")!;
 const relatedPosts = ["pdf-resume-to-website", "best-resume-website-builders"]

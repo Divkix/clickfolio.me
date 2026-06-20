@@ -3,7 +3,7 @@ import Link from "next/link";
 import { BlogPostLayout } from "@/components/blog/BlogPostLayout";
 import { buildBlogPostMetadata, getPostBySlug } from "@/lib/blog/posts";
 
-export const revalidate = 3600;
+export const revalidate = 86400;
 
 const post = getPostBySlug("cv-website-builder")!;
 const relatedPosts = ["best-resume-website-builders", "how-to-make-a-resume-website"]

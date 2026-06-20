@@ -15,7 +15,7 @@ import {
 } from "@/lib/seo/json-ld";
 
 /** Revalidate blog listing every 30 minutes for fresh content. */
-export const revalidate = 1800;
+export const revalidate = 86400;
 
 const blogTitle = `Resume Website & Portfolio Guides | ${siteConfig.fullName}`;
 const blogDescription =
