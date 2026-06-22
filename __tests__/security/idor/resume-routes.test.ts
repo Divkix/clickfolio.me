@@ -91,9 +91,8 @@ vi.mock("@/lib/db/schema", () => ({
   },
 }));
 
-// Mock getSessionDb for latest-status route
+// Mock session DB for latest-status route
 vi.mock("@/lib/db/session", () => ({
-  getSessionDb: vi.fn(() => Promise.resolve({ db: mockDb, captureBookmark: mockCaptureBookmark })),
   getSessionDbWithPrimaryFirst: vi.fn(() =>
     Promise.resolve({ db: mockDb, captureBookmark: mockCaptureBookmark }),
   ),

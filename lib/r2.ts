@@ -16,25 +16,6 @@ export function getR2Binding(env: Partial<CloudflareEnv>): R2Bucket | null {
 
 export const R2 = {
   /**
-   * Retrieves an object from R2, returning its body stream and content length.
-   *
-   * @param binding - The R2 bucket binding.
-   * @param key - The object key.
-   * @returns The object stream and size, or `null` if not found.
-   */
-  async get(
-    binding: R2Bucket,
-    key: string,
-  ): Promise<{ body: ReadableStream | null; contentLength: number | undefined } | null> {
-    const object = await binding.get(key);
-    if (!object) return null;
-    return {
-      body: object.body,
-      contentLength: object.size,
-    };
-  },
-
-  /**
    * Retrieves an object as a raw `ArrayBuffer`.
    *
    * @param binding - The R2 bucket binding.
@@ -62,28 +43,6 @@ export const R2 = {
     const arrayBuffer = await R2.getAsArrayBuffer(binding, key);
     if (!arrayBuffer) return null;
     return new Uint8Array(arrayBuffer);
-  },
-
-  /**
-   * Retrieves a partial byte range of an object via an R2 range request.
-   *
-   * @param binding - The R2 bucket binding.
-   * @param key - The object key.
-   * @param offset - The starting byte offset.
-   * @param length - The number of bytes to read.
-   * @returns The requested byte range as an `ArrayBuffer`, or `null` if not found.
-   */
-  async getPartial(
-    binding: R2Bucket,
-    key: string,
-    offset: number,
-    length: number,
-  ): Promise<ArrayBuffer | null> {
-    const object = await binding.get(key, {
-      range: { offset, length },
-    });
-    if (!object) return null;
-    return object.arrayBuffer();
   },
 
   /**
@@ -138,40 +97,5 @@ export const R2 = {
       size: object.size,
       etag: object.etag,
     };
-  },
-
-  /**
-   * Copies an object within the same R2 bucket.
-   *
-   * @param binding - The R2 bucket binding.
-   * @param sourceKey - The key of the object to copy.
-   * @param destinationKey - The key for the new copy.
-   * @returns `true` if the copy succeeded, `false` if the source object was not found.
-   */
-  async copy(binding: R2Bucket, sourceKey: string, destinationKey: string): Promise<boolean> {
-    const object = await binding.get(sourceKey);
-    if (!object) return false;
-
-    const body = await object.arrayBuffer();
-    await binding.put(destinationKey, body, {
-      httpMetadata: object.httpMetadata,
-      customMetadata: object.customMetadata,
-    });
-    return true;
-  },
-
-  /**
-   * Performs a lightweight health check on the R2 bucket by listing up to 1 object.
-   *
-   * @param binding - The R2 bucket binding.
-   * @returns `true` if the bucket is accessible, `false` otherwise.
-   */
-  async healthCheck(binding: R2Bucket): Promise<boolean> {
-    try {
-      await binding.list({ limit: 1 });
-      return true;
-    } catch {
-      return false;
-    }
   },
 };

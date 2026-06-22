@@ -156,8 +156,6 @@ describe("upload validation utilities", () => {
 
 describe("clipboard utilities", () => {
   const originalClipboard = navigator.clipboard;
-  // eslint-disable-next-line typescript/unbound-method -- vitest mock assertion
-  const originalExecCommand = document.execCommand;
   let consoleError: MockInstance;
 
   beforeEach(() => {
@@ -169,7 +167,6 @@ describe("clipboard utilities", () => {
       value: originalClipboard,
       configurable: true,
     });
-    document.execCommand = originalExecCommand;
     consoleError.mockRestore();
   });
 
@@ -184,20 +181,12 @@ describe("clipboard utilities", () => {
     expect(writeText).toHaveBeenCalledWith("hello");
   });
 
-  it("falls back to execCommand and reports failures", async () => {
+  it("returns false and logs when the Clipboard API rejects", async () => {
     Object.defineProperty(navigator, "clipboard", {
-      value: undefined,
+      value: { writeText: vi.fn().mockRejectedValue(new Error("blocked")) },
       configurable: true,
     });
-    document.execCommand = vi.fn().mockReturnValue(true);
 
-    await expect(copyToClipboard("fallback")).resolves.toBe(true);
-    // eslint-disable-next-line typescript/unbound-method -- vitest mock assertion
-    expect(document.execCommand).toHaveBeenCalledWith("copy");
-
-    document.execCommand = vi.fn(() => {
-      throw new Error("blocked");
-    });
     await expect(copyToClipboard("blocked")).resolves.toBe(false);
     expect(consoleError).toHaveBeenCalled();
   });

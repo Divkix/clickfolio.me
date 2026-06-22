@@ -3,6 +3,7 @@
  * Extracts essential preview information from ResumeContent for quick access
  */
 
+import { flattenSkills } from "@/lib/templates/helpers";
 import type { ResumeContent } from "@/lib/types/database";
 
 /**
@@ -47,7 +48,10 @@ export function extractPreviewFields(content: ResumeContent | null | undefined):
   }
 
   // Extract and flatten skills from skill groups, taking first 4
-  const flattenedSkills = extractTopSkills(content.skills, 4);
+  const flattenedSkills = flattenSkills(content.skills)
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .slice(0, 4);
 
   return {
     previewName: content.full_name || null,
@@ -57,49 +61,4 @@ export function extractPreviewFields(content: ResumeContent | null | undefined):
     previewEduCount: Array.isArray(content.education) ? content.education.length : 0,
     previewSkills: JSON.stringify(flattenedSkills),
   };
-}
-
-/**
- * Extracts and flattens skills from skill groups
- *
- * @param skills - Array of skill groups, each containing category and items
- * @param limit - Maximum number of skills to return
- * @returns Flattened array of skill strings, limited to specified count
- *
- * @example
- * extractTopSkills([{ category: "Frontend", items: ["React", "Vue"] }], 4);
- * // Returns: ["React", "Vue"]
- */
-function extractTopSkills(
-  skills: ResumeContent["skills"] | null | undefined,
-  limit: number,
-): string[] {
-  if (!skills || !Array.isArray(skills)) {
-    return [];
-  }
-
-  const flattened: string[] = [];
-
-  for (const skillGroup of skills) {
-    // Skip invalid skill groups
-    if (!skillGroup || !Array.isArray(skillGroup.items)) {
-      continue;
-    }
-
-    for (const item of skillGroup.items) {
-      // Skip empty or non-string items
-      if (typeof item !== "string" || item.trim() === "") {
-        continue;
-      }
-
-      flattened.push(item.trim());
-
-      // Stop early if we've reached the limit
-      if (flattened.length >= limit) {
-        return flattened;
-      }
-    }
-  }
-
-  return flattened;
 }

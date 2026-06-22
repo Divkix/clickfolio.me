@@ -45,7 +45,6 @@ vi.mock("@/lib/db", () => ({
 }));
 
 vi.mock("@/lib/db/session", () => ({
-  getSessionDb: vi.fn(() => Promise.resolve({ db: mockDb, captureBookmark: mockCaptureBookmark })),
   getSessionDbWithPrimaryFirst: vi.fn(() =>
     Promise.resolve({ db: mockDb, captureBookmark: mockCaptureBookmark }),
   ),

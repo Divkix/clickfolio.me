@@ -1,47 +1,18 @@
 /**
  * Clipboard utility for copying text to clipboard
- * Provides fallback for browsers without Clipboard API support
  */
 
 /**
- * Copies text to clipboard with fallback support
- * @param text The text to copy to clipboard
- * @returns Promise that resolves to true if successful, false otherwise
+ * Copies text to the clipboard.
+ * @param text The text to copy
+ * @returns Promise resolving to true on success, false otherwise
  */
 export async function copyToClipboard(text: string): Promise<boolean> {
+  // ponytail: legacy execCommand fallback intentionally dropped — app is HTTPS/localhost
+  // only, so the async Clipboard API is always available (secure context).
   try {
-    // Modern clipboard API (preferred)
-    if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(text);
-      return true;
-    }
-
-    // Fallback for browsers without Clipboard API
-    // Create a temporary textarea element
-    const textArea = document.createElement("textarea");
-    textArea.value = text;
-
-    // Make it invisible but still selectable
-    textArea.style.position = "fixed";
-    textArea.style.top = "0";
-    textArea.style.left = "-9999px";
-    textArea.style.opacity = "0";
-
-    document.body.appendChild(textArea);
-
-    try {
-      // Select and copy the text
-      textArea.focus();
-      textArea.select();
-
-      // Try to copy using the older execCommand API
-      const successful = document.execCommand("copy");
-
-      return successful;
-    } finally {
-      // Clean up the temporary element
-      document.body.removeChild(textArea);
-    }
+    await navigator.clipboard.writeText(text);
+    return true;
   } catch (error) {
     console.error("Failed to copy to clipboard:", error);
     return false;

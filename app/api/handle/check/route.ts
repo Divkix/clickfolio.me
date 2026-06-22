@@ -19,7 +19,7 @@ import {
  *
  * Optimization notes (this is the highest-volume endpoint, called every ~500ms while typing):
  * 1. Format validation runs BEFORE rate limiting — invalid handles never touch D1
- * 2. Uses plain getDb() instead of getSessionDb() — read-only, no cookie/bookmark overhead
+ * 2. Uses plain getDb() instead of getSessionDbWithPrimaryFirst() — read-only, no cookie/bookmark overhead
  * 3. Auth is deferred — only resolved when handle IS taken (to distinguish "yours" vs "taken")
  *    Available handles return immediately with zero auth cost.
  */

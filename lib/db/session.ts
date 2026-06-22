@@ -36,21 +36,6 @@ function createCaptureBookmark(session: D1SessionDatabase) {
 }
 
 /**
- * Read bookmark from cookie.
- * Returns null if not found or on error.
- */
-async function readBookmarkFromCookie(): Promise<string | null> {
-  try {
-    const cookieStore = await cookies();
-    const cookie = cookieStore.get(D1_BOOKMARK_COOKIE);
-    return cookie?.value ?? null;
-  } catch (error) {
-    console.warn("[D1 Session] Failed to read bookmark cookie:", error);
-    return null;
-  }
-}
-
-/**
  * Set bookmark cookie with appropriate security settings.
  */
 async function setBookmarkCookie(bookmark: string): Promise<void> {
@@ -66,29 +51,6 @@ async function setBookmarkCookie(bookmark: string): Promise<void> {
   } catch (error) {
     console.warn("[D1 Session] Failed to set bookmark cookie:", error);
   }
-}
-
-/**
- * Get a database instance with session consistency for authenticated routes.
- * Reads existing bookmark from cookie and provides a captureBookmark function
- * to store the bookmark after write operations.
- *
- * Usage:
- * ```typescript
- * const { db, captureBookmark } = await getSessionDb(env.CLICKFOLIO_DB);
- * await db.insert(users).values({ ... });
- * await captureBookmark(); // Store bookmark for read-your-own-writes
- * ```
- */
-export async function getSessionDb(d1: D1Database): Promise<SessionDbResult> {
-  const existingBookmark = await readBookmarkFromCookie();
-
-  // Create session with existing bookmark or "first-unconstrained" for fresh sessions
-  const session = createSession(d1, existingBookmark ?? "first-unconstrained");
-  const db = createDb(session);
-  const captureBookmark = createCaptureBookmark(session);
-
-  return { db, captureBookmark };
 }
 
 /**
