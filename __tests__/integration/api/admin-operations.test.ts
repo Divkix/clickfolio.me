@@ -64,10 +64,6 @@ vi.mock("@/lib/db", () => ({
   getDb: vi.fn(() => mockDb),
 }));
 
-vi.mock("@/lib/db/session", () => ({
-  getSessionDb: vi.fn(() => Promise.resolve({ db: mockDb, captureBookmark: vi.fn() })),
-}));
-
 vi.mock("@/lib/umami/client", () => ({
   getStats: vi.fn().mockResolvedValue({
     pageviews: 1000,

@@ -370,29 +370,6 @@ describe("R2 Storage Integration", () => {
     });
   });
 
-  describe("R2.get", () => {
-    it("should retrieve PDF from R2 and match content", async () => {
-      const key = "test/retrieve.pdf";
-      const originalContent = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d]);
-
-      await R2.put(mockBucket as unknown as R2Bucket, key, originalContent);
-      const retrieved = await R2.get(mockBucket as unknown as R2Bucket, key);
-
-      expect(retrieved).not.toBeNull();
-      expect(retrieved?.contentLength).toBe(5);
-    });
-
-    it("should return 404 error for invalid key access", async () => {
-      const result = await R2.get(mockBucket as unknown as R2Bucket, "non-existent/key.pdf");
-      expect(result).toBeNull();
-    });
-
-    it("should return null for non-existent object", async () => {
-      const result = await R2.get(mockBucket as unknown as R2Bucket, "does-not-exist");
-      expect(result).toBeNull();
-    });
-  });
-
   describe("R2.getAsArrayBuffer", () => {
     it("should retrieve content as ArrayBuffer", async () => {
       const key = "test/arraybuffer.pdf";
@@ -424,71 +401,15 @@ describe("R2 Storage Integration", () => {
     });
   });
 
-  describe("R2.getPartial", () => {
-    it("should support partial content retrieval", async () => {
-      const key = "test/partial.pdf";
-      const content = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
-
-      await R2.put(mockBucket as unknown as R2Bucket, key, content);
-      const partial = await R2.getPartial(mockBucket as unknown as R2Bucket, key, 2, 4);
-
-      expect(partial).not.toBeNull();
-      const partialArray = new Uint8Array(partial!);
-      expect(partialArray).toEqual(new Uint8Array([3, 4, 5, 6]));
-    });
-
-    it("should return null for non-existent key in partial request", async () => {
-      const result = await R2.getPartial(mockBucket as unknown as R2Bucket, "non-existent", 0, 100);
-      expect(result).toBeNull();
-    });
-  });
-
-  describe("R2.copy", () => {
-    it("should copy object between keys", async () => {
-      const sourceKey = "test/source.pdf";
-      const destKey = "test/destination.pdf";
-      const content = new Uint8Array([1, 2, 3, 4, 5]);
-
-      await R2.put(mockBucket as unknown as R2Bucket, sourceKey, content);
-      const copied = await R2.copy(mockBucket as unknown as R2Bucket, sourceKey, destKey);
-
-      expect(copied).toBe(true);
-
-      const destContent = await R2.getAsUint8Array(mockBucket as unknown as R2Bucket, destKey);
-      expect(destContent).toEqual(content);
-    });
-
-    it("should return false when source does not exist", async () => {
-      const result = await R2.copy(mockBucket as unknown as R2Bucket, "non-existent", "dest");
-      expect(result).toBe(false);
-    });
-
-    it("should preserve metadata during copy", async () => {
-      const sourceKey = "test/source-with-meta.pdf";
-      const destKey = "test/copied-meta.pdf";
-      const content = new Uint8Array([1, 2, 3]);
-      const metadata = { custom: "value" };
-
-      await R2.put(mockBucket as unknown as R2Bucket, sourceKey, content, {
-        contentType: "application/pdf",
-        customMetadata: metadata,
-      });
-      await R2.copy(mockBucket as unknown as R2Bucket, sourceKey, destKey);
-
-      const headResult = await mockBucket.head(destKey);
-      expect(headResult?.customMetadata).toEqual(metadata);
-    });
-  });
-
   describe("R2.delete", () => {
     it("should delete object from R2", async () => {
       const key = "test/delete-me.pdf";
       await R2.put(mockBucket as unknown as R2Bucket, key, new Uint8Array([1, 2, 3]));
 
       await R2.delete(mockBucket as unknown as R2Bucket, key);
-      const result = await R2.get(mockBucket as unknown as R2Bucket, key);
+      const result = await R2.head(mockBucket as unknown as R2Bucket, key);
 
-      expect(result).toBeNull();
+      expect(result?.exists).toBe(false);
     });
 
     it("should not throw when deleting non-existent key", async () => {
@@ -514,22 +435,6 @@ describe("R2 Storage Integration", () => {
     it("should return exists: false for non-existent object", async () => {
       const head = await R2.head(mockBucket as unknown as R2Bucket, "non-existent");
       expect(head?.exists).toBe(false);
-    });
-  });
-
-  describe("R2.healthCheck", () => {
-    it("should return true when bucket is accessible", async () => {
-      const result = await R2.healthCheck(mockBucket as unknown as R2Bucket);
-      expect(result).toBe(true);
-    });
-
-    it("should return false when bucket throws", async () => {
-      const brokenBucket = {
-        list: vi.fn().mockRejectedValue(new Error("Service unavailable")),
-      } as unknown as R2Bucket;
-
-      const result = await R2.healthCheck(brokenBucket);
-      expect(result).toBe(false);
     });
   });
 
@@ -597,24 +502,6 @@ describe("R2 Storage Integration", () => {
 
       expect(head?.exists).toBe(true);
       expect(head?.etag).toBeDefined();
-    });
-  });
-
-  describe("streaming download", () => {
-    it("should support streaming download for partial content", async () => {
-      const key = "test/streaming.pdf";
-      const content = new Uint8Array(10000);
-      for (let i = 0; i < content.length; i++) {
-        content[i] = i % 256;
-      }
-
-      await R2.put(mockBucket as unknown as R2Bucket, key, content);
-
-      const partial1 = await R2.getPartial(mockBucket as unknown as R2Bucket, key, 0, 1000);
-      const partial2 = await R2.getPartial(mockBucket as unknown as R2Bucket, key, 5000, 1000);
-
-      expect(new Uint8Array(partial1!).length).toBe(1000);
-      expect(new Uint8Array(partial2!).length).toBe(1000);
     });
   });
 

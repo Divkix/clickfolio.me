@@ -127,9 +127,8 @@ vi.mock("@/lib/rate-limit/user", () => ({
   enforceRateLimit: vi.fn().mockResolvedValue(null),
 }));
 
-// Mock getSessionDb for profile routes
+// Mock session DB for profile routes
 vi.mock("@/lib/db/session", () => ({
-  getSessionDb: vi.fn(() => Promise.resolve({ db: mockDb, captureBookmark: mockCaptureBookmark })),
   getSessionDbWithPrimaryFirst: vi.fn(() =>
     Promise.resolve({ db: mockDb, captureBookmark: mockCaptureBookmark }),
   ),

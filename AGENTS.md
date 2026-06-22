@@ -321,14 +321,13 @@ The real entrypoint. Wraps the vinext handler and adds:
 
 All in `lib/db/session.ts`. Using the wrong variant causes stale-read bugs, FK errors, or read-your-own-writes inconsistency.
 
-| Function                           | When to use                                                                                                                                              |
-| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `getDb(env.CLICKFOLIO_DB)`         | Read-only or non-user-facing queries. **WeakMap-cached** per binding (once-per-isolate drizzle parse)                                                    |
-| `getSessionDb(d1)`                 | Authenticated page/API routes — reads `d1-session-bookmark` cookie (else `"first-unconstrained"`), provides `captureBookmark()` for read-your-own-writes |
-| `getSessionDbWithPrimaryFirst(d1)` | Immediately after user creation (`"first-primary"` — avoids FK errors before D1 replication)                                                             |
-| `getSessionDbForWebhook(d1)`       | Queue consumers, cron handlers, WebSocket handlers (no cookies; `"first-primary"`, no bookmark)                                                          |
+| Function                           | When to use                                                                                                                                                                         |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `getDb(env.CLICKFOLIO_DB)`         | Read-only or non-user-facing queries. **WeakMap-cached** per binding (once-per-isolate drizzle parse)                                                                               |
+| `getSessionDbWithPrimaryFirst(d1)` | Authenticated page/API routes + immediately after user creation (`"first-primary"` — avoids FK errors before D1 replication); provides `captureBookmark()` for read-your-own-writes |
+| `getSessionDbForWebhook(d1)`       | Queue consumers, cron handlers, WebSocket handlers (no cookies; `"first-primary"`, no bookmark)                                                                                     |
 
-⚠️ The three session variants build a **FRESH `drizzle(session, {schema})` on every call** (each wraps a per-request `d1.withSession(...)`); they are NOT WeakMap-cached. Only `getDb()` gets the once-per-isolate cache.
+⚠️ The two session variants build a **FRESH `drizzle(session, {schema})` on every call** (each wraps a per-request `d1.withSession(...)`); they are NOT WeakMap-cached. Only `getDb()` gets the once-per-isolate cache.
 
 The `d1-session-bookmark` cookie (`D1_BOOKMARK_COOKIE`): `httpOnly`, `sameSite:lax`, `path:/`, `BOOKMARK_COOKIE_MAX_AGE=30` (s), `secure` **only when `process.env.NODE_ENV === "production"`** (insecure in dev). `captureBookmark()`/read/set are all try/catch-wrapped and only `console.warn` on failure (bookmark failures degrade silently to non-read-your-own-writes).
 
