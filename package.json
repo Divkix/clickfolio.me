@@ -37,7 +37,7 @@
     "prepare": "vp config"
   },
   "dependencies": {
-    "@ai-sdk/openai-compatible": "^2.0.51",
+    "@ai-sdk/openai-compatible": "^3.0.0",
     "@better-auth/drizzle-adapter": "^1.6.20",
     "@cf-wasm/resvg": "^0.3.4",
     "@fontsource-variable/bricolage-grotesque": "^5.2.10",
