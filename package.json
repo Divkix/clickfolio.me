@@ -38,7 +38,7 @@
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^2.0.51",
-    "@better-auth/drizzle-adapter": "^1.6.20",
+    "@better-auth/drizzle-adapter": "^1.6.21",
     "@cf-wasm/resvg": "^0.3.4",
     "@fontsource-variable/bricolage-grotesque": "^5.2.10",
     "@fontsource-variable/hanken-grotesk": "^5.2.8",
@@ -55,7 +55,7 @@
     "@zxcvbn-ts/language-common": "^4.1.2",
     "@zxcvbn-ts/language-en": "^4.1.1",
     "ai": "^6.0.209",
-    "better-auth": "^1.6.20",
+    "better-auth": "^1.6.21",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.2",
@@ -72,7 +72,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "^1.42.2",
+    "@cloudflare/vite-plugin": "^1.42.3",
     "@noble/hashes": "^2.2.0",
     "@tailwindcss/postcss": "^4.3.1",
     "@tailwindcss/typography": "^0.5.20",
@@ -99,7 +99,7 @@
     "vite": "npm:@voidzero-dev/vite-plus-core@0.2.1",
     "vite-plus": "0.2.1",
     "vitest": "^4.1.9",
-    "wrangler": "^4.104.0"
+    "wrangler": "^4.105.0"
   },
   "overrides": {
     "vite": "npm:@voidzero-dev/vite-plus-core@0.2.1",
