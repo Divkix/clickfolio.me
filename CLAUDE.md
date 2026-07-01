@@ -672,6 +672,20 @@ Auth is **Better Auth** (Google OAuth + email/password) backed by D1 via the Dri
 
 **robots (`app/robots.ts`, MetadataRoute.Robots — not static):** base URL `getPublicSiteUrl()`. Allows `/` + `/api/og/` for `*`; disallows `/api/ /admin/ /dashboard/ /edit/ /preview/ /reset-password/ /settings/ /verify-email/ /waiting/ /wizard/`. Explicit per-AI-crawler allowlists (GPTBot, ChatGPT-User, ClaudeBot, PerplexityBot, Google-Extended, GoogleOther) scoped to `/, /explore, /blog`. `/for/` and `/blog/*` are intentionally indexable. The `next.config.ts` 308 bare-handle redirect regex (negative-lookahead excluding sitemap/robots.txt/favicon.ico/manifest + reserved prefixes) **must be updated whenever a new top-level reserved route is added** or it'll be redirected to `/@route`.
 
+## Agent skills
+
+### Issue tracker
+
+Issues live in **GitHub Issues** (`Divkix/clickfolio.me`), managed via the `gh` CLI. External PRs are **not** a triage surface. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Canonical five-role vocabulary (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`), used as-is with no custom mapping. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: one `CONTEXT.md` + `docs/adr/` at the repo root (created lazily by `/domain-modeling`). See `docs/agents/domain.md`.
+
 <!--VITE PLUS START-->
 
 # Using Vite+, the Unified Toolchain for the Web
