@@ -43,6 +43,9 @@ export function useResumeStatus(resumeId: string | null): UseResumeStatusReturn 
   const startTimeRef = useRef<number>(Date.now());
   const hasTimedOutRef = useRef(false);
   const retryCountRef = useRef(0);
+  // Holds the latest fetchStatus so the WebSocket handler (defined earlier) can
+  // trigger an authoritative refetch without a definition-order cycle.
+  const fetchStatusRef = useRef<(() => Promise<void>) | null>(null);
 
   // Handle status updates from WebSocket
   const handleWSStatus = useCallback((newStatus: string, wsError?: string) => {
@@ -58,7 +61,11 @@ export function useResumeStatus(resumeId: string | null): UseResumeStatusReturn 
     } else if (s === "completed") {
       setProgress(100);
     } else if (s === "failed") {
-      setCanRetry(true);
+      // The WebSocket push payload only carries { status, error, timestamp } and
+      // structurally cannot judge retry eligibility. Refetch the authoritative
+      // status endpoint so canRetry always comes from the single canonical source
+      // instead of being optimistically enabled here.
+      void fetchStatusRef.current?.();
     }
 
     // Terminal state — stop any polling that might be running
@@ -160,6 +167,9 @@ export function useResumeStatus(resumeId: string | null): UseResumeStatusReturn 
       }
     }
   }, [resumeId]);
+
+  // Keep the ref pointing at the latest fetchStatus so handleWSStatus can call it.
+  fetchStatusRef.current = fetchStatus;
 
   // Initial HTTP fetch for immediate state population + polling fallback
   useEffect(() => {
