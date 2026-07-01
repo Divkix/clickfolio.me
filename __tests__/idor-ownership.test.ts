@@ -91,7 +91,7 @@ vi.mock("@/lib/r2", () => ({
 vi.mock("@/lib/config/retry", () => ({
   hasExceededMaxAttempts: vi.fn(() => false),
   isPermanentErrorType: vi.fn(() => false),
-  RETRY_LIMITS: { MANUAL_MAX_RETRIES: 2, TOTAL_MAX_ATTEMPTS: 5 },
+  RETRY_LIMITS: { MANUAL_MAX_RETRIES: 2, TOTAL_MAX_ATTEMPTS: 6 },
 }));
 
 // Mock security headers

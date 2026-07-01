@@ -74,19 +74,21 @@ vi.mock("@/lib/queue/resume-parse", () => ({
   publishResumeParse: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock("@/lib/config/retry", () => ({
-  hasExceededMaxAttempts: vi.fn(() => false),
-  isPermanentErrorType: vi.fn(() => false),
-  RETRY_LIMITS: { MANUAL_MAX_RETRIES: 2, TOTAL_MAX_ATTEMPTS: 5 },
-  canRetryResume: vi.fn(
-    (input: {
-      status: string;
-      retryCount: number;
-      totalAttempts: number;
-      lastAttemptErrorType?: string | null;
-    }) => input.status === "failed" && input.totalAttempts < 5 && input.retryCount < 2,
-  ),
-}));
+// Use the REAL canRetryResume (and RETRY_LIMITS / PERMANENT_ERROR_TYPES) so the
+// cross-endpoint agreement tests below are load-bearing against the actual
+// eligibility rule -- not a hand-rolled double that could silently drift from
+// it (e.g. by ignoring the permanent-error dimension). Only hasExceededMaxAttempts
+// and isPermanentErrorType stay mocked because the retry route toggles them
+// directly per-test to drive its gates; the real canRetryResume closes over the
+// module's own copies, so those overrides don't affect it.
+vi.mock("@/lib/config/retry", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/config/retry")>();
+  return {
+    ...actual,
+    hasExceededMaxAttempts: vi.fn(() => false),
+    isPermanentErrorType: vi.fn(() => false),
+  };
+});
 
 vi.mock("@/lib/rate-limit/user", () => ({
   enforceRateLimit: vi.fn().mockResolvedValue(null),
@@ -644,6 +646,97 @@ describe("Resume API Integration Tests (25 tests)", () => {
       const response = await GET();
 
       expect(response.status).toBe(401);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────
+  // Retry-eligibility agreement between status and latest-status (issue #174)
+  //
+  // Both endpoints must answer "can this resume be retried?" via the single
+  // canonical canRetryResume() so the two never disagree for the same row.
+  // ─────────────────────────────────────────────────────────────────
+
+  describe("Retry eligibility: status and latest-status agree", () => {
+    async function canRetryFromBothEndpoints(row: Record<string, unknown>): Promise<{
+      status: boolean;
+      latest: boolean;
+    }> {
+      // Primary status endpoint reads the row via db.query.resumes.findFirst
+      mockFindFirst.mockResolvedValue(row);
+      // latest-status reads the row via db.select()...orderBy().limit()
+      mockLimit.mockResolvedValue([row]);
+
+      const { GET: statusGET } = await import("@/app/api/resume/status/route");
+      const statusRes = await statusGET(
+        makeRequest(`http://localhost:3000/api/resume/status?resume_id=${row.id as string}`),
+      );
+      const statusBody = (await statusRes.json()) as { can_retry: boolean };
+
+      const { GET: latestGET } = await import("@/app/api/resume/latest-status/route");
+      const latestRes = await latestGET();
+      const latestBody = (await latestRes.json()) as { can_retry: boolean };
+
+      return { status: statusBody.can_retry, latest: latestBody.can_retry };
+    }
+
+    it("both allow retry for a failed resume below the attempt cap", async () => {
+      authedAs("user-123");
+      const row = {
+        id: "resume-agree-retryable",
+        userId: "user-123",
+        status: "failed",
+        errorMessage: "Transient AI provider error",
+        retryCount: 0,
+        totalAttempts: 2,
+        lastAttemptError: JSON.stringify({ type: "ai_provider_error" }),
+        createdAt: new Date().toISOString(),
+      };
+
+      const { status, latest } = await canRetryFromBothEndpoints(row);
+
+      expect(latest).toBe(status);
+      expect(latest).toBe(true);
+    });
+
+    it("both deny retry for a failed resume at the total-attempt cap", async () => {
+      authedAs("user-123");
+      const row = {
+        id: "resume-agree-capped",
+        userId: "user-123",
+        status: "failed",
+        errorMessage: "PDF parsing error",
+        retryCount: 0,
+        totalAttempts: 6, // at the real cap (RETRY_LIMITS.TOTAL_MAX_ATTEMPTS)
+        lastAttemptError: null,
+        createdAt: new Date().toISOString(),
+      };
+
+      const { status, latest } = await canRetryFromBothEndpoints(row);
+
+      expect(latest).toBe(status);
+      expect(latest).toBe(false);
+    });
+
+    it("both deny retry for a failed resume with a permanent error", async () => {
+      // Exercises the lastAttemptError -> error-type parse path through BOTH
+      // endpoints: a permanent error must be denied identically, which only
+      // holds if latest-status parses lastAttemptError the same way status does.
+      authedAs("user-123");
+      const row = {
+        id: "resume-agree-permanent",
+        userId: "user-123",
+        status: "failed",
+        errorMessage: "The uploaded file is not a valid PDF",
+        retryCount: 0,
+        totalAttempts: 1,
+        lastAttemptError: JSON.stringify({ type: "invalid_pdf" }),
+        createdAt: new Date().toISOString(),
+      };
+
+      const { status, latest } = await canRetryFromBothEndpoints(row);
+
+      expect(latest).toBe(status);
+      expect(latest).toBe(false);
     });
   });
 

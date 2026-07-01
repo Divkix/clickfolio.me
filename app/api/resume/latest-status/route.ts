@@ -1,5 +1,6 @@
 import { desc, eq } from "drizzle-orm";
 import { withUser } from "@/lib/auth/with-auth";
+import { canRetryResume } from "@/lib/config/retry";
 import { resumes } from "@/lib/db/schema";
 import { createSuccessResponse } from "@/lib/utils/security-headers";
 
@@ -25,13 +26,19 @@ export async function GET(request?: Request) {
     async ({ user: authUser, db }) => {
       const userId = authUser.id;
 
-      // Fetch the latest resume for the user
+      // Fetch the latest resume for the user.
+      // Loads totalAttempts and lastAttemptError (in addition to the display
+      // fields) so retry eligibility can be computed by the canonical
+      // canRetryResume() rather than an inline rule -- keeping this endpoint a
+      // mirror of GET /api/resume/status (see issue #174).
       const latestResume = await db
         .select({
           id: resumes.id,
           status: resumes.status,
           errorMessage: resumes.errorMessage,
           retryCount: resumes.retryCount,
+          totalAttempts: resumes.totalAttempts,
+          lastAttemptError: resumes.lastAttemptError,
           createdAt: resumes.createdAt,
         })
         .from(resumes)
@@ -45,11 +52,29 @@ export async function GET(request?: Request) {
 
       const resume = latestResume[0];
 
+      // Parse the stored last-attempt error to recover its type, matching the
+      // status endpoint. canRetryResume() returns false for any non-failed status,
+      // so this is safe to call unconditionally.
+      let lastAttemptErrorType: string | null = null;
+      if (resume.lastAttemptError) {
+        try {
+          lastAttemptErrorType =
+            (JSON.parse(resume.lastAttemptError) as { type?: string }).type ?? null;
+        } catch {
+          lastAttemptErrorType = null;
+        }
+      }
+
       return createSuccessResponse({
         id: resume.id as string,
         status: resume.status,
         error: resume.errorMessage,
-        can_retry: resume.status === "failed" && (resume.retryCount as number) < 2,
+        can_retry: canRetryResume({
+          status: resume.status,
+          retryCount: resume.retryCount,
+          totalAttempts: resume.totalAttempts,
+          lastAttemptErrorType,
+        }),
         createdAt: resume.createdAt as string,
       });
     },
