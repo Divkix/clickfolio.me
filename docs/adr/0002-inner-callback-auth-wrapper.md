@@ -1,0 +1,3 @@
+# Auth route wrappers use the inner-callback form
+
+`withUser` / `withAdmin` are invoked as `export async function POST(req) { return withUser(req, async (ctx) => { … }) }`, not the cleaner `export const POST = withUser(...)`. We rejected the outer-wrapper form on purpose: every route in the app uses `export async function`, and vinext (Vite-based, NOT standard Next.js) has unproven route detection for const-exported handlers. The inner-callback keeps the export style vinext already runs everywhere while still centralizing the auth guard, the 401/404/403 responses, and the outer `try/catch → 500`.
