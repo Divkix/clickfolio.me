@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
+import { withUser } from "@/lib/auth/with-auth";
 import { user } from "@/lib/db/schema";
 import { roleUpdateSchema } from "@/lib/schemas/profile";
 import {
@@ -25,61 +25,50 @@ import { readJsonWithLimit, validateRequestSize } from "@/lib/utils/validation";
  *   - 500: unexpected error
  */
 export async function PUT(request: Request) {
-  try {
-    // Validate request size before parsing (prevent DoS)
-    const sizeCheck = validateRequestSize(request);
-    if (!sizeCheck.valid) {
-      return createErrorResponse(
-        sizeCheck.error || "Request body too large",
-        ERROR_CODES.BAD_REQUEST,
-        413,
-      );
-    }
-
-    const {
-      user: authUser,
-      db,
-      captureBookmark,
-      error: authError,
-    } = await requireAuthWithUserValidation("You must be logged in to update your role");
-    if (authError) return authError;
-
-    const rawBodyResult = await readJsonWithLimit(request);
-    if (!rawBodyResult.ok) {
-      return createErrorResponse(
-        rawBodyResult.error,
-        ERROR_CODES.BAD_REQUEST,
-        rawBodyResult.reason === "too_large" ? 413 : 400,
-      );
-    }
-
-    const validation = roleUpdateSchema.safeParse(rawBodyResult.data);
-    if (!validation.success) {
-      return createErrorResponse(
-        "Invalid role value",
-        ERROR_CODES.VALIDATION_ERROR,
-        400,
-        validation.error.issues,
-      );
-    }
-
-    await db
-      .update(user)
-      .set({
-        role: validation.data.role,
-        roleSource: "user",
-        updatedAt: new Date().toISOString(),
-      })
-      .where(eq(user.id, authUser.id));
-
-    await captureBookmark();
-    return createSuccessResponse({ role: validation.data.role, roleSource: "user" });
-  } catch (err) {
-    console.error("Unexpected error in role update:", err);
+  // Validate request size before parsing (prevent DoS)
+  const sizeCheck = validateRequestSize(request);
+  if (!sizeCheck.valid) {
     return createErrorResponse(
-      "An unexpected error occurred. Please try again.",
-      ERROR_CODES.INTERNAL_ERROR,
-      500,
+      sizeCheck.error || "Request body too large",
+      ERROR_CODES.BAD_REQUEST,
+      413,
     );
   }
+
+  return withUser(
+    request,
+    async ({ user: authUser, db, captureBookmark }) => {
+      const rawBodyResult = await readJsonWithLimit(request);
+      if (!rawBodyResult.ok) {
+        return createErrorResponse(
+          rawBodyResult.error,
+          ERROR_CODES.BAD_REQUEST,
+          rawBodyResult.reason === "too_large" ? 413 : 400,
+        );
+      }
+
+      const validation = roleUpdateSchema.safeParse(rawBodyResult.data);
+      if (!validation.success) {
+        return createErrorResponse(
+          "Invalid role value",
+          ERROR_CODES.VALIDATION_ERROR,
+          400,
+          validation.error.issues,
+        );
+      }
+
+      await db
+        .update(user)
+        .set({
+          role: validation.data.role,
+          roleSource: "user",
+          updatedAt: new Date().toISOString(),
+        })
+        .where(eq(user.id, authUser.id));
+
+      await captureBookmark();
+      return createSuccessResponse({ role: validation.data.role, roleSource: "user" });
+    },
+    "You must be logged in to update your role",
+  );
 }

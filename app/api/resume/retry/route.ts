@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
+import { withUser } from "@/lib/auth/with-auth";
 import { hasExceededMaxAttempts, isPermanentErrorType, RETRY_LIMITS } from "@/lib/config/retry";
 import type { NewResume } from "@/lib/db/schema";
 import { resumes } from "@/lib/db/schema";
@@ -49,153 +49,154 @@ interface RetryRequestBody {
  *   - 500: storage unavailable, download failure, queue unavailable, or unexpected error
  */
 export async function POST(request: Request) {
-  try {
-    // 1. Check authentication and validate user exists in database
-    const {
-      user: authUser,
-      db,
-      captureBookmark,
-      env,
-      error: authError,
-    } = await requireAuthWithUserValidation("You must be logged in to retry resume parsing");
-    if (authError) return authError;
+  return withUser(
+    request,
+    async ({ user: authUser, db, captureBookmark, env }) => {
+      const userId = authUser.id;
 
-    const userId = authUser.id;
-    const typedEnv = env as CloudflareEnv;
-
-    // Validate request size before parsing (prevent DoS)
-    const sizeCheck = validateRequestSize(request);
-    if (!sizeCheck.valid) {
-      return createErrorResponse(
-        sizeCheck.error || "Request body too large",
-        ERROR_CODES.BAD_REQUEST,
-        413,
-      );
-    }
-
-    const rawBodyResult = await readJsonWithLimit(request);
-    if (!rawBodyResult.ok) {
-      return createErrorResponse(
-        rawBodyResult.error,
-        ERROR_CODES.BAD_REQUEST,
-        rawBodyResult.reason === "too_large" ? 413 : 400,
-      );
-    }
-    const body = rawBodyResult.data as RetryRequestBody;
-    const { resume_id } = body;
-
-    if (!resume_id) {
-      return createErrorResponse(
-        "resume_id is required in request body",
-        ERROR_CODES.BAD_REQUEST,
-        400,
-      );
-    }
-
-    // 2. Fetch resume from database including idempotency fields and fileHash
-    const resume = await db.query.resumes.findFirst({
-      where: eq(resumes.id, resume_id),
-      columns: {
-        id: true,
-        userId: true,
-        r2Key: true,
-        status: true,
-        errorMessage: true,
-        retryCount: true,
-        totalAttempts: true,
-        lastAttemptError: true,
-        fileHash: true,
-      },
-    });
-
-    if (!resume) {
-      return createErrorResponse("Resume not found", ERROR_CODES.NOT_FOUND, 404);
-    }
-
-    // 3. Verify ownership
-    if (resume.userId !== userId) {
-      return createErrorResponse(
-        "You do not have permission to retry this resume",
-        ERROR_CODES.FORBIDDEN,
-        403,
-      );
-    }
-
-    // 4a. Check if max total attempts exceeded
-    if (hasExceededMaxAttempts(resume.totalAttempts ?? 0)) {
-      return createErrorResponse(
-        "Maximum retry attempts exceeded. This resume cannot be retried.",
-        ERROR_CODES.RATE_LIMIT_EXCEEDED,
-        429,
-        {
-          max_attempts: RETRY_LIMITS.TOTAL_MAX_ATTEMPTS,
-          current_attempts: resume.totalAttempts,
-        },
-      );
-    }
-
-    // 4b. Check if last error was permanent (shouldn't retry)
-    if (resume.lastAttemptError) {
-      try {
-        const lastError = JSON.parse(resume.lastAttemptError);
-        if (isPermanentErrorType(lastError.type)) {
-          return createErrorResponse(
-            `This resume failed with a permanent error (${lastError.type}). Retrying will not help.`,
-            ERROR_CODES.VALIDATION_ERROR,
-            400,
-            { error_type: lastError.type, error_message: lastError.message },
-          );
-        }
-      } catch {
-        // Ignore parse errors, allow retry
-      }
-    }
-
-    // 4c. Verify retry eligibility - status check
-    if (resume.status !== "failed") {
-      return createErrorResponse(
-        "Can only retry failed resumes",
-        ERROR_CODES.VALIDATION_ERROR,
-        400,
-        { current_status: resume.status },
-      );
-    }
-
-    // 4d. Check manual retry limit
-    if ((resume.retryCount as number) >= RETRY_LIMITS.MANUAL_MAX_RETRIES) {
-      return createErrorResponse(
-        "Maximum retry limit reached. Please upload a new resume.",
-        ERROR_CODES.RATE_LIMIT_EXCEEDED,
-        429,
-        {
-          max_retries: RETRY_LIMITS.MANUAL_MAX_RETRIES,
-          current_retry_count: resume.retryCount as number,
-        },
-      );
-    }
-
-    // 5. Get file hash -- use stored hash if available, fall back to R2 download for legacy rows
-    let fileHash: string;
-
-    if (resume.fileHash) {
-      fileHash = resume.fileHash;
-    } else {
-      // Legacy fallback: download from R2 and compute hash
-      const r2Binding = getR2Binding(typedEnv);
-      if (!r2Binding) {
+      // Validate request size before parsing (prevent DoS)
+      const sizeCheck = validateRequestSize(request);
+      if (!sizeCheck.valid) {
         return createErrorResponse(
-          "Storage service unavailable",
-          ERROR_CODES.EXTERNAL_SERVICE_ERROR,
-          500,
+          sizeCheck.error || "Request body too large",
+          ERROR_CODES.BAD_REQUEST,
+          413,
         );
       }
 
-      let pdfBuffer: Uint8Array;
+      const rawBodyResult = await readJsonWithLimit(request);
+      if (!rawBodyResult.ok) {
+        return createErrorResponse(
+          rawBodyResult.error,
+          ERROR_CODES.BAD_REQUEST,
+          rawBodyResult.reason === "too_large" ? 413 : 400,
+        );
+      }
+      const body = rawBodyResult.data as RetryRequestBody;
+      const { resume_id } = body;
 
-      try {
-        const fileBuffer = await R2.getAsUint8Array(r2Binding, resume.r2Key as string);
+      if (!resume_id) {
+        return createErrorResponse(
+          "resume_id is required in request body",
+          ERROR_CODES.BAD_REQUEST,
+          400,
+        );
+      }
 
-        if (!fileBuffer) {
+      // Fetch resume from database including idempotency fields and fileHash
+      const resume = await db.query.resumes.findFirst({
+        where: eq(resumes.id, resume_id),
+        columns: {
+          id: true,
+          userId: true,
+          r2Key: true,
+          status: true,
+          errorMessage: true,
+          retryCount: true,
+          totalAttempts: true,
+          lastAttemptError: true,
+          fileHash: true,
+        },
+      });
+
+      if (!resume) {
+        return createErrorResponse("Resume not found", ERROR_CODES.NOT_FOUND, 404);
+      }
+
+      // Verify ownership
+      if (resume.userId !== userId) {
+        return createErrorResponse(
+          "You do not have permission to retry this resume",
+          ERROR_CODES.FORBIDDEN,
+          403,
+        );
+      }
+
+      // Check if max total attempts exceeded
+      if (hasExceededMaxAttempts(resume.totalAttempts ?? 0)) {
+        return createErrorResponse(
+          "Maximum retry attempts exceeded. This resume cannot be retried.",
+          ERROR_CODES.RATE_LIMIT_EXCEEDED,
+          429,
+          {
+            max_attempts: RETRY_LIMITS.TOTAL_MAX_ATTEMPTS,
+            current_attempts: resume.totalAttempts,
+          },
+        );
+      }
+
+      // Check if last error was permanent (shouldn't retry)
+      if (resume.lastAttemptError) {
+        try {
+          const lastError = JSON.parse(resume.lastAttemptError);
+          if (isPermanentErrorType(lastError.type)) {
+            return createErrorResponse(
+              `This resume failed with a permanent error (${lastError.type}). Retrying will not help.`,
+              ERROR_CODES.VALIDATION_ERROR,
+              400,
+              { error_type: lastError.type, error_message: lastError.message },
+            );
+          }
+        } catch {
+          // Ignore parse errors, allow retry
+        }
+      }
+
+      // Verify retry eligibility - status check
+      if (resume.status !== "failed") {
+        return createErrorResponse(
+          "Can only retry failed resumes",
+          ERROR_CODES.VALIDATION_ERROR,
+          400,
+          { current_status: resume.status },
+        );
+      }
+
+      // Check manual retry limit
+      if ((resume.retryCount as number) >= RETRY_LIMITS.MANUAL_MAX_RETRIES) {
+        return createErrorResponse(
+          "Maximum retry limit reached. Please upload a new resume.",
+          ERROR_CODES.RATE_LIMIT_EXCEEDED,
+          429,
+          {
+            max_retries: RETRY_LIMITS.MANUAL_MAX_RETRIES,
+            current_retry_count: resume.retryCount as number,
+          },
+        );
+      }
+
+      // Get file hash -- use stored hash if available, fall back to R2 download for legacy rows
+      let fileHash: string;
+
+      if (resume.fileHash) {
+        fileHash = resume.fileHash;
+      } else {
+        // Legacy fallback: download from R2 and compute hash
+        const r2Binding = getR2Binding(env);
+        if (!r2Binding) {
+          return createErrorResponse(
+            "Storage service unavailable",
+            ERROR_CODES.EXTERNAL_SERVICE_ERROR,
+            500,
+          );
+        }
+
+        let pdfBuffer: Uint8Array;
+
+        try {
+          const fileBuffer = await R2.getAsUint8Array(r2Binding, resume.r2Key as string);
+
+          if (!fileBuffer) {
+            return createErrorResponse(
+              "Failed to download file for processing",
+              ERROR_CODES.EXTERNAL_SERVICE_ERROR,
+              500,
+            );
+          }
+
+          pdfBuffer = fileBuffer;
+        } catch (error) {
+          console.error("R2 download error:", error);
           return createErrorResponse(
             "Failed to download file for processing",
             ERROR_CODES.EXTERNAL_SERVICE_ERROR,
@@ -203,95 +204,84 @@ export async function POST(request: Request) {
           );
         }
 
-        pdfBuffer = fileBuffer;
-      } catch (error) {
-        console.error("R2 download error:", error);
+        // Compute SHA-256 hash from downloaded PDF
+        const bufferCopy = pdfBuffer.buffer.slice(
+          pdfBuffer.byteOffset,
+          pdfBuffer.byteOffset + pdfBuffer.byteLength,
+        ) as ArrayBuffer;
+        fileHash = await sha256Hex(bufferCopy);
+      }
+
+      // Update resume status to queued BEFORE publishing to queue (prevents race condition)
+      const previousRetryCount = resume.retryCount as number;
+      const nextRetryCount = previousRetryCount + 1;
+      const updatePayload: Partial<NewResume> = {
+        status: "queued",
+        errorMessage: null,
+        retryCount: nextRetryCount,
+        queuedAt: new Date().toISOString(),
+      };
+
+      const updateResult = await db
+        .update(resumes)
+        .set(updatePayload)
+        .where(eq(resumes.id, resume_id))
+        .returning({ id: resumes.id });
+
+      if (updateResult.length === 0) {
+        console.error("Failed to update resume for retry");
         return createErrorResponse(
-          "Failed to download file for processing",
-          ERROR_CODES.EXTERNAL_SERVICE_ERROR,
+          "Failed to update resume status",
+          ERROR_CODES.DATABASE_ERROR,
           500,
         );
       }
 
-      // Compute SHA-256 hash from downloaded PDF
-      const bufferCopy = pdfBuffer.buffer.slice(
-        pdfBuffer.byteOffset,
-        pdfBuffer.byteOffset + pdfBuffer.byteLength,
-      ) as ArrayBuffer;
-      fileHash = await sha256Hex(bufferCopy);
-    }
+      const rollbackRetryUpdate = async () => {
+        try {
+          await db
+            .update(resumes)
+            .set({
+              status: "failed",
+              errorMessage: resume.errorMessage,
+              retryCount: previousRetryCount,
+              queuedAt: null,
+            })
+            .where(eq(resumes.id, resume_id));
+        } catch (rollbackError) {
+          console.error("Failed to roll back retry queue state:", rollbackError);
+        }
+      };
 
-    // Update resume status to queued BEFORE publishing to queue (prevents race condition)
-    const previousRetryCount = resume.retryCount as number;
-    const nextRetryCount = previousRetryCount + 1;
-    const updatePayload: Partial<NewResume> = {
-      status: "queued",
-      errorMessage: null,
-      retryCount: nextRetryCount,
-      queuedAt: new Date().toISOString(),
-    };
-
-    const updateResult = await db
-      .update(resumes)
-      .set(updatePayload)
-      .where(eq(resumes.id, resume_id))
-      .returning({ id: resumes.id });
-
-    if (updateResult.length === 0) {
-      console.error("Failed to update resume for retry");
-      return createErrorResponse("Failed to update resume status", ERROR_CODES.DATABASE_ERROR, 500);
-    }
-
-    const rollbackRetryUpdate = async () => {
-      try {
-        await db
-          .update(resumes)
-          .set({
-            status: "failed",
-            errorMessage: resume.errorMessage,
-            retryCount: previousRetryCount,
-            queuedAt: null,
-          })
-          .where(eq(resumes.id, resume_id));
-      } catch (rollbackError) {
-        console.error("Failed to roll back retry queue state:", rollbackError);
+      // Publish to queue for background processing (after DB update to prevent race)
+      const queue = env.CLICKFOLIO_PARSE_QUEUE;
+      if (!queue) {
+        await rollbackRetryUpdate();
+        return createErrorResponse("Queue service unavailable", ERROR_CODES.INTERNAL_ERROR, 500);
       }
-    };
 
-    // Publish to queue for background processing (after DB update to prevent race)
-    const queue = typedEnv.CLICKFOLIO_PARSE_QUEUE;
-    if (!queue) {
-      await rollbackRetryUpdate();
-      return createErrorResponse("Queue service unavailable", ERROR_CODES.INTERNAL_ERROR, 500);
-    }
+      try {
+        await publishResumeParse(queue, {
+          resumeId: resume.id as string,
+          userId,
+          r2Key: resume.r2Key as string,
+          fileHash,
+          attempt: nextRetryCount,
+        });
+      } catch (queueError) {
+        await rollbackRetryUpdate();
+        console.error("Failed to publish retry parse job:", queueError);
+        return createErrorResponse("Queue service unavailable", ERROR_CODES.INTERNAL_ERROR, 500);
+      }
 
-    try {
-      await publishResumeParse(queue, {
-        resumeId: resume.id as string,
-        userId,
-        r2Key: resume.r2Key as string,
-        fileHash,
-        attempt: nextRetryCount,
+      await captureBookmark();
+
+      return createSuccessResponse({
+        resume_id: resume.id as string,
+        status: "queued",
+        retry_count: nextRetryCount,
       });
-    } catch (queueError) {
-      await rollbackRetryUpdate();
-      console.error("Failed to publish retry parse job:", queueError);
-      return createErrorResponse("Queue service unavailable", ERROR_CODES.INTERNAL_ERROR, 500);
-    }
-
-    await captureBookmark();
-
-    return createSuccessResponse({
-      resume_id: resume.id as string,
-      status: "queued",
-      retry_count: nextRetryCount,
-    });
-  } catch (error) {
-    console.error("Error retrying resume parsing:", error);
-    return createErrorResponse(
-      "An unexpected error occurred while retrying",
-      ERROR_CODES.INTERNAL_ERROR,
-      500,
-    );
-  }
+    },
+    "You must be logged in to retry resume parsing",
+  );
 }
