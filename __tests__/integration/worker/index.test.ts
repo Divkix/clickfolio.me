@@ -194,7 +194,13 @@ describe("Worker fetch handler", () => {
 
     expect(response.headers.get("X-Frame-Options")).toBe("DENY");
     expect(response.headers.get("X-Content-Type-Options")).toBe("nosniff");
-    expect(response.headers.get("Strict-Transport-Security")).toContain("max-age=");
+    // Pins the unified SECURITY_HEADERS (worker imports the API-layer constant).
+    // A future divergence between the two copies must fail here. See issue #172.
+    expect(response.headers.get("Strict-Transport-Security")).toBe(
+      "max-age=63072000; includeSubDomains; preload",
+    );
+    expect(response.headers.get("X-XSS-Protection")).toBe("0");
+    expect(response.headers.get("Referrer-Policy")).toBe("strict-origin-when-cross-origin");
   });
 
   it("returns 400 for WebSocket upgrade missing resume_id", async () => {

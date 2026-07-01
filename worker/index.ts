@@ -22,20 +22,15 @@ import { handleDLQMessage } from "../lib/queue/dlq-consumer";
 import { isRetryableError } from "../lib/queue/errors";
 import { queueMessageSchema } from "../lib/queue/types";
 import { log } from "../lib/utils/log";
+// Single source of truth for security headers, shared with the API response
+// toolkit (createSuccessResponse/createErrorResponse). The worker applies it to
+// every response as the catch-all for page routes that never pass through the
+// API toolkit; because it is the same object, "applied last" equals "applied
+// first" and the two layers can no longer drift. See issue #172 / ADR-0001.
+import { SECURITY_HEADERS } from "../lib/utils/security-headers";
 
 /** Re-exported Durable Object for WebSocket resume status updates. */
 export { ClickfolioStatusDO } from "../lib/durable-objects/resume-status";
-
-/**
- * Security headers appended to every response by the fetch handler.
- */
-const SECURITY_HEADERS: Record<string, string> = {
-  "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
-  "X-Content-Type-Options": "nosniff",
-  "X-Frame-Options": "DENY",
-  "Referrer-Policy": "strict-origin-when-cross-origin",
-  "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
-};
 
 /**
  * Vulnerability-scanner probe paths (WordPress, exposed secrets, DB admin tools).
