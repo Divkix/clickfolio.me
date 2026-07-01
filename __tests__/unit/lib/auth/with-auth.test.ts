@@ -13,13 +13,21 @@ vi.mock("@/lib/auth/middleware", () => ({
   requireAuthWithUserValidation: vi.fn(),
 }));
 
+vi.mock("@/lib/auth/admin", () => ({
+  requireAdminAuthForApi: vi.fn(),
+}));
+
+import { requireAdminAuthForApi } from "@/lib/auth/admin";
 import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
-import { withUser } from "@/lib/auth/with-auth";
+import { withAdmin, withUser } from "@/lib/auth/with-auth";
 
 const mockedAuth = vi.mocked(requireAuthWithUserValidation);
+const mockedAdminAuth = vi.mocked(requireAdminAuthForApi);
 
 type AuthSuccess = Awaited<ReturnType<typeof requireAuthWithUserValidation>>;
 type UserContext = Parameters<Parameters<typeof withUser>[1]>[0];
+type AdminAuthSuccess = Awaited<ReturnType<typeof requireAdminAuthForApi>>;
+type AdminContext = Parameters<Parameters<typeof withAdmin>[1]>[0];
 
 function successResult(): AuthSuccess {
   return {
@@ -38,6 +46,18 @@ function successResult(): AuthSuccess {
     captureBookmark: vi.fn().mockResolvedValue(undefined),
     dbUser: { id: "user-1", handle: "testuser" },
     env: { CLICKFOLIO_DB: {} } as never,
+    error: null,
+  };
+}
+
+function adminSuccessResult(): AdminAuthSuccess {
+  return {
+    user: {
+      id: "admin-1",
+      email: "admin-1@test.com",
+      name: "Admin User",
+      isAdmin: true,
+    },
     error: null,
   };
 }
@@ -129,5 +149,88 @@ describe("withUser", () => {
     await withUser(new Request("http://localhost/api/test"), handler, "Custom login required");
 
     expect(mockedAuth).toHaveBeenCalledWith("Custom login required");
+  });
+});
+
+describe("withAdmin", () => {
+  it("returns the auth error response and does not invoke the callback when admin auth fails", async () => {
+    const authError = new Response(JSON.stringify({ error: "Admin access required" }), {
+      status: 403,
+    });
+    mockedAdminAuth.mockResolvedValue({ user: null, error: authError });
+
+    const handler = vi.fn();
+    const response = await withAdmin(new Request("http://localhost/api/admin/stats"), handler);
+
+    expect(response).toBe(authError);
+    expect(response.status).toBe(403);
+    expect(handler).not.toHaveBeenCalled();
+  });
+
+  it("invokes the callback with a non-null admin context and returns its response on success", async () => {
+    const result = adminSuccessResult();
+    mockedAdminAuth.mockResolvedValue(result);
+
+    const handlerResponse = new Response("ok", { status: 200 });
+    const handler = vi.fn(async (ctx: AdminContext) => {
+      // Context is guaranteed non-null and carries the validated admin user.
+      expect(ctx.user).toBe(result.user);
+      return handlerResponse;
+    });
+
+    const response = await withAdmin(new Request("http://localhost/api/admin/stats"), handler);
+
+    expect(handler).toHaveBeenCalledTimes(1);
+    expect(response).toBe(handlerResponse);
+  });
+
+  it("maps a thrown error to a standard 500 and logs the request path", async () => {
+    mockedAdminAuth.mockResolvedValue(adminSuccessResult());
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const handler = vi.fn(async () => {
+      throw new Error("boom");
+    });
+
+    const response = await withAdmin(new Request("http://localhost/api/admin/referrals"), handler);
+
+    expect(response.status).toBe(500);
+    const body = (await response.json()) as { code?: string };
+    expect(body.code).toBe("INTERNAL_ERROR");
+
+    const loggedWithPath = consoleSpy.mock.calls.some((call: unknown[]) =>
+      call.some((arg: unknown) => typeof arg === "string" && arg.includes("/api/admin/referrals")),
+    );
+    expect(loggedWithPath).toBe(true);
+
+    consoleSpy.mockRestore();
+  });
+
+  it("maps a thrown error during the admin auth check itself to a 500", async () => {
+    mockedAdminAuth.mockRejectedValue(new Error("auth blew up"));
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const handler = vi.fn();
+    const response = await withAdmin(new Request("http://localhost/api/admin/stats"), handler);
+
+    expect(response.status).toBe(500);
+    expect(handler).not.toHaveBeenCalled();
+
+    consoleSpy.mockRestore();
+  });
+
+  it("supports a param-less handler (undefined request) and still maps a throw to 500", async () => {
+    mockedAdminAuth.mockResolvedValue(adminSuccessResult());
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const handler = vi.fn(async () => {
+      throw new Error("boom");
+    });
+
+    const response = await withAdmin(undefined, handler);
+
+    expect(response.status).toBe(500);
+
+    consoleSpy.mockRestore();
   });
 });

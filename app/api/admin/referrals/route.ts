@@ -26,20 +26,13 @@
 
 import { env } from "cloudflare:workers";
 import { count, desc, gt, isNotNull, sql } from "drizzle-orm";
-import { requireAdminAuthForApi } from "@/lib/auth/admin";
+import { withAdmin } from "@/lib/auth/with-auth";
 import { getDb } from "@/lib/db";
 import { referralClicks, user } from "@/lib/db/schema";
-import {
-  createErrorResponse,
-  createSuccessResponse,
-  ERROR_CODES,
-} from "@/lib/utils/security-headers";
+import { createSuccessResponse } from "@/lib/utils/security-headers";
 
 export async function GET() {
-  const { error } = await requireAdminAuthForApi();
-  if (error) return error;
-
-  try {
+  return withAdmin(undefined, async () => {
     const db = getDb(env.CLICKFOLIO_DB);
 
     const [
@@ -195,8 +188,5 @@ export async function GET() {
         createdAt: r.referredAt || r.createdAt,
       })),
     });
-  } catch (err) {
-    console.error("[admin/referrals] Error:", err);
-    return createErrorResponse("Failed to fetch referrals", ERROR_CODES.INTERNAL_ERROR, 500);
-  }
+  });
 }
