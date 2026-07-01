@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import type { z } from "zod";
-import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
+import { withUser } from "@/lib/auth/with-auth";
 
 import { siteData, user } from "@/lib/db/schema";
 import { isHandleTaken } from "@/lib/rate-limit/handle-validation";
@@ -50,128 +50,116 @@ type WizardCompleteRequest = z.infer<typeof wizardCompleteSchema>;
  *   - 500: database error or unexpected error
  */
 export async function POST(request: Request) {
-  try {
-    // 1. Validate request size before parsing (prevent DoS)
-    const sizeCheck = validateRequestSize(request);
-    if (!sizeCheck.valid) {
-      return createErrorResponse(
-        sizeCheck.error || "Request body too large",
-        ERROR_CODES.BAD_REQUEST,
-        413,
-      );
-    }
-
-    // 2. Authenticate user and validate existence in database
-    const {
-      user: authUser,
-      db,
-      captureBookmark,
-      error: authError,
-    } = await requireAuthWithUserValidation("You must be logged in to complete onboarding");
-    if (authError) return authError;
-
-    // 4. Parse and validate request body (size-capped read, no trust in Content-Length)
-    const rawBodyResult = await readJsonWithLimit(request);
-    if (!rawBodyResult.ok) {
-      return createErrorResponse(
-        rawBodyResult.error,
-        ERROR_CODES.BAD_REQUEST,
-        rawBodyResult.reason === "too_large" ? 413 : 400,
-      );
-    }
-
-    const validation = wizardCompleteSchema.safeParse(rawBodyResult.data);
-    if (!validation.success) {
-      return createErrorResponse(
-        "Validation failed. Please check your input.",
-        ERROR_CODES.VALIDATION_ERROR,
-        400,
-        validation.error.issues,
-      );
-    }
-    const body: WizardCompleteRequest = validation.data;
-
-    // 4b. Validate theme access based on referral count
-    const themeError = await verifyThemeUnlocked(db, authUser.id, body.theme_id as ThemeId);
-    if (themeError) return themeError;
-
-    // Safety fallback: use DEFAULT_THEME if locked theme somehow got through
-    const finalThemeId = body.theme_id;
-
-    // 5. Check if handle is available (not already taken by another user)
-    const handleTaken = await isHandleTaken(db, authUser.id, body.handle);
-
-    if (handleTaken) {
-      return createErrorResponse(
-        "This handle is already taken. Please choose another.",
-        ERROR_CODES.VALIDATION_ERROR,
-        400,
-        { field: "handle", message: "Handle already taken" },
-      );
-    }
-
-    // 6+7. Update user + upsert siteData atomically via db.batch().
-    // Wrapped in try-catch to handle race condition on unique constraint.
-    const privacySettings = JSON.stringify(body.privacy_settings);
-    const now = new Date().toISOString();
-
-    try {
-      await db.batch([
-        db
-          .update(user)
-          .set({
-            handle: body.handle,
-            privacySettings,
-            showInDirectory: body.privacy_settings.show_in_directory,
-            onboardingCompleted: true,
-            updatedAt: now,
-          })
-          .where(eq(user.id, authUser.id)),
-        db
-          .insert(siteData)
-          .values({
-            id: crypto.randomUUID(),
-            userId: authUser.id,
-            content: "{}", // Will be populated by queue consumer when parsing completes
-            themeId: finalThemeId,
-            createdAt: now,
-            updatedAt: now,
-          })
-          .onConflictDoUpdate({
-            target: siteData.userId,
-            set: {
-              themeId: finalThemeId,
-              lastPublishedAt: now,
-              updatedAt: now,
-            },
-          }),
-      ]);
-    } catch (error) {
-      // Check if it's a unique constraint violation (race condition on handle)
-      if (error instanceof Error && error.message.includes("UNIQUE constraint failed")) {
-        return createErrorResponse(
-          "This handle was just taken. Please choose a different one.",
-          ERROR_CODES.CONFLICT,
-          409,
-        );
-      }
-      throw error; // Re-throw other errors
-    }
-
-    // 8. Capture bookmark before returning success
-    await captureBookmark();
-
-    // 9. Return success response
-    return createSuccessResponse({
-      success: true,
-      handle: body.handle,
-    });
-  } catch (error) {
-    console.error("Unexpected error in wizard completion:", error);
+  // Validate request size before parsing (prevent DoS)
+  const sizeCheck = validateRequestSize(request);
+  if (!sizeCheck.valid) {
     return createErrorResponse(
-      "An unexpected error occurred. Please try again.",
-      ERROR_CODES.INTERNAL_ERROR,
-      500,
+      sizeCheck.error || "Request body too large",
+      ERROR_CODES.BAD_REQUEST,
+      413,
     );
   }
+
+  return withUser(
+    request,
+    async ({ user: authUser, db, captureBookmark }) => {
+      // Parse and validate request body (size-capped read, no trust in Content-Length)
+      const rawBodyResult = await readJsonWithLimit(request);
+      if (!rawBodyResult.ok) {
+        return createErrorResponse(
+          rawBodyResult.error,
+          ERROR_CODES.BAD_REQUEST,
+          rawBodyResult.reason === "too_large" ? 413 : 400,
+        );
+      }
+
+      const validation = wizardCompleteSchema.safeParse(rawBodyResult.data);
+      if (!validation.success) {
+        return createErrorResponse(
+          "Validation failed. Please check your input.",
+          ERROR_CODES.VALIDATION_ERROR,
+          400,
+          validation.error.issues,
+        );
+      }
+      const body: WizardCompleteRequest = validation.data;
+
+      // Validate theme access based on referral count
+      const themeError = await verifyThemeUnlocked(db, authUser.id, body.theme_id as ThemeId);
+      if (themeError) return themeError;
+
+      // Safety fallback: use DEFAULT_THEME if locked theme somehow got through
+      const finalThemeId = body.theme_id;
+
+      // Check if handle is available (not already taken by another user)
+      const handleTaken = await isHandleTaken(db, authUser.id, body.handle);
+
+      if (handleTaken) {
+        return createErrorResponse(
+          "This handle is already taken. Please choose another.",
+          ERROR_CODES.VALIDATION_ERROR,
+          400,
+          { field: "handle", message: "Handle already taken" },
+        );
+      }
+
+      // Update user + upsert siteData atomically via db.batch().
+      // Wrapped in try-catch to handle race condition on unique constraint.
+      const privacySettings = JSON.stringify(body.privacy_settings);
+      const now = new Date().toISOString();
+
+      try {
+        await db.batch([
+          db
+            .update(user)
+            .set({
+              handle: body.handle,
+              privacySettings,
+              showInDirectory: body.privacy_settings.show_in_directory,
+              onboardingCompleted: true,
+              updatedAt: now,
+            })
+            .where(eq(user.id, authUser.id)),
+          db
+            .insert(siteData)
+            .values({
+              id: crypto.randomUUID(),
+              userId: authUser.id,
+              content: "{}", // Will be populated by queue consumer when parsing completes
+              themeId: finalThemeId,
+              createdAt: now,
+              updatedAt: now,
+            })
+            .onConflictDoUpdate({
+              target: siteData.userId,
+              set: {
+                themeId: finalThemeId,
+                lastPublishedAt: now,
+                updatedAt: now,
+              },
+            }),
+        ]);
+      } catch (error) {
+        // Check if it's a unique constraint violation (race condition on handle)
+        if (error instanceof Error && error.message.includes("UNIQUE constraint failed")) {
+          return createErrorResponse(
+            "This handle was just taken. Please choose a different one.",
+            ERROR_CODES.CONFLICT,
+            409,
+          );
+        }
+        throw error; // Re-throw other errors
+      }
+
+      // Capture bookmark before returning success
+      await captureBookmark();
+
+      // Return success response
+      return createSuccessResponse({
+        success: true,
+        handle: body.handle,
+      });
+    },
+    "You must be logged in to complete onboarding",
+  );
 }

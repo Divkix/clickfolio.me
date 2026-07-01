@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
+import { withUser } from "@/lib/auth/with-auth";
 import { user } from "@/lib/db/schema";
 
 import {
@@ -21,34 +21,27 @@ import {
  *   - 404: user not found
  *   - 500: unexpected error
  */
-export async function GET() {
-  try {
-    // Check authentication and validate user exists in database
-    const {
-      user: authUser,
-      db,
-      error: authError,
-    } = await requireAuthWithUserValidation("You must be logged in to view stats");
-    if (authError) return authError;
+export async function GET(request?: Request) {
+  return withUser(
+    request,
+    async ({ user: authUser, db }) => {
+      const userData = await db.query.user.findFirst({
+        where: eq(user.id, authUser.id),
+        columns: {
+          referralCount: true,
+          isPro: true,
+        },
+      });
 
-    const userData = await db.query.user.findFirst({
-      where: eq(user.id, authUser.id),
-      columns: {
-        referralCount: true,
-        isPro: true,
-      },
-    });
+      if (!userData) {
+        return createErrorResponse("User not found", ERROR_CODES.NOT_FOUND, 404);
+      }
 
-    if (!userData) {
-      return createErrorResponse("User not found", ERROR_CODES.NOT_FOUND, 404);
-    }
-
-    return createSuccessResponse({
-      referralCount: userData.referralCount ?? 0,
-      isPro: userData.isPro ?? false,
-    });
-  } catch (error) {
-    console.error("Error fetching user stats:", error);
-    return createErrorResponse("Internal server error", ERROR_CODES.INTERNAL_ERROR, 500);
-  }
+      return createSuccessResponse({
+        referralCount: userData.referralCount ?? 0,
+        isPro: userData.isPro ?? false,
+      });
+    },
+    "You must be logged in to view stats",
+  );
 }
