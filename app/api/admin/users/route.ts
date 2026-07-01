@@ -24,14 +24,10 @@
 
 import { env } from "cloudflare:workers";
 import { count, or, sql } from "drizzle-orm";
-import { requireAdminAuthForApi } from "@/lib/auth/admin";
+import { withAdmin } from "@/lib/auth/with-auth";
 import { getDb } from "@/lib/db";
 import { resumes, siteData, user } from "@/lib/db/schema";
-import {
-  createErrorResponse,
-  createSuccessResponse,
-  ERROR_CODES,
-} from "@/lib/utils/security-headers";
+import { createSuccessResponse } from "@/lib/utils/security-headers";
 
 const PAGE_SIZE = 25;
 
@@ -44,15 +40,12 @@ function escapeLikePattern(input: string): string {
 }
 
 export async function GET(request: Request) {
-  const { error } = await requireAdminAuthForApi();
-  if (error) return error;
+  return withAdmin(request, async () => {
+    const url = new URL(request.url);
+    const page = Math.max(1, Number.parseInt(url.searchParams.get("page") || "1", 10));
+    const search = url.searchParams.get("search")?.trim() || "";
+    const offset = (page - 1) * PAGE_SIZE;
 
-  const url = new URL(request.url);
-  const page = Math.max(1, Number.parseInt(url.searchParams.get("page") || "1", 10));
-  const search = url.searchParams.get("search")?.trim() || "";
-  const offset = (page - 1) * PAGE_SIZE;
-
-  try {
     const db = getDb(env.CLICKFOLIO_DB);
 
     // Escape LIKE wildcards to prevent pattern injection
@@ -171,8 +164,5 @@ export async function GET(request: Request) {
       page,
       pageSize: PAGE_SIZE,
     });
-  } catch (err) {
-    console.error("[admin/users] Error:", err);
-    return createErrorResponse("Failed to fetch users", ERROR_CODES.INTERNAL_ERROR, 500);
-  }
+  });
 }

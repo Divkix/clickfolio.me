@@ -24,7 +24,7 @@
 
 import { env } from "cloudflare:workers";
 import { count, eq, sql } from "drizzle-orm";
-import { requireAdminAuthForApi } from "@/lib/auth/admin";
+import { withAdmin } from "@/lib/auth/with-auth";
 import { getDb } from "@/lib/db";
 import { resumes, user } from "@/lib/db/schema";
 import {
@@ -37,19 +37,16 @@ const PAGE_SIZE = 25;
 const VALID_STATUSES = new Set(["all", "completed", "processing", "queued", "failed"]);
 
 export async function GET(request: Request) {
-  const { error } = await requireAdminAuthForApi();
-  if (error) return error;
+  return withAdmin(request, async () => {
+    const url = new URL(request.url);
+    const page = Math.max(1, Number.parseInt(url.searchParams.get("page") || "1", 10));
+    const statusFilter = url.searchParams.get("status") || "all";
+    const offset = (page - 1) * PAGE_SIZE;
 
-  const url = new URL(request.url);
-  const page = Math.max(1, Number.parseInt(url.searchParams.get("page") || "1", 10));
-  const statusFilter = url.searchParams.get("status") || "all";
-  const offset = (page - 1) * PAGE_SIZE;
+    if (!VALID_STATUSES.has(statusFilter)) {
+      return createErrorResponse("Invalid status filter", ERROR_CODES.VALIDATION_ERROR, 400);
+    }
 
-  if (!VALID_STATUSES.has(statusFilter)) {
-    return createErrorResponse("Invalid status filter", ERROR_CODES.VALIDATION_ERROR, 400);
-  }
-
-  try {
     const db = getDb(env.CLICKFOLIO_DB);
 
     // Get status counts
@@ -132,8 +129,5 @@ export async function GET(request: Request) {
       page,
       pageSize: PAGE_SIZE,
     });
-  } catch (err) {
-    console.error("[admin/resumes] Error:", err);
-    return createErrorResponse("Failed to fetch resumes", ERROR_CODES.INTERNAL_ERROR, 500);
-  }
+  });
 }

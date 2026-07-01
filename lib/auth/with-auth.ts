@@ -5,16 +5,19 @@
  * — the const-export form is rejected because vinext (Vite-based, not standard
  * Next.js) has unproven route detection for const-exported handlers.
  *
- * `withUser` owns the three things every user-validated route used to repeat:
- *   1. the user-validation auth check (via `requireAuthWithUserValidation`),
- *   2. returning the auth-failure response directly (401/404), and
+ * `withUser` / `withAdmin` own the three things every guarded route used to
+ * repeat:
+ *   1. the auth check (via `requireAuthWithUserValidation` / `requireAdminAuthForApi`),
+ *   2. returning the auth-failure response directly (401/404 for user, 401/403
+ *      for admin), and
  *   3. the catch-all outer try/catch that maps an unexpected throw to a
  *      standard 500 (with the request path logged).
  *
  * Inner, purpose-specific try/catch blocks (JSON-body parsing, external-service
- * failures, unique-constraint → 409, etc.) stay in the route bodies.
+ * failures → 503, unique-constraint → 409, etc.) stay in the route bodies.
  */
 
+import { requireAdminAuthForApi } from "@/lib/auth/admin";
 import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
 import { createErrorResponse, ERROR_CODES } from "@/lib/utils/security-headers";
 
@@ -25,6 +28,16 @@ import { createErrorResponse, ERROR_CODES } from "@/lib/utils/security-headers";
  */
 type AuthedUserContext = Omit<
   Extract<Awaited<ReturnType<typeof requireAuthWithUserValidation>>, { error: null }>,
+  "error"
+>;
+
+/**
+ * The guaranteed-non-null context handed to a `withAdmin` callback: the full
+ * successful result of `requireAdminAuthForApi` minus the `error` discriminant
+ * (i.e. the validated admin `user`).
+ */
+type AuthedAdminContext = Omit<
+  Extract<Awaited<ReturnType<typeof requireAdminAuthForApi>>, { error: null }>,
   "error"
 >;
 
@@ -74,6 +87,49 @@ export async function withUser(
 
     const { user, db, captureBookmark, dbUser, env } = result;
     return await handler({ user, db, captureBookmark, dbUser, env });
+  } catch (error) {
+    console.error(`Unhandled error in ${pathnameOf(request)}:`, error);
+    return createErrorResponse(UNEXPECTED_ERROR_MESSAGE, ERROR_CODES.INTERNAL_ERROR, 500);
+  }
+}
+
+/**
+ * Wrap an admin-only API route handler.
+ *
+ * Runs `requireAdminAuthForApi`; on failure returns its 401 (unauthenticated)
+ * or 403 (non-admin) response directly without invoking `handler`. On success
+ * invokes `handler` with a non-null context carrying the validated admin
+ * `user`. Any thrown error (from the auth check or the handler) is mapped to
+ * the standard 500, with the request path logged for traceability.
+ *
+ * Routes with their own purpose-specific error semantics (e.g. an Umami-failure
+ * `503`) keep that inner try/catch inside the callback; the wrapper only owns
+ * the catch-all 500.
+ *
+ * @param request The incoming request (used for the 500 log line's path). May
+ *   be `undefined` for a param-less GET handler invoked without one; the log
+ *   line then falls back to a placeholder path.
+ * @param handler The route body; receives a guaranteed-admin context.
+ *
+ * @example
+ * ```ts
+ * export async function GET(request: Request) {
+ *   return withAdmin(request, async () => {
+ *     return createSuccessResponse({ ok: true });
+ *   });
+ * }
+ * ```
+ */
+export async function withAdmin(
+  request: Request | undefined,
+  handler: (context: AuthedAdminContext) => Response | Promise<Response>,
+): Promise<Response> {
+  try {
+    const result = await requireAdminAuthForApi();
+    if (result.error) return result.error;
+
+    const { user } = result;
+    return await handler({ user });
   } catch (error) {
     console.error(`Unhandled error in ${pathnameOf(request)}:`, error);
     return createErrorResponse(UNEXPECTED_ERROR_MESSAGE, ERROR_CODES.INTERNAL_ERROR, 500);
