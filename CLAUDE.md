@@ -150,6 +150,8 @@ pnpm run generate:favicons # regen favicons from scripts/generate-favicons.ts
 
 **Pre-push:** `pnpm run type-check && vp check && pnpm run test`
 
+> **pnpm lockfile gotcha (`catalog:` refs + `--frozen-lockfile`).** In pnpm 11.10 an inconsistent state can leave the lockfile importer block storing the raw `specifier:'catalog:'` for `vite` and `vitest` even though `package.json` uses `catalog:` and `pnpm-workspace.yaml`'s `catalog:` block resolves to concrete versions. A fresh `pnpm install --frozen-lockfile` (or any consume-from-scratch environment like Cloudflare Pages' clean checkout) then fails with `ERR_PNPM_OUTDATED_LOCKFILE` citing `lockfile: catalog:, manifest: npm:@voidzero-dev/vite-plus-core@^0.2.2`. Repro: `rm -rf node_modules && pnpm install --frozen-lockfile`. Fix: `pnpm install --no-frozen-lockfile` once locally and commit the regenerated `pnpm-lock.yaml` (the importer block will then write the resolved specifier `npm:@voidzero-dev/vite-plus-core@^0.2.2` / `4.1.10`, and the now-empty top-level `catalogs:` block is dropped). A populated local `node_modules/.modules.yaml` can mask the bug, so always reproduce against a fresh `node_modules` before declaring the lockfile healthy. If recurring, inline the resolved versions in `package.json` directly to bypass `catalog:` entirely.
+
 > **Note:** `db:push` skips migration files — use `db:generate` + `db:migrate` for the canonical path. `db:reset` is destructive and local-only. After `db:reset`, existing browser sessions point at deleted user rows — `requireAuthWithUserValidation()` will return **404** for them (see Common gotchas).
 
 **Scripts detail (`scripts/`):**
