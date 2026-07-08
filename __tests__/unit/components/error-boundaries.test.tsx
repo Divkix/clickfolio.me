@@ -30,7 +30,6 @@ describe("Error Boundary Tests", () => {
     console.error = vi.fn();
     mockFetch.mockReset();
     mockFetch.mockResolvedValue({ ok: true });
-    // @ts-expect-error - mocking fetch
     globalThis.fetch = mockFetch;
   });
 

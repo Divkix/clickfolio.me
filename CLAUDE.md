@@ -31,7 +31,7 @@ If a decision's rationale isn't obvious from code, capture the _why_ as a new nu
 | Runtime         | Cloudflare Workers                                                                                                                                                                                                      |
 | Framework       | [vinext](https://github.com/cloudflare/vinext) (Vite-based Next.js — NOT standard Next.js) `^0.2.0` (on Next `^16`, React `^19.2`)                                                                                      |
 | Toolchain       | Vite+ (`vp`) — `vite-plus@0.2.1` direct dep; `vite` is an npm-alias to `@voidzero-dev/vite-plus-core@0.2.1` (forced via package.json `overrides`); `vitest` is a regular dep `^4.1.9` pinned to `4.1.9` via `overrides` |
-| Package manager | `bun` (pinned `bun@1.3.14` via `packageManager`)                                                                                                                                                                        |
+| Package manager | `pnpm` (pinned `pnpm@11.10.0` via `packageManager`)                                                                                                                                                                     |
 | DB              | Cloudflare D1 + Drizzle ORM (SQLite)                                                                                                                                                                                    |
 | Auth            | Better Auth (Google OAuth + email/password)                                                                                                                                                                             |
 | AI parsing      | OpenRouter via Cloudflare AI Gateway (`openai/gpt-oss` models) + `unpdf` + Vercel AI SDK                                                                                                                                |
@@ -102,61 +102,61 @@ scripts/                    # Utility scripts (deploy, seed, thumbnails, favicon
 
 ```bash
 # Development
-bun run dev              # vp dev --port 3000 (Vite+ dev server on :3000)
-bun run preview          # vp build && bunx wrangler dev (local CF Workers preview)
-bun run start            # vp preview
-bun run clean            # rm -rf .next dist (clear build artifacts)
+pnpm run dev              # vp dev --port 3000 (Vite+ dev server on :3000)
+pnpm run preview          # vp build && pnpm exec wrangler dev (local CF Workers preview)
+pnpm run start            # vp preview
+pnpm run clean            # rm -rf .next dist (clear build artifacts)
 
 # Type checking & quality
-bun run type-check       # tsc --noEmit
-bun run lint             # vp lint (Oxlint)
-bun run fix              # vp check --fix (auto-fix lint + format)
+pnpm run type-check       # tsc --noEmit
+pnpm run lint             # vp lint (Oxlint)
+pnpm run fix              # vp check --fix (auto-fix lint + format)
 vp check                 # lint + format + type-check (all at once)
 
 # Testing
-bun run test             # ALL test files (vp test run, no --config → vitest.config.ts, retry:2/threads)
-bun run test:unit        # unit suite (vp test run --config vitest.unit.config.ts)
-bun run test:integration # integration suite (--config vitest.integration.config.ts)
-bun run test:security    # security suite (--config vitest.security.config.ts)
-bun run test:coverage    # combined coverage, 80% gate (vp test run --coverage → vitest.config.ts)
-bun run test:watch       # interactive watch mode (vp test)
-bun run test:ui          # Vitest browser UI (vp test --ui)
-bun run test:ci          # vp test run --coverage --reporter=json (NOT wired into ci.yml)
+pnpm run test             # ALL test files (vp test run, no --config → vitest.config.ts, retry:2/threads)
+pnpm run test:unit        # unit suite (vp test run --config vitest.unit.config.ts)
+pnpm run test:integration # integration suite (--config vitest.integration.config.ts)
+pnpm run test:security    # security suite (--config vitest.security.config.ts)
+pnpm run test:coverage    # combined coverage, 80% gate (vp test run --coverage → vitest.config.ts)
+pnpm run test:watch       # interactive watch mode (vp test)
+pnpm run test:ui          # Vitest browser UI (vp test --ui)
+pnpm run test:ci          # vp test run --coverage --reporter=json (NOT wired into ci.yml)
 
 # Build & deploy
-bun run build            # vp build (vinext)
-bun run build:worker     # alias for vp build (identical to build)
-bun run analyze          # ANALYZE=true vp build → dist/stats.html (bundle visualizer)
-bun run ci               # full CI: install + type-check + vp check + test + build
-bun run deploy           # scripts/deploy.ts — thin `bunx wrangler deploy` wrapper, NO build step
+pnpm run build            # vp build (vinext)
+pnpm run build:worker     # alias for vp build (identical to build)
+pnpm run analyze          # ANALYZE=true vp build → dist/stats.html (bundle visualizer)
+pnpm run ci               # full CI: install + type-check + vp check + test + build
+pnpm run deploy           # scripts/deploy.ts — thin `pnpm exec wrangler deploy` wrapper, NO build step
 
 # Database
-bun run db:generate      # drizzle-kit generate (create migration files)
-bun run db:migrate       # wrangler d1 migrations apply clickfolio-db --local
-bun run db:migrate:prod  # scripts/migrate-prod.ts (apply to production D1; destructive-SQL gate)
-bun run db:push          # drizzle-kit push (schema only, no migration files — local prototyping only)
-bun run db:reset         # rm -rf .wrangler/state/v3/d1 + re-run db:migrate (destructive, local-only)
-bun run db:reset:local   # db:reset + db:seed:local
-bun run db:seed:local    # seed local DB from scripts/seed-local.ts
-bun run db:studio        # Drizzle GUI at :4984 (drizzle-kit studio --port 4984)
+pnpm run db:generate      # drizzle-kit generate (create migration files)
+pnpm run db:migrate       # wrangler d1 migrations apply clickfolio-db --local
+pnpm run db:migrate:prod  # scripts/migrate-prod.ts (apply to production D1; destructive-SQL gate)
+pnpm run db:push          # drizzle-kit push (schema only, no migration files — local prototyping only)
+pnpm run db:reset         # rm -rf .wrangler/state/v3/d1 + re-run db:migrate (destructive, local-only)
+pnpm run db:reset:local   # db:reset + db:seed:local
+pnpm run db:seed:local    # seed local DB from scripts/seed-local.ts
+pnpm run db:studio        # Drizzle GUI at :4984 (drizzle-kit studio --port 4984)
 
 # Codegen & tooling
-bun run cf-typegen       # regen lib/cloudflare-env.d.ts (wrangler types)
-bun run generate:favicons # regen favicons from scripts/generate-favicons.ts
-# (no npm script) bun run scripts/generate-thumbnails.ts — Playwright template thumbnails
+pnpm run cf-typegen       # regen lib/cloudflare-env.d.ts (wrangler types)
+pnpm run generate:favicons # regen favicons from scripts/generate-favicons.ts
+# (no npm script) pnpm run scripts/generate-thumbnails.ts — Playwright template thumbnails
 ```
 
 `prepare` (runs on install) = `vp config`.
 
-**Pre-push:** `bun run type-check && vp check && bun run test`
+**Pre-push:** `pnpm run type-check && vp check && pnpm run test`
 
 > **Note:** `db:push` skips migration files — use `db:generate` + `db:migrate` for the canonical path. `db:reset` is destructive and local-only. After `db:reset`, existing browser sessions point at deleted user rows — `requireAuthWithUserValidation()` will return **404** for them (see Common gotchas).
 
 **Scripts detail (`scripts/`):**
 
-- **`deploy.ts`** — thin wrapper: `Bun.spawnSync(["bunx","wrangler","deploy",...args])`, forwards CLI args + exit code. **No build step, no custom logic.** `bun run deploy` does NOT build first; run `bun run build` separately or rely on wrangler. No GitHub Actions deploy workflow exists — deploys are manual.
-- **`migrate-prod.ts`** (`db:migrate:prod`) — (1) scans every `migrations/*.sql` for `/DROP\s+TABLE/i`, `/DELETE\s+FROM/i`, `/TRUNCATE\s+TABLE/i` and **hard-blocks (exit 1) unless `--force`** (`bun run db:migrate:prod -- --force`); (2) ALWAYS runs `wrangler d1 export clickfolio-db --remote --output=d1-backup-<ISO>.sql` first and aborts if backup fails; (3) `wrangler d1 migrations apply clickfolio-db --remote`. Rationale: on D1 `PRAGMA foreign_keys=OFF` may not persist across statements, so a `DROP TABLE` can fire `ON DELETE CASCADE` and wipe related tables.
-- **`seed-local.ts`** (`db:seed:local`) — seeds **admin** user `test@example.com`/`password` into local D1 via `bun:sqlite` (raw INSERTs, bypassing Drizzle/Better Auth), `is_admin=1`, `email_verified=1`. Password hashed with `@noble/hashes` scrypt (N=16384, p=1, r=16, dkLen=64, format `salt:hex`) to match Better Auth. Idempotent (skips if email exists).
+- **`deploy.ts`** — thin wrapper: `spawnSync("pnpm", ["exec", "wrangler", "deploy", ...args])`, forwards CLI args + exit code. **No build step, no custom logic.** `pnpm run deploy` does NOT build first; run `pnpm run build` separately or rely on wrangler. No GitHub Actions deploy workflow exists — deploys are manual.
+- **`migrate-prod.ts`** (`db:migrate:prod`) — (1) scans every `migrations/*.sql` for `/DROP\s+TABLE/i`, `/DELETE\s+FROM/i`, `/TRUNCATE\s+TABLE/i` and **hard-blocks (exit 1) unless `--force`** (`pnpm run db:migrate:prod -- --force`); (2) ALWAYS runs `wrangler d1 export clickfolio-db --remote --output=d1-backup-<ISO>.sql` first and aborts if backup fails; (3) `wrangler d1 migrations apply clickfolio-db --remote`. Rationale: on D1 `PRAGMA foreign_keys=OFF` may not persist across statements, so a `DROP TABLE` can fire `ON DELETE CASCADE` and wipe related tables.
+- **`seed-local.ts`** (`db:seed:local`) — seeds **admin** user `test@example.com`/`password` into local D1 via `better-sqlite3` (raw INSERTs, bypassing Drizzle/Better Auth), `is_admin=1`, `email_verified=1`. Password hashed with `@noble/hashes` scrypt (N=16384, p=1, r=16, dkLen=64, format `salt:hex`) to match Better Auth. Idempotent (skips if email exists).
 - **`generate-favicons.ts`** (`generate:favicons`) — reads `public/icon.svg` → `sharp` emits favicon-16/32, mstile-150, apple-touch-icon (180), icon-192/512 PNGs + multi-size `favicon.ico` (`png-to-ico`). Source of truth: `public/icon.svg`.
 - **`generate-thumbnails.ts`** (no npm script — run directly) — Playwright (chromium, 1280×800, DSF 2) screenshots `${BASE_URL}/preview/<id>` for templates into `public/previews/*.png`. **Requires dev server running**; `BASE_URL` overrides `http://localhost:3000`. **STALE:** hand-maintained `TEMPLATES` array lists only 8 of 10 (missing `design_folio`, `dev_terminal`) and outputs `.png`, while `THEME_METADATA[id].preview` points at `/previews/<slug>.webp` (slug mismatches: `neo_brutalist`→`brutalist`, `minimalist_editorial`→`minimalist`).
 
@@ -209,7 +209,7 @@ Tests follow the trophy model. Four vitest config files exist — one per suite 
 
 **Test infrastructure:**
 
-- Global setup `__tests__/setup.ts` (applied to all 4 suites via each config's `setupFiles`): jest-dom matchers via `vite-plus/test`; a hand-rolled `globalThis.localStorage` (jsdom's is unreliable under bun); **overrides `globalThis.crypto`** with deterministic mocks; `beforeEach` clears localStorage + crypto mocks + `clearKeyCache()` from `lib/utils/pending-upload-cookie`.
+- Global setup `__tests__/setup.ts` (applied to all 4 suites via each config's `setupFiles`): jest-dom matchers via `vite-plus/test`; a hand-rolled `globalThis.localStorage` (jsdom's localStorage can be unreliable in some Node.js runtimes); **overrides `globalThis.crypto`** with deterministic mocks; `beforeEach` clears localStorage + crypto mocks + `clearKeyCache()` from `lib/utils/pending-upload-cookie`.
 - **Crypto mocks** `__tests__/mocks/crypto.ts` (sibling of `setup/`, NOT under `setup/mocks/`): `digest` does REAL hashing only for SHA-1/SHA-256 (delegates to `node:crypto`), other algos return a fake XOR hash; `randomUUID()` returns SEQUENTIAL ids `...0000000000NN` (module counter, only `.mockClear()`'d); `sign`/`importKey` produce a deterministic pseudo-HMAC embedding the secret — signatures are NOT cryptographically valid (SHA-256 hex output IS real).
 - All 4 configs alias `cloudflare:workers` → `lib/stubs/cloudflare-workers-client-stub.mjs` (Node, not Workers). Tests needing `env` add `vi.mock("cloudflare:workers", () => ({ env: { ... } }))` to inject bindings.
 - `vitest.config.ts` (combined) and `vitest.security.config.ts` set `server.deps.inline:[/@zxcvbn-ts\//]` + alias `@zxcvbn-ts/language-common`/`-en` to `dist/index.mjs` (zxcvbn-ts v4's CJS `main` has broken decompressor interop under Node require; password-strength tests live in the security suite). Touch if zxcvbn tests fail on import.
@@ -238,9 +238,9 @@ PR requirements:
 - Title follows conventional commit format
 - Description explains the change
 - Screenshots for UI changes
-- All CI checks pass (`bun run ci`)
+- All CI checks pass (`pnpm run ci`)
 
-**Dependabot** (`.github/dependabot.yml`) runs **daily** for both `bun` (commit prefix `chore(deps)`, label `dependencies`, 10 open-PR limit, all minor/patch grouped into one `all-minor-patch` PR) and `github-actions` (prefix `chore(ci)`, labels `ci`+`dependencies`). Major bumps are NOT grouped.
+**Dependabot** (`.github/dependabot.yml`) runs **daily** for both `npm` (pnpm is detected via `pnpm-lock.yaml`; commit prefix `chore(deps)`, label `dependencies`, 10 open-PR limit, all minor/patch grouped into one `all-minor-patch` PR) and `github-actions` (prefix `chore(ci)`, labels `ci`+`dependencies`). Major bumps are NOT grouped.
 
 ## CI pipeline (deep)
 
@@ -248,25 +248,25 @@ Three workflows exist: `ci.yml`, `ai-review.yml` + `ai-review-commands.yml` (the
 
 CI (`.github/workflows/ci.yml`) is **9 jobs**. The five primary jobs run **in parallel** (no inter-dependencies); only the downstream jobs have `needs`. `ci-success` is the single required gate. Workflow-level `permissions: { contents: read, pull-requests: write }`. `concurrency` group `${{ github.workflow }}-${{ github.ref }}` with `cancel-in-progress: true`. Triggers: push + PR on `main`/`master`. **All actions are pinned to full commit SHAs except `voidzero-dev/setup-vp@v1`** (floating tag); every checkout sets `persist-credentials: false`.
 
-| Job                 | `needs`                                                         | Command (reproduce locally)                                                  | Gates / notes                                                                                                                                                                                                                        |
-| ------------------- | --------------------------------------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `quality`           | —                                                               | `vp check` (via `voidzero-dev/setup-vp@v1`, `node-version:22`, `cache:true`) | Lint+format+type-check (Vite+). Only job using setup-vp; no setup-node. ALSO runs `oven-sh/setup-bun` + bun cache + `bun install --frozen-lockfile` first. `setup-vp@v1` is the ONE floating tag — every other action is SHA-pinned. |
-| `type-check`        | —                                                               | `bun run type-check` (`tsc --noEmit`)                                        | Strict TS flags are errors. `oven-sh/setup-bun` only. Parallel.                                                                                                                                                                      |
-| `unit-tests`        | —                                                               | `bun run test:unit -- --coverage`                                            | `pool:threads`,`retry:0`. Uploads `unit-coverage-report` → `coverage/unit/` (`if: always()`).                                                                                                                                        |
-| `integration-tests` | —                                                               | `bun run test:integration -- --coverage`                                     | `retry:2`,10s. Uploads `integration-coverage-report` → `coverage/integration/`.                                                                                                                                                      |
-| `security-tests`    | —                                                               | `bun run test:security -- --coverage`                                        | `pool:forks`,`retry:0`,15s. Uploads `security-coverage-report` → `coverage/security/`.                                                                                                                                               |
-| `coverage-summary`  | unit, integration, security                                     | (PR-only) `romeovs/lcov-reporter-action`                                     | **PR events only.** Downloads all 3 artifacts but feeds ONLY `coverage/unit/coverage.lcov` (title 'Unit Test Coverage').                                                                                                             |
-| `coverage-gate`     | unit, integration, security                                     | `bun run test:coverage`                                                      | **Hard 80% gate** across lines/statements/functions/branches.                                                                                                                                                                        |
-| `build`             | quality, type-check, unit, integration, security, coverage-gate | `bunx knip` + `bun run build`                                                | Production build; `knip` fails on unused exports. Uses BOTH `setup-node@22` + `oven-sh/setup-bun`.                                                                                                                                   |
-| `ci-success`        | all 7 above (`if: always()`)                                    | shell check of each `needs.*.result`                                         | **The required status check.** Fails if any upstream job != success.                                                                                                                                                                 |
+| Job                 | `needs`                                                         | Command (reproduce locally)                            | Gates / notes                                                                                                            |
+| ------------------- | --------------------------------------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
+| `quality`           | —                                                               | `vp check` (via `pnpm install` + `pnpm exec vp check`) | Lint+format+type-check (Vite+). Uses `pnpm/action-setup` + `actions/setup-node` with `cache: pnpm`.                      |
+| `type-check`        | —                                                               | `pnpm run type-check` (`tsc --noEmit`)                 | Strict TS flags are errors. `pnpm/action-setup` + `actions/setup-node` with `cache: pnpm`. Parallel.                     |
+| `unit-tests`        | —                                                               | `pnpm run test:unit -- --coverage`                     | `pool:threads`,`retry:0`. Uploads `unit-coverage-report` → `coverage/unit/` (`if: always()`).                            |
+| `integration-tests` | —                                                               | `pnpm run test:integration -- --coverage`              | `retry:2`,10s. Uploads `integration-coverage-report` → `coverage/integration/`.                                          |
+| `security-tests`    | —                                                               | `pnpm run test:security -- --coverage`                 | `pool:forks`,`retry:0`,15s. Uploads `security-coverage-report` → `coverage/security/`.                                   |
+| `coverage-summary`  | unit, integration, security                                     | (PR-only) `romeovs/lcov-reporter-action`               | **PR events only.** Downloads all 3 artifacts but feeds ONLY `coverage/unit/coverage.lcov` (title 'Unit Test Coverage'). |
+| `coverage-gate`     | unit, integration, security                                     | `pnpm run test:coverage`                               | **Hard 80% gate** across lines/statements/functions/branches.                                                            |
+| `build`             | quality, type-check, unit, integration, security, coverage-gate | `pnpm exec knip` + `pnpm run build`                    | Production build; `knip` fails on unused exports. Uses `pnpm/action-setup` + `actions/setup-node` with `cache: pnpm`.    |
+| `ci-success`        | all 7 above (`if: always()`)                                    | shell check of each `needs.*.result`                   | **The required status check.** Fails if any upstream job != success.                                                     |
 
-Because the test npm scripts already inject `--config vitest.<suite>.config.ts`, the trailing `-- --coverage` is appended to that. Bun cache key = `${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}` (lockfile is `bun.lock`).
+Because the test npm scripts already inject `--config vitest.<suite>.config.ts`, the trailing `-- --coverage` is appended to that. pnpm store cache key is managed by `actions/setup-node` with `cache: pnpm` (key derived from `pnpm-lock.yaml`).
 
-**knip** (`bunx knip`, `knip.jsonc`): `entry = scripts/**/*.ts` (NOT `app/` — imported by vinext at build time), `project = app/components/hooks/lib`. Ignores `components/blog/HighlightBlock.tsx` (dynamically imported by blog renderer), all of `lib/db/schema/**`, and `lib/db/schema/relations.ts` (redundant); `ignoreDependencies` = postcss, tailwindcss, tw-animate-css, @tailwindcss/typography, cloudflare; `ignoreExportsUsedInFile: true`. Adding a script that's only dynamically imported, or a new build-only tailwind/postcss dep, fails `bunx knip` unless added here.
+**knip** (`pnpm exec knip`, `knip.jsonc`): `entry = scripts/**/*.ts` (NOT `app/` — imported by vinext at build time), `project = app/components/hooks/lib`. Ignores `components/blog/HighlightBlock.tsx` (dynamically imported by blog renderer), all of `lib/db/schema/**`, and `lib/db/schema/relations.ts` (redundant); `ignoreDependencies` = postcss, tailwindcss, tw-animate-css, @tailwindcss/typography, cloudflare; `ignoreExportsUsedInFile: true`. Adding a script that's only dynamically imported, or a new build-only tailwind/postcss dep, fails `pnpm exec knip` unless added here.
 
-**Full local equivalent:** `bun run ci` (`bun install --frozen-lockfile && bun run type-check && vp check && bun run test && bun run build`). Run `bun run type-check && vp check && bun run test` before every push.
+**Full local equivalent:** `pnpm run ci` (`pnpm install --frozen-lockfile && pnpm run type-check && vp check && pnpm run test && pnpm run build`). Run `pnpm run type-check && vp check && pnpm run test` before every push.
 
-**Reproducing a CI failure:** run the single failing job's command above locally, fix root cause, rerun that command, then `bun run ci` before pushing.
+**Reproducing a CI failure:** run the single failing job's command above locally, fix root cause, rerun that command, then `pnpm run ci` before pushing.
 
 ## Architecture Notes
 
@@ -318,7 +318,7 @@ The real entrypoint. Wraps the vinext handler and adds:
 
 - **PostCSS/Tailwind:** NO `tailwind.config` — Tailwind CSS 4 is wired via `postcss.config.mjs` (`@tailwindcss/postcss`) + `app/globals.css`. `components.json`: style `new-york`, `rsc:true`, `tailwind.config:""`, css `app/globals.css`, baseColor neutral, cssVariables true, icon lucide.
 - **CSP/HSTS** live in `next.config.ts` `headers()` (not just the worker constant). CSP allowlists `https://analytics.divkix.me` for `script-src`/`connect-src`, `https://accounts.google.com` for `connect-src`; `frame-src 'none'`, `object-src 'none'`, `frame-ancestors 'none'`. HSTS here = `max-age=63072000; includeSubDomains; preload`. `next.config.ts` also: `serverActions.bodySizeLimit` dynamic from `MAX_UPLOAD_SIZE_MB` (default `5mb`); `allowedDevOrigins` includes `*.ngrok-free.app`; `rewrites()` (sitemap) + `redirects()` (308 bare-handle).
-- **Bundle analysis:** `ANALYZE=true bun run build` → `dist/stats.html` (rollup-plugin-visualizer, `open: true`)
+- **Bundle analysis:** `ANALYZE=true pnpm run build` → `dist/stats.html` (rollup-plugin-visualizer, `open: true`)
 - **Vendor chunks:** `@radix-ui` → `vendor-radix`, `react-hook-form` → `vendor-forms`, `better-auth` → `vendor-auth`. The client vendor-split plugin WRAPS vinext's `manualChunks` (rather than replacing it) to keep the main client bundle under 500 KB.
 - **`cloudflare()` plugin** configured with `viteEnvironment: { name: "rsc", childEnvironments: ["ssr"] }`.
 - **`onwarn`** suppresses the Rollup `MISSING_EXPORT` warning for `"middleware"` imported from `proxy.ts` (vinext's virtual entry imports `middleware` even though only `proxy`/`default` are exported).
@@ -419,7 +419,7 @@ Auth is **Better Auth** (Google OAuth + email/password) backed by D1 via the Dri
 ### Key lib/ modules
 
 - **`lib/ai/`** — `parseResumeWithAi(buffer: ArrayBuffer, env)` in `lib/ai/index.ts`. **Lazy-imported in the consumer** (`await import('../ai')`) so HTTP/page requests never bundle unpdf + AI SDK. See "AI parsing pipeline" subsection for full detail.
-- **`lib/rate-limit/`** — IP-based limits in D1, **IPs SHA-256 hashed (GDPR)**. Constants in `lib/rate-limit/ip.ts`: `HOURLY_LIMIT=10`, `DAILY_LIMIT=50` (anon upload), `HANDLE_CHECK_HOURLY_LIMIT=100`, `EMAIL_VALIDATE_HOURLY_LIMIT=30`. Authed: `handle_change` 3/24h (`user.ts`), `resume_upload` (`RATE_LIMIT_UPLOADS_PER_DAY || 5`)/24h. Shared `uploadRateLimits` table by `actionType` (`upload` 24h / `handle_check` 1h / `email_validate` 1h); the upload-count query uses conditional SUM aggregation to save a D1 roundtrip. **Anon IP fails OPEN; authed fails CLOSED.** Bypasses: `NODE_ENV !== 'production'` OR `isLocalEnvironment()` (BETTER_AUTH_URL localhost — this is what disables limits under `bun run preview`, which runs as NODE_ENV=production); `DISABLE_RATE_LIMITS === 'true'` is IGNORED with a `[SECURITY]` warn in production.
+- **`lib/rate-limit/`** — IP-based limits in D1, **IPs SHA-256 hashed (GDPR)**. Constants in `lib/rate-limit/ip.ts`: `HOURLY_LIMIT=10`, `DAILY_LIMIT=50` (anon upload), `HANDLE_CHECK_HOURLY_LIMIT=100`, `EMAIL_VALIDATE_HOURLY_LIMIT=30`. Authed: `handle_change` 3/24h (`user.ts`), `resume_upload` (`RATE_LIMIT_UPLOADS_PER_DAY || 5`)/24h. Shared `uploadRateLimits` table by `actionType` (`upload` 24h / `handle_check` 1h / `email_validate` 1h); the upload-count query uses conditional SUM aggregation to save a D1 roundtrip. **Anon IP fails OPEN; authed fails CLOSED.** Bypasses: `NODE_ENV !== 'production'` OR `isLocalEnvironment()` (BETTER_AUTH_URL localhost — this is what disables limits under `pnpm run preview`, which runs as NODE_ENV=production); `DISABLE_RATE_LIMITS === 'true'` is IGNORED with a `[SECURITY]` warn in production.
 - **`lib/email/`** — Cloudflare Email Workers (`env.EMAIL`), no external API keys. `createEmailSender(env, baseURL)`; `getFromEmail(appUrl)` = `noreply@<hostname>` (localhost→`noreply@clickfolio.me`), display name `Clickfolio`. **Gotcha: do NOT wrap `resetUrl`/`verificationUrl` in `encodeURI()`** — Better Auth already encodes them; `encodeURI` re-encodes `%`→`%25`. Reset link says 1h, verification 24h. All user values via local `escapeHtml()`. Send errors returned `{success:false,error}`, never thrown. `disposable-check.ts` `isDisposableEmail()`: `TRUSTED_DOMAINS` (43-domain allowlist: gmail/outlook/yahoo/icloud/proton/fastmail/zoho/ISPs…) checked first; module-level `cachedDomains` Set with 1h TTL (`_resetCache()` test-only); `extractDomain()` uses `lastIndexOf('@')`; **fails open** on infra error. KV key `disposable-domains`. The email sender module is `lib/email/cloudflare.ts` (not `sender.ts`); it validates URLs via `new URL()` (NOT `encodeURI`).
 - **`lib/templates/`** — Theme registry. See "Resume templates" subsection.
 - **`lib/password/`** — HIBP breach (`hibp.ts`, k-anonymity SHA-1, 5-char prefix, `Add-Padding:true`, `User-Agent: clickfolio.me-password-check`, **fails OPEN**) + zxcvbn strength (`strength.ts`, `MINIMUM_SCORE=2`, dynamically imported + module-cached, expands userInputs). **Both run CLIENT-SIDE ONLY**; server-side `passwordSchema` checks length 8–128 only — keep it that way (`@zxcvbn-ts/*` SSR-stubbed; the stub `.check()` always returns score 0).
@@ -444,7 +444,7 @@ Auth is **Better Auth** (Google OAuth + email/password) backed by D1 via the Dri
 - **No D1 in proxy/middleware** — auth check is cookie-presence-only there
 - `unsafe-inline` in CSP required for React hydration (no nonce support on Workers)
 - `vinext` uses `@cloudflare/vite-plugin` — do not add raw wrangler CLI to the build pipeline
-- **Local D1** is auto-discovered from `.wrangler/state/v3/d1/...` — run `bun run dev` or `bun run db:migrate` at least once to create it before using drizzle-kit
+- **Local D1** is auto-discovered from `.wrangler/state/v3/d1/...` — run `pnpm run dev` or `pnpm run db:migrate` at least once to create it before using drizzle-kit
 
 ### Module aliases & stubs
 
@@ -607,31 +607,31 @@ Auth is **Better Auth** (Google OAuth + email/password) backed by D1 via the Dri
 
 Each major decision + its _why_ is one ADR under `docs/adr/`. Read the ADR for full context; the one-line summary here is just an index. When you make a new architecturally-significant decision, add the next-numbered ADR file AND a row here (see the maintenance protocol at the top).
 
-| ADR                                                              | Decision (one-line)                                                                  |
-| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| [0001](docs/adr/0001-hsts-preload.md)                            | HSTS `preload` site-wide (2yr max-age) — slow to reverse                              |
-| [0002](docs/adr/0002-inner-callback-auth-wrapper.md)             | Auth route wrappers use the inner-callback form (vinext route detection)             |
-| [0003](docs/adr/0003-getauth-cached-per-isolate.md)              | `getAuth()` built once per isolate, WeakMap-cached by D1 binding                     |
-| [0004](docs/adr/0004-d1-date-serializing-proxy.md)               | D1 binding wrapped in a date-serializing `Proxy` (→ all timestamps are `text`)       |
-| [0005](docs/adr/0005-proxy-cookie-presence-only.md)              | `proxy.ts` does cookie-presence-only checks (no D1 on Workers edge)                  |
-| [0006](docs/adr/0006-admin-reads-isadmin-from-d1.md)             | Admin re-reads `isAdmin` from D1 every request (immediate revoke)                    |
-| [0007](docs/adr/0007-db-session-variants.md)                     | Four DB session variants; only `getDb()` is isolate-cached                           |
-| [0008](docs/adr/0008-resume-complete-single-batch.md)            | Resume-complete UPDATE + siteData upsert always in one `db.batch()`                  |
-| [0009](docs/adr/0009-pending-r2-deletions-before-batch.md)       | `pendingR2Deletions` written before the delete batch; no user FK                    |
-| [0010](docs/adr/0010-filehash-cache-per-user.md)                 | fileHash dedup/cache is per-user (never leak content cross-user)                     |
-| [0011](docs/adr/0011-retryable-errors-keep-processing.md)        | Retryable errors keep status `processing` (no false-negative `failed`)               |
-| [0012](docs/adr/0012-unknown-queue-error-non-retryable.md)       | `unknown` queue error is non-retryable (straight to DLQ)                             |
-| [0013](docs/adr/0013-cron-called-directly.md)                    | Cron triggers called directly in `worker/index.ts` (avoid double-billing)           |
-| [0014](docs/adr/0014-smart-placement.md)                         | Smart placement enabled (Worker is origin-bound, not edge-latency-bound)            |
-| [0015](docs/adr/0015-password-strength-client-side.md)           | Server password validation length-only; strength is client-side                     |
-| [0016](docs/adr/0016-stubs-for-cf-incompatible-packages.md)      | Stubs for CF-incompatible packages (`@vercel/og`, `@zxcvbn-ts/*`, `zod/v3`, …)       |
-| [0017](docs/adr/0017-ip-addresses-sha256-hashed.md)              | IP addresses SHA-256 hashed before storage (GDPR, no raw PII)                        |
-| [0018](docs/adr/0018-claim-check-pending-upload-cookie.md)       | Claim-check pattern (`pending_upload` signed cookie) for anon upload                 |
-| [0019](docs/adr/0019-disposable-email-fail-open.md)              | Disposable-email check is fail-open (availability over strictness)                   |
-| [0020](docs/adr/0020-theme-ids-zero-component-import.md)         | `theme-ids.ts` is a zero-component-import data module                               |
-| [0021](docs/adr/0021-related-profiles-avoids-order-by-random.md) | `getRelatedProfiles` avoids `ORDER BY random()` (not indexable on D1)                |
-| [0022](docs/adr/0022-public-reads-skip-zod-revalidation.md)      | Public reads skip Zod re-validation of D1 content (trusted, saves 200–400 ms)        |
-| [0023](docs/adr/0023-env-detection-keys-off-better-auth-url.md)  | Env detection keys off `BETTER_AUTH_URL`, not `NODE_ENV`                             |
+| ADR                                                              | Decision (one-line)                                                            |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| [0001](docs/adr/0001-hsts-preload.md)                            | HSTS `preload` site-wide (2yr max-age) — slow to reverse                       |
+| [0002](docs/adr/0002-inner-callback-auth-wrapper.md)             | Auth route wrappers use the inner-callback form (vinext route detection)       |
+| [0003](docs/adr/0003-getauth-cached-per-isolate.md)              | `getAuth()` built once per isolate, WeakMap-cached by D1 binding               |
+| [0004](docs/adr/0004-d1-date-serializing-proxy.md)               | D1 binding wrapped in a date-serializing `Proxy` (→ all timestamps are `text`) |
+| [0005](docs/adr/0005-proxy-cookie-presence-only.md)              | `proxy.ts` does cookie-presence-only checks (no D1 on Workers edge)            |
+| [0006](docs/adr/0006-admin-reads-isadmin-from-d1.md)             | Admin re-reads `isAdmin` from D1 every request (immediate revoke)              |
+| [0007](docs/adr/0007-db-session-variants.md)                     | Four DB session variants; only `getDb()` is isolate-cached                     |
+| [0008](docs/adr/0008-resume-complete-single-batch.md)            | Resume-complete UPDATE + siteData upsert always in one `db.batch()`            |
+| [0009](docs/adr/0009-pending-r2-deletions-before-batch.md)       | `pendingR2Deletions` written before the delete batch; no user FK               |
+| [0010](docs/adr/0010-filehash-cache-per-user.md)                 | fileHash dedup/cache is per-user (never leak content cross-user)               |
+| [0011](docs/adr/0011-retryable-errors-keep-processing.md)        | Retryable errors keep status `processing` (no false-negative `failed`)         |
+| [0012](docs/adr/0012-unknown-queue-error-non-retryable.md)       | `unknown` queue error is non-retryable (straight to DLQ)                       |
+| [0013](docs/adr/0013-cron-called-directly.md)                    | Cron triggers called directly in `worker/index.ts` (avoid double-billing)      |
+| [0014](docs/adr/0014-smart-placement.md)                         | Smart placement enabled (Worker is origin-bound, not edge-latency-bound)       |
+| [0015](docs/adr/0015-password-strength-client-side.md)           | Server password validation length-only; strength is client-side                |
+| [0016](docs/adr/0016-stubs-for-cf-incompatible-packages.md)      | Stubs for CF-incompatible packages (`@vercel/og`, `@zxcvbn-ts/*`, `zod/v3`, …) |
+| [0017](docs/adr/0017-ip-addresses-sha256-hashed.md)              | IP addresses SHA-256 hashed before storage (GDPR, no raw PII)                  |
+| [0018](docs/adr/0018-claim-check-pending-upload-cookie.md)       | Claim-check pattern (`pending_upload` signed cookie) for anon upload           |
+| [0019](docs/adr/0019-disposable-email-fail-open.md)              | Disposable-email check is fail-open (availability over strictness)             |
+| [0020](docs/adr/0020-theme-ids-zero-component-import.md)         | `theme-ids.ts` is a zero-component-import data module                          |
+| [0021](docs/adr/0021-related-profiles-avoids-order-by-random.md) | `getRelatedProfiles` avoids `ORDER BY random()` (not indexable on D1)          |
+| [0022](docs/adr/0022-public-reads-skip-zod-revalidation.md)      | Public reads skip Zod re-validation of D1 content (trusted, saves 200–400 ms)  |
+| [0023](docs/adr/0023-env-detection-keys-off-better-auth-url.md)  | Env detection keys off `BETTER_AUTH_URL`, not `NODE_ENV`                       |
 
 ## Common gotchas / footguns
 

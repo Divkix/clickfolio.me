@@ -28,7 +28,7 @@
 **Files:**
 
 - Create: `components/blog/HighlightBlock.tsx`
-- Test: `bun run type-check && bun run lint`
+- Test: `pnpm run type-check && pnpm run lint`
 
 - [ ] **Step 1: Create component file with full implementation**
 
@@ -89,13 +89,13 @@ export function HighlightBlock({ children, variant = "default", title }: Highlig
 - [ ] **Step 2: Run type check and lint**
 
 ```bash
-bun run type-check
+pnpm run type-check
 ```
 
 Expected: No TypeScript errors
 
 ```bash
-bun run lint
+pnpm run lint
 ```
 
 Expected: No Biome errors
@@ -123,7 +123,7 @@ border/shadow styling consistent with design system."
 **Files:**
 
 - Create: `components/blog/StatsGrid.tsx`
-- Test: `bun run type-check && bun run lint`
+- Test: `pnpm run type-check && pnpm run lint`
 
 - [ ] **Step 1: Create component file with full implementation**
 
@@ -168,13 +168,13 @@ export function StatsGrid({ stats, columns = 2 }: StatsGridProps) {
 - [ ] **Step 2: Run type check and lint**
 
 ```bash
-bun run type-check
+pnpm run type-check
 ```
 
 Expected: No TypeScript errors
 
 ```bash
-bun run lint
+pnpm run lint
 ```
 
 Expected: No Biome errors
@@ -202,7 +202,7 @@ and optional percentage for progress bars."
 **Files:**
 
 - Modify: `components/blog/BlogPostLayout.tsx` (prose styling changes)
-- Test: Manual verification + `bun run type-check`
+- Test: Manual verification + `pnpm run type-check`
 
 - [ ] **Step 1: Read current file to understand existing prose classes**
 
@@ -273,7 +273,7 @@ To:
 - [ ] **Step 4: Run type check**
 
 ```bash
-bun run type-check
+pnpm run type-check
 ```
 
 Expected: No TypeScript errors
@@ -303,7 +303,7 @@ All blog posts automatically benefit from these changes."
 **Files:**
 
 - Modify: `app/blog/ai-resume-parsing-accuracy/page.tsx`
-- Test: `bun run dev` and manual verification at `http://localhost:3000/blog/ai-resume-parsing-accuracy`
+- Test: `pnpm run dev` and manual verification at `http://localhost:3000/blog/ai-resume-parsing-accuracy`
 
 - [ ] **Step 1: Add import for StatsGrid component**
 
@@ -348,7 +348,7 @@ This works well as context before the StatsGrid.
 - [ ] **Step 4: Run type check and lint**
 
 ```bash
-bun run type-check && bun run lint
+pnpm run type-check && pnpm run lint
 ```
 
 Expected: No errors
@@ -356,7 +356,7 @@ Expected: No errors
 - [ ] **Step 5: Verify in browser**
 
 ```bash
-bun run dev
+pnpm run dev
 ```
 
 Navigate to `http://localhost:3000/blog/ai-resume-parsing-accuracy`
@@ -390,7 +390,7 @@ Improves scannability of 8 accuracy metrics."
 - [ ] **Step 1: Run full pre-push validation**
 
 ```bash
-bun run type-check && bun run lint && bun run test:unit
+pnpm run type-check && pnpm run lint && pnpm run test:unit
 ```
 
 Expected: All checks pass
@@ -443,9 +443,9 @@ If no additional changes needed, mark complete.
 - [ ] `BlogPostLayout` prose styling updated with enhanced contrast and spacing
 - [ ] AI accuracy post displays metrics in StatsGrid instead of bullet list
 - [ ] All blog posts show improved typography (verified manually)
-- [ ] `bun run type-check` passes
-- [ ] `bun run lint` passes
-- [ ] `bun run test:unit` passes (or at least no new failures)
+- [ ] `pnpm run type-check` passes
+- [ ] `pnpm run lint` passes
+- [ ] `pnpm run test:unit` passes (or at least no new failures)
 
 ---
 

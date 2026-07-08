@@ -131,8 +131,8 @@ The project uses Tailwind CSS v4.2.4 with the new `@theme inline` configuration 
 - [ ] `@tailwindcss/typography` plugin installed and configured
 - [ ] All blog post headings render with proper prose styling
 - [ ] No visual regressions on other pages
-- [ ] `bun run type-check` passes
-- [ ] `bun run lint` passes
+- [ ] `pnpm run type-check` passes
+- [ ] `pnpm run lint` passes
 - [ ] Manual visual verification complete
 
 ## References

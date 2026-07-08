@@ -1,7 +1,7 @@
 /**
  * Test setup file for vitest
  *
- * This creates a proper localStorage mock since bun's Node.js runtime
+ * This creates a proper localStorage mock since some Node.js runtimes
  * may interfere with jsdom's browser globals.
  */
 

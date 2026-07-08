@@ -73,7 +73,7 @@ We chose Cloudflare Workers over traditional hosting for several reasons:
 
 ### Prerequisites
 
-- [Bun](https://bun.sh) v1.0+ (package manager)
+- [pnpm](https://pnpm.io) v11+ (package manager)
 - [Cloudflare Account](https://cloudflare.com) with R2 and D1 enabled
 - [Google Cloud Console](https://console.cloud.google.com) project for OAuth
 - [OpenRouter](https://openrouter.ai) account for AI parsing
@@ -86,16 +86,16 @@ git clone https://github.com/divkix/clickfolio.me.git
 cd clickfolio.me
 
 # Install dependencies
-bun install
+pnpm install
 
 # Copy environment template
 cp .env.example .dev.vars
 
 # Set up local database
-bun run db:migrate
+pnpm run db:migrate
 
 # Start development server
-bun run dev
+pnpm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000)
@@ -113,9 +113,9 @@ If you are not technical, follow this exact checklist. You only need a terminal 
 - A Cloudflare account (free is fine)
 - A Google Cloud account (for Google Sign-In)
 - An OpenRouter account (for AI parsing)
-- Bun installed (copy/paste this in Terminal):
+- pnpm installed (copy/paste this in Terminal):
   ```bash
-  curl -fsSL https://bun.sh/install | bash
+  npm install -g pnpm
   ```
 
 **Step 0: Get the code**
@@ -127,14 +127,14 @@ If you are not technical, follow this exact checklist. You only need a terminal 
    ```
 2. Install dependencies:
    ```bash
-   bun install
+   pnpm install
    ```
 
 **Step 1: Create Cloudflare D1 database**
 
 1. In Terminal:
    ```bash
-   bunx wrangler d1 create clickfolio-db
+   pnpm exec wrangler d1 create clickfolio-db
    ```
 2. Copy the `database_id` printed in the terminal.
 3. Open `wrangler.jsonc` and replace the `database_id` value.
@@ -178,20 +178,20 @@ In Cloudflare R2 bucket settings → CORS, paste:
 Run each command and paste the value when prompted:
 
 ```bash
-bunx wrangler secret put BETTER_AUTH_SECRET
-bunx wrangler secret put BETTER_AUTH_URL              # Also used as app URL
-bunx wrangler secret put GOOGLE_CLIENT_ID
-bunx wrangler secret put GOOGLE_CLIENT_SECRET
-bunx wrangler secret put CF_AI_GATEWAY_ACCOUNT_ID
-bunx wrangler secret put CF_AI_GATEWAY_ID
-bunx wrangler secret put CF_AIG_AUTH_TOKEN
+pnpm exec wrangler secret put BETTER_AUTH_SECRET
+pnpm exec wrangler secret put BETTER_AUTH_URL              # Also used as app URL
+pnpm exec wrangler secret put GOOGLE_CLIENT_ID
+pnpm exec wrangler secret put GOOGLE_CLIENT_SECRET
+pnpm exec wrangler secret put CF_AI_GATEWAY_ACCOUNT_ID
+pnpm exec wrangler secret put CF_AI_GATEWAY_ID
+pnpm exec wrangler secret put CF_AIG_AUTH_TOKEN
 ```
 
 **Step 7: Deploy**
 
 ```bash
-bun run db:migrate:prod
-bun run deploy
+pnpm run db:migrate:prod
+pnpm run deploy
 ```
 
 **Step 8: Add your domain**
@@ -204,7 +204,7 @@ Cloudflare Dashboard → Workers & Pages → your worker → Settings → Domain
 Then redeploy:
 
 ```bash
-bun run deploy
+pnpm run deploy
 ```
 
 If you followed the steps above, the site should be live at your domain.
@@ -216,7 +216,7 @@ If you followed the steps above, the site should be live at your domain.
 2. **Create D1 Database**
 
    ```bash
-   bunx wrangler d1 create clickfolio-db
+   pnpm exec wrangler d1 create clickfolio-db
    ```
 
    Copy the `database_id` to `wrangler.jsonc`
@@ -294,25 +294,25 @@ See `.env.example` for complete template with all options.
 1. **Apply database migrations**
 
    ```bash
-   bun run db:migrate:prod
+   pnpm run db:migrate:prod
    ```
 
 2. **Set production secrets**
 
    ```bash
-   bunx wrangler secret put BETTER_AUTH_SECRET
-   bunx wrangler secret put BETTER_AUTH_URL              # Also used as app URL
-   bunx wrangler secret put GOOGLE_CLIENT_ID
-   bunx wrangler secret put GOOGLE_CLIENT_SECRET
-   bunx wrangler secret put CF_AI_GATEWAY_ACCOUNT_ID
-   bunx wrangler secret put CF_AI_GATEWAY_ID
-   bunx wrangler secret put CF_AIG_AUTH_TOKEN
+   pnpm exec wrangler secret put BETTER_AUTH_SECRET
+   pnpm exec wrangler secret put BETTER_AUTH_URL              # Also used as app URL
+   pnpm exec wrangler secret put GOOGLE_CLIENT_ID
+   pnpm exec wrangler secret put GOOGLE_CLIENT_SECRET
+   pnpm exec wrangler secret put CF_AI_GATEWAY_ACCOUNT_ID
+   pnpm exec wrangler secret put CF_AI_GATEWAY_ID
+   pnpm exec wrangler secret put CF_AIG_AUTH_TOKEN
    ```
 
 3. **Deploy**
 
    ```bash
-   bun run deploy
+   pnpm run deploy
    ```
 
 4. **Configure custom domain** (optional)
@@ -327,35 +327,35 @@ See `.env.example` for complete template with all options.
 
 ```bash
 # Development
-bun run dev              # Start dev server at localhost:3000
-bun run lint             # Oxlint linting (via vp lint)
-bun run fix              # Oxlint + Oxfmt auto-fix (via vp check --fix)
-bun run type-check       # TypeScript check
+pnpm run dev              # Start dev server at localhost:3000
+pnpm run lint             # Oxlint linting (via vp lint)
+pnpm run fix              # Oxlint + Oxfmt auto-fix (via vp check --fix)
+pnpm run type-check       # TypeScript check
 
 # Build & Deploy
-bun run build            # Vite production build (vinext)
-bun run build:worker     # Alias for build
-bun run preview          # Local Cloudflare preview
-bun run deploy           # Build and deploy to Cloudflare Workers
+pnpm run build            # Vite production build (vinext)
+pnpm run build:worker     # Alias for build
+pnpm run preview          # Local Cloudflare preview
+pnpm run deploy           # Build and deploy to Cloudflare Workers
 
 # Database (D1 + Drizzle)
-bun run db:generate      # Generate migrations from schema
-bun run db:migrate       # Apply migrations locally
-bun run db:migrate:prod  # Apply migrations to production
-bun run db:studio        # Drizzle Studio UI (port 4984)
-bun run db:reset         # Wipe local D1 and re-migrate
+pnpm run db:generate      # Generate migrations from schema
+pnpm run db:migrate       # Apply migrations locally
+pnpm run db:migrate:prod  # Apply migrations to production
+pnpm run db:studio        # Drizzle Studio UI (port 4984)
+pnpm run db:reset         # Wipe local D1 and re-migrate
 
 # Testing
-bun run test             # All tests
-bun run test:unit        # Unit tests (fast, no retries)
-bun run test:integration # Integration tests
-bun run test:security    # Security tests
-bun run test:coverage    # All tests + coverage
-bun run test:ci          # CI mode (JSON reporter)
-bun run test:ui          # Interactive UI mode
+pnpm run test             # All tests
+pnpm run test:unit        # Unit tests (fast, no retries)
+pnpm run test:integration # Integration tests
+pnpm run test:security    # Security tests
+pnpm run test:coverage    # All tests + coverage
+pnpm run test:ci          # CI mode (JSON reporter)
+pnpm run test:ui          # Interactive UI mode
 
 # Quality
-bun run ci               # type-check + lint + test + build
+pnpm run ci               # type-check + lint + test + build
 ```
 
 ### Project Structure
@@ -536,14 +536,14 @@ To report a vulnerability, open a GitHub issue with the "security" label or cont
 
 ## Contributing
 
-Contributions welcome! See [`AGENTS.md`](AGENTS.md) for branch conventions, commit style, and the `bun run ci` quality gate.
+Contributions welcome! See [`AGENTS.md`](AGENTS.md) for branch conventions, commit style, and the `pnpm run ci` quality gate.
 
 ### Quick Contribution Guide
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feat/amazing-feature`)
 3. Use conventional commits (`feat:`, `fix:`, `docs:`)
-4. Run quality checks (`bun run ci`)
+4. Run quality checks (`pnpm run ci`)
 5. Submit a pull request
 
 ---
@@ -553,8 +553,8 @@ Contributions welcome! See [`AGENTS.md`](AGENTS.md) for branch conventions, comm
 ### Build Fails with TypeScript Errors
 
 ```bash
-bun run type-check  # See all errors
-bun run build       # Fix errors and rebuild
+pnpm run type-check  # See all errors
+pnpm run build       # Fix errors and rebuild
 ```
 
 ### OAuth Redirect Loop

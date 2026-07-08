@@ -151,7 +151,7 @@ Absolutely. You get a full editing suite to update your content anytime. Changes
 - **Validation**: Zod
 - **Testing**: Vitest
 - **Linting/Formatting**: Oxlint + Oxfmt (via Vite+)
-- **Package Manager**: Bun
+- **Package Manager**: pnpm
 
 ## Privacy & Security
 

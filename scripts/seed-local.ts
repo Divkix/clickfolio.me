@@ -1,4 +1,4 @@
-import { Database } from "bun:sqlite";
+import Database from "better-sqlite3";
 import fs from "node:fs";
 import path from "node:path";
 import { scryptAsync } from "@noble/hashes/scrypt.js";
@@ -25,7 +25,7 @@ function getLocalD1Path(): string {
     const files = fs.readdirSync(d1Dir).filter((f) => f.endsWith(".sqlite"));
     if (files.length > 0) return path.join(d1Dir, files[0]);
   }
-  throw new Error("Local D1 database not found. Run 'bun run db:migrate' first.");
+  throw new Error("Local D1 database not found. Run 'pnpm run db:migrate' first.");
 }
 
 async function seed() {

@@ -1,12 +1,14 @@
+import { spawnSync } from "node:child_process";
+
 export async function main(): Promise<void> {
   const args = process.argv.slice(2);
 
-  const deploy = Bun.spawnSync(["bunx", "wrangler", "deploy", ...args], {
-    stdio: ["inherit", "inherit", "inherit"],
+  const deploy = spawnSync("pnpm", ["exec", "wrangler", "deploy", ...args], {
+    stdio: "inherit",
   });
 
-  if (deploy.exitCode !== 0) {
-    process.exit(deploy.exitCode ?? 1);
+  if (deploy.status !== 0) {
+    process.exit(deploy.status ?? 1);
   }
 }
 

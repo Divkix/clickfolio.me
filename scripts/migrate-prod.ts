@@ -6,15 +6,15 @@
  * before applying migrations.
  *
  * Usage:
- *   bun run db:migrate:prod              # Normal (blocks on destructive ops)
- *   bun run db:migrate:prod -- --force   # Bypass destructive check
+ *   pnpm run db:migrate:prod              # Normal (blocks on destructive ops)
+ *   pnpm run db:migrate:prod -- --force   # Bypass destructive check
  */
 
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { $ } from "bun";
+import { execSync } from "node:child_process";
 
-const MIGRATIONS_DIR = join(import.meta.dir, "..", "migrations");
+const MIGRATIONS_DIR = join(import.meta.dirname, "..", "migrations");
 const DB_NAME = "clickfolio-db";
 const DESTRUCTIVE_PATTERNS = [/DROP\s+TABLE/i, /DELETE\s+FROM/i, /TRUNCATE\s+TABLE/i];
 
@@ -56,7 +56,7 @@ if (destructiveFiles.length > 0) {
     console.error("On D1, PRAGMA foreign_keys=OFF may NOT persist across statements,");
     console.error("causing ON DELETE CASCADE to fire and wipe related tables.\n");
     console.error("Review the SQL carefully, then re-run with --force:\n");
-    console.error("  bun run db:migrate:prod -- --force\n");
+    console.error("  pnpm run db:migrate:prod -- --force\n");
     process.exit(1);
   }
 
@@ -68,7 +68,9 @@ if (destructiveFiles.length > 0) {
 const backupFile = `d1-backup-${new Date().toISOString().replace(/[:.]/g, "-")}.sql`;
 console.log(`Creating D1 backup -> ${backupFile}`);
 try {
-  await $`wrangler d1 export ${DB_NAME} --remote --output=${backupFile}`;
+  execSync(`wrangler d1 export ${DB_NAME} --remote --output=${backupFile}`, {
+    stdio: "inherit",
+  });
   console.log("Backup created.\n");
 } catch (err) {
   console.error("Backup failed. Aborting migration.\n");
@@ -80,7 +82,9 @@ try {
 
 console.log("Applying migrations to production...");
 try {
-  await $`wrangler d1 migrations apply ${DB_NAME} --remote`;
+  execSync(`wrangler d1 migrations apply ${DB_NAME} --remote`, {
+    stdio: "inherit",
+  });
   console.log("\nProduction migrations applied successfully.");
 } catch (err) {
   console.error("\nMigration failed.");

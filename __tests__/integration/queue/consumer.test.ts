@@ -829,7 +829,6 @@ describe("DLQ Consumer", () => {
   beforeEach(() => {
     resetAll();
     // Reset fetch mock
-    // @ts-expect-error preconnect property missing from mock
     global.fetch = vi.fn().mockResolvedValue(new Response("OK"));
   });
 

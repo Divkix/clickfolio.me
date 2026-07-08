@@ -14,8 +14,8 @@
 
 ## Prerequisites
 
-- Bun package manager (already configured in repo)
-- Working dev server: `bun run dev` serves on port 3000
+- pnpm package manager (already configured in repo)
+- Working dev server: `pnpm run dev` serves on port 3000
 
 ---
 
@@ -24,7 +24,7 @@
 | File              | Action         | Purpose                                           |
 | ----------------- | -------------- | ------------------------------------------------- |
 | `package.json`    | Modify         | Add `@tailwindcss/typography` to devDependencies  |
-| `bun.lock`        | Auto-generated | Package lockfile (updated by bun install)         |
+| `pnpm-lock.yaml`  | Auto-generated | Package lockfile (updated by pnpm install)        |
 | `app/globals.css` | Modify         | Import typography plugin using Tailwind v4 syntax |
 
 ---
@@ -43,21 +43,21 @@ Add this line to the `devDependencies` section of `package.json`:
 "@tailwindcss/typography": "^0.5.16",
 ```
 
-Insert it alphabetically (after `@testing-library/user-event` and before `@types/bun`):
+Insert it alphabetically (after `@testing-library/user-event` and before `@types/node`):
 
 ```json
 "@testing-library/user-event": "^14.6.1",
 "@tailwindcss/typography": "^0.5.16",
-"@types/bun": "^1.3.13",
+"@types/node": "^26.0.1",
 ```
 
 - [ ] **Step 2: Install the new dependency**
 
 ```bash
-bun install
+pnpm install
 ```
 
-Expected output: Package installed successfully, `bun.lock` updated
+Expected output: Package installed successfully, `pnpm-lock.yaml` updated
 
 - [ ] **Step 3: Verify installation**
 
@@ -70,7 +70,7 @@ Expected: Shows the plugin with correct version
 - [ ] **Step 4: Commit**
 
 ```bash
-git add package.json bun.lock
+git add package.json pnpm-lock.yaml
 git commit -m "deps: add @tailwindcss/typography plugin for blog heading styles"
 ```
 
@@ -129,7 +129,7 @@ git commit -m "config: import @tailwindcss/typography plugin for prose styles"
 - [ ] **Step 1: Run type-check to catch any type errors**
 
 ```bash
-bun run type-check
+pnpm run type-check
 ```
 
 Expected: No TypeScript errors
@@ -137,7 +137,7 @@ Expected: No TypeScript errors
 - [ ] **Step 2: Run lint to catch any style issues**
 
 ```bash
-bun run lint
+pnpm run lint
 ```
 
 Expected: No linting errors
@@ -145,7 +145,7 @@ Expected: No linting errors
 - [ ] **Step 3: Build the application**
 
 ```bash
-bun run build
+pnpm run build
 ```
 
 Expected: Build completes successfully without errors
@@ -155,7 +155,7 @@ Expected: Build completes successfully without errors
 Start dev server and check the blog page:
 
 ```bash
-bun run dev
+pnpm run dev
 ```
 
 Then open `http://localhost:3000/blog/pdf-resume-vs-portfolio` in browser.
@@ -217,7 +217,7 @@ With dev server running, check these URLs:
 - [ ] **Step 2: Stop dev server**
 
 ```bash
-# Press Ctrl+C in the terminal running bun run dev
+# Press Ctrl+C in the terminal running pnpm run dev
 ```
 
 ---
@@ -228,13 +228,13 @@ Run these to ensure the implementation is complete:
 
 ```bash
 # Type checking
-bun run type-check
+pnpm run type-check
 
 # Linting
-bun run lint
+pnpm run lint
 
 # Build verification
-bun run build
+pnpm run build
 
 # Quick grep to confirm plugin is imported
 grep "@tailwindcss/typography" app/globals.css
@@ -253,9 +253,9 @@ All commands should pass/succeed.
 - [ ] Plugin imported in `app/globals.css`
 - [ ] All blog post h2 headings render with proper styling (border, bold, larger size)
 - [ ] No visual regressions on other pages
-- [ ] `bun run type-check` passes
-- [ ] `bun run lint` passes
-- [ ] `bun run build` succeeds
+- [ ] `pnpm run type-check` passes
+- [ ] `pnpm run lint` passes
+- [ ] `pnpm run build` succeeds
 - [ ] Manual verification of `/blog/pdf-resume-vs-portfolio` complete
 
 ---
@@ -268,7 +268,7 @@ If issues arise:
 
    ```bash
    git checkout package.json
-   bun install
+   pnpm install
    ```
 
 2. **Revert globals.css changes:**
@@ -279,7 +279,7 @@ If issues arise:
 
 3. **Restart dev server:**
    ```bash
-   bun run dev
+   pnpm run dev
    ```
 
 ---
