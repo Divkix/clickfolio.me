@@ -18,8 +18,8 @@ supportedArchitectures:
     - current
 
 overrides:
-  vite: 'catalog:'
-  vitest: 'catalog:'
+  vite: "catalog:"
+  vitest: "catalog:"
 
 allowBuilds:
   better-sqlite3: true
@@ -35,5 +35,5 @@ peerDependencyRules:
     - vite
     - vitest
   allowedVersions:
-    vite: '*'
-    vitest: '*'
+    vite: "*"
+    vitest: "*"
