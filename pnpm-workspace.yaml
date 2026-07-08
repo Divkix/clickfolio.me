@@ -20,6 +20,11 @@ supportedArchitectures:
 overrides:
   vite: "catalog:"
   vitest: "catalog:"
+  # Force vite-plus's internal hard-pinned @voidzero-dev/vite-plus-core dep to
+  # match the top-level `vite` alias. Without this, pnpm installs two copies of
+  # core (the alias version + vite-plus's pinned version) and the divergent
+  # PluginOption types break `tsc --noEmit` in vite.config.ts.
+  "@voidzero-dev/vite-plus-core": "^0.2.3"
 
 allowBuilds:
   better-sqlite3: true
@@ -27,7 +32,7 @@ allowBuilds:
   sharp: true
   workerd: true
 catalog:
-  vite: npm:@voidzero-dev/vite-plus-core@^0.2.2
+  vite: npm:@voidzero-dev/vite-plus-core@^0.2.3
   vitest: 4.1.10
   vite-plus: latest
 peerDependencyRules:

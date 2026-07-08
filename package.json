@@ -88,7 +88,7 @@
     "better-sqlite3": "^12.11.1",
     "drizzle-kit": "^0.31.10",
     "jsdom": "^29.1.1",
-    "knip": "^6.24.0",
+    "knip": "^6.25.0",
     "playwright": "^1.61.1",
     "png-to-ico": "^3.0.2",
     "postcss": "^8.5.16",
@@ -99,9 +99,9 @@
     "tw-animate-css": "^1.4.0",
     "typescript": "^6.0.3",
     "vinext": "1.0.0-beta.0",
-    "vite": "catalog:",
-    "vite-plus": "0.2.2",
-    "vitest": "catalog:",
+    "vite": "npm:@voidzero-dev/vite-plus-core@^0.2.3",
+    "vite-plus": "^0.2.3",
+    "vitest": "4.1.10",
     "wrangler": "^4.107.0"
   },
   "packageManager": "pnpm@11.10.0"
