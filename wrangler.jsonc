@@ -162,11 +162,10 @@
     //   wrangler secret put UMAMI_PASSWORD
     //
     // ===== ANALYTICS (PostHog) =====
-    // Project token is public-by-design but still needed as a Worker secret so
-    // server-side capture (lib/posthog-server.ts) can read it at runtime. Also
-    // required at BUILD time so NEXT_PUBLIC_* is inlined into the client bundle.
-    //   wrangler secret put NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN
-    //   wrangler secret put NEXT_PUBLIC_POSTHOG_HOST   # optional; default https://us.i.posthog.com
+    // Project API key is public-by-design (same value the browser gets). Plain
+    // vars (not secrets) so CF Workers Builds inject them into the build env and
+    // vinext can inline NEXT_PUBLIC_* into the client bundle. Also available at
+    // runtime for server-side capture (lib/posthog-server.ts).
     //
     // ===== AI PROVIDER (resume parsing) =====
     // Cloudflare AI Gateway (proxies to OpenRouter)
@@ -179,5 +178,8 @@
     "NODE_ENV": "production",
     // AI_MODEL: OpenRouter model accessed via Cloudflare AI Gateway for resume parsing.
     "AI_MODEL": "openai/gpt-oss-120b:nitro",
+    // PostHog (public project token — safe in client bundle / wrangler vars)
+    "NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN": "phc_Aw9T2GkpbXZbGYX4P3rENkvvzhbpKMgL3bFaWrepoPkV",
+    "NEXT_PUBLIC_POSTHOG_HOST": "https://us.i.posthog.com",
   },
 }
