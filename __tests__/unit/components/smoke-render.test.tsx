@@ -110,6 +110,15 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams("resume_id=res_123&token=token_123"),
 }));
 
+vi.mock("posthog-js", () => ({
+  default: {
+    __loaded: true,
+    capture: vi.fn(),
+    identify: vi.fn(),
+    reset: vi.fn(),
+  },
+}));
+
 vi.mock("@/lib/auth/client", () => ({
   useSession: () => mocks.sessionState.current,
   signIn: {

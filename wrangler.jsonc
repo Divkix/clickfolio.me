@@ -161,6 +161,13 @@
     //   wrangler secret put UMAMI_USERNAME
     //   wrangler secret put UMAMI_PASSWORD
     //
+    // ===== ANALYTICS (PostHog) =====
+    // Project token is public-by-design but still needed as a Worker secret so
+    // server-side capture (lib/posthog-server.ts) can read it at runtime. Also
+    // required at BUILD time so NEXT_PUBLIC_* is inlined into the client bundle.
+    //   wrangler secret put NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN
+    //   wrangler secret put NEXT_PUBLIC_POSTHOG_HOST   # optional; default https://us.i.posthog.com
+    //
     // ===== AI PROVIDER (resume parsing) =====
     // Cloudflare AI Gateway (proxies to OpenRouter)
     //   wrangler secret put CF_AI_GATEWAY_ACCOUNT_ID

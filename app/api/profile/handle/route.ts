@@ -1,6 +1,6 @@
 import { and, eq, gte, sql } from "drizzle-orm";
 import { withUser } from "@/lib/auth/with-auth";
-import { getPostHogClient } from "@/lib/posthog-server";
+import { captureServerEvent } from "@/lib/posthog-server";
 
 import { handleChanges, user } from "@/lib/db/schema";
 import { isHandleTaken } from "@/lib/rate-limit/handle-validation";
@@ -163,13 +163,9 @@ export async function PUT(request: Request) {
 
       await captureBookmark();
 
-      const posthog = getPostHogClient();
-      posthog.capture({
-        distinctId: authUser.id,
-        event: "handle_changed",
-        properties: { new_handle: newHandle },
+      await captureServerEvent(authUser.id, "handle_changed", {
+        new_handle: newHandle,
       });
-      await posthog.shutdown();
 
       return createSuccessResponse({
         success: true,

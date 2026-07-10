@@ -1,6 +1,7 @@
 "use client";
 
 import { Loader2 } from "lucide-react";
+import posthog from "posthog-js";
 import { useState } from "react";
 import { toast } from "sonner";
 import { signIn } from "@/lib/auth/client";
@@ -16,6 +17,11 @@ interface GoogleButtonProps {
   onSuccess?: () => void;
   /** Disabled state */
   disabled?: boolean;
+  /**
+   * Auth surface that rendered this button. Used only for analytics event naming
+   * (OAuth does not distinguish sign-in vs sign-up until after the round-trip).
+   */
+  authMode?: "signin" | "signup";
 }
 
 export function GoogleButton({
@@ -24,6 +30,7 @@ export function GoogleButton({
   fullWidth = false,
   onSuccess,
   disabled = false,
+  authMode = "signin",
 }: GoogleButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
 
@@ -34,6 +41,12 @@ export function GoogleButton({
       await signIn.social({
         provider: "google",
         callbackURL,
+      });
+
+      // After a successful handoff (errors throw). authMode is the UI surface
+      // (sign-in vs sign-up tab), not a verified new-vs-returning outcome.
+      posthog.capture(authMode === "signup" ? "sign_up_completed" : "sign_in_completed", {
+        method: "google",
       });
 
       onSuccess?.();

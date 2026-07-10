@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { withUser } from "@/lib/auth/with-auth";
-import { getPostHogClient } from "@/lib/posthog-server";
+import { captureServerEvent } from "@/lib/posthog-server";
 
 import { siteData } from "@/lib/db/schema";
 import { verifyThemeUnlocked } from "@/lib/templates/theme-access";
@@ -104,13 +104,9 @@ export async function POST(request: Request) {
 
       await captureBookmark();
 
-      const posthog = getPostHogClient();
-      posthog.capture({
-        distinctId: userId,
-        event: "theme_changed",
-        properties: { theme_id: data.themeId },
+      await captureServerEvent(userId, "theme_changed", {
+        theme_id: data.themeId,
       });
-      await posthog.shutdown();
 
       return createSuccessResponse({
         success: true,

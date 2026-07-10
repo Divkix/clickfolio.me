@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import type { z } from "zod";
 import { withUser } from "@/lib/auth/with-auth";
-import { getPostHogClient } from "@/lib/posthog-server";
+import { captureServerEvent } from "@/lib/posthog-server";
 
 import { siteData, user } from "@/lib/db/schema";
 import { isHandleTaken } from "@/lib/rate-limit/handle-validation";
@@ -155,17 +155,11 @@ export async function POST(request: Request) {
       // Capture bookmark before returning success
       await captureBookmark();
 
-      const posthog = getPostHogClient();
-      posthog.capture({
-        distinctId: authUser.id,
-        event: "onboarding_completed",
-        properties: {
-          handle: body.handle,
-          theme_id: finalThemeId,
-          show_in_directory: body.privacy_settings.show_in_directory,
-        },
+      await captureServerEvent(authUser.id, "onboarding_completed", {
+        handle: body.handle,
+        theme_id: finalThemeId,
+        show_in_directory: body.privacy_settings.show_in_directory,
       });
-      await posthog.shutdown();
 
       // Return success response
       return createSuccessResponse({

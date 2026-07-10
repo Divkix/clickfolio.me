@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { withUser } from "@/lib/auth/with-auth";
-import { getPostHogClient } from "@/lib/posthog-server";
+import { captureServerEvent } from "@/lib/posthog-server";
 
 import { pendingR2Deletions, resumes, user, verification } from "@/lib/db/schema";
 import { getR2Binding, R2 } from "@/lib/r2";
@@ -126,14 +126,10 @@ export async function POST(request: Request) {
         return createErrorResponse("Failed to delete account", ERROR_CODES.DATABASE_ERROR, 500);
       }
 
-      // Track account deletion before the user row is gone
-      const posthog = getPostHogClient();
-      posthog.capture({
-        distinctId: userId,
-        event: "account_deleted",
-        properties: { had_r2_warnings: warnings.length > 0 },
+      // Best-effort analytics — never fails the delete response
+      await captureServerEvent(userId, "account_deleted", {
+        had_r2_warnings: warnings.length > 0,
       });
-      await posthog.shutdown();
 
       // Capture session bookmark (write path), then clear cookies in response
       // Clear both cookie names to handle different deployment environments:

@@ -24,6 +24,15 @@ vi.mock("sonner", () => ({
   toast: mocks.toast,
 }));
 
+vi.mock("posthog-js", () => ({
+  default: {
+    __loaded: true,
+    capture: vi.fn(),
+    identify: vi.fn(),
+    reset: vi.fn(),
+  },
+}));
+
 vi.mock("@/lib/auth/client", () => ({
   signUp: {
     email: (...args: unknown[]) => mocks.signUpEmail(...args),

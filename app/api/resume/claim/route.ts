@@ -1,5 +1,5 @@
 import { and, desc, eq, gte, isNotNull, ne } from "drizzle-orm";
-import { getPostHogClient } from "@/lib/posthog-server";
+import { captureServerEvent } from "@/lib/posthog-server";
 import { withUser } from "@/lib/auth/with-auth";
 import { buildSiteDataUpsert } from "@/lib/data/site-data-upsert";
 import type { NewResume } from "@/lib/db/schema";
@@ -332,13 +332,9 @@ export async function POST(request: Request) {
 
             // R2 and DB both succeeded - return cached result
             await captureBookmark();
-            const posthog = getPostHogClient();
-            posthog.capture({
-              distinctId: userId,
-              event: "resume_claim_cached",
-              properties: { resume_id: resumeId },
+            await captureServerEvent(userId, "resume_claim_cached", {
+              resume_id: resumeId,
             });
-            await posthog.shutdown();
             return createSuccessResponse({
               resume_id: resumeId,
               status: "completed",
@@ -479,13 +475,10 @@ export async function POST(request: Request) {
       }
 
       await captureBookmark();
-      const posthog = getPostHogClient();
-      posthog.capture({
-        distinctId: userId,
-        event: "resume_claimed",
-        properties: { resume_id: resumeId, has_referral: !!body.referral_code },
+      await captureServerEvent(userId, "resume_claimed", {
+        resume_id: resumeId,
+        has_referral: !!body.referral_code,
       });
-      await posthog.shutdown();
       return createSuccessResponse({
         resume_id: resumeId,
         status: "queued",

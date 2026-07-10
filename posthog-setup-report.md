@@ -3,19 +3,19 @@
 
 The wizard has completed a deep integration of PostHog analytics into Clickfolio. Client-side tracking is initialized via `instrumentation-client.ts` (Next.js 15.3+ pattern) with a reverse proxy through `/ingest` to avoid ad blockers. Users are identified on every page load via a `PostHogIdentifier` client component that calls `posthog.identify()` with stable user IDs and person properties (email, name), and calls `posthog.reset()` on sign-out. Server-side events are captured via `posthog-node` in critical API routes with `flushAt: 1` / `flushInterval: 0` to ensure events flush before the Cloudflare Worker terminates.
 
-| Event name | Description | File |
-|---|---|---|
-| `resume_uploaded` | User successfully uploads a PDF resume to R2 temporary storage | `components/FileDropzone.tsx` |
-| `resume_upload_failed` | User's resume upload attempt failed with an error | `components/FileDropzone.tsx` |
-| `resume_claimed` | Authenticated user claims a previously uploaded resume and triggers AI parsing | `app/api/resume/claim/route.ts` |
-| `resume_claim_cached` | Resume claim resolved from cache (same PDF uploaded before), skipping AI parsing | `app/api/resume/claim/route.ts` |
-| `onboarding_completed` | User completes the wizard by setting handle, privacy settings, and theme | `app/api/wizard/complete/route.ts` |
-| `theme_changed` | User selects a new resume template theme from the dashboard or wizard | `app/api/resume/update-theme/route.ts` |
-| `resume_parse_retried` | User manually retries parsing a failed resume | `app/api/resume/retry/route.ts` |
-| `handle_changed` | User updates their public profile handle (username) | `app/api/profile/handle/route.ts` |
-| `account_deleted` | User permanently deletes their account and all associated data | `app/api/account/delete/route.ts` |
-| `sign_up_completed` | User successfully creates a new account via email/password sign-up | `components/auth/SignUpForm.tsx` |
-| `sign_in_completed` | User successfully signs in to their account via email/password | `components/auth/SignInForm.tsx` |
+| Event name             | Description                                                                      | File                                   |
+| ---------------------- | -------------------------------------------------------------------------------- | -------------------------------------- |
+| `resume_uploaded`      | User successfully uploads a PDF resume to R2 temporary storage                   | `components/FileDropzone.tsx`          |
+| `resume_upload_failed` | User's resume upload attempt failed with an error                                | `components/FileDropzone.tsx`          |
+| `resume_claimed`       | Authenticated user claims a previously uploaded resume and triggers AI parsing   | `app/api/resume/claim/route.ts`        |
+| `resume_claim_cached`  | Resume claim resolved from cache (same PDF uploaded before), skipping AI parsing | `app/api/resume/claim/route.ts`        |
+| `onboarding_completed` | User completes the wizard by setting handle, privacy settings, and theme         | `app/api/wizard/complete/route.ts`     |
+| `theme_changed`        | User selects a new resume template theme from the dashboard or wizard            | `app/api/resume/update-theme/route.ts` |
+| `resume_parse_retried` | User manually retries parsing a failed resume                                    | `app/api/resume/retry/route.ts`        |
+| `handle_changed`       | User updates their public profile handle (username)                              | `app/api/profile/handle/route.ts`      |
+| `account_deleted`      | User permanently deletes their account and all associated data                   | `app/api/account/delete/route.ts`      |
+| `sign_up_completed`    | User successfully creates a new account via email/password sign-up               | `components/auth/SignUpForm.tsx`       |
+| `sign_in_completed`    | User successfully signs in to their account via email/password                   | `components/auth/SignInForm.tsx`       |
 
 ## Next steps
 

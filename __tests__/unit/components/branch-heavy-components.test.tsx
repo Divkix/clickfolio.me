@@ -70,6 +70,15 @@ vi.mock("@/lib/utils/clipboard", () => ({
   copyToClipboard: (...args: unknown[]) => mocks.copyToClipboard(...args),
 }));
 
+vi.mock("posthog-js", () => ({
+  default: {
+    __loaded: true,
+    capture: vi.fn(),
+    identify: vi.fn(),
+    reset: vi.fn(),
+  },
+}));
+
 vi.mock("@/lib/auth/client", () => ({
   sendVerificationEmail: (...args: unknown[]) => mocks.sendVerificationEmail(...args),
   signIn: {

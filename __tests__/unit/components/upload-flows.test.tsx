@@ -33,6 +33,15 @@ vi.mock("next/navigation", () => ({
   useRouter: () => mocks.router,
 }));
 
+vi.mock("posthog-js", () => ({
+  default: {
+    __loaded: true,
+    capture: vi.fn(),
+    identify: vi.fn(),
+    reset: vi.fn(),
+  },
+}));
+
 vi.mock("@/lib/auth/client", () => ({
   useSession: () => mocks.sessionState.current,
   signIn: {

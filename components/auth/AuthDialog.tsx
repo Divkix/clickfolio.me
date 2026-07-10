@@ -100,6 +100,7 @@ export function AuthDialog({
                 fullWidth
                 callbackURL={callbackURL || "/dashboard"}
                 onSuccess={handleSuccess}
+                authMode="signin"
               />
 
               <Divider />
@@ -119,6 +120,7 @@ export function AuthDialog({
                 callbackURL={callbackURL || "/wizard"}
                 text="Sign up with Google"
                 onSuccess={handleSuccess}
+                authMode="signup"
               />
 
               <Divider />
