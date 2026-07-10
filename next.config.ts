@@ -13,7 +13,11 @@ const nextConfig: NextConfig = {
     },
   },
 
+  // Required to support PostHog trailing slash API requests
+  skipTrailingSlashRedirect: true,
+
   // Rewrites for sitemap index (vinext generateSitemaps doesn't create sitemap index)
+  // and PostHog reverse proxy (avoids ad blockers)
   async rewrites() {
     return [
       {
@@ -23,6 +27,18 @@ const nextConfig: NextConfig = {
       {
         source: "/sitemap/:id.xml",
         destination: "/api/sitemap/:id",
+      },
+      {
+        source: "/ingest/static/:path*",
+        destination: "https://us-assets.i.posthog.com/static/:path*",
+      },
+      {
+        source: "/ingest/array/:path*",
+        destination: "https://us-assets.i.posthog.com/array/:path*",
+      },
+      {
+        source: "/ingest/:path*",
+        destination: "https://us.i.posthog.com/:path*",
       },
     ];
   },

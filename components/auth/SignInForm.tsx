@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import posthog from "posthog-js";
 import { signIn } from "@/lib/auth/client";
 import { type SignInFormData, signInSchema } from "@/lib/schemas/auth";
 
@@ -64,6 +65,8 @@ export function SignInForm({ onSuccess, onForgotPassword, callbackURL }: SignInF
         }
         return;
       }
+
+      posthog.capture("sign_in_completed", { method: "email" });
 
       onSuccess?.();
       router.push(redirectURL);

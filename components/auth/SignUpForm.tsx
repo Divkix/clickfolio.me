@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import posthog from "posthog-js";
 import { signUp } from "@/lib/auth/client";
 import type { PasswordStrengthResult } from "@/lib/password/strength";
 import { type SignUpFormData, signUpSchema } from "@/lib/schemas/auth";
@@ -163,6 +164,9 @@ export function SignUpForm({ onSuccess, callbackURL }: SignUpFormProps) {
 
       // Notify user about verification email (soft requirement)
       toast.success("Account created! Check your email to verify your address.");
+
+      posthog.capture("sign_up_completed", { method: "email" });
+
       onSuccess?.();
       router.push(redirectURL);
     } catch (err) {

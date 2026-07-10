@@ -4,6 +4,7 @@ import { ShieldCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { type ChangeEvent, type DragEvent, useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import posthog from "posthog-js";
 import { AuthDialog } from "@/components/auth/AuthDialog";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -145,6 +146,11 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
       setUploadProgress(100);
       setUploadedKey(key);
       toast.success("File uploaded successfully!");
+
+      posthog.capture("resume_uploaded", {
+        file_size_bytes: fileToUpload.size,
+        file_name_length: fileToUpload.name.length,
+      });
     } catch (err) {
       let errorMessage = "Failed to upload file";
 
@@ -171,6 +177,8 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
       // Clean up temp storage on error (both sessionStorage and cookie)
       sessionStorage.removeItem("temp_upload");
       await clearPendingUploadCookie();
+
+      posthog.capture("resume_upload_failed", { error_message: errorMessage });
 
       setError(errorMessage);
       toast.error(errorMessage);

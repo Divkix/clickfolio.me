@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
 import { withUser } from "@/lib/auth/with-auth";
+import { getPostHogClient } from "@/lib/posthog-server";
 import { hasExceededMaxAttempts, isPermanentErrorType, RETRY_LIMITS } from "@/lib/config/retry";
 import type { NewResume } from "@/lib/db/schema";
 import { resumes } from "@/lib/db/schema";
@@ -275,6 +276,14 @@ export async function POST(request: Request) {
       }
 
       await captureBookmark();
+
+      const posthog = getPostHogClient();
+      posthog.capture({
+        distinctId: userId,
+        event: "resume_parse_retried",
+        properties: { resume_id: resume.id as string, retry_count: nextRetryCount },
+      });
+      await posthog.shutdown();
 
       return createSuccessResponse({
         resume_id: resume.id as string,
