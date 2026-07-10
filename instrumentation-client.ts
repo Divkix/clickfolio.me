@@ -1,13 +1,13 @@
 import posthog from "posthog-js";
+// Relative import: instrumentation-client runs as a root entry; keep deps local.
+import { POSTHOG_PROJECT_TOKEN, POSTHOG_UI_HOST } from "./lib/config/posthog";
 
-const token = process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN;
-
-// Skip init when the project token is unset (local/CI without analytics).
-// Avoids noisy client errors and failed /ingest requests.
-if (token) {
-  posthog.init(token, {
+// Always init with the project token (public-by-design). Token resolution
+// prefers env, then falls back to the production key in lib/config/posthog.
+if (POSTHOG_PROJECT_TOKEN) {
+  posthog.init(POSTHOG_PROJECT_TOKEN, {
     api_host: "/ingest",
-    ui_host: "https://us.posthog.com",
+    ui_host: POSTHOG_UI_HOST,
     defaults: "2026-01-30",
     capture_exceptions: true,
     debug: process.env.NODE_ENV === "development",

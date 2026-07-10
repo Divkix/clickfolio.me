@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 const { mockCapture, mockShutdown, MockPostHog } = vi.hoisted(() => {
   const mockCapture = vi.fn();
@@ -17,51 +17,20 @@ vi.mock("@/lib/utils/log", () => ({
   log: vi.fn(),
 }));
 
-describe("captureServerEvent", () => {
-  const env = process.env as Record<string, string | undefined>;
-  const originalToken = env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN;
-  const originalHost = env.NEXT_PUBLIC_POSTHOG_HOST;
+// Isolate token resolution so tests don't depend on the production default.
+vi.mock("@/lib/config/posthog", () => ({
+  POSTHOG_PROJECT_TOKEN: "phc_test",
+  POSTHOG_HOST: "https://us.i.posthog.com",
+  POSTHOG_UI_HOST: "https://us.posthog.com",
+}));
 
+describe("captureServerEvent", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockShutdown.mockResolvedValue(undefined);
   });
 
-  afterEach(() => {
-    if (originalToken === undefined) {
-      delete env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN;
-    } else {
-      env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN = originalToken;
-    }
-    if (originalHost === undefined) {
-      delete env.NEXT_PUBLIC_POSTHOG_HOST;
-    } else {
-      env.NEXT_PUBLIC_POSTHOG_HOST = originalHost;
-    }
-  });
-
-  it("no-ops when project token is missing", async () => {
-    delete env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN;
-    const { captureServerEvent } = await import("@/lib/posthog-server");
-
-    await captureServerEvent("user_1", "onboarding_completed", { handle: "ada" });
-
-    expect(MockPostHog).not.toHaveBeenCalled();
-    expect(mockCapture).not.toHaveBeenCalled();
-  });
-
-  it("no-ops when project token is blank", async () => {
-    env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN = "   ";
-    const { captureServerEvent } = await import("@/lib/posthog-server");
-
-    await captureServerEvent("user_1", "theme_changed");
-
-    expect(MockPostHog).not.toHaveBeenCalled();
-  });
-
-  it("captures and shuts down when token is set", async () => {
-    env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN = "phc_test";
-    env.NEXT_PUBLIC_POSTHOG_HOST = "https://us.i.posthog.com";
+  it("captures and shuts down with the configured token", async () => {
     const { captureServerEvent } = await import("@/lib/posthog-server");
 
     await captureServerEvent("user_1", "resume_claimed", { resume_id: "r1" });
@@ -80,7 +49,6 @@ describe("captureServerEvent", () => {
   });
 
   it("swallows capture/shutdown errors so callers never throw", async () => {
-    env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN = "phc_test";
     mockShutdown.mockRejectedValueOnce(new Error("network down"));
     const { log } = await import("@/lib/utils/log");
     const { captureServerEvent } = await import("@/lib/posthog-server");
@@ -98,5 +66,32 @@ describe("captureServerEvent", () => {
         error: "network down",
       }),
     );
+  });
+});
+
+describe("captureServerEvent without token", () => {
+  it("no-ops when project token is empty", async () => {
+    vi.resetModules();
+    vi.doMock("@/lib/config/posthog", () => ({
+      POSTHOG_PROJECT_TOKEN: "",
+      POSTHOG_HOST: "https://us.i.posthog.com",
+      POSTHOG_UI_HOST: "https://us.posthog.com",
+    }));
+    // Re-apply peer mocks after resetModules
+    vi.doMock("posthog-node", () => ({
+      PostHog: MockPostHog,
+    }));
+    vi.doMock("@/lib/utils/log", () => ({
+      log: vi.fn(),
+    }));
+
+    const { captureServerEvent } = await import("@/lib/posthog-server");
+    MockPostHog.mockClear();
+    mockCapture.mockClear();
+
+    await captureServerEvent("user_1", "theme_changed");
+
+    expect(MockPostHog).not.toHaveBeenCalled();
+    expect(mockCapture).not.toHaveBeenCalled();
   });
 });

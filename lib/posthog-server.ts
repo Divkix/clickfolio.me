@@ -1,4 +1,5 @@
 import { PostHog } from "posthog-node";
+import { POSTHOG_HOST, POSTHOG_PROJECT_TOKEN } from "@/lib/config/posthog";
 import { log } from "@/lib/utils/log";
 
 /**
@@ -9,22 +10,14 @@ import { log } from "@/lib/utils/log";
  * Analytics must never break product API success paths: capture is best-effort.
  */
 
-function getPostHogToken(): string | undefined {
-  const token = process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN;
-  if (!token || token.trim() === "") return undefined;
-  return token;
-}
-
 /**
- * Creates a PostHog server client, or `null` when the project token is unset
- * (local/dev without analytics configured).
+ * Creates a PostHog server client, or `null` when no project token is available.
  */
 export function getPostHogClient(): PostHog | null {
-  const token = getPostHogToken();
-  if (!token) return null;
+  if (!POSTHOG_PROJECT_TOKEN) return null;
 
-  return new PostHog(token, {
-    host: process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com",
+  return new PostHog(POSTHOG_PROJECT_TOKEN, {
+    host: POSTHOG_HOST,
     flushAt: 1,
     flushInterval: 0,
   });
