@@ -24,7 +24,7 @@ overrides:
   # match the top-level `vite` alias. Without this, pnpm installs two copies of
   # core (the alias version + vite-plus's pinned version) and the divergent
   # PluginOption types break `tsc --noEmit` in vite.config.ts.
-  "@voidzero-dev/vite-plus-core": "^0.2.3"
+  "@voidzero-dev/vite-plus-core": "^0.2.5"
 
 allowBuilds:
   better-sqlite3: true
