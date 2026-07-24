@@ -171,7 +171,7 @@ export function TemplatePreviewModal({
               templateConfig?.bg ?? "bg-white",
             )}
           >
-            <Template content={content} profile={profile} />
+            <Template content={content} profile={profile} isPreview />
           </div>
 
           {/* Footer with keyboard hint */}

@@ -278,10 +278,10 @@ export const BentoGrid: React.FC<TemplateProps> = ({ content, profile }) => {
                   )}
                 </div>
                 <div>
-                  <h3 className="font-heading-bg text-sm font-bold leading-tight mb-1">
+                  <h3 className="font-heading-bg text-sm font-bold leading-tight mb-1 line-clamp-1">
                     {edu.degree}
                   </h3>
-                  <p className="text-gray-500 text-xs">{edu.institution}</p>
+                  <p className="text-gray-500 text-xs line-clamp-1">{edu.institution}</p>
                 </div>
               </div>
             ))}
@@ -300,7 +300,7 @@ export const BentoGrid: React.FC<TemplateProps> = ({ content, profile }) => {
                       "radial-gradient(circle at 20% 30%, rgba(249,115,22,0.6) 0%, transparent 50%), radial-gradient(circle at 80% 70%, rgba(236,72,153,0.5) 0%, transparent 50%), radial-gradient(circle at 50% 50%, rgba(249,115,22,0.3) 0%, transparent 60%)",
                   }}
                 />
-                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150"></div>
+                <div className="absolute inset-0 bg-gradient-to-tr from-white/5 to-transparent opacity-20"></div>
 
                 <div className="absolute inset-0 p-8 flex flex-col justify-end text-white z-20">
                   <div className="transform translate-y-2 group-hover:translate-y-0 transition-transform duration-500 ease-out">
@@ -434,11 +434,13 @@ export const BentoGrid: React.FC<TemplateProps> = ({ content, profile }) => {
                   <Award size={20} className="text-yellow-600" aria-hidden="true" />
                 </div>
                 <div>
-                  <h3 className="font-heading-bg text-sm font-bold leading-tight mb-1 text-[#2D2926]">
+                  <h3 className="font-heading-bg text-sm font-bold leading-tight mb-1 text-[#2D2926] line-clamp-1">
                     {content.certifications[0].name}
                   </h3>
                   {content.certifications[0].issuer && (
-                    <p className="text-gray-500 text-[10px]">{content.certifications[0].issuer}</p>
+                    <p className="text-gray-500 text-[10px] line-clamp-1">
+                      {content.certifications[0].issuer}
+                    </p>
                   )}
                 </div>
               </div>

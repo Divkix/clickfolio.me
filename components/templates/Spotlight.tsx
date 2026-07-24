@@ -82,7 +82,7 @@ function getMarqueeOpacity(index: number): string {
 }
 
 /* ─── Main component ─── */
-export const Spotlight: React.FC<TemplateProps> = ({ content, profile }) => {
+export const Spotlight: React.FC<TemplateProps> = ({ content, profile, isPreview }) => {
   const firstName = content.full_name.split(" ")[0] || content.full_name;
   const allSkills = flattenSkills(content.skills);
   const contactLinks = getContactLinks(content.contact);
@@ -154,46 +154,50 @@ export const Spotlight: React.FC<TemplateProps> = ({ content, profile }) => {
           }}
         />
 
-        {/* Navigation — minimal text links top-left */}
-        <nav
-          className="fixed top-8 left-8 z-50 hidden md:flex flex-col gap-1.5"
-          aria-label="Main navigation"
-        >
-          {navLinks.map((link) => (
-            <a
-              key={link.href}
-              href={link.href}
-              className="text-sm font-body-sl text-stone-400 hover:text-[#E84D0E] transition-colors"
+        {!isPreview && (
+          <>
+            {/* Navigation — minimal text links top-left */}
+            <nav
+              className="fixed top-8 left-8 z-50 hidden md:flex flex-col gap-1.5"
+              aria-label="Main navigation"
             >
-              {link.label}
-            </a>
-          ))}
-        </nav>
+              {navLinks.map((link) => (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  className="text-sm font-body-sl text-stone-400 hover:text-[#E84D0E] transition-colors"
+                >
+                  {link.label}
+                </a>
+              ))}
+            </nav>
 
-        {/* Mobile nav — horizontal at top */}
-        <nav
-          className="fixed top-6 left-0 right-0 z-50 flex md:hidden justify-center gap-4 px-4 pt-[env(safe-area-inset-top)]"
-          aria-label="Main navigation"
-        >
-          {navLinks.map((link) => (
-            <a
-              key={link.href}
-              href={link.href}
-              className="text-sm font-body-sl text-stone-400 hover:text-[#E84D0E] transition-colors"
+            {/* Mobile nav — horizontal at top */}
+            <nav
+              className="fixed top-6 left-0 right-0 z-50 flex md:hidden justify-center gap-4 px-4 pt-[env(safe-area-inset-top)]"
+              aria-label="Main navigation"
             >
-              {link.label}
-            </a>
-          ))}
-        </nav>
+              {navLinks.map((link) => (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  className="text-sm font-body-sl text-stone-400 hover:text-[#E84D0E] transition-colors"
+                >
+                  {link.label}
+                </a>
+              ))}
+            </nav>
 
-        {/* "Hire Me" pill — fixed top-right */}
-        {content.contact.email && (
-          <a
-            href="#contact"
-            className="fixed top-8 right-8 z-50 px-5 py-2 text-sm font-display-sl font-semibold bg-[#E84D0E] text-white rounded-full hover:bg-[#d4430c] transition-colors shadow-lg shadow-orange-500/20"
-          >
-            Hire Me
-          </a>
+            {/* "Hire Me" pill — fixed top-right */}
+            {content.contact.email && (
+              <a
+                href="#contact"
+                className="fixed top-8 right-8 z-50 px-5 py-2 text-sm font-display-sl font-semibold bg-[#E84D0E] text-white rounded-full hover:bg-[#d4430c] transition-colors shadow-lg shadow-orange-500/20"
+              >
+                Hire Me
+              </a>
+            )}
+          </>
         )}
 
         <main className="relative z-10 max-w-4xl mx-auto px-6 pt-28 md:pt-40 pb-20">

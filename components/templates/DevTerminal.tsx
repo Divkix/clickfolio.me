@@ -48,27 +48,7 @@ export const DevTerminal: React.FC<TemplateProps> = ({ content, profile }) => {
             display: inline-block;
             overflow: hidden;
             white-space: nowrap;
-            border-right: 2px solid transparent;
-            max-width: 0;
-          }
-          @media (prefers-reduced-motion: no-preference) {
-            .typing-line {
-              animation: typing-reveal 2s steps(25) forwards, blink-cursor 0.75s step-end infinite;
-            }
-          }
-          @media (prefers-reduced-motion: reduce) {
-            .typing-line {
-              max-width: none;
-              border-right-color: transparent;
-            }
-          }
-          @keyframes typing-reveal {
-            from { max-width: 0; }
-            to { max-width: 40ch; }
-          }
-          @keyframes blink-cursor {
-            from, to { border-color: transparent; }
-            50% { border-color: #7ee787; }
+            max-width: 100%;
           }
         `}</style>
 

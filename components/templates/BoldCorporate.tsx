@@ -83,7 +83,7 @@ export const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => 
           {/* Hero Section */}
           <header className="grid grid-cols-1 md:grid-cols-12 gap-8 items-end mb-20 md:mb-32">
             <div className="md:col-span-8">
-              <h1 className="font-heading-bc text-7xl md:text-9xl font-black tracking-tighter leading-[0.9]">
+              <h1 className="font-heading-bc text-5xl sm:text-7xl md:text-8xl font-black tracking-tighter leading-[0.9] break-words">
                 {firstName}
                 {lastName && (
                   <>
@@ -146,7 +146,7 @@ export const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => 
               </div>
               <div className="overflow-hidden">
                 <p className="text-sm text-neutral-500 mb-1">I am a</p>
-                <p className="font-heading-bc font-black text-2xl whitespace-nowrap overflow-hidden border-r-2 border-current typewriter-animate max-w-fit">
+                <p className="font-heading-bc font-black text-xl sm:text-2xl leading-snug">
                   {safeHeadline}
                 </p>
               </div>

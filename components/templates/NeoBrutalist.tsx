@@ -24,11 +24,6 @@ import { NeoBrutalistMobileNav } from "./NeoBrutalistMobileNav";
 import { TemplateFontLinks } from "./shared/TemplateFontLinks";
 
 export const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
-  const safeHeadline =
-    content.headline && content.headline.trim() !== "" ? content.headline : content.full_name;
-  const headlineWords = safeHeadline.split(/\s+/);
-  const heroFirstLine = headlineWords.slice(0, 2).join(" ");
-  const heroSecondLine = headlineWords.slice(2).join(" ");
   const projectsHook =
     content.projects && content.projects.length > 0
       ? `${content.projects[0]?.title ?? "Featured projects"}${
@@ -92,18 +87,16 @@ export const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
               <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                 <Globe size={200} strokeWidth={1.5} aria-hidden="true" />
               </div>
-              <h1 className="font-heading-nb text-5xl md:text-7xl font-black uppercase leading-[0.85] tracking-tighter relative z-10">
-                {heroFirstLine}
-                {heroSecondLine && (
+              <h1 className="font-heading-nb text-4xl sm:text-6xl md:text-7xl font-black uppercase leading-[0.85] tracking-tighter relative z-10">
+                {content.full_name}
+                {content.headline && (
                   <>
                     <br />
-                    {heroSecondLine}
+                    <span className="text-white" style={{ WebkitTextStroke: "2px black" }}>
+                      {content.headline}
+                    </span>
                   </>
                 )}
-                <br />
-                <span className="text-white" style={{ WebkitTextStroke: "2px black" }}>
-                  Featured Projects
-                </span>
               </h1>
               {projectsHook && (
                 <a

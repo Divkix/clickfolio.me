@@ -50,7 +50,7 @@ const SectionTitle = ({ title, count }: { title: string; count?: number }) => (
   </div>
 );
 
-export const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile }) => {
+export const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile, isPreview }) => {
   const {
     full_name,
     summary,
@@ -81,30 +81,32 @@ export const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile 
         />
 
         {/* Floating Navigation */}
-        <nav
-          className="fixed bottom-8 left-1/2 -translate-x-1/2 z-40 pb-[env(safe-area-inset-bottom)]"
-          aria-label="Contact navigation"
-        >
-          <div className="flex items-center gap-6 px-6 py-3 bg-white/80 backdrop-blur-md border border-black/5 rounded-full shadow-2xl shadow-black/5 transition-transform hover:scale-105">
-            <span className="text-xs font-bold tracking-widest uppercase opacity-40 hover:opacity-100 transition-opacity cursor-default">
-              {profile.handle}
-            </span>
-            {contactLinks
-              .filter((link) => link.type !== "location")
-              .map((link) => (
-                <a
-                  key={link.type}
-                  href={link.href}
-                  target={link.isExternal ? "_blank" : undefined}
-                  rel={link.isExternal ? "noreferrer" : undefined}
-                  className="group relative p-2 rounded-full hover:bg-neutral-100 transition-colors"
-                >
-                  {navIconMap[link.type]}
-                  <span className="sr-only">{link.label}</span>
-                </a>
-              ))}
-          </div>
-        </nav>
+        {!isPreview && (
+          <nav
+            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-40 pb-[env(safe-area-inset-bottom)]"
+            aria-label="Contact navigation"
+          >
+            <div className="flex items-center gap-6 px-6 py-3 bg-white/80 backdrop-blur-md border border-black/5 rounded-full shadow-2xl shadow-black/5 transition-transform hover:scale-105">
+              <span className="text-xs font-bold tracking-widest uppercase opacity-40 hover:opacity-100 transition-opacity cursor-default">
+                {profile.handle}
+              </span>
+              {contactLinks
+                .filter((link) => link.type !== "location")
+                .map((link) => (
+                  <a
+                    key={link.type}
+                    href={link.href}
+                    target={link.isExternal ? "_blank" : undefined}
+                    rel={link.isExternal ? "noreferrer" : undefined}
+                    className="group relative p-2 rounded-full hover:bg-neutral-100 transition-colors"
+                  >
+                    {navIconMap[link.type]}
+                    <span className="sr-only">{link.label}</span>
+                  </a>
+                ))}
+            </div>
+          </nav>
+        )}
 
         <main className="max-w-7xl mx-auto px-6 md:px-12 pt-24 pb-40">
           {/* Header Section */}

@@ -11,7 +11,7 @@ const dfIconMap: Partial<Record<ContactLinkType, React.ReactNode>> = {
   location: <MapPin size={18} aria-hidden="true" />,
 };
 
-export const DesignFolio: React.FC<TemplateProps> = ({ content, profile }) => {
+export const DesignFolio: React.FC<TemplateProps> = ({ content, profile, isPreview }) => {
   const {
     full_name,
     headline,
@@ -62,16 +62,18 @@ export const DesignFolio: React.FC<TemplateProps> = ({ content, profile }) => {
         `}</style>
 
         {/* Navigation */}
-        <nav
-          aria-label="Main navigation"
-          className="flex justify-between items-center p-8 md:p-12 fixed top-0 w-full z-50 mix-blend-difference"
-        >
-          <div className="text-xl font-bold tracking-tighter font-mono-df">{initials}.</div>
-          <div className="text-xs border border-[#CCFF00] px-4 py-1 rounded-full text-[#CCFF00] uppercase tracking-widest">
-            <span aria-hidden="true">● </span>
-            {headline?.split(" ")[0] || "Available"}
-          </div>
-        </nav>
+        {!isPreview && (
+          <nav
+            aria-label="Main navigation"
+            className="flex justify-between items-center p-8 md:p-12 fixed top-0 w-full z-50 mix-blend-difference"
+          >
+            <div className="text-xl font-bold tracking-tighter font-mono-df">{initials}.</div>
+            <div className="text-xs border border-[#CCFF00] px-4 py-1 rounded-full text-[#CCFF00] uppercase tracking-widest">
+              <span aria-hidden="true">● </span>
+              {headline?.split(" ")[0] || "Available"}
+            </div>
+          </nav>
+        )}
 
         <main className="pt-32 px-5 md:px-12 pb-20">
           {/* Hero */}

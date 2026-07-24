@@ -134,7 +134,7 @@ const SectionHeading = ({
 
 // --- Main Template ---
 
-export const GlassMorphic: React.FC<TemplateProps> = ({ content, profile }) => {
+export const GlassMorphic: React.FC<TemplateProps> = ({ content, profile, isPreview }) => {
   const flatSkills = content.skills ? flattenSkills(content.skills) : [];
   const contactLinks = getContactLinks(content.contact);
 
@@ -241,41 +241,43 @@ export const GlassMorphic: React.FC<TemplateProps> = ({ content, profile }) => {
         </div>
 
         {/* --- Floating Navigation --- */}
-        <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
-          <div className="flex items-center gap-1 p-1.5 rounded-full bg-white/3 backdrop-blur-xl border border-white/8 shadow-2xl shadow-black/50">
-            {availableNavSections.map((section) => {
-              const Icon = section.icon;
-              return (
+        {!isPreview && (
+          <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
+            <div className="flex items-center gap-1 p-1.5 rounded-full bg-white/3 backdrop-blur-xl border border-white/8 shadow-2xl shadow-black/50">
+              {availableNavSections.map((section) => {
+                const Icon = section.icon;
+                return (
+                  <a
+                    key={section.id}
+                    href={`#${section.id}`}
+                    className="group relative flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-full hover:bg-white/10 transition-colors duration-300"
+                    aria-label={section.label}
+                  >
+                    <Icon
+                      size={20}
+                      className="text-white/50 group-hover:text-white transition-colors"
+                      strokeWidth={1.5}
+                      aria-hidden="true"
+                    />
+                    {/* Tooltip */}
+                    <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-2 py-1 bg-[#1a1a1a] border border-white/10 text-[10px] font-mono-gm text-white rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+                      {section.label}
+                    </span>
+                  </a>
+                );
+              })}
+              {content.contact.email && (
                 <a
-                  key={section.id}
-                  href={`#${section.id}`}
-                  className="group relative flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-full hover:bg-white/10 transition-colors duration-300"
-                  aria-label={section.label}
+                  href={`mailto:${content.contact.email}`}
+                  className="flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-full bg-white text-black hover:scale-110 transition-transform duration-300 ml-2"
+                  aria-label="Contact"
                 >
-                  <Icon
-                    size={20}
-                    className="text-white/50 group-hover:text-white transition-colors"
-                    strokeWidth={1.5}
-                    aria-hidden="true"
-                  />
-                  {/* Tooltip */}
-                  <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-2 py-1 bg-[#1a1a1a] border border-white/10 text-[10px] font-mono-gm text-white rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
-                    {section.label}
-                  </span>
+                  <Mail size={18} strokeWidth={2.5} aria-hidden="true" />
                 </a>
-              );
-            })}
-            {content.contact.email && (
-              <a
-                href={`mailto:${content.contact.email}`}
-                className="flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-full bg-white text-black hover:scale-110 transition-transform duration-300 ml-2"
-                aria-label="Contact"
-              >
-                <Mail size={18} strokeWidth={2.5} aria-hidden="true" />
-              </a>
-            )}
-          </div>
-        </nav>
+              )}
+            </div>
+          </nav>
+        )}
 
         {/* --- Main Content --- */}
         <div className="relative z-10 max-w-5xl mx-auto px-6 py-20 md:py-32 space-y-32">

@@ -22,7 +22,7 @@ import { TemplateFontLinks } from "./shared/TemplateFontLinks";
  * - Em-dash list markers for highlights
  * - Print-optimized with Tailwind print: classes
  */
-export const ClassicATS: React.FC<TemplateProps> = ({ content, profile }) => {
+export const ClassicATS: React.FC<TemplateProps> = ({ content, profile, isPreview }) => {
   const flatSkills = content.skills ? flattenSkills(content.skills) : [];
   const contactLinks = getContactLinks(content.contact);
 
@@ -285,14 +285,16 @@ export const ClassicATS: React.FC<TemplateProps> = ({ content, profile }) => {
             </div>
           </footer>
         </article>
-        <button
-          type="button"
-          onClick={() => window.print()}
-          className="fixed bottom-8 right-8 z-50 print:hidden bg-white border border-gray-300 rounded-full p-3 shadow-lg hover:shadow-xl hover:border-gray-400 transition-shadow"
-          aria-label="Print resume"
-        >
-          <Printer className="w-5 h-5 text-gray-600" />
-        </button>
+        {!isPreview && (
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="fixed bottom-8 right-8 z-50 print:hidden bg-white border border-gray-300 rounded-full p-3 shadow-lg hover:shadow-xl hover:border-gray-400 transition-shadow"
+            aria-label="Print resume"
+          >
+            <Printer className="w-5 h-5 text-gray-600" />
+          </button>
+        )}
       </main>
     </>
   );

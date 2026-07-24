@@ -12,4 +12,6 @@ export interface TemplateProps {
     /** Public handle used in portfolio URLs (e.g., /@handle). */
     handle: string;
   };
+  /** Whether the template is being rendered inside a preview modal (e.g., homepage preview). */
+  isPreview?: boolean;
 }
