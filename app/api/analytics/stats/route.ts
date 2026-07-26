@@ -38,23 +38,6 @@ import {
 
 const VALID_PERIODS = new Set(["7d", "30d", "90d"]);
 
-const PERIOD_MS: Record<string, number> = {
-  "7d": 7 * 24 * 60 * 60 * 1000,
-  "30d": 30 * 24 * 60 * 60 * 1000,
-  "90d": 90 * 24 * 60 * 60 * 1000,
-};
-
-function periodToDays(period: string): number {
-  switch (period) {
-    case "30d":
-      return 30;
-    case "90d":
-      return 90;
-    default:
-      return 7;
-  }
-}
-
 export async function GET(request: Request) {
   return withUser(
     request,
@@ -85,8 +68,9 @@ export async function GET(request: Request) {
       }
 
       try {
+        const days = Number.parseInt(period, 10);
         const endAt = Date.now();
-        const startAt = endAt - (PERIOD_MS[period] ?? PERIOD_MS["7d"]);
+        const startAt = endAt - days * 24 * 60 * 60 * 1000;
 
         // Collect all handles (current + historical) for users who changed handles
         const oldHandleRows = await db
@@ -232,7 +216,6 @@ export async function GET(request: Request) {
           .slice(0, 10);
 
         // Fill missing dates for chart continuity
-        const days = periodToDays(period);
         const viewsByDay = lastNUtcDays(days).map((date) => ({
           date,
           views: dailyMap.get(date) ?? 0,

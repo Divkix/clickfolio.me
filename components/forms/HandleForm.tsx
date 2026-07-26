@@ -16,10 +16,9 @@ import type { ApiErrorBody } from "@/lib/types/api";
 
 interface HandleFormProps {
   currentHandle: string;
-  variant?: "default" | "compact";
 }
 
-export function HandleForm({ currentHandle, variant = "default" }: HandleFormProps) {
+export function HandleForm({ currentHandle }: HandleFormProps) {
   const [isSaving, setIsSaving] = useState(false);
   const { copied, copy } = useCopyToClipboard();
   const router = useRouter();
@@ -80,150 +79,63 @@ export function HandleForm({ currentHandle, variant = "default" }: HandleFormPro
     }
   };
 
-  if (variant === "compact") {
-    return (
-      <div className="space-y-4">
-        {/* Current URL with copy button */}
-        <div>
-          <Label className="text-xs text-muted-foreground mb-1.5 block">Public URL</Label>
-          <div className="flex gap-2">
-            <div className="flex-1 flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border-strong bg-surface-2 font-mono text-sm min-w-0">
-              <Link2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-              <span className="text-muted-foreground truncate">{siteConfig.domain}/@</span>
-              <span className="font-semibold text-brand truncate">{currentHandle}</span>
-            </div>
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              aria-label={copied ? "Public URL copied" : "Copy public URL"}
-              onClick={handleCopy}
-              className="shrink-0 h-[38px] w-[38px]"
-            >
-              {copied ? (
-                <CheckCircle2 className="h-4 w-4 text-success" />
-              ) : (
-                <Copy className="h-4 w-4" />
-              )}
-            </Button>
-          </div>
-        </div>
-
-        {/* Inline change handle form */}
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <Label htmlFor="handle-compact" className="text-xs text-muted-foreground mb-1.5 block">
-            Change Handle
-          </Label>
-          <div className="flex gap-2">
-            <div className="flex-1 flex items-center gap-1.5 rounded-lg border border-border-strong bg-card px-3 min-w-0">
-              <span className="text-sm text-muted-foreground shrink-0">@</span>
-              <Input
-                id="handle-compact"
-                {...register("handle")}
-                placeholder="new-handle"
-                className="border-0 p-0 h-9 focus-visible:ring-0 font-mono text-sm"
-                disabled={isSaving}
-              />
-            </div>
-            <Button
-              type="submit"
-              loading={isSaving}
-              disabled={!isDirty || !!errors.handle}
-              className="shrink-0"
-            >
-              Update
-            </Button>
-          </div>
-          {errors.handle && (
-            <p className="text-xs text-destructive mt-1">{errors.handle.message}</p>
-          )}
-          {isDirty && newHandle !== currentHandle && !errors.handle && (
-            <p className="text-xs text-brand mt-1">
-              Preview: {siteConfig.domain}/@{newHandle}
-            </p>
-          )}
-        </form>
-      </div>
-    );
-  }
-
-  // Default full card variant (keeping original for backwards compatibility)
   return (
-    <div className="bg-card rounded-xl shadow-sm border border-border p-6">
-      <div className="flex items-center gap-2 mb-4">
-        <Link2 className="h-5 w-5 text-brand" />
-        <h3 className="text-lg font-semibold text-foreground">Public Handle</h3>
+    <div className="space-y-4">
+      <div>
+        <Label className="text-xs text-muted-foreground mb-1.5 block">Public URL</Label>
+        <div className="flex gap-2">
+          <div className="flex-1 flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border-strong bg-surface-2 font-mono text-sm min-w-0">
+            <Link2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            <span className="text-muted-foreground truncate">{siteConfig.domain}/@</span>
+            <span className="font-semibold text-brand truncate">{currentHandle}</span>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            aria-label={copied ? "Public URL copied" : "Copy public URL"}
+            onClick={handleCopy}
+            className="shrink-0 h-[38px] w-[38px]"
+          >
+            {copied ? (
+              <CheckCircle2 className="h-4 w-4 text-success" />
+            ) : (
+              <Copy className="h-4 w-4" />
+            )}
+          </Button>
+        </div>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        {/* Current URL Display */}
-        <div className="space-y-2">
-          <Label htmlFor="current-url" className="text-sm text-muted-foreground">
-            Current Public URL
-          </Label>
-          <div className="flex gap-2">
-            <div className="flex-1 flex items-center gap-2 px-3 py-2 rounded-md border border-border-strong bg-surface-2 font-mono text-sm">
-              <Link2 className="h-4 w-4 text-muted-foreground" />
-              <span className="text-muted-foreground">{siteConfig.domain}/@</span>
-              <span className="font-semibold text-brand">{currentHandle}</span>
-            </div>
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              aria-label={copied ? "Public URL copied" : "Copy public URL"}
-              onClick={handleCopy}
-              className="shrink-0"
-            >
-              {copied ? (
-                <CheckCircle2 className="h-4 w-4 text-success" />
-              ) : (
-                <Copy className="h-4 w-4" />
-              )}
-            </Button>
+      <form onSubmit={handleSubmit(onSubmit)}>
+        <Label htmlFor="handle" className="text-xs text-muted-foreground mb-1.5 block">
+          Change Handle
+        </Label>
+        <div className="flex gap-2">
+          <div className="flex-1 flex items-center gap-1.5 rounded-lg border border-border-strong bg-card px-3 min-w-0">
+            <span className="text-sm text-muted-foreground shrink-0">@</span>
+            <Input
+              id="handle"
+              {...register("handle")}
+              placeholder="new-handle"
+              className="border-0 p-0 h-9 focus-visible:ring-0 font-mono text-sm"
+              disabled={isSaving}
+            />
           </div>
+          <Button
+            type="submit"
+            loading={isSaving}
+            disabled={!isDirty || !!errors.handle}
+            className="shrink-0"
+          >
+            Update
+          </Button>
         </div>
-
-        {/* New Handle Input */}
-        <div className="space-y-2">
-          <Label htmlFor="handle">Change Handle</Label>
-          <div className="flex items-start gap-2">
-            <div className="flex-1 space-y-1">
-              <div className="flex items-center gap-2 rounded-md border border-border-strong bg-card px-3 py-2">
-                <span className="text-sm text-muted-foreground">{siteConfig.domain}/@</span>
-                <Input
-                  id="handle"
-                  {...register("handle")}
-                  placeholder="your-handle"
-                  className="border-0 p-0 h-auto focus-visible:ring-0 font-mono text-sm"
-                  disabled={isSaving}
-                />
-              </div>
-              {errors.handle && <p className="text-sm text-destructive">{errors.handle.message}</p>}
-            </div>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            3-30 characters. Lowercase letters, numbers, and hyphens only.
-          </p>
-        </div>
-
-        {/* URL Preview */}
+        {errors.handle && <p className="text-xs text-destructive mt-1">{errors.handle.message}</p>}
         {isDirty && newHandle !== currentHandle && !errors.handle && (
-          <div className="rounded-lg bg-brand-subtle border border-brand/30 p-3">
-            <p className="text-xs font-medium text-brand-active mb-1">New URL Preview:</p>
-            <p className="font-mono text-sm text-brand-active">https://{publicUrl}</p>
-          </div>
+          <p className="text-xs text-brand mt-1">
+            Preview: {siteConfig.domain}/@{newHandle}
+          </p>
         )}
-
-        {/* Submit Button */}
-        <Button
-          type="submit"
-          loading={isSaving}
-          disabled={!isDirty || !!errors.handle}
-          className="w-full"
-        >
-          {isSaving ? "Updating Handle..." : "Update Handle"}
-        </Button>
       </form>
     </div>
   );

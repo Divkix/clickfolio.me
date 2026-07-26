@@ -120,7 +120,7 @@ export const account = sqliteTable(
     refreshTokenExpiresAt: text("refresh_token_expires_at"),
     scope: text("scope"),
     idToken: text("id_token"),
-    /** Password hash — exists for Better Auth compatibility (future email/password support). Currently unused. */
+    /** Password hash used by Better Auth email/password accounts. */
     password: text("password"),
     createdAt: text("created_at").notNull(),
     updatedAt: text("updated_at").notNull(),

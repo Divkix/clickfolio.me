@@ -6,7 +6,7 @@
  */
 
 import * as matchers from "@testing-library/jest-dom/matchers";
-import { afterEach, beforeEach, expect } from "vite-plus/test";
+import { afterEach, beforeEach, expect, vi } from "vite-plus/test";
 import { clearKeyCache } from "@/lib/utils/pending-upload-cookie";
 import {
   mockDigest,
@@ -15,6 +15,15 @@ import {
   mockRandomUUID,
   mockSign,
 } from "./mocks/crypto";
+
+vi.mock("posthog-node", () => ({
+  PostHog: vi.fn(function MockPostHog() {
+    return {
+      capture: vi.fn(),
+      shutdown: vi.fn(async () => undefined),
+    };
+  }),
+}));
 
 // Add jest-dom matchers
 expect.extend(matchers);

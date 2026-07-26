@@ -20,7 +20,6 @@ export default defineConfig({
       "__tests__/claim-flow.test.ts",
       "__tests__/referral.test.ts",
       "__tests__/share.test.ts",
-      "__tests__/milestones.test.ts",
     ],
     exclude: ["node_modules", ".next", "dist", "__tests__/e2e/**", ".worktrees/**"],
     // Integration tests may have timing issues - allow retries

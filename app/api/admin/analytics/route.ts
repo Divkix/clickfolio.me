@@ -35,17 +35,6 @@ import {
 
 const VALID_PERIODS = new Set(["7d", "30d", "90d"]);
 
-function periodToDays(period: string): number {
-  switch (period) {
-    case "30d":
-      return 30;
-    case "90d":
-      return 90;
-    default:
-      return 7;
-  }
-}
-
 /** Returns true for paths that are profile URLs (/@handle format). */
 function isProfilePath(path: string): boolean {
   // Profile URLs are /@handle — single segment starting with @
@@ -64,7 +53,7 @@ export async function GET(request: Request) {
     }
 
     try {
-      const days = periodToDays(period);
+      const days = Number.parseInt(period, 10);
       const now = Date.now();
       const startAt = now - days * 24 * 60 * 60 * 1000;
 

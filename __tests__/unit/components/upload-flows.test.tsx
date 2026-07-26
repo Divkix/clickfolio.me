@@ -116,7 +116,6 @@ describe("upload flow components", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useRealTimers();
-    sessionStorage.clear();
     mocks.sessionState.current = { data: null, isPending: false };
     mocks.waitResult = { status: "completed", error: undefined };
     mocks.getReferral.mockReturnValue(null);
@@ -150,7 +149,6 @@ describe("upload flow components", () => {
     dropFile(pdfFile());
 
     await waitFor(() => expect(screen.getByText("Upload Complete!")).toBeInTheDocument());
-    expect(sessionStorage.getItem("temp_upload")).toContain("temp/anon/resume.pdf");
     expect(mocks.toast.success).toHaveBeenCalledWith("File uploaded successfully!");
 
     await userEvent.click(screen.getByRole("button", { name: /sign in to publish/i }));
@@ -158,6 +156,24 @@ describe("upload flow components", () => {
 
     await userEvent.click(screen.getByRole("button", { name: /upload a different file/i }));
     expect(screen.getByText("Drop your PDF here")).toBeInTheDocument();
+  });
+
+  it("rejects uploads when the pending-upload cookie cannot be stored", async () => {
+    installFetch((url) => {
+      if (url === "/api/upload") {
+        return Response.json({ key: "temp/anon/resume.pdf", remaining: { hourly: 9, daily: 49 } });
+      }
+      if (url === "/api/upload/pending") {
+        return Response.json({ error: "Cookie unavailable" }, { status: 500 });
+      }
+      return Response.json({ ok: true });
+    });
+
+    render(<FileDropzone />);
+    dropFile(pdfFile());
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Failed to save pending upload");
+    expect(screen.queryByText("Upload Complete!")).not.toBeInTheDocument();
   });
 
   it("supports modal uploads, file picker changes, drag leave, and pending session handoff", async () => {
