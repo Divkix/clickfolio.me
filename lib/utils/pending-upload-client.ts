@@ -4,18 +4,16 @@
  */
 
 /**
- * Set pending upload cookie via API (primary storage)
- * Falls back silently if API call fails - sessionStorage remains as backup
+ * Set the pending upload cookie via API.
  */
 export async function setPendingUploadCookie(key: string): Promise<void> {
-  try {
-    await fetch("/api/upload/pending", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ key }),
-    });
-  } catch (error) {
-    console.warn("Failed to set pending upload cookie, using sessionStorage fallback:", error);
+  const response = await fetch("/api/upload/pending", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ key }),
+  });
+  if (!response.ok) {
+    throw new Error("Failed to save pending upload");
   }
 }
 

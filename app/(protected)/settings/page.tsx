@@ -61,7 +61,7 @@ function ProfileSection({ name, email, headline, image, handle }: ProfileSection
       {handle && (
         <>
           <Separator className="my-4" />
-          <HandleForm currentHandle={handle} variant="compact" />
+          <HandleForm currentHandle={handle} />
         </>
       )}
 

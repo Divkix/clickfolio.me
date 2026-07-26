@@ -26,7 +26,6 @@ import { GoogleButton } from "@/components/auth/GoogleButton";
 import { LoginButton } from "@/components/auth/LoginButton";
 import { PasswordInput } from "@/components/auth/PasswordInput";
 import { PasswordStrengthMeter } from "@/components/auth/PasswordStrengthMeter";
-import { HighlightBlock } from "@/components/blog/HighlightBlock";
 import { StatsGrid } from "@/components/blog/StatsGrid";
 import { Confetti } from "@/components/Confetti";
 import { AnalyticsCard } from "@/components/dashboard/AnalyticsCard";
@@ -48,8 +47,6 @@ import { MobileStickyUpload } from "@/components/home/MobileStickyUpload";
 import { UsageStats } from "@/components/home/UsageStats";
 import { WhatYouGetSection } from "@/components/home/WhatYouGetSection";
 import { Logo } from "@/components/Logo";
-import { LogoIcon } from "@/components/LogoIcon";
-import { LogoText } from "@/components/LogoText";
 import { RelatedProfiles } from "@/components/RelatedProfiles";
 import { ShareBar } from "@/components/ShareBar";
 import { SharePopover } from "@/components/SharePopover";
@@ -467,10 +464,8 @@ describe("component smoke rendering", () => {
     const { rerender } = render(
       <div>
         <Logo />
-        <LogoIcon />
-        <LogoText />
         <AttributionWidget theme="minimalist-editorial" />
-        <Confetti force />
+        <Confetti />
         <RelatedProfiles profiles={[{ handle: "avery", name: "Avery", headline: "Engineer" }]} />
         <ShareBar title="Avery portfolio" name="Avery" handle="avery" />
         <SharePopover title="Avery portfolio" name="Avery" handle="avery" />
@@ -543,14 +538,14 @@ describe("component smoke rendering", () => {
     expect(screen.getByText(/Choose Your Theme/)).toBeInTheDocument();
   });
 
-  it("auto-cleans confetti after the configured duration", async () => {
+  it("auto-cleans confetti after the animation", async () => {
     vi.useFakeTimers();
     try {
-      const { container } = render(<Confetti duration={1} />);
+      const { container } = render(<Confetti />);
       expect(container.firstChild).toBeInTheDocument();
 
       await act(async () => {
-        vi.advanceTimersByTime(501);
+        vi.advanceTimersByTime(3500);
       });
 
       expect(container.firstChild).toBeNull();
@@ -611,7 +606,6 @@ describe("component smoke rendering", () => {
       <div>
         <EditResumeForm initialData={resumeContent} onSave={vi.fn().mockResolvedValue(undefined)} />
         <HandleForm currentHandle="avery" />
-        <HandleForm currentHandle="avery" variant="compact" />
         <PrivacySettingsForm
           initialSettings={{
             show_phone: true,
@@ -647,13 +641,11 @@ describe("component smoke rendering", () => {
         <MobileStickyUpload />
         <UsageStats />
         <WhatYouGetSection />
-        <HighlightBlock title="Note">Useful context</HighlightBlock>
         <StatsGrid stats={[{ label: "Users", value: "1k" }]} />
         <TemplatePreviewModal isOpen onClose={vi.fn()} selectedIndex={0} onNavigate={vi.fn()} />
       </div>,
     );
 
-    expect(screen.getByText("Useful context")).toBeInTheDocument();
     expect(screen.getByText("What you get")).toBeInTheDocument();
     expect(screen.getByText("1k")).toBeInTheDocument();
   });

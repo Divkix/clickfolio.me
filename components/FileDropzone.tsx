@@ -130,17 +130,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
 
       setUploadProgress(90);
 
-      // Step 2a: Save key to sessionStorage with expiry (30 min window) - FALLBACK
-      sessionStorage.setItem(
-        "temp_upload",
-        JSON.stringify({
-          key,
-          timestamp: Date.now(),
-          expiresAt: Date.now() + 30 * 60 * 1000,
-        }),
-      );
-
-      // Step 2b: Set HTTP-only cookie via API - PRIMARY storage
+      // Store the claim securely across the authentication handoff.
       await setPendingUploadCookie(key);
 
       setUploadProgress(100);
@@ -174,8 +164,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
         }
       }
 
-      // Clean up temp storage on error (both sessionStorage and cookie)
-      sessionStorage.removeItem("temp_upload");
+      // Clear any pending-upload cookie left by a partial failure.
       await clearPendingUploadCookie();
 
       posthog.capture("resume_upload_failed", { error_message: errorMessage });
@@ -214,9 +203,6 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
 
         // Clear uploaded key to prevent useEffect re-triggering
         setUploadedKey(null);
-
-        // Clear temp data from sessionStorage
-        sessionStorage.removeItem("temp_upload");
 
         // Clear HTTP-only cookie
         await clearPendingUploadCookie();
@@ -267,8 +253,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
         // Clear uploaded key to prevent useEffect re-triggering
         setUploadedKey(null);
 
-        // Clean up temp storage on error (both sessionStorage and cookie)
-        sessionStorage.removeItem("temp_upload");
+        // Clear the unusable pending-upload cookie.
         await clearPendingUploadCookie();
 
         setError(errorMessage);

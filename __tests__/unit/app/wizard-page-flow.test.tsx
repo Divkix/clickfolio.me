@@ -45,7 +45,6 @@ vi.mock("@/lib/utils/wait-for-completion", () => ({
   waitForResumeCompletion: (resumeId: string) => mocks.waitForResumeCompletion(resumeId),
 }));
 
-vi.mock("@/components/Confetti", () => ({ Confetti: () => <div>confetti</div> }));
 vi.mock("@/components/YouAreLiveModal", () => ({
   YouAreLiveModal: ({
     open,
@@ -208,7 +207,6 @@ describe("wizard page flow", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    sessionStorage.clear();
     mocks.sessionState.current = {
       data: { user: { id: "user_1", email: "avery@example.com", name: "Avery" } },
       isPending: false,
@@ -246,7 +244,6 @@ describe("wizard page flow", () => {
     expect(screen.getByText(/theme-step/)).toHaveTextContent("4 true");
     await userEvent.click(screen.getByText(/theme-step/));
 
-    await waitFor(() => expect(screen.getByText("confetti")).toBeInTheDocument());
     expect(screen.getByText("live avery")).toBeInTheDocument();
     await userEvent.click(screen.getByText("live avery"));
     expect(mocks.router.push).toHaveBeenCalledWith("/dashboard");
@@ -357,24 +354,15 @@ describe("wizard page flow", () => {
     expect(mocks.router.push).toHaveBeenCalledWith("/dashboard");
   });
 
-  it("uses sessionStorage fallback, handles parsing failure redirects, and reports init crashes", async () => {
+  it("handles parsing failure redirects and reports init crashes", async () => {
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     try {
       const { default: WizardPage } = await import("@/app/(protected)/wizard/page");
-      sessionStorage.setItem(
-        "temp_upload",
-        JSON.stringify({
-          key: "temp/session.pdf",
-          timestamp: Date.now(),
-          expiresAt: Date.now() + 30_000,
-        }),
-      );
-      sessionStorage.setItem("temp_file_hash", "hash_1");
       globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
         // eslint-disable-next-line typescript/no-base-to-string -- RequestInfo|URL; String() is idiomatic in test fetch mocks
         const url = String(input);
         if (url === "/api/upload/pending") {
-          throw new Error("cookie unavailable");
+          return Response.json({ key: "temp/cookie.pdf", file_hash: "hash_1" });
         }
         if (url === "/api/resume/claim") {
           return Response.json({ resume_id: "res_session", cached: false });
@@ -411,27 +399,17 @@ describe("wizard page flow", () => {
     }
   });
 
-  it("cleans expired and invalid fallback uploads and warns before abandoning later steps", async () => {
+  it("warns before abandoning later steps", async () => {
     const { default: WizardPage } = await import("@/app/(protected)/wizard/page");
 
-    sessionStorage.setItem("temp_upload", "not-json");
     installFetchScenario("site-data");
-    const invalid = render(<WizardPage />);
-    await waitFor(() => expect(sessionStorage.getItem("temp_upload")).toBeNull());
-    invalid.unmount();
-
-    sessionStorage.setItem(
-      "temp_upload",
-      JSON.stringify({ key: "temp/expired.pdf", timestamp: 1, expiresAt: Date.now() - 1 }),
-    );
-    const expired = render(<WizardPage />);
-    await waitFor(() => expect(sessionStorage.getItem("temp_upload")).toBeNull());
+    const wizard = render(<WizardPage />);
     await waitFor(() => expect(screen.getByText("handle-step")).toBeInTheDocument());
 
     await userEvent.click(screen.getByText("handle-step"));
     const event = new Event("beforeunload", { cancelable: true });
     fireEvent(window, event);
     expect(event.defaultPrevented).toBe(true);
-    expired.unmount();
+    wizard.unmount();
   });
 });

@@ -225,10 +225,10 @@ describe("branch-heavy component interactions", () => {
       expect(mocks.toast.success).toHaveBeenCalledWith("URL copied to clipboard");
     });
 
-    it("reports copy failures and avoids saving an unchanged compact handle", async () => {
+    it("reports copy failures and avoids saving an unchanged handle", async () => {
       mocks.copyToClipboard.mockResolvedValueOnce(false);
 
-      render(<HandleForm currentHandle="avery" variant="compact" />);
+      render(<HandleForm currentHandle="avery" />);
 
       fireEvent.click(screen.getByRole("button", { name: "Copy public URL" }));
       await waitFor(() => expect(mocks.toast.error).toHaveBeenCalledWith("Failed to copy URL"));
@@ -246,9 +246,9 @@ describe("branch-heavy component interactions", () => {
 
       await user.clear(screen.getByLabelText("Change Handle"));
       await user.type(screen.getByLabelText("Change Handle"), "new-handle");
-      expect(screen.getByText("https://clickfolio.me/@new-handle")).toBeInTheDocument();
+      expect(screen.getByText("Preview: clickfolio.me/@new-handle")).toBeInTheDocument();
 
-      await user.click(screen.getByRole("button", { name: "Update Handle" }));
+      await user.click(screen.getByRole("button", { name: "Update" }));
 
       await waitFor(() =>
         expect(fetch).toHaveBeenCalledWith(
@@ -269,14 +269,14 @@ describe("branch-heavy component interactions", () => {
 
       await user.clear(screen.getByLabelText("Change Handle"));
       await user.type(screen.getByLabelText("Change Handle"), "taken-handle");
-      await user.click(screen.getByRole("button", { name: "Update Handle" }));
+      await user.click(screen.getByRole("button", { name: "Update" }));
 
       await waitFor(() => expect(mocks.toast.error).toHaveBeenCalledWith("Handle is taken"));
     });
 
     it("shows validation errors and reports thrown update failures", async () => {
       const user = userEvent.setup();
-      render(<HandleForm currentHandle="avery" variant="compact" />);
+      render(<HandleForm currentHandle="avery" />);
 
       await user.clear(screen.getByLabelText("Change Handle"));
       await user.type(screen.getByLabelText("Change Handle"), "Nope!");

@@ -7,7 +7,6 @@ import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Confetti } from "@/components/Confetti";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { WizardProgress } from "@/components/wizard";
 import { HandleStep } from "@/components/wizard/HandleStep";
@@ -98,7 +97,6 @@ export default function WizardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [needsUpload, setNeedsUpload] = useState(false);
-  const [showCelebration, setShowCelebration] = useState(false);
   const [showLiveModal, setShowLiveModal] = useState(false);
 
   // Referral stats for theme lock display
@@ -171,8 +169,7 @@ export default function WizardPage() {
       try {
         setLoading(true);
 
-        // PRIMARY: Try reading pending upload from HTTP-only cookie via API
-        // This is more reliable than sessionStorage (works across tabs, survives browser restart)
+        // Read the pending upload from the HTTP-only cookie via API.
         let tempKey: string | null = null;
         let fileHash: string | null = null;
 
@@ -187,33 +184,6 @@ export default function WizardPage() {
           }
         } catch (cookieError) {
           console.warn("Failed to read pending upload cookie:", cookieError);
-        }
-
-        // FALLBACK: Try sessionStorage (migration period - remove after 30 days)
-        // This handles users who uploaded before the cookie implementation
-        if (!tempKey) {
-          const tempUploadStr = sessionStorage.getItem("temp_upload");
-          if (tempUploadStr) {
-            try {
-              const tempUpload = JSON.parse(tempUploadStr) as {
-                key: string;
-                timestamp: number;
-                expiresAt: number;
-              };
-              // Only use if not expired (30 min window)
-              if (tempUpload.expiresAt > Date.now()) {
-                tempKey = tempUpload.key;
-                fileHash = sessionStorage.getItem("temp_file_hash");
-              } else {
-                // Expired - clean up stale data
-                sessionStorage.removeItem("temp_upload");
-                sessionStorage.removeItem("temp_file_hash");
-              }
-            } catch {
-              // Invalid JSON - clean up
-              sessionStorage.removeItem("temp_upload");
-            }
-          }
         }
 
         // RETURNING USER CHECK: If onboarding already completed, skip wizard entirely
@@ -245,9 +215,7 @@ export default function WizardPage() {
               );
             }
 
-            // Clear storage regardless of claim success
-            sessionStorage.removeItem("temp_upload");
-            sessionStorage.removeItem("temp_file_hash");
+            // Clear the cookie regardless of claim success.
             await clearPendingUploadCookie();
           }
 
@@ -282,10 +250,6 @@ export default function WizardPage() {
             // Get resume_id from claim response
             const resumeId = claimData.resume_id;
 
-            // Clear sessionStorage after successful claim (migration cleanup)
-            sessionStorage.removeItem("temp_upload");
-            sessionStorage.removeItem("temp_file_hash");
-
             // Clear HTTP-only cookie after successful claim
             await clearPendingUploadCookie();
 
@@ -302,9 +266,7 @@ export default function WizardPage() {
             console.error("Claim error:", claimError);
             setError(claimError instanceof Error ? claimError.message : "Failed to claim resume");
 
-            // Clean up both storage mechanisms on error
-            sessionStorage.removeItem("temp_upload");
-            sessionStorage.removeItem("temp_file_hash");
+            // Clear the unusable pending-upload cookie.
             await clearPendingUploadCookie();
 
             // Reset claim ref on error to allow retry
@@ -386,7 +348,7 @@ export default function WizardPage() {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       // Only warn if user has moved past the first step and hasn't completed
       const currentIndex = stepOrder.indexOf(state.currentStepId);
-      if (currentIndex > 0 && !showCelebration) {
+      if (currentIndex > 0 && !showLiveModal) {
         e.preventDefault();
         // returnValue is deprecated but required for cross-browser compatibility
         e.returnValue = "";
@@ -395,7 +357,7 @@ export default function WizardPage() {
 
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [state.currentStepId, stepOrder, showCelebration]);
+  }, [state.currentStepId, stepOrder, showLiveModal]);
 
   // Handler for upload completion (moves to handle step)
   const handleUploadComplete = (resumeData: ResumeContent) => {
@@ -460,7 +422,6 @@ export default function WizardPage() {
         throw new Error(data.error || "Failed to complete setup");
       }
 
-      setShowCelebration(true);
       setShowLiveModal(true);
     } catch (err) {
       console.error("Error completing wizard:", err);
@@ -524,8 +485,6 @@ export default function WizardPage() {
   // Main wizard UI
   return (
     <div className="min-h-screen bg-background">
-      {/* Celebration Effects */}
-      {showCelebration && <Confetti />}
       <YouAreLiveModal
         open={showLiveModal}
         onOpenChange={handleLiveModalClose}

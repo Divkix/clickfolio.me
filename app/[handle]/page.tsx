@@ -126,8 +126,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
  * Public resume viewer page
  * Renders user's resume with privacy filtering applied
  *
- * Caching: Cloudflare edge cache handles most traffic via Cache-Control headers.
- * Privacy-sensitive changes purge edge cache immediately via Cloudflare API.
+ * Caching: ISR refreshes the page at most hourly (`revalidate = 3600`).
  */
 export default async function HandlePage({ params }: PageProps) {
   const { handle: rawHandleEncoded } = await params;
