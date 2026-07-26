@@ -12,7 +12,6 @@ concurrency:
 
 permissions:
   contents: read
-  pull-requests: write
 
 jobs:
   quality:
@@ -88,14 +87,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Run unit tests with coverage
-        run: pnpm run test:unit -- --coverage
-
-      - name: Upload unit coverage report
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
-        if: always()
-        with:
-          name: unit-coverage-report
-          path: coverage/unit/
+        run: pnpm run test:unit --coverage
 
   integration-tests:
     name: Integration Tests
@@ -120,14 +112,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Run integration tests with coverage
-        run: pnpm run test:integration -- --coverage
-
-      - name: Upload integration coverage report
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
-        if: always()
-        with:
-          name: integration-coverage-report
-          path: coverage/integration/
+        run: pnpm run test:integration --coverage
 
   security-tests:
     name: Security Tests
@@ -152,50 +137,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Run security tests with coverage
-        run: pnpm run test:security -- --coverage
-
-      - name: Upload security coverage report
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
-        if: always()
-        with:
-          name: security-coverage-report
-          path: coverage/security/
-
-  coverage-summary:
-    name: Coverage Summary
-    runs-on: ubuntu-latest
-    needs: [unit-tests, integration-tests, security-tests]
-    if: github.event_name == 'pull_request'
-    steps:
-      - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
-        with:
-          persist-credentials: false
-
-      - name: Download unit coverage
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
-        with:
-          name: unit-coverage-report
-          path: coverage/unit/
-
-      - name: Download integration coverage
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
-        with:
-          name: integration-coverage-report
-          path: coverage/integration/
-
-      - name: Download security coverage
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
-        with:
-          name: security-coverage-report
-          path: coverage/security/
-
-      - name: Comment coverage on PR
-        uses: romeovs/lcov-reporter-action@87a815f34ec27a5826abba44ce09bbc688da58fd
-        with:
-          lcov-file: coverage/unit/coverage.lcov
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          title: Unit Test Coverage
+        run: pnpm run test:security --coverage
 
   coverage-gate:
     name: 80% Coverage Gate
