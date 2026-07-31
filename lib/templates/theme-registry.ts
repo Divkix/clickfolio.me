@@ -8,9 +8,6 @@
 import type { TemplateProps } from "@/lib/types/template";
 import { DEFAULT_THEME, isValidThemeId, type ThemeId } from "./theme-ids";
 
-export type { ThemeId } from "./theme-ids";
-export { isThemeUnlocked, THEME_IDS, THEME_METADATA } from "./theme-ids";
-
 /**
  * Lazy loaders — each returns a dynamic import() promise.
  * Used by server components via the async getTemplate().
