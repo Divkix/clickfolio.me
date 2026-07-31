@@ -170,4 +170,36 @@ describe("uploadWithRetry", () => {
     expect(retries).toHaveLength(2); // retries between attempts (not after the last)
     xhr.restore();
   });
+
+  it("throws an aborted error immediately if the signal is already aborted", async () => {
+    const xhr = installXhr(() => ({ status: 200, body: { key: "k" } }));
+    const ac = new AbortController();
+    ac.abort();
+    await expect(
+      uploadWithRetry(new File(["%PDF-1.4"], "r.pdf", { type: "application/pdf" }), {
+        signal: ac.signal,
+      }),
+    ).rejects.toMatchObject({ reason: "aborted", retryable: false });
+    // Never attempted the upload.
+    expect(xhr.calls).toHaveLength(0);
+    xhr.restore();
+  });
+
+  it("aborts during a retry backoff sleep", async () => {
+    vi.useFakeTimers();
+    const xhr = installXhr(() => ({ status: 502, body: { error: "bad gateway" } }));
+    const ac = new AbortController();
+    const promise = uploadWithRetry(new File(["%PDF-1.4"], "r.pdf", { type: "application/pdf" }), {
+      maxAttempts: 5,
+      baseDelayMs: 1000,
+      signal: ac.signal,
+    });
+    promise.catch(() => {});
+    // Flush the first (synchronous) attempt so we're parked in the backoff sleep.
+    await vi.advanceTimersByTimeAsync(0);
+    ac.abort(); // abort mid-sleep
+    await expect(promise).rejects.toMatchObject({ reason: "aborted", retryable: false });
+    expect(xhr.calls).toHaveLength(1); // only the first attempt ran
+    xhr.restore();
+  });
 });

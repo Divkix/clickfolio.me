@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vite-plus/test";
+import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import {
   clearWizardProgress,
   loadWizardProgress,
@@ -60,5 +60,24 @@ describe("wizard-progress persistence", () => {
   it("survives a corrupted entry without throwing", () => {
     localStorage.setItem("clickfolio:wizard-progress", "{not valid json");
     expect(loadWizardProgress()).toBeNull();
+  });
+
+  it("returns null when savedAt is not a number", () => {
+    saveWizardProgress(sampleProgress);
+    const raw = JSON.parse(localStorage.getItem("clickfolio:wizard-progress") as string);
+    raw.savedAt = "not-a-number";
+    localStorage.setItem("clickfolio:wizard-progress", JSON.stringify(raw));
+    expect(loadWizardProgress()).toBeNull();
+  });
+
+  it("no-ops on SSR (window undefined) for save/load/clear", () => {
+    vi.stubGlobal("window", undefined);
+    try {
+      expect(saveWizardProgress(sampleProgress)).toBeUndefined();
+      expect(loadWizardProgress()).toBeNull();
+      expect(clearWizardProgress()).toBeUndefined();
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });
