@@ -1,5 +1,6 @@
-import { Folder, GitBranch, Globe, Mail, MapPin, Phone } from "lucide-react";
+import { Folder, GitBranch, Globe, MapPin, Phone } from "lucide-react";
 import type React from "react";
+import { EmailLink } from "@/components/EmailLink";
 import { ShareBar } from "@/components/ShareBar";
 import { getContactLinks } from "@/lib/templates/contact-links";
 import { formatDateRange } from "@/lib/templates/helpers";
@@ -108,13 +109,11 @@ export const DevTerminal: React.FC<TemplateProps> = ({ content, profile }) => {
                   </span>
                 )}
                 {contact.email && (
-                  <a
-                    href={`mailto:${contact.email}`}
+                  <EmailLink
+                    email={contact.email}
+                    iconClassName="size-4"
                     className="flex items-center gap-1.5 text-[#58a6ff] hover:underline"
-                  >
-                    <Mail className="size-4" aria-hidden="true" />
-                    {contact.email}
-                  </a>
+                  />
                 )}
                 {contact.website && (
                   <a

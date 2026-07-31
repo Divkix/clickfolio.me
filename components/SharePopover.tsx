@@ -132,12 +132,20 @@ interface SharePopoverProps extends VariantProps<typeof triggerVariants> {
  */
 export function SharePopover({ url, handle, title, name, variant, className }: SharePopoverProps) {
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const { copied, copy } = useCopyToClipboard();
   const popoverId = useId();
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   const shareText = generateShareText(name);
-  const hasWebShare = isWebShareSupported();
+  // Gate Web-Share detection on mount: isWebShareSupported() checks navigator,
+  // which is undefined during SSR, so rendering the native-share button only
+  // on the client would cause a hydration mismatch (#418).
+  const hasWebShare = mounted && isWebShareSupported();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const shareUrl = useMemo(() => {
     if (url) return url;

@@ -1,6 +1,7 @@
 import { ArrowUpRight, Award, Globe, Mail, MapPin, Phone } from "lucide-react";
 import type React from "react";
 import { Github } from "@/components/icons/BrandIcons";
+import { ObfuscatedText } from "@/components/ObfuscatedText";
 import { ShareBar } from "@/components/ShareBar";
 import { type ContactLinkType, getContactLinks } from "@/lib/templates/contact-links";
 import { formatDateRange, formatShortDate } from "@/lib/templates/helpers";
@@ -101,7 +102,9 @@ export const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile,
                     className="group relative p-2 rounded-full hover:bg-neutral-100 transition-colors"
                   >
                     {navIconMap[link.type]}
-                    <span className="sr-only">{link.label}</span>
+                    <span className="sr-only">
+                      {link.type === "email" ? <ObfuscatedText text={link.label} /> : link.label}
+                    </span>
                   </a>
                 ))}
             </div>

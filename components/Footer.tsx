@@ -40,7 +40,7 @@ export function Footer() {
         </div>
         <div className="mt-8 border-t border-border pt-6">
           <p className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center text-xs text-muted-foreground">
-            <span>&copy; {currentYear} clickfolio.me</span>
+            <span suppressHydrationWarning>&copy; {currentYear} clickfolio.me</span>
             <span aria-hidden="true">&middot;</span>
             <span>Powered by Cloudflare</span>
             <span aria-hidden="true">&middot;</span>

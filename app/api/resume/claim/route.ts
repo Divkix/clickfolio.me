@@ -10,6 +10,7 @@ import { enforceRateLimit } from "@/lib/rate-limit/user";
 import { writeReferral } from "@/lib/referral";
 import { claimRequestSchema } from "@/lib/schemas/resume";
 import { sha256Hex } from "@/lib/utils/hash";
+import { log } from "@/lib/utils/log";
 import { COOKIE_NAME, parseSignedCookieValue } from "@/lib/utils/pending-upload-cookie";
 import {
   createErrorResponse,
@@ -90,7 +91,7 @@ export async function POST(request: Request) {
         );
       }
       const body = bodyResult.data;
-      const { key } = body;
+      const { key, pre_auth: preAuth } = body;
 
       // Verify signed cookie to ensure the user owns this temp upload
       // SECURITY: Prevents unauthorized claims of leaked temp keys (Issue #89)
@@ -205,7 +206,11 @@ export async function POST(request: Request) {
           return createErrorResponse("Invalid PDF format", ERROR_CODES.VALIDATION_ERROR, 400);
         }
       } catch (error) {
-        console.error("Error fetching file from R2:", error);
+        log("error", "claim_failed", {
+          reason: "r2_fetch_failed",
+          key,
+          error: error instanceof Error ? error.message : String(error),
+        });
 
         // Apply the double-claim guard only when R2 indicates the object is missing.
         if (isLikelyMissingObjectError(error)) {
@@ -219,10 +224,14 @@ export async function POST(request: Request) {
               });
             }
           } catch (recentResumeError) {
-            console.error(
-              "Error checking recent resumes after R2 fetch failure:",
-              recentResumeError,
-            );
+            log("error", "claim_failed", {
+              reason: "recent_resume_lookup_failed",
+              key,
+              error:
+                recentResumeError instanceof Error
+                  ? recentResumeError.message
+                  : String(recentResumeError),
+            });
           }
         }
 
@@ -251,7 +260,11 @@ export async function POST(request: Request) {
           createdAt: now,
         });
       } catch (insertError) {
-        console.error("Database insert error:", insertError);
+        log("error", "claim_failed", {
+          reason: "db_insert_failed",
+          resumeId,
+          error: insertError instanceof Error ? insertError.message : String(insertError),
+        });
         return createErrorResponse(
           "Failed to create resume record. Please try again.",
           ERROR_CODES.DATABASE_ERROR,
@@ -264,10 +277,13 @@ export async function POST(request: Request) {
         try {
           const referralResult = await writeReferral(userId, body.referral_code, request);
           if (!referralResult.success) {
-            console.log(`Referral not linked: ${referralResult.reason}`);
+            log("info", "referral_not_linked", { userId, reason: referralResult.reason });
           }
         } catch (referralError) {
-          console.error("Referral linking error:", referralError);
+          log("warn", "referral_linking_error", {
+            userId,
+            error: referralError instanceof Error ? referralError.message : String(referralError),
+          });
           // Don't fail the claim for referral errors
         }
       }
@@ -300,12 +316,21 @@ export async function POST(request: Request) {
           await Promise.all([
             R2.put(r2Binding, newKey, fileBuffer, { contentType: "application/pdf" }),
             R2.delete(r2Binding, key).catch((err) =>
-              console.warn("R2 delete failed for cached resume path:", err),
+              log("warn", "claim_failed", {
+                reason: "r2_temp_delete_failed",
+                key,
+                error: String(err),
+              }),
             ),
           ]);
           r2PutSucceeded = true;
         } catch (r2Error) {
-          console.error("R2 operations failed for cached resume:", r2Error);
+          log("error", "claim_failed", {
+            reason: "r2_put_failed",
+            resumeId,
+            branch: "cached",
+            error: r2Error instanceof Error ? r2Error.message : String(r2Error),
+          });
           // R2 failed - don't update DB, fall through to normal processing
           // The resume record stays in pending_claim status
         }
@@ -334,6 +359,7 @@ export async function POST(request: Request) {
             await captureBookmark();
             await captureServerEvent(userId, "resume_claim_cached", {
               resume_id: resumeId,
+              pre_auth: preAuth,
             });
             return createSuccessResponse({
               resume_id: resumeId,
@@ -341,7 +367,11 @@ export async function POST(request: Request) {
               cached: true,
             });
           } catch (updateError) {
-            console.error("Failed to update resume with cached content:", updateError);
+            log("error", "claim_failed", {
+              reason: "cached_db_update_failed",
+              resumeId,
+              error: updateError instanceof Error ? updateError.message : String(updateError),
+            });
             // Fall through to normal parsing path
           }
         }
@@ -372,12 +402,21 @@ export async function POST(request: Request) {
           await Promise.all([
             R2.put(r2Binding, newKey, fileBuffer, { contentType: "application/pdf" }),
             R2.delete(r2Binding, key).catch((err) =>
-              console.warn("R2 delete failed for waiting_for_cache path:", err),
+              log("warn", "claim_failed", {
+                reason: "r2_temp_delete_failed",
+                key,
+                error: String(err),
+              }),
             ),
           ]);
           r2PutSucceeded = true;
         } catch (error) {
-          console.error("R2 operations failed for waiting resume:", error);
+          log("error", "claim_failed", {
+            reason: "r2_put_failed",
+            resumeId,
+            branch: "waiting",
+            error: error instanceof Error ? error.message : String(error),
+          });
         }
 
         // Only update DB and return if R2 put succeeded
@@ -398,7 +437,11 @@ export async function POST(request: Request) {
               waiting_for_cache: true,
             });
           } catch (waitError) {
-            console.error("Failed to set waiting_for_cache status:", waitError);
+            log("error", "claim_failed", {
+              reason: "waiting_status_update_failed",
+              resumeId,
+              error: waitError instanceof Error ? waitError.message : String(waitError),
+            });
             // Fall through to normal processing
           }
         }
@@ -419,10 +462,21 @@ export async function POST(request: Request) {
       try {
         await Promise.all([
           R2.put(r2Binding, newKey, fileBuffer, { contentType: "application/pdf" }),
-          R2.delete(r2Binding, key).catch((err) => console.error("R2 delete error:", err)),
+          R2.delete(r2Binding, key).catch((err) =>
+            log("warn", "claim_failed", {
+              reason: "r2_temp_delete_failed",
+              key,
+              error: String(err),
+            }),
+          ),
         ]);
       } catch (error) {
-        console.error("R2 put error:", error);
+        log("error", "claim_failed", {
+          reason: "r2_put_failed",
+          resumeId,
+          newKey,
+          error: error instanceof Error ? error.message : String(error),
+        });
         return await failResume(
           "Failed to store file for processing",
           ERROR_CODES.EXTERNAL_SERVICE_ERROR,
@@ -439,7 +493,11 @@ export async function POST(request: Request) {
       try {
         await db.update(resumes).set(updatePayload).where(eq(resumes.id, resumeId));
       } catch (updateError) {
-        console.error("Failed to update resume with queued status:", updateError);
+        log("error", "claim_failed", {
+          reason: "db_status_update_failed",
+          resumeId,
+          error: updateError instanceof Error ? updateError.message : String(updateError),
+        });
         return await failResume("Failed to update resume status", ERROR_CODES.DATABASE_ERROR, 500);
       }
 
@@ -462,7 +520,11 @@ export async function POST(request: Request) {
           attempt: 1,
         });
       } catch (queueError) {
-        console.error("Failed to publish resume parse job:", queueError);
+        log("error", "claim_failed", {
+          reason: "queue_publish_failed",
+          resumeId,
+          error: queueError instanceof Error ? queueError.message : String(queueError),
+        });
         // Rollback status on queue failure
         try {
           await db.update(resumes).set({ status: "pending_claim" }).where(eq(resumes.id, resumeId));
@@ -478,6 +540,7 @@ export async function POST(request: Request) {
       await captureServerEvent(userId, "resume_claimed", {
         resume_id: resumeId,
         has_referral: !!body.referral_code,
+        pre_auth: preAuth,
       });
       return createSuccessResponse({
         resume_id: resumeId,

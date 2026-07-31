@@ -422,4 +422,11 @@ export const claimRequestSchema = z.object({
     .max(50)
     .regex(/^[A-Za-z0-9@_-]+$/, "Invalid referral code")
     .optional(),
+  /**
+   * Set to true when this claim is associating a pre-auth anonymous upload
+   * with a freshly-authenticated account (the pending-upload cookie flow).
+   * Used only to tag the `resume_claimed`/`resume_claim_cached` PostHog
+   * events so we can measure pre-auth claim success rate.
+   */
+  pre_auth: z.boolean().optional().default(false),
 });

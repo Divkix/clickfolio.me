@@ -187,6 +187,11 @@ export function YouAreLiveModal({ open, onOpenChange, handle, url }: YouAreLiveM
               View My Resume
               <ExternalLink className="size-4" />
             </Link>
+
+            {/* Dashboard CTA */}
+            <Button type="button" className="w-full" onClick={() => onOpenChange(false)}>
+              Go to Dashboard
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

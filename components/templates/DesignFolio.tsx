@@ -1,5 +1,6 @@
 import { MapPin, Phone } from "lucide-react";
 import type React from "react";
+import { ObfuscatedText } from "@/components/ObfuscatedText";
 import { ShareBar } from "@/components/ShareBar";
 import { type ContactLinkType, getContactLinks } from "@/lib/templates/contact-links";
 import { formatDateRange } from "@/lib/templates/helpers";
@@ -323,7 +324,13 @@ export const DesignFolio: React.FC<TemplateProps> = ({ content, profile, isPrevi
                     style={isBranded ? { color: brandColor } : undefined}
                   >
                     {icon}
-                    {isBranded ? <span className="font-bold">{brandText}</span> : link.label}
+                    {isBranded ? (
+                      <span className="font-bold">{brandText}</span>
+                    ) : link.type === "email" ? (
+                      <ObfuscatedText text={link.label} />
+                    ) : (
+                      link.label
+                    )}
                   </a>
                 );
               })}

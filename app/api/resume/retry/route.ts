@@ -7,6 +7,7 @@ import { resumes } from "@/lib/db/schema";
 import { publishResumeParse } from "@/lib/queue/resume-parse";
 import { getR2Binding, R2 } from "@/lib/r2";
 import { sha256Hex } from "@/lib/utils/hash";
+import { log } from "@/lib/utils/log";
 import {
   createErrorResponse,
   createSuccessResponse,
@@ -197,7 +198,12 @@ export async function POST(request: Request) {
 
           pdfBuffer = fileBuffer;
         } catch (error) {
-          console.error("R2 download error:", error);
+          log("error", "retry_failed", {
+            reason: "r2_download_failed",
+            resume_id,
+            r2Key: resume.r2Key,
+            error: error instanceof Error ? error.message : String(error),
+          });
           return createErrorResponse(
             "Failed to download file for processing",
             ERROR_CODES.EXTERNAL_SERVICE_ERROR,
@@ -230,7 +236,7 @@ export async function POST(request: Request) {
         .returning({ id: resumes.id });
 
       if (updateResult.length === 0) {
-        console.error("Failed to update resume for retry");
+        log("error", "retry_failed", { reason: "db_status_update_noop", resume_id });
         return createErrorResponse(
           "Failed to update resume status",
           ERROR_CODES.DATABASE_ERROR,
@@ -250,7 +256,11 @@ export async function POST(request: Request) {
             })
             .where(eq(resumes.id, resume_id));
         } catch (rollbackError) {
-          console.error("Failed to roll back retry queue state:", rollbackError);
+          log("error", "retry_failed", {
+            reason: "rollback_failed",
+            resume_id,
+            error: rollbackError instanceof Error ? rollbackError.message : String(rollbackError),
+          });
         }
       };
 
@@ -271,7 +281,11 @@ export async function POST(request: Request) {
         });
       } catch (queueError) {
         await rollbackRetryUpdate();
-        console.error("Failed to publish retry parse job:", queueError);
+        log("error", "retry_failed", {
+          reason: "queue_publish_failed",
+          resume_id,
+          error: queueError instanceof Error ? queueError.message : String(queueError),
+        });
         return createErrorResponse("Queue service unavailable", ERROR_CODES.INTERNAL_ERROR, 500);
       }
 

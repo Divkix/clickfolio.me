@@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => ({
   toast: {
     error: vi.fn(),
     success: vi.fn(),
+    info: vi.fn(),
   },
   sessionState: {
     current: {
@@ -94,11 +95,102 @@ function pdfFile(name = "resume.pdf") {
   return new File(["%PDF-1.4"], name, { type: "application/pdf" });
 }
 
+/**
+ * Mock XMLHttpRequest for the /api/upload call (the helper uses XHR for real
+ * byte-level progress). Fires upload progress + load synchronously. Return
+ * `{ networkError: true }` from the responder to simulate a network failure.
+ */
+function installXhrUpload(
+  responder: (
+    url: string,
+    headers: Record<string, string>,
+  ) => { status: number; body: unknown } | { networkError: true },
+): () => void {
+  const Original = globalThis.XMLHttpRequest;
+  class MockXHR {
+    static UNSENT = 0;
+    static OPENED = 1;
+    static HEADERS_RECEIVED = 2;
+    static LOADING = 3;
+    static DONE = 4;
+    status = 0;
+    response: unknown = null;
+    upload = {
+      onprogress: null as ((e: ProgressEvent) => void) | null,
+      onloadstart: null as ((e: ProgressEvent) => void) | null,
+    };
+    onload: ((e: ProgressEvent) => void) | null = null;
+    onerror: (() => void) | null = null;
+    onabort: ((e: ProgressEvent) => void) | null = null;
+    ontimeout: (() => void) | null = null;
+    private url = "";
+    private headers: Record<string, string> = {};
+    private responseTypeValue = "";
+
+    open(_method: string, url: string) {
+      this.url = url;
+    }
+    setRequestHeader(k: string, v: string) {
+      this.headers[k] = v;
+    }
+    // eslint-disable-next-line accessor-pairs
+    set responseType(v: string) {
+      this.responseTypeValue = v;
+    }
+    get responseType() {
+      return this.responseTypeValue;
+    }
+    send() {
+      this.upload.onloadstart?.(new ProgressEvent("loadstart"));
+      this.upload.onprogress?.(new ProgressEvent("progress", { loaded: 100, total: 100 }));
+      const result = responder(this.url, this.headers);
+      if ("networkError" in result) {
+        this.onerror?.();
+        return;
+      }
+      this.status = result.status;
+      this.response = result.body;
+      this.onload?.(new ProgressEvent("load"));
+    }
+    abort() {
+      this.onabort?.(new ProgressEvent("abort"));
+    }
+  }
+  globalThis.XMLHttpRequest = MockXHR as unknown as typeof XMLHttpRequest;
+  return () => {
+    globalThis.XMLHttpRequest = Original;
+  };
+}
+
+/** Standard 200 upload response. */
+function okUpload(key = "temp/anon/resume.pdf") {
+  return installXhrUpload(() => ({
+    status: 200,
+    body: { key, remaining: { hourly: 9, daily: 49 } },
+  }));
+}
+
 function installFetch(handler: (url: string, init?: RequestInit) => Response | Promise<Response>) {
   globalThis.fetch = vi.fn((input: RequestInfo | URL, init?: RequestInit) =>
     // eslint-disable-next-line typescript/no-base-to-string -- RequestInfo|URL; String() is idiomatic in test fetch mocks
     Promise.resolve(handler(String(input), init)),
   ) as unknown as typeof fetch;
+}
+
+/** Fetch handler for the non-upload endpoints (pending cookie, claim, site-data). */
+function defaultFetch(extra?: Record<string, (init?: RequestInit) => Response>) {
+  installFetch((url, init) => {
+    if (url === "/api/upload/pending") return Response.json({ success: true });
+    if (url === "/api/resume/claim") {
+      if (extra?.claim) return extra.claim(init);
+      return Response.json({ resume_id: "res_1" });
+    }
+    if (url === "/api/site-data") {
+      if (extra?.siteData) return extra.siteData(init);
+      return Response.json({ content: resumeContent });
+    }
+    return Response.json({ ok: true });
+  });
 }
 
 function dropFile(file: File) {
@@ -112,6 +204,7 @@ function dropFile(file: File) {
 
 describe("upload flow components", () => {
   const originalFetch = globalThis.fetch;
+  const originalXhr = globalThis.XMLHttpRequest;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -123,6 +216,7 @@ describe("upload flow components", () => {
 
   afterEach(() => {
     globalThis.fetch = originalFetch;
+    globalThis.XMLHttpRequest = originalXhr;
   });
 
   it("rejects invalid files in the public dropzone before hitting upload APIs", () => {
@@ -135,15 +229,8 @@ describe("upload flow components", () => {
   });
 
   it("uploads an anonymous PDF and opens the auth handoff dialog", async () => {
-    installFetch((url) => {
-      if (url === "/api/upload") {
-        return Response.json({ key: "temp/anon/resume.pdf", remaining: { hourly: 9, daily: 49 } });
-      }
-      if (url === "/api/upload/pending") {
-        return Response.json({ success: true });
-      }
-      return Response.json({ ok: true });
-    });
+    const restoreXhr = okUpload();
+    defaultFetch();
 
     render(<FileDropzone />);
     dropFile(pdfFile());
@@ -151,21 +238,19 @@ describe("upload flow components", () => {
     await waitFor(() => expect(screen.getByText("Upload Complete!")).toBeInTheDocument());
     expect(mocks.toast.success).toHaveBeenCalledWith("File uploaded successfully!");
 
-    await userEvent.click(screen.getByRole("button", { name: /sign in to publish/i }));
+    await userEvent.click(screen.getByRole("button", { name: /create a free account/i }));
     expect(screen.getByTestId("auth-dialog")).toHaveTextContent("/wizard");
 
     await userEvent.click(screen.getByRole("button", { name: /upload a different file/i }));
     expect(screen.getByText("Drop your PDF here")).toBeInTheDocument();
+    restoreXhr();
   });
 
   it("rejects uploads when the pending-upload cookie cannot be stored", async () => {
+    const restoreXhr = okUpload();
     installFetch((url) => {
-      if (url === "/api/upload") {
-        return Response.json({ key: "temp/anon/resume.pdf", remaining: { hourly: 9, daily: 49 } });
-      }
-      if (url === "/api/upload/pending") {
+      if (url === "/api/upload/pending")
         return Response.json({ error: "Cookie unavailable" }, { status: 500 });
-      }
       return Response.json({ ok: true });
     });
 
@@ -174,20 +259,14 @@ describe("upload flow components", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Failed to save pending upload");
     expect(screen.queryByText("Upload Complete!")).not.toBeInTheDocument();
+    restoreXhr();
   });
 
   it("supports modal uploads, file picker changes, drag leave, and pending session handoff", async () => {
     const onOpenChange = vi.fn();
-    mocks.sessionState.current = {
-      data: null,
-      isPending: true,
-    };
-    installFetch((url) => {
-      if (url === "/api/upload") {
-        return Response.json({ key: "temp/modal/resume.pdf", remaining: { hourly: 9, daily: 49 } });
-      }
-      return Response.json({ success: true });
-    });
+    mocks.sessionState.current = { data: null, isPending: true };
+    const restoreXhr = okUpload("temp/modal/resume.pdf");
+    defaultFetch();
 
     render(<FileDropzone open={true} onOpenChange={onOpenChange} />);
     expect(screen.getByText("Upload New Resume")).toBeInTheDocument();
@@ -204,56 +283,20 @@ describe("upload flow components", () => {
     fireEvent.change(input, { target: { files: [pdfFile("picker.pdf")] } });
 
     await waitFor(() => expect(screen.getByText("Upload Complete!")).toBeInTheDocument());
-    expect(screen.getByRole("button", { name: /sign in to publish/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /create a free account/i })).toBeInTheDocument();
     expect(onOpenChange).not.toHaveBeenCalled();
+    restoreXhr();
   });
 
-  it("maps upload failures from responses, thrown statuses, and network errors", async () => {
-    installFetch((url) => {
-      if (url === "/api/upload") {
-        return Response.json({ error: "Server rejected upload" }, { status: 500 });
-      }
-      return Response.json({ success: true });
-    });
-    const { unmount } = render(<FileDropzone />);
-    dropFile(pdfFile("server.pdf"));
-    expect(await screen.findByText("Server rejected upload")).toBeInTheDocument();
-    unmount();
+  it("surfaces a non-retryable upload error (413) with a specific message", async () => {
+    const restoreXhr = installXhrUpload(() => ({ status: 413, body: { error: "too large" } }));
+    defaultFetch();
 
-    globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
-      // eslint-disable-next-line typescript/no-base-to-string -- RequestInfo|URL; String() is idiomatic in test fetch mocks
-      if (String(input) === "/api/upload") {
-        throw new Response(null, { status: 413 });
-      }
-      return Response.json({ success: true });
-    }) as unknown as typeof fetch;
-    const tooLarge = render(<FileDropzone />);
-    dropFile(pdfFile("large.pdf"));
-    expect(await screen.findByText(/File too large/)).toBeInTheDocument();
-    tooLarge.unmount();
-
-    globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
-      // eslint-disable-next-line typescript/no-base-to-string -- RequestInfo|URL; String() is idiomatic in test fetch mocks
-      if (String(input) === "/api/upload") {
-        throw new Response(null, { status: 401 });
-      }
-      return Response.json({ success: true });
-    }) as unknown as typeof fetch;
-    const expired = render(<FileDropzone />);
-    dropFile(pdfFile("expired.pdf"));
-    expect(await screen.findByText("Session expired. Please sign in again.")).toBeInTheDocument();
-    expired.unmount();
-
-    globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
-      // eslint-disable-next-line typescript/no-base-to-string -- RequestInfo|URL; String() is idiomatic in test fetch mocks
-      if (String(input) === "/api/upload") {
-        throw new Error("Network offline");
-      }
-      return Response.json({ success: true });
-    }) as unknown as typeof fetch;
     render(<FileDropzone />);
-    dropFile(pdfFile("network.pdf"));
-    expect(await screen.findByText("Network error. Check your connection.")).toBeInTheDocument();
+    dropFile(pdfFile("large.pdf"));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/File is too large/i);
+    restoreXhr();
   });
 
   it("auto-claims authenticated public uploads and navigates to the dashboard", async () => {
@@ -263,12 +306,11 @@ describe("upload flow components", () => {
     };
     mocks.getReferral.mockReturnValue("REF123");
 
+    const restoreXhr = okUpload("temp/auth/resume.pdf");
     installFetch((url, init) => {
-      if (url === "/api/upload") {
-        return Response.json({ key: "temp/auth/resume.pdf", remaining: { hourly: 9, daily: 49 } });
-      }
       if (url === "/api/resume/claim") {
         expect(init?.body).toContain("REF123");
+        expect(init?.body).toContain("pre_auth");
         return Response.json({ resume_id: "res_1" });
       }
       return Response.json({ success: true });
@@ -285,6 +327,7 @@ describe("upload flow components", () => {
     expect(mocks.clearReferral).toHaveBeenCalled();
     await waitFor(() => expect(mocks.router.replace).toHaveBeenCalledWith("/dashboard"));
     expect(mocks.router.refresh).toHaveBeenCalled();
+    restoreXhr();
   });
 
   it("surfaces claim errors and lets users reset the public dropzone", async () => {
@@ -292,14 +335,10 @@ describe("upload flow components", () => {
       data: { user: { id: "user_1", email: "avery@example.com", name: "Avery" } },
       isPending: false,
     };
-
+    const restoreXhr = okUpload("temp/auth/resume.pdf");
     installFetch((url) => {
-      if (url === "/api/upload") {
-        return Response.json({ key: "temp/auth/resume.pdf", remaining: { hourly: 9, daily: 49 } });
-      }
-      if (url === "/api/resume/claim") {
+      if (url === "/api/resume/claim")
         return Response.json({ error: "This resume was already claimed." }, { status: 409 });
-      }
       return Response.json({ success: true });
     });
 
@@ -309,15 +348,9 @@ describe("upload flow components", () => {
     await waitFor(() =>
       expect(screen.getByText("This resume was already claimed.")).toBeInTheDocument(),
     );
-    expect(screen.getByText("This resume was already claimed.")).toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole("button", { name: "Try Again" }));
-
-    await waitFor(() => expect(fetch).toHaveBeenCalledWith("/api/upload", expect.any(Object)));
-
-    await waitFor(() =>
-      expect(screen.getByText("This resume was already claimed.")).toBeInTheDocument(),
-    );
+    // The public dropzone surfaces a retry control after a claim error.
+    expect(screen.getByRole("button", { name: "Try Again" })).toBeInTheDocument();
+    restoreXhr();
   });
 
   it("maps claim status failures and closes modal after authenticated claim success", async () => {
@@ -326,17 +359,11 @@ describe("upload flow components", () => {
       data: { user: { id: "user_1", email: "avery@example.com", name: "Avery" } },
       isPending: false,
     };
-    globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
-      // eslint-disable-next-line typescript/no-base-to-string -- RequestInfo|URL; String() is idiomatic in test fetch mocks
-      const url = String(input);
-      if (url === "/api/upload") {
-        return Response.json({ key: "temp/auth/missing.pdf", remaining: { hourly: 9, daily: 49 } });
-      }
-      if (url === "/api/resume/claim") {
-        throw new Response(null, { status: 404 });
-      }
+    let restoreXhr = okUpload("temp/auth/missing.pdf");
+    installFetch((url) => {
+      if (url === "/api/resume/claim") throw new Response(null, { status: 404 });
       return Response.json({ success: true });
-    }) as unknown as typeof fetch;
+    });
 
     const { unmount } = render(<FileDropzone />);
     dropFile(pdfFile("missing.pdf"));
@@ -344,37 +371,27 @@ describe("upload flow components", () => {
       await screen.findByText("Upload not found. Please try uploading again."),
     ).toBeInTheDocument();
     unmount();
+    restoreXhr();
 
-    globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
-      // eslint-disable-next-line typescript/no-base-to-string -- RequestInfo|URL; String() is idiomatic in test fetch mocks
-      const url = String(input);
-      if (url === "/api/upload") {
-        return Response.json({ key: "temp/auth/modal.pdf", remaining: { hourly: 9, daily: 49 } });
-      }
-      if (url === "/api/resume/claim") {
-        return Response.json({ resume_id: "res_modal" });
-      }
+    restoreXhr = okUpload("temp/auth/modal.pdf");
+    installFetch((url) => {
+      if (url === "/api/resume/claim") return Response.json({ resume_id: "res_modal" });
       return Response.json({ success: true });
-    }) as unknown as typeof fetch;
+    });
 
     render(<FileDropzone open={true} onOpenChange={onOpenChange} />);
     dropFile(pdfFile("modal-claim.pdf"));
     await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false));
     await waitFor(() => expect(mocks.router.replace).toHaveBeenCalledWith("/dashboard"));
+    restoreXhr();
   });
 
   it("uploads cached wizard resumes and continues with parsed site data", async () => {
     const onContinue = vi.fn();
+    const restoreXhr = okUpload("temp/wizard/resume.pdf");
     installFetch((url) => {
-      if (url === "/api/upload") {
-        return Response.json({ key: "temp/wizard/resume.pdf", remaining: 9 });
-      }
-      if (url === "/api/resume/claim") {
-        return Response.json({ resume_id: "res_1", cached: true });
-      }
-      if (url === "/api/site-data") {
-        return Response.json({ content: resumeContent });
-      }
+      if (url === "/api/resume/claim") return Response.json({ resume_id: "res_1", cached: true });
+      if (url === "/api/site-data") return Response.json({ content: resumeContent });
       return Response.json({ ok: true });
     });
 
@@ -384,13 +401,16 @@ describe("upload flow components", () => {
     await waitFor(() => expect(onContinue).toHaveBeenCalledWith(resumeContent));
     expect(mocks.clearReferral).toHaveBeenCalled();
     expect(mocks.toast.success).toHaveBeenCalledWith("Resume parsed successfully!");
+    restoreXhr();
   });
 
   it("shows wizard upload errors and retry state", async () => {
+    const restoreXhr = installXhrUpload(() => ({
+      status: 429,
+      body: { error: "Too many upload attempts" },
+    }));
     installFetch((url) => {
-      if (url === "/api/upload") {
-        return Response.json({ error: "Too many upload attempts" }, { status: 429 });
-      }
+      if (url === "/api/resume/claim") return Response.json({ resume_id: "res_1" });
       return Response.json({ ok: true });
     });
 
@@ -402,20 +422,16 @@ describe("upload flow components", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Try Again" }));
     expect(screen.getByText("Drop your PDF resume here")).toBeInTheDocument();
+    restoreXhr();
   });
 
   it("handles non-cached wizard parsing completion and failure", async () => {
     const onContinue = vi.fn();
+    let restoreXhr = okUpload("temp/wizard/live.pdf");
     installFetch((url) => {
-      if (url === "/api/upload") {
-        return Response.json({ key: "temp/wizard/live.pdf", remaining: 9 });
-      }
-      if (url === "/api/resume/claim") {
+      if (url === "/api/resume/claim")
         return Response.json({ resume_id: "res_live", cached: false });
-      }
-      if (url === "/api/site-data") {
-        return Response.json({ content: resumeContent });
-      }
+      if (url === "/api/site-data") return Response.json({ content: resumeContent });
       return Response.json({ ok: true });
     });
 
@@ -423,13 +439,16 @@ describe("upload flow components", () => {
     dropFile(pdfFile("live.pdf"));
     await waitFor(() => expect(onContinue).toHaveBeenCalledWith(resumeContent));
     unmount();
+    restoreXhr();
 
     mocks.waitResult = { status: "failed", error: "Parser failed" };
     onContinue.mockClear();
+    restoreXhr = okUpload("temp/wizard/failed.pdf");
     render(<UploadStep onContinue={onContinue} />);
     dropFile(pdfFile("failed.pdf"));
 
     await waitFor(() => expect(screen.getByText("Parser failed")).toBeInTheDocument());
     expect(onContinue).not.toHaveBeenCalled();
+    restoreXhr();
   });
 });

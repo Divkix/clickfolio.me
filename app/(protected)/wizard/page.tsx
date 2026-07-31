@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import { WizardProgress } from "@/components/wizard";
 import { HandleStep } from "@/components/wizard/HandleStep";
 import { PrivacyStep } from "@/components/wizard/PrivacyStep";
@@ -20,6 +21,12 @@ import { DEFAULT_THEME, type ThemeId } from "@/lib/templates/theme-ids";
 import type { ClaimResponse } from "@/lib/types/api";
 import type { ResumeContent } from "@/lib/types/database";
 import { clearPendingUploadCookie } from "@/lib/utils/pending-upload-client";
+import {
+  clearWizardProgress,
+  loadWizardProgress,
+  saveWizardProgress,
+  type WizardStepId,
+} from "@/lib/utils/wizard-progress";
 import { waitForResumeCompletion } from "@/lib/utils/wait-for-completion";
 
 // Type definitions for API responses
@@ -50,8 +57,8 @@ interface UserStatsResponse {
   isPro?: boolean;
 }
 
-// Named step identifiers eliminate error-prone numeric offset arithmetic
-type WizardStepId = "upload" | "handle" | "review" | "privacy" | "theme";
+// Named step identifiers (imported from lib/utils/wizard-progress) eliminate
+// error-prone numeric offset arithmetic
 
 function getStepOrder(needsUpload: boolean): WizardStepId[] {
   if (needsUpload) {
@@ -98,6 +105,7 @@ export default function WizardPage() {
   const [error, setError] = useState<string | null>(null);
   const [needsUpload, setNeedsUpload] = useState(false);
   const [showLiveModal, setShowLiveModal] = useState(false);
+  const [completing, setCompleting] = useState(false);
 
   // Referral stats for theme lock display
   const [referralCount, setReferralCount] = useState(0);
@@ -188,13 +196,15 @@ export default function WizardPage() {
 
         // RETURNING USER CHECK: If onboarding already completed, skip wizard entirely
         if (onboardingCompleted) {
+          // Onboarding already done — any saved step progress is stale.
+          clearWizardProgress();
           // Returning user — claim pending upload if exists, then redirect to dashboard
           if (tempKey) {
             try {
               const claimResponse = await fetch("/api/resume/claim", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ key: tempKey, file_hash: fileHash }),
+                body: JSON.stringify({ key: tempKey, file_hash: fileHash, pre_auth: true }),
               });
 
               const claimData = (await claimResponse.json()) as ClaimResponse;
@@ -291,6 +301,20 @@ export default function WizardPage() {
               resumeData: content,
             }));
 
+            // Restore saved wizard step progress (resume where left off).
+            // Only restore to steps that come after the resume is loaded
+            // (handle/review/privacy/theme) — never back to the upload step.
+            const saved = loadWizardProgress();
+            if (saved && saved.currentStepId !== "upload") {
+              setState((prev) => ({
+                ...prev,
+                currentStepId: saved.currentStepId,
+                handle: saved.handle || prev.handle,
+                privacySettings: saved.privacySettings ?? prev.privacySettings,
+                themeId: saved.themeId ?? prev.themeId,
+              }));
+            }
+
             // Fetch user referral status for theme lock display
             try {
               const statsResponse = await fetch("/api/user/stats");
@@ -359,6 +383,27 @@ export default function WizardPage() {
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [state.currentStepId, stepOrder, showLiveModal]);
 
+  // Persist step progress so a returning user resumes where they left off.
+  // Only save once we're past the upload step (handle/review/privacy/theme)
+  // and not while the initial load is in progress or after completion.
+  useEffect(() => {
+    if (loading || showLiveModal) return;
+    if (state.currentStepId === "upload") return;
+    saveWizardProgress({
+      currentStepId: state.currentStepId,
+      handle: state.handle,
+      privacySettings: state.privacySettings,
+      themeId: state.themeId,
+    });
+  }, [
+    loading,
+    showLiveModal,
+    state.currentStepId,
+    state.handle,
+    state.privacySettings,
+    state.themeId,
+  ]);
+
   // Handler for upload completion (moves to handle step)
   const handleUploadComplete = (resumeData: ResumeContent) => {
     setState((prev) => ({
@@ -398,6 +443,8 @@ export default function WizardPage() {
 
   // Handler for wizard completion
   const handleThemeContinue = async (themeId: ThemeId) => {
+    setCompleting(true);
+    setError(null);
     try {
       // Update local state
       setState((prev) => ({
@@ -419,16 +466,33 @@ export default function WizardPage() {
       const data = (await response.json()) as WizardCompleteResponse;
 
       if (!response.ok) {
-        throw new Error(data.error || "Failed to complete setup");
+        // Map the most common completion failures to actionable copy.
+        let message = data.error || "Failed to complete setup";
+        if (response.status === 409) {
+          message = "This handle was just taken — please go back and choose another.";
+        } else if (response.status === 400) {
+          message = data.error || "Please check your inputs and try again.";
+        } else if (response.status >= 500) {
+          message = "Something went wrong on our end — please try again.";
+        }
+        throw new Error(message);
       }
 
       setShowLiveModal(true);
+      clearWizardProgress();
     } catch (err) {
       console.error("Error completing wizard:", err);
       const errorMessage = err instanceof Error ? err.message : "Failed to complete setup";
       setError(errorMessage);
       toast.error(errorMessage);
+    } finally {
+      setCompleting(false);
     }
+  };
+
+  // Retry the final completion step after a failure
+  const handleRetryComplete = () => {
+    void handleThemeContinue(state.themeId);
   };
 
   // Handle modal close - redirect to dashboard
@@ -505,6 +569,13 @@ export default function WizardPage() {
         {error && stepOrder.indexOf(state.currentStepId) > 0 && (
           <Alert variant="destructive" className="mb-6">
             <AlertDescription>{error}</AlertDescription>
+            {state.currentStepId === "theme" && (
+              <div className="mt-3">
+                <Button type="button" size="sm" onClick={handleRetryComplete} disabled={completing}>
+                  {completing ? "Retrying…" : "Retry"}
+                </Button>
+              </div>
+            )}
           </Alert>
         )}
 

@@ -2,6 +2,7 @@
 
 import { Printer } from "lucide-react";
 import type React from "react";
+import { ObfuscatedText } from "@/components/ObfuscatedText";
 import { ShareBar } from "@/components/ShareBar";
 import { getContactLinks } from "@/lib/templates/contact-links";
 import { flattenSkills, formatDateRange, formatYear } from "@/lib/templates/helpers";
@@ -87,6 +88,8 @@ export const ClassicATS: React.FC<TemplateProps> = ({ content, profile, isPrevie
                         <span className="print:hidden">{link.label}</span>
                         <span className="hidden print:inline">{link.href}</span>
                       </>
+                    ) : link.type === "email" ? (
+                      <ObfuscatedText text={link.label} />
                     ) : (
                       link.label
                     )}

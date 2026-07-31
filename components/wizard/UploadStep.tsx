@@ -3,12 +3,14 @@
 import { Loader2, Upload } from "lucide-react";
 import { type ChangeEvent, type DragEvent, useRef, useState } from "react";
 import { toast } from "sonner";
+import posthog from "posthog-js";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { clearStoredReferralCode, getStoredReferralCode } from "@/lib/referral";
 import type { ClaimResponse } from "@/lib/types/api";
 import type { ResumeContent } from "@/lib/types/database";
 import { MAX_FILE_SIZE_LABEL, validatePDF } from "@/lib/utils/validation";
+import { type UploadError, uploadWithRetry } from "@/lib/utils/upload";
 import { waitForResumeCompletion } from "@/lib/utils/wait-for-completion";
 
 interface UploadStepProps {
@@ -18,12 +20,6 @@ interface UploadStepProps {
 type UploadState = "idle" | "uploading" | "claiming" | "parsing" | "error";
 
 // API Response types
-interface UploadResponse {
-  key: string;
-  remaining: number;
-  error?: string;
-}
-
 interface SiteDataResponse {
   content?: ResumeContent;
 }
@@ -118,28 +114,21 @@ export function UploadStep({ onContinue }: UploadStepProps) {
     setError(null);
 
     try {
-      // Step 1: Upload directly to Worker
-      setUploadProgress(10);
-
-      const uploadResponse = await fetch("/api/upload", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/pdf",
-          "Content-Length": String(fileToUpload.size),
-          "X-Filename": fileToUpload.name,
+      // Step 1: Upload to R2 with real byte-level progress + backoff retry.
+      const { key } = await uploadWithRetry(fileToUpload, {
+        onProgress: (pct) => setUploadProgress(pct),
+        onRetry: (attempt, delayMs) => {
+          toast.info(
+            `Upload failed — retrying in ${Math.ceil(delayMs / 1000)}s… (attempt ${attempt})`,
+          );
         },
-        body: fileToUpload,
       });
 
-      if (!uploadResponse.ok) {
-        const data = (await uploadResponse.json()) as UploadResponse;
-        if (uploadResponse.status === 429) {
-          throw new Error(data.error || "Too many upload attempts. Please wait and try again.");
-        }
-        throw new Error(data.error || "Failed to upload file");
-      }
+      posthog.capture("resume_uploaded", {
+        file_size_bytes: fileToUpload.size,
+        file_name_length: fileToUpload.name.length,
+      });
 
-      const { key } = (await uploadResponse.json()) as UploadResponse;
       setUploadProgress(40);
       setUploadState("claiming");
 
@@ -193,19 +182,22 @@ export function UploadStep({ onContinue }: UploadStepProps) {
         onContinue(parsingResult);
       }
     } catch (err) {
-      let errorMessage = "Failed to process resume";
+      const uploadError = err as UploadError;
+      // UploadError (from the shared helper) carries a specific message + reason.
+      // Errors thrown from the claim/parse steps are plain Errors with .message.
+      const isUploadError = uploadError && typeof (uploadError as UploadError).reason === "string";
+      const errorMessage = isUploadError
+        ? uploadError.message
+        : err instanceof Error
+          ? err.message
+          : "Something went wrong — please try a different file.";
+      const reason = isUploadError ? uploadError.reason : "unknown";
 
-      if (err instanceof Error) {
-        if (err.message.includes("429") || err.message.includes("limit")) {
-          errorMessage = "Upload limit reached (5 per day). Try again tomorrow.";
-        } else if (err.message.includes("413") || err.message.includes("large")) {
-          errorMessage = `File too large. Maximum size is ${MAX_FILE_SIZE_LABEL}.`;
-        } else if (err.message.includes("401") || err.message.includes("expired")) {
-          errorMessage = "Session expired. Please refresh the page.";
-        } else if (err.message) {
-          errorMessage = err.message;
-        }
-      }
+      posthog.capture("resume_upload_failed", {
+        error_reason: reason,
+        error_message: errorMessage,
+        file_size_bytes: fileToUpload.size,
+      });
 
       setError(errorMessage);
       setUploadState("error");

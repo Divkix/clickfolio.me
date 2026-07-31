@@ -10,21 +10,13 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useSession } from "@/lib/auth/client";
 import { clearStoredReferralCode, getStoredReferralCode } from "@/lib/referral";
-import {
-  clearPendingUploadCookie,
-  setPendingUploadCookie,
-} from "@/lib/utils/pending-upload-client";
+import { clearPendingUploadCookie } from "@/lib/utils/pending-upload-client";
+import { type UploadError, uploadWithRetry } from "@/lib/utils/upload";
 import { MAX_FILE_SIZE_LABEL, validatePDF } from "@/lib/utils/validation";
 
 interface FileDropzoneProps {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
-}
-
-interface UploadResponse {
-  key: string;
-  remaining: { hourly: number; daily: number };
-  error?: string;
 }
 
 interface ClaimResponse {
@@ -41,6 +33,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [retryingIn, setRetryingIn] = useState<number | null>(null);
   const [uploadedKey, setUploadedKey] = useState<string | null>(null);
   const [claiming, setClaiming] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -102,39 +95,19 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
     setError(null);
 
     try {
-      // Step 1: Upload directly to Worker
-      setUploadProgress(10);
-
-      const uploadResponse = await fetch("/api/upload", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/pdf",
-          "Content-Length": String(fileToUpload.size),
-          "X-Filename": fileToUpload.name,
+      const result = await uploadWithRetry(fileToUpload, {
+        onProgress: (pct) => setUploadProgress(pct),
+        onRetry: (attempt, delayMs) => {
+          setRetryingIn(Math.ceil(delayMs / 1000));
+          toast.info(
+            `Upload failed — retrying in ${Math.ceil(delayMs / 1000)}s… (attempt ${attempt})`,
+          );
         },
-        body: fileToUpload,
       });
 
-      setUploadProgress(70);
-
-      if (!uploadResponse.ok) {
-        const data = (await uploadResponse.json()) as UploadResponse;
-        // Handle rate limiting specifically
-        if (uploadResponse.status === 429) {
-          throw new Error(data.error || "Too many upload attempts. Please wait and try again.");
-        }
-        throw new Error(data.error || "Failed to upload file");
-      }
-
-      const { key } = (await uploadResponse.json()) as UploadResponse;
-
-      setUploadProgress(90);
-
-      // Store the claim securely across the authentication handoff.
-      await setPendingUploadCookie(key);
-
       setUploadProgress(100);
-      setUploadedKey(key);
+      setRetryingIn(null);
+      setUploadedKey(result.key);
       toast.success("File uploaded successfully!");
 
       posthog.capture("resume_uploaded", {
@@ -142,33 +115,20 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
         file_name_length: fileToUpload.name.length,
       });
     } catch (err) {
-      let errorMessage = "Failed to upload file";
-
-      // Differentiate error types by status code
-      if (err instanceof Response || (err as { status?: number })?.status) {
-        const status = err instanceof Response ? err.status : (err as { status?: number }).status;
-        if (status === 429) {
-          errorMessage = "Upload limit reached (5 per day). Try again tomorrow.";
-        } else if (status === 413) {
-          errorMessage = `File too large. Maximum size is ${MAX_FILE_SIZE_LABEL}.`;
-        } else if (status === 401) {
-          errorMessage = "Session expired. Please sign in again.";
-        } else if (status === 409) {
-          errorMessage = "This file was already uploaded.";
-        }
-      } else if (err instanceof Error) {
-        if (err.message.includes("network") || err.message.includes("Network")) {
-          errorMessage = "Network error. Check your connection.";
-        } else if (err.message) {
-          errorMessage = err.message;
-        }
-      }
+      const uploadError = err as UploadError;
+      const errorMessage =
+        uploadError.message || "Something went wrong — please try a different file.";
 
       // Clear any pending-upload cookie left by a partial failure.
       await clearPendingUploadCookie();
 
-      posthog.capture("resume_upload_failed", { error_message: errorMessage });
+      posthog.capture("resume_upload_failed", {
+        error_reason: uploadError.reason,
+        error_message: errorMessage, // kept for one release for PostHog backward-compat
+        file_size_bytes: fileToUpload.size,
+      });
 
+      setRetryingIn(null);
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -191,6 +151,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
           body: JSON.stringify({
             key,
             referral_code: referralRef || undefined,
+            pre_auth: true,
           }),
         });
 
@@ -282,6 +243,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
     setClaiming(false);
     setError(null);
     setUploadProgress(0);
+    setRetryingIn(null);
   };
 
   const handleRetry = () => {
@@ -387,14 +349,12 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
             />
           </div>
           <p className="text-xs text-center text-muted-foreground" aria-live="polite">
-            {uploadProgress < 40
-              ? "Preparing upload..."
-              : uploadProgress < 90
-                ? "Uploading file..."
-                : uploadProgress < 100
-                  ? "Finalizing..."
-                  : "Complete!"}{" "}
-            {uploadProgress}%
+            {retryingIn !== null
+              ? `Upload failed — retrying in ${retryingIn}s…`
+              : uploadProgress < 100
+                ? "Uploading file…"
+                : "Complete!"}{" "}
+            {retryingIn === null ? `${uploadProgress}%` : ""}
           </p>
         </div>
       )}
@@ -545,11 +505,11 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
                   disabled={claiming}
                   className="w-full max-w-xs"
                 >
-                  Sign in to Publish
+                  Create a free account to save your resume
                 </Button>
 
                 <p className="text-xs text-muted-foreground text-center">
-                  Your upload will be automatically claimed after login
+                  Keep your upload — publish your site in seconds. No card required.
                 </p>
 
                 <button

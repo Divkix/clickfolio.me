@@ -8,8 +8,17 @@ import { siteConfig } from "@/lib/config/site";
 
 /**
  * Public Profile Error Boundary
- * Catches errors in public resume pages
- * Maintains clean, professional branding even in error states
+ *
+ * Catches errors THROWN while rendering the public resume route segment
+ * (e.g. a template throws, a DB read fails mid-render) and reports them to
+ * /api/client-error.
+ *
+ * NOTE: this does NOT catch React hydration mismatches (minified #418).
+ * Hydration mismatches cause React to silently discard the server tree and
+ * re-render from scratch — they do not throw, so an error boundary never
+ * sees them. The #418 root causes (Cloudflare email obfuscation of visible
+ * email text, non-deterministic render output) are prevented upstream via
+ * EmailLink/ObfuscatedText + suppressHydrationWarning in the templates.
  */
 export default function ProfileError({
   error,

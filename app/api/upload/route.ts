@@ -1,7 +1,12 @@
 import { env } from "cloudflare:workers";
 import { getR2Binding, R2 } from "@/lib/r2";
 import { checkIPRateLimit, getClientIP } from "@/lib/rate-limit/ip";
-import { COOKIE_NAME, createSignedCookieValue } from "@/lib/utils/pending-upload-cookie";
+import {
+  COOKIE_NAME,
+  COOKIE_MAX_AGE,
+  createSignedCookieValue,
+} from "@/lib/utils/pending-upload-cookie";
+import { log } from "@/lib/utils/log";
 import {
   createErrorResponse,
   createSuccessResponse,
@@ -149,7 +154,11 @@ export async function POST(request: Request) {
         },
       });
     } catch (r2Error) {
-      console.error("R2 upload error:", r2Error);
+      log("error", "upload_failed", {
+        reason: "r2_put_failed",
+        key,
+        error: r2Error instanceof Error ? r2Error.message : String(r2Error),
+      });
       return createErrorResponse("Failed to store file", ERROR_CODES.EXTERNAL_SERVICE_ERROR, 500);
     }
 
@@ -159,12 +168,12 @@ export async function POST(request: Request) {
     if (cookieSecret && typeof cookieSecret === "string") {
       const signedCookieValue = await createSignedCookieValue(key, cookieSecret);
       // Set HttpOnly cookie (30 minute expiry, secure in production)
-      setCookieHeader = `${COOKIE_NAME}=${signedCookieValue}; HttpOnly; SameSite=Strict; Max-Age=1800; Path=/`;
+      setCookieHeader = `${COOKIE_NAME}=${signedCookieValue}; HttpOnly; SameSite=Strict; Max-Age=${COOKIE_MAX_AGE}; Path=/`;
       if (typedEnv.NODE_ENV === "production") {
         setCookieHeader += "; Secure";
       }
     } else {
-      console.warn("BETTER_AUTH_SECRET not configured - upload will not be claimable");
+      log("warn", "upload_failed", { reason: "missing_auth_secret" });
     }
 
     // 11. Return success with rate limit info and cookie
@@ -176,7 +185,10 @@ export async function POST(request: Request) {
     }
     return response;
   } catch (error) {
-    console.error("Error uploading file:", error);
+    log("error", "upload_failed", {
+      reason: "unhandled",
+      error: error instanceof Error ? error.message : String(error),
+    });
     return createErrorResponse("Failed to upload file", ERROR_CODES.INTERNAL_ERROR, 500);
   }
 }

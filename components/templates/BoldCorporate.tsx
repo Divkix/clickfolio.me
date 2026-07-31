@@ -2,6 +2,7 @@
 
 import { MapPin } from "lucide-react";
 import type React from "react";
+import { EmailLink } from "@/components/EmailLink";
 import { ShareBar } from "@/components/ShareBar";
 import { getContactLinks } from "@/lib/templates/contact-links";
 import { flattenSkills, formatDateRange, formatYear, getInitials } from "@/lib/templates/helpers";
@@ -507,12 +508,13 @@ export const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => 
                 </h3>
                 <div className="space-y-2">
                   {content.contact.email && (
-                    <a
-                      href={`mailto:${content.contact.email}`}
+                    <EmailLink
+                      email={content.contact.email}
                       className="block text-sm text-neutral-500 hover:text-[#0055FF] transition-colors"
+                      hideIcon
                     >
                       {content.contact.email}
-                    </a>
+                    </EmailLink>
                   )}
                   {content.contact.phone && (
                     <p className="text-sm text-neutral-500">{content.contact.phone}</p>

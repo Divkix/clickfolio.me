@@ -9,6 +9,7 @@ import {
   Star,
 } from "lucide-react";
 import type React from "react";
+import { ObfuscatedText } from "@/components/ObfuscatedText";
 import { ShareBar } from "@/components/ShareBar";
 import { getContactLinks } from "@/lib/templates/contact-links";
 import {
@@ -170,7 +171,11 @@ export const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
                           {link.type === "phone" && (
                             <Phone className="w-3 h-3" aria-hidden="true" />
                           )}
-                          {link.label}
+                          {link.type === "email" ? (
+                            <ObfuscatedText text={link.label} />
+                          ) : (
+                            link.label
+                          )}
                         </a>
                       );
                     })}

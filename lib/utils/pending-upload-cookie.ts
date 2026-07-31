@@ -11,7 +11,16 @@
  */
 
 export const COOKIE_NAME = "pending_upload";
-export const COOKIE_MAX_AGE = 30 * 60; // 30 minutes in seconds
+/**
+ * Cookie + temp-upload lifetime in seconds.
+ *
+ * Aligned with the R2 temp-file cleanup TTL (`TEMP_CUTOFF_HOURS = 24` in
+ * `lib/cron/cleanup-r2.ts`) so an anonymous uploader has the full window to
+ * create an account and claim their file. The cookie is HMAC-signed and only
+ * authorizes claiming a temp object the holder already uploaded, so the longer
+ * window is low-risk (see ADR-0024 for the Issue #89 tradeoff reassessment).
+ */
+export const COOKIE_MAX_AGE = 24 * 60 * 60; // 24 hours
 
 /** Module-level TextEncoder — no reason to recreate per call */
 const encoder = new TextEncoder();

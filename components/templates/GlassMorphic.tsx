@@ -18,6 +18,7 @@ import {
 import type React from "react";
 import { useMemo, useRef, useState } from "react";
 import { GitHubIcon, LinkedInIcon } from "@/components/icons/BrandIcons";
+import { ObfuscatedText } from "@/components/ObfuscatedText";
 import { ShareBar } from "@/components/ShareBar";
 import { type ContactLinkType, getContactLinks } from "@/lib/templates/contact-links";
 import {
@@ -375,7 +376,11 @@ export const GlassMorphic: React.FC<TemplateProps> = ({ content, profile, isPrev
                                 />
                               )}
                               <span className="text-sm font-mono-gm text-white/60 group-hover:text-white capitalize">
-                                {link.label}
+                                {link.type === "email" ? (
+                                  <ObfuscatedText text={link.label} />
+                                ) : (
+                                  link.label
+                                )}
                               </span>
                             </a>
                           );
