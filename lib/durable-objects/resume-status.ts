@@ -126,9 +126,14 @@ export class ClickfolioStatusDO extends DurableObject {
       }
     }
 
-    // If terminal state, schedule cleanup alarm in 30 seconds
+    // If terminal state, schedule cleanup alarm in 30 seconds. A retry that
+    // arrives within that window (non-terminal status) cancels the alarm so DO
+    // storage isn't wiped mid-flight — otherwise a retry ≥30s after "completed"
+    // would find the resume's cached status deleted and the socket force-closed.
     if (status === "completed" || status === "failed") {
       await this.ctx.storage.setAlarm(Date.now() + 30_000);
+    } else {
+      await this.ctx.storage.deleteAlarm();
     }
 
     return new Response("OK", { status: 200 });

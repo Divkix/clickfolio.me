@@ -9,7 +9,7 @@
  * but weren't successfully queued (e.g., due to worker crash after upload).
  */
 
-import { and, eq, isNotNull, isNull, lt, or, sql } from "drizzle-orm";
+import { and, eq, isNotNull, isNull, lt, or } from "drizzle-orm";
 import type { Database } from "@/lib/db";
 import { hasExceededMaxAttempts } from "@/lib/config/retry";
 import { resumes } from "@/lib/db/schema";
@@ -35,6 +35,9 @@ export async function recoverOrphanedResumes(
   const selectColumns = {
     id: resumes.id,
     userId: resumes.userId,
+    // status is selected so the TOCTOU re-queue guard can condition on the
+    // originally-selected status (see the update below).
+    status: resumes.status,
     r2Key: resumes.r2Key,
     fileHash: resumes.fileHash,
     totalAttempts: resumes.totalAttempts,
@@ -127,15 +130,27 @@ export async function recoverOrphanedResumes(
 
     try {
       // Update DB status to "queued" BEFORE publishing to queue
-      // This ensures consumer always sees the correct status
-      await db
+      // This ensures consumer always sees the correct status.
+      // TOCTOU guard: only re-queue if the row is STILL in the status we
+      // selected it with — the consumer, a manual retry, or a prior recovery
+      // pass may have moved it in the meantime (0 rows updated = skip).
+      // totalAttempts is intentionally NOT incremented here: the queue consumer
+      // already increments it per actual attempt, so an increment here would
+      // double-count every recovered resume.
+      const requeueResult = await db
         .update(resumes)
         .set({
           status: "queued",
           queuedAt: now,
-          totalAttempts: sql`${resumes.totalAttempts} + 1`,
         })
-        .where(eq(resumes.id, resume.id));
+        .where(and(eq(resumes.id, resume.id), eq(resumes.status, resume.status)));
+
+      if (requeueResult.meta.changes === 0) {
+        log("info", "skipping resume - status changed since selection", {
+          resumeId: resume.id,
+        });
+        continue;
+      }
 
       // Now publish to queue (after DB is updated)
       await publishResumeParse(queue, {
@@ -152,11 +167,14 @@ export async function recoverOrphanedResumes(
       log("error", "failed to recover resume", { resumeId: resume.id, error: String(error) });
       // Roll status back to pending_claim so the next recovery pass retries it
       // rather than leaving it stuck in "queued".
+      // TOCTOU guard: only roll back if the row is STILL "queued" — if the
+      // consumer already picked it up (processing) or another path moved it,
+      // leave it alone.
       try {
         await db
           .update(resumes)
           .set({ status: "pending_claim", queuedAt: null })
-          .where(eq(resumes.id, resume.id));
+          .where(and(eq(resumes.id, resume.id), eq(resumes.status, "queued")));
       } catch (rollbackError) {
         log("error", "failed to roll back resume", {
           resumeId: resume.id,

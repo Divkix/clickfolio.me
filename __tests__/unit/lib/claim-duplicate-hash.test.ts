@@ -62,6 +62,7 @@ vi.mock("drizzle-orm", () => ({
   gte: vi.fn((_col, val) => ({ gte: val })),
   ne: vi.fn((_col, val) => ({ ne: val })),
   isNotNull: vi.fn((col) => ({ isNotNull: col })),
+  inArray: vi.fn((col, values) => ({ inArray: { col, values } })),
 }));
 
 // Schema mock
@@ -321,6 +322,39 @@ describe("POST /api/resume/claim — Duplicate file hash detection", () => {
       // Queue publish should NOT have been called (no duplicate parsing)
       const { publishResumeParse } = await import("@/lib/queue/resume-parse");
       expect(publishResumeParse).not.toHaveBeenCalled();
+    });
+
+    it("dedupes against a same-hash resume that is queued (not yet processing) — Batch A item 10", async () => {
+      authedAs("user-1");
+
+      let limitCallCount = 0;
+      mockDbLimit.mockImplementation(() => {
+        limitCallCount++;
+        if (limitCallCount === 1) return Promise.resolve([]); // cache miss
+        // In-flight match: the FIRST claim already published and its row is
+        // "queued" (not yet "processing") when the second claim checks.
+        return Promise.resolve([{ id: "existing-queued-id" }]);
+      });
+
+      const { POST } = await import("@/app/api/resume/claim/route");
+      const cookie = await createSignedCookieValue("temp/uuid/resume.pdf", TEST_SECRET);
+      const response = await POST(makeClaimRequest({ key: "temp/uuid/resume.pdf" }, cookie));
+
+      expect(response.status).toBe(200);
+      const body = (await response.json()) as {
+        status: string;
+        waiting_for_cache?: boolean;
+      };
+      expect(body.status).toBe("processing");
+      expect(body.waiting_for_cache).toBe(true);
+
+      // No duplicate parse job published for the second claim.
+      const { publishResumeParse } = await import("@/lib/queue/resume-parse");
+      expect(publishResumeParse).not.toHaveBeenCalled();
+
+      // The in-flight check must consider BOTH "processing" and "queued" rows.
+      const { inArray } = await import("drizzle-orm");
+      expect(inArray).toHaveBeenCalledWith("status", ["processing", "queued"]);
     });
 
     it("uses cached result when same user uploads same file that was already completed", async () => {

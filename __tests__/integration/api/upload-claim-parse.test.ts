@@ -642,9 +642,12 @@ describe("POST /api/resume/claim", () => {
 
     setMockAuthUser("user-1");
 
-    // Create a valid cookie for the temp key
+    // Create a valid cookie for the temp key. The claim route fetches the R2
+    // object (double-claim guard) BEFORE the rate-limit check, so the temp
+    // object must exist in the mock store for the request to reach the limiter.
     const tempKey = "temp/test/file.pdf";
     const cookieValue = await createSignedCookieValue(tempKey, TEST_COOKIE_SECRET);
+    mockR2Store.set(tempKey, makePdfBuffer());
 
     const { POST } = await import("@/app/api/resume/claim/route");
     const response = await POST(makeClaimRequest(tempKey, undefined, cookieValue));

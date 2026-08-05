@@ -157,6 +157,11 @@ vi.mock("@/lib/data/site-data-upsert", () => ({
   buildSiteDataUpsert: vi.fn().mockImplementation(() => "mock-upsert-query"),
 }));
 
+// NOTE: the real lib/queue/alert module is intentionally NOT mocked here — the
+// DLQ tests below (23/24) verify the real sendAlert() logpush/webhook behavior,
+// and the Batch A consumer test asserts the consumer's permanent-error branch
+// reaches the same real sendAlert() via its DLQ_ALERT log output.
+
 vi.mock("@/lib/db", () => ({
   getDb: vi.fn().mockImplementation(() => ({
     update: vi.fn().mockReturnValue({
@@ -428,33 +433,32 @@ describe("Queue Consumer - Main Processing", () => {
     expect(mockDb.batch).not.toHaveBeenCalled();
   });
 
-  it("6. Process with staged content → resume from stage", async () => {
+  it("6. does NOT recover via the removed parsedContentStaged branch", async () => {
     const { handleQueueMessage } = await import("@/lib/queue/consumer");
 
     const resumeId = crypto.randomUUID();
     const userId = "user-1";
     const r2Key = `users/${userId}/123/resume.pdf`;
 
-    // Create resume with staged content - the default mock will return it
+    // Legacy row with a leftover parsedContentStaged value. Nothing writes this
+    // column anymore, so the consumer must NOT use it — it must process via AI.
     createResume({
       id: resumeId,
       status: "queued",
       totalAttempts: 1,
+      parsedContentStaged: JSON.stringify({ name: "Staged" }),
     });
     mockR2Store.set(r2Key, makePdfBuffer());
+
+    // If the (removed) staged-content branch still existed, it would complete
+    // from staged content without ever calling the AI. Making AI throw proves
+    // the branch is gone: processing goes through the AI path and fails here.
+    mockAiError = new Error("AI should not be called");
 
     const message = createMessage({ resumeId, userId, r2Key });
     const env = createEnv();
 
-    // The test verifies that processing completes (notification sent)
-    // The staged content path is taken when parsedContentStaged exists
-    await handleQueueMessage(message, env);
-
-    // Verify notification was sent (resume completed)
-    const completedNotification = mockWebSocketNotifications.find(
-      (n) => n.resumeId === resumeId && n.status === "completed",
-    );
-    expect(completedNotification).toBeDefined();
+    await expect(handleQueueMessage(message, env)).rejects.toThrow("AI should not be called");
   });
 
   it("7. Update totalAttempts on each processing attempt", async () => {
@@ -1316,5 +1320,267 @@ describe("Worker Queue Handler (worker/index.ts)", () => {
 
     expect(isRetryableError(permanentError)).toBe(false);
     expect(isRetryableError(retryableError)).toBe(true);
+  });
+});
+
+// ── Batch A Regression Tests ────────────────────────────────────────
+
+/** Recursively collect drizzle column names referenced inside a SQL condition. */
+function collectColumns(node: unknown, depth = 0, acc = new Set<string>()): Set<string> {
+  if (node == null || depth > 16) return acc;
+  if (Array.isArray(node)) {
+    for (const n of node) collectColumns(n, depth + 1, acc);
+    return acc;
+  }
+  if (typeof node === "object") {
+    const obj = node as Record<string, unknown>;
+    if (typeof obj.name === "string" && typeof obj.columnType === "string") {
+      acc.add(obj.name);
+    }
+    if (obj.queryChunks) collectColumns(obj.queryChunks, depth + 1, acc);
+    for (const k of ["chunks", "left", "right", "value", "expr"]) {
+      if (obj[k]) collectColumns(obj[k], depth + 1, acc);
+    }
+  }
+  return acc;
+}
+
+describe("Batch A — queue/state-machine integrity fixes", () => {
+  beforeEach(resetAll);
+
+  it("1. Fan-out UPDATE is scoped to the SELECTed ids, not fileHash+status", async () => {
+    const { handleQueueMessage } = await import("@/lib/queue/consumer");
+
+    const resumeId = crypto.randomUUID();
+    const waitingId = crypto.randomUUID();
+    const userId = "user-1";
+    const fileHash = "shared-hash";
+    const r2Key = `users/${userId}/123/resume.pdf`;
+
+    mockR2Store.set(r2Key, makePdfBuffer());
+
+    const selectCalls: string[] = [];
+    const updateWhereConds: unknown[] = [];
+
+    const mockDb = {
+      select: vi.fn().mockImplementation(() => {
+        const callIdx = selectCalls.length;
+        selectCalls.push(`call-${callIdx}`);
+        return {
+          from: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              limit: vi.fn().mockImplementation((_n: number) => {
+                if (callIdx === 0) {
+                  return Promise.resolve([
+                    { status: "queued", parsedContent: null, totalAttempts: 0 },
+                  ]);
+                }
+                // callIdx 1 = cache lookup → miss
+                return Promise.resolve([]);
+              }),
+              // Waiting-resumes query has no .limit — it is awaited directly.
+              then: vi.fn().mockImplementation((cb: (value: unknown[]) => unknown) => {
+                if (callIdx === 2) {
+                  return Promise.resolve(cb([{ id: waitingId, userId }]));
+                }
+                return Promise.resolve(cb([]));
+              }),
+            }),
+          }),
+        };
+      }),
+      update: vi.fn().mockReturnValue({
+        set: vi.fn().mockReturnValue({
+          where: vi.fn().mockImplementation((cond: unknown) => {
+            updateWhereConds.push(cond);
+            return Promise.resolve(undefined);
+          }),
+        }),
+      }),
+      insert: vi.fn().mockReturnValue({ values: vi.fn().mockResolvedValue(undefined) }),
+      batch: vi.fn().mockResolvedValue(undefined),
+    };
+
+    vi.mocked((await import("@/lib/db/session")).getSessionDbForWebhook).mockReturnValue({
+      db: mockDb as never,
+    });
+
+    const message = createMessage({ resumeId, userId, r2Key, fileHash });
+    const env = createEnv();
+
+    await handleQueueMessage(message, env);
+
+    // Update where calls (deterministic order):
+    //   0: status→processing (eq id)
+    //   1: batch completion for THIS resume (eq id)
+    //   2: user.role update for this user (eq user.id)
+    //   3: batch fan-out for waiting resumes  ← must be inArray on resumes.id
+    //   4: user.role update for waiting users (inArray user.id)
+    expect(updateWhereConds.length).toBe(5);
+    const fanOutCond = updateWhereConds[3];
+    const cols = collectColumns(fanOutCond);
+    expect(cols.has("id")).toBe(true);
+    // Regression: the OLD code keyed the fan-out on fileHash+status, which could
+    // complete a row that flipped to waiting_for_cache AFTER the SELECT with no
+    // siteData upsert. The fixed code scopes to the SELECTed ids only.
+    expect(cols.has("file_hash")).toBe(false);
+    expect(cols.has("status")).toBe(false);
+
+    // Sanity: the waiting resume was still completed + notified via the batch path
+    expect(mockWebSocketNotifications.some((n) => n.resumeId === waitingId)).toBe(true);
+  });
+
+  it("2. Skips parse when the resume row no longer exists (deleted account)", async () => {
+    const { handleQueueMessage } = await import("@/lib/queue/consumer");
+
+    const resumeId = crypto.randomUUID();
+    const r2Key = `users/user-1/123/missing-resume.pdf`;
+
+    const mockDb = {
+      select: vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([]), // no row for this resumeId
+          }),
+        }),
+      }),
+      update: vi.fn().mockReturnValue({
+        set: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue(undefined),
+        }),
+      }),
+      insert: vi.fn().mockReturnValue({ values: vi.fn().mockResolvedValue(undefined) }),
+      batch: vi.fn().mockResolvedValue(undefined),
+    };
+
+    vi.mocked((await import("@/lib/db/session")).getSessionDbForWebhook).mockReturnValue({
+      db: mockDb as never,
+    });
+
+    const message = createMessage({ resumeId, userId: "user-1", r2Key });
+    const env = createEnv();
+
+    await expect(handleQueueMessage(message, env)).resolves.not.toThrow();
+
+    // Early return: no R2 fetch, no DB writes, no AI parse, no notifications.
+    expect(mockR2Store.has(r2Key)).toBe(false);
+    expect(mockDb.update).not.toHaveBeenCalled();
+    expect(mockWebSocketNotifications).toHaveLength(0);
+  });
+
+  it("3. Non-retryable failure UPDATE is guarded against clobbering a completed resume", async () => {
+    const { handleQueueMessage } = await import("@/lib/queue/consumer");
+
+    const resumeId = crypto.randomUUID();
+    const r2Key = `users/user-1/123/resume.pdf`;
+
+    const updateWhereConds: unknown[] = [];
+
+    const mockDb = {
+      select: vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([
+              {
+                // completed WITHOUT parsedContent → the idempotent-skip guard at
+                // the top does NOT fire, so processing proceeds and then fails.
+                status: "completed",
+                parsedContent: null,
+                totalAttempts: 1,
+              },
+            ]),
+          }),
+        }),
+      }),
+      update: vi.fn().mockReturnValue({
+        set: vi.fn().mockReturnValue({
+          where: vi.fn().mockImplementation((cond: unknown) => {
+            updateWhereConds.push(cond);
+            return Promise.resolve(undefined);
+          }),
+        }),
+      }),
+      insert: vi.fn().mockReturnValue({ values: vi.fn().mockResolvedValue(undefined) }),
+      batch: vi.fn().mockResolvedValue(undefined),
+    };
+
+    vi.mocked((await import("@/lib/db/session")).getSessionDbForWebhook).mockReturnValue({
+      db: mockDb as never,
+    });
+
+    mockR2Store.clear(); // file missing → file_not_found (permanent)
+
+    const message = createMessage({ resumeId, userId: "user-1", r2Key });
+    const env = createEnv();
+
+    await expect(handleQueueMessage(message, env)).rejects.toThrow(/Failed to fetch PDF/);
+
+    // Last update = the permanent-failure mark. It must be conditioned on
+    // status != completed (and eq id), not a bare eq id.
+    expect(updateWhereConds.length).toBeGreaterThan(0);
+    const failureCond = updateWhereConds[updateWhereConds.length - 1];
+    const cols = collectColumns(failureCond);
+    expect(cols.has("status")).toBe(true);
+    expect(cols.has("id")).toBe(true);
+  });
+
+  it("5. Permanent errors send an alert from the consumer's failure branch", async () => {
+    const { handleQueueMessage } = await import("@/lib/queue/consumer");
+
+    const resumeId = crypto.randomUUID();
+    const userId = "user-1";
+    const r2Key = `users/${userId}/123/missing.pdf`;
+
+    createResume({ id: resumeId, status: "queued" });
+    // No file in R2 → file_not_found (permanent, non-retryable)
+
+    const mockDb = {
+      select: vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi
+              .fn()
+              .mockResolvedValue([{ status: "queued", parsedContent: null, totalAttempts: 0 }]),
+          }),
+        }),
+      }),
+      update: vi.fn().mockReturnValue({
+        set: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue(undefined),
+        }),
+      }),
+    };
+
+    vi.mocked((await import("@/lib/db/session")).getSessionDbForWebhook).mockReturnValue({
+      db: mockDb as never,
+    });
+
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const message = createMessage({ resumeId, userId, r2Key, attempt: 3 });
+    const env = createEnv();
+
+    await expect(handleQueueMessage(message, env)).rejects.toThrow(/Failed to fetch PDF/);
+
+    // The consumer's permanent-error branch must reach the shared sendAlert()
+    // (extracted to lib/queue/alert.ts) — evidenced by the DLQ_ALERT log line.
+    const dlqAlert = consoleSpy.mock.calls.find((call) => {
+      try {
+        return (JSON.parse(call[0]) as Record<string, unknown>)["msg"] === "DLQ_ALERT";
+      } catch {
+        return false;
+      }
+    });
+    expect(dlqAlert).toBeDefined();
+    const payload = JSON.parse(dlqAlert![0]) as Record<string, unknown>;
+    expect(payload).toMatchObject({
+      resumeId,
+      userId,
+      failureReason: expect.stringContaining("Failed to fetch PDF"),
+      errorType: "file_not_found",
+      totalAttempts: 3,
+    });
+
+    consoleSpy.mockRestore();
   });
 });

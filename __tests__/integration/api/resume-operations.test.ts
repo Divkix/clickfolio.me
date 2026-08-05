@@ -40,6 +40,8 @@ vi.mock("drizzle-orm", () => ({
   ne: vi.fn((_col, val) => ({ ne: val })),
   gte: vi.fn((_col, val) => ({ gte: val })),
   isNotNull: vi.fn((col) => ({ isNotNull: col })),
+  lt: vi.fn((_col, val) => ({ lt: val })),
+  inArray: vi.fn((col, values) => ({ inArray: { col, values } })),
   sql: vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({
     sql: strings.join("?"),
     values,
@@ -928,6 +930,47 @@ describe("Resume API Integration Tests (25 tests)", () => {
       const body = (await response.json()) as { status: string; retry_count: number };
       expect(body.status).toBe("queued");
       expect(body.retry_count).toBe(1);
+
+      // TOCTOU guard: the re-queue UPDATE must be conditioned on the row still
+      // being "failed" AND under the manual-retry cap, not just on resume id.
+      expect(mockUpdateWhere).toHaveBeenCalledWith(
+        expect.objectContaining({
+          and: [{ eq: "resume-123" }, { eq: "failed" }, { lt: 2 }],
+        }),
+      );
+    });
+
+    it("returns 409 (not 500) when the retry UPDATE affects 0 rows (concurrent retry/status change)", async () => {
+      const { hasExceededMaxAttempts } = await import("@/lib/config/retry");
+      vi.mocked(hasExceededMaxAttempts).mockReturnValue(false);
+
+      authedAs("user-123");
+
+      mockFindFirst.mockResolvedValue({
+        id: "resume-123",
+        userId: "user-123",
+        r2Key: "users/user-123/123/resume.pdf",
+        status: "failed",
+        retryCount: 0,
+        totalAttempts: 2,
+        lastAttemptError: null,
+        fileHash: "abc123hash",
+      });
+
+      // The row changed between the read and the UPDATE (e.g. another retry
+      // already moved it to queued) → .returning() yields no rows.
+      mockReturning.mockResolvedValue([]);
+
+      const { POST } = await import("@/app/api/resume/retry/route");
+      const request = makeRequest("http://localhost:3000/api/resume/retry", "POST", {
+        resume_id: "resume-123",
+      });
+      const response = await POST(request);
+
+      expect(response.status).toBe(409);
+      const resBody = (await response.json()) as { error: string };
+      expect(resBody.error).toContain("already retried");
+      expect(mockCaptureBookmark).not.toHaveBeenCalled();
     });
 
     it("rolls back retry state when queue publish fails", async () => {
@@ -1389,7 +1432,9 @@ describe("Resume API Integration Tests (25 tests)", () => {
 
       expect(response.status).toBe(200);
       const body = (await response.json()) as { status: string };
-      expect(body.status).toBe("pending_claim");
+      // pending_claim surfaces as "processing" to the client (a pending claim
+      // is an in-progress parse from the user's point of view).
+      expect(body.status).toBe("processing");
     });
 
     it("handles queued status as processing (test 9)", async () => {

@@ -57,6 +57,8 @@ vi.mock("drizzle-orm", () => ({
   and: vi.fn(() => "and"),
   isNotNull: vi.fn(() => "isNotNull"),
   ne: vi.fn(() => "ne"),
+  lt: vi.fn(() => "lt"),
+  inArray: vi.fn(() => "inArray"),
 }));
 
 // Mock the schema

@@ -51,6 +51,12 @@ vi.mock("@/lib/auth/middleware", () => ({
 vi.mock("drizzle-orm", () => ({
   eq: vi.fn((_col, val) => val),
   gte: vi.fn(),
+  and: vi.fn(() => "and"),
+  desc: vi.fn(() => "desc"),
+  lt: vi.fn(() => "lt"),
+  isNotNull: vi.fn(() => "isNotNull"),
+  ne: vi.fn(() => "ne"),
+  inArray: vi.fn(() => "inArray"),
 }));
 
 // Mock the schema
