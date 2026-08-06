@@ -87,12 +87,23 @@ describe("resumeContentSchema (lenient)", () => {
     expect(result.success).toBe(false);
   });
 
-  it("rejects missing contact email", async () => {
+  it("accepts omitted contact email (lenient — email is optional)", async () => {
     const result = await resumeContentSchema.safeParseAsync({
       ...validMinimalResume,
       contact: {},
     });
-    expect(result.success).toBe(false);
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts empty-string contact email (lenient — email is optional)", async () => {
+    const result = await resumeContentSchema.safeParseAsync({
+      ...validMinimalResume,
+      contact: { email: "" },
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.contact.email).toBe("");
+    }
   });
 
   it("rejects empty experience array", async () => {
@@ -293,6 +304,22 @@ describe("resumeContentSchemaStrict", () => {
       const emailIssue = result.error.issues.find((e) => e.path.includes("email"));
       expect(emailIssue?.message).toContain("domain extension");
     }
+  });
+
+  it("rejects empty-string email (strict edit schema keeps email required)", async () => {
+    const result = await resumeContentSchemaStrict.safeParseAsync({
+      ...validMinimalResume,
+      contact: { email: "" },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects omitted email (strict edit schema keeps email required)", async () => {
+    const result = await resumeContentSchemaStrict.safeParseAsync({
+      ...validMinimalResume,
+      contact: {},
+    });
+    expect(result.success).toBe(false);
   });
 
   it("accepts email with valid TLD", async () => {

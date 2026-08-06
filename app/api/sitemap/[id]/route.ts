@@ -1,4 +1,9 @@
-import { buildSitemapXml, generateSitemapEntries } from "@/lib/seo/sitemap";
+import {
+  buildSitemapXml,
+  generateSitemapEntries,
+  getSitemapShardCount,
+  getTotalIndexableUserCount,
+} from "@/lib/seo/sitemap";
 
 /**
  * Parses a raw sitemap shard ID string into a safe integer.
@@ -25,6 +30,8 @@ function parseSitemapId(rawId: string): number | null {
  *
  * @returns XML sitemap with `Content-Type: application/xml`.
  * Returns 400 for an invalid `id` (non-numeric or out of safe integer range).
+ * Returns 404 for a well-formed but out-of-range shard id (id >= current shard
+ * count), instead of a 200 with empty content.
  *
  * Cache headers: `Cache-Control: public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400`
  * `CDN-Cache-Control: public, max-age=3600, stale-while-revalidate=86400`
@@ -39,6 +46,12 @@ export async function GET(
 
     if (id === null) {
       return new Response("Invalid sitemap id", { status: 400 });
+    }
+
+    const indexableUserCount = await getTotalIndexableUserCount();
+    const shardCount = getSitemapShardCount(indexableUserCount);
+    if (id >= shardCount) {
+      return new Response("Sitemap shard not found", { status: 404 });
     }
 
     const entries = await generateSitemapEntries(id);
