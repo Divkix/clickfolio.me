@@ -7,7 +7,7 @@
 
 import { env } from "cloudflare:workers";
 import { and, eq, gte, sql } from "drizzle-orm";
-import { getDb } from "@/lib/db";
+import { getDb, type Database } from "@/lib/db";
 import { uploadRateLimits } from "@/lib/db/schema";
 import { isLocalEnvironment } from "@/lib/utils/environment";
 import { sha256Hex } from "@/lib/utils/hash";
@@ -17,14 +17,7 @@ const DAILY_LIMIT = 50;
 const HANDLE_CHECK_HOURLY_LIMIT = 100;
 const EMAIL_VALIDATE_HOURLY_LIMIT = 30;
 
-const LOCAL_IPS = new Set([
-  "127.0.0.1",
-  "::1",
-  "localhost",
-  "unknown",
-  "0.0.0.0",
-  "::ffff:127.0.0.1",
-]);
+const LOCAL_IPS = new Set(["127.0.0.1", "::1", "localhost", "0.0.0.0", "::ffff:127.0.0.1"]);
 
 interface IPRateLimitResult {
   allowed: boolean;
@@ -41,6 +34,62 @@ interface IPRateLimitResult {
  */
 async function hashIP(ip: string): Promise<string> {
   return sha256Hex(new TextEncoder().encode(ip));
+}
+
+/**
+ * Atomically record a rate-limit row via a conditional INSERT ... SELECT.
+ *
+ * The row is inserted only while the count of in-window rows for this
+ * (ip, action) is below `limit`, using the SAME oneHourAgo cutoff as the
+ * caller's counting SELECT. Uploads also enforce their daily limit in this
+ * statement, closing both count-then-insert TOCTOU windows.
+ *
+ * @returns true when the row was inserted, false when a concurrent request
+ *          won the last slot (in-window count already at/over `limit`).
+ * @throws propagates to the caller's try/catch (fail open on DB errors).
+ */
+async function recordRateLimitAction(
+  db: Database,
+  ipHash: string,
+  actionType: "upload" | "handle_check" | "email_validate",
+  now: Date,
+  oneHourAgo: string,
+  limit: number,
+  ttlMs: number,
+  dailyCutoff?: string,
+  dailyLimit?: number,
+): Promise<boolean> {
+  const dailyGuard =
+    dailyCutoff !== undefined && dailyLimit !== undefined
+      ? ` AND (SELECT COUNT(*) FROM upload_rate_limits
+       WHERE ip_hash = ? AND action_type = ? AND created_at >= ?) < ?`
+      : "";
+  const result = await db.$client
+    .prepare(
+      `INSERT INTO upload_rate_limits (id, ip_hash, action_type, created_at, expires_at)
+SELECT ?, ?, ?, ?, ?
+WHERE (SELECT COUNT(*) FROM upload_rate_limits
+       WHERE ip_hash = ? AND action_type = ? AND created_at >= ?) < ?${dailyGuard}`,
+    )
+    .bind(
+      ...[
+        crypto.randomUUID(),
+        ipHash,
+        actionType,
+        now.toISOString(),
+        new Date(now.getTime() + ttlMs).toISOString(),
+        ipHash,
+        actionType,
+        oneHourAgo,
+        limit,
+        ...(dailyCutoff !== undefined && dailyLimit !== undefined
+          ? [ipHash, actionType, dailyCutoff, dailyLimit]
+          : []),
+      ],
+    )
+    .run();
+
+  return result.meta.changes === 1;
 }
 
 /**
@@ -140,17 +189,29 @@ export async function checkIPRateLimit(ip: string): Promise<IPRateLimitResult> {
       };
     }
 
-    // Record this request (insert before returning success)
-    // Include expiresAt (24h TTL) for automatic cleanup via cron
+    // Record this request atomically (conditional INSERT) — the count SELECT
+    // above is only kept for the `remaining` headers; enforcement happens here.
+    // changes === 0 means a concurrent request won the last slot: deny.
     try {
-      const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString();
-      await db.insert(uploadRateLimits).values({
-        id: crypto.randomUUID(),
+      const recorded = await recordRateLimitAction(
+        db,
         ipHash,
-        actionType: "upload",
-        createdAt: now.toISOString(),
-        expiresAt,
-      });
+        "upload",
+        now,
+        oneHourAgo,
+        HOURLY_LIMIT,
+        24 * 60 * 60 * 1000,
+        oneDayAgo,
+        DAILY_LIMIT,
+      );
+
+      if (!recorded) {
+        return {
+          allowed: false,
+          remaining: { hourly: 0, daily: dailyRemaining },
+          message: `Too many upload requests. Try again in an hour. (Limit: ${HOURLY_LIMIT}/hour)`,
+        };
+      }
     } catch (insertError) {
       console.error("Failed to record rate limit:", insertError);
       // Continue anyway - fail open for legitimate users
@@ -192,7 +253,6 @@ export async function checkHandleRateLimit(ip: string): Promise<IPRateLimitResul
     actionType: "handle_check",
     limit: HANDLE_CHECK_HOURLY_LIMIT,
     blockedMessage: "Too many handle checks. Please try again later.",
-    insertErrorLabel: "Failed to record handle check rate limit:",
     checkErrorLabel: "Handle rate limit check failed:",
   });
 }
@@ -211,7 +271,6 @@ export async function checkEmailValidateRateLimit(ip: string): Promise<IPRateLim
     actionType: "email_validate",
     limit: EMAIL_VALIDATE_HOURLY_LIMIT,
     blockedMessage: "Too many email validation checks. Please try again later.",
-    insertErrorLabel: "Failed to record email validate rate limit:",
     checkErrorLabel: "Email validate rate limit check failed:",
   });
 }
@@ -231,11 +290,10 @@ async function checkHourlyActionLimit(
     actionType: "handle_check" | "email_validate";
     limit: number;
     blockedMessage: string;
-    insertErrorLabel: string;
     checkErrorLabel: string;
   },
 ): Promise<IPRateLimitResult> {
-  const { actionType, limit, blockedMessage, insertErrorLabel, checkErrorLabel } = options;
+  const { actionType, limit, blockedMessage, checkErrorLabel } = options;
 
   // Skip in development
   if (process.env.NODE_ENV !== "production") {
@@ -289,18 +347,28 @@ async function checkHourlyActionLimit(
       };
     }
 
-    // Record this check (separate action type, not shared with uploads)
+    // Record this check atomically (same TOCTOU guard as uploads). The count
+    // SELECT above only feeds the `remaining` headers; enforcement happens here.
     try {
-      const expiresAt = new Date(now.getTime() + 60 * 60 * 1000).toISOString(); // 1hr TTL
-      await db.insert(uploadRateLimits).values({
-        id: crypto.randomUUID(),
+      const recorded = await recordRateLimitAction(
+        db,
         ipHash,
         actionType,
-        createdAt: now.toISOString(),
-        expiresAt,
-      });
+        now,
+        oneHourAgo,
+        limit,
+        60 * 60 * 1000, // 1hr TTL
+      );
+
+      if (!recorded) {
+        return {
+          allowed: false,
+          remaining: { hourly: 0, daily: 0 },
+          message: blockedMessage,
+        };
+      }
     } catch (insertError) {
-      console.error(insertErrorLabel, insertError);
+      console.error(`Failed to record rate limit: ${actionType}`, insertError);
       // Continue anyway - fail open for legitimate users
     }
 

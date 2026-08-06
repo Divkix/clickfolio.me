@@ -43,12 +43,20 @@ describe("extractCityState", () => {
     expect(result).toContain("London");
   });
 
-  it("does not treat street-number-only input as city", () => {
+  it("does not treat street-number-only input as city (fail closed)", () => {
     // "123 Main St" starts with a digit — should not return as-is for single-part
     const result = extractCityState("123 Main St");
-    // Since there's no comma, parts.length === 1, hasStreetNumber = true
-    // Falls through to fallback which returns normalized
-    expect(result).toBe("123 Main St");
+    // Since there's no comma, parts.length === 1, hasStreetNumber = true.
+    // The final fallback fails CLOSED (returns "") rather than leaking the raw
+    // street address (item 15).
+    expect(result).toBe("");
+  });
+
+  it("fails closed on unparseable single-part street addresses", () => {
+    expect(extractCityState("999 Elm Blvd")).toBe("");
+    // A single-part string that looks like a bare street (no city/state) must
+    // never be returned verbatim by a privacy filter.
+    expect(extractCityState("100 Main Street")).toBe("");
   });
 });
 

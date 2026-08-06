@@ -21,6 +21,7 @@ const WAITING_FOR_CACHE_TIMEOUT_MS = 10 * 60 * 1000;
  * Status states:
  *   - waiting_for_cache: 10-minute timeout, then transitions to failed
  *   - queued: shown as processing with early progress (25%)
+ *   - pending_claim: shown as processing with earliest progress (15%)
  *   - processing: intermediate progress (50%)
  *   - completed: includes parsed_content JSON
  *   - failed: includes error message and can_retry flag
@@ -124,6 +125,18 @@ export async function GET(request: Request) {
           error: null,
           can_retry: false,
           waiting_for_cache: true,
+        });
+      }
+
+      // Handle pending_claim status - show as processing (earliest, pre-queue).
+      // Without this mapping /waiting's useResumeStatus treats any non-processing
+      // status as terminal and stops polling, leaving the page stalled forever.
+      if (resume.status === "pending_claim") {
+        return createSuccessResponse({
+          status: "processing",
+          progress_pct: 15,
+          error: null,
+          can_retry: false,
         });
       }
 

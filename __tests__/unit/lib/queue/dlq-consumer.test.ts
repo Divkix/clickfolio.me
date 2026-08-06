@@ -173,6 +173,60 @@ describe("DLQ Consumer", () => {
         }),
       );
     });
+
+    it("preserves an existing friendly errorMessage instead of overwriting it", async () => {
+      const mockDb = createMockDb();
+      const friendlyMessage =
+        "Your PDF is password-protected. Please upload an unprotected version.";
+      const mockResume = createMockDbResume({
+        id: "resume-123",
+        status: "processing",
+        totalAttempts: 3,
+        errorMessage: friendlyMessage,
+        lastAttemptError: JSON.stringify({ type: QueueErrorType.INVALID_PDF }),
+      });
+
+      mockDb.select.mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([mockResume]),
+          }),
+        }),
+      });
+
+      const updateSets: Array<Record<string, unknown>> = [];
+      mockDb.update.mockReturnValue({
+        set: vi.fn().mockImplementation((values: Record<string, unknown>) => {
+          updateSets.push(values);
+          return { where: vi.fn().mockResolvedValue(undefined) };
+        }),
+      });
+
+      vi.mocked(getSessionDbForWebhook).mockReturnValue({ db: mockDb } as unknown as ReturnType<
+        typeof getSessionDbForWebhook
+      >);
+
+      const message = createMockDeadLetterMessage();
+      const env = createMockEnv();
+
+      await handleDLQMessage(message, env);
+
+      // The friendly message already on the row must survive — the DLQ must not
+      // replace it with "Permanently failed after N attempts: ...".
+      expect(updateSets[0]).toMatchObject({
+        status: "failed",
+        errorMessage: friendlyMessage,
+      });
+      expect(updateSets[0]?.errorMessage).not.toContain("Permanently failed");
+      // The synthesized message is only built when errorMessage is null — the
+      // WebSocket notification must also carry the friendly message.
+      expect(notifyStatusChange).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: "failed",
+          error: friendlyMessage,
+        }),
+      );
+    });
   });
 
   describe("handleDLQMessage - alert channels", () => {

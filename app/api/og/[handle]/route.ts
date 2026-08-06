@@ -51,8 +51,15 @@ function renderLastResort(): Response {
 export async function GET(_request: Request, { params }: { params: Promise<{ handle: string }> }) {
   const { handle: rawHandle } = await params;
 
-  // Decode URL-encoded handle and strip @ prefix
-  const handle = decodeURIComponent(rawHandle).replace(/^@/, "");
+  // Decode URL-encoded handle and strip @ prefix. A malformed % sequence (e.g.
+  // "%zz" or a truncated UTF-8 escape) throws URIError — treat it like an empty
+  // handle so renderLastResort() serves the static SVG instead of a 500.
+  let handle = "";
+  try {
+    handle = decodeURIComponent(rawHandle).replace(/^@/, "");
+  } catch {
+    handle = "";
+  }
 
   if (!handle) {
     // Static SVG (no resvg) — avoids paying WASM rasterization for empty/bot probes.

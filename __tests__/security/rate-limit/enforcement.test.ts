@@ -15,11 +15,20 @@ const mockSelect = vi.fn().mockReturnThis();
 const mockFrom = vi.fn().mockReturnThis();
 const mockWhere = vi.fn().mockReturnThis();
 
+// Raw D1 binding used by the atomic conditional INSERT (item 21). Default
+// resolves changes: 1 (insert allowed); override per test for changes: 0.
+const mockPrepare = vi.fn().mockReturnValue({
+  bind: vi.fn().mockReturnValue({
+    run: vi.fn().mockResolvedValue({ meta: { changes: 1 } }),
+  }),
+});
+
 const mockDb = {
   insert: mockInsert,
   select: mockSelect,
   from: mockFrom,
   where: mockWhere,
+  $client: { prepare: mockPrepare },
 };
 
 // Mock cloudflare:workers env
@@ -259,6 +268,150 @@ describe("Rate Limit Security Enforcement", () => {
 
       // Should allow up to 10 requests
       expect(allowedCount).toBeLessThanOrEqual(10);
+    });
+
+    it("does not bypass limits for unknown IPs (item 20)", async () => {
+      // "unknown" (getClientIP fallback) is no longer in LOCAL_IPS — it must
+      // be bucketed and limited like any other IP.
+      mockSelect.mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue([{ hourly: 10, daily: 10 }]),
+        }),
+      });
+
+      const { checkIPRateLimit } = await import("@/lib/rate-limit/ip");
+      const result = await checkIPRateLimit("unknown");
+
+      expect(result.allowed).toBe(false);
+    });
+
+    it("consults the DB for unknown IPs instead of short-circuiting (item 20)", async () => {
+      mockSelect.mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue([{ hourly: 0, daily: 0 }]),
+        }),
+      });
+
+      const { checkIPRateLimit } = await import("@/lib/rate-limit/ip");
+      const result = await checkIPRateLimit("unknown");
+
+      // Under the limit, so allowed — but only after a real DB roundtrip.
+      expect(result.allowed).toBe(true);
+      expect(mockSelect).toHaveBeenCalled();
+      expect(mockDb.$client.prepare).toHaveBeenCalledWith(
+        expect.stringContaining("INSERT INTO upload_rate_limits"),
+      );
+    });
+  });
+
+  describe("Atomic Conditional Insert (TOCTOU)", () => {
+    it("denies when the conditional insert records 0 changes (concurrent burst)", async () => {
+      // Count says under the limit, but a concurrent request won the last slot.
+      mockSelect.mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue([{ hourly: 3, daily: 20 }]),
+        }),
+      });
+      mockDb.$client.prepare.mockReturnValue({
+        bind: vi.fn().mockReturnValue({
+          run: vi.fn().mockResolvedValue({ meta: { changes: 0 } }),
+        }),
+      });
+
+      const { checkIPRateLimit } = await import("@/lib/rate-limit/ip");
+      const result = await checkIPRateLimit("192.168.1.1");
+
+      expect(result.allowed).toBe(false);
+      expect(result.message).toContain("Try again in an hour");
+    });
+
+    it("denies handle checks when the conditional insert records 0 changes", async () => {
+      mockSelect.mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue([{ count: 50 }]),
+        }),
+      });
+      mockDb.$client.prepare.mockReturnValue({
+        bind: vi.fn().mockReturnValue({
+          run: vi.fn().mockResolvedValue({ meta: { changes: 0 } }),
+        }),
+      });
+
+      const { checkHandleRateLimit } = await import("@/lib/rate-limit/ip");
+      const result = await checkHandleRateLimit("192.168.1.1");
+
+      expect(result.allowed).toBe(false);
+      expect(result.message).toContain("Too many handle checks");
+    });
+
+    it("records allowed requests via a single atomic INSERT (no separate insert)", async () => {
+      mockSelect.mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue([{ hourly: 0, daily: 0 }]),
+        }),
+      });
+      // Restore the default "insert succeeded" state (a previous test set 0).
+      mockDb.$client.prepare.mockReturnValue({
+        bind: vi.fn().mockReturnValue({
+          run: vi.fn().mockResolvedValue({ meta: { changes: 1 } }),
+        }),
+      });
+
+      const { checkIPRateLimit } = await import("@/lib/rate-limit/ip");
+      const result = await checkIPRateLimit("192.168.1.1");
+
+      expect(result.allowed).toBe(true);
+      expect(mockDb.$client.prepare).toHaveBeenCalledWith(
+        expect.stringContaining("INSERT INTO upload_rate_limits"),
+      );
+      // The old count-then-insert path must not be used anymore.
+      expect(mockInsert).not.toHaveBeenCalled();
+    });
+
+    it("still fails OPEN when the conditional insert throws", async () => {
+      mockSelect.mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue([{ hourly: 0, daily: 0 }]),
+        }),
+      });
+      mockDb.$client.prepare.mockImplementation(() => {
+        throw new Error("Insert failed");
+      });
+
+      const { checkIPRateLimit } = await import("@/lib/rate-limit/ip");
+      const result = await checkIPRateLimit("192.168.1.1");
+
+      expect(result.allowed).toBe(true);
+
+      // Restore the default so later tests see a healthy insert path.
+      mockDb.$client.prepare.mockReturnValue({
+        bind: vi.fn().mockReturnValue({
+          run: vi.fn().mockResolvedValue({ meta: { changes: 1 } }),
+        }),
+      });
+    });
+  });
+
+  describe("Rate Limit Reset Timing", () => {
+    it("computes resetAt from the oldest in-window row + window (item 22)", async () => {
+      const oldest = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(); // 12h ago
+      mockSelect.mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue([{ count: 2, oldest }]),
+        }),
+      });
+
+      const { checkRateLimit } = await import("@/lib/rate-limit/user");
+      const result = await checkRateLimit("user-123", "handle_change");
+
+      // resetAt = oldest + 24h window, NOT now + 24h.
+      const expected = new Date(oldest).getTime() + 24 * 60 * 60 * 1000;
+      expect(Math.abs(result.resetAt.getTime() - expected)).toBeLessThan(5000);
+      // And it must be earlier than the naive now + 24h (12h of the window
+      // has already elapsed).
+      expect(result.resetAt.getTime()).toBeLessThan(
+        Date.now() + 24 * 60 * 60 * 1000 - 10 * 60 * 60 * 1000,
+      );
     });
   });
 

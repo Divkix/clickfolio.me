@@ -19,6 +19,8 @@ import {
   serializeJsonLd,
 } from "@/lib/seo/json-ld";
 import { parsePreviewSkills } from "@/lib/utils/preview-skills";
+import { extractCityState, parsePrivacySettings } from "@/lib/utils/privacy";
+import { safePageParam } from "@/lib/utils/pagination";
 
 /** Revalidate explore page every 5 minutes for directory freshness. */
 export const revalidate = 300;
@@ -72,7 +74,9 @@ export default async function ExplorePage({
   searchParams: Promise<{ page?: string; role?: string }>;
 }) {
   const params = await searchParams;
-  const currentPage = Math.max(1, Number.parseInt(params.page || "1", 10));
+  // NaN-safe page parse: Math.max(1, NaN) is NaN, which would produce a NaN
+  // SQL OFFSET and NaN in the prev/next pagination links.
+  const currentPage = safePageParam(params.page);
   const roleFilter = params.role || "";
 
   const db = getDb(env.CLICKFOLIO_DB);
@@ -111,6 +115,7 @@ export default async function ExplorePage({
         previewExpCount: siteData.previewExpCount,
         previewEduCount: siteData.previewEduCount,
         previewSkills: siteData.previewSkills,
+        privacySettings: user.privacySettings,
       })
       .from(user)
       .innerJoin(siteData, eq(user.id, siteData.userId))
@@ -127,13 +132,20 @@ export default async function ExplorePage({
     .filter((u) => u.handle !== null)
     .map((u) => {
       const previewSkills = parsePreviewSkills(u.previewSkills);
+      const showAddress = parsePrivacySettings(u.privacySettings).show_address;
+
+      // Filter the denormalized previewLocation at READ time — existing rows
+      // may predate the privacy filter. Cards render split(",")[0], so without
+      // this a full street address would leak into the directory.
+      const previewLocation =
+        u.previewLocation && !showAddress ? extractCityState(u.previewLocation) : u.previewLocation;
 
       return {
         handle: u.handle as string,
         role: u.role,
         previewName: u.previewName,
         previewHeadline: u.previewHeadline,
-        previewLocation: u.previewLocation,
+        previewLocation,
         previewExpCount: u.previewExpCount,
         previewEduCount: u.previewEduCount,
         previewSkills: previewSkills.length > 0 ? previewSkills : null,

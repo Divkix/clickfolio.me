@@ -84,6 +84,15 @@ export class QueueError extends Error {
  * Each pattern maps a case-insensitive regex to a transient or permanent error type.
  */
 const ERROR_PATTERNS: Array<{ pattern: RegExp; type: QueueErrorType }> = [
+  // DB constraint violations (FK/UNIQUE) are permanent — retrying can never fix
+  // them. This MUST stay ahead of the D1_ERROR pattern: "D1_ERROR: FOREIGN KEY
+  // constraint failed" would otherwise classify as a retryable connection error
+  // and burn 3 retries before reaching the DLQ.
+  {
+    pattern: /constraint.*failed|constraint.*violation/i,
+    type: QueueErrorType.PARSE_VALIDATION_ERROR,
+  },
+
   // D1/Database connection errors (transient)
   {
     pattern: /D1_ERROR|database.*connection|connection.*refused|SQLITE_BUSY|database.*locked/i,
@@ -131,6 +140,13 @@ const ERROR_PATTERNS: Array<{ pattern: RegExp; type: QueueErrorType }> = [
     pattern: /extracted.*resume.*text.*is.*empty/i,
     type: QueueErrorType.INVALID_PDF,
   },
+  // Too-many-pages PDF — matches lib/ai/pdf-extract.ts:
+  // "PDF has ${numPages} pages (maximum 50). Please upload a shorter document."
+  // (a retry would hit the exact same 50-page cap, so it is permanent)
+  {
+    pattern: /pdf.*has.*\d+.*pages|too.*many.*pages/i,
+    type: QueueErrorType.INVALID_PDF,
+  },
 
   // AI provider errors (transient — provider down, model unavailable, etc.)
   {
@@ -148,6 +164,17 @@ const ERROR_PATTERNS: Array<{ pattern: RegExp; type: QueueErrorType }> = [
   {
     pattern:
       /HTTP\s*5\d{2}|status.*5\d{2}|internal.*server.*error|bad.*gateway|service.*unavailable/i,
+    type: QueueErrorType.AI_PROVIDER_ERROR,
+  },
+  // AI SDK APICallError shapes (@ai-sdk/provider): name "AI_APICallError" and
+  // messages "Cannot connect to API: ...", "Failed to process error response",
+  // "Failed to process successful response" (the latter two carry statusCode).
+  {
+    pattern: /AI_APICallError|ai_apicall_error|cannot connect to api/i,
+    type: QueueErrorType.AI_PROVIDER_ERROR,
+  },
+  {
+    pattern: /failed to process (error|successful) response/i,
     type: QueueErrorType.AI_PROVIDER_ERROR,
   },
 
@@ -181,7 +208,7 @@ const ERROR_PATTERNS: Array<{ pattern: RegExp; type: QueueErrorType }> = [
 
   // File not found errors (permanent)
   {
-    pattern: /file.*not.*found|object.*not.*found|key.*not.*found|404/i,
+    pattern: /file.*not.*found|object.*not.*found|key.*not.*found|\b404\b/i,
     type: QueueErrorType.FILE_NOT_FOUND,
   },
   {

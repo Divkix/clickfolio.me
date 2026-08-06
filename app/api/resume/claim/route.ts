@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, isNotNull, ne } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNotNull, ne } from "drizzle-orm";
 import { captureServerEvent } from "@/lib/posthog-server";
 import { withUser } from "@/lib/auth/with-auth";
 import { buildSiteDataUpsert } from "@/lib/data/site-data-upsert";
@@ -153,14 +153,11 @@ export async function POST(request: Request) {
         return /not\s*found|no\s*such\s*key|does\s*not\s*exist|404/i.test(error.message);
       };
 
-      // Rate limiting check (5 uploads per 24 hours)
-      // Pass env to reuse the same binding reference in rate limiter
-      const rateLimitResponse = await enforceRateLimit(userId, "resume_upload", env);
-      if (rateLimitResponse) {
-        return rateLimitResponse;
-      }
-
-      // Fetch file and compute SHA-256 hash server-side (early fetch for validation + caching)
+      // Fetch file and compute SHA-256 hash server-side (early fetch for validation + caching).
+      // The R2 fetch + double-claim guard runs BEFORE the rate-limit check so a
+      // wizard double-mount (auth redirect fires the claim twice) returns
+      // already_claimed instead of burning a rate-limit slot or 429ing the user
+      // at the 5/24h limit.
       let fileBuffer: ArrayBuffer;
       let computedFileHash: string;
 
@@ -231,6 +228,14 @@ export async function POST(request: Request) {
           ERROR_CODES.EXTERNAL_SERVICE_ERROR,
           500,
         );
+      }
+
+      // Rate limiting check (5 uploads per 24 hours) — runs AFTER the
+      // double-claim guard so an already-claimed upload never consumes a slot.
+      // Pass env to reuse the same binding reference in rate limiter.
+      const rateLimitResponse = await enforceRateLimit(userId, "resume_upload", env);
+      if (rateLimitResponse) {
+        return rateLimitResponse;
       }
 
       // Generate new key and insert DB record FIRST
@@ -347,9 +352,12 @@ export async function POST(request: Request) {
         }
       }
 
-      // Check if another resume with same hash is currently processing
-      // If so, wait for it instead of triggering duplicate parsing
-      // SECURITY: Only look for processing resumes from the same user
+      // Check if another resume with same hash is currently being processed or
+      // already queued. If so, wait for it instead of triggering duplicate parsing.
+      // SECURITY: Only look for same-user resumes. Matching "queued" too closes a
+      // back-to-back same-file race: the first claim publishes (row -> queued)
+      // before the second claim's check runs, so only matching "processing" let
+      // the second claim double-parse the file.
       const processing = await db
         .select({ id: resumes.id })
         .from(resumes)
@@ -357,7 +365,7 @@ export async function POST(request: Request) {
           and(
             eq(resumes.userId, userId),
             eq(resumes.fileHash, computedFileHash),
-            eq(resumes.status, "processing"),
+            inArray(resumes.status, ["processing", "queued"]),
             ne(resumes.id, resumeId),
           ),
         )
@@ -463,11 +471,14 @@ export async function POST(request: Request) {
         });
       } catch (queueError) {
         console.error("Failed to publish resume parse job:", queueError);
-        // Rollback status on queue failure
+        // Leave the row in pending_claim (do NOT mark it failed) so the */15
+        // orphan-recovery cron re-queues it later. Marking it "failed" here
+        // would make it unrecoverable by that cron and force a manual retry
+        // that would never succeed (the queue was down, not the PDF).
         try {
           await db.update(resumes).set({ status: "pending_claim" }).where(eq(resumes.id, resumeId));
         } catch {}
-        return await failResume(
+        return createErrorResponse(
           "Failed to queue resume for processing",
           ERROR_CODES.EXTERNAL_SERVICE_ERROR,
           500,

@@ -2,6 +2,7 @@ import { desc, eq } from "drizzle-orm";
 import { withUser } from "@/lib/auth/with-auth";
 import { canRetryResume } from "@/lib/config/retry";
 import { resumes } from "@/lib/db/schema";
+import { mapDisplayStatus } from "@/lib/resume/status";
 import { createSuccessResponse } from "@/lib/utils/security-headers";
 
 /**
@@ -67,7 +68,7 @@ export async function GET(request?: Request) {
 
       return createSuccessResponse({
         id: resume.id as string,
-        status: resume.status,
+        status: mapDisplayStatus(resume.status),
         error: resume.errorMessage,
         can_retry: canRetryResume({
           status: resume.status,

@@ -58,6 +58,7 @@ vi.mock("drizzle-orm", () => ({
   gte: vi.fn((_col, val) => ({ gte: val })),
   ne: vi.fn((_col, val) => ({ ne: val })),
   isNotNull: vi.fn((col) => ({ isNotNull: col })),
+  inArray: vi.fn((_col, vals: unknown[]) => ({ inArray: vals })),
 }));
 
 // Schema mock

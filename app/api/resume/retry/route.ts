@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq, lt } from "drizzle-orm";
 import { withUser } from "@/lib/auth/with-auth";
 import { captureServerEvent } from "@/lib/posthog-server";
 import { hasExceededMaxAttempts, isPermanentErrorType, RETRY_LIMITS } from "@/lib/config/retry";
@@ -46,6 +46,7 @@ interface RetryRequestBody {
  *   - 400: missing resume_id, permanent error type, or resume not in failed state
  *   - 403: resume belongs to another user
  *   - 404: resume not found
+ *   - 409: resume was concurrently retried or its status changed (TOCTOU race)
  *   - 429: max total attempts or manual retries exceeded
  *   - 500: storage unavailable, download failure, queue unavailable, or unexpected error
  */
@@ -226,15 +227,26 @@ export async function POST(request: Request) {
       const updateResult = await db
         .update(resumes)
         .set(updatePayload)
-        .where(eq(resumes.id, resume_id))
+        .where(
+          and(
+            eq(resumes.id, resume_id),
+            // TOCTOU guard: only re-queue if the row is STILL "failed" AND still
+            // under the manual-retry cap. A concurrent manual retry, the queue
+            // consumer, or orphan recovery may have moved it between the read
+            // above and this UPDATE.
+            eq(resumes.status, "failed"),
+            lt(resumes.retryCount, RETRY_LIMITS.MANUAL_MAX_RETRIES),
+          ),
+        )
         .returning({ id: resumes.id });
 
       if (updateResult.length === 0) {
-        console.error("Failed to update resume for retry");
+        // The row changed between our read and this update — this is a race
+        // (concurrent retry / status change), not a storage failure.
         return createErrorResponse(
-          "Failed to update resume status",
-          ERROR_CODES.DATABASE_ERROR,
-          500,
+          "Resume was already retried or is no longer in a retryable state",
+          ERROR_CODES.CONFLICT,
+          409,
         );
       }
 

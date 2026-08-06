@@ -7,6 +7,7 @@ import {
   createSuccessResponse,
   ERROR_CODES,
 } from "@/lib/utils/security-headers";
+import { readJsonWithLimit, validateRequestSize } from "@/lib/utils/validation";
 
 /**
  * POST /api/email/validate
@@ -19,8 +20,27 @@ import {
  */
 export async function POST(request: Request) {
   try {
-    // 1. Parse and validate request body
-    const body = await request.json().catch(() => null);
+    // 1. Validate request size before parsing (prevent DoS)
+    const sizeCheck = validateRequestSize(request);
+    if (!sizeCheck.valid) {
+      return createErrorResponse(
+        sizeCheck.error || "Request body too large",
+        ERROR_CODES.BAD_REQUEST,
+        413,
+      );
+    }
+
+    // 2. Parse body with a hard byte cap, independent of Content-Length
+    const rawBodyResult = await readJsonWithLimit(request);
+    if (!rawBodyResult.ok) {
+      return createErrorResponse(
+        rawBodyResult.error,
+        ERROR_CODES.BAD_REQUEST,
+        rawBodyResult.reason === "too_large" ? 413 : 400,
+      );
+    }
+    const body = rawBodyResult.data;
+
     if (!body) {
       return createErrorResponse("Invalid request body", ERROR_CODES.BAD_REQUEST, 400);
     }
@@ -30,7 +50,7 @@ export async function POST(request: Request) {
       return createErrorResponse("Invalid email format", ERROR_CODES.VALIDATION_ERROR, 400);
     }
 
-    // 2. IP-based rate limiting
+    // 3. IP-based rate limiting
     const clientIP = getClientIP(request);
     const rateLimitResult = await checkEmailValidateRateLimit(clientIP);
 
@@ -42,7 +62,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // 3. Check if email is disposable
+    // 4. Check if email is disposable
     const kv =
       (env as { CLICKFOLIO_DISPOSABLE_DOMAINS?: KVNamespace }).CLICKFOLIO_DISPOSABLE_DOMAINS ??
       null;

@@ -18,6 +18,18 @@ function escapeHtml(str: string): string {
 }
 
 /**
+ * Extracts the recipient domain for logging.
+ *
+ * The full email address is PII and must never appear in logs (matches the
+ * SHA-256 IP-hashing posture); the domain is kept as a non-PII identifier so
+ * per-provider send failures remain diagnosable.
+ */
+function getRecipientDomain(email: string): string {
+  const at = email.lastIndexOf("@");
+  return at >= 0 ? email.slice(at + 1) : "unknown";
+}
+
+/**
  * Gets the "from" email address for transactional emails
  * Uses the configured domain from BETTER_AUTH_URL
  */
@@ -142,7 +154,7 @@ If you didn't request this, you can safely ignore this email. Your password won'
         text: textContent,
       });
 
-      console.log(`[EMAIL] Password reset sent to ${email}`);
+      console.log(`[EMAIL] Password reset sent (recipient domain: ${getRecipientDomain(email)})`);
       return { success: true };
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unknown error";
@@ -230,7 +242,9 @@ If you didn't create a Clickfolio account, you can safely ignore this email.
         text: textContent,
       });
 
-      console.log(`[EMAIL] Verification email sent to ${email}`);
+      console.log(
+        `[EMAIL] Verification email sent (recipient domain: ${getRecipientDomain(email)})`,
+      );
       return { success: true };
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unknown error";

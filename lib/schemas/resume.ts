@@ -16,20 +16,51 @@ const LENIENT_EMAIL_REGEX = /^[^\s@]+@[^\s@]+$/;
 const STRICT_EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 /**
- * Factory function to create contact schema with configurable email validation
+ * Email field schema for the lenient contact schema (AI-parsed content).
+ * Email is OPTIONAL here: resumes may legitimately have no email, so both an
+ * omitted field and an empty string parse successfully. Matches the strict
+ * edit schema's treatment of email as user-removable and `getContactLinks`,
+ * which skips falsy emails.
  */
-const createContactSchema = (emailRegex: RegExp, emailErrorMessage: string) =>
+const lenientEmailField = z
+  .string()
+  .trim()
+  .max(255, "Email is too long")
+  .refine((val) => val === "" || LENIENT_EMAIL_REGEX.test(val), {
+    message: "Invalid email format",
+  })
+  .transform(sanitizeEmail)
+  .optional()
+  .or(z.literal(""))
+  .describe("Email address (optional — empty when not found in the resume)");
+
+/**
+ * Email field schema for the strict contact schema (user edits).
+ * Email is REQUIRED and must include a TLD.
+ */
+const strictEmailField = z
+  .string()
+  .trim()
+  .min(1, "Email is required")
+  .max(255, "Email is too long")
+  .refine((val) => STRICT_EMAIL_REGEX.test(val), {
+    message: "Invalid email format (must include domain extension, e.g., .com)",
+  })
+  .transform(sanitizeEmail)
+  .describe("Email address");
+
+/**
+ * Factory function to create contact schema with a configurable email field.
+ * Deliberately NOT generic: a generic factory makes `z.infer` of the exported
+ * resume schemas resolve to distinct-but-identical types, which react-hook-form
+ * reports as "unrelated" when the form passes `UseFormReturn<ResumeContentFormData>`.
+ * The email field is selected by a string flag instead; the inferred output type
+ * is the union of both email field shapes (`string | undefined`), with strict
+ * enforcement happening at validation time, not type time.
+ */
+const createContactSchema = (emailField: "lenient" | "strict") =>
   z.object({
-    email: z
-      .string()
-      .trim()
-      .min(1, "Email is required")
-      .max(255, "Email is too long")
-      .refine((val) => emailRegex.test(val), {
-        message: emailErrorMessage,
-      })
-      .transform(sanitizeEmail)
-      .describe("Email address"),
+    email: emailField === "lenient" ? lenientEmailField : strictEmailField,
     phone: z
       .string()
       .trim()
@@ -98,14 +129,11 @@ const createContactSchema = (emailRegex: RegExp, emailErrorMessage: string) =>
 
 /**
  * Contact schemas
- * - Lenient: for AI-parsed content (accepts incomplete emails like "user@domain")
- * - Strict: for user edits (requires full email with TLD like "user@domain.com")
+ * - Lenient: for AI-parsed content (email optional, accepts incomplete emails like "user@domain")
+ * - Strict: for user edits (requires email with TLD like "user@domain.com")
  */
-const contactSchemaLenient = createContactSchema(LENIENT_EMAIL_REGEX, "Invalid email format");
-const contactSchemaStrict = createContactSchema(
-  STRICT_EMAIL_REGEX,
-  "Invalid email format (must include domain extension, e.g., .com)",
-);
+const contactSchemaLenient = createContactSchema("lenient");
+const contactSchemaStrict = createContactSchema("strict");
 
 /**
  * Experience item schema
@@ -333,7 +361,9 @@ const projectSchema = z.object({
 });
 
 /**
- * Factory function to create resume content schema with configurable contact validation
+ * Factory function to create resume content schema with configurable contact validation.
+ * Non-generic (see createContactSchema): keeps `ResumeContentFormData` a single
+ * stable type identity for react-hook-form.
  */
 const createResumeContentSchema = (contactSchema: ReturnType<typeof createContactSchema>) =>
   z.object({

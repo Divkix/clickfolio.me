@@ -2,6 +2,7 @@ import { type ResumeContentFormData, resumeContentSchema } from "@/lib/schemas/r
 import { sanitizeEmail } from "@/lib/utils/sanitization";
 import { parseWithAi } from "./ai-parser";
 import { extractPdfText } from "./pdf-extract";
+import { truncateResumeText } from "./truncate";
 import { normalizeEndDate, transformAiOutput, transformAiResponse, validateUrl } from "./transform";
 
 /**
@@ -16,11 +17,6 @@ export interface ParseResumeResult {
   professionalLevel?: string;
 }
 
-const MAX_RESUME_TEXT_CHARS = 60000;
-const RESUME_HEAD_CHARS = 38000;
-const RESUME_TAIL_CHARS = 18000;
-const RESUME_TRUNCATION_MARKER = "\n\n...[truncated]...\n\n";
-
 /**
  * Normalize extracted PDF text for consistent AI input.
  * Converts CRLF to LF, collapses extra spaces/tabs, and trims.
@@ -31,18 +27,6 @@ function normalizeResumeText(text: string): string {
     .replace(/[ \t]{2,}/g, " ")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
-}
-
-/**
- * Truncate resume text to fit within AI context limits.
- * Keeps the first 38k chars and last 18k chars, dropping the middle to stay
- * under the 60k limit. This preserves the header and recent sections.
- */
-function truncateResumeText(text: string): string {
-  if (text.length <= MAX_RESUME_TEXT_CHARS) return text;
-  const head = text.slice(0, RESUME_HEAD_CHARS);
-  const tail = text.slice(-RESUME_TAIL_CHARS);
-  return `${head}${RESUME_TRUNCATION_MARKER}${tail}`;
 }
 
 /**

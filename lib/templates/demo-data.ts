@@ -133,8 +133,8 @@ export const DEMO_RESUME_CONTENT: Record<ThemeId, ResumeContent> = {
     contact: {
       email: "sarah@example.com",
       location: "San Francisco, CA",
-      linkedin: "linkedin.com/in/sarahchen",
-      website: "sarahchen.design",
+      linkedin: "https://linkedin.com/in/sarahchen",
+      website: "https://sarahchen.design",
     },
     experience: [
       {
@@ -194,7 +194,7 @@ export const DEMO_RESUME_CONTENT: Record<ThemeId, ResumeContent> = {
         description: "Open-source Figma component library with 500+ downloads",
         year: "2023",
         technologies: ["Figma", "React", "Storybook"],
-        url: "github.com/sarahchen/design-toolkit",
+        url: "https://github.com/sarahchen/design-toolkit",
       },
     ],
   },
@@ -207,8 +207,8 @@ export const DEMO_RESUME_CONTENT: Record<ThemeId, ResumeContent> = {
     contact: {
       email: "john@example.com",
       location: "Austin, TX",
-      github: "github.com/johnsmith",
-      linkedin: "linkedin.com/in/johnsmith",
+      github: "https://github.com/johnsmith",
+      linkedin: "https://linkedin.com/in/johnsmith",
     },
     experience: [
       {
@@ -269,7 +269,7 @@ export const DEMO_RESUME_CONTENT: Record<ThemeId, ResumeContent> = {
         description: "High-performance caching library for edge computing",
         year: "2023",
         technologies: ["Rust", "WebAssembly"],
-        url: "github.com/johnsmith/edge-cache",
+        url: "https://github.com/johnsmith/edge-cache",
       },
       {
         title: "DevTools CLI",
@@ -288,8 +288,8 @@ export const DEMO_RESUME_CONTENT: Record<ThemeId, ResumeContent> = {
     contact: {
       email: "maria@example.com",
       location: "New York, NY",
-      linkedin: "linkedin.com/in/mariarodriguez",
-      website: "mariarodriguez.com",
+      linkedin: "https://linkedin.com/in/mariarodriguez",
+      website: "https://mariarodriguez.com",
     },
     experience: [
       {
@@ -368,8 +368,8 @@ export const DEMO_RESUME_CONTENT: Record<ThemeId, ResumeContent> = {
     contact: {
       email: "diana@example.com",
       location: "Chicago, IL",
-      linkedin: "linkedin.com/in/dianawalsh",
-      website: "dianawalsh.io",
+      linkedin: "https://linkedin.com/in/dianawalsh",
+      website: "https://dianawalsh.io",
     },
     experience: [
       {
@@ -444,7 +444,7 @@ export const DEMO_RESUME_CONTENT: Record<ThemeId, ResumeContent> = {
         description: "Open-source framework for building internal developer platforms",
         year: "2023",
         technologies: ["Go", "Kubernetes", "Terraform"],
-        url: "github.com/dianawalsh/platform-blueprint",
+        url: "https://github.com/dianawalsh/platform-blueprint",
       },
     ],
   },
@@ -457,9 +457,9 @@ export const DEMO_RESUME_CONTENT: Record<ThemeId, ResumeContent> = {
     contact: {
       email: "alex@example.com",
       location: "Seattle, WA",
-      github: "github.com/alexkim",
-      linkedin: "linkedin.com/in/alexkim",
-      website: "alexkim.dev",
+      github: "https://github.com/alexkim",
+      linkedin: "https://linkedin.com/in/alexkim",
+      website: "https://alexkim.dev",
     },
     experience: [
       {
@@ -519,7 +519,7 @@ export const DEMO_RESUME_CONTENT: Record<ThemeId, ResumeContent> = {
         description: "Collection of React Query utilities with 5k+ npm downloads/week",
         year: "2023",
         technologies: ["React", "TypeScript"],
-        url: "github.com/alexkim/rq-toolkit",
+        url: "https://github.com/alexkim/rq-toolkit",
       },
       {
         title: "Database Explorer",
@@ -538,9 +538,9 @@ export const DEMO_RESUME_CONTENT: Record<ThemeId, ResumeContent> = {
     contact: {
       email: "raj@example.com",
       location: "Boston, MA",
-      github: "github.com/rajpatel",
-      linkedin: "linkedin.com/in/rajpatel",
-      website: "rajpatel.dev",
+      github: "https://github.com/rajpatel",
+      linkedin: "https://linkedin.com/in/rajpatel",
+      website: "https://rajpatel.dev",
     },
     experience: [
       {
@@ -610,7 +610,7 @@ export const DEMO_RESUME_CONTENT: Record<ThemeId, ResumeContent> = {
         description: "Open-source library for time-series forecasting with transformer models",
         year: "2023",
         technologies: ["Python", "PyTorch"],
-        url: "github.com/rajpatel/ts-toolkit",
+        url: "https://github.com/rajpatel/ts-toolkit",
       },
     ],
   },
@@ -623,8 +623,8 @@ export const DEMO_RESUME_CONTENT: Record<ThemeId, ResumeContent> = {
     contact: {
       email: "emma@example.com",
       location: "Los Angeles, CA",
-      linkedin: "linkedin.com/in/emmatorres",
-      website: "emmatorres.co",
+      linkedin: "https://linkedin.com/in/emmatorres",
+      website: "https://emmatorres.co",
     },
     experience: [
       {
@@ -697,7 +697,7 @@ export const DEMO_RESUME_CONTENT: Record<ThemeId, ResumeContent> = {
         description: "Open-source brand guidelines template used by 200+ startups",
         year: "2023",
         technologies: ["Figma"],
-        url: "figma.com/emmatorres/brand-playbook",
+        url: "https://figma.com/emmatorres/brand-playbook",
       },
     ],
   },
@@ -710,8 +710,8 @@ export const DEMO_RESUME_CONTENT: Record<ThemeId, ResumeContent> = {
     contact: {
       email: "jordan@example.com",
       location: "Stanford, CA",
-      github: "github.com/jordanlee",
-      linkedin: "linkedin.com/in/jordanlee",
+      github: "https://github.com/jordanlee",
+      linkedin: "https://linkedin.com/in/jordanlee",
     },
     experience: [
       {
@@ -762,14 +762,14 @@ export const DEMO_RESUME_CONTENT: Record<ThemeId, ResumeContent> = {
         description: "CLI tool for syncing dotfiles across machines with 2k+ stars",
         year: "2024",
         technologies: ["Rust", "Git"],
-        url: "github.com/jordanlee/gitsync",
+        url: "https://github.com/jordanlee/gitsync",
       },
       {
         title: "TerminalUI",
         description: "TUI framework for building terminal applications",
         year: "2023",
         technologies: ["Go", "ANSI"],
-        url: "github.com/jordanlee/terminalui",
+        url: "https://github.com/jordanlee/terminalui",
       },
     ],
   },
@@ -783,7 +783,7 @@ export const DEMO_RESUME_CONTENT: Record<ThemeId, ResumeContent> = {
       email: "alexander.sterling@example.com",
       phone: "(212) 555-0187",
       location: "New York, NY",
-      linkedin: "linkedin.com/in/alexandersterling",
+      linkedin: "https://linkedin.com/in/alexandersterling",
     },
     experience: [
       {
@@ -899,9 +899,9 @@ export const DEMO_RESUME_CONTENT: Record<ThemeId, ResumeContent> = {
     contact: {
       email: "kai@example.com",
       location: "Portland, OR",
-      github: "github.com/kainakamura",
-      linkedin: "linkedin.com/in/kainakamura",
-      website: "kainakamura.design",
+      github: "https://github.com/kainakamura",
+      linkedin: "https://linkedin.com/in/kainakamura",
+      website: "https://kainakamura.design",
     },
     experience: [
       {
@@ -965,14 +965,14 @@ export const DEMO_RESUME_CONTENT: Record<ThemeId, ResumeContent> = {
         description: "Kinetic typography explorations featured on Typewolf",
         year: "2023",
         technologies: ["After Effects", "GSAP"],
-        url: "kainakamura.design/type",
+        url: "https://kainakamura.design/type",
       },
       {
         title: "Brutalist UI Kit",
         description: "Open-source Figma component library with 15k+ downloads",
         year: "2022",
         technologies: ["Figma"],
-        url: "figma.com/kainakamura/brutalist-kit",
+        url: "https://figma.com/kainakamura/brutalist-kit",
       },
     ],
   },

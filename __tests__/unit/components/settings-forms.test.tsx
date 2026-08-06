@@ -145,6 +145,36 @@ describe("PrivacySettingsForm", () => {
       expect(mocks.toast.error).toHaveBeenCalledWith("Failed to update privacy settings"),
     );
   });
+
+  it("rolls the toggle back to its previous value when the save fails", async () => {
+    const user = userEvent.setup();
+    vi.mocked(globalThis.fetch).mockResolvedValueOnce(
+      Response.json({ error: "Privacy rejected" }, { status: 400 }),
+    );
+
+    render(
+      <PrivacySettingsForm
+        initialSettings={{
+          show_phone: true,
+          show_address: false,
+          hide_from_search: false,
+          show_in_directory: false,
+        }}
+      />,
+    );
+
+    // Initially on (phone visible)
+    expect(screen.getAllByRole("switch")[0]).toBeChecked();
+
+    // Clicking flips the phone toggle optimistically; the save then fails
+    await user.click(screen.getAllByRole("switch")[0]);
+    await waitFor(() => expect(mocks.toast.error).toHaveBeenCalledWith("Privacy rejected"));
+
+    // Optimistic update must be rolled back to the previous value
+    expect(screen.getAllByRole("switch")[0]).toBeChecked();
+    expect(screen.getAllByText("Visible").length).toBeGreaterThan(0);
+    expect(screen.queryAllByText("Hidden").length).toBe(0);
+  });
 });
 
 describe("ThemeSelector", () => {

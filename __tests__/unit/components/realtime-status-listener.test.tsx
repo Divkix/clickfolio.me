@@ -119,4 +119,24 @@ describe("RealtimeStatusListener", () => {
     });
     expect(mocks.router.refresh).toHaveBeenCalledTimes(1);
   });
+
+  it("clears the pending refresh timer on unmount", async () => {
+    const { unmount } = render(
+      <RealtimeStatusListener currentStatus="processing" resumeId="resume_123" />,
+    );
+
+    // Terminal update schedules the 200ms debounced refresh
+    await act(async () => {
+      mocks.socketArgs?.onStatusChange("completed");
+    });
+    expect(screen.getByText("Processing Complete!")).toBeInTheDocument();
+
+    // Unmount before the debounce fires: the timer must be cancelled so the
+    // router refresh (and any state update) never fires on an unmounted tree.
+    unmount();
+    await act(async () => {
+      vi.advanceTimersByTime(200);
+    });
+    expect(mocks.router.refresh).not.toHaveBeenCalled();
+  });
 });

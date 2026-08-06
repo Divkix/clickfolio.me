@@ -63,6 +63,10 @@ export interface MockDb {
   insert: ReturnType<typeof vi.fn>;
   update: ReturnType<typeof vi.fn>;
   delete: ReturnType<typeof vi.fn>;
+  /** Raw D1 binding used for direct SQL (e.g. conditional INSERT rate limiting). */
+  $client: {
+    prepare: ReturnType<typeof vi.fn>;
+  };
 }
 
 /**
@@ -74,6 +78,11 @@ export interface MockDb {
  * db.select.mockReturnValue(createMockQueryChain([mockUser]));
  * const result = await db.select().from(userTable).where(eq(...));
  * ```
+ *
+ * `$client` stubs the raw D1 binding: `prepare(sql)` returns a statement whose
+ * `.bind(...).run()` resolves to `{ meta: { changes: 1 } }` by default —
+ * override per test to simulate a denied conditional insert (changes: 0) or a
+ * thrown DB error.
  */
 export function createMockDb(): MockDb {
   return {
@@ -81,6 +90,13 @@ export function createMockDb(): MockDb {
     insert: vi.fn().mockReturnValue(createMockQueryChain()),
     update: vi.fn().mockReturnValue(createMockQueryChain()),
     delete: vi.fn().mockReturnValue(createMockQueryChain()),
+    $client: {
+      prepare: vi.fn().mockReturnValue({
+        bind: vi.fn().mockReturnValue({
+          run: vi.fn().mockResolvedValue({ meta: { changes: 1 } }),
+        }),
+      }),
+    },
   };
 }
 

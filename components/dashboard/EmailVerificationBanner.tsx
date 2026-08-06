@@ -1,7 +1,7 @@
 "use client";
 
 import { AlertCircle, X } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { sendVerificationEmail } from "@/lib/auth/client";
@@ -34,6 +34,10 @@ export function EmailVerificationBanner({
   const [isResending, setIsResending] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
 
+  // Keep the cooldown interval in a ref so it can be cleared on unmount —
+  // otherwise a leaked interval keeps calling setState after unmount.
+  const resendIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   // Check localStorage for dismiss state
   useEffect(() => {
     const dismissedAt = localStorage.getItem(DISMISS_KEY);
@@ -47,6 +51,16 @@ export function EmailVerificationBanner({
       localStorage.removeItem(DISMISS_KEY);
     }
     setIsDismissed(false);
+  }, []);
+
+  // Clean up the cooldown interval on unmount.
+  useEffect(() => {
+    return () => {
+      if (resendIntervalRef.current) {
+        clearInterval(resendIntervalRef.current);
+        resendIntervalRef.current = null;
+      }
+    };
   }, []);
 
   const handleDismiss = useCallback(() => {
@@ -70,10 +84,13 @@ export function EmailVerificationBanner({
         toast.success("Verification email sent! Check your inbox.");
         // Start 60 second cooldown
         setResendCooldown(60);
-        const interval = setInterval(() => {
+        resendIntervalRef.current = setInterval(() => {
           setResendCooldown((prev) => {
             if (prev <= 1) {
-              clearInterval(interval);
+              if (resendIntervalRef.current) {
+                clearInterval(resendIntervalRef.current);
+                resendIntervalRef.current = null;
+              }
               return 0;
             }
             return prev - 1;

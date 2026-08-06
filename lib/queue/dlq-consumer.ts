@@ -1,78 +1,11 @@
 import { eq } from "drizzle-orm";
 import { resumes } from "../db/schema";
 import { getSessionDbForWebhook } from "../db/session";
+import { getAlertChannel, sendAlert, type AlertEnv } from "./alert";
 import { QueueErrorType } from "./errors";
 import { notifyStatusChange } from "./notify-status";
 import type { DeadLetterMessage, QueueMessage } from "./types";
 import { log } from "../utils/log";
-
-/**
- * Alert channels supported for DLQ notifications
- */
-type AlertChannel = "logpush" | "webhook";
-
-interface DLQAlertPayload {
-  resumeId: string;
-  userId: string;
-  failureReason: string;
-  errorType: string;
-  totalAttempts: number;
-  timestamp: string;
-}
-
-/**
- * Extended env type for optional alert configuration.
- * These env vars are only set in production via Cloudflare secrets.
- */
-interface AlertEnv {
-  CLICKFOLIO_DB: CloudflareEnv["CLICKFOLIO_DB"];
-  CLICKFOLIO_STATUS_DO: CloudflareEnv["CLICKFOLIO_STATUS_DO"] | undefined;
-  ALERT_WEBHOOK_URL?: string;
-  ALERT_CHANNEL?: string;
-}
-
-/**
- * Resolve the alert channel from an environment string, defaulting to "logpush".
- */
-function getAlertChannel(channel: string | undefined): AlertChannel {
-  return channel === "webhook" ? "webhook" : "logpush";
-}
-
-/**
- * Send alert for failed resume processing
- */
-async function sendAlert(
-  payload: DLQAlertPayload,
-  channel: AlertChannel,
-  env: AlertEnv,
-): Promise<void> {
-  switch (channel) {
-    case "logpush":
-      // Structured log for Cloudflare Logpush integration
-      // Field names from DLQAlertPayload are preserved as top-level JSON fields
-      log("error", "DLQ_ALERT", payload as unknown as Record<string, unknown>);
-      break;
-
-    case "webhook": {
-      const webhookUrl = env.ALERT_WEBHOOK_URL;
-      if (webhookUrl) {
-        try {
-          await fetch(webhookUrl, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              text: `Resume parsing permanently failed`,
-              ...payload,
-            }),
-          });
-        } catch (error) {
-          log("error", "webhook alert failed", { error: String(error) });
-        }
-      }
-      break;
-    }
-  }
-}
 
 /**
  * Handle a dead letter queue message
@@ -103,6 +36,7 @@ export async function handleDLQMessage(
       status: resumes.status,
       totalAttempts: resumes.totalAttempts,
       lastAttemptError: resumes.lastAttemptError,
+      errorMessage: resumes.errorMessage,
     })
     .from(resumes)
     .where(eq(resumes.id, originalMessage.resumeId))
@@ -128,9 +62,15 @@ export async function handleDLQMessage(
     // Ignore parse errors
   }
 
-  // Build error message
+  // Preserve the existing user-friendly errorMessage when one is already stored
+  // (the consumer writes it via getUserFriendlyError when parsing fails); only
+  // synthesize the "Permanently failed after N attempts" message when the row
+  // has no friendly message yet. This stops the DLQ from clobbering the
+  // specific, actionable error the user already saw.
   const attemptCount = currentResume[0]?.totalAttempts || "unknown";
-  const errorMsg = `Permanently failed after ${attemptCount} attempts: ${failureReason}`;
+  const errorMsg =
+    currentResume[0]?.errorMessage ??
+    `Permanently failed after ${attemptCount} attempts: ${failureReason}`;
 
   // Update resume to permanently failed
   await db
@@ -154,17 +94,19 @@ export async function handleDLQMessage(
   const alertEnv = env as AlertEnv;
   const alertChannel = getAlertChannel(alertEnv.ALERT_CHANNEL);
 
-  // Send alert
-  const alertPayload: DLQAlertPayload = {
-    resumeId: originalMessage.resumeId,
-    userId: originalMessage.userId,
-    failureReason,
-    errorType,
-    totalAttempts: currentResume[0]?.totalAttempts ?? 0,
-    timestamp: new Date().toISOString(),
-  };
-
-  await sendAlert(alertPayload, alertChannel, alertEnv);
+  // Send alert (shared with the main consumer's non-retryable branch)
+  await sendAlert(
+    {
+      resumeId: originalMessage.resumeId,
+      userId: originalMessage.userId,
+      failureReason,
+      errorType,
+      totalAttempts: currentResume[0]?.totalAttempts ?? 0,
+      timestamp: new Date().toISOString(),
+    },
+    alertChannel,
+    alertEnv,
+  );
 
   log("info", "DLQ: marked resume as permanently failed", { resumeId: originalMessage.resumeId });
 }
