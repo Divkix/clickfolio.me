@@ -53,7 +53,7 @@ const nextConfig: NextConfig = {
         // must never be 308'd to /@<path> (cheap insurance against future
         // vinext/Next parity changes running these redirects).
         source:
-          "/:handle((?!@|api|_next|admin|about|blog|dashboard|edit|explore|faq|settings|themes|waiting|wizard|privacy|terms|reset-password|verify-email|preview|sitemap|for|ingest|ws|robots\\.txt|manifest\\.webmanifest|favicon\\.ico)[a-z0-9][a-z0-9-]*[a-z0-9]|[a-z0-9])",
+          "/:handle((?!@|(?:api|_next|admin|about|blog|dashboard|edit|explore|faq|settings|themes|waiting|wizard|privacy|terms|reset-password|verify-email|preview|sitemap|for|ingest|ws|robots\\.txt|manifest\\.webmanifest|favicon\\.ico)(?![a-z0-9-]))[a-z0-9][a-z0-9-]*[a-z0-9]|[a-z0-9])",
         destination: "/@:handle",
         permanent: true, // 308 redirect for SEO
       },

@@ -41,10 +41,8 @@ async function hashIP(ip: string): Promise<string> {
  *
  * The row is inserted only while the count of in-window rows for this
  * (ip, action) is below `limit`, using the SAME oneHourAgo cutoff as the
- * caller's counting SELECT. This closes the count-then-insert TOCTOU where
- * two concurrent requests could both read count < limit and both insert,
- * bursting past the cap: D1 serializes the statements, so exactly one of them
- * observes the subquery below the limit and the other sees changes === 0.
+ * caller's counting SELECT. Uploads also enforce their daily limit in this
+ * statement, closing both count-then-insert TOCTOU windows.
  *
  * @returns true when the row was inserted, false when a concurrent request
  *          won the last slot (in-window count already at/over `limit`).
@@ -58,24 +56,36 @@ async function recordRateLimitAction(
   oneHourAgo: string,
   limit: number,
   ttlMs: number,
+  dailyCutoff?: string,
+  dailyLimit?: number,
 ): Promise<boolean> {
+  const dailyGuard =
+    dailyCutoff !== undefined && dailyLimit !== undefined
+      ? ` AND (SELECT COUNT(*) FROM upload_rate_limits
+       WHERE ip_hash = ? AND action_type = ? AND created_at >= ?) < ?`
+      : "";
   const result = await db.$client
     .prepare(
       `INSERT INTO upload_rate_limits (id, ip_hash, action_type, created_at, expires_at)
 SELECT ?, ?, ?, ?, ?
 WHERE (SELECT COUNT(*) FROM upload_rate_limits
-       WHERE ip_hash = ? AND action_type = ? AND created_at >= ?) < ?`,
+       WHERE ip_hash = ? AND action_type = ? AND created_at >= ?) < ?${dailyGuard}`,
     )
     .bind(
-      crypto.randomUUID(),
-      ipHash,
-      actionType,
-      now.toISOString(),
-      new Date(now.getTime() + ttlMs).toISOString(),
-      ipHash,
-      actionType,
-      oneHourAgo,
-      limit,
+      ...[
+        crypto.randomUUID(),
+        ipHash,
+        actionType,
+        now.toISOString(),
+        new Date(now.getTime() + ttlMs).toISOString(),
+        ipHash,
+        actionType,
+        oneHourAgo,
+        limit,
+        ...(dailyCutoff !== undefined && dailyLimit !== undefined
+          ? [ipHash, actionType, dailyCutoff, dailyLimit]
+          : []),
+      ],
     )
     .run();
 
@@ -191,6 +201,8 @@ export async function checkIPRateLimit(ip: string): Promise<IPRateLimitResult> {
         oneHourAgo,
         HOURLY_LIMIT,
         24 * 60 * 60 * 1000,
+        oneDayAgo,
+        DAILY_LIMIT,
       );
 
       if (!recorded) {

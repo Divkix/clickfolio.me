@@ -292,6 +292,22 @@ describe("checkIPRateLimit - Production Rate Limiting", () => {
     expect(bindMock.mock.calls[0]).toContain("upload");
   });
 
+  it("enforces the daily limit in the atomic upload insert", async () => {
+    mockDb.select.mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue([{ hourly: 0, daily: 49 }]),
+      }),
+    } as never);
+
+    await checkIPRateLimit("192.168.1.1");
+
+    const sql = mockDb.$client.prepare.mock.calls[0]?.[0] as string;
+    expect(sql).toContain("created_at >= ?");
+    expect(sql.match(/created_at >= \?/g)).toHaveLength(2);
+    const bindMock = mockDb.$client.prepare.mock.results[0]?.value.bind as ReturnType<typeof vi.fn>;
+    expect(bindMock.mock.calls[0]).toContain(50);
+  });
+
   it("counts only upload actions toward anonymous upload limits", async () => {
     mockDb.select.mockReturnValue({
       from: vi.fn().mockReturnValue({
