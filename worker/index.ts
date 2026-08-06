@@ -242,24 +242,34 @@ export default {
             });
             return;
           }
-          // Independent try/catch per operation: a temp-cleanup failure must not
-          // skip the GDPR pending-deletion sweep (and vice versa).
-          try {
-            const result = await performR2Cleanup(r2Binding);
-            log("info", "cron R2 cleanup completed", { cron: controller.cron, result });
-          } catch (error) {
-            log("error", "cron R2 cleanup failed", { cron: controller.cron, error: String(error) });
+          // Run the two independent sweeps concurrently so a slow temp-cleanup
+          // does not delay the GDPR pending-deletion retry (and vice versa).
+          // Each settles independently; a failure in one is logged but never
+          // skips the other.
+          const [cleanupSettled, pendingSettled] = await Promise.allSettled([
+            performR2Cleanup(r2Binding),
+            retryPendingR2Deletions(db, r2Binding),
+          ]);
+          if (cleanupSettled.status === "fulfilled") {
+            log("info", "cron R2 cleanup completed", {
+              cron: controller.cron,
+              result: cleanupSettled.value,
+            });
+          } else {
+            log("error", "cron R2 cleanup failed", {
+              cron: controller.cron,
+              error: String(cleanupSettled.reason),
+            });
           }
-          try {
-            const pendingResult = await retryPendingR2Deletions(db, r2Binding);
+          if (pendingSettled.status === "fulfilled") {
             log("info", "cron pending deletions sweep completed", {
               cron: controller.cron,
-              result: pendingResult,
+              result: pendingSettled.value,
             });
-          } catch (error) {
+          } else {
             log("error", "cron pending deletions sweep failed", {
               cron: controller.cron,
-              error: String(error),
+              error: String(pendingSettled.reason),
             });
           }
           break;

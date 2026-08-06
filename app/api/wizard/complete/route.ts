@@ -1,10 +1,11 @@
-import { and, eq, gte, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import type { z } from "zod";
 import { withUser } from "@/lib/auth/with-auth";
 import { captureServerEvent } from "@/lib/posthog-server";
 
 import { handleChanges, siteData, user } from "@/lib/db/schema";
 import { isHandleTaken } from "@/lib/rate-limit/handle-validation";
+import { countHandleChangesInWindow } from "@/lib/rate-limit/user";
 import { buildWizardCompleteSchema } from "@/lib/schemas/profile";
 import { verifyThemeUnlocked } from "@/lib/templates/theme-access";
 import { THEME_IDS, type ThemeId } from "@/lib/templates/theme-ids";
@@ -122,18 +123,7 @@ export async function POST(request: Request) {
       const isHandleChange = wasOnboarded && currentHandle !== body.handle;
 
       if (isHandleChange) {
-        const windowStart = new Date(Date.now() - 24 * 60 * 60 * 1000);
-        // Count changes in SQL instead of fetching all rows (mirrors profile/handle).
-        const countResult = await db
-          .select({ count: sql<number>`count(*)` })
-          .from(handleChanges)
-          .where(
-            and(
-              eq(handleChanges.userId, authUser.id),
-              gte(handleChanges.createdAt, windowStart.toISOString()),
-            ),
-          );
-        const changesIn24h = countResult[0]?.count ?? 0;
+        const changesIn24h = await countHandleChangesInWindow(db, authUser.id);
 
         if (changesIn24h >= 3) {
           return createErrorResponse(

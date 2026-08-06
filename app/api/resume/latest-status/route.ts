@@ -2,18 +2,8 @@ import { desc, eq } from "drizzle-orm";
 import { withUser } from "@/lib/auth/with-auth";
 import { canRetryResume } from "@/lib/config/retry";
 import { resumes } from "@/lib/db/schema";
+import { mapDisplayStatus } from "@/lib/resume/status";
 import { createSuccessResponse } from "@/lib/utils/security-headers";
-
-// Map pre-queue / in-flight statuses to the unified "processing" state so the
-// wizard's initializeWizard() detects an ongoing parse and redirects to
-// /waiting instead of falling through to the upload step (duplicate-upload
-// path). Mirrors GET /api/resume/status.
-function mapDisplayStatus(status: string): string {
-  if (status === "queued" || status === "waiting_for_cache" || status === "pending_claim") {
-    return "processing";
-  }
-  return status;
-}
 
 /**
  * GET /api/resume/latest-status

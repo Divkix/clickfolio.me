@@ -1,9 +1,10 @@
-import { and, eq, gte, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { withUser } from "@/lib/auth/with-auth";
 import { captureServerEvent } from "@/lib/posthog-server";
 
 import { handleChanges, user } from "@/lib/db/schema";
 import { isHandleTaken } from "@/lib/rate-limit/handle-validation";
+import { countHandleChangesInWindow } from "@/lib/rate-limit/user";
 import { handleUpdateSchema } from "@/lib/schemas/profile";
 import {
   createErrorResponse,
@@ -46,20 +47,7 @@ export async function PUT(request: Request) {
     request,
     async ({ user: authUser, db, captureBookmark }) => {
       // Check rate limit (3 handle changes per 24 hours)
-      const windowStart = new Date(Date.now() - 24 * 60 * 60 * 1000);
-
-      // Count changes in SQL instead of fetching all rows
-      const result = await db
-        .select({ count: sql<number>`count(*)` })
-        .from(handleChanges)
-        .where(
-          and(
-            eq(handleChanges.userId, authUser.id),
-            gte(handleChanges.createdAt, windowStart.toISOString()),
-          ),
-        );
-
-      const changesIn24h = result[0]?.count ?? 0;
+      const changesIn24h = await countHandleChangesInWindow(db, authUser.id);
 
       if (changesIn24h >= 3) {
         return createErrorResponse(

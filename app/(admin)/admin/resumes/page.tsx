@@ -9,6 +9,7 @@ import { Pagination } from "@/components/admin/Pagination";
 import { ResumeStatusBadge } from "@/components/admin/ResumeStatusBadge";
 import { StatCard } from "@/components/admin/StatCard";
 import { Skeleton } from "@/components/ui/skeleton";
+import { safePageParam } from "@/lib/utils/pagination";
 
 interface ResumeData {
   id: string;
@@ -69,8 +70,7 @@ export default function AdminResumesPage() {
   const statusFilter = (searchParams.get("status") as StatusFilter) || "all";
   // NaN-safe page parse: a non-numeric ?page= must not become NaN in the
   // fetch URL or Pagination props (NaN.toString() === "NaN").
-  const rawPage = Number.parseInt(searchParams.get("page") || "1", 10);
-  const page = Number.isNaN(rawPage) || rawPage < 1 ? 1 : Math.floor(rawPage);
+  const page = safePageParam(searchParams.get("page"));
 
   const fetchResumes = useCallback(async () => {
     setLoading(true);

@@ -3,6 +3,7 @@ import { generateText, NoObjectGeneratedError, Output } from "ai";
 import { resumeContentSchema } from "@/lib/schemas/resume";
 import { parseJsonWithRepair, transformToSchema } from "./ai-fallback";
 import { normalizeAiKeys } from "./ai-normalize";
+import { RESUME_TRUNCATION_MARKER, truncateResumeText } from "./truncate";
 
 const DEFAULT_AI_MODEL = "openai/gpt-oss-120b:nitro";
 
@@ -277,7 +278,6 @@ function buildPrompt(text: string): string {
 const RETRY_MAX_CHARS = 32000;
 const RETRY_HEAD_CHARS = 20000;
 const RETRY_TAIL_CHARS = 11000;
-const RETRY_MARKER = "\n\n...[truncated]...\n\n";
 
 /**
  * Truncate resume text for retry attempts, using a smaller limit than the initial parse.
@@ -287,28 +287,16 @@ function truncateForRetry(text: string): string {
   if (text.length <= RETRY_MAX_CHARS) return text;
   const head = text.slice(0, RETRY_HEAD_CHARS);
   const tail = text.slice(-RETRY_TAIL_CHARS);
-  return `${head}${RETRY_MARKER}${tail}`;
-}
-
-// Resume text truncation for the error-feedback retry prompt. Mirrors the
-// limits in lib/ai/index.ts (head 38000 + tail 18000, ~60000 chars) so the
-// retry re-prompts with the SAME resume text the model saw initially.
-const RESUME_MAX_CHARS = 60000;
-const RESUME_HEAD_CHARS = 38000;
-const RESUME_TAIL_CHARS = 18000;
-
-function truncateResumeText(text: string): string {
-  if (text.length <= RESUME_MAX_CHARS) return text;
-  const head = text.slice(0, RESUME_HEAD_CHARS);
-  const tail = text.slice(-RESUME_TAIL_CHARS);
-  return `${head}${RETRY_MARKER}${tail}`;
+  return `${head}${RESUME_TRUNCATION_MARKER}${tail}`;
 }
 
 /**
  * Compose the error-feedback retry prompt. Includes BOTH the previously failed
  * output AND the resume text so the model can correct real values instead of
  * inventing missing fields (which the old prompt, containing only the failed
- * output, forced it to do).
+ * output, forced it to do). The resume text is truncated via the shared
+ * `truncateResumeText` (lib/ai/truncate.ts) so the retry re-prompts with the
+ * SAME resume text the model saw on the initial parse.
  */
 function buildRetryPrompt(text: string, previousOutput: string): string {
   return `Previous output (failed validation):\n"""\n${truncateForRetry(

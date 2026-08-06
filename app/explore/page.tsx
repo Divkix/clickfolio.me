@@ -20,6 +20,7 @@ import {
 } from "@/lib/seo/json-ld";
 import { parsePreviewSkills } from "@/lib/utils/preview-skills";
 import { extractCityState, parsePrivacySettings } from "@/lib/utils/privacy";
+import { safePageParam } from "@/lib/utils/pagination";
 
 /** Revalidate explore page every 5 minutes for directory freshness. */
 export const revalidate = 300;
@@ -75,8 +76,7 @@ export default async function ExplorePage({
   const params = await searchParams;
   // NaN-safe page parse: Math.max(1, NaN) is NaN, which would produce a NaN
   // SQL OFFSET and NaN in the prev/next pagination links.
-  const parsedPage = Number.parseInt(params.page || "1", 10);
-  const currentPage = Number.isNaN(parsedPage) || parsedPage < 1 ? 1 : Math.floor(parsedPage);
+  const currentPage = safePageParam(params.page);
   const roleFilter = params.role || "";
 
   const db = getDb(env.CLICKFOLIO_DB);
