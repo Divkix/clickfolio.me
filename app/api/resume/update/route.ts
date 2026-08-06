@@ -32,6 +32,7 @@ interface UpdateRequestBody {
  *
  * Error codes:
  *   - 400: invalid JSON or validation failure
+ *   - 404: site_data not found (resume not uploaded yet)
  *   - 413: request body too large
  *   - 500: database error or unexpected error
  */
@@ -95,10 +96,13 @@ export async function PUT(request: Request) {
         });
 
       if (updateResult.length === 0) {
+        // No rows updated - site_data doesn't exist yet. Mirror
+        // update-theme: a 404 is the honest answer (the user has nothing to
+        // update yet), not a 500 the client can't recover from.
         return createErrorResponse(
-          "Failed to update resume. Please try again.",
-          ERROR_CODES.DATABASE_ERROR,
-          500,
+          "Resume data not found. Please upload a resume first.",
+          ERROR_CODES.NOT_FOUND,
+          404,
         );
       }
 

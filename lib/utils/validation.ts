@@ -7,12 +7,14 @@
 
 const DEFAULT_MAX_FILE_SIZE_MB = 5;
 
+/** Effective max upload size in MB (default 5, configurable via env). */
+const effectiveMaxFileSizeMb = Number(process.env.MAX_UPLOAD_SIZE_MB) || DEFAULT_MAX_FILE_SIZE_MB;
+
 /** Maximum allowed file size in bytes (default 5MB, configurable via env). */
-export const MAX_FILE_SIZE =
-  (Number(process.env.MAX_UPLOAD_SIZE_MB) || DEFAULT_MAX_FILE_SIZE_MB) * 1024 * 1024;
+export const MAX_FILE_SIZE = effectiveMaxFileSizeMb * 1024 * 1024;
 
 /** Human-readable label for the max file size (e.g., "5MB"). */
-export const MAX_FILE_SIZE_LABEL = `${DEFAULT_MAX_FILE_SIZE_MB}MB`;
+export const MAX_FILE_SIZE_LABEL = `${effectiveMaxFileSizeMb}MB`;
 
 /**
  * Validates a client-side File object for upload.

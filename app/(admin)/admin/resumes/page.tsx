@@ -67,7 +67,10 @@ export default function AdminResumesPage() {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
 
   const statusFilter = (searchParams.get("status") as StatusFilter) || "all";
-  const page = Number.parseInt(searchParams.get("page") || "1", 10);
+  // NaN-safe page parse: a non-numeric ?page= must not become NaN in the
+  // fetch URL or Pagination props (NaN.toString() === "NaN").
+  const rawPage = Number.parseInt(searchParams.get("page") || "1", 10);
+  const page = Number.isNaN(rawPage) || rawPage < 1 ? 1 : Math.floor(rawPage);
 
   const fetchResumes = useCallback(async () => {
     setLoading(true);

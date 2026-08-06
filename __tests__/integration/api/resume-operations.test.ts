@@ -1217,7 +1217,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
       expect(response.status).toBe(413);
     });
 
-    it("returns 500 when site_data update fails", async () => {
+    it("returns 404 when site_data update affects no rows (no resume uploaded yet)", async () => {
       authedAs("user-123");
 
       mockReturning.mockResolvedValue([]); // Empty result = no rows updated
@@ -1228,7 +1228,11 @@ describe("Resume API Integration Tests (25 tests)", () => {
       });
       const response = await PUT(request);
 
-      expect(response.status).toBe(500);
+      // Mirrors POST /api/resume/update-theme: no site_data row yet is a 404
+      // (NOT_FOUND), not a 500 — the client can recover by showing an upload prompt.
+      expect(response.status).toBe(404);
+      const body = (await response.json()) as { error: string };
+      expect(body.error).toContain("Resume data not found");
     });
   });
 

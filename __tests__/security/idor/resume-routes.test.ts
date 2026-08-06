@@ -304,7 +304,8 @@ describe("IDOR - Resume Routes Security", () => {
       const response = await PUT(request);
 
       // Should fail because user doesn't have site_data to update
-      expect(response.status).toBe(500);
+      // Mirrors POST /api/resume/update-theme: no site_data row is a 404, not 500.
+      expect(response.status).toBe(404);
     });
 
     it("prevents cross-user resume update via database row-level enforcement", async () => {
@@ -330,7 +331,8 @@ describe("IDOR - Resume Routes Security", () => {
       });
       const response = await PUT(request);
 
-      expect(response.status).toBe(500);
+      // No rows updated = no site_data for this user (404, mirroring update-theme).
+      expect(response.status).toBe(404);
     });
   });
 

@@ -73,7 +73,10 @@ export default async function ExplorePage({
   searchParams: Promise<{ page?: string; role?: string }>;
 }) {
   const params = await searchParams;
-  const currentPage = Math.max(1, Number.parseInt(params.page || "1", 10));
+  // NaN-safe page parse: Math.max(1, NaN) is NaN, which would produce a NaN
+  // SQL OFFSET and NaN in the prev/next pagination links.
+  const parsedPage = Number.parseInt(params.page || "1", 10);
+  const currentPage = Number.isNaN(parsedPage) || parsedPage < 1 ? 1 : Math.floor(parsedPage);
   const roleFilter = params.role || "";
 
   const db = getDb(env.CLICKFOLIO_DB);
