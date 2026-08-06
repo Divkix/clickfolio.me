@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { resumes } from "../db/schema";
 import { getSessionDbForWebhook } from "../db/session";
+import { getLastAttemptErrorType } from "../resume/lifecycle";
 import { getAlertChannel, sendAlert, type AlertEnv } from "./alert";
 import { QueueErrorType } from "./errors";
 import { notifyStatusChange } from "./notify-status";
@@ -42,6 +43,15 @@ export async function handleDLQMessage(
     .where(eq(resumes.id, originalMessage.resumeId))
     .limit(1);
 
+  // Skip if the resume no longer exists (account deletion cascades `resumes`).
+  // Without this guard the DLQ would synthesize a failed state + alert for a deleted row.
+  if (!currentResume.length) {
+    log("info", "DLQ: resume not found, skipping", {
+      resumeId: originalMessage.resumeId,
+    });
+    return;
+  }
+
   // Do not clobber a resume that already completed via a concurrent path
   // (waiting-for-cache fan-out, cache hit, or orphan-recovery re-queue).
   if (currentResume[0]?.status === "completed") {
@@ -51,16 +61,15 @@ export async function handleDLQMessage(
     return;
   }
 
-  // Parse last attempt error if available
-  let errorType = QueueErrorType.UNKNOWN;
-  try {
-    if (currentResume[0]?.lastAttemptError) {
-      const parsed = JSON.parse(currentResume[0].lastAttemptError);
-      errorType = parsed.type || QueueErrorType.UNKNOWN;
-    }
-  } catch {
-    // Ignore parse errors
-  }
+  // Parse last attempt error if available (shape owned by lifecycle).
+  // Validate against the known enum so an arbitrary stored string does not leak through as `errorType`.
+  const rawErrorType = getLastAttemptErrorType(
+    (currentResume[0]?.lastAttemptError as string | null) ?? null,
+  );
+  const errorType =
+    rawErrorType !== null && (Object.values(QueueErrorType) as string[]).includes(rawErrorType)
+      ? (rawErrorType as QueueErrorType)
+      : QueueErrorType.UNKNOWN;
 
   // Preserve the existing user-friendly errorMessage when one is already stored
   // (the consumer writes it via getUserFriendlyError when parsing fails); only

@@ -11,7 +11,11 @@
 
 import { and, eq, isNotNull, isNull, lt, or } from "drizzle-orm";
 import type { Database } from "@/lib/db";
-import { hasExceededMaxAttempts } from "@/lib/config/retry";
+import {
+  buildWaitingForCacheTimeoutUpdate,
+  hasExceededMaxAttempts,
+  WAITING_FOR_CACHE_TIMEOUT_MS,
+} from "@/lib/resume/lifecycle";
 import { resumes } from "@/lib/db/schema";
 import { publishResumeParse } from "@/lib/queue/resume-parse";
 import type { ResumeParseMessage } from "@/lib/queue/types";
@@ -24,6 +28,11 @@ export interface RecoverOrphanedResult {
   timestamp: string;
 }
 
+function getChanges(result: unknown): number {
+  const r = result as { meta?: { changes?: number }; changes?: number } | undefined;
+  return r?.meta?.changes ?? r?.changes ?? 0;
+}
+
 export async function recoverOrphanedResumes(
   db: Database,
   queue: Queue<ResumeParseMessage>,
@@ -31,6 +40,7 @@ export async function recoverOrphanedResumes(
   // Thresholds: pending_claim = 5 min, processing = 15 min (AI parsing can take ~40s)
   const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
   const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+  const tenMinutesAgo = new Date(Date.now() - WAITING_FOR_CACHE_TIMEOUT_MS).toISOString();
 
   const selectColumns = {
     id: resumes.id,
@@ -43,59 +53,100 @@ export async function recoverOrphanedResumes(
     totalAttempts: resumes.totalAttempts,
   };
 
-  // Run all queries in parallel — they hit different index prefixes
-  const [pendingOrphans, processingOrphans, queuedOrphans] = await Promise.all([
-    // Resumes stuck in pending_claim (never queued, e.g. worker crash after upload)
-    db
-      .select(selectColumns)
-      .from(resumes)
-      .where(
-        and(
-          eq(resumes.status, "pending_claim"),
-          isNotNull(resumes.r2Key),
-          isNotNull(resumes.fileHash),
-          lt(resumes.createdAt, fiveMinutesAgo),
-        ),
-      )
-      .limit(10),
-    // Resumes stuck in processing (consumer crashed mid-parse).
-    // Age-gate on queuedAt (time-in-processing), not createdAt (row age), so a
-    // manual retry of an old resume isn't treated as orphaned. Fall back to
-    // createdAt for legacy rows that predate queuedAt.
-    db
-      .select(selectColumns)
-      .from(resumes)
-      .where(
-        and(
-          eq(resumes.status, "processing"),
-          isNotNull(resumes.r2Key),
-          isNotNull(resumes.fileHash),
-          or(
-            lt(resumes.queuedAt, fifteenMinutesAgo),
-            and(isNull(resumes.queuedAt), lt(resumes.createdAt, fifteenMinutesAgo)),
+  // Run all queries in parallel — they hit different index prefixes.
+  // The waiting_for_cache timeout is now handled here instead of in GET /status
+  // (see lifecycle.waitingForCacheTimedOut) so the GET stays side-effect-free;
+  // cron is the durable writer.
+  const [pendingOrphans, processingOrphans, queuedOrphans, waitingForCacheExpired] =
+    await Promise.all([
+      // Resumes stuck in pending_claim (never queued, e.g. worker crash after upload)
+      db
+        .select(selectColumns)
+        .from(resumes)
+        .where(
+          and(
+            eq(resumes.status, "pending_claim"),
+            isNotNull(resumes.r2Key),
+            isNotNull(resumes.fileHash),
+            lt(resumes.createdAt, fiveMinutesAgo),
           ),
-        ),
-      )
-      .limit(10),
-    // Resumes stuck in queued (publish failed after status write, never consumed).
-    // Age-gate on queuedAt to avoid racing rows that were legitimately queued
-    // moments ago. Fall back to createdAt for legacy rows with a null queuedAt.
-    db
-      .select(selectColumns)
-      .from(resumes)
-      .where(
-        and(
-          eq(resumes.status, "queued"),
-          isNotNull(resumes.r2Key),
-          isNotNull(resumes.fileHash),
-          or(
-            lt(resumes.queuedAt, fifteenMinutesAgo),
-            and(isNull(resumes.queuedAt), lt(resumes.createdAt, fifteenMinutesAgo)),
+        )
+        .limit(10),
+      // Resumes stuck in processing (consumer crashed mid-parse).
+      // Age-gate on queuedAt (time-in-processing), not createdAt (row age), so a
+      // manual retry of an old resume isn't treated as orphaned. Fall back to
+      // createdAt for legacy rows that predate queuedAt.
+      db
+        .select(selectColumns)
+        .from(resumes)
+        .where(
+          and(
+            eq(resumes.status, "processing"),
+            isNotNull(resumes.r2Key),
+            isNotNull(resumes.fileHash),
+            or(
+              lt(resumes.queuedAt, fifteenMinutesAgo),
+              and(isNull(resumes.queuedAt), lt(resumes.createdAt, fifteenMinutesAgo)),
+            ),
           ),
-        ),
-      )
-      .limit(10),
-  ]);
+        )
+        .limit(10),
+      // Resumes stuck in queued (publish failed after status write, never consumed).
+      // Age-gate on queuedAt to avoid racing rows that were legitimately queued
+      // moments ago. Fall back to createdAt for legacy rows with a null queuedAt.
+      db
+        .select(selectColumns)
+        .from(resumes)
+        .where(
+          and(
+            eq(resumes.status, "queued"),
+            isNotNull(resumes.r2Key),
+            isNotNull(resumes.fileHash),
+            or(
+              lt(resumes.queuedAt, fifteenMinutesAgo),
+              and(isNull(resumes.queuedAt), lt(resumes.createdAt, fifteenMinutesAgo)),
+            ),
+          ),
+        )
+        .limit(10),
+      // Resumes stuck in waiting_for_cache beyond the 10-min timeout.
+      // These were previously transitioned inside GET /status (side-effect in a
+      // polling GET); now they are presented virtually by GET and durably
+      // transitioned here.
+      db
+        .select({ id: resumes.id, status: resumes.status })
+        .from(resumes)
+        .where(and(eq(resumes.status, "waiting_for_cache"), lt(resumes.createdAt, tenMinutesAgo)))
+        .limit(10),
+    ]);
+
+  // Durably transition expired waiting_for_cache rows to failed.
+  // TOCTOU-guarded on still being `waiting_for_cache`. Run in parallel since rows are independent.
+  // Each row is individually try/caught so one D1 transient error does not abort the whole cron tick
+  // (mirrors the per-row isolation of the sequential requeue loop below).
+  const timeoutUpdate = buildWaitingForCacheTimeoutUpdate();
+  const timeoutResults = await Promise.all(
+    waitingForCacheExpired.map(async (row) => {
+      try {
+        const result = await db
+          .update(resumes)
+          .set({ status: timeoutUpdate.status, errorMessage: timeoutUpdate.errorMessage })
+          .where(and(eq(resumes.id, row.id), eq(resumes.status, "waiting_for_cache")));
+        const changes = getChanges(result);
+        if (changes > 0) {
+          log("info", "timed out waiting_for_cache resume", { resumeId: row.id });
+        }
+        return changes > 0 ? 1 : 0;
+      } catch (error) {
+        log("error", "failed to timeout waiting_for_cache resume", {
+          resumeId: row.id,
+          error: String(error),
+        });
+        return 0;
+      }
+    }),
+  );
+  const waitingForCacheTimedOutCount = timeoutResults.reduce<number>((a, b) => a + b, 0);
 
   // Merge and deduplicate (shouldn't overlap, but defensive)
   const seenIds = new Set<string>();
@@ -110,8 +161,8 @@ export async function recoverOrphanedResumes(
   if (orphanedResumes.length === 0) {
     return {
       ok: true,
-      recovered: 0,
-      found: 0,
+      recovered: waitingForCacheTimedOutCount,
+      found: waitingForCacheExpired.length,
       timestamp: new Date().toISOString(),
     };
   }
@@ -144,8 +195,8 @@ export async function recoverOrphanedResumes(
           queuedAt: now,
         })
         .where(and(eq(resumes.id, resume.id), eq(resumes.status, resume.status)));
-
-      if (requeueResult.meta.changes === 0) {
+      const requeueChanges = getChanges(requeueResult);
+      if (requeueChanges === 0) {
         log("info", "skipping resume - status changed since selection", {
           resumeId: resume.id,
         });
@@ -184,12 +235,12 @@ export async function recoverOrphanedResumes(
     }
   }
 
-  const recovered = successfulIds.length;
+  const recovered = successfulIds.length + waitingForCacheTimedOutCount;
 
   return {
     ok: true,
     recovered,
-    found: orphanedResumes.length,
+    found: orphanedResumes.length + waitingForCacheExpired.length,
     timestamp: now,
   };
 }

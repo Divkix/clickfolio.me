@@ -99,7 +99,10 @@ function latestResumeRow(status: string) {
       retryCount: 0,
       totalAttempts: 1,
       lastAttemptError: null,
-      createdAt: "2026-01-15T12:00:00.000Z",
+      // Recent timestamp so waiting_for_cache is not considered timed-out by
+      // lifecycle.waitingForCacheTimedOut (10m threshold). The timeout case
+      // is covered separately in resume-status-waiting-cache.test.ts.
+      createdAt: new Date().toISOString(),
     },
   ];
 }

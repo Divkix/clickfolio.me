@@ -69,12 +69,13 @@ function createMocks(options: { changes?: number } = {}) {
 
   const queue = { send: vi.fn().mockResolvedValue(undefined) };
 
-  /** Configure the three parallel selects in order: pending_claim, processing, queued. */
-  const setBuckets = (pending: Row[], processing: Row[], queued: Row[]) => {
+  /** Configure the four parallel selects in order: pending_claim, processing, queued, waiting_for_cache. */
+  const setBuckets = (pending: Row[], processing: Row[], queued: Row[], waiting: Row[] = []) => {
     db.select
       .mockReturnValueOnce(selectChain(pending, whereCaptures))
       .mockReturnValueOnce(selectChain(processing, whereCaptures))
-      .mockReturnValueOnce(selectChain(queued, whereCaptures));
+      .mockReturnValueOnce(selectChain(queued, whereCaptures))
+      .mockReturnValueOnce(selectChain(waiting, whereCaptures));
   };
 
   return { db, queue, whereCaptures, updateWhereCaptures, setCalls, setBuckets };
@@ -123,8 +124,8 @@ describe("recoverOrphanedResumes — queued orphan recovery", () => {
 
     await run(db, queue);
 
-    // whereCaptures order matches select order: [pending_claim, processing, queued]
-    expect(whereCaptures).toHaveLength(3);
+    // whereCaptures order matches select order: [pending_claim, processing, queued, waiting_for_cache]
+    expect(whereCaptures).toHaveLength(4);
     const processingCols = collectColumns(whereCaptures[1]);
     expect(processingCols.has("queued_at")).toBe(true);
     // createdAt remains only as the null-fallback branch.
@@ -137,6 +138,11 @@ describe("recoverOrphanedResumes — queued orphan recovery", () => {
     const pendingCols = collectColumns(whereCaptures[0]);
     expect(pendingCols.has("created_at")).toBe(true);
     expect(pendingCols.has("queued_at")).toBe(false);
+
+    // waiting_for_cache query age-gates on created_at only (durably persists timeout)
+    const waitingCols = collectColumns(whereCaptures[3]);
+    expect(waitingCols.has("created_at")).toBe(true);
+    expect(waitingCols.has("status")).toBe(true);
   });
 
   it("rolls a resume back to pending_claim when publish fails", async () => {

@@ -1,8 +1,11 @@
 import { desc, eq } from "drizzle-orm";
 import { withUser } from "@/lib/auth/with-auth";
-import { canRetryResume } from "@/lib/config/retry";
 import { resumes } from "@/lib/db/schema";
-import { mapDisplayStatus } from "@/lib/resume/status";
+import {
+  canRetryResume,
+  statusPresentation,
+  WAITING_FOR_CACHE_TIMEOUT_MESSAGE,
+} from "@/lib/resume/lifecycle";
 import { createSuccessResponse } from "@/lib/utils/security-headers";
 
 /**
@@ -53,29 +56,43 @@ export async function GET(request?: Request) {
 
       const resume = latestResume[0];
 
-      // Parse the stored last-attempt error to recover its type, matching the
-      // status endpoint. canRetryResume() returns false for any non-failed status,
-      // so this is safe to call unconditionally.
-      let lastAttemptErrorType: string | null = null;
-      if (resume.lastAttemptError) {
-        try {
-          lastAttemptErrorType =
-            (JSON.parse(resume.lastAttemptError) as { type?: string }).type ?? null;
-        } catch {
-          lastAttemptErrorType = null;
-        }
-      }
+      // Side-effect-free timeout: mirror GET /status — a waiting_for_cache row
+      // that has timed out is presented as a virtual "failed" without persisting.
+      // The orphan cron will durably transition it on its next tick.
+      // Single presentation call encodes the timeout, progress, and status.
+      const pres = statusPresentation({
+        status: resume.status as string,
+        createdAt: resume.createdAt as string | null,
+      });
+      const isTimedOut = !!pres.isWaitingForCacheTimeout;
+      const publicStatus = pres.publicStatus;
+
+      // For a virtual timeout the row is logically failed with a transient
+      // timeout error (no stored lastAttemptError type), so retry is allowed
+      // iff caps allow.
+      const can_retry = isTimedOut
+        ? canRetryResume({
+            status: "failed",
+            retryCount: resume.retryCount as number,
+            totalAttempts: resume.totalAttempts as number,
+            lastAttemptError: null,
+          })
+        : canRetryResume({
+            status: resume.status as string,
+            retryCount: resume.retryCount as number,
+            totalAttempts: resume.totalAttempts as number,
+            lastAttemptError: resume.lastAttemptError as string | null,
+          });
+
+      const error = isTimedOut
+        ? WAITING_FOR_CACHE_TIMEOUT_MESSAGE
+        : (resume.errorMessage as string | null);
 
       return createSuccessResponse({
         id: resume.id as string,
-        status: mapDisplayStatus(resume.status),
-        error: resume.errorMessage,
-        can_retry: canRetryResume({
-          status: resume.status,
-          retryCount: resume.retryCount,
-          totalAttempts: resume.totalAttempts,
-          lastAttemptErrorType,
-        }),
+        status: publicStatus,
+        error,
+        can_retry,
         createdAt: resume.createdAt as string,
       });
     },

@@ -180,18 +180,31 @@ describe("Cron Scheduled Tasks", () => {
       const orphanedResume = {
         id: "resume-123",
         userId: "user-456",
-        r2Key: "temp/user-456/file.pdf",
+        r2Key: "**********************",
         fileHash: "abc123",
         totalAttempts: 0,
       };
 
-      mockDb.select.mockReturnValue({
+      // Mock 4 parallel selects: pending has orphan, others empty (including waiting)
+      const emptyChain = {
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([]),
+          }),
+        }),
+      };
+      const orphanChain = {
         from: vi.fn().mockReturnValue({
           where: vi.fn().mockReturnValue({
             limit: vi.fn().mockResolvedValue([orphanedResume]),
           }),
         }),
-      });
+      };
+      mockDb.select
+        .mockReturnValueOnce(orphanChain)
+        .mockReturnValueOnce(emptyChain)
+        .mockReturnValueOnce(emptyChain)
+        .mockReturnValueOnce(emptyChain);
 
       const result = await recoverOrphanedResumes(
         mockDb as never,
@@ -250,16 +263,28 @@ describe("Cron Scheduled Tasks", () => {
         userId: null,
         r2Key: "temp/old/file.pdf",
         fileHash: "old123",
-        createdAt: new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString(), // 25 hours ago
+        createdAt: new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString(),
       };
 
-      mockDb.select.mockReturnValue({
+      const emptyChain = {
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([]),
+          }),
+        }),
+      };
+      const orphanChain = {
         from: vi.fn().mockReturnValue({
           where: vi.fn().mockReturnValue({
             limit: vi.fn().mockResolvedValue([oldOrphan]),
           }),
         }),
-      });
+      };
+      mockDb.select
+        .mockReturnValueOnce(orphanChain)
+        .mockReturnValueOnce(emptyChain)
+        .mockReturnValueOnce(emptyChain)
+        .mockReturnValueOnce(emptyChain);
 
       const result = await recoverOrphanedResumes(
         mockDb as never,
@@ -275,16 +300,28 @@ describe("Cron Scheduled Tasks", () => {
         userId: "user-123",
         r2Key: "uploads/file.pdf",
         fileHash: "hash123",
-        totalAttempts: 6, // Max attempts reached
+        totalAttempts: 6,
       };
 
-      mockDb.select.mockReturnValue({
+      const emptyChain2 = {
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([]),
+          }),
+        }),
+      };
+      const maxedChain = {
         from: vi.fn().mockReturnValue({
           where: vi.fn().mockReturnValue({
             limit: vi.fn().mockResolvedValue([maxAttemptsResume]),
           }),
         }),
-      });
+      };
+      mockDb.select
+        .mockReturnValueOnce(maxedChain)
+        .mockReturnValueOnce(emptyChain2)
+        .mockReturnValueOnce(emptyChain2)
+        .mockReturnValueOnce(emptyChain2);
 
       const result = await recoverOrphanedResumes(
         mockDb as never,
@@ -304,13 +341,25 @@ describe("Cron Scheduled Tasks", () => {
         totalAttempts: 0,
       };
 
-      mockDb.select.mockReturnValue({
+      const emptyChain3 = {
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([]),
+          }),
+        }),
+      };
+      const orphanChain3 = {
         from: vi.fn().mockReturnValue({
           where: vi.fn().mockReturnValue({
             limit: vi.fn().mockResolvedValue([orphanedResume]),
           }),
         }),
-      });
+      };
+      mockDb.select
+        .mockReturnValueOnce(orphanChain3)
+        .mockReturnValueOnce(emptyChain3)
+        .mockReturnValueOnce(emptyChain3)
+        .mockReturnValueOnce(emptyChain3);
 
       // The TOCTOU re-queue guard skips the publish unless the conditional
       // UPDATE reports exactly one changed row, so the mock must return
@@ -407,13 +456,25 @@ describe("Cron Scheduled Tasks", () => {
         totalAttempts: 0,
       };
 
-      mockDb.select.mockReturnValue({
+      const emptyChain4 = {
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([]),
+          }),
+        }),
+      };
+      const orphanChain4 = {
         from: vi.fn().mockReturnValue({
           where: vi.fn().mockReturnValue({
             limit: vi.fn().mockResolvedValue([orphanedResume]),
           }),
         }),
-      });
+      };
+      mockDb.select
+        .mockReturnValueOnce(orphanChain4)
+        .mockReturnValueOnce(emptyChain4)
+        .mockReturnValueOnce(emptyChain4)
+        .mockReturnValueOnce(emptyChain4);
 
       mockQueue.send.mockRejectedValueOnce(new Error("Queue unavailable"));
 

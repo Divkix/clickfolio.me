@@ -254,7 +254,7 @@ describe("GET /api/resume/status — waiting_for_cache timeout", () => {
       expect(body.can_retry).toBe(false);
     });
 
-    it("updates the resume status to failed in the database", async () => {
+    it("presents stale waiting_for_cache as failed WITHOUT writing to the DB (side-effect-free GET)", async () => {
       authedAs("user-1");
 
       const staleTime = new Date(Date.now() - WAITING_FOR_CACHE_TIMEOUT_MS - 5000).toISOString();
@@ -267,15 +267,16 @@ describe("GET /api/resume/status — waiting_for_cache timeout", () => {
       );
 
       const { GET } = await import("@/app/api/resume/status/route");
-      await GET(makeStatusRequest("resume-001"));
+      const response = await GET(makeStatusRequest("resume-001"));
 
-      // Verify DB was updated to failed status
-      expect(mockDbUpdateSet).toHaveBeenCalledWith(
-        expect.objectContaining({
-          status: "failed",
-          errorMessage: expect.stringContaining("timed out"),
-        }),
-      );
+      // Virtual failed presentation — no DB write
+      expect(response.status).toBe(200);
+      const body = (await response.json()) as { status: string; error: string };
+      expect(body.status).toBe("failed");
+      expect(body.error).toContain("timed out");
+      // GET is now side-effect-free: the durable write is handled by the orphan cron
+      expect(mockDbUpdateSet).not.toHaveBeenCalled();
+      expect(mockCaptureBookmark).not.toHaveBeenCalled();
     });
   });
 

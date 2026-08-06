@@ -1,15 +1,16 @@
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { withUser } from "@/lib/auth/with-auth";
-import { canRetryResume } from "@/lib/config/retry";
 import { resumes } from "@/lib/db/schema";
+import {
+  canRetryResume,
+  statusPresentation,
+  WAITING_FOR_CACHE_TIMEOUT_MESSAGE,
+} from "@/lib/resume/lifecycle";
 import {
   createErrorResponse,
   createSuccessResponse,
   ERROR_CODES,
 } from "@/lib/utils/security-headers";
-
-// 10 minute timeout for waiting_for_cache status
-const WAITING_FOR_CACHE_TIMEOUT_MS = 10 * 60 * 1000;
 
 /**
  * GET /api/resume/status
@@ -43,7 +44,7 @@ const WAITING_FOR_CACHE_TIMEOUT_MS = 10 * 60 * 1000;
 export async function GET(request: Request) {
   return withUser(
     request,
-    async ({ user: authUser, db, captureBookmark }) => {
+    async ({ user: authUser, db }) => {
       const userId = authUser.id;
 
       // Get resume_id from query params
@@ -85,69 +86,25 @@ export async function GET(request: Request) {
         );
       }
 
-      // Handle waiting_for_cache status with timeout check
-      if (resume.status === "waiting_for_cache") {
-        const createdAt = new Date(resume.createdAt);
-        const waitingTime = Date.now() - createdAt.getTime();
-
-        if (waitingTime > WAITING_FOR_CACHE_TIMEOUT_MS) {
-          // Timeout reached - transition to failed status
-          await db
-            .update(resumes)
-            .set({
-              status: "failed",
-              errorMessage:
-                "Parsing timed out while waiting for cached result. Please try uploading again.",
-            })
-            .where(and(eq(resumes.id, resumeId), eq(resumes.status, "waiting_for_cache")));
-
-          await captureBookmark();
-          return createSuccessResponse({
+      // Side-effect-free waiting_for_cache timeout: present as failed virtually.
+      // The DB row stays `waiting_for_cache` until the orphan cron persists the
+      // timeout (lib/cron/recover-orphaned). No `db.update` / `captureBookmark` here.
+      // Compute presentation once — it already encodes the timeout predicate.
+      const presForTimeout = statusPresentation({
+        status: resume.status as string,
+        createdAt: resume.createdAt as string | null,
+      });
+      if (presForTimeout.isWaitingForCacheTimeout) {
+        return createSuccessResponse({
+          status: "failed",
+          progress_pct: 0,
+          error: WAITING_FOR_CACHE_TIMEOUT_MESSAGE,
+          can_retry: canRetryResume({
             status: "failed",
-            progress_pct: 0,
-            error: "Parsing timed out while waiting for cached result. Please try uploading again.",
-            can_retry: canRetryResume({
-              // Row was just transitioned to "failed"; in-memory status is still
-              // "waiting_for_cache", so pass "failed" explicitly. lastAttemptError
-              // is not loaded here (timeout message only), so treat as transient.
-              status: "failed",
-              retryCount: resume.retryCount,
-              totalAttempts: resume.totalAttempts,
-              lastAttemptErrorType: null,
-            }),
-          });
-        }
-
-        // Still within timeout - return processing status to keep polling
-        return createSuccessResponse({
-          status: "processing",
-          progress_pct: 30,
-          error: null,
-          can_retry: false,
-          waiting_for_cache: true,
-        });
-      }
-
-      // Handle pending_claim status - show as processing (earliest, pre-queue).
-      // Without this mapping /waiting's useResumeStatus treats any non-processing
-      // status as terminal and stops polling, leaving the page stalled forever.
-      if (resume.status === "pending_claim") {
-        return createSuccessResponse({
-          status: "processing",
-          progress_pct: 15,
-          error: null,
-          can_retry: false,
-        });
-      }
-
-      // Handle queued status - show as processing with early progress
-      if (resume.status === "queued") {
-        return createSuccessResponse({
-          status: "processing",
-          progress_pct: 25,
-          error: null,
-          can_retry: false,
-          queued: true,
+            retryCount: resume.retryCount,
+            totalAttempts: resume.totalAttempts,
+            lastAttemptError: null,
+          }),
         });
       }
 
@@ -187,15 +144,6 @@ export async function GET(request: Request) {
       }
 
       if (resume.status === "failed") {
-        let lastAttemptErrorType: string | null = null;
-        if (resume.lastAttemptError) {
-          try {
-            lastAttemptErrorType =
-              (JSON.parse(resume.lastAttemptError) as { type?: string }).type ?? null;
-          } catch {
-            lastAttemptErrorType = null;
-          }
-        }
         return createSuccessResponse({
           status: "failed",
           progress_pct: 0,
@@ -204,25 +152,33 @@ export async function GET(request: Request) {
             status: resume.status,
             retryCount: resume.retryCount,
             totalAttempts: resume.totalAttempts,
-            lastAttemptErrorType,
+            lastAttemptError: resume.lastAttemptError,
           }),
         });
       }
 
-      if (resume.status !== "processing") {
+      // Unified presentation for pre-queue / in-flight / unknown statuses.
+      // Reuse the single presentation computed above (already encodes timeout).
+      const pres = presForTimeout;
+
+      if (pres.publicStatus === "processing") {
+        const extra: Record<string, unknown> = {};
+        if (pres.waitingForCache) extra.waiting_for_cache = true;
+        if (pres.queued) extra.queued = true;
         return createSuccessResponse({
-          status: resume.status,
-          progress_pct: 0,
-          error: resume.errorMessage ?? null,
+          status: "processing",
+          progress_pct: pres.progressPct,
+          error: null,
           can_retry: false,
+          ...extra,
         });
       }
 
-      // Resume is in processing state - return progress indicator
+      // Unknown / non-processing terminal fallback (should not happen for known enum)
       return createSuccessResponse({
-        status: "processing",
-        progress_pct: 50,
-        error: null,
+        status: pres.publicStatus,
+        progress_pct: pres.progressPct,
+        error: resume.errorMessage ?? null,
         can_retry: false,
       });
     },

@@ -1,9 +1,10 @@
 import { and, eq, lt } from "drizzle-orm";
 import { withUser } from "@/lib/auth/with-auth";
 import { captureServerEvent } from "@/lib/posthog-server";
-import { hasExceededMaxAttempts, isPermanentErrorType, RETRY_LIMITS } from "@/lib/config/retry";
+import { RETRY_LIMITS } from "@/lib/config/retry";
 import type { NewResume } from "@/lib/db/schema";
 import { resumes } from "@/lib/db/schema";
+import { checkRetryEligibility, waitingForCacheTimedOut } from "@/lib/resume/lifecycle";
 import { publishResumeParse } from "@/lib/queue/resume-parse";
 import { getR2Binding, R2 } from "@/lib/r2";
 import { sha256Hex } from "@/lib/utils/hash";
@@ -98,6 +99,7 @@ export async function POST(request: Request) {
           totalAttempts: true,
           lastAttemptError: true,
           fileHash: true,
+          createdAt: true,
         },
       });
 
@@ -114,56 +116,27 @@ export async function POST(request: Request) {
         );
       }
 
-      // Check if max total attempts exceeded
-      if (hasExceededMaxAttempts(resume.totalAttempts ?? 0)) {
+      // Canonical eligibility — single source of truth for the 4 gates.
+      // A `waiting_for_cache` row that has timed out is presented virtually as
+      // `failed` by GET /status; accept an immediate manual retry without waiting
+      // for the cron to durably persist the timeout (otherwise can_retry=true in
+      // the UI would be denied here until the next 15m tick).
+      const isVirtualTimeout = waitingForCacheTimedOut({
+        status: resume.status as string,
+        createdAt: (resume as { createdAt?: string | null }).createdAt as string | null,
+      });
+      const eligibility = checkRetryEligibility({
+        status: isVirtualTimeout ? "failed" : (resume.status as string),
+        retryCount: resume.retryCount as number,
+        totalAttempts: resume.totalAttempts as number,
+        lastAttemptError: isVirtualTimeout ? null : (resume.lastAttemptError as string | null),
+      });
+      if (!eligibility.eligible) {
         return createErrorResponse(
-          "Maximum retry attempts exceeded. This resume cannot be retried.",
-          ERROR_CODES.RATE_LIMIT_EXCEEDED,
-          429,
-          {
-            max_attempts: RETRY_LIMITS.TOTAL_MAX_ATTEMPTS,
-            current_attempts: resume.totalAttempts,
-          },
-        );
-      }
-
-      // Check if last error was permanent (shouldn't retry)
-      if (resume.lastAttemptError) {
-        try {
-          const lastError = JSON.parse(resume.lastAttemptError);
-          if (isPermanentErrorType(lastError.type)) {
-            return createErrorResponse(
-              `This resume failed with a permanent error (${lastError.type}). Retrying will not help.`,
-              ERROR_CODES.VALIDATION_ERROR,
-              400,
-              { error_type: lastError.type, error_message: lastError.message },
-            );
-          }
-        } catch {
-          // Ignore parse errors, allow retry
-        }
-      }
-
-      // Verify retry eligibility - status check
-      if (resume.status !== "failed") {
-        return createErrorResponse(
-          "Can only retry failed resumes",
-          ERROR_CODES.VALIDATION_ERROR,
-          400,
-          { current_status: resume.status },
-        );
-      }
-
-      // Check manual retry limit
-      if ((resume.retryCount as number) >= RETRY_LIMITS.MANUAL_MAX_RETRIES) {
-        return createErrorResponse(
-          "Maximum retry limit reached. Please upload a new resume.",
-          ERROR_CODES.RATE_LIMIT_EXCEEDED,
-          429,
-          {
-            max_retries: RETRY_LIMITS.MANUAL_MAX_RETRIES,
-            current_retry_count: resume.retryCount as number,
-          },
+          eligibility.reason,
+          ERROR_CODES[eligibility.errorCode as keyof typeof ERROR_CODES],
+          eligibility.httpStatus,
+          eligibility.details,
         );
       }
 
@@ -224,17 +197,23 @@ export async function POST(request: Request) {
         queuedAt: new Date().toISOString(),
       };
 
+      // TOCTOU guard: for a virtual timeout the row is still `waiting_for_cache`
+      // in the DB, so guard on that status; otherwise guard on `failed`.
+      const statusGuard = isVirtualTimeout
+        ? eq(resumes.status, "waiting_for_cache")
+        : eq(resumes.status, "failed");
+
       const updateResult = await db
         .update(resumes)
         .set(updatePayload)
         .where(
           and(
             eq(resumes.id, resume_id),
-            // TOCTOU guard: only re-queue if the row is STILL "failed" AND still
-            // under the manual-retry cap. A concurrent manual retry, the queue
-            // consumer, or orphan recovery may have moved it between the read
-            // above and this UPDATE.
-            eq(resumes.status, "failed"),
+            // TOCTOU guard: only re-queue if the row is STILL in its expected
+            // status AND still under the manual-retry cap. A concurrent manual
+            // retry, the queue consumer, or orphan recovery may have moved it
+            // between the read above and this UPDATE.
+            statusGuard,
             lt(resumes.retryCount, RETRY_LIMITS.MANUAL_MAX_RETRIES),
           ),
         )
@@ -252,10 +231,16 @@ export async function POST(request: Request) {
 
       const rollbackRetryUpdate = async () => {
         try {
+          // For a virtual timeout the original status was `waiting_for_cache`; a
+          // rollback should restore that, not `failed`, so the row is not left in
+          // a persistently-timed-out state before the cron ticks. For normal
+          // retries the original status was already `failed`, so this is a no-op
+          // change — but keep it explicit for clarity.
+          const rollbackStatus = isVirtualTimeout ? "waiting_for_cache" : "failed";
           await db
             .update(resumes)
             .set({
-              status: "failed",
+              status: rollbackStatus as typeof resumes.$inferInsert.status,
               errorMessage: resume.errorMessage,
               retryCount: previousRetryCount,
               queuedAt: null,
