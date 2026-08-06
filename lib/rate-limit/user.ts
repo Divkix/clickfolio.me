@@ -36,7 +36,9 @@ export async function checkRateLimit(
   const config = RATE_LIMITS[action];
   const windowMs = config.windowHours * 60 * 60 * 1000;
   const windowStart = new Date(Date.now() - windowMs);
-  const resetAt = new Date(Date.now() + windowMs);
+  // Computed from the oldest in-window row + windowMs (correct reset time);
+  // falls back to now + windowMs when no in-window rows exist (or on error).
+  let resetAt = new Date(Date.now() + windowMs);
 
   try {
     const resolvedEnv = existingEnv ?? env;
@@ -44,12 +46,16 @@ export async function checkRateLimit(
 
     // Determine which table and column to query based on action
     let count = 0;
+    let oldest: string | null | undefined;
 
     switch (action) {
       case "handle_change": {
         // Use handle_changes table for tracking handle changes
         const result = await db
-          .select({ count: sql<number>`count(*)` })
+          .select({
+            count: sql<number>`count(*)`,
+            oldest: sql<string>`MIN(${handleChanges.createdAt})`,
+          })
           .from(handleChanges)
           .where(
             and(
@@ -58,17 +64,22 @@ export async function checkRateLimit(
             ),
           );
         count = result[0]?.count ?? 0;
+        oldest = result[0]?.oldest;
         break;
       }
 
       case "resume_upload": {
         const result = await db
-          .select({ count: sql<number>`count(*)` })
+          .select({
+            count: sql<number>`count(*)`,
+            oldest: sql<string>`MIN(${resumes.createdAt})`,
+          })
           .from(resumes)
           .where(
             and(eq(resumes.userId, userId), gte(resumes.createdAt, windowStart.toISOString())),
           );
         count = result[0]?.count ?? 0;
+        oldest = result[0]?.oldest;
         break;
       }
 
@@ -76,6 +87,12 @@ export async function checkRateLimit(
         const _exhaustive: never = action;
         throw new Error(`Unknown rate limit action: ${_exhaustive as string}`);
       }
+    }
+
+    // resetAt = oldest in-window row + windowMs — the actual time the window
+    // (and thus the limit) rolls over, not a fixed now + windowMs.
+    if (oldest) {
+      resetAt = new Date(new Date(oldest).getTime() + windowMs);
     }
 
     const allowed = count < config.limit;

@@ -207,6 +207,15 @@ async function fetchResumeMetadataRaw(handle: string): Promise<ResumeMetadata | 
   const hideFromSearch = parsedSettings.hide_from_search;
   const parsedSkills = parsePreviewSkills(userData.siteData.previewSkills);
 
+  // Filter the denormalized previewLocation at READ time (fixes existing rows
+  // written before the privacy filter existed). When show_address is false the
+  // full address must never reach meta/OG descriptions, so truncate to
+  // city/state — mirroring the content.contact.location filter above.
+  let previewLocation = userData.siteData.previewLocation?.trim() || null;
+  if (previewLocation && !parsedSettings.show_address) {
+    previewLocation = extractCityState(previewLocation) || null;
+  }
+
   // Generate JSON-LD structured data for rich search results
   let jsonLdResumeScript: string | null = null;
   let jsonLdBreadcrumbScript: string | null = null;
@@ -235,7 +244,7 @@ async function fetchResumeMetadataRaw(handle: string): Promise<ResumeMetadata | 
     summary: null,
     avatar_url: userData.image,
     hide_from_search: hideFromSearch,
-    location: userData.siteData.previewLocation?.trim() || null,
+    location: previewLocation,
     skills: parsedSkills.length > 0 ? parsedSkills : null,
     created_at: userData.siteData.createdAt,
     updated_at: userData.siteData.updatedAt,

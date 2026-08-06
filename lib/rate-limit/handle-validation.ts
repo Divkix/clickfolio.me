@@ -35,6 +35,10 @@ export const RESERVED_HANDLES = new Set([
   "_next",
   "static",
   "public",
+  // Scanner-probe tokens anchored in worker/index.ts BLOCKED_PATHS — blocked as
+  // handles so a user can't register /@xmlrpc and confound the scanner probe.
+  "xmlrpc",
+  "adminer",
 ]);
 
 /**

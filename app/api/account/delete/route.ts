@@ -10,6 +10,7 @@ import {
   createSuccessResponse,
   ERROR_CODES,
 } from "@/lib/utils/security-headers";
+import { readJsonWithLimit, validateRequestSize } from "@/lib/utils/validation";
 
 interface DeletionWarning {
   type: "r2";
@@ -26,6 +27,16 @@ interface DeletionWarning {
  * 3. user (CASCADE handles: session, account, resumes, siteData, handleChanges, referralClicks)
  */
 export async function POST(request: Request) {
+  // Validate request size before parsing (prevent DoS)
+  const sizeCheck = validateRequestSize(request);
+  if (!sizeCheck.valid) {
+    return createErrorResponse(
+      sizeCheck.error || "Request body too large",
+      ERROR_CODES.BAD_REQUEST,
+      413,
+    );
+  }
+
   return withUser(
     request,
     async ({ user: authUser, db, captureBookmark, env }) => {
@@ -44,13 +55,16 @@ export async function POST(request: Request) {
       const userId = authUser.id;
       const userEmail = authUser.email;
 
-      // Parse and validate request body
-      let body: unknown;
-      try {
-        body = await request.json();
-      } catch {
-        return createErrorResponse("Invalid JSON in request body", ERROR_CODES.BAD_REQUEST, 400);
+      // Parse and validate request body (size-capped read, no trust in Content-Length)
+      const rawBodyResult = await readJsonWithLimit(request);
+      if (!rawBodyResult.ok) {
+        return createErrorResponse(
+          rawBodyResult.error,
+          ERROR_CODES.BAD_REQUEST,
+          rawBodyResult.reason === "too_large" ? 413 : 400,
+        );
       }
+      const body = rawBodyResult.data;
 
       const parseResult = deleteAccountSchema.safeParse(body);
       if (!parseResult.success) {
@@ -150,6 +164,16 @@ export async function POST(request: Request) {
       responseHeaders.append(
         "Set-Cookie",
         "__Secure-better-auth.session_token=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=Lax",
+      );
+      // Also expire the session_data cookie (both forms). Without this, a deleted
+      // account leaves a ghost session cookie behind (better-auth issue #8273).
+      responseHeaders.append(
+        "Set-Cookie",
+        "better-auth.session_data=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=Lax",
+      );
+      responseHeaders.append(
+        "Set-Cookie",
+        "__Secure-better-auth.session_data=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=Lax",
       );
 
       return new Response(response.body, {

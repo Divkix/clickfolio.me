@@ -274,6 +274,7 @@ vi.mock("drizzle-orm", () => ({
   ),
   eq: vi.fn((_field, value) => ({ op: "eq", value })),
   gt: vi.fn((_field, value) => ({ op: "gt", value })),
+  gte: vi.fn((_field, value) => ({ op: "gte", value })),
   and: vi.fn((...conditions) => ({ op: "and", conditions })),
   or: vi.fn((...conditions) => ({ op: "or", conditions })),
   count: vi.fn(() => ({ op: "count" })),
@@ -424,6 +425,19 @@ describe("API route coverage", () => {
 
     expect((await POST(new Request("https://clickfolio.me/api/email/validate"))).status).toBe(400);
     expect((await POST(jsonRequest("/api/email/validate", { email: "bad" }))).status).toBe(400);
+    // Uncapped-body guards: malformed JSON → 400, oversized → 413.
+    expect(
+      (
+        await POST(
+          new Request("https://clickfolio.me/api/email/validate", { method: "POST", body: "{" }),
+        )
+      ).status,
+    ).toBe(400);
+    mocks.state.requestSize = { valid: false, error: "too large" };
+    expect(
+      (await POST(jsonRequest("/api/email/validate", { email: "a@example.com" }))).status,
+    ).toBe(413);
+    mocks.state.requestSize = { valid: true };
 
     mocks.state.emailRateLimit = { allowed: false, message: "too many" };
     expect(
@@ -567,6 +581,19 @@ describe("API route coverage", () => {
     const { POST, GET, DELETE } = await import("@/app/api/upload/pending/route");
 
     expect((await POST(jsonRequest("/api/upload/pending", { key: "bad/key" }))).status).toBe(400);
+    // Uncapped-body guards: malformed JSON → 400, oversized → 413.
+    expect(
+      (
+        await POST(
+          new Request("https://clickfolio.me/api/upload/pending", { method: "POST", body: "{" }),
+        )
+      ).status,
+    ).toBe(400);
+    mocks.state.requestSize = { valid: false, error: "too large" };
+    expect(
+      (await POST(jsonRequest("/api/upload/pending", { key: "temp/upload.pdf" }))).status,
+    ).toBe(413);
+    mocks.state.requestSize = { valid: true };
 
     // Plan 004 guard: object not found in R2 → 404
     mocks.r2Head.mockResolvedValueOnce({ exists: false });
@@ -708,6 +735,13 @@ describe("API route coverage", () => {
         .status,
     ).toBe(400);
 
+    mocks.state.requestSize = { valid: false, error: "too large" };
+    expect(
+      (await POST(jsonRequest("/api/account/delete", { confirmation: "avery@example.com" })))
+        .status,
+    ).toBe(413);
+    mocks.state.requestSize = { valid: true };
+
     authed();
     mocks.state.selectResults = [[{ r2Key: "one.pdf" }, { r2Key: null }, { r2Key: "two.pdf" }]];
     mocks.r2Delete
@@ -726,6 +760,16 @@ describe("API route coverage", () => {
     expect(mocks.r2Delete).toHaveBeenCalledWith(originalBucket, "two.pdf");
     expect(mocks.db.batch).toHaveBeenCalled();
     expect(success.headers.get("Set-Cookie")).toContain("better-auth.session_token=");
+    // Ghost session cookies must also be expired (better-auth issue #8273).
+    const setCookies = success.headers.getSetCookie();
+    expect(setCookies).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining("better-auth.session_token=; Max-Age=0"),
+        expect.stringContaining("__Secure-better-auth.session_token=; Max-Age=0"),
+        expect.stringContaining("better-auth.session_data=; Max-Age=0"),
+        expect.stringContaining("__Secure-better-auth.session_data=; Max-Age=0"),
+      ]),
+    );
 
     authed();
     mocks.state.selectResults = [[{ r2Key: "three.pdf" }]];
@@ -749,6 +793,13 @@ describe("API route coverage", () => {
       params: Promise.resolve({ handle: "" }),
     });
     expect(emptyHandle.headers.get("Content-Type")).toBe("image/svg+xml");
+
+    // Malformed percent-encoding must not crash with a URIError → static SVG.
+    const malformedHandle = await dynamic.GET(new Request("https://clickfolio.me/api/og/x"), {
+      params: Promise.resolve({ handle: "%E0%A4%A" }),
+    });
+    expect(malformedHandle.status).toBe(200);
+    expect(malformedHandle.headers.get("Content-Type")).toBe("image/svg+xml");
 
     // Unknown handle → static SVG (no resvg).
     mocks.state.selectResults = [[]];
@@ -1075,15 +1126,57 @@ describe("API route coverage", () => {
     expect((await POST(jsonRequest("/api/wizard/complete", validBody))).status).toBe(400);
 
     mocks.state.handleTaken = false;
+    // First-time onboarding: current user is not onboarded yet — exempt from the
+    // handle-changes rate limit and no audit row is inserted (batch stays at 2).
+    mocks.state.selectResults = [[{ handle: null, onboardingCompleted: false }]];
     expect(await (await POST(jsonRequest("/api/wizard/complete", validBody))).json()).toMatchObject(
       {
         success: true,
         handle: "avery",
       },
     );
+    const firstTimeBatch = (
+      vi.mocked(mocks.db.batch).mock.calls.at(-1) as unknown[] | undefined
+    )?.[0] as unknown[];
+    expect(firstTimeBatch).toHaveLength(2);
 
     mocks.db.batch.mockRejectedValueOnce(new Error("UNIQUE constraint failed: user.handle"));
+    mocks.state.selectResults = [[{ handle: "avery", onboardingCompleted: true }]];
     expect((await POST(jsonRequest("/api/wizard/complete", validBody))).status).toBe(409);
+
+    // Re-onboarding with a handle change over the 3/24h limit → 429 (mirrors
+    // PUT /api/profile/handle). The count query consumes a second select result.
+    mocks.db.batch.mockResolvedValue(undefined);
+    mocks.state.selectResults = [
+      [{ handle: "old-handle", onboardingCompleted: true }],
+      [{ count: 3 }],
+    ];
+    expect((await POST(jsonRequest("/api/wizard/complete", validBody))).status).toBe(429);
+
+    // Re-onboarding with a handle change under the limit → audit row inserted
+    // inside the batch (3 statements), success.
+    mocks.state.selectResults = [
+      [{ handle: "old-handle", onboardingCompleted: true }],
+      [{ count: 2 }],
+    ];
+    const changed = await POST(jsonRequest("/api/wizard/complete", validBody));
+    expect(changed.status).toBe(200);
+    const changedBatch = (
+      vi.mocked(mocks.db.batch).mock.calls.at(-1) as unknown[] | undefined
+    )?.[0] as unknown[];
+    expect(changedBatch).toHaveLength(3);
+    const auditInsert = changedBatch[2] as {
+      values: { mock: { calls: Array<[Record<string, unknown>]> } };
+    };
+    expect(auditInsert.values.mock.calls[0]?.[0]).toMatchObject({
+      userId: "user_1",
+      oldHandle: "old-handle",
+      newHandle: "avery",
+    });
+
+    // Re-onboarding with the SAME handle → no rate limit, no audit insert.
+    mocks.state.selectResults = [[{ handle: "avery", onboardingCompleted: true }]];
+    expect((await POST(jsonRequest("/api/wizard/complete", validBody))).status).toBe(200);
   });
 
   it("covers health, client-error, cron, and auth wrappers", async () => {

@@ -1,9 +1,9 @@
-import { eq } from "drizzle-orm";
+import { and, eq, gte, sql } from "drizzle-orm";
 import type { z } from "zod";
 import { withUser } from "@/lib/auth/with-auth";
 import { captureServerEvent } from "@/lib/posthog-server";
 
-import { siteData, user } from "@/lib/db/schema";
+import { handleChanges, siteData, user } from "@/lib/db/schema";
 import { isHandleTaken } from "@/lib/rate-limit/handle-validation";
 import { buildWizardCompleteSchema } from "@/lib/schemas/profile";
 import { verifyThemeUnlocked } from "@/lib/templates/theme-access";
@@ -104,6 +104,46 @@ export async function POST(request: Request) {
         );
       }
 
+      // Re-onboarding handle change: enforce the same 3/24h handle_changes rate
+      // limit as PUT /api/profile/handle, and record the audit row in the same
+      // batch below. First-time onboarding (onboardingCompleted=false) is exempt —
+      // the initial handle set has no prior value and is not rate-limited.
+      const currentUserRow = await db
+        .select({
+          handle: user.handle,
+          onboardingCompleted: user.onboardingCompleted,
+        })
+        .from(user)
+        .where(eq(user.id, authUser.id))
+        .limit(1);
+
+      const currentHandle = currentUserRow[0]?.handle ?? null;
+      const wasOnboarded = currentUserRow[0]?.onboardingCompleted === true;
+      const isHandleChange = wasOnboarded && currentHandle !== body.handle;
+
+      if (isHandleChange) {
+        const windowStart = new Date(Date.now() - 24 * 60 * 60 * 1000);
+        // Count changes in SQL instead of fetching all rows (mirrors profile/handle).
+        const countResult = await db
+          .select({ count: sql<number>`count(*)` })
+          .from(handleChanges)
+          .where(
+            and(
+              eq(handleChanges.userId, authUser.id),
+              gte(handleChanges.createdAt, windowStart.toISOString()),
+            ),
+          );
+        const changesIn24h = countResult[0]?.count ?? 0;
+
+        if (changesIn24h >= 3) {
+          return createErrorResponse(
+            "Rate limit exceeded. Maximum 3 handle changes per 24 hours.",
+            ERROR_CODES.RATE_LIMIT_EXCEEDED,
+            429,
+          );
+        }
+      }
+
       // Update user + upsert siteData atomically via db.batch().
       // Wrapped in try-catch to handle race condition on unique constraint.
       const privacySettings = JSON.stringify(body.privacy_settings);
@@ -139,6 +179,19 @@ export async function POST(request: Request) {
                 updatedAt: now,
               },
             }),
+          // Audit the handle change atomically with the write, mirroring the
+          // profile/handle route. First-time onboarding skips this insert.
+          ...(isHandleChange
+            ? [
+                db.insert(handleChanges).values({
+                  id: crypto.randomUUID(),
+                  userId: authUser.id,
+                  oldHandle: currentHandle, // nullable: a first-time set has no prior value
+                  newHandle: body.handle,
+                  createdAt: now,
+                }),
+              ]
+            : []),
         ]);
       } catch (error) {
         // Check if it's a unique constraint violation (race condition on handle)
