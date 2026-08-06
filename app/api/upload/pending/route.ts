@@ -29,6 +29,7 @@ import {
   createSuccessResponse,
   ERROR_CODES,
 } from "@/lib/utils/security-headers";
+import { readJsonWithLimit, validateRequestSize } from "@/lib/utils/validation";
 
 /**
  * POST - Set pending upload cookie after R2 upload
@@ -41,8 +42,27 @@ export async function POST(request: Request) {
     const typedEnv = env as CloudflareEnv;
     const secret = getEnvValue(typedEnv, "BETTER_AUTH_SECRET");
 
-    const body = (await request.json()) as { key?: string };
-    const { key } = body;
+    // Validate request size before parsing (prevent DoS)
+    const sizeCheck = validateRequestSize(request);
+    if (!sizeCheck.valid) {
+      return createErrorResponse(
+        sizeCheck.error || "Request body too large",
+        ERROR_CODES.BAD_REQUEST,
+        413,
+      );
+    }
+
+    // Parse and validate request body (size-capped read, no trust in Content-Length)
+    const rawBodyResult = await readJsonWithLimit(request);
+    if (!rawBodyResult.ok) {
+      return createErrorResponse(
+        rawBodyResult.error,
+        ERROR_CODES.BAD_REQUEST,
+        rawBodyResult.reason === "too_large" ? 413 : 400,
+      );
+    }
+    const body = rawBodyResult.data as { key?: string };
+    const { key } = body ?? {};
 
     // Validate the key format (must be temp upload)
     if (!key || typeof key !== "string" || !key.startsWith("temp/")) {

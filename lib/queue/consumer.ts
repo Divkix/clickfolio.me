@@ -1,9 +1,10 @@
-import { and, eq, inArray, isNotNull } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, ne } from "drizzle-orm";
 import { buildSiteDataUpsert } from "../data/site-data-upsert";
 import type { UserRole } from "../db/schema";
 import { resumes, user } from "../db/schema";
 import { getSessionDbForWebhook } from "../db/session";
 import { getR2Binding, R2 } from "../r2";
+import { getAlertChannel, sendAlert, type AlertEnv } from "./alert";
 import { classifyQueueError, isRetryableError } from "./errors";
 import { notifyStatusChange, notifyStatusChangeBatch } from "./notify-status";
 import type { QueueMessage, ResumeParseMessage } from "./types";
@@ -44,9 +45,7 @@ function getUserFriendlyError(rawError: string): string {
  * Full flow:
  * 1. **Cache lookup** — query for a completed resume with the same `fileHash` to
  *    avoid re-parsing identical PDFs.
- * 2. **Staged content** — if a previous attempt left `parsedContentStaged`, use it
- *    directly (idempotency / recovery from a crash after parse but before completion).
- * 3. **Waiting-for-cache fan-out** — after marking the current resume as completed,
+ * 2. **Waiting-for-cache fan-out** — after marking the current resume as completed,
  *    find all other resumes waiting on the same `fileHash` and complete them in a
  *    batch update + siteData upsert, then notify all connected clients.
  */
@@ -61,12 +60,11 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
   // Run status check and cache-by-fileHash lookup in parallel.
   // The cache query is cheap (indexed on fileHash+status) and rarely wasted.
   const [currentResume, cached] = await Promise.all([
-    // Check for staged content from previous attempt (idempotency)
+    // Check the resume row still exists and its current state
     db
       .select({
         status: resumes.status,
         parsedContent: resumes.parsedContent,
-        parsedContentStaged: resumes.parsedContentStaged,
         totalAttempts: resumes.totalAttempts,
       })
       .from(resumes)
@@ -88,38 +86,18 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
       .limit(1),
   ]);
 
-  // If already completed with parsed content, skip (full idempotency)
-  if (currentResume[0]?.status === "completed" && currentResume[0]?.parsedContent) {
-    log("info", "resume already completed, skipping", { resumeId: message.resumeId });
+  // Resume row no longer exists (e.g. the account was deleted while the message
+  // sat in the queue). Skip instead of parsing: the parse would throw an FK
+  // violation on the siteData upsert and burn 3 wasted retries before landing in
+  // the DLQ with a false DLQ_ALERT.
+  if (!currentResume[0]) {
+    log("info", "resume not found, skipping parse", { resumeId: message.resumeId });
     return;
   }
 
-  // If staged content exists, use it instead of re-parsing
-  if (currentResume[0]?.parsedContentStaged) {
-    log("info", "using staged content for resume", { resumeId: message.resumeId });
-    const now = new Date().toISOString();
-    const stagedContent = currentResume[0].parsedContentStaged as string;
-
-    // M7: Batch resume completion + siteData upsert atomically
-    await db.batch([
-      db
-        .update(resumes)
-        .set({
-          status: "completed",
-          parsedAt: now,
-          parsedContent: stagedContent,
-          parsedContentStaged: null,
-          lastAttemptError: null,
-        })
-        .where(eq(resumes.id, message.resumeId)),
-      buildSiteDataUpsert(db, message.userId, message.resumeId, stagedContent, now),
-    ]);
-
-    await notifyStatusChange({
-      resumeId: message.resumeId,
-      status: "completed",
-      env,
-    });
+  // If already completed with parsed content, skip (full idempotency)
+  if (currentResume[0]?.status === "completed" && currentResume[0]?.parsedContent) {
+    log("info", "resume already completed, skipping", { resumeId: message.resumeId });
     return;
   }
 
@@ -259,6 +237,11 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
   // leaves some resumes marked "completed" with no siteData, and the
   // idempotency guard at line 93 skips them on retry.
   if (waitingResumes.length > 0) {
+    // Scope the bulk UPDATE to the EXACT ids we upsert siteData for (inArray on
+    // the SELECTed ids, not fileHash+status): a row that flips to
+    // waiting_for_cache between the SELECT and this UPDATE must NOT be completed
+    // here — it would be marked "completed" with no siteData upsert. It safely
+    // times out in /api/resume/status → failed → manual retry instead.
     await db.batch([
       db
         .update(resumes)
@@ -269,7 +252,10 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
           parsedContentStaged: null,
         })
         .where(
-          and(eq(resumes.fileHash, message.fileHash), eq(resumes.status, "waiting_for_cache")),
+          inArray(
+            resumes.id,
+            waitingResumes.map((w) => w.id as string),
+          ),
         ),
       ...waitingResumes.map((w) =>
         buildSiteDataUpsert(db, w.userId as string, w.id as string, parsedContent, now),
@@ -319,7 +305,10 @@ export async function handleQueueMessage(message: QueueMessage, env: CloudflareE
     const isRetryable = isRetryableError(error);
 
     if (!isRetryable) {
-      // Non-retryable error - mark as permanently failed
+      // Non-retryable error - mark as permanently failed.
+      // Guard on status != completed (mirrors the DLQ consumer): the resume may
+      // have completed via a concurrent path (cache hit / fan-out) between the
+      // parse throw and this UPDATE — never clobber a completed row.
       const classifiedError = classifyQueueError(error);
       await db
         .update(resumes)
@@ -328,13 +317,30 @@ export async function handleQueueMessage(message: QueueMessage, env: CloudflareE
           // Issue #91 Fix: Store JSON format for DLQ/retry consumers to parse
           lastAttemptError: JSON.stringify(classifiedError.toJSON()),
         })
-        .where(eq(resumes.id, message.resumeId));
+        .where(and(ne(resumes.status, "completed"), eq(resumes.id, message.resumeId)));
       await notifyStatusChange({
         resumeId: message.resumeId,
         status: "failed",
         error: classifiedError.message,
         env,
       });
+
+      // Permanent errors are acked (discarded) by the worker and never reach the
+      // DLQ, so the consumer is the ONLY place that can alert for them. Without
+      // this, permanent failures (invalid_pdf, file_not_found, ...) never alert.
+      const alertEnv = env as AlertEnv;
+      await sendAlert(
+        {
+          resumeId: message.resumeId,
+          userId: message.userId,
+          failureReason: classifiedError.message,
+          errorType: classifiedError.type,
+          totalAttempts: message.attempt,
+          timestamp: new Date().toISOString(),
+        },
+        getAlertChannel(alertEnv.ALERT_CHANNEL),
+        alertEnv,
+      );
     } else {
       // Retryable error - just record the error for debugging, don't change status
       const classifiedError = classifyQueueError(error);

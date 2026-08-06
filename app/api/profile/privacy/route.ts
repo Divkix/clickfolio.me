@@ -8,6 +8,7 @@ import {
   createSuccessResponse,
   ERROR_CODES,
 } from "@/lib/utils/security-headers";
+import { readJsonWithLimit, validateRequestSize } from "@/lib/utils/validation";
 
 /**
  * PUT /api/profile/privacy
@@ -21,21 +22,34 @@ import {
  *
  * Error codes:
  *   - 400: invalid JSON or validation failure
+ *   - 413: request body too large
  *   - 500: unexpected error
  */
 export async function PUT(request: Request) {
+  // Validate request size before parsing (prevent DoS)
+  const sizeCheck = validateRequestSize(request);
+  if (!sizeCheck.valid) {
+    return createErrorResponse(
+      sizeCheck.error || "Request body too large",
+      ERROR_CODES.BAD_REQUEST,
+      413,
+    );
+  }
+
   return withUser(
     request,
     async ({ user: authUser, db, captureBookmark }) => {
-      // Parse and validate request body
-      let body;
-      try {
-        body = await request.json();
-      } catch {
-        return createErrorResponse("Invalid JSON in request body", ERROR_CODES.BAD_REQUEST, 400);
+      // Parse and validate request body (size-capped read, no trust in Content-Length)
+      const rawBodyResult = await readJsonWithLimit(request);
+      if (!rawBodyResult.ok) {
+        return createErrorResponse(
+          rawBodyResult.error,
+          ERROR_CODES.BAD_REQUEST,
+          rawBodyResult.reason === "too_large" ? 413 : 400,
+        );
       }
 
-      const validation = privacySettingsSchema.safeParse(body);
+      const validation = privacySettingsSchema.safeParse(rawBodyResult.data);
 
       if (!validation.success) {
         return createErrorResponse(

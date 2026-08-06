@@ -124,6 +124,28 @@ describe("auth form flows", () => {
     expect(screen.getByRole("button", { name: /create account/i })).toBeDisabled();
   });
 
+  it("clears the disposable-email error when the email input changes", async () => {
+    globalThis.fetch = vi.fn(async () =>
+      Response.json({ valid: false, reason: "Please use a permanent email address" }),
+    ) as unknown as typeof fetch;
+
+    render(<SignUpForm />);
+    const email = screen.getByLabelText("Email");
+    await userEvent.type(email, "temp@example.com");
+    email.blur();
+
+    await waitFor(() =>
+      expect(screen.getByText("Please use a permanent email address")).toBeInTheDocument(),
+    );
+    expect(screen.getByRole("button", { name: /create account/i })).toBeDisabled();
+
+    // Typing a new address clears the stale disposable-email error and
+    // re-enables submission
+    await userEvent.type(email, "2");
+    expect(screen.queryByText("Please use a permanent email address")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /create account/i })).toBeEnabled();
+  });
+
   it("creates an account and redirects to the requested callback URL", async () => {
     const onSuccess = vi.fn();
     render(<SignUpForm callbackURL="/wizard?from=test" onSuccess={onSuccess} />);

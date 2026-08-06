@@ -2,7 +2,10 @@ import type { ResumeContentFormData } from "@/lib/schemas/resume";
 import { sanitizeEmail } from "@/lib/utils/sanitization";
 
 // Pre-compiled regex for URL validation (avoid per-call compilation overhead)
-const REPEATING_SEGMENT_PATTERN = /\/([^/]+)\/\1(?:\/|$)/;
+// Requires a path segment to appear THREE times consecutively before the URL is
+// treated as pathological. A single repeated pair (e.g. `github.com/user/user`)
+// is legitimate GitHub-style and must NOT be rejected.
+const REPEATING_SEGMENT_PATTERN = /\/([^/]+)\/\1\/\1(?:\/|$)/;
 
 /**
  * Normalize URL - add protocol if missing, return empty string if invalid
@@ -160,7 +163,10 @@ export function transformAiResponse(raw: unknown): Record<string, unknown> {
         e.company.trim().length > 0 &&
         e.start_date &&
         typeof e.start_date === "string" &&
-        e.start_date.trim().length > 0
+        e.start_date.trim().length > 0 &&
+        e.description &&
+        typeof e.description === "string" &&
+        e.description.trim().length > 0
       );
     });
     for (const exp of data.experience as Record<string, unknown>[]) {
@@ -170,6 +176,11 @@ export function transformAiResponse(raw: unknown): Record<string, unknown> {
       exp.start_date = truncateString(normalizeString(exp.start_date), 50);
       exp.end_date = truncateString(normalizeEndDate(exp.end_date), 50);
       exp.description = truncateString(normalizeString(exp.description), 2000);
+      // Coerce a plain string highlight into a single-element array to match
+      // the schema's highlights: string[] shape.
+      if (typeof exp.highlights === "string") {
+        exp.highlights = [exp.highlights];
+      }
       if (Array.isArray(exp.highlights)) {
         exp.highlights = exp.highlights
           .filter((h): h is string => typeof h === "string" && h.trim().length > 0)
@@ -185,7 +196,14 @@ export function transformAiResponse(raw: unknown): Record<string, unknown> {
     data.education = data.education.filter((edu) => {
       if (!edu || typeof edu !== "object") return false;
       const e = edu as Record<string, unknown>;
-      return e.degree && typeof e.degree === "string" && e.degree.trim().length > 0;
+      return (
+        e.degree &&
+        typeof e.degree === "string" &&
+        e.degree.trim().length > 0 &&
+        e.institution &&
+        typeof e.institution === "string" &&
+        e.institution.trim().length > 0
+      );
     });
     for (const edu of data.education as Record<string, unknown>[]) {
       edu.degree = truncateString(normalizeString(edu.degree), 150);
@@ -222,7 +240,14 @@ export function transformAiResponse(raw: unknown): Record<string, unknown> {
     data.certifications = data.certifications.filter((cert) => {
       if (!cert || typeof cert !== "object") return false;
       const c = cert as Record<string, unknown>;
-      return c.name && typeof c.name === "string" && c.name.trim().length > 0;
+      return (
+        c.name &&
+        typeof c.name === "string" &&
+        c.name.trim().length > 0 &&
+        c.issuer &&
+        typeof c.issuer === "string" &&
+        c.issuer.trim().length > 0
+      );
     });
     for (const cert of data.certifications as Record<string, unknown>[]) {
       cert.name = truncateString(normalizeString(cert.name), 150);
@@ -236,7 +261,14 @@ export function transformAiResponse(raw: unknown): Record<string, unknown> {
     data.projects = data.projects.filter((proj) => {
       if (!proj || typeof proj !== "object") return false;
       const p = proj as Record<string, unknown>;
-      return p.title && typeof p.title === "string" && p.title.trim().length > 0;
+      return (
+        p.title &&
+        typeof p.title === "string" &&
+        p.title.trim().length > 0 &&
+        p.description &&
+        typeof p.description === "string" &&
+        p.description.trim().length > 0
+      );
     });
     for (const proj of data.projects as Record<string, unknown>[]) {
       proj.title = truncateString(normalizeString(proj.title), 150);

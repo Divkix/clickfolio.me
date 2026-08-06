@@ -81,9 +81,15 @@ describe("validateUrl", () => {
     expect(validateUrl(longUrl)).toBe("");
   });
 
-  it("returns empty string for URLs with repeating path segments", () => {
-    const urlWithRepeats = "https://example.com/a/a/b/b/c";
+  it("returns empty string for URLs with >=2 consecutive repeating path segments", () => {
+    const urlWithRepeats = "https://example.com/a/a/a/b/c";
     expect(validateUrl(urlWithRepeats)).toBe("");
+  });
+
+  it("accepts a single repeated path segment pair (GitHub-style)", () => {
+    expect(validateUrl("https://github.com/user/user")).toBe("https://github.com/user/user");
+    expect(validateUrl("github.com/user/user")).toBe("https://github.com/user/user");
+    expect(validateUrl("https://example.com/a/a/b/b/c")).toBe("https://example.com/a/a/b/b/c");
   });
 
   it("returns empty string for URLs with excessive path depth", () => {
@@ -309,6 +315,58 @@ describe("transformAiResponse", () => {
     expect(result.experience[0].title).toBe("Engineer");
   });
 
+  it("filters experience missing description (schema requires it)", () => {
+    const data = {
+      experience: [
+        { title: "Engineer", company: "Acme", start_date: "2020", description: "" },
+        { title: "Engineer", company: "Acme", start_date: "2020" },
+        {
+          title: "Engineer",
+          company: "Acme",
+          start_date: "2020",
+          description: "Has a description",
+        },
+      ],
+    };
+    const result = transformAiResponse(data) as any;
+    expect(result.experience).toHaveLength(1);
+    expect(result.experience[0].description).toBe("Has a description");
+  });
+
+  it("coerces a plain-string highlights field into a single-element array", () => {
+    const data = {
+      experience: [
+        {
+          title: "Engineer",
+          company: "Acme",
+          start_date: "2020",
+          description: "Did things.",
+          highlights: "Shipped the thing",
+        },
+      ],
+    };
+    const result = transformAiResponse(data) as any;
+    expect(Array.isArray(result.experience[0].highlights)).toBe(true);
+    expect(result.experience[0].highlights).toEqual(["Shipped the thing"]);
+  });
+
+  it("truncates a coerced string highlight to 500 chars", () => {
+    const data = {
+      experience: [
+        {
+          title: "Engineer",
+          company: "Acme",
+          start_date: "2020",
+          description: "Did things.",
+          highlights: "a".repeat(600),
+        },
+      ],
+    };
+    const result = transformAiResponse(data) as any;
+    expect(Array.isArray(result.experience[0].highlights)).toBe(true);
+    expect(result.experience[0].highlights[0].length).toBeLessThanOrEqual(503);
+  });
+
   it("truncates experience fields", () => {
     const data = {
       experience: [
@@ -334,16 +392,18 @@ describe("transformAiResponse", () => {
     expect(exp.highlights[0].length).toBeLessThanOrEqual(503);
   });
 
-  it("filters education missing degree", () => {
+  it("filters education missing degree or institution", () => {
     const data = {
       education: [
         { degree: "", institution: "MIT" },
+        { degree: "BS", institution: "" },
         { degree: "BS", institution: "Stanford" },
       ],
     };
     const result = transformAiResponse(data) as any;
     expect(result.education).toHaveLength(1);
     expect(result.education[0].degree).toBe("BS");
+    expect(result.education[0].institution).toBe("Stanford");
   });
 
   it("filters skills missing category or items", () => {
@@ -367,22 +427,24 @@ describe("transformAiResponse", () => {
     expect(result.skills[0].items).toEqual(["JS", "Python"]);
   });
 
-  it("filters certifications missing name", () => {
+  it("filters certifications missing name or issuer", () => {
     const data = {
       certifications: [
         { name: "", issuer: "AWS" },
-        { name: "Solutions Architect", issuer: "AWS" },
+        { name: "Solutions Architect", issuer: "" },
+        { name: "Valid Cert", issuer: "AWS" },
       ],
     };
     const result = transformAiResponse(data) as any;
     expect(result.certifications).toHaveLength(1);
+    expect(result.certifications[0].name).toBe("Valid Cert");
   });
 
   it("validates certification URLs", () => {
     const data = {
       certifications: [
-        { name: "Cert", url: "javascript:alert(1)" },
-        { name: "Valid Cert", url: "https://example.com" },
+        { name: "Cert", issuer: "AWS", url: "javascript:alert(1)" },
+        { name: "Valid Cert", issuer: "AWS", url: "https://example.com" },
       ],
     };
     const result = transformAiResponse(data) as any;
@@ -390,22 +452,24 @@ describe("transformAiResponse", () => {
     expect(result.certifications[1].url).toBe("https://example.com");
   });
 
-  it("filters projects missing title", () => {
+  it("filters projects missing title or description", () => {
     const data = {
       projects: [
         { title: "", description: "A project" },
         { title: "Cool App", description: "" },
+        { title: "Valid App", description: "Does things." },
       ],
     };
     const result = transformAiResponse(data) as any;
     expect(result.projects).toHaveLength(1);
+    expect(result.projects[0].title).toBe("Valid App");
   });
 
   it("validates project URLs", () => {
     const data = {
       projects: [
-        { title: "Bad Project", url: "javascript:alert(1)" },
-        { title: "Good Project", url: "https://example.com" },
+        { title: "Bad Project", description: "A project", url: "javascript:alert(1)" },
+        { title: "Good Project", description: "A project", url: "https://example.com" },
       ],
     };
     const result = transformAiResponse(data) as any;
@@ -418,6 +482,7 @@ describe("transformAiResponse", () => {
       projects: [
         {
           title: "Project",
+          description: "A project",
           technologies: ["React", "", "  ", "Node"],
         },
       ],
@@ -428,7 +493,7 @@ describe("transformAiResponse", () => {
 
   it("validates project image_url", () => {
     const data = {
-      projects: [{ title: "Project", image_url: "javascript:alert(1)" }],
+      projects: [{ title: "Project", description: "A project", image_url: "javascript:alert(1)" }],
     };
     const result = transformAiResponse(data) as any;
     expect(result.projects[0].image_url).toBe("");

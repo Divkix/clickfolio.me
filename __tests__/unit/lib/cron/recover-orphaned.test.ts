@@ -46,8 +46,10 @@ function selectChain(rows: Row[], whereCaptures: unknown[]) {
   };
 }
 
-function createMocks() {
+function createMocks(options: { changes?: number } = {}) {
+  const changes = options.changes ?? 1;
   const whereCaptures: unknown[] = [];
+  const updateWhereCaptures: unknown[] = [];
   const setCalls: Row[] = [];
 
   const db = {
@@ -55,7 +57,12 @@ function createMocks() {
     update: vi.fn().mockReturnValue({
       set: vi.fn().mockImplementation((arg: Row) => {
         setCalls.push(arg);
-        return { where: vi.fn().mockResolvedValue({ meta: { changes: 1 } }) };
+        return {
+          where: vi.fn().mockImplementation((cond: unknown) => {
+            updateWhereCaptures.push(cond);
+            return Promise.resolve({ meta: { changes } });
+          }),
+        };
       }),
     }),
   };
@@ -70,7 +77,7 @@ function createMocks() {
       .mockReturnValueOnce(selectChain(queued, whereCaptures));
   };
 
-  return { db, queue, whereCaptures, setCalls, setBuckets };
+  return { db, queue, whereCaptures, updateWhereCaptures, setCalls, setBuckets };
 }
 
 function run(db: unknown, queue: unknown) {
@@ -170,5 +177,74 @@ describe("recoverOrphanedResumes — queued orphan recovery", () => {
     expect(queue.send).not.toHaveBeenCalled();
     // Skipped before any DB write — no status change attempted.
     expect(setCalls).toHaveLength(0);
+  });
+
+  it("skips publishing when the re-queue UPDATE affects 0 rows (TOCTOU)", async () => {
+    const { db, queue, setCalls, setBuckets } = createMocks({ changes: 0 });
+    const queuedOrphan: Row = {
+      id: "resume-race",
+      userId: "user-1",
+      r2Key: "uploads/race.pdf",
+      fileHash: "hash-race",
+      totalAttempts: 1,
+    };
+    setBuckets([], [], [queuedOrphan]);
+
+    const result = await run(db, queue);
+
+    expect(result.ok).toBe(true);
+    expect(result.recovered).toBe(0);
+    expect(result.found).toBe(1);
+    // The re-queue SET was attempted but 0 rows matched — the row moved on
+    // (consumer / manual retry / earlier recovery pass), so no publish.
+    expect(setCalls.some((c) => c.status === "queued")).toBe(true);
+    expect(queue.send).not.toHaveBeenCalled();
+  });
+
+  it("guards the re-queue UPDATE and the rollback on the originally-selected status", async () => {
+    const { db, queue, updateWhereCaptures, setBuckets } = createMocks();
+    const queuedOrphan: Row = {
+      id: "resume-race2",
+      userId: "user-1",
+      r2Key: "uploads/race2.pdf",
+      fileHash: "hash-race2",
+      totalAttempts: 1,
+    };
+    setBuckets([], [], [queuedOrphan]);
+    queue.send.mockRejectedValueOnce(new Error("Queue unavailable"));
+
+    const result = await run(db, queue);
+
+    expect(result.recovered).toBe(0);
+    // updateWhereCaptures order: [requeue guard, rollback guard].
+    expect(updateWhereCaptures).toHaveLength(2);
+    const requeueCols = collectColumns(updateWhereCaptures[0]);
+    expect(requeueCols.has("status")).toBe(true);
+    expect(requeueCols.has("id")).toBe(true);
+    const rollbackCols = collectColumns(updateWhereCaptures[1]);
+    expect(rollbackCols.has("status")).toBe(true);
+    expect(rollbackCols.has("id")).toBe(true);
+  });
+
+  it("does not increment totalAttempts during recovery (consumer counts actual attempts)", async () => {
+    const { db, queue, setCalls, setBuckets } = createMocks();
+    const queuedOrphan: Row = {
+      id: "resume-noinc",
+      userId: "user-1",
+      r2Key: "uploads/noinc.pdf",
+      fileHash: "hash-noinc",
+      totalAttempts: 3,
+    };
+    setBuckets([], [], [queuedOrphan]);
+
+    const result = await run(db, queue);
+
+    expect(result.recovered).toBe(1);
+    expect(queue.send).toHaveBeenCalledTimes(1);
+    const requeue = setCalls.find((c) => c.status === "queued");
+    expect(requeue).toBeDefined();
+    // Regression: the old code bumped totalAttempts here AND the queue consumer
+    // bumps it again per actual attempt, double-counting every recovered resume.
+    expect(requeue).not.toHaveProperty("totalAttempts");
   });
 });

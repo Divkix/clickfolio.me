@@ -272,19 +272,40 @@ describe("checkIPRateLimit - Production Rate Limiting", () => {
     expect(result.remaining).toEqual({ hourly: 1, daily: 1 });
   });
 
-  it("records request on success", async () => {
-    const valuesMock = vi.fn().mockResolvedValue(undefined);
+  it("records request on success via atomic conditional insert", async () => {
     mockDb.select.mockReturnValue({
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue([{ hourly: 0, daily: 0 }]),
       }),
     } as never);
-    mockDb.insert.mockReturnValue({ values: valuesMock } as never);
 
     await checkIPRateLimit("192.168.1.1");
 
-    expect(mockDb.insert).toHaveBeenCalled();
-    expect(valuesMock).toHaveBeenCalledWith(expect.objectContaining({ actionType: "upload" }));
+    // The count-then-insert path was replaced by a single atomic
+    // INSERT ... SELECT via the raw D1 client (item 21).
+    expect(mockDb.$client.prepare).toHaveBeenCalledWith(
+      expect.stringContaining("INSERT INTO upload_rate_limits"),
+    );
+    expect(mockDb.insert).not.toHaveBeenCalled();
+    const bindMock = mockDb.$client.prepare.mock.results[0]?.value.bind as ReturnType<typeof vi.fn>;
+    expect(bindMock).toHaveBeenCalled();
+    expect(bindMock.mock.calls[0]).toContain("upload");
+  });
+
+  it("enforces the daily limit in the atomic upload insert", async () => {
+    mockDb.select.mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue([{ hourly: 0, daily: 49 }]),
+      }),
+    } as never);
+
+    await checkIPRateLimit("192.168.1.1");
+
+    const sql = mockDb.$client.prepare.mock.calls[0]?.[0] as string;
+    expect(sql).toContain("created_at >= ?");
+    expect(sql.match(/created_at >= \?/g)).toHaveLength(2);
+    const bindMock = mockDb.$client.prepare.mock.results[0]?.value.bind as ReturnType<typeof vi.fn>;
+    expect(bindMock.mock.calls[0]).toContain(50);
   });
 
   it("counts only upload actions toward anonymous upload limits", async () => {
@@ -299,19 +320,80 @@ describe("checkIPRateLimit - Production Rate Limiting", () => {
     expect(vi.mocked(eq).mock.calls.some(([, value]) => value === "upload")).toBe(true);
   });
 
+  it("does not bypass limits for unknown IPs (item 20)", async () => {
+    // "unknown" (getClientIP fallback) is no longer in LOCAL_IPS — it must be
+    // bucketed + limited like any other IP.
+    mockDb.select.mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue([{ hourly: 10, daily: 10 }]),
+      }),
+    } as never);
+
+    const result = await checkIPRateLimit("unknown");
+
+    expect(result.allowed).toBe(false);
+    expect(mockDb.select).toHaveBeenCalled();
+  });
+
+  it("allows unknown IPs that are under the limit (still consults the DB)", async () => {
+    mockDb.select.mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue([{ hourly: 0, daily: 0 }]),
+      }),
+    } as never);
+
+    const result = await checkIPRateLimit("unknown");
+
+    expect(result.allowed).toBe(true);
+    expect(mockDb.$client.prepare).toHaveBeenCalled();
+  });
+
   it("still allows request when record fails (fail open)", async () => {
     mockDb.select.mockReturnValue({
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue([{ hourly: 0, daily: 0 }]),
       }),
     } as never);
-    mockDb.insert.mockImplementation(() => {
+    mockDb.$client.prepare.mockImplementation(() => {
       throw new Error("Insert failed");
     });
 
     const result = await checkIPRateLimit("192.168.1.1");
 
     expect(result.allowed).toBe(true);
+
+    // Restore the default insert path for subsequent tests.
+    mockDb.$client.prepare.mockReturnValue({
+      bind: vi.fn().mockReturnValue({
+        run: vi.fn().mockResolvedValue({ meta: { changes: 1 } }),
+      }),
+    });
+  });
+
+  it("denies when the atomic conditional insert records 0 changes (item 21)", async () => {
+    // Count says under the limit, but a concurrent request won the last slot.
+    mockDb.select.mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue([{ hourly: 3, daily: 20 }]),
+      }),
+    } as never);
+    mockDb.$client.prepare.mockReturnValue({
+      bind: vi.fn().mockReturnValue({
+        run: vi.fn().mockResolvedValue({ meta: { changes: 0 } }),
+      }),
+    });
+
+    const result = await checkIPRateLimit("192.168.1.1");
+
+    expect(result.allowed).toBe(false);
+    expect(result.message).toContain("Try again in an hour");
+
+    // Restore the default insert path for subsequent tests.
+    mockDb.$client.prepare.mockReturnValue({
+      bind: vi.fn().mockReturnValue({
+        run: vi.fn().mockResolvedValue({ meta: { changes: 1 } }),
+      }),
+    });
   });
 
   it("generates consistent IP hash for same IP", async () => {
@@ -403,12 +485,12 @@ describe("checkHandleRateLimit - Production", () => {
         where: vi.fn().mockResolvedValue([{ count: 0 }]),
       }),
     } as never);
-    const insertMock = vi.fn().mockReturnValue({ values: vi.fn().mockResolvedValue(undefined) });
-    mockDb.insert.mockReturnValue(insertMock as never);
 
     await checkHandleRateLimit("192.168.1.1");
 
-    expect(mockDb.insert).toHaveBeenCalled();
+    expect(mockDb.$client.prepare).toHaveBeenCalled();
+    const bindMock = mockDb.$client.prepare.mock.results[0]?.value.bind as ReturnType<typeof vi.fn>;
+    expect(bindMock.mock.calls[0]).toContain("handle_check");
   });
 });
 

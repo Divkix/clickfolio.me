@@ -117,6 +117,55 @@ describe("queue error handling", () => {
       expect(classifyQueueError(null).type).toBe(QueueErrorType.UNKNOWN);
     });
 
+    it("classifies a too-many-pages PDF as permanent invalid_pdf", () => {
+      // Mirrors lib/ai/pdf-extract.ts's exact message text.
+      const error = classifyQueueError(
+        new Error("PDF has 60 pages (maximum 50). Please upload a shorter document."),
+      );
+
+      expect(error.type).toBe(QueueErrorType.INVALID_PDF);
+      expect(error.isRetryable()).toBe(false);
+    });
+
+    it("does not treat D1 constraint failures as retryable", () => {
+      // "D1_ERROR" alone is retryable; a FK/UNIQUE constraint violation can never
+      // succeed on retry and must classify as a permanent error instead.
+      const constraintError = classifyQueueError(
+        new Error("D1_ERROR: FOREIGN KEY constraint failed"),
+      );
+      expect(constraintError.type).toBe(QueueErrorType.PARSE_VALIDATION_ERROR);
+      expect(constraintError.isRetryable()).toBe(false);
+
+      const uniqueError = classifyQueueError(new Error("UNIQUE constraint failed: resumes.id"));
+      expect(uniqueError.isRetryable()).toBe(false);
+
+      // Plain connection errors stay retryable.
+      expect(classifyQueueError(new Error("D1_ERROR: connection refused")).isRetryable()).toBe(
+        true,
+      );
+    });
+
+    it("matches a bare 404 but not a 404 embedded in a longer number", () => {
+      expect(classifyQueueError(new Error("object not found, status 404")).type).toBe(
+        QueueErrorType.FILE_NOT_FOUND,
+      );
+      expect(classifyQueueError({ status: 404 }).type).toBe(QueueErrorType.FILE_NOT_FOUND);
+      // "4040" must not match the file-not-found pattern.
+      expect(classifyQueueError(new Error("HTTP 4040"))).not.toBe(QueueErrorType.FILE_NOT_FOUND);
+    });
+
+    it.each([
+      ["Cannot connect to API: fetch failed", QueueErrorType.AI_PROVIDER_ERROR],
+      ["Failed to process error response", QueueErrorType.AI_PROVIDER_ERROR],
+      ["Failed to process successful response", QueueErrorType.AI_PROVIDER_ERROR],
+      ["AI_APICallError: request to provider failed", QueueErrorType.AI_PROVIDER_ERROR],
+    ])("classifies AI SDK message %s as retryable ai_provider_error", (msg, expectedType) => {
+      const error = classifyQueueError(new Error(msg));
+
+      expect(error.type).toBe(expectedType);
+      expect(error.isRetryable()).toBe(true);
+    });
+
     it("serializes non-Error original errors and checks retryability for unknown values", () => {
       const original = { error: "validation error" };
       const queueError = new QueueError(

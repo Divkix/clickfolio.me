@@ -606,6 +606,164 @@ describe("parseWithAi - retry with error feedback", () => {
     expect(result.success).toBe(false);
     expect(result.error).toContain("Timeout");
   });
+
+  it("includes BOTH the resume text and the previous output in the retry prompt", async () => {
+    const retryContext = {
+      previousOutput: JSON.stringify({ full_name: "Jane" }),
+      errors: "headline: Required",
+    };
+
+    vi.mocked(generateText).mockResolvedValue({
+      text: JSON.stringify({
+        full_name: "Jane",
+        headline: "Dev",
+        summary: "Experienced",
+        contact: { email: "" },
+        experience: [],
+      }),
+    } as unknown as Awaited<ReturnType<typeof generateText>>);
+
+    vi.mocked(parseJsonWithRepair).mockResolvedValue({
+      data: {
+        full_name: "Jane",
+        headline: "Dev",
+        summary: "Experienced",
+        contact: { email: "" },
+        experience: [],
+      },
+      repaired: false,
+    });
+
+    const resumeText = "Resume text with real contact details and work history.";
+    await parseWithAi(resumeText, mockEnv, undefined, retryContext);
+
+    const options = vi.mocked(generateText).mock.calls[0][0] as {
+      prompt?: string;
+      system?: string;
+    };
+    expect(options.prompt).toContain(resumeText);
+    expect(options.prompt).toContain('"full_name"');
+    expect(options.prompt).toContain("Previous output");
+    expect(options.system).toContain("Validation errors found");
+    expect(options.system).toContain("headline: Required");
+  });
+
+  it("truncates the resume text in the retry prompt to the 60k head/tail limits", async () => {
+    const retryContext = {
+      previousOutput: JSON.stringify({ full_name: "Jane" }),
+      errors: "headline: Required",
+    };
+
+    const retryJson = JSON.stringify({
+      full_name: "Jane",
+      headline: "Dev",
+      summary: "",
+      contact: { email: "" },
+      experience: [],
+    });
+    vi.mocked(generateText).mockResolvedValue({
+      text: retryJson,
+    } as unknown as Awaited<ReturnType<typeof generateText>>);
+
+    vi.mocked(parseJsonWithRepair).mockResolvedValue({
+      data: { full_name: "Jane" },
+      repaired: false,
+    });
+
+    // 70005 chars > 60000 limit → head 38000 + tail 18000 with a marker
+    const longText = `${"h".repeat(38000)}MIDDLE${"t".repeat(31999)}`; // 38000 + 6 + 31999 = 70005
+    await parseWithAi(longText, mockEnv, undefined, retryContext);
+
+    const options = vi.mocked(generateText).mock.calls[0][0] as { prompt?: string };
+    expect(options.prompt).toContain("...[truncated]...");
+    expect(options.prompt).toContain("h".repeat(38000)); // head preserved
+    expect(options.prompt).toContain("t".repeat(18000)); // tail preserved (last 18000 chars)
+    expect(options.prompt).not.toContain("MIDDLE"); // dropped middle section
+  });
+
+  it("does NOT instruct the model to invent default values", async () => {
+    const retryContext = {
+      previousOutput: JSON.stringify({ full_name: "Jane" }),
+      errors: "headline: Required",
+    };
+
+    const retryJson = JSON.stringify({
+      full_name: "Jane",
+      headline: "Dev",
+      summary: "",
+      contact: { email: "" },
+      experience: [],
+    });
+    vi.mocked(generateText).mockResolvedValue({
+      text: retryJson,
+    } as unknown as Awaited<ReturnType<typeof generateText>>);
+
+    vi.mocked(parseJsonWithRepair).mockResolvedValue({
+      data: { full_name: "Jane" },
+      repaired: false,
+    });
+
+    await parseWithAi("Resume text", mockEnv, undefined, retryContext);
+
+    const options = vi.mocked(generateText).mock.calls[0][0] as { system?: string };
+    expect(options.system).toContain("Do NOT invent");
+    expect(options.system).not.toContain("reasonable default value");
+  });
+});
+
+describe("parseWithAi - provider cache key", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(createOpenAICompatible).mockReturnValue(
+      mockProvider as unknown as ReturnType<typeof createOpenAICompatible>,
+    );
+    vi.mocked(generateText).mockResolvedValue({
+      text: JSON.stringify({
+        full_name: "Jane",
+        headline: "Dev",
+        summary: "",
+        contact: { email: "" },
+        experience: [],
+      }),
+    } as unknown as Awaited<ReturnType<typeof generateText>>);
+    vi.mocked(parseJsonWithRepair).mockResolvedValue({
+      data: {
+        full_name: "Jane",
+        headline: "Dev",
+        summary: "",
+        contact: { email: "" },
+        experience: [],
+      },
+      repaired: false,
+    });
+    vi.mocked(normalizeAiKeys).mockImplementation((data) => data as Record<string, unknown>);
+    vi.mocked(transformToSchema).mockImplementation((data) => data as Record<string, unknown>);
+  });
+
+  it("recreates the provider when CF_AIG_AUTH_TOKEN changes (same account+gateway)", async () => {
+    const env1 = { ...mockEnv, CF_AIG_AUTH_TOKEN: "token-1" };
+    const env2 = { ...mockEnv, CF_AIG_AUTH_TOKEN: "token-2" };
+
+    await parseWithAi("Resume text", env1);
+    const callsAfterFirst = vi.mocked(createOpenAICompatible).mock.calls.length;
+
+    await parseWithAi("Resume text", env2);
+
+    // A token rotation must bust the cache, otherwise the stale provider keeps
+    // the old (now invalid) auth token until the isolate recycles.
+    expect(vi.mocked(createOpenAICompatible).mock.calls.length).toBeGreaterThan(callsAfterFirst);
+  });
+
+  it("reuses the cached provider for the identical env (account+gateway+token)", async () => {
+    const env = { ...mockEnv, CF_AIG_AUTH_TOKEN: "token-cache-test" };
+
+    await parseWithAi("Resume text", env);
+    const callsAfterFirst = vi.mocked(createOpenAICompatible).mock.calls.length;
+
+    await parseWithAi("Resume text", env);
+
+    expect(vi.mocked(createOpenAICompatible).mock.calls.length).toBe(callsAfterFirst);
+  });
 });
 
 describe("parseWithAi - edge cases", () => {

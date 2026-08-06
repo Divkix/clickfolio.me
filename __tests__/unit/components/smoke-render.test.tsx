@@ -598,7 +598,12 @@ describe("component smoke rendering", () => {
     expect(screen.getByText("Upload Your Resume")).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText("Your Handle"), { target: { value: "Avery!!" } });
-    await waitFor(() => expect(fetch).toHaveBeenCalledWith("/api/handle/check?handle=avery"));
+    await waitFor(() =>
+      expect(fetch).toHaveBeenCalledWith(
+        "/api/handle/check?handle=avery",
+        expect.objectContaining({ signal: expect.any(AbortSignal) }),
+      ),
+    );
   });
 
   it("renders forms and settings cards with existing resume data", () => {

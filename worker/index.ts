@@ -39,10 +39,12 @@ export { ClickfolioStatusDO } from "../lib/durable-objects/resume-status";
  * volume of automated scanner traffic. Compiled once per isolate.
  *
  * Kept deliberately narrow so legitimate routes (`/@handle`, `/for/*`, `/api/*`,
- * `/blog/*`) can never match.
+ * `/blog/*`) can never match. `xmlrpc`/`adminer` are anchored path segments (not
+ * bare substrings) so a user handle like `@xmlrpc` is never 404'd; both tokens
+ * are also in RESERVED_HANDLES to block new registrations.
  */
 const BLOCKED_PATHS =
-  /(?:\.php$|^\/\.env|^\/\.git\/|^\/\.aws\/|^\/wp-|xmlrpc|adminer|^\/config\.json$|application\.ya?ml$)/i;
+  /(?:\.php$|^\/\.env|^\/\.git\/|^\/\.aws\/|^\/wp-|^\/xmlrpc\.php$|(?:^|\/)adminer(?:\/|$)|^\/config\.json$|application\.ya?ml$)/i;
 
 export default {
   /**
@@ -130,13 +132,13 @@ export default {
       const doId = env.CLICKFOLIO_STATUS_DO.idFromName(resumeId);
       const stub = env.CLICKFOLIO_STATUS_DO.get(doId);
 
-      // Forward the WebSocket upgrade request to the DO with authenticated user header
-      const modifiedRequest = new Request(request, {
-        headers: {
-          ...Object.fromEntries(request.headers.entries()),
-          "X-Authenticated-User-Id": userId,
-        },
-      });
+      // Forward the WebSocket upgrade request to the DO with the authenticated
+      // user header. Headers.set (not object spread) guarantees a client-supplied
+      // x-authenticated-user-id is overwritten — object keys are case-sensitive,
+      // header names are not, so spread would leave both values behind.
+      const forwardedHeaders = new Headers(request.headers);
+      forwardedHeaders.set("X-Authenticated-User-Id", userId);
+      const modifiedRequest = new Request(request, { headers: forwardedHeaders });
 
       return stub.fetch(modifiedRequest);
     }
@@ -161,7 +163,9 @@ export default {
    * Processes messages from `clickfolio-parse-queue` and its dead-letter queue
    * (`clickfolio-parse-dlq`). Messages are validated against `queueMessageSchema`
    * and discarded if malformed. Retryable errors trigger a message retry; permanent
-   * errors are acked so the message moves to the DLQ.
+   * errors are acked, which DISCARDS the message — per Cloudflare Queues semantics
+   * only retry-exhausted messages are ever delivered to the DLQ. The consumer marks
+   * the resume failed and sends the alert itself before rethrowing.
    *
    * @param batch - The message batch delivered by the queue binding.
    * @param env - Cloudflare environment bindings.
@@ -199,8 +203,10 @@ export default {
         if (isRetryableError(error)) {
           message.retry();
         } else {
-          // Permanent error - ack to send to DLQ
-          log("error", "permanent error, sending to DLQ", { queue: batch.queue });
+          // Permanent error — ack discards the message (acked messages never
+          // reach the DLQ). The consumer already marked the resume failed and
+          // sent the alert before rethrowing, so nothing more is needed here.
+          log("error", "permanent error, discarding message", { queue: batch.queue });
           message.ack();
         }
       }
@@ -236,13 +242,36 @@ export default {
             });
             return;
           }
-          const result = await performR2Cleanup(r2Binding);
-          log("info", "cron R2 cleanup completed", { cron: controller.cron, result });
-          const pendingResult = await retryPendingR2Deletions(db, r2Binding);
-          log("info", "cron pending deletions sweep completed", {
-            cron: controller.cron,
-            result: pendingResult,
-          });
+          // Run the two independent sweeps concurrently so a slow temp-cleanup
+          // does not delay the GDPR pending-deletion retry (and vice versa).
+          // Each settles independently; a failure in one is logged but never
+          // skips the other.
+          const [cleanupSettled, pendingSettled] = await Promise.allSettled([
+            performR2Cleanup(r2Binding),
+            retryPendingR2Deletions(db, r2Binding),
+          ]);
+          if (cleanupSettled.status === "fulfilled") {
+            log("info", "cron R2 cleanup completed", {
+              cron: controller.cron,
+              result: cleanupSettled.value,
+            });
+          } else {
+            log("error", "cron R2 cleanup failed", {
+              cron: controller.cron,
+              error: String(cleanupSettled.reason),
+            });
+          }
+          if (pendingSettled.status === "fulfilled") {
+            log("info", "cron pending deletions sweep completed", {
+              cron: controller.cron,
+              result: pendingSettled.value,
+            });
+          } else {
+            log("error", "cron pending deletions sweep failed", {
+              cron: controller.cron,
+              error: String(pendingSettled.reason),
+            });
+          }
           break;
         }
         case "0 3 * * *": {

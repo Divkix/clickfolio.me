@@ -1,6 +1,6 @@
 import { env } from "cloudflare:workers";
 import { and, eq, gte, sql } from "drizzle-orm";
-import { getDb } from "@/lib/db";
+import { type Database, getDb } from "@/lib/db";
 import { handleChanges, resumes } from "@/lib/db/schema";
 import { isLocalEnvironment } from "@/lib/utils/environment";
 import { SECURITY_HEADERS } from "@/lib/utils/security-headers";
@@ -14,6 +14,28 @@ const RATE_LIMITS = {
 } as const;
 
 type RateLimitAction = keyof typeof RATE_LIMITS;
+
+/**
+ * Count a user's handle changes within the `handle_change` rate-limit window
+ * (24h by default). Shared by `PUT /api/profile/handle` and re-onboarding handle
+ * changes in `POST /api/wizard/complete` so the two routes can't drift on the
+ * limit or the window. Accepts the caller's `db` (the `withUser` session `db` or
+ * a `getDb()` instance) so it never opens its own connection.
+ */
+export async function countHandleChangesInWindow(db: Database, userId: string): Promise<number> {
+  const windowMs = RATE_LIMITS.handle_change.windowHours * 60 * 60 * 1000;
+  const windowStart = new Date(Date.now() - windowMs);
+  const result = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(handleChanges)
+    .where(
+      and(
+        eq(handleChanges.userId, userId),
+        gte(handleChanges.createdAt, windowStart.toISOString()),
+      ),
+    );
+  return result[0]?.count ?? 0;
+}
 
 interface RateLimitResult {
   allowed: boolean;
@@ -36,7 +58,9 @@ export async function checkRateLimit(
   const config = RATE_LIMITS[action];
   const windowMs = config.windowHours * 60 * 60 * 1000;
   const windowStart = new Date(Date.now() - windowMs);
-  const resetAt = new Date(Date.now() + windowMs);
+  // Computed from the oldest in-window row + windowMs (correct reset time);
+  // falls back to now + windowMs when no in-window rows exist (or on error).
+  let resetAt = new Date(Date.now() + windowMs);
 
   try {
     const resolvedEnv = existingEnv ?? env;
@@ -44,12 +68,16 @@ export async function checkRateLimit(
 
     // Determine which table and column to query based on action
     let count = 0;
+    let oldest: string | null | undefined;
 
     switch (action) {
       case "handle_change": {
         // Use handle_changes table for tracking handle changes
         const result = await db
-          .select({ count: sql<number>`count(*)` })
+          .select({
+            count: sql<number>`count(*)`,
+            oldest: sql<string>`MIN(${handleChanges.createdAt})`,
+          })
           .from(handleChanges)
           .where(
             and(
@@ -58,17 +86,22 @@ export async function checkRateLimit(
             ),
           );
         count = result[0]?.count ?? 0;
+        oldest = result[0]?.oldest;
         break;
       }
 
       case "resume_upload": {
         const result = await db
-          .select({ count: sql<number>`count(*)` })
+          .select({
+            count: sql<number>`count(*)`,
+            oldest: sql<string>`MIN(${resumes.createdAt})`,
+          })
           .from(resumes)
           .where(
             and(eq(resumes.userId, userId), gte(resumes.createdAt, windowStart.toISOString())),
           );
         count = result[0]?.count ?? 0;
+        oldest = result[0]?.oldest;
         break;
       }
 
@@ -76,6 +109,12 @@ export async function checkRateLimit(
         const _exhaustive: never = action;
         throw new Error(`Unknown rate limit action: ${_exhaustive as string}`);
       }
+    }
+
+    // resetAt = oldest in-window row + windowMs — the actual time the window
+    // (and thus the limit) rolls over, not a fixed now + windowMs.
+    if (oldest) {
+      resetAt = new Date(new Date(oldest).getTime() + windowMs);
     }
 
     const allowed = count < config.limit;

@@ -103,7 +103,10 @@ export function UploadStep({ onContinue }: UploadStepProps) {
           return siteData.content;
         }
       }
-      return null;
+      // Parsing finished but the follow-up content fetch failed. Surface an
+      // error (retry state) instead of stalling silently on the "AI is
+      // extracting your experience..." screen.
+      throw new Error("Your resume was parsed, but we couldn't load the result. Please try again.");
     }
 
     // Failed

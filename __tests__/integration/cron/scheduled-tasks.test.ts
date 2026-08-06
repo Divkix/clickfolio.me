@@ -312,6 +312,15 @@ describe("Cron Scheduled Tasks", () => {
         }),
       });
 
+      // The TOCTOU re-queue guard skips the publish unless the conditional
+      // UPDATE reports exactly one changed row, so the mock must return
+      // meta.changes = 1 here.
+      mockDb.update.mockReturnValue({
+        set: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue({ meta: { changes: 1 } }),
+        }),
+      });
+
       await recoverOrphanedResumes(
         mockDb as never,
         mockQueue as unknown as Queue<ResumeParseMessage>,

@@ -9,7 +9,8 @@ import { cn } from "@/lib/utils/cn";
 
 interface ThemeStepProps {
   initialTheme?: ThemeId;
-  onContinue: (themeId: ThemeId) => void;
+  /** May be async — the continue handler awaits it to keep the button disabled until the request settles */
+  onContinue: (themeId: ThemeId) => void | Promise<void>;
   /** User's current referral count for theme unlock status */
   referralCount?: number;
   /** Whether user has pro status (unlocks all themes) */
@@ -27,9 +28,17 @@ export function ThemeStep({
   isPro = false,
 }: ThemeStepProps) {
   const [selectedTheme, setSelectedTheme] = useState<ThemeId>(initialTheme);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleContinue = () => {
-    onContinue(selectedTheme);
+  const handleContinue = async () => {
+    // Prevent re-entrancy while the completion request is in flight.
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      await onContinue(selectedTheme);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -159,8 +168,14 @@ export function ThemeStep({
 
         {/* Continue Button */}
         <div className="pt-6">
-          <Button onClick={handleContinue} className="w-full" size="lg">
-            Complete Setup
+          <Button
+            onClick={handleContinue}
+            disabled={isSubmitting}
+            loading={isSubmitting}
+            className="w-full"
+            size="lg"
+          >
+            {isSubmitting ? "Completing..." : "Complete Setup"}
           </Button>
         </div>
       </div>

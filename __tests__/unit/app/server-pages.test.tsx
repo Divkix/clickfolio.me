@@ -433,6 +433,30 @@ describe("server rendered app pages", () => {
     expect(screen.getByText("+1 more")).toBeInTheDocument();
     expect(screen.getByText("Previous")).toBeInTheDocument();
   });
+  it("renders explore with a NaN ?page= as page 1 (no NaN offset/links)", async () => {
+    const { default: ExplorePage } = await import("@/app/explore/page");
+    mocks.state.selectResults = [
+      [{ count: 13 }],
+      [
+        {
+          handle: "avery",
+          role: "senior",
+          previewName: "Avery Quinn",
+          previewHeadline: "Engineer",
+          previewLocation: "Phoenix, AZ",
+          previewExpCount: 1,
+          previewEduCount: 1,
+          previewSkills: JSON.stringify(["TypeScript", "SQL"]),
+        },
+      ],
+    ];
+    // A non-numeric page must parse to 1: no "NaN" in any pagination link and
+    // the offset stays (1-1)*12 = 0 (a NaN offset would make the query a no-op).
+    render(await ExplorePage({ searchParams: Promise.resolve({ page: "abc" }) }));
+    expect(screen.getByText("Avery Quinn")).toBeInTheDocument();
+    expect(screen.queryByText("Previous")).not.toBeInTheDocument();
+    expect(document.querySelector('a[href*="page=NaN"]')).toBeNull();
+  });
 
   it("renders public handle page, metadata, and preview page", async () => {
     mocks.db.query.user.findFirst.mockResolvedValue({

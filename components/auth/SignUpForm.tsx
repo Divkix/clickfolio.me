@@ -111,6 +111,23 @@ export function SignUpForm({ onSuccess, callbackURL }: SignUpFormProps) {
     [emailRegister, handleEmailBlur],
   );
 
+  // Compose onChange with react-hook-form's register. Clearing the
+  // disposable-email error here prevents a stale "disposable email" message
+  // from persisting while the user types a new address. Cancelling the pending
+  // debounced check too keeps a check for the OLD value from re-setting the
+  // error after the input has already changed.
+  const emailChangeHandler = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (emailCheckTimeoutRef.current) {
+        clearTimeout(emailCheckTimeoutRef.current);
+        emailCheckTimeoutRef.current = null;
+      }
+      setEmailDisposableError(null);
+      void emailRegister.onChange(e);
+    },
+    [emailRegister],
+  );
+
   const handlePasswordChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       setValue("password", e.target.value, { shouldValidate: true });
@@ -209,7 +226,7 @@ export function SignUpForm({ onSuccess, callbackURL }: SignUpFormProps) {
           aria-invalid={!!errors.email || !!emailDisposableError}
           ref={emailRegister.ref}
           name={emailRegister.name}
-          onChange={emailRegister.onChange}
+          onChange={emailChangeHandler}
           onBlur={emailBlurHandler}
         />
         {isCheckingEmail && (

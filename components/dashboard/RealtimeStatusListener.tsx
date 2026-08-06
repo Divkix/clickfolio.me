@@ -2,7 +2,7 @@
 
 import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useResumeWebSocket } from "@/hooks/useResumeWebSocket";
 
 interface RealtimeStatusListenerProps {
@@ -52,6 +52,17 @@ export function RealtimeStatusListener({ resumeId, currentStatus }: RealtimeStat
     },
     [router],
   );
+
+  // Clear the debounce timer on unmount so a pending refresh can't fire
+  // after the component is gone (state update on unmounted component / leak).
+  useEffect(() => {
+    return () => {
+      if (refreshDebounceRef.current) {
+        clearTimeout(refreshDebounceRef.current);
+        refreshDebounceRef.current = null;
+      }
+    };
+  }, []);
 
   // Connect WebSocket only when currently processing
   useResumeWebSocket({

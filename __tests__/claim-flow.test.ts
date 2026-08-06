@@ -58,6 +58,7 @@ vi.mock("drizzle-orm", () => ({
   gte: vi.fn((_col, val) => ({ gte: val })),
   ne: vi.fn((_col, val) => ({ ne: val })),
   isNotNull: vi.fn((col) => ({ isNotNull: col })),
+  inArray: vi.fn((col, values) => ({ inArray: { col, values } })),
 }));
 
 // Schema mock
@@ -386,7 +387,7 @@ describe("POST /api/resume/claim", () => {
     expect(mockDbInsert).toHaveBeenCalled();
   });
 
-  it("marks resume as failed when queue publish fails", async () => {
+  it("leaves resume in pending_claim (orphan-cron recoverable) when queue publish fails", async () => {
     authedAs("user-1");
     const { publishResumeParse } = await import("@/lib/queue/resume-parse");
     vi.mocked(publishResumeParse).mockRejectedValueOnce(new Error("Queue unavailable"));
@@ -396,6 +397,48 @@ describe("POST /api/resume/claim", () => {
     const response = await POST(makeClaimRequest({ key: "temp/uuid/resume.pdf" }, cookie));
 
     expect(response.status).toBe(500);
-    expect(mockDbUpdateSet).toHaveBeenCalledWith(expect.objectContaining({ status: "failed" }));
+    // Regression (Batch A item 8): the row must be rolled back to pending_claim —
+    // marking it "failed" would make it unrecoverable by the */15 orphan cron.
+    expect(mockDbUpdateSet).not.toHaveBeenCalledWith(expect.objectContaining({ status: "failed" }));
+    expect(mockDbUpdateSet).toHaveBeenCalledWith(
+      expect.objectContaining({ status: "pending_claim" }),
+    );
+  });
+
+  it("returns already_claimed BEFORE rate limiting (double-claim does not burn a rate-limit slot)", async () => {
+    authedAs("user-1");
+    const { enforceRateLimit } = await import("@/lib/rate-limit/user");
+    vi.mocked(enforceRateLimit).mockResolvedValue(
+      new Response(JSON.stringify({ error: "rate limited" }), { status: 429 }),
+    );
+    // File gone (already claimed) but a recent resume exists → double-claim guard.
+    mockR2GetAsArrayBuffer.mockResolvedValue(null);
+    mockDbLimit.mockResolvedValue([{ id: "existing-resume", status: "processing" }]);
+
+    const { POST } = await import("@/app/api/resume/claim/route");
+    const cookie = await createSignedCookieValue("temp/uuid/resume.pdf", TEST_SECRET);
+    const response = await POST(makeClaimRequest({ key: "temp/uuid/resume.pdf" }, cookie));
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { already_claimed: boolean };
+    expect(body.already_claimed).toBe(true);
+    // The rate limiter must not have been consulted for the double-claim path.
+    expect(enforceRateLimit).not.toHaveBeenCalled();
+  });
+
+  it("still enforces the rate limit after the double-claim guard for real claims", async () => {
+    authedAs("user-1");
+    const { enforceRateLimit } = await import("@/lib/rate-limit/user");
+    vi.mocked(enforceRateLimit).mockResolvedValue(
+      new Response(JSON.stringify({ error: "rate limited" }), { status: 429 }),
+    );
+    mockDbLimit.mockResolvedValue([]);
+
+    const { POST } = await import("@/app/api/resume/claim/route");
+    const cookie = await createSignedCookieValue("temp/uuid/resume.pdf", TEST_SECRET);
+    const response = await POST(makeClaimRequest({ key: "temp/uuid/resume.pdf" }, cookie));
+
+    expect(response.status).toBe(429);
+    expect(enforceRateLimit).toHaveBeenCalled();
   });
 });

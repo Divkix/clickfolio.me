@@ -93,9 +93,10 @@ export function extractCityState(location: string | undefined): string {
     return `${secondLast}, ${last}`;
   }
 
-  // Fallback: return the original if we can't parse it
-  // Better to show something than nothing
-  return normalized;
+  // Fallback: fail closed. This is a privacy filter — returning the raw
+  // (unparseable) string could leak a street address when show_address=false.
+  // Empty output is always safe; the caller decides how to render a blank.
+  return "";
 }
 
 import type { PrivacySettings } from "@/lib/db/schema/auth";
