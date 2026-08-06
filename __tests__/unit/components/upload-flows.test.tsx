@@ -432,4 +432,31 @@ describe("upload flow components", () => {
     await waitFor(() => expect(screen.getByText("Parser failed")).toBeInTheDocument());
     expect(onContinue).not.toHaveBeenCalled();
   });
+
+  it("surfaces an error instead of stalling when the site-data fetch fails after parsing completes", async () => {
+    const onContinue = vi.fn();
+    installFetch((url) => {
+      if (url === "/api/upload") {
+        return Response.json({ key: "temp/wizard/sitedata.pdf", remaining: 9 });
+      }
+      if (url === "/api/resume/claim") {
+        return Response.json({ resume_id: "res_sitedata", cached: false });
+      }
+      if (url === "/api/site-data") {
+        return Response.json({ error: "site data down" }, { status: 500 });
+      }
+      return Response.json({ ok: true });
+    });
+
+    render(<UploadStep onContinue={onContinue} />);
+    dropFile(pdfFile("sitedata-fail.pdf"));
+
+    // Must NOT stall on the "AI is extracting your experience..." screen
+    await waitFor(() => expect(screen.getByText("Something Went Wrong")).toBeInTheDocument());
+    expect(screen.getByText(/couldn't load the result/i)).toBeInTheDocument();
+    expect(onContinue).not.toHaveBeenCalled();
+
+    // Retry affordance is present
+    expect(screen.getByRole("button", { name: "Try Again" })).toBeInTheDocument();
+  });
 });

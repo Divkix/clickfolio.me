@@ -294,7 +294,7 @@ describe("wizard page flow", () => {
     expect(screen.getByText("Handle taken")).toBeInTheDocument();
   });
 
-  it("claims pending uploads for returning users and always redirects to dashboard", async () => {
+  it("redirects onboarded users to the dashboard without re-claiming pending uploads", async () => {
     const { default: WizardPage } = await import("@/app/(protected)/wizard/page");
     mocks.sessionState.current = {
       data: {
@@ -308,50 +308,16 @@ describe("wizard page flow", () => {
       isPending: false,
     };
 
+    // A stale pending-upload cookie exists, but the onboarding-completed check
+    // must run FIRST — no claim, no cookie read, no parse wait on page load.
     installFetchScenario("pending-claim");
-    const cached = render(<WizardPage />);
-    await waitFor(() =>
-      expect(mocks.toast.success).toHaveBeenCalledWith("Resume updated successfully!"),
-    );
-    expect(mocks.router.push).toHaveBeenCalledWith("/dashboard");
-    cached.unmount();
-
-    vi.clearAllMocks();
-    globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
-      // eslint-disable-next-line typescript/no-base-to-string -- RequestInfo|URL; String() is idiomatic in test fetch mocks
-      const url = String(input);
-      if (url === "/api/upload/pending") {
-        return Response.json({ key: "temp/new.pdf", file_hash: null });
-      }
-      if (url === "/api/resume/claim") {
-        return Response.json({ resume_id: "res_new", cached: false });
-      }
-      return Response.json(null);
-    }) as unknown as typeof fetch;
-    const processing = render(<WizardPage />);
-    await waitFor(() =>
-      expect(mocks.toast.success).toHaveBeenCalledWith(
-        "Resume uploaded! Processing in background.",
-      ),
-    );
-    expect(mocks.router.push).toHaveBeenCalledWith("/dashboard");
-    processing.unmount();
-
-    vi.clearAllMocks();
-    globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
-      // eslint-disable-next-line typescript/no-base-to-string -- RequestInfo|URL; String() is idiomatic in test fetch mocks
-      const url = String(input);
-      if (url === "/api/upload/pending") {
-        return Response.json({ key: "temp/bad.pdf", file_hash: null });
-      }
-      if (url === "/api/resume/claim") {
-        return Response.json({ error: "Claim failed" }, { status: 400 });
-      }
-      return Response.json(null);
-    }) as unknown as typeof fetch;
     render(<WizardPage />);
-    await waitFor(() => expect(mocks.toast.error).toHaveBeenCalledWith("Claim failed"));
-    expect(mocks.router.push).toHaveBeenCalledWith("/dashboard");
+
+    await waitFor(() => expect(mocks.router.push).toHaveBeenCalledWith("/dashboard"));
+    expect(fetch).not.toHaveBeenCalledWith("/api/upload/pending");
+    expect(fetch).not.toHaveBeenCalledWith("/api/resume/claim", expect.any(Object));
+    expect(mocks.clearPendingUploadCookie).not.toHaveBeenCalled();
+    expect(mocks.waitForResumeCompletion).not.toHaveBeenCalled();
   });
 
   it("handles parsing failure redirects and reports init crashes", async () => {

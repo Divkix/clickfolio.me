@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, Loader2, User, X } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -53,6 +53,16 @@ export function HandleStep({ initialHandle = "", onContinue }: HandleStepProps) 
   const [isCurrentHandle, setIsCurrentHandle] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // AbortController for the in-flight availability check. A newer keystroke
+  // aborts the previous request so a stale response can never overwrite a
+  // newer result (out-of-order response guard).
+  const availabilityAbortRef = useRef<AbortController | null>(null);
+
+  // Abort any in-flight check on unmount.
+  useEffect(() => {
+    return () => availabilityAbortRef.current?.abort();
+  }, []);
+
   // Generate suggestions when handle is taken
   const suggestions = useMemo(() => {
     if (isAvailable === false && handle.length >= 3) {
@@ -68,25 +78,39 @@ export function HandleStep({ initialHandle = "", onContinue }: HandleStepProps) 
       return;
     }
 
+    // Abort the previous in-flight request so stale responses are ignored.
+    availabilityAbortRef.current?.abort();
+    const controller = new AbortController();
+    availabilityAbortRef.current = controller;
+
     setIsChecking(true);
     setError(null);
 
     try {
-      const response = await fetch(`/api/handle/check?handle=${encodeURIComponent(value)}`);
+      const response = await fetch(`/api/handle/check?handle=${encodeURIComponent(value)}`, {
+        signal: controller.signal,
+      });
       const data = (await response.json()) as HandleCheckResponse;
 
       if (!response.ok) {
         throw new Error(data.error || "Failed to check availability");
       }
 
+      // A newer check superseded this one — drop the stale result.
+      if (controller.signal.aborted) return;
+
       setIsAvailable(data.available);
       setIsCurrentHandle(data.isCurrentHandle === true);
     } catch (err) {
+      if (controller.signal.aborted) return;
       console.error("Error checking handle availability:", err);
       setError("Failed to check availability");
       setIsAvailable(null);
     } finally {
-      setIsChecking(false);
+      // Only the newest check may clear the checking state.
+      if (!controller.signal.aborted) {
+        setIsChecking(false);
+      }
     }
   }, []);
 
@@ -186,7 +210,7 @@ export function HandleStep({ initialHandle = "", onContinue }: HandleStepProps) 
             <p className="text-sm text-muted-foreground font-medium">
               Your resume will be at:{" "}
               <span className="text-brand font-semibold font-mono">
-                {siteConfig.domain}/{handle}
+                {siteConfig.domain}/@{handle}
               </span>
             </p>
           )}

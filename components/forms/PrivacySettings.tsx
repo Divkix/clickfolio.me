@@ -85,7 +85,7 @@ export function PrivacySettingsForm({ initialSettings }: PrivacySettingsFormProp
   const hideFromSearch = watch("hide_from_search");
   const showInDirectory = watch("show_in_directory");
 
-  const onSubmit = async (data: PrivacySettings) => {
+  const onSubmit = async (data: PrivacySettings): Promise<boolean> => {
     setIsSaving(true);
 
     try {
@@ -103,9 +103,11 @@ export function PrivacySettingsForm({ initialSettings }: PrivacySettingsFormProp
       }
 
       toast.success("Privacy settings updated");
+      return true;
     } catch (err) {
       console.error("Privacy update error:", err);
       toast.error(err instanceof Error ? err.message : "Failed to update privacy settings");
+      return false;
     } finally {
       setIsSaving(false);
       setSavingField(null);
@@ -113,6 +115,7 @@ export function PrivacySettingsForm({ initialSettings }: PrivacySettingsFormProp
   };
 
   const handleToggleChange = async (field: keyof PrivacySettings, value: boolean) => {
+    // Optimistic update
     setValue(field, value, { shouldValidate: true });
     setSavingField(field);
 
@@ -123,7 +126,13 @@ export function PrivacySettingsForm({ initialSettings }: PrivacySettingsFormProp
       show_in_directory: field === "show_in_directory" ? value : (showInDirectory ?? false),
     };
 
-    await onSubmit(newSettings);
+    const saved = await onSubmit(newSettings);
+
+    // Roll back the optimistic update when the save failed, so the toggle
+    // reflects the server state instead of a stale optimistic value.
+    if (!saved) {
+      setValue(field, !value, { shouldValidate: true });
+    }
   };
 
   return (

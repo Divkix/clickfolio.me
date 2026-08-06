@@ -4,7 +4,7 @@ export const revalidate = 86400;
 
 import { AlertTriangle, CheckCircle2, Clock, FileText, Loader2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import { Pagination } from "@/components/admin/Pagination";
 import { ResumeStatusBadge } from "@/components/admin/ResumeStatusBadge";
 import { StatCard } from "@/components/admin/StatCard";
@@ -235,7 +235,7 @@ export default function AdminResumesPage() {
                 </tr>
               ) : (
                 data.resumes.map((resume) => (
-                  <>
+                  <Fragment key={resume.id}>
                     <tr
                       key={resume.id}
                       className={`hover:bg-muted/50 transition-colors ${
@@ -284,7 +284,7 @@ export default function AdminResumesPage() {
                           </td>
                         </tr>
                       )}
-                  </>
+                  </Fragment>
                 ))
               )}
             </tbody>

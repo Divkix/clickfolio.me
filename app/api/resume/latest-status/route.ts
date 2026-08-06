@@ -4,6 +4,17 @@ import { canRetryResume } from "@/lib/config/retry";
 import { resumes } from "@/lib/db/schema";
 import { createSuccessResponse } from "@/lib/utils/security-headers";
 
+// Map pre-queue / in-flight statuses to the unified "processing" state so the
+// wizard's initializeWizard() detects an ongoing parse and redirects to
+// /waiting instead of falling through to the upload step (duplicate-upload
+// path). Mirrors GET /api/resume/status.
+function mapDisplayStatus(status: string): string {
+  if (status === "queued" || status === "waiting_for_cache" || status === "pending_claim") {
+    return "processing";
+  }
+  return status;
+}
+
 /**
  * GET /api/resume/latest-status
  * Get the latest resume status for the currently authenticated user.
@@ -67,7 +78,7 @@ export async function GET(request?: Request) {
 
       return createSuccessResponse({
         id: resume.id as string,
-        status: resume.status,
+        status: mapDisplayStatus(resume.status),
         error: resume.errorMessage,
         can_retry: canRetryResume({
           status: resume.status,

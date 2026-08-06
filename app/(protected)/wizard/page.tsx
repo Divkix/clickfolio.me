@@ -169,6 +169,15 @@ export default function WizardPage() {
       try {
         setLoading(true);
 
+        // RETURNING USER CHECK: If onboarding already completed, skip the wizard
+        // entirely. This MUST run before the stale pending-cookie auto-claim path
+        // below — otherwise an already-onboarded user re-triggers a claim (and a
+        // re-parse) on every wizard page load.
+        if (onboardingCompleted) {
+          router.push("/dashboard");
+          return;
+        }
+
         // Read the pending upload from the HTTP-only cookie via API.
         let tempKey: string | null = null;
         let fileHash: string | null = null;
@@ -184,43 +193,6 @@ export default function WizardPage() {
           }
         } catch (cookieError) {
           console.warn("Failed to read pending upload cookie:", cookieError);
-        }
-
-        // RETURNING USER CHECK: If onboarding already completed, skip wizard entirely
-        if (onboardingCompleted) {
-          // Returning user — claim pending upload if exists, then redirect to dashboard
-          if (tempKey) {
-            try {
-              const claimResponse = await fetch("/api/resume/claim", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ key: tempKey, file_hash: fileHash }),
-              });
-
-              const claimData = (await claimResponse.json()) as ClaimResponse;
-
-              if (!claimResponse.ok) {
-                throw new Error(claimData.error || "Failed to claim resume");
-              }
-
-              if (claimData.cached) {
-                toast.success("Resume updated successfully!");
-              } else {
-                toast.success("Resume uploaded! Processing in background.");
-              }
-            } catch (claimError) {
-              console.error("Returning user claim error:", claimError);
-              toast.error(
-                claimError instanceof Error ? claimError.message : "Failed to process upload",
-              );
-            }
-
-            // Clear the cookie regardless of claim success.
-            await clearPendingUploadCookie();
-          }
-
-          router.push("/dashboard");
-          return;
         }
 
         if (tempKey && !hasClaimedRef.current) {
