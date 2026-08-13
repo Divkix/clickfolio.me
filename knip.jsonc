@@ -17,6 +17,7 @@
     "tailwindcss", // Utility-first CSS framework
     "tw-animate-css", // Tailwind CSS animation plugin
     "@tailwindcss/typography", // Tailwind CSS prose plugin
+    "oxlint", // Used via `vp check` / `vp lint` (vite-plus), not directly imported
   ],
   "ignoreExportsUsedInFile": true,
 }
