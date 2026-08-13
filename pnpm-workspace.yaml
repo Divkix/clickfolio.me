@@ -24,7 +24,7 @@ overrides:
   # match the top-level `vite` alias. Without this, pnpm installs two copies of
   # core (the alias version + vite-plus's pinned version) and the divergent
   # PluginOption types break `tsc --noEmit` in vite.config.ts.
-  "@voidzero-dev/vite-plus-core": "^0.2.6"
+  "@voidzero-dev/vite-plus-core": "^0.2.9"
 
 allowBuilds:
   better-sqlite3: true
@@ -33,7 +33,7 @@ allowBuilds:
   sharp: true
   workerd: true
 catalog:
-  vite: npm:@voidzero-dev/vite-plus-core@^0.2.6
+  vite: npm:@voidzero-dev/vite-plus-core@^0.2.9
   vitest: 4.1.10
 peerDependencyRules:
   allowAny:
@@ -42,3 +42,13 @@ peerDependencyRules:
   allowedVersions:
     vite: "*"
     vitest: "*"
+minimumReleaseAgeExclude:
+  - "@ai-sdk/gateway@4.0.51"
+  - "@cloudflare/vite-plugin@1.52.1"
+  - "@posthog/core@1.48.0"
+  - "@posthog/types@1.403.1"
+  - ai@7.0.64
+  - miniflare@5.20260811.1-alpha
+  - posthog-js@1.416.1
+  - posthog-node@5.49.0
+  - wrangler@4.123.0

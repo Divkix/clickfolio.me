@@ -17,18 +17,14 @@ const mocks = vi.hoisted(() => ({
     success: vi.fn(),
     error: vi.fn(),
   },
-  resetPassword: vi.fn(
-    async (_params?: JsonValue): Promise<AuthActionResult> => ({
-      data: {},
-      error: null,
-    }),
-  ),
-  sendVerificationEmail: vi.fn(
-    async (_params?: JsonValue): Promise<AuthActionResult> => ({
-      data: {},
-      error: null,
-    }),
-  ),
+  resetPassword: vi.fn(async (_params?: JsonValue): Promise<AuthActionResult> => ({
+    data: {},
+    error: null,
+  })),
+  sendVerificationEmail: vi.fn(async (_params?: JsonValue): Promise<AuthActionResult> => ({
+    data: {},
+    error: null,
+  })),
 }));
 
 vi.mock("next/link", () => ({
