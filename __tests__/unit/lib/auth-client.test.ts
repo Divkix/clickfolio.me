@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import type { JsonValue } from "@/lib/types/json";
 import {
   requestPasswordReset,
   resetPassword,
@@ -21,12 +22,12 @@ const mocks = vi.hoisted(() => {
 
   return {
     authClient,
-    createAuthClient: vi.fn((_config: unknown) => authClient),
+    createAuthClient: vi.fn((_config: JsonValue) => authClient),
   };
 });
 
 vi.mock("better-auth/react", () => ({
-  createAuthClient: (config: unknown) => mocks.createAuthClient(config),
+  createAuthClient: (config: JsonValue) => mocks.createAuthClient(config),
 }));
 
 describe("auth client helpers", () => {

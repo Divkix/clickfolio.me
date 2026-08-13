@@ -34,6 +34,7 @@ export function getDb(d1: D1Database): SchemaDb {
   const cached = dbInstanceCache.get(d1);
   if (cached) return cached;
 
+  // SAFETY: drizzle() returns DrizzleD1Database with $client extending D1Database in Workers runtime; SchemaDb adds $client typing that matches runtime shape.
   const db = drizzle(d1, { schema }) as SchemaDb;
   dbInstanceCache.set(d1, db);
   return db;

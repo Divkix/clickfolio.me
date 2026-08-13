@@ -23,8 +23,8 @@ export function Confetti() {
         particleCount={isMobile ? 50 : 100}
         duration={3000}
         colors={DEFAULT_COLORS}
-        stageHeight={typeof window !== "undefined" ? window.innerHeight : 800}
-        stageWidth={typeof window !== "undefined" ? window.innerWidth : 400}
+        stageHeight={globalThis.window !== undefined ? globalThis.window.innerHeight : 800}
+        stageWidth={globalThis.window !== undefined ? globalThis.window.innerWidth : 400}
       />
     </div>
   );

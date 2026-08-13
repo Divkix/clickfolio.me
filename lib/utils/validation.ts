@@ -16,6 +16,8 @@ export const MAX_FILE_SIZE = effectiveMaxFileSizeMb * 1024 * 1024;
 /** Human-readable label for the max file size (e.g., "5MB"). */
 export const MAX_FILE_SIZE_LABEL = `${effectiveMaxFileSizeMb}MB`;
 
+export type ValidationResult = { valid: boolean; error?: string };
+
 /**
  * Validates a client-side File object for upload.
  *
@@ -24,7 +26,7 @@ export const MAX_FILE_SIZE_LABEL = `${effectiveMaxFileSizeMb}MB`;
  * @param file - The File object to validate
  * @returns Validation result with optional error message
  */
-export function validatePDF(file: File): { valid: boolean; error?: string } {
+export function validatePDF(file: File): ValidationResult {
   if (file.size > MAX_FILE_SIZE) {
     return { valid: false, error: `File size must be less than ${MAX_FILE_SIZE_LABEL}` };
   }
@@ -80,7 +82,7 @@ export function generateTempKey(filename: string): string {
  * Validates PDF buffer by checking magic number (%PDF)
  * Used for server-side validation before storing to R2
  */
-export function validatePDFBuffer(buffer: ArrayBuffer): { valid: boolean; error?: string } {
+export function validatePDFBuffer(buffer: ArrayBuffer): ValidationResult {
   const bytes = new Uint8Array(buffer);
 
   // Check for PDF magic number: 0x25 0x50 0x44 0x46 = %PDF
@@ -111,7 +113,7 @@ export function validatePDFBuffer(buffer: ArrayBuffer): { valid: boolean; error?
 export function validateRequestSize(
   request: Request,
   maxSizeBytes: number = 5_000_000, // 5MB default
-): { valid: boolean; error?: string } {
+): ValidationResult {
   const contentLength = request.headers.get("content-length");
 
   if (!contentLength) {

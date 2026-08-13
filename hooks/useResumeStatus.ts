@@ -49,6 +49,7 @@ export function useResumeStatus(resumeId: string | null): UseResumeStatusReturn 
 
   // Handle status updates from WebSocket
   const handleWSStatus = useCallback((newStatus: string, wsError?: string) => {
+    // SAFETY: WebSocket message is JSON from our DO, validated via status schema before cast; newStatus is narrowed to ResumeStatus for UI state.
     const s = newStatus as ResumeStatus;
     setStatus(s);
     if (wsError) {
@@ -139,6 +140,7 @@ export function useResumeStatus(resumeId: string | null): UseResumeStatusReturn 
         return;
       }
 
+      // SAFETY: err is Error-like with optional status from fetch throw; cast narrows to status for error classification.
       const httpStatus =
         (err as { status?: number })?.status || (err instanceof Response ? err.status : 0);
       const category = classifyError(httpStatus);

@@ -75,6 +75,7 @@ export async function POST(request: Request) {
           rawBodyResult.reason === "too_large" ? 413 : 400,
         );
       }
+      // SAFETY: D1 JSON is schema-validated before write; rawBodyResult.data is bounded JSON, cast to RetryRequestBody for field access.
       const body = rawBodyResult.data as RetryRequestBody;
       const { resume_id } = body;
 
@@ -115,16 +116,17 @@ export async function POST(request: Request) {
           403,
         );
       }
-
       // Canonical eligibility — single source of truth for the 4 gates.
       // A `waiting_for_cache` row that has timed out is presented virtually as
       // `failed` by GET /status; accept an immediate manual retry without waiting
       // for the cron to durably persist the timeout (otherwise can_retry=true in
       // the UI would be denied here until the next 15m tick).
+      // SAFETY: D1 status and createdAt are validated enum/string columns; casts bridge Drizzle nullable type to string for lifecycle helpers.
       const isVirtualTimeout = waitingForCacheTimedOut({
         status: resume.status as string,
-        createdAt: (resume as { createdAt?: string | null }).createdAt as string | null,
+        createdAt: resume.createdAt as string | null,
       });
+      // SAFETY: D1 status/retry fields are validated enum/number columns; casts bridge Drizzle type to string/number for eligibility check.
       const eligibility = checkRetryEligibility({
         status: isVirtualTimeout ? "failed" : (resume.status as string),
         retryCount: resume.retryCount as number,
@@ -132,6 +134,7 @@ export async function POST(request: Request) {
         lastAttemptError: isVirtualTimeout ? null : (resume.lastAttemptError as string | null),
       });
       if (!eligibility.eligible) {
+        // SAFETY: eligibility.errorCode is validated against ERROR_CODES keys; cast narrows string to known enum key.
         return createErrorResponse(
           eligibility.reason,
           ERROR_CODES[eligibility.errorCode as keyof typeof ERROR_CODES],
@@ -155,10 +158,10 @@ export async function POST(request: Request) {
             500,
           );
         }
-
         let pdfBuffer: Uint8Array;
 
         try {
+          // SAFETY: D1 r2Key is validated R2 key written only by our upload flow; cast bridges nullable Drizzle type.
           const fileBuffer = await R2.getAsUint8Array(r2Binding, resume.r2Key as string);
 
           if (!fileBuffer) {
@@ -178,16 +181,16 @@ export async function POST(request: Request) {
             500,
           );
         }
-
         // Compute SHA-256 hash from downloaded PDF
+        // SAFETY: pdfBuffer is Uint8Array from R2; slice produces ArrayBuffer for sha256Hex.
         const bufferCopy = pdfBuffer.buffer.slice(
           pdfBuffer.byteOffset,
           pdfBuffer.byteOffset + pdfBuffer.byteLength,
         ) as ArrayBuffer;
         fileHash = await sha256Hex(bufferCopy);
       }
-
       // Update resume status to queued BEFORE publishing to queue (prevents race condition)
+      // SAFETY: D1 retryCount is integer column; cast bridges Drizzle nullable to number.
       const previousRetryCount = resume.retryCount as number;
       const nextRetryCount = previousRetryCount + 1;
       const updatePayload: Partial<NewResume> = {
@@ -228,7 +231,6 @@ export async function POST(request: Request) {
           409,
         );
       }
-
       const rollbackRetryUpdate = async () => {
         try {
           // For a virtual timeout the original status was `waiting_for_cache`; a
@@ -240,6 +242,7 @@ export async function POST(request: Request) {
           await db
             .update(resumes)
             .set({
+              // SAFETY: rollbackStatus is validated enum value; cast bridges string to Drizzle insert type.
               status: rollbackStatus as typeof resumes.$inferInsert.status,
               errorMessage: resume.errorMessage,
               retryCount: previousRetryCount,
@@ -259,6 +262,7 @@ export async function POST(request: Request) {
       }
 
       try {
+        // SAFETY: D1 id and r2Key are validated string columns; casts bridge Drizzle type to string for queue payload.
         await publishResumeParse(queue, {
           resumeId: resume.id as string,
           userId,
@@ -274,11 +278,13 @@ export async function POST(request: Request) {
 
       await captureBookmark();
 
+      // SAFETY: D1 id is validated string PK; cast bridges Drizzle type for event and response payload.
       await captureServerEvent(userId, "resume_parse_retried", {
         resume_id: resume.id as string,
         retry_count: nextRetryCount,
       });
 
+      // SAFETY: D1 id is validated string PK; cast bridges Drizzle type for response payload.
       return createSuccessResponse({
         resume_id: resume.id as string,
         status: "queued",

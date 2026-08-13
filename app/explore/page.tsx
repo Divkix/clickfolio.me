@@ -92,6 +92,7 @@ export default async function ExplorePage({
 
   // Add role filter if specified
   if (roleFilter) {
+    // SAFETY: searchParams are validated via Zod schema before use; roleFilter is from allowed ROLE_OPTIONS.
     whereConditions.push(eq(user.role, roleFilter as (typeof user.role.enumValues)[number]));
   }
 
@@ -139,7 +140,7 @@ export default async function ExplorePage({
       // this a full street address would leak into the directory.
       const previewLocation =
         u.previewLocation && !showAddress ? extractCityState(u.previewLocation) : u.previewLocation;
-
+      // SAFETY: D1 handle is filtered for non-null above; cast bridges nullable to string.
       return {
         handle: u.handle as string,
         role: u.role,

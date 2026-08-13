@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import type { JsonValue } from "@/lib/types/json";
 
 /**
  * Integration tests for worker/index.ts
@@ -15,14 +16,14 @@ import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 vi.mock("cloudflare:workers", () => ({
   env: {},
   DurableObject: class DurableObject {
-    constructor(_state: unknown, _env: unknown) {}
+    constructor(_state: JsonValue, _env: JsonValue) {}
   },
 }));
 
 // Mock the Durable Object export to avoid extending DurableObject in jsdom
 vi.mock("@/lib/durable-objects/resume-status", () => ({
   ClickfolioStatusDO: class ClickfolioStatusDO {
-    constructor(_state: unknown, _env: unknown) {}
+    constructor(_state: JsonValue, _env: JsonValue) {}
     async fetch(_req: Request) {
       return new Response("DO response");
     }
@@ -142,7 +143,7 @@ function makeEnv(overrides: Partial<CloudflareEnv> = {}): CloudflareEnv {
 }
 
 function makeMessage(
-  body: unknown,
+  body: JsonValue,
   overrides: { ack?: ReturnType<typeof vi.fn>; retry?: ReturnType<typeof vi.fn> } = {},
 ) {
   return {
@@ -157,7 +158,7 @@ function makeBatch(queueName: string, messages: ReturnType<typeof makeMessage>[]
   return {
     queue: queueName,
     messages,
-  } as unknown as MessageBatch<unknown>;
+  } as unknown as MessageBatch<JsonValue>;
 }
 
 function makeCtx(): ExecutionContext {

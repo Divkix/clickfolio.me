@@ -2,6 +2,7 @@
  * JSON repair and schema transformation utilities for AI fallback parsing.
  */
 
+import type { UnknownRecord } from "@/lib/types/json";
 import { parsePartialJson } from "ai";
 
 /**
@@ -14,20 +15,22 @@ import { parsePartialJson } from "ai";
  */
 export async function parseJsonWithRepair(
   jsonStr: string,
-): Promise<{ data: Record<string, unknown> | null; repaired: boolean }> {
+): Promise<{ data: UnknownRecord | null; repaired: boolean }> {
   try {
     const parsed = JSON.parse(jsonStr);
     // Only return objects (not primitives or arrays)
-    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+    if (parsed === null || Array.isArray(parsed) || !(parsed instanceof Object)) {
       return { data: null, repaired: false };
     }
-    return { data: parsed as Record<string, unknown>, repaired: false };
+    // SAFETY: null and object guard above ensures parsed is a non-null non-array object; UnknownRecord is the safe JSON object type for AI repair handling.
+    return { data: parsed as UnknownRecord, repaired: false };
   } catch {
     const repaired = await parsePartialJson(jsonStr);
-    if (!repaired.value || typeof repaired.value !== "object" || Array.isArray(repaired.value)) {
+    if (!repaired.value || Array.isArray(repaired.value) || !(repaired.value instanceof Object)) {
       return { data: null, repaired: false };
     }
-    return { data: repaired.value as Record<string, unknown>, repaired: true };
+    // SAFETY: null and object guard above ensures repaired.value is a non-null non-array object; UnknownRecord is the safe JSON object type for AI repair handling.
+    return { data: repaired.value as UnknownRecord, repaired: true };
   }
 }
 
@@ -35,13 +38,14 @@ export async function parseJsonWithRepair(
  * Transform AI response to match our schema.
  * Handles common mismatches like skills as object vs array.
  */
-export function transformToSchema(data: Record<string, unknown>): Record<string, unknown> {
+export function transformToSchema(data: UnknownRecord): UnknownRecord {
   const result = { ...data };
 
   // Transform skills from object format to array format
   // AI sometimes returns: { "Design & CAD": ["skill1", "skill2"] }
   // We need: [{ category: "Design & CAD", items: ["skill1", "skill2"] }]
-  if (result.skills && typeof result.skills === "object" && !Array.isArray(result.skills)) {
+  if (result.skills && result.skills instanceof Object && !Array.isArray(result.skills)) {
+    // SAFETY: object and Array.isArray guard above ensures result.skills is a plain object; Record<string,string[]> is safe for AI skill-category map transformation.
     const skillsObj = result.skills as Record<string, string[]>;
     result.skills = Object.entries(skillsObj).map(([category, items]) => ({
       category,
@@ -51,11 +55,14 @@ export function transformToSchema(data: Record<string, unknown>): Record<string,
 
   // Transform experience descriptions from array to string
   if (Array.isArray(result.experience)) {
-    result.experience = (result.experience as Record<string, unknown>[]).map((exp) => {
+    // SAFETY: Array.isArray guard above ensures result.experience is an array; UnknownRecord[] is the safe type for mapping AI experience entries.
+    result.experience = (result.experience as UnknownRecord[]).map((exp) => {
       if (Array.isArray(exp.description)) {
         return {
           ...exp,
+          // SAFETY: Array.isArray guard above ensures exp.description is a string array.
           description: (exp.description as string[]).join(" "),
+          // SAFETY: Array.isArray guard above ensures exp.description is a string array.
           highlights: exp.description as string[],
         };
       }
@@ -65,9 +72,11 @@ export function transformToSchema(data: Record<string, unknown>): Record<string,
 
   // Transform project descriptions from array to string
   if (Array.isArray(result.projects)) {
-    result.projects = (result.projects as Record<string, unknown>[]).map((proj) => {
+    // SAFETY: Array.isArray guard above ensures result.projects is an array; UnknownRecord[] is the safe type for mapping AI project entries.
+    result.projects = (result.projects as UnknownRecord[]).map((proj) => {
       const transformed = { ...proj };
       if (Array.isArray(proj.description)) {
+        // SAFETY: Array.isArray guard above ensures proj.description is a string array.
         transformed.description = (proj.description as string[]).join(" ");
       }
       // Rename 'date' to 'year' if present
@@ -78,6 +87,5 @@ export function transformToSchema(data: Record<string, unknown>): Record<string,
       return transformed;
     });
   }
-
   return result;
 }

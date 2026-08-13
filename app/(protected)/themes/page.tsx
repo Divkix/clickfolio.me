@@ -49,6 +49,7 @@ export default async function ThemesPage() {
   }
 
   const currentThemeId = userSiteData.themeId || DEFAULT_THEME;
+  // SAFETY: D1 content is schema-validated JSON written only by our queue consumer; JSON.parse failure is caught and returns null.
   const parsedContent = JSON.parse(userSiteData.content) as ResumeContent;
   const profile = {
     handle: userProfile?.handle || session.user.name || "user",

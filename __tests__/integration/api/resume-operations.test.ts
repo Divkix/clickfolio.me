@@ -1,3 +1,4 @@
+import type { UnknownRecord, JsonValue } from "@/lib/types/json";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 /**
@@ -35,14 +36,14 @@ vi.mock("cloudflare:workers", () => ({
 
 vi.mock("drizzle-orm", () => ({
   eq: vi.fn((_col, val) => ({ eq: val })),
-  and: vi.fn((...args: unknown[]) => ({ and: args })),
+  and: vi.fn((...args: JsonValue[]) => ({ and: args })),
   desc: vi.fn((col) => ({ desc: col })),
   ne: vi.fn((_col, val) => ({ ne: val })),
   gte: vi.fn((_col, val) => ({ gte: val })),
   isNotNull: vi.fn((col) => ({ isNotNull: col })),
   lt: vi.fn((_col, val) => ({ lt: val })),
   inArray: vi.fn((col, values) => ({ inArray: { col, values } })),
-  sql: vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({
+  sql: vi.fn((strings: TemplateStringsArray, ...values: JsonValue[]) => ({
     sql: strings.join("?"),
     values,
   })),
@@ -118,10 +119,14 @@ vi.mock("@/lib/referral", () => ({
 }));
 
 vi.mock("@/lib/utils/security-headers", () => ({
-  createErrorResponse: vi.fn((error: string, _code: string, status: number, details?: unknown) => {
-    return new Response(JSON.stringify({ error, ...(details ? { details } : {}) }), { status });
-  }),
-  createSuccessResponse: vi.fn((data: unknown) => {
+  createErrorResponse: vi.fn(
+    (error: string, _code: string, status: number, details?: JsonValue) => {
+      const body: ErrorBody = { error };
+      if (details !== undefined) body.details = details;
+      return new Response(JSON.stringify(body), { status });
+    },
+  ),
+  createSuccessResponse: vi.fn((data: JsonValue) => {
     return new Response(JSON.stringify(data), { status: 200 });
   }),
   ERROR_CODES: {
@@ -223,7 +228,7 @@ vi.mock("@/lib/templates/theme-ids", () => ({
   ),
   isThemeUnlocked: vi.fn((themeId: string, referralCount: number, isPro = false) => {
     if (isPro) return true;
-    const requirements: Record<string, number> = {
+    const requirements = {
       bento: 0,
       classic_ats: 0,
       dev_terminal: 0,
@@ -234,11 +239,11 @@ vi.mock("@/lib/templates/theme-ids", () => ({
       spotlight: 3,
       midnight: 5,
       bold_corporate: 10,
-    };
-    return referralCount >= (requirements[themeId] ?? 0);
+    } as const satisfies Record<string, number>;
+    return referralCount >= (requirements[themeId as keyof typeof requirements] ?? 0);
   }),
   getThemeReferralRequirement: vi.fn((themeId: string) => {
-    const requirements: Record<string, number> = {
+    const requirements = {
       bento: 0,
       classic_ats: 0,
       dev_terminal: 0,
@@ -249,8 +254,8 @@ vi.mock("@/lib/templates/theme-ids", () => ({
       spotlight: 3,
       midnight: 5,
       bold_corporate: 10,
-    };
-    return requirements[themeId] ?? 0;
+    } as const satisfies Record<string, number>;
+    return requirements[themeId as keyof typeof requirements] ?? 0;
   }),
 }));
 
@@ -258,6 +263,8 @@ vi.mock("@/lib/templates/theme-ids", () => ({
 
 import { requireAuthWithMessage, requireAuthWithUserValidation } from "@/lib/auth/middleware";
 import { validateRequestSize } from "@/lib/utils/validation";
+
+type ErrorBody = { error: string; details?: JsonValue };
 
 const mockedAuth = vi.mocked(requireAuthWithUserValidation);
 const mockedAuthMessage = vi.mocked(requireAuthWithMessage);
@@ -339,33 +346,34 @@ async function createSignedCookieValue(
 
   return `${payload}|${signatureBase64}`;
 }
-
-function authedAs(
-  userId: string,
-  isAdmin = false,
-  referralCount = 0,
-  isPro = false,
-): {
-  user: {
-    id: string;
-    email: string;
-    name: string;
-    image: null;
-    handle: string;
-    headline: string;
-    privacySettings: string;
-    onboardingCompleted: boolean;
-    role: "student" | "entry_level" | "mid_level" | "senior" | "executive";
-    isAdmin: boolean;
-    referralCount: number;
-    isPro: boolean;
-  };
+type AuthedUser = {
+  id: string;
+  email: string;
+  name: string;
+  image: null;
+  handle: string;
+  headline: string;
+  privacySettings: string;
+  onboardingCompleted: boolean;
+  role: "student" | "entry_level" | "mid_level" | "senior" | "executive";
+  isAdmin: boolean;
+  referralCount: number;
+  isPro: boolean;
+};
+type AuthedAsResult = {
+  user: AuthedUser;
   db: typeof mockDb;
   captureBookmark: typeof mockCaptureBookmark;
   dbUser: { id: string; handle: string };
   env: CloudflareEnv;
   error: null;
-} {
+};
+function authedAs(
+  userId: string,
+  isAdmin = false,
+  referralCount = 0,
+  isPro = false,
+): AuthedAsResult {
   const authResult = {
     user: {
       id: userId,
@@ -411,7 +419,7 @@ function unauthenticated() {
   return error;
 }
 
-function makeRequest(url: string, method = "GET", body?: unknown, cookieValue?: string): Request {
+function makeRequest(url: string, method = "GET", body?: JsonValue, cookieValue?: string): Request {
   const init: RequestInit = { method };
   const headers: Record<string, string> = {};
 
@@ -552,7 +560,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
       const response = await GET(request);
 
       expect(response.status).toBe(200);
-      const body = (await response.json()) as { status: string; parsed_content: unknown };
+      const body = (await response.json()) as { status: string; parsed_content: JsonValue };
       expect(body.status).toBe("completed");
       expect(body.parsed_content).toBeDefined();
     });
@@ -659,7 +667,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
   // ─────────────────────────────────────────────────────────────────
 
   describe("Retry eligibility: status and latest-status agree", () => {
-    async function canRetryFromBothEndpoints(row: Record<string, unknown>): Promise<{
+    async function canRetryFromBothEndpoints(row: UnknownRecord): Promise<{
       status: boolean;
       latest: boolean;
     }> {

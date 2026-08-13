@@ -4,9 +4,10 @@ import type React from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import VerifyEmailPage from "@/app/(public)/verify-email/page";
 import ResetPasswordPage from "@/app/reset-password/page";
+import type { JsonValue } from "@/lib/types/json";
 
 type AuthActionResult = {
-  data: unknown;
+  data: JsonValue;
   error: { message?: string } | null;
 };
 
@@ -17,13 +18,13 @@ const mocks = vi.hoisted(() => ({
     error: vi.fn(),
   },
   resetPassword: vi.fn(
-    async (_params?: unknown): Promise<AuthActionResult> => ({
+    async (_params?: JsonValue): Promise<AuthActionResult> => ({
       data: {},
       error: null,
     }),
   ),
   sendVerificationEmail: vi.fn(
-    async (_params?: unknown): Promise<AuthActionResult> => ({
+    async (_params?: JsonValue): Promise<AuthActionResult> => ({
       data: {},
       error: null,
     }),
@@ -59,8 +60,8 @@ vi.mock("@/components/ui/sonner", () => ({
 }));
 
 vi.mock("@/lib/auth/client", () => ({
-  resetPassword: (params: unknown) => mocks.resetPassword(params),
-  sendVerificationEmail: (params: unknown) => mocks.sendVerificationEmail(params),
+  resetPassword: (params: JsonValue) => mocks.resetPassword(params),
+  sendVerificationEmail: (params: JsonValue) => mocks.sendVerificationEmail(params),
 }));
 
 vi.mock("@/components/auth/PasswordInput", () => ({

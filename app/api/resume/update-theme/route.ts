@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { withUser } from "@/lib/auth/with-auth";
 import { captureServerEvent } from "@/lib/posthog-server";
@@ -11,7 +12,6 @@ import {
   ERROR_CODES,
 } from "@/lib/utils/security-headers";
 import { readJsonWithLimit, validateRequestSize } from "@/lib/utils/validation";
-
 interface ThemeUpdateRequestBody {
   theme_id?: string;
 }
@@ -57,11 +57,12 @@ export async function POST(request: Request) {
           rawBodyResult.reason === "too_large" ? 413 : 400,
         );
       }
+      // SAFETY: rawBodyResult.data is bounded JSON from validated request; cast extracts typed theme_id field.
       const body = rawBodyResult.data as ThemeUpdateRequestBody;
       const { theme_id } = body;
 
       // Validate theme_id
-      if (!theme_id || typeof theme_id !== "string") {
+      if (!theme_id || !z.string().safeParse(theme_id).success) {
         return createErrorResponse(
           "theme_id is required and must be a string",
           ERROR_CODES.BAD_REQUEST,
@@ -75,6 +76,7 @@ export async function POST(request: Request) {
         });
       }
 
+      // SAFETY: isValidThemeId guard above guarantees id is ThemeId.
       // Check if theme is locked behind referral requirement
       const themeError = await verifyThemeUnlocked(db, userId, theme_id as ThemeId);
       if (themeError) return themeError;

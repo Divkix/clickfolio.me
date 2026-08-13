@@ -60,6 +60,7 @@ export async function GET(request?: Request) {
       // that has timed out is presented as a virtual "failed" without persisting.
       // The orphan cron will durably transition it on its next tick.
       // Single presentation call encodes the timeout, progress, and status.
+      // SAFETY: D1 status and createdAt are validated enum/string columns; casts bridge Drizzle nullable type.
       const pres = statusPresentation({
         status: resume.status as string,
         createdAt: resume.createdAt as string | null,
@@ -70,6 +71,7 @@ export async function GET(request?: Request) {
       // For a virtual timeout the row is logically failed with a transient
       // timeout error (no stored lastAttemptError type), so retry is allowed
       // iff caps allow.
+      // SAFETY: D1 resume fields are validated enum/number columns; casts bridge Drizzle nullable type.
       const can_retry = isTimedOut
         ? canRetryResume({
             status: "failed",
@@ -83,11 +85,12 @@ export async function GET(request?: Request) {
             totalAttempts: resume.totalAttempts as number,
             lastAttemptError: resume.lastAttemptError as string | null,
           });
-
+      // SAFETY: D1 errorMessage is nullable string column; cast bridges Drizzle type.
       const error = isTimedOut
         ? WAITING_FOR_CACHE_TIMEOUT_MESSAGE
         : (resume.errorMessage as string | null);
 
+      // SAFETY: D1 id and createdAt are validated string columns; casts bridge Drizzle nullable type.
       return createSuccessResponse({
         id: resume.id as string,
         status: publicStatus,

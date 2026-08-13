@@ -6,13 +6,13 @@
 import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { createMockDb } from "@/__tests__/setup/mocks/db.mock";
+import type { JsonValue } from "@/lib/types/json";
 import {
   checkEmailValidateRateLimit,
   checkHandleRateLimit,
   checkIPRateLimit,
   getClientIP,
 } from "@/lib/rate-limit/ip";
-
 // Mock the modules
 vi.mock("cloudflare:workers", () => ({
   env: { CLICKFOLIO_DB: {} as D1Database },
@@ -30,10 +30,10 @@ vi.mock("drizzle-orm", async (importOriginal) => {
   const actual = await importOriginal<typeof import("drizzle-orm")>();
   return {
     ...actual,
-    and: vi.fn((...conditions: unknown[]) => ({ conditions, type: "and" })),
-    eq: vi.fn((column: unknown, value: unknown) => ({ column, type: "eq", value })),
-    gte: vi.fn((column: unknown, value: unknown) => ({ column, type: "gte", value })),
-    sql: vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({
+    and: vi.fn((...conditions: JsonValue[]) => ({ conditions, type: "and" })),
+    eq: vi.fn((column: JsonValue, value: JsonValue) => ({ column, type: "eq", value })),
+    gte: vi.fn((column: JsonValue, value: JsonValue) => ({ column, type: "gte", value })),
+    sql: vi.fn((strings: TemplateStringsArray, ...values: JsonValue[]) => ({
       strings,
       type: "sql",
       values,

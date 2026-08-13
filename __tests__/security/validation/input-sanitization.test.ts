@@ -1,3 +1,4 @@
+import type { JsonValue, UnknownRecord } from "@/lib/types/json";
 import { describe, expect, it } from "vite-plus/test";
 
 /**
@@ -54,14 +55,14 @@ describe("Input Validation and Sanitization Security", () => {
 
     it("sanitizes HTML entities properly", () => {
       const html = "<div>Test</div>";
-      const entities: Record<string, string> = {
+      const entities = {
         "&": "&amp;",
         "<": "&lt;",
         ">": "&gt;",
         '"': "&quot;",
         "'": "&#x27;",
         "/": "&#x2F;",
-      };
+      } as const satisfies Record<string, string>;
       let sanitized = html;
       for (const [char, entity] of Object.entries(entities)) {
         sanitized = sanitized.replace(new RegExp(char, "g"), entity);
@@ -268,7 +269,7 @@ describe("Input Validation and Sanitization Security", () => {
 
   describe("JSON Parsing Security", () => {
     it("rejects deeply nested JSON", () => {
-      const createNested = (depth: number): unknown => {
+      const createNested = (depth: number): JsonValue => {
         if (depth === 0) return "value";
         return { nested: createNested(depth - 1) };
       };
@@ -283,11 +284,11 @@ describe("Input Validation and Sanitization Security", () => {
     it("handles prototype pollution attempts", () => {
       const maliciousPayload = JSON.parse('{ "__proto__": { "isAdmin": true } }');
       // Modern Node.js/JS engines protect against __proto__ pollution
-      const obj: Record<string, unknown> = {};
+      const obj: UnknownRecord = {};
       Object.assign(obj, maliciousPayload);
 
       // __proto__ should not affect object prototype
-      expect(({} as Record<string, unknown>).isAdmin).toBeUndefined();
+      expect(({} as UnknownRecord).isAdmin).toBeUndefined();
     });
   });
 

@@ -6,6 +6,8 @@
  * WebSocket fails to connect after 3 attempts.
  */
 
+import { z } from "zod";
+
 interface WaitResult {
   status: "completed" | "failed";
   error?: string;
@@ -81,6 +83,7 @@ export function waitForResumeCompletion(resumeId: string, timeoutMs = 90_000): P
           const response = await fetch(`/api/resume/status?resume_id=${resumeId}`);
           if (!response.ok) return;
 
+          // SAFETY: /api/resume/status returns { status: string, error?: string | null } — shape validated by polling logic and finish() handling; cast bridges untyped JSON response.
           const data = (await response.json()) as {
             status: string;
             error?: string | null;
@@ -119,11 +122,10 @@ export function waitForResumeCompletion(resumeId: string, timeoutMs = 90_000): P
           }
         }, PING_INTERVAL_MS);
       };
-
       ws.onmessage = (event) => {
-        if (typeof event.data !== "string" || event.data === "pong") return;
-
+        if (!z.string().safeParse(event.data).success || event.data === "pong") return;
         try {
+          // SAFETY: WebSocket message is JSON string from ResumeStatusDO; shape { type, status, error } validated by type checks below before use.
           const msg = JSON.parse(event.data) as {
             type: string;
             status: string;

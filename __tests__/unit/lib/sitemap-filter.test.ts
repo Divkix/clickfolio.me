@@ -10,19 +10,20 @@
 
 import type { MetadataRoute } from "next";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import type { JsonValue } from "@/lib/types/json";
 
 // ---------------------------------------------------------------------------
 // Mock dependencies
 // ---------------------------------------------------------------------------
 
 // Mutable reference so each test can swap the rows the mock query chain returns
-let mockSelectRows: unknown[] = [];
-let mockLimitValues: unknown[] = [];
-let mockOffsetValues: unknown[] = [];
+let mockSelectRows: JsonValue[] = [];
+let mockLimitValues: JsonValue[] = [];
+let mockOffsetValues: JsonValue[] = [];
 
 /** Build a mock query chain that returns `rows` when awaited */
-function buildQueryChain(rows: unknown[]): Record<string, unknown> {
-  const chain = (): Record<string, unknown> => buildQueryChain(rows);
+function buildQueryChain(rows: JsonValue[]) {
+  const chain = () => buildQueryChain(rows);
 
   return {
     innerJoin: vi.fn(() => chain()),
@@ -31,16 +32,16 @@ function buildQueryChain(rows: unknown[]): Record<string, unknown> {
     from: vi.fn(() => chain()),
     where: vi.fn(() => chain()),
     orderBy: vi.fn(() => chain()),
-    limit: vi.fn((value: unknown) => {
+    limit: vi.fn((value: JsonValue) => {
       mockLimitValues.push(value);
       return chain();
     }),
-    offset: vi.fn((value: unknown) => {
+    offset: vi.fn((value: JsonValue) => {
       mockOffsetValues.push(value);
       return chain();
     }),
     // eslint-disable-next-line unicorn/no-thenable -- mock for Drizzle thenable chain
-    then: vi.fn((resolve: (v: unknown) => unknown) => resolve(rows)),
+    then: vi.fn((resolve: (v: JsonValue) => JsonValue) => resolve(rows)),
   };
 }
 

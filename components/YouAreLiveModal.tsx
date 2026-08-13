@@ -45,15 +45,14 @@ export function YouAreLiveModal({ open, onOpenChange, handle, url }: YouAreLiveM
 
   const resumeUrl =
     url ||
-    (typeof window !== "undefined"
-      ? `${window.location.origin}/@${handle}`
+    (globalThis.window !== undefined
+      ? `${globalThis.window.location.origin}/@${handle}`
       : `https://clickfolio.me/@${handle}`);
 
   const referralUrl =
-    typeof window !== "undefined"
-      ? `${window.location.origin}/?ref=${handle}`
+    globalThis.window !== undefined
+      ? `${globalThis.window.location.origin}/?ref=${handle}`
       : `https://clickfolio.me/?ref=${handle}`;
-
   const shareText = "Just published my professional resume! Check it out:";
 
   const handleCopyLink = useCallback(async () => {

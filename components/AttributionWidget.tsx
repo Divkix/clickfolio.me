@@ -14,15 +14,7 @@ interface AttributionWidgetProps {
  */
 export function AttributionWidget({ theme }: AttributionWidgetProps) {
   // Theme-specific styles using data attributes for clean conditional rendering
-  const themeStyles: Record<
-    ThemeId,
-    {
-      container: string;
-      accent: string;
-      shimmer: string;
-      shadow: string;
-    }
-  > = {
+  const themeStyles = {
     minimalist_editorial: {
       container:
         "bg-amber-50/95 sm:bg-amber-50/80 border border-stone-300/50 text-stone-800 hover:text-stone-900",
@@ -91,7 +83,10 @@ export function AttributionWidget({ theme }: AttributionWidgetProps) {
       shimmer: "from-transparent via-gray-200/30 to-transparent",
       shadow: "shadow-sm hover:shadow-md",
     },
-  };
+  } as const satisfies Record<
+    ThemeId,
+    { container: string; accent: string; shimmer: string; shadow: string }
+  >;
 
   // Type guard to check if theme is a valid ThemeId
   const isValidTheme = (t: string): t is ThemeId => {

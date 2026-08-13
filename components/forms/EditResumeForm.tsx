@@ -106,6 +106,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
   }, [form, handleSave]);
 
   const onSubmit = async (data: ResumeContentFormData) => {
+    // SAFETY: ResumeContentFormData is schema-validated via zodResolver; cast bridges validated form data to ResumeContent.
     await handleSave(data as ResumeContent, false);
   };
 

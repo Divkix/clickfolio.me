@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import type { JsonValue } from "@/lib/types/json";
 
 /**
  * Authentication Middleware Security Tests
@@ -14,7 +15,7 @@ const createMockDb = () => {
 
   const where = vi.fn().mockReturnValue({ limit });
   const from = vi.fn().mockReturnValue({ where });
-  const select = vi.fn().mockImplementation((_fields: unknown) => {
+  const select = vi.fn().mockImplementation((_fields: JsonValue) => {
     return { from };
   });
 
@@ -29,7 +30,7 @@ const createMockDb = () => {
       },
     },
     // Helper to set the expected query result
-    setQueryResult: (result: unknown) => {
+    setQueryResult: (result: JsonValue) => {
       limit.mockResolvedValue(result);
     },
     // Helper to make query reject

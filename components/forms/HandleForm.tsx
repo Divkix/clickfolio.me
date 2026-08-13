@@ -63,6 +63,7 @@ export function HandleForm({ currentHandle }: HandleFormProps) {
       });
 
       if (!response.ok) {
+        // SAFETY: ApiErrorBody is from our /api/profile/handle endpoint; shape is server-controlled error response.
         const errorData = (await response.json()) as ApiErrorBody;
         throw new Error(errorData.error || "Failed to update handle");
       }

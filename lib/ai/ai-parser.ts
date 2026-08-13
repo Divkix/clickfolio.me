@@ -1,10 +1,10 @@
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { generateText, NoObjectGeneratedError, Output } from "ai";
 import { resumeContentSchema } from "@/lib/schemas/resume";
+import type { JsonValue, UnknownRecord } from "@/lib/types/json";
 import { parseJsonWithRepair, transformToSchema } from "./ai-fallback";
 import { normalizeAiKeys } from "./ai-normalize";
 import { RESUME_TRUNCATION_MARKER, truncateResumeText } from "./truncate";
-
 const DEFAULT_AI_MODEL = "openai/gpt-oss-120b:nitro";
 
 /**
@@ -186,9 +186,10 @@ Rules:
  * AI parse result — either structured output from the SDK or fallback-transformed data.
  * `structuredOutput` flags whether the AI SDK already validated against the Zod schema.
  */
+
 export interface AiParseResult {
   success: boolean;
-  data: unknown;
+  data: JsonValue;
   error?: string;
   structuredOutput?: boolean;
 }
@@ -571,7 +572,8 @@ export async function parseWithAi(
       }
     }
 
-    const normalized = normalizeAiKeys(fallbackResult.parsed as Record<string, unknown>);
+    // SAFETY: fallbackResult.parsed null check above and parseJsonWithRepair guard ensure parsed is a non-null object; UnknownRecord is the safe JSON object type for AI normalization.
+    const normalized = normalizeAiKeys(fallbackResult.parsed as UnknownRecord);
     const transformed = transformToSchema(normalized);
     return { success: true, data: transformed };
   } catch (error) {

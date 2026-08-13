@@ -13,8 +13,8 @@
 import { eq } from "drizzle-orm";
 import type { Database } from "@/lib/db";
 import { pendingR2Deletions } from "@/lib/db/schema";
+import type { UnknownRecord } from "@/lib/types/json";
 import { log } from "@/lib/utils/log";
-
 const TEMP_PREFIX = "temp/";
 const TEMP_CUTOFF_HOURS = 24;
 const LIST_PAGE_SIZE = 1000;
@@ -31,7 +31,7 @@ const PENDING_DELETIONS_BATCH = 100;
  */
 const PENDING_DELETIONS_MAX_ATTEMPTS = 10;
 
-export interface R2CleanupResult {
+export interface R2CleanupResult extends UnknownRecord {
   ok: true;
   deleted: number;
   failed: number;
@@ -92,6 +92,7 @@ export async function performR2Cleanup(binding: R2Bucket): Promise<R2CleanupResu
     // The `cursor` is only present on the result when truncated is true, so we paginate
     // by passing it back into the next `list` call until truncated becomes false.
     hasMore = listResult.truncated;
+    // SAFETY: R2 listResult with truncated true guarantees cursor presence per R2 API contract; cast narrows to paginated type for next page.
     cursor = hasMore ? (listResult as R2Objects & { truncated: true }).cursor : undefined;
   }
 
@@ -108,7 +109,7 @@ export async function performR2Cleanup(binding: R2Bucket): Promise<R2CleanupResu
   };
 }
 
-export interface PendingDeletionsResult {
+export interface PendingDeletionsResult extends UnknownRecord {
   ok: true;
   retried: number;
   succeeded: number;

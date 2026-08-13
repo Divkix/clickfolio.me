@@ -1,8 +1,9 @@
+import type { UnknownRecord, JsonValue } from "@/lib/types/json";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
+type ClaimHeaders = { "Content-Type": string; Cookie?: string };
+
 /**
- * Claim flow tests for POST /api/resume/claim.
- *
  * Tests the claim-check pattern: anonymous upload → auth → claim → queue parse.
  * Mocks auth, R2, rate limit, DB, and queue to isolate claim logic.
  */
@@ -53,7 +54,7 @@ vi.mock("@/lib/auth/middleware", () => ({
 // Drizzle-orm operators
 vi.mock("drizzle-orm", () => ({
   eq: vi.fn((_col, val) => ({ eq: val })),
-  and: vi.fn((...args: unknown[]) => ({ and: args })),
+  and: vi.fn((...args: JsonValue[]) => ({ and: args })),
   desc: vi.fn((col) => ({ desc: col })),
   gte: vi.fn((_col, val) => ({ gte: val })),
   ne: vi.fn((_col, val) => ({ ne: val })),
@@ -96,9 +97,9 @@ const mockR2Delete = vi.fn().mockResolvedValue(undefined);
 vi.mock("@/lib/r2", () => ({
   getR2Binding: vi.fn(() => ({})),
   R2: {
-    getAsArrayBuffer: (...args: unknown[]) => mockR2GetAsArrayBuffer(...args),
-    put: (...args: unknown[]) => mockR2Put(...args),
-    delete: (...args: unknown[]) => mockR2Delete(...args),
+    getAsArrayBuffer: (...args: JsonValue[]) => mockR2GetAsArrayBuffer(...args),
+    put: (...args: JsonValue[]) => mockR2Put(...args),
+    delete: (...args: JsonValue[]) => mockR2Delete(...args),
   },
 }));
 
@@ -141,7 +142,7 @@ vi.mock("@/lib/utils/security-headers", () => ({
   createErrorResponse: vi.fn((error: string, _code: string, status: number) => {
     return new Response(JSON.stringify({ error }), { status });
   }),
-  createSuccessResponse: vi.fn((data: unknown) => {
+  createSuccessResponse: vi.fn((data: JsonValue) => {
     return new Response(JSON.stringify(data), { status: 200 });
   }),
   ERROR_CODES: {
@@ -221,11 +222,11 @@ async function createSignedCookieValue(
 
 const TEST_SECRET = "test-secret-key-for-testing-only";
 
-function makeClaimRequest(body: Record<string, unknown>, cookieValue?: string) {
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
-  if (cookieValue) {
-    headers.Cookie = `pending_upload=${cookieValue}`;
-  }
+function makeClaimRequest(body: UnknownRecord, cookieValue?: string) {
+  const headers: ClaimHeaders = {
+    "Content-Type": "application/json",
+  };
+  if (cookieValue) headers.Cookie = `pending_upload=${cookieValue}`;
 
   return new Request("http://localhost:3000/api/resume/claim", {
     method: "POST",

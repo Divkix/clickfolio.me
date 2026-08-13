@@ -60,6 +60,7 @@ export function ThemeStep({
       <div className="max-w-4xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {Object.entries(THEME_METADATA).map(([id, meta]) => {
+            // SAFETY: isValidThemeId guard above guarantees id is ThemeId; Object.entries keys are ThemeIds from THEME_METADATA.
             const themeId = id as ThemeId;
             const isUnlocked = isThemeUnlocked(themeId, referralCount, isPro);
             const requiredReferrals = meta.referralsRequired;

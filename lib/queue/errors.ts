@@ -2,6 +2,16 @@
  * Queue error classification system
  * Categorizes errors as transient (retryable) or permanent (should not retry)
  */
+import { z } from "zod";
+import type { JsonValue } from "@/lib/types/json";
+
+export type QueueErrorInput =
+  | Error
+  | QueueError
+  | string
+  | { message?: string; error?: string; status?: number; cause?: JsonValue }
+  | null
+  | undefined;
 
 /**
  * Error types for queue processing
@@ -37,9 +47,9 @@ const TRANSIENT_ERROR_TYPES = new Set<QueueErrorType>([
  */
 export class QueueError extends Error {
   readonly type: QueueErrorType;
-  readonly originalError?: unknown;
+  readonly originalError?: QueueErrorInput;
 
-  constructor(type: QueueErrorType, message: string, originalError?: unknown) {
+  constructor(type: QueueErrorType, message: string, originalError?: QueueErrorInput) {
     super(message);
     this.name = "QueueError";
     this.type = type;
@@ -62,7 +72,7 @@ export class QueueError extends Error {
   /**
    * Create a JSON-serializable representation
    */
-  toJSON(): Record<string, unknown> {
+  toJSON(): QueueErrorJson {
     return {
       name: this.name,
       type: this.type,
@@ -78,6 +88,14 @@ export class QueueError extends Error {
     };
   }
 }
+
+export type QueueErrorJson = {
+  name: string;
+  type: QueueErrorType;
+  message: string;
+  isRetryable: boolean;
+  originalError: unknown;
+};
 
 /**
  * Regex patterns for classifying error messages into QueueErrorTypes.
@@ -233,10 +251,10 @@ const ERROR_PATTERNS: Array<{ pattern: RegExp; type: QueueErrorType }> = [
 
 /**
  * Classifies an error into a QueueErrorType based on pattern matching
- * @param error - The error to classify (can be Error, string, or unknown)
+ * @param error - The error to classify (can be Error, string, or QueueErrorInput)
  * @returns A QueueError with the appropriate type
  */
-export function classifyQueueError(error: unknown): QueueError {
+export function classifyQueueError(error: QueueErrorInput): QueueError {
   const errorMessage = extractErrorMessage(error);
 
   for (const { pattern, type } of ERROR_PATTERNS) {
@@ -258,28 +276,36 @@ export function classifyQueueError(error: unknown): QueueError {
  * - Response-like objects: checks `message`, `error`, and `status` properties.
  * - Falls back to "Unknown error" for anything else.
  */
-function extractErrorMessage(error: unknown): string {
+function extractErrorMessage(error: QueueErrorInput): string {
   if (error instanceof Error) {
     // Include cause if available
-    const cause = error.cause ? ` (cause: ${extractErrorMessage(error.cause)})` : "";
+    // SAFETY: error.cause is from Error instance, narrowed via instanceof Error branch; QueueErrorInput is safe union for recursion.
+    const cause =
+      error.cause != null ? ` (cause: ${extractErrorMessage(error.cause as QueueErrorInput)})` : "";
     return `${error.message}${cause}`;
   }
 
-  if (typeof error === "string") {
-    return error;
+  if (z.string().safeParse(error).success) {
+    // SAFETY: zod safeParse above guarantees error is string.
+    return error as string;
   }
 
-  if (error && typeof error === "object") {
+  if (error != null && error instanceof Object) {
     // Handle response-like objects
-    if ("message" in error && typeof error.message === "string") {
-      return error.message;
+    // SAFETY: Object guard above ensures error is a non-null object; Record cast is safe for dynamic key access.
+    const record = error as Record<string, JsonValue>;
+    if ("message" in record && z.string().safeParse(record.message).success) {
+      // SAFETY: zod safeParse above guarantees record.message is string.
+      return record.message as string;
     }
-    if ("error" in error && typeof error.error === "string") {
-      return error.error;
+    if ("error" in record && z.string().safeParse(record.error).success) {
+      // SAFETY: zod safeParse above guarantees record.error is string.
+      return record.error as string;
     }
     // Handle status code objects
-    if ("status" in error && typeof error.status === "number") {
-      return `HTTP ${error.status}`;
+    if ("status" in record && z.number().safeParse(record.status).success) {
+      // SAFETY: zod safeParse above guarantees record.status is number.
+      return `HTTP ${String(record.status as number)}`;
     }
   }
 
@@ -289,14 +315,14 @@ function extractErrorMessage(error: unknown): string {
 /**
  * Type guard to check if an unknown value is a QueueError instance.
  */
-function isQueueError(error: unknown): error is QueueError {
+function isQueueError(error: QueueErrorInput): error is QueueError {
   return error instanceof QueueError;
 }
 
 /**
  * Utility to quickly check if an error is retryable without creating a QueueError
  */
-export function isRetryableError(error: unknown): boolean {
+export function isRetryableError(error: QueueErrorInput): boolean {
   if (isQueueError(error)) {
     return error.isRetryable();
   }

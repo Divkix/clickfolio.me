@@ -1,4 +1,6 @@
 import { type ResumeContentFormData, resumeContentSchema } from "@/lib/schemas/resume";
+import { z } from "zod";
+import type { JsonValue, UnknownRecord } from "@/lib/types/json";
 import { sanitizeEmail } from "@/lib/utils/sanitization";
 import { parseWithAi } from "./ai-parser";
 import { extractPdfText } from "./pdf-extract";
@@ -29,6 +31,10 @@ function normalizeResumeText(text: string): string {
     .trim();
 }
 
+type ValidateParseResult =
+  | { success: true; data: UnknownRecord }
+  | { success: false; errors: string };
+
 /**
  * Validate AI-parsed data against the resume content schema.
  *
@@ -42,35 +48,42 @@ function normalizeResumeText(text: string): string {
  * Returns `{ success: true, data }` or `{ success: false, errors }` with
  * human-readable Zod issue messages.
  */
-function validateParseResult(
-  data: unknown,
-  structuredOutput?: boolean,
-): {
-  success: boolean;
-  data?: Record<string, unknown>;
-  errors?: string;
-} {
-  let withDefaults: Record<string, unknown>;
+function validateParseResult(data: JsonValue, structuredOutput?: boolean): ValidateParseResult {
+  let withDefaults: UnknownRecord;
 
   if (structuredOutput) {
     // Structured output was schema-validated by the SDK — skip heavy transformAiResponse.
     // Only apply lightweight security sanitization.
+    // SAFETY: object guard above ensures data is a non-null object; UnknownRecord is the safe JSON object type for validated AI output. Outer cast preserves UnknownRecord after conditional default.
     withDefaults = (
-      typeof data === "object" && data !== null ? { ...(data as Record<string, unknown>) } : {}
-    ) as Record<string, unknown>;
+      data instanceof Object &&
+      !Array.isArray(data) &&
+      z.record(z.string(), z.unknown()).safeParse(data).success
+        ? { ...(data as UnknownRecord) }
+        : {}
+    ) as UnknownRecord;
 
     // Security: validate URLs to block javascript: protocol
-    if (withDefaults.contact && typeof withDefaults.contact === "object") {
-      const c = withDefaults.contact as Record<string, unknown>;
+    if (
+      withDefaults.contact &&
+      withDefaults.contact instanceof Object &&
+      !Array.isArray(withDefaults.contact)
+    ) {
+      // SAFETY: object guard above ensures withDefaults.contact is a non-null object; UnknownRecord is safe for security sanitization of AI contact fields.
+      const c = withDefaults.contact as UnknownRecord;
       for (const urlField of ["linkedin", "github", "website", "behance", "dribbble"]) {
         if (c[urlField]) c[urlField] = validateUrl(c[urlField]);
       }
-      if (c.email) c.email = sanitizeEmail(c.email as string);
+      if (c.email) {
+        // SAFETY: truthy guard above ensures c.email is present and AI-normalized to string; cast preserves string type for sanitization.
+        c.email = sanitizeEmail(c.email as string);
+      }
     }
 
     // Normalize "Present"/"Current" end dates
     if (Array.isArray(withDefaults.experience)) {
-      for (const exp of withDefaults.experience as Record<string, unknown>[]) {
+      // SAFETY: Array.isArray guard above ensures withDefaults.experience is an array; UnknownRecord[] is the safe type for AI experience entries.
+      for (const exp of withDefaults.experience as UnknownRecord[]) {
         if (exp.end_date) exp.end_date = normalizeEndDate(exp.end_date);
       }
     }
@@ -87,7 +100,8 @@ function validateParseResult(
 
   const result = resumeContentSchema.safeParse(withDefaults);
   if (result.success) {
-    return { success: true, data: result.data as Record<string, unknown> };
+    // SAFETY: resumeContentSchema.safeParse success guarantees result.data matches ResumeContent shape; UnknownRecord is the safe JSON representation for validated resume data.
+    return { success: true, data: result.data as UnknownRecord };
   }
   const errors = result.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("\n");
   return { success: false, errors };
@@ -176,9 +190,11 @@ export async function parseResumeWithAi(
     }
 
     // Step 4: Final cleanup
+    // SAFETY: resumeContentSchema validation above guarantees validation.data matches ResumeContentFormData; cast preserves type for final cleanup.
     const finalData = transformAiOutput(validation.data as ResumeContentFormData);
 
     // Extract professional_level before serializing — it goes to user.role, not siteData.content
+    // SAFETY: professional_level is an optional string field from AI extraction; string | undefined is the correct union for role level extraction.
     const professionalLevel = finalData.professional_level as string | undefined;
     delete finalData.professional_level;
 

@@ -82,6 +82,7 @@ export async function GET() {
         ]);
 
       // Process resume stats
+      // SAFETY: resumeStats is aggregated string keys from D1; cast initializes typed map for counting.
       const resumeStatusMap = resumeStats.reduce(
         (acc, r) => {
           acc[r.status || "unknown"] = r.count;

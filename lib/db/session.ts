@@ -1,7 +1,7 @@
 import { drizzle } from "drizzle-orm/d1";
 import { cookies } from "next/headers";
+import { z } from "zod";
 import * as schema from "./schema";
-
 const D1_BOOKMARK_COOKIE = "d1-session-bookmark";
 const BOOKMARK_COOKIE_MAX_AGE = 30; // seconds
 
@@ -15,7 +15,8 @@ type D1SessionDatabase = D1Database & {
 };
 
 function createSession(d1: D1Database, constraintOrBookmark: string): D1SessionDatabase {
-  return d1.withSession(constraintOrBookmark) as unknown as D1SessionDatabase;
+  // SAFETY: withSession returns D1Database with getBookmark in Workers runtime; interface bridges the missing type.
+  return d1.withSession(constraintOrBookmark) as D1SessionDatabase;
 }
 
 function createDb(session: D1SessionDatabase) {
@@ -26,8 +27,9 @@ function createCaptureBookmark(session: D1SessionDatabase) {
   return async (): Promise<void> => {
     try {
       const bookmark = session.getBookmark();
-      if (bookmark && typeof bookmark === "string") {
-        await setBookmarkCookie(bookmark);
+      if (bookmark != null && z.string().safeParse(bookmark).success) {
+        // SAFETY: D1 bookmark is string from Workers runtime, validated via zod safeParse before cast.
+        await setBookmarkCookie(bookmark as string);
       }
     } catch (error) {
       console.warn("[D1 Session] Failed to capture bookmark:", error);

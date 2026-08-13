@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import type { JsonValue } from "@/lib/types/json";
 
 type EmailSendResult = {
   success: boolean;
@@ -34,7 +35,7 @@ const mocks = vi.hoisted(() => {
   const env = {
     CLICKFOLIO_DB: {
       prepare: vi.fn(() => ({
-        bind: vi.fn((...args: unknown[]) => ({ args })),
+        bind: vi.fn((...args: JsonValue[]) => ({ args })),
         first: vi.fn(),
       })),
     },
@@ -48,9 +49,9 @@ const mocks = vi.hoisted(() => {
   return {
     APIError,
     env,
-    betterAuth: vi.fn((config: unknown) => ({ config, handler: vi.fn() })),
-    drizzleAdapter: vi.fn((db: unknown, config: unknown) => ({ db, config })),
-    drizzle: vi.fn((db: unknown, config: unknown) => ({ db, config })),
+    betterAuth: vi.fn((config: JsonValue) => ({ config, handler: vi.fn() })),
+    drizzleAdapter: vi.fn((db: JsonValue, config: JsonValue) => ({ db, config })),
+    drizzle: vi.fn((db: JsonValue, config: JsonValue) => ({ db, config })),
     isDisposableEmail: vi.fn(async (_email: string) => ({ disposable: false })),
     generateReferralCode: vi.fn(() => "REF123"),
     sendPasswordResetEmail: vi.fn(async (): Promise<EmailSendResult> => ({ success: true })),
@@ -63,7 +64,7 @@ vi.mock("cloudflare:workers", () => ({
 }));
 
 vi.mock("better-auth", () => ({
-  betterAuth: (config: unknown) => mocks.betterAuth(config),
+  betterAuth: (config: JsonValue) => mocks.betterAuth(config),
 }));
 
 vi.mock("better-auth/api", () => ({
@@ -71,11 +72,11 @@ vi.mock("better-auth/api", () => ({
 }));
 
 vi.mock("@better-auth/drizzle-adapter", () => ({
-  drizzleAdapter: (db: unknown, config: unknown) => mocks.drizzleAdapter(db, config),
+  drizzleAdapter: (db: JsonValue, config: JsonValue) => mocks.drizzleAdapter(db, config),
 }));
 
 vi.mock("drizzle-orm/d1", () => ({
-  drizzle: (db: unknown, config: unknown) => mocks.drizzle(db, config),
+  drizzle: (db: JsonValue, config: JsonValue) => mocks.drizzle(db, config),
 }));
 
 vi.mock("@/lib/email/cloudflare", () => ({
@@ -135,7 +136,7 @@ describe("server auth configuration", () => {
       expect.objectContaining({ provider: "sqlite" }),
     );
 
-    const wrappedD1 = mocks.drizzle.mock.calls[0][0] as D1Database;
+    const wrappedD1 = mocks.drizzle.mock.calls[0][0] as unknown as D1Database;
     const stmt = wrappedD1.prepare("select ?");
     expect(stmt.bind(new Date("2026-05-20T00:00:00.000Z"), "x")).toEqual({
       args: ["2026-05-20T00:00:00.000Z", "x"],

@@ -8,22 +8,23 @@
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { retryPendingR2Deletions } from "@/lib/cron/cleanup-r2";
 import type { PendingR2Deletion } from "@/lib/db/schema";
+import type { JsonValue } from "@/lib/types/json";
 
 type Row = PendingR2Deletion;
 
 function createDb(rows: Row[]) {
-  const whereDeleteCaptures: unknown[] = [];
-  const updateSetCaptures: unknown[] = [];
+  const whereDeleteCaptures: JsonValue[] = [];
+  const updateSetCaptures: JsonValue[] = [];
 
   const deleteChain = {
-    where: vi.fn((cond: unknown) => {
+    where: vi.fn((cond: JsonValue) => {
       whereDeleteCaptures.push(cond);
       return Promise.resolve(undefined);
     }),
   };
 
   const updateWhereChain = {
-    where: vi.fn((cond: unknown) => {
+    where: vi.fn((cond: JsonValue) => {
       updateSetCaptures.push(cond);
       return Promise.resolve(undefined);
     }),
@@ -57,7 +58,7 @@ function createBinding(deleteImpl?: () => Promise<void>) {
   };
 }
 
-function run(db: unknown, binding: unknown) {
+function run(db: JsonValue, binding: JsonValue) {
   return retryPendingR2Deletions(db as never, binding as unknown as R2Bucket);
 }
 
@@ -78,7 +79,7 @@ describe("retryPendingR2Deletions", () => {
     const db = createDb([baseRow]);
     const binding = createBinding();
 
-    const result = await run(db, binding);
+    const result = await run(db as unknown as JsonValue, binding as unknown as JsonValue);
 
     expect(result.ok).toBe(true);
     expect(result.retried).toBe(1);
@@ -94,7 +95,7 @@ describe("retryPendingR2Deletions", () => {
     const db = createDb([baseRow]);
     const binding = createBinding(() => Promise.reject(new Error("R2 unavailable")));
 
-    const result = await run(db, binding);
+    const result = await run(db as unknown as JsonValue, binding as unknown as JsonValue);
 
     expect(result.ok).toBe(true);
     expect(result.retried).toBe(1);
@@ -103,7 +104,7 @@ describe("retryPendingR2Deletions", () => {
     expect(result.skipped).toBe(0);
 
     expect(db.update).toHaveBeenCalled();
-    const rawSetCalls = db._updateSetChain.set.mock.calls as unknown[][];
+    const rawSetCalls = db._updateSetChain.set.mock.calls as JsonValue[][];
     const setArg = rawSetCalls[0]?.[0] as {
       attempts: number;
       lastError: string;
@@ -117,7 +118,7 @@ describe("retryPendingR2Deletions", () => {
     const db = createDb([maxedRow]);
     const binding = createBinding();
 
-    const result = await run(db, binding);
+    const result = await run(db as unknown as JsonValue, binding as unknown as JsonValue);
 
     expect(result.retried).toBe(1);
     expect(result.skipped).toBe(1);
@@ -133,7 +134,7 @@ describe("retryPendingR2Deletions", () => {
     const db = createDb([]);
     const binding = createBinding();
 
-    const result = await run(db, binding);
+    const result = await run(db as unknown as JsonValue, binding as unknown as JsonValue);
 
     expect(result.retried).toBe(0);
     expect(result.succeeded).toBe(0);
@@ -150,14 +151,13 @@ describe("retryPendingR2Deletions", () => {
       { ...baseRow, id: "max-1", r2Key: "users/u3/c.pdf", attempts: 10 },
     ];
     const db = createDb(rows);
-    const binding: { delete: ReturnType<typeof vi.fn> } = {
+    const binding = {
       delete: vi
         .fn()
         .mockResolvedValueOnce(undefined) // ok-1 succeeds
         .mockRejectedValueOnce(new Error("timeout")), // fail-1 fails
     };
-
-    const result = await run(db, binding);
+    const result = await run(db as unknown as JsonValue, binding as unknown as JsonValue);
 
     expect(result.retried).toBe(3);
     expect(result.succeeded).toBe(1);

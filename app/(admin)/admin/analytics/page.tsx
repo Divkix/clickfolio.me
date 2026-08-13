@@ -36,7 +36,7 @@ const PERIOD_OPTIONS: Array<{ value: Period; label: string }> = [
   { value: "90d", label: "90d" },
 ];
 
-const COUNTRY_FLAGS: Record<string, string> = {
+const COUNTRY_FLAGS = {
   US: "\u{1F1FA}\u{1F1F8}",
   GB: "\u{1F1EC}\u{1F1E7}",
   DE: "\u{1F1E9}\u{1F1EA}",
@@ -47,7 +47,7 @@ const COUNTRY_FLAGS: Record<string, string> = {
   BR: "\u{1F1E7}\u{1F1F7}",
   JP: "\u{1F1EF}\u{1F1F5}",
   MX: "\u{1F1F2}\u{1F1FD}",
-};
+} as const satisfies Record<string, string>;
 
 export default function AdminAnalyticsPage() {
   const [data, setData] = useState<AnalyticsData | null>(null);
@@ -231,19 +231,23 @@ export default function AdminAnalyticsPage() {
             <p className="text-sm text-muted-foreground/70">No country data yet</p>
           ) : (
             <div className="space-y-2">
-              {data?.countries.map((c) => (
-                <div key={c.code} className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">
-                    {COUNTRY_FLAGS[c.code] || "\u{1F3F3}"} {c.name}
-                  </span>
-                  <span
-                    className="text-sm font-medium text-foreground"
-                    style={{ fontVariantNumeric: "tabular-nums" }}
-                  >
-                    {c.percent}%
-                  </span>
-                </div>
-              ))}
+              {data?.countries.map((c) => {
+                // SAFETY: c.code is a country code string; COUNTRY_FLAGS covers common codes with fallback.
+                const flag = COUNTRY_FLAGS[c.code as keyof typeof COUNTRY_FLAGS] || "\u{1F3F3}";
+                return (
+                  <div key={c.code} className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">
+                      {flag} {c.name}
+                    </span>
+                    <span
+                      className="text-sm font-medium text-foreground"
+                      style={{ fontVariantNumeric: "tabular-nums" }}
+                    >
+                      {c.percent}%
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

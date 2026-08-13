@@ -43,6 +43,7 @@ export default async function EditPage() {
   // Parse content JSON (stored as text in D1)
   let content: ResumeContent;
   try {
+    // SAFETY: D1 content is schema-validated JSON written only by our queue consumer; JSON.parse failure is caught and returns null.
     content = JSON.parse(siteDataResult.content) as ResumeContent;
   } catch (error) {
     console.error("Failed to parse siteData content:", error);

@@ -8,6 +8,7 @@ import type { Metadata } from "next";
 import { FAQ_ITEMS } from "@/lib/config/faq";
 import { siteConfig } from "@/lib/config/site";
 import type { ResumeContent } from "@/lib/types/database";
+import type { UnknownRecord } from "@/lib/types/json";
 
 // =============================================================================
 // Types
@@ -379,7 +380,7 @@ export function generateResumeJsonLd(
  * which are valid JSON but can break JavaScript parsing in some contexts.
  */
 export function serializeJsonLd(
-  jsonLd: JsonLdProfilePage | Record<string, unknown> | Record<string, unknown>[],
+  jsonLd: JsonLdProfilePage | UnknownRecord | UnknownRecord[],
 ): string {
   return JSON.stringify(jsonLd)
     .replace(/</g, "\\u003c")
@@ -395,7 +396,7 @@ export function serializeJsonLd(
 /**
  * Generates JSON-LD for the homepage: WebSite + Organization schemas.
  */
-export function generateHomepageJsonLd(): Record<string, unknown>[] {
+export function generateHomepageJsonLd(): UnknownRecord[] {
   return [
     {
       "@context": "https://schema.org",
@@ -418,18 +419,18 @@ export function generateHomepageJsonLd(): Record<string, unknown>[] {
       "@type": "Organization",
       "@id": `${siteConfig.url}/#organization`,
       name: siteConfig.fullName,
-      alternateName: siteConfig.alternateNames,
+      alternateName: [...siteConfig.alternateNames],
       url: siteConfig.url,
       logo: `${siteConfig.url}/icon-512.png`,
       description:
         "clickfolio.me is a free AI resume website builder that turns a PDF resume into a hosted personal portfolio website with a custom @handle URL.",
       foundingDate: "2025",
-      sameAs: siteConfig.sameAs,
+      sameAs: [...siteConfig.sameAs],
       founder: {
         "@type": "Person",
         name: siteConfig.founder.name,
         url: siteConfig.founder.url,
-        sameAs: siteConfig.founder.sameAs,
+        sameAs: [...siteConfig.founder.sameAs],
       },
       contactPoint: {
         "@type": "ContactPoint",
@@ -457,7 +458,7 @@ export function generateHomepageJsonLd(): Record<string, unknown>[] {
  */
 export function generateExploreJsonLd(
   users: Array<{ handle: string; name: string; headline?: string | null }>,
-): Record<string, unknown> {
+) {
   return {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
@@ -490,7 +491,7 @@ export function generateExploreJsonLd(
 /**
  * Generates FAQPage JSON-LD for the homepage.
  */
-export function generateFAQJsonLd(): Record<string, unknown> {
+export function generateFAQJsonLd(): UnknownRecord {
   return generateFAQPageJsonLd(FAQ_ITEMS);
 }
 
@@ -499,9 +500,7 @@ export function generateFAQJsonLd(): Record<string, unknown> {
  * Used by profession landing pages and blog posts to expose their own FAQs
  * as rich results and AI-extractable answers.
  */
-export function generateFAQPageJsonLd(
-  items: Array<{ q: string; a: string }>,
-): Record<string, unknown> {
+export function generateFAQPageJsonLd(items: Array<{ q: string; a: string }>) {
   return {
     "@context": "https://schema.org",
     "@type": "FAQPage",
@@ -520,10 +519,7 @@ export function generateFAQPageJsonLd(
  * Generates a generic 2-item BreadcrumbList: Home > Page.
  * Reusable for explore, privacy, terms, etc.
  */
-export function generatePageBreadcrumbJsonLd(
-  pageName: string,
-  pagePath: string,
-): Record<string, unknown> {
+export function generatePageBreadcrumbJsonLd(pageName: string, pagePath: string) {
   return {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
@@ -552,8 +548,8 @@ export function generateWebPageJsonLd(
   path: string,
   description: string,
   dateModified?: string,
-): Record<string, unknown> {
-  const page: Record<string, unknown> = {
+) {
+  const base = {
     "@context": "https://schema.org",
     "@type": "WebPage",
     "@id": `${siteConfig.url}${path}#webpage`,
@@ -565,11 +561,11 @@ export function generateWebPageJsonLd(
       name: siteConfig.fullName,
       url: siteConfig.url,
     },
-  };
+  } satisfies UnknownRecord;
   if (dateModified) {
-    page.dateModified = dateModified;
+    return { ...base, dateModified } satisfies UnknownRecord;
   }
-  return page;
+  return base;
 }
 
 /**
@@ -604,10 +600,7 @@ export function buildRolePageMetadata(params: {
 /**
  * Generates BreadcrumbList JSON-LD for profile pages: Home > Explore > @name
  */
-export function generateBreadcrumbJsonLd(
-  handle: string,
-  displayName: string,
-): Record<string, unknown> {
+export function generateBreadcrumbJsonLd(handle: string, displayName: string) {
   return {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",

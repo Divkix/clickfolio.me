@@ -3,9 +3,9 @@ import {
   classifyQueueError,
   isRetryableError,
   QueueError,
+  QueueErrorInput,
   QueueErrorType,
 } from "@/lib/queue/errors";
-
 describe("queue error handling", () => {
   describe("QueueError.toJSON()", () => {
     it("should return a JSON-serializable object with type, message, isRetryable", () => {
@@ -193,9 +193,13 @@ describe("queue error handling", () => {
         errorConstructor.captureStackTrace = originalCaptureStackTrace;
       }
 
-      expect(classifyQueueError({ message: 123, error: 456, status: "429" }).type).toBe(
-        QueueErrorType.UNKNOWN,
-      );
+      expect(
+        classifyQueueError({
+          message: 123,
+          error: 456,
+          status: "429",
+        } as unknown as QueueErrorInput).type,
+      ).toBe(QueueErrorType.UNKNOWN);
     });
 
     it("should allow proper JSON serialization for DLQ/retry consumers", () => {

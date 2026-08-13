@@ -7,8 +7,11 @@ interface LogoProps {
   className?: string;
 }
 
-const iconSizes: Record<LogoSize, number> = { xs: 18, sm: 24, md: 30 };
-const textSizes: Record<LogoSize, string> = { xs: "text-base", sm: "text-lg", md: "text-xl" };
+const iconSizes = { xs: 18, sm: 24, md: 30 } as const satisfies Record<LogoSize, number>;
+const textSizes = { xs: "text-base", sm: "text-lg", md: "text-xl" } as const satisfies Record<
+  LogoSize,
+  string
+>;
 
 export function Logo({ size = "md", className = "" }: LogoProps) {
   return (

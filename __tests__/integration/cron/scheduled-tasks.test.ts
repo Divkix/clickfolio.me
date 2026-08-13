@@ -1,3 +1,4 @@
+import type { UnknownRecord } from "@/lib/types/json";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { performCleanup } from "@/lib/cron/cleanup";
 import { recoverOrphanedResumes } from "@/lib/cron/recover-orphaned";
@@ -26,9 +27,8 @@ type MockQueue = {
 function createMockDb(): MockDb {
   const mockResults = {
     meta: { changes: 0 },
-    results: [] as Record<string, unknown>[],
+    results: [] as UnknownRecord[],
   };
-
   return {
     batch: vi.fn().mockResolvedValue([mockResults, mockResults, mockResults]),
     select: vi.fn().mockReturnValue({

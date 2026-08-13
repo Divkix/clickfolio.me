@@ -122,6 +122,7 @@ export async function getUmamiToken(env: CloudflareEnv): Promise<string> {
       throw new Error(`Umami auth failed: ${res.status} ${res.statusText}`);
     }
 
+    // SAFETY: Umami /api/auth/login returns { token: string } on 2xx; res.ok checked above, token validated by caller before use as Bearer.
     const data = (await res.json()) as { token: string };
     cachedToken = data.token;
     tokenTimestamp = Date.now();
@@ -180,6 +181,7 @@ async function umamiGet<T>(
       throw new Error(`Umami API error: ${res.status} ${res.statusText} for ${path}`);
     }
 
+    // SAFETY: Umami API returns JSON matching generic T (caller's expected stats/pageviews type); caller specifies T via typed getStats/getPageviews wrappers and validates shape.
     return (await res.json()) as T;
   } finally {
     clearTimeout(timeout);

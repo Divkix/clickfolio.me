@@ -1,3 +1,4 @@
+import type { JsonValue, UnknownRecord } from "@/lib/types/json";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 /**
@@ -30,17 +31,17 @@ interface SessionRecord {
   createdAt: string;
   updatedAt: string;
 }
-
-const mockDbState: {
+type MockDbState = {
   users: Map<string, UserRecord>;
   sessions: Map<string, SessionRecord>;
-  accounts: Map<string, unknown>;
-  verifications: Map<string, unknown>;
-} = {
+  accounts: Map<string, JsonValue>;
+  verifications: Map<string, JsonValue>;
+};
+const mockDbState: MockDbState = {
   users: new Map<string, UserRecord>(),
   sessions: new Map<string, SessionRecord>(),
-  accounts: new Map<string, unknown>(),
-  verifications: new Map<string, unknown>(),
+  accounts: new Map<string, JsonValue>(),
+  verifications: new Map<string, JsonValue>(),
 };
 
 const mockEmailSent: Array<{
@@ -198,7 +199,7 @@ function resetAll(): void {
 function createAuthRequest(
   path: string,
   method = "GET",
-  body?: Record<string, unknown>,
+  body?: UnknownRecord,
   cookies?: Record<string, string>,
 ): Request {
   const headers: Record<string, string> = {};
@@ -440,7 +441,7 @@ describe("Better Auth Integration Flows", () => {
     const user = createUser({ email: "link@example.com" });
 
     const initialAccounts = Array.from(mockDbState.accounts.values()).filter(
-      (a: unknown) => (a as { userId?: string }).userId === user.id,
+      (a: JsonValue) => (a as { userId?: string }).userId === user.id,
     );
     expect(initialAccounts.length).toBe(0);
 
@@ -451,7 +452,7 @@ describe("Better Auth Integration Flows", () => {
     });
 
     const linkedAccounts = Array.from(mockDbState.accounts.values()).filter(
-      (a: unknown) => (a as { userId?: string }).userId === user.id,
+      (a: JsonValue) => (a as { userId?: string }).userId === user.id,
     );
     expect(linkedAccounts.length).toBe(1);
   });

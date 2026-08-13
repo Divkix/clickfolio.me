@@ -19,7 +19,7 @@ import { getSessionDbForWebhook } from "../lib/db/session";
 import { INFRA } from "@/lib/config/retry";
 import { handleQueueMessage } from "../lib/queue/consumer";
 import { handleDLQMessage } from "../lib/queue/dlq-consumer";
-import { isRetryableError } from "../lib/queue/errors";
+import { isRetryableError, type QueueErrorInput } from "../lib/queue/errors";
 import { queueMessageSchema } from "../lib/queue/types";
 import { log } from "../lib/utils/log";
 // Single source of truth for security headers, shared with the API response
@@ -200,7 +200,8 @@ export default {
         });
 
         // Use error classification to determine retry strategy
-        if (isRetryableError(error)) {
+        // SAFETY: catch error is unknown; QueueErrorInput covers Error|string|object for retry check.
+        if (isRetryableError(error as QueueErrorInput)) {
           message.retry();
         } else {
           // Permanent error — ack discards the message (acked messages never

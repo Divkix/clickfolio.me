@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vite-plus/test";
 import { DEMO_RESUME_CONTENT, DEMO_PROFILES } from "@/lib/templates/demo-data";
+import type { UnknownRecord, JsonValue } from "@/lib/types/json";
 import type { ResumeContent } from "@/lib/types/database";
-
 const URL_FIELDS = ["linkedin", "github", "website", "behance", "dribbble"] as const;
 const URL_FIELDS_IN_SECTIONS = ["url", "image_url"] as const;
 
@@ -12,7 +12,7 @@ const URL_FIELDS_IN_SECTIONS = ["url", "image_url"] as const;
 function collectUrls(content: ResumeContent): string[] {
   const urls: string[] = [];
 
-  const visit = (value: unknown): void => {
+  const visit = (value: JsonValue): void => {
     if (typeof value === "string") {
       // URL-like: contains a letter and a dot, no spaces (bare domains/paths).
       // Exclusions: emails (@) are contact data; pure numbers like GPA "3.9"
@@ -34,8 +34,8 @@ function collectUrls(content: ResumeContent): string[] {
       return;
     }
     if (value !== null && typeof value === "object") {
-      for (const key of Object.keys(value as Record<string, unknown>)) {
-        visit((value as Record<string, unknown>)[key]);
+      for (const key of Object.keys(value as UnknownRecord)) {
+        visit((value as UnknownRecord)[key]);
       }
     }
   };
@@ -54,7 +54,7 @@ describe("DEMO_RESUME_CONTENT URL audit", () => {
   it("every contact URL field starts with https://", () => {
     for (const [themeId, content] of Object.entries(DEMO_RESUME_CONTENT)) {
       for (const field of URL_FIELDS) {
-        const value = content.contact?.[field];
+        const value = (content.contact as unknown as Record<string, string | undefined>)?.[field];
         if (value) {
           expect(
             value.startsWith("https://"),
@@ -70,7 +70,7 @@ describe("DEMO_RESUME_CONTENT URL audit", () => {
       for (const section of ["projects", "certifications"] as const) {
         for (const entry of content[section] ?? []) {
           for (const field of URL_FIELDS_IN_SECTIONS) {
-            const value = (entry as Record<string, unknown> | undefined)?.[field];
+            const value = (entry as UnknownRecord | undefined)?.[field];
             if (typeof value === "string" && value) {
               expect(
                 value.startsWith("https://"),

@@ -172,11 +172,11 @@ export default async function HandlePage({ params }: PageProps) {
   // Dynamically select template based on theme_id
   const Template = await getTemplate(theme_id);
 
-  // Map theme_id to CTA variant (use ThemeId type directly)
+  // SAFETY: theme_id is DB-constrained to ThemeId values via queue consumer validation; fallback to DEFAULT_THEME (ThemeId) guarantees valid ThemeId.
   const ctaVariant: ThemeId = (theme_id ?? DEFAULT_THEME) as ThemeId;
 
   // Map theme_id to share popover variant (kebab-case format)
-  // Cast theme_id to ThemeId since it's validated against the enum in the database
+  // SAFETY: theme_id fallback to DEFAULT_THEME guarantees ThemeId; themeToShareVariant is Record<ThemeId, SharePopoverVariant> indexed by validated ThemeId.
   const shareVariant = themeToShareVariant[(theme_id ?? DEFAULT_THEME) as ThemeId];
   const pageTitle = `${content.full_name}'s Resume`;
 

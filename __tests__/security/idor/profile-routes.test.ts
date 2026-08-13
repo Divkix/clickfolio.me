@@ -1,3 +1,4 @@
+import type { UnknownRecord, JsonValue } from "@/lib/types/json";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 /**
@@ -55,7 +56,7 @@ vi.mock("drizzle-orm", () => ({
   and: vi.fn(() => "and"),
   gte: vi.fn(),
   desc: vi.fn(() => "desc"),
-  sql: vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({
+  sql: vi.fn((strings: TemplateStringsArray, ...values: JsonValue[]) => ({
     strings,
     values,
   })),
@@ -97,7 +98,7 @@ vi.mock("@/lib/utils/security-headers", () => ({
   createErrorResponse: vi.fn((error: string, _code: string, status: number) => {
     return new Response(JSON.stringify({ error }), { status });
   }),
-  createSuccessResponse: vi.fn((data: unknown) => {
+  createSuccessResponse: vi.fn((data: JsonValue) => {
     return new Response(JSON.stringify(data), { status: 200 });
   }),
   ERROR_CODES: {
@@ -141,7 +142,7 @@ const mockedAuthMessage = vi.mocked(requireAuthWithMessage);
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
-function authedAs(userId: string, _overrides: Record<string, unknown> = {}) {
+function authedAs(userId: string, _overrides: UnknownRecord = {}) {
   mockedAuth.mockResolvedValue({
     user: {
       id: userId,
@@ -162,7 +163,7 @@ function authedAs(userId: string, _overrides: Record<string, unknown> = {}) {
   });
 }
 
-function authedAsMessage(userId: string, _overrides: Record<string, unknown> = {}) {
+function authedAsMessage(userId: string, _overrides: UnknownRecord = {}) {
   mockedAuthMessage.mockResolvedValue({
     user: {
       id: userId,

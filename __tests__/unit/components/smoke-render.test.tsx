@@ -62,6 +62,7 @@ import { WizardProgress } from "@/components/wizard/WizardProgress";
 import { YouAreLiveModal } from "@/components/YouAreLiveModal";
 import { DEMO_PROFILES } from "@/lib/templates/demo-data";
 import type { ResumeContent } from "@/lib/types/database";
+import type { JsonValue } from "@/lib/types/json";
 
 const mocks = vi.hoisted(() => ({
   router: {
@@ -119,13 +120,13 @@ vi.mock("posthog-js", () => ({
 vi.mock("@/lib/auth/client", () => ({
   useSession: () => mocks.sessionState.current,
   signIn: {
-    social: (...args: unknown[]) => mocks.signInSocial(...args),
+    social: (...args: JsonValue[]) => mocks.signInSocial(...args),
     email: vi.fn().mockResolvedValue({ data: {}, error: null }),
   },
   signUp: {
     email: vi.fn().mockResolvedValue({ data: {}, error: null }),
   },
-  signOut: (...args: unknown[]) => mocks.signOut(...args),
+  signOut: (...args: JsonValue[]) => mocks.signOut(...args),
   sendVerificationEmail: vi.fn().mockResolvedValue({ data: {}, error: null }),
   resetPassword: vi.fn().mockResolvedValue({ data: {}, error: null }),
 }));
@@ -157,9 +158,9 @@ vi.mock("uplot", () => {
     };
     bbox = { height: 160 };
     cursor = { idx: null, left: 0, top: 0 };
-    data: unknown[];
+    data: JsonValue[];
 
-    constructor(_opts: unknown, data: unknown[], el: HTMLElement) {
+    constructor(_opts: JsonValue, data: JsonValue[], el: HTMLElement) {
       this.data = data;
       el.appendChild(this.over);
     }

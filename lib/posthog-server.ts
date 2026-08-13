@@ -1,7 +1,7 @@
 import { PostHog } from "posthog-node";
 import { POSTHOG_HOST, POSTHOG_PROJECT_TOKEN } from "@/lib/config/posthog";
+import type { UnknownRecord } from "@/lib/types/json";
 import { log } from "@/lib/utils/log";
-
 /**
  * Server-side PostHog helpers for Cloudflare Workers.
  *
@@ -30,7 +30,7 @@ export function getPostHogClient(): PostHog | null {
 export async function captureServerEvent(
   distinctId: string,
   event: string,
-  properties?: Record<string, unknown>,
+  properties?: UnknownRecord,
 ): Promise<void> {
   const posthog = getPostHogClient();
   if (!posthog) return;

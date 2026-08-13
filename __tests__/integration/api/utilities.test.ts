@@ -1,3 +1,4 @@
+import type { UnknownRecord, JsonValue } from "@/lib/types/json";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { _resetCache, extractDomain, isDisposableEmail } from "@/lib/email/disposable-check";
 import { RESERVED_HANDLES } from "@/lib/rate-limit/handle-validation";
@@ -475,11 +476,9 @@ describe("Utility APIs", () => {
       };
 
       const filteredContact = { ...contact };
-      if (!privacySettings.show_email) delete (filteredContact as Record<string, unknown>).email;
-      if (!privacySettings.show_phone) delete (filteredContact as Record<string, unknown>).phone;
-      if (!privacySettings.show_address)
-        delete (filteredContact as Record<string, unknown>).location;
-
+      if (!privacySettings.show_email) delete (filteredContact as UnknownRecord).email;
+      if (!privacySettings.show_phone) delete (filteredContact as UnknownRecord).phone;
+      if (!privacySettings.show_address) delete (filteredContact as UnknownRecord).location;
       expect(filteredContact).not.toHaveProperty("email");
       expect(filteredContact).not.toHaveProperty("phone");
       expect(filteredContact).not.toHaveProperty("location");
@@ -550,7 +549,7 @@ describe("Utility APIs", () => {
 
   describe("security headers", () => {
     it("should create success response with security headers", () => {
-      const createSuccessResponse = (data: unknown) => {
+      const createSuccessResponse = (data: JsonValue) => {
         return {
           status: 200,
           headers: {

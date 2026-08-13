@@ -47,6 +47,7 @@ export async function requireAdminAuth(): Promise<AdminUser> {
     redirect("/dashboard");
   }
 
+  // SAFETY: dbUser columns id,email,name,isAdmin match AdminUser shape from Drizzle query with explicit columns, safe to cast.
   return dbUser as AdminUser;
 }
 
@@ -92,5 +93,6 @@ export async function requireAdminAuthForApi(): Promise<
     };
   }
 
+  // SAFETY: dbUser columns id,email,name,isAdmin match AdminUser shape from Drizzle query with explicit columns, safe to cast.
   return { user: dbUser as AdminUser, error: null };
 }

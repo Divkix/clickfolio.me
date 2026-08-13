@@ -53,6 +53,7 @@ async function getSession(): Promise<AuthSession | null> {
     const session = await auth.api.getSession({
       headers: headersList,
     });
+    // SAFETY: auth.api.getSession returns better-auth session shape compatible with AuthSession; cast bridges missing type augmentation in auth lib.
     return session as AuthSession | null;
   } catch (error) {
     console.error("Failed to get session:", error);
@@ -218,9 +219,9 @@ export async function requireAuthWithUserValidation(errorMessage: string): Promi
  * ```
  */
 export function requireCronAuth(request: Request, env: CloudflareEnv): Response | null {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- CRON_SECRET is not typed
-  const cronSecret = (env as any).CRON_SECRET;
-
+  type CronEnv = CloudflareEnv & { CRON_SECRET?: string };
+  // SAFETY: CRON_SECRET is runtime env var not in CloudflareEnv type; CronEnv extends CloudflareEnv with optional CRON_SECRET, single cast bridges missing type.
+  const cronSecret = (env as CronEnv).CRON_SECRET;
   if (!cronSecret) {
     console.error("CRON_SECRET environment variable is not configured");
     return createErrorResponse(

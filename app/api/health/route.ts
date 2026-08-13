@@ -113,6 +113,7 @@ function aggregateStatus(services: HealthResponse["services"]): ServiceStatus {
  */
 export async function GET() {
   try {
+    // SAFETY: env is CloudflareEnv in Workers runtime; bindings verified by getR2Binding and health checks — cast bridges missing CloudflareEnv augmentation.
     const typedEnv = env as CloudflareEnv;
 
     const r2Binding = getR2Binding(typedEnv);

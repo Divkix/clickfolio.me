@@ -134,6 +134,7 @@ export async function GET() {
     const totalSourceClicks = sourceBreakdown.reduce((sum, s) => sum + s.count, 0);
 
     // Resolve referrer handles for recent referrals
+    // SAFETY: filter(Boolean) guarantees referrerUserId is truthy string; cast bridges Drizzle nullable to string[].
     const recentReferrerIds = [
       ...new Set(recentReferrals.map((r) => r.referrerUserId).filter(Boolean)),
     ] as string[];

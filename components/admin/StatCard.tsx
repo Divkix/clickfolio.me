@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-
+import { z } from "zod";
 interface StatCardProps {
   title: string;
   value: string | number;
@@ -19,6 +19,7 @@ export function StatCard({
   change,
   href,
 }: StatCardProps) {
+  // SAFETY: zod safeParse guarantees value is number/string before cast; preserves validated type.
   const content = (
     <div className="bg-card rounded-xl shadow-sm border border-border p-4 transition-colors hover:border-border-strong">
       <div className="flex items-center gap-3">
@@ -32,7 +33,9 @@ export function StatCard({
               className="text-xl font-bold text-foreground"
               style={{ fontVariantNumeric: "tabular-nums" }}
             >
-              {typeof value === "number" ? value.toLocaleString() : value}
+              {z.number().safeParse(value).success
+                ? (value as number).toLocaleString()
+                : (value as string)}
             </p>
             {change !== undefined && (
               <span

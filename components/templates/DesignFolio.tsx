@@ -6,10 +6,10 @@ import { formatDateRange } from "@/lib/templates/helpers";
 import type { TemplateProps } from "@/lib/types/template";
 import { TemplateFontLinks } from "./shared/TemplateFontLinks";
 
-const dfIconMap: Partial<Record<ContactLinkType, React.ReactNode>> = {
+const dfIconMap = {
   phone: <Phone size={18} aria-hidden="true" />,
   location: <MapPin size={18} aria-hidden="true" />,
-};
+} as const satisfies Partial<Record<ContactLinkType, React.ReactNode>>;
 
 export const DesignFolio: React.FC<TemplateProps> = ({ content, profile, isPreview }) => {
   const {
@@ -289,7 +289,8 @@ export const DesignFolio: React.FC<TemplateProps> = ({ content, profile, isPrevi
 
             <div className="flex flex-col md:flex-row gap-8 md:gap-16 font-mono-df text-lg">
               {contactLinks.map((link) => {
-                const icon = dfIconMap[link.type];
+                // SAFETY: link.type is a ContactLinkType; dfIconMap covers phone/location with undefined fallback for others.
+                const icon = dfIconMap[link.type as keyof typeof dfIconMap];
                 const isBranded = link.type === "behance" || link.type === "dribbble";
                 const brandColor =
                   link.type === "behance"

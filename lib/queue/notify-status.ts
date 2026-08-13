@@ -7,6 +7,7 @@
  */
 import { log } from "../utils/log";
 
+type NotifyBody = { status: string; error?: string };
 /**
  * Notify a single resume's Durable Object of a status change.
  * Best-effort: logs errors but does not throw.
@@ -31,7 +32,7 @@ export async function notifyStatusChange({
     const doId = env.CLICKFOLIO_STATUS_DO.idFromName(resumeId);
     const stub = env.CLICKFOLIO_STATUS_DO.get(doId);
 
-    const body: { status: string; error?: string } = { status };
+    const body: NotifyBody = { status };
     if (error) {
       body.error = error;
     }

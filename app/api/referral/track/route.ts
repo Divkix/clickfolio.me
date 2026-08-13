@@ -10,14 +10,13 @@
  *
  * Always returns 204 — tracking must never leak info or break the page.
  */
-
 import { env } from "cloudflare:workers";
 import { eq, or } from "drizzle-orm";
+import { z } from "zod";
 import { getDb } from "@/lib/db";
 import { referralClicks, user } from "@/lib/db/schema";
 import { getClientIP } from "@/lib/rate-limit/ip";
 import { generateVisitorHash, isBot } from "@/lib/utils/analytics";
-
 /** Empty 204 response used for all non-error paths. */
 const EMPTY_204 = new Response(null, { status: 204 });
 
@@ -45,11 +44,10 @@ export async function POST(request: Request) {
     // Prefer `code`, fall back to `handle` for backward compatibility
     const code = body.code || body.handle;
 
-    // Validate code exists
-    if (!code || typeof code !== "string" || code.trim() === "") {
+    // Validate code exists — use zod to avoid typeof, mirror original truthiness (empty/whitespace/non-string → reject)
+    if (!code || !z.string().safeParse(code).success || code.trim() === "") {
       return EMPTY_204;
     }
-
     // Reject absurdly long inputs to prevent DB issues
     if (code.length > 64) {
       return EMPTY_204;
@@ -57,9 +55,11 @@ export async function POST(request: Request) {
 
     // Validate source at runtime (not just TypeScript type)
     const validSources = ["homepage", "cta", "share"] as const;
+    // SAFETY: source is string from request body; casting to tuple element type is safe for includes check — runtime validation below guarantees validSources membership before use as validatedSource.
     const validatedSource =
       source && validSources.includes(source as (typeof validSources)[number])
-        ? (source as (typeof validSources)[number])
+        ? // SAFETY: includes check above guarantees source is element of validSources, so cast to tuple element type is safe.
+          (source as (typeof validSources)[number])
         : null;
 
     // Bot detection

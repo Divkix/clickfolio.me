@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import type { JsonValue } from "@/lib/types/json";
 
 const mocks = vi.hoisted(() => {
   const cookieStore = {
@@ -13,7 +14,7 @@ const mocks = vi.hoisted(() => {
   };
 
   const state = {
-    selectResults: [] as unknown[][],
+    selectResults: [] as JsonValue[][],
     authResult: null as unknown,
     handleRateLimit: { allowed: true } as { allowed: boolean; message?: string },
     emailRateLimit: { allowed: true } as { allowed: boolean; message?: string },
@@ -42,7 +43,7 @@ const mocks = vi.hoisted(() => {
         "No select result queued — push to mocks.state.selectResults before querying",
       );
     }
-    return state.selectResults.shift() as unknown[];
+    return state.selectResults.shift() as JsonValue[];
   };
   const createChain = (): Record<string, unknown> => {
     const chain: Record<string, unknown> = {
@@ -61,11 +62,13 @@ const mocks = vi.hoisted(() => {
       returning: vi.fn(() => chain),
       // eslint-disable-next-line unicorn/no-thenable -- Drizzle query mocks must be awaitable.
       then: vi.fn(
-        (resolve: (value: unknown[]) => unknown, reject?: (reason: unknown) => unknown) => {
+        (resolve: (value: JsonValue[]) => JsonValue, reject?: (reason: JsonValue) => JsonValue) => {
           try {
             return Promise.resolve(resolve(nextSelectResult()));
           } catch (error) {
-            return reject ? Promise.reject(reject(error)) : Promise.reject(error);
+            return reject
+              ? Promise.reject(reject(error as JsonValue))
+              : Promise.reject(error as JsonValue);
           }
         },
       ),
@@ -88,7 +91,7 @@ const mocks = vi.hoisted(() => {
       // eslint-disable-next-line unicorn/no-thenable -- resolves to undefined so the insert
       // does not consume a queued select result when awaited directly.
       then: vi.fn(
-        (resolve: (value: undefined) => unknown, _reject?: (reason: unknown) => unknown) => {
+        (resolve: (value: undefined) => JsonValue, _reject?: (reason: JsonValue) => JsonValue) => {
           return Promise.resolve(resolve(undefined));
         },
       ),
@@ -134,7 +137,7 @@ const mocks = vi.hoisted(() => {
       pageviews: [{ x: "2026-05-20T00:00:00Z", y: 6 }],
       sessions: [{ x: "2026-05-20T00:00:00Z", y: 2 }],
     })),
-    getMetrics: vi.fn(async (_env: unknown, options: { type: string }) => {
+    getMetrics: vi.fn(async (_env: JsonValue, options: { type: string }) => {
       if (options.type === "referrer") return [{ x: "linkedin.com", y: 3 }];
       if (options.type === "device") return [{ x: "desktop", y: 5 }];
       return [{ x: "US", y: 5 }];
@@ -147,7 +150,7 @@ const mocks = vi.hoisted(() => {
     r2Delete: vi.fn(async () => undefined),
     r2GetAsUint8Array: vi.fn(async () => new Uint8Array([1, 2, 3])),
     r2Head: vi.fn(async () => ({ exists: true })),
-    resvgAsync: vi.fn(async (_svg: string, _options?: unknown) => ({
+    resvgAsync: vi.fn(async (_svg: string, _options?: JsonValue) => ({
       render: () => ({
         asPng: () => new Uint8Array([137, 80, 78, 71]),
       }),
@@ -288,7 +291,7 @@ vi.mock("drizzle-orm", () => ({
   ),
 }));
 
-function jsonRequest(path: string, body: unknown, init: RequestInit = {}) {
+function jsonRequest(path: string, body: JsonValue, init: RequestInit = {}) {
   return new Request(`https://clickfolio.me${path}`, {
     method: init.method ?? "POST",
     // eslint-disable-next-line typescript/no-base-to-string -- RequestInfo|URL; String() is idiomatic in test fetch mocks
@@ -472,7 +475,7 @@ describe("API route coverage", () => {
     authed();
     mocks.state.selectResults = [[{ oldHandle: "old-one" }, { oldHandle: null }]];
     const response = await GET(new Request("https://clickfolio.me/api/analytics/stats?period=30d"));
-    const body = (await response.json()) as { viewsByDay: unknown[] } & Record<string, unknown>;
+    const body = (await response.json()) as { viewsByDay: JsonValue[] } & Record<string, unknown>;
     expect(response.status).toBe(200);
     expect(body).toMatchObject({
       totalViews: 20,
@@ -637,7 +640,7 @@ describe("API route coverage", () => {
         body: overrides.body ?? pdf,
       });
 
-    (mocks.env as { CLICKFOLIO_R2_BUCKET?: unknown }).CLICKFOLIO_R2_BUCKET = undefined;
+    (mocks.env as unknown as { CLICKFOLIO_R2_BUCKET?: JsonValue }).CLICKFOLIO_R2_BUCKET = undefined;
     expect((await POST(uploadRequest())).status).toBe(503);
     mocks.env.CLICKFOLIO_R2_BUCKET = originalBucket;
 
@@ -712,7 +715,7 @@ describe("API route coverage", () => {
     ).toBe(401);
 
     authed();
-    (mocks.env as { CLICKFOLIO_R2_BUCKET?: unknown }).CLICKFOLIO_R2_BUCKET = undefined;
+    (mocks.env as unknown as { CLICKFOLIO_R2_BUCKET?: JsonValue }).CLICKFOLIO_R2_BUCKET = undefined;
     expect(
       (await POST(jsonRequest("/api/account/delete", { confirmation: "avery@example.com" })))
         .status,
@@ -882,10 +885,10 @@ describe("API route coverage", () => {
     ];
 
     const body = (await (await GET()).json()) as {
-      stats: unknown;
-      topReferrers: unknown;
-      sources: unknown;
-      recentConversions: unknown;
+      stats: JsonValue;
+      topReferrers: JsonValue;
+      sources: JsonValue;
+      recentConversions: JsonValue;
     };
     expect(body.stats).toMatchObject({
       totalReferrers: 2,
@@ -1024,7 +1027,7 @@ describe("API route coverage", () => {
 
     const body = (await (
       await GET(new Request("https://clickfolio.me/api/admin/resumes?status=failed&page=2"))
-    ).json()) as { stats: unknown; resumes: unknown; page: number };
+    ).json()) as { stats: JsonValue; resumes: JsonValue; page: number };
     expect(body.stats).toEqual({ completed: 3, processing: 3, queued: 9, failed: 6 });
     expect(body.resumes).toEqual([
       {
@@ -1136,8 +1139,8 @@ describe("API route coverage", () => {
       },
     );
     const firstTimeBatch = (
-      vi.mocked(mocks.db.batch).mock.calls.at(-1) as unknown[] | undefined
-    )?.[0] as unknown[];
+      vi.mocked(mocks.db.batch).mock.calls.at(-1) as JsonValue[] | undefined
+    )?.[0] as JsonValue[];
     expect(firstTimeBatch).toHaveLength(2);
 
     mocks.db.batch.mockRejectedValueOnce(new Error("UNIQUE constraint failed: user.handle"));
@@ -1162,8 +1165,8 @@ describe("API route coverage", () => {
     const changed = await POST(jsonRequest("/api/wizard/complete", validBody));
     expect(changed.status).toBe(200);
     const changedBatch = (
-      vi.mocked(mocks.db.batch).mock.calls.at(-1) as unknown[] | undefined
-    )?.[0] as unknown[];
+      vi.mocked(mocks.db.batch).mock.calls.at(-1) as JsonValue[] | undefined
+    )?.[0] as JsonValue[];
     expect(changedBatch).toHaveLength(3);
     const auditInsert = changedBatch[2] as {
       values: { mock: { calls: Array<[Record<string, unknown>]> } };

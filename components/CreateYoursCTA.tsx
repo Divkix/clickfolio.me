@@ -167,6 +167,7 @@ export function CreateYoursCTA({ handle, variant, className }: CreateYoursCTAPro
   // - Not yet visible
   // - User viewing their own resume
   // Cast to include handle from Better Auth additional fields
+  // SAFETY: session.user is Better Auth user with additional handle field; cast bridges typed user to optional handle.
   const userHandle = (session?.user as { handle?: string } | undefined)?.handle;
   const isOwnResume = userHandle === handle;
   if (dismissed || !visible || isOwnResume) {

@@ -1,3 +1,4 @@
+import type { UnknownRecord, JsonValue } from "@/lib/types/json";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 /**
@@ -33,7 +34,7 @@ const mockWebSocketNotifications: Array<{
 
 const mockAlerts: Array<{
   type: string;
-  payload: unknown;
+  payload: JsonValue;
 }> = [];
 
 // ── Mock Setup ─────────────────────────────────────────────────────
@@ -67,9 +68,9 @@ vi.mock("@/lib/db/session", () => ({
   getSessionDbForWebhook: vi.fn().mockImplementation(() => {
     // Create a mock db that reads from/writes to mockDbState
     const mockDb = {
-      select: vi.fn().mockImplementation((_fields: unknown) => ({
-        from: vi.fn().mockImplementation((_table: unknown) => ({
-          where: vi.fn().mockImplementation((_condition: unknown) => ({
+      select: vi.fn().mockImplementation((_fields: JsonValue) => ({
+        from: vi.fn().mockImplementation((_table: JsonValue) => ({
+          where: vi.fn().mockImplementation((_condition: JsonValue) => ({
             limit: vi.fn().mockImplementation((n: number) => {
               // Extract resumeId from condition if possible
               const records = Array.from(mockDbState.resumes.values());
@@ -78,9 +79,9 @@ vi.mock("@/lib/db/session", () => ({
           })),
         })),
       })),
-      update: vi.fn().mockImplementation((_table: unknown) => ({
-        set: vi.fn().mockImplementation((values: Record<string, unknown>) => ({
-          where: vi.fn().mockImplementation((condition: Record<string, unknown>) => {
+      update: vi.fn().mockImplementation((_table: JsonValue) => ({
+        set: vi.fn().mockImplementation((values: UnknownRecord) => ({
+          where: vi.fn().mockImplementation((condition: UnknownRecord) => {
             // Simple mock - update by id
             const resumeId = condition.id || condition.resumeId;
             if (resumeId && mockDbState.resumes.has(resumeId as string)) {
@@ -91,8 +92,8 @@ vi.mock("@/lib/db/session", () => ({
           }),
         })),
       })),
-      insert: vi.fn().mockImplementation((_table: unknown) => ({
-        values: vi.fn().mockImplementation((values: Record<string, unknown>) => {
+      insert: vi.fn().mockImplementation((_table: JsonValue) => ({
+        values: vi.fn().mockImplementation((values: UnknownRecord) => {
           if (values.id) {
             mockDbState.siteData.set(
               values.id as string,
@@ -102,12 +103,12 @@ vi.mock("@/lib/db/session", () => ({
           return Promise.resolve(undefined);
         }),
       })),
-      batch: vi.fn().mockImplementation((queries: unknown[]) => {
+      batch: vi.fn().mockImplementation((queries: JsonValue[]) => {
         // Execute all queries in batch
         for (const query of queries) {
           if (typeof query === "object" && query !== null) {
             // Handle insert/update by checking query type
-            const q = query as { toSQL?: () => unknown };
+            const q = query as { toSQL?: () => JsonValue };
             if (q.toSQL) {
               // Just resolve for now
               void Promise.resolve(q);
@@ -499,7 +500,7 @@ describe("Queue Consumer - Main Processing", () => {
     const selectCalls: Array<string> = [];
 
     const mockDb = {
-      select: vi.fn().mockImplementation((_fields: unknown) => {
+      select: vi.fn().mockImplementation((_fields: JsonValue) => {
         const callCount = selectCalls.length;
         selectCalls.push(`call-${callCount}`);
 
@@ -521,7 +522,7 @@ describe("Queue Consumer - Main Processing", () => {
               }),
               // For the waiting resumes query (no limit)
               // eslint-disable-next-line unicorn/no-thenable -- mock for testing
-              then: vi.fn().mockImplementation((cb: (value: unknown[]) => unknown) => {
+              then: vi.fn().mockImplementation((cb: (value: JsonValue[]) => JsonValue) => {
                 if (callCount === 2) {
                   return Promise.resolve(cb([{ id: waitingResumeId, userId }]));
                 }
@@ -1023,7 +1024,7 @@ describe("DLQ Consumer", () => {
     // Verify log was written; log() emits a single JSON string with msg:"DLQ_ALERT"
     const dlqAlert = consoleSpy.mock.calls.find((call) => {
       try {
-        return (JSON.parse(call[0]) as Record<string, unknown>)["msg"] === "DLQ_ALERT";
+        return (JSON.parse(call[0]) as UnknownRecord)["msg"] === "DLQ_ALERT";
       } catch {
         return false;
       }
@@ -1220,7 +1221,7 @@ describe("DLQ Consumer", () => {
     // log() emits a single JSON string; verify DLQ_ALERT was not emitted
     const dlqAlertCall = consoleErrorSpy.mock.calls.find((call) => {
       try {
-        return (JSON.parse(call[0]) as Record<string, unknown>)["msg"] === "DLQ_ALERT";
+        return (JSON.parse(call[0]) as UnknownRecord)["msg"] === "DLQ_ALERT";
       } catch {
         return false;
       }
@@ -1326,14 +1327,14 @@ describe("Worker Queue Handler (worker/index.ts)", () => {
 // ── Batch A Regression Tests ────────────────────────────────────────
 
 /** Recursively collect drizzle column names referenced inside a SQL condition. */
-function collectColumns(node: unknown, depth = 0, acc = new Set<string>()): Set<string> {
+function collectColumns(node: JsonValue, depth = 0, acc = new Set<string>()): Set<string> {
   if (node == null || depth > 16) return acc;
   if (Array.isArray(node)) {
     for (const n of node) collectColumns(n, depth + 1, acc);
     return acc;
   }
   if (typeof node === "object") {
-    const obj = node as Record<string, unknown>;
+    const obj = node as UnknownRecord;
     if (typeof obj.name === "string" && typeof obj.columnType === "string") {
       acc.add(obj.name);
     }
@@ -1360,7 +1361,7 @@ describe("Batch A — queue/state-machine integrity fixes", () => {
     mockR2Store.set(r2Key, makePdfBuffer());
 
     const selectCalls: string[] = [];
-    const updateWhereConds: unknown[] = [];
+    const updateWhereConds: JsonValue[] = [];
 
     const mockDb = {
       select: vi.fn().mockImplementation(() => {
@@ -1379,7 +1380,7 @@ describe("Batch A — queue/state-machine integrity fixes", () => {
                 return Promise.resolve([]);
               }),
               // Waiting-resumes query has no .limit — it is awaited directly.
-              then: vi.fn().mockImplementation((cb: (value: unknown[]) => unknown) => {
+              then: vi.fn().mockImplementation((cb: (value: JsonValue[]) => JsonValue) => {
                 if (callIdx === 2) {
                   return Promise.resolve(cb([{ id: waitingId, userId }]));
                 }
@@ -1391,7 +1392,7 @@ describe("Batch A — queue/state-machine integrity fixes", () => {
       }),
       update: vi.fn().mockReturnValue({
         set: vi.fn().mockReturnValue({
-          where: vi.fn().mockImplementation((cond: unknown) => {
+          where: vi.fn().mockImplementation((cond: JsonValue) => {
             updateWhereConds.push(cond);
             return Promise.resolve(undefined);
           }),
@@ -1474,7 +1475,7 @@ describe("Batch A — queue/state-machine integrity fixes", () => {
     const resumeId = crypto.randomUUID();
     const r2Key = `users/user-1/123/resume.pdf`;
 
-    const updateWhereConds: unknown[] = [];
+    const updateWhereConds: JsonValue[] = [];
 
     const mockDb = {
       select: vi.fn().mockReturnValue({
@@ -1494,7 +1495,7 @@ describe("Batch A — queue/state-machine integrity fixes", () => {
       }),
       update: vi.fn().mockReturnValue({
         set: vi.fn().mockReturnValue({
-          where: vi.fn().mockImplementation((cond: unknown) => {
+          where: vi.fn().mockImplementation((cond: JsonValue) => {
             updateWhereConds.push(cond);
             return Promise.resolve(undefined);
           }),
@@ -1566,13 +1567,13 @@ describe("Batch A — queue/state-machine integrity fixes", () => {
     // (extracted to lib/queue/alert.ts) — evidenced by the DLQ_ALERT log line.
     const dlqAlert = consoleSpy.mock.calls.find((call) => {
       try {
-        return (JSON.parse(call[0]) as Record<string, unknown>)["msg"] === "DLQ_ALERT";
+        return (JSON.parse(call[0]) as UnknownRecord)["msg"] === "DLQ_ALERT";
       } catch {
         return false;
       }
     });
     expect(dlqAlert).toBeDefined();
-    const payload = JSON.parse(dlqAlert![0]) as Record<string, unknown>;
+    const payload = JSON.parse(dlqAlert![0]) as UnknownRecord;
     expect(payload).toMatchObject({
       resumeId,
       userId,

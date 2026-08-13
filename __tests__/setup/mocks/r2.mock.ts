@@ -7,6 +7,7 @@
  */
 
 import { vi } from "vite-plus/test";
+import type { JsonValue } from "@/lib/types/json";
 
 // ---------------------------------------------------------------------------
 // Mock R2Bucket binding
@@ -61,7 +62,7 @@ export function createMockR2Bucket(initialStore?: MockR2Store) {
       };
     }),
 
-    put: vi.fn().mockImplementation(async (key: string, body: unknown, options?: unknown) => {
+    put: vi.fn().mockImplementation(async (key: string, body: JsonValue, options?: JsonValue) => {
       let arrayBuffer: ArrayBuffer;
       if (body instanceof ArrayBuffer) {
         arrayBuffer = body;

@@ -134,6 +134,7 @@ function WaitingContent() {
       });
 
       if (!response.ok) {
+        // SAFETY: RetryResponse is from our /api/resume/retry endpoint; shape validated server-side before use.
         const data = (await response.json()) as RetryResponse;
         throw new Error(data.error || "Failed to retry");
       }

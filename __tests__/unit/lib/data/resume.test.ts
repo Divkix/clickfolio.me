@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import type { JsonValue } from "@/lib/types/json";
 
 /**
  * Unit tests for lib/data/resume.ts
@@ -16,7 +17,7 @@ vi.mock("react", async (importOriginal) => {
   const actual = await importOriginal<typeof import("react")>();
   return {
     ...actual,
-    cache: vi.fn((fn: (...args: unknown[]) => unknown) => fn),
+    cache: vi.fn((fn: (...args: JsonValue[]) => JsonValue) => fn),
   };
 });
 

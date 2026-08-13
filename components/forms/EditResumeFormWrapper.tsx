@@ -23,6 +23,7 @@ export function EditResumeFormWrapper({ initialData }: EditResumeFormWrapperProp
     });
 
     if (!response.ok) {
+      // SAFETY: fetch response is JSON with known ApiErrorBody shape; cast bridges unknown JSON to typed error body.
       const error = (await response.json()) as ApiErrorBody;
       const errorMessage = error.error || "Failed to update resume";
 

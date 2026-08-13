@@ -13,6 +13,7 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import type { JsonValue } from "@/lib/types/json";
 
 // ── Mocks ─────────────────────────────────────────────────────────────
 
@@ -51,7 +52,7 @@ vi.mock("@/lib/utils/security-headers", () => ({
   createErrorResponse: vi.fn((error: string, _code: string, status: number) => {
     return new Response(JSON.stringify({ error }), { status });
   }),
-  createSuccessResponse: vi.fn((data: unknown) => {
+  createSuccessResponse: vi.fn((data: JsonValue) => {
     return new Response(JSON.stringify(data), { status: 200 });
   }),
   ERROR_CODES: {
@@ -68,7 +69,7 @@ import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
 
 const mockedAuth = vi.mocked(requireAuthWithUserValidation);
 
-function authedAs(userId: string, db: unknown) {
+function authedAs(userId: string, db: JsonValue) {
   mockedAuth.mockResolvedValue({
     user: {
       id: userId,
@@ -113,7 +114,7 @@ function latestResumeRow(status: string) {
  * at `.limit()` so awaiting the chain actually settles (the shared
  * createMockQueryChain helper's `then` never calls its resolve callback).
  */
-function selectChainResolving(rows: unknown[]) {
+function selectChainResolving(rows: JsonValue[]) {
   return {
     select: vi.fn().mockReturnValue({
       from: vi.fn().mockReturnValue({
@@ -139,7 +140,7 @@ describe("GET /api/resume/latest-status — status mapping", () => {
     "maps %s to processing so the wizard detects the in-flight parse",
     async (dbStatus) => {
       const db = selectChainResolving(latestResumeRow(dbStatus));
-      authedAs("user-1", db);
+      authedAs("user-1", db as unknown as JsonValue);
 
       const { GET } = await import("@/app/api/resume/latest-status/route");
       const response = await GET();
@@ -153,7 +154,7 @@ describe("GET /api/resume/latest-status — status mapping", () => {
 
   it("leaves completed untouched", async () => {
     const db = selectChainResolving(latestResumeRow("completed"));
-    authedAs("user-1", db);
+    authedAs("user-1", db as unknown as JsonValue);
 
     const { GET } = await import("@/app/api/resume/latest-status/route");
     const response = await GET();
@@ -165,7 +166,7 @@ describe("GET /api/resume/latest-status — status mapping", () => {
 
   it("leaves failed untouched (so /waiting still shows the retry UI)", async () => {
     const db = selectChainResolving(latestResumeRow("failed"));
-    authedAs("user-1", db);
+    authedAs("user-1", db as unknown as JsonValue);
 
     const { GET } = await import("@/app/api/resume/latest-status/route");
     const response = await GET();
@@ -177,7 +178,7 @@ describe("GET /api/resume/latest-status — status mapping", () => {
 
   it("returns null when the user has no resumes", async () => {
     const db = selectChainResolving([]);
-    authedAs("user-1", db);
+    authedAs("user-1", db as unknown as JsonValue);
 
     const { GET } = await import("@/app/api/resume/latest-status/route");
     const response = await GET();
@@ -196,7 +197,7 @@ describe("GET /api/resume/status — pending_claim mapping", () => {
   }
 
   it("maps pending_claim to processing so /waiting keeps polling", async () => {
-    authedAs("user-1", mockDb);
+    authedAs("user-1", mockDb as unknown as JsonValue);
     mockFindFirst.mockResolvedValue({
       id: "resume-001",
       userId: "user-1",
@@ -225,7 +226,7 @@ describe("GET /api/resume/status — pending_claim mapping", () => {
   });
 
   it("keeps queued surfaced as processing with 25% progress", async () => {
-    authedAs("user-1", mockDb);
+    authedAs("user-1", mockDb as unknown as JsonValue);
     mockFindFirst.mockResolvedValue({
       id: "resume-001",
       userId: "user-1",
@@ -252,7 +253,7 @@ describe("GET /api/resume/status — pending_claim mapping", () => {
   });
 
   it("keeps processing surfaced as processing with 50% progress", async () => {
-    authedAs("user-1", mockDb);
+    authedAs("user-1", mockDb as unknown as JsonValue);
     mockFindFirst.mockResolvedValue({
       id: "resume-001",
       userId: "user-1",

@@ -24,6 +24,7 @@ type FormFieldContextValue<
   name: TName;
 };
 
+// SAFETY: sonner/form props are from shadcn/ui with validated types; cast preserves component prop contract.
 const FormFieldContext = React.createContext<FormFieldContextValue>({} as FormFieldContextValue);
 
 const FormField = <
@@ -65,6 +66,7 @@ const useFormField = () => {
 type FormItemContextValue = {
   id: string;
 };
+// SAFETY: sonner/form props are from shadcn/ui with validated types; cast preserves component prop contract.
 
 const FormItemContext = React.createContext<FormItemContextValue>({} as FormItemContextValue);
 

@@ -13,9 +13,9 @@
  * - DELETE: Clear cookie after successful claim
  *     Response: { success: boolean }
  */
-
 import { env } from "cloudflare:workers";
 import { cookies } from "next/headers";
+import { z } from "zod";
 import { getEnvValue } from "@/lib/auth";
 import { getR2Binding, R2 } from "@/lib/r2";
 import {
@@ -39,6 +39,7 @@ import { readJsonWithLimit, validateRequestSize } from "@/lib/utils/validation";
  */
 export async function POST(request: Request) {
   try {
+    // SAFETY: env is untyped Cloudflare Workers binding; cast bridges to typed CloudflareEnv.
     const typedEnv = env as CloudflareEnv;
     const secret = getEnvValue(typedEnv, "BETTER_AUTH_SECRET");
 
@@ -61,11 +62,12 @@ export async function POST(request: Request) {
         rawBodyResult.reason === "too_large" ? 413 : 400,
       );
     }
+    // SAFETY: rawBodyResult.data is bounded JSON from validated request; cast extracts optional key field.
     const body = rawBodyResult.data as { key?: string };
     const { key } = body ?? {};
 
     // Validate the key format (must be temp upload)
-    if (!key || typeof key !== "string" || !key.startsWith("temp/")) {
+    if (!key || !z.string().safeParse(key).success || !key.startsWith("temp/")) {
       return createErrorResponse("Invalid upload key", ERROR_CODES.BAD_REQUEST, 400);
     }
 
@@ -106,6 +108,7 @@ export async function POST(request: Request) {
  */
 export async function GET() {
   try {
+    // SAFETY: env is untyped Cloudflare Workers binding; cast bridges to typed CloudflareEnv.
     const typedEnv = env as CloudflareEnv;
     const secret = getEnvValue(typedEnv, "BETTER_AUTH_SECRET");
 

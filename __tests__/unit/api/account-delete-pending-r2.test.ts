@@ -9,30 +9,39 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import type { UnknownRecord, JsonValue } from "@/lib/types/json";
 
 const mocks = vi.hoisted(() => {
+  type MockAuthResult = {
+    user: { id: string; email: string };
+    dbUser: { id: string; handle: string };
+    db: JsonValue;
+    env: JsonValue;
+    captureBookmark: JsonValue;
+    error: JsonValue;
+  } | null;
   const state = {
-    selectResults: [] as unknown[][],
-    authResult: null as unknown,
-    insertCalls: [] as unknown[],
+    selectResults: [] as JsonValue[][],
+    authResult: null as MockAuthResult,
+    insertCalls: [] as JsonValue[],
   };
 
-  const nextSelectResult = () => {
+  const nextSelectResult = (): JsonValue[] => {
     if (state.selectResults.length === 0) {
       throw new Error("No select result queued");
     }
-    return state.selectResults.shift() as unknown[];
+    return state.selectResults.shift() as JsonValue[];
   };
 
   const insertChain = {
-    values: vi.fn((rows: unknown) => {
+    values: vi.fn((rows: JsonValue) => {
       state.insertCalls.push(rows);
       return Promise.resolve(undefined);
     }),
   };
 
-  const createChain = (): Record<string, unknown> => {
-    const chain: Record<string, unknown> = {
+  const createChain = () => {
+    const chain = {
       from: vi.fn(() => chain),
       where: vi.fn(() => chain),
       values: vi.fn(() => chain),
@@ -42,11 +51,13 @@ const mocks = vi.hoisted(() => {
       returning: vi.fn(() => chain),
       // eslint-disable-next-line unicorn/no-thenable -- Drizzle query mocks must be awaitable.
       then: vi.fn(
-        (resolve: (value: unknown[]) => unknown, reject?: (reason: unknown) => unknown) => {
+        (resolve: (value: JsonValue[]) => JsonValue, reject?: (reason: JsonValue) => JsonValue) => {
           try {
             return Promise.resolve(resolve(nextSelectResult()));
           } catch (error) {
-            return reject ? Promise.reject(reject(error)) : Promise.reject(error);
+            return reject
+              ? Promise.reject(reject(error as JsonValue))
+              : Promise.reject(error as JsonValue);
           }
         },
       ),
@@ -143,7 +154,7 @@ vi.mock("drizzle-orm", () => ({
   ),
 }));
 
-function jsonRequest(path: string, body: unknown) {
+function jsonRequest(path: string, body: JsonValue) {
   return new Request(`https://clickfolio.me${path}`, {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -151,13 +162,13 @@ function jsonRequest(path: string, body: unknown) {
   });
 }
 
-function authed(overrides: Record<string, unknown> = {}) {
+function authed(overrides: UnknownRecord = {}) {
   mocks.state.authResult = {
     user: { id: "user_1", email: "avery@example.com" },
     dbUser: { id: "user_1", handle: "avery" },
-    db: mocks.db,
-    env: mocks.env,
-    captureBookmark: vi.fn(async () => undefined),
+    db: mocks.db as unknown as JsonValue,
+    env: mocks.env as unknown as JsonValue,
+    captureBookmark: vi.fn(async () => undefined) as unknown as JsonValue,
     error: null,
     ...overrides,
   };
@@ -189,7 +200,7 @@ describe("account delete — pending R2 deletion tracking", () => {
     );
 
     expect(response.status).toBe(200);
-    const body = (await response.json()) as { success: boolean; warnings: unknown[] };
+    const body = (await response.json()) as { success: boolean; warnings: JsonValue[] };
     expect(body.success).toBe(true);
     expect(body.warnings).toHaveLength(1);
 
@@ -219,7 +230,7 @@ describe("account delete — pending R2 deletion tracking", () => {
     );
 
     expect(response.status).toBe(200);
-    const body = (await response.json()) as { success: boolean; warnings?: unknown[] };
+    const body = (await response.json()) as { success: boolean; warnings?: JsonValue[] };
     expect(body.success).toBe(true);
     expect(body.warnings).toBeUndefined();
 
@@ -249,7 +260,7 @@ describe("account delete — pending R2 deletion tracking", () => {
     );
 
     expect(response.status).toBe(200);
-    const body = (await response.json()) as { warnings: unknown[] };
+    const body = (await response.json()) as { warnings: JsonValue[] };
     expect(body.warnings).toHaveLength(2);
 
     const insertedRows = mocks.state.insertCalls[0] as Array<{ r2Key: string }>;

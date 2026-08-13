@@ -25,11 +25,11 @@ const PERIOD_OPTIONS: Array<{ value: Period; label: string }> = [
   { value: "90d", label: "90d" },
 ];
 
-const DEVICE_ICONS: Record<string, typeof Monitor> = {
+const DEVICE_ICONS = {
   desktop: Monitor,
   mobile: Smartphone,
   tablet: Tablet,
-};
+} as const satisfies Record<string, typeof Monitor>;
 
 const SHORT_MONTHS = [
   "Jan",
@@ -376,7 +376,8 @@ function StatsContent({ stats }: { stats: AnalyticsStats }) {
           </p>
           <div className="flex gap-3">
             {stats.deviceBreakdown.map((d) => {
-              const Icon = DEVICE_ICONS[d.device] || Globe;
+              // SAFETY: d.device is a device type string; DEVICE_ICONS covers known devices with Globe fallback.
+              const Icon = DEVICE_ICONS[d.device as keyof typeof DEVICE_ICONS] || Globe;
               return (
                 <div key={d.device} className="flex items-center gap-1.5 text-sm">
                   <Icon className="w-3.5 h-3.5 text-muted-foreground/70" aria-hidden="true" />

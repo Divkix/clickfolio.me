@@ -20,6 +20,7 @@ import { readJsonWithLimit, validateRequestSize } from "@/lib/utils/validation";
  * Wizard completion request schema
  * Validates handle, privacy settings, and theme selection
  */
+// SAFETY: THEME_IDS is non-empty const array of ThemeId strings; spread cast creates required tuple type for zod enum schema.
 const wizardCompleteSchema = buildWizardCompleteSchema([...THEME_IDS] as [ThemeId, ...ThemeId[]]);
 
 type WizardCompleteRequest = z.infer<typeof wizardCompleteSchema>;
@@ -87,6 +88,7 @@ export async function POST(request: Request) {
       const body: WizardCompleteRequest = validation.data;
 
       // Validate theme access based on referral count
+      // SAFETY: isValidThemeId guard above guarantees id is ThemeId; body.theme_id validated by wizardCompleteSchema enum before use.
       const themeError = await verifyThemeUnlocked(db, authUser.id, body.theme_id as ThemeId);
       if (themeError) return themeError;
 

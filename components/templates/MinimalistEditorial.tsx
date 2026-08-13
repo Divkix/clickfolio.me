@@ -7,7 +7,7 @@ import { formatDateRange, formatShortDate } from "@/lib/templates/helpers";
 import type { TemplateProps } from "@/lib/types/template";
 import { TemplateFontLinks } from "./shared/TemplateFontLinks";
 
-const navIconMap: Record<ContactLinkType, React.ReactNode> = {
+const navIconMap = {
   email: <Mail className="w-4 h-4 text-neutral-600 group-hover:text-black" aria-hidden="true" />,
   phone: <Phone className="w-4 h-4 text-neutral-600 group-hover:text-black" aria-hidden="true" />,
   linkedin: (
@@ -28,7 +28,7 @@ const navIconMap: Record<ContactLinkType, React.ReactNode> = {
       Dr
     </span>
   ),
-};
+} as const satisfies Record<ContactLinkType, React.ReactNode>;
 
 // Noise texture via inline SVG
 const noiseBg = {

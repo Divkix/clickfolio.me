@@ -61,6 +61,7 @@ export async function PUT(request: Request) {
           rawBodyResult.reason === "too_large" ? 413 : 400,
         );
       }
+      // SAFETY: rawBodyResult.data is bounded JSON from validated request; cast extracts UpdateRequestBody.
       const body = rawBodyResult.data as UpdateRequestBody;
 
       const validation = resumeContentSchemaStrict.safeParse(body.content);

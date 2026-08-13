@@ -98,6 +98,7 @@ export function UploadStep({ onContinue }: UploadStepProps) {
       // Fetch the parsed content
       const siteDataResponse = await fetch("/api/site-data");
       if (siteDataResponse.ok) {
+        // SAFETY: SiteDataResponse is from our /api/site-data endpoint; content is schema-validated JSON written only by queue consumer.
         const siteData = (await siteDataResponse.json()) as SiteDataResponse | null;
         if (siteData?.content) {
           return siteData.content;
@@ -135,6 +136,7 @@ export function UploadStep({ onContinue }: UploadStepProps) {
       });
 
       if (!uploadResponse.ok) {
+        // SAFETY: UploadResponse is from our /api/upload endpoint; shape is server-controlled.
         const data = (await uploadResponse.json()) as UploadResponse;
         if (uploadResponse.status === 429) {
           throw new Error(data.error || "Too many upload attempts. Please wait and try again.");
@@ -142,6 +144,7 @@ export function UploadStep({ onContinue }: UploadStepProps) {
         throw new Error(data.error || "Failed to upload file");
       }
 
+      // SAFETY: UploadResponse is from our /api/upload endpoint; shape is server-controlled and contains temp R2 key.
       const { key } = (await uploadResponse.json()) as UploadResponse;
       setUploadProgress(40);
       setUploadState("claiming");
@@ -159,10 +162,12 @@ export function UploadStep({ onContinue }: UploadStepProps) {
       });
 
       if (!claimResponse.ok) {
+        // SAFETY: ClaimResponse is from our /api/resume/claim endpoint; shape validated server-side.
         const data = (await claimResponse.json()) as ClaimResponse;
         throw new Error(data.error || "Failed to claim resume");
       }
 
+      // SAFETY: ClaimResponse is from our /api/resume/claim endpoint; shape validated server-side for cached handling.
       const claimData = (await claimResponse.json()) as ClaimResponse;
       const resumeId = claimData.resume_id;
       const cached = claimData.cached;
@@ -174,6 +179,7 @@ export function UploadStep({ onContinue }: UploadStepProps) {
         // Fetch site_data directly since it's already populated
         const siteDataResponse = await fetch("/api/site-data");
         if (siteDataResponse.ok) {
+          // SAFETY: SiteDataResponse is from our /api/site-data endpoint; content is schema-validated JSON for cached resume.
           const siteData = (await siteDataResponse.json()) as SiteDataResponse | null;
           if (siteData?.content) {
             setUploadProgress(100);

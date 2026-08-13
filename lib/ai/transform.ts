@@ -1,4 +1,6 @@
 import type { ResumeContentFormData } from "@/lib/schemas/resume";
+import { z } from "zod";
+import type { JsonValue, UnknownRecord } from "@/lib/types/json";
 import { sanitizeEmail } from "@/lib/utils/sanitization";
 
 // Pre-compiled regex for URL validation (avoid per-call compilation overhead)
@@ -10,11 +12,12 @@ const REPEATING_SEGMENT_PATTERN = /\/([^/]+)\/\1\/\1(?:\/|$)/;
 /**
  * Normalize URL - add protocol if missing, return empty string if invalid
  */
-export function normalizeUrl(value: unknown): string {
-  if (typeof value !== "string" || !value.trim()) return "";
-  const trimmed = value.trim();
+export function normalizeUrl(value: JsonValue): string {
+  // SAFETY: zod safeParse above guarantees value is string, cast preserves type after validation.
+  if (!z.string().safeParse(value).success || !(value as string).trim()) return "";
+  // SAFETY: zod safeParse above guarantees value is string, cast preserves type after validation.
+  const trimmed = (value as string).trim();
   const lower = trimmed.toLowerCase();
-
   // Already has valid protocol
   if (lower.startsWith("http://") || lower.startsWith("https://") || lower.startsWith("mailto:")) {
     return trimmed;
@@ -35,9 +38,10 @@ export function normalizeUrl(value: unknown): string {
  * Validate URL with garbage pattern detection
  * Detects pathological patterns like repeating path segments
  */
-export function validateUrl(url: unknown): string {
-  if (!url || typeof url !== "string") return "";
-  const trimmed = url.trim();
+export function validateUrl(url: JsonValue): string {
+  if (!url || !z.string().safeParse(url).success) return "";
+  // SAFETY: zod safeParse above guarantees url is string, cast preserves type after validation.
+  const trimmed = (url as string).trim();
   if (!trimmed) return "";
 
   // Max length check
@@ -75,17 +79,18 @@ export function truncateString(value: string, maxLength: number): string {
 /**
  * Normalize string - convert null/undefined to empty string, trim
  */
-export function normalizeString(value: unknown, defaultVal = ""): string {
+export function normalizeString(value: JsonValue, defaultVal = ""): string {
   if (value === null || value === undefined) return defaultVal;
   // eslint-disable-next-line typescript/no-base-to-string -- value is unknown; String() is intentional for non-object primitives
-  if (typeof value !== "string") return String(value);
-  return value.trim() || defaultVal;
+  if (!z.string().safeParse(value).success) return String(value);
+  // SAFETY: zod safeParse above guarantees value is string, cast preserves type after validation.
+  return (value as string).trim() || defaultVal;
 }
 
 /**
  * Normalize end_date values - treat "Present"/"Current" etc as empty
  */
-export function normalizeEndDate(value: unknown): string {
+export function normalizeEndDate(value: JsonValue): string {
   const normalized = normalizeString(value);
   if (!normalized) return "";
   const lower = normalized.toLowerCase();
@@ -98,8 +103,8 @@ export function normalizeEndDate(value: unknown): string {
 /**
  * Transform AI response - lenient parsing with XSS protection and URL validation
  */
-export function transformAiResponse(raw: unknown): Record<string, unknown> {
-  if (!raw || typeof raw !== "object") {
+export function transformAiResponse(raw: JsonValue): UnknownRecord {
+  if (!raw || !(raw instanceof Object) || Array.isArray(raw)) {
     return {
       full_name: "Unknown",
       headline: "Professional",
@@ -109,7 +114,8 @@ export function transformAiResponse(raw: unknown): Record<string, unknown> {
     };
   }
 
-  const data = raw as Record<string, unknown>;
+  // SAFETY: null and object guard above ensures raw is a plain object; UnknownRecord is the safe JSON object representation for AI response manipulation.
+  const data = raw as UnknownRecord;
 
   // Top-level fields
   data.full_name = truncateString(normalizeString(data.full_name, "Unknown"), 100);
@@ -119,9 +125,11 @@ export function transformAiResponse(raw: unknown): Record<string, unknown> {
   let summary = normalizeString(data.summary);
   if (!summary) {
     if (Array.isArray(data.experience) && data.experience.length > 0) {
-      const firstExp = data.experience[0] as Record<string, unknown>;
-      if (firstExp?.description && typeof firstExp.description === "string") {
-        const desc = firstExp.description.trim();
+      // SAFETY: Array.isArray and length guard above ensures data.experience has elements; element is an AI-constructed object compatible with UnknownRecord.
+      const firstExp = data.experience[0] as UnknownRecord;
+      if (firstExp?.description && z.string().safeParse(firstExp.description).success) {
+        // SAFETY: zod safeParse above guarantees firstExp.description is string.
+        const desc = (firstExp.description as string).trim();
         if (desc.length > 0) {
           summary = desc.slice(0, 500);
         }
@@ -135,8 +143,9 @@ export function transformAiResponse(raw: unknown): Record<string, unknown> {
   data.summary = truncateString(summary, 2000);
 
   // Contact - validate URLs, sanitize email
-  if (data.contact && typeof data.contact === "object") {
-    const c = data.contact as Record<string, unknown>;
+  if (data.contact && data.contact instanceof Object && !Array.isArray(data.contact)) {
+    // SAFETY: object guard above ensures data.contact is a non-null object; UnknownRecord is safe for dynamic contact field access.
+    const c = data.contact as UnknownRecord;
     c.email = sanitizeEmail(normalizeString(c.email));
     c.phone = truncateString(normalizeString(c.phone), 30);
     c.location = truncateString(normalizeString(c.location), 100);
@@ -152,24 +161,27 @@ export function transformAiResponse(raw: unknown): Record<string, unknown> {
   // Experience - filter garbage entries
   if (Array.isArray(data.experience)) {
     data.experience = data.experience.filter((exp) => {
-      if (!exp || typeof exp !== "object") return false;
-      const e = exp as Record<string, unknown>;
+      if (!exp || !(exp instanceof Object) || Array.isArray(exp)) return false;
+      // SAFETY: null and object guard above ensures exp is a non-null object; UnknownRecord is the safe JSON record type for experience entries.
+      const e = exp as UnknownRecord;
+      // SAFETY: zod safeParse guarantees e.title/e.company/e.start_date/e.description are strings before cast.
       return (
         e.title &&
-        typeof e.title === "string" &&
-        e.title.trim().length > 0 &&
+        z.string().safeParse(e.title).success &&
+        (e.title as string).trim().length > 0 &&
         e.company &&
-        typeof e.company === "string" &&
-        e.company.trim().length > 0 &&
+        z.string().safeParse(e.company).success &&
+        (e.company as string).trim().length > 0 &&
         e.start_date &&
-        typeof e.start_date === "string" &&
-        e.start_date.trim().length > 0 &&
+        z.string().safeParse(e.start_date).success &&
+        (e.start_date as string).trim().length > 0 &&
         e.description &&
-        typeof e.description === "string" &&
-        e.description.trim().length > 0
+        z.string().safeParse(e.description).success &&
+        (e.description as string).trim().length > 0
       );
     });
-    for (const exp of data.experience as Record<string, unknown>[]) {
+    // SAFETY: Array.isArray guard above ensures data.experience is an array; UnknownRecord[] is the safe type for iterating AI experience entries.
+    for (const exp of data.experience as UnknownRecord[]) {
       exp.title = truncateString(normalizeString(exp.title), 150);
       exp.company = truncateString(normalizeString(exp.company), 150);
       exp.location = truncateString(normalizeString(exp.location), 100);
@@ -178,13 +190,17 @@ export function transformAiResponse(raw: unknown): Record<string, unknown> {
       exp.description = truncateString(normalizeString(exp.description), 2000);
       // Coerce a plain string highlight into a single-element array to match
       // the schema's highlights: string[] shape.
-      if (typeof exp.highlights === "string") {
-        exp.highlights = [exp.highlights];
+      if (z.string().safeParse(exp.highlights).success) {
+        // SAFETY: zod safeParse above guarantees exp.highlights is string, cast preserves type after validation.
+        exp.highlights = [exp.highlights as string];
       }
       if (Array.isArray(exp.highlights)) {
+        // SAFETY: zod safeParse guarantees highlight is string before cast.
         exp.highlights = exp.highlights
-          .filter((h): h is string => typeof h === "string" && h.trim().length > 0)
-          .map((h) => truncateString(h.trim(), 500));
+          .filter(
+            (h): h is string => z.string().safeParse(h).success && (h as string).trim().length > 0,
+          )
+          .map((h) => truncateString((h as string).trim(), 500));
       }
     }
   } else {
@@ -194,18 +210,21 @@ export function transformAiResponse(raw: unknown): Record<string, unknown> {
   // Education - filter garbage entries
   if (Array.isArray(data.education)) {
     data.education = data.education.filter((edu) => {
-      if (!edu || typeof edu !== "object") return false;
-      const e = edu as Record<string, unknown>;
+      if (!edu || !(edu instanceof Object) || Array.isArray(edu)) return false;
+      // SAFETY: null and object guard above ensures edu is a non-null object; UnknownRecord is the safe JSON record type for education entries.
+      const e = edu as UnknownRecord;
+      // SAFETY: zod safeParse guarantees e.degree/e.institution are strings before cast.
       return (
         e.degree &&
-        typeof e.degree === "string" &&
-        e.degree.trim().length > 0 &&
+        z.string().safeParse(e.degree).success &&
+        (e.degree as string).trim().length > 0 &&
         e.institution &&
-        typeof e.institution === "string" &&
-        e.institution.trim().length > 0
+        z.string().safeParse(e.institution).success &&
+        (e.institution as string).trim().length > 0
       );
     });
-    for (const edu of data.education as Record<string, unknown>[]) {
+    // SAFETY: Array.isArray guard above ensures data.education is an array; UnknownRecord[] is the safe type for iterating AI education entries.
+    for (const edu of data.education as UnknownRecord[]) {
       edu.degree = truncateString(normalizeString(edu.degree), 150);
       edu.institution = truncateString(normalizeString(edu.institution), 150);
       edu.location = truncateString(normalizeString(edu.location), 100);
@@ -215,41 +234,49 @@ export function transformAiResponse(raw: unknown): Record<string, unknown> {
   // Skills - filter garbage entries
   if (Array.isArray(data.skills)) {
     data.skills = data.skills.filter((skill) => {
-      if (!skill || typeof skill !== "object") return false;
-      const s = skill as Record<string, unknown>;
+      if (!skill || !(skill instanceof Object) || Array.isArray(skill)) return false;
+      // SAFETY: null and object guard above ensures skill is a non-null object; UnknownRecord is the safe JSON record type for skill entries.
+      const s = skill as UnknownRecord;
+      // SAFETY: zod safeParse guarantees s.category is string before cast.
       return (
         s.category &&
-        typeof s.category === "string" &&
-        s.category.trim().length > 0 &&
+        z.string().safeParse(s.category).success &&
+        (s.category as string).trim().length > 0 &&
         Array.isArray(s.items) &&
         s.items.length > 0
       );
     });
-    for (const skill of data.skills as Record<string, unknown>[]) {
+    // SAFETY: Array.isArray guard above ensures data.skills is an array; UnknownRecord[] is the safe type for iterating AI skill entries.
+    for (const skill of data.skills as UnknownRecord[]) {
       skill.category = truncateString(normalizeString(skill.category), 100);
       if (Array.isArray(skill.items)) {
+        // SAFETY: zod safeParse guarantees item is string before cast.
         skill.items = skill.items
-          .filter((i): i is string => typeof i === "string" && i.trim().length > 0)
-          .map((i) => truncateString(i.trim(), 100));
+          .filter(
+            (i): i is string => z.string().safeParse(i).success && (i as string).trim().length > 0,
+          )
+          .map((i) => truncateString((i as string).trim(), 100));
       }
     }
   }
-
   // Certifications - filter garbage, validate URLs
   if (Array.isArray(data.certifications)) {
     data.certifications = data.certifications.filter((cert) => {
-      if (!cert || typeof cert !== "object") return false;
-      const c = cert as Record<string, unknown>;
+      if (!cert || !(cert instanceof Object) || Array.isArray(cert)) return false;
+      // SAFETY: null and object guard above ensures cert is a non-null object; UnknownRecord is the safe JSON record type for certification entries.
+      const c = cert as UnknownRecord;
+      // SAFETY: zod safeParse guarantees c.name/c.issuer are strings before cast.
       return (
         c.name &&
-        typeof c.name === "string" &&
-        c.name.trim().length > 0 &&
+        z.string().safeParse(c.name).success &&
+        (c.name as string).trim().length > 0 &&
         c.issuer &&
-        typeof c.issuer === "string" &&
-        c.issuer.trim().length > 0
+        z.string().safeParse(c.issuer).success &&
+        (c.issuer as string).trim().length > 0
       );
     });
-    for (const cert of data.certifications as Record<string, unknown>[]) {
+    // SAFETY: Array.isArray guard above ensures data.certifications is an array; UnknownRecord[] is the safe type for iterating AI certification entries.
+    for (const cert of data.certifications as UnknownRecord[]) {
       cert.name = truncateString(normalizeString(cert.name), 150);
       cert.issuer = truncateString(normalizeString(cert.issuer), 150);
       cert.url = validateUrl(cert.url);
@@ -259,26 +286,32 @@ export function transformAiResponse(raw: unknown): Record<string, unknown> {
   // Projects - filter garbage, validate URLs
   if (Array.isArray(data.projects)) {
     data.projects = data.projects.filter((proj) => {
-      if (!proj || typeof proj !== "object") return false;
-      const p = proj as Record<string, unknown>;
+      if (!proj || !(proj instanceof Object) || Array.isArray(proj)) return false;
+      // SAFETY: null and object guard above ensures proj is a non-null object; UnknownRecord is the safe JSON record type for project entries.
+      const p = proj as UnknownRecord;
+      // SAFETY: zod safeParse guarantees p.title/p.description are strings before cast.
       return (
         p.title &&
-        typeof p.title === "string" &&
-        p.title.trim().length > 0 &&
+        z.string().safeParse(p.title).success &&
+        (p.title as string).trim().length > 0 &&
         p.description &&
-        typeof p.description === "string" &&
-        p.description.trim().length > 0
+        z.string().safeParse(p.description).success &&
+        (p.description as string).trim().length > 0
       );
     });
-    for (const proj of data.projects as Record<string, unknown>[]) {
+    // SAFETY: Array.isArray guard above ensures data.projects is an array; UnknownRecord[] is the safe type for iterating AI project entries.
+    for (const proj of data.projects as UnknownRecord[]) {
       proj.title = truncateString(normalizeString(proj.title), 150);
       proj.description = truncateString(normalizeString(proj.description), 1000);
       proj.url = validateUrl(proj.url);
       proj.image_url = validateUrl(proj.image_url);
       if (Array.isArray(proj.technologies)) {
+        // SAFETY: zod safeParse guarantees technology is string before cast.
         proj.technologies = proj.technologies
-          .filter((t): t is string => typeof t === "string" && t.trim().length > 0)
-          .map((t) => truncateString(t.trim(), 50));
+          .filter(
+            (t): t is string => z.string().safeParse(t).success && (t as string).trim().length > 0,
+          )
+          .map((t) => truncateString((t as string).trim(), 50));
       }
     }
   }
@@ -295,28 +328,32 @@ export function transformAiOutput(raw: ResumeContentFormData): ResumeContentForm
   /**
    * Recursively trim all string values in an object or array in-place.
    */
-  const trimStrings = (obj: Record<string, unknown>): void => {
+  const trimStrings = (obj: UnknownRecord): void => {
     if (obj === null || obj === undefined) return;
     if (Array.isArray(obj)) {
       for (const item of obj) {
-        if (typeof item === "object" && item !== null) {
-          trimStrings(item as Record<string, unknown>);
+        if (item !== null && item instanceof Object) {
+          // SAFETY: null and object guard above ensures item is a non-null object; UnknownRecord is safe for recursive trimming.
+          trimStrings(item as UnknownRecord);
         }
       }
       return;
     }
-    if (typeof obj === "object") {
+    if (obj instanceof Object) {
       for (const key of Object.keys(obj)) {
-        if (typeof obj[key] === "string") {
+        if (z.string().safeParse(obj[key]).success) {
+          // SAFETY: string guard above guarantees obj[key] is string.
           obj[key] = (obj[key] as string).trim();
-        } else if (typeof obj[key] === "object" && obj[key] !== null) {
-          trimStrings(obj[key] as Record<string, unknown>);
+        } else if (obj[key] !== null && obj[key] instanceof Object) {
+          // SAFETY: null and object guard above ensures obj[key] is a non-null object; UnknownRecord is safe for recursive trimming.
+          trimStrings(obj[key] as UnknownRecord);
         }
       }
     }
   };
 
-  trimStrings(result);
+  // SAFETY: ResumeContentFormData is JSON-compatible and structurally compatible with UnknownRecord for trimming.
+  trimStrings(result as UnknownRecord);
 
   // Extract LinkedIn from website if misplaced
   if (result.contact?.website?.includes("linkedin.com") && !result.contact.linkedin) {
@@ -327,8 +364,10 @@ export function transformAiOutput(raw: ResumeContentFormData): ResumeContentForm
   // Remove empty contact fields
   if (result.contact) {
     for (const key of Object.keys(result.contact)) {
-      if ((result.contact as Record<string, unknown>)[key] === "") {
-        delete (result.contact as Record<string, unknown>)[key];
+      // SAFETY: ResumeContentFormData contact is JSON-compatible and structurally compatible with UnknownRecord for dynamic empty-field removal.
+      if ((result.contact as UnknownRecord)[key] === "") {
+        // SAFETY: ResumeContentFormData contact is JSON-compatible and structurally compatible with UnknownRecord for dynamic key deletion.
+        delete (result.contact as UnknownRecord)[key];
       }
     }
   }

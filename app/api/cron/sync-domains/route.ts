@@ -25,6 +25,7 @@ export async function GET(request: Request) {
   if (authError) return authError;
 
   try {
+    // SAFETY: env is CloudflareEnv with optional CLICKFOLIO_DISPOSABLE_DOMAINS KV; cast bridges untyped env for manual cron trigger, existence checked below.
     const kv = (env as { CLICKFOLIO_DISPOSABLE_DOMAINS?: KVNamespace })
       .CLICKFOLIO_DISPOSABLE_DOMAINS;
     if (!kv) {

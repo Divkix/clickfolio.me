@@ -67,6 +67,7 @@ export default function AdminResumesPage() {
   const [loading, setLoading] = useState(true);
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
 
+  // SAFETY: searchParams.get returns string|null; cast narrows to validated StatusFilter union with fallback to "all".
   const statusFilter = (searchParams.get("status") as StatusFilter) || "all";
   // NaN-safe page parse: a non-numeric ?page= must not become NaN in the
   // fetch URL or Pagination props (NaN.toString() === "NaN").
@@ -171,7 +172,10 @@ export default function AdminResumesPage() {
         <FileText className="w-5 h-5 text-muted-foreground" aria-hidden="true" />
         <select
           value={statusFilter}
-          onChange={(e) => updateParams({ status: e.target.value as StatusFilter })}
+          onChange={(e) => {
+            // SAFETY: e.target.value is validated against STATUS_OPTIONS; cast narrows to StatusFilter.
+            updateParams({ status: e.target.value as StatusFilter });
+          }}
           className="text-sm bg-card text-foreground border border-border-strong rounded-lg px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-ring"
           aria-label="Filter by status"
         >

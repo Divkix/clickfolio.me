@@ -3,10 +3,13 @@
  * Maps common alternative key names from AI models to our canonical schema keys.
  */
 
+import { z } from "zod";
+import type { JsonValue, UnknownRecord } from "@/lib/types/json";
+
 /**
  * Return the first value found for any of the given keys on the object.
  */
-export function pickFirstValue(obj: Record<string, unknown>, keys: string[]): unknown {
+export function pickFirstValue(obj: UnknownRecord, keys: string[]): JsonValue | undefined {
   for (const key of keys) {
     if (Object.hasOwn(obj, key)) {
       return obj[key];
@@ -19,23 +22,24 @@ export function pickFirstValue(obj: Record<string, unknown>, keys: string[]): un
  * Coerce an unknown value into a plain object record, or return null.
  * Rejects null, primitives, and arrays.
  */
-export function coerceRecord(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
+export function coerceRecord(value: JsonValue): UnknownRecord | null {
+  if (!value || Array.isArray(value) || !(value instanceof Object)) return null;
+  // SAFETY: object guard above ensures value is a non-null plain object; UnknownRecord is the safe JSON object representation for untrusted AI records.
+  return value as UnknownRecord;
 }
 
 /**
  * Coerce an unknown value into an array, or return null.
  */
-export function coerceArray(value: unknown): unknown[] | null {
-  return Array.isArray(value) ? value : null;
+export function coerceArray(value: JsonValue): JsonValue[] | null {
+  // SAFETY: Array.isArray guard ensures value is an array; JsonValue[] is the safe JSON array representation for untrusted AI arrays.
+  return Array.isArray(value) ? (value as JsonValue[]) : null;
 }
-
 /**
  * Normalize an experience item by mapping alternative key names to canonical keys.
  * Handles variations like "role", "jobTitle", "company", "employer", "org", etc.
  */
-function normalizeExperienceItem(value: unknown): Record<string, unknown> {
+function normalizeExperienceItem(value: JsonValue): UnknownRecord {
   const obj = coerceRecord(value);
   if (!obj) return {};
   const result = { ...obj };
@@ -73,7 +77,7 @@ function normalizeExperienceItem(value: unknown): Record<string, unknown> {
  * Normalize an education item by mapping alternative key names to canonical keys.
  * Handles variations like "program", "field", "school", "university", "gpa", "grade", etc.
  */
-function normalizeEducationItem(value: unknown): Record<string, unknown> {
+function normalizeEducationItem(value: JsonValue): UnknownRecord {
   const obj = coerceRecord(value);
   if (!obj) return {};
   const result = { ...obj };
@@ -105,11 +109,12 @@ function normalizeEducationItem(value: unknown): Record<string, unknown> {
  * Normalize a certification item by mapping alternative key names to canonical keys.
  * Falls back to a plain string input as a certification name.
  */
-function normalizeCertificationItem(value: unknown): Record<string, unknown> {
+function normalizeCertificationItem(value: JsonValue): UnknownRecord {
   const obj = coerceRecord(value);
   if (!obj) {
-    if (typeof value === "string") {
-      return { name: value, issuer: "" };
+    if (z.string().safeParse(value).success) {
+      // SAFETY: zod safeParse above guarantees value is string.
+      return { name: value as string, issuer: "" };
     }
     return {};
   }
@@ -133,11 +138,12 @@ function normalizeCertificationItem(value: unknown): Record<string, unknown> {
  * Normalize a project item by mapping alternative key names to canonical keys.
  * Falls back to a plain string input as a project title.
  */
-function normalizeProjectItem(value: unknown): Record<string, unknown> {
+function normalizeProjectItem(value: JsonValue): UnknownRecord {
   const obj = coerceRecord(value);
   if (!obj) {
-    if (typeof value === "string") {
-      return { title: value, description: "" };
+    if (z.string().safeParse(value).success) {
+      // SAFETY: zod safeParse above guarantees value is string.
+      return { title: value as string, description: "" };
     }
     return {};
   }
@@ -168,7 +174,7 @@ function normalizeProjectItem(value: unknown): Record<string, unknown> {
  * Maps alternative key names (e.g. "fullName", "contactInfo") and normalizes each
  * item in experience, education, skills, certifications, and projects arrays.
  */
-export function normalizeAiKeys(data: Record<string, unknown>): Record<string, unknown> {
+export function normalizeAiKeys(data: UnknownRecord): UnknownRecord {
   const result = { ...data };
 
   const fullName = pickFirstValue(result, ["full_name", "fullName", "fullname", "name"]);
@@ -274,7 +280,8 @@ export function normalizeAiKeys(data: Record<string, unknown>): Record<string, u
   ]);
   const skillsArray = coerceArray(skillsSource);
   if (skillsArray) {
-    if (skillsArray.every((item) => typeof item === "string")) {
+    if (skillsArray.every((item) => z.string().safeParse(item).success)) {
+      // SAFETY: skillsArray.every guard above ensures every element is string; string[] is the safe type for AI skill items.
       result.skills = [{ category: "Skills", items: skillsArray as string[] }];
     } else {
       result.skills = skillsArray;

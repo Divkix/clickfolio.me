@@ -124,7 +124,7 @@ export const DEMO_PROFILES: DemoProfile[] = [
 /**
  * Full demo resume content for each template preview
  */
-export const DEMO_RESUME_CONTENT: Record<ThemeId, ResumeContent> = {
+export const DEMO_RESUME_CONTENT = {
   minimalist_editorial: {
     full_name: "Sarah Chen",
     headline: "Product Designer crafting intuitive digital experiences",
@@ -976,12 +976,12 @@ export const DEMO_RESUME_CONTENT: Record<ThemeId, ResumeContent> = {
       },
     ],
   },
-};
+} as const satisfies Record<ThemeId, ResumeContent>;
 
 /**
  * Template background configuration for modal display
  */
-export const TEMPLATE_BACKGROUNDS: Record<ThemeId, { bg: string; isDark: boolean }> = {
+export const TEMPLATE_BACKGROUNDS = {
   bento: { bg: "bg-neutral-100", isDark: false },
   bold_corporate: { bg: "bg-white", isDark: false },
   classic_ats: { bg: "bg-gray-100", isDark: false },
@@ -992,4 +992,4 @@ export const TEMPLATE_BACKGROUNDS: Record<ThemeId, { bg: string; isDark: boolean
   minimalist_editorial: { bg: "bg-[#fdfbf9]", isDark: false },
   neo_brutalist: { bg: "bg-[#FFFDF5]", isDark: false },
   spotlight: { bg: "bg-[#fdfbf7]", isDark: false },
-};
+} as const satisfies Record<ThemeId, { bg: string; isDark: boolean }>;

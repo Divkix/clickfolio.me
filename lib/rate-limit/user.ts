@@ -107,6 +107,7 @@ export async function checkRateLimit(
 
       default: {
         const _exhaustive: never = action;
+        // SAFETY: _exhaustive is never from exhaustive switch; cast to string for error message when new action added without handler.
         throw new Error(`Unknown rate limit action: ${_exhaustive as string}`);
       }
     }

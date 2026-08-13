@@ -8,7 +8,6 @@
  * Finds resumes stuck in pending_claim status that have valid r2Key and fileHash
  * but weren't successfully queued (e.g., due to worker crash after upload).
  */
-
 import { and, eq, isNotNull, isNull, lt, or } from "drizzle-orm";
 import type { Database } from "@/lib/db";
 import {
@@ -19,18 +18,19 @@ import {
 import { resumes } from "@/lib/db/schema";
 import { publishResumeParse } from "@/lib/queue/resume-parse";
 import type { ResumeParseMessage } from "@/lib/queue/types";
+import type { UnknownRecord } from "../types/json";
 import { log } from "@/lib/utils/log";
 
-export interface RecoverOrphanedResult {
-  ok: true;
+export interface RecoverOrphanedResult extends UnknownRecord {
   recovered: number;
   found: number;
   timestamp: string;
 }
 
-function getChanges(result: unknown): number {
-  const r = result as { meta?: { changes?: number }; changes?: number } | undefined;
-  return r?.meta?.changes ?? r?.changes ?? 0;
+type D1ChangesResult = { meta?: { changes?: number }; changes?: number } | null | undefined;
+
+function getChanges(result: D1ChangesResult): number {
+  return result?.meta?.changes ?? result?.changes ?? 0;
 }
 
 export async function recoverOrphanedResumes(
@@ -208,6 +208,7 @@ export async function recoverOrphanedResumes(
         resumeId: resume.id,
         userId: resume.userId,
         r2Key: resume.r2Key,
+        // SAFETY: orphaned resumes are filtered to have non-null r2Key/fileHash (isNotNull checks in queries); fileHash is guaranteed string here.
         fileHash: resume.fileHash as string,
         attempt: (resume.totalAttempts ?? 0) + 1,
       });

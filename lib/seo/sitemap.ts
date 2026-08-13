@@ -9,13 +9,13 @@
 import { env } from "cloudflare:workers";
 import { and, isNotNull, or, sql } from "drizzle-orm";
 import type { MetadataRoute } from "next";
+import { z } from "zod";
 import { BLOG_POSTS } from "@/lib/blog/posts";
 import { PROFESSIONS } from "@/lib/config/professions";
 import { getDb } from "@/lib/db";
 import { siteData, user } from "@/lib/db/schema";
 import { getPublicSiteUrl } from "@/lib/utils/site-url";
 import { escapeXml } from "@/lib/utils/xml";
-
 const SITEMAP_XMLNS = "http://www.sitemaps.org/schemas/sitemap/0.9";
 
 /**
@@ -60,7 +60,9 @@ export function getSitemapShardCount(indexableUserCount: number): number {
   return Math.max(1, Math.ceil((STATIC_SITEMAP_ENTRY_COUNT + safeUserCount) / URLS_PER_SITEMAP));
 }
 
-function getUserShardWindow(id: number): { limit: number; offset: number } {
+type UserShardWindow = { limit: number; offset: number };
+
+function getUserShardWindow(id: number): UserShardWindow {
   const firstShardUserLimit = Math.max(0, URLS_PER_SITEMAP - STATIC_SITEMAP_ENTRY_COUNT);
 
   if (id === 0) {
@@ -259,8 +261,9 @@ export function buildSitemapXml(entries: MetadataRoute.Sitemap): string {
       if (entry.changeFrequency) {
         parts.push(`    <changefreq>${escapeXml(entry.changeFrequency)}</changefreq>`);
       }
-      if (typeof entry.priority === "number") {
-        parts.push(`    <priority>${entry.priority.toFixed(1)}</priority>`);
+      if (z.number().safeParse(entry.priority).success) {
+        // SAFETY: sitemap URL priority is from validated sitemap entries, zod safeParse above guarantees it is number.
+        parts.push(`    <priority>${(entry.priority as number).toFixed(1)}</priority>`);
       }
 
       parts.push("  </url>");

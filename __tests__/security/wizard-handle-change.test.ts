@@ -1,3 +1,4 @@
+import type { UnknownRecord, JsonValue } from "@/lib/types/json";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 /**
@@ -14,7 +15,7 @@ import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 const mockCaptureBookmark = vi.fn().mockResolvedValue(undefined);
 const mockBatch = vi.fn().mockResolvedValue(undefined);
 
-let selectResults: unknown[][] = [];
+let selectResults: JsonValue[][] = [];
 
 const mockSelect = vi.fn(() => {
   const chain = {
@@ -23,7 +24,7 @@ const mockSelect = vi.fn(() => {
     limit: vi.fn(() => chain),
     orderBy: vi.fn(() => chain),
     // eslint-disable-next-line unicorn/no-thenable -- Drizzle query mocks must be awaitable.
-    then: vi.fn((resolve: (value: unknown[]) => unknown) => {
+    then: vi.fn((resolve: (value: JsonValue[]) => JsonValue) => {
       const next = selectResults.shift();
       if (next === undefined) {
         return Promise.reject(new Error("No select result queued"));
@@ -97,7 +98,7 @@ vi.mock("@/lib/utils/security-headers", () => ({
   createErrorResponse: vi.fn((error: string, _code: string, status: number) => {
     return new Response(JSON.stringify({ error }), { status });
   }),
-  createSuccessResponse: vi.fn((data: unknown) => {
+  createSuccessResponse: vi.fn((data: JsonValue) => {
     return new Response(JSON.stringify(data), { status: 200 });
   }),
   ERROR_CODES: {
@@ -178,7 +179,7 @@ function authed() {
   });
 }
 
-function requestWith(body: unknown): Request {
+function requestWith(body: JsonValue): Request {
   return new Request("https://clickfolio.me/api/wizard/complete", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -223,8 +224,8 @@ describe("wizard/complete handle-change rate limit", () => {
     // Second db.insert call is the audit row for the handleChanges table.
     expect(mockInsert).toHaveBeenNthCalledWith(1, siteData);
     expect(mockInsert).toHaveBeenNthCalledWith(2, handleChanges);
-    const auditValues = (statements[2] as { values: { mock: { calls: unknown[][] } } }).values.mock
-      .calls[0][0] as Record<string, unknown>;
+    const auditValues = (statements[2] as { values: { mock: { calls: JsonValue[][] } } }).values
+      .mock.calls[0][0] as UnknownRecord;
     expect(auditValues).toMatchObject({
       userId: "user_1",
       oldHandle: "old-handle",

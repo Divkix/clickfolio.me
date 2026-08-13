@@ -26,7 +26,7 @@ function TemplateLoadingFallback() {
  * next/dynamic wrappers — for client components that cannot await.
  * Each key lazily loads the template component with a shared loading fallback.
  */
-export const DYNAMIC_TEMPLATES: Record<ThemeId, React.ComponentType<TemplateProps>> = {
+export const DYNAMIC_TEMPLATES = {
   bento: dynamic(
     () => import("@/components/templates/BentoGrid").then((m) => ({ default: m.BentoGrid })),
     {
@@ -91,4 +91,4 @@ export const DYNAMIC_TEMPLATES: Record<ThemeId, React.ComponentType<TemplateProp
       loading: TemplateLoadingFallback,
     },
   ),
-};
+} as const satisfies Record<ThemeId, React.ComponentType<TemplateProps>>;

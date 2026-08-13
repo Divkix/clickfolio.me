@@ -13,8 +13,8 @@
 
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { setupMockCleanup, suppressConsole } from "@/__tests__/setup/helpers/test-utils";
+import type { UnknownRecord } from "@/lib/types/json";
 import { type AiEnvVars, createAiProvider, parseWithAi } from "@/lib/ai/ai-parser";
-
 // Mock AI SDK
 vi.mock("@ai-sdk/openai-compatible", () => ({
   createOpenAICompatible: vi.fn(),
@@ -332,9 +332,9 @@ describe("parseWithAi - text fallback path", () => {
     vi.mocked(parseJsonWithRepair).mockReset();
     vi.mocked(parseJsonWithRepair).mockResolvedValue({ data: null, repaired: false });
     vi.mocked(normalizeAiKeys).mockReset();
-    vi.mocked(normalizeAiKeys).mockImplementation((data) => data as Record<string, unknown>);
+    vi.mocked(normalizeAiKeys).mockImplementation((data) => data as UnknownRecord);
     vi.mocked(transformToSchema).mockReset();
-    vi.mocked(transformToSchema).mockImplementation((data) => data as Record<string, unknown>);
+    vi.mocked(transformToSchema).mockImplementation((data) => data as UnknownRecord);
   });
 
   it("extracts JSON from markdown code blocks", async () => {
@@ -736,8 +736,8 @@ describe("parseWithAi - provider cache key", () => {
       },
       repaired: false,
     });
-    vi.mocked(normalizeAiKeys).mockImplementation((data) => data as Record<string, unknown>);
-    vi.mocked(transformToSchema).mockImplementation((data) => data as Record<string, unknown>);
+    vi.mocked(normalizeAiKeys).mockImplementation((data) => data as UnknownRecord);
+    vi.mocked(transformToSchema).mockImplementation((data) => data as UnknownRecord);
   });
 
   it("recreates the provider when CF_AIG_AUTH_TOKEN changes (same account+gateway)", async () => {

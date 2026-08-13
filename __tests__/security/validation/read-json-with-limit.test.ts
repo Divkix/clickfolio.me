@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vite-plus/test";
 import { readJsonWithLimit } from "@/lib/utils/validation";
 
+type RequestHeaders = { "content-type": string; "content-length"?: string };
+
 /**
  * Security tests for readJsonWithLimit
  * Verifies that the helper enforces a hard byte cap on the request body
@@ -8,10 +10,10 @@ import { readJsonWithLimit } from "@/lib/utils/validation";
  */
 
 function makeRequest(body: string, contentLength?: number): Request {
-  const headers: Record<string, string> = { "content-type": "application/json" };
-  if (contentLength !== undefined) {
-    headers["content-length"] = String(contentLength);
-  }
+  const headers: RequestHeaders = {
+    "content-type": "application/json",
+  };
+  if (contentLength !== undefined) headers["content-length"] = String(contentLength);
   return new Request("https://example.com/api/test", {
     method: "POST",
     body,

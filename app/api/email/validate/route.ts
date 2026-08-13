@@ -63,6 +63,7 @@ export async function POST(request: Request) {
     }
 
     // 4. Check if email is disposable
+    // SAFETY: env is untyped Cloudflare Workers binding; cast bridges to typed KV namespace.
     const kv =
       (env as { CLICKFOLIO_DISPOSABLE_DOMAINS?: KVNamespace }).CLICKFOLIO_DISPOSABLE_DOMAINS ??
       null;

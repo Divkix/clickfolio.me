@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import type { JsonValue } from "@/lib/types/json";
 
 const runtime = vi.hoisted(() => ({
   nextClient: null as FakeSocket | null,
@@ -30,10 +31,10 @@ class ThrowingSocket extends FakeSocket {
 
 vi.mock("cloudflare:workers", () => ({
   DurableObject: class {
-    ctx: unknown;
-    env: unknown;
+    ctx: JsonValue;
+    env: JsonValue;
 
-    constructor(ctx: unknown, env: unknown) {
+    constructor(ctx: JsonValue, env: JsonValue) {
       this.ctx = ctx;
       this.env = env;
     }
@@ -213,13 +214,13 @@ describe("ClickfolioStatusDO", () => {
     ctx.values.set("lastStatus", "processing");
     ctx.values.set("lastError", "");
 
-    await instance.webSocketMessage(socket as never, new ArrayBuffer(1));
-    await instance.webSocketMessage(socket as never, "ping");
-    await instance.webSocketMessage(socket as never, "status");
-    await instance.webSocketClose(socket as never, 1000, "done", true);
+    await instance.webSocketMessage!(socket as never, new ArrayBuffer(1));
+    await instance.webSocketMessage!(socket as never, "ping");
+    await instance.webSocketMessage!(socket as never, "status");
+    await instance.webSocketClose!(socket as never, 1000, "done", true);
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     try {
-      await instance.webSocketError(socket as never, new Error("boom"));
+      await instance.webSocketError!(socket as never, new Error("boom"));
     } finally {
       errorSpy.mockRestore();
     }

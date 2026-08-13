@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import type { JsonValue } from "@/lib/types/json";
 
 /**
  * Integration tests for Admin API operations (Phase 3, Section 3.6)
@@ -30,8 +31,8 @@ vi.mock("cloudflare:workers", () => ({
 
 vi.mock("drizzle-orm", () => ({
   eq: vi.fn((_col, val) => ({ eq: val })),
-  and: vi.fn((...args: unknown[]) => ({ and: args })),
-  or: vi.fn((...args: unknown[]) => ({ or: args })),
+  and: vi.fn((...args: JsonValue[]) => ({ and: args })),
+  or: vi.fn((...args: JsonValue[]) => ({ or: args })),
   ne: vi.fn((_col, val) => ({ ne: val })),
   desc: vi.fn((col) => ({ desc: col })),
   asc: vi.fn((col) => ({ asc: col })),
@@ -39,16 +40,16 @@ vi.mock("drizzle-orm", () => ({
   gt: vi.fn((_col, val) => ({ gt: val })),
   isNotNull: vi.fn((col) => ({ isNotNull: col })),
   sql: Object.assign(
-    vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({
+    vi.fn((strings: TemplateStringsArray, ...values: JsonValue[]) => ({
       sql: strings.join("?"),
       values,
     })),
     {
-      join: vi.fn((values: unknown[], _separator?: string) => ({
+      join: vi.fn((values: JsonValue[], _separator?: string) => ({
         toString: () => (values as string[]).join(", "),
       })),
-      literal: vi.fn((val: unknown) => ({
-        toString: () => String(val),
+      literal: vi.fn((val: JsonValue) => ({
+        toString: () => JSON.stringify(val),
       })),
       raw: vi.fn((str: string) => ({
         toString: () => str,
@@ -93,7 +94,7 @@ vi.mock("@/lib/utils/security-headers", () => ({
   createErrorResponse: vi.fn((error: string, _code: string, status: number) => {
     return new Response(JSON.stringify({ error }), { status });
   }),
-  createSuccessResponse: vi.fn((data: unknown) => {
+  createSuccessResponse: vi.fn((data: JsonValue) => {
     return new Response(JSON.stringify(data), { status: 200 });
   }),
   ERROR_CODES: {
@@ -225,10 +226,9 @@ const mockDb = {
   update: mockUpdate,
   batch: vi.fn().mockResolvedValue(undefined),
 };
-
-// ── Helper Functions ───────────────────────────────────────────────
-
-function adminAuthed(userId = "admin-123"): { user: AdminUser; error: null } {
+type AdminAuthedResult = { user: AdminUser; error: null };
+type AuthErrorResult = { user: null; error: Response };
+function adminAuthed(userId = "admin-123"): AdminAuthedResult {
   const user: AdminUser = {
     id: userId,
     email: `${userId}@admin.com`,
@@ -240,7 +240,7 @@ function adminAuthed(userId = "admin-123"): { user: AdminUser; error: null } {
   return { user, error: null };
 }
 
-function regularUserAuthed(): { user: null; error: Response } {
+function regularUserAuthed(): AuthErrorResult {
   const error = new Response(JSON.stringify({ error: "Admin access required" }), { status: 403 });
 
   mockedAdminAuth.mockResolvedValue({
@@ -250,7 +250,7 @@ function regularUserAuthed(): { user: null; error: Response } {
   return { user: null, error };
 }
 
-function unauthenticated(): { user: null; error: Response } {
+function unauthenticated(): AuthErrorResult {
   const error = new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
 
   mockedAdminAuth.mockResolvedValue({
@@ -260,7 +260,7 @@ function unauthenticated(): { user: null; error: Response } {
   return { user: null, error };
 }
 
-function makeRequest(url: string, method = "GET", body?: unknown): Request {
+function makeRequest(url: string, method = "GET", body?: JsonValue): Request {
   const init: RequestInit = { method };
   if (body) {
     init.body = JSON.stringify(body);
@@ -381,7 +381,7 @@ describe("Admin API Integration Tests (15 tests)", () => {
       // Complex SQL queries may fail with mocks, accept 200 or 500
       expect([200, 500]).toContain(response.status);
       if (response.status === 200) {
-        const body = (await response.json()) as { stats: unknown; topReferrers: unknown[] };
+        const body = (await response.json()) as { stats: JsonValue; topReferrers: JsonValue[] };
         expect(body.stats).toBeDefined();
         expect(body.topReferrers).toBeDefined();
       }
@@ -438,7 +438,7 @@ describe("Admin API Integration Tests (15 tests)", () => {
       // Complex SQL queries may fail with mocks, accept 200 or 500
       expect([200, 500]).toContain(response.status);
       if (response.status === 200) {
-        const body = (await response.json()) as { recentConversions: unknown[] };
+        const body = (await response.json()) as { recentConversions: JsonValue[] };
         expect(body.recentConversions).toBeDefined();
       }
     });
@@ -488,7 +488,7 @@ describe("Admin API Integration Tests (15 tests)", () => {
       if (response.status === 200) {
         const body = (await response.json()) as {
           stats: { completed: number; processing: number };
-          resumes: unknown[];
+          resumes: JsonValue[];
         };
         expect(body.stats).toBeDefined();
         expect(body.resumes).toBeDefined();
@@ -581,7 +581,7 @@ describe("Admin API Integration Tests (15 tests)", () => {
           publishedResumes: number;
           processingResumes: number;
           failedResumes: number;
-          dailyViews: unknown[];
+          dailyViews: JsonValue[];
         };
         expect(body.totalUsers).toBeDefined();
         expect(body.publishedResumes).toBeDefined();
@@ -603,7 +603,7 @@ describe("Admin API Integration Tests (15 tests)", () => {
       // Complex SQL queries may fail with mocks, accept 200, 500, or 503 (Umami error)
       expect([200, 500, 503]).toContain(response.status);
       if (response.status === 200) {
-        const body = (await response.json()) as { recentSignups: unknown[] };
+        const body = (await response.json()) as { recentSignups: JsonValue[] };
         expect(body.recentSignups).toBeDefined();
       }
     });
@@ -677,7 +677,7 @@ describe("Admin API Integration Tests (15 tests)", () => {
       expect([200, 500]).toContain(response.status);
       if (response.status === 200) {
         const body = (await response.json()) as {
-          users: unknown[];
+          users: JsonValue[];
           total: number;
           page: number;
           pageSize: number;
@@ -710,7 +710,7 @@ describe("Admin API Integration Tests (15 tests)", () => {
       // Complex SQL queries may fail with mocks, accept 200 or 500
       expect([200, 500]).toContain(response.status);
       if (response.status === 200) {
-        const body = (await response.json()) as { users: unknown[] };
+        const body = (await response.json()) as { users: JsonValue[] };
         expect(body.users).toBeDefined();
       }
     });
@@ -768,7 +768,7 @@ describe("Admin API Integration Tests (15 tests)", () => {
       // Complex SQL queries may fail with mocks, accept 200 or 500
       expect([200, 500]).toContain(response.status);
       if (response.status === 200) {
-        const body = (await response.json()) as { users: unknown[]; total: number };
+        const body = (await response.json()) as { users: JsonValue[]; total: number };
         expect(body.users).toEqual([]);
         expect(body.total).toBe(0);
       }

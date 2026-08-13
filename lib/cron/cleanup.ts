@@ -14,8 +14,9 @@
 import { lt } from "drizzle-orm";
 import type { Database } from "@/lib/db";
 import { handleChanges, session, uploadRateLimits } from "@/lib/db/schema";
+import type { UnknownRecord } from "../types/json";
 
-export interface CleanupResult {
+export interface CleanupResult extends UnknownRecord {
   ok: true;
   deleted: {
     rateLimits: number;

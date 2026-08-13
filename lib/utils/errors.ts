@@ -28,7 +28,7 @@ export function classifyError(status: number): ErrorCategory {
  * Returns a user-friendly error message for a given HTTP status code.
  */
 export function getErrorMessage(status: number, context?: string): string {
-  const messages: Record<number, string> = {
+  const messages = {
     0: "Network error. Check your connection.",
     401: "Session expired. Please sign in again.",
     403: "You don't have permission for this action.",
@@ -40,8 +40,12 @@ export function getErrorMessage(status: number, context?: string): string {
     502: "Server temporarily unavailable. Please try again.",
     503: "Service unavailable. Please try again later.",
     504: "Request timed out. Please try again.",
-  };
-  return messages[status] || `Something went wrong${context ? ` with ${context}` : ""}.`;
+  } as const satisfies Record<number, string>;
+  // SAFETY: status is number from HTTP, cast to known message key union; fallback handles unknown codes.
+  return (
+    messages[status as keyof typeof messages] ||
+    `Something went wrong${context ? ` with ${context}` : ""}.`
+  );
 }
 
 /**

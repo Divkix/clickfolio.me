@@ -18,11 +18,11 @@ export const SECURITY_HEADERS = {
 /**
  * Creates a standardized error response with security headers
  */
-export function createErrorResponse(
+export function createErrorResponse<T>(
   error: string,
   code: string,
   status: number,
-  details?: unknown,
+  details?: T,
 ): Response {
   return new Response(
     JSON.stringify({
@@ -43,7 +43,7 @@ export function createErrorResponse(
 /**
  * Creates a standardized success response with security headers
  */
-export function createSuccessResponse(data: unknown, status = 200): Response {
+export function createSuccessResponse<T>(data: T, status = 200): Response {
   return new Response(JSON.stringify(data), {
     status,
     headers: {

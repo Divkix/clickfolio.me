@@ -12,8 +12,10 @@ import { extractText, getDocumentProxy } from "unpdf";
 
 setupMockCleanup();
 
+type MockPdf = { numPages: number };
+
 // Helper to create mock PDF with proper typing
-function createMockPdf(numPages: number): { numPages: number } {
+function createMockPdf(numPages: number): MockPdf {
   return { numPages };
 }
 

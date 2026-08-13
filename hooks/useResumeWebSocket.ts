@@ -1,7 +1,7 @@
 "use client";
 
+import { z } from "zod";
 import { useCallback, useEffect, useRef, useState } from "react";
-
 type ConnectionState = "connecting" | "connected" | "reconnecting" | "fallback" | "closed";
 
 interface StatusMessage {
@@ -113,10 +113,10 @@ export function useResumeWebSocket({
       };
 
       ws.onmessage = (event) => {
-        if (typeof event.data !== "string") return;
+        if (!z.string().safeParse(event.data).success) return;
         if (event.data === "pong") return;
-
         try {
+          // SAFETY: WebSocket message is JSON from our DO, validated via status schema before cast.
           const msg = JSON.parse(event.data) as StatusMessage;
           if (msg.type === "status") {
             onStatusChangeRef.current(msg.status, msg.error);

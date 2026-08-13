@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 /**
  * Safely parse preview skills stored as JSON text.
  * Returns an empty array for invalid/malformed data.
@@ -10,7 +12,7 @@ export function parsePreviewSkills(raw: string | null | undefined): string[] {
     if (!Array.isArray(parsed)) return [];
 
     return parsed
-      .filter((item): item is string => typeof item === "string")
+      .filter((item): item is string => z.string().safeParse(item).success)
       .map((skill) => skill.trim())
       .filter((skill) => skill.length > 0);
   } catch {

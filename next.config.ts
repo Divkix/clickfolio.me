@@ -3,12 +3,13 @@ import type { NextConfig } from "next";
 /**
  * Next.js configuration for the vinext + Cloudflare Workers runtime.
  */
+// SAFETY: process.env value is string from Node.js env; fallback to default if missing.
 const nextConfig: NextConfig = {
   allowedDevOrigins: ["*.ngrok-free.app"],
 
   experimental: {
     serverActions: {
-      // The `as` cast is required because the template literal is built dynamically at runtime.
+      // SAFETY: `${number}mb` template literal is dynamically built from env var; runtime value is validated by Next.js serverActions limit parser — cast bridges template literal type.
       bodySizeLimit: `${process.env.MAX_UPLOAD_SIZE_MB || "5"}mb` as `${number}mb`,
     },
   },

@@ -57,6 +57,7 @@ async function getAdminStats() {
     console.error("[admin] Umami API unavailable:", err);
   }
 
+  // SAFETY: D1 status is validated string column; cast initializes typed map for counting.
   const statusMap = resumeStats.reduce(
     (acc, r) => {
       acc[r.status || "unknown"] = r.count;

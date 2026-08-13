@@ -11,19 +11,20 @@
 
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { recoverOrphanedResumes } from "@/lib/cron/recover-orphaned";
+import type { UnknownRecord, JsonValue } from "@/lib/types/json";
 import type { ResumeParseMessage } from "@/lib/queue/types";
 
-type Row = Record<string, unknown>;
+type Row = UnknownRecord;
 
 /** Recursively collect drizzle column names referenced inside a SQL condition. */
-function collectColumns(node: unknown, depth = 0, acc = new Set<string>()): Set<string> {
+function collectColumns(node: JsonValue, depth = 0, acc = new Set<string>()): Set<string> {
   if (node == null || depth > 16) return acc;
   if (Array.isArray(node)) {
     for (const n of node) collectColumns(n, depth + 1, acc);
     return acc;
   }
   if (typeof node === "object") {
-    const obj = node as Record<string, unknown>;
+    const obj = node as UnknownRecord;
     if (typeof obj.name === "string" && typeof obj.columnType === "string") {
       acc.add(obj.name);
     }
@@ -35,10 +36,10 @@ function collectColumns(node: unknown, depth = 0, acc = new Set<string>()): Set<
   return acc;
 }
 
-function selectChain(rows: Row[], whereCaptures: unknown[]) {
+function selectChain(rows: Row[], whereCaptures: JsonValue[]) {
   return {
     from: vi.fn().mockReturnValue({
-      where: vi.fn().mockImplementation((cond: unknown) => {
+      where: vi.fn().mockImplementation((cond: JsonValue) => {
         whereCaptures.push(cond);
         return { limit: vi.fn().mockResolvedValue(rows) };
       }),
@@ -48,8 +49,8 @@ function selectChain(rows: Row[], whereCaptures: unknown[]) {
 
 function createMocks(options: { changes?: number } = {}) {
   const changes = options.changes ?? 1;
-  const whereCaptures: unknown[] = [];
-  const updateWhereCaptures: unknown[] = [];
+  const whereCaptures: JsonValue[] = [];
+  const updateWhereCaptures: JsonValue[] = [];
   const setCalls: Row[] = [];
 
   const db = {
@@ -58,7 +59,7 @@ function createMocks(options: { changes?: number } = {}) {
       set: vi.fn().mockImplementation((arg: Row) => {
         setCalls.push(arg);
         return {
-          where: vi.fn().mockImplementation((cond: unknown) => {
+          where: vi.fn().mockImplementation((cond: JsonValue) => {
             updateWhereCaptures.push(cond);
             return Promise.resolve({ meta: { changes } });
           }),
@@ -81,7 +82,7 @@ function createMocks(options: { changes?: number } = {}) {
   return { db, queue, whereCaptures, updateWhereCaptures, setCalls, setBuckets };
 }
 
-function run(db: unknown, queue: unknown) {
+function run(db: JsonValue, queue: JsonValue) {
   return recoverOrphanedResumes(db as never, queue as unknown as Queue<ResumeParseMessage>);
 }
 
@@ -92,16 +93,16 @@ describe("recoverOrphanedResumes — queued orphan recovery", () => {
 
   it("recovers a stale queued resume and re-publishes it", async () => {
     const { db, queue, setCalls, setBuckets } = createMocks();
-    const queuedOrphan: Row = {
+    const queuedOrphan = {
       id: "resume-queued",
       userId: "user-1",
       r2Key: "uploads/queued.pdf",
       fileHash: "hash-queued",
       totalAttempts: 1,
-    };
+    } satisfies Row;
     setBuckets([], [], [queuedOrphan]);
 
-    const result = await run(db, queue);
+    const result = await run(db as unknown as JsonValue, queue as unknown as JsonValue);
 
     expect(result.ok).toBe(true);
     expect(result.found).toBe(1);
@@ -122,7 +123,7 @@ describe("recoverOrphanedResumes — queued orphan recovery", () => {
     const { db, queue, whereCaptures, setBuckets } = createMocks();
     setBuckets([], [], []);
 
-    await run(db, queue);
+    await run(db as unknown as JsonValue, queue as unknown as JsonValue);
 
     // whereCaptures order matches select order: [pending_claim, processing, queued, waiting_for_cache]
     expect(whereCaptures).toHaveLength(4);
@@ -147,17 +148,17 @@ describe("recoverOrphanedResumes — queued orphan recovery", () => {
 
   it("rolls a resume back to pending_claim when publish fails", async () => {
     const { db, queue, setCalls, setBuckets } = createMocks();
-    const queuedOrphan: Row = {
+    const queuedOrphan = {
       id: "resume-fail",
       userId: "user-2",
       r2Key: "uploads/fail.pdf",
       fileHash: "hash-fail",
       totalAttempts: 0,
-    };
+    } satisfies Row;
     setBuckets([], [], [queuedOrphan]);
     queue.send.mockRejectedValueOnce(new Error("Queue unavailable"));
 
-    const result = await run(db, queue);
+    const result = await run(db as unknown as JsonValue, queue as unknown as JsonValue);
 
     expect(result.recovered).toBe(0);
     expect(result.found).toBe(1);
@@ -168,16 +169,16 @@ describe("recoverOrphanedResumes — queued orphan recovery", () => {
 
   it("skips queued resumes that have exceeded max attempts", async () => {
     const { db, queue, setCalls, setBuckets } = createMocks();
-    const maxedOut: Row = {
+    const maxedOut = {
       id: "resume-maxed",
       userId: "user-3",
       r2Key: "uploads/maxed.pdf",
       fileHash: "hash-maxed",
       totalAttempts: 6,
-    };
+    } satisfies Row;
     setBuckets([], [], [maxedOut]);
 
-    const result = await run(db, queue);
+    const result = await run(db as unknown as JsonValue, queue as unknown as JsonValue);
 
     expect(result.recovered).toBe(0);
     expect(queue.send).not.toHaveBeenCalled();
@@ -187,16 +188,16 @@ describe("recoverOrphanedResumes — queued orphan recovery", () => {
 
   it("skips publishing when the re-queue UPDATE affects 0 rows (TOCTOU)", async () => {
     const { db, queue, setCalls, setBuckets } = createMocks({ changes: 0 });
-    const queuedOrphan: Row = {
+    const queuedOrphan = {
       id: "resume-race",
       userId: "user-1",
       r2Key: "uploads/race.pdf",
       fileHash: "hash-race",
       totalAttempts: 1,
-    };
+    } satisfies Row;
     setBuckets([], [], [queuedOrphan]);
 
-    const result = await run(db, queue);
+    const result = await run(db as unknown as JsonValue, queue as unknown as JsonValue);
 
     expect(result.ok).toBe(true);
     expect(result.recovered).toBe(0);
@@ -209,17 +210,17 @@ describe("recoverOrphanedResumes — queued orphan recovery", () => {
 
   it("guards the re-queue UPDATE and the rollback on the originally-selected status", async () => {
     const { db, queue, updateWhereCaptures, setBuckets } = createMocks();
-    const queuedOrphan: Row = {
+    const queuedOrphan = {
       id: "resume-race2",
       userId: "user-1",
       r2Key: "uploads/race2.pdf",
       fileHash: "hash-race2",
       totalAttempts: 1,
-    };
+    } satisfies Row;
     setBuckets([], [], [queuedOrphan]);
     queue.send.mockRejectedValueOnce(new Error("Queue unavailable"));
 
-    const result = await run(db, queue);
+    const result = await run(db as unknown as JsonValue, queue as unknown as JsonValue);
 
     expect(result.recovered).toBe(0);
     // updateWhereCaptures order: [requeue guard, rollback guard].
@@ -234,16 +235,16 @@ describe("recoverOrphanedResumes — queued orphan recovery", () => {
 
   it("does not increment totalAttempts during recovery (consumer counts actual attempts)", async () => {
     const { db, queue, setCalls, setBuckets } = createMocks();
-    const queuedOrphan: Row = {
+    const queuedOrphan = {
       id: "resume-noinc",
       userId: "user-1",
       r2Key: "uploads/noinc.pdf",
       fileHash: "hash-noinc",
       totalAttempts: 3,
-    };
+    } satisfies Row;
     setBuckets([], [], [queuedOrphan]);
 
-    const result = await run(db, queue);
+    const result = await run(db as unknown as JsonValue, queue as unknown as JsonValue);
 
     expect(result.recovered).toBe(1);
     expect(queue.send).toHaveBeenCalledTimes(1);

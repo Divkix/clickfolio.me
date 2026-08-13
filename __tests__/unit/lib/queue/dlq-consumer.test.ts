@@ -6,6 +6,7 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import type { UnknownRecord } from "@/lib/types/json";
 import { handleDLQMessage } from "@/lib/queue/dlq-consumer";
 import { QueueErrorType } from "@/lib/queue/errors";
 import type { DeadLetterMessage, QueueMessage } from "@/lib/queue/types";
@@ -24,9 +25,8 @@ import { getSessionDbForWebhook } from "@/lib/db/session";
 import { notifyStatusChange } from "@/lib/queue/notify-status";
 
 describe("DLQ Consumer", () => {
-  const createMockEnv = (
-    overrides: Record<string, string> = {},
-  ): { CLICKFOLIO_DB: CloudflareEnv["CLICKFOLIO_DB"]; CLICKFOLIO_STATUS_DO: undefined } => ({
+  type MockEnv = { CLICKFOLIO_DB: CloudflareEnv["CLICKFOLIO_DB"]; CLICKFOLIO_STATUS_DO: undefined };
+  const createMockEnv = (overrides: Record<string, string> = {}): MockEnv => ({
     CLICKFOLIO_DB: {} as D1Database,
     CLICKFOLIO_STATUS_DO: undefined,
     ...overrides,
@@ -194,9 +194,9 @@ describe("DLQ Consumer", () => {
         }),
       });
 
-      const updateSets: Array<Record<string, unknown>> = [];
+      const updateSets: Array<UnknownRecord> = [];
       mockDb.update.mockReturnValue({
-        set: vi.fn().mockImplementation((values: Record<string, unknown>) => {
+        set: vi.fn().mockImplementation((values: UnknownRecord) => {
           updateSets.push(values);
           return { where: vi.fn().mockResolvedValue(undefined) };
         }),
@@ -266,7 +266,7 @@ describe("DLQ Consumer", () => {
       // log() emits a single JSON string; find the DLQ_ALERT entry by msg field
       const dlqAlert = consoleSpy.mock.calls.find((call) => {
         try {
-          return (JSON.parse(call[0]) as Record<string, unknown>)["msg"] === "DLQ_ALERT";
+          return (JSON.parse(call[0]) as UnknownRecord)["msg"] === "DLQ_ALERT";
         } catch {
           return false;
         }
@@ -363,7 +363,7 @@ describe("DLQ Consumer", () => {
       // log() emits a single JSON string; find the webhook alert failure entry by msg field
       const webhookFailLog = consoleSpy.mock.calls.find((call) => {
         try {
-          return (JSON.parse(call[0]) as Record<string, unknown>)["msg"] === "webhook alert failed";
+          return (JSON.parse(call[0]) as UnknownRecord)["msg"] === "webhook alert failed";
         } catch {
           return false;
         }
@@ -456,7 +456,7 @@ describe("DLQ Consumer", () => {
       // log() emits a single JSON string; unsupported channel falls back to logpush (DLQ_ALERT msg)
       const parsedCalls = consoleSpy.mock.calls.map((call) => {
         try {
-          return JSON.parse(call[0]) as Record<string, unknown>;
+          return JSON.parse(call[0]) as UnknownRecord;
         } catch {
           return null;
         }
@@ -511,13 +511,13 @@ describe("DLQ Consumer", () => {
       // log() emits a single JSON string with all payload fields at the top level
       const dlqAlert = consoleSpy.mock.calls.find((call) => {
         try {
-          return (JSON.parse(call[0]) as Record<string, unknown>)["msg"] === "DLQ_ALERT";
+          return (JSON.parse(call[0]) as UnknownRecord)["msg"] === "DLQ_ALERT";
         } catch {
           return false;
         }
       });
       expect(dlqAlert).toBeDefined();
-      const payload = JSON.parse(dlqAlert![0]) as Record<string, unknown>;
+      const payload = JSON.parse(dlqAlert![0]) as UnknownRecord;
       expect(payload["errorType"]).toBe(QueueErrorType.AI_PROVIDER_ERROR);
 
       consoleSpy.mockRestore();
@@ -560,13 +560,13 @@ describe("DLQ Consumer", () => {
       // log() emits a single JSON string with all payload fields at the top level
       const dlqAlert = consoleSpy.mock.calls.find((call) => {
         try {
-          return (JSON.parse(call[0]) as Record<string, unknown>)["msg"] === "DLQ_ALERT";
+          return (JSON.parse(call[0]) as UnknownRecord)["msg"] === "DLQ_ALERT";
         } catch {
           return false;
         }
       });
       expect(dlqAlert).toBeDefined();
-      const payload = JSON.parse(dlqAlert![0]) as Record<string, unknown>;
+      const payload = JSON.parse(dlqAlert![0]) as UnknownRecord;
       expect(payload["errorType"]).toBe(QueueErrorType.UNKNOWN);
 
       consoleSpy.mockRestore();
@@ -609,7 +609,7 @@ describe("DLQ Consumer", () => {
       // Should not throw and should default to UNKNOWN; log() emits single JSON string
       const dlqAlert = consoleSpy.mock.calls.find((call) => {
         try {
-          return (JSON.parse(call[0]) as Record<string, unknown>)["msg"] === "DLQ_ALERT";
+          return (JSON.parse(call[0]) as UnknownRecord)["msg"] === "DLQ_ALERT";
         } catch {
           return false;
         }
@@ -760,7 +760,7 @@ describe("DLQ Consumer", () => {
       // log() emits a single JSON string; find the success entry by msg and resumeId fields
       const successLog = consoleSpy.mock.calls.find((call) => {
         try {
-          const parsed = JSON.parse(call[0]) as Record<string, unknown>;
+          const parsed = JSON.parse(call[0]) as UnknownRecord;
           return (
             parsed["msg"] === "DLQ: marked resume as permanently failed" &&
             parsed["resumeId"] === "resume-123"
@@ -813,14 +813,14 @@ describe("DLQ Consumer", () => {
       // log() emits a single JSON string with all DLQAlertPayload fields at the top level
       const dlqAlert = consoleSpy.mock.calls.find((call) => {
         try {
-          return (JSON.parse(call[0]) as Record<string, unknown>)["msg"] === "DLQ_ALERT";
+          return (JSON.parse(call[0]) as UnknownRecord)["msg"] === "DLQ_ALERT";
         } catch {
           return false;
         }
       });
       expect(dlqAlert).toBeDefined();
 
-      const payload = JSON.parse(dlqAlert![0]) as Record<string, unknown>;
+      const payload = JSON.parse(dlqAlert![0]) as UnknownRecord;
       expect(payload).toHaveProperty("resumeId", "resume-123");
       expect(payload).toHaveProperty("userId", "user-456");
       expect(payload).toHaveProperty("failureReason", "Specific failure reason");

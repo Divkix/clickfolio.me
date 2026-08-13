@@ -22,6 +22,7 @@ import { drizzleAdapter } from "@better-auth/drizzle-adapter";
 import { betterAuth } from "better-auth";
 import { APIError } from "better-auth/api";
 import { drizzle } from "drizzle-orm/d1";
+import { z } from "zod";
 import * as schema from "@/lib/db/schema";
 import { createEmailSender } from "@/lib/email/cloudflare";
 import { isDisposableEmail } from "@/lib/email/disposable-check";
@@ -58,12 +59,12 @@ function wrapD1WithDateSerialization(d1: D1Database): D1Database {
   if (cached) return cached;
 
   const proxy = new Proxy(d1, {
-    get(target, prop, receiver) {
+    get(target, prop, _receiver) {
       if (prop === "prepare") {
         return (query: string) => {
           const stmt = target.prepare(query);
           return new Proxy(stmt, {
-            get(stmtTarget, stmtProp, stmtReceiver) {
+            get(stmtTarget, stmtProp, _stmtReceiver) {
               if (stmtProp === "bind") {
                 return (...args: unknown[]) => {
                   const serializedArgs = args.map((arg) =>
@@ -72,14 +73,16 @@ function wrapD1WithDateSerialization(d1: D1Database): D1Database {
                   return stmtTarget.bind(...serializedArgs);
                 };
               }
-              const value = Reflect.get(stmtTarget, stmtProp, stmtReceiver);
-              return typeof value === "function" ? value.bind(stmtTarget) : value;
+              // SAFETY: stmtProp is a Proxy trap key for the D1PreparedStatement; direct bracket access forwards correctly in Workers runtime.
+              const value = stmtTarget[stmtProp as keyof typeof stmtTarget];
+              return value instanceof Function ? value.bind(stmtTarget) : value;
             },
           });
         };
       }
-      const value = Reflect.get(target, prop, receiver);
-      return typeof value === "function" ? value.bind(target) : value;
+      // SAFETY: prop is a Proxy trap key for D1Database; direct bracket access forwards correctly in Workers runtime.
+      const value = target[prop as keyof D1Database];
+      return value instanceof Function ? value.bind(target) : value;
     },
   });
 
@@ -87,13 +90,12 @@ function wrapD1WithDateSerialization(d1: D1Database): D1Database {
   return proxy;
 }
 
-/**
- * Get env value with Cloudflare binding fallback to process.env
- */
 export function getEnvValue(env: Partial<CloudflareEnv>, key: keyof CloudflareEnv): string {
   const cfValue = env[key];
-  if (typeof cfValue === "string" && cfValue.trim() !== "") {
-    return cfValue;
+  // SAFETY: CloudflareEnv value is string validated via zod safeParse before cast.
+  if (z.string().safeParse(cfValue).success && String(cfValue as string).trim() !== "") {
+    // SAFETY: zod safeParse above guarantees cfValue is string.
+    return cfValue as string;
   }
   const processValue = process.env[key];
   if (processValue && processValue.trim() !== "") {
@@ -138,6 +140,7 @@ export async function getAuth() {
   if (cached) return cached;
 
   // Slow path: first request in this isolate -- build everything once
+  // SAFETY: env is Workers runtime binding matching CloudflareEnv; cast narrows untyped env object to typed interface for env var access.
   const typedEnv = env as Partial<CloudflareEnv>;
   const wrappedD1 = wrapD1WithDateSerialization(rawD1);
   const db = drizzle(wrappedD1, { schema });
@@ -223,6 +226,7 @@ export async function getAuth() {
           before: async (user) => {
             // Check for disposable email before allowing signup
             try {
+              // SAFETY: typedEnv is Partial<CloudflareEnv> with optional KV binding; cast to access optional CLICKFOLIO_DISPOSABLE_DOMAINS, fallback to null if missing.
               const result = await isDisposableEmail(
                 user.email,
                 (typedEnv as { CLICKFOLIO_DISPOSABLE_DOMAINS?: KVNamespace })
@@ -259,6 +263,7 @@ export async function getAuth() {
     emailAndPassword: {
       enabled: true,
       sendResetPassword: async ({ user, url }) => {
+        // SAFETY: env is Workers runtime CloudflareEnv; cast is safe for email sender which expects CloudflareEnv bindings.
         const { sendPasswordResetEmail } = createEmailSender(env as CloudflareEnv, baseURL);
         const result = await sendPasswordResetEmail({
           email: user.email,
@@ -272,6 +277,7 @@ export async function getAuth() {
     },
     emailVerification: {
       sendVerificationEmail: async ({ user, url }) => {
+        // SAFETY: env is Workers runtime CloudflareEnv; cast is safe for email sender which expects CloudflareEnv bindings.
         const { sendVerificationEmail } = createEmailSender(env as CloudflareEnv, baseURL);
         const result = await sendVerificationEmail({
           email: user.email,

@@ -9,14 +9,14 @@
  */
 
 import { INFRA } from "@/lib/config/retry";
+import type { UnknownRecord } from "@/lib/types/json";
 
 const BLOCKLIST_URL =
   "https://raw.githubusercontent.com/disposable-email-domains/disposable-email-domains/master/disposable_email_blocklist.conf";
 
 const MINIMUM_DOMAIN_COUNT = 1000;
 
-export interface SyncResult {
-  ok: true;
+export interface SyncResult extends UnknownRecord {
   domainCount: number;
   timestamp: string;
 }

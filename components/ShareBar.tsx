@@ -128,8 +128,8 @@ export function ShareBar({ url, handle, title, name, variant, className }: Share
   // Construct URL from handle if not provided (uses @ prefix convention)
   const shareUrl =
     url ||
-    (typeof window !== "undefined" && handle
-      ? `${window.location.origin}/@${handle}`
+    (globalThis.window !== undefined && handle
+      ? `${globalThis.window.location.origin}/@${handle}`
       : `https://clickfolio.me/@${handle ?? ""}`);
 
   const handleNativeShare = useCallback(async () => {

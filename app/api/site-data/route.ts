@@ -1,8 +1,8 @@
 import { eq } from "drizzle-orm";
+import { z } from "zod";
 import { withUser } from "@/lib/auth/with-auth";
 import { siteData } from "@/lib/db/schema";
 import { createSuccessResponse } from "@/lib/utils/security-headers";
-
 /**
  * GET /api/site-data
  * Fetch site_data for the currently authenticated user.
@@ -41,10 +41,10 @@ export async function GET(request?: Request) {
       let content = null;
       if (userSiteData.content) {
         try {
-          content =
-            typeof userSiteData.content === "string"
-              ? JSON.parse(userSiteData.content)
-              : userSiteData.content;
+          // SAFETY: z.string().safeParse check above guarantees userSiteData.content is string when parsing.
+          content = z.string().safeParse(userSiteData.content).success
+            ? JSON.parse(userSiteData.content as string)
+            : userSiteData.content;
         } catch (error) {
           console.error("Failed to parse site_data content", error);
         }

@@ -18,6 +18,7 @@ import { YouAreLiveModal } from "@/components/YouAreLiveModal";
 import { DEMO_PROFILES } from "@/lib/templates/demo-data";
 import type { ThemeId } from "@/lib/templates/theme-ids";
 import type { ResumeContent } from "@/lib/types/database";
+import type { JsonValue } from "@/lib/types/json";
 
 const mocks = vi.hoisted(() => ({
   router: {
@@ -67,7 +68,7 @@ vi.mock("sonner", () => ({
 }));
 
 vi.mock("@/lib/utils/clipboard", () => ({
-  copyToClipboard: (...args: unknown[]) => mocks.copyToClipboard(...args),
+  copyToClipboard: (...args: JsonValue[]) => mocks.copyToClipboard(...args),
 }));
 
 vi.mock("posthog-js", () => ({
@@ -80,18 +81,18 @@ vi.mock("posthog-js", () => ({
 }));
 
 vi.mock("@/lib/auth/client", () => ({
-  sendVerificationEmail: (...args: unknown[]) => mocks.sendVerificationEmail(...args),
+  sendVerificationEmail: (...args: JsonValue[]) => mocks.sendVerificationEmail(...args),
   signIn: {
-    social: (...args: unknown[]) => mocks.signInSocial(...args),
+    social: (...args: JsonValue[]) => mocks.signInSocial(...args),
   },
 }));
 
 vi.mock("@/lib/password/hibp", () => ({
-  checkBreached: (...args: unknown[]) => mocks.checkBreached(...args),
+  checkBreached: (...args: JsonValue[]) => mocks.checkBreached(...args),
 }));
 
 vi.mock("@/lib/password/strength", () => ({
-  checkPasswordStrength: (...args: unknown[]) => mocks.checkPasswordStrength(...args),
+  checkPasswordStrength: (...args: JsonValue[]) => mocks.checkPasswordStrength(...args),
 }));
 
 vi.mock("@/lib/templates/theme-registry.client", () => ({
@@ -115,7 +116,7 @@ vi.mock("@/lib/templates/theme-registry.client", () => ({
         </article>
       ),
     ]),
-  ) as Record<ThemeId, React.ComponentType<unknown>>,
+  ) as Record<ThemeId, React.ComponentType<JsonValue>>,
 }));
 
 vi.mock("@/components/forms/EditResumeForm", () => ({
@@ -477,7 +478,7 @@ describe("branch-heavy component interactions", () => {
     it("starts Google sign-in, shows loading state, and calls success callbacks", async () => {
       const user = userEvent.setup();
       const onSuccess = vi.fn();
-      let resolveSignIn: (value: unknown) => void = () => undefined;
+      let resolveSignIn: (value: JsonValue) => void = () => undefined;
       mocks.signInSocial.mockImplementationOnce(
         () =>
           new Promise((resolve) => {

@@ -63,9 +63,11 @@ export async function handleDLQMessage(
 
   // Parse last attempt error if available (shape owned by lifecycle).
   // Validate against the known enum so an arbitrary stored string does not leak through as `errorType`.
+  // SAFETY: D1 lastAttemptError is QueueError JSON from classifyQueueError().toJSON(); lifecycle.parseLastAttemptError validates shape, cast narrows nullable string.
   const rawErrorType = getLastAttemptErrorType(
     (currentResume[0]?.lastAttemptError as string | null) ?? null,
   );
+  // SAFETY: QueueErrorType enum values are strings; cast to string[] for includes check and back to QueueErrorType is safe widening/narrowing within enum.
   const errorType =
     rawErrorType !== null && (Object.values(QueueErrorType) as string[]).includes(rawErrorType)
       ? (rawErrorType as QueueErrorType)
@@ -100,6 +102,7 @@ export async function handleDLQMessage(
   });
 
   // Cast env to AlertEnv for optional alert properties
+  // SAFETY: env is CloudflareEnv with optional AlertEnv fields; cast narrows to AlertEnv for alert channel access, fallback via getAlertChannel.
   const alertEnv = env as AlertEnv;
   const alertChannel = getAlertChannel(alertEnv.ALERT_CHANNEL);
 

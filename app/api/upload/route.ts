@@ -1,4 +1,5 @@
 import { env } from "cloudflare:workers";
+import { z } from "zod";
 import { getR2Binding, R2 } from "@/lib/r2";
 import { checkIPRateLimit, getClientIP } from "@/lib/rate-limit/ip";
 import { COOKIE_NAME, createSignedCookieValue } from "@/lib/utils/pending-upload-cookie";
@@ -8,7 +9,6 @@ import {
   ERROR_CODES,
 } from "@/lib/utils/security-headers";
 import { generateTempKey, MAX_FILE_SIZE, validatePDFBuffer } from "@/lib/utils/validation";
-
 // Minimum file size for a valid PDF (100 bytes)
 const MIN_PDF_SIZE = 100;
 
@@ -41,6 +41,7 @@ const MIN_PDF_SIZE = 100;
 export async function POST(request: Request) {
   try {
     // 0. Get Cloudflare env bindings for R2
+    // SAFETY: env is untyped Cloudflare Workers binding; cast bridges to typed CloudflareEnv. X-Filename header is validated for length and sanitized before use.
     const typedEnv = env as CloudflareEnv;
 
     // Get R2 binding for direct operations
@@ -92,7 +93,7 @@ export async function POST(request: Request) {
 
     // 3. Get filename from header
     const filename = request.headers.get("x-filename");
-    if (!filename || typeof filename !== "string" || filename.trim().length === 0) {
+    if (!filename || !z.string().safeParse(filename).success || filename.trim().length === 0) {
       return createErrorResponse("X-Filename header is required", ERROR_CODES.BAD_REQUEST, 400);
     }
 
@@ -156,7 +157,7 @@ export async function POST(request: Request) {
     // 10. Create signed cookie for claim verification (Issue #89)
     const cookieSecret = typedEnv.BETTER_AUTH_SECRET;
     let setCookieHeader: string | undefined;
-    if (cookieSecret && typeof cookieSecret === "string") {
+    if (cookieSecret && z.string().safeParse(cookieSecret).success) {
       const signedCookieValue = await createSignedCookieValue(key, cookieSecret);
       // Set HttpOnly cookie (30 minute expiry, secure in production)
       setCookieHeader = `${COOKIE_NAME}=${signedCookieValue}; HttpOnly; SameSite=Strict; Max-Age=1800; Path=/`;

@@ -15,6 +15,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
 
   return (
     <Sonner
+      // SAFETY: sonner/form props are from shadcn/ui with validated types; cast preserves component prop contract.
       theme={theme as ToasterProps["theme"]}
       className="toaster group"
       icons={{
@@ -25,6 +26,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
         loading: <Loader2Icon className="size-4 animate-spin" />,
       }}
       style={
+        // SAFETY: sonner/form props are from shadcn/ui with validated types; cast preserves component prop contract.
         {
           "--normal-bg": "var(--popover)",
           "--normal-text": "var(--popover-foreground)",

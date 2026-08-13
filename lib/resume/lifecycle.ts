@@ -8,8 +8,13 @@
  * `lib/config/retry.ts` re-exports this module for backwards compatibility.
  */
 
+import type { JsonValue, UnknownRecord } from "@/lib/types/json";
+import { z } from "zod";
 import { QueueErrorType } from "@/lib/queue/errors";
 
+function isString(value: JsonValue): value is string {
+  return z.string().safeParse(value).success;
+}
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
@@ -46,6 +51,7 @@ export function hasExceededMaxAttempts(totalAttempts: number): boolean {
 }
 
 export function isPermanentErrorType(errorType: string): boolean {
+  // SAFETY: PERMANENT_ERROR_TYPES is readonly QueueErrorType array; cast to readonly string[] for includes is safe widening of enum values to string.
   return (PERMANENT_ERROR_TYPES as readonly string[]).includes(errorType);
 }
 
@@ -70,22 +76,37 @@ export type ParsedLastAttemptError = {
 export function parseLastAttemptError(
   row: { lastAttemptError: string | null } | string | null,
 ): ParsedLastAttemptError {
-  const raw = typeof row === "string" || row === null ? row : row.lastAttemptError;
+  let raw: string | null;
+  if (row === null || isString(row)) {
+    // SAFETY: isString guard above ensures row is string; null check handles null case.
+    raw = row as string | null;
+  } else {
+    raw = row.lastAttemptError;
+  }
   if (!raw) return null;
   try {
+    // SAFETY: QueueError JSON is from classifyQueueError().toJSON() validated at write; parse failure falls back to unknown.
     const parsed = JSON.parse(raw) as {
       type?: string;
       message?: string;
       isRetryable?: boolean;
       name?: string;
     };
-    if (parsed && typeof parsed === "object") {
+    if (parsed != null && parsed instanceof Object) {
+      // SAFETY: parsed is non-null object from JSON.parse validated via instanceof Object; Record<string, JsonValue> is safe for queue error fields.
+      const record = parsed as Record<string, JsonValue>;
       return {
-        type: typeof parsed.type === "string" ? parsed.type : null,
-        message: typeof parsed.message === "string" ? parsed.message : null,
-        isRetryable: typeof parsed.isRetryable === "boolean" ? parsed.isRetryable : null,
+        // SAFETY: z.string guard above ensures record.type is string when present.
+        type: z.string().safeParse(record.type).success ? (record.type as string) : null,
+        // SAFETY: z.string guard above ensures record.message is string when present.
+        message: z.string().safeParse(record.message).success ? (record.message as string) : null,
+        // SAFETY: z.boolean guard above ensures record.isRetryable is boolean when present.
+        isRetryable: z.boolean().safeParse(record.isRetryable).success
+          ? (record.isRetryable as boolean)
+          : null,
         raw,
-        name: typeof parsed.name === "string" ? parsed.name : null,
+        // SAFETY: z.string guard above ensures record.name is string when present.
+        name: z.string().safeParse(record.name).success ? (record.name as string) : null,
       };
     }
     return null;
@@ -120,7 +141,7 @@ export type RetryEligibility =
       reason: string;
       errorCode: string;
       httpStatus: 400 | 429;
-      details?: Record<string, unknown>;
+      details?: UnknownRecord;
     };
 
 /**
@@ -153,6 +174,7 @@ export function checkRetryEligibility(row: ResumeRetryRow): RetryEligibility {
   // Back-compat: honour explicit `lastAttemptErrorType` if provided.
   // `undefined` = not provided → fall back to parsing lastAttemptError JSON.
   // `null` = explicitly no type → honour as null (do not fall back).
+  // SAFETY: lifecycle.parseLastAttemptError validates QueueError JSON shape before cast.
   const parsed =
     row.lastAttemptErrorType !== undefined
       ? row.lastAttemptErrorType
@@ -179,7 +201,9 @@ export function checkRetryEligibility(row: ResumeRetryRow): RetryEligibility {
     };
   }
 
+  // SAFETY: Drizzle infers retryCount as number|null; row is existing resume with non-null retryCount, safe to narrow to number.
   if ((row.retryCount as number) >= RETRY_LIMITS.MANUAL_MAX_RETRIES) {
+    // SAFETY: Drizzle infers retryCount as number|null; safe to narrow for retry count display.
     return {
       eligible: false,
       reason: "Maximum retry limit reached. Please upload a new resume.",
@@ -192,6 +216,7 @@ export function checkRetryEligibility(row: ResumeRetryRow): RetryEligibility {
     };
   }
 
+  // SAFETY: Drizzle infers retryCount as number|null; row is existing resume with non-null retryCount, safe to narrow for nextAttempt.
   return { eligible: true, nextAttempt: (row.retryCount as number) + 1 };
 }
 
@@ -276,9 +301,11 @@ export function statusPresentation(row: StatusRow): StatusPresentation {
  * Payload for the cron that persists the waiting_for_cache timeout.
  * Keeps the literal in one place with the predicate.
  */
-export function buildWaitingForCacheTimeoutUpdate(): {
+export type WaitingForCacheTimeoutUpdate = {
   status: "failed";
   errorMessage: string;
-} {
+};
+
+export function buildWaitingForCacheTimeoutUpdate(): WaitingForCacheTimeoutUpdate {
   return { status: "failed", errorMessage: WAITING_FOR_CACHE_TIMEOUT_MESSAGE };
 }

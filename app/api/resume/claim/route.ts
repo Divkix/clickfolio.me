@@ -1,4 +1,5 @@
 import { and, desc, eq, gte, inArray, isNotNull, ne } from "drizzle-orm";
+import { z } from "zod";
 import { captureServerEvent } from "@/lib/posthog-server";
 import { withUser } from "@/lib/auth/with-auth";
 import { buildSiteDataUpsert } from "@/lib/data/site-data-upsert";
@@ -108,10 +109,9 @@ export async function POST(request: Request) {
           403,
         );
       }
-
       // Get the secret from env for cookie verification
       const cookieSecret = env.BETTER_AUTH_SECRET;
-      if (!cookieSecret || typeof cookieSecret !== "string") {
+      if (!cookieSecret || !z.string().safeParse(cookieSecret).success) {
         return createErrorResponse(
           "Upload verification unavailable. Server configuration error.",
           ERROR_CODES.INTERNAL_ERROR,
@@ -147,10 +147,9 @@ export async function POST(request: Request) {
 
         return recentResume[0] ?? null;
       };
-
-      const isLikelyMissingObjectError = (error: unknown): boolean => {
-        if (!(error instanceof Error)) return false;
-        return /not\s*found|no\s*such\s*key|does\s*not\s*exist|404/i.test(error.message);
+      const isLikelyMissingObjectError = (cause: unknown): boolean => {
+        if (!(cause instanceof Error)) return false;
+        return /not\s*found|no\s*such\s*key|does\s*not\s*exist|404/i.test(cause.message);
       };
 
       // Fetch file and compute SHA-256 hash server-side (early fetch for validation + caching).
@@ -294,6 +293,7 @@ export async function POST(request: Request) {
         )
         .limit(1);
 
+      // SAFETY: D1 parsedContent is nullable text column validated via resumeContentSchema; cast bridges nullable to string|null.
       const cachedContent = cached[0]?.parsedContent as string | null;
 
       if (cachedContent) {

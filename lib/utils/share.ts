@@ -78,9 +78,9 @@ export function generateShareText(name: string, handle?: string): string {
  */
 export function isWebShareSupported(): boolean {
   return (
-    typeof navigator !== "undefined" &&
-    typeof navigator.share === "function" &&
-    typeof navigator.canShare === "function"
+    globalThis.navigator !== undefined &&
+    globalThis.navigator.share instanceof Function &&
+    globalThis.navigator.canShare instanceof Function
   );
 }
 

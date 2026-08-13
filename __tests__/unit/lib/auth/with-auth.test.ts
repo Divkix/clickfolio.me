@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import type { JsonValue } from "@/lib/types/json";
 
 /**
  * Unit tests for the authenticated-route wrappers (ADR-0002 inner-callback form).
@@ -121,8 +122,8 @@ describe("withUser", () => {
     const body = (await response.json()) as { code?: string };
     expect(body.code).toBe("INTERNAL_ERROR");
 
-    const loggedWithPath = consoleSpy.mock.calls.some((call: unknown[]) =>
-      call.some((arg: unknown) => typeof arg === "string" && arg.includes("/api/resume/update")),
+    const loggedWithPath = consoleSpy.mock.calls.some((call: JsonValue[]) =>
+      call.some((arg: JsonValue) => typeof arg === "string" && arg.includes("/api/resume/update")),
     );
     expect(loggedWithPath).toBe(true);
 
@@ -198,8 +199,10 @@ describe("withAdmin", () => {
     const body = (await response.json()) as { code?: string };
     expect(body.code).toBe("INTERNAL_ERROR");
 
-    const loggedWithPath = consoleSpy.mock.calls.some((call: unknown[]) =>
-      call.some((arg: unknown) => typeof arg === "string" && arg.includes("/api/admin/referrals")),
+    const loggedWithPath = consoleSpy.mock.calls.some((call: JsonValue[]) =>
+      call.some(
+        (arg: JsonValue) => typeof arg === "string" && arg.includes("/api/admin/referrals"),
+      ),
     );
     expect(loggedWithPath).toBe(true);
 

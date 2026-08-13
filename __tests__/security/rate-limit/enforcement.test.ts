@@ -1,3 +1,4 @@
+import type { UnknownRecord } from "@/lib/types/json";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 /**
@@ -511,7 +512,7 @@ describe("Rate Limit Security Enforcement", () => {
 
     it("tracks different actions independently", async () => {
       // Uploads at limit but handle checks still allowed
-      mockSelect.mockImplementation((columns: Record<string, unknown>) => ({
+      mockSelect.mockImplementation((columns: UnknownRecord) => ({
         from: vi.fn().mockReturnValue({
           where: vi.fn().mockResolvedValue([
             {

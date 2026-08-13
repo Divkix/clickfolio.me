@@ -3,6 +3,12 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { ResumeContent } from "@/lib/types/database";
 
+type SessionState = {
+  data: {
+    user: { id: string; email: string; name: string; onboardingCompleted?: boolean };
+  } | null;
+  isPending: boolean;
+};
 const mocks = vi.hoisted(() => ({
   router: { push: vi.fn() },
   toast: { error: vi.fn(), success: vi.fn() },
@@ -10,12 +16,7 @@ const mocks = vi.hoisted(() => ({
     current: {
       data: { user: { id: "user_1", email: "avery@example.com", name: "Avery" } },
       isPending: false,
-    } as {
-      data: {
-        user: { id: string; email: string; name: string; onboardingCompleted?: boolean };
-      } | null;
-      isPending: boolean;
-    },
+    } as SessionState,
   },
   clearPendingUploadCookie: vi.fn(async () => undefined),
   waitForResumeCompletion: vi.fn(

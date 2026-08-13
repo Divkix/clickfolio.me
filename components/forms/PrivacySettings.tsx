@@ -98,6 +98,7 @@ export function PrivacySettingsForm({ initialSettings }: PrivacySettingsFormProp
       });
 
       if (!response.ok) {
+        // SAFETY: fetch response is JSON with known ApiErrorBody shape; cast bridges unknown JSON to typed error body.
         const errorData = (await response.json()) as ApiErrorBody;
         throw new Error(errorData.error || "Failed to update privacy settings");
       }

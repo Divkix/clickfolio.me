@@ -1,4 +1,5 @@
 import { vi } from "vite-plus/test";
+import type { UnknownRecord } from "@/lib/types/json";
 
 /**
  * Web Crypto API mocks for test environments that lack native crypto support.
@@ -37,7 +38,7 @@ export const mockImportKey = vi.fn(
   async (
     _format: string,
     keyData: BufferSource,
-    _algorithm: string | object,
+    _algorithm: string | UnknownRecord,
     _extractable: boolean,
     _keyUsages: string[],
   ): Promise<CryptoKey> => {

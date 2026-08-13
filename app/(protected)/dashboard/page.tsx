@@ -100,7 +100,9 @@ export default async function DashboardPage() {
 
   // Extract data from the consolidated query
   const profile = userData ?? null;
+  // SAFETY: Drizzle query returns Resume shape for first resume; cast narrows optional relation to Resume | null for dashboard logic.
   const resume = (userData?.resumes?.[0] ?? null) as Resume | null;
+  // SAFETY: Drizzle query returns siteData shape via with.siteData; cast narrows optional relation to siteData select type.
   const siteDataResult = (userData?.siteData ?? null) as typeof siteData.$inferSelect | null;
 
   // Email verification state
@@ -123,6 +125,7 @@ export default async function DashboardPage() {
   let content: ResumeContent | null = null;
   if (siteDataResult?.content) {
     try {
+      // SAFETY: D1 content is schema-validated JSON written only by our queue consumer; JSON.parse failure is caught and returns null.
       content = JSON.parse(siteDataResult.content) as ResumeContent;
     } catch (error) {
       console.error("Failed to parse siteData content:", error);
@@ -158,6 +161,11 @@ export default async function DashboardPage() {
     );
   }
 
+  // SAFETY: resume is non-null after hasResume guard; Drizzle schema ensures id is string for status listener.
+  const safeResumeId = resume?.id as string;
+  // SAFETY: resume.errorMessage is string | null from Drizzle; cast covers nullable/undefined for fallback display.
+  const safeResumeError = resume?.errorMessage as string | undefined | null;
+
   return (
     <div className="min-h-screen bg-background">
       <main className="max-w-[1400px] mx-auto px-4 lg:px-6 py-8">
@@ -180,10 +188,7 @@ export default async function DashboardPage() {
                 resume.status === "pending_claim" ||
                 resume.status === "queued") && (
                 <div className="col-span-full">
-                  <RealtimeStatusListener
-                    resumeId={resume.id as string}
-                    currentStatus={resume.status}
-                  />
+                  <RealtimeStatusListener resumeId={safeResumeId} currentStatus={resume.status} />
                 </div>
               )}
 
@@ -199,8 +204,7 @@ export default async function DashboardPage() {
                       <div className="flex-1">
                         <h3 className="font-semibold text-destructive">Processing Failed</h3>
                         <p className="mt-1 text-sm text-destructive">
-                          {(resume.errorMessage as string | undefined | null) ||
-                            "An error occurred while processing your resume."}
+                          {safeResumeError || "An error occurred while processing your resume."}
                         </p>
                         <div className="mt-3 flex gap-2">
                           <Button asChild size="sm">
@@ -489,10 +493,7 @@ export default async function DashboardPage() {
                   resume.status === "pending_claim" ||
                   resume.status === "queued") && (
                   <div>
-                    <RealtimeStatusListener
-                      resumeId={resume.id as string}
-                      currentStatus={resume.status}
-                    />
+                    <RealtimeStatusListener resumeId={safeResumeId} currentStatus={resume.status} />
                   </div>
                 )}
 
@@ -508,8 +509,7 @@ export default async function DashboardPage() {
                           Processing failed
                         </h3>
                         <p className="text-destructive">
-                          {(resume.errorMessage as string | undefined | null) ||
-                            "Unknown error occurred. Please try uploading again."}
+                          {safeResumeError || "Unknown error occurred. Please try uploading again."}
                         </p>
                       </div>
                     </div>

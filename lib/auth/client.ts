@@ -14,7 +14,7 @@ import { createAuthClient } from "better-auth/react";
  * Falls back to empty string for SSR contexts (will be hydrated on client).
  */
 const authClient = createAuthClient({
-  baseURL: typeof window !== "undefined" ? window.location.origin : "",
+  baseURL: globalThis.window !== undefined ? globalThis.window.location.origin : "",
 });
 
 /**
@@ -77,7 +77,7 @@ export async function requestPasswordReset(params: {
   redirectTo?: string;
 }): Promise<{ data: { message: string } | null; error: Error | null }> {
   try {
-    const baseURL = typeof window !== "undefined" ? window.location.origin : "";
+    const baseURL = globalThis.window !== undefined ? globalThis.window.location.origin : "";
     const response = await fetch(`${baseURL}/api/auth/request-password-reset`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -85,6 +85,7 @@ export async function requestPasswordReset(params: {
     });
 
     if (!response.ok) {
+      // SAFETY: error response from /api/auth/request-password-reset is server-controlled; cast extracts optional message safely.
       const errorData = (await response.json().catch(() => ({}))) as {
         message?: string;
       };
@@ -94,6 +95,7 @@ export async function requestPasswordReset(params: {
       };
     }
 
+    // SAFETY: success response from /api/auth/request-password-reset is server-controlled with message field validated before use.
     const data = (await response.json()) as { message: string };
     return { data, error: null };
   } catch (err) {

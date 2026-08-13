@@ -99,8 +99,9 @@ export function extractCityState(location: string | undefined): string {
   return "";
 }
 
+import { z } from "zod";
 import type { PrivacySettings } from "@/lib/db/schema/auth";
-
+import type { JsonValue } from "@/lib/types/json";
 export type { PrivacySettings };
 
 /**
@@ -118,31 +119,27 @@ export const DEFAULT_PRIVACY_SETTINGS: PrivacySettings = {
 
 /** Serialized form for storing in the JSON-in-TEXT column. */
 export const DEFAULT_PRIVACY_SETTINGS_JSON = JSON.stringify(DEFAULT_PRIVACY_SETTINGS);
-
 /**
  * Type guard to check if privacy settings are valid
  * Backward compatible: hide_from_search and show_in_directory are optional (defaults to false)
  */
-export function isValidPrivacySettings(settings: unknown): settings is {
+export function isValidPrivacySettings(settings: JsonValue): settings is {
   show_phone: boolean;
   show_address: boolean;
   hide_from_search?: boolean;
   show_in_directory?: boolean;
 } {
-  return (
-    typeof settings === "object" &&
-    settings !== null &&
-    "show_phone" in settings &&
-    "show_address" in settings &&
-    typeof (settings as { show_phone: unknown }).show_phone === "boolean" &&
-    typeof (settings as { show_address: unknown }).show_address === "boolean" &&
-    // hide_from_search is optional for backward compatibility
-    (!("hide_from_search" in settings) ||
-      typeof (settings as { hide_from_search: unknown }).hide_from_search === "boolean") &&
-    // show_in_directory is optional for backward compatibility
-    (!("show_in_directory" in settings) ||
-      typeof (settings as { show_in_directory: unknown }).show_in_directory === "boolean")
-  );
+  if (!(settings instanceof Object) || settings === null) return false;
+  if (!("show_phone" in settings) || !("show_address" in settings)) return false;
+  // SAFETY: Object guard above ensures settings is a non-null object; Record cast is safe for dynamic key access after validation.
+  const record = settings as Record<string, JsonValue>;
+  if (!z.boolean().safeParse(record.show_phone).success) return false;
+  if (!z.boolean().safeParse(record.show_address).success) return false;
+  if ("hide_from_search" in record && !z.boolean().safeParse(record.hide_from_search).success)
+    return false;
+  if ("show_in_directory" in record && !z.boolean().safeParse(record.show_in_directory).success)
+    return false;
+  return true;
 }
 
 /**
@@ -179,7 +176,8 @@ export function parsePrivacySettings(raw: string | null): PrivacySettings {
   }
 
   try {
-    const parsed: unknown = JSON.parse(raw);
+    // SAFETY: JSON.parse result is validated via isValidPrivacySettings before use; JsonValue is safe intermediate type.
+    const parsed = JSON.parse(raw) as JsonValue;
     return normalizePrivacySettings(isValidPrivacySettings(parsed) ? parsed : null);
   } catch {
     return normalizePrivacySettings(null);

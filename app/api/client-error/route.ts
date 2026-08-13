@@ -5,15 +5,18 @@
  * Logs with [client-error] prefix. Always returns 204 — must never leak info or break recovery.
  */
 
+import { z } from "zod";
+import type { JsonValue } from "@/lib/types/json";
+
 /** Empty 204 response used for all non-error paths. */
 const EMPTY_204 = new Response(null, { status: 204 });
 
 /** Request body shape for client error reports. */
 interface ClientErrorBody {
-  message?: unknown;
-  stack?: unknown;
-  componentStack?: unknown;
-  url?: unknown;
+  message?: JsonValue;
+  stack?: JsonValue;
+  componentStack?: JsonValue;
+  url?: JsonValue;
 }
 
 /**
@@ -23,15 +26,16 @@ interface ClientErrorBody {
  * @param maxLength - The maximum allowed length.
  * @returns The truncated string, or `undefined` if the value is not a string.
  */
-function truncate(value: unknown, maxLength: number): string | undefined {
-  if (typeof value !== "string") return undefined;
-  return value.length > maxLength ? value.slice(0, maxLength) : value;
+function truncate(value: JsonValue, maxLength: number): string | undefined {
+  const parsed = z.string().safeParse(value);
+  if (!parsed.success) return undefined;
+  return parsed.data.length > maxLength ? parsed.data.slice(0, maxLength) : parsed.data;
 }
-
 export async function POST(request: Request) {
   try {
     let body: ClientErrorBody;
     try {
+      // SAFETY: request.json() returns unknown JSON; ClientErrorBody shape is validated via truncate() guards — optional unknown fields safely narrowed.
       body = (await request.json()) as ClientErrorBody;
     } catch {
       return EMPTY_204;

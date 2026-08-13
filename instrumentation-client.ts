@@ -2,6 +2,8 @@ import posthog from "posthog-js";
 // Relative import: instrumentation-client runs as a root entry; keep deps local.
 import { POSTHOG_PROJECT_TOKEN, POSTHOG_UI_HOST } from "./lib/config/posthog";
 
+type ClickfolioWindow = Window & { __clickfolioOwner?: boolean };
+
 // Always init with the project token (public-by-design). Token resolution
 // prefers env, then falls back to the production key in lib/config/posthog.
 if (POSTHOG_PROJECT_TOKEN) {
@@ -14,7 +16,11 @@ if (POSTHOG_PROJECT_TOKEN) {
     // Match Umami: drop events while the owner is viewing their own profile
     // (OwnerDetector sets window.__clickfolioOwner on /@handle).
     before_send: (event) => {
-      if (typeof window !== "undefined" && window.__clickfolioOwner) {
+      // SAFETY: window.__clickfolioOwner is our owner flag set by OwnerDetector, single cast bridges missing type.
+      if (
+        globalThis.window !== undefined &&
+        (globalThis.window as ClickfolioWindow).__clickfolioOwner
+      ) {
         return null;
       }
       return event;

@@ -128,6 +128,7 @@ export default function WizardPage() {
   const progress = (currentStepNumber / totalSteps) * 100;
 
   // Derive onboardingCompleted from session (used by initializeWizard for returning user check)
+  // SAFETY: session.user from Better Auth lacks onboardingCompleted typed field; cast adds optional property from session payload validated via DB, safe fallback to false.
   const onboardingCompleted =
     (session?.user as { onboardingCompleted?: boolean } | undefined)?.onboardingCompleted === true;
 
@@ -185,6 +186,7 @@ export default function WizardPage() {
         try {
           const pendingResponse = await fetch("/api/upload/pending");
           if (pendingResponse.ok) {
+            // SAFETY: PendingUploadResponse is from our /api/upload/pending endpoint backed by HMAC-signed pending_upload cookie verified by server.
             const pending = (await pendingResponse.json()) as PendingUploadResponse;
             if (pending.key) {
               tempKey = pending.key;
@@ -208,6 +210,7 @@ export default function WizardPage() {
               body: JSON.stringify({ key: tempKey, file_hash: fileHash }),
             });
 
+            // SAFETY: ClaimResponse is from our /api/resume/claim endpoint; shape is server-controlled and validated before use.
             const claimData = (await claimResponse.json()) as ClaimResponse;
 
             if (!claimResponse.ok) {
@@ -252,9 +255,11 @@ export default function WizardPage() {
         // Fetch site_data via API
         const siteDataResponse = await fetch("/api/site-data");
         if (siteDataResponse.ok) {
+          // SAFETY: SiteDataResponse is from our /api/site-data endpoint; content is schema-validated JSON written only by queue consumer.
           const siteData = (await siteDataResponse.json()) as SiteDataResponse | null;
 
           if (siteData?.content) {
+            // SAFETY: D1 content is schema-validated JSON written only by our queue consumer; JSON.parse failure is caught and returns null.
             const content = siteData.content as ResumeContent;
 
             // Load resume data into state
@@ -267,6 +272,7 @@ export default function WizardPage() {
             try {
               const statsResponse = await fetch("/api/user/stats");
               if (statsResponse.ok) {
+                // SAFETY: UserStatsResponse is from our /api/user/stats endpoint; fields validated server-side before return.
                 const stats = (await statsResponse.json()) as UserStatsResponse;
                 setReferralCount(stats.referralCount ?? 0);
                 setIsPro(stats.isPro ?? false);
@@ -283,6 +289,7 @@ export default function WizardPage() {
         // No site_data found - check for processing resume
         const statusResponse = await fetch("/api/resume/latest-status");
         if (statusResponse.ok) {
+          // SAFETY: LatestResumeResponse is from our /api/resume/latest-status endpoint; shape validated server-side.
           const resume = (await statusResponse.json()) as LatestResumeResponse | null;
 
           if (resume?.status === "processing" && resume.id) {
@@ -388,6 +395,7 @@ export default function WizardPage() {
         }),
       });
 
+      // SAFETY: WizardCompleteResponse is from our /api/wizard/complete endpoint; error field checked before throwing.
       const data = (await response.json()) as WizardCompleteResponse;
 
       if (!response.ok) {

@@ -18,6 +18,7 @@ interface BasicInfoSectionProps {
 
 export function BasicInfoSection({ form }: BasicInfoSectionProps) {
   const getCharacterCount = (fieldName: FieldPath<ResumeContentFormData>, maxLength: number) => {
+    // SAFETY: form.watch returns validated string field from ResumeContentFormData; cast bridges unknown to string.
     const value = form.watch(fieldName) as string | undefined;
     const count = value?.length || 0;
     return `${count}/${maxLength}`;

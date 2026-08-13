@@ -26,10 +26,9 @@ export function ReferralStats({ referralCount, clickCount, referralCode }: Refer
   const { copied, copy } = useCopyToClipboard();
 
   const referralUrl =
-    typeof window !== "undefined"
-      ? `${window.location.origin}/?ref=${referralCode}`
+    globalThis.window !== undefined
+      ? `${globalThis.window.location.origin}/?ref=${referralCode}`
       : `https://clickfolio.me/?ref=${referralCode}`;
-
   const handleCopyLink = useCallback(async () => {
     await copy(referralUrl, {
       successMessage: "Referral link copied!",

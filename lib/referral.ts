@@ -30,7 +30,7 @@ const REFERRAL_CODE_KEY = "referral_code";
  * @param code - The referrer's referral code from ?ref= param
  */
 export function captureReferralCode(code: string): void {
-  if (typeof window === "undefined") return;
+  if (globalThis.window === undefined) return;
 
   // First ref wins - don't overwrite existing
   const existing = localStorage.getItem(REFERRAL_CODE_KEY);
@@ -45,7 +45,7 @@ export function captureReferralCode(code: string): void {
  * @returns The referral code or null
  */
 export function getStoredReferralCode(): string | null {
-  if (typeof window === "undefined") return null;
+  if (globalThis.window === undefined) return null;
   return localStorage.getItem(REFERRAL_CODE_KEY);
 }
 
@@ -53,7 +53,7 @@ export function getStoredReferralCode(): string | null {
  * Clear stored referral code from localStorage
  */
 export function clearStoredReferralCode(): void {
-  if (typeof window === "undefined") return;
+  if (globalThis.window === undefined) return;
   localStorage.removeItem(REFERRAL_CODE_KEY);
 }
 

@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { withUser } from "@/lib/auth/with-auth";
 import { resumes } from "@/lib/db/schema";
+import type { UnknownRecord } from "@/lib/types/json";
 import {
   canRetryResume,
   statusPresentation,
@@ -89,6 +90,7 @@ export async function GET(request: Request) {
       // Side-effect-free waiting_for_cache timeout: present as failed virtually.
       // The DB row stays `waiting_for_cache` until the orphan cron persists the
       // timeout (lib/cron/recover-orphaned). No `db.update` / `captureBookmark` here.
+      // SAFETY: D1 status and createdAt are validated enum/string columns; casts bridge Drizzle nullable type.
       // Compute presentation once — it already encodes the timeout predicate.
       const presForTimeout = statusPresentation({
         status: resume.status as string,
@@ -118,12 +120,14 @@ export async function GET(request: Request) {
           },
         });
 
+        // SAFETY: D1 parsedContent is nullable text column validated via resumeContentSchema; cast bridges nullable to string|null.
         const parsedContent = (resumeContent?.parsedContent as string | null) ?? null;
-        let parsedJson: unknown = null;
+        let parsedJson: UnknownRecord | null = null;
 
         if (parsedContent) {
           try {
-            parsedJson = JSON.parse(parsedContent) as Record<string, unknown>;
+            // SAFETY: parsedContent is JSON string from D1 validated on write via resumeContentSchema; parsing to UnknownRecord is safe, failure is caught and returns 500.
+            parsedJson = JSON.parse(parsedContent) as UnknownRecord;
           } catch (error) {
             console.error("Failed to parse stored resume JSON:", error);
             return createErrorResponse(
@@ -162,7 +166,7 @@ export async function GET(request: Request) {
       const pres = presForTimeout;
 
       if (pres.publicStatus === "processing") {
-        const extra: Record<string, unknown> = {};
+        const extra: UnknownRecord = {};
         if (pres.waitingForCache) extra.waiting_for_cache = true;
         if (pres.queued) extra.queued = true;
         return createSuccessResponse({

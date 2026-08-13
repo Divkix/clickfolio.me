@@ -5,7 +5,7 @@ import { resumes, user } from "../db/schema";
 import { getSessionDbForWebhook } from "../db/session";
 import { getR2Binding, R2 } from "../r2";
 import { getAlertChannel, sendAlert, type AlertEnv } from "./alert";
-import { classifyQueueError, isRetryableError } from "./errors";
+import { classifyQueueError, isRetryableError, type QueueErrorInput } from "./errors";
 import { notifyStatusChange, notifyStatusChangeBatch } from "./notify-status";
 import type { QueueMessage, ResumeParseMessage } from "./types";
 import { log } from "../utils/log";
@@ -107,6 +107,7 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
   if (cached[0]?.parsedContent) {
     // Use cached result — M7: include totalAttempts increment in same UPDATE
     const now = new Date().toISOString();
+    // SAFETY: Drizzle infers parsedContent as string|null; cached row is filtered isNotNull(parsedContent), safe to narrow to string.
     const cachedContent = cached[0].parsedContent as string;
 
     // M7: Batch resume completion + siteData upsert atomically
@@ -186,6 +187,7 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
 
   // parsedContent is produced by JSON.stringify() in parseResumeWithAi — guaranteed valid JSON
   const parsedContent = parseResult.parsedContent;
+  // SAFETY: AI returns professionalLevel as validated string from resumeContentSchema; UserRole cast narrows to enum with undefined fallback if missing.
   const professionalLevel = parseResult.professionalLevel as UserRole | undefined;
 
   const now = new Date().toISOString();
@@ -242,6 +244,7 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
     // waiting_for_cache between the SELECT and this UPDATE must NOT be completed
     // here — it would be marked "completed" with no siteData upsert. It safely
     // times out in /api/resume/status → failed → manual retry instead.
+    // SAFETY: D1 rows from Drizzle select have non-null primary keys; cast narrows inferred string|null to string for inArray and upsert.
     await db.batch([
       db
         .update(resumes)
@@ -266,6 +269,7 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
     // Separate from batch to avoid Drizzle heterogeneous table type errors.
     // Uses inArray for a single UPDATE instead of N sequential queries.
     if (professionalLevel) {
+      // SAFETY: D1 rows from Drizzle select have non-null userId; cast narrows inferred string|null to string for role update.
       await db
         .update(user)
         .set({ role: professionalLevel, roleSource: "ai", updatedAt: now })
@@ -280,6 +284,7 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
 
   // Notify waiting resumes via WebSocket
   if (waitingResumes.length > 0) {
+    // SAFETY: D1 rows from Drizzle select have non-null ids; cast narrows inferred string|null to string for batch notify.
     await notifyStatusChangeBatch(
       waitingResumes.map((r) => r.id as string),
       "completed",
@@ -302,14 +307,16 @@ export async function handleQueueMessage(message: QueueMessage, env: CloudflareE
   } catch (error) {
     // Issue #83 Fix: Only set status to "failed" for non-retryable errors
     // For retryable errors, keep status as "processing" so client doesn't see false negative
-    const isRetryable = isRetryableError(error);
+    // SAFETY: catch error is unknown; QueueErrorInput covers Error|string|object|null for classification.
+    const isRetryable = isRetryableError(error as QueueErrorInput);
 
     if (!isRetryable) {
       // Non-retryable error - mark as permanently failed.
       // Guard on status != completed (mirrors the DLQ consumer): the resume may
       // have completed via a concurrent path (cache hit / fan-out) between the
       // parse throw and this UPDATE — never clobber a completed row.
-      const classifiedError = classifyQueueError(error);
+      // SAFETY: error is unknown from catch; cast to QueueErrorInput for classification (covers Error|string|object).
+      const classifiedError = classifyQueueError(error as QueueErrorInput);
       await db
         .update(resumes)
         .set({
@@ -328,6 +335,7 @@ export async function handleQueueMessage(message: QueueMessage, env: CloudflareE
       // Permanent errors are acked (discarded) by the worker and never reach the
       // DLQ, so the consumer is the ONLY place that can alert for them. Without
       // this, permanent failures (invalid_pdf, file_not_found, ...) never alert.
+      // SAFETY: env is CloudflareEnv with optional AlertEnv fields; cast narrows to AlertEnv for alert channel access, fallback via getAlertChannel.
       const alertEnv = env as AlertEnv;
       await sendAlert(
         {
@@ -343,7 +351,8 @@ export async function handleQueueMessage(message: QueueMessage, env: CloudflareE
       );
     } else {
       // Retryable error - just record the error for debugging, don't change status
-      const classifiedError = classifyQueueError(error);
+      // SAFETY: error is unknown from catch; QueueErrorInput covers classification cases.
+      const classifiedError = classifyQueueError(error as QueueErrorInput);
       await db
         .update(resumes)
         .set({

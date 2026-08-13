@@ -2,11 +2,12 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type React from "react";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import type { UnknownRecord, JsonValue } from "@/lib/types/json";
 import type { ResumeContent } from "@/lib/types/database";
 
 const mocks = vi.hoisted(() => {
   const state = {
-    selectResults: [] as unknown[][],
+    selectResults: [] as JsonValue[][],
     session: {
       user: { id: "user_1", email: "avery@example.com", name: "Avery Quinn" },
     } as { user: { id: string; email: string; name: string } } | null,
@@ -14,8 +15,8 @@ const mocks = vi.hoisted(() => {
   };
 
   const nextSelectResult = () => state.selectResults.shift() ?? [];
-  const createChain = (): Record<string, unknown> => {
-    const chain: Record<string, unknown> = {
+  const createChain = () => {
+    const chain = {
       from: vi.fn(() => chain),
       where: vi.fn(() => chain),
       innerJoin: vi.fn(() => chain),
@@ -26,7 +27,7 @@ const mocks = vi.hoisted(() => {
       offset: vi.fn(() => chain),
       values: vi.fn(() => chain),
       // eslint-disable-next-line unicorn/no-thenable -- Drizzle query mocks must be awaitable.
-      then: vi.fn((resolve: (value: unknown[]) => unknown) => resolve(nextSelectResult())),
+      then: vi.fn((resolve: (value: JsonValue[]) => JsonValue) => resolve(nextSelectResult())),
     };
     return chain;
   };
@@ -188,7 +189,7 @@ vi.mock("@/components/admin/AdminSidebar", () => ({
   ),
 }));
 vi.mock("@/components/admin/AdminSparkline", () => ({
-  AdminSparkline: ({ data }: { data: unknown[] }) => <div>sparkline {data.length}</div>,
+  AdminSparkline: ({ data }: { data: JsonValue[] }) => <div>sparkline {data.length}</div>,
 }));
 vi.mock("@/components/admin/StatCard", () => ({
   StatCard: ({ title, value }: { title: string; value: string | number }) => (
@@ -236,7 +237,7 @@ const resumeContent: ResumeContent = {
   projects: [],
 };
 
-function siteDataRow(overrides: Record<string, unknown> = {}) {
+function siteDataRow(overrides: UnknownRecord = {}) {
   return {
     id: "site_1",
     userId: "user_1",
@@ -258,7 +259,7 @@ function siteDataRow(overrides: Record<string, unknown> = {}) {
 
 function installDbDefaults() {
   mocks.db.query.user.findFirst.mockImplementation(
-    async (args: { with?: Record<string, unknown>; columns?: Record<string, boolean> } = {}) => {
+    async (args: { with?: UnknownRecord; columns?: Record<string, boolean> } = {}) => {
       if (args.with && "resumes" in args.with) {
         if (mocks.state.dashboardMode === "empty") {
           return {

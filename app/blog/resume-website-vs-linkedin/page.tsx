@@ -6,6 +6,7 @@ import { buildBlogPostMetadata, getPostBySlug } from "@/lib/blog/posts";
 export const revalidate = 86400;
 
 const post = getPostBySlug("resume-website-vs-linkedin")!;
+// SAFETY: getPostBySlug returns BlogPostMeta | undefined; filter(Boolean) removes undefined, so remaining are BlogPostMeta. Related slugs are static and validated against BLOG_POSTS.
 const relatedPosts = ["linkedin-to-portfolio", "personal-resume-website"]
   .map((slug) => getPostBySlug(slug))
   .filter(Boolean) as (typeof post)[];

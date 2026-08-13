@@ -37,7 +37,9 @@ export function ThemeSelector({
   isPro,
 }: ThemeSelectorProps) {
   const router = useRouter();
+  // SAFETY: isValidThemeId guard above guarantees id is ThemeId; initialThemeId is validated server-side before pass.
   const [savedTheme, setSavedTheme] = useState<ThemeId>(initialThemeId as ThemeId);
+  // SAFETY: isValidThemeId guard above guarantees id is ThemeId; initialThemeId is validated server-side before pass.
   const [selectedTheme, setSelectedTheme] = useState<ThemeId>(initialThemeId as ThemeId);
   const [isUpdating, setIsUpdating] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -91,6 +93,7 @@ export function ThemeSelector({
       });
 
       if (!response.ok) {
+        // SAFETY: ApiErrorBody is from our /api/resume/update-theme endpoint; shape is server-controlled error response.
         const errorData = (await response.json()) as ApiErrorBody;
         throw new Error(errorData.error || "Failed to update theme");
       }

@@ -78,6 +78,7 @@ export function SignUpForm({ onSuccess, callbackURL }: SignUpFormProps) {
         return;
       }
 
+      // SAFETY: fetch response is JSON from our validate endpoint with known shape; cast bridges unknown to typed response.
       const data = (await response.json()) as { valid: boolean; reason?: string };
       if (!data.valid) {
         setEmailDisposableError(data.reason || "Please use a permanent email address");

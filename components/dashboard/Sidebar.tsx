@@ -49,6 +49,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
       try {
         const response = await fetch("/api/profile/me");
         if (response.ok) {
+          // SAFETY: ProfileResponse is from our /api/profile/me endpoint; shape validated server-side before use.
           const data = (await response.json()) as ProfileResponse;
           setProfile({ handle: data.handle ?? null, isAdmin: data.isAdmin ?? false });
           lastFetchedRef.current = Date.now();

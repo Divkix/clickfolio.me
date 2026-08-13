@@ -90,6 +90,7 @@ export function HandleStep({ initialHandle = "", onContinue }: HandleStepProps) 
       const response = await fetch(`/api/handle/check?handle=${encodeURIComponent(value)}`, {
         signal: controller.signal,
       });
+      // SAFETY: HandleCheckResponse is from our /api/handle/check endpoint; shape validated server-side before use.
       const data = (await response.json()) as HandleCheckResponse;
 
       if (!response.ok) {

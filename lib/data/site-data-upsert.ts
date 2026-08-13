@@ -21,6 +21,7 @@ export function buildSiteDataUpsert(
 ) {
   let parsedContent: ResumeContent | null = null;
   try {
+    // SAFETY: D1 content is schema-validated JSON written only by our queue consumer; JSON.parse failure is caught and returns null.
     parsedContent = JSON.parse(content) as ResumeContent;
   } catch {
     console.warn(`Failed to parse content for preview fields extraction, resumeId: ${resumeId}`);

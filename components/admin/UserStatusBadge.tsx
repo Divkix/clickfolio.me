@@ -8,12 +8,12 @@ interface UserStatusBadgeProps {
 
 type BadgeVariant = "success" | "warning" | "destructive" | "default";
 
-const STATUS_CONFIG: Record<Status, { label: string; variant: BadgeVariant }> = {
+const STATUS_CONFIG = {
   live: { label: "Live", variant: "success" },
   processing: { label: "Processing", variant: "warning" },
   no_resume: { label: "No Resume", variant: "default" },
   failed: { label: "Failed", variant: "destructive" },
-};
+} as const satisfies Record<Status, { label: string; variant: BadgeVariant }>;
 
 export function UserStatusBadge({ status }: UserStatusBadgeProps) {
   const config = STATUS_CONFIG[status];

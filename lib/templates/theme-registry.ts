@@ -12,10 +12,7 @@ import { DEFAULT_THEME, isValidThemeId, type ThemeId } from "./theme-ids";
  * Lazy loaders — each returns a dynamic import() promise.
  * Used by server components via the async getTemplate().
  */
-const TEMPLATE_LOADERS: Record<
-  ThemeId,
-  () => Promise<{ [key: string]: React.ComponentType<TemplateProps> }>
-> = {
+const TEMPLATE_LOADERS = {
   bento: () => import("@/components/templates/BentoGrid"),
   bold_corporate: () => import("@/components/templates/BoldCorporate"),
   classic_ats: () => import("@/components/templates/ClassicATS"),
@@ -26,9 +23,9 @@ const TEMPLATE_LOADERS: Record<
   minimalist_editorial: () => import("@/components/templates/MinimalistEditorial"),
   neo_brutalist: () => import("@/components/templates/NeoBrutalist"),
   spotlight: () => import("@/components/templates/Spotlight"),
-};
+} satisfies Record<ThemeId, () => Promise<{ [key: string]: React.ComponentType<TemplateProps> }>>;
 
-const TEMPLATE_EXPORT_NAME: Record<ThemeId, string> = {
+const TEMPLATE_EXPORT_NAME = {
   bento: "BentoGrid",
   bold_corporate: "BoldCorporate",
   classic_ats: "ClassicATS",
@@ -39,7 +36,7 @@ const TEMPLATE_EXPORT_NAME: Record<ThemeId, string> = {
   minimalist_editorial: "MinimalistEditorial",
   neo_brutalist: "NeoBrutalist",
   spotlight: "Spotlight",
-};
+} satisfies Record<ThemeId, string>;
 
 /**
  * Get template component by theme ID (async — for server components).
@@ -50,5 +47,7 @@ export async function getTemplate(
 ): Promise<React.ComponentType<TemplateProps>> {
   const resolvedId: ThemeId = themeId && isValidThemeId(themeId) ? themeId : DEFAULT_THEME;
   const mod = await TEMPLATE_LOADERS[resolvedId]();
-  return mod[TEMPLATE_EXPORT_NAME[resolvedId]];
+  const exportName = TEMPLATE_EXPORT_NAME[resolvedId];
+  // SAFETY: mod is dynamic import namespace for validated ThemeId; casting to Record bridges typed template registry — exportName is guaranteed to exist for resolvedId.
+  return (mod as Record<string, React.ComponentType<TemplateProps>>)[exportName];
 }

@@ -29,11 +29,13 @@ function getRecipientDomain(email: string): string {
   return at >= 0 ? email.slice(at + 1) : "unknown";
 }
 
+type FromEmail = { email: string; name: string };
+
 /**
  * Gets the "from" email address for transactional emails
  * Uses the configured domain from BETTER_AUTH_URL
  */
-function getFromEmail(appUrl: string): { email: string; name: string } {
+function getFromEmail(appUrl: string): FromEmail {
   try {
     const url = new URL(appUrl);
     // For localhost dev, use a placeholder domain (emails won't actually send without onboarding)

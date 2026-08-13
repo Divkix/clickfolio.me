@@ -8,20 +8,20 @@ interface AdminHeaderProps {
   onMenuClick: () => void;
 }
 
-const PAGE_TITLES: Record<string, string> = {
+const PAGE_TITLES = {
   "/admin": "Overview",
   "/admin/users": "Users",
   "/admin/resumes": "Resumes",
   "/admin/analytics": "Analytics",
   "/admin/referrals": "Referrals",
-};
+} as const satisfies Record<string, string>;
 
 export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
 
-  const title = PAGE_TITLES[pathname] || "Admin";
-
+  // SAFETY: pathname is a string route path; page titles map covers admin routes with fallback to "Admin".
+  const title = PAGE_TITLES[pathname as keyof typeof PAGE_TITLES] || "Admin";
   const handleRefresh = () => {
     router.refresh();
   };

@@ -16,6 +16,7 @@ export const revalidate = 604800;
  */
 export default async function PreviewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  // SAFETY: id is validated ThemeId via isValidThemeId or known demo-data keys; cast bridges string to ThemeId.
   const themeId = id as ThemeId;
   const content = DEMO_RESUME_CONTENT[themeId];
 

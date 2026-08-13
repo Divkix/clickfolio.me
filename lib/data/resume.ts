@@ -91,6 +91,7 @@ async function fetchResumeDataRaw(handle: string): Promise<ResumeData | null> {
   // D1 is a trusted source - skip redundant Zod validation (saves 200-400ms)
   let content: ResumeContent;
   try {
+    // SAFETY: D1 content is schema-validated JSON written only by our queue consumer; JSON.parse failure is caught and returns null.
     content = JSON.parse(userData.siteData.content) as ResumeContent;
   } catch (error) {
     console.error("Failed to parse site_data content for handle:", handle, error);
@@ -105,6 +106,7 @@ async function fetchResumeDataRaw(handle: string): Promise<ResumeData | null> {
   let themeId = userData.siteData.themeId;
 
   if (themeId && isValidThemeId(themeId)) {
+    // SAFETY: isValidThemeId guard above guarantees id is ThemeId.
     const themeMetadata = THEME_METADATA[themeId as ThemeId];
 
     // Only check referral count if theme requires referrals
@@ -113,6 +115,7 @@ async function fetchResumeDataRaw(handle: string): Promise<ResumeData | null> {
       const referralCount = userData.referralCount ?? 0;
       const isPro = userData.isPro ?? false;
 
+      // SAFETY: isValidThemeId guard above guarantees id is ThemeId.
       if (!isThemeUnlocked(themeId as ThemeId, referralCount, isPro)) {
         console.warn(
           `[theme-defense] User ${userData.id} has locked theme ${themeId}. Falling back to default.`,
@@ -222,6 +225,7 @@ async function fetchResumeMetadataRaw(handle: string): Promise<ResumeMetadata | 
 
   if (!hideFromSearch && userData.siteData.content) {
     try {
+      // SAFETY: D1 content is schema-validated JSON written only by our queue consumer; JSON.parse failure is caught and returns null.
       const content = JSON.parse(userData.siteData.content) as ResumeContent;
       const profileUrl = `${siteConfig.url}/@${handle}`;
 

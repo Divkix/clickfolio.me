@@ -118,6 +118,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
       setUploadProgress(70);
 
       if (!uploadResponse.ok) {
+        // SAFETY: UploadResponse is from our /api/upload endpoint; shape is server-controlled.
         const data = (await uploadResponse.json()) as UploadResponse;
         // Handle rate limiting specifically
         if (uploadResponse.status === 429) {
@@ -126,6 +127,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
         throw new Error(data.error || "Failed to upload file");
       }
 
+      // SAFETY: UploadResponse is from our /api/upload endpoint; shape is server-controlled and contains temp R2 key.
       const { key } = (await uploadResponse.json()) as UploadResponse;
 
       setUploadProgress(90);
@@ -145,7 +147,9 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
       let errorMessage = "Failed to upload file";
 
       // Differentiate error types by status code
+      // SAFETY: err is Error-like with optional status from fetch throw; cast narrows to status check for rate-limit handling, not user input.
       if (err instanceof Response || (err as { status?: number })?.status) {
+        // SAFETY: err status check uses optional status property from thrown Response-like error; cast is safe for branching.
         const status = err instanceof Response ? err.status : (err as { status?: number }).status;
         if (status === 429) {
           errorMessage = "Upload limit reached (5 per day). Try again tomorrow.";
@@ -195,6 +199,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
         });
 
         if (!claimResponse.ok) {
+          // SAFETY: ClaimResponse is from our /api/resume/claim endpoint; shape validated server-side.
           const data = (await claimResponse.json()) as ClaimResponse;
           throw new Error(data.error || "Failed to claim resume");
         }
@@ -231,7 +236,9 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
         let errorMessage = "Failed to claim resume";
 
         // Differentiate error types by status code
+        // SAFETY: err is Error-like with optional status from fetch throw; cast narrows to status check for rate-limit handling.
         if (err instanceof Response || (err as { status?: number })?.status) {
+          // SAFETY: err status check uses optional status property from thrown Response-like error; cast is safe for branching.
           const status = err instanceof Response ? err.status : (err as { status?: number }).status;
           if (status === 429) {
             errorMessage = "Upload limit reached (5 per day). Try again tomorrow.";

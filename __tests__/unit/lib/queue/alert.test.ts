@@ -6,14 +6,17 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import type { UnknownRecord } from "@/lib/types/json";
 import { sendAlert, getAlertChannel } from "@/lib/queue/alert";
 
-function createMockEnv(overrides: Record<string, string | undefined> = {}): {
+type MockEnv = {
   CLICKFOLIO_DB: CloudflareEnv["CLICKFOLIO_DB"];
   CLICKFOLIO_STATUS_DO: undefined;
   ALERT_WEBHOOK_URL?: string;
   ALERT_CHANNEL?: string;
-} {
+};
+
+function createMockEnv(overrides: Record<string, string | undefined> = {}): MockEnv {
   return {
     CLICKFOLIO_DB: {} as D1Database,
     CLICKFOLIO_STATUS_DO: undefined,
@@ -61,14 +64,14 @@ describe("alert module", () => {
       // log() emits a single JSON string with msg: "DLQ_ALERT"
       const dlqAlert = consoleSpy.mock.calls.find((call) => {
         try {
-          return (JSON.parse(call[0]) as Record<string, unknown>)["msg"] === "DLQ_ALERT";
+          return (JSON.parse(call[0]) as UnknownRecord)["msg"] === "DLQ_ALERT";
         } catch {
           return false;
         }
       });
       expect(dlqAlert).toBeDefined();
 
-      const payload = JSON.parse(dlqAlert![0]) as Record<string, unknown>;
+      const payload = JSON.parse(dlqAlert![0]) as UnknownRecord;
       expect(payload).toMatchObject({
         resumeId: "resume-123",
         userId: "user-456",
@@ -127,7 +130,7 @@ describe("alert module", () => {
       // log() emits a single JSON string with msg: "webhook alert failed"
       const webhookFailLog = consoleSpy.mock.calls.find((call) => {
         try {
-          return (JSON.parse(call[0]) as Record<string, unknown>)["msg"] === "webhook alert failed";
+          return (JSON.parse(call[0]) as UnknownRecord)["msg"] === "webhook alert failed";
         } catch {
           return false;
         }

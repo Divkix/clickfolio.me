@@ -16,7 +16,7 @@ interface BlogPostLayoutProps {
   relatedPosts?: BlogPostMeta[];
 }
 
-function generateArticleJsonLd(post: BlogPostMeta): Record<string, unknown> {
+function generateArticleJsonLd(post: BlogPostMeta) {
   return {
     "@context": "https://schema.org",
     "@type": "Article",
@@ -56,7 +56,7 @@ function generateArticleJsonLd(post: BlogPostMeta): Record<string, unknown> {
   };
 }
 
-function generateBlogBreadcrumbJsonLd(post: BlogPostMeta): Record<string, unknown> {
+function generateBlogBreadcrumbJsonLd(post: BlogPostMeta) {
   return {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",

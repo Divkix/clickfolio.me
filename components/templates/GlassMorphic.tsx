@@ -44,15 +44,15 @@ const GlassLinkedInIcon = ({ size, className }: { size: number; className?: stri
   <LinkedInIcon variant="white" size={size} className={className} aria-hidden={true} />
 );
 
-const glassIconMap: Partial<
-  Record<ContactLinkType, React.ComponentType<{ size: number; className?: string }>>
-> = {
+const glassIconMap = {
   github: GlassGitHubIcon,
   linkedin: GlassLinkedInIcon,
   email: Mail,
   phone: Phone,
   website: Globe,
-};
+} as const satisfies Partial<
+  Record<ContactLinkType, React.ComponentType<{ size: number; className?: string }>>
+>;
 
 const NAV_SECTIONS = [
   { id: "about", label: "Overview", icon: User },
@@ -340,7 +340,9 @@ export const GlassMorphic: React.FC<TemplateProps> = ({ content, profile, isPrev
                       {contactLinks
                         .filter((l) => l.type !== "location")
                         .map((link) => {
-                          const Icon = glassIconMap[link.type] || ExternalLink;
+                          // SAFETY: link.type is ContactLinkType; glassIconMap covers branded icons with ExternalLink fallback.
+                          const Icon =
+                            glassIconMap[link.type as keyof typeof glassIconMap] || ExternalLink;
                           const isBranded = link.type === "behance" || link.type === "dribbble";
                           const brandColor =
                             link.type === "behance"

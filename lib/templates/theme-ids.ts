@@ -34,6 +34,7 @@ export const DEFAULT_THEME: ThemeId = "minimalist_editorial";
  * Type guard to check if a string is a valid ThemeId
  */
 export function isValidThemeId(id: string): id is ThemeId {
+  // SAFETY: ThemeId is a string union; widening THEME_IDS to readonly string[] is safe for includes check — runtime validation via isValidThemeId guarantees id is ThemeId when true.
   return (THEME_IDS as readonly string[]).includes(id);
 }
 
@@ -41,16 +42,7 @@ export function isValidThemeId(id: string): id is ThemeId {
  * Theme metadata for UI display
  * referralsRequired: 0 = free, >0 = requires N referrals to unlock
  */
-export const THEME_METADATA: Record<
-  ThemeId,
-  {
-    readonly name: string;
-    readonly description: string;
-    readonly category: string;
-    readonly preview: string;
-    readonly referralsRequired: number;
-  }
-> = {
+export const THEME_METADATA = {
   bento: {
     name: "Bento Grid",
     description: "Modern mosaic layout with colorful cards",
@@ -121,7 +113,16 @@ export const THEME_METADATA: Record<
     preview: "/previews/spotlight.webp",
     referralsRequired: 3, // Premium - 3 referrals
   },
-} as const;
+} as const satisfies Record<
+  ThemeId,
+  {
+    readonly name: string;
+    readonly description: string;
+    readonly category: string;
+    readonly preview: string;
+    readonly referralsRequired: number;
+  }
+>;
 
 /**
  * Check if a theme is unlocked for a user based on their referral count
@@ -145,7 +146,7 @@ export function getThemeReferralRequirement(themeId: ThemeId): number {
 /**
  * Map database theme IDs (underscore) to share popover variants (kebab-case).
  */
-export const themeToShareVariant: Record<ThemeId, SharePopoverVariant> = {
+export const themeToShareVariant = {
   minimalist_editorial: "minimalist-editorial",
   neo_brutalist: "neo-brutalist",
   glass: "glass-morphic",
@@ -156,4 +157,4 @@ export const themeToShareVariant: Record<ThemeId, SharePopoverVariant> = {
   classic_ats: "classic-ats",
   design_folio: "design-folio",
   dev_terminal: "dev-terminal",
-};
+} as const satisfies Record<ThemeId, SharePopoverVariant>;

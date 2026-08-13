@@ -36,6 +36,7 @@ function SpotlightCard({
       onMouseMove={handleMouseMove}
       className={`relative bg-stone-50/80 border border-stone-200/50 rounded-2xl p-6 md:p-8 transition-shadow duration-300 hover:shadow-lg hover:shadow-orange-500/5 overflow-hidden ${className}`}
       style={
+        // SAFETY: --spot-x/--spot-y are valid CSS custom properties not in React.CSSProperties type; cast is safe — values are controlled pixel strings for spotlight effect.
         {
           "--spot-x": "-999px",
           "--spot-y": "-999px",

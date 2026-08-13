@@ -130,6 +130,15 @@ export default async function SettingsPage() {
 
   const resumeCount = resumeData[0]?.count ?? 0;
 
+  // SAFETY: latestResume.createdAt is string from Drizzle schema; cast handles nullable date for card prop.
+  const latestResumeDate = latestResume?.createdAt as string | undefined;
+  // SAFETY: latestResume.status is string from Drizzle resume status enum; cast for card prop.
+  const latestResumeStatus = latestResume?.status as string | undefined | null;
+  // SAFETY: latestResume.errorMessage is string | null from Drizzle; cast for error display fallback.
+  const latestResumeError = latestResume?.errorMessage as string | undefined | null;
+  // SAFETY: latestResume.id is string from Drizzle schema; cast handles optional id for card.
+  const latestResumeId = latestResume?.id as string;
+
   return (
     <div className="min-h-screen bg-background py-8">
       <div className="max-w-5xl mx-auto px-4 lg:px-6 space-y-6">
@@ -153,12 +162,10 @@ export default async function SettingsPage() {
           {/* Right: Resume compact */}
           <ResumeManagementCard
             resumeCount={resumeCount}
-            latestResumeDate={(latestResume?.createdAt as string | undefined) ?? undefined}
-            latestResumeStatus={latestResume?.status as string | undefined | null}
-            latestResumeError={
-              (latestResume?.errorMessage as string | undefined | null) ?? undefined
-            }
-            latestResumeId={latestResume?.id as string}
+            latestResumeDate={latestResumeDate ?? undefined}
+            latestResumeStatus={latestResumeStatus}
+            latestResumeError={latestResumeError ?? undefined}
+            latestResumeId={latestResumeId}
           />
         </div>
 

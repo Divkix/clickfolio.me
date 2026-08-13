@@ -1,5 +1,5 @@
 import { DurableObject } from "cloudflare:workers";
-
+import type { JsonValue } from "@/lib/types/json";
 /**
  * Status message sent to connected WebSocket clients.
  */
@@ -143,7 +143,7 @@ export class ClickfolioStatusDO extends DurableObject {
    * Handle incoming WebSocket messages (ping/status requests).
    */
   async webSocketMessage(ws: WebSocket, message: string | ArrayBuffer): Promise<void> {
-    if (typeof message !== "string") return;
+    if (message instanceof ArrayBuffer) return;
 
     if (message === "ping") {
       ws.send("pong");
@@ -186,7 +186,7 @@ export class ClickfolioStatusDO extends DurableObject {
   /**
    * Handle WebSocket error — log and close.
    */
-  async webSocketError(ws: WebSocket, error: unknown): Promise<void> {
+  async webSocketError(ws: WebSocket, error: JsonValue | Error): Promise<void> {
     console.error("ClickfolioStatusDO WebSocket error:", error);
     try {
       ws.close(1011, "WebSocket error");

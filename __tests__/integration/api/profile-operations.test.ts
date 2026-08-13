@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import type { JsonValue } from "@/lib/types/json";
 
 /**
  * Integration tests for Profile API operations (Phase 3, Section 3.5)
@@ -28,12 +29,12 @@ vi.mock("cloudflare:workers", () => ({
 
 vi.mock("drizzle-orm", () => ({
   eq: vi.fn((_col, val) => ({ eq: val })),
-  and: vi.fn((...args: unknown[]) => ({ and: args })),
-  or: vi.fn((...args: unknown[]) => ({ or: args })),
+  and: vi.fn((...args: JsonValue[]) => ({ and: args })),
+  or: vi.fn((...args: JsonValue[]) => ({ or: args })),
   ne: vi.fn((_col, val) => ({ ne: val })),
   desc: vi.fn((col) => ({ desc: col })),
   gte: vi.fn((_col, val) => ({ gte: val })),
-  sql: vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({
+  sql: vi.fn((strings: TemplateStringsArray, ...values: JsonValue[]) => ({
     sql: strings.join("?"),
     values,
   })),
@@ -51,10 +52,15 @@ vi.mock("@/lib/db/session", () => ({
 }));
 
 vi.mock("@/lib/utils/security-headers", () => ({
-  createErrorResponse: vi.fn((error: string, _code: string, status: number, details?: unknown) => {
-    return new Response(JSON.stringify({ error, ...(details ? { details } : {}) }), { status });
-  }),
-  createSuccessResponse: vi.fn((data: unknown) => {
+  createErrorResponse: vi.fn(
+    (error: string, _code: string, status: number, details?: JsonValue) => {
+      type ErrorBody = { error: string; details?: JsonValue };
+      const body: ErrorBody = { error };
+      if (details !== undefined) body.details = details;
+      return new Response(JSON.stringify(body), { status });
+    },
+  ),
+  createSuccessResponse: vi.fn((data: JsonValue) => {
     return new Response(JSON.stringify(data), { status: 200 });
   }),
   ERROR_CODES: {
@@ -219,10 +225,8 @@ interface UserProfile {
   updatedAt: string;
 }
 
-function authedAs(
-  userId: string,
-  options: Partial<UserProfile> = {},
-): { user: UserProfile; error: null } {
+type AuthedAsResult = { user: UserProfile; error: null };
+function authedAs(userId: string, options: Partial<UserProfile> = {}): AuthedAsResult {
   const defaultProfile: UserProfile = {
     id: userId,
     email: `${userId}@test.com`,
@@ -278,7 +282,7 @@ function unauthenticated() {
   return error;
 }
 
-function makeRequest(url: string, method = "GET", body?: unknown): Request {
+function makeRequest(url: string, method = "GET", body?: JsonValue): Request {
   const init: RequestInit = { method };
   if (body) {
     init.body = JSON.stringify(body);
@@ -647,7 +651,7 @@ describe("Profile API Integration Tests (20 tests)", () => {
       const response = await PUT(request);
 
       expect(response.status).toBe(200);
-      const body = (await response.json()) as { success: boolean; privacy_settings: unknown };
+      const body = (await response.json()) as { success: boolean; privacy_settings: JsonValue };
       expect(body.success).toBe(true);
       expect(body.privacy_settings).toEqual({
         show_phone: true,

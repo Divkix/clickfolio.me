@@ -7,13 +7,14 @@
  */
 
 import { log } from "../utils/log";
+import type { UnknownRecord } from "../types/json";
 
 /**
  * Alert channels supported for queue-failure notifications
  */
 export type AlertChannel = "logpush" | "webhook";
 
-export interface DLQAlertPayload {
+export interface DLQAlertPayload extends UnknownRecord {
   resumeId: string;
   userId: string;
   failureReason: string;
@@ -50,9 +51,7 @@ export async function sendAlert(
 ): Promise<void> {
   switch (channel) {
     case "logpush":
-      // Structured log for Cloudflare Logpush integration
-      // Field names from DLQAlertPayload are preserved as top-level JSON fields
-      log("error", "DLQ_ALERT", payload as unknown as Record<string, unknown>);
+      log("error", "DLQ_ALERT", payload);
       break;
 
     case "webhook": {

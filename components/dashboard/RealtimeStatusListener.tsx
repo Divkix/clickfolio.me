@@ -23,6 +23,7 @@ export function RealtimeStatusListener({ resumeId, currentStatus }: RealtimeStat
   const router = useRouter();
   const hasRefreshedRef = useRef(false);
   const refreshDebounceRef = useRef<NodeJS.Timeout | null>(null);
+  // SAFETY: currentStatus is validated enum string from D1; cast narrows to DetectedState union.
   const [detected, setDetected] = useState<DetectedState>({
     status:
       currentStatus === "processing" || currentStatus === "queued"
@@ -37,7 +38,7 @@ export function RealtimeStatusListener({ resumeId, currentStatus }: RealtimeStat
         if (refreshDebounceRef.current) {
           clearTimeout(refreshDebounceRef.current);
         }
-
+        // SAFETY: newStatus is validated to be completed/failed above; cast narrows to DetectedState union.
         setDetected({
           status: newStatus as "completed" | "failed",
           errorMessage,

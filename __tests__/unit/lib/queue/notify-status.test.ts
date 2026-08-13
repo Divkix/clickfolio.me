@@ -6,12 +6,16 @@
  */
 
 import { describe, expect, it, vi } from "vite-plus/test";
+import type { Mock } from "vite-plus/test";
+import type { UnknownRecord } from "@/lib/types/json";
 import { notifyStatusChange, notifyStatusChangeBatch } from "@/lib/queue/notify-status";
 
-/** Build a minimal env object accepted by notifyStatus* functions. */
-function makeStatusEnv(binding: object | undefined): {
+type StatusEnv = {
   CLICKFOLIO_STATUS_DO: CloudflareEnv["CLICKFOLIO_STATUS_DO"] | undefined;
-} {
+};
+
+/** Build a minimal env object accepted by notifyStatus* functions. */
+function makeStatusEnv(binding: Record<string, Mock> | UnknownRecord | undefined): StatusEnv {
   return {
     CLICKFOLIO_STATUS_DO: binding as unknown as CloudflareEnv["CLICKFOLIO_STATUS_DO"],
   };
@@ -108,7 +112,7 @@ describe("Notify Status", () => {
       // log() emits a single JSON string; find by msg field containing notify-status
       const errorCall = consoleSpy.mock.calls.find((call) => {
         try {
-          const parsed = JSON.parse(call[0]) as Record<string, unknown>;
+          const parsed = JSON.parse(call[0]) as UnknownRecord;
           return (
             typeof parsed["msg"] === "string" &&
             parsed["msg"].includes("notify-status") &&

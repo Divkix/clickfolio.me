@@ -1,4 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import type { JsonValue } from "@/lib/types/json";
+
+type ClaimBody = { key: string; referral_code?: string };
+type ClaimHeaders = { "Content-Type": string; Cookie?: string };
 
 /**
  * Integration tests for POST /api/upload and POST /api/resume/claim
@@ -29,7 +33,7 @@ interface MockDbInsertChain {
 const mockCaptureBookmark = vi.fn().mockResolvedValue(undefined);
 
 // Database mock builders
-const createMockDbChain = (returnValue: unknown = []): MockDbChain => {
+const createMockDbChain = (returnValue: JsonValue = []): MockDbChain => {
   const limit = vi.fn().mockResolvedValue(returnValue);
   const orderBy = vi.fn().mockReturnValue({ limit });
   const where = vi.fn().mockReturnValue({ orderBy, limit });
@@ -41,7 +45,7 @@ const createMockDbChain = (returnValue: unknown = []): MockDbChain => {
 let mockDbSelectChain = createMockDbChain([]);
 let mockDbUpdateChain: MockDbUpdateChain;
 let mockDbInsertChain: MockDbInsertChain;
-let mockDbBatchResult: unknown;
+let mockDbBatchResult: JsonValue;
 
 const resetMockDbChains = () => {
   mockDbSelectChain = createMockDbChain([]);
@@ -101,7 +105,7 @@ const mockQueueMessages: Array<{
 }> = [];
 
 const mockQueue = {
-  send: vi.fn().mockImplementation(async (message: unknown) => {
+  send: vi.fn().mockImplementation(async (message: JsonValue) => {
     mockQueueMessages.push(message as (typeof mockQueueMessages)[0]);
   }),
 };
@@ -234,7 +238,7 @@ vi.mock("@/lib/utils/security-headers", () => ({
   createErrorResponse: vi.fn((error: string, _code: string, status: number) => {
     return new Response(JSON.stringify({ error }), { status });
   }),
-  createSuccessResponse: vi.fn((data: unknown) => {
+  createSuccessResponse: vi.fn((data: JsonValue) => {
     return new Response(JSON.stringify(data), { status: 200 });
   }),
   ERROR_CODES: {
@@ -310,13 +314,13 @@ function makeUploadRequest(
 
 /** Create claim request */
 function makeClaimRequest(key: string, referralCode?: string, cookieValue?: string): Request {
-  const body: Record<string, string> = { key };
+  const body: ClaimBody = { key };
   if (referralCode) body.referral_code = referralCode;
 
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
-  if (cookieValue) {
-    headers.Cookie = `pending_upload=${cookieValue}`;
-  }
+  const headers: ClaimHeaders = {
+    "Content-Type": "application/json",
+  };
+  if (cookieValue) headers.Cookie = `pending_upload=${cookieValue}`;
 
   return new Request("http://localhost:3000/api/resume/claim", {
     method: "POST",

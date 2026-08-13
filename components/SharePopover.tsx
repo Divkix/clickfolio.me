@@ -141,8 +141,8 @@ export function SharePopover({ url, handle, title, name, variant, className }: S
 
   const shareUrl = useMemo(() => {
     if (url) return url;
-    if (typeof window !== "undefined" && handle) {
-      return `${window.location.origin}/@${handle}`;
+    if (globalThis.window !== undefined && handle) {
+      return `${globalThis.window.location.origin}/@${handle}`;
     }
     return `${siteConfig.url}/@${handle ?? ""}`;
   }, [url, handle]);
@@ -151,6 +151,7 @@ export function SharePopover({ url, handle, title, name, variant, className }: S
     if (!open) return;
 
     const handlePointerDown = (event: PointerEvent) => {
+      // SAFETY: event.target is DOM Node from trusted pointerdown event; cast bridges EventTarget to Node for contains check.
       const target = event.target as Node;
       if (containerRef.current && !containerRef.current.contains(target)) {
         setOpen(false);

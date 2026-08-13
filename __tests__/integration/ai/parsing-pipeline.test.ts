@@ -1,3 +1,4 @@
+import type { UnknownRecord, JsonValue } from "@/lib/types/json";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { parseJsonWithRepair, transformToSchema } from "@/lib/ai/ai-fallback";
 import { normalizeAiKeys } from "@/lib/ai/ai-normalize";
@@ -27,14 +28,14 @@ vi.mock("ai", async (importOriginal) => {
     NoObjectGeneratedError: class NoObjectGeneratedError extends Error {
       readonly finishReason = "stop";
       readonly text?: string;
-      readonly response?: unknown;
-      readonly usage?: unknown;
+      readonly response?: JsonValue;
+      readonly usage?: JsonValue;
       constructor(options: {
         message?: string;
         cause?: Error;
         text?: string;
-        response?: unknown;
-        usage?: unknown;
+        response?: JsonValue;
+        usage?: JsonValue;
         finishReason?: string;
       }) {
         super(options.message ?? "No object generated");
@@ -45,8 +46,8 @@ vi.mock("ai", async (importOriginal) => {
           Object.defineProperty(this, "finishReason", { value: options.finishReason });
         }
       }
-      static isInstance(error: unknown): error is NoObjectGeneratedError {
-        return error instanceof NoObjectGeneratedError;
+      static isInstance(cause: unknown): cause is NoObjectGeneratedError {
+        return cause instanceof NoObjectGeneratedError;
       }
     },
     parsePartialJson: actual.parsePartialJson,
@@ -395,11 +396,9 @@ describe("AI Parsing Pipeline", () => {
       const result = transformToSchema(input);
 
       expect(Array.isArray(result.skills)).toBe(true);
-      expect((result as { skills: unknown[] }).skills).toHaveLength(2);
-      expect((result as { skills: Record<string, unknown>[] }).skills[0]).toHaveProperty(
-        "category",
-      );
-      expect((result as { skills: Record<string, unknown>[] }).skills[0]).toHaveProperty("items");
+      expect((result as { skills: JsonValue[] }).skills).toHaveLength(2);
+      expect((result as { skills: UnknownRecord[] }).skills[0]).toHaveProperty("category");
+      expect((result as { skills: UnknownRecord[] }).skills[0]).toHaveProperty("items");
     });
 
     it("should transform experience descriptions from array to string", () => {
@@ -490,7 +489,7 @@ describe("AI Parsing Pipeline", () => {
 
       const result = normalizeAiKeys(input);
 
-      expect((result as { skills: unknown[] }).skills).toHaveLength(1);
+      expect((result as { skills: JsonValue[] }).skills).toHaveLength(1);
       expect((result as { skills: { category: string }[] }).skills[0].category).toBe("Skills");
       expect((result as { skills: { items: string[] }[] }).skills[0].items).toEqual([
         "TypeScript",
