@@ -178,10 +178,9 @@ describe("AI Parsing Pipeline", () => {
   });
 
   describe("parseWithAi", () => {
-    it("should parse resume text with structured output", async () => {
+    it("should parse resume text with universal text path", async () => {
       const { generateText } = await import("ai");
       vi.mocked(generateText).mockResolvedValueOnce({
-        output: VALID_AI_RESPONSE,
         text: JSON.stringify(VALID_AI_RESPONSE),
         finishReason: "stop",
         usage: { promptTokens: 1000, completionTokens: 500, totalTokens: 1500 },
@@ -204,32 +203,35 @@ describe("AI Parsing Pipeline", () => {
       const result = await parseWithAi(SAMPLE_RESUME_TEXT, mockEnv);
 
       expect(result.success).toBe(true);
-      expect(result.structuredOutput).toBe(true);
+      expect(result.structuredOutput).toBe(false);
       expect(result.data).toBeDefined();
     });
 
-    it("should use text fallback when structured output fails", async () => {
-      const { generateText, NoObjectGeneratedError } = await import("ai");
+    it("should use text fallback when initial parse returns invalid JSON then succeeds on retry", async () => {
+      const { generateText } = await import("ai");
 
-      // First call fails with NoObjectGeneratedError
+      // First call returns invalid JSON (triggers retry with truncated text)
       vi.mocked(generateText)
-        .mockRejectedValueOnce(
-          Object.assign(
-            new NoObjectGeneratedError({
-              message: "No object generated",
-              cause: new Error("Schema validation failed"),
-              finishReason: "stop",
-              text: JSON.stringify(VALID_AI_RESPONSE),
-              response: { id: "test", timestamp: new Date(), modelId: "test" },
-              usage: { inputTokens: 1000, outputTokens: 500, totalTokens: 1500 },
-            } as never),
-            {
-              finishReason: "stop",
-              text: JSON.stringify(VALID_AI_RESPONSE),
-            },
-          ),
-        )
-        // Fallback succeeds
+        .mockResolvedValueOnce({
+          text: "not json at all",
+          finishReason: "stop",
+          usage: { promptTokens: 1000, completionTokens: 500, totalTokens: 1500 },
+          toolCalls: [],
+          toolResults: [],
+          warnings: [],
+          request: {},
+          response: {
+            id: "test-response-id",
+            timestamp: new Date(),
+            modelId: "openai/gpt-5.6-luna:nitro",
+            headers: {},
+            messages: [],
+            body: {},
+          },
+          experimental_output: undefined,
+          providerMetadata: {},
+        } as never)
+        // Retry succeeds
         .mockResolvedValueOnce({
           text: JSON.stringify(VALID_AI_RESPONSE),
           finishReason: "stop",
@@ -261,7 +263,6 @@ describe("AI Parsing Pipeline", () => {
       vi.mocked(generateText)
         .mockRejectedValueOnce(new Error("Request timeout"))
         .mockResolvedValueOnce({
-          output: VALID_AI_RESPONSE,
           text: JSON.stringify(VALID_AI_RESPONSE),
           finishReason: "stop",
           usage: { promptTokens: 1000, completionTokens: 500, totalTokens: 1500 },
@@ -315,35 +316,57 @@ describe("AI Parsing Pipeline", () => {
       expect(result.success).toBeDefined();
     });
 
-    it("should handle salvage mode for malformed AI response", async () => {
-      const { generateText, NoObjectGeneratedError } = await import("ai");
+    it("should handle malformed AI response with retry", async () => {
+      const { generateText } = await import("ai");
 
       const partialResponse = {
         full_name: "John Doe",
         headline: "Software Engineer",
-        // Missing required fields intentionally
       };
 
-      vi.mocked(generateText).mockRejectedValueOnce(
-        Object.assign(
-          new NoObjectGeneratedError({
-            message: "No object generated",
-            cause: new Error("Schema validation failed"),
-            finishReason: "content_filter",
-            text: JSON.stringify(partialResponse),
-            response: { id: "test", timestamp: new Date(), modelId: "test" },
-            usage: { inputTokens: 500, outputTokens: 200, totalTokens: 700 },
-          } as never),
-          {
-            finishReason: "content_filter",
-            text: JSON.stringify(partialResponse),
+      vi.mocked(generateText)
+        .mockResolvedValueOnce({
+          text: JSON.stringify(partialResponse),
+          finishReason: "stop",
+          usage: { promptTokens: 500, completionTokens: 200, totalTokens: 700 },
+          toolCalls: [],
+          toolResults: [],
+          warnings: [],
+          request: {},
+          response: {
+            id: "test",
+            timestamp: new Date(),
+            modelId: "openai/gpt-5.6-luna:nitro",
+            headers: {},
+            messages: [],
+            body: {},
           },
-        ),
-      );
+          experimental_output: undefined,
+          providerMetadata: {},
+        } as never)
+        .mockResolvedValueOnce({
+          text: JSON.stringify(VALID_AI_RESPONSE),
+          finishReason: "stop",
+          usage: { promptTokens: 500, completionTokens: 200, totalTokens: 700 },
+          toolCalls: [],
+          toolResults: [],
+          warnings: [],
+          request: {},
+          response: {
+            id: "test",
+            timestamp: new Date(),
+            modelId: "openai/gpt-5.6-luna:nitro",
+            headers: {},
+            messages: [],
+            body: {},
+          },
+          experimental_output: undefined,
+          providerMetadata: {},
+        } as never);
 
       const result = await parseWithAi(SAMPLE_RESUME_TEXT, mockEnv);
 
-      // Salvage mode attempts to recover partial data
+      // Malformed partial data gets normalized and retried
       expect(result).toBeDefined();
     });
 

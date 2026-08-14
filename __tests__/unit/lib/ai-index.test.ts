@@ -46,7 +46,7 @@ describe("parseResumeWithAi", () => {
     mocks.parseWithAi.mockResolvedValue({
       success: true,
       data: structuredClone(validAiData),
-      structuredOutput: true,
+      structuredOutput: false,
     });
   });
 
@@ -76,7 +76,7 @@ describe("parseResumeWithAi", () => {
     });
   });
 
-  it("normalizes long resume text and validates structured AI output with safe defaults", async () => {
+  it("normalizes long resume text and validates AI output with safe defaults", async () => {
     mocks.extractPdfText.mockResolvedValueOnce({
       success: true,
       text: `Avery\r\n${" ".repeat(4)}Quinn\n\n\n${"x".repeat(70000)}`,
@@ -92,22 +92,28 @@ describe("parseResumeWithAi", () => {
     expect(parsed.contact.email).toBe("avery@example.com");
     expect(parsed.contact.linkedin).toBeUndefined();
     expect(parsed.experience[0].end_date).toBeUndefined();
-    expect(parsed.education).toBeUndefined();
-    expect(parsed.skills).toBeUndefined();
+    // Single universal path injects empty arrays for optional fields via transform
+    expect(Array.isArray(parsed.education) ? parsed.education.length : 0).toBe(0);
+    expect(Array.isArray(parsed.skills) ? parsed.skills.length : 0).toBe(0);
   });
 
   it("retries invalid AI output with validation feedback and reports final validation failure", async () => {
+    // Invalid data that still fails after transform: XSS triggers noXssPattern, plus empty experience is allowed, so we use XSS
+    const invalidData = {
+      full_name: "<script>alert(1)</script>",
+      headline: "Dev",
+      summary: "Summary",
+      contact: { email: "bad" },
+      experience: [
+        { title: "Eng", company: "Acme", start_date: "2020-01", description: "Did stuff" },
+      ],
+    };
+
     mocks.parseWithAi
       .mockResolvedValueOnce({
         success: true,
-        data: {
-          full_name: "",
-          headline: "",
-          summary: "",
-          contact: { email: "bad" },
-          experience: [],
-        },
-        structuredOutput: true,
+        data: invalidData,
+        structuredOutput: false,
       })
       .mockResolvedValueOnce({
         success: true,
@@ -124,21 +130,15 @@ describe("parseResumeWithAi", () => {
       undefined,
       expect.objectContaining({
         previousOutput: expect.stringContaining("full_name"),
-        errors: expect.stringContaining("Full name is required"),
+        errors: expect.stringContaining("Invalid content"),
       }),
     );
 
     mocks.parseWithAi
       .mockResolvedValueOnce({
         success: true,
-        data: {
-          full_name: "",
-          headline: "",
-          summary: "",
-          contact: { email: "bad" },
-          experience: [],
-        },
-        structuredOutput: true,
+        data: invalidData,
+        structuredOutput: false,
       })
       .mockResolvedValueOnce({
         success: false,

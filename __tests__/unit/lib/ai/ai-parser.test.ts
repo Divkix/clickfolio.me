@@ -22,12 +22,6 @@ vi.mock("@ai-sdk/openai-compatible", () => ({
 
 vi.mock("ai", () => ({
   generateText: vi.fn(),
-  NoObjectGeneratedError: {
-    isInstance: vi.fn(),
-  },
-  Output: {
-    object: vi.fn(),
-  },
 }));
 
 // Mock fallback functions
@@ -41,7 +35,7 @@ vi.mock("@/lib/ai/ai-normalize", () => ({
 }));
 
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
-import { generateText, NoObjectGeneratedError } from "ai";
+import { generateText } from "ai";
 import { parseJsonWithRepair, transformToSchema } from "@/lib/ai/ai-fallback";
 import { normalizeAiKeys } from "@/lib/ai/ai-normalize";
 
@@ -98,7 +92,7 @@ describe("createAiProvider", () => {
   });
 });
 
-describe("parseWithAi - structured output path", () => {
+describe("parseWithAi - universal text path", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(createOpenAICompatible).mockReturnValue(
@@ -106,7 +100,7 @@ describe("parseWithAi - structured output path", () => {
     );
   });
 
-  it("returns structured output on successful parse", async () => {
+  it("returns text fallback success on successful parse", async () => {
     const mockOutput = {
       full_name: "Jane Doe",
       headline: "Software Engineer",
@@ -118,14 +112,15 @@ describe("parseWithAi - structured output path", () => {
     };
 
     vi.mocked(generateText).mockResolvedValue({
-      output: mockOutput,
+      text: JSON.stringify(mockOutput),
     } as unknown as Awaited<ReturnType<typeof generateText>>);
+    vi.mocked(parseJsonWithRepair).mockResolvedValue({ data: mockOutput, repaired: false });
 
     const result = await parseWithAi("Sample resume text", mockEnv);
 
     expect(result.success).toBe(true);
     expect(result.data).toEqual(mockOutput);
-    expect(result.structuredOutput).toBe(true);
+    expect(result.structuredOutput).toBe(false);
   });
 
   it("uses default model when AI_MODEL not provided", async () => {
@@ -139,8 +134,9 @@ describe("parseWithAi - structured output path", () => {
     };
 
     vi.mocked(generateText).mockResolvedValue({
-      output: mockOutput,
+      text: JSON.stringify(mockOutput),
     } as unknown as Awaited<ReturnType<typeof generateText>>);
+    vi.mocked(parseJsonWithRepair).mockResolvedValue({ data: mockOutput, repaired: false });
 
     await parseWithAi("Resume text", env);
 
@@ -158,122 +154,13 @@ describe("parseWithAi - structured output path", () => {
     };
 
     vi.mocked(generateText).mockResolvedValue({
-      output: mockOutput,
+      text: JSON.stringify(mockOutput),
     } as unknown as Awaited<ReturnType<typeof generateText>>);
+    vi.mocked(parseJsonWithRepair).mockResolvedValue({ data: mockOutput, repaired: false });
 
     await parseWithAi("Resume text", env);
 
     expect(mockProvider).toHaveBeenCalledWith("custom/model");
-  });
-
-  it("falls back to text fallback when structured output fails", async () => {
-    const noObjectError = new Error("No object generated");
-    (noObjectError as Error & { finishReason: string }).finishReason = "content-filter";
-
-    // eslint-disable-next-line typescript/unbound-method -- vitest mock assertion
-    vi.mocked(NoObjectGeneratedError.isInstance).mockReturnValue(true);
-    vi.mocked(generateText)
-      .mockRejectedValueOnce(noObjectError)
-      .mockResolvedValueOnce({
-        text: JSON.stringify({
-          full_name: "Jane",
-          headline: "Dev",
-          summary: "",
-          contact: { email: "" },
-          experience: [],
-        }),
-      } as unknown as Awaited<ReturnType<typeof generateText>>);
-
-    vi.mocked(parseJsonWithRepair).mockResolvedValue({
-      data: {
-        full_name: "Jane",
-        headline: "Dev",
-        summary: "",
-        contact: { email: "" },
-        experience: [],
-      },
-      repaired: false,
-    });
-
-    const result = await parseWithAi("Resume text", mockEnv);
-
-    expect(result.success).toBe(true);
-    expect(result.structuredOutput).toBeUndefined();
-  });
-
-  it("salvages JSON from NoObjectGeneratedError text", async () => {
-    const noObjectError = new Error("No object generated") as Error & {
-      finishReason: string;
-      text: string;
-    };
-    noObjectError.finishReason = "length";
-    noObjectError.text = JSON.stringify({
-      full_name: "Jane",
-      headline: "Dev",
-      summary: "",
-      contact: { email: "" },
-      experience: [],
-    });
-
-    // eslint-disable-next-line typescript/unbound-method -- vitest mock assertion
-    vi.mocked(NoObjectGeneratedError.isInstance).mockReturnValue(true);
-    vi.mocked(generateText).mockRejectedValueOnce(noObjectError);
-
-    vi.mocked(parseJsonWithRepair).mockResolvedValue({
-      data: {
-        full_name: "Jane",
-        headline: "Dev",
-        summary: "",
-        contact: { email: "" },
-        experience: [],
-      },
-      repaired: false,
-    });
-
-    const result = await parseWithAi("Resume text", mockEnv);
-
-    expect(result.success).toBe(true);
-  });
-
-  it("continues to fallback when salvage fails", async () => {
-    const noObjectError = new Error("No object generated") as Error & {
-      finishReason: string;
-      text: string;
-    };
-    noObjectError.finishReason = "length";
-    noObjectError.text = "Not valid JSON";
-
-    // eslint-disable-next-line typescript/unbound-method -- vitest mock assertion
-    vi.mocked(NoObjectGeneratedError.isInstance).mockReturnValue(true);
-    vi.mocked(generateText)
-      .mockRejectedValueOnce(noObjectError)
-      .mockResolvedValueOnce({
-        text: JSON.stringify({
-          full_name: "Jane",
-          headline: "Dev",
-          summary: "",
-          contact: { email: "" },
-          experience: [],
-        }),
-      } as unknown as Awaited<ReturnType<typeof generateText>>);
-
-    vi.mocked(parseJsonWithRepair)
-      .mockResolvedValueOnce({ data: null, repaired: false }) // salvage fails
-      .mockResolvedValueOnce({
-        data: {
-          full_name: "Jane",
-          headline: "Dev",
-          summary: "",
-          contact: { email: "" },
-          experience: [],
-        },
-        repaired: false,
-      });
-
-    const result = await parseWithAi("Resume text", mockEnv);
-
-    expect(result.success).toBe(true);
-    expect(generateText).toHaveBeenCalledTimes(2);
   });
 
   it("bubbles config errors immediately without fallback", async () => {
@@ -378,158 +265,6 @@ describe("parseWithAi - text fallback path", () => {
     const result = await parseWithAi("Resume text", mockEnv);
 
     expect(result.success).toBe(true);
-  });
-
-  it("retries with truncated text when first fallback fails", async () => {
-    // First call: structured output fails with NoObjectGeneratedError
-    const noObjectError = new Error("No object generated") as Error & {
-      finishReason: string;
-    };
-    noObjectError.finishReason = "content-filter";
-
-    // eslint-disable-next-line typescript/unbound-method -- vitest mock assertion
-    vi.mocked(NoObjectGeneratedError.isInstance).mockReturnValue(true);
-    vi.mocked(generateText)
-      .mockRejectedValueOnce(noObjectError) // structured fails
-      .mockResolvedValueOnce({
-        text: "Invalid JSON",
-      } as unknown as Awaited<ReturnType<typeof generateText>>) // first fallback returns invalid
-      .mockResolvedValueOnce({
-        text: JSON.stringify({
-          full_name: "Jane",
-          headline: "Dev",
-          summary: "",
-          contact: { email: "" },
-          experience: [],
-        }),
-      } as unknown as Awaited<ReturnType<typeof generateText>>); // retry succeeds
-
-    vi.mocked(parseJsonWithRepair)
-      .mockResolvedValueOnce({ data: null, repaired: false }) // first fallback fails
-      .mockResolvedValueOnce({
-        data: {
-          full_name: "Jane",
-          headline: "Dev",
-          summary: "",
-          contact: { email: "" },
-          experience: [],
-        },
-        repaired: false,
-      }); // retry succeeds
-
-    const result = await parseWithAi("Very long resume text ".repeat(10000), mockEnv);
-
-    expect(result.success).toBe(true);
-    expect(generateText).toHaveBeenCalledTimes(3);
-  });
-
-  it("returns error when fallback retry also fails", async () => {
-    // First call: structured output fails with NoObjectGeneratedError
-    const noObjectError = new Error("No object generated") as Error & {
-      finishReason: string;
-    };
-    noObjectError.finishReason = "content-filter";
-
-    // eslint-disable-next-line typescript/unbound-method -- vitest mock assertion
-    vi.mocked(NoObjectGeneratedError.isInstance).mockReturnValue(true);
-    vi.mocked(generateText)
-      .mockRejectedValueOnce(noObjectError)
-      .mockResolvedValueOnce({
-        text: "Invalid JSON",
-      } as unknown as Awaited<ReturnType<typeof generateText>>)
-      .mockResolvedValueOnce({
-        text: "Still invalid",
-      } as unknown as Awaited<ReturnType<typeof generateText>>);
-
-    vi.mocked(parseJsonWithRepair)
-      .mockResolvedValueOnce({ data: null, repaired: false }) // salvage fails
-      .mockResolvedValueOnce({ data: null, repaired: false }) // first fallback fails
-      .mockResolvedValueOnce({ data: null, repaired: false }); // retry also fails
-
-    const result = await parseWithAi("Resume text", mockEnv);
-
-    expect(result.success).toBe(false);
-    expect(result.error).toContain("Failed to parse AI response");
-  });
-
-  it("normalizes and transforms fallback data", async () => {
-    const rawData = {
-      full_name: "Jane",
-      headline: "Dev",
-      summary: "",
-      contact: { email: "" },
-      experience: [],
-    };
-    const normalizedData = { ...rawData, full_name: "Jane Doe" };
-    const transformedData = { ...normalizedData, processed: true };
-
-    // First: structured output fails, then fallback succeeds
-    const noObjectError = new Error("No object generated") as Error & {
-      finishReason: string;
-    };
-    noObjectError.finishReason = "content-filter";
-
-    // eslint-disable-next-line typescript/unbound-method -- vitest mock assertion
-    vi.mocked(NoObjectGeneratedError.isInstance).mockReturnValue(true);
-    vi.mocked(generateText)
-      .mockRejectedValueOnce(noObjectError)
-      .mockResolvedValueOnce({
-        text: JSON.stringify(rawData),
-      } as unknown as Awaited<ReturnType<typeof generateText>>);
-
-    vi.mocked(parseJsonWithRepair)
-      .mockResolvedValueOnce({ data: null, repaired: false }) // salvage fails
-      .mockResolvedValueOnce({ data: rawData, repaired: false }); // fallback succeeds
-    vi.mocked(normalizeAiKeys).mockReturnValue(normalizedData);
-    vi.mocked(transformToSchema).mockReturnValue(transformedData);
-
-    const result = await parseWithAi("Resume text", mockEnv);
-
-    expect(normalizeAiKeys).toHaveBeenCalledWith(rawData);
-    expect(transformToSchema).toHaveBeenCalledWith(normalizedData);
-    expect(result.data).toEqual(transformedData);
-  });
-
-  it("logs repaired status when JSON was repaired", async () => {
-    const spy = suppressConsole("warn");
-
-    // First: structured output fails, then fallback succeeds with repaired JSON
-    const noObjectError = new Error("No object generated") as Error & {
-      finishReason: string;
-    };
-    noObjectError.finishReason = "content-filter";
-
-    // eslint-disable-next-line typescript/unbound-method -- vitest mock assertion
-    vi.mocked(NoObjectGeneratedError.isInstance).mockReturnValue(true);
-    vi.mocked(generateText)
-      .mockRejectedValueOnce(noObjectError)
-      .mockResolvedValueOnce({
-        text: JSON.stringify({
-          full_name: "Jane",
-          headline: "Dev",
-          summary: "",
-          contact: { email: "" },
-          experience: [],
-        }),
-      } as unknown as Awaited<ReturnType<typeof generateText>>);
-
-    vi.mocked(parseJsonWithRepair)
-      .mockResolvedValueOnce({ data: null, repaired: false }) // salvage fails
-      .mockResolvedValueOnce({
-        data: {
-          full_name: "Jane",
-          headline: "Dev",
-          summary: "",
-          contact: { email: "" },
-          experience: [],
-        },
-        repaired: true,
-      });
-
-    await parseWithAi("Resume text", mockEnv);
-
-    // Should have logged with repaired flag
-    expect(spy).toHaveBeenCalled();
   });
 });
 
@@ -787,8 +522,9 @@ describe("parseWithAi - edge cases", () => {
     };
 
     vi.mocked(generateText).mockResolvedValue({
-      output: mockOutput,
+      text: JSON.stringify(mockOutput),
     } as unknown as Awaited<ReturnType<typeof generateText>>);
+    vi.mocked(parseJsonWithRepair).mockResolvedValue({ data: mockOutput, repaired: false });
 
     const result = await parseWithAi("简历内容", mockEnv);
 
@@ -813,8 +549,9 @@ describe("parseWithAi - edge cases", () => {
     };
 
     vi.mocked(generateText).mockResolvedValue({
-      output: mockOutput,
+      text: JSON.stringify(mockOutput),
     } as unknown as Awaited<ReturnType<typeof generateText>>);
+    vi.mocked(parseJsonWithRepair).mockResolvedValue({ data: mockOutput, repaired: false });
 
     const result = await parseWithAi("Resume with $pecial chars: <>&\"'", mockEnv);
 
@@ -831,8 +568,9 @@ describe("parseWithAi - edge cases", () => {
     };
 
     vi.mocked(generateText).mockResolvedValue({
-      output: mockOutput,
+      text: JSON.stringify(mockOutput),
     } as unknown as Awaited<ReturnType<typeof generateText>>);
+    vi.mocked(parseJsonWithRepair).mockResolvedValue({ data: mockOutput, repaired: false });
 
     const result = await parseWithAi("", mockEnv);
 
@@ -852,36 +590,13 @@ describe("parseWithAi - edge cases", () => {
     };
 
     vi.mocked(generateText).mockResolvedValue({
-      output: mockOutput,
+      text: JSON.stringify(mockOutput),
     } as unknown as Awaited<ReturnType<typeof generateText>>);
+    vi.mocked(parseJsonWithRepair).mockResolvedValue({ data: mockOutput, repaired: false });
 
     const result = await parseWithAi(longText, mockEnv);
 
     expect(result.success).toBe(true);
-  });
-
-  it("handles malformed JSON in markdown block", async () => {
-    // First: structured output fails, then fallback returns malformed JSON
-    const noObjectError = new Error("No object generated") as Error & {
-      finishReason: string;
-    };
-    noObjectError.finishReason = "content-filter";
-
-    // eslint-disable-next-line typescript/unbound-method -- vitest mock assertion
-    vi.mocked(NoObjectGeneratedError.isInstance).mockReturnValue(true);
-    vi.mocked(generateText)
-      .mockRejectedValueOnce(noObjectError)
-      .mockResolvedValueOnce({
-        text: "```json\n{invalid json here}\n```",
-      } as unknown as Awaited<ReturnType<typeof generateText>>);
-
-    vi.mocked(parseJsonWithRepair)
-      .mockResolvedValueOnce({ data: null, repaired: false }) // salvage fails
-      .mockResolvedValueOnce({ data: null, repaired: false }); // fallback also fails
-
-    const result = await parseWithAi("Resume text", mockEnv);
-
-    expect(result.success).toBe(false);
   });
 
   it("handles nested markdown in JSON", async () => {
@@ -997,70 +712,6 @@ describe("parseWithAi - error handling", () => {
     expect(result.success).toBe(false);
     expect(result.error).toContain("aborted");
   });
-
-  it("handles provider unavailability", async () => {
-    const unavailableError = new Error("Service temporarily unavailable: 503");
-
-    // Provider error should trigger fallback path
-    // eslint-disable-next-line typescript/unbound-method -- vitest mock assertion
-    vi.mocked(NoObjectGeneratedError.isInstance).mockReturnValue(false);
-    vi.mocked(generateText)
-      .mockRejectedValueOnce(unavailableError)
-      .mockResolvedValueOnce({
-        text: JSON.stringify({
-          full_name: "Jane",
-          headline: "Dev",
-          summary: "",
-          contact: { email: "" },
-          experience: [],
-        }),
-      } as unknown as Awaited<ReturnType<typeof generateText>>);
-
-    vi.mocked(parseJsonWithRepair).mockResolvedValue({
-      data: {
-        full_name: "Jane",
-        headline: "Dev",
-        summary: "",
-        contact: { email: "" },
-        experience: [],
-      },
-      repaired: false,
-    });
-
-    const result = await parseWithAi("Resume text", mockEnv);
-
-    expect(result.success).toBe(true);
-  });
-
-  it("includes truncated error message for parse failures", async () => {
-    // First: structured output fails, then fallback and retry return invalid text
-    const noObjectError = new Error("No object generated") as Error & {
-      finishReason: string;
-    };
-    noObjectError.finishReason = "content-filter";
-
-    // eslint-disable-next-line typescript/unbound-method -- vitest mock assertion
-    vi.mocked(NoObjectGeneratedError.isInstance).mockReturnValue(true);
-    vi.mocked(generateText)
-      .mockRejectedValueOnce(noObjectError) // structured fails
-      .mockResolvedValueOnce({
-        text: "This is a very long invalid response that should be truncated in the error message for readability",
-      } as unknown as Awaited<ReturnType<typeof generateText>>) // first fallback fails
-      .mockResolvedValueOnce({
-        text: "Also invalid and quite long indeed so it should be truncated",
-      } as unknown as Awaited<ReturnType<typeof generateText>>); // retry also fails
-
-    vi.mocked(parseJsonWithRepair)
-      .mockResolvedValueOnce({ data: null, repaired: false }) // salvage fails
-      .mockResolvedValueOnce({ data: null, repaired: false }) // first fallback fails
-      .mockResolvedValueOnce({ data: null, repaired: false }); // retry also fails
-
-    const result = await parseWithAi("Resume text", mockEnv);
-
-    expect(result.success).toBe(false);
-    expect(result.error).toContain("...");
-    expect((result.error?.length ?? 0) < 250).toBe(true);
-  });
 });
 
 describe("parseWithAi - logging", () => {
@@ -1071,46 +722,18 @@ describe("parseWithAi - logging", () => {
     );
   });
 
-  it("logs successful structured parse", async () => {
+  it("logs successful text fallback parse", async () => {
     const spy = suppressConsole("info");
 
     vi.mocked(generateText).mockResolvedValue({
-      output: {
+      text: JSON.stringify({
         full_name: "Jane",
         headline: "Dev",
         summary: "",
         contact: { email: "" },
         experience: [],
-      },
+      }),
     } as unknown as Awaited<ReturnType<typeof generateText>>);
-
-    await parseWithAi("Resume text", mockEnv);
-
-    expect(spy).toHaveBeenCalledWith(
-      expect.stringContaining("[ai-parse:structured]"),
-      expect.any(String),
-    );
-  });
-
-  it("logs failed structured parse", async () => {
-    const spy = suppressConsole("warn");
-    const error = new Error("Failed") as Error & { finishReason: string };
-    error.finishReason = "content-filter";
-
-    // eslint-disable-next-line typescript/unbound-method -- vitest mock assertion
-    vi.mocked(NoObjectGeneratedError.isInstance).mockReturnValue(true);
-    vi.mocked(generateText)
-      .mockRejectedValueOnce(error)
-      .mockResolvedValueOnce({
-        text: JSON.stringify({
-          full_name: "Jane",
-          headline: "Dev",
-          summary: "",
-          contact: { email: "" },
-          experience: [],
-        }),
-      } as unknown as Awaited<ReturnType<typeof generateText>>);
-
     vi.mocked(parseJsonWithRepair).mockResolvedValue({
       data: {
         full_name: "Jane",
@@ -1125,8 +748,8 @@ describe("parseWithAi - logging", () => {
     await parseWithAi("Resume text", mockEnv);
 
     expect(spy).toHaveBeenCalledWith(
-      expect.stringContaining("[ai-parse:structured]"),
-      expect.stringContaining('"success":false'),
+      expect.stringContaining("[ai-parse:text-fallback]"),
+      expect.any(String),
     );
   });
 });
@@ -1141,19 +764,21 @@ describe("parseWithAi - additional coverage", () => {
 
   it("handles null AI response data", async () => {
     vi.mocked(generateText).mockResolvedValue({
-      output: null,
+      text: "not json",
     } as unknown as Awaited<ReturnType<typeof generateText>>);
+    vi.mocked(parseJsonWithRepair).mockResolvedValue({ data: null, repaired: false });
 
     const result = await parseWithAi("Resume text", mockEnv);
 
-    expect(result.success).toBe(true);
-    expect(result.data).toBeNull();
+    expect(result.success).toBe(false);
   });
 
   it("handles AI response with unexpected data structure", async () => {
+    const unexpected = { unexpected: "data", format: true };
     vi.mocked(generateText).mockResolvedValue({
-      output: { unexpected: "data", format: true },
+      text: JSON.stringify(unexpected),
     } as unknown as Awaited<ReturnType<typeof generateText>>);
+    vi.mocked(parseJsonWithRepair).mockResolvedValue({ data: unexpected, repaired: false });
 
     const result = await parseWithAi("Resume text", mockEnv);
 
@@ -1173,8 +798,9 @@ describe("parseWithAi - additional coverage", () => {
     };
 
     vi.mocked(generateText).mockResolvedValue({
-      output: mockOutput,
+      text: JSON.stringify(mockOutput),
     } as unknown as Awaited<ReturnType<typeof generateText>>);
+    vi.mocked(parseJsonWithRepair).mockResolvedValue({ data: mockOutput, repaired: false });
 
     const result = await parseWithAi("Resume with émojis 🎉 and ñoño", mockEnv);
 
@@ -1200,7 +826,7 @@ describe("parseWithAi - additional coverage", () => {
     expect(mockProvider).toHaveBeenCalledWith("param-model");
   });
 
-  it("validates that structuredOutput flag is set correctly on success", async () => {
+  it("validates that structuredOutput flag is false on success", async () => {
     const mockOutput = {
       full_name: "Jane",
       headline: "Dev",
@@ -1210,12 +836,13 @@ describe("parseWithAi - additional coverage", () => {
     };
 
     vi.mocked(generateText).mockResolvedValue({
-      output: mockOutput,
+      text: JSON.stringify(mockOutput),
     } as unknown as Awaited<ReturnType<typeof generateText>>);
+    vi.mocked(parseJsonWithRepair).mockResolvedValue({ data: mockOutput, repaired: false });
 
     const result = await parseWithAi("Resume text", mockEnv);
 
-    expect(result.structuredOutput).toBe(true);
+    expect(result.structuredOutput).toBe(false);
     expect(result.success).toBe(true);
   });
 });

@@ -178,8 +178,7 @@
     "NODE_ENV": "production",
     // AI_MODEL: OpenRouter model accessed via Cloudflare AI Gateway for resume parsing.
     "AI_MODEL": "openai/gpt-5.6-luna:nitro",
-    // Reasoning effort for Luna (medium|high, default medium) — controls thinking tokens.
+    // Reasoning effort (medium|high, default medium) — controls thinking tokens for reasoning models.
     "AI_REASONING_EFFORT": "medium",
-    // PostHog (public project token — safe in client bundle / wrangler vars)
   },
 }
