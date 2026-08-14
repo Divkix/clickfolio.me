@@ -51,7 +51,8 @@ const mockEnv: AiEnvVars = {
   CF_AI_GATEWAY_ACCOUNT_ID: "test-account",
   CF_AI_GATEWAY_ID: "test-gateway",
   CF_AIG_AUTH_TOKEN: "test-token",
-  AI_MODEL: "openai/gpt-oss-120b:nitro",
+  AI_MODEL: "openai/gpt-5.6-luna:nitro",
+  AI_REASONING_EFFORT: "medium",
 };
 
 const mockProvider = vi.fn();
@@ -143,7 +144,7 @@ describe("parseWithAi - structured output path", () => {
 
     await parseWithAi("Resume text", env);
 
-    expect(mockProvider).toHaveBeenCalledWith("openai/gpt-oss-120b:nitro");
+    expect(mockProvider).toHaveBeenCalledWith("openai/gpt-5.6-luna:nitro");
   });
 
   it("uses custom model when provided", async () => {

@@ -170,7 +170,7 @@ describe("AI Parsing Pipeline", () => {
     CF_AI_GATEWAY_ACCOUNT_ID: "test-account",
     CF_AI_GATEWAY_ID: "test-gateway",
     CF_AIG_AUTH_TOKEN: "test-token",
-    AI_MODEL: "openai/gpt-oss-120b:nitro",
+    AI_MODEL: "openai/gpt-5.6-luna:nitro",
   };
 
   beforeEach(() => {
@@ -192,7 +192,7 @@ describe("AI Parsing Pipeline", () => {
         response: {
           id: "test-response-id",
           timestamp: new Date(),
-          modelId: "openai/gpt-oss-120b:nitro",
+          modelId: "openai/gpt-5.6-luna:nitro",
           headers: {},
           messages: [],
           body: {},
@@ -241,7 +241,7 @@ describe("AI Parsing Pipeline", () => {
           response: {
             id: "test-response-id",
             timestamp: new Date(),
-            modelId: "openai/gpt-oss-120b:nitro",
+            modelId: "openai/gpt-5.6-luna:nitro",
             headers: {},
             messages: [],
             body: {},
@@ -272,7 +272,7 @@ describe("AI Parsing Pipeline", () => {
           response: {
             id: "test-response-id",
             timestamp: new Date(),
-            modelId: "openai/gpt-oss-120b:nitro",
+            modelId: "openai/gpt-5.6-luna:nitro",
             headers: {},
             messages: [],
             body: {},
@@ -299,7 +299,7 @@ describe("AI Parsing Pipeline", () => {
         response: {
           id: "test-response-id",
           timestamp: new Date(),
-          modelId: "openai/gpt-oss-120b:nitro",
+          modelId: "openai/gpt-5.6-luna:nitro",
           headers: {},
           messages: [],
           body: {},
@@ -523,7 +523,7 @@ describe("AI Parsing Pipeline", () => {
         response: {
           id: "test-response-id",
           timestamp: new Date(),
-          modelId: "openai/gpt-oss-120b:nitro",
+          modelId: "openai/gpt-5.6-luna:nitro",
           headers: {},
           messages: [],
           body: {},
@@ -742,7 +742,7 @@ describe("AI Parsing Pipeline", () => {
         response: {
           id: "test-response-id",
           timestamp: new Date(),
-          modelId: "openai/gpt-oss-120b:nitro",
+          modelId: "openai/gpt-5.6-luna:nitro",
           headers: {},
           messages: [],
           body: {},
@@ -798,7 +798,7 @@ describe("AI Parsing Pipeline", () => {
           response: {
             id: "test-response-id",
             timestamp: new Date(),
-            modelId: "openai/gpt-oss-120b:nitro",
+            modelId: "openai/gpt-5.6-luna:nitro",
             headers: {},
             messages: [],
             body: {},
@@ -817,7 +817,7 @@ describe("AI Parsing Pipeline", () => {
           response: {
             id: "test-response-id",
             timestamp: new Date(),
-            modelId: "openai/gpt-oss-120b:nitro",
+            modelId: "openai/gpt-5.6-luna:nitro",
             headers: {},
             messages: [],
             body: {},

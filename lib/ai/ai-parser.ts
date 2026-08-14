@@ -5,19 +5,17 @@ import type { JsonValue, UnknownRecord } from "@/lib/types/json";
 import { parseJsonWithRepair, transformToSchema } from "./ai-fallback";
 import { normalizeAiKeys } from "./ai-normalize";
 import { RESUME_TRUNCATION_MARKER, truncateResumeText } from "./truncate";
-const DEFAULT_AI_MODEL = "openai/gpt-oss-120b:nitro";
+const DEFAULT_AI_MODEL = "openai/gpt-5.6-luna:nitro";
 
 /**
  * Structured output: fail fast if no provider supports json_schema.
- * - quantizations: fp16 (Cerebras 694tps) and bf16 (DeepInfra 228tps, Crusoe 108tps)
- * - excludes fp4 providers for better JSON schema compliance
- * - allow_fallbacks: false prevents silent routing to providers that ignore the schema
+ * OpenAI structured outputs guarantee schema compliance.
+ * allow_fallbacks:false prevents silent routing to providers that ignore the schema.
  */
 const STRUCTURED_PROVIDER_ROUTING = {
   openrouter: {
     plugins: [{ id: "response-healing" }],
     provider: {
-      quantizations: ["fp16", "bf16"],
       require_parameters: true,
       allow_fallbacks: false,
     },
@@ -25,13 +23,12 @@ const STRUCTURED_PROVIDER_ROUTING = {
 };
 
 /**
- * Text fallback: prefer fp16/bf16 for quality, fall back to any provider if unavailable.
+ * Text fallback: allow any provider if structured fails.
  */
 const TEXT_PROVIDER_ROUTING = {
   openrouter: {
     plugins: [{ id: "response-healing" }],
     provider: {
-      quantizations: ["fp16", "bf16"],
       allow_fallbacks: true,
     },
   },
@@ -199,7 +196,11 @@ export interface AiParseResult {
  */
 export type AiEnvVars = Pick<
   CloudflareEnv,
-  "CF_AI_GATEWAY_ACCOUNT_ID" | "CF_AI_GATEWAY_ID" | "CF_AIG_AUTH_TOKEN" | "AI_MODEL"
+  | "CF_AI_GATEWAY_ACCOUNT_ID"
+  | "CF_AI_GATEWAY_ID"
+  | "CF_AIG_AUTH_TOKEN"
+  | "AI_MODEL"
+  | "AI_REASONING_EFFORT"
 >;
 
 /**
@@ -246,6 +247,51 @@ function getAiProvider(env: Partial<AiEnvVars>) {
   cachedProvider = createAiProvider(env);
   cachedEnvKey = key;
   return cachedProvider;
+}
+const VALID_REASONING_EFFORTS = [
+  "none",
+  "minimal",
+  "low",
+  "medium",
+  "high",
+  "xhigh",
+  "max",
+] as const;
+type ReasoningEffort = (typeof VALID_REASONING_EFFORTS)[number];
+function getReasoningEffort(env: Partial<AiEnvVars>): ReasoningEffort {
+  const raw = String(env.AI_REASONING_EFFORT || "medium").toLowerCase();
+  // SAFETY: raw validated against VALID_REASONING_EFFORTS allowlist
+  return (VALID_REASONING_EFFORTS as readonly string[]).includes(raw)
+    ? (raw as ReasoningEffort)
+    : "medium";
+}
+type SafeJsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | SafeJsonValue[]
+  | { [key: string]: SafeJsonValue };
+function withReasoning<T extends Record<string, SafeJsonValue>>(
+  base: T,
+  effort: ReasoningEffort,
+): T & { openrouter: Record<string, SafeJsonValue> } {
+  // SAFETY: withReasoning unwraps known OpenRouter shape
+  const b = base as { openrouter?: Record<string, SafeJsonValue> };
+  const baseOpenrouter = b.openrouter || {};
+  // SAFETY: withReasoning unwraps provider shape
+  const r = baseOpenrouter as { provider?: Record<string, SafeJsonValue> };
+  const baseProvider = r.provider || {};
+  // SAFETY: withReasoning merges reasoning into provider routing, preserves base shape
+  return {
+    ...base,
+    openrouter: {
+      ...baseOpenrouter,
+      reasoning: { effort, exclude: true },
+      reasoningEffort: effort,
+      provider: { ...baseProvider },
+    },
+  } as T & { openrouter: Record<string, SafeJsonValue> };
 }
 
 /**
@@ -320,8 +366,8 @@ export async function parseWithAi(
   try {
     const modelId = model || env.AI_MODEL || DEFAULT_AI_MODEL;
     const prompt = buildPrompt(text);
-
     const provider = getAiProvider(env);
+    const reasoningEffort = getReasoningEffort(env);
 
     // When retrying with error feedback, use a focused prompt with the previous output
     if (retryContext) {
@@ -336,7 +382,7 @@ export async function parseWithAi(
           temperature: 0,
           maxOutputTokens: MAX_OUTPUT_TOKENS,
           abortSignal: AbortSignal.timeout(FALLBACK_TIMEOUT_MS),
-          providerOptions: TEXT_PROVIDER_ROUTING,
+          providerOptions: withReasoning(TEXT_PROVIDER_ROUTING, reasoningEffort),
         });
 
         const jsonStr = extractJson(responseText);
@@ -394,7 +440,7 @@ export async function parseWithAi(
           temperature: 0,
           maxOutputTokens: MAX_OUTPUT_TOKENS,
           abortSignal: AbortSignal.timeout(STRUCTURED_TIMEOUT_MS),
-          providerOptions: STRUCTURED_PROVIDER_ROUTING,
+          providerOptions: withReasoning(STRUCTURED_PROVIDER_ROUTING, reasoningEffort),
         });
 
         // SDK validated against Zod schema — output is typed ResumeSchema
@@ -478,7 +524,7 @@ export async function parseWithAi(
           temperature: 0,
           maxOutputTokens: MAX_OUTPUT_TOKENS,
           abortSignal: AbortSignal.timeout(FALLBACK_TIMEOUT_MS),
-          providerOptions: TEXT_PROVIDER_ROUTING,
+          providerOptions: withReasoning(TEXT_PROVIDER_ROUTING, reasoningEffort),
         });
 
         const jsonStr = extractJson(responseText);
@@ -536,7 +582,7 @@ export async function parseWithAi(
           temperature: 0,
           maxOutputTokens: MAX_OUTPUT_TOKENS,
           abortSignal: AbortSignal.timeout(FALLBACK_TIMEOUT_MS),
-          providerOptions: TEXT_PROVIDER_ROUTING,
+          providerOptions: withReasoning(TEXT_PROVIDER_ROUTING, reasoningEffort),
         });
 
         const jsonStr = extractJson(responseText);
