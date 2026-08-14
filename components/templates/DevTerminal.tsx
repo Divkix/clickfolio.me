@@ -58,7 +58,7 @@ export const DevTerminal: React.FC<TemplateProps> = ({ content, profile }) => {
           className="sticky top-0 z-50 bg-[#161b22] border-b border-[#30363d]"
         >
           <div className="max-w-5xl mx-auto flex items-center">
-            <div className="flex items-center overflow-x-auto no-scrollbar">
+            <div className="flex items-center overflow-x-auto no-scrollbar touch-pan-x">
               {tabs.map((tab, idx) => (
                 <a
                   key={tab.id}

@@ -337,7 +337,7 @@ export const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
                       {flatSkills.map((skill, i) => (
                         <span
                           key={i}
-                          className="px-3 py-1 bg-stone-900/50 border border-[#C9A96E]/20 text-stone-300 text-sm hover:border-[#C9A96E]/50 hover:text-[#C9A96E] hover:shadow-[0_0_12px_rgba(201,169,110,0.3)] transition-all duration-300 cursor-default rounded-full inline-flex items-center gap-2"
+                          className="px-3 py-1 bg-stone-900/50 border border-[#C9A96E]/35 text-stone-200 text-sm hover:border-[#C9A96E]/50 hover:text-[#C9A96E] hover:shadow-[0_0_12px_rgba(201,169,110,0.3)] transition-all duration-300 cursor-default rounded-full inline-flex items-center gap-2"
                         >
                           <span
                             className="w-1.5 h-1.5 rounded-full bg-[#C9A96E]/50"
@@ -363,11 +363,15 @@ export const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
                           <div className="text-neutral-400 text-xs font-body-mn mt-0.5 mb-1">
                             {edu.degree}
                           </div>
-                          <div className="flex justify-between items-center text-[10px] text-neutral-600 uppercase tracking-wider font-body-mn">
-                            <span>
+                          <div className="flex justify-between items-center gap-2 text-[10px] text-neutral-600 uppercase tracking-wider font-body-mn">
+                            <span className="shrink-0">
                               {edu.graduation_date ? formatYear(edu.graduation_date) : "Present"}
                             </span>
-                            {edu.gpa && <span>GPA: {edu.gpa}</span>}
+                            {edu.gpa && (
+                              <span className="whitespace-nowrap shrink-0 ml-auto pl-2">
+                                GPA: {edu.gpa}
+                              </span>
+                            )}
                           </div>
                         </div>
                       ))}

@@ -31,13 +31,13 @@ export const BentoGrid: React.FC<TemplateProps> = ({ content, profile }) => {
         <div className="fixed inset-0 h-full w-full bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] bg-size-[16px_16px] mask-[radial-gradient(ellipse_50%_50%_at_50%_50%,#000_70%,transparent_100%)] pointer-events-none z-0" />
 
         <div className="max-w-6xl mx-auto relative z-10">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 auto-rows-[150px] sm:auto-rows-[200px] gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 auto-rows-[minmax(150px,auto)] sm:auto-rows-[minmax(200px,auto)] gap-4">
             {/* 1. Profile Card (Large) - 2x2 */}
             <div
               className="col-span-1 sm:col-span-2 row-span-2 bg-white rounded-4xl p-8 shadow-lg border border-gray-200/80 flex flex-col justify-between group hover:shadow-xl hover:shadow-gray-200/50 transition-shadow duration-300 relative overflow-hidden motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4"
               style={{ animationDelay: "0ms" }}
             >
-              <div className="absolute top-0 right-0 w-80 h-80 bg-linear-to-br from-gray-100 to-gray-50 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none opacity-50 group-hover:scale-110 transition-transform duration-700"></div>
+              <div className="absolute top-0 right-0 w-64 h-64 md:w-80 md:h-80 bg-linear-to-br from-gray-100 to-gray-50 rounded-full blur-3xl -mr-12 md:-mr-20 -mt-12 md:-mt-20 pointer-events-none opacity-50 group-hover:scale-110 transition-transform duration-700 max-w-[60vw]"></div>
 
               <div className="relative z-10">
                 <div className="flex items-start justify-between mb-6">
@@ -207,7 +207,7 @@ export const BentoGrid: React.FC<TemplateProps> = ({ content, profile }) => {
                   {skills.map((skill: string, index: number) => (
                     <span
                       key={index}
-                      className="px-3 py-1.5 bg-gray-50 rounded-lg text-xs font-medium text-gray-600 border border-gray-100 hover:border-gray-300 hover:bg-gray-100 transition-colors cursor-default"
+                      className="px-3 py-1.5 bg-gray-50 rounded-lg text-xs font-medium text-gray-700 border border-gray-200 hover:border-gray-300 hover:bg-gray-100 transition-colors cursor-default"
                     >
                       {skill}
                     </span>
@@ -217,7 +217,7 @@ export const BentoGrid: React.FC<TemplateProps> = ({ content, profile }) => {
             )}
 
             {/* 4. Experience Cards - 1x2 each */}
-            {content.experience?.slice(0, 2).map((job, index) => (
+            {content.experience?.slice(0, 4).map((job, index) => (
               <div
                 key={index}
                 className="col-span-1 row-span-2 bg-white rounded-4xl p-6 shadow-lg flex flex-col border border-gray-200/80 group hover:shadow-xl hover:-translate-y-1 transition-[box-shadow,transform] duration-300 relative overflow-hidden motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4"
@@ -244,7 +244,10 @@ export const BentoGrid: React.FC<TemplateProps> = ({ content, profile }) => {
 
                 <div className="mt-auto">
                   {job.description && job.description.trim() !== "" ? (
-                    <p className="text-gray-500 text-xs leading-relaxed line-clamp-3 group-hover:text-gray-600 transition-colors">
+                    <p
+                      className="text-gray-500 text-xs leading-relaxed line-clamp-4 hover:line-clamp-none transition-colors group-hover:text-gray-600"
+                      title={job.description}
+                    >
                       {job.description}
                     </p>
                   ) : job.highlights && job.highlights.length > 0 ? (
@@ -259,7 +262,7 @@ export const BentoGrid: React.FC<TemplateProps> = ({ content, profile }) => {
             ))}
 
             {/* 5. Education Cards - 1x1 */}
-            {content.education?.slice(0, 2).map((edu, index) => (
+            {content.education?.slice(0, 4).map((edu, index) => (
               <div
                 key={index}
                 className="col-span-1 row-span-1 bg-white rounded-4xl p-6 shadow-sm border border-gray-200/80 flex flex-col justify-between hover:shadow-lg transition-shadow duration-300 group motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4"

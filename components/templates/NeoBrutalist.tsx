@@ -38,7 +38,7 @@ export const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
   return (
     <>
       <TemplateFontLinks href="https://fonts.googleapis.com/css2?family=Archivo+Black&display=swap" />
-      <div className="min-h-screen bg-[#FFFDF5] font-mono p-4 md:p-6 overflow-y-auto selection:bg-[#FF90E8] selection:text-black">
+      <div className="min-h-screen bg-[#FFFDF5] text-black font-mono p-4 md:p-6 overflow-x-hidden selection:bg-[#FF90E8] selection:text-black">
         <main className="max-w-6xl mx-auto space-y-8 pb-20">
           {/* Navigation Bar */}
           <nav
@@ -189,7 +189,7 @@ export const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
 
           {/* Skills Marquee */}
           {flatSkills.length > 0 && (
-            <div className="bg-[#FFDE00] border-2 md:border-4 border-black py-4 overflow-hidden whitespace-nowrap shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transform -rotate-1 my-12">
+            <div className="bg-[#FFDE00] border-2 md:border-4 border-black py-4 overflow-hidden whitespace-nowrap shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transform -rotate-1 my-12 max-w-full">
               <div className="inline-block motion-safe:animate-[marquee_20s_linear_infinite] font-black text-2xl md:text-4xl uppercase">
                 {flatSkills.map((skill: string, i: number) => (
                   <span key={`skill-${skill}-${i}`} className="mx-6 inline-flex items-center">

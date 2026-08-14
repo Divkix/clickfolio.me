@@ -89,10 +89,20 @@ export const Spotlight: React.FC<TemplateProps> = ({ content, profile, isPreview
   const contactLinks = getContactLinks(content.contact);
   const containerRef = useRef<HTMLDivElement>(null);
   const [cursorPos, setCursorPos] = useState({ x: -9999, y: -9999 });
+  const rafRef = useRef<number | null>(null);
 
-  const handlePageMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    setCursorPos({ x: e.clientX, y: e.clientY });
-  }, []);
+  const handlePageMouseMove = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      if (isPreview) return;
+      if (rafRef.current !== null) return;
+      const { clientX, clientY } = e;
+      rafRef.current = requestAnimationFrame(() => {
+        rafRef.current = null;
+        setCursorPos({ x: clientX, y: clientY });
+      });
+    },
+    [isPreview],
+  );
 
   const navLinks = [
     { label: "About", href: "#about" },
@@ -118,27 +128,30 @@ export const Spotlight: React.FC<TemplateProps> = ({ content, profile, isPreview
           .font-display-sl { font-family: 'Bricolage Grotesque', sans-serif; }
           .font-body-sl { font-family: 'Instrument Sans', sans-serif; }
           @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
-          .mask-linear-fade { mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent); }
+          .mask-linear-fade { mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent); }
         `}</style>
 
         {/* Stage beam backgrounds — tall conic triangles from top */}
-        <div className="fixed inset-0 z-0 pointer-events-none" aria-hidden="true">
+        <div
+          className="absolute inset-0 z-0 pointer-events-none overflow-hidden"
+          aria-hidden="true"
+        >
           <div
-            className="absolute top-0 left-[15%] w-[400px] h-[600px]"
+            className="absolute top-0 left-[15%] w-[400px] max-w-[100vw] h-[600px] overflow-hidden"
             style={{
               background:
                 "conic-gradient(from 180deg at 50% 0%, transparent 40%, rgba(232,77,14,0.03) 50%, transparent 60%)",
             }}
           />
           <div
-            className="absolute top-0 left-[55%] w-[500px] h-[700px]"
+            className="absolute top-0 left-[55%] w-[500px] max-w-[100vw] h-[700px] overflow-hidden"
             style={{
               background:
                 "conic-gradient(from 180deg at 50% 0%, transparent 38%, rgba(232,77,14,0.025) 50%, transparent 62%)",
             }}
           />
           <div
-            className="absolute top-0 right-[10%] w-[350px] h-[500px]"
+            className="absolute top-0 right-[10%] w-[350px] max-w-[100vw] h-[500px] overflow-hidden"
             style={{
               background:
                 "conic-gradient(from 180deg at 50% 0%, transparent 42%, rgba(232,77,14,0.02) 50%, transparent 58%)",
@@ -279,7 +292,7 @@ export const Spotlight: React.FC<TemplateProps> = ({ content, profile, isPreview
                     top: "-200px",
                     left: "50%",
                     transform: "translateX(-50%)",
-                    width: "600px",
+                    width: "min(600px, 100vw)",
                     height: "500px",
                   }}
                 />
@@ -400,7 +413,7 @@ export const Spotlight: React.FC<TemplateProps> = ({ content, profile, isPreview
                     </p>
 
                     <div className="flex flex-wrap gap-2 mt-auto">
-                      {project.technologies?.slice(0, 4).map((tech, i) => (
+                      {project.technologies?.slice(0, 6).map((tech, i) => (
                         <span
                           key={`${project.title}-${tech}-${i}`}
                           className="text-xs font-body-sl font-medium text-[#78716C] px-2 py-1 bg-[#FFFCF9] rounded-md border border-stone-200 shadow-sm"

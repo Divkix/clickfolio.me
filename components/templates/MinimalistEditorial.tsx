@@ -76,7 +76,7 @@ export const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile,
       <div className="relative min-h-screen bg-[#FDFCF8] text-[#1a1a1a] font-sans selection:bg-[#1a1a1a] selection:text-white overflow-x-hidden">
         {/* Texture Overlay */}
         <div
-          className="fixed inset-0 pointer-events-none z-50 opacity-40 mix-blend-overlay"
+          className="fixed inset-0 pointer-events-none z-0 opacity-40 mix-blend-overlay"
           style={noiseBg}
         />
 

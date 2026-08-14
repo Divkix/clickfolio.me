@@ -539,7 +539,7 @@ export const GlassMorphic: React.FC<TemplateProps> = ({ content, profile, isPrev
                           {project.technologies?.slice(0, 4).map((tech) => (
                             <span
                               key={tech}
-                              className="px-2 py-1 text-[10px] font-mono-gm uppercase tracking-wider text-lavender bg-lavender/10 rounded border border-lavender/20"
+                              className="px-2 py-1 text-[10px] font-mono-gm uppercase tracking-wider text-white bg-lavender/10 rounded border border-lavender/30"
                             >
                               {tech}
                             </span>
@@ -562,7 +562,7 @@ export const GlassMorphic: React.FC<TemplateProps> = ({ content, profile, isPrev
                   {flatSkills.map((skill, i) => (
                     <span
                       key={`skill-${skill}-${i}`}
-                      className="px-4 py-2 rounded-lg bg-white/3 border border-white/6 text-sm text-slate-300 hover:bg-white/8 hover:text-white hover:border-lavender/30 hover:shadow-[0_0_15px_rgba(167,139,250,0.3)] transition-all duration-300 cursor-default select-none"
+                      className="px-4 py-2 rounded-lg bg-white/3 border border-white/15 text-sm text-slate-200 hover:bg-white/8 hover:text-white hover:border-lavender/30 hover:shadow-[0_0_15px_rgba(167,139,250,0.3)] transition-all duration-300 cursor-default select-none"
                     >
                       {skill}
                     </span>

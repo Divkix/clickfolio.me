@@ -83,7 +83,7 @@ export function TemplatePreviewModal({
         {/* Content */}
         <DialogPrimitive.Content
           className={cn(
-            "fixed inset-0 z-50 flex flex-col",
+            "fixed inset-0 z-50 flex flex-col max-h-[100dvh] h-[100dvh]",
             "data-[state=open]:animate-in data-[state=closed]:animate-out",
             "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
             "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
@@ -167,7 +167,7 @@ export function TemplatePreviewModal({
           {/* Template Content - transform-gpu creates containing block for fixed elements */}
           <div
             className={cn(
-              "flex-1 overflow-y-auto relative transform-gpu",
+              "flex-1 overflow-y-auto relative transform-gpu overscroll-contain",
               templateConfig?.bg ?? "bg-white",
             )}
           >

@@ -49,7 +49,7 @@ export const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => 
       {/* Font preloading */}
       <TemplateFontLinks href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&display=swap" />
 
-      <main className="min-h-screen bg-white text-neutral-900 font-sans selection:bg-[#0055FF] selection:text-white overflow-y-auto scroll-smooth">
+      <main className="min-h-screen bg-white text-neutral-900 font-sans selection:bg-[#0055FF] selection:text-white overflow-x-hidden scroll-smooth">
         <style>{`
           .font-heading-bc { font-family: 'Plus Jakarta Sans', sans-serif; }
           .typewriter-animate {
@@ -422,7 +422,7 @@ export const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => 
 
           {/* Skills Marquee */}
           {flatSkills.length > 0 && (
-            <section className="mb-20 md:mb-32 overflow-hidden" aria-label="Skills">
+            <section className="mb-20 md:mb-32 overflow-hidden max-w-full" aria-label="Skills">
               <div className="flex items-center gap-4 mb-12">
                 <h2 className="font-heading-bc text-xs font-black uppercase tracking-widest text-neutral-900 shrink-0">
                   Skills
@@ -431,7 +431,7 @@ export const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => 
               </div>
               <div className="space-y-4">
                 {/* Row 1 - normal direction */}
-                <div className="overflow-hidden whitespace-nowrap">
+                <div className="overflow-hidden whitespace-nowrap max-w-full">
                   <div className="inline-block motion-safe:animate-[marquee_30s_linear_infinite]">
                     {flatSkills.map((skill, i) => (
                       <span
@@ -452,7 +452,7 @@ export const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => 
                   </div>
                 </div>
                 {/* Row 2 - reverse direction */}
-                <div className="overflow-hidden whitespace-nowrap">
+                <div className="overflow-hidden whitespace-nowrap max-w-full">
                   <div className="inline-block motion-safe:animate-[marquee-reverse_35s_linear_infinite]">
                     {flatSkills.map((skill, i) => (
                       <span
@@ -473,7 +473,7 @@ export const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => 
                   </div>
                 </div>
                 {/* Row 3 - normal direction, faster */}
-                <div className="overflow-hidden whitespace-nowrap">
+                <div className="overflow-hidden whitespace-nowrap max-w-full">
                   <div className="inline-block motion-safe:animate-[marquee_25s_linear_infinite]">
                     {flatSkills.map((skill, i) => (
                       <span
@@ -569,15 +569,15 @@ export const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => 
             </div>
 
             {/* Decorative Name - Marquee */}
-            <div className="overflow-hidden mb-8">
+            <div className="overflow-hidden mb-8 max-w-full">
               <div
-                className="inline-flex whitespace-nowrap motion-safe:animate-[marquee_60s_linear_infinite]"
+                className="inline-flex whitespace-nowrap motion-safe:animate-[marquee_60s_linear_infinite] max-w-full overflow-hidden"
                 aria-hidden="true"
               >
-                <span className="font-heading-bc text-8xl md:text-[10rem] font-black text-neutral-100 leading-none tracking-tighter select-none uppercase shrink-0 pr-12">
+                <span className="font-heading-bc text-[clamp(3rem,10vw,10rem)] font-black text-neutral-100 leading-none tracking-tighter select-none uppercase shrink-0 pr-12 max-w-full overflow-hidden">
                   {content.full_name}
                 </span>
-                <span className="font-heading-bc text-8xl md:text-[10rem] font-black text-neutral-100 leading-none tracking-tighter select-none uppercase shrink-0 pr-12">
+                <span className="font-heading-bc text-[clamp(3rem,10vw,10rem)] font-black text-neutral-100 leading-none tracking-tighter select-none uppercase shrink-0 pr-12 max-w-full overflow-hidden">
                   {content.full_name}
                 </span>
               </div>

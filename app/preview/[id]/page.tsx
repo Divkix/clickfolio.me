@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { DEMO_RESUME_CONTENT, TEMPLATE_BACKGROUNDS } from "@/lib/templates/demo-data";
 import type { ThemeId } from "@/lib/templates/theme-ids";
 import { getTemplate } from "@/lib/templates/theme-registry";
+import { cn } from "@/lib/utils/cn";
 
 export const metadata: Metadata = {
   robots: { index: false, follow: false },
@@ -32,7 +33,7 @@ export default async function PreviewPage({ params }: { params: Promise<{ id: st
   };
 
   return (
-    <div className={bg?.bg ?? "bg-white"}>
+    <div className={cn("min-h-screen", bg?.bg ?? "bg-white", bg?.isDark ? "dark" : "")}>
       <Template content={content} profile={profile} />
     </div>
   );

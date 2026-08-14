@@ -32,7 +32,7 @@ export const ClassicATS: React.FC<TemplateProps> = ({ content, profile, isPrevie
       <style>{`
         .font-serif-ats { font-family: 'Lora', serif; }
       `}</style>
-      <main className="min-h-screen bg-stone-100 print:bg-white text-gray-900 font-serif-ats selection:bg-gray-200 overflow-y-auto print:overflow-visible">
+      <main className="min-h-screen bg-stone-100 print:bg-white text-gray-900 font-serif-ats selection:bg-gray-200 overflow-x-hidden print:overflow-visible">
         <article className="max-w-[8.5in] mx-auto px-8 py-12 print:px-[0.75in] print:py-[0.5in] bg-[#FAFAF8] shadow-xl print:shadow-none print:bg-white">
           {/* Header with Double Border */}
           <header className="border-y-4 border-double border-gray-900 py-6 mb-8 text-center print:break-inside-avoid">

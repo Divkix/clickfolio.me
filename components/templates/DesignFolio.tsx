@@ -203,7 +203,7 @@ export const DesignFolio: React.FC<TemplateProps> = ({ content, profile, isPrevi
                         {project.technologies?.map((tech, t) => (
                           <span
                             key={t}
-                            className="text-[10px] uppercase border border-[#444] text-[#888] px-2 py-1 rounded-full group-hover:border-[#CCFF00] group-hover:text-[#CCFF00] transition-colors"
+                            className="text-[10px] uppercase border border-[#555] text-[#a0a0a0] px-2 py-1 rounded-full group-hover:border-[#CCFF00] group-hover:text-[#CCFF00] transition-colors"
                           >
                             {tech}
                           </span>
