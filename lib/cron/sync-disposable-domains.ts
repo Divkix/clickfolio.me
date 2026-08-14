@@ -8,7 +8,7 @@
  * Source: https://github.com/disposable-email-domains/disposable-email-domains
  */
 
-import { INFRA } from "@/lib/config/retry";
+import { INFRA } from "@/lib/resume/lifecycle";
 import type { UnknownRecord } from "@/lib/types/json";
 
 const BLOCKLIST_URL =

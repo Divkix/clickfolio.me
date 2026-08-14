@@ -1,7 +1,7 @@
 import { and, eq, lt } from "drizzle-orm";
 import { withUser } from "@/lib/auth/with-auth";
 import { captureServerEvent } from "@/lib/posthog-server";
-import { RETRY_LIMITS } from "@/lib/config/retry";
+import { RETRY_LIMITS } from "@/lib/resume/lifecycle";
 import type { NewResume } from "@/lib/db/schema";
 import { resumes } from "@/lib/db/schema";
 import { checkRetryEligibility, waitingForCacheTimedOut } from "@/lib/resume/lifecycle";

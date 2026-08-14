@@ -84,8 +84,8 @@ vi.mock("@/lib/queue/resume-parse", () => ({
 // and isPermanentErrorType stay mocked because the retry route toggles them
 // directly per-test to drive its gates; the real canRetryResume closes over the
 // module's own copies, so those overrides don't affect it.
-vi.mock("@/lib/config/retry", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/lib/config/retry")>();
+vi.mock("@/lib/resume/lifecycle", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/resume/lifecycle")>();
   return {
     ...actual,
     hasExceededMaxAttempts: vi.fn(() => false),
@@ -912,7 +912,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
 
   describe("POST /api/resume/retry", () => {
     it("re-queues failed resume for parsing (test 4)", async () => {
-      const { hasExceededMaxAttempts } = await import("@/lib/config/retry");
+      const { hasExceededMaxAttempts } = await import("@/lib/resume/lifecycle");
       vi.mocked(hasExceededMaxAttempts).mockReturnValue(false);
 
       authedAs("user-123");
@@ -949,7 +949,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
     });
 
     it("returns 409 (not 500) when the retry UPDATE affects 0 rows (concurrent retry/status change)", async () => {
-      const { hasExceededMaxAttempts } = await import("@/lib/config/retry");
+      const { hasExceededMaxAttempts } = await import("@/lib/resume/lifecycle");
       vi.mocked(hasExceededMaxAttempts).mockReturnValue(false);
 
       authedAs("user-123");
@@ -982,7 +982,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
     });
 
     it("rolls back retry state when queue publish fails", async () => {
-      const { hasExceededMaxAttempts } = await import("@/lib/config/retry");
+      const { hasExceededMaxAttempts } = await import("@/lib/resume/lifecycle");
       vi.mocked(hasExceededMaxAttempts).mockReturnValue(false);
       const { publishResumeParse } = await import("@/lib/queue/resume-parse");
       vi.mocked(publishResumeParse).mockRejectedValueOnce(new Error("Queue unavailable"));
@@ -1088,7 +1088,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
     });
 
     it("returns 429 when max retry attempts exceeded", async () => {
-      const { hasExceededMaxAttempts } = await import("@/lib/config/retry");
+      const { hasExceededMaxAttempts } = await import("@/lib/resume/lifecycle");
       vi.mocked(hasExceededMaxAttempts).mockReturnValue(true);
 
       authedAs("user-123");

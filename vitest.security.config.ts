@@ -5,15 +5,22 @@
  * rate limiting, input sanitization, and authentication middleware.
  */
 
-import { resolve } from "node:path";
 import { defineConfig } from "vite-plus";
+import {
+  sharedAlias,
+  sharedCoverageProvider,
+  sharedExclude,
+  sharedSetupFiles,
+  sharedServerInline,
+  sharedZxcvbnAlias,
+} from "./vitest.base.config";
 
 export default defineConfig({
   test: {
     name: "security",
     environment: "jsdom",
     globals: true,
-    setupFiles: ["./__tests__/setup.ts"],
+    setupFiles: sharedSetupFiles,
     include: [
       "__tests__/security/**/*.test.{ts,tsx}",
       "__tests__/idor-ownership.test.ts",
@@ -23,10 +30,10 @@ export default defineConfig({
       "__tests__/email-verification.test.ts",
       "__tests__/claim-security-cookie.test.ts",
     ],
-    exclude: ["node_modules", ".next", "dist", "__tests__/e2e/**", ".worktrees/**"],
+    exclude: sharedExclude,
     // zxcvbn-ts v4 language packs ship a broken CJS interop for their decompressor
     // (see resolve.alias below); inline them so Vite transforms the ESM build.
-    server: { deps: { inline: [/@zxcvbn-ts\//] } },
+    server: { deps: { inline: sharedServerInline } },
     // Security tests must be reliable - no retries
     retry: 0,
     // Use forks for security test isolation
@@ -34,7 +41,7 @@ export default defineConfig({
     // Security tests need longer timeouts for complex attack scenarios
     testTimeout: 15000,
     coverage: {
-      provider: "v8",
+      provider: sharedCoverageProvider,
       reporter: ["text", "json", "html"],
       reportsDirectory: "./coverage/security",
       include: [
@@ -56,18 +63,8 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      "@": resolve(__dirname, "./"),
-      "cloudflare:workers": resolve(__dirname, "lib/stubs/cloudflare-workers-client-stub.mjs"),
-      // zxcvbn-ts v4's `main` points to a CJS build whose decompressor interop is
-      // broken under Node require; resolve the working ESM entry points instead.
-      "@zxcvbn-ts/language-common": resolve(
-        __dirname,
-        "node_modules/@zxcvbn-ts/language-common/dist/index.mjs",
-      ),
-      "@zxcvbn-ts/language-en": resolve(
-        __dirname,
-        "node_modules/@zxcvbn-ts/language-en/dist/index.mjs",
-      ),
+      ...sharedAlias,
+      ...sharedZxcvbnAlias,
     },
   },
 });

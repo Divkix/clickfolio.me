@@ -8,7 +8,7 @@
     "hooks/**/*.{ts,tsx}",
     "lib/**/*.{ts,tsx}",
   ],
-  "ignore": ["lib/config/retry.ts", "lib/resume/status.ts"],
+  "ignore": ["lib/resume/status.ts"],
   "ignoreBinaries": [],
   "ignoreDependencies": [
     // Tailwind CSS ecosystem and build-time dependencies:

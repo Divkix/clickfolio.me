@@ -6,7 +6,7 @@
  * Fails open on any infrastructure failure — email verification is the safety net.
  */
 
-import { INFRA } from "@/lib/config/retry";
+import { INFRA } from "@/lib/resume/lifecycle";
 
 export interface DisposableCheckResult {
   disposable: boolean;

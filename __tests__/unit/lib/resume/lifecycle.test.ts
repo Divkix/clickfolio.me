@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { canRetryResume } from "@/lib/config/retry";
+import { canRetryResume } from "@/lib/resume/lifecycle";
 
 describe("canRetryResume", () => {
   const base = {

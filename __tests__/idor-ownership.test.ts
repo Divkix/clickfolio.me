@@ -95,11 +95,14 @@ vi.mock("@/lib/r2", () => ({
 }));
 
 // Mock retry config
-vi.mock("@/lib/config/retry", () => ({
-  hasExceededMaxAttempts: vi.fn(() => false),
-  isPermanentErrorType: vi.fn(() => false),
-  RETRY_LIMITS: { MANUAL_MAX_RETRIES: 2, TOTAL_MAX_ATTEMPTS: 6 },
-}));
+vi.mock("@/lib/resume/lifecycle", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/resume/lifecycle")>();
+  return {
+    ...actual,
+    hasExceededMaxAttempts: vi.fn(() => false),
+    isPermanentErrorType: vi.fn(() => false),
+  };
+});
 
 // Mock security headers
 vi.mock("@/lib/utils/security-headers", () => ({

@@ -15,26 +15,8 @@
  * Returns 500 on server misconfiguration or cleanup failure.
  */
 
-import { env } from "cloudflare:workers";
-import { requireCronAuth } from "@/lib/auth/middleware";
-import { performCleanup } from "@/lib/cron/cleanup";
 import { getDb } from "@/lib/db";
-import {
-  createErrorResponse,
-  createSuccessResponse,
-  ERROR_CODES,
-} from "@/lib/utils/security-headers";
+import { performCleanup } from "@/lib/cron/cleanup";
+import { withCron } from "@/lib/cron/with-cron";
 
-export async function GET(request: Request) {
-  const authError = requireCronAuth(request, env);
-  if (authError) return authError;
-
-  try {
-    const db = getDb(env.CLICKFOLIO_DB);
-    const result = await performCleanup(db);
-    return createSuccessResponse(result);
-  } catch (error) {
-    console.error("Cleanup cron failed:", error);
-    return createErrorResponse("Cleanup failed", ERROR_CODES.INTERNAL_ERROR, 500);
-  }
-}
+export const GET = withCron(async (env) => performCleanup(getDb(env.CLICKFOLIO_DB)));

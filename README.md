@@ -334,7 +334,6 @@ pnpm run type-check       # TypeScript check
 
 # Build & Deploy
 pnpm run build            # Vite production build (vinext)
-pnpm run build:worker     # Alias for build
 pnpm run preview          # Local Cloudflare preview
 pnpm run deploy           # Build and deploy to Cloudflare Workers
 

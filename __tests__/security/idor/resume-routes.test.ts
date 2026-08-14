@@ -116,19 +116,23 @@ vi.mock("@/lib/r2", () => ({
 }));
 
 // Mock retry config
-vi.mock("@/lib/config/retry", () => ({
-  hasExceededMaxAttempts: vi.fn(() => false),
-  isPermanentErrorType: vi.fn(() => false),
-  RETRY_LIMITS: { MANUAL_MAX_RETRIES: 2, TOTAL_MAX_ATTEMPTS: 6 },
-  canRetryResume: vi.fn(
-    (input: {
-      status: string;
-      retryCount: number;
-      totalAttempts: number;
-      lastAttemptErrorType?: string | null;
-    }) => input.status === "failed" && input.totalAttempts < 6 && input.retryCount < 2,
-  ),
-}));
+vi.mock("@/lib/resume/lifecycle", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/resume/lifecycle")>();
+  return {
+    ...actual,
+    hasExceededMaxAttempts: vi.fn(() => false),
+    isPermanentErrorType: vi.fn(() => false),
+    RETRY_LIMITS: { MANUAL_MAX_RETRIES: 2, TOTAL_MAX_ATTEMPTS: 6 },
+    canRetryResume: vi.fn(
+      (input: {
+        status: string;
+        retryCount: number;
+        totalAttempts: number;
+        lastAttemptErrorType?: string | null;
+      }) => input.status === "failed" && input.totalAttempts < 6 && input.retryCount < 2,
+    ),
+  };
+});
 
 // Mock theme registry
 vi.mock("@/lib/templates/theme-ids", () => ({

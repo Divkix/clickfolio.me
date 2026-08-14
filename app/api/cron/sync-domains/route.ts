@@ -11,35 +11,19 @@
  * Returns 500 on server misconfiguration or sync failure.
  */
 
-import { env } from "cloudflare:workers";
-import { requireCronAuth } from "@/lib/auth/middleware";
 import { syncDisposableDomains } from "@/lib/cron/sync-disposable-domains";
-import {
-  createErrorResponse,
-  createSuccessResponse,
-  ERROR_CODES,
-} from "@/lib/utils/security-headers";
+import { withCron } from "@/lib/cron/with-cron";
+import { createErrorResponse, ERROR_CODES } from "@/lib/utils/security-headers";
 
-export async function GET(request: Request) {
-  const authError = requireCronAuth(request, env);
-  if (authError) return authError;
-
-  try {
-    // SAFETY: env is CloudflareEnv with optional CLICKFOLIO_DISPOSABLE_DOMAINS KV; cast bridges untyped env for manual cron trigger, existence checked below.
-    const kv = (env as { CLICKFOLIO_DISPOSABLE_DOMAINS?: KVNamespace })
-      .CLICKFOLIO_DISPOSABLE_DOMAINS;
-    if (!kv) {
-      return createErrorResponse(
-        "CLICKFOLIO_DISPOSABLE_DOMAINS KV namespace not configured",
-        ERROR_CODES.INTERNAL_ERROR,
-        500,
-      );
-    }
-
-    const result = await syncDisposableDomains(kv);
-    return createSuccessResponse(result);
-  } catch (error) {
-    console.error("Sync disposable domains failed:", error);
-    return createErrorResponse("Sync failed", ERROR_CODES.INTERNAL_ERROR, 500);
+export const GET = withCron(async (env) => {
+  // SAFETY: env is CloudflareEnv with optional CLICKFOLIO_DISPOSABLE_DOMAINS KV; cast bridges untyped env for manual cron trigger, existence checked below.
+  const kv = (env as { CLICKFOLIO_DISPOSABLE_DOMAINS?: KVNamespace }).CLICKFOLIO_DISPOSABLE_DOMAINS;
+  if (!kv) {
+    return createErrorResponse(
+      "CLICKFOLIO_DISPOSABLE_DOMAINS KV namespace not configured",
+      ERROR_CODES.INTERNAL_ERROR,
+      500,
+    );
   }
-}
+  return syncDisposableDomains(kv);
+});

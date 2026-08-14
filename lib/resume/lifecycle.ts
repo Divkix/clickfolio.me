@@ -4,8 +4,6 @@
  * Concentrates: retry eligibility, QueueError JSON shape, progress %
  * mapping, and the `waiting_for_cache` timeout predicate so callers
  * stop pre-parsing `lastAttemptError` and GET /status stops writing.
- *
- * `lib/config/retry.ts` re-exports this module for backwards compatibility.
  */
 
 import type { JsonValue, UnknownRecord } from "@/lib/types/json";

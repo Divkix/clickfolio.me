@@ -13,30 +13,15 @@
  * Returns 500 on server misconfiguration or cleanup failure.
  */
 
-import { env } from "cloudflare:workers";
-import { requireCronAuth } from "@/lib/auth/middleware";
-import { performR2Cleanup } from "@/lib/cron/cleanup-r2";
 import { getR2Binding } from "@/lib/r2";
-import {
-  createErrorResponse,
-  createSuccessResponse,
-  ERROR_CODES,
-} from "@/lib/utils/security-headers";
+import { performR2Cleanup } from "@/lib/cron/cleanup-r2";
+import { withCron } from "@/lib/cron/with-cron";
+import { createErrorResponse, ERROR_CODES } from "@/lib/utils/security-headers";
 
-export async function GET(request: Request) {
-  const authError = requireCronAuth(request, env);
-  if (authError) return authError;
-
-  try {
-    const r2Binding = getR2Binding(env);
-    if (!r2Binding) {
-      return createErrorResponse("R2 bucket not available", ERROR_CODES.INTERNAL_ERROR, 500);
-    }
-
-    const result = await performR2Cleanup(r2Binding);
-    return createSuccessResponse(result);
-  } catch (error) {
-    console.error("R2 cleanup cron failed:", error);
-    return createErrorResponse("R2 cleanup failed", ERROR_CODES.INTERNAL_ERROR, 500);
+export const GET = withCron(async (env) => {
+  const r2Binding = getR2Binding(env);
+  if (!r2Binding) {
+    return createErrorResponse("R2 bucket not available", ERROR_CODES.INTERNAL_ERROR, 500);
   }
-}
+  return performR2Cleanup(r2Binding);
+});

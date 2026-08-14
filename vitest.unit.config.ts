@@ -5,15 +5,20 @@
  * Fast execution, no external service dependencies.
  */
 
-import { resolve } from "node:path";
 import { defineConfig } from "vite-plus";
-
+import {
+  sharedAlias,
+  sharedCoverageProvider,
+  sharedExclude,
+  sharedSetupFiles,
+  sharedZxcvbnAlias,
+} from "./vitest.base.config";
 export default defineConfig({
   test: {
     name: "unit",
     environment: "jsdom",
     globals: true,
-    setupFiles: ["./__tests__/setup.ts"],
+    setupFiles: sharedSetupFiles,
     include: [
       "__tests__/unit/**/*.test.{ts,tsx}",
       // Root-level tests that belong to the unit suite
@@ -24,13 +29,13 @@ export default defineConfig({
       "__tests__/sync-disposable-domains.test.ts",
       "__tests__/theme-id-consistency.test.ts",
     ],
-    exclude: ["node_modules", ".next", "dist", "__tests__/e2e/**", ".worktrees/**"],
+    exclude: sharedExclude,
     // Unit tests should be fast - no retries needed
     retry: 0,
     // Isolate each test file
     isolate: true,
     coverage: {
-      provider: "v8",
+      provider: sharedCoverageProvider,
       reporter: ["text", "json", "html"],
       reportsDirectory: "./coverage/unit",
       include: ["lib/**/*.{ts,tsx}", "app/**/*.{ts,tsx}", "components/**/*.{ts,tsx}"],
@@ -54,8 +59,8 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      "@": resolve(__dirname, "./"),
-      "cloudflare:workers": resolve(__dirname, "lib/stubs/cloudflare-workers-client-stub.mjs"),
+      ...sharedAlias,
+      ...sharedZxcvbnAlias,
     },
   },
 });

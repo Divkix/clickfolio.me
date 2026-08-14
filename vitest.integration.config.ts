@@ -6,28 +6,34 @@
  * May use mocked external services.
  */
 
-import { resolve } from "node:path";
 import { defineConfig } from "vite-plus";
+import {
+  sharedAlias,
+  sharedCoverageProvider,
+  sharedExclude,
+  sharedSetupFiles,
+  sharedZxcvbnAlias,
+} from "./vitest.base.config";
 
 export default defineConfig({
   test: {
     name: "integration",
     environment: "jsdom",
     globals: true,
-    setupFiles: ["./__tests__/setup.ts"],
+    setupFiles: sharedSetupFiles,
     include: [
       "__tests__/integration/**/*.test.{ts,tsx}",
       "__tests__/claim-flow.test.ts",
       "__tests__/referral.test.ts",
       "__tests__/share.test.ts",
     ],
-    exclude: ["node_modules", ".next", "dist", "__tests__/e2e/**", ".worktrees/**"],
+    exclude: sharedExclude,
     // Integration tests may have timing issues - allow retries
     retry: 2,
     // Longer timeout for integration tests
     testTimeout: 10000,
     coverage: {
-      provider: "v8",
+      provider: sharedCoverageProvider,
       reporter: ["text", "json", "html"],
       reportsDirectory: "./coverage/integration",
       include: ["lib/**/*.{ts,tsx}", "app/api/**/*.{ts,tsx}", "worker/**/*.{ts,tsx}"],
@@ -48,8 +54,8 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      "@": resolve(__dirname, "./"),
-      "cloudflare:workers": resolve(__dirname, "lib/stubs/cloudflare-workers-client-stub.mjs"),
+      ...sharedAlias,
+      ...sharedZxcvbnAlias,
     },
   },
 });
