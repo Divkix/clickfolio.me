@@ -4,10 +4,11 @@ import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useResumeWebSocket } from "@/hooks/useResumeWebSocket";
+import type { ResumeStatus } from "@/lib/db/schema/resume";
 
 interface RealtimeStatusListenerProps {
   resumeId: string;
-  currentStatus: string;
+  currentStatus: ResumeStatus;
 }
 
 type DetectedState = {
@@ -23,24 +24,20 @@ export function RealtimeStatusListener({ resumeId, currentStatus }: RealtimeStat
   const router = useRouter();
   const hasRefreshedRef = useRef(false);
   const refreshDebounceRef = useRef<NodeJS.Timeout | null>(null);
-  // SAFETY: currentStatus is validated enum string from D1; cast narrows to DetectedState union.
   const [detected, setDetected] = useState<DetectedState>({
     status:
-      currentStatus === "processing" || currentStatus === "queued"
-        ? "processing"
-        : (currentStatus as DetectedState["status"]),
+      currentStatus === "completed" || currentStatus === "failed" ? currentStatus : "processing",
   });
 
   const handleStatusChange = useCallback(
-    (newStatus: string, errorMessage?: string) => {
+    (newStatus: ResumeStatus, errorMessage?: string) => {
       if (hasRefreshedRef.current) return;
       if (newStatus === "completed" || newStatus === "failed") {
         if (refreshDebounceRef.current) {
           clearTimeout(refreshDebounceRef.current);
         }
-        // SAFETY: newStatus is validated to be completed/failed above; cast narrows to DetectedState union.
         setDetected({
-          status: newStatus as "completed" | "failed",
+          status: newStatus,
           errorMessage,
         });
 

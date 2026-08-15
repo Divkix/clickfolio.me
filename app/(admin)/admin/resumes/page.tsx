@@ -10,6 +10,7 @@ import { ResumeStatusBadge } from "@/components/admin/ResumeStatusBadge";
 import { StatCard } from "@/components/admin/StatCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { safePageParam } from "@/lib/utils/pagination";
+import { formatRelativeTime } from "@/lib/utils/format";
 
 interface ResumeData {
   id: string;
@@ -43,21 +44,6 @@ const STATUS_OPTIONS: Array<{ value: StatusFilter; label: string }> = [
   { value: "queued", label: "Queued" },
   { value: "failed", label: "Failed" },
 ];
-
-function formatRelativeTime(dateStr: string): string {
-  const date = new Date(dateStr);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / (1000 * 60));
-  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-  const diffDays = Math.floor(diffHours / 24);
-
-  if (diffMins < 1) return "just now";
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
-  return date.toLocaleDateString();
-}
 
 export default function AdminResumesPage() {
   const router = useRouter();

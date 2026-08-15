@@ -11,6 +11,7 @@ import { Footer } from "@/components/Footer";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
+import { useResendCooldown } from "@/hooks/useResendCooldown";
 import { sendVerificationEmail } from "@/lib/auth/client";
 
 function VerifyEmailContent() {
@@ -19,7 +20,7 @@ function VerifyEmailContent() {
   const email = searchParams.get("email");
 
   const [isResending, setIsResending] = useState(false);
-  const [resendCooldown, setResendCooldown] = useState(0);
+  const { cooldown: resendCooldown, start: startCooldown } = useResendCooldown();
 
   const handleResend = useCallback(async () => {
     if (!email || resendCooldown > 0) return;
@@ -35,17 +36,7 @@ function VerifyEmailContent() {
         toast.error(error.message || "Failed to resend verification email");
       } else {
         toast.success("Verification email sent! Check your inbox.");
-        // Start 60 second cooldown
-        setResendCooldown(60);
-        const interval = setInterval(() => {
-          setResendCooldown((prev) => {
-            if (prev <= 1) {
-              clearInterval(interval);
-              return 0;
-            }
-            return prev - 1;
-          });
-        }, 1000);
+        startCooldown();
       }
     } catch (err) {
       console.error("Resend error:", err);
@@ -53,7 +44,7 @@ function VerifyEmailContent() {
     } finally {
       setIsResending(false);
     }
-  }, [email, resendCooldown]);
+  }, [email, resendCooldown, startCooldown]);
 
   // Error state - token invalid or expired
   if (error) {

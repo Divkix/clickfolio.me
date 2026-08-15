@@ -6,11 +6,10 @@ import {
   normalizeUrl,
   transformAiOutput,
   transformAiResponse,
-  truncateString,
   validateUrl,
 } from "@/lib/ai/transform";
+import { truncateText } from "@/lib/utils/format";
 import type { ResumeContentFormData } from "@/lib/schemas/resume";
-
 describe("normalizeUrl", () => {
   it("returns empty string for non-string input", () => {
     expect(normalizeUrl(null)).toBe("");
@@ -127,36 +126,33 @@ describe("validateUrl", () => {
   });
 });
 
-describe("truncateString", () => {
+describe("truncateText via format util (replaces truncateString)", () => {
   it("returns original string when under max length", () => {
-    expect(truncateString("hello", 10)).toBe("hello");
+    expect(truncateText("hello", 10)).toBe("hello");
   });
 
   it("returns original string at exact max length", () => {
     const str = "a".repeat(10);
-    expect(truncateString(str, 10)).toBe(str);
+    expect(truncateText(str, 10)).toBe(str);
   });
 
   it("truncates with ellipsis when over max length", () => {
     const str = "a".repeat(20);
-    expect(truncateString(str, 10)).toBe(`${"a".repeat(7)}...`);
+    expect(truncateText(str, 10)).toBe(`${"a".repeat(7)}...`);
   });
 
   it("handles empty string", () => {
-    expect(truncateString("", 10)).toBe("");
+    expect(truncateText("", 10)).toBe("");
   });
 
   it("handles max length of 3 (minimum for ellipsis)", () => {
-    expect(truncateString("abcd", 3)).toBe("...");
+    expect(truncateText("abcd", 3)).toBe("...");
   });
 
   it("handles max length less than 3", () => {
-    // When maxLength < 3, the function does slice(0, negative number)
-    // which gives different behavior - this documents the actual implementation
-    expect(truncateString("abcd", 2)).toBe("abc...");
+    expect(truncateText("abcd", 2)).toBe("..");
   });
 });
-
 describe("normalizeString", () => {
   it("returns default value for null", () => {
     expect(normalizeString(null, "default")).toBe("default");

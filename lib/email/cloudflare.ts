@@ -5,17 +5,7 @@
  * and email verification. No API keys needed.
  */
 
-/**
- * Escape HTML special characters to prevent XSS in email templates
- */
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
+import { escapeHtml } from "@/lib/utils/sanitization";
 
 /**
  * Extracts the recipient domain for logging.

@@ -736,7 +736,7 @@ describe("branch-heavy component interactions", () => {
       expect(screen.getByText("Saved just now")).toBeInTheDocument();
 
       rerender(<SaveIndicator lastSaved={new Date("2026-05-20T11:50:00Z")} status="saved" />);
-      expect(screen.getByText("Saved 10m ago")).toBeInTheDocument();
+      expect(screen.getByText("Saved 10 minutes ago")).toBeInTheDocument();
 
       rerender(<SaveIndicator lastSaved={new Date("2026-05-20T10:00:00Z")} status="saved" />);
       expect(screen.getByText(/Saved/)).toBeInTheDocument();

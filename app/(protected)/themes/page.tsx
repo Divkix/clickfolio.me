@@ -6,10 +6,8 @@ import { ThemeSelector } from "@/components/dashboard/ThemeSelector";
 import { getServerSession } from "@/lib/auth/session";
 import { getDb } from "@/lib/db";
 import { siteData, user } from "@/lib/db/schema";
-import { DEFAULT_THEME } from "@/lib/templates/theme-ids";
+import { DEFAULT_THEME, isValidThemeId, type ThemeId } from "@/lib/templates/theme-ids";
 import type { ResumeContent } from "@/lib/types/database";
-
-export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Themes",
@@ -48,7 +46,9 @@ export default async function ThemesPage() {
     redirect("/dashboard");
   }
 
-  const currentThemeId = userSiteData.themeId || DEFAULT_THEME;
+  const rawThemeId = userSiteData.themeId;
+  const currentThemeId: ThemeId =
+    rawThemeId && isValidThemeId(rawThemeId) ? rawThemeId : DEFAULT_THEME;
   // SAFETY: D1 content is schema-validated JSON written only by our queue consumer; JSON.parse failure is caught and returns null.
   const parsedContent = JSON.parse(userSiteData.content) as ResumeContent;
   const profile = {

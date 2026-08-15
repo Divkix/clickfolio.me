@@ -2,29 +2,19 @@
 
 import { ShieldCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { type ChangeEvent, type DragEvent, useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import posthog from "posthog-js";
 import { AuthDialog } from "@/components/auth/AuthDialog";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useFileUpload } from "@/hooks/useFileUpload";
 import { useSession } from "@/lib/auth/client";
 import { clearStoredReferralCode, getStoredReferralCode } from "@/lib/referral";
-import {
-  clearPendingUploadCookie,
-  setPendingUploadCookie,
-} from "@/lib/utils/pending-upload-client";
-import { MAX_FILE_SIZE_LABEL, validatePDF } from "@/lib/utils/validation";
-
+import { clearPendingUploadCookie } from "@/lib/utils/pending-upload-client";
+import { MAX_FILE_SIZE_LABEL } from "@/lib/utils/validation";
 interface FileDropzoneProps {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
-}
-
-interface UploadResponse {
-  key: string;
-  remaining: { hourly: number; daily: number };
-  error?: string;
 }
 
 interface ClaimResponse {
@@ -38,147 +28,30 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
   const { data: session, isPending: sessionLoading } = useSession();
   const user = session?.user ?? null;
 
-  const [file, setFile] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [uploadedKey, setUploadedKey] = useState<string | null>(null);
   const [claiming, setClaiming] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
   const [authDialogOpen, setAuthDialogOpen] = useState(false);
 
-  const handleDragEnter = (e: DragEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(true);
-  };
+  const {
+    file,
+    uploadProgress,
+    uploadState,
+    error,
+    isDragging,
+    uploadedKey,
+    setUploadedKey,
+    setUploadProgress,
+    setUploadState,
+    setError,
+    setFile,
+    handleDragEnter,
+    handleDragLeave,
+    handleDragOver,
+    handleDrop,
+    handleFileSelect,
+    processFile,
+  } = useFileUpload();
 
-  const handleDragLeave = (e: DragEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-  };
-
-  const handleDragOver = (e: DragEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-  };
-
-  const handleDrop = (e: DragEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-
-    const droppedFile = e.dataTransfer.files[0];
-    if (droppedFile) {
-      processFile(droppedFile);
-    }
-  };
-
-  const handleFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
-    if (selectedFile) {
-      processFile(selectedFile);
-    }
-  };
-
-  const processFile = (selectedFile: File) => {
-    setError(null);
-
-    const validation = validatePDF(selectedFile);
-    if (!validation.valid) {
-      setError(validation.error!);
-      toast.error(validation.error!);
-      return;
-    }
-
-    setFile(selectedFile);
-    void uploadFile(selectedFile);
-  };
-
-  const uploadFile = async (fileToUpload: File) => {
-    setUploading(true);
-    setUploadProgress(0);
-    setError(null);
-
-    try {
-      // Step 1: Upload directly to Worker
-      setUploadProgress(10);
-
-      const uploadResponse = await fetch("/api/upload", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/pdf",
-          "Content-Length": String(fileToUpload.size),
-          "X-Filename": fileToUpload.name,
-        },
-        body: fileToUpload,
-      });
-
-      setUploadProgress(70);
-
-      if (!uploadResponse.ok) {
-        // SAFETY: UploadResponse is from our /api/upload endpoint; shape is server-controlled.
-        const data = (await uploadResponse.json()) as UploadResponse;
-        // Handle rate limiting specifically
-        if (uploadResponse.status === 429) {
-          throw new Error(data.error || "Too many upload attempts. Please wait and try again.");
-        }
-        throw new Error(data.error || "Failed to upload file");
-      }
-
-      // SAFETY: UploadResponse is from our /api/upload endpoint; shape is server-controlled and contains temp R2 key.
-      const { key } = (await uploadResponse.json()) as UploadResponse;
-
-      setUploadProgress(90);
-
-      // Store the claim securely across the authentication handoff.
-      await setPendingUploadCookie(key);
-
-      setUploadProgress(100);
-      setUploadedKey(key);
-      toast.success("File uploaded successfully!");
-
-      posthog.capture("resume_uploaded", {
-        file_size_bytes: fileToUpload.size,
-        file_name_length: fileToUpload.name.length,
-      });
-    } catch (err) {
-      let errorMessage = "Failed to upload file";
-
-      // Differentiate error types by status code
-      // SAFETY: err is Error-like with optional status from fetch throw; cast narrows to status check for rate-limit handling, not user input.
-      if (err instanceof Response || (err as { status?: number })?.status) {
-        // SAFETY: err status check uses optional status property from thrown Response-like error; cast is safe for branching.
-        const status = err instanceof Response ? err.status : (err as { status?: number }).status;
-        if (status === 429) {
-          errorMessage = "Upload limit reached (5 per day). Try again tomorrow.";
-        } else if (status === 413) {
-          errorMessage = `File too large. Maximum size is ${MAX_FILE_SIZE_LABEL}.`;
-        } else if (status === 401) {
-          errorMessage = "Session expired. Please sign in again.";
-        } else if (status === 409) {
-          errorMessage = "This file was already uploaded.";
-        }
-      } else if (err instanceof Error) {
-        if (err.message.includes("network") || err.message.includes("Network")) {
-          errorMessage = "Network error. Check your connection.";
-        } else if (err.message) {
-          errorMessage = err.message;
-        }
-      }
-
-      // Clear any pending-upload cookie left by a partial failure.
-      await clearPendingUploadCookie();
-
-      posthog.capture("resume_upload_failed", { error_message: errorMessage });
-
-      setError(errorMessage);
-      toast.error(errorMessage);
-    } finally {
-      setUploading(false);
-    }
-  };
+  const uploading = uploadState === "uploading" || uploadState === "claiming";
 
   const claimUpload = useCallback(
     async (key: string) => {
@@ -262,14 +135,13 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
 
         // Clear the unusable pending-upload cookie.
         await clearPendingUploadCookie();
-
         setError(errorMessage);
         toast.error(errorMessage);
       } finally {
         setClaiming(false);
       }
     },
-    [router, onOpenChange],
+    [router, onOpenChange, setError, setUploadedKey],
   );
 
   // Auto-claim upload when session loads and upload is complete
@@ -289,13 +161,14 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
     setClaiming(false);
     setError(null);
     setUploadProgress(0);
+    setUploadState("idle");
   };
-
   const handleRetry = () => {
     setError(null);
     setUploadProgress(0);
+    setUploadState("idle");
     if (file) {
-      void uploadFile(file);
+      processFile(file);
     }
   };
 

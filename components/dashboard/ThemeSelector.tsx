@@ -1,9 +1,10 @@
 "use client";
 
-import { CheckCircle2, Gift, Lock } from "lucide-react";
+import { CheckCircle2, Gift } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { ThemeLockOverlay } from "@/components/dashboard/ThemeLockOverlay";
 import { TEMPLATE_BACKGROUNDS } from "@/lib/templates/demo-data";
 import {
   isThemeUnlocked,
@@ -17,7 +18,7 @@ import type { ResumeContent } from "@/lib/types/database";
 import { cn } from "@/lib/utils/cn";
 
 interface ThemeSelectorProps {
-  initialThemeId: string;
+  initialThemeId: ThemeId;
   initialContent: ResumeContent;
   profile: {
     handle: string;
@@ -37,10 +38,8 @@ export function ThemeSelector({
   isPro,
 }: ThemeSelectorProps) {
   const router = useRouter();
-  // SAFETY: isValidThemeId guard above guarantees id is ThemeId; initialThemeId is validated server-side before pass.
-  const [savedTheme, setSavedTheme] = useState<ThemeId>(initialThemeId as ThemeId);
-  // SAFETY: isValidThemeId guard above guarantees id is ThemeId; initialThemeId is validated server-side before pass.
-  const [selectedTheme, setSelectedTheme] = useState<ThemeId>(initialThemeId as ThemeId);
+  const [savedTheme, setSavedTheme] = useState<ThemeId>(initialThemeId);
+  const [selectedTheme, setSelectedTheme] = useState<ThemeId>(initialThemeId);
   const [isUpdating, setIsUpdating] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -196,15 +195,7 @@ export function ThemeSelector({
                     )}
                     loading="lazy"
                   />
-                  {/* Lock Overlay for locked themes */}
-                  {!isUnlocked && (
-                    <div className="absolute inset-0 bg-foreground/40 flex flex-col items-center justify-center">
-                      <Lock className="w-5 h-5 text-background mb-1" aria-hidden="true" />
-                      <span className="text-[10px] text-background font-semibold">
-                        {requiredReferrals} referrals
-                      </span>
-                    </div>
-                  )}
+                  {!isUnlocked && <ThemeLockOverlay requiredReferrals={requiredReferrals} />}
                 </div>
 
                 {/* Theme Name */}

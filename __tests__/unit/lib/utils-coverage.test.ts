@@ -99,7 +99,7 @@ describe("formatting utilities", () => {
 
   it("truncates only when text exceeds the requested length", () => {
     expect(truncateText("short", 10)).toBe("short");
-    expect(truncateText("a long sentence", 8)).toBe("a long s...");
+    expect(truncateText("a long sentence", 8)).toBe("a lon...");
   });
 });
 

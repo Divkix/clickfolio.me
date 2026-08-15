@@ -8,7 +8,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Pagination } from "@/components/admin/Pagination";
 import { UserStatusBadge } from "@/components/admin/UserStatusBadge";
 import { Skeleton } from "@/components/ui/skeleton";
-
+import { formatRelativeTime } from "@/lib/utils/format";
 interface UserData {
   id: string;
   name: string;
@@ -25,19 +25,6 @@ interface UsersResponse {
   total: number;
   page: number;
   pageSize: number;
-}
-
-function formatRelativeTime(dateStr: string): string {
-  const date = new Date(dateStr);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-  if (diffDays === 0) return "Today";
-  if (diffDays === 1) return "Yesterday";
-  if (diffDays < 7) return `${diffDays}d ago`;
-  if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`;
-  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
 export default function AdminUsersPage() {

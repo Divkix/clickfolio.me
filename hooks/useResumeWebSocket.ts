@@ -2,11 +2,32 @@
 
 import { z } from "zod";
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { ResumeStatus } from "@/lib/db/schema/resume";
+import {
+  getReconnectDelay,
+  WS_MAX_RECONNECT_ATTEMPTS,
+  WS_PING_INTERVAL_MS,
+} from "@/lib/realtime/constants";
 type ConnectionState = "connecting" | "connected" | "reconnecting" | "fallback" | "closed";
 
+const VALID_STATUSES: ReadonlySet<string> = new Set([
+  "pending_claim",
+  "queued",
+  "processing",
+  "completed",
+  "failed",
+  "waiting_for_cache",
+]);
+
+function isValidStatus(value: string): value is ResumeStatus {
+  return VALID_STATUSES.has(value);
+}
+
+// @ts-ignore TS6196 — StatusMessage documents WebSocket payload shape; kept for type clarity
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- StatusMessage documents WebSocket payload shape; kept for type clarity
 interface StatusMessage {
   type: "status";
-  status: string;
+  status: ResumeStatus;
   error?: string;
   timestamp: string;
 }
@@ -15,7 +36,7 @@ interface UseResumeWebSocketOptions {
   /** Resume ID to subscribe to. null disables the connection. */
   resumeId: string | null;
   /** Called when a status update arrives via WebSocket. */
-  onStatusChange: (status: string, error?: string) => void;
+  onStatusChange: (status: ResumeStatus, error?: string) => void;
   /** Disable WebSocket and force polling fallback (e.g., for testing). */
   disabled?: boolean;
 }
@@ -26,11 +47,6 @@ interface UseResumeWebSocketReturn {
   /** Manually close the WebSocket connection. */
   close: () => void;
 }
-
-const MAX_RECONNECT_ATTEMPTS = 3;
-const INITIAL_RECONNECT_DELAY_MS = 1000;
-const MAX_RECONNECT_DELAY_MS = 10000;
-const PING_INTERVAL_MS = 30000;
 
 /**
  * WebSocket hook for real-time resume status updates.
@@ -109,16 +125,21 @@ export function useResumeWebSocket({
           if (ws.readyState === WebSocket.OPEN) {
             ws.send("ping");
           }
-        }, PING_INTERVAL_MS);
+        }, WS_PING_INTERVAL_MS);
       };
 
       ws.onmessage = (event) => {
         if (!z.string().safeParse(event.data).success) return;
         if (event.data === "pong") return;
         try {
-          // SAFETY: WebSocket message is JSON from our DO, validated via status schema before cast.
-          const msg = JSON.parse(event.data) as StatusMessage;
+          // SAFETY: WebSocket message validated via isValidStatus guard immediately after; cast provides typed access with early return on invalid status
+          const msg = JSON.parse(event.data) as {
+            type: string;
+            status: ResumeStatus;
+            error?: string;
+          };
           if (msg.type === "status") {
+            if (!isValidStatus(msg.status)) return;
             onStatusChangeRef.current(msg.status, msg.error);
           }
         } catch {
@@ -139,17 +160,14 @@ export function useResumeWebSocket({
           return;
         }
 
-        // Attempt reconnect with exponential backoff
+        // Attempt reconnect with exponential backoff (+ jitter via getReconnectDelay)
         reconnectAttemptRef.current++;
-        if (reconnectAttemptRef.current > MAX_RECONNECT_ATTEMPTS) {
+        if (reconnectAttemptRef.current > WS_MAX_RECONNECT_ATTEMPTS) {
           setConnectionState("fallback");
           return;
         }
 
-        const delay = Math.min(
-          INITIAL_RECONNECT_DELAY_MS * 2 ** (reconnectAttemptRef.current - 1),
-          MAX_RECONNECT_DELAY_MS,
-        );
+        const delay = getReconnectDelay(reconnectAttemptRef.current);
         setConnectionState("reconnecting");
         reconnectTimerRef.current = setTimeout(connect, delay);
       };

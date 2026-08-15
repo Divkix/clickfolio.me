@@ -1,27 +1,18 @@
 "use client";
 
 import { Loader2, Upload } from "lucide-react";
-import { type ChangeEvent, type DragEvent, useRef, useState } from "react";
+import { useCallback, useRef } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { clearStoredReferralCode, getStoredReferralCode } from "@/lib/referral";
-import type { ClaimResponse } from "@/lib/types/api";
+import { useFileUpload } from "@/hooks/useFileUpload";
+import { clearStoredReferralCode } from "@/lib/referral";
 import type { ResumeContent } from "@/lib/types/database";
-import { MAX_FILE_SIZE_LABEL, validatePDF } from "@/lib/utils/validation";
+import { MAX_FILE_SIZE_LABEL } from "@/lib/utils/validation";
 import { waitForResumeCompletion } from "@/lib/utils/wait-for-completion";
 
 interface UploadStepProps {
   onContinue: (resumeData: ResumeContent) => void;
-}
-
-type UploadState = "idle" | "uploading" | "claiming" | "parsing" | "error";
-
-// API Response types
-interface UploadResponse {
-  key: string;
-  remaining: number;
-  error?: string;
 }
 
 interface SiteDataResponse {
@@ -35,192 +26,71 @@ interface SiteDataResponse {
 export function UploadStep({ onContinue }: UploadStepProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [file, setFile] = useState<File | null>(null);
-  const [uploadState, setUploadState] = useState<UploadState>("idle");
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [error, setError] = useState<string | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
+  // ponytail: onClaim ref avoids circular dep between hook setters and handler
+  const onClaimRef = useRef<(resumeId: string) => void>(() => {});
 
-  const handleDragEnter = (e: DragEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(true);
-  };
+  const {
+    file,
+    uploadProgress,
+    uploadState,
+    error,
+    isDragging,
+    setUploadProgress,
+    setUploadState,
+    setError,
+    setFile,
+    handleDragEnter,
+    handleDragLeave,
+    handleDragOver,
+    handleDrop,
+    handleFileSelect,
+  } = useFileUpload({ onClaim: (resumeId) => onClaimRef.current(resumeId) });
 
-  const handleDragLeave = (e: DragEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-  };
-
-  const handleDragOver = (e: DragEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-  };
-
-  const handleDrop = (e: DragEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-
-    const droppedFile = e.dataTransfer.files[0];
-    if (droppedFile) {
-      processFile(droppedFile);
-    }
-  };
-
-  const handleFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
-    if (selectedFile) {
-      processFile(selectedFile);
-    }
-  };
-
-  const processFile = (selectedFile: File) => {
-    setError(null);
-
-    const validation = validatePDF(selectedFile);
-    if (!validation.valid) {
-      setError(validation.error!);
-      toast.error(validation.error!);
-      return;
-    }
-
-    setFile(selectedFile);
-    void uploadAndParse(selectedFile);
-  };
-
-  // Wait for resume parsing completion via WebSocket (with polling fallback)
-  const awaitResumeCompletion = async (resumeId: string): Promise<ResumeContent | null> => {
-    const result = await waitForResumeCompletion(resumeId);
-
-    if (result.status === "completed") {
-      // Fetch the parsed content
-      const siteDataResponse = await fetch("/api/site-data");
-      if (siteDataResponse.ok) {
-        // SAFETY: SiteDataResponse is from our /api/site-data endpoint; content is schema-validated JSON written only by queue consumer.
-        const siteData = (await siteDataResponse.json()) as SiteDataResponse | null;
-        if (siteData?.content) {
-          return siteData.content;
-        }
-      }
-      // Parsing finished but the follow-up content fetch failed. Surface an
-      // error (retry state) instead of stalling silently on the "AI is
-      // extracting your experience..." screen.
-      throw new Error("Your resume was parsed, but we couldn't load the result. Please try again.");
-    }
-
-    // Failed
-    setError(result.error || "Resume parsing failed. Please try again.");
-    setUploadState("error");
-    return null;
-  };
-
-  const uploadAndParse = async (fileToUpload: File) => {
-    setUploadState("uploading");
-    setUploadProgress(0);
-    setError(null);
-
-    try {
-      // Step 1: Upload directly to Worker
-      setUploadProgress(10);
-
-      const uploadResponse = await fetch("/api/upload", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/pdf",
-          "Content-Length": String(fileToUpload.size),
-          "X-Filename": fileToUpload.name,
-        },
-        body: fileToUpload,
-      });
-
-      if (!uploadResponse.ok) {
-        // SAFETY: UploadResponse is from our /api/upload endpoint; shape is server-controlled.
-        const data = (await uploadResponse.json()) as UploadResponse;
-        if (uploadResponse.status === 429) {
-          throw new Error(data.error || "Too many upload attempts. Please wait and try again.");
-        }
-        throw new Error(data.error || "Failed to upload file");
-      }
-
-      // SAFETY: UploadResponse is from our /api/upload endpoint; shape is server-controlled and contains temp R2 key.
-      const { key } = (await uploadResponse.json()) as UploadResponse;
-      setUploadProgress(40);
-      setUploadState("claiming");
-
-      // Step 2: Claim the upload (hash computed server-side)
-      // Include referral code if present
-      const referralRef = getStoredReferralCode();
-      const claimResponse = await fetch("/api/resume/claim", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          key,
-          referral_code: referralRef || undefined,
-        }),
-      });
-
-      if (!claimResponse.ok) {
-        // SAFETY: ClaimResponse is from our /api/resume/claim endpoint; shape validated server-side.
-        const data = (await claimResponse.json()) as ClaimResponse;
-        throw new Error(data.error || "Failed to claim resume");
-      }
-
-      // SAFETY: ClaimResponse is from our /api/resume/claim endpoint; shape validated server-side for cached handling.
-      const claimData = (await claimResponse.json()) as ClaimResponse;
-      const resumeId = claimData.resume_id;
-      const cached = claimData.cached;
-      setUploadProgress(70);
-      setUploadState("parsing");
-
-      // Step 3: If cached, we already have the content; otherwise poll for status
-      if (cached) {
-        // Fetch site_data directly since it's already populated
+  const awaitResumeCompletion = useCallback(
+    async (resumeId: string): Promise<ResumeContent | null> => {
+      const result = await waitForResumeCompletion(resumeId);
+      if (result.status === "completed") {
         const siteDataResponse = await fetch("/api/site-data");
         if (siteDataResponse.ok) {
-          // SAFETY: SiteDataResponse is from our /api/site-data endpoint; content is schema-validated JSON for cached resume.
+          // SAFETY: /api/site-data returns bounded SiteDataResponse JSON
           const siteData = (await siteDataResponse.json()) as SiteDataResponse | null;
           if (siteData?.content) {
-            setUploadProgress(100);
-            clearStoredReferralCode();
-            toast.success("Resume parsed successfully!");
-            onContinue(siteData.content);
-            return;
+            return siteData.content;
           }
         }
-        throw new Error("Failed to load cached resume data");
+        throw new Error(
+          "Your resume was parsed, but we couldn't load the result. Please try again.",
+        );
       }
 
-      // Wait for parsing completion via WebSocket (with polling fallback)
-      const parsingResult = await awaitResumeCompletion(resumeId);
-
-      if (parsingResult) {
-        setUploadProgress(100);
-        clearStoredReferralCode();
-        toast.success("Resume parsed successfully!");
-        onContinue(parsingResult);
-      }
-    } catch (err) {
-      let errorMessage = "Failed to process resume";
-
-      if (err instanceof Error) {
-        if (err.message.includes("429") || err.message.includes("limit")) {
-          errorMessage = "Upload limit reached (5 per day). Try again tomorrow.";
-        } else if (err.message.includes("413") || err.message.includes("large")) {
-          errorMessage = `File too large. Maximum size is ${MAX_FILE_SIZE_LABEL}.`;
-        } else if (err.message.includes("401") || err.message.includes("expired")) {
-          errorMessage = "Session expired. Please refresh the page.";
-        } else if (err.message) {
-          errorMessage = err.message;
-        }
-      }
-
-      setError(errorMessage);
+      setError(result.error || "Resume parsing failed. Please try again.");
       setUploadState("error");
-      toast.error(errorMessage);
-    }
-  };
+      return null;
+    },
+    [setError, setUploadState],
+  );
+
+  // SAFETY: onClaimRef expects (resumeId:string)=>void; async handler returns Promise<void> intentionally ignored (caller does not await)
+  onClaimRef.current = useCallback(
+    async (resumeId: string) => {
+      try {
+        const parsingResult = await awaitResumeCompletion(resumeId);
+
+        if (parsingResult) {
+          setUploadProgress(100);
+          clearStoredReferralCode();
+          toast.success("Resume parsed successfully!");
+          onContinue(parsingResult);
+        }
+      } catch (err) {
+        const msg = err instanceof Error && err.message ? err.message : "Failed to process resume";
+        setError(msg);
+        setUploadState("error");
+        toast.error(msg);
+      }
+    },
+    [awaitResumeCompletion, onContinue, setError, setUploadProgress, setUploadState],
+  ) as (resumeId: string) => void;
 
   const handleRetry = () => {
     setError(null);

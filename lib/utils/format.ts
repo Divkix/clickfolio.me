@@ -5,10 +5,10 @@
 /**
  * Format relative time (e.g., "2 days ago") - deterministic to avoid hydration mismatch
  */
-export function formatRelativeTime(dateString: string): string {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
+export function formatRelativeTime(date: string | Date): string {
+  const d = date instanceof Date ? date : new Date(date);
+  const nowMs = Date.now();
+  const diffMs = nowMs - d.getTime();
   const diffMins = Math.floor(diffMs / 60000);
   const diffHours = Math.floor(diffMs / 3600000);
   const diffDays = Math.floor(diffMs / 86400000);
@@ -32,13 +32,14 @@ export function formatRelativeTime(dateString: string): string {
     "Nov",
     "Dec",
   ];
-  return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
+  return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
 }
 
 /**
- * Truncate text with ellipsis
+ * Truncate text with ellipsis (maxLength inclusive of ellipsis)
  */
 export function truncateText(text: string, maxLength: number): string {
   if (text.length <= maxLength) return text;
-  return `${text.slice(0, maxLength).trim()}...`;
+  if (maxLength <= 3) return "...".slice(0, maxLength);
+  return `${text.slice(0, maxLength - 3).trim()}...`;
 }

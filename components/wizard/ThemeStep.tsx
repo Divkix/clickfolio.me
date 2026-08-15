@@ -1,9 +1,10 @@
 "use client";
 
-import { CheckCircle2, Gift, Lock, Palette } from "lucide-react";
+import { CheckCircle2, Gift, Palette } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { ThemeLockOverlay } from "@/components/dashboard/ThemeLockOverlay";
 import { isThemeUnlocked, THEME_METADATA, type ThemeId } from "@/lib/templates/theme-ids";
 import { cn } from "@/lib/utils/cn";
 
@@ -142,15 +143,7 @@ export function ThemeStep({
                         )}
                         loading="lazy"
                       />
-                      {/* Lock Overlay for locked themes */}
-                      {!isUnlocked && (
-                        <div className="absolute inset-0 bg-foreground/40 flex flex-col items-center justify-center">
-                          <Lock className="w-5 h-5 text-background mb-1" />
-                          <span className="text-[10px] text-background font-semibold">
-                            {requiredReferrals} referrals
-                          </span>
-                        </div>
-                      )}
+                      {!isUnlocked && <ThemeLockOverlay requiredReferrals={requiredReferrals} />}
                     </div>
                   </div>
                 </div>

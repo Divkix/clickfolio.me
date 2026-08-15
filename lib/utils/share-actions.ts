@@ -1,0 +1,130 @@
+"use client";
+
+import { useCallback, useMemo } from "react";
+import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
+import { siteConfig } from "@/lib/config/site";
+import type { ThemeId } from "@/lib/templates/theme-ids";
+import {
+  generateLinkedInShareUrl,
+  generateShareText,
+  generateTwitterShareUrl,
+  generateWhatsAppShareUrl,
+  webShare,
+} from "@/lib/utils/share";
+import type { BrandIconVariant } from "@/components/icons/BrandIcons";
+
+/**
+ * Build a shareable URL for a portfolio.
+ * Client-side uses location.origin when available; SSR falls back to siteConfig.url.
+ */
+export function getShareUrl(handle: string | undefined): string {
+  if (globalThis.window !== undefined && handle) {
+    return `${globalThis.window.location.origin}/@${handle}`;
+  }
+  return `${siteConfig.url}/@${handle ?? ""}`;
+}
+
+/**
+ * Returns the appropriate LinkedIn icon color variant for the given theme.
+ * Dark themes use the white variant; all others use black.
+ */
+export function getLinkedInIconVariant(
+  themeId: ThemeId | (string & {}) | null | undefined,
+): BrandIconVariant {
+  switch (themeId) {
+    case "glass-morphic":
+    case "midnight":
+    case "design-folio":
+    case "dev-terminal":
+      return "white";
+    default:
+      return "black";
+  }
+}
+// --- plain share action handlers (used by useShareActions and directly) ---
+
+function handleTwitterShare(text: string, url: string): void {
+  globalThis.window?.open(generateTwitterShareUrl(text, url), "_blank", "noopener,noreferrer");
+}
+
+function handleLinkedInShare(url: string): void {
+  globalThis.window?.open(generateLinkedInShareUrl(url), "_blank", "noopener,noreferrer");
+}
+
+function handleWhatsAppShare(text: string, url: string): void {
+  globalThis.window?.open(generateWhatsAppShareUrl(text, url), "_blank", "noopener,noreferrer");
+}
+
+async function handleCopyLink(
+  url: string,
+  copy: (
+    text: string,
+    opts: { successMessage: string; errorMessage: string; onSuccess?: () => void },
+  ) => Promise<void>,
+  options?: { onSuccess?: () => void },
+): Promise<void> {
+  await copy(url, {
+    successMessage: "Link copied!",
+    errorMessage: "Failed to copy link",
+    onSuccess: options?.onSuccess,
+  });
+}
+
+/**
+ * Hook that returns memoized share URL/text and bound share action handlers.
+ * Centralizes webShare fallback and copy logic.
+ */
+export function useShareActions(options: {
+  url?: string;
+  handle?: string;
+  title: string;
+  name: string;
+  onSuccess?: () => void;
+}) {
+  const { url, handle, title, name, onSuccess } = options;
+  const { copied, copy } = useCopyToClipboard();
+
+  const shareText = useMemo(() => generateShareText(name), [name]);
+  const shareUrl = useMemo(() => url || getShareUrl(handle), [url, handle]);
+
+  const onNativeShare = useCallback(async () => {
+    try {
+      await webShare({ title, text: shareText, url: shareUrl });
+      onSuccess?.();
+    } catch (err) {
+      if (err instanceof Error && err.name !== "AbortError") {
+        console.error("Share failed:", err);
+      }
+    }
+  }, [title, shareText, shareUrl, onSuccess]);
+
+  const onTwitterShare = useCallback(() => {
+    handleTwitterShare(shareText, shareUrl);
+    onSuccess?.();
+  }, [shareText, shareUrl, onSuccess]);
+
+  const onLinkedInShare = useCallback(() => {
+    handleLinkedInShare(shareUrl);
+    onSuccess?.();
+  }, [shareUrl, onSuccess]);
+
+  const onWhatsAppShare = useCallback(() => {
+    handleWhatsAppShare(shareText, shareUrl);
+    onSuccess?.();
+  }, [shareText, shareUrl, onSuccess]);
+
+  const onCopyLink = useCallback(async () => {
+    await handleCopyLink(shareUrl, copy, { onSuccess });
+  }, [shareUrl, copy, onSuccess]);
+
+  return {
+    shareUrl,
+    shareText,
+    copied,
+    handleNativeShare: onNativeShare,
+    handleTwitterShare: onTwitterShare,
+    handleLinkedInShare: onLinkedInShare,
+    handleWhatsAppShare: onWhatsAppShare,
+    handleCopyLink: onCopyLink,
+  };
+}

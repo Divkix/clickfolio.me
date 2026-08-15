@@ -1,9 +1,22 @@
 "use client";
-
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ResumeStatus } from "@/lib/db/schema";
+import { POLL_INTERVAL_MS } from "@/lib/realtime/constants";
 import { classifyError, getErrorMessage, showErrorToast } from "@/lib/utils/errors";
 import { useResumeWebSocket } from "./useResumeWebSocket";
+
+const VALID_STATUSES: ReadonlySet<string> = new Set([
+  "pending_claim",
+  "queued",
+  "processing",
+  "completed",
+  "failed",
+  "waiting_for_cache",
+]);
+
+function isValidStatus(value: string): value is ResumeStatus {
+  return VALID_STATUSES.has(value);
+}
 
 interface ResumeStatusResponse {
   status: ResumeStatus;
@@ -48,20 +61,19 @@ export function useResumeStatus(resumeId: string | null): UseResumeStatusReturn 
   const fetchStatusRef = useRef<(() => Promise<void>) | null>(null);
 
   // Handle status updates from WebSocket
-  const handleWSStatus = useCallback((newStatus: string, wsError?: string) => {
-    // SAFETY: WebSocket message is JSON from our DO, validated via status schema before cast; newStatus is narrowed to ResumeStatus for UI state.
-    const s = newStatus as ResumeStatus;
-    setStatus(s);
+  const handleWSStatus = useCallback((newStatus: ResumeStatus, wsError?: string) => {
+    if (!isValidStatus(newStatus)) return;
+    setStatus(newStatus);
     if (wsError) {
       setError(wsError);
     }
 
     // Map status to progress percentage
-    if (s === "processing") {
+    if (newStatus === "processing") {
       setProgress(50);
-    } else if (s === "completed") {
+    } else if (newStatus === "completed") {
       setProgress(100);
-    } else if (s === "failed") {
+    } else if (newStatus === "failed") {
       // The WebSocket push payload only carries { status, error, timestamp } and
       // structurally cannot judge retry eligibility. Refetch the authoritative
       // status endpoint so canRetry always comes from the single canonical source
@@ -70,7 +82,7 @@ export function useResumeStatus(resumeId: string | null): UseResumeStatusReturn 
     }
 
     // Terminal state — stop any polling that might be running
-    if (s === "completed" || s === "failed") {
+    if (newStatus === "completed" || newStatus === "failed") {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
@@ -204,7 +216,7 @@ export function useResumeStatus(resumeId: string | null): UseResumeStatusReturn 
   // Start polling fallback when WebSocket gives up
   useEffect(() => {
     if (connectionState === "fallback" && resumeId && !intervalRef.current) {
-      intervalRef.current = setInterval(fetchStatus, 3000);
+      intervalRef.current = setInterval(fetchStatus, POLL_INTERVAL_MS);
     }
 
     // If WS connects successfully, stop any polling

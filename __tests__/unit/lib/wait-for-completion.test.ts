@@ -69,19 +69,19 @@ describe("waitForResumeCompletion", () => {
       );
     }) as unknown as typeof fetch;
 
+    // jitter adds 0-199ms; advance with buffer to cover max
     const resultPromise = waitForResumeCompletion("res_retry", 20_000);
     MockWebSocket.instances[0].onclose?.({ code: 1006 });
-    await vi.advanceTimersByTimeAsync(1000);
+    await vi.advanceTimersByTimeAsync(1200);
     MockWebSocket.instances[1].onerror?.();
     MockWebSocket.instances[1].onclose?.({ code: 1006 });
-    await vi.advanceTimersByTimeAsync(2000);
+    await vi.advanceTimersByTimeAsync(2200);
     MockWebSocket.instances[2].onclose?.({ code: 1006 });
 
     await vi.advanceTimersByTimeAsync(3000);
     await expect(resultPromise).resolves.toEqual({ status: "failed", error: "Parser failed" });
     expect(fetch).toHaveBeenCalledWith("/api/resume/status?resume_id=res_retry");
   });
-
   it("times out when no terminal status arrives", async () => {
     const resultPromise = waitForResumeCompletion("res_timeout", 50);
     await vi.advanceTimersByTimeAsync(50);

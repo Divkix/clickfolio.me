@@ -25,7 +25,7 @@
  * Caching: `Cache-Control: private, max-age=60, stale-while-revalidate=120`
  */
 
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { withUser } from "@/lib/auth/with-auth";
 import { handleChanges } from "@/lib/db/schema";
 import { getMetrics, getPageviews, getStats } from "@/lib/umami/client";
@@ -76,11 +76,12 @@ export async function GET(request: Request) {
         const oldHandleRows = await db
           .select({ oldHandle: handleChanges.oldHandle })
           .from(handleChanges)
-          .where(eq(handleChanges.userId, dbUser.id));
+          .where(eq(handleChanges.userId, dbUser.id))
+          .orderBy(desc(handleChanges.createdAt))
+          .limit(3);
 
         const handleSet = new Set([currentHandle]);
-        // Cap at 3 most recent old handles to bound Umami API fan-out
-        for (const row of oldHandleRows.slice(0, 3)) {
+        for (const row of oldHandleRows) {
           if (row.oldHandle) {
             handleSet.add(row.oldHandle);
           }

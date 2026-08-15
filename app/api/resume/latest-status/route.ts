@@ -1,13 +1,9 @@
 import { desc, eq } from "drizzle-orm";
 import { withUser } from "@/lib/auth/with-auth";
 import { resumes } from "@/lib/db/schema";
-import {
-  canRetryResume,
-  statusPresentation,
-  WAITING_FOR_CACHE_TIMEOUT_MESSAGE,
-} from "@/lib/resume/lifecycle";
+import type { ResumeStatus } from "@/lib/db/schema/resume";
+import { getStatusView, WAITING_FOR_CACHE_TIMEOUT_MESSAGE } from "@/lib/resume/lifecycle";
 import { createSuccessResponse } from "@/lib/utils/security-headers";
-
 /**
  * GET /api/resume/latest-status
  * Get the latest resume status for the currently authenticated user.
@@ -59,43 +55,25 @@ export async function GET(request?: Request) {
       // Side-effect-free timeout: mirror GET /status — a waiting_for_cache row
       // that has timed out is presented as a virtual "failed" without persisting.
       // The orphan cron will durably transition it on its next tick.
-      // Single presentation call encodes the timeout, progress, and status.
-      // SAFETY: D1 status and createdAt are validated enum/string columns; casts bridge Drizzle nullable type.
-      const pres = statusPresentation({
-        status: resume.status as string,
+      // SAFETY: drizzle row fields are D1-inferred; cast narrows to lifecycle helper type
+      const view = getStatusView({
+        status: resume.status as ResumeStatus,
         createdAt: resume.createdAt as string | null,
+        retryCount: resume.retryCount as number,
+        totalAttempts: resume.totalAttempts as number,
+        lastAttemptError: resume.lastAttemptError as string | null,
       });
-      const isTimedOut = !!pres.isWaitingForCacheTimeout;
-      const publicStatus = pres.publicStatus;
-
-      // For a virtual timeout the row is logically failed with a transient
-      // timeout error (no stored lastAttemptError type), so retry is allowed
-      // iff caps allow.
-      // SAFETY: D1 resume fields are validated enum/number columns; casts bridge Drizzle nullable type.
-      const can_retry = isTimedOut
-        ? canRetryResume({
-            status: "failed",
-            retryCount: resume.retryCount as number,
-            totalAttempts: resume.totalAttempts as number,
-            lastAttemptError: null,
-          })
-        : canRetryResume({
-            status: resume.status as string,
-            retryCount: resume.retryCount as number,
-            totalAttempts: resume.totalAttempts as number,
-            lastAttemptError: resume.lastAttemptError as string | null,
-          });
       // SAFETY: D1 errorMessage is nullable string column; cast bridges Drizzle type.
-      const error = isTimedOut
+      const error = view.isTimedOut
         ? WAITING_FOR_CACHE_TIMEOUT_MESSAGE
         : (resume.errorMessage as string | null);
 
       // SAFETY: D1 id and createdAt are validated string columns; casts bridge Drizzle nullable type.
       return createSuccessResponse({
         id: resume.id as string,
-        status: publicStatus,
+        status: view.status,
         error,
-        can_retry,
+        can_retry: view.canRetry,
         createdAt: resume.createdAt as string,
       });
     },

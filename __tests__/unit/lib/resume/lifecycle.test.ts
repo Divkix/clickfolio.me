@@ -1,13 +1,20 @@
 import { describe, expect, it } from "vite-plus/test";
+import type { ResumeStatus } from "@/lib/db/schema/resume";
 import { canRetryResume } from "@/lib/resume/lifecycle";
 
 describe("canRetryResume", () => {
+  type Base = {
+    status: ResumeStatus;
+    retryCount: number;
+    totalAttempts: number;
+    lastAttemptErrorType: string | null;
+  };
   const base = {
     status: "failed",
     retryCount: 0,
     totalAttempts: 1,
     lastAttemptErrorType: null as string | null,
-  };
+  } satisfies Base;
 
   const cases: Array<{
     name: string;
@@ -16,7 +23,7 @@ describe("canRetryResume", () => {
   }> = [
     {
       name: "status is not failed → false",
-      input: { ...base, status: "processing" },
+      input: { ...base, status: "processing" } as Base,
       expected: false,
     },
     {

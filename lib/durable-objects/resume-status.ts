@@ -1,22 +1,32 @@
 import { DurableObject } from "cloudflare:workers";
+import type { ResumeStatus } from "@/lib/db/schema/resume";
 import type { JsonValue } from "@/lib/types/json";
+
+const VALID_STATUSES: ReadonlySet<string> = new Set([
+  "pending_claim",
+  "queued",
+  "processing",
+  "completed",
+  "failed",
+  "waiting_for_cache",
+]);
+
+function isValidStatus(value: string): value is ResumeStatus {
+  return VALID_STATUSES.has(value);
+}
+
 /**
  * Status message sent to connected WebSocket clients.
  */
 interface StatusMessage {
   type: "status";
-  status: string;
+  status: ResumeStatus;
   error?: string;
   timestamp: string;
 }
 
 /**
  * Durable Object for resume status notifications via WebSocket Hibernation.
- *
- * Keyed by resumeId. Accepts WebSocket connections from clients waiting for
- * status updates, and receives POST /notify from the queue consumer when
- * status changes. Broadcasts to all connected clients instantly.
- *
  * Uses the Hibernatable WebSocket API so the DO is evicted from memory
  * when idle (zero cost during hibernation).
  */
@@ -68,7 +78,7 @@ export class ClickfolioStatusDO extends DurableObject {
     const cachedStatus = cached.get("lastStatus");
     const cachedError = cached.get("lastError");
 
-    if (cachedStatus) {
+    if (cachedStatus && isValidStatus(cachedStatus)) {
       const msg: StatusMessage = {
         type: "status",
         status: cachedStatus,
@@ -88,9 +98,10 @@ export class ClickfolioStatusDO extends DurableObject {
    * Stores status in transactional storage and broadcasts to all connected clients.
    */
   private async handleNotify(request: Request): Promise<Response> {
-    let body: { status: string; error?: string };
+    let body: { status: ResumeStatus; error?: string };
     try {
-      body = await request.json();
+      // SAFETY: request JSON shape is validated immediately after via isValidStatus; cast provides typed destructuring with 400 on invalid status
+      body = (await request.json()) as { status: ResumeStatus; error?: string };
     } catch {
       return new Response("Invalid JSON", { status: 400 });
     }
@@ -98,6 +109,9 @@ export class ClickfolioStatusDO extends DurableObject {
     const { status, error } = body;
     if (!status) {
       return new Response("Missing status", { status: 400 });
+    }
+    if (!isValidStatus(status)) {
+      return new Response("Invalid status", { status: 400 });
     }
 
     // Store in DO storage (survives hibernation) — atomic batched write
@@ -156,7 +170,7 @@ export class ClickfolioStatusDO extends DurableObject {
       const cachedStatus = cached.get("lastStatus");
       const cachedError = cached.get("lastError");
 
-      if (cachedStatus) {
+      if (cachedStatus && isValidStatus(cachedStatus)) {
         const msg: StatusMessage = {
           type: "status",
           status: cachedStatus,

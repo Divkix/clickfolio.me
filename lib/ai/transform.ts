@@ -1,7 +1,8 @@
 import type { ResumeContentFormData } from "@/lib/schemas/resume";
 import { z } from "zod";
 import type { JsonValue, UnknownRecord } from "@/lib/types/json";
-import { sanitizeEmail } from "@/lib/utils/sanitization";
+import { truncateText } from "@/lib/utils/format";
+import { sanitizeEmail, sanitizeUrl } from "@/lib/utils/sanitization";
 
 // Pre-compiled regex for URL validation (avoid per-call compilation overhead)
 // Requires a path segment to appear THREE times consecutively before the URL is
@@ -11,32 +12,20 @@ const REPEATING_SEGMENT_PATTERN = /\/([^/]+)\/\1\/\1(?:\/|$)/;
 
 /**
  * Normalize URL - add protocol if missing, return empty string if invalid
+ * Delegates scheme validation to canonical sanitizeUrl.
  */
 export function normalizeUrl(value: JsonValue): string {
-  // SAFETY: zod safeParse above guarantees value is string, cast preserves type after validation.
+  // SAFETY: zod safeParse guarantees value is string if success
   if (!z.string().safeParse(value).success || !(value as string).trim()) return "";
-  // SAFETY: zod safeParse above guarantees value is string, cast preserves type after validation.
-  const trimmed = (value as string).trim();
-  const lower = trimmed.toLowerCase();
-  // Already has valid protocol
-  if (lower.startsWith("http://") || lower.startsWith("https://") || lower.startsWith("mailto:")) {
-    return trimmed;
-  }
-  // Block dangerous protocols
-  if (
-    lower.startsWith("javascript:") ||
-    lower.startsWith("data:") ||
-    lower.startsWith("vbscript:")
-  ) {
-    return "";
-  }
-  // Add https:// to URLs without protocol
-  return `https://${trimmed}`;
+  // SAFETY: zod safeParse guarantees value is string
+  return sanitizeUrl((value as string).trim());
 }
 
 /**
  * Validate URL with garbage pattern detection
- * Detects pathological patterns like repeating path segments
+ * Detects pathological patterns like repeating path segments.
+ * Delegates scheme normalization to canonical sanitizeUrl,
+ * then adds AI-specific checks (segment repetition, 12-segment cap).
  */
 export function validateUrl(url: JsonValue): string {
   if (!url || !z.string().safeParse(url).success) return "";
@@ -47,14 +36,14 @@ export function validateUrl(url: JsonValue): string {
   // Max length check
   if (trimmed.length > 500) return "";
 
-  // Detect repeating path segments
+  // AI-specific: Detect repeating path segments (three consecutive identical segments)
   if (REPEATING_SEGMENT_PATTERN.test(trimmed)) return "";
 
-  // Check for excessive path depth
+  // AI-specific: Check for excessive path depth
   const pathSegments = trimmed.split("/").filter(Boolean);
   if (pathSegments.length > 12) return "";
 
-  const normalized = normalizeUrl(trimmed);
+  const normalized = sanitizeUrl(trimmed);
   if (!normalized) return "";
 
   try {
@@ -66,14 +55,6 @@ export function validateUrl(url: JsonValue): string {
   } catch {
     return "";
   }
-}
-
-/**
- * Truncate string to max length with ellipsis
- */
-export function truncateString(value: string, maxLength: number): string {
-  if (value.length <= maxLength) return value;
-  return `${value.slice(0, maxLength - 3)}...`;
 }
 
 /**
@@ -118,8 +99,8 @@ export function transformAiResponse(raw: JsonValue): UnknownRecord {
   const data = raw as UnknownRecord;
 
   // Top-level fields
-  data.full_name = truncateString(normalizeString(data.full_name, "Unknown"), 100);
-  data.headline = truncateString(normalizeString(data.headline, "Professional"), 150);
+  data.full_name = truncateText(normalizeString(data.full_name, "Unknown"), 100);
+  data.headline = truncateText(normalizeString(data.headline, "Professional"), 150);
 
   // Summary with fallback generation
   let summary = normalizeString(data.summary);
@@ -140,15 +121,15 @@ export function transformAiResponse(raw: JsonValue): UnknownRecord {
       summary = `Experienced ${headline.toLowerCase()} with a proven track record.`;
     }
   }
-  data.summary = truncateString(summary, 2000);
+  data.summary = truncateText(summary, 2000);
 
   // Contact - validate URLs, sanitize email
   if (data.contact && data.contact instanceof Object && !Array.isArray(data.contact)) {
     // SAFETY: object guard above ensures data.contact is a non-null object; UnknownRecord is safe for dynamic contact field access.
     const c = data.contact as UnknownRecord;
     c.email = sanitizeEmail(normalizeString(c.email));
-    c.phone = truncateString(normalizeString(c.phone), 30);
-    c.location = truncateString(normalizeString(c.location), 100);
+    c.phone = truncateText(normalizeString(c.phone), 30);
+    c.location = truncateText(normalizeString(c.location), 100);
     c.linkedin = validateUrl(c.linkedin);
     c.github = validateUrl(c.github);
     c.website = validateUrl(c.website);
@@ -182,12 +163,12 @@ export function transformAiResponse(raw: JsonValue): UnknownRecord {
     });
     // SAFETY: Array.isArray guard above ensures data.experience is an array; UnknownRecord[] is the safe type for iterating AI experience entries.
     for (const exp of data.experience as UnknownRecord[]) {
-      exp.title = truncateString(normalizeString(exp.title), 150);
-      exp.company = truncateString(normalizeString(exp.company), 150);
-      exp.location = truncateString(normalizeString(exp.location), 100);
-      exp.start_date = truncateString(normalizeString(exp.start_date), 50);
-      exp.end_date = truncateString(normalizeEndDate(exp.end_date), 50);
-      exp.description = truncateString(normalizeString(exp.description), 2000);
+      exp.title = truncateText(normalizeString(exp.title), 150);
+      exp.company = truncateText(normalizeString(exp.company), 150);
+      exp.location = truncateText(normalizeString(exp.location), 100);
+      exp.start_date = truncateText(normalizeString(exp.start_date), 50);
+      exp.end_date = truncateText(normalizeEndDate(exp.end_date), 50);
+      exp.description = truncateText(normalizeString(exp.description), 2000);
       // Coerce a plain string highlight into a single-element array to match
       // the schema's highlights: string[] shape.
       if (z.string().safeParse(exp.highlights).success) {
@@ -200,7 +181,7 @@ export function transformAiResponse(raw: JsonValue): UnknownRecord {
           .filter(
             (h): h is string => z.string().safeParse(h).success && (h as string).trim().length > 0,
           )
-          .map((h) => truncateString((h as string).trim(), 500));
+          .map((h) => truncateText((h as string).trim(), 500));
       }
     }
   } else {
@@ -225,9 +206,9 @@ export function transformAiResponse(raw: JsonValue): UnknownRecord {
     });
     // SAFETY: Array.isArray guard above ensures data.education is an array; UnknownRecord[] is the safe type for iterating AI education entries.
     for (const edu of data.education as UnknownRecord[]) {
-      edu.degree = truncateString(normalizeString(edu.degree), 150);
-      edu.institution = truncateString(normalizeString(edu.institution), 150);
-      edu.location = truncateString(normalizeString(edu.location), 100);
+      edu.degree = truncateText(normalizeString(edu.degree), 150);
+      edu.institution = truncateText(normalizeString(edu.institution), 150);
+      edu.location = truncateText(normalizeString(edu.location), 100);
     }
   }
 
@@ -248,14 +229,14 @@ export function transformAiResponse(raw: JsonValue): UnknownRecord {
     });
     // SAFETY: Array.isArray guard above ensures data.skills is an array; UnknownRecord[] is the safe type for iterating AI skill entries.
     for (const skill of data.skills as UnknownRecord[]) {
-      skill.category = truncateString(normalizeString(skill.category), 100);
+      skill.category = truncateText(normalizeString(skill.category), 100);
       if (Array.isArray(skill.items)) {
         // SAFETY: zod safeParse guarantees item is string before cast.
         skill.items = skill.items
           .filter(
             (i): i is string => z.string().safeParse(i).success && (i as string).trim().length > 0,
           )
-          .map((i) => truncateString((i as string).trim(), 100));
+          .map((i) => truncateText((i as string).trim(), 100));
       }
     }
   }
@@ -277,8 +258,8 @@ export function transformAiResponse(raw: JsonValue): UnknownRecord {
     });
     // SAFETY: Array.isArray guard above ensures data.certifications is an array; UnknownRecord[] is the safe type for iterating AI certification entries.
     for (const cert of data.certifications as UnknownRecord[]) {
-      cert.name = truncateString(normalizeString(cert.name), 150);
-      cert.issuer = truncateString(normalizeString(cert.issuer), 150);
+      cert.name = truncateText(normalizeString(cert.name), 150);
+      cert.issuer = truncateText(normalizeString(cert.issuer), 150);
       cert.url = validateUrl(cert.url);
     }
   }
@@ -301,8 +282,8 @@ export function transformAiResponse(raw: JsonValue): UnknownRecord {
     });
     // SAFETY: Array.isArray guard above ensures data.projects is an array; UnknownRecord[] is the safe type for iterating AI project entries.
     for (const proj of data.projects as UnknownRecord[]) {
-      proj.title = truncateString(normalizeString(proj.title), 150);
-      proj.description = truncateString(normalizeString(proj.description), 1000);
+      proj.title = truncateText(normalizeString(proj.title), 150);
+      proj.description = truncateText(normalizeString(proj.description), 1000);
       proj.url = validateUrl(proj.url);
       proj.image_url = validateUrl(proj.image_url);
       if (Array.isArray(proj.technologies)) {
@@ -311,7 +292,7 @@ export function transformAiResponse(raw: JsonValue): UnknownRecord {
           .filter(
             (t): t is string => z.string().safeParse(t).success && (t as string).trim().length > 0,
           )
-          .map((t) => truncateString((t as string).trim(), 50));
+          .map((t) => truncateText((t as string).trim(), 50));
       }
     }
   }

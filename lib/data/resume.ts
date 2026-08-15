@@ -27,7 +27,7 @@ interface ResumeData {
     headline: string | null;
   };
   content: ResumeContent;
-  theme_id: string | null;
+  theme_id: ThemeId | null;
   privacy_settings: PrivacySettings;
   created_at: string;
   updated_at: string;
@@ -73,7 +73,14 @@ async function fetchResumeDataRaw(handle: string): Promise<ResumeData | null> {
       referralCount: true, // Denormalized field, avoids separate COUNT query
     },
     with: {
-      siteData: true,
+      siteData: {
+        columns: {
+          content: true,
+          themeId: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      },
     },
   });
 
@@ -103,11 +110,11 @@ async function fetchResumeDataRaw(handle: string): Promise<ResumeData | null> {
 
   // Defense-in-depth: Validate theme is unlocked before returning
   // This catches edge cases where theme was set directly in DB or via API bypass
-  let themeId = userData.siteData.themeId;
+  // SAFETY: DB themeId is string|null validated immediately after via isValidThemeId; cast narrows to ThemeId for metadata lookup with fallback to DEFAULT_THEME
+  let themeId: ThemeId | null = userData.siteData.themeId as ThemeId | null;
 
   if (themeId && isValidThemeId(themeId)) {
-    // SAFETY: isValidThemeId guard above guarantees id is ThemeId.
-    const themeMetadata = THEME_METADATA[themeId as ThemeId];
+    const themeMetadata = THEME_METADATA[themeId];
 
     // Only check referral count if theme requires referrals
     if (themeMetadata.referralsRequired > 0) {
@@ -115,8 +122,7 @@ async function fetchResumeDataRaw(handle: string): Promise<ResumeData | null> {
       const referralCount = userData.referralCount ?? 0;
       const isPro = userData.isPro ?? false;
 
-      // SAFETY: isValidThemeId guard above guarantees id is ThemeId.
-      if (!isThemeUnlocked(themeId as ThemeId, referralCount, isPro)) {
+      if (!isThemeUnlocked(themeId, referralCount, isPro)) {
         console.warn(
           `[theme-defense] User ${userData.id} has locked theme ${themeId}. Falling back to default.`,
         );
@@ -223,7 +229,7 @@ async function fetchResumeMetadataRaw(handle: string): Promise<ResumeMetadata | 
   let jsonLdResumeScript: string | null = null;
   let jsonLdBreadcrumbScript: string | null = null;
 
-  if (!hideFromSearch && userData.siteData.content) {
+  if (userData?.siteData?.content && !hideFromSearch) {
     try {
       // SAFETY: D1 content is schema-validated JSON written only by our queue consumer; JSON.parse failure is caught and returns null.
       const content = JSON.parse(userData.siteData.content) as ResumeContent;

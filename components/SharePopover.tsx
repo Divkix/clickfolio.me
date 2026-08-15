@@ -2,20 +2,11 @@
 
 import { cva, type VariantProps } from "class-variance-authority";
 import { Check, Copy, Share2, XIcon } from "lucide-react";
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
-import { type BrandIconVariant, LinkedInIcon, WhatsAppIcon } from "@/components/icons/BrandIcons";
-import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
-import { siteConfig } from "@/lib/config/site";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { LinkedInIcon, WhatsAppIcon } from "@/components/icons/BrandIcons";
 import { cn } from "@/lib/utils/cn";
-import {
-  generateLinkedInShareUrl,
-  generateShareText,
-  generateTwitterShareUrl,
-  generateWhatsAppShareUrl,
-  isWebShareSupported,
-  webShare,
-} from "@/lib/utils/share";
-
+import { isWebShareSupported } from "@/lib/utils/share";
+import { getLinkedInIconVariant, useShareActions } from "@/lib/utils/share-actions";
 const triggerVariants = cva(
   "inline-flex items-center gap-2 px-3 py-2 rounded-full border shadow-lg transition-colors duration-200",
   {
@@ -99,20 +90,6 @@ const itemVariants = cva(
   },
 );
 
-function getLinkedInIconVariant(
-  variant?: VariantProps<typeof triggerVariants>["variant"],
-): BrandIconVariant {
-  switch (variant) {
-    case "glass-morphic":
-    case "midnight":
-    case "design-folio":
-    case "dev-terminal":
-      return "white";
-    default:
-      return "black";
-  }
-}
-
 interface SharePopoverProps extends VariantProps<typeof triggerVariants> {
   /** The URL to share (optional if handle is provided) */
   url?: string;
@@ -132,20 +109,25 @@ interface SharePopoverProps extends VariantProps<typeof triggerVariants> {
  */
 export function SharePopover({ url, handle, title, name, variant, className }: SharePopoverProps) {
   const [open, setOpen] = useState(false);
-  const { copied, copy } = useCopyToClipboard();
   const popoverId = useId();
   const containerRef = useRef<HTMLDivElement | null>(null);
 
-  const shareText = generateShareText(name);
   const hasWebShare = isWebShareSupported();
 
-  const shareUrl = useMemo(() => {
-    if (url) return url;
-    if (globalThis.window !== undefined && handle) {
-      return `${globalThis.window.location.origin}/@${handle}`;
-    }
-    return `${siteConfig.url}/@${handle ?? ""}`;
-  }, [url, handle]);
+  const {
+    copied,
+    handleNativeShare,
+    handleTwitterShare,
+    handleLinkedInShare,
+    handleWhatsAppShare,
+    handleCopyLink,
+  } = useShareActions({
+    url,
+    handle,
+    title,
+    name,
+    onSuccess: () => setOpen(false),
+  });
 
   useEffect(() => {
     if (!open) return;
@@ -176,40 +158,6 @@ export function SharePopover({ url, handle, title, name, variant, className }: S
   const handleToggle = useCallback(() => {
     setOpen((prev) => !prev);
   }, []);
-
-  const handleNativeShare = useCallback(async () => {
-    try {
-      await webShare({ title, text: shareText, url: shareUrl });
-      setOpen(false);
-    } catch (err) {
-      if (err instanceof Error && err.name !== "AbortError") {
-        console.error("Share failed:", err);
-      }
-    }
-  }, [title, shareText, shareUrl]);
-
-  const handleTwitterShare = useCallback(() => {
-    window.open(generateTwitterShareUrl(shareText, shareUrl), "_blank", "noopener,noreferrer");
-    setOpen(false);
-  }, [shareText, shareUrl]);
-
-  const handleLinkedInShare = useCallback(() => {
-    window.open(generateLinkedInShareUrl(shareUrl), "_blank", "noopener,noreferrer");
-    setOpen(false);
-  }, [shareUrl]);
-
-  const handleWhatsAppShare = useCallback(() => {
-    window.open(generateWhatsAppShareUrl(shareText, shareUrl), "_blank", "noopener,noreferrer");
-    setOpen(false);
-  }, [shareText, shareUrl]);
-
-  const handleCopyLink = useCallback(async () => {
-    await copy(shareUrl, {
-      successMessage: "Link copied!",
-      errorMessage: "Failed to copy link",
-      onSuccess: () => setOpen(false),
-    });
-  }, [shareUrl, copy]);
 
   return (
     <div

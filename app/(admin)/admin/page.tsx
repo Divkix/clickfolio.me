@@ -9,6 +9,7 @@ import { requireAdminAuth } from "@/lib/auth/admin";
 import { getDb } from "@/lib/db";
 import { resumes, siteData, user } from "@/lib/db/schema";
 import { getPageviews, getStats } from "@/lib/umami/client";
+import { formatRelativeTime } from "@/lib/utils/format";
 
 export const dynamic = "force-dynamic";
 
@@ -83,22 +84,6 @@ async function getAdminStats() {
     recentSignups,
     dailyViews: filledDaily,
   };
-}
-
-/**
- * Formats a date string into a human-readable relative time (e.g. "2h ago").
- */
-function formatRelativeTime(dateStr: string): string {
-  const date = new Date(dateStr);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-  const diffDays = Math.floor(diffHours / 24);
-
-  if (diffHours < 1) return "just now";
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
-  return date.toLocaleDateString();
 }
 
 export default async function AdminOverviewPage() {

@@ -2,19 +2,11 @@
 
 import { cva, type VariantProps } from "class-variance-authority";
 import { Check, Copy, Share2, XIcon } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
-import { type BrandIconVariant, LinkedInIcon, WhatsAppIcon } from "@/components/icons/BrandIcons";
-import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
+import { useEffect, useState } from "react";
+import { LinkedInIcon, WhatsAppIcon } from "@/components/icons/BrandIcons";
 import { cn } from "@/lib/utils/cn";
-import {
-  generateLinkedInShareUrl,
-  generateShareText,
-  generateTwitterShareUrl,
-  generateWhatsAppShareUrl,
-  isWebShareSupported,
-  webShare,
-} from "@/lib/utils/share";
-
+import { isWebShareSupported } from "@/lib/utils/share";
+import { getLinkedInIconVariant, useShareActions } from "@/lib/utils/share-actions";
 const shareBarVariants = cva("flex items-center gap-2 flex-wrap", {
   variants: {
     variant: {
@@ -68,24 +60,6 @@ const buttonVariants = cva(
   },
 );
 
-/**
- * Returns the appropriate LinkedIn icon color variant for the given theme.
- * Dark themes use the white variant; all others use black.
- */
-function getLinkedInIconVariant(
-  variant?: VariantProps<typeof shareBarVariants>["variant"],
-): BrandIconVariant {
-  switch (variant) {
-    case "glass-morphic":
-    case "midnight":
-    case "design-folio":
-    case "dev-terminal":
-      return "white";
-    default:
-      return "black";
-  }
-}
-
 interface ShareBarProps extends VariantProps<typeof shareBarVariants> {
   /** The URL to share (optional if handle is provided) */
   url?: string;
@@ -117,50 +91,20 @@ interface ShareBarProps extends VariantProps<typeof shareBarVariants> {
  * ```
  */
 export function ShareBar({ url, handle, title, name, variant, className }: ShareBarProps) {
-  const { copied, copy } = useCopyToClipboard();
   const [hasWebShare, setHasWebShare] = useState(false);
-  const shareText = generateShareText(name);
 
   useEffect(() => {
     setHasWebShare(isWebShareSupported());
   }, []);
 
-  // Construct URL from handle if not provided (uses @ prefix convention)
-  const shareUrl =
-    url ||
-    (globalThis.window !== undefined && handle
-      ? `${globalThis.window.location.origin}/@${handle}`
-      : `https://clickfolio.me/@${handle ?? ""}`);
-
-  const handleNativeShare = useCallback(async () => {
-    try {
-      await webShare({ title, text: shareText, url: shareUrl });
-    } catch (err) {
-      // User cancelled or error - silently ignore
-      if (err instanceof Error && err.name !== "AbortError") {
-        console.error("Share failed:", err);
-      }
-    }
-  }, [title, shareText, shareUrl]);
-
-  const handleTwitterShare = useCallback(() => {
-    window.open(generateTwitterShareUrl(shareText, shareUrl), "_blank", "noopener,noreferrer");
-  }, [shareText, shareUrl]);
-
-  const handleLinkedInShare = useCallback(() => {
-    window.open(generateLinkedInShareUrl(shareUrl), "_blank", "noopener,noreferrer");
-  }, [shareUrl]);
-
-  const handleWhatsAppShare = useCallback(() => {
-    window.open(generateWhatsAppShareUrl(shareText, shareUrl), "_blank", "noopener,noreferrer");
-  }, [shareText, shareUrl]);
-
-  const handleCopyLink = useCallback(async () => {
-    await copy(shareUrl, {
-      successMessage: "Link copied!",
-      errorMessage: "Failed to copy link",
-    });
-  }, [shareUrl, copy]);
+  const {
+    copied,
+    handleNativeShare,
+    handleTwitterShare,
+    handleLinkedInShare,
+    handleWhatsAppShare,
+    handleCopyLink,
+  } = useShareActions({ url, handle, title, name });
 
   return (
     <fieldset

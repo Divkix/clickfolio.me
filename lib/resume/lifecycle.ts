@@ -7,6 +7,7 @@
  */
 
 import type { JsonValue, UnknownRecord } from "@/lib/types/json";
+import type { ResumeStatus } from "@/lib/db/schema/resume";
 import { z } from "zod";
 import { QueueErrorType } from "@/lib/queue/errors";
 
@@ -27,13 +28,13 @@ export const RETRY_LIMITS = {
   TOTAL_MAX_ATTEMPTS: 6,
 } as const;
 
-export const PERMANENT_ERROR_TYPES = [
+export const PERMANENT_ERROR_TYPES = new Set<QueueErrorType>([
   QueueErrorType.INVALID_PDF,
   QueueErrorType.MALFORMED_RESPONSE,
   QueueErrorType.SERVICE_BINDING_NOT_FOUND,
   QueueErrorType.FILE_NOT_FOUND,
   QueueErrorType.PARSE_VALIDATION_ERROR,
-] as const;
+]);
 
 export const WAITING_FOR_CACHE_TIMEOUT_MS = 10 * 60 * 1000;
 
@@ -48,9 +49,9 @@ export function hasExceededMaxAttempts(totalAttempts: number): boolean {
   return totalAttempts >= RETRY_LIMITS.TOTAL_MAX_ATTEMPTS;
 }
 
-export function isPermanentErrorType(errorType: string): boolean {
-  // SAFETY: PERMANENT_ERROR_TYPES is readonly QueueErrorType array; cast to readonly string[] for includes is safe widening of enum values to string.
-  return (PERMANENT_ERROR_TYPES as readonly string[]).includes(errorType);
+export function isPermanentErrorType(errorType: string): errorType is QueueErrorType {
+  // SAFETY: PERMANENT_ERROR_TYPES is Set<QueueErrorType>; cast narrows string for Set lookup, has() validates membership before type guard returns
+  return PERMANENT_ERROR_TYPES.has(errorType as QueueErrorType);
 }
 
 // ---------------------------------------------------------------------------
@@ -124,7 +125,7 @@ export function getLastAttemptErrorType(
 // ---------------------------------------------------------------------------
 
 export type ResumeRetryRow = {
-  status: string;
+  status: ResumeStatus;
   retryCount: number;
   totalAttempts: number;
   lastAttemptError?: string | null;
@@ -223,7 +224,7 @@ export function checkRetryEligibility(row: ResumeRetryRow): RetryEligibility {
 // ---------------------------------------------------------------------------
 
 export type StatusRow = {
-  status: string;
+  status: ResumeStatus;
   createdAt: string | null;
 };
 
@@ -240,14 +241,13 @@ export function waitingForCacheTimedOut(row: StatusRow): boolean {
 }
 
 export type StatusPresentation = {
-  publicStatus: string;
+  publicStatus: ResumeStatus;
   progressPct: number;
   waitingForCache?: boolean;
   queued?: boolean;
   isTerminal: boolean;
   isWaitingForCacheTimeout?: boolean;
 };
-
 /**
  * Central progress-% + display-status mapping.
  * Covers pending_claim (15), queued (25), waiting_for_cache (30 or virtual failed),
@@ -306,4 +306,24 @@ export type WaitingForCacheTimeoutUpdate = {
 
 export function buildWaitingForCacheTimeoutUpdate(): WaitingForCacheTimeoutUpdate {
   return { status: "failed", errorMessage: WAITING_FOR_CACHE_TIMEOUT_MESSAGE };
+}
+
+// ---------------------------------------------------------------------------
+// Unified status view — single call that encodes timeout + presentation + retry
+// ---------------------------------------------------------------------------
+
+export type ResumeRow = StatusRow & ResumeRetryRow;
+export function getStatusView(row: ResumeRow) {
+  const pres = statusPresentation(row);
+  const isTimedOut = waitingForCacheTimedOut(row);
+  const status: ResumeStatus = isTimedOut ? "failed" : pres.publicStatus;
+  const canRetry = isTimedOut
+    ? canRetryResume({
+        status: "failed",
+        retryCount: row.retryCount,
+        totalAttempts: row.totalAttempts,
+        lastAttemptError: null,
+      })
+    : canRetryResume(row);
+  return { status, progressPct: pres.progressPct, isTimedOut, canRetry };
 }

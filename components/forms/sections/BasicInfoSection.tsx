@@ -1,4 +1,5 @@
 import { User } from "lucide-react";
+import { FormSectionCard } from "@/components/forms/FormSectionCard";
 import type { FieldPath, UseFormReturn } from "react-hook-form";
 import {
   FormControl,
@@ -25,18 +26,11 @@ export function BasicInfoSection({ form }: BasicInfoSectionProps) {
   };
 
   return (
-    <div className="bg-card rounded-xl shadow-sm border border-border p-6 transition-shadow hover:shadow-md">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="shrink-0 bg-brand-subtle p-2.5 rounded-lg">
-          <User className="h-5 w-5 text-brand" />
-        </div>
-        <div>
-          <h2 className="text-lg font-semibold text-foreground">Basic Information</h2>
-          <p className="text-sm text-muted-foreground">
-            Your name, headline, and professional summary
-          </p>
-        </div>
-      </div>
+    <FormSectionCard
+      icon={User}
+      title="Basic Information"
+      description="Your name, headline, and professional summary"
+    >
       <div className="space-y-4">
         <FormField
           control={form.control}
@@ -91,6 +85,6 @@ export function BasicInfoSection({ form }: BasicInfoSectionProps) {
           )}
         />
       </div>
-    </div>
+    </FormSectionCard>
   );
 }

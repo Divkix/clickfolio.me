@@ -1,9 +1,11 @@
 import { eq } from "drizzle-orm";
 import { withUser } from "@/lib/auth/with-auth";
 import { resumes } from "@/lib/db/schema";
+import type { ResumeStatus } from "@/lib/db/schema/resume";
 import type { UnknownRecord } from "@/lib/types/json";
 import {
   canRetryResume,
+  getStatusView,
   statusPresentation,
   WAITING_FOR_CACHE_TIMEOUT_MESSAGE,
 } from "@/lib/resume/lifecycle";
@@ -86,27 +88,23 @@ export async function GET(request: Request) {
           403,
         );
       }
-
       // Side-effect-free waiting_for_cache timeout: present as failed virtually.
       // The DB row stays `waiting_for_cache` until the orphan cron persists the
       // timeout (lib/cron/recover-orphaned). No `db.update` / `captureBookmark` here.
-      // SAFETY: D1 status and createdAt are validated enum/string columns; casts bridge Drizzle nullable type.
-      // Compute presentation once — it already encodes the timeout predicate.
-      const presForTimeout = statusPresentation({
-        status: resume.status as string,
+      // SAFETY: drizzle row fields are string/number but getStatusView expects exact types; casts narrow D1-inferred types for lifecycle helper
+      const view = getStatusView({
+        status: resume.status as ResumeStatus,
         createdAt: resume.createdAt as string | null,
+        retryCount: resume.retryCount as number,
+        totalAttempts: resume.totalAttempts as number,
+        lastAttemptError: resume.lastAttemptError as string | null,
       });
-      if (presForTimeout.isWaitingForCacheTimeout) {
+      if (view.isTimedOut) {
         return createSuccessResponse({
-          status: "failed",
-          progress_pct: 0,
+          status: view.status,
+          progress_pct: view.progressPct,
           error: WAITING_FOR_CACHE_TIMEOUT_MESSAGE,
-          can_retry: canRetryResume({
-            status: "failed",
-            retryCount: resume.retryCount,
-            totalAttempts: resume.totalAttempts,
-            lastAttemptError: null,
-          }),
+          can_retry: view.canRetry,
         });
       }
 
@@ -152,19 +150,22 @@ export async function GET(request: Request) {
           status: "failed",
           progress_pct: 0,
           error: resume.errorMessage ?? null,
+          // SAFETY: D1 resume row fields are DB-constrained; casts bridge Drizzle-inferred string/number to typed union for canRetryResume, validated by status === "failed" guard
           can_retry: canRetryResume({
-            status: resume.status,
-            retryCount: resume.retryCount,
-            totalAttempts: resume.totalAttempts,
-            lastAttemptError: resume.lastAttemptError,
+            status: resume.status as ResumeStatus,
+            retryCount: resume.retryCount as number,
+            totalAttempts: resume.totalAttempts as number,
+            lastAttemptError: resume.lastAttemptError as string | null,
           }),
         });
       }
 
       // Unified presentation for pre-queue / in-flight / unknown statuses.
-      // Reuse the single presentation computed above (already encodes timeout).
-      const pres = presForTimeout;
-
+      // SAFETY: drizzle row fields are string/number but statusPresentation expects exact types; casts narrow D1-inferred types
+      const pres = statusPresentation({
+        status: resume.status as ResumeStatus,
+        createdAt: resume.createdAt as string | null,
+      });
       if (pres.publicStatus === "processing") {
         const extra: UnknownRecord = {};
         if (pres.waitingForCache) extra.waiting_for_cache = true;

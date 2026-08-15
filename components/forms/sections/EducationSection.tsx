@@ -1,4 +1,5 @@
 import { GraduationCap, Plus, Trash2 } from "lucide-react";
+import { FormSectionCard } from "@/components/forms/FormSectionCard";
 import type { UseFormReturn } from "react-hook-form";
 import { useFieldArray } from "react-hook-form";
 import { Button } from "@/components/ui/button";
@@ -21,16 +22,11 @@ export function EducationSection({ form }: EducationSectionProps) {
   });
 
   return (
-    <div className="bg-card rounded-xl shadow-sm border border-border p-6 transition-shadow hover:shadow-md">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="shrink-0 bg-brand-subtle p-2.5 rounded-lg">
-          <GraduationCap className="h-5 w-5 text-brand" />
-        </div>
-        <div>
-          <h2 className="text-lg font-semibold text-foreground">Education</h2>
-          <p className="text-sm text-muted-foreground">Your educational background</p>
-        </div>
-      </div>
+    <FormSectionCard
+      icon={GraduationCap}
+      title="Education"
+      description="Your educational background"
+    >
       <div className="space-y-4">
         {educationFields.length === 0 ? (
           <div className="text-center py-8 px-4 bg-surface-2 rounded-xl border border-dashed border-border">
@@ -186,6 +182,6 @@ export function EducationSection({ form }: EducationSectionProps) {
           </>
         )}
       </div>
-    </div>
+    </FormSectionCard>
   );
 }

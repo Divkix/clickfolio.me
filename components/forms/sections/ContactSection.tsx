@@ -1,4 +1,5 @@
 import { Mail } from "lucide-react";
+import { FormSectionCard } from "@/components/forms/FormSectionCard";
 import type { UseFormReturn } from "react-hook-form";
 import {
   FormControl,
@@ -18,16 +19,7 @@ interface ContactSectionProps {
 
 export function ContactSection({ form }: ContactSectionProps) {
   return (
-    <div className="bg-card rounded-xl shadow-sm border border-border p-6 transition-shadow hover:shadow-md">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="shrink-0 bg-brand-subtle p-2.5 rounded-lg">
-          <Mail className="h-5 w-5 text-brand" />
-        </div>
-        <div>
-          <h2 className="text-lg font-semibold text-foreground">Contact Information</h2>
-          <p className="text-sm text-muted-foreground">How people can reach you</p>
-        </div>
-      </div>
+    <FormSectionCard icon={Mail} title="Contact Information" description="How people can reach you">
       <div className="space-y-4">
         <FormField
           control={form.control}
@@ -148,6 +140,6 @@ export function ContactSection({ form }: ContactSectionProps) {
           )}
         />
       </div>
-    </div>
+    </FormSectionCard>
   );
 }

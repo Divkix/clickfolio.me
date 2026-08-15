@@ -28,6 +28,20 @@ export function sanitizeText(input: string): string {
 }
 
 /**
+ * Escapes HTML special characters to prevent XSS in email templates and HTML contexts.
+ * Encodes &, <, >, ", ' with HTML entities (uses &#x27; for single quote).
+ * For XML contexts (sitemap, OG), use escapeXml from @/lib/utils/xml which uses &apos;.
+ */
+export function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#x27;");
+}
+
+/**
  * Sanitizes and validates URLs
  * Only allows http://, https://, and mailto: protocols
  * Blocks javascript:, data:, and other dangerous protocols

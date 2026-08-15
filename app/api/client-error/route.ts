@@ -7,6 +7,7 @@
 
 import { z } from "zod";
 import type { JsonValue } from "@/lib/types/json";
+import { truncateText } from "@/lib/utils/format";
 
 /** Empty 204 response used for all non-error paths. */
 const EMPTY_204 = new Response(null, { status: 204 });
@@ -29,7 +30,7 @@ interface ClientErrorBody {
 function truncate(value: JsonValue, maxLength: number): string | undefined {
   const parsed = z.string().safeParse(value);
   if (!parsed.success) return undefined;
-  return parsed.data.length > maxLength ? parsed.data.slice(0, maxLength) : parsed.data;
+  return truncateText(parsed.data, maxLength);
 }
 export async function POST(request: Request) {
   try {

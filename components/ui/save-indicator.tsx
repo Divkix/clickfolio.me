@@ -2,20 +2,13 @@
 
 import { AlertCircle, Check, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
-
+import { formatRelativeTime } from "@/lib/utils/format";
 export type SaveStatus = "idle" | "saving" | "saved" | "error" | "unsaved";
 
 interface SaveIndicatorProps {
   status: SaveStatus;
   lastSaved?: Date | null;
   className?: string;
-}
-
-function formatRelativeTime(date: Date): string {
-  const diff = Date.now() - date.getTime();
-  if (diff < 60000) return "just now";
-  if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
-  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
 export function SaveIndicator({ status, lastSaved, className }: SaveIndicatorProps) {
@@ -29,12 +22,18 @@ export function SaveIndicator({ status, lastSaved, className }: SaveIndicatorPro
           <span className="text-muted-foreground">Saving...</span>
         </>
       )}
-      {status === "saved" && lastSaved && (
-        <>
-          <Check className="h-4 w-4 text-success" />
-          <span className="text-muted-foreground">Saved {formatRelativeTime(lastSaved)}</span>
-        </>
-      )}
+      {status === "saved" &&
+        lastSaved &&
+        (() => {
+          const time = formatRelativeTime(lastSaved);
+          const display = time === "Just now" ? "just now" : time;
+          return (
+            <>
+              <Check className="h-4 w-4 text-success" />
+              <span className="text-muted-foreground">Saved {display}</span>
+            </>
+          );
+        })()}
       {status === "error" && (
         <>
           <AlertCircle className="h-4 w-4 text-destructive" />

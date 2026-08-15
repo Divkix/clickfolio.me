@@ -3,6 +3,7 @@ import { withUser } from "@/lib/auth/with-auth";
 import { captureServerEvent } from "@/lib/posthog-server";
 import { RETRY_LIMITS } from "@/lib/resume/lifecycle";
 import type { NewResume } from "@/lib/db/schema";
+import type { ResumeStatus } from "@/lib/db/schema/resume";
 import { resumes } from "@/lib/db/schema";
 import { checkRetryEligibility, waitingForCacheTimedOut } from "@/lib/resume/lifecycle";
 import { publishResumeParse } from "@/lib/queue/resume-parse";
@@ -121,14 +122,14 @@ export async function POST(request: Request) {
       // `failed` by GET /status; accept an immediate manual retry without waiting
       // for the cron to durably persist the timeout (otherwise can_retry=true in
       // the UI would be denied here until the next 15m tick).
-      // SAFETY: D1 status and createdAt are validated enum/string columns; casts bridge Drizzle nullable type to string for lifecycle helpers.
+      // SAFETY: D1 status and createdAt are validated enum/string columns; casts bridge Drizzle nullable type to ResumeStatus for lifecycle helpers.
       const isVirtualTimeout = waitingForCacheTimedOut({
-        status: resume.status as string,
+        status: resume.status as ResumeStatus,
         createdAt: resume.createdAt as string | null,
       });
-      // SAFETY: D1 status/retry fields are validated enum/number columns; casts bridge Drizzle type to string/number for eligibility check.
+      // SAFETY: D1 status/retry fields are validated enum/number columns; casts bridge Drizzle type to ResumeStatus for eligibility check.
       const eligibility = checkRetryEligibility({
-        status: isVirtualTimeout ? "failed" : (resume.status as string),
+        status: isVirtualTimeout ? "failed" : (resume.status as ResumeStatus),
         retryCount: resume.retryCount as number,
         totalAttempts: resume.totalAttempts as number,
         lastAttemptError: isVirtualTimeout ? null : (resume.lastAttemptError as string | null),

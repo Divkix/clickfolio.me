@@ -7,20 +7,30 @@
  */
 
 import { z } from "zod";
+import type { ResumeStatus } from "@/lib/db/schema/resume";
+import {
+  getReconnectDelay,
+  POLL_INTERVAL_MS,
+  WS_MAX_RECONNECT_ATTEMPTS,
+  WS_PING_INTERVAL_MS,
+} from "@/lib/realtime/constants";
 
+const VALID_STATUSES: ReadonlySet<string> = new Set([
+  "pending_claim",
+  "queued",
+  "processing",
+  "completed",
+  "failed",
+  "waiting_for_cache",
+]);
+
+function isValidStatus(value: string): value is ResumeStatus {
+  return VALID_STATUSES.has(value);
+}
 interface WaitResult {
   status: "completed" | "failed";
   error?: string;
 }
-
-/** Maximum number of WebSocket connection attempts before falling back to HTTP polling. */
-const MAX_WS_CONNECT_ATTEMPTS = 3;
-
-/** Interval between HTTP polling requests in milliseconds (3 seconds). */
-const POLL_INTERVAL_MS = 3000;
-
-/** Interval between WebSocket ping keepalive messages in milliseconds (30 seconds). */
-const PING_INTERVAL_MS = 30000;
 
 /**
  * Wait for a resume to reach a terminal state (completed or failed).
@@ -40,6 +50,7 @@ export function waitForResumeCompletion(resumeId: string, timeoutMs = 90_000): P
     let pollInterval: NodeJS.Timeout | null = null;
     let pingInterval: NodeJS.Timeout | null = null;
     let timeoutTimer: NodeJS.Timeout | null = null;
+    let reconnectTimeout: NodeJS.Timeout | null = null;
 
     function finish(result: WaitResult) {
       if (resolved) return;
@@ -66,6 +77,10 @@ export function waitForResumeCompletion(resumeId: string, timeoutMs = 90_000): P
         clearTimeout(timeoutTimer);
         timeoutTimer = null;
       }
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+        reconnectTimeout = null;
+      }
 
       resolve(result);
     }
@@ -83,11 +98,12 @@ export function waitForResumeCompletion(resumeId: string, timeoutMs = 90_000): P
           const response = await fetch(`/api/resume/status?resume_id=${resumeId}`);
           if (!response.ok) return;
 
-          // SAFETY: /api/resume/status returns { status: string, error?: string | null } — shape validated by polling logic and finish() handling; cast bridges untyped JSON response.
+          // SAFETY: HTTP status payload validated immediately after via isValidStatus; cast narrows json shape with early return on invalid status
           const data = (await response.json()) as {
-            status: string;
+            status: ResumeStatus;
             error?: string | null;
           };
+          if (!isValidStatus(data.status)) return;
 
           if (data.status === "completed") {
             finish({ status: "completed" });
@@ -120,17 +136,18 @@ export function waitForResumeCompletion(resumeId: string, timeoutMs = 90_000): P
           if (ws?.readyState === WebSocket.OPEN) {
             ws.send("ping");
           }
-        }, PING_INTERVAL_MS);
+        }, WS_PING_INTERVAL_MS);
       };
       ws.onmessage = (event) => {
         if (!z.string().safeParse(event.data).success || event.data === "pong") return;
         try {
-          // SAFETY: WebSocket message is JSON string from ResumeStatusDO; shape { type, status, error } validated by type checks below before use.
+          // SAFETY: WebSocket message validated via isValidStatus immediately after; cast provides typed access with early return on invalid status
           const msg = JSON.parse(event.data) as {
             type: string;
-            status: string;
+            status: ResumeStatus;
             error?: string;
           };
+          if (!isValidStatus(msg.status)) return;
 
           if (msg.type === "status") {
             if (msg.status === "completed") {
@@ -152,10 +169,10 @@ export function waitForResumeCompletion(resumeId: string, timeoutMs = 90_000): P
 
         if (resolved || event.code === 1000) return;
 
-        // Retry WS or fall back to polling
-        if (wsAttempts < MAX_WS_CONNECT_ATTEMPTS) {
-          const delay = 1000 * 2 ** (wsAttempts - 1);
-          setTimeout(connectWS, delay);
+        // Retry WS or fall back to polling (+ jitter via getReconnectDelay)
+        if (wsAttempts < WS_MAX_RECONNECT_ATTEMPTS) {
+          const delay = getReconnectDelay(wsAttempts);
+          reconnectTimeout = setTimeout(connectWS, delay);
         } else {
           startPolling();
         }

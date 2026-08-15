@@ -9,6 +9,7 @@ import { FunnelChart } from "@/components/admin/FunnelChart";
 import { HorizontalBarChart } from "@/components/admin/HorizontalBarChart";
 import { StatCard } from "@/components/admin/StatCard";
 import { Skeleton } from "@/components/ui/skeleton";
+import { formatRelativeTime } from "@/lib/utils/format";
 
 interface ReferralsData {
   stats: {
@@ -34,19 +35,6 @@ interface ReferralsData {
     referrerHandle: string;
     createdAt: string;
   }>;
-}
-
-function formatRelativeTime(dateStr: string): string {
-  const date = new Date(dateStr);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-  const diffDays = Math.floor(diffHours / 24);
-
-  if (diffHours < 1) return "just now";
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
-  return date.toLocaleDateString();
 }
 
 const MEDAL_EMOJIS = ["\u{1F947}", "\u{1F948}", "\u{1F949}"];

@@ -6,9 +6,8 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useSession } from "@/lib/auth/client";
 import { cn } from "@/lib/utils/cn";
+import { useDismissable } from "@/hooks/useDismissable";
 
-const DISMISS_KEY = "cta_dismissed";
-const DISMISS_DURATION_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 const SHOW_DELAY_MS = 3000; // 3 seconds
 const SCROLL_THRESHOLD = 0.3; // 30% of page
 
@@ -103,22 +102,7 @@ interface CreateYoursCTAProps extends VariantProps<typeof ctaVariants> {
 export function CreateYoursCTA({ handle, variant, className }: CreateYoursCTAProps) {
   const { data: session } = useSession();
   const [visible, setVisible] = useState(false);
-  const [dismissed, setDismissed] = useState(true); // Default hidden until we check
-
-  // Check dismissal status on mount
-  useEffect(() => {
-    const dismissedAt = localStorage.getItem(DISMISS_KEY);
-    if (dismissedAt) {
-      const elapsed = Date.now() - Number.parseInt(dismissedAt, 10);
-      if (elapsed < DISMISS_DURATION_MS) {
-        setDismissed(true);
-        return;
-      }
-      // Expired, clear it
-      localStorage.removeItem(DISMISS_KEY);
-    }
-    setDismissed(false);
-  }, []);
+  const [dismissed, dismiss] = useDismissable("cta_dismissed", 7 * 24 * 60 * 60 * 1000);
 
   // Visibility triggers: timer and scroll
   useEffect(() => {
@@ -156,11 +140,9 @@ export function CreateYoursCTA({ handle, variant, className }: CreateYoursCTAPro
   }, [dismissed]);
 
   const handleDismiss = useCallback(() => {
-    localStorage.setItem(DISMISS_KEY, Date.now().toString());
     setVisible(false);
-    setDismissed(true);
-  }, []);
-
+    dismiss();
+  }, [dismiss]);
   // Hide if:
   // - Still checking dismissal
   // - Dismissed

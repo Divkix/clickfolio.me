@@ -1,4 +1,5 @@
 import { FolderCode, Plus, Trash2 } from "lucide-react";
+import { FormSectionCard } from "@/components/forms/FormSectionCard";
 import type { UseFormReturn } from "react-hook-form";
 import { useFieldArray } from "react-hook-form";
 import { Button } from "@/components/ui/button";
@@ -30,18 +31,11 @@ export function ProjectsSection({ form }: ProjectsSectionProps) {
   });
 
   return (
-    <div className="bg-card rounded-xl shadow-sm border border-border p-6 transition-shadow hover:shadow-md">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="shrink-0 bg-brand-subtle p-2.5 rounded-lg">
-          <FolderCode className="h-5 w-5 text-brand" />
-        </div>
-        <div>
-          <h2 className="text-lg font-semibold text-foreground">Projects</h2>
-          <p className="text-sm text-muted-foreground">
-            Personal projects, side work, or portfolio pieces (max 10)
-          </p>
-        </div>
-      </div>
+    <FormSectionCard
+      icon={FolderCode}
+      title="Projects"
+      description="Personal projects, side work, or portfolio pieces (max 10)"
+    >
       <div className="space-y-4">
         {projectFields.length === 0 ? (
           <div className="text-center py-8 px-4 bg-surface-2 rounded-xl border border-dashed border-border">
@@ -247,6 +241,6 @@ export function ProjectsSection({ form }: ProjectsSectionProps) {
           </>
         )}
       </div>
-    </div>
+    </FormSectionCard>
   );
 }

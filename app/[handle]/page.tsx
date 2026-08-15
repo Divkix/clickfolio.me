@@ -149,18 +149,14 @@ export default async function HandlePage({ params }: PageProps) {
     notFound();
   }
 
-  const data = await getResumeData(handle);
-
-  // Return 404 if profile or site_data not found
-  if (!data) {
+  const resumeData = await getResumeData(handle);
+  if (!resumeData) {
     notFound();
   }
 
-  const { content, profile, theme_id, privacy_settings } = data;
-
-  // Fetch SEO metadata with pre-serialized JSON-LD (uses React.cache, no extra DB call)
   const metadata = await getResumeMetadata(handle);
 
+  const { content, profile, theme_id, privacy_settings } = resumeData;
   const relatedProfiles = !privacy_settings.hide_from_search
     ? await getRelatedProfiles(
         handle,
@@ -172,12 +168,10 @@ export default async function HandlePage({ params }: PageProps) {
   // Dynamically select template based on theme_id
   const Template = await getTemplate(theme_id);
 
-  // SAFETY: theme_id is DB-constrained to ThemeId values via queue consumer validation; fallback to DEFAULT_THEME (ThemeId) guarantees valid ThemeId.
-  const ctaVariant: ThemeId = (theme_id ?? DEFAULT_THEME) as ThemeId;
+  const ctaVariant: ThemeId = theme_id ?? DEFAULT_THEME;
 
   // Map theme_id to share popover variant (kebab-case format)
-  // SAFETY: theme_id fallback to DEFAULT_THEME guarantees ThemeId; themeToShareVariant is Record<ThemeId, SharePopoverVariant> indexed by validated ThemeId.
-  const shareVariant = themeToShareVariant[(theme_id ?? DEFAULT_THEME) as ThemeId];
+  const shareVariant = themeToShareVariant[theme_id ?? DEFAULT_THEME];
   const pageTitle = `${content.full_name}'s Resume`;
 
   return (

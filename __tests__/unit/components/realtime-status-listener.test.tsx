@@ -1,11 +1,12 @@
 import { act, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import type { ResumeStatus } from "@/lib/db/schema/resume";
 import { RealtimeStatusListener } from "@/components/dashboard/RealtimeStatusListener";
 
 const mocks = vi.hoisted(() => {
   let socketArgs: null | {
     resumeId: string | null;
-    onStatusChange: (status: string, errorMessage?: string) => void;
+    onStatusChange: (status: ResumeStatus, errorMessage?: string) => void;
   } = null;
 
   return {
@@ -21,7 +22,7 @@ const mocks = vi.hoisted(() => {
     useResumeWebSocket: vi.fn(
       (args: {
         resumeId: string | null;
-        onStatusChange: (status: string, error?: string) => void;
+        onStatusChange: (status: ResumeStatus, error?: string) => void;
       }) => {
         socketArgs = args;
       },
@@ -49,12 +50,15 @@ describe("RealtimeStatusListener", () => {
     vi.useRealTimers();
   });
 
-  it.each(["processing", "queued"])("connects while %s and renders processing state", (status) => {
-    render(<RealtimeStatusListener currentStatus={status} resumeId="resume_123" />);
+  it.each(["processing", "queued"] as const)(
+    "connects while %s and renders processing state",
+    (status) => {
+      render(<RealtimeStatusListener currentStatus={status} resumeId="resume_123" />);
 
-    expect(screen.getByText("Processing Your Resume")).toBeInTheDocument();
-    expect(mocks.socketArgs?.resumeId).toBe("resume_123");
-  });
+      expect(screen.getByText("Processing Your Resume")).toBeInTheDocument();
+      expect(mocks.socketArgs?.resumeId).toBe("resume_123");
+    },
+  );
 
   it("does not connect for terminal initial statuses", () => {
     const { unmount } = render(

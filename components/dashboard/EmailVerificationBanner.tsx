@@ -1,9 +1,11 @@
 "use client";
 
 import { AlertCircle, X } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { useDismissable } from "@/hooks/useDismissable";
+import { useResendCooldown } from "@/hooks/useResendCooldown";
 import { sendVerificationEmail } from "@/lib/auth/client";
 
 interface EmailVerificationBannerProps {
@@ -14,9 +16,6 @@ interface EmailVerificationBannerProps {
   /** Whether the user signed up via OAuth (Google) */
   isOAuthUser: boolean;
 }
-
-const DISMISS_KEY = "email_verification_dismissed";
-const DISMISS_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days in ms
 
 /**
  * Dismissible email verification warning banner
@@ -30,43 +29,12 @@ export function EmailVerificationBanner({
   emailVerified,
   isOAuthUser,
 }: EmailVerificationBannerProps) {
-  const [isDismissed, setIsDismissed] = useState(true); // Start hidden to avoid flash
+  const [isDismissed, handleDismiss] = useDismissable(
+    "email_verification_dismissed",
+    7 * 24 * 60 * 60 * 1000,
+  );
   const [isResending, setIsResending] = useState(false);
-  const [resendCooldown, setResendCooldown] = useState(0);
-
-  // Keep the cooldown interval in a ref so it can be cleared on unmount —
-  // otherwise a leaked interval keeps calling setState after unmount.
-  const resendIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  // Check localStorage for dismiss state
-  useEffect(() => {
-    const dismissedAt = localStorage.getItem(DISMISS_KEY);
-    if (dismissedAt) {
-      const elapsed = Date.now() - Number.parseInt(dismissedAt, 10);
-      if (elapsed < DISMISS_DURATION) {
-        setIsDismissed(true);
-        return;
-      }
-      // Dismiss expired, clear it
-      localStorage.removeItem(DISMISS_KEY);
-    }
-    setIsDismissed(false);
-  }, []);
-
-  // Clean up the cooldown interval on unmount.
-  useEffect(() => {
-    return () => {
-      if (resendIntervalRef.current) {
-        clearInterval(resendIntervalRef.current);
-        resendIntervalRef.current = null;
-      }
-    };
-  }, []);
-
-  const handleDismiss = useCallback(() => {
-    localStorage.setItem(DISMISS_KEY, Date.now().toString());
-    setIsDismissed(true);
-  }, []);
+  const { cooldown: resendCooldown, start: startCooldown } = useResendCooldown();
 
   const handleResend = useCallback(async () => {
     if (resendCooldown > 0) return;
@@ -82,20 +50,7 @@ export function EmailVerificationBanner({
         toast.error(error.message || "Failed to resend verification email");
       } else {
         toast.success("Verification email sent! Check your inbox.");
-        // Start 60 second cooldown
-        setResendCooldown(60);
-        resendIntervalRef.current = setInterval(() => {
-          setResendCooldown((prev) => {
-            if (prev <= 1) {
-              if (resendIntervalRef.current) {
-                clearInterval(resendIntervalRef.current);
-                resendIntervalRef.current = null;
-              }
-              return 0;
-            }
-            return prev - 1;
-          });
-        }, 1000);
+        startCooldown();
       }
     } catch (err) {
       console.error("Resend error:", err);
@@ -103,7 +58,7 @@ export function EmailVerificationBanner({
     } finally {
       setIsResending(false);
     }
-  }, [email, resendCooldown]);
+  }, [email, resendCooldown, startCooldown]);
 
   // Don't show for verified users or OAuth users
   if (emailVerified || isOAuthUser || isDismissed) {
