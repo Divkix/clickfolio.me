@@ -259,6 +259,9 @@ export async function POST(request: Request) {
       const queue = env.CLICKFOLIO_PARSE_QUEUE;
       if (!queue) {
         await rollbackRetryUpdate();
+        try {
+          await captureBookmark();
+        } catch {}
         return createErrorResponse("Queue service unavailable", ERROR_CODES.INTERNAL_ERROR, 500);
       }
 
@@ -273,6 +276,9 @@ export async function POST(request: Request) {
         });
       } catch (queueError) {
         await rollbackRetryUpdate();
+        try {
+          await captureBookmark();
+        } catch {}
         console.error("Failed to publish retry parse job:", queueError);
         return createErrorResponse("Queue service unavailable", ERROR_CODES.INTERNAL_ERROR, 500);
       }

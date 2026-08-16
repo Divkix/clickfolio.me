@@ -21,7 +21,6 @@
  * }
  * ```
  */
-
 import { env } from "cloudflare:workers";
 import { count, eq, sql } from "drizzle-orm";
 import { withAdmin } from "@/lib/auth/with-auth";
@@ -32,6 +31,7 @@ import {
   createSuccessResponse,
   ERROR_CODES,
 } from "@/lib/utils/security-headers";
+import { safePageParam } from "@/lib/utils/pagination";
 
 const PAGE_SIZE = 25;
 const VALID_STATUSES = new Set(["all", "completed", "processing", "queued", "failed"]);
@@ -39,7 +39,7 @@ const VALID_STATUSES = new Set(["all", "completed", "processing", "queued", "fai
 export async function GET(request: Request) {
   return withAdmin(request, async () => {
     const url = new URL(request.url);
-    const page = Math.max(1, Number.parseInt(url.searchParams.get("page") || "1", 10));
+    const page = safePageParam(url.searchParams.get("page"));
     const statusFilter = url.searchParams.get("status") || "all";
     const offset = (page - 1) * PAGE_SIZE;
 

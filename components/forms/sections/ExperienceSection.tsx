@@ -14,6 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { ResumeContentFormData } from "@/lib/schemas/resume";
+import { FormEmptyState } from "./FormEmptyState";
 
 interface ExperienceSectionProps {
   form: UseFormReturn<ResumeContentFormData>;
@@ -37,30 +38,23 @@ export function ExperienceSection({ form }: ExperienceSectionProps) {
     >
       <div className="space-y-4">
         {experienceFields.length === 0 ? (
-          <div className="text-center py-8 px-4 bg-surface-2 rounded-xl border border-dashed border-border">
-            <div className="inline-flex mb-4 bg-brand-subtle p-4 rounded-xl">
-              <Briefcase className="h-8 w-8 text-brand" />
-            </div>
-            <p className="text-foreground font-medium mb-1">No work experience yet</p>
-            <p className="text-sm text-muted-foreground mb-4">Add your professional work history</p>
-            <Button
-              type="button"
-              onClick={() =>
-                appendExperience({
-                  title: "",
-                  company: "",
-                  location: "",
-                  start_date: "",
-                  end_date: "",
-                  description: "",
-                  highlights: [],
-                })
-              }
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Experience
-            </Button>
-          </div>
+          <FormEmptyState
+            icon={Briefcase}
+            title="No work experience yet"
+            description="Add your professional work history"
+            onAdd={() =>
+              appendExperience({
+                title: "",
+                company: "",
+                location: "",
+                start_date: "",
+                end_date: "",
+                description: "",
+                highlights: [],
+              })
+            }
+            addLabel="Add Experience"
+          />
         ) : (
           <>
             {experienceFields.map((field, index) => (

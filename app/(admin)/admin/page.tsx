@@ -9,8 +9,8 @@ import { requireAdminAuth } from "@/lib/auth/admin";
 import { getDb } from "@/lib/db";
 import { resumes, siteData, user } from "@/lib/db/schema";
 import { getPageviews, getStats } from "@/lib/umami/client";
+import { lastNUtcDays } from "@/lib/utils/date-axis";
 import { formatRelativeTime } from "@/lib/utils/format";
-
 export const dynamic = "force-dynamic";
 
 /** Metadata for the admin overview page — disallows search indexing. */
@@ -69,11 +69,10 @@ async function getAdminStats() {
 
   // Fill missing dates from Umami pageviews (fallback to zeros if Umami unavailable)
   const umamiMap = new Map(umamiPageviews?.pageviews.map((p) => [p.x.slice(0, 10), p.y]) ?? []);
-  const filledDaily: Array<{ date: string; views: number }> = [];
-  for (let i = 6; i >= 0; i--) {
-    const date = new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-    filledDaily.push({ date, views: umamiMap.get(date) ?? 0 });
-  }
+  const filledDaily: Array<{ date: string; views: number }> = lastNUtcDays(7).map((date) => ({
+    date,
+    views: umamiMap.get(date) ?? 0,
+  }));
 
   return {
     totalUsers: userCount[0]?.count ?? 0,

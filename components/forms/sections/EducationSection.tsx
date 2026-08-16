@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import type { ResumeContentFormData } from "@/lib/schemas/resume";
+import { FormEmptyState } from "./FormEmptyState";
 
 interface EducationSectionProps {
   form: UseFormReturn<ResumeContentFormData>;
@@ -29,30 +30,21 @@ export function EducationSection({ form }: EducationSectionProps) {
     >
       <div className="space-y-4">
         {educationFields.length === 0 ? (
-          <div className="text-center py-8 px-4 bg-surface-2 rounded-xl border border-dashed border-border">
-            <div className="inline-flex mb-4 bg-brand-subtle p-4 rounded-xl">
-              <GraduationCap className="h-8 w-8 text-brand" />
-            </div>
-            <p className="text-foreground font-medium mb-1">No education entries yet</p>
-            <p className="text-sm text-muted-foreground mb-4">
-              Add your educational background to complete your profile
-            </p>
-            <Button
-              type="button"
-              onClick={() =>
-                appendEducation({
-                  degree: "",
-                  institution: "",
-                  location: "",
-                  graduation_date: "",
-                  gpa: "",
-                })
-              }
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Education
-            </Button>
-          </div>
+          <FormEmptyState
+            icon={GraduationCap}
+            title="No education entries yet"
+            description="Add your educational background to complete your profile"
+            onAdd={() =>
+              appendEducation({
+                degree: "",
+                institution: "",
+                location: "",
+                graduation_date: "",
+                gpa: "",
+              })
+            }
+            addLabel="Add Education"
+          />
         ) : (
           <>
             {educationFields.map((field, index) => (

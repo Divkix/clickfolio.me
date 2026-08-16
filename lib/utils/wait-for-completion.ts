@@ -10,23 +10,11 @@ import { z } from "zod";
 import type { ResumeStatus } from "@/lib/db/schema/resume";
 import {
   getReconnectDelay,
+  isValidResumeStatus,
   POLL_INTERVAL_MS,
-  WS_MAX_RECONNECT_ATTEMPTS,
+  shouldRetry,
   WS_PING_INTERVAL_MS,
 } from "@/lib/realtime/constants";
-
-const VALID_STATUSES: ReadonlySet<string> = new Set([
-  "pending_claim",
-  "queued",
-  "processing",
-  "completed",
-  "failed",
-  "waiting_for_cache",
-]);
-
-function isValidStatus(value: string): value is ResumeStatus {
-  return VALID_STATUSES.has(value);
-}
 interface WaitResult {
   status: "completed" | "failed";
   error?: string;
@@ -98,12 +86,12 @@ export function waitForResumeCompletion(resumeId: string, timeoutMs = 90_000): P
           const response = await fetch(`/api/resume/status?resume_id=${resumeId}`);
           if (!response.ok) return;
 
-          // SAFETY: HTTP status payload validated immediately after via isValidStatus; cast narrows json shape with early return on invalid status
+          // SAFETY: HTTP status payload validated immediately after via isValidResumeStatus; cast narrows json shape with early return on invalid status
           const data = (await response.json()) as {
             status: ResumeStatus;
             error?: string | null;
           };
-          if (!isValidStatus(data.status)) return;
+          if (!isValidResumeStatus(data.status)) return;
 
           if (data.status === "completed") {
             finish({ status: "completed" });
@@ -141,13 +129,13 @@ export function waitForResumeCompletion(resumeId: string, timeoutMs = 90_000): P
       ws.onmessage = (event) => {
         if (!z.string().safeParse(event.data).success || event.data === "pong") return;
         try {
-          // SAFETY: WebSocket message validated via isValidStatus immediately after; cast provides typed access with early return on invalid status
+          // SAFETY: WebSocket message validated via isValidResumeStatus immediately after; cast provides typed access with early return on invalid status
           const msg = JSON.parse(event.data) as {
             type: string;
             status: ResumeStatus;
             error?: string;
           };
-          if (!isValidStatus(msg.status)) return;
+          if (!isValidResumeStatus(msg.status)) return;
 
           if (msg.type === "status") {
             if (msg.status === "completed") {
@@ -161,16 +149,19 @@ export function waitForResumeCompletion(resumeId: string, timeoutMs = 90_000): P
         }
       };
 
-      ws.onclose = (event) => {
+      ws.onclose = () => {
         if (pingInterval) {
           clearInterval(pingInterval);
           pingInterval = null;
         }
 
-        if (resolved || event.code === 1000) return;
+        if (resolved) return;
 
-        // Retry WS or fall back to polling (+ jitter via getReconnectDelay)
-        if (wsAttempts < WS_MAX_RECONNECT_ATTEMPTS) {
+        // Retry WS or fall back to polling (+ jitter via getReconnectDelay).
+        // Do NOT suppress on code 1000: the DO alarm closes with 1000 after
+        // 30s and the terminal broadcast may have been missed; fall through
+        // to reconnect/poll logic unless already resolved.
+        if (shouldRetry(wsAttempts)) {
           const delay = getReconnectDelay(wsAttempts);
           reconnectTimeout = setTimeout(connectWS, delay);
         } else {

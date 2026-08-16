@@ -15,6 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { ResumeContentFormData } from "@/lib/schemas/resume";
+import { FormEmptyState } from "./FormEmptyState";
 
 interface ProjectsSectionProps {
   form: UseFormReturn<ResumeContentFormData>;
@@ -38,31 +39,22 @@ export function ProjectsSection({ form }: ProjectsSectionProps) {
     >
       <div className="space-y-4">
         {projectFields.length === 0 ? (
-          <div className="text-center py-8 px-4 bg-surface-2 rounded-xl border border-dashed border-border">
-            <div className="inline-flex mb-4 bg-brand-subtle p-4 rounded-xl">
-              <FolderCode className="h-8 w-8 text-brand" />
-            </div>
-            <p className="text-foreground font-medium mb-1">No projects added yet</p>
-            <p className="text-sm text-muted-foreground mb-4">
-              Showcase your personal projects and portfolio pieces
-            </p>
-            <Button
-              type="button"
-              onClick={() =>
-                appendProject({
-                  title: "",
-                  description: "",
-                  year: "",
-                  technologies: [],
-                  url: "",
-                  image_url: "",
-                })
-              }
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Your First Project
-            </Button>
-          </div>
+          <FormEmptyState
+            icon={FolderCode}
+            title="No projects added yet"
+            description="Showcase your personal projects and portfolio pieces"
+            onAdd={() =>
+              appendProject({
+                title: "",
+                description: "",
+                year: "",
+                technologies: [],
+                url: "",
+                image_url: "",
+              })
+            }
+            addLabel="Add Your First Project"
+          />
         ) : (
           <>
             {projectFields.map((field, index) => (

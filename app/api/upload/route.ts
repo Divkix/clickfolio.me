@@ -119,11 +119,44 @@ export async function POST(request: Request) {
       );
     }
 
-    // 6. Read the request body
-    const buffer = await request.arrayBuffer();
+    // 6. Stream body with byte-cap enforcement (do not trust Content-Length for allocation)
+    const reader = request.body?.getReader();
+    if (!reader) {
+      return createErrorResponse("Missing request body", ERROR_CODES.BAD_REQUEST, 400);
+    }
+    const chunks: Uint8Array[] = [];
+    let totalBytes = 0;
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (!value) continue;
+      totalBytes += value.length;
+      if (totalBytes > MAX_FILE_SIZE) {
+        try {
+          await reader.cancel();
+        } catch {}
+        return createErrorResponse(
+          `File size exceeds limit (${Math.round(MAX_FILE_SIZE / 1024 / 1024)}MB maximum)`,
+          ERROR_CODES.BAD_REQUEST,
+          413,
+        );
+      }
+      chunks.push(value);
+    }
+    const combined = new Uint8Array(totalBytes);
+    let offset = 0;
+    for (const ch of chunks) {
+      combined.set(ch, offset);
+      offset += ch.length;
+    }
+    // SAFETY: combined is Uint8Array; slice produces ArrayBuffer for validatePDFBuffer/R2 put.
+    const buffer = combined.buffer.slice(
+      combined.byteOffset,
+      combined.byteOffset + combined.byteLength,
+    ) as ArrayBuffer;
 
-    // Verify actual size matches Content-Length
-    if (buffer.byteLength !== contentLength) {
+    // Verify actual streamed size matches Content-Length header
+    if (totalBytes !== contentLength) {
       return createErrorResponse("Content-Length mismatch", ERROR_CODES.BAD_REQUEST, 400);
     }
 

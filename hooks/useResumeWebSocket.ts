@@ -5,23 +5,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { ResumeStatus } from "@/lib/db/schema/resume";
 import {
   getReconnectDelay,
-  WS_MAX_RECONNECT_ATTEMPTS,
+  isValidResumeStatus,
+  shouldRetry,
   WS_PING_INTERVAL_MS,
 } from "@/lib/realtime/constants";
 type ConnectionState = "connecting" | "connected" | "reconnecting" | "fallback" | "closed";
-
-const VALID_STATUSES: ReadonlySet<string> = new Set([
-  "pending_claim",
-  "queued",
-  "processing",
-  "completed",
-  "failed",
-  "waiting_for_cache",
-]);
-
-function isValidStatus(value: string): value is ResumeStatus {
-  return VALID_STATUSES.has(value);
-}
 
 // @ts-ignore TS6196 — StatusMessage documents WebSocket payload shape; kept for type clarity
 // eslint-disable-next-line @typescript-eslint/no-unused-vars -- StatusMessage documents WebSocket payload shape; kept for type clarity
@@ -69,6 +57,7 @@ export function useResumeWebSocket({
   const pingTimerRef = useRef<NodeJS.Timeout | null>(null);
   const onStatusChangeRef = useRef(onStatusChange);
   const closedManuallyRef = useRef(false);
+  const lastStatusRef = useRef<ResumeStatus | null>(null);
 
   // Keep callback ref up to date without re-triggering effect
   onStatusChangeRef.current = onStatusChange;
@@ -132,14 +121,15 @@ export function useResumeWebSocket({
         if (!z.string().safeParse(event.data).success) return;
         if (event.data === "pong") return;
         try {
-          // SAFETY: WebSocket message validated via isValidStatus guard immediately after; cast provides typed access with early return on invalid status
+          // SAFETY: WebSocket message validated via isValidResumeStatus guard immediately after; cast provides typed access with early return on invalid status
           const msg = JSON.parse(event.data) as {
             type: string;
             status: ResumeStatus;
             error?: string;
           };
           if (msg.type === "status") {
-            if (!isValidStatus(msg.status)) return;
+            if (!isValidResumeStatus(msg.status)) return;
+            lastStatusRef.current = msg.status;
             onStatusChangeRef.current(msg.status, msg.error);
           }
         } catch {
@@ -154,15 +144,28 @@ export function useResumeWebSocket({
         }
         wsRef.current = null;
 
-        // Don't reconnect if manually closed or normal closure from server
-        if (closedManuallyRef.current || event.code === 1000) {
+        // Manually closed — do not reconnect
+        if (closedManuallyRef.current) {
           setConnectionState("closed");
           return;
         }
 
+        // Server alarm closes with 1000 after 30s (see ClickfolioStatusDO.alarm).
+        // Treat 1000 as terminal only when we already received a terminal status;
+        // otherwise it would dead-lock the client if the broadcast was missed.
+        if (event.code === 1000) {
+          const isTerminal =
+            lastStatusRef.current === "completed" || lastStatusRef.current === "failed";
+          if (isTerminal) {
+            setConnectionState("closed");
+            return;
+          }
+          // Non-terminal 1000: fall through to reconnect/fallback
+        }
+
         // Attempt reconnect with exponential backoff (+ jitter via getReconnectDelay)
         reconnectAttemptRef.current++;
-        if (reconnectAttemptRef.current > WS_MAX_RECONNECT_ATTEMPTS) {
+        if (!shouldRetry(reconnectAttemptRef.current)) {
           setConnectionState("fallback");
           return;
         }

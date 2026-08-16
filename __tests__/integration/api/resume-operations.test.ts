@@ -1025,7 +1025,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
           status: "failed",
         }),
       );
-      expect(mockCaptureBookmark).not.toHaveBeenCalled();
+      expect(mockCaptureBookmark).toHaveBeenCalledTimes(1);
     });
 
     it("returns 403 when retrying another user's resume (IDOR) (test 13)", async () => {
