@@ -23,8 +23,6 @@ export function shouldRetry(attempt: number): boolean {
   return attempt <= WS_MAX_RECONNECT_ATTEMPTS;
 }
 
-// Alias for callers that prefer the more explicit name
-export const canRetryWS = shouldRetry;
 
 export function getReconnectDelay(attempt: number): number {
   return Math.min(

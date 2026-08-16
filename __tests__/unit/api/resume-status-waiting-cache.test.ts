@@ -7,12 +7,9 @@
  * - Edge cases: invalid/missing createdAt
  */
 
+import { WAITING_FOR_CACHE_TIMEOUT_MS } from "@/lib/resume/lifecycle";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { JsonValue } from "@/lib/types/json";
-
-// ── Constants from source ─────────────────────────────────────────────
-
-const WAITING_FOR_CACHE_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
 
 // ── Mocks ─────────────────────────────────────────────────────────────
 
