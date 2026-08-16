@@ -1,19 +1,7 @@
 import { DurableObject } from "cloudflare:workers";
 import type { ResumeStatus } from "@/lib/db/schema/resume";
+import { isValidResumeStatus } from "@/lib/realtime/constants";
 import type { JsonValue } from "@/lib/types/json";
-
-const VALID_STATUSES: ReadonlySet<string> = new Set([
-  "pending_claim",
-  "queued",
-  "processing",
-  "completed",
-  "failed",
-  "waiting_for_cache",
-]);
-
-function isValidStatus(value: string): value is ResumeStatus {
-  return VALID_STATUSES.has(value);
-}
 
 /**
  * Status message sent to connected WebSocket clients.
@@ -78,7 +66,7 @@ export class ClickfolioStatusDO extends DurableObject {
     const cachedStatus = cached.get("lastStatus");
     const cachedError = cached.get("lastError");
 
-    if (cachedStatus && isValidStatus(cachedStatus)) {
+    if (cachedStatus && isValidResumeStatus(cachedStatus)) {
       const msg: StatusMessage = {
         type: "status",
         status: cachedStatus,
@@ -100,7 +88,7 @@ export class ClickfolioStatusDO extends DurableObject {
   private async handleNotify(request: Request): Promise<Response> {
     let body: { status: ResumeStatus; error?: string };
     try {
-      // SAFETY: request JSON shape is validated immediately after via isValidStatus; cast provides typed destructuring with 400 on invalid status
+      // SAFETY: request JSON shape is validated immediately after via isValidResumeStatus; cast provides typed destructuring with 400 on invalid status
       body = (await request.json()) as { status: ResumeStatus; error?: string };
     } catch {
       return new Response("Invalid JSON", { status: 400 });
@@ -110,7 +98,7 @@ export class ClickfolioStatusDO extends DurableObject {
     if (!status) {
       return new Response("Missing status", { status: 400 });
     }
-    if (!isValidStatus(status)) {
+    if (!isValidResumeStatus(status)) {
       return new Response("Invalid status", { status: 400 });
     }
 
@@ -170,7 +158,7 @@ export class ClickfolioStatusDO extends DurableObject {
       const cachedStatus = cached.get("lastStatus");
       const cachedError = cached.get("lastError");
 
-      if (cachedStatus && isValidStatus(cachedStatus)) {
+      if (cachedStatus && isValidResumeStatus(cachedStatus)) {
         const msg: StatusMessage = {
           type: "status",
           status: cachedStatus,

@@ -69,7 +69,7 @@ describe("waitForResumeCompletion", () => {
       );
     }) as unknown as typeof fetch;
 
-    // jitter adds 0-199ms; advance with buffer to cover max
+    // jitter adds 0-199ms; advance with buffer to cover max. MAX=3 allows 3 retries (4 total attempts)
     const resultPromise = waitForResumeCompletion("res_retry", 20_000);
     MockWebSocket.instances[0].onclose?.({ code: 1006 });
     await vi.advanceTimersByTimeAsync(1200);
@@ -77,6 +77,8 @@ describe("waitForResumeCompletion", () => {
     MockWebSocket.instances[1].onclose?.({ code: 1006 });
     await vi.advanceTimersByTimeAsync(2200);
     MockWebSocket.instances[2].onclose?.({ code: 1006 });
+    await vi.advanceTimersByTimeAsync(4200);
+    MockWebSocket.instances[3].onclose?.({ code: 1006 });
 
     await vi.advanceTimersByTimeAsync(3000);
     await expect(resultPromise).resolves.toEqual({ status: "failed", error: "Parser failed" });

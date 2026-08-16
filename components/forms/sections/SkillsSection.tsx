@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import type { ResumeContentFormData } from "@/lib/schemas/resume";
+import { FormEmptyState } from "./FormEmptyState";
 
 interface SkillsSectionProps {
   form: UseFormReturn<ResumeContentFormData>;
@@ -37,27 +38,18 @@ export function SkillsSection({ form }: SkillsSectionProps) {
     >
       <div className="space-y-4">
         {skillFields.length === 0 ? (
-          <div className="text-center py-8 px-4 bg-surface-2 rounded-xl border border-dashed border-border">
-            <div className="inline-flex mb-4 bg-brand-subtle p-4 rounded-xl">
-              <Wrench className="h-8 w-8 text-brand" />
-            </div>
-            <p className="text-foreground font-medium mb-1">No skills added yet</p>
-            <p className="text-sm text-muted-foreground mb-4">
-              Add your skills grouped by category
-            </p>
-            <Button
-              type="button"
-              onClick={() =>
-                appendSkill({
-                  category: "",
-                  items: [],
-                })
-              }
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Skill Category
-            </Button>
-          </div>
+          <FormEmptyState
+            icon={Wrench}
+            title="No skills added yet"
+            description="Add your skills grouped by category"
+            onAdd={() =>
+              appendSkill({
+                category: "",
+                items: [],
+              })
+            }
+            addLabel="Add Skill Category"
+          />
         ) : (
           <>
             {skillFields.map((field, index) => (

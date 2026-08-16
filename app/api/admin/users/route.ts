@@ -21,13 +21,13 @@
  * }
  * ```
  */
-
 import { env } from "cloudflare:workers";
 import { count, or, sql } from "drizzle-orm";
 import { withAdmin } from "@/lib/auth/with-auth";
 import { getDb } from "@/lib/db";
 import { resumes, siteData, user } from "@/lib/db/schema";
 import { createSuccessResponse } from "@/lib/utils/security-headers";
+import { safePageParam } from "@/lib/utils/pagination";
 
 const PAGE_SIZE = 25;
 
@@ -42,7 +42,7 @@ function escapeLikePattern(input: string): string {
 export async function GET(request: Request) {
   return withAdmin(request, async () => {
     const url = new URL(request.url);
-    const page = Math.max(1, Number.parseInt(url.searchParams.get("page") || "1", 10));
+    const page = safePageParam(url.searchParams.get("page"));
     const search = url.searchParams.get("search")?.trim() || "";
     const offset = (page - 1) * PAGE_SIZE;
 

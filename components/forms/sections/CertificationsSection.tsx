@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import type { ResumeContentFormData } from "@/lib/schemas/resume";
+import { FormEmptyState } from "./FormEmptyState";
 
 interface CertificationsSectionProps {
   form: UseFormReturn<ResumeContentFormData>;
@@ -29,29 +30,20 @@ export function CertificationsSection({ form }: CertificationsSectionProps) {
     >
       <div className="space-y-4">
         {certificationFields.length === 0 ? (
-          <div className="text-center py-8 px-4 bg-surface-2 rounded-xl border border-dashed border-border">
-            <div className="inline-flex mb-4 bg-brand-subtle p-4 rounded-xl">
-              <Award className="h-8 w-8 text-brand" />
-            </div>
-            <p className="text-foreground font-medium mb-1">No certifications added yet</p>
-            <p className="text-sm text-muted-foreground mb-4">
-              Add your professional certifications and credentials
-            </p>
-            <Button
-              type="button"
-              onClick={() =>
-                appendCertification({
-                  name: "",
-                  issuer: "",
-                  date: "",
-                  url: "",
-                })
-              }
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Certification
-            </Button>
-          </div>
+          <FormEmptyState
+            icon={Award}
+            title="No certifications added yet"
+            description="Add your professional certifications and credentials"
+            onAdd={() =>
+              appendCertification({
+                name: "",
+                issuer: "",
+                date: "",
+                url: "",
+              })
+            }
+            addLabel="Add Certification"
+          />
         ) : (
           <>
             {certificationFields.map((field, index) => (

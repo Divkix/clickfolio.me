@@ -1,14 +1,16 @@
 import { chromium } from "playwright";
 
 const TEMPLATES = [
-  { id: "bento", file: "bento.png" },
-  { id: "bold_corporate", file: "bold-corporate.png" },
-  { id: "classic_ats", file: "classic-ats.png" },
-  { id: "glass", file: "glass.png" },
-  { id: "midnight", file: "midnight.png" },
-  { id: "minimalist_editorial", file: "minimalist.png" },
-  { id: "neo_brutalist", file: "brutalist.png" },
-  { id: "spotlight", file: "spotlight.png" },
+  { id: "bento", file: "bento.webp" },
+  { id: "bold_corporate", file: "bold-corporate.webp" },
+  { id: "classic_ats", file: "classic-ats.webp" },
+  { id: "design_folio", file: "design-folio.webp" },
+  { id: "dev_terminal", file: "dev-terminal.webp" },
+  { id: "glass", file: "glass.webp" },
+  { id: "midnight", file: "midnight.webp" },
+  { id: "minimalist_editorial", file: "minimalist.webp" },
+  { id: "neo_brutalist", file: "brutalist.webp" },
+  { id: "spotlight", file: "spotlight.webp" },
 ];
 
 const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
@@ -36,7 +38,7 @@ async function generateThumbnails() {
 
       await page.screenshot({
         path: `public/previews/${template.file}`,
-        type: "png",
+        type: "webp",
       });
 
       console.log(`  Saved: public/previews/${template.file}`);

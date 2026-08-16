@@ -1,22 +1,9 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ResumeStatus } from "@/lib/db/schema";
-import { POLL_INTERVAL_MS } from "@/lib/realtime/constants";
+import { isValidResumeStatus, POLL_INTERVAL_MS } from "@/lib/realtime/constants";
 import { classifyError, getErrorMessage, showErrorToast } from "@/lib/utils/errors";
 import { useResumeWebSocket } from "./useResumeWebSocket";
-
-const VALID_STATUSES: ReadonlySet<string> = new Set([
-  "pending_claim",
-  "queued",
-  "processing",
-  "completed",
-  "failed",
-  "waiting_for_cache",
-]);
-
-function isValidStatus(value: string): value is ResumeStatus {
-  return VALID_STATUSES.has(value);
-}
 
 interface ResumeStatusResponse {
   status: ResumeStatus;
@@ -62,18 +49,26 @@ export function useResumeStatus(resumeId: string | null): UseResumeStatusReturn 
 
   // Handle status updates from WebSocket
   const handleWSStatus = useCallback((newStatus: ResumeStatus, wsError?: string) => {
-    if (!isValidStatus(newStatus)) return;
+    if (!isValidResumeStatus(newStatus)) return;
     setStatus(newStatus);
     if (wsError) {
       setError(wsError);
     }
 
-    // Map status to progress percentage
-    if (newStatus === "processing") {
+    // Progress mapping matches lib/resume/lifecycle.ts statusPresentation():
+    // pending_claim→15, queued→25, waiting_for_cache→30, processing→50, completed→100, failed→0
+    if (newStatus === "pending_claim") {
+      setProgress(15);
+    } else if (newStatus === "queued") {
+      setProgress(25);
+    } else if (newStatus === "waiting_for_cache") {
+      setProgress(30);
+    } else if (newStatus === "processing") {
       setProgress(50);
     } else if (newStatus === "completed") {
       setProgress(100);
     } else if (newStatus === "failed") {
+      setProgress(0);
       // The WebSocket push payload only carries { status, error, timestamp } and
       // structurally cannot judge retry eligibility. Refetch the authoritative
       // status endpoint so canRetry always comes from the single canonical source

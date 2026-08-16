@@ -3,12 +3,7 @@ import { withUser } from "@/lib/auth/with-auth";
 import { resumes } from "@/lib/db/schema";
 import type { ResumeStatus } from "@/lib/db/schema/resume";
 import type { UnknownRecord } from "@/lib/types/json";
-import {
-  canRetryResume,
-  getStatusView,
-  statusPresentation,
-  WAITING_FOR_CACHE_TIMEOUT_MESSAGE,
-} from "@/lib/resume/lifecycle";
+import { getStatusView, WAITING_FOR_CACHE_TIMEOUT_MESSAGE } from "@/lib/resume/lifecycle";
 import {
   createErrorResponse,
   createSuccessResponse,
@@ -33,7 +28,7 @@ import {
  * Response fields vary by status:
  *   - progress_pct: number (0-100)
  *   - error: string | null
- *   - can_retry: boolean (true when the resume is actually retry-eligible; see canRetryResume)
+ *   - can_retry: boolean (true when the resume is actually retry-eligible; see getStatusView/lifecycle)
  *   - parsed_content: object | null (only when completed)
  *   - waiting_for_cache: boolean (only when waiting)
  *   - queued: boolean (only when queued)
@@ -147,32 +142,23 @@ export async function GET(request: Request) {
 
       if (resume.status === "failed") {
         return createSuccessResponse({
-          status: "failed",
-          progress_pct: 0,
+          status: view.status,
+          progress_pct: view.progressPct,
           error: resume.errorMessage ?? null,
-          // SAFETY: D1 resume row fields are DB-constrained; casts bridge Drizzle-inferred string/number to typed union for canRetryResume, validated by status === "failed" guard
-          can_retry: canRetryResume({
-            status: resume.status as ResumeStatus,
-            retryCount: resume.retryCount as number,
-            totalAttempts: resume.totalAttempts as number,
-            lastAttemptError: resume.lastAttemptError as string | null,
-          }),
+          can_retry: view.canRetry,
         });
       }
 
-      // Unified presentation for pre-queue / in-flight / unknown statuses.
-      // SAFETY: drizzle row fields are string/number but statusPresentation expects exact types; casts narrow D1-inferred types
-      const pres = statusPresentation({
-        status: resume.status as ResumeStatus,
-        createdAt: resume.createdAt as string | null,
-      });
-      if (pres.publicStatus === "processing") {
+      // Unified presentation for pre-queue / in-flight / unknown statuses via view.
+      // Flags derived from raw status; progress/status from lifecycle so both
+      // endpoints (status + latest-status) stay in sync.
+      if (view.status === "processing") {
         const extra: UnknownRecord = {};
-        if (pres.waitingForCache) extra.waiting_for_cache = true;
-        if (pres.queued) extra.queued = true;
+        if (resume.status === "waiting_for_cache") extra.waiting_for_cache = true;
+        if (resume.status === "queued") extra.queued = true;
         return createSuccessResponse({
-          status: "processing",
-          progress_pct: pres.progressPct,
+          status: view.status,
+          progress_pct: view.progressPct,
           error: null,
           can_retry: false,
           ...extra,
@@ -181,8 +167,8 @@ export async function GET(request: Request) {
 
       // Unknown / non-processing terminal fallback (should not happen for known enum)
       return createSuccessResponse({
-        status: pres.publicStatus,
-        progress_pct: pres.progressPct,
+        status: view.status,
+        progress_pct: view.progressPct,
         error: resume.errorMessage ?? null,
         can_retry: false,
       });
