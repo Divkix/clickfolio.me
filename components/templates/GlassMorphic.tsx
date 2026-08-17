@@ -582,7 +582,7 @@ export const GlassMorphic: React.FC<TemplateProps> = ({ content, profile, isPrev
                 subtitle="Academic background"
               />
 
-              <div className="grid md:grid-cols-2 gap-6">
+              <div className="grid md:grid-cols-2 gap-6 items-start">
                 {/* Edu Column */}
                 <div className="space-y-4">
                   {content.education?.map((edu, i) => (
@@ -604,7 +604,7 @@ export const GlassMorphic: React.FC<TemplateProps> = ({ content, profile, isPrev
                   {content.certifications?.map((cert, i) => (
                     <SpotlightCard
                       key={`cert-${cert.name}-${i}`}
-                      className="p-6 h-full flex flex-col justify-center"
+                      className="p-6"
                     >
                       <div className="flex justify-between items-start">
                         <div>
