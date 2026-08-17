@@ -518,12 +518,16 @@ describe("Queue Consumer - Main Processing", () => {
                     },
                   ]);
                 }
+                // callCount 2 is user.handle fetch for publish gating — return a handle so publish=true
+                if (callCount === 2) {
+                  return Promise.resolve([{ handle: "test-handle" }]);
+                }
                 return Promise.resolve([]);
               }),
               // For the waiting resumes query (no limit)
               // eslint-disable-next-line unicorn/no-thenable -- mock for testing
               then: vi.fn().mockImplementation((cb: (value: JsonValue[]) => JsonValue) => {
-                if (callCount === 2) {
+                if (callCount === 3) {
                   return Promise.resolve(cb([{ id: waitingResumeId, userId }]));
                 }
                 return Promise.resolve(cb([]));
@@ -1376,12 +1380,16 @@ describe("Batch A — queue/state-machine integrity fixes", () => {
                     { status: "queued", parsedContent: null, totalAttempts: 0 },
                   ]);
                 }
-                // callIdx 1 = cache lookup → miss
+                // callIdx 2 is user.handle fetch for publish gating
+                if (callIdx === 2) {
+                  return Promise.resolve([{ handle: "test-handle" }]);
+                }
+                // callIdx 1 = cache lookup → miss (and any other limit)
                 return Promise.resolve([]);
               }),
               // Waiting-resumes query has no .limit — it is awaited directly.
               then: vi.fn().mockImplementation((cb: (value: JsonValue[]) => JsonValue) => {
-                if (callIdx === 2) {
+                if (callIdx === 3) {
                   return Promise.resolve(cb([{ id: waitingId, userId }]));
                 }
                 return Promise.resolve(cb([]));

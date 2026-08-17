@@ -169,6 +169,18 @@ export default defineConfig({
           "anti-slop/no-unsafe-dictionary-type": "off",
         },
       },
+      {
+        // SAFETY: backfill script parses wrangler JSON (unknown shape) and must branch on typeof / Record<string, unknown> at I/O boundary; concrete types would obscure the unknown-boundary handling and script is one-off.
+        files: ["scripts/backfill-handles.ts"],
+        rules: {
+          "anti-slop/no-unsafe-dictionary-type": "off",
+          "anti-slop/no-runtime-typeof": "off",
+          "anti-slop/no-unknown-returns": "off",
+          "anti-slop/no-unknown-parameters": "off",
+          "anti-slop/require-safety-comment-for-type-assertion": "off",
+          "typescript/no-base-to-string": "off",
+        },
+      },
     ],
   },
   staged: {

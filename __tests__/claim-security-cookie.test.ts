@@ -87,6 +87,10 @@ vi.mock("@/lib/db/schema", () => ({
     createdAt: "createdAt",
     updatedAt: "updatedAt",
   },
+  user: {
+    id: "id",
+    handle: "handle",
+  },
 }));
 
 // R2 mock

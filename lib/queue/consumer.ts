@@ -104,6 +104,15 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
   // M7: Fold totalAttempts increment into later updates to eliminate standalone UPDATE.
   const nextAttemptCount = (currentResume[0]?.totalAttempts || 0) + 1;
 
+  // Gate publishing on user.handle: if handle IS NULL, site must remain unpublished (lastPublishedAt=null)
+  // to avoid creating unreachable published sites. Single query reused for both cached and parsed paths.
+  const userRow = await db
+    .select({ handle: user.handle })
+    .from(user)
+    .where(eq(user.id, message.userId))
+    .limit(1);
+  const hasHandle = !!userRow[0]?.handle;
+
   if (cached[0]?.parsedContent) {
     // Use cached result — M7: include totalAttempts increment in same UPDATE
     const now = new Date().toISOString();
@@ -122,7 +131,9 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
           totalAttempts: nextAttemptCount,
         })
         .where(eq(resumes.id, message.resumeId)),
-      buildSiteDataUpsert(db, message.userId, message.resumeId, cachedContent, now),
+      buildSiteDataUpsert(db, message.userId, message.resumeId, cachedContent, now, {
+        publish: hasHandle,
+      }),
     ]);
 
     await notifyStatusChange({
@@ -207,7 +218,9 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
         lastAttemptError: null,
       })
       .where(eq(resumes.id, message.resumeId)),
-    buildSiteDataUpsert(db, message.userId, message.resumeId, parsedContent, now),
+    buildSiteDataUpsert(db, message.userId, message.resumeId, parsedContent, now, {
+      publish: hasHandle,
+    }),
   ]);
 
   // Write AI-inferred professional level to user.role separately from the

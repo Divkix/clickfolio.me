@@ -90,6 +90,10 @@ vi.mock("@/lib/db/schema", () => ({
     createdAt: "createdAt",
     updatedAt: "updatedAt",
   },
+  user: {
+    id: "id",
+    handle: "handle",
+  },
 }));
 
 // R2 mock
@@ -369,6 +373,10 @@ describe("POST /api/resume/claim — Duplicate file hash detection", () => {
         if (limitCallCount === 1) {
           // Cache lookup: found a completed resume with parsedContent
           return Promise.resolve([{ id: "cached-resume", parsedContent: cachedContent }]);
+        }
+        if (limitCallCount === 2) {
+          // Handle lookup: user has a handle, so site should be published
+          return Promise.resolve([{ handle: "test-handle" }]);
         }
         return Promise.resolve([]);
       });

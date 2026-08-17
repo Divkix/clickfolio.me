@@ -6,11 +6,22 @@ import { extractPreviewFields } from "@/lib/utils/preview-fields";
 
 /**
  * Build siteData upsert query (not executed).
- * Returned so callers can include it in a db.batch() call for atomicity.
+ * Returned so callers can include it in a db.batch() call for atomicity (ADR-0008).
  *
  * Always extracts preview fields from content for denormalized columns.
  * Previously the claim route's version skipped extractPreviewFields(),
  * leaving preview columns null for cached claims.
+ *
+ * @param db - Drizzle D1 database instance
+ * @param userId - Owner user ID (siteData.userId, unique)
+ * @param resumeId - Active resume ID to link
+ * @param content - Raw JSON string content (stored as TEXT, parsed for preview extraction)
+ * @param now - ISO timestamp for createdAt/updatedAt/lastPublishedAt
+ * @param opts.publish - When true (default) marks site as published (lastPublishedAt=now).
+ *                       When false sets lastPublishedAt=null so site remains unpublished.
+ *                       Callers MUST pass publish=false when user.handle IS NULL to avoid
+ *                       creating unreachable published sites; wizard sets handle then
+ *                       re-upserts with publish=true.
  */
 export function buildSiteDataUpsert(
   db: DrizzleD1Database<typeof schema>,
@@ -18,6 +29,7 @@ export function buildSiteDataUpsert(
   resumeId: string,
   content: string,
   now: string,
+  opts?: { publish?: boolean },
 ) {
   let parsedContent: ResumeContent | null = null;
   try {
@@ -28,6 +40,7 @@ export function buildSiteDataUpsert(
   }
 
   const previewFields = extractPreviewFields(parsedContent);
+  const publish = opts?.publish ?? true;
 
   return db
     .insert(siteData)
@@ -37,7 +50,7 @@ export function buildSiteDataUpsert(
       resumeId,
       content,
       ...previewFields,
-      lastPublishedAt: now,
+      lastPublishedAt: publish ? now : null,
       createdAt: now,
       updatedAt: now,
     })
@@ -47,7 +60,7 @@ export function buildSiteDataUpsert(
         resumeId,
         content,
         ...previewFields,
-        lastPublishedAt: now,
+        lastPublishedAt: publish ? now : null,
         updatedAt: now,
       },
     });

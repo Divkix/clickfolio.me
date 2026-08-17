@@ -4,7 +4,7 @@ import { captureServerEvent } from "@/lib/posthog-server";
 import { withUser } from "@/lib/auth/with-auth";
 import { buildSiteDataUpsert } from "@/lib/data/site-data-upsert";
 import type { NewResume } from "@/lib/db/schema";
-import { resumes } from "@/lib/db/schema";
+import { resumes, user } from "@/lib/db/schema";
 import { publishResumeParse } from "@/lib/queue/resume-parse";
 import { getR2Binding, R2 } from "@/lib/r2";
 import { enforceRateLimit } from "@/lib/rate-limit/user";
@@ -318,6 +318,12 @@ export async function POST(request: Request) {
         // Only update DB if R2 put succeeded
         if (r2PutSucceeded) {
           try {
+            const userRow = await db
+              .select({ handle: user.handle })
+              .from(user)
+              .where(eq(user.id, userId))
+              .limit(1);
+            const hasHandle = !!userRow[0]?.handle;
             // Batch resume completion + siteData upsert atomically.
             // Without batching, a crash between the UPDATE and upsert leaves
             // the resume "completed" with no siteData, and the idempotency
@@ -332,7 +338,7 @@ export async function POST(request: Request) {
                   parsedContent: cachedContent,
                 })
                 .where(eq(resumes.id, resumeId)),
-              buildSiteDataUpsert(db, userId, resumeId, cachedContent, now),
+              buildSiteDataUpsert(db, userId, resumeId, cachedContent, now, { publish: hasHandle }),
             ]);
 
             // R2 and DB both succeeded - return cached result
