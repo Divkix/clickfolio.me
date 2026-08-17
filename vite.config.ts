@@ -159,6 +159,9 @@ export default defineConfig({
           "anti-slop/no-chained-type-assertions": "off",
           "anti-slop/require-safety-comment-for-type-assertion": "off",
           "anti-slop/no-runtime-typeof": "off",
+          "anti-slop/no-unsafe-dictionary-type": "off",
+          "anti-slop/no-unknown-parameters": "off",
+          "anti-slop/no-unknown-returns": "off",
         },
       },
       {

@@ -34,8 +34,9 @@ import { spawnSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
 import { handleSchema } from "@/lib/schemas/profile";
 
-// Inline RESERVED set to avoid importing @/lib/rate-limit/handle-validation
-// which pulls drizzle-orm DB deps at import time. Must mirror that file.
+// Inline RESERVED_HANDLES to avoid importing @/lib/rate-limit/handle-validation
+// which pulls drizzle-orm DB deps at import time.
+// Must mirror lib/rate-limit/handle-validation.ts RESERVED_HANDLES; sync enforced by test __tests__/unit/lib/backfill-reserved-sync.test.ts
 const RESERVED_HANDLES = new Set<string>(["api", "_next", "static", "public", "xmlrpc", "adminer"]);
 
 const DB_NAME = "clickfolio-db";
@@ -47,6 +48,10 @@ const DB_NAME = "clickfolio-db";
 /**
  * Mirrors HandleStep handleChange + spec sanitizeHandle contract:
  * lower, replace [^a-z0-9-] -> '-', collapse -+, trim ^-+|-+$, slice 0,30
+ * Second trim after slice is needed because truncation can introduce a trailing
+ * hyphen — e.g., sanitizeHandle("a".repeat(29) + "-b") would first trim to
+ * "a...a-b" then slice 30 -> "a...a-" which would fail handleSchema without
+ * re-trimming. The trailing `replace(/^-+|-+$/g, "")` after slice fixes this.
  */
 export function sanitizeHandle(raw: string): string {
   return raw
@@ -54,7 +59,8 @@ export function sanitizeHandle(raw: string): string {
     .replace(/[^a-z0-9-]/g, "-")
     .replace(/-+/g, "-")
     .replace(/^-+|-+$/g, "")
-    .slice(0, 30);
+    .slice(0, 30)
+    .replace(/^-+|-+$/g, "");
 }
 
 export function isReserved(handle: string): boolean {
@@ -620,6 +626,22 @@ async function main(): Promise<void> {
   }
   console.log("-".repeat(96));
 
+  // Also generate site_data publish SQL for existing rows where last_published_at IS NULL
+  // This ensures the 7 of 15 null-handle users who already have site_data become public.
+  // Dry-run should show this SQL; execute will run it best-effort per successful user.
+  const siteDataSqls = mappings.map(
+    (m) =>
+      `UPDATE site_data SET last_published_at='${escapeSql(nowIso)}', updated_at='${escapeSql(nowIso)}' WHERE user_id='${escapeSql(m.id)}' AND last_published_at IS NULL;`,
+  );
+  console.log(
+    "\nGenerated site_data publish SQL (only updates existing rows where last_published_at IS NULL):",
+  );
+  console.log("-".repeat(96));
+  for (const s of siteDataSqls) {
+    console.log(s);
+  }
+  console.log("-".repeat(96));
+
   // Also verify SQL guards
   const unguarded = mappings.filter((m) => !m.sql.includes("handle IS NULL"));
   if (unguarded.length > 0) {
@@ -635,6 +657,7 @@ async function main(): Promise<void> {
     takenCount: takenHandles.size,
     mappings: mappings.map((m) => ({ id: m.id, email: m.email, handle: m.handle })),
     sql: mappings.map((m) => m.sql),
+    siteDataSql: siteDataSqls,
     validation: validationErrors.length === 0 ? "ok" : validationErrors,
   };
 
@@ -642,9 +665,12 @@ async function main(): Promise<void> {
   console.log(JSON.stringify(jsonSummary, null, 2));
 
   if (outPath) {
-    const sqlContent = mappings.map((m) => m.sql).join("\n") + "\n";
+    const sqlContent =
+      mappings.map((m) => m.sql).join("\n") + "\n" + siteDataSqls.join("\n") + "\n";
     writeFileSync(outPath, sqlContent, "utf-8");
-    console.log(`\n✓ SQL written to ${outPath} (${mappings.length} statements)`);
+    console.log(
+      `\n✓ SQL written to ${outPath} (${mappings.length} user + ${siteDataSqls.length} site_data statements)`,
+    );
   }
 
   if (isDryRun) {
@@ -702,6 +728,29 @@ async function main(): Promise<void> {
       "\n✖ Some updates failed — review wrangler output above. Re-run is safe (idempotent WHERE handle IS NULL).",
     );
     process.exit(1);
+  }
+
+  // Publish existing site_data rows that already exist but have last_published_at IS NULL.
+  // Due to the new handle gate, 7 of the 15 null-handle users already have site_data
+  // with last_published_at = NULL — they should become public once handle is assigned.
+  // This is best-effort per user (0 rows affected is fine if no site_data row exists).
+  const successfulMappings = mappings.filter((m) => !failures.some((f) => f.id === m.id));
+  if (successfulMappings.length > 0) {
+    console.log(
+      `\nPublishing site_data for ${successfulMappings.length} users where last_published_at IS NULL ...`,
+    );
+    for (const m of successfulMappings) {
+      const siteDataSql = `UPDATE site_data SET last_published_at='${escapeSql(nowIso)}', updated_at='${escapeSql(nowIso)}' WHERE user_id='${escapeSql(m.id)}' AND last_published_at IS NULL`;
+      try {
+        runWranglerJson(siteDataSql);
+        console.log(`✓ site_data published for ${m.email} (${m.id.slice(0, 8)}) if existed`);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.warn(
+          `⚠ site_data publish failed for ${m.email} (${m.id.slice(0, 8)}): ${msg} — continuing`,
+        );
+      }
+    }
   }
 
   // Verification: re-query null count

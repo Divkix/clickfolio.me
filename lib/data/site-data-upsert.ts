@@ -60,8 +60,9 @@ export function buildSiteDataUpsert(
         resumeId,
         content,
         ...previewFields,
-        lastPublishedAt: publish ? now : null,
         updatedAt: now,
+        // eslint-disable-next-line anti-slop/no-conditional-empty-object-spread -- publish=false must not overwrite lastPublishedAt to avoid destructive unpublish on stale race
+        ...(publish ? { lastPublishedAt: now } : {}),
       },
     });
 }

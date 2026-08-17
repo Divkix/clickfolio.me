@@ -105,7 +105,9 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
   const nextAttemptCount = (currentResume[0]?.totalAttempts || 0) + 1;
 
   // Gate publishing on user.handle: if handle IS NULL, site must remain unpublished (lastPublishedAt=null)
-  // to avoid creating unreachable published sites. Single query reused for both cached and parsed paths.
+  // to avoid creating unreachable published sites. Fetched once here for the
+  // cached path (no AI delay, still fresh); re-fetched just before the parsed
+  // batch to avoid ~90s stale race after AI parsing.
   const userRow = await db
     .select({ handle: user.handle })
     .from(user)
@@ -203,6 +205,19 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
 
   const now = new Date().toISOString();
 
+  // Re-fetch hasHandle just before the batch to avoid a stale race: the
+  // hasHandle fetched at the top is ~90s stale after the AI parse window.
+  // If the user added a handle during parsing we must publish (lastPublishedAt=now);
+  // stale false would otherwise destructively unpublish via site-data-upsert
+  // (publish=false path now preserves lastPublishedAt, but fresh read is still
+  // correct for newly inserted rows).
+  const freshRow = await db
+    .select({ handle: user.handle })
+    .from(user)
+    .where(eq(user.id, message.userId))
+    .limit(1);
+  const freshHasHandle = !!freshRow[0]?.handle;
+
   // M10: Batch resume completion + siteData upsert atomically.
   // Without batching, a crash between the UPDATE and upsert leaves the resume
   // marked "completed" with no siteData, and the idempotency guard at line 93
@@ -219,7 +234,7 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
       })
       .where(eq(resumes.id, message.resumeId)),
     buildSiteDataUpsert(db, message.userId, message.resumeId, parsedContent, now, {
-      publish: hasHandle,
+      publish: freshHasHandle,
     }),
   ]);
 
@@ -252,6 +267,18 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
   // leaves some resumes marked "completed" with no siteData, and the
   // idempotency guard at line 93 skips them on retry.
   if (waitingResumes.length > 0) {
+    // Gate publishing per waiting user: each waiting resume's site must only be
+    // published if THAT user has a handle. A single hasHandle for the primary
+    // user would incorrectly publish/unpublish other users' sites.
+    // SAFETY: D1 rows from Drizzle select have non-null userId; cast narrows string|null to string for per-user handle lookup.
+    const waitingUserIds = [...new Set(waitingResumes.map((w) => w.userId as string))];
+    const waitingHandleRows = waitingUserIds.length
+      ? await db
+          .select({ id: user.id, handle: user.handle })
+          .from(user)
+          .where(inArray(user.id, waitingUserIds))
+      : [];
+    const handleMap = new Map(waitingHandleRows.map((r) => [r.id, !!r.handle]));
     // Scope the bulk UPDATE to the EXACT ids we upsert siteData for (inArray on
     // the SELECTed ids, not fileHash+status): a row that flips to
     // waiting_for_cache between the SELECT and this UPDATE must NOT be completed
@@ -274,7 +301,9 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
           ),
         ),
       ...waitingResumes.map((w) =>
-        buildSiteDataUpsert(db, w.userId as string, w.id as string, parsedContent, now),
+        buildSiteDataUpsert(db, w.userId as string, w.id as string, parsedContent, now, {
+          publish: handleMap.get(w.userId as string) ?? false,
+        }),
       ),
     ]);
 

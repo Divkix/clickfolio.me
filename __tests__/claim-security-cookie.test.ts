@@ -13,7 +13,6 @@ import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 const mockCaptureBookmark = vi.fn().mockResolvedValue(undefined);
 
 const mockFindFirst = vi.fn();
-const mockDbSelect = vi.fn();
 const mockDbFrom = vi.fn();
 const mockDbWhere = vi.fn();
 const mockDbLimit = vi.fn();
@@ -24,8 +23,24 @@ const mockDbUpdateSet = vi.fn();
 const mockDbUpdateWhere = vi.fn().mockResolvedValue(undefined);
 const mockDbBatch = vi.fn().mockResolvedValue(undefined);
 
-// Chain helpers for select().from().where().orderBy().limit()
-mockDbSelect.mockReturnValue({ from: mockDbFrom });
+let mockHandleRows: Array<{ handle: string | null }> = [{ handle: "test-handle" }];
+
+const mockDbSelect = vi.fn().mockImplementation((cols: unknown) => {
+  const isHandleQuery =
+    cols !== null && typeof cols === "object" && "handle" in (cols as Record<string, unknown>);
+  if (isHandleQuery) {
+    return {
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          limit: vi.fn().mockResolvedValue(mockHandleRows),
+        }),
+      }),
+    };
+  }
+  return { from: mockDbFrom };
+});
+
+// Chain helpers for non-handle selects: select().from().where().orderBy().limit()
 mockDbFrom.mockReturnValue({ where: mockDbWhere });
 mockDbWhere.mockReturnValue({ orderBy: mockDbOrderBy, limit: mockDbLimit });
 mockDbOrderBy.mockReturnValue({ limit: mockDbLimit });
@@ -243,12 +258,26 @@ function makeClaimRequest(body: UnknownRecord, cookieValue?: string) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockHandleRows = [{ handle: "test-handle" }];
   // Default: R2 returns a valid PDF buffer
   mockR2GetAsArrayBuffer.mockResolvedValue(makePdfBuffer());
   // Default: no cached or processing resumes
   mockDbLimit.mockResolvedValue([]);
-  // Re-wire DB chain mocks
-  mockDbSelect.mockReturnValue({ from: mockDbFrom });
+  // Re-wire DB chain mocks — use handle-aware select that bypasses positional callCount
+  mockDbSelect.mockImplementation((cols: unknown) => {
+    const isHandleQuery =
+      cols !== null && typeof cols === "object" && "handle" in (cols as Record<string, unknown>);
+    if (isHandleQuery) {
+      return {
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue(mockHandleRows),
+          }),
+        }),
+      };
+    }
+    return { from: mockDbFrom };
+  });
   mockDbFrom.mockReturnValue({ where: mockDbWhere });
   mockDbWhere.mockReturnValue({ orderBy: mockDbOrderBy, limit: mockDbLimit });
   mockDbOrderBy.mockReturnValue({ limit: mockDbLimit });
@@ -352,5 +381,34 @@ describe("POST /api/resume/claim - Cookie Security (Issue #89)", () => {
     expect(mockR2Put).toHaveBeenCalled();
     // Verify DB insert was called (resume record created)
     expect(mockDbInsert).toHaveBeenCalled();
+  });
+
+  it("uses handle-aware mock: cached path with no handle → publish:false", async () => {
+    authedAs("user-1");
+
+    const cachedContent = JSON.stringify({ full_name: "Test User" });
+    mockDbLimit.mockResolvedValue([{ id: "cached-resume", parsedContent: cachedContent }]);
+    mockHandleRows = [];
+
+    const validCookie = await createSignedCookieValue(VALID_TEMP_KEY, TEST_SECRET);
+
+    const { POST } = await import("@/app/api/resume/claim/route");
+    const response = await POST(makeClaimRequest({ key: VALID_TEMP_KEY }, validCookie));
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { status: string; cached?: boolean };
+    expect(body.status).toBe("completed");
+    expect(body.cached).toBe(true);
+
+    const { buildSiteDataUpsert } = await import("@/lib/data/site-data-upsert");
+    expect(vi.mocked(buildSiteDataUpsert)).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+      { publish: false },
+    );
+    expect(mockDbBatch).toHaveBeenCalled();
   });
 });

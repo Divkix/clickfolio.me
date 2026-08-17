@@ -13,7 +13,6 @@ type ClaimHeaders = { "Content-Type": string; Cookie?: string };
 const mockCaptureBookmark = vi.fn().mockResolvedValue(undefined);
 
 const mockFindFirst = vi.fn();
-const mockDbSelect = vi.fn();
 const mockDbFrom = vi.fn();
 const mockDbWhere = vi.fn();
 const mockDbLimit = vi.fn();
@@ -24,8 +23,24 @@ const mockDbUpdateSet = vi.fn();
 const mockDbUpdateWhere = vi.fn().mockResolvedValue(undefined);
 const mockDbBatch = vi.fn().mockResolvedValue(undefined);
 
-// Chain helpers for select().from().where().orderBy().limit()
-mockDbSelect.mockReturnValue({ from: mockDbFrom });
+let mockHandleRows: Array<{ handle: string | null }> = [{ handle: "test-handle" }];
+
+const mockDbSelect = vi.fn().mockImplementation((cols: unknown) => {
+  const isHandleQuery =
+    cols !== null && typeof cols === "object" && "handle" in (cols as Record<string, unknown>);
+  if (isHandleQuery) {
+    return {
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          limit: vi.fn().mockResolvedValue(mockHandleRows),
+        }),
+      }),
+    };
+  }
+  return { from: mockDbFrom };
+});
+
+// Chain helpers for non-handle selects: select().from().where().orderBy().limit()
 mockDbFrom.mockReturnValue({ where: mockDbWhere });
 mockDbWhere.mockReturnValue({ orderBy: mockDbOrderBy, limit: mockDbLimit });
 mockDbOrderBy.mockReturnValue({ limit: mockDbLimit });
@@ -241,15 +256,29 @@ function makeClaimRequest(body: UnknownRecord, cookieValue?: string) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // Default: user has handle so publish=true unless test overrides mockHandleRows
+  mockHandleRows = [{ handle: "test-handle" }];
   // Reset mock implementations that tests may override
   mockedValidateRequestSize.mockReturnValue({ valid: true });
   // Default: R2 returns a valid PDF buffer
   mockR2GetAsArrayBuffer.mockResolvedValue(makePdfBuffer());
   // Default: no cached or processing resumes
   mockDbLimit.mockResolvedValue([]);
-  // Re-wire DB chain mocks (clearAllMocks resets call history but not implementations,
-  // however some chain mocks need re-setup after per-test overrides)
-  mockDbSelect.mockReturnValue({ from: mockDbFrom });
+  // Re-wire DB chain mocks — use handle-aware select that bypasses positional callCount
+  mockDbSelect.mockImplementation((cols: unknown) => {
+    const isHandleQuery =
+      cols !== null && typeof cols === "object" && "handle" in (cols as Record<string, unknown>);
+    if (isHandleQuery) {
+      return {
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue(mockHandleRows),
+          }),
+        }),
+      };
+    }
+    return { from: mockDbFrom };
+  });
   mockDbFrom.mockReturnValue({ where: mockDbWhere });
   mockDbWhere.mockReturnValue({ orderBy: mockDbOrderBy, limit: mockDbLimit });
   mockDbOrderBy.mockReturnValue({ limit: mockDbLimit });
@@ -445,5 +474,38 @@ describe("POST /api/resume/claim", () => {
 
     expect(response.status).toBe(429);
     expect(enforceRateLimit).toHaveBeenCalled();
+  });
+
+  it("uses publish:false when cached resume exists but user has no handle", async () => {
+    authedAs("user-1");
+    // Ensure rate limiter allows this request (previous test may have set it to 429)
+    const { enforceRateLimit } = await import("@/lib/rate-limit/user");
+    vi.mocked(enforceRateLimit).mockResolvedValue(null);
+
+    const cachedContent = JSON.stringify({ full_name: "Test User" });
+    // Cache hit → cachedContent; handle missing → publish:false
+    mockDbLimit.mockResolvedValue([{ id: "cached-resume", parsedContent: cachedContent }]);
+    mockHandleRows = [];
+
+    const { POST } = await import("@/app/api/resume/claim/route");
+    const cookie = await createSignedCookieValue("temp/uuid/resume.pdf", TEST_SECRET);
+    const response = await POST(makeClaimRequest({ key: "temp/uuid/resume.pdf" }, cookie));
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { status: string; cached?: boolean };
+    expect(body.status).toBe("completed");
+    expect(body.cached).toBe(true);
+
+    const { buildSiteDataUpsert } = await import("@/lib/data/site-data-upsert");
+    expect(vi.mocked(buildSiteDataUpsert)).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+      { publish: false },
+    );
+    // Queue still completes without throwing and siteData upsert still invoked
+    expect(mockDbBatch).toHaveBeenCalled();
   });
 });

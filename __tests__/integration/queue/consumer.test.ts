@@ -68,17 +68,51 @@ vi.mock("@/lib/db/session", () => ({
   getSessionDbForWebhook: vi.fn().mockImplementation(() => {
     // Create a mock db that reads from/writes to mockDbState
     const mockDb = {
-      select: vi.fn().mockImplementation((_fields: JsonValue) => ({
-        from: vi.fn().mockImplementation((_table: JsonValue) => ({
-          where: vi.fn().mockImplementation((_condition: JsonValue) => ({
-            limit: vi.fn().mockImplementation((n: number) => {
-              // Extract resumeId from condition if possible
-              const records = Array.from(mockDbState.resumes.values());
-              return Promise.resolve(records.slice(0, n));
-            }),
+      select: vi.fn().mockImplementation((fields: JsonValue) => {
+        const isHandleQuery =
+          fields !== null &&
+          typeof fields === "object" &&
+          "handle" in (fields as Record<string, unknown>);
+        if (isHandleQuery) {
+          const hasId = "id" in (fields as Record<string, unknown>);
+          // Primary handle query: select({handle}) with limit(1) → single handle
+          // Waiting handle query: select({id, handle}) with inArray → per-user handles
+          const handleRows = hasId
+            ? [{ id: "user-1", handle: "test-handle" }]
+            : [{ handle: "test-handle" }];
+          return {
+            from: vi.fn().mockImplementation((_table: JsonValue) => ({
+              where: vi.fn().mockImplementation((_condition: JsonValue) => ({
+                limit: vi.fn().mockImplementation((_n: number) => Promise.resolve(handleRows)),
+                // eslint-disable-next-line unicorn/no-thenable -- mock for testing
+                then: vi
+                  .fn()
+                  .mockImplementation((onFulfilled: (value: JsonValue) => JsonValue) =>
+                    Promise.resolve(onFulfilled(handleRows as unknown as JsonValue)),
+                  ),
+              })),
+            })),
+          };
+        }
+        return {
+          from: vi.fn().mockImplementation((_table: JsonValue) => ({
+            where: vi.fn().mockImplementation((_condition: JsonValue) => ({
+              limit: vi.fn().mockImplementation((n: number) => {
+                // Extract resumeId from condition if possible
+                const records = Array.from(mockDbState.resumes.values());
+                return Promise.resolve(records.slice(0, n));
+              }),
+              // For waiting resumes query (select without limit, awaited via then)
+              // eslint-disable-next-line unicorn/no-thenable -- mock for testing
+              then: vi.fn().mockImplementation((onFulfilled: (value: JsonValue) => JsonValue) => {
+                // Filter for waiting_for_cache if condition contains that status - simplified: return empty
+                // Tests with custom mockDb handle waiting explicitly
+                return Promise.resolve(onFulfilled([] as unknown as JsonValue));
+              }),
+            })),
           })),
-        })),
-      })),
+        };
+      }),
       update: vi.fn().mockImplementation((_table: JsonValue) => ({
         set: vi.fn().mockImplementation((values: UnknownRecord) => ({
           where: vi.fn().mockImplementation((condition: UnknownRecord) => {
@@ -500,7 +534,47 @@ describe("Queue Consumer - Main Processing", () => {
     const selectCalls: Array<string> = [];
 
     const mockDb = {
-      select: vi.fn().mockImplementation((_fields: JsonValue) => {
+      select: vi.fn().mockImplementation((cols: JsonValue) => {
+        const isHandleQuery =
+          cols !== null &&
+          typeof cols === "object" &&
+          "handle" in (cols as Record<string, unknown>);
+        if (isHandleQuery) {
+          const hasId = "id" in (cols as Record<string, unknown>);
+          if (hasId) {
+            // Waiting handle query: select({id, handle}) without limit, awaited via thenable
+            const rows = [{ id: userId, handle: "test-handle" }];
+            return {
+              from: vi.fn().mockReturnValue({
+                where: vi.fn().mockReturnValue({
+                  limit: vi.fn().mockResolvedValue(rows),
+                  // eslint-disable-next-line unicorn/no-thenable -- mock for testing
+                  then: vi
+                    .fn()
+                    .mockImplementation((onFulfilled: (value: JsonValue) => JsonValue) =>
+                      Promise.resolve(onFulfilled(rows as unknown as JsonValue)),
+                    ),
+                }),
+              }),
+            };
+          }
+          return {
+            from: vi.fn().mockReturnValue({
+              where: vi.fn().mockReturnValue({
+                limit: vi.fn().mockResolvedValue([{ handle: "test-handle" }]),
+                // also support then in case caller awaits without limit (defensive)
+                // eslint-disable-next-line unicorn/no-thenable -- mock for testing
+                then: vi
+                  .fn()
+                  .mockImplementation((onFulfilled: (value: JsonValue) => JsonValue) =>
+                    Promise.resolve(
+                      onFulfilled([{ handle: "test-handle" }] as unknown as JsonValue),
+                    ),
+                  ),
+              }),
+            }),
+          };
+        }
         const callCount = selectCalls.length;
         selectCalls.push(`call-${callCount}`);
 
@@ -518,16 +592,13 @@ describe("Queue Consumer - Main Processing", () => {
                     },
                   ]);
                 }
-                // callCount 2 is user.handle fetch for publish gating — return a handle so publish=true
-                if (callCount === 2) {
-                  return Promise.resolve([{ handle: "test-handle" }]);
-                }
                 return Promise.resolve([]);
               }),
               // For the waiting resumes query (no limit)
               // eslint-disable-next-line unicorn/no-thenable -- mock for testing
               then: vi.fn().mockImplementation((cb: (value: JsonValue[]) => JsonValue) => {
-                if (callCount === 3) {
+                // After handle detection, waiting is at callCount 2 (not 3) — resilient to extra LIMIT queries
+                if (callCount === 2) {
                   return Promise.resolve(cb([{ id: waitingResumeId, userId }]));
                 }
                 return Promise.resolve(cb([]));
@@ -546,8 +617,7 @@ describe("Queue Consumer - Main Processing", () => {
       }),
       batch: vi.fn().mockResolvedValue(undefined),
     };
-
-    vi.mocked((await import("@/lib/db/session")).getSessionDbForWebhook).mockReturnValueOnce({
+    vi.mocked((await import("@/lib/db/session")).getSessionDbForWebhook).mockReturnValue({
       db: mockDb as never,
     });
 
@@ -559,6 +629,92 @@ describe("Queue Consumer - Main Processing", () => {
     // Should have notified waiting resumes
     void mockWebSocketNotifications.find((_n) => _n.resumeId === waitingResumeId);
     // Note: Full waiting resume logic depends on proper mock setup
+  });
+
+  it("8b. Process with no handle → publish:false still completes and upserts siteData", async () => {
+    const { handleQueueMessage } = await import("@/lib/queue/consumer");
+    const { buildSiteDataUpsert } = await import("@/lib/data/site-data-upsert");
+
+    const resumeId = crypto.randomUUID();
+    const userId = "user-1";
+    const r2Key = `users/${userId}/123/resume.pdf`;
+
+    createResume({ id: resumeId, status: "queued" });
+    mockR2Store.set(r2Key, makePdfBuffer());
+
+    const mockDb = {
+      select: vi.fn().mockImplementation((cols: JsonValue) => {
+        const isHandleQuery =
+          cols !== null &&
+          typeof cols === "object" &&
+          "handle" in (cols as Record<string, unknown>);
+        if (isHandleQuery) {
+          const rows: JsonValue[] = [];
+          return {
+            from: vi.fn().mockReturnValue({
+              where: vi.fn().mockReturnValue({
+                limit: vi.fn().mockResolvedValue(rows),
+                // eslint-disable-next-line unicorn/no-thenable -- mock for testing
+                then: vi
+                  .fn()
+                  .mockImplementation((onFulfilled: (value: JsonValue) => JsonValue) =>
+                    Promise.resolve(onFulfilled(rows as unknown as JsonValue)),
+                  ),
+              }),
+            }),
+          };
+        }
+        return {
+          from: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              limit: vi.fn().mockImplementation((_n: number) => {
+                return Promise.resolve([
+                  {
+                    status: "queued",
+                    parsedContent: null,
+                    parsedContentStaged: null,
+                    totalAttempts: 0,
+                  },
+                ]);
+              }),
+              // eslint-disable-next-line unicorn/no-thenable -- mock for testing
+              then: vi.fn().mockImplementation((cb: (value: JsonValue[]) => JsonValue) => {
+                return Promise.resolve(cb([]));
+              }),
+            }),
+          }),
+        };
+      }),
+      update: vi.fn().mockReturnValue({
+        set: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue(undefined),
+        }),
+      }),
+      insert: vi.fn().mockReturnValue({
+        values: vi.fn().mockResolvedValue(undefined),
+      }),
+      batch: vi.fn().mockResolvedValue(undefined),
+    };
+
+    vi.mocked((await import("@/lib/db/session")).getSessionDbForWebhook).mockReturnValue({
+      db: mockDb as never,
+    });
+
+    const message = createMessage({ resumeId, userId, r2Key });
+    const env = createEnv();
+
+    await expect(handleQueueMessage(message, env)).resolves.not.toThrow();
+
+    // Even without a handle, the queue must still complete and upsert siteData with publish:false
+    expect(mockDb.batch).toHaveBeenCalled();
+    expect(vi.mocked(buildSiteDataUpsert)).toHaveBeenCalledWith(
+      expect.anything(),
+      userId,
+      resumeId,
+      expect.anything(),
+      expect.anything(),
+      { publish: false },
+    );
   });
 
   it("9. R2 file not found → permanent error", async () => {
@@ -1368,7 +1524,45 @@ describe("Batch A — queue/state-machine integrity fixes", () => {
     const updateWhereConds: JsonValue[] = [];
 
     const mockDb = {
-      select: vi.fn().mockImplementation(() => {
+      select: vi.fn().mockImplementation((cols: JsonValue) => {
+        const isHandleQuery =
+          cols !== null &&
+          typeof cols === "object" &&
+          "handle" in (cols as Record<string, unknown>);
+        if (isHandleQuery) {
+          const hasId = "id" in (cols as Record<string, unknown>);
+          if (hasId) {
+            const rows = [{ id: userId, handle: "test-handle" }];
+            return {
+              from: vi.fn().mockReturnValue({
+                where: vi.fn().mockReturnValue({
+                  limit: vi.fn().mockResolvedValue(rows),
+                  // eslint-disable-next-line unicorn/no-thenable -- mock for testing
+                  then: vi
+                    .fn()
+                    .mockImplementation((onFulfilled: (value: JsonValue) => JsonValue) =>
+                      Promise.resolve(onFulfilled(rows as unknown as JsonValue)),
+                    ),
+                }),
+              }),
+            };
+          }
+          return {
+            from: vi.fn().mockReturnValue({
+              where: vi.fn().mockReturnValue({
+                limit: vi.fn().mockResolvedValue([{ handle: "test-handle" }]),
+                // eslint-disable-next-line unicorn/no-thenable -- mock for testing
+                then: vi
+                  .fn()
+                  .mockImplementation((onFulfilled: (value: JsonValue) => JsonValue) =>
+                    Promise.resolve(
+                      onFulfilled([{ handle: "test-handle" }] as unknown as JsonValue),
+                    ),
+                  ),
+              }),
+            }),
+          };
+        }
         const callIdx = selectCalls.length;
         selectCalls.push(`call-${callIdx}`);
         return {
@@ -1380,16 +1574,13 @@ describe("Batch A — queue/state-machine integrity fixes", () => {
                     { status: "queued", parsedContent: null, totalAttempts: 0 },
                   ]);
                 }
-                // callIdx 2 is user.handle fetch for publish gating
-                if (callIdx === 2) {
-                  return Promise.resolve([{ handle: "test-handle" }]);
-                }
                 // callIdx 1 = cache lookup → miss (and any other limit)
                 return Promise.resolve([]);
               }),
               // Waiting-resumes query has no .limit — it is awaited directly.
               then: vi.fn().mockImplementation((cb: (value: JsonValue[]) => JsonValue) => {
-                if (callIdx === 3) {
+                // After making handle query resilient, waiting shifts from 3 → 2
+                if (callIdx === 2) {
                   return Promise.resolve(cb([{ id: waitingId, userId }]));
                 }
                 return Promise.resolve(cb([]));
@@ -1437,6 +1628,95 @@ describe("Batch A — queue/state-machine integrity fixes", () => {
 
     // Sanity: the waiting resume was still completed + notified via the batch path
     expect(mockWebSocketNotifications.some((n) => n.resumeId === waitingId)).toBe(true);
+  });
+
+  it("1b. Fan-out with no handle → publish:false still upserts siteData for primary", async () => {
+    const { handleQueueMessage } = await import("@/lib/queue/consumer");
+    const { buildSiteDataUpsert } = await import("@/lib/data/site-data-upsert");
+
+    const resumeId = crypto.randomUUID();
+    const waitingId = crypto.randomUUID();
+    const userId = "user-1";
+    const fileHash = "shared-hash";
+    const r2Key = `users/${userId}/123/resume.pdf`;
+
+    mockR2Store.set(r2Key, makePdfBuffer());
+
+    const selectCalls: string[] = [];
+
+    const mockDb = {
+      select: vi.fn().mockImplementation((cols: JsonValue) => {
+        const isHandleQuery =
+          cols !== null &&
+          typeof cols === "object" &&
+          "handle" in (cols as Record<string, unknown>);
+        if (isHandleQuery) {
+          const rows: JsonValue[] = [];
+          return {
+            from: vi.fn().mockReturnValue({
+              where: vi.fn().mockReturnValue({
+                limit: vi.fn().mockResolvedValue(rows),
+                // eslint-disable-next-line unicorn/no-thenable -- mock for testing
+                then: vi
+                  .fn()
+                  .mockImplementation((onFulfilled: (value: JsonValue) => JsonValue) =>
+                    Promise.resolve(onFulfilled(rows as unknown as JsonValue)),
+                  ),
+              }),
+            }),
+          };
+        }
+        const callIdx = selectCalls.length;
+        selectCalls.push(`call-${callIdx}`);
+        return {
+          from: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              limit: vi.fn().mockImplementation((_n: number) => {
+                if (callIdx === 0) {
+                  return Promise.resolve([
+                    { status: "queued", parsedContent: null, totalAttempts: 0 },
+                  ]);
+                }
+                return Promise.resolve([]);
+              }),
+              then: vi.fn().mockImplementation((cb: (value: JsonValue[]) => JsonValue) => {
+                if (callIdx === 2) {
+                  return Promise.resolve(cb([{ id: waitingId, userId }]));
+                }
+                return Promise.resolve(cb([]));
+              }),
+            }),
+          }),
+        };
+      }),
+      update: vi.fn().mockReturnValue({
+        set: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue(undefined),
+        }),
+      }),
+      insert: vi.fn().mockReturnValue({ values: vi.fn().mockResolvedValue(undefined) }),
+      batch: vi.fn().mockResolvedValue(undefined),
+    };
+
+    vi.mocked((await import("@/lib/db/session")).getSessionDbForWebhook).mockReturnValue({
+      db: mockDb as never,
+    });
+
+    const message = createMessage({ resumeId, userId, r2Key, fileHash });
+    const env = createEnv();
+
+    await expect(handleQueueMessage(message, env)).resolves.not.toThrow();
+
+    expect(mockDb.batch).toHaveBeenCalled();
+    // Primary upsert must be publish:false when handle missing
+    expect(vi.mocked(buildSiteDataUpsert)).toHaveBeenCalledWith(
+      expect.anything(),
+      userId,
+      resumeId,
+      expect.anything(),
+      expect.anything(),
+      { publish: false },
+    );
   });
 
   it("2. Skips parse when the resume row no longer exists (deleted account)", async () => {
