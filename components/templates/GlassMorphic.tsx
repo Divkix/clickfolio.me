@@ -602,10 +602,7 @@ export const GlassMorphic: React.FC<TemplateProps> = ({ content, profile, isPrev
                 {/* Certs Column */}
                 <div className="space-y-4">
                   {content.certifications?.map((cert, i) => (
-                    <SpotlightCard
-                      key={`cert-${cert.name}-${i}`}
-                      className="p-6"
-                    >
+                    <SpotlightCard key={`cert-${cert.name}-${i}`} className="p-6">
                       <div className="flex justify-between items-start">
                         <div>
                           <h4 className="text-base font-bold text-white mb-1">{cert.name}</h4>
