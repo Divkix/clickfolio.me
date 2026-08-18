@@ -55,23 +55,6 @@ export function recordThrottle(key: string): void {
   }
 }
 
-/**
- * Check if `key` is throttled. If not, record the current timestamp and
- * return false (not throttled). If throttled, return true without updating
- * the timestamp — the original window stays authoritative.
- *
- * Fail-open: any exception returns false.
- */
-export function checkEmailThrottle(key: string): boolean {
-  try {
-    if (isThrottled(key)) return true;
-    recordThrottle(key);
-    return false;
-  } catch {
-    return false;
-  }
-}
-
 /** Test-only: clear all throttle state. */
 export function clearEmailThrottleForTesting(): void {
   lastSentByKey.clear();
