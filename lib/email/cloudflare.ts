@@ -5,18 +5,44 @@
  * and email verification. No API keys needed.
  */
 
+import {
+  getEmailThrottleKey,
+  isThrottled,
+  recordThrottle,
+} from "@/lib/auth/email-throttle";
+import { getRecipientDomain } from "@/lib/utils/get-recipient-domain";
+import { log } from "@/lib/utils/log";
 import { escapeHtml } from "@/lib/utils/sanitization";
 
+export { getRecipientDomain } from "@/lib/utils/get-recipient-domain";
+
 /**
- * Extracts the recipient domain for logging.
- *
- * The full email address is PII and must never appear in logs (matches the
- * SHA-256 IP-hashing posture); the domain is kept as a non-PII identifier so
- * per-provider send failures remain diagnosable.
+ * Helper to check throttle state and log if throttled. Wraps key generation
+ * and throttle check in fail-open try/catch so infra errors never throw 500.
+ * Returns { throttled, key } where key is defined only if generation succeeded.
  */
-function getRecipientDomain(email: string): string {
-  const at = email.lastIndexOf("@");
-  return at >= 0 ? email.slice(at + 1) : "unknown";
+function throttleOrLog(
+  email: string,
+  type: "reset" | "verification",
+): { throttled: boolean; key?: string } {
+  let key: string | undefined;
+  let throttled = false;
+  try {
+    key = getEmailThrottleKey(email, type);
+    throttled = isThrottled(key);
+  } catch {
+    // Fail-open: proceed to send if throttle check errors
+    throttled = false;
+  }
+  if (throttled) {
+    try {
+      log("warn", "Auth email throttled", {
+        type,
+        domain: getRecipientDomain(email),
+      });
+    } catch {}
+  }
+  return { throttled, key };
 }
 
 type FromEmail = { email: string; name: string };
@@ -86,11 +112,21 @@ export function createEmailSender(env: CloudflareEnv, appUrl: string) {
       } catch {
         return { success: false, error: "Invalid reset URL" };
       }
+      // Server-side throttle: 60s per email prevents bot amplification to 24k
+      // Fail-open: throttle check wrapped in try/catch; on error we still send.
+      // Throttled requests pretend success to avoid oracle timing leaks.
+      // Records throttle only after successful send so failed sends can retry.
+      const { throttled: isResetThrottled, key: resetThrottleKey } = throttleOrLog(
+        email,
+        "reset",
+      );
+      if (isResetThrottled) {
+        return { success: true };
+      }
 
       // Escape user-controlled values for HTML safety
       const safeUserName = userName ? escapeHtml(userName) : null;
       const greeting = safeUserName ? `Hi ${safeUserName},` : "Hi,";
-
       const textContent = `${greeting}
 
 You requested to reset your password for your Clickfolio account.
@@ -146,6 +182,13 @@ If you didn't request this, you can safely ignore this email. Your password won'
         text: textContent,
       });
 
+      // Record throttle only after successful send so failed sends can retry immediately
+      if (resetThrottleKey) {
+        try {
+          recordThrottle(resetThrottleKey);
+        } catch {}
+      }
+
       console.log(`[EMAIL] Password reset sent (recipient domain: ${getRecipientDomain(email)})`);
       return { success: true };
     } catch (err) {
@@ -173,6 +216,16 @@ If you didn't request this, you can safely ignore this email. Your password won'
         new URL(verificationUrl);
       } catch {
         return { success: false, error: "Invalid verification URL" };
+      }
+
+      // Server-side throttle: 60s per email prevents resend abuse.
+      // Fail-open: throttle check wrapped in try/catch; on error we still send.
+      // Throttled requests pretend success to avoid oracle timing leaks.
+      // Records throttle only after successful send so failed sends can retry.
+      const { throttled: isVerificationThrottled, key: verificationThrottleKey } =
+        throttleOrLog(email, "verification");
+      if (isVerificationThrottled) {
+        return { success: true };
       }
 
       // Escape user-controlled values for HTML safety
@@ -233,6 +286,13 @@ If you didn't create a Clickfolio account, you can safely ignore this email.
         html: htmlContent,
         text: textContent,
       });
+
+      // Record throttle only after successful send so failed sends can retry immediately
+      if (verificationThrottleKey) {
+        try {
+          recordThrottle(verificationThrottleKey);
+        } catch {}
+      }
 
       console.log(
         `[EMAIL] Verification email sent (recipient domain: ${getRecipientDomain(email)})`,

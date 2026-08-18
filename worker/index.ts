@@ -226,6 +226,10 @@ export default {
    * - `0 4 * * *` – Disposable domain sync (`syncDisposableDomains`).
    * - `* /15 * * * *` (every 15 minutes) – Orphaned resume recovery (`recoverOrphanedResumes`).
    *
+   * Email safety: no cron path touches `env.EMAIL`. Auth emails are only sent
+   * via Better Auth callbacks (throttled at 60s per email) and never from
+   * scheduled tasks — this was verified to prevent amplification to 24k.
+   *
    * @param controller - The scheduled controller containing the cron expression.
    * @param env - Cloudflare environment bindings.
    */

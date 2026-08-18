@@ -28,6 +28,37 @@ import { createEmailSender } from "@/lib/email/cloudflare";
 import { isDisposableEmail } from "@/lib/email/disposable-check";
 import { generateReferralCode } from "@/lib/utils/referral-code";
 import { DEFAULT_PRIVACY_SETTINGS_JSON } from "@/lib/utils/privacy";
+import {
+  getEmailThrottleKey,
+  isThrottled,
+} from "@/lib/auth/email-throttle";
+import { getRecipientDomain } from "@/lib/utils/get-recipient-domain";
+import { log } from "@/lib/utils/log";
+
+/**
+ * Checks throttle state for an auth email and logs when throttled.
+ * Wraps key generation + isThrottled in fail-open try/catch; log is outside
+ * that try so a logging failure does NOT fall through to send (fail-closed
+ * for log, fail-open only for throttle check).
+ */
+function throttleOrLog(email: string, type: "reset" | "verification"): boolean {
+  let throttled = false;
+  try {
+    throttled = isThrottled(getEmailThrottleKey(email, type));
+  } catch {
+    // Fail-open: proceed to send if throttle check errors
+  }
+  if (throttled) {
+    try {
+      log("warn", "Auth email throttled", {
+        type,
+        domain: getRecipientDomain(email),
+      });
+    } catch {}
+    return true;
+  }
+  return false;
+}
 
 /**
  * Module-level caches scoped to isolate lifetime.
@@ -242,7 +273,6 @@ export async function getAuth() {
               if (error instanceof APIError) throw error;
               console.error("[AUTH] Disposable email check failed, allowing signup:", error);
             }
-
             // Generate referral code (existing logic)
             try {
               return {
@@ -263,6 +293,12 @@ export async function getAuth() {
     emailAndPassword: {
       enabled: true,
       sendResetPassword: async ({ user, url }) => {
+        // Server-side 60s per-email throttle — prevents bot amplification to 24k.
+        // Fail-open, pretend-sent on throttle to avoid oracle leaks.
+        // Defense-in-depth: lib/email/cloudflare.ts also enforces this (records
+        // only after successful send); here we use read-only isThrottled so the
+        // first send is still recorded downstream and the window is shared.
+        if (throttleOrLog(user.email, "reset")) return;
         // SAFETY: env is Workers runtime CloudflareEnv; cast is safe for email sender which expects CloudflareEnv bindings.
         const { sendPasswordResetEmail } = createEmailSender(env as CloudflareEnv, baseURL);
         const result = await sendPasswordResetEmail({
@@ -277,6 +313,7 @@ export async function getAuth() {
     },
     emailVerification: {
       sendVerificationEmail: async ({ user, url }) => {
+        if (throttleOrLog(user.email, "verification")) return;
         // SAFETY: env is Workers runtime CloudflareEnv; cast is safe for email sender which expects CloudflareEnv bindings.
         const { sendVerificationEmail } = createEmailSender(env as CloudflareEnv, baseURL);
         const result = await sendVerificationEmail({

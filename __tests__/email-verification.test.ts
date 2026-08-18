@@ -4,7 +4,8 @@
  * XSS escaping, URL encoding safety, and graceful error handling.
  */
 
-import { describe, expect, it, vi } from "vite-plus/test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import { clearEmailThrottleForTesting } from "@/lib/auth/email-throttle";
 import { createEmailSender } from "@/lib/email/cloudflare";
 
 interface MockEmailResponse {
@@ -14,9 +15,20 @@ interface MockEmailResponse {
   html: string;
   text: string;
 }
-
 describe("email verification", () => {
   const mockAppUrl = "https://clickfolio.me";
+
+  beforeEach(() => {
+    clearEmailThrottleForTesting();
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+    clearEmailThrottleForTesting();
+  });
 
   function createMockEnv(): CloudflareEnv {
     return {
@@ -223,6 +235,267 @@ describe("email verification", () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toContain("Rate limit exceeded");
+    });
+  });
+
+  describe("email throttling (60s per-email cooldown)", () => {
+    it("throttles second verification email within 60s, pretend-sends without calling EMAIL.send", async () => {
+      const env = createMockEnv();
+      const { sendVerificationEmail } = createEmailSender(env, mockAppUrl);
+
+      const first = await sendVerificationEmail({
+        email: "throttle@example.com",
+        verificationUrl: "https://clickfolio.me/api/auth/verify-email?token=abc123",
+      });
+      expect(first.success).toBe(true);
+      expect(env.EMAIL.send).toHaveBeenCalledTimes(1);
+
+      const second = await sendVerificationEmail({
+        email: "throttle@example.com",
+        verificationUrl: "https://clickfolio.me/api/auth/verify-email?token=abc123",
+      });
+      // Throttled: pretend success, do NOT call EMAIL.send again
+      expect(second.success).toBe(true);
+      expect(env.EMAIL.send).toHaveBeenCalledTimes(1);
+    });
+
+    it("throttles second password reset within 60s", async () => {
+      const env = createMockEnv();
+      const { sendPasswordResetEmail } = createEmailSender(env, mockAppUrl);
+
+      const first = await sendPasswordResetEmail({
+        email: "reset-throttle@example.com",
+        resetUrl: "https://clickfolio.me/api/auth/reset-password?token=xyz",
+      });
+      expect(first.success).toBe(true);
+      expect(env.EMAIL.send).toHaveBeenCalledTimes(1);
+
+      const second = await sendPasswordResetEmail({
+        email: "reset-throttle@example.com",
+        resetUrl: "https://clickfolio.me/api/auth/reset-password?token=xyz",
+      });
+      expect(second.success).toBe(true);
+      expect(env.EMAIL.send).toHaveBeenCalledTimes(1);
+    });
+
+    it("allows different emails independently", async () => {
+      const env = createMockEnv();
+      const { sendVerificationEmail } = createEmailSender(env, mockAppUrl);
+
+      const a = await sendVerificationEmail({
+        email: "alice@example.com",
+        verificationUrl: "https://clickfolio.me/api/auth/verify-email?token=1",
+      });
+      const b = await sendVerificationEmail({
+        email: "bob@example.com",
+        verificationUrl: "https://clickfolio.me/api/auth/verify-email?token=2",
+      });
+      expect(a.success).toBe(true);
+      expect(b.success).toBe(true);
+      expect(env.EMAIL.send).toHaveBeenCalledTimes(2);
+    });
+
+    it("normalizes email case for throttle key", async () => {
+      const env = createMockEnv();
+      const { sendVerificationEmail } = createEmailSender(env, mockAppUrl);
+
+      await sendVerificationEmail({
+        email: "CaseSensitive@Example.COM",
+        verificationUrl: "https://clickfolio.me/api/auth/verify-email?token=1",
+      });
+      const second = await sendVerificationEmail({
+        email: "casesensitive@example.com",
+        verificationUrl: "https://clickfolio.me/api/auth/verify-email?token=1",
+      });
+      expect(second.success).toBe(true);
+      expect(env.EMAIL.send).toHaveBeenCalledTimes(1);
+    });
+
+    it("treats verification and reset as separate throttle buckets", async () => {
+      const env = createMockEnv();
+      const { sendVerificationEmail, sendPasswordResetEmail } = createEmailSender(
+        env,
+        mockAppUrl,
+      );
+
+      const v = await sendVerificationEmail({
+        email: "same@example.com",
+        verificationUrl: "https://clickfolio.me/api/auth/verify-email?token=1",
+      });
+      const r = await sendPasswordResetEmail({
+        email: "same@example.com",
+        resetUrl: "https://clickfolio.me/api/auth/reset-password?token=1",
+      });
+      expect(v.success).toBe(true);
+      expect(r.success).toBe(true);
+      // Different type => both send
+      expect(env.EMAIL.send).toHaveBeenCalledTimes(2);
+    });
+
+    it("logs warn with domain (not PII) when throttled", async () => {
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+      const env = createMockEnv();
+      const { sendVerificationEmail } = createEmailSender(env, mockAppUrl);
+
+      await sendVerificationEmail({
+        email: "throttle-log@example.com",
+        verificationUrl: "https://clickfolio.me/api/auth/verify-email?token=abc123",
+      });
+      warnSpy.mockClear();
+
+      const second = await sendVerificationEmail({
+        email: "throttle-log@example.com",
+        verificationUrl: "https://clickfolio.me/api/auth/verify-email?token=abc123",
+      });
+      expect(second.success).toBe(true);
+      expect(env.EMAIL.send).toHaveBeenCalledTimes(1);
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+      const logLine = warnSpy.mock.calls[0][0] as string;
+      // PII-free: should contain domain, not full email
+      expect(logLine).toContain("example.com");
+      expect(logLine).toContain("Auth email throttled");
+      expect(logLine).not.toContain("throttle-log@example.com");
+      // Should contain domain field, not expose local part in unexpected way
+      expect(logLine).toContain('"domain":"example.com"');
+      warnSpy.mockRestore();
+    });
+
+    it("logs warn for password reset throttling as well", async () => {
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+      const env = createMockEnv();
+      const { sendPasswordResetEmail } = createEmailSender(env, mockAppUrl);
+
+      await sendPasswordResetEmail({
+        email: "reset-log@example.com",
+        resetUrl: "https://clickfolio.me/api/auth/reset-password?token=xyz",
+      });
+      warnSpy.mockClear();
+
+      const second = await sendPasswordResetEmail({
+        email: "reset-log@example.com",
+        resetUrl: "https://clickfolio.me/api/auth/reset-password?token=xyz",
+      });
+      expect(second.success).toBe(true);
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+      const logLine = warnSpy.mock.calls[0][0] as string;
+      expect(logLine).toContain("example.com");
+      expect(logLine).not.toContain("reset-log@example.com");
+      expect(logLine).toContain('"type":"reset"');
+      warnSpy.mockRestore();
+    });
+
+    it("re-sends after 61s expiry when using fake timers", async () => {
+      vi.useFakeTimers();
+      try {
+        const env = createMockEnv();
+        const { sendVerificationEmail } = createEmailSender(env, mockAppUrl);
+
+        const first = await sendVerificationEmail({
+          email: "expiry@example.com",
+          verificationUrl: "https://clickfolio.me/api/auth/verify-email?token=abc123",
+        });
+        expect(first.success).toBe(true);
+        expect(env.EMAIL.send).toHaveBeenCalledTimes(1);
+
+        vi.advanceTimersByTime(61_000);
+
+        const second = await sendVerificationEmail({
+          email: "expiry@example.com",
+          verificationUrl: "https://clickfolio.me/api/auth/verify-email?token=abc123",
+        });
+        expect(second.success).toBe(true);
+        expect(env.EMAIL.send).toHaveBeenCalledTimes(2);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("re-sends password reset after 61s expiry", async () => {
+      vi.useFakeTimers();
+      try {
+        const env = createMockEnv();
+        const { sendPasswordResetEmail } = createEmailSender(env, mockAppUrl);
+
+        const first = await sendPasswordResetEmail({
+          email: "expiry-reset@example.com",
+          resetUrl: "https://clickfolio.me/api/auth/reset-password?token=xyz",
+        });
+        expect(first.success).toBe(true);
+        expect(env.EMAIL.send).toHaveBeenCalledTimes(1);
+
+        vi.advanceTimersByTime(61_000);
+
+        const second = await sendPasswordResetEmail({
+          email: "expiry-reset@example.com",
+          resetUrl: "https://clickfolio.me/api/auth/reset-password?token=xyz",
+        });
+        expect(second.success).toBe(true);
+        expect(env.EMAIL.send).toHaveBeenCalledTimes(2);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("failed verification send does NOT throttle next attempt", async () => {
+      const env = createMockEnv();
+      vi.mocked(env.EMAIL.send).mockRejectedValueOnce(new Error("transient failure"));
+      const { sendVerificationEmail } = createEmailSender(env, mockAppUrl);
+
+      const first = await sendVerificationEmail({
+        email: "failed-not-throttle@example.com",
+        verificationUrl: "https://clickfolio.me/api/auth/verify-email?token=abc123",
+      });
+      expect(first.success).toBe(false);
+      expect(first.error).toContain("transient failure");
+      expect(env.EMAIL.send).toHaveBeenCalledTimes(1);
+
+      const second = await sendVerificationEmail({
+        email: "failed-not-throttle@example.com",
+        verificationUrl: "https://clickfolio.me/api/auth/verify-email?token=abc123",
+      });
+      expect(second.success).toBe(true);
+      expect(env.EMAIL.send).toHaveBeenCalledTimes(2);
+    });
+
+    it("failed password reset send does NOT throttle next attempt", async () => {
+      const env = createMockEnv();
+      vi.mocked(env.EMAIL.send).mockRejectedValueOnce(new Error("transient"));
+      const { sendPasswordResetEmail } = createEmailSender(env, mockAppUrl);
+
+      const first = await sendPasswordResetEmail({
+        email: "failed-reset@example.com",
+        resetUrl: "https://clickfolio.me/api/auth/reset-password?token=xyz",
+      });
+      expect(first.success).toBe(false);
+      expect(first.error).toContain("transient");
+      expect(env.EMAIL.send).toHaveBeenCalledTimes(1);
+
+      const second = await sendPasswordResetEmail({
+        email: "failed-reset@example.com",
+        resetUrl: "https://clickfolio.me/api/auth/reset-password?token=xyz",
+      });
+      expect(second.success).toBe(true);
+      expect(env.EMAIL.send).toHaveBeenCalledTimes(2);
+    });
+
+    it("failed send followed by immediate retry still respects throttle after success", async () => {
+      const env = createMockEnv();
+      vi.mocked(env.EMAIL.send).mockRejectedValueOnce(new Error("first failure"));
+      const { sendVerificationEmail } = createEmailSender(env, mockAppUrl);
+      const email = "retry-then-throttle@example.com";
+      const url = "https://clickfolio.me/api/auth/verify-email?token=abc123";
+
+      const first = await sendVerificationEmail({ email, verificationUrl: url });
+      expect(first.success).toBe(false);
+
+      const second = await sendVerificationEmail({ email, verificationUrl: url });
+      expect(second.success).toBe(true);
+      expect(env.EMAIL.send).toHaveBeenCalledTimes(2);
+
+      // Third immediate attempt should now be throttled (since second succeeded and recorded)
+      const third = await sendVerificationEmail({ email, verificationUrl: url });
+      expect(third.success).toBe(true);
+      expect(env.EMAIL.send).toHaveBeenCalledTimes(2);
     });
   });
 });
