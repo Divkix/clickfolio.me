@@ -26,7 +26,6 @@ const mocks = vi.hoisted(() => {
       limit: vi.fn(() => chain),
       offset: vi.fn(() => chain),
       values: vi.fn(() => chain),
-      // eslint-disable-next-line unicorn/no-thenable -- Drizzle query mocks must be awaitable.
       then: vi.fn((resolve: (value: JsonValue[]) => JsonValue) => resolve(nextSelectResult())),
     };
     return chain;

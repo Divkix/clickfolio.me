@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, expect, it } from "vite-plus/test";
 import { coerceArray, coerceRecord, normalizeAiKeys, pickFirstValue } from "@/lib/ai/ai-normalize";
 

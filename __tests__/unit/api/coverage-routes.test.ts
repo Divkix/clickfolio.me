@@ -60,7 +60,6 @@ const mocks = vi.hoisted(() => {
       onConflictDoNothing: vi.fn(() => chain),
       onConflictDoUpdate: vi.fn(() => chain),
       returning: vi.fn(() => chain),
-      // eslint-disable-next-line unicorn/no-thenable -- Drizzle query mocks must be awaitable.
       then: vi.fn(
         (resolve: (value: JsonValue[]) => JsonValue, reject?: (reason: JsonValue) => JsonValue) => {
           try {
@@ -88,7 +87,6 @@ const mocks = vi.hoisted(() => {
       onConflictDoUpdate: vi.fn(() => chain),
       returning: vi.fn(() => chain),
       where: vi.fn(() => chain),
-      // eslint-disable-next-line unicorn/no-thenable -- resolves to undefined so the insert
       // does not consume a queued select result when awaited directly.
       then: vi.fn(
         (resolve: (value: undefined) => JsonValue, _reject?: (reason: JsonValue) => JsonValue) => {
@@ -294,8 +292,6 @@ vi.mock("drizzle-orm", () => ({
 function jsonRequest(path: string, body: JsonValue, init: RequestInit = {}) {
   return new Request(`https://clickfolio.me${path}`, {
     method: init.method ?? "POST",
-    // eslint-disable-next-line typescript/no-base-to-string -- RequestInfo|URL; String() is idiomatic in test fetch mocks
-    // eslint-disable-next-line typescript/no-misused-spread -- HeadersInit spread; known to be plain object in tests
     headers: { "content-type": "application/json", ...(init.headers ?? {}) },
     body: JSON.stringify(body),
   });
@@ -633,8 +629,6 @@ describe("API route coverage", () => {
             (overrides.body as Uint8Array | undefined)?.byteLength ?? pdf.byteLength,
           ),
           "x-filename": "resume.pdf",
-          // eslint-disable-next-line typescript/no-base-to-string -- RequestInfo|URL; String() is idiomatic in test fetch mocks
-          // eslint-disable-next-line typescript/no-misused-spread -- HeadersInit spread; known to be plain object in tests
           ...(overrides.headers ?? {}),
         },
         body: overrides.body ?? pdf,

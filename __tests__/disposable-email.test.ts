@@ -105,7 +105,6 @@ describe("isDisposableEmail", () => {
     const result = await isDisposableEmail("user@gmail.com", kv);
     expect(result.disposable).toBe(false);
     // Should NOT call KV for trusted domains
-    // eslint-disable-next-line typescript/unbound-method -- vitest mock assertion
     expect(kv.get).not.toHaveBeenCalled();
   });
 

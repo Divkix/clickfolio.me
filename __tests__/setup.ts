@@ -72,7 +72,6 @@ const subtleMock = {
 
 Object.defineProperty(globalThis, "crypto", {
   value: {
-    // eslint-disable-next-line typescript/no-misused-spread -- spreading Crypto instance to override subtle for test environment
     ...globalThis.crypto,
     subtle: subtleMock,
     randomUUID: mockRandomUUID,

@@ -283,7 +283,6 @@ describe("Worker fetch handler", () => {
 
   it("returns 503 when STATUS_DO binding is missing", async () => {
     const worker = await import("@/worker/index");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const env = makeEnv({ CLICKFOLIO_STATUS_DO: undefined as any });
     mockGetSession.mockResolvedValueOnce({ user: { id: "user-1" } });
     mockFindFirst.mockResolvedValueOnce({ id: "res-123", userId: "user-1" }); // owner match

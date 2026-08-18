@@ -40,7 +40,6 @@ function buildQueryChain(rows: JsonValue[]) {
       mockOffsetValues.push(value);
       return chain();
     }),
-    // eslint-disable-next-line unicorn/no-thenable -- mock for Drizzle thenable chain
     then: vi.fn((resolve: (v: JsonValue) => JsonValue) => resolve(rows)),
   };
 }

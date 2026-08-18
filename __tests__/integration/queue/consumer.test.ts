@@ -84,7 +84,6 @@ vi.mock("@/lib/db/session", () => ({
             from: vi.fn().mockImplementation((_table: JsonValue) => ({
               where: vi.fn().mockImplementation((_condition: JsonValue) => ({
                 limit: vi.fn().mockImplementation((_n: number) => Promise.resolve(handleRows)),
-                // eslint-disable-next-line unicorn/no-thenable -- mock for testing
                 then: vi
                   .fn()
                   .mockImplementation((onFulfilled: (value: JsonValue) => JsonValue) =>
@@ -103,7 +102,6 @@ vi.mock("@/lib/db/session", () => ({
                 return Promise.resolve(records.slice(0, n));
               }),
               // For waiting resumes query (select without limit, awaited via then)
-              // eslint-disable-next-line unicorn/no-thenable -- mock for testing
               then: vi.fn().mockImplementation((onFulfilled: (value: JsonValue) => JsonValue) => {
                 // Filter for waiting_for_cache if condition contains that status - simplified: return empty
                 // Tests with custom mockDb handle waiting explicitly
@@ -548,7 +546,6 @@ describe("Queue Consumer - Main Processing", () => {
               from: vi.fn().mockReturnValue({
                 where: vi.fn().mockReturnValue({
                   limit: vi.fn().mockResolvedValue(rows),
-                  // eslint-disable-next-line unicorn/no-thenable -- mock for testing
                   then: vi
                     .fn()
                     .mockImplementation((onFulfilled: (value: JsonValue) => JsonValue) =>
@@ -563,7 +560,6 @@ describe("Queue Consumer - Main Processing", () => {
               where: vi.fn().mockReturnValue({
                 limit: vi.fn().mockResolvedValue([{ handle: "test-handle" }]),
                 // also support then in case caller awaits without limit (defensive)
-                // eslint-disable-next-line unicorn/no-thenable -- mock for testing
                 then: vi
                   .fn()
                   .mockImplementation((onFulfilled: (value: JsonValue) => JsonValue) =>
@@ -595,7 +591,6 @@ describe("Queue Consumer - Main Processing", () => {
                 return Promise.resolve([]);
               }),
               // For the waiting resumes query (no limit)
-              // eslint-disable-next-line unicorn/no-thenable -- mock for testing
               then: vi.fn().mockImplementation((cb: (value: JsonValue[]) => JsonValue) => {
                 // After handle detection, waiting is at callCount 2 (not 3) — resilient to extra LIMIT queries
                 if (callCount === 2) {
@@ -654,7 +649,6 @@ describe("Queue Consumer - Main Processing", () => {
             from: vi.fn().mockReturnValue({
               where: vi.fn().mockReturnValue({
                 limit: vi.fn().mockResolvedValue(rows),
-                // eslint-disable-next-line unicorn/no-thenable -- mock for testing
                 then: vi
                   .fn()
                   .mockImplementation((onFulfilled: (value: JsonValue) => JsonValue) =>
@@ -677,7 +671,6 @@ describe("Queue Consumer - Main Processing", () => {
                   },
                 ]);
               }),
-              // eslint-disable-next-line unicorn/no-thenable -- mock for testing
               then: vi.fn().mockImplementation((cb: (value: JsonValue[]) => JsonValue) => {
                 return Promise.resolve(cb([]));
               }),
@@ -1537,7 +1530,6 @@ describe("Batch A — queue/state-machine integrity fixes", () => {
               from: vi.fn().mockReturnValue({
                 where: vi.fn().mockReturnValue({
                   limit: vi.fn().mockResolvedValue(rows),
-                  // eslint-disable-next-line unicorn/no-thenable -- mock for testing
                   then: vi
                     .fn()
                     .mockImplementation((onFulfilled: (value: JsonValue) => JsonValue) =>
@@ -1551,7 +1543,6 @@ describe("Batch A — queue/state-machine integrity fixes", () => {
             from: vi.fn().mockReturnValue({
               where: vi.fn().mockReturnValue({
                 limit: vi.fn().mockResolvedValue([{ handle: "test-handle" }]),
-                // eslint-disable-next-line unicorn/no-thenable -- mock for testing
                 then: vi
                   .fn()
                   .mockImplementation((onFulfilled: (value: JsonValue) => JsonValue) =>
@@ -1656,7 +1647,6 @@ describe("Batch A — queue/state-machine integrity fixes", () => {
             from: vi.fn().mockReturnValue({
               where: vi.fn().mockReturnValue({
                 limit: vi.fn().mockResolvedValue(rows),
-                // eslint-disable-next-line unicorn/no-thenable -- mock for testing
                 then: vi
                   .fn()
                   .mockImplementation((onFulfilled: (value: JsonValue) => JsonValue) =>

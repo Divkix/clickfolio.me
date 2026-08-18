@@ -23,7 +23,6 @@ const mockSelect = vi.fn(() => {
     where: vi.fn(() => chain),
     limit: vi.fn(() => chain),
     orderBy: vi.fn(() => chain),
-    // eslint-disable-next-line unicorn/no-thenable -- Drizzle query mocks must be awaitable.
     then: vi.fn((resolve: (value: JsonValue[]) => JsonValue) => {
       const next = selectResults.shift();
       if (next === undefined) {

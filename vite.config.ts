@@ -162,6 +162,16 @@ export default defineConfig({
           "anti-slop/no-unsafe-dictionary-type": "off",
           "anti-slop/no-unknown-parameters": "off",
           "anti-slop/no-unknown-returns": "off",
+          // Test idioms that are intentionally unbound / type-loose
+          "typescript/unbound-method": "off",
+          "typescript/no-base-to-string": "off",
+          "typescript/no-misused-spread": "off",
+          "typescript/no-this-alias": "off",
+          "typescript/no-explicit-any": "off",
+          "@typescript-eslint/no-explicit-any": "off",
+          "unicorn/no-thenable": "off",
+          "jsx-a11y/control-has-associated-label": "off",
+          "no-control-regex": "off",
         },
       },
       {

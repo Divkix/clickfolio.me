@@ -33,9 +33,7 @@ vi.mock("sonner", () => ({
 }));
 
 const origClipboard = navigator.clipboard;
-// eslint-disable-next-line typescript/unbound-method -- vitest mock assertion
 const origShare = navigator.share;
-// eslint-disable-next-line typescript/unbound-method -- vitest mock assertion
 const origCanShare = navigator.canShare;
 const origWindowOpen = window.open;
 
@@ -175,7 +173,6 @@ describe("SharePopover", () => {
     render(<SharePopover handle="cancelled" title="Cancel" name="Cancel User" />);
     await user.click(screen.getAllByRole("button", { name: /share/i }).at(-1) ?? document.body);
     await user.click(screen.getByRole("button", { name: "Share this page" }));
-    // eslint-disable-next-line typescript/unbound-method -- vitest mock assertion
     expect(navigator.share).toHaveBeenCalled();
   });
 
