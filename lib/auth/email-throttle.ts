@@ -26,10 +26,7 @@ export const EMAIL_THROTTLE_COOLDOWN_S = 60;
 
 const lastSentByKey = new Map<string, number>();
 
-export function getEmailThrottleKey(
-  email: string,
-  type: "verification" | "reset",
-): string {
+export function getEmailThrottleKey(email: string, type: "verification" | "reset"): string {
   return `${type}:${email.trim().toLowerCase()}`;
 }
 

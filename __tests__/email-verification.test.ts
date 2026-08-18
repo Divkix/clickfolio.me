@@ -313,10 +313,7 @@ describe("email verification", () => {
 
     it("treats verification and reset as separate throttle buckets", async () => {
       const env = createMockEnv();
-      const { sendVerificationEmail, sendPasswordResetEmail } = createEmailSender(
-        env,
-        mockAppUrl,
-      );
+      const { sendVerificationEmail, sendPasswordResetEmail } = createEmailSender(env, mockAppUrl);
 
       const v = await sendVerificationEmail({
         email: "same@example.com",

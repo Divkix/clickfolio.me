@@ -28,10 +28,7 @@ import { createEmailSender } from "@/lib/email/cloudflare";
 import { isDisposableEmail } from "@/lib/email/disposable-check";
 import { generateReferralCode } from "@/lib/utils/referral-code";
 import { DEFAULT_PRIVACY_SETTINGS_JSON } from "@/lib/utils/privacy";
-import {
-  getEmailThrottleKey,
-  isThrottled,
-} from "@/lib/auth/email-throttle";
+import { getEmailThrottleKey, isThrottled } from "@/lib/auth/email-throttle";
 import { getRecipientDomain } from "@/lib/utils/get-recipient-domain";
 import { log } from "@/lib/utils/log";
 

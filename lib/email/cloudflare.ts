@@ -5,11 +5,7 @@
  * and email verification. No API keys needed.
  */
 
-import {
-  getEmailThrottleKey,
-  isThrottled,
-  recordThrottle,
-} from "@/lib/auth/email-throttle";
+import { getEmailThrottleKey, isThrottled, recordThrottle } from "@/lib/auth/email-throttle";
 import { getRecipientDomain } from "@/lib/utils/get-recipient-domain";
 import { log } from "@/lib/utils/log";
 import { escapeHtml } from "@/lib/utils/sanitization";
@@ -17,14 +13,19 @@ import { escapeHtml } from "@/lib/utils/sanitization";
 export { getRecipientDomain } from "@/lib/utils/get-recipient-domain";
 
 /**
+ * Result of throttle check for auth emails.
+ */
+export interface ThrottleCheckResult {
+  throttled: boolean;
+  key?: string;
+}
+
+/**
  * Helper to check throttle state and log if throttled. Wraps key generation
  * and throttle check in fail-open try/catch so infra errors never throw 500.
  * Returns { throttled, key } where key is defined only if generation succeeded.
  */
-function throttleOrLog(
-  email: string,
-  type: "reset" | "verification",
-): { throttled: boolean; key?: string } {
+function throttleOrLog(email: string, type: "reset" | "verification"): ThrottleCheckResult {
   let key: string | undefined;
   let throttled = false;
   try {
@@ -116,10 +117,7 @@ export function createEmailSender(env: CloudflareEnv, appUrl: string) {
       // Fail-open: throttle check wrapped in try/catch; on error we still send.
       // Throttled requests pretend success to avoid oracle timing leaks.
       // Records throttle only after successful send so failed sends can retry.
-      const { throttled: isResetThrottled, key: resetThrottleKey } = throttleOrLog(
-        email,
-        "reset",
-      );
+      const { throttled: isResetThrottled, key: resetThrottleKey } = throttleOrLog(email, "reset");
       if (isResetThrottled) {
         return { success: true };
       }
@@ -222,8 +220,10 @@ If you didn't request this, you can safely ignore this email. Your password won'
       // Fail-open: throttle check wrapped in try/catch; on error we still send.
       // Throttled requests pretend success to avoid oracle timing leaks.
       // Records throttle only after successful send so failed sends can retry.
-      const { throttled: isVerificationThrottled, key: verificationThrottleKey } =
-        throttleOrLog(email, "verification");
+      const { throttled: isVerificationThrottled, key: verificationThrottleKey } = throttleOrLog(
+        email,
+        "verification",
+      );
       if (isVerificationThrottled) {
         return { success: true };
       }
