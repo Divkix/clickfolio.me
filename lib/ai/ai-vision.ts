@@ -217,8 +217,3 @@ export async function parsePdfWithVision(
     };
   }
 }
-
-export const VISION_CAPS = {
-  MAX_PAGES: 50,
-  TIMEOUT_MS: VISION_TIMEOUT_MS,
-} as const;
