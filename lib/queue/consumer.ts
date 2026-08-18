@@ -24,6 +24,9 @@ function getUserFriendlyError(rawError: string): string {
   if (/invalid.*pdf|corrupt/.test(lower)) {
     return "Your PDF couldn't be read. Please upload a valid PDF file.";
   }
+  if (/scanned.*pdf.*clearer|scanned.*pdf.*export|clearer.*photo/.test(lower)) {
+    return "No text could be extracted from your scanned PDF. Try a clearer photo or export as text PDF.";
+  }
   if (/extracted.*text.*is.*empty/.test(lower)) {
     return "No text could be extracted from your PDF. It may be a scanned image.";
   }

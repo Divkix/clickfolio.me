@@ -1,5 +1,6 @@
 import { type ResumeContentFormData, resumeContentSchema } from "@/lib/schemas/resume";
 import type { JsonValue, UnknownRecord } from "@/lib/types/json";
+import { log } from "@/lib/utils/log";
 import { parseWithAi } from "./ai-parser";
 import { extractPdfText } from "./pdf-extract";
 import { truncateResumeText } from "./truncate";
@@ -56,6 +57,16 @@ function validateParseResult(data: JsonValue): ValidateParseResult {
   return { success: false, errors };
 }
 
+function extractProfessionalLevel(data: UnknownRecord): string | undefined {
+  // eslint-disable-next-line anti-slop/no-chained-type-assertions, anti-slop/require-safety-comment-for-type-assertion, anti-slop/no-unsafe-dictionary-type -- dynamic professional_level access
+  const raw = (data as unknown as Record<string, unknown>)["professional_level"];
+  // eslint-disable-next-line anti-slop/no-runtime-typeof -- runtime string check for optional professional_level
+  const level = typeof raw === "string" ? raw : undefined;
+  // eslint-disable-next-line anti-slop/no-chained-type-assertions, anti-slop/require-safety-comment-for-type-assertion, anti-slop/no-unsafe-dictionary-type -- delete requires record narrow
+  delete (data as unknown as Record<string, unknown>)["professional_level"];
+  return level;
+}
+
 /**
  * Parse a PDF resume using AI
  *
@@ -74,6 +85,108 @@ export async function parseResumeWithAi(
   try {
     // Step 1: Extract text from PDF — pass ArrayBuffer directly, no copies
     const extractResult = await extractPdfText(pdfBuffer);
+
+    // Scanned-image fallback: unpdf returns empty/short text but pageCount>0.
+    // No new infra — reuse same Luna model via inline file part (ai-vision.ts).
+    const rawText = extractResult.text ?? "";
+    const trimmedForScanCheck = rawText.trim();
+    const MIN_CHARS_PER_PAGE = 30;
+    const VISION_MAX_PAGES = 50;
+    const isScanned =
+      extractResult.success &&
+      extractResult.pageCount > 0 &&
+      (trimmedForScanCheck.length === 0 ||
+        trimmedForScanCheck.length < extractResult.pageCount * MIN_CHARS_PER_PAGE);
+
+    if (isScanned) {
+      log("info", "scanned PDF detected, falling back to Luna vision", {
+        pageCount: extractResult.pageCount,
+        charCount: trimmedForScanCheck.length,
+      });
+      if (extractResult.pageCount > VISION_MAX_PAGES) {
+        return {
+          success: false,
+          parsedContent: "",
+          error: `Scanned PDF has ${extractResult.pageCount} pages (maximum ${VISION_MAX_PAGES} for scanned). Please upload a shorter document or export as text PDF.`,
+        };
+      }
+
+      try {
+        // Lazy-load vision: scanned PDFs are rare; keep unpdf/text path bundle small.
+        // Dynamic import avoids bundling `ai` file-part handling into page/queue hot paths (same pattern as consumer.ts lazy AI import).
+        const { parsePdfWithVision } = await import("./ai-vision");
+        const visionResult = await parsePdfWithVision(pdfBuffer, env);
+
+        if (visionResult.success && visionResult.data) {
+          // Hallucination guard: Luna vision never returns "" — it invents JSON.
+          // If core fields are both empty, treat as OCR failure, not success.
+          // eslint-disable-next-line anti-slop/no-chained-type-assertions, anti-slop/require-safety-comment-for-type-assertion, anti-slop/no-unsafe-dictionary-type -- JsonValue to UnknownRecord for hallucination check
+          const raw = visionResult.data as unknown as UnknownRecord;
+          const fullNameUnknown = raw["full_name"];
+          // eslint-disable-next-line anti-slop/no-runtime-typeof -- runtime string check for hallucination guard
+          const hasName = typeof fullNameUnknown === "string" && fullNameUnknown.trim().length > 0;
+          const expUnknown = raw["experience"];
+          const hasExp = Array.isArray(expUnknown) && expUnknown.length > 0;
+          if (!hasName && !hasExp) {
+            return {
+              success: false,
+              parsedContent: "",
+              error:
+                "No text could be extracted from your scanned PDF. Try a clearer photo or export as text PDF.",
+            };
+          }
+          const dataForRetry = structuredClone(visionResult.data);
+          let validation = validateParseResult(visionResult.data);
+
+          if (!validation.success && validation.errors) {
+            log("warn", "Vision schema validation failed, retrying with error feedback", {
+              errors: validation.errors,
+            });
+            // Reuse text error-feedback path by feeding vision JSON as previousOutput.
+            // Resume text is empty for scanned, so retry uses vision output + errors only.
+            const retryResult = await parseWithAi("", env, undefined, {
+              previousOutput: JSON.stringify(dataForRetry),
+              errors: validation.errors,
+            });
+            if (retryResult.success && retryResult.data) {
+              validation = validateParseResult(retryResult.data);
+              if (validation.success) log("info", "Vision retry with error feedback succeeded");
+            }
+          }
+
+          if (!validation.success) {
+            return {
+              success: false,
+              parsedContent: "",
+              error: "AI response failed schema validation",
+            };
+          }
+          // SAFETY: validation guarantees ResumeContentFormData shape; cast preserves type for final cleanup
+          const finalData = transformAiOutput(validation.data as ResumeContentFormData);
+          // eslint-disable-next-line anti-slop/no-chained-type-assertions, anti-slop/require-safety-comment-for-type-assertion -- helper handles dynamic access
+          const professionalLevel = extractProfessionalLevel(finalData as unknown as UnknownRecord);
+          return {
+            success: true,
+            parsedContent: JSON.stringify(finalData),
+            professionalLevel,
+          };
+        }
+
+        return {
+          success: false,
+          parsedContent: "",
+          error:
+            visionResult.error ||
+            "No text could be extracted from your scanned PDF. Try a clearer photo or export as text PDF.",
+        };
+      } catch (error) {
+        return {
+          success: false,
+          parsedContent: "",
+          error: error instanceof Error ? error.message : "Vision parsing failed",
+        };
+      }
+    }
 
     if (!extractResult.success || !extractResult.text) {
       return {
@@ -113,7 +226,7 @@ export async function parseResumeWithAi(
 
     // Step 3b: Retry with error feedback if validation failed
     if (!validation.success && validation.errors) {
-      console.warn("[ai-parse] Schema validation failed, retrying with error feedback", {
+      log("warn", "Schema validation failed, retrying with error feedback", {
         errors: validation.errors,
       });
 
@@ -124,9 +237,7 @@ export async function parseResumeWithAi(
 
       if (retryResult.success && retryResult.data) {
         validation = validateParseResult(retryResult.data);
-        if (validation.success) {
-          console.info("[ai-parse] Retry with error feedback succeeded");
-        }
+        if (validation.success) log("info", "Retry with error feedback succeeded");
       }
     }
 
@@ -141,16 +252,12 @@ export async function parseResumeWithAi(
     // Step 4: Final cleanup
     // SAFETY: resumeContentSchema validation above guarantees validation.data matches ResumeContentFormData; cast preserves type for final cleanup.
     const finalData = transformAiOutput(validation.data as ResumeContentFormData);
-
-    // Extract professional_level before serializing — it goes to user.role, not siteData.content
-    // SAFETY: professional_level is an optional string field from AI extraction; string | undefined is the correct union for role level extraction.
-    const professionalLevel = finalData.professional_level as string | undefined;
-    delete finalData.professional_level;
-
+    // eslint-disable-next-line anti-slop/no-chained-type-assertions, anti-slop/require-safety-comment-for-type-assertion -- helper handles dynamic access
+    const professionalLevel2 = extractProfessionalLevel(finalData as unknown as UnknownRecord);
     return {
       success: true,
       parsedContent: JSON.stringify(finalData),
-      professionalLevel,
+      professionalLevel: professionalLevel2,
     };
   } catch (error) {
     return {

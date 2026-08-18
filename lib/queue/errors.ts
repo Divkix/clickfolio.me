@@ -158,6 +158,10 @@ const ERROR_PATTERNS: Array<{ pattern: RegExp; type: QueueErrorType }> = [
     pattern: /extracted.*resume.*text.*is.*empty/i,
     type: QueueErrorType.INVALID_PDF,
   },
+  {
+    pattern: /scanned.*pdf|clearer.*photo|export.*as.*text.*pdf/i,
+    type: QueueErrorType.INVALID_PDF,
+  },
   // Too-many-pages PDF — matches lib/ai/pdf-extract.ts:
   // "PDF has ${numPages} pages (maximum 50). Please upload a shorter document."
   // (a retry would hit the exact same 50-page cap, so it is permanent)
