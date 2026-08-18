@@ -22,7 +22,6 @@
  */
 
 export const EMAIL_THROTTLE_COOLDOWN_MS = 60_000;
-export const EMAIL_THROTTLE_COOLDOWN_S = 60;
 
 const lastSentByKey = new Map<string, number>();
 
@@ -73,23 +72,7 @@ export function checkEmailThrottle(key: string): boolean {
   }
 }
 
-/** Remaining cooldown in ms, 0 if not throttled. For Retry-After headers. */
-export function getThrottleRemainingMs(key: string): number {
-  try {
-    const normalized = key.trim().toLowerCase();
-    const last = lastSentByKey.get(normalized);
-    if (last === undefined) return 0;
-    const remaining = EMAIL_THROTTLE_COOLDOWN_MS - (Date.now() - last);
-    return remaining > 0 ? remaining : 0;
-  } catch {
-    return 0;
-  }
-}
-
 /** Test-only: clear all throttle state. */
 export function clearEmailThrottleForTesting(): void {
   lastSentByKey.clear();
 }
-
-// Convenience alias for callers that just need a single-function check
-export const checkThrottle = checkEmailThrottle;

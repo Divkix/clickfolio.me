@@ -10,8 +10,6 @@ import { getRecipientDomain } from "@/lib/utils/get-recipient-domain";
 import { log } from "@/lib/utils/log";
 import { escapeHtml } from "@/lib/utils/sanitization";
 
-export { getRecipientDomain } from "@/lib/utils/get-recipient-domain";
-
 /**
  * Result of throttle check for auth emails.
  */
