@@ -108,7 +108,7 @@ export async function GET(request: Request) {
         ),
 
       db
-        .select({ userId: siteData.userId })
+        .select({ userId: siteData.userId, lastPublishedAt: siteData.lastPublishedAt })
         .from(siteData)
         .where(
           sql`${siteData.userId} IN (${sql.join(
@@ -132,9 +132,14 @@ export async function GET(request: Request) {
       }
     }
 
-    const siteDataSet = new Set(hasSiteData.map((s) => s.userId));
+    const siteDataSet = new Set(
+      hasSiteData.filter((s) => s.lastPublishedAt !== null).map((s) => s.userId),
+    );
 
-    // Determine user status
+    // Determine user status — live requires BOTH a handle and a published site
+    // (lastPublishedAt != null). The queue consumer creates site_data with
+    // publish:false (lastPublishedAt=null) when handle is NULL to avoid
+    // unreachable published sites; those must not show as Live.
     const enrichedUsers = users.map((u) => {
       let status: "live" | "processing" | "no_resume" | "failed" = "no_resume";
       const resumeStatus = resumeStatusMap.get(u.id);
@@ -143,7 +148,7 @@ export async function GET(request: Request) {
         status = "failed";
       } else if (resumeStatus === "processing" || resumeStatus === "queued") {
         status = "processing";
-      } else if (siteDataSet.has(u.id)) {
+      } else if (u.handle && siteDataSet.has(u.id)) {
         status = "live";
       }
 
