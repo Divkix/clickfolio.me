@@ -29,7 +29,7 @@ If a decision's rationale isn't obvious from code, capture the _why_ as a new nu
 | Layer           | Technology                                                                                                                                                |
 | --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Runtime         | Cloudflare Workers                                                                                                                                        |
-| Framework       | [vinext](https://github.com/cloudflare/vinext) (Vite-based Next.js — NOT standard Next.js) `1.0.0-beta.8` (on Next `^16.3.2`, React `^19.2.8`)           |
+| Framework       | [vinext](https://github.com/cloudflare/vinext) (Vite-based Next.js — NOT standard Next.js) `1.0.0-beta.8` (on Next `^16.3.2`, React `^19.2.8`)            |
 | Toolchain       | Vite+ (`vp`) — `vite-plus@^0.2.9`; `vite` aliases `@voidzero-dev/vite-plus-core@^0.2.9`; `vitest` resolves to `4.1.10` through the pnpm catalog/overrides |
 | Package manager | `pnpm` (pinned `pnpm@11.10.0` via `packageManager`)                                                                                                       |
 | DB              | Cloudflare D1 + Drizzle ORM (SQLite)                                                                                                                      |
