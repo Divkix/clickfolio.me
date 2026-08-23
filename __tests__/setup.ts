@@ -81,6 +81,27 @@ Object.defineProperty(globalThis, "crypto", {
   configurable: true,
 });
 
+// jsdom does not implement ResizeObserver — provide a minimal mock so
+// chart components (AnalyticsCard, AdminSparkline, AdminTrafficChart) do
+// not throw `ReferenceError: ResizeObserver is not defined` in tests.
+// Per-file tests may still override this with a width-specific mock.
+if (typeof globalThis.ResizeObserver === "undefined") {
+  globalThis.ResizeObserver = class {
+    callback: ResizeObserverCallback;
+    constructor(callback: ResizeObserverCallback) {
+      this.callback = callback;
+    }
+    observe(target: Element) {
+      this.callback(
+        [{ target, contentRect: { width: 320, height: 160 } } as unknown as ResizeObserverEntry],
+        this as unknown as ResizeObserver,
+      );
+    }
+    unobserve() {}
+    disconnect() {}
+  } as unknown as typeof ResizeObserver;
+}
+
 // Clear mocks and storage before each test
 beforeEach(() => {
   localStorageMock.clear();

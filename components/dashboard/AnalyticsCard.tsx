@@ -199,7 +199,10 @@ function UPlotChart({ viewsByDay }: { viewsByDay: Array<{ date: string; views: n
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-
+    if (!globalThis.ResizeObserver) {
+      setWidth(el.clientWidth || 320);
+      return;
+    }
     const ro = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const cr = entry.contentRect;

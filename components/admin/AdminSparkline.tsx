@@ -16,7 +16,10 @@ export function AdminSparkline({ data }: AdminSparklineProps) {
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-
+    if (!globalThis.ResizeObserver) {
+      setWidth(el.clientWidth || 320);
+      return;
+    }
     const ro = new ResizeObserver((entries) => {
       for (const entry of entries) {
         if (entry.contentRect.width > 0) {
