@@ -22,10 +22,7 @@ export const handleChanges = pgTable(
     newHandle: text("new_handle").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull(),
   },
-  (table) => [
-    index("handle_changes_user_id_idx").on(table.userId),
-    index("handle_changes_user_created_idx").on(table.userId, table.createdAt),
-  ],
+  (table) => [index("handle_changes_user_created_idx").on(table.userId, table.createdAt)],
 );
 
 /**
@@ -85,7 +82,6 @@ export const referralClicks = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull(),
   },
   (table) => [
-    index("referral_clicks_referrer_idx").on(table.referrerUserId),
     index("referral_clicks_visitor_idx").on(table.visitorHash),
     index("referral_clicks_referrer_created_idx").on(table.referrerUserId, table.createdAt),
     // Enforce idempotent click tracking (1 click per referrer+visitorHash)

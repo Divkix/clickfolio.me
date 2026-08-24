@@ -59,11 +59,8 @@ export const resumes = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }),
   },
   (table) => [
-    index("resumes_user_id_idx").on(table.userId),
-    index("resumes_file_hash_idx").on(table.fileHash),
     index("resumes_file_hash_status_idx").on(table.fileHash, table.status),
     index("resumes_user_id_created_at_idx").on(table.userId, table.createdAt),
-    index("resumes_status_idx").on(table.status),
     index("resumes_status_queued_at_idx").on(table.status, table.queuedAt),
   ],
 );
