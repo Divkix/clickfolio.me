@@ -152,8 +152,8 @@ export default function CvWebsiteBuilderPage() {
         <p>
           Some are. clickfolio.me is free forever for its core features — hosting, AI import, 10
           templates, privacy controls, and analytics. There's no paid tier; premium templates unlock
-          through referrals, not payment. Many other tools call themselves free but charge for the
-          parts you need: a custom domain, branding removal, or extra pages.
+          with no payment and no referral locks. Many other tools call themselves free but charge
+          for the parts you need: a custom domain, branding removal, or extra pages.
         </p>
         <p>
           One honest limit: custom domains aren't available on clickfolio.me yet. Your site lives at{" "}

@@ -14,7 +14,7 @@ export const FAQ_ITEMS: FAQItem[] = [
   },
   {
     q: "Is clickfolio.me really free?",
-    a: "Yes. All 6 base templates are completely free with no time limits. You can upgrade to 4 premium templates by sharing your portfolio with others via our referral system.",
+    a: "Yes. All 10 templates are completely free with no time limits and no premium locks. Every user gets the full template collection at no cost.",
   },
   {
     q: "Can I customize my portfolio after publishing?",
@@ -34,7 +34,7 @@ export const FAQ_ITEMS: FAQItem[] = [
   },
   {
     q: "How do I unlock premium templates?",
-    a: "Share your portfolio link with others through the built-in referral system. As people visit through your link, you unlock the 4 premium templates — no payment required.",
+    a: "All 10 templates are free for every user — no unlocking, no referrals, and no payment required. Just pick any template and publish.",
   },
   {
     q: "Can I use my own custom domain?",

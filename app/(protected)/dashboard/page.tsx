@@ -1,5 +1,5 @@
 import { env } from "cloudflare:workers";
-import { desc, eq, sql } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import {
   AlertCircle,
   Award,
@@ -21,14 +21,13 @@ import { AnalyticsCard } from "@/components/dashboard/AnalyticsCard";
 import { CopyLinkButton } from "@/components/dashboard/CopyLinkButton";
 import { DashboardUploadSection } from "@/components/dashboard/DashboardUploadSection";
 import { RealtimeStatusListener } from "@/components/dashboard/RealtimeStatusListener";
-import { ReferralStats } from "@/components/dashboard/ReferralStats";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { getServerSession } from "@/lib/auth/session";
 import { siteConfig } from "@/lib/config/site";
 import { getDb } from "@/lib/db";
-import { type Resume, referralClicks, resumes, type siteData, user } from "@/lib/db/schema";
+import { type Resume, resumes, type siteData, user } from "@/lib/db/schema";
 import type { ResumeContent } from "@/lib/types/database";
 import { formatRelativeTime, truncateText } from "@/lib/utils/format";
 import { calculateCompleteness, getProfileSuggestions } from "@/lib/utils/profile-completeness";
@@ -55,45 +54,36 @@ export default async function DashboardPage() {
 
   const db = getDb(env.HYPERDRIVE);
 
-  // Parallelize independent queries: user data + referral click count
-  const [userData, clickCountResult] = await Promise.all([
-    db.query.user.findFirst({
-      where: eq(user.id, session.user.id),
-      with: {
-        resumes: {
-          orderBy: [desc(resumes.createdAt)],
-          limit: 1,
-        },
-        siteData: {
-          columns: {
-            id: true,
-            content: true,
-            themeId: true,
-            lastPublishedAt: true,
-            createdAt: true,
-            updatedAt: true,
-          },
+  const userData = await db.query.user.findFirst({
+    where: eq(user.id, session.user.id),
+    with: {
+      resumes: {
+        orderBy: [desc(resumes.createdAt)],
+        limit: 1,
+      },
+      siteData: {
+        columns: {
+          id: true,
+          content: true,
+          themeId: true,
+          lastPublishedAt: true,
+          createdAt: true,
+          updatedAt: true,
         },
       },
-      columns: {
-        id: true,
-        handle: true,
-        name: true,
-        email: true,
-        image: true,
-        headline: true,
-        privacySettings: true,
-        onboardingCompleted: true,
-        createdAt: true,
-        referralCount: true,
-        referralCode: true,
-      },
-    }),
-    db
-      .select({ count: sql<number>`count(*)` })
-      .from(referralClicks)
-      .where(eq(referralClicks.referrerUserId, session.user.id)),
-  ]);
+    },
+    columns: {
+      id: true,
+      handle: true,
+      name: true,
+      email: true,
+      image: true,
+      headline: true,
+      privacySettings: true,
+      onboardingCompleted: true,
+      createdAt: true,
+    },
+  });
 
   // Extract data from the consolidated query
   const profile = userData ?? null;
@@ -101,10 +91,6 @@ export default async function DashboardPage() {
   const resume = (userData?.resumes?.[0] ?? null) as Resume | null;
   // SAFETY: Drizzle query returns siteData shape via with.siteData; cast narrows optional relation to siteData select type.
   const siteDataResult = (userData?.siteData ?? null) as typeof siteData.$inferSelect | null;
-
-  // Use pre-computed referralCount from user table
-  const referralCount = userData?.referralCount ?? 0;
-  const clickCount = clickCountResult[0]?.count ?? 0;
 
   // Safety net: Redirect to wizard if onboarding is incomplete
   // This catches edge cases where users bypass the wizard flow
@@ -266,7 +252,7 @@ export default async function DashboardPage() {
                 </div>
               )}
 
-              {/* Left Column - Resume Preview + Referral (spans 2 on desktop) */}
+              {/* Left Column - Resume Preview (spans 2 on desktop) */}
               <div className="lg:col-span-2 space-y-4">
                 {/* Resume Preview Card */}
                 <div className="bg-card rounded-xl shadow-sm border border-border p-4 md:p-6 lg:p-8 transition-colors hover:border-border-strong">
@@ -376,15 +362,6 @@ export default async function DashboardPage() {
                     <DashboardUploadSection />
                   </div>
                 </div>
-
-                {/* Referral CTA - Now prominent in left column */}
-                {profile?.referralCode && (
-                  <ReferralStats
-                    referralCount={referralCount}
-                    clickCount={clickCount}
-                    referralCode={profile.referralCode}
-                  />
-                )}
               </div>
 
               {/* Right Column - Account + Analytics */}

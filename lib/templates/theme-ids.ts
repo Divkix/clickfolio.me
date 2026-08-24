@@ -40,7 +40,7 @@ export function isValidThemeId(id: string): id is ThemeId {
 
 /**
  * Theme metadata for UI display
- * referralsRequired: 0 = free, >0 = requires N referrals to unlock
+ * All themes are free; referralsRequired is retained at 0 for compatibility.
  */
 export const THEME_METADATA = {
   bento: {
@@ -55,7 +55,7 @@ export const THEME_METADATA = {
     description: "Executive typography with bold numbered sections",
     category: "Professional",
     preview: "/previews/bold-corporate.webp",
-    referralsRequired: 10, // Premium - 10 referrals
+    referralsRequired: 0, // Free
   },
   classic_ats: {
     name: "Classic ATS",
@@ -69,14 +69,14 @@ export const THEME_METADATA = {
     description: "Digital brutalism meets Swiss typography. Dark theme with acid lime accents.",
     category: "Creative",
     preview: "/previews/design-folio.webp",
-    referralsRequired: 3, // Premium - 3 referrals
+    referralsRequired: 0, // Free
   },
   dev_terminal: {
     name: "DevTerminal",
     description: "GitHub-inspired dark terminal aesthetic for developers",
     category: "Developer",
     preview: "/previews/dev-terminal.webp",
-    referralsRequired: 0, // Free template for students
+    referralsRequired: 0, // Free
   },
   glass: {
     name: "Glass Morphic",
@@ -90,7 +90,7 @@ export const THEME_METADATA = {
     description: "Dark minimal with serif headings and gold accents",
     category: "Modern",
     preview: "/previews/midnight.webp",
-    referralsRequired: 5, // Premium - 5 referrals
+    referralsRequired: 0, // Free
   },
   minimalist_editorial: {
     name: "Minimalist Editorial",
@@ -111,7 +111,7 @@ export const THEME_METADATA = {
     description: "Warm creative portfolio with animated sections",
     category: "Creative",
     preview: "/previews/spotlight.webp",
-    referralsRequired: 3, // Premium - 3 referrals
+    referralsRequired: 0, // Free
   },
 } as const satisfies Record<
   ThemeId,
@@ -125,22 +125,23 @@ export const THEME_METADATA = {
 >;
 
 /**
- * Check if a theme is unlocked for a user based on their referral count
- * @param themeId - The theme ID to check
- * @param referralCount - User's current referral count
- * @param isPro - Whether user has pro status (unlocks all themes)
+ * Check if a theme is unlocked for a user.
+ * All themes are free, so this always returns true. Extra parameters are
+ * accepted for backward compatibility and ignored.
  */
-export function isThemeUnlocked(themeId: ThemeId, referralCount: number, isPro = false): boolean {
-  if (isPro) return true;
-  const metadata = THEME_METADATA[themeId];
-  return referralCount >= metadata.referralsRequired;
+export function isThemeUnlocked(
+  _themeId: ThemeId,
+  _referralCount?: number,
+  _isPro?: boolean,
+): boolean {
+  return true;
 }
 
 /**
- * Get the referral requirement for a theme
+ * Get the referral requirement for a theme. Always 0 since all themes are free.
  */
-export function getThemeReferralRequirement(themeId: ThemeId): number {
-  return THEME_METADATA[themeId].referralsRequired;
+export function getThemeReferralRequirement(_themeId: ThemeId): number {
+  return 0;
 }
 
 /**

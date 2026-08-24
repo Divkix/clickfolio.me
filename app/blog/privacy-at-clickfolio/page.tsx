@@ -238,9 +238,10 @@ export default function PrivacyAtClickfolioPage() {
           </div>
         </div>
         <p>
-          Our business model doesn't rely on selling data. Premium templates are unlocked through
-          referrals. There's no advertising revenue, no recruiter marketplace, no data licensing.
-          Your privacy isn't a compromise we make — it's a feature we built the product around.
+          Our business model doesn't rely on selling data. All 10 templates are free with no premium
+          locks and no referrals. There's no advertising revenue, no recruiter marketplace, no data
+          licensing. Your privacy isn't a compromise we make — it's a feature we built the product
+          around.
         </p>
       </section>
 

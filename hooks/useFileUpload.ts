@@ -4,7 +4,6 @@ import type { ChangeEvent, DragEvent } from "react";
 import { useCallback, useState } from "react";
 import posthog from "posthog-js";
 import { toast } from "sonner";
-import { getStoredReferralCode } from "@/lib/referral";
 import {
   clearPendingUploadCookie,
   setPendingUploadCookie,
@@ -119,13 +118,11 @@ export function useFileUpload({ onClaim }: UseFileUploadOptions = {}) {
         setUploadState("claiming");
 
         if (onClaim) {
-          const referralRef = getStoredReferralCode();
           const claimResponse = await fetch("/api/resume/claim", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               key,
-              referral_code: referralRef || undefined,
             }),
           });
 

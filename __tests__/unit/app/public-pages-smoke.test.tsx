@@ -130,10 +130,6 @@ describe("public page rendering", () => {
     expect(container.textContent).toContain("Your resume is already a website");
     expect(container.textContent).toContain("Drop your PDF");
     expect(container.textContent).toContain("Open source");
-    expect(navigator.sendBeacon).toHaveBeenCalledWith(
-      "/api/referral/track",
-      JSON.stringify({ code: "ABCD1234", source: "homepage" }),
-    );
   });
 
   it.each(pages)("renders %s", (_name, Page) => {

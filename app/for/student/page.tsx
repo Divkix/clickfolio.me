@@ -24,7 +24,7 @@ const faqs = [
   },
   {
     q: "Is it free for students?",
-    a: "Yes, and there is no trial clock. Six templates are free forever with no credit card. Four more unlock when friends sign up through your referral, not by paying. The project is open source under the MIT license, so it stays free.",
+    a: "Yes, and there is no trial clock. All 10 templates are free forever with no credit card and no premium lock. The project is open source under the MIT license, so it stays free.",
   },
   {
     q: "How long does it take to make one?",

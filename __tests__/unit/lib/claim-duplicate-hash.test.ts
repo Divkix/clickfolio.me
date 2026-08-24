@@ -147,11 +147,6 @@ vi.mock("@/lib/queue/resume-parse", () => ({
   publishResumeParse: vi.fn().mockResolvedValue(undefined),
 }));
 
-// Referral mock
-vi.mock("@/lib/referral", () => ({
-  writeReferral: vi.fn().mockResolvedValue({ success: false, reason: "no referral" }),
-}));
-
 // buildSiteDataUpsert mock
 vi.mock("@/lib/data/site-data-upsert", () => ({
   buildSiteDataUpsert: vi.fn().mockReturnValue("mock-upsert-query"),

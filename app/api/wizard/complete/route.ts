@@ -8,7 +8,6 @@ import { handleChanges, siteData, user } from "@/lib/db/schema";
 import { isHandleTaken } from "@/lib/rate-limit/handle-validation";
 import { countHandleChangesInWindow } from "@/lib/rate-limit/user";
 import { buildWizardCompleteSchema } from "@/lib/schemas/profile";
-import { verifyThemeUnlocked } from "@/lib/templates/theme-access";
 import { THEME_IDS, type ThemeId } from "@/lib/templates/theme-ids";
 import type { ResumeContent } from "@/lib/types/database";
 import {
@@ -54,8 +53,6 @@ const PENDING_RESUME_CONTENT: ResumeContent = {
  *     theme_id: ThemeId (any registered theme from theme-registry)
  *   }
  *
- * Theme access is validated via verifyThemeUnlocked (premium themes may require referrals).
- *
  * Response:
  *   { success: true, handle: string }
  *
@@ -99,14 +96,6 @@ export async function POST(request: Request) {
         );
       }
       const body: WizardCompleteRequest = validation.data;
-
-      // Validate theme access based on referral count
-      // SAFETY: isValidThemeId guard above guarantees id is ThemeId; body.theme_id validated by wizardCompleteSchema enum before use.
-      const themeError = await verifyThemeUnlocked(db, authUser.id, body.theme_id as ThemeId);
-      if (themeError) return themeError;
-
-      // Safety fallback: use DEFAULT_THEME if locked theme somehow got through
-      const finalThemeId = body.theme_id;
 
       // Check if handle is available (not already taken by another user)
       const handleTaken = await isHandleTaken(db, authUser.id, body.handle);
@@ -171,14 +160,14 @@ export async function POST(request: Request) {
               id: crypto.randomUUID(),
               userId: authUser.id,
               content: PENDING_RESUME_CONTENT, // Replaced by queue consumer after parsing
-              themeId: finalThemeId,
+              themeId: body.theme_id,
               createdAt: now,
               updatedAt: now,
             })
             .onConflictDoUpdate({
               target: siteData.userId,
               set: {
-                themeId: finalThemeId,
+                themeId: body.theme_id,
                 lastPublishedAt: now,
                 updatedAt: now,
               },
@@ -209,7 +198,7 @@ export async function POST(request: Request) {
 
       await captureServerEvent(authUser.id, "onboarding_completed", {
         handle: body.handle,
-        theme_id: finalThemeId,
+        theme_id: body.theme_id,
         show_in_directory: body.privacy_settings.show_in_directory,
       });
 

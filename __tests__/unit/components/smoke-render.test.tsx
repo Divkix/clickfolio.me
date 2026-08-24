@@ -4,7 +4,6 @@ import { Users } from "lucide-react";
 import type React from "react";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import AdminAnalyticsPage from "@/app/(admin)/admin/analytics/page";
-import AdminReferralsPage from "@/app/(admin)/admin/referrals/page";
 import AdminResumesPage from "@/app/(admin)/admin/resumes/page";
 import AdminUsersPage from "@/app/(admin)/admin/users/page";
 import WaitingPage from "@/app/(protected)/waiting/page";
@@ -28,7 +27,6 @@ import { CopyLinkButton } from "@/components/dashboard/CopyLinkButton";
 import { DashboardUploadSection } from "@/components/dashboard/DashboardUploadSection";
 import { MilestoneToasts } from "@/components/dashboard/MilestoneToasts";
 import { RealtimeStatusListener } from "@/components/dashboard/RealtimeStatusListener";
-import { ReferralStats } from "@/components/dashboard/ReferralStats";
 import { Sidebar } from "@/components/dashboard/Sidebar";
 import { ThemeSelector } from "@/components/dashboard/ThemeSelector";
 import { EditResumeForm } from "@/components/forms/EditResumeForm";
@@ -380,24 +378,6 @@ describe("component smoke rendering", () => {
           { status: 200 },
         );
       }
-      if (url.includes("/api/admin/referrals")) {
-        return new Response(
-          JSON.stringify({
-            stats: { totalReferrers: 4, totalClicks: 100, conversions: 20, conversionRate: 20 },
-            funnel: { clicks: 100, unique: 80, signups: 20 },
-            topReferrers: [{ handle: "avery", clicks: 50, conversions: 10, rate: "20%" }],
-            sources: [{ source: "homepage", percent: 60 }],
-            recentConversions: [
-              {
-                newUserEmail: "new@example.com",
-                referrerHandle: "avery",
-                createdAt: "2026-05-20T00:00:00Z",
-              },
-            ],
-          }),
-          { status: 200 },
-        );
-      }
       if (url.includes("/api/analytics/stats")) {
         return new Response(
           JSON.stringify({
@@ -429,9 +409,6 @@ describe("component smoke rendering", () => {
           JSON.stringify({ id: "site_1", content: resumeContent, themeId: "minimalist_editorial" }),
           { status: 200 },
         );
-      }
-      if (url.includes("/api/user/stats")) {
-        return new Response(JSON.stringify({ referralCount: 5, isPro: false }), { status: 200 });
       }
       if (url.includes("/api/resume/latest-status")) {
         return new Response(JSON.stringify({ id: "res_123", status: "completed" }), {
@@ -506,13 +483,11 @@ describe("component smoke rendering", () => {
         <DashboardUploadSection />
         <MilestoneToasts totalViews={1000} />
         <RealtimeStatusListener resumeId="res_123" currentStatus="processing" />
-        <ReferralStats referralCount={2} clickCount={10} referralCode="ABCD1234" />
         <Sidebar isOpen onClose={vi.fn()} />
       </div>,
     );
-
     expect(screen.getAllByText("clickfolio").length).toBeGreaterThan(0);
-    expect(screen.getByText("Share Clickfolio")).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /copy/i }).length).toBeGreaterThan(0);
     expect(screen.getAllByText("Users").length).toBeGreaterThan(0);
     await userEvent.click(screen.getAllByRole("button", { name: /copy/i })[0]);
     expect(navigator.clipboard.writeText).toHaveBeenCalled();
@@ -522,8 +497,6 @@ describe("component smoke rendering", () => {
         initialThemeId="minimalist_editorial"
         initialContent={resumeContent}
         profile={{ handle: "avery", avatar_url: null }}
-        referralCount={10}
-        isPro={false}
       />,
     );
     expect(screen.getByText(/Choose Your Theme/)).toBeInTheDocument();
@@ -667,13 +640,11 @@ describe("component smoke rendering", () => {
         <AdminAnalyticsPage />
         <AdminUsersPage />
         <AdminResumesPage />
-        <AdminReferralsPage />
       </div>,
     );
 
     await waitFor(() => expect(screen.getByText("Platform Analytics")).toBeInTheDocument());
     await waitFor(() => expect(screen.getByText("Avery")).toBeInTheDocument());
-    expect(screen.getByText("Referral Program")).toBeInTheDocument();
     expect(screen.getByText("Parse failed")).toBeInTheDocument();
   });
 });

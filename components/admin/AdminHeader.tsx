@@ -13,7 +13,6 @@ const PAGE_TITLES = {
   "/admin/users": "Users",
   "/admin/resumes": "Resumes",
   "/admin/analytics": "Analytics",
-  "/admin/referrals": "Referrals",
 } as const satisfies Record<string, string>;
 
 export function AdminHeader({ onMenuClick }: AdminHeaderProps) {

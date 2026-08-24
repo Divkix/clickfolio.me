@@ -98,8 +98,6 @@ function makeUserRow(overrides: {
     hide_from_search: boolean;
     show_in_directory: boolean;
   };
-  isPro?: boolean;
-  referralCount?: number;
   themeId?: string;
   contactPhone?: string;
   contactLocation?: string;
@@ -131,8 +129,6 @@ function makeUserRow(overrides: {
       hide_from_search: false,
       show_in_directory: true,
     },
-    isPro: overrides.isPro ?? false,
-    referralCount: overrides.referralCount ?? 0,
     siteData: {
       userId: "user-1",
       themeId: overrides.themeId ?? "minimalist_editorial",
@@ -244,7 +240,7 @@ describe("getResumeData - phone/address privacy filtering", () => {
 
 // ── Tests: getResumeData — theme fallback ─────────────────────────────
 
-describe("getResumeData - locked theme fallback", () => {
+describe("getResumeData - theme resolution", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockSelectChain.from.mockReturnValue(mockSelectChain);
@@ -256,47 +252,11 @@ describe("getResumeData - locked theme fallback", () => {
     mockDb.select.mockReturnValue(mockSelectChain);
   });
 
-  it("falls back to DEFAULT_THEME when user has locked premium theme and insufficient referrals", async () => {
-    const { getResumeData } = await import("@/lib/data/resume");
-    // design_folio requires 3 referrals; user has 0
-    mockUserFindFirst.mockResolvedValueOnce(
-      makeUserRow({
-        themeId: "design_folio",
-        referralCount: 0,
-        isPro: false,
-      }),
-    );
-
-    const result = await getResumeData("janedoe");
-
-    expect(result).not.toBeNull();
-    expect(result!.theme_id).toBe("minimalist_editorial"); // DEFAULT_THEME
-  });
-
-  it("uses locked premium theme when user has sufficient referrals", async () => {
-    const { getResumeData } = await import("@/lib/data/resume");
-    // design_folio requires 3 referrals; user has 5
-    mockUserFindFirst.mockResolvedValueOnce(
-      makeUserRow({
-        themeId: "design_folio",
-        referralCount: 5,
-        isPro: false,
-      }),
-    );
-
-    const result = await getResumeData("janedoe");
-
-    expect(result).not.toBeNull();
-    expect(result!.theme_id).toBe("design_folio");
-  });
-
-  it("uses locked premium theme when user isPro", async () => {
+  it("keeps any stored theme now that all themes are free", async () => {
     const { getResumeData } = await import("@/lib/data/resume");
     mockUserFindFirst.mockResolvedValueOnce(
       makeUserRow({
         themeId: "design_folio",
-        referralCount: 0,
-        isPro: true, // Pro bypasses referral requirement
       }),
     );
 
@@ -311,7 +271,6 @@ describe("getResumeData - locked theme fallback", () => {
     mockUserFindFirst.mockResolvedValueOnce(
       makeUserRow({
         themeId: "nonexistent_theme_xyz",
-        referralCount: 99,
       }),
     );
 

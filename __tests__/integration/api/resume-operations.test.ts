@@ -107,10 +107,6 @@ vi.mock("@/lib/data/site-data-upsert", () => ({
   buildSiteDataUpsert: vi.fn().mockReturnValue("mock-upsert-query"),
 }));
 
-vi.mock("@/lib/referral", () => ({
-  writeReferral: vi.fn().mockResolvedValue({ success: false, reason: "no referral" }),
-}));
-
 vi.mock("@/lib/utils/security-headers", () => ({
   createErrorResponse: vi.fn(
     (error: string, _code: string, status: number, details?: JsonValue) => {
@@ -143,15 +139,12 @@ vi.mock("@/lib/db/schema", () => ({
     email: "email",
     name: "name",
     handle: "handle",
-    referralCount: "referral_count",
-    isPro: "is_pro",
     isAdmin: "is_admin",
     privacySettings: "privacy_settings",
     role: "role",
     roleSource: "role_source",
     createdAt: "created_at",
     updatedAt: "updated_at",
-    referredBy: "referred_by",
   },
   resumes: {
     id: "id",
@@ -185,71 +178,6 @@ vi.mock("@/lib/db/schema", () => ({
     newHandle: "new_handle",
     createdAt: "created_at",
   },
-  referralClicks: {
-    id: "id",
-    referrerUserId: "referrer_user_id",
-  },
-}));
-
-// Mock templates
-vi.mock("@/lib/templates/theme-ids", () => ({
-  THEME_IDS: [
-    "bento",
-    "bold_corporate",
-    "classic_ats",
-    "design_folio",
-    "dev_terminal",
-    "glass",
-    "midnight",
-    "minimalist_editorial",
-    "neo_brutalist",
-    "spotlight",
-  ],
-  isValidThemeId: vi.fn((id: string) =>
-    [
-      "bento",
-      "bold_corporate",
-      "classic_ats",
-      "design_folio",
-      "dev_terminal",
-      "glass",
-      "midnight",
-      "minimalist_editorial",
-      "neo_brutalist",
-      "spotlight",
-    ].includes(id),
-  ),
-  isThemeUnlocked: vi.fn((themeId: string, referralCount: number, isPro = false) => {
-    if (isPro) return true;
-    const requirements = {
-      bento: 0,
-      classic_ats: 0,
-      dev_terminal: 0,
-      glass: 0,
-      minimalist_editorial: 0,
-      neo_brutalist: 0,
-      design_folio: 3,
-      spotlight: 3,
-      midnight: 5,
-      bold_corporate: 10,
-    } as const satisfies Record<string, number>;
-    return referralCount >= (requirements[themeId as keyof typeof requirements] ?? 0);
-  }),
-  getThemeReferralRequirement: vi.fn((themeId: string) => {
-    const requirements = {
-      bento: 0,
-      classic_ats: 0,
-      dev_terminal: 0,
-      glass: 0,
-      minimalist_editorial: 0,
-      neo_brutalist: 0,
-      design_folio: 3,
-      spotlight: 3,
-      midnight: 5,
-      bold_corporate: 10,
-    } as const satisfies Record<string, number>;
-    return requirements[themeId as keyof typeof requirements] ?? 0;
-  }),
 }));
 
 // ── Setup ─────────────────────────────────────────────────────────────
@@ -349,8 +277,6 @@ type AuthedUser = {
   onboardingCompleted: boolean;
   role: "student" | "entry_level" | "mid_level" | "senior" | "executive";
   isAdmin: boolean;
-  referralCount: number;
-  isPro: boolean;
 };
 type AuthedAsResult = {
   user: AuthedUser;
@@ -359,12 +285,7 @@ type AuthedAsResult = {
   env: CloudflareEnv;
   error: null;
 };
-function authedAs(
-  userId: string,
-  isAdmin = false,
-  referralCount = 0,
-  isPro = false,
-): AuthedAsResult {
+function authedAs(userId: string, isAdmin = false): AuthedAsResult {
   const authResult = {
     user: {
       id: userId,
@@ -377,8 +298,6 @@ function authedAs(
       onboardingCompleted: true,
       role: "mid_level" as const,
       isAdmin,
-      referralCount,
-      isPro,
     },
     db: mockDb as never,
     dbUser: { id: userId, handle: "testuser", clerkId: "user_clerk_1" },
@@ -1236,7 +1155,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
 
   describe("PUT /api/resume/update-theme", () => {
     it("updates theme successfully (test 6)", async () => {
-      authedAs("user-123", false, 0); // Free user, no referrals
+      authedAs("user-123");
 
       mockReturning.mockResolvedValue([{ themeId: "bento" }]);
 
@@ -1265,37 +1184,24 @@ describe("Resume API Integration Tests (25 tests)", () => {
       expect(response.status).toBe(400);
     });
 
-    it("returns 403 when theme requires more referrals (test 23)", async () => {
-      authedAs("user-123", false, 0); // 0 referrals
-
-      const { POST } = await import("@/app/api/resume/update-theme/route");
-      const request = makeRequest("http://localhost:3000/api/resume/update-theme", "POST", {
-        theme_id: "bold_corporate", // Requires 10 referrals
-      });
-      const response = await POST(request);
-
-      expect(response.status).toBe(403);
-    });
-
-    it("allows pro user to access any theme", async () => {
-      authedAs("user-123", false, 0, true); // Pro user
+    it("updates previously-premium theme now that all themes are free", async () => {
+      authedAs("user-123");
 
       mockReturning.mockResolvedValue([{ themeId: "bold_corporate" }]);
 
       const { POST } = await import("@/app/api/resume/update-theme/route");
-      const request = new Request("http://localhost:3000/api/resume/update-theme", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ theme_id: "bold_corporate" }),
+      const request = makeRequest("http://localhost:3000/api/resume/update-theme", "POST", {
+        theme_id: "bold_corporate",
       });
       const response = await POST(request);
 
-      // Mock should allow pro users regardless of referral count
-      expect([200, 403]).toContain(response.status);
+      expect(response.status).toBe(200);
+      const body = (await response.json()) as { success: boolean; theme_id: string };
+      expect(body.theme_id).toBe("bold_corporate");
     });
 
     it("returns 404 when site_data not found", async () => {
-      authedAs("user-123", false, 5); // Has referrals for bento
+      authedAs("user-123");
 
       mockReturning.mockResolvedValue([]); // No rows updated
 

@@ -357,12 +357,9 @@ pnpm run ci               # type-check + lint + test + build
 app/
 ├── api/                 # API routes (webhooks/clerk, upload, resume, etc.)
 ├── (admin)/             # Admin dashboard pages
-│   ├── admin/
-│   │   ├── users/       # User management
-│   │   ├── referrals/   # Referral analytics
-│   │   ├── resumes/     # Resume management
-│   │   └── analytics/   # Site analytics
-│   └── layout-client.tsx # Admin layout wrapper
+│   ├── users/       # User management
+│   ├── resumes/     # Resume management
+│   └── analytics/   # Site analytics
 ├── (protected)/         # Auth-gated pages
 │   ├── dashboard/       # User dashboard with analytics
 │   ├── edit/            # Resume content editor
@@ -482,15 +479,7 @@ All run via `worker/index.ts` without self-fetch (avoids double billing).
 
 ### Referral Program
 
-Unlock premium templates by sharing:
-
-- **Mechanism**: Share your unique referral link from dashboard
-- **Tracking**: Friend signs up → your referral count increases
-- **Unlocks**:
-  - 3 referrals: DesignFolio, Spotlight templates
-  - 5 referrals: Midnight template
-  - 10 referrals: Bold Corporate template
-- **View**: Dashboard shows current count and progress to next unlock
+Removed — all 10 templates are now free for every user. No referral gating.
 
 ---
 
@@ -506,12 +495,12 @@ Unlock premium templates by sharing:
 | **Bento Grid**           | Modern       | Modern mosaic layout with colorful cards                        | Free               |
 | **Classic ATS**          | Professional | Legal brief typography, ATS-optimized single-column layout      | Free               |
 | **DevTerminal**          | Developer    | GitHub-inspired dark terminal aesthetic for developers          | Free               |
-| **DesignFolio**          | Creative     | Digital brutalism meets Swiss typography with acid lime accents | 3 referrals        |
-| **Spotlight**            | Creative     | Warm creative portfolio with animated sections                  | 3 referrals        |
-| **Midnight**             | Modern       | Dark minimal with serif headings and gold accents               | 5 referrals        |
-| **Bold Corporate**       | Professional | Executive typography with bold numbered sections                | 10 referrals       |
+| **DesignFolio**          | Creative     | Digital brutalism meets Swiss typography with acid lime accents | Free               |
+| **Spotlight**            | Creative     | Warm creative portfolio with animated sections                  | Free               |
+| **Midnight**             | Modern       | Dark minimal with serif headings and gold accents               | Free               |
+| **Bold Corporate**       | Professional | Executive typography with bold numbered sections                | Free               |
 
-All templates receive `content` (ResumeContent) and `profile` props, respect privacy settings, and are mobile-responsive. Premium templates unlock through the referral program.
+All templates receive `content` (ResumeContent) and `profile` props, respect privacy settings, and are mobile-responsive.
 
 ---
 

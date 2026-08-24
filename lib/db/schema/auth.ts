@@ -1,4 +1,4 @@
-import { boolean, index, integer, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { boolean, index, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 // =============================================================================
 // User table
@@ -57,23 +57,6 @@ export const user = pgTable(
     }),
     /** Source of the role value — "ai" if inferred during resume parsing, "user" if manually set. */
     roleSource: text("role_source", { enum: ["ai", "user"] }),
-    /** User ID of the referrer who invited this user (referral tracking). */
-    referredBy: text("referred_by"),
-    /** Timestamp when the referral was credited (set once when referredBy is first written). */
-    referredAt: timestamp("referred_at", { withTimezone: true, mode: "string" }),
-    /** Pro subscription flag — unlocks all portfolio themes. */
-    isPro: boolean("is_pro").notNull().default(false),
-    /**
-     * Denormalized count of users successfully referred by this user.
-     * Maintained by PG triggers (see migrations_pg/*_referral_count_triggers.sql).
-     *
-     * Postgres triggers survive table rewrites, but drizzle-kit still does NOT
-     * track them in snapshots: after any drizzle-kit generate that drops/recreates
-     * `user`, re-append the triggers migration.
-     */
-    referralCount: integer("referral_count").notNull().default(0),
-    /** Permanent referral code generated once at signup and never changed. */
-    referralCode: text("referral_code").unique(),
     /** Admin flag — grants access to the admin dashboard. */
     isAdmin: boolean("is_admin").notNull().default(false),
     /**
@@ -84,9 +67,7 @@ export const user = pgTable(
     showInDirectory: boolean("show_in_directory").notNull().default(true),
   },
   (table) => [
-    // Index for referral count queries and atomic updates on referredBy
-    index("user_referred_by_idx").on(table.referredBy),
-    // Note: referralCode/clerkId already have implicit unique indexes from .unique() constraints
+    // Note: clerkId already has an implicit unique index from its .unique() constraint
     // Index for /explore directory queries (WHERE show_in_directory = TRUE)
     index("user_show_in_directory_idx").on(table.showInDirectory),
   ],

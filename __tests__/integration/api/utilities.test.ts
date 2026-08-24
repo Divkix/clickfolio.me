@@ -2,7 +2,6 @@ import type { UnknownRecord, JsonValue } from "@/lib/types/json";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { _resetCache, extractDomain, isDisposableEmail } from "@/lib/email/disposable-check";
 import { RESERVED_HANDLES } from "@/lib/rate-limit/handle-validation";
-import { generateVisitorHash } from "@/lib/utils/analytics";
 import { createSignedCookieValue, parseSignedCookieValue } from "@/lib/utils/pending-upload-cookie";
 
 // Mock headers
@@ -181,68 +180,6 @@ describe("Utility APIs", () => {
       for (const { email, expected } of edgeCases) {
         const domain = extractDomain(email);
         expect(domain).toBe(expected);
-      }
-    });
-  });
-
-  describe("referral/track", () => {
-    it("should track referral click with deduplication", async () => {
-      const ip = "192.168.1.1";
-      const userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)";
-
-      // Generate visitor hash
-      const visitorHash = await generateVisitorHash(ip, userAgent);
-      expect(visitorHash).toBeDefined();
-      expect(typeof visitorHash).toBe("string");
-
-      // Same IP and UA should generate same hash
-      const visitorHash2 = await generateVisitorHash(ip, userAgent);
-      expect(visitorHash).toBe(visitorHash2);
-
-      // Different IP should generate different hash
-      const visitorHash3 = await generateVisitorHash("192.168.1.2", userAgent);
-      expect(visitorHash).not.toBe(visitorHash3);
-    });
-
-    it("should handle bot detection", () => {
-      const botUserAgents = [
-        "Googlebot/2.1",
-        "Mozilla/5.0 (compatible; bingbot/2.0)",
-        "Slackbot-LinkExpanding 1.0 (+https://api.slack.com/robots)",
-        "Twitterbot/1.0",
-      ];
-
-      for (const ua of botUserAgents) {
-        const isBotUa = /bot|crawler|spider|crawling/i.test(ua);
-        expect(isBotUa).toBe(true);
-      }
-    });
-
-    it("should handle valid sources", () => {
-      const validSources = ["homepage", "cta", "share"];
-      const invalidSources = ["invalid", "hacked", "test", ""];
-
-      for (const source of validSources) {
-        expect(["homepage", "cta", "share"].includes(source)).toBe(true);
-      }
-
-      for (const source of invalidSources) {
-        expect(["homepage", "cta", "share"].includes(source)).toBe(false);
-      }
-    });
-
-    it("should handle referral code format", () => {
-      const validCodes = ["ABC123", "XYZ789", "REF001"];
-      const invalidCodes = ["", "a".repeat(65), "   "];
-
-      for (const code of validCodes) {
-        expect(code.length).toBeGreaterThan(0);
-        expect(code.length).toBeLessThanOrEqual(64);
-      }
-
-      for (const code of invalidCodes) {
-        const isValid = code.length > 0 && code.length <= 64 && code.trim() !== "";
-        expect(isValid).toBe(false);
       }
     });
   });
@@ -511,30 +448,6 @@ describe("Utility APIs", () => {
         },
       };
       expect(getClientIP(requestWithXForwarded)).toBe("192.168.1.2");
-    });
-  });
-
-  describe("user stats", () => {
-    it("should calculate referral counts correctly", () => {
-      const referralClicks = [
-        { converted: true },
-        { converted: false },
-        { converted: true },
-        { converted: false },
-      ];
-
-      const convertedCount = referralClicks.filter((c) => c.converted).length;
-      expect(convertedCount).toBe(2);
-    });
-
-    it("should determine pro status", () => {
-      const checkProStatus = (isPro: boolean, referralCount: number) => {
-        return isPro || referralCount >= 10;
-      };
-
-      expect(checkProStatus(true, 0)).toBe(true);
-      expect(checkProStatus(false, 15)).toBe(true);
-      expect(checkProStatus(false, 5)).toBe(false);
     });
   });
 

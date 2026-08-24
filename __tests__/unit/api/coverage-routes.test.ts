@@ -540,13 +540,11 @@ describe("API route coverage", () => {
     expect((await GET(new Request("https://clickfolio.me/api/analytics/stats"))).status).toBe(503);
   });
 
-  it("returns site data and user stats for authenticated users", async () => {
+  it("returns site data for authenticated users", async () => {
     const siteDataRoute = await import("@/app/api/site-data/route");
-    const userStatsRoute = await import("@/app/api/user/stats/route");
 
     authed({ error: new Response("nope", { status: 401 }) });
     expect((await siteDataRoute.GET()).status).toBe(401);
-    expect((await userStatsRoute.GET()).status).toBe(401);
 
     authed();
     mocks.state.selectResults = [[]];
@@ -571,62 +569,6 @@ describe("API route coverage", () => {
       id: "site_1",
       content: { full_name: "Avery" },
     });
-
-    authed();
-    mocks.db.query.user.findFirst.mockResolvedValueOnce(null);
-    expect((await userStatsRoute.GET()).status).toBe(404);
-
-    authed();
-    mocks.db.query.user.findFirst.mockResolvedValueOnce({ referralCount: 5, isPro: true });
-    expect(await (await userStatsRoute.GET()).json()).toEqual({ referralCount: 5, isPro: true });
-  });
-
-  it("tracks referrals without leaking validation or storage failures", async () => {
-    const { POST } = await import("@/app/api/referral/track/route");
-
-    expect((await POST(new Request("https://clickfolio.me/api/referral/track"))).status).toBe(204);
-    expect((await POST(jsonRequest("/api/referral/track", {}))).status).toBe(204);
-    expect((await POST(jsonRequest("/api/referral/track", { code: "x".repeat(65) }))).status).toBe(
-      204,
-    );
-    expect(
-      (
-        await POST(
-          jsonRequest(
-            "/api/referral/track",
-            { code: "avery" },
-            { headers: { "user-agent": "Googlebot/2.1" } },
-          ),
-        )
-      ).status,
-    ).toBe(204);
-
-    mocks.state.selectResults = [[]];
-    expect(
-      (
-        await POST(
-          jsonRequest(
-            "/api/referral/track",
-            { handle: "avery", source: "bad" },
-            { headers: { "user-agent": "Mozilla/5.0 Test Browser" } },
-          ),
-        )
-      ).status,
-    ).toBe(204);
-
-    mocks.state.selectResults = [[{ id: "user_2" }]];
-    expect(
-      (
-        await POST(
-          jsonRequest(
-            "/api/referral/track",
-            { code: "ABC123", source: "share" },
-            { headers: { "user-agent": "Mozilla/5.0 Test Browser" } },
-          ),
-        )
-      ).status,
-    ).toBe(204);
-    expect(mocks.db.insert).toHaveBeenCalled();
   });
 
   it("manages pending upload cookies with signed values", async () => {
@@ -891,77 +833,6 @@ describe("API route coverage", () => {
     expect(fallback.headers.get("Content-Type")).toBe("image/svg+xml");
   });
 
-  it("summarizes admin referrals including empty, unknown, and attributed branches", async () => {
-    const { GET } = await import("@/app/api/admin/referrals/route");
-
-    mocks.state.adminAuthResult = { user: null, error: new Response("admin", { status: 403 }) };
-    expect((await GET()).status).toBe(403);
-
-    mocks.state.adminAuthResult = {
-      user: { id: "admin_1", email: "admin@example.com", name: "Admin", isAdmin: true },
-      error: null,
-    };
-    mocks.state.selectResults = [
-      [{ count: 2 }],
-      [{ totalClicks: 10, uniqueClicks: 5, attributedConversions: 2 }],
-      [{ count: 3 }],
-      [
-        { source: "share", count: 7 },
-        { source: null, count: 3 },
-      ],
-      [
-        { userId: "user_1", handle: "avery", referralCount: 3 },
-        { userId: "user_2", handle: null, referralCount: 1 },
-      ],
-      [
-        {
-          newUserEmail: null,
-          referrerUserId: "user_1",
-          referredAt: null,
-          createdAt: "2026-05-20T00:00:00Z",
-        },
-      ],
-      [{ referrerUserId: "user_1", clicks: 6 }],
-      [{ id: "user_1", handle: "avery" }],
-    ];
-
-    const body = (await (await GET()).json()) as {
-      stats: JsonValue;
-      topReferrers: JsonValue;
-      sources: JsonValue;
-      recentConversions: JsonValue;
-    };
-    expect(body.stats).toMatchObject({
-      totalReferrers: 2,
-      totalClicks: 10,
-      conversions: 3,
-      conversionRate: 60,
-      attributedConversions: 2,
-      attributedConversionRate: 40,
-      unattributedConversions: 1,
-    });
-    expect(body.topReferrers).toEqual([
-      { handle: "avery", clicks: 6, conversions: 3, rate: "50.0" },
-      { handle: "unknown", clicks: 0, conversions: 1, rate: "0" },
-    ]);
-    expect(body.sources).toEqual([
-      { source: "share", percent: 70 },
-      { source: "unknown", percent: 30 },
-    ]);
-    expect(body.recentConversions).toEqual([
-      {
-        newUserEmail: "Unknown",
-        referrerHandle: "avery",
-        createdAt: "2026-05-20T00:00:00Z",
-      },
-    ]);
-
-    mocks.db.select.mockImplementationOnce(() => {
-      throw new Error("db down");
-    });
-    expect((await GET()).status).toBe(500);
-  });
-
   it("paginates admin users with search escaping and derived status labels", async () => {
     const { GET } = await import("@/app/api/admin/users/route");
 
@@ -979,7 +850,6 @@ describe("API route coverage", () => {
           email: "failed@example.com",
           handle: "failed",
           createdAt: "2026-05-20",
-          isPro: false,
         },
         {
           id: "processing",
@@ -987,7 +857,6 @@ describe("API route coverage", () => {
           email: "processing@example.com",
           handle: "processing",
           createdAt: "2026-05-19",
-          isPro: false,
         },
         {
           id: "live",
@@ -995,7 +864,6 @@ describe("API route coverage", () => {
           email: "live@example.com",
           handle: "live",
           createdAt: "2026-05-18",
-          isPro: true,
         },
         {
           id: "empty",
@@ -1003,7 +871,6 @@ describe("API route coverage", () => {
           email: "empty@example.com",
           handle: null,
           createdAt: "2026-05-17",
-          isPro: false,
         },
       ],
       [
@@ -1162,10 +1029,6 @@ describe("API route coverage", () => {
       (await POST(jsonRequest("/api/wizard/complete", { ...validBody, handle: "x" }))).status,
     ).toBe(400);
 
-    mocks.state.themeError = new Response("locked", { status: 403 });
-    expect((await POST(jsonRequest("/api/wizard/complete", validBody))).status).toBe(403);
-
-    mocks.state.themeError = null;
     mocks.state.handleTaken = true;
     expect((await POST(jsonRequest("/api/wizard/complete", validBody))).status).toBe(400);
 

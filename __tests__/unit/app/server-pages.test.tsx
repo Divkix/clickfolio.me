@@ -144,9 +144,6 @@ vi.mock("@/components/dashboard/RealtimeStatusListener", () => ({
     <div>realtime {currentStatus}</div>
   ),
 }));
-vi.mock("@/components/dashboard/ReferralStats", () => ({
-  ReferralStats: ({ referralCode }: { referralCode: string }) => <div>referral {referralCode}</div>,
-}));
 vi.mock("@/components/dashboard/ThemeSelector", () => ({
   ThemeSelector: ({ initialThemeId }: { initialThemeId: string }) => (
     <div>theme {initialThemeId}</div>
@@ -275,8 +272,6 @@ function installDbDefaults() {
             privacySettings: {},
             onboardingCompleted: true,
             createdAt: "2026-05-20T00:00:00Z",
-            referralCount: 0,
-            referralCode: null,
             resumes: [],
             siteData: null,
             accounts: [],
@@ -293,8 +288,6 @@ function installDbDefaults() {
           privacySettings: {},
           onboardingCompleted: true,
           createdAt: "2026-05-20T00:00:00Z",
-          referralCount: 3,
-          referralCode: "REF123",
           resumes: [
             {
               id: "res_1",
@@ -308,8 +301,8 @@ function installDbDefaults() {
         };
       }
 
-      if (args.columns?.isPro) {
-        return { handle: "avery", image: null, isPro: false, referralCount: 3 };
+      if (args.columns?.handle && args.columns?.image) {
+        return { handle: "avery", image: null };
       }
 
       if (args.with && "siteData" in args.with) {
@@ -326,8 +319,6 @@ function installDbDefaults() {
             hide_from_search: false,
             show_in_directory: true,
           },
-          isPro: false,
-          referralCount: 0,
           siteData: siteDataRow(),
         };
       }
@@ -371,7 +362,6 @@ describe("server rendered app pages", () => {
     render(await DashboardPage());
     expect(screen.getByText("Avery Quinn")).toBeInTheDocument();
     expect(screen.getAllByText(/Parse failed/).length).toBeGreaterThan(0);
-    expect(screen.getByText("referral REF123")).toBeInTheDocument();
 
     mocks.state.dashboardMode = "empty";
     mocks.state.selectResults = [[{ count: 0 }]];
@@ -474,8 +464,6 @@ describe("server rendered app pages", () => {
         hide_from_search: false,
         show_in_directory: true,
       },
-      isPro: false,
-      referralCount: 0,
       siteData: siteDataRow(),
     });
     const handlePage = await import("@/app/[handle]/page");

@@ -215,8 +215,8 @@ export default function PdfResumeToWebsitePage() {
             directory.
           </li>
           <li>
-            <strong>Unlock premium templates.</strong> Share your referral link with friends. When
-            they sign up, you unlock premium template designs at 3, 5, or 10 referrals.
+            <strong>All templates are free.</strong> Every template is available to every user with
+            no referrals, no payment, and no unlocking required.
           </li>
         </ul>
       </section>

@@ -1,6 +1,6 @@
 import { relations } from "drizzle-orm";
 import { user } from "./auth";
-import { handleChanges, referralClicks } from "./rate-limit";
+import { handleChanges } from "./rate-limit";
 import { resumes } from "./resume";
 import { siteData } from "./site";
 
@@ -9,8 +9,8 @@ import { siteData } from "./site";
 // =============================================================================
 
 /**
- * User relations — one user has many resumes and handle changes; exactly one
- * siteData row; and many referral clicks both as referrer and as converted user.
+ * User relations — one user has many resumes and handle changes, and exactly
+ * one siteData row.
  */
 export const userRelations = relations(user, ({ many, one }) => ({
   resumes: many(resumes),
@@ -19,8 +19,6 @@ export const userRelations = relations(user, ({ many, one }) => ({
     references: [siteData.userId],
   }),
   handleChanges: many(handleChanges),
-  referralClicks: many(referralClicks, { relationName: "referrer" }),
-  convertedReferrals: many(referralClicks, { relationName: "convertedUser" }),
 }));
 
 /**
@@ -53,23 +51,5 @@ export const handleChangesRelations = relations(handleChanges, ({ one }) => ({
   user: one(user, {
     fields: [handleChanges.userId],
     references: [user.id],
-  }),
-}));
-
-/**
- * Referral clicks relations — self-referential pattern on the user table.
- * "referrer" is the user who shared the link; "convertedUser" is the user who signed up.
- * Both use relationName to disambiguate the dual many-to-one links back to user.
- */
-export const referralClicksRelations = relations(referralClicks, ({ one }) => ({
-  referrer: one(user, {
-    fields: [referralClicks.referrerUserId],
-    references: [user.id],
-    relationName: "referrer",
-  }),
-  convertedUser: one(user, {
-    fields: [referralClicks.convertedUserId],
-    references: [user.id],
-    relationName: "convertedUser",
   }),
 }));

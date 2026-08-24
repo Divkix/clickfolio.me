@@ -4,8 +4,7 @@ import { withUser } from "@/lib/auth/with-auth";
 import { captureServerEvent } from "@/lib/posthog-server";
 
 import { siteData } from "@/lib/db/schema";
-import { verifyThemeUnlocked } from "@/lib/templates/theme-access";
-import { isValidThemeId, THEME_IDS, type ThemeId } from "@/lib/templates/theme-ids";
+import { isValidThemeId, THEME_IDS } from "@/lib/templates/theme-ids";
 import {
   createErrorResponse,
   createSuccessResponse,
@@ -25,10 +24,9 @@ interface ThemeUpdateRequestBody {
  *
  * Validation:
  *   - theme_id must be a valid entry in THEME_IDS
- *   - Premium/locked themes require referral unlock via verifyThemeUnlocked
  *
  * Error codes:
- *   - 400: missing or invalid theme_id, or theme locked behind referral requirement
+ *   - 400: missing or invalid theme_id
  *   - 404: site_data not found (resume not uploaded yet)
  *   - 500: unexpected error
  */
@@ -77,9 +75,6 @@ export async function POST(request: Request) {
       }
 
       // SAFETY: isValidThemeId guard above guarantees id is ThemeId.
-      // Check if theme is locked behind referral requirement
-      const themeError = await verifyThemeUnlocked(db, userId, theme_id as ThemeId);
-      if (themeError) return themeError;
 
       const now = new Date().toISOString();
 

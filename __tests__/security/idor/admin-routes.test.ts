@@ -215,17 +215,6 @@ describe("IDOR - Admin Routes Security", () => {
     });
   });
 
-  describe("GET /api/admin/referrals", () => {
-    it("returns 403 for regular user accessing referral data", async () => {
-      mockedGetSession.mockResolvedValue(createMockSession("user-a", false));
-
-      const { requireAdminAuthForApi } = await import("@/lib/auth/admin");
-      const result = await requireAdminAuthForApi();
-
-      expect(result.error?.status).toBe(403);
-    });
-  });
-
   describe("GET /api/admin/resumes", () => {
     it("returns 403 for non-admin accessing resume audit", async () => {
       mockedGetSession.mockResolvedValue(createMockSession("user-a", false));

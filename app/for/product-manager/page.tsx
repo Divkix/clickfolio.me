@@ -28,7 +28,7 @@ const faqs = [
   },
   {
     q: "Is it free?",
-    a: "Yes. Six templates are free with no credit card and no trial. Four more unlock through referrals, not payment. There is no paid tier. The project is open source under the MIT license, so there is nothing to buy and no upsell waiting later.",
+    a: "Yes. All 10 templates are free with no credit card and no trial. There is no paid tier and no premium lock. The project is open source under the MIT license, so there is nothing to buy and no upsell waiting later.",
   },
   {
     q: "What link do I put on my resume and LinkedIn?",

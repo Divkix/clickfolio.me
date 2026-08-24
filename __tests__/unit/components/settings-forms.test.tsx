@@ -202,21 +202,16 @@ describe("ThemeSelector", () => {
     }
   });
 
-  it("prevents locked click selection and applies an unlocked theme", async () => {
+  it("selects any theme and applies an unlocked theme", async () => {
     render(
       <ThemeSelector
         initialThemeId="bento"
         initialContent={resumeContent}
         profile={{ handle: "avery", avatar_url: null }}
-        referralCount={0}
-        isPro={false}
       />,
     );
 
     expect(screen.getAllByText("Bento Grid").length).toBeGreaterThan(0);
-    fireEvent.click(screen.getByRole("option", { name: /DesignFolio/ }));
-    expect(screen.queryByRole("button", { name: "Apply Theme" })).not.toBeInTheDocument();
-
     fireEvent.click(screen.getByRole("option", { name: /Classic ATS/ }));
     fireEvent.click(screen.getByRole("button", { name: "Apply Theme" }));
 
@@ -233,7 +228,7 @@ describe("ThemeSelector", () => {
     fireEvent(window, new Event("resize"));
   });
 
-  it("supports keyboard selection, pro locked-theme access, resize scaling, and API errors", async () => {
+  it("supports keyboard selection, resize scaling, and API errors", async () => {
     vi.mocked(globalThis.fetch).mockResolvedValueOnce(
       Response.json({ error: "Theme update failed" }, { status: 500 }),
     );
@@ -242,8 +237,6 @@ describe("ThemeSelector", () => {
         initialThemeId="bento"
         initialContent={resumeContent}
         profile={{ handle: "avery", avatar_url: null }}
-        referralCount={0}
-        isPro={true}
       />,
     );
 

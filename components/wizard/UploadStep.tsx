@@ -6,7 +6,6 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useFileUpload } from "@/hooks/useFileUpload";
-import { clearStoredReferralCode } from "@/lib/referral";
 import type { ResumeContent } from "@/lib/types/database";
 import { MAX_FILE_SIZE_LABEL } from "@/lib/utils/validation";
 import { waitForResumeCompletion } from "@/lib/utils/wait-for-completion";
@@ -78,7 +77,6 @@ export function UploadStep({ onContinue }: UploadStepProps) {
 
         if (parsingResult) {
           setUploadProgress(100);
-          clearStoredReferralCode();
           toast.success("Resume parsed successfully!");
           onContinue(parsingResult);
         }

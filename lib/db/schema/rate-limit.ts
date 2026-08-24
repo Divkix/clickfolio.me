@@ -1,8 +1,8 @@
-import { boolean, index, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import { user } from "./auth";
 
 // =============================================================================
-// Rate-limiting and referral tracking tables
+// Rate-limiting tables
 // =============================================================================
 
 /**
@@ -55,42 +55,6 @@ export const uploadRateLimits = pgTable(
   ],
 );
 
-/**
- * Referral clicks table — tracks referral link visits and conversions.
- * source enum: "homepage" (landing page), "cta" (call-to-action button), "share" (direct share link).
- * visitorHash is a fingerprint hash of the visitor to deduplicate clicks.
- * converted is set to true when the visitor signs up and is linked to a user.
- */
-export const referralClicks = pgTable(
-  "referral_clicks",
-  {
-    id: text("id").primaryKey(),
-    referrerUserId: text("referrer_user_id")
-      .notNull()
-      .references(() => user.id, { onDelete: "cascade" }),
-    /** Fingerprint hash of the visitor to deduplicate clicks per referrer. */
-    visitorHash: text("visitor_hash").notNull(),
-    /** Referral source. Values: "homepage" (landing page), "cta" (button), "share" (direct link). */
-    source: text("source", { enum: ["homepage", "cta", "share"] }),
-    /** Whether the click resulted in a signup. */
-    converted: boolean("converted").notNull().default(false),
-    convertedUserId: text("converted_user_id").references(() => user.id, {
-      onDelete: "set null",
-    }),
-    /** Timestamp when the referral was converted (signup completed). */
-    convertedAt: timestamp("converted_at", { withTimezone: true, mode: "string" }),
-    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull(),
-  },
-  (table) => [
-    index("referral_clicks_visitor_idx").on(table.visitorHash),
-    index("referral_clicks_referrer_created_idx").on(table.referrerUserId, table.createdAt),
-    // Enforce idempotent click tracking (1 click per referrer+visitorHash)
-    uniqueIndex("referral_clicks_dedup_idx").on(table.referrerUserId, table.visitorHash),
-    // Composite index for queries filtering by referrer + conversion status
-    index("referral_clicks_referrer_converted_idx").on(table.referrerUserId, table.converted),
-  ],
-);
-
 /** Row type inferred from the handle_changes table (select). */
 export type HandleChange = typeof handleChanges.$inferSelect;
 /** Insert type inferred from the handle_changes table. */
@@ -100,8 +64,3 @@ export type NewHandleChange = typeof handleChanges.$inferInsert;
 export type UploadRateLimit = typeof uploadRateLimits.$inferSelect;
 /** Insert type inferred from the upload_rate_limits table. */
 export type NewUploadRateLimit = typeof uploadRateLimits.$inferInsert;
-
-/** Row type inferred from the referral_clicks table (select). */
-export type ReferralClick = typeof referralClicks.$inferSelect;
-/** Insert type inferred from the referral_clicks table. */
-export type NewReferralClick = typeof referralClicks.$inferInsert;

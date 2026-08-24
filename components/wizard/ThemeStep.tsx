@@ -1,33 +1,23 @@
 "use client";
 
-import { CheckCircle2, Gift, Palette } from "lucide-react";
+import { CheckCircle2, Palette } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ThemeLockOverlay } from "@/components/dashboard/ThemeLockOverlay";
-import { isThemeUnlocked, THEME_METADATA, type ThemeId } from "@/lib/templates/theme-ids";
+import { THEME_METADATA, type ThemeId } from "@/lib/templates/theme-ids";
 import { cn } from "@/lib/utils/cn";
 
 interface ThemeStepProps {
   initialTheme?: ThemeId;
   /** May be async — the continue handler awaits it to keep the button disabled until the request settles */
   onContinue: (themeId: ThemeId) => void | Promise<void>;
-  /** User's current referral count for theme unlock status */
-  referralCount?: number;
-  /** Whether user has pro status (unlocks all themes) */
-  isPro?: boolean;
 }
 
 /**
  * Step 4: Theme Selection Component
  * Allows users to choose their resume template design
  */
-export function ThemeStep({
-  initialTheme = "minimalist_editorial",
-  onContinue,
-  referralCount = 0,
-  isPro = false,
-}: ThemeStepProps) {
+export function ThemeStep({ initialTheme = "minimalist_editorial", onContinue }: ThemeStepProps) {
   const [selectedTheme, setSelectedTheme] = useState<ThemeId>(initialTheme);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -63,24 +53,20 @@ export function ThemeStep({
           {Object.entries(THEME_METADATA).map(([id, meta]) => {
             // SAFETY: isValidThemeId guard above guarantees id is ThemeId; Object.entries keys are ThemeIds from THEME_METADATA.
             const themeId = id as ThemeId;
-            const isUnlocked = isThemeUnlocked(themeId, referralCount, isPro);
-            const requiredReferrals = meta.referralsRequired;
 
             return (
               <Card
                 key={id}
-                onClick={() => isUnlocked && setSelectedTheme(themeId)}
+                onClick={() => setSelectedTheme(themeId)}
                 className={cn(
                   "group relative overflow-hidden transition-colors p-6 shadow-sm",
-                  isUnlocked
-                    ? selectedTheme === id
-                      ? "ring-2 ring-brand border-brand bg-brand-subtle cursor-pointer"
-                      : "border-border hover:border-border-strong bg-card cursor-pointer"
-                    : "border-border bg-surface-2 cursor-not-allowed opacity-75",
+                  selectedTheme === id
+                    ? "ring-2 ring-brand border-brand bg-brand-subtle cursor-pointer"
+                    : "border-border hover:border-border-strong bg-card cursor-pointer",
                 )}
               >
                 {/* Selected Indicator */}
-                {selectedTheme === id && isUnlocked && (
+                {selectedTheme === id && (
                   <div className="absolute top-4 right-4">
                     <div className="flex items-center gap-1 bg-brand text-brand-foreground px-3 py-1 rounded-full text-xs font-bold">
                       <CheckCircle2 className="w-3 h-3" />
@@ -96,26 +82,20 @@ export function ThemeStep({
                     <span
                       className={cn(
                         "inline-block text-xs font-medium px-2 py-1 rounded-full",
-                        isUnlocked && selectedTheme === id
+                        selectedTheme === id
                           ? "bg-brand text-brand-foreground"
                           : "bg-secondary text-secondary-foreground",
                       )}
                     >
                       {meta.category}
                     </span>
-                    {!isUnlocked && (
-                      <span className="inline-flex items-center gap-1 text-xs font-medium text-warning">
-                        <Gift className="w-3 h-3" />
-                        Locked
-                      </span>
-                    )}
                   </div>
 
                   {/* Theme Name */}
                   <h3
                     className={cn(
                       "text-xl font-bold transition-colors",
-                      isUnlocked && selectedTheme === id ? "text-brand" : "text-foreground",
+                      selectedTheme === id ? "text-brand" : "text-foreground",
                     )}
                   >
                     {meta.name}
@@ -131,19 +111,15 @@ export function ThemeStep({
                     <div
                       className={cn(
                         "aspect-16/10 rounded-lg overflow-hidden border transition-colors relative",
-                        isUnlocked && selectedTheme === id ? "border-brand" : "border-border",
+                        selectedTheme === id ? "border-brand" : "border-border",
                       )}
                     >
                       <img
                         src={meta.preview}
                         alt={`${meta.name} preview`}
-                        className={cn(
-                          "w-full h-full object-cover object-top",
-                          !isUnlocked && "blur-[2px] grayscale",
-                        )}
+                        className="w-full h-full object-cover object-top"
                         loading="lazy"
                       />
-                      {!isUnlocked && <ThemeLockOverlay requiredReferrals={requiredReferrals} />}
                     </div>
                   </div>
                 </div>

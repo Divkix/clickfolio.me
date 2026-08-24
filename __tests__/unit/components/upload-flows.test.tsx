@@ -25,8 +25,6 @@ const mocks = vi.hoisted(() => ({
     status: "completed" as "completed" | "failed",
     error: undefined as string | undefined,
   },
-  clearReferral: vi.fn(),
-  getReferral: vi.fn(() => null as string | null),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -60,11 +58,6 @@ vi.mock("@/lib/auth/client", () => ({
 vi.mock("sonner", () => ({
   toast: mocks.toast,
   Toaster: () => null,
-}));
-
-vi.mock("@/lib/referral", () => ({
-  getStoredReferralCode: () => mocks.getReferral(),
-  clearStoredReferralCode: () => mocks.clearReferral(),
 }));
 
 vi.mock("@/lib/utils/wait-for-completion", () => ({
@@ -110,7 +103,6 @@ describe("upload flow components", () => {
     vi.useRealTimers();
     mocks.sessionState.current = { data: null, isPending: false };
     mocks.waitResult = { status: "completed", error: undefined };
-    mocks.getReferral.mockReturnValue(null);
   });
 
   afterEach(() => {
@@ -249,14 +241,12 @@ describe("upload flow components", () => {
       data: { user: { id: "user_1", email: "avery@example.com", name: "Avery" } },
       isPending: false,
     };
-    mocks.getReferral.mockReturnValue("REF123");
 
-    installFetch((url, init) => {
+    installFetch((url) => {
       if (url === "/api/upload") {
         return Response.json({ key: "temp/auth/resume.pdf", remaining: { hourly: 9, daily: 49 } });
       }
       if (url === "/api/resume/claim") {
-        expect(init?.body).toContain("REF123");
         return Response.json({ resume_id: "res_1" });
       }
       return Response.json({ success: true });
@@ -270,7 +260,6 @@ describe("upload flow components", () => {
         "Resume claimed successfully! Processing...",
       ),
     );
-    expect(mocks.clearReferral).toHaveBeenCalled();
     await waitFor(() => expect(mocks.router.replace).toHaveBeenCalledWith("/dashboard"));
     expect(mocks.router.refresh).toHaveBeenCalled();
   });
@@ -368,7 +357,6 @@ describe("upload flow components", () => {
     dropFile(pdfFile("cached.pdf"));
 
     await waitFor(() => expect(onContinue).toHaveBeenCalledWith(resumeContent));
-    expect(mocks.clearReferral).toHaveBeenCalled();
     expect(mocks.toast.success).toHaveBeenCalledWith("Resume parsed successfully!");
   });
 

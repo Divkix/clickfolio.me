@@ -20,7 +20,7 @@ export const metadata: Metadata = buildRolePageMetadata({ title, description, pa
 const faqs = [
   {
     q: "Is clickfolio.me really free for software engineers?",
-    a: "Yes. You can upload your resume, get a hosted developer portfolio, and use 6 templates with no payment ever. Four more templates unlock through referrals, not money. There is no paid tier and no credit card. The project is open source under the MIT license.",
+    a: "Yes. You can upload your resume, get a hosted developer portfolio, and use all 10 templates with no payment ever. There is no paid tier, no premium lock, and no credit card. The project is open source under the MIT license.",
   },
   {
     q: "Can I link my GitHub and LinkedIn?",

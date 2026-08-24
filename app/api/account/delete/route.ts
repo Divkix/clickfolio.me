@@ -41,7 +41,7 @@ function getClerkClient(secretKey: string) {
  *    has deleted the user, even a failed local delete is cleaned up by the
  *    `user.deleted` webhook.
  * 3. local Postgres user row (CASCADE handles resumes, siteData,
- *    handleChanges, referralClicks)
+ *    handleChanges)
  *
  * Session cookies are Clerk-owned: the client signs out via useClerk()
  * after the success response; no app-side cookie surgery here.
@@ -171,7 +171,7 @@ export async function POST(request: Request) {
       }
 
       // Delete the local user row. A single statement is atomic in Postgres;
-      // CASCADE removes resumes, siteData, handleChanges, and referralClicks.
+      // CASCADE removes resumes, siteData, and handleChanges.
       // The `user.deleted` webhook fired by Clerk performs the same cleanup as
       // a safety net if this step fails after a successful Clerk deletion.
       try {

@@ -9,7 +9,6 @@ import type { ResumeContent } from "@/lib/types/database";
 import { publishResumeParse } from "@/lib/queue/resume-parse";
 import { getR2Binding, R2 } from "@/lib/r2";
 import { enforceRateLimit } from "@/lib/rate-limit/user";
-import { writeReferral } from "@/lib/referral-server";
 import { claimRequestSchema } from "@/lib/schemas/resume";
 import { sha256Hex } from "@/lib/utils/hash";
 import { getOptionalEnvValue } from "@/lib/utils/env";
@@ -35,7 +34,6 @@ import {
  * Request body:
  *   {
  *     key: string (required, must start with "temp/"),
- *     referral_code: string (optional, max 50 chars, alphanumeric + @ _ -)
  *   }
  *
  * Response:
@@ -265,19 +263,6 @@ export async function POST(request: Request) {
         );
       }
 
-      // Link referral if provided (best effort - don't fail claim on referral errors)
-      if (body.referral_code) {
-        try {
-          const referralResult = await writeReferral(userId, body.referral_code, request);
-          if (!referralResult.success) {
-            console.log(`Referral not linked: ${referralResult.reason}`);
-          }
-        } catch (referralError) {
-          console.error("Referral linking error:", referralError);
-          // Don't fail the claim for referral errors
-        }
-      }
-
       // Check for cached parse result (same file uploaded before BY THIS USER)
       // SECURITY: Only look up cache for current user's own resumes to prevent cross-user data access
       // Single query to fetch both existence and content (saves one database roundtrip)
@@ -495,7 +480,6 @@ export async function POST(request: Request) {
 
       await captureServerEvent(userId, "resume_claimed", {
         resume_id: resumeId,
-        has_referral: !!body.referral_code,
       });
       return createSuccessResponse({
         resume_id: resumeId,

@@ -1,7 +1,6 @@
 import { ArrowRight } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Suspense } from "react";
 import { FileDropzone } from "@/components/FileDropzone";
 import { Footer } from "@/components/Footer";
 import { BottomCTAButton } from "@/components/home/BottomCTAButton";
@@ -10,7 +9,6 @@ import { FAQSection } from "@/components/home/FAQSection";
 import { MobileStickyUpload } from "@/components/home/MobileStickyUpload";
 import { UsageStats } from "@/components/home/UsageStats";
 import { WhatYouGetSection } from "@/components/home/WhatYouGetSection";
-import { ReferralCapture } from "@/components/ReferralCapture";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Badge } from "@/components/ui/badge";
 import { PROFESSIONS } from "@/lib/config/professions";
@@ -74,10 +72,6 @@ export default function Home() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(faqJsonLd) }}
       />
-      {/* Capture referral handle from ?ref= parameter */}
-      <Suspense fallback={null}>
-        <ReferralCapture />
-      </Suspense>
       <div className="flex min-h-screen flex-col bg-background">
         <SiteHeader />
 

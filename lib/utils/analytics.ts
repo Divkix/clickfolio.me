@@ -1,7 +1,7 @@
 /**
  * Analytics utility functions — pure, no side effects.
  *
- * Used by the referral tracking system for visitor identification.
+ * Used for visitor identification.
  * All functions are deterministic and testable in isolation.
  */
 

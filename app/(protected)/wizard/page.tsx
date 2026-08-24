@@ -45,11 +45,6 @@ interface PendingUploadResponse {
   file_hash: string | null;
 }
 
-interface UserStatsResponse {
-  referralCount?: number;
-  isPro?: boolean;
-}
-
 // Named step identifiers eliminate error-prone numeric offset arithmetic
 type WizardStepId = "upload" | "handle" | "review" | "privacy" | "theme";
 
@@ -98,10 +93,6 @@ export default function WizardPage() {
   const [error, setError] = useState<string | null>(null);
   const [needsUpload, setNeedsUpload] = useState(false);
   const [showLiveModal, setShowLiveModal] = useState(false);
-
-  // Referral stats for theme lock display
-  const [referralCount, setReferralCount] = useState(0);
-  const [isPro, setIsPro] = useState(false);
 
   // Refs to prevent race conditions during wizard initialization
   const initializingRef = useRef(false);
@@ -267,19 +258,6 @@ export default function WizardPage() {
               ...prev,
               resumeData: content,
             }));
-
-            // Fetch user referral status for theme lock display
-            try {
-              const statsResponse = await fetch("/api/user/stats");
-              if (statsResponse.ok) {
-                // SAFETY: UserStatsResponse is from our /api/user/stats endpoint; fields validated server-side before return.
-                const stats = (await statsResponse.json()) as UserStatsResponse;
-                setReferralCount(stats.referralCount ?? 0);
-                setIsPro(stats.isPro ?? false);
-              }
-            } catch (e) {
-              console.warn("Failed to fetch referral stats", e);
-            }
 
             setLoading(false);
             return;
@@ -512,12 +490,7 @@ export default function WizardPage() {
 
         {/* Theme Selection */}
         {state.currentStepId === "theme" && (
-          <ThemeStep
-            initialTheme={state.themeId}
-            onContinue={handleThemeContinue}
-            referralCount={referralCount}
-            isPro={isPro}
-          />
+          <ThemeStep initialTheme={state.themeId} onContinue={handleThemeContinue} />
         )}
       </main>
     </div>

@@ -7,13 +7,7 @@ import { getDb } from "@/lib/db";
 import { siteData, user } from "@/lib/db/schema";
 import type { PrivacySettings } from "@/lib/db/schema/auth";
 import { generateBreadcrumbJsonLd, generateResumeJsonLd, serializeJsonLd } from "@/lib/seo/json-ld";
-import {
-  DEFAULT_THEME,
-  isThemeUnlocked,
-  isValidThemeId,
-  THEME_METADATA,
-  type ThemeId,
-} from "@/lib/templates/theme-ids";
+import { DEFAULT_THEME, isValidThemeId, type ThemeId } from "@/lib/templates/theme-ids";
 import type { ResumeContent } from "@/lib/types/database";
 import { normalizePreviewSkills } from "@/lib/utils/preview-skills";
 import { extractCityState, normalizePrivacySettings } from "@/lib/utils/privacy";
@@ -69,8 +63,6 @@ async function fetchResumeDataRaw(handle: string): Promise<ResumeData | null> {
       headline: true,
       image: true,
       privacySettings: true,
-      isPro: true,
-      referralCount: true, // Denormalized field, avoids separate COUNT query
     },
     with: {
       siteData: {
@@ -104,24 +96,7 @@ async function fetchResumeDataRaw(handle: string): Promise<ResumeData | null> {
   // This catches edge cases where theme was set directly in DB or via API bypass
   // SAFETY: DB themeId is string|null validated immediately after via isValidThemeId; cast narrows to ThemeId for metadata lookup with fallback to DEFAULT_THEME
   let themeId: ThemeId | null = userData.siteData.themeId as ThemeId | null;
-
-  if (themeId && isValidThemeId(themeId)) {
-    const themeMetadata = THEME_METADATA[themeId];
-
-    // Only check referral count if theme requires referrals
-    if (themeMetadata.referralsRequired > 0) {
-      // Use denormalized field instead of COUNT query (saves a roundtrip)
-      const referralCount = userData.referralCount ?? 0;
-      const isPro = userData.isPro ?? false;
-
-      if (!isThemeUnlocked(themeId, referralCount, isPro)) {
-        console.warn(
-          `[theme-defense] User ${userData.id} has locked theme ${themeId}. Falling back to default.`,
-        );
-        themeId = DEFAULT_THEME;
-      }
-    }
-  } else {
+  if (!themeId || !isValidThemeId(themeId)) {
     themeId = DEFAULT_THEME;
   }
 

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { JsonValue } from "@/lib/types/json";
 
-type ClaimBody = { key: string; referral_code?: string };
+type ClaimBody = { key: string };
 type ClaimHeaders = { "Content-Type": string; Cookie?: string };
 
 /**
@@ -212,10 +212,6 @@ vi.mock("@/lib/queue/resume-parse", () => ({
   }),
 }));
 
-vi.mock("@/lib/referral-server", () => ({
-  writeReferral: vi.fn().mockResolvedValue({ success: true }),
-}));
-
 vi.mock("@/lib/data/site-data-upsert", () => ({
   buildSiteDataUpsert: vi.fn().mockReturnValue("mock-upsert-query"),
 }));
@@ -299,10 +295,8 @@ function makeUploadRequest(
 }
 
 /** Create claim request */
-function makeClaimRequest(key: string, referralCode?: string, cookieValue?: string): Request {
+function makeClaimRequest(key: string, cookieValue?: string): Request {
   const body: ClaimBody = { key };
-  if (referralCode) body.referral_code = referralCode;
-
   const headers: ClaimHeaders = {
     "Content-Type": "application/json",
   };
@@ -532,7 +526,7 @@ describe("POST /api/resume/claim", () => {
     // Now claim it
     setMockAuthUser("user-1");
     const { POST: claimPost } = await import("@/app/api/resume/claim/route");
-    const claimResponse = await claimPost(makeClaimRequest(tempKey, undefined, pendingCookie!));
+    const claimResponse = await claimPost(makeClaimRequest(tempKey, pendingCookie!));
     const claimBody = (await claimResponse.json()) as { resume_id: string; status: string };
 
     expect(claimResponse.status).toBe(200);
@@ -570,9 +564,7 @@ describe("POST /api/resume/claim", () => {
     // Claim
     setMockAuthUser("user-1");
     const { POST: claimPost } = await import("@/app/api/resume/claim/route");
-    const claimResponse = await claimPost(
-      makeClaimRequest(uploadBody.key, undefined, pendingCookie!),
-    );
+    const claimResponse = await claimPost(makeClaimRequest(uploadBody.key, pendingCookie!));
     const claimBody = (await claimResponse.json()) as { resume_id: string };
 
     expect(mockQueueMessages.length).toBe(1);
@@ -592,27 +584,6 @@ describe("POST /api/resume/claim", () => {
     const response = await POST(makeClaimRequest("invalid-key-format"));
 
     expect(response.status).toBe(400);
-  });
-
-  it("17. Claim with referral code → referral linked", async () => {
-    const { writeReferral } = await import("@/lib/referral-server");
-
-    // Upload
-    const { POST: uploadPost } = await import("@/app/api/upload/route");
-    const buffer = makePdfBuffer();
-    const uploadResponse = await uploadPost(makeUploadRequest(buffer));
-    const uploadBody = (await uploadResponse.json()) as { key: string };
-
-    // Extract the pending_upload cookie set by the upload route
-    const pendingCookie = extractPendingUploadCookie(uploadResponse);
-    expect(pendingCookie).not.toBeNull();
-
-    // Claim with referral code
-    setMockAuthUser("user-1");
-    const { POST: claimPost } = await import("@/app/api/resume/claim/route");
-    await claimPost(makeClaimRequest(uploadBody.key, "REF123", pendingCookie!));
-
-    expect(writeReferral).toHaveBeenCalledWith("user-1", "REF123", expect.any(Request));
   });
 
   // Tests 18 and 19 are deleted: the shared mockDbSelectChain mock in this file
@@ -638,7 +609,7 @@ describe("POST /api/resume/claim", () => {
     mockR2Store.set(tempKey, makePdfBuffer());
 
     const { POST } = await import("@/app/api/resume/claim/route");
-    const response = await POST(makeClaimRequest(tempKey, undefined, cookieValue));
+    const response = await POST(makeClaimRequest(tempKey, cookieValue));
 
     expect(response.status).toBe(429);
   });

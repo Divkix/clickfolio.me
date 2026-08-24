@@ -358,92 +358,6 @@ describe("Admin API Integration Tests (15 tests)", () => {
   });
 
   // ─────────────────────────────────────────────────────────────────
-  // GET /api/admin/referrals
-  // ─────────────────────────────────────────────────────────────────
-
-  describe("GET /api/admin/referrals", () => {
-    it("returns referral statistics for admin (test 2)", async () => {
-      adminAuthed();
-
-      // Setup mock data for referrals query
-      mockLimit.mockImplementation(async () => [
-        { count: 10 }, // Total referrers
-        { count: 100, uniqueClicks: 80, attributedConversions: 15 }, // Click stats
-        { count: 12 }, // Credited signups
-        { source: "homepage", count: 50 },
-        { source: "cta", count: 30 },
-      ]);
-
-      const { GET } = await import("@/app/api/admin/referrals/route");
-      const response = await GET();
-
-      // Complex SQL queries may fail with mocks, accept 200 or 500
-      expect([200, 500]).toContain(response.status);
-      if (response.status === 200) {
-        const body = (await response.json()) as { stats: JsonValue; topReferrers: JsonValue[] };
-        expect(body.stats).toBeDefined();
-        expect(body.topReferrers).toBeDefined();
-      }
-    });
-
-    it("filters referral data by source (test 12)", async () => {
-      adminAuthed();
-
-      mockLimit.mockResolvedValue([
-        { source: "homepage", count: 50 },
-        { source: "cta", count: 30 },
-        { source: "share", count: 20 },
-      ]);
-
-      const { GET } = await import("@/app/api/admin/referrals/route");
-      const response = await GET();
-
-      // Complex SQL queries may fail with mocks, accept 200 or 500
-      expect([200, 500]).toContain(response.status);
-    });
-
-    it("returns 403 for non-admin users (test 7)", async () => {
-      regularUserAuthed();
-
-      const { GET } = await import("@/app/api/admin/referrals/route");
-      const response = await GET();
-
-      expect(response.status).toBe(403);
-    });
-
-    it("returns 401 when not authenticated", async () => {
-      unauthenticated();
-
-      const { GET } = await import("@/app/api/admin/referrals/route");
-      const response = await GET();
-
-      expect(response.status).toBe(401);
-    });
-
-    it("returns recent conversions list (test 2)", async () => {
-      adminAuthed();
-
-      mockLimit.mockResolvedValue([
-        {
-          newUserEmail: "new@example.com",
-          referrerUserId: "referrer-123",
-          referredAt: new Date().toISOString(),
-        },
-      ]);
-
-      const { GET } = await import("@/app/api/admin/referrals/route");
-      const response = await GET();
-
-      // Complex SQL queries may fail with mocks, accept 200 or 500
-      expect([200, 500]).toContain(response.status);
-      if (response.status === 200) {
-        const body = (await response.json()) as { recentConversions: JsonValue[] };
-        expect(body.recentConversions).toBeDefined();
-      }
-    });
-  });
-
-  // ─────────────────────────────────────────────────────────────────
   // GET /api/admin/resumes
   // ─────────────────────────────────────────────────────────────────
 
@@ -810,7 +724,6 @@ describe("Admin API Integration Tests (15 tests)", () => {
       // Test that all admin routes require authentication
       const routes = [
         "/api/admin/analytics",
-        "/api/admin/referrals",
         "/api/admin/resumes",
         "/api/admin/stats",
         "/api/admin/users",

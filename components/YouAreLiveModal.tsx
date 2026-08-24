@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Copy, ExternalLink, Gift, Rocket, XIcon } from "lucide-react";
+import { Check, Copy, ExternalLink, Rocket, XIcon } from "lucide-react";
 import Link from "next/link";
 import { useCallback } from "react";
 import { Confetti } from "@/components/Confetti";
@@ -41,7 +41,6 @@ interface YouAreLiveModalProps {
  */
 export function YouAreLiveModal({ open, onOpenChange, handle, url }: YouAreLiveModalProps) {
   const { copied, copy } = useCopyToClipboard();
-  const { copied: referralCopied, copy: copyReferral } = useCopyToClipboard();
 
   const resumeUrl =
     url ||
@@ -49,10 +48,6 @@ export function YouAreLiveModal({ open, onOpenChange, handle, url }: YouAreLiveM
       ? `${globalThis.window.location.origin}/@${handle}`
       : `https://clickfolio.me/@${handle}`);
 
-  const referralUrl =
-    globalThis.window !== undefined
-      ? `${globalThis.window.location.origin}/?ref=${handle}`
-      : `https://clickfolio.me/?ref=${handle}`;
   const shareText = "Just published my professional resume! Check it out:";
 
   const handleCopyLink = useCallback(async () => {
@@ -61,13 +56,6 @@ export function YouAreLiveModal({ open, onOpenChange, handle, url }: YouAreLiveM
       errorMessage: "Failed to copy link",
     });
   }, [resumeUrl, copy]);
-
-  const handleCopyReferralLink = useCallback(async () => {
-    await copyReferral(referralUrl, {
-      successMessage: "Referral link copied!",
-      errorMessage: "Failed to copy link",
-    });
-  }, [referralUrl, copyReferral]);
 
   const handleTwitterShare = useCallback(() => {
     window.open(generateTwitterShareUrl(shareText, resumeUrl), "_blank", "noopener,noreferrer");
@@ -146,35 +134,6 @@ export function YouAreLiveModal({ open, onOpenChange, handle, url }: YouAreLiveM
                 <li>&#10003; Update your email signature</li>
                 <li>&#10003; Share in job hunting communities</li>
               </ul>
-            </div>
-
-            {/* Referral Section */}
-            <div className="bg-brand-subtle rounded-lg p-4 border border-brand/20">
-              <div className="flex items-center gap-2 mb-2">
-                <Gift className="size-4 text-brand" aria-hidden="true" />
-                <span className="text-sm font-semibold text-foreground">Share with friends</span>
-              </div>
-              <p className="text-xs text-muted-foreground mb-3">
-                Know someone job hunting? Share your referral link.
-              </p>
-              <div className="flex items-center gap-2">
-                <code className="flex-1 text-xs bg-card px-2 py-1.5 rounded font-mono text-muted-foreground truncate">
-                  ?ref={handle}
-                </code>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  aria-label={referralCopied ? "Referral link copied" : "Copy referral link"}
-                  onClick={handleCopyReferralLink}
-                  className="shrink-0"
-                >
-                  {referralCopied ? (
-                    <Check className="size-3 text-success" />
-                  ) : (
-                    <Copy className="size-3" />
-                  )}
-                </Button>
-              </div>
             </div>
 
             {/* View Resume Link */}

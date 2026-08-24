@@ -1,6 +1,6 @@
 "use client";
 
-import { BarChart3, FileText, LayoutDashboard, Share2, Users, X } from "lucide-react";
+import { BarChart3, FileText, LayoutDashboard, Users, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Logo } from "@/components/Logo";
@@ -16,7 +16,6 @@ const NAV_ITEMS = [
   { name: "Users", href: "/admin/users", icon: Users, exact: false },
   { name: "Resumes", href: "/admin/resumes", icon: FileText, exact: false },
   { name: "Analytics", href: "/admin/analytics", icon: BarChart3, exact: false },
-  { name: "Referrals", href: "/admin/referrals", icon: Share2, exact: false },
 ];
 
 export function AdminSidebar({ isOpen, onClose, adminEmail }: AdminSidebarProps) {

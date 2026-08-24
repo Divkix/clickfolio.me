@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import { SignInButton, useSession } from "@/lib/auth/client";
-import { clearStoredReferralCode, getStoredReferralCode } from "@/lib/referral";
 import { clearPendingUploadCookie } from "@/lib/utils/pending-upload-client";
 import { MAX_FILE_SIZE_LABEL } from "@/lib/utils/validation";
 interface FileDropzoneProps {
@@ -57,15 +56,12 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
       setError(null);
 
       try {
-        // Include referral code if present
-        const referralRef = getStoredReferralCode();
         const claimResponse = await fetch("/api/resume/claim", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
           body: JSON.stringify({
             key,
-            referral_code: referralRef || undefined,
           }),
         });
 
@@ -82,9 +78,6 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
 
         // Clear HTTP-only cookie
         await clearPendingUploadCookie();
-
-        // Clear referral data after successful claim
-        clearStoredReferralCode();
 
         toast.success("Resume claimed successfully! Processing...");
 

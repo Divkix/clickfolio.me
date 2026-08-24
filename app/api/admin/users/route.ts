@@ -13,7 +13,6 @@
  *     handle: string;
  *     status: "live" | "processing" | "no_resume" | "failed";
  *     createdAt: string;
- *     isPro: boolean;
  *   }>,
  *   "total": number,
  *   "page": number,
@@ -75,7 +74,6 @@ export async function GET(request: Request) {
         email: user.email,
         handle: user.handle,
         createdAt: user.createdAt,
-        isPro: user.isPro,
       })
       .from(user)
       .where(searchCondition)
@@ -161,7 +159,6 @@ export async function GET(request: Request) {
         handle: u.handle,
         status,
         createdAt: u.createdAt,
-        isPro: u.isPro,
       };
     });
 

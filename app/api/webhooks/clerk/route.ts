@@ -5,7 +5,7 @@
  * Events handled:
  *   - user.created / user.updated → upsert the local row keyed by
  *     `user.clerk_id`, preserving Clickfolio-specific fields (handle,
- *     referralCode, isAdmin, referredBy…) that Clerk does not own.
+ *     isAdmin, privacySettings…) that Clerk does not own.
  *   - user.deleted                → delete the mapped row.
  *
  * Request authenticity is enforced with the Svix signature scheme (svix-id /
@@ -20,7 +20,6 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { getDb, type Database } from "@/lib/db";
 import { user as users } from "@/lib/db/schema";
-import { generateReferralCode } from "@/lib/utils/referral-code";
 
 export const dynamic = "force-dynamic";
 
@@ -126,7 +125,7 @@ async function findMappedUser(db: Database, payload: ClerkUserPayload) {
 
 /**
  * Identity-owned columns written on every event. App-owned columns (handle,
- * referralCode, isAdmin, referredBy, privacySettings…) are deliberately NOT
+ * isAdmin, privacySettings…) are deliberately NOT
  * here so Clerk events can never clobber them.
  */
 interface ProfileColumns {
@@ -175,7 +174,6 @@ async function upsertUser(db: Database, payload: ClerkUserPayload): Promise<stri
     image: profile.image,
     createdAt: now,
     updatedAt: now,
-    referralCode: generateReferralCode(),
   });
   return payload.externalId ?? payload.id;
 }

@@ -28,7 +28,7 @@ const faqs = [
   },
   {
     q: "Is clickfolio.me free?",
-    a: "Yes. Six templates are free with no time limit and no credit card. Four more unlock through referrals rather than payment. There is no paid tier. The project is open source under the MIT license, so independent consultants can rely on it long term.",
+    a: "Yes. All 10 templates are free with no time limit and no credit card. There is no paid tier and no premium lock. The project is open source under the MIT license, so independent consultants can rely on it long term.",
   },
   {
     q: "What do I share with prospective clients?",

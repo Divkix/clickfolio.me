@@ -28,7 +28,7 @@ const faqs = [
   },
   {
     q: "Is it actually free?",
-    a: "Yes. Six templates are free with no time limit and no credit card. Four more unlock through referrals rather than payment. There is no paid plan. The whole project is open source under the MIT license, so there is no catch.",
+    a: "Yes. All 10 templates are free with no time limit and no credit card. There is no paid plan and no premium lock. The whole project is open source under the MIT license, so you can inspect every line.",
   },
   {
     q: "What link do I share with studios and clients?",

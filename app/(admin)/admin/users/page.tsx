@@ -17,7 +17,6 @@ interface UserData {
   status: "live" | "processing" | "no_resume" | "failed";
   views: number;
   createdAt: string;
-  isPro: boolean;
 }
 
 interface UsersResponse {
@@ -150,12 +149,7 @@ export default function AdminUsersPage() {
                     {/* eslint-disable-next-line jsx-a11y/control-has-associated-label -- false positive: <td> is not an interactive control */}
                     <td className="px-4 py-3">
                       <div>
-                        <p className="font-medium text-foreground">
-                          {user.name || "Unnamed"}
-                          {user.isPro && (
-                            <span className="ml-1.5 text-xs text-brand font-medium">PRO</span>
-                          )}
-                        </p>
+                        <p className="font-medium text-foreground">{user.name || "Unnamed"}</p>
                         <p className="text-sm text-muted-foreground">{user.email}</p>
                       </div>
                     </td>

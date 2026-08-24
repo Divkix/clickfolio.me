@@ -5,7 +5,6 @@ import { isLocalEnvironment } from "@/lib/utils/environment";
 import { classifyError, getErrorMessage, showErrorToast } from "@/lib/utils/errors";
 import { formatRelativeTime, truncateText } from "@/lib/utils/format";
 import { calculateCompleteness, getProfileSuggestions } from "@/lib/utils/profile-completeness";
-import { generateReferralCode } from "@/lib/utils/referral-code";
 import {
   generateTempKey,
   validatePDF,
@@ -233,26 +232,5 @@ describe("error and environment utilities", () => {
     expect(isLocalEnvironment()).toBe(true);
     process.env.APP_URL = "https://clickfolio.me";
     expect(isLocalEnvironment()).toBe(false);
-  });
-});
-
-describe("referral code generation", () => {
-  it("generates alphabet-safe codes and falls back if Web Crypto fails", () => {
-    const code = generateReferralCode();
-    expect(code).toMatch(/^[A-HJ-NP-Z2-9]{8}$/);
-
-    const getRandomValues = vi.spyOn(crypto, "getRandomValues").mockImplementation(() => {
-      throw new Error("no crypto");
-    });
-    const mathRandom = vi.spyOn(Math, "random").mockReturnValue(0.123456);
-    const dateNow = vi.spyOn(Date, "now").mockReturnValue(1_779_248_853_000);
-    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
-
-    expect(generateReferralCode()).toHaveLength(8);
-
-    getRandomValues.mockRestore();
-    mathRandom.mockRestore();
-    dateNow.mockRestore();
-    consoleError.mockRestore();
   });
 });

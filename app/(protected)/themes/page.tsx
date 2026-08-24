@@ -25,7 +25,7 @@ export default async function ThemesPage() {
   // 2. Get database connection
   const db = getDb(env.HYPERDRIVE);
 
-  // 3. Fetch user's site data (theme + content) and profile info (including referralCount) in parallel
+  // 3. Fetch user's site data (theme + content) and profile info in parallel
   const [userSiteData, userProfile] = await Promise.all([
     db.query.siteData.findFirst({
       where: eq(siteData.userId, session.user.id),
@@ -33,13 +33,9 @@ export default async function ThemesPage() {
     }),
     db.query.user.findFirst({
       where: eq(user.id, session.user.id),
-      columns: { handle: true, image: true, isPro: true, referralCount: true },
+      columns: { handle: true, image: true },
     }),
   ]);
-
-  // Use pre-computed referralCount from user table
-  const referralCount = userProfile?.referralCount ?? 0;
-  const isPro = userProfile?.isPro ?? false;
 
   // Redirect to dashboard if no resume has been uploaded/parsed yet
   if (!userSiteData?.content) {
@@ -64,8 +60,6 @@ export default async function ThemesPage() {
           initialThemeId={currentThemeId}
           initialContent={parsedContent}
           profile={profile}
-          referralCount={referralCount}
-          isPro={isPro}
         />
       </div>
     </div>

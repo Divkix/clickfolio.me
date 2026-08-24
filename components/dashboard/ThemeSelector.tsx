@@ -1,17 +1,11 @@
 "use client";
 
-import { CheckCircle2, Gift } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ThemeLockOverlay } from "@/components/dashboard/ThemeLockOverlay";
 import { TEMPLATE_BACKGROUNDS } from "@/lib/templates/demo-data";
-import {
-  isThemeUnlocked,
-  THEME_IDS,
-  THEME_METADATA,
-  type ThemeId,
-} from "@/lib/templates/theme-ids";
+import { THEME_IDS, THEME_METADATA, type ThemeId } from "@/lib/templates/theme-ids";
 import { DYNAMIC_TEMPLATES } from "@/lib/templates/theme-registry.client";
 import type { ApiErrorBody } from "@/lib/types/api";
 import type { ResumeContent } from "@/lib/types/database";
@@ -24,19 +18,9 @@ interface ThemeSelectorProps {
     handle: string;
     avatar_url: string | null;
   };
-  /** User's current referral count for theme unlock status */
-  referralCount: number;
-  /** Whether user has pro status (unlocks all themes) */
-  isPro: boolean;
 }
 
-export function ThemeSelector({
-  initialThemeId,
-  initialContent,
-  profile,
-  referralCount,
-  isPro,
-}: ThemeSelectorProps) {
+export function ThemeSelector({ initialThemeId, initialContent, profile }: ThemeSelectorProps) {
   const router = useRouter();
   const [savedTheme, setSavedTheme] = useState<ThemeId>(initialThemeId);
   const [selectedTheme, setSelectedTheme] = useState<ThemeId>(initialThemeId);
@@ -161,8 +145,6 @@ export function ThemeSelector({
             const meta = THEME_METADATA[themeId];
             const isSelected = selectedTheme === themeId;
             const isActive = savedTheme === themeId;
-            const isUnlocked = isThemeUnlocked(themeId, referralCount, isPro);
-            const requiredReferrals = meta.referralsRequired;
 
             return (
               <button
@@ -171,17 +153,14 @@ export function ThemeSelector({
                 // eslint-disable-next-line jsx-a11y/prefer-tag-over-role -- button with role="option" inside listbox is correct ARIA pattern
                 role="option"
                 aria-selected={isSelected}
-                aria-disabled={!isUnlocked}
-                onClick={() => isUnlocked && setSelectedTheme(themeId)}
+                onClick={() => setSelectedTheme(themeId)}
                 className={cn(
                   "relative shrink-0 w-28 md:w-36 rounded-lg overflow-hidden transition-colors",
                   "border bg-card",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                  isUnlocked
-                    ? isSelected
-                      ? "border-brand ring-2 ring-brand/30 shadow-md"
-                      : "border-border hover:border-border-strong cursor-pointer"
-                    : "border-border opacity-75 cursor-not-allowed",
+                  isSelected
+                    ? "border-brand ring-2 ring-brand/30 shadow-md"
+                    : "border-border hover:border-border-strong cursor-pointer",
                 )}
               >
                 {/* Thumbnail Image */}
@@ -189,40 +168,25 @@ export function ThemeSelector({
                   <img
                     src={meta.preview}
                     alt={`${meta.name} preview`}
-                    className={cn(
-                      "w-full h-full object-cover object-top",
-                      !isUnlocked && "blur-[2px] grayscale",
-                    )}
+                    className="w-full h-full object-cover object-top"
                     loading="lazy"
                   />
-                  {!isUnlocked && <ThemeLockOverlay requiredReferrals={requiredReferrals} />}
                 </div>
 
                 {/* Theme Name */}
                 <div className="p-2 text-center">
-                  <span
-                    className={cn(
-                      "text-xs md:text-sm font-semibold truncate block",
-                      isUnlocked ? "text-foreground" : "text-muted-foreground",
-                    )}
-                  >
+                  <span className="text-xs md:text-sm font-semibold truncate block text-foreground">
                     {meta.name}
                   </span>
-                  {isActive && isUnlocked && (
+                  {isActive && (
                     <span className="inline-block mt-1 text-[10px] md:text-xs font-semibold text-brand">
                       Active
-                    </span>
-                  )}
-                  {!isUnlocked && (
-                    <span className="inline-flex items-center gap-1 mt-1 text-[10px] md:text-xs font-medium text-warning">
-                      <Gift className="w-3 h-3" aria-hidden="true" />
-                      Locked
                     </span>
                   )}
                 </div>
 
                 {/* Selection Indicator */}
-                {isSelected && isUnlocked && (
+                {isSelected && (
                   <div className="absolute top-2 right-2 w-5 h-5 bg-brand rounded-full flex items-center justify-center">
                     <svg
                       className="w-3 h-3 text-brand-foreground"

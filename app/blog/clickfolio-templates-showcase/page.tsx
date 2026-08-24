@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { BlogPostLayout } from "@/components/blog/BlogPostLayout";
 import { buildBlogPostMetadata, getPostBySlug } from "@/lib/blog/posts";
-import { getThemeReferralRequirement, THEME_METADATA } from "@/lib/templates/theme-ids";
+import { THEME_METADATA } from "@/lib/templates/theme-ids";
 
 export const revalidate = 86400;
 
@@ -89,18 +89,14 @@ export default function TemplatesShowcasePage() {
       </section>
 
       <section>
-        <h2>Premium Templates (Unlocked via Referrals)</h2>
+        <h2>More Free Templates</h2>
 
         <p>
-          Premium templates are a reward for sharing clickfolio.me with your network. When friends
-          sign up through your referral link, you unlock access. No payment required — just word of
-          mouth.
+          All 10 templates are free for every user — no referrals, no payment, and no premium locks
+          required.
         </p>
 
-        <h3>
-          {THEME_METADATA.design_folio.name} ({getThemeReferralRequirement("design_folio")}{" "}
-          referrals)
-        </h3>
+        <h3>{THEME_METADATA.design_folio.name}</h3>
         <p>
           {THEME_METADATA.design_folio.description}. This is the template for designers, by
           designers. Dark background, neon green accents, oversized typography, and asymmetric
@@ -109,9 +105,7 @@ export default function TemplatesShowcasePage() {
           creative professionals who want their portfolio to demonstrate taste — not just list it.
         </p>
 
-        <h3>
-          {THEME_METADATA.spotlight.name} ({getThemeReferralRequirement("spotlight")} referrals)
-        </h3>
+        <h3>{THEME_METADATA.spotlight.name}</h3>
         <p>
           {THEME_METADATA.spotlight.description}. Warm color palette, smooth scroll animations, and
           a layout that feels like a narrative — not a document. Each section fades or slides into
@@ -119,9 +113,7 @@ export default function TemplatesShowcasePage() {
           marketers, content creators, and anyone whose work is about narrative and engagement.
         </p>
 
-        <h3>
-          {THEME_METADATA.midnight.name} ({getThemeReferralRequirement("midnight")} referrals)
-        </h3>
+        <h3>{THEME_METADATA.midnight.name}</h3>
         <p>
           {THEME_METADATA.midnight.description}. This is the most elegant template in the
           collection. Dark background, serif headings in a refined weight, and subtle gold accents
@@ -130,45 +122,13 @@ export default function TemplatesShowcasePage() {
           luxury industries where understated sophistication matters.
         </p>
 
-        <h3>
-          {THEME_METADATA.bold_corporate.name} ({getThemeReferralRequirement("bold_corporate")}{" "}
-          referrals)
-        </h3>
+        <h3>{THEME_METADATA.bold_corporate.name}</h3>
         <p>
           {THEME_METADATA.bold_corporate.description}. This template means business. Heavy
           sans-serif fonts, numbered sections, strong vertical rhythm, and a commanding presence
           that says "executive." It's the most structured template available — every element is
           deliberate and authoritative. Best for C-suite executives, board members, and senior
-          leaders who want their portfolio to match their position. This is our most exclusive
-          template and requires the most referrals to unlock — it's designed for our most connected
-          users.
-        </p>
-      </section>
-
-      <section>
-        <h2>How to Unlock Premium Templates</h2>
-        <p>Premium templates are unlocked through our referral system:</p>
-        <ul>
-          <li>
-            <strong>3 referrals</strong> — Unlock DesignFolio and Spotlight
-          </li>
-          <li>
-            <strong>5 referrals</strong> — Unlock Midnight
-          </li>
-          <li>
-            <strong>10 referrals</strong> — Unlock Bold Corporate
-          </li>
-        </ul>
-        <p>
-          Each user gets a unique referral code on signup. Share your link with colleagues, on
-          social media, or in your email signature. When someone signs up through your link, it
-          counts toward your referral total. It's a win-win: your friends get a free portfolio, and
-          you unlock premium designs.
-        </p>
-        <p>
-          Your referral count is visible in your dashboard settings. Premium templates show a lock
-          icon and the number of referrals needed. Once you hit the threshold, the lock disappears
-          and you can switch instantly.
+          leaders who want their portfolio to match their position.
         </p>
       </section>
 
@@ -243,9 +203,8 @@ export default function TemplatesShowcasePage() {
       <section>
         <h2>Start Building</h2>
         <p>
-          All templates are available on your dashboard after uploading your resume. The default is
-          Minimalist Editorial, but you can switch at any time. Premium templates are waiting —
-          share with your network to unlock them.
+          All 10 templates are free and available on your dashboard after uploading your resume. The
+          default is Minimalist Editorial, but you can switch at any time.
         </p>
         <p>
           <Link href="/" className="text-brand font-semibold">

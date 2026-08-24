@@ -128,8 +128,6 @@ vi.mock("@/lib/resume/lifecycle", async (importOriginal) => {
 
 // Mock theme registry
 vi.mock("@/lib/templates/theme-ids", () => ({
-  getThemeReferralRequirement: vi.fn(() => 3),
-  isThemeUnlocked: vi.fn(() => true),
   isValidThemeId: vi.fn(() => true),
   THEME_IDS: ["minimalist_editorial", "glass_morphic"],
 }));
@@ -358,24 +356,6 @@ describe("IDOR - Resume Routes Security", () => {
       const response = await POST(request);
 
       expect(response.status).toBe(404);
-    });
-
-    it("blocks theme update when theme requires referrals user doesn't have", async () => {
-      authedAs("user-a");
-
-      // Override isThemeUnlocked to return false
-      const { isThemeUnlocked } = await import("@/lib/templates/theme-ids");
-      vi.mocked(isThemeUnlocked).mockReturnValue(false);
-
-      const { POST } = await import("@/app/api/resume/update-theme/route");
-      const request = new Request("http://localhost:3000/api/resume/update-theme", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ theme_id: "premium_theme" }),
-      });
-      const response = await POST(request);
-
-      expect(response.status).toBe(403);
     });
 
     it("returns 401 when theme update attempted without authentication", async () => {

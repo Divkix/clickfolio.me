@@ -129,17 +129,9 @@ vi.mock("@/components/wizard/PrivacyStep", () => ({
 }));
 
 vi.mock("@/components/wizard/ThemeStep", () => ({
-  ThemeStep: ({
-    onContinue,
-    referralCount,
-    isPro,
-  }: {
-    onContinue: (themeId: string) => void;
-    referralCount: number;
-    isPro: boolean;
-  }) => (
+  ThemeStep: ({ onContinue }: { onContinue: (themeId: string) => void }) => (
     <button type="button" onClick={() => onContinue("minimalist_editorial")}>
-      theme-step {referralCount} {String(isPro)}
+      theme-step
     </button>
   ),
 }));
@@ -183,9 +175,6 @@ function installFetchScenario(scenario: FetchScenario) {
           ? null
           : { content: resumeContent },
       );
-    }
-    if (url === "/api/user/stats") {
-      return Response.json({ referralCount: 4, isPro: true });
     }
     if (url === "/api/resume/latest-status") {
       return Response.json(
@@ -241,7 +230,6 @@ describe("wizard page flow", () => {
     expect(screen.getByText(/review-step Avery Quinn/)).toBeInTheDocument();
     await userEvent.click(screen.getByText(/review-step/));
     await userEvent.click(screen.getByText("privacy-step"));
-    expect(screen.getByText(/theme-step/)).toHaveTextContent("4 true");
     await userEvent.click(screen.getByText(/theme-step/));
 
     expect(screen.getByText("live avery")).toBeInTheDocument();

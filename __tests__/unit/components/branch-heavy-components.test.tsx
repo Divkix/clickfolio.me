@@ -4,7 +4,6 @@ import type React from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { CopyLinkButton } from "@/components/dashboard/CopyLinkButton";
 import { MilestoneToasts } from "@/components/dashboard/MilestoneToasts";
-import { ReferralStats } from "@/components/dashboard/ReferralStats";
 import { EditResumeFormWrapper } from "@/components/forms/EditResumeFormWrapper";
 import { HandleForm } from "@/components/forms/HandleForm";
 import { ShareBar } from "@/components/ShareBar";
@@ -512,36 +511,18 @@ describe("branch-heavy component interactions", () => {
       expect(screen.getByPlaceholderText("Skills")).toHaveValue("Workers, D1");
     });
 
-    it("copies dashboard and referral links and reports failures", async () => {
+    it("copies the dashboard share link and reports failures", async () => {
       const user = userEvent.setup();
-      const { rerender } = render(
-        <div>
-          <CopyLinkButton handle="avery" />
-          <ReferralStats clickCount={0} referralCode="REF123" referralCount={0} />
-        </div>,
-      );
+      render(<CopyLinkButton handle="avery" />);
 
-      expect(screen.queryByText("0 clicks")).not.toBeInTheDocument();
       await user.click(screen.getByRole("button", { name: "Copy Share Link" }));
       expect(mocks.copyToClipboard).toHaveBeenCalledWith("http://localhost:3000/@avery");
       expect(mocks.toast.success).toHaveBeenCalledWith("Link copied to clipboard!");
 
-      await user.click(screen.getByRole("button", { name: "Copy Link" }));
-      expect(mocks.copyToClipboard).toHaveBeenCalledWith("http://localhost:3000/?ref=REF123");
-      expect(mocks.toast.success).toHaveBeenCalledWith("Referral link copied!");
-
       mocks.copyToClipboard.mockRejectedValueOnce(new Error("blocked"));
-      rerender(<ReferralStats clickCount={1} referralCode="REF456" referralCount={1} />);
-      expect(
-        screen.getAllByText((_, node) => node?.textContent === "1 click").length,
-      ).toBeGreaterThan(0);
-      expect(
-        screen.getAllByText((_, node) => node?.textContent === "1 signup").length,
-      ).toBeGreaterThan(0);
-      expect(screen.getByText("100% conversion")).toBeInTheDocument();
-
-      await user.click(screen.getByRole("button", { name: "Copy Link" }));
-      expect(mocks.toast.error).toHaveBeenCalledWith("Failed to copy link");
+      // Button shows "Copied!" after success; query flexibly
+      await user.click(screen.getByRole("button", { name: /Copy Share Link|Copied!/i }));
+      expect(mocks.toast.error).toHaveBeenCalledWith("Failed to copy link. Please copy manually.");
     });
 
     it("handles edit wrapper save success, autosave, and API error branches", async () => {
@@ -580,7 +561,7 @@ describe("branch-heavy component interactions", () => {
   });
 
   describe("YouAreLiveModal", () => {
-    it("shares, copies resume and referral links, and closes through the view link", async () => {
+    it("shares, copies the resume link, and closes through the view link", async () => {
       const user = userEvent.setup();
       const onOpenChange = vi.fn();
       render(<YouAreLiveModal handle="avery" onOpenChange={onOpenChange} open />);
@@ -609,18 +590,13 @@ describe("branch-heavy component interactions", () => {
         "noopener,noreferrer",
       );
 
-      await user.click(screen.getByRole("button", { name: "Copy referral link" }));
-      expect(mocks.copyToClipboard).toHaveBeenCalledWith("http://localhost:3000/?ref=avery");
-
       await user.click(screen.getByRole("link", { name: /view my resume/i }));
       expect(onOpenChange).toHaveBeenCalledWith(false);
     });
 
     it("uses explicit URLs and reports copy failures", async () => {
       const user = userEvent.setup();
-      mocks.copyToClipboard
-        .mockRejectedValueOnce(new Error("blocked"))
-        .mockRejectedValueOnce(new Error("blocked"));
+      mocks.copyToClipboard.mockRejectedValueOnce(new Error("blocked"));
 
       render(
         <YouAreLiveModal
@@ -633,9 +609,6 @@ describe("branch-heavy component interactions", () => {
 
       await user.click(screen.getByRole("button", { name: "Copy link" }));
       expect(mocks.copyToClipboard).toHaveBeenCalledWith("https://example.com/resume");
-      expect(mocks.toast.error).toHaveBeenCalledWith("Failed to copy link");
-
-      await user.click(screen.getByRole("button", { name: "Copy referral link" }));
       expect(mocks.toast.error).toHaveBeenCalledWith("Failed to copy link");
     });
   });

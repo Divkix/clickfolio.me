@@ -114,125 +114,30 @@ describe("THEME_METADATA", () => {
   });
 });
 
-describe("Free themes (0 referrals required)", () => {
-  const freeThemes = THEME_IDS.filter((id) => THEME_METADATA[id].referralsRequired === 0);
-
-  it("includes the expected free themes", () => {
-    expect(freeThemes).toContain("bento");
-    expect(freeThemes).toContain("classic_ats");
-    expect(freeThemes).toContain("dev_terminal");
-    expect(freeThemes).toContain("glass");
-    expect(freeThemes).toContain("minimalist_editorial");
-    expect(freeThemes).toContain("neo_brutalist");
-  });
-
-  it("has 6 free themes", () => {
-    expect(freeThemes).toHaveLength(6);
-  });
-});
-
-describe("Premium themes (referral-gated)", () => {
-  it("design_folio requires 3 referrals", () => {
-    expect(THEME_METADATA.design_folio.referralsRequired).toBe(3);
-  });
-
-  it("spotlight requires 3 referrals", () => {
-    expect(THEME_METADATA.spotlight.referralsRequired).toBe(3);
-  });
-
-  it("midnight requires 5 referrals", () => {
-    expect(THEME_METADATA.midnight.referralsRequired).toBe(5);
-  });
-
-  it("bold_corporate requires 10 referrals", () => {
-    expect(THEME_METADATA.bold_corporate.referralsRequired).toBe(10);
-  });
-
-  it("has 4 premium themes total", () => {
-    const premiumThemes = THEME_IDS.filter((id) => THEME_METADATA[id].referralsRequired > 0);
-    expect(premiumThemes).toHaveLength(4);
+describe("All themes are free", () => {
+  it("every theme has referralsRequired of 0", () => {
+    for (const themeId of THEME_IDS) {
+      expect(THEME_METADATA[themeId].referralsRequired).toBe(0);
+    }
   });
 });
 
 describe("isThemeUnlocked", () => {
-  describe("with pro status", () => {
-    it("unlocks all themes when isPro is true", () => {
-      for (const themeId of THEME_IDS) {
-        expect(isThemeUnlocked(themeId, 0, true)).toBe(true);
-        expect(isThemeUnlocked(themeId, 100, true)).toBe(true);
-      }
-    });
-
-    it("ignores referral count when isPro is true", () => {
-      expect(isThemeUnlocked("bold_corporate", 0, true)).toBe(true);
-      expect(isThemeUnlocked("midnight", 0, true)).toBe(true);
-    });
-  });
-
-  describe("without pro status", () => {
-    it("unlocks free themes with 0 referrals", () => {
-      for (const themeId of THEME_IDS) {
-        if (THEME_METADATA[themeId].referralsRequired === 0) {
-          expect(isThemeUnlocked(themeId, 0, false)).toBe(true);
-        }
-      }
-    });
-
-    it("unlocks 3-referral themes at exactly 3 referrals", () => {
-      expect(isThemeUnlocked("design_folio", 3, false)).toBe(true);
-      expect(isThemeUnlocked("spotlight", 3, false)).toBe(true);
-    });
-
-    it("locks 3-referral themes below threshold", () => {
-      expect(isThemeUnlocked("design_folio", 2, false)).toBe(false);
-      expect(isThemeUnlocked("spotlight", 0, false)).toBe(false);
-    });
-
-    it("unlocks 5-referral themes at exactly 5 referrals", () => {
-      expect(isThemeUnlocked("midnight", 5, false)).toBe(true);
-    });
-
-    it("locks 5-referral themes below threshold", () => {
-      expect(isThemeUnlocked("midnight", 4, false)).toBe(false);
-      expect(isThemeUnlocked("midnight", 0, false)).toBe(false);
-    });
-
-    it("unlocks 10-referral themes at exactly 10 referrals", () => {
-      expect(isThemeUnlocked("bold_corporate", 10, false)).toBe(true);
-    });
-
-    it("locks 10-referral themes below threshold", () => {
-      expect(isThemeUnlocked("bold_corporate", 9, false)).toBe(false);
-      expect(isThemeUnlocked("bold_corporate", 0, false)).toBe(false);
-    });
-
-    it("unlocks themes when referral count exceeds threshold", () => {
-      expect(isThemeUnlocked("design_folio", 10, false)).toBe(true);
-      expect(isThemeUnlocked("spotlight", 10, false)).toBe(true);
-      expect(isThemeUnlocked("midnight", 10, false)).toBe(true);
-      expect(isThemeUnlocked("bold_corporate", 15, false)).toBe(true);
-    });
-
-    it("defaults isPro to false", () => {
-      // Testing the default parameter behavior
-      expect(isThemeUnlocked("bold_corporate", 0)).toBe(false);
-      expect(isThemeUnlocked("minimalist_editorial", 0)).toBe(true);
-    });
+  it("always returns true, ignoring legacy referral/pro arguments", () => {
+    for (const themeId of THEME_IDS) {
+      expect(isThemeUnlocked(themeId)).toBe(true);
+      expect(isThemeUnlocked(themeId, 0)).toBe(true);
+      expect(isThemeUnlocked(themeId, 0, false)).toBe(true);
+      expect(isThemeUnlocked(themeId, 100, true)).toBe(true);
+    }
   });
 });
 
 describe("getThemeReferralRequirement", () => {
-  it("returns 0 for free themes", () => {
-    expect(getThemeReferralRequirement("minimalist_editorial")).toBe(0);
-    expect(getThemeReferralRequirement("bento")).toBe(0);
-    expect(getThemeReferralRequirement("classic_ats")).toBe(0);
-  });
-
-  it("returns correct requirement for premium themes", () => {
-    expect(getThemeReferralRequirement("design_folio")).toBe(3);
-    expect(getThemeReferralRequirement("spotlight")).toBe(3);
-    expect(getThemeReferralRequirement("midnight")).toBe(5);
-    expect(getThemeReferralRequirement("bold_corporate")).toBe(10);
+  it("returns 0 for every theme", () => {
+    for (const themeId of THEME_IDS) {
+      expect(getThemeReferralRequirement(themeId)).toBe(0);
+    }
   });
 });
 

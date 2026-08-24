@@ -28,7 +28,7 @@ const faqs = [
   },
   {
     q: "Is clickfolio.me free?",
-    a: "Yes. Six templates are free forever with no credit card and no trial. Four more unlock through referrals, not payment. There is no paid tier. The project is open source under the MIT license, so you can even see how it works.",
+    a: "Yes. All 10 templates are free forever with no credit card and no trial. There is no paid tier and no premium lock. The project is open source under the MIT license, so you can even see how it works.",
   },
   {
     q: "Will my portfolio look good when I share the link?",
