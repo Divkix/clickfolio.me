@@ -163,7 +163,7 @@ pnpm run generate:favicons # regen favicons from scripts/generate-favicons.ts
 - Formatter: Oxfmt (`vp fmt`); Linter: Oxlint (`vp lint`). Oxlint config lives in `vite.config.ts` `lint` block: plugins `["react","typescript","jsx-a11y","oxc"]`, `typeAware:true`+`typeCheck:true`, rules `vite-plus/prefer-vite-plus-imports:"error"`, `typescript/no-explicit-any:"warn"`, `typescript/no-unused-vars:"error"`, custom JS plugin `vite-plus/oxlint-plugin`. Both `fmt` and `lint` ignore `dist/**` and `lib/cloudflare-env.d.ts`.
 - Lint suppression: `// eslint-disable-next-line <rule> -- <reason>` (not `biome-ignore`)
 - **Staged files are auto-fixed** via a Vite+ native staged hook in `vite.config.ts`: `staged: { "*.{ts,tsx,js,jsx,json,css}": ["vp check --fix"] }` (not husky/lint-staged).
-- **DB access**: always `getDb(env.HYPERDRIVE)` — never construct `postgres()`/`drizzle()` directly. Multi-statement atomicity is `db.transaction(async (tx) => …)` (no `db.batch`); unique-violation races are SQLSTATE `23505` / `duplicate key value` → 409. `Database = PostgresJsDatabase<typeof schema> & { $client: postgres.Sql }`; `$client` runs raw parameter-inlined SQL (Hyperdrive forbids prepared statements).
+- **DB access**: always `getDb(env.HYPERDRIVE)` — never construct `postgres()`/`drizzle()` directly and **never cache the returned DB/client across Worker invocations**. Each call creates an invocation-scoped postgres-js client; Hyperdrive owns the reusable origin pool and Workers clean up the edge client automatically (ADR-0025). Multi-statement atomicity is `db.transaction(async (tx) => …)` (no `db.batch`); unique-violation races are SQLSTATE `23505` / `duplicate key value` → 409. `Database = PostgresJsDatabase<typeof schema> & { $client: postgres.Sql }`; `$client` runs raw parameter-inlined SQL (Hyperdrive forbids prepared statements).
 - **Session reads in pages/RSC**: always `getServerSession()` from `@/lib/auth/session` — never call `getAuthClerk()` directly there (see Auth patterns)
 - **API responses**: use `createSuccessResponse(data, status=200)` / `createErrorResponse(error, code, status, details?)` + the `ERROR_CODES` enum from `lib/utils/security-headers.ts` — never hand-roll `Response.json` (you'd lose per-response `SECURITY_HEADERS`).
 - **Body-size guard** on write routes: call BOTH `validateRequestSize(request, 5_000_000)` (trusts `Content-Length`, 413) AND `readJsonWithLimit(request, 5_000_000)` (streams with a hard cap independent of Content-Length; returns `{ok:true,data}` | `{ok:false,reason:'too_large'|'invalid_json'}` → 413/400). See `lib/utils/validation.ts`.
@@ -314,7 +314,7 @@ The real entrypoint. Wraps the vinext handler and adds:
 
 ### Build system notes
 
-- **CSP/HSTS** live in `next.config.ts` `headers()` (not just the worker constant). CSP allowlists `https://analytics.divkix.me` for `script-src`/`connect-src`, `https://clerk.clickfolio.me` for `script-src`/`connect-src` (Clerk), and `https://accounts.google.com` for `connect-src` (Google OAuth inside Clerk's UI); `frame-src 'none'`, `object-src 'none'`, `frame-ancestors 'none'`. HSTS here = `max-age=63072000; includeSubDomains; preload`. `next.config.ts` also: `serverActions.bodySizeLimit` dynamic from `MAX_UPLOAD_SIZE_MB` (default `5mb`); `allowedDevOrigins` includes `*.ngrok-free.app`; `rewrites()` (sitemap) + `redirects()` (308 bare-handle).
+- **CSP/HSTS** live in `next.config.ts` `headers()` (not just the worker constant). CSP allowlists Umami (`analytics.divkix.me`), Clerk's FAPI (`clerk.clickfolio.me`), Clerk abuse/bot protection (`*.protect.clerk.com:*`, `challenges.cloudflare.com`), Google OAuth (`accounts.google.com`), and Cloudflare Web Analytics (`static.cloudflareinsights.com` / `cloudflareinsights.com`). Clerk also requires `worker-src 'self' blob:`, `font-src 'self' data:`, and its protection hosts in `frame-src`; `object-src 'none'` and `frame-ancestors 'none'` remain. HSTS here = `max-age=63072000; includeSubDomains; preload`. `next.config.ts` also: `serverActions.bodySizeLimit` dynamic from `MAX_UPLOAD_SIZE_MB` (default `5mb`); `allowedDevOrigins` includes `*.ngrok-free.app`; `rewrites()` (sitemap) + `redirects()` (308 bare-handle).
 - **Vendor chunks:** `@radix-ui` → `vendor-radix`, `react-hook-form` → `vendor-forms`. The client vendor-split plugin WRAPS vinext's `manualChunks` (rather than replacing it) to keep the main client bundle under 500 KB.
 - **`cloudflare()` plugin** configured with `viteEnvironment: { name: "rsc", childEnvironments: ["ssr"] }`.
 - **`onwarn`** suppresses the Rollup `MISSING_EXPORT` warning for `"middleware"` imported from `proxy.ts` (vinext's virtual entry imports `middleware` even though only `proxy`/`default` are exported).
@@ -324,7 +324,7 @@ The real entrypoint. Wraps the vinext handler and adds:
 
 ### Database access (`lib/db/index.ts`)
 
-**One accessor: `getDb(env.HYPERDRIVE): Database`** — a `PostgresJsDatabase<typeof schema>` over postgres-js, **Map-cached per connection string** (one socket pool + one `drizzle()` parse per isolate). `POSTGRES_OPTIONS` are Hyperdrive-mandated: `prepare:false` (no prepared statements at the protocol edge — parameters are inlined), `fetch_types:false`, `max:5` (each isolate gets its own pool; keep PlanetScale connection count bounded). `$client` exposes the raw postgres-js `Sql` for raw SQL (e.g. the conditional `INSERT … SELECT` rate-limit guard).
+**One accessor: `getDb(env.HYPERDRIVE): Database`** — a `PostgresJsDatabase<typeof schema>` over postgres-js, created per call inside the current Worker invocation (ADR-0025). Never cache it across requests: Workers reclaim invocation sockets and a cached postgres-js pool retains stale request-context I/O, which causes immediate intermittent query failures. Hyperdrive maintains the reusable origin pool, so per-invocation construction is intentional and no explicit `sql.end()` is needed. `POSTGRES_OPTIONS`: `prepare:false`, `fetch_types:false`, `max:5`, `idle_timeout:20`, `connect_timeout:10`. `$client` exposes raw postgres-js SQL (e.g. the conditional `INSERT … SELECT` rate-limit guard).
 
 - Multi-statement atomicity = `db.transaction(async (tx) => { … })` (the D1 `db.batch()` replacement; used by queue consumer, wizard/complete, profile/handle, cron cleanup).
 - Postgres is strongly consistent on the primary — every read sees prior writes. The old read-your-own-writes bookmark cookie and `"first-primary"` session variants are DELETED.
@@ -450,7 +450,7 @@ Auth is **Clerk** (Google OAuth + credentials managed in Clerk's dashboard) with
 
 1. **`proxy.ts` (edge).** For `protectedRoutes` (`/dashboard /edit /settings /waiting /wizard`) checks only that Clerk's `__session` cookie is _present_ — no JWKS verification, no DB.
 2. **`worker/index.ts`.** The real entrypoint. WebSocket upgrades to `/ws/resume-status` are intercepted here (Clerk JWT verification + PG ownership → DO). Everything else flows to the vinext handler. Queue and cron invocations also enter here. The worker's `SECURITY_HEADERS` are injected on every response.
-3. **Page (RSC) or API route.** Pages call `getServerSession()` and self-redirect; APIs call the `requireAuth*` helpers. All DB access goes through `getDb(env.HYPERDRIVE)` (Map-cached per isolate).
+3. **Page (RSC) or API route.** Pages call `getServerSession()` and self-redirect; APIs call the `requireAuth*` helpers. All DB access goes through `getDb(env.HYPERDRIVE)`, which creates an invocation-scoped client and is never cached across requests.
 
 ### The AI parsing pipeline (upload → claim → queue → parse → DO → websocket)
 
@@ -642,6 +642,7 @@ Each major decision + its _why_ is one ADR under `docs/adr/`. Read the ADR for f
 | [0022](docs/adr/0022-public-reads-skip-zod-revalidation.md)      | Public reads skip Zod re-validation of stored content (trusted, saves 200–400 ms)                    |
 | [0023](docs/adr/0023-env-detection-keys-off-app-url.md)          | Env detection keys off the runtime app-URL var (`APP_URL`), not `NODE_ENV`                           |
 | [0024](docs/adr/0024-planet-scale-postgres-clerk-cutover.md)     | Clean cutover: PlanetScale Postgres via Hyperdrive + Clerk replace D1 + Better Auth                  |
+| [0025](docs/adr/0025-hyperdrive-client-per-invocation.md)        | Hyperdrive postgres-js clients are created per Worker invocation, never globally cached              |
 
 ## Common gotchas / footguns
 

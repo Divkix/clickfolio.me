@@ -10,17 +10,14 @@ import * as schema from "./schema";
 export type Database = PostgresJsDatabase<typeof schema> & { $client: postgres.Sql };
 
 /**
- * Module-level cache of Drizzle instances, keyed by Hyperdrive connection string.
+ * Cloudflare Workers only keep database client connections alive for one
+ * invocation. Keep the schema module global, but create the postgres-js client
+ * inside the current invocation; Hyperdrive owns the reusable origin pool.
  *
- * Within a single Cloudflare Workers isolate, `env.HYPERDRIVE.connectionString`
- * is stable across requests, so this keeps one postgres-js socket pool alive
- * (instead of paying TCP + TLS setup per invocation) AND runs the drizzle()
- * constructor (schema parsing, relation graph) exactly once per isolate.
- * Hyperdrive does not support prepared statements at the protocol edge, and a
- * small pooled-connection cap avoids exhausting PlanetScale connections across
- * many isolates.
+ * Never cache the returned database or `$client` across requests. Reusing a
+ * client retains request-scoped sockets that fail immediately on a later
+ * invocation.
  */
-const dbInstanceCache = new Map<string, Database>();
 
 /** Postgres-JS options tuned for Hyperdrive (see Cloudflare + Drizzle docs). */
 const POSTGRES_OPTIONS = {
@@ -37,7 +34,7 @@ const POSTGRES_OPTIONS = {
 } as const;
 
 /**
- * Returns a singleton Drizzle Postgres database instance per isolate.
+ * Returns a new Drizzle Postgres database instance for the current invocation.
  *
  * **This is the canonical accessor** — do not construct `postgres()` /
  * `drizzle()` directly. Multi-statement atomicity uses
@@ -47,15 +44,8 @@ const POSTGRES_OPTIONS = {
  * @returns A typed Drizzle database instance over the PG schema.
  */
 export function getDb(hyperdrive: Hyperdrive): Database {
-  const connectionString = hyperdrive.connectionString;
-
-  const cached = dbInstanceCache.get(connectionString);
-  if (cached) return cached;
-
-  const client = postgres(connectionString, POSTGRES_OPTIONS);
+  const client = postgres(hyperdrive.connectionString, POSTGRES_OPTIONS);
   // SAFETY: drizzle(client, { schema }) returns PostgresJsDatabase whose runtime
   // $client is the postgres-js Sql instance; the Database type adds that explicitly.
-  const db = drizzle(client, { schema }) as Database;
-  dbInstanceCache.set(connectionString, db);
-  return db;
+  return drizzle(client, { schema }) as Database;
 }

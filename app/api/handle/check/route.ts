@@ -92,8 +92,7 @@ export async function GET(request: Request) {
       );
     }
 
-    // 3. Check if handle exists in database (read-only availability check via
-    //    the shared Hyperdrive pool)
+    // 3. Check if handle exists in the database.
     const db = getDb(env.HYPERDRIVE);
 
     const existingUser = await db

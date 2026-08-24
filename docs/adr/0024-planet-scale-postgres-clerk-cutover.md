@@ -39,9 +39,9 @@ app entirely.
 
 ## Consequences
 
-- **Single DB accessor.** `getDb(env.HYPERDRIVE)` is the only entry point
-  (Map-cached per connection string per isolate). The D1 session variants and the
-  read-your-own-writes bookmark cookie are **deleted** — Postgres via Hyperdrive
+- **Single DB accessor.** `getDb(env.HYPERDRIVE)` is the only entry point and
+  creates request-scoped clients as defined by ADR-0025. The D1 session variants
+  and the read-your-own-writes bookmark cookie are **deleted** — Postgres via Hyperdrive
   is strongly consistent on the primary, so every read sees prior writes.
 - **Transactions replace `db.batch()`.** Multi-statement atomicity is
   `db.transaction(async (tx) => ...)`; postgres-js reports affected rows via

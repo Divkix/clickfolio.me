@@ -28,7 +28,7 @@ export async function handleDLQMessage(
   const failureReason =
     "failureReason" in message ? message.failureReason : "Unknown (moved to DLQ)";
 
-  // Queue consumers run without request/cookie scope; open the shared Hyperdrive pool directly.
+  // Queue consumers run without request/cookie scope; create a client for this invocation.
   const db = getDb(env.HYPERDRIVE);
 
   // Fetch current resume state
