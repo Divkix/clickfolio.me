@@ -2,9 +2,10 @@
 
 export const revalidate = 86400;
 
-import { AlertTriangle, CheckCircle2, Clock, FileText, Loader2 } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Clock, FileText, Loader2, X } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Fragment, useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 import { Pagination } from "@/components/admin/Pagination";
 import { ResumeStatusBadge } from "@/components/admin/ResumeStatusBadge";
 import { StatCard } from "@/components/admin/StatCard";
@@ -52,6 +53,7 @@ export default function AdminResumesPage() {
   const [data, setData] = useState<ResumesResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
+  const [dismissingId, setDismissingId] = useState<string | null>(null);
 
   // SAFETY: searchParams.get returns string|null; cast narrows to validated StatusFilter union with fallback to "all".
   const statusFilter = (searchParams.get("status") as StatusFilter) || "all";
@@ -91,6 +93,30 @@ export default function AdminResumesPage() {
       params.set("page", updates.page.toString());
     }
     router.push(`/admin/resumes?${params}`);
+  };
+  const handleDismiss = async (id: string) => {
+    if (dismissingId) return;
+    setDismissingId(id);
+    try {
+      const res = await fetch(`/api/admin/resumes/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error(await res.text());
+      // Optimistic removal: drop the row and adjust failed/total so pagination recomputes.
+      setData((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          resumes: prev.resumes.filter((r) => r.id !== id),
+          stats: { ...prev.stats, failed: Math.max(0, prev.stats.failed - 1) },
+          total: Math.max(0, prev.total - 1),
+        };
+      });
+      toast.success("Failed resume dismissed");
+    } catch (error) {
+      console.error("Failed to dismiss resume:", error);
+      toast.error("Failed to dismiss resume. Please try again.");
+    } finally {
+      setDismissingId(null);
+    }
   };
 
   const totalPages = data ? Math.ceil(data.total / data.pageSize) : 0;
@@ -197,6 +223,9 @@ export default function AdminResumesPage() {
                 <th className="text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3">
                   Updated
                 </th>
+                <th className="text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3">
+                  <span className="sr-only">Actions</span>
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -218,11 +247,14 @@ export default function AdminResumesPage() {
                     <td className="px-4 py-3">
                       <Skeleton className="h-5 w-16 ml-auto" />
                     </td>
+                    <td className="px-4 py-3">
+                      <Skeleton className="h-5 w-8 ml-auto" />
+                    </td>
                   </tr>
                 ))
               ) : !data || data.resumes.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
+                  <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
                     No resumes found
                   </td>
                 </tr>
@@ -265,12 +297,26 @@ export default function AdminResumesPage() {
                       <td className="px-4 py-3 text-right text-sm text-muted-foreground">
                         {formatRelativeTime(resume.updatedAt)}
                       </td>
+                      <td className="px-4 py-3 text-right">
+                        {resume.status === "failed" && (
+                          <button
+                            type="button"
+                            onClick={() => void handleDismiss(resume.id)}
+                            disabled={dismissingId === resume.id}
+                            aria-label="Dismiss failed resume"
+                            title="Dismiss failed resume"
+                            className="p-1 rounded hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-colors disabled:opacity-50"
+                          >
+                            <X className="w-4 h-4" aria-hidden="true" />
+                          </button>
+                        )}
+                      </td>
                     </tr>
                     {expandedRow === resume.id &&
                       resume.lastAttemptError && (
                         // eslint-disable-next-line jsx-a11y/control-has-associated-label -- false positive: <tr> is not an interactive control
                         <tr key={`${resume.id}-error`}>
-                          <td colSpan={5} className="px-4 py-3 bg-destructive/10">
+                          <td colSpan={6} className="px-4 py-3 bg-destructive/10">
                             <pre className="text-xs text-destructive font-mono whitespace-pre-wrap wrap-break-word">
                               {resume.lastAttemptError}
                             </pre>

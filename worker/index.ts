@@ -273,7 +273,7 @@ export default {
           break;
         }
         case "0 3 * * *": {
-          const result = await performCleanup(db);
+          const result = await performCleanup(db, env.CLICKFOLIO_R2_BUCKET ?? null);
           log("info", "cron completed", { cron: controller.cron, result });
           break;
         }

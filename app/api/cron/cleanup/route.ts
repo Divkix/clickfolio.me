@@ -8,6 +8,7 @@
  * Deletes:
  * - Expired rate limits (expiresAt < now)
  * - Old handleChanges (older than 90 days)
+ * - Failed resumes older than 3 days, including their R2 objects
  *
  * @returns Response from {@link performCleanup} on success.
  * Returns 401 if cron secret is missing or invalid.
@@ -17,5 +18,8 @@
 import { getDb } from "@/lib/db";
 import { performCleanup } from "@/lib/cron/cleanup";
 import { withCron } from "@/lib/cron/with-cron";
+import { getR2Binding } from "@/lib/r2";
 
-export const GET = withCron(async (env) => performCleanup(getDb(env.HYPERDRIVE)));
+export const GET = withCron(async (env) =>
+  performCleanup(getDb(env.HYPERDRIVE), getR2Binding(env)),
+);

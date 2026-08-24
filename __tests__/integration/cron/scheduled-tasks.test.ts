@@ -2,7 +2,14 @@ import type { Mock } from "vite-plus/test";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { performCleanup } from "@/lib/cron/cleanup";
 import { recoverOrphanedResumes } from "@/lib/cron/recover-orphaned";
+import { R2 } from "@/lib/r2";
 import type { ResumeParseMessage } from "@/lib/queue/types";
+
+// cleanup.ts invokes the R2 wrapper directly; intercept it to simulate
+// object-store failures without touching real storage.
+vi.mock("@/lib/r2", () => ({
+  R2: { delete: vi.fn() },
+}));
 
 /**
  * Cron maintenance tasks against Postgres semantics.
@@ -10,7 +17,9 @@ import type { ResumeParseMessage } from "@/lib/queue/types";
  * These exercise the shared handlers the worker feeds `getDb(env.HYPERDRIVE)`
  * into from its scheduled hook:
  * - performCleanup deletes expired uploadRateLimits + 90-day-old handleChanges
- *   inside ONE transaction, reading postgres-js RowList.count off each DELETE.
+ *   inside ONE transaction, reading postgres-js RowList.count off each DELETE,
+ *   then purges failed resumes past the 3-day TTL (best-effort R2 delete with
+ *   a pendingR2Deletions fallback).
  * - recoverOrphanedResumes requeues stuck resumes; its TOCTOU guards read
  *   RowList.count from conditional UPDATEs (postgres-js row counts).
  */
@@ -19,6 +28,7 @@ interface MockCronDb {
   transaction: Mock;
   select: Mock;
   update: Mock;
+  insert: Mock;
   delete: Mock;
 }
 
@@ -51,6 +61,10 @@ function createMockDb(): MockCronDb {
       set: vi.fn(() => ({
         where: vi.fn().mockResolvedValue({ count: 0 }),
       })),
+    })),
+    // INSERT resolves directly (postgres-js RowList)
+    insert: vi.fn(() => ({
+      values: vi.fn().mockResolvedValue(undefined),
     })),
     // DELETE ... WHERE resolves directly to a RowList carrying .count
     delete: vi.fn(() => ({
@@ -95,7 +109,7 @@ describe("Cron Scheduled Tasks", () => {
       const result = await performCleanup(mockDb as never);
 
       expect(result.ok).toBe(true);
-      expect(result.deleted).toEqual({ rateLimits: 5, handleChanges: 10 });
+      expect(result.deleted).toEqual({ rateLimits: 5, handleChanges: 10, failedResumes: 0 });
       expect(mockDb.transaction).toHaveBeenCalledTimes(1);
       expect(mockDb.delete).toHaveBeenCalledTimes(2);
     });
@@ -117,6 +131,51 @@ describe("Cron Scheduled Tasks", () => {
       expect(result2.ok).toBe(true);
       expect(result3.ok).toBe(true);
       expect(mockDb.transaction).toHaveBeenCalledTimes(3);
+    });
+
+    it("purges failed resumes past TTL, deferring failed R2 deletes", async () => {
+      const staleFailed = {
+        id: "resume-failed",
+        r2Key: "uploads/failed.pdf",
+        updatedAt: null,
+        createdAt: "2026-01-01T00:00:00.000Z",
+      };
+      mockDb.select.mockReturnValueOnce(selectChain([staleFailed]));
+      (mockDb.delete as Mock)
+        .mockReturnValueOnce({ where: vi.fn().mockResolvedValue({ count: 0 }) })
+        .mockReturnValueOnce({ where: vi.fn().mockResolvedValue({ count: 0 }) })
+        .mockReturnValueOnce({ where: vi.fn().mockResolvedValue({ count: 1 }) });
+      vi.mocked(R2.delete).mockRejectedValueOnce(new Error("R2 unavailable"));
+
+      const result = await performCleanup(mockDb as never, {} as R2Bucket);
+
+      expect(result.ok).toBe(true);
+      expect(result.deleted.failedResumes).toBe(1);
+      // The R2 failure is recorded durably BEFORE the resume row disappears.
+      expect(R2.delete).toHaveBeenCalledWith(expect.anything(), "uploads/failed.pdf");
+      expect(mockDb.insert).toHaveBeenCalledTimes(1);
+      expect(mockDb.delete).toHaveBeenCalledTimes(3);
+    });
+
+    it("deletes R2 objects of purged failed resumes without fallback rows on success", async () => {
+      const staleFailed = {
+        id: "resume-failed",
+        r2Key: "uploads/failed.pdf",
+        updatedAt: "2026-01-02T00:00:00.000Z",
+        createdAt: "2026-01-01T00:00:00.000Z",
+      };
+      mockDb.select.mockReturnValueOnce(selectChain([staleFailed]));
+      (mockDb.delete as Mock)
+        .mockReturnValueOnce({ where: vi.fn().mockResolvedValue({ count: 0 }) })
+        .mockReturnValueOnce({ where: vi.fn().mockResolvedValue({ count: 0 }) })
+        .mockReturnValueOnce({ where: vi.fn().mockResolvedValue({ count: 1 }) });
+      vi.mocked(R2.delete).mockResolvedValueOnce(undefined);
+
+      const result = await performCleanup(mockDb as never, {} as R2Bucket);
+
+      expect(result.deleted.failedResumes).toBe(1);
+      expect(R2.delete).toHaveBeenCalledWith(expect.anything(), "uploads/failed.pdf");
+      expect(mockDb.insert).not.toHaveBeenCalled();
     });
   });
 
