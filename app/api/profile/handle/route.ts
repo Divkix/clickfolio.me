@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { withUser } from "@/lib/auth/with-auth";
 import { captureServerEvent } from "@/lib/posthog-server";
 
+import { isUniqueViolation } from "@/lib/db/pg-errors";
 import { handleChanges, user } from "@/lib/db/schema";
 import { isHandleTaken } from "@/lib/rate-limit/handle-validation";
 import { countHandleChangesInWindow } from "@/lib/rate-limit/user";
@@ -45,7 +46,7 @@ export async function PUT(request: Request) {
 
   return withUser(
     request,
-    async ({ user: authUser, db, captureBookmark }) => {
+    async ({ user: authUser, db }) => {
       // Check rate limit (3 handle changes per 24 hours)
       const changesIn24h = await countHandleChangesInWindow(db, authUser.id);
 
@@ -117,29 +118,29 @@ export async function PUT(request: Request) {
         );
       }
 
-      // Atomically update handle and record the change
+      // Atomically update handle and record the audit row in one transaction
       const now = new Date().toISOString();
 
       try {
-        await db.batch([
-          db
+        await db.transaction(async (tx) => {
+          await tx
             .update(user)
             .set({
               handle: newHandle,
               updatedAt: now,
             })
-            .where(eq(user.id, authUser.id)),
-          db.insert(handleChanges).values({
+            .where(eq(user.id, authUser.id));
+          await tx.insert(handleChanges).values({
             id: crypto.randomUUID(),
             userId: authUser.id,
             oldHandle: oldHandle,
             newHandle: newHandle,
             createdAt: now,
-          }),
-        ]);
+          });
+        });
       } catch (error) {
-        // Check if it's a unique constraint violation (race condition)
-        if (error instanceof Error && error.message.includes("UNIQUE constraint failed")) {
+        // Unique constraint violation (race condition): Postgres SQLSTATE 23505 → 409.
+        if (error instanceof Error && isUniqueViolation(error)) {
           return createErrorResponse(
             "This handle was just taken. Please choose a different one.",
             ERROR_CODES.CONFLICT,
@@ -148,8 +149,6 @@ export async function PUT(request: Request) {
         }
         throw error; // Re-throw other errors
       }
-
-      await captureBookmark();
 
       await captureServerEvent(authUser.id, "handle_changed", {
         new_handle: newHandle,

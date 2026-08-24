@@ -11,7 +11,6 @@ import {
   sharedCoverageProvider,
   sharedExclude,
   sharedSetupFiles,
-  sharedZxcvbnAlias,
 } from "./vitest.base.config";
 export default defineConfig({
   test: {
@@ -60,7 +59,6 @@ export default defineConfig({
   resolve: {
     alias: {
       ...sharedAlias,
-      ...sharedZxcvbnAlias,
     },
   },
 });

@@ -9,7 +9,7 @@ import { checkRateLimit, enforceRateLimit } from "@/lib/rate-limit/user";
 
 // Mock dependencies
 vi.mock("cloudflare:workers", () => ({
-  env: { CLICKFOLIO_DB: {} as D1Database },
+  env: { HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" } },
 }));
 
 vi.mock("@/lib/db", () => ({

@@ -1,7 +1,7 @@
 /**
  * IP-based rate limiting for anonymous endpoints
  *
- * Uses Drizzle/D1 for persistence.
+ * Uses Drizzle over Hyperdrive (Postgres) for persistence.
  * Hashes IPs for privacy (GDPR-friendly, no raw IPs stored).
  */
 
@@ -59,37 +59,25 @@ async function recordRateLimitAction(
   dailyCutoff?: string,
   dailyLimit?: number,
 ): Promise<boolean> {
+  const expiresAt = new Date(now.getTime() + ttlMs).toISOString();
   const dailyGuard =
     dailyCutoff !== undefined && dailyLimit !== undefined
-      ? ` AND (SELECT COUNT(*) FROM upload_rate_limits
-       WHERE ip_hash = ? AND action_type = ? AND created_at >= ?) < ?`
-      : "";
-  const result = await db.$client
-    .prepare(
-      `INSERT INTO upload_rate_limits (id, ip_hash, action_type, created_at, expires_at)
-SELECT ?, ?, ?, ?, ?
-WHERE (SELECT COUNT(*) FROM upload_rate_limits
-       WHERE ip_hash = ? AND action_type = ? AND created_at >= ?) < ?${dailyGuard}`,
-    )
-    .bind(
-      ...[
-        crypto.randomUUID(),
-        ipHash,
-        actionType,
-        now.toISOString(),
-        new Date(now.getTime() + ttlMs).toISOString(),
-        ipHash,
-        actionType,
-        oneHourAgo,
-        limit,
-        ...(dailyCutoff !== undefined && dailyLimit !== undefined
-          ? [ipHash, actionType, dailyCutoff, dailyLimit]
-          : []),
-      ],
-    )
-    .run();
+      ? db.$client` AND (SELECT COUNT(*) FROM upload_rate_limits
+       WHERE ip_hash = ${ipHash} AND action_type = ${actionType} AND created_at >= ${dailyCutoff}) < ${dailyLimit}`
+      : db.$client``;
+  // Conditional INSERT … SELECT: the row lands only while the in-window count
+  // is below `limit`, enforced atomically by PostgreSQL (the SAME oneHourAgo
+  // cutoff as the caller's counting SELECT). Uploads also enforce their daily
+  // limit inside this statement, closing both TOCTOU windows.
+  // RowList.count === 1 when the row was inserted; === 0 when a concurrent
+  // request won the last slot.
+  const result = await db.$client`
+    INSERT INTO upload_rate_limits (id, ip_hash, action_type, created_at, expires_at)
+    SELECT ${crypto.randomUUID()}, ${ipHash}, ${actionType}, ${now.toISOString()}, ${expiresAt}
+    WHERE (SELECT COUNT(*) FROM upload_rate_limits
+           WHERE ip_hash = ${ipHash} AND action_type = ${actionType} AND created_at >= ${oneHourAgo}) < ${limit}${dailyGuard}`;
 
-  return result.meta.changes === 1;
+  return result.count === 1;
 }
 
 /**
@@ -147,9 +135,9 @@ export async function checkIPRateLimit(ip: string): Promise<IPRateLimitResult> {
   const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
 
   try {
-    const db = getDb(env.CLICKFOLIO_DB);
+    const db = getDb(env.HYPERDRIVE);
 
-    // Single query with conditional aggregation (saves 1 D1 roundtrip)
+    // Single query with conditional aggregation (saves 1 roundtrip)
     // WHERE clause orders ipHash first (index prefix) for optimal index usage
     const result = await db
       .select({
@@ -323,7 +311,7 @@ async function checkHourlyActionLimit(
   const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000).toISOString();
 
   try {
-    const db = getDb(env.CLICKFOLIO_DB);
+    const db = getDb(env.HYPERDRIVE);
 
     // Count actions of this type in the last hour
     const result = await db

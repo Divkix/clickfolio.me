@@ -16,26 +16,41 @@ const mockSelect = vi.fn().mockReturnThis();
 const mockFrom = vi.fn().mockReturnThis();
 const mockWhere = vi.fn().mockReturnThis();
 
-// Raw D1 binding used by the atomic conditional INSERT (item 21). Default
-// resolves changes: 1 (insert allowed); override per test for changes: 0.
-const mockPrepare = vi.fn().mockReturnValue({
-  bind: vi.fn().mockReturnValue({
-    run: vi.fn().mockResolvedValue({ meta: { changes: 1 } }),
-  }),
-});
+// Raw postgres-js client exposed on the drizzle instance as db.$client.
+// recordRateLimitAction issues its atomic conditional INSERT ... SELECT via a
+// tagged template and reads RowList.count: 1 = row inserted (allowed),
+// 0 = a concurrent request won the last slot (denied). NOTE: the hourly
+// helper evaluates a second (empty) daily-guard template per call, so tests
+// drive the outcome through rawInsertCount instead of call-order queues.
+let rawInsertCount = 1;
+const mockRawClient = vi.fn((_strings: TemplateStringsArray, ..._values: unknown[]) =>
+  Promise.resolve({ count: rawInsertCount }),
+);
+
+/**
+ * Last tagged-template SQL received by the raw client. Captures the call
+ * explicitly so a missing call throws instead of joining over `undefined`.
+ */
+function lastRawSqlText(): string {
+  const lastCall = mockRawClient.mock.calls.at(-1);
+  if (!lastCall) {
+    throw new Error("Expected mockRawClient to have recorded a tagged-template call");
+  }
+  return lastCall[0].join("?");
+}
 
 const mockDb = {
   insert: mockInsert,
   select: mockSelect,
   from: mockFrom,
   where: mockWhere,
-  $client: { prepare: mockPrepare },
+  $client: mockRawClient,
 };
 
 // Mock cloudflare:workers env
 vi.mock("cloudflare:workers", () => ({
   env: {
-    CLICKFOLIO_DB: {} as D1Database,
+    HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" },
   },
 }));
 
@@ -86,6 +101,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   // Reset NODE_ENV for each test
   vi.stubGlobal("process", { ...process, env: { ...process.env, NODE_ENV: "production" } });
+  rawInsertCount = 1;
 });
 
 // ── Test Suite ──────────────────────────────────────────────────────
@@ -299,25 +315,22 @@ describe("Rate Limit Security Enforcement", () => {
       // Under the limit, so allowed — but only after a real DB roundtrip.
       expect(result.allowed).toBe(true);
       expect(mockSelect).toHaveBeenCalled();
-      expect(mockDb.$client.prepare).toHaveBeenCalledWith(
-        expect.stringContaining("INSERT INTO upload_rate_limits"),
-      );
+      // The conditional INSERT goes through the raw postgres-js $client.
+      expect(mockRawClient).toHaveBeenCalled();
+      const sqlText = lastRawSqlText();
+      expect(sqlText).toContain("INSERT INTO upload_rate_limits");
     });
   });
 
   describe("Atomic Conditional Insert (TOCTOU)", () => {
-    it("denies when the conditional insert records 0 changes (concurrent burst)", async () => {
+    it("denies when the conditional insert lands 0 rows (concurrent burst)", async () => {
       // Count says under the limit, but a concurrent request won the last slot.
       mockSelect.mockReturnValue({
         from: vi.fn().mockReturnValue({
           where: vi.fn().mockResolvedValue([{ hourly: 3, daily: 20 }]),
         }),
       });
-      mockDb.$client.prepare.mockReturnValue({
-        bind: vi.fn().mockReturnValue({
-          run: vi.fn().mockResolvedValue({ meta: { changes: 0 } }),
-        }),
-      });
+      rawInsertCount = 0;
 
       const { checkIPRateLimit } = await import("@/lib/rate-limit/ip");
       const result = await checkIPRateLimit("192.168.1.1");
@@ -326,17 +339,13 @@ describe("Rate Limit Security Enforcement", () => {
       expect(result.message).toContain("Try again in an hour");
     });
 
-    it("denies handle checks when the conditional insert records 0 changes", async () => {
+    it("denies handle checks when the conditional insert lands 0 rows", async () => {
       mockSelect.mockReturnValue({
         from: vi.fn().mockReturnValue({
           where: vi.fn().mockResolvedValue([{ count: 50 }]),
         }),
       });
-      mockDb.$client.prepare.mockReturnValue({
-        bind: vi.fn().mockReturnValue({
-          run: vi.fn().mockResolvedValue({ meta: { changes: 0 } }),
-        }),
-      });
+      rawInsertCount = 0;
 
       const { checkHandleRateLimit } = await import("@/lib/rate-limit/ip");
       const result = await checkHandleRateLimit("192.168.1.1");
@@ -351,20 +360,14 @@ describe("Rate Limit Security Enforcement", () => {
           where: vi.fn().mockResolvedValue([{ hourly: 0, daily: 0 }]),
         }),
       });
-      // Restore the default "insert succeeded" state (a previous test set 0).
-      mockDb.$client.prepare.mockReturnValue({
-        bind: vi.fn().mockReturnValue({
-          run: vi.fn().mockResolvedValue({ meta: { changes: 1 } }),
-        }),
-      });
 
       const { checkIPRateLimit } = await import("@/lib/rate-limit/ip");
       const result = await checkIPRateLimit("192.168.1.1");
 
       expect(result.allowed).toBe(true);
-      expect(mockDb.$client.prepare).toHaveBeenCalledWith(
-        expect.stringContaining("INSERT INTO upload_rate_limits"),
-      );
+      expect(mockRawClient).toHaveBeenCalled();
+      const sqlText = lastRawSqlText();
+      expect(sqlText).toContain("INSERT INTO upload_rate_limits");
       // The old count-then-insert path must not be used anymore.
       expect(mockInsert).not.toHaveBeenCalled();
     });
@@ -375,7 +378,7 @@ describe("Rate Limit Security Enforcement", () => {
           where: vi.fn().mockResolvedValue([{ hourly: 0, daily: 0 }]),
         }),
       });
-      mockDb.$client.prepare.mockImplementation(() => {
+      mockRawClient.mockImplementationOnce(() => {
         throw new Error("Insert failed");
       });
 
@@ -383,13 +386,6 @@ describe("Rate Limit Security Enforcement", () => {
       const result = await checkIPRateLimit("192.168.1.1");
 
       expect(result.allowed).toBe(true);
-
-      // Restore the default so later tests see a healthy insert path.
-      mockDb.$client.prepare.mockReturnValue({
-        bind: vi.fn().mockReturnValue({
-          run: vi.fn().mockResolvedValue({ meta: { changes: 1 } }),
-        }),
-      });
     });
   });
 

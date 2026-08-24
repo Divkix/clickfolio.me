@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { account, session, user } from "./auth";
+import { user } from "./auth";
 import { handleChanges, referralClicks } from "./rate-limit";
 import { resumes } from "./resume";
 import { siteData } from "./site";
@@ -9,12 +9,10 @@ import { siteData } from "./site";
 // =============================================================================
 
 /**
- * User relations — one user has many sessions, accounts, resumes, and handle changes;
- * exactly one siteData row; and many referral clicks both as referrer and as converted user.
+ * User relations — one user has many resumes and handle changes; exactly one
+ * siteData row; and many referral clicks both as referrer and as converted user.
  */
 export const userRelations = relations(user, ({ many, one }) => ({
-  sessions: many(session),
-  accounts: many(account),
   resumes: many(resumes),
   siteData: one(siteData, {
     fields: [user.id],
@@ -23,22 +21,6 @@ export const userRelations = relations(user, ({ many, one }) => ({
   handleChanges: many(handleChanges),
   referralClicks: many(referralClicks, { relationName: "referrer" }),
   convertedReferrals: many(referralClicks, { relationName: "convertedUser" }),
-}));
-
-/** Session relation — each session belongs to exactly one user. */
-export const sessionRelations = relations(session, ({ one }) => ({
-  user: one(user, {
-    fields: [session.userId],
-    references: [user.id],
-  }),
-}));
-
-/** Account relation — each OAuth account belongs to exactly one user. */
-export const accountRelations = relations(account, ({ one }) => ({
-  user: one(user, {
-    fields: [account.userId],
-    references: [user.id],
-  }),
 }));
 
 /**

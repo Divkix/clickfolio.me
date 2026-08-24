@@ -23,7 +23,7 @@ vi.mock("@/lib/auth/session", () => ({
 
 vi.mock("cloudflare:workers", () => ({
   env: {
-    CLICKFOLIO_DB: {},
+    HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" },
   },
 }));
 
@@ -43,12 +43,6 @@ vi.mock("drizzle-orm", () => ({
 
 vi.mock("@/lib/db", () => ({
   getDb: vi.fn(() => mockDb),
-}));
-
-vi.mock("@/lib/db/session", () => ({
-  getSessionDbWithPrimaryFirst: vi.fn(() =>
-    Promise.resolve({ db: mockDb, captureBookmark: mockCaptureBookmark }),
-  ),
 }));
 
 vi.mock("@/lib/utils/security-headers", () => ({
@@ -74,40 +68,6 @@ vi.mock("@/lib/utils/security-headers", () => ({
     DATABASE_ERROR: "DATABASE_ERROR",
     CONFLICT: "CONFLICT",
   },
-}));
-
-vi.mock("@/lib/utils/validation", () => ({
-  validateRequestSize: vi.fn(() => ({ valid: true })),
-  readJsonWithLimit: vi.fn(async (req: Request) => {
-    try {
-      return { ok: true, data: await req.json() };
-    } catch {
-      return { ok: false, reason: "invalid_json", error: "Invalid JSON in request body" };
-    }
-  }),
-}));
-
-vi.mock("@/lib/utils/privacy", () => ({
-  parsePrivacySettings: vi.fn((settings: string | null) => {
-    if (!settings) {
-      return {
-        show_phone: false,
-        show_address: false,
-        hide_from_search: false,
-        show_in_directory: true,
-      };
-    }
-    try {
-      return JSON.parse(settings);
-    } catch {
-      return {
-        show_phone: false,
-        show_address: false,
-        hide_from_search: false,
-        show_in_directory: true,
-      };
-    }
-  }),
 }));
 
 vi.mock("@/lib/db/schema", () => ({
@@ -156,7 +116,6 @@ const mockedAuth = vi.mocked(requireAuthWithUserValidation);
 const mockedAuthMessage = vi.mocked(requireAuthWithMessage);
 
 // DB mock helpers
-const mockCaptureBookmark = vi.fn().mockResolvedValue(undefined);
 const mockFindFirst = vi.fn();
 const mockSelect = vi.fn();
 const mockFrom = vi.fn();
@@ -169,7 +128,7 @@ const mockUpdate = vi.fn();
 const mockUpdateSet = vi.fn();
 const mockUpdateWhere = vi.fn();
 const mockReturning = vi.fn();
-const mockBatch = vi.fn();
+const mockTransaction = vi.fn();
 
 // Build chainable mock
 mockSelect.mockReturnValue({ from: mockFrom });
@@ -187,7 +146,7 @@ mockUpdate.mockReturnValue({ set: mockUpdateSet });
 mockUpdateSet.mockReturnValue({ where: mockUpdateWhere });
 mockUpdateWhere.mockResolvedValue(undefined); // No returning() used
 
-mockBatch.mockResolvedValue(undefined);
+mockTransaction.mockImplementation(async (cb: (tx: typeof mockDb) => unknown) => cb(mockDb));
 
 const mockDb = {
   query: {
@@ -200,11 +159,8 @@ const mockDb = {
   limit: mockLimit,
   insert: mockInsert,
   update: mockUpdate,
-  batch: mockBatch,
+  transaction: mockTransaction,
 };
-
-// ── Helper Functions ───────────────────────────────────────────────
-
 interface UserProfile {
   id: string;
   email: string;
@@ -212,7 +168,12 @@ interface UserProfile {
   image: string | null;
   handle: string | null;
   headline: string | null;
-  privacySettings: string;
+  privacySettings: {
+    show_phone: boolean;
+    show_address: boolean;
+    hide_from_search: boolean;
+    show_in_directory: boolean;
+  };
   onboardingCompleted: boolean;
   role: "student" | "entry_level" | "mid_level" | "senior" | "executive";
   roleSource: "ai" | "user";
@@ -234,12 +195,12 @@ function authedAs(userId: string, options: Partial<UserProfile> = {}): AuthedAsR
     image: null,
     handle: "testuser",
     headline: "Software Engineer",
-    privacySettings: JSON.stringify({
+    privacySettings: {
       show_phone: false,
       show_address: false,
       hide_from_search: false,
       show_in_directory: true,
-    }),
+    },
     onboardingCompleted: true,
     role: "mid_level",
     roleSource: "user",
@@ -257,9 +218,10 @@ function authedAs(userId: string, options: Partial<UserProfile> = {}): AuthedAsR
   mockedAuth.mockResolvedValue({
     user,
     db: mockDb as never,
-    captureBookmark: mockCaptureBookmark,
-    dbUser: { id: userId, handle: user.handle },
-    env: { DB: {} } as never,
+    dbUser: { id: userId, handle: user.handle, clerkId: "user_clerk_1" },
+    env: {
+      HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" },
+    } as never,
     error: null,
   } as never);
 
@@ -273,7 +235,6 @@ function unauthenticated() {
   mockedAuth.mockResolvedValue({
     user: null,
     db: null,
-    captureBookmark: null,
     dbUser: null,
     env: null,
     error,
@@ -320,12 +281,12 @@ describe("Profile API Integration Tests (20 tests)", () => {
           image: null,
           handle: "testuser",
           headline: "Software Engineer",
-          privacySettings: JSON.stringify({
+          privacySettings: {
             show_phone: false,
             show_address: false,
             hide_from_search: false,
             show_in_directory: true,
-          }),
+          },
           onboardingCompleted: true,
           role: "mid_level",
           roleSource: "user",
@@ -375,7 +336,7 @@ describe("Profile API Integration Tests (20 tests)", () => {
           image: null,
           handle: "testuser",
           headline: "Software Engineer",
-          privacySettings: JSON.stringify({}),
+          privacySettings: {},
           onboardingCompleted: true,
           role: "senior",
           roleSource: "user",
@@ -405,7 +366,7 @@ describe("Profile API Integration Tests (20 tests)", () => {
           image: null,
           handle: "testuser",
           headline: "Software Engineer",
-          privacySettings: JSON.stringify({}),
+          privacySettings: {},
           onboardingCompleted: false,
           role: "entry_level",
           roleSource: "ai",
@@ -531,17 +492,14 @@ describe("Profile API Integration Tests (20 tests)", () => {
       mockLimit.mockResolvedValueOnce([{ handle: "oldhandle" }]);
       mockLimit.mockResolvedValueOnce([]); // No conflict
 
-      const batchSpy = vi.fn().mockResolvedValue(undefined);
-      mockDb.batch = batchSpy;
-
       const { PUT } = await import("@/app/api/profile/handle/route");
       const request = makeRequest("http://localhost:3000/api/profile/handle", "PUT", {
         handle: "newhandle",
       });
       await PUT(request);
 
-      // Verify batch was called for atomic update + audit
-      expect(batchSpy).toHaveBeenCalled();
+      // Verify the atomic update + audit insert ran in one transaction
+      expect(mockTransaction).toHaveBeenCalled();
     });
 
     it("returns 429 when rate limit exceeded (test 16)", async () => {
@@ -818,11 +776,16 @@ describe("Profile API Integration Tests (20 tests)", () => {
       // No conflict found initially
       mockLimit.mockResolvedValueOnce([]);
 
-      // But batch throws unique constraint error (race condition)
-      const batchSpy = vi
-        .fn()
-        .mockRejectedValue(new Error("UNIQUE constraint failed: user.handle"));
-      mockDb.batch = batchSpy;
+      // But the transaction rejects with a unique-violation (race condition).
+      // Postgres reports it as SQLSTATE 23505 / "duplicate key value".
+      mockTransaction.mockRejectedValueOnce(
+        Object.assign(
+          new Error('duplicate key value violates unique constraint "user_handle_key"'),
+          {
+            code: "23505",
+          },
+        ),
+      );
 
       const { PUT } = await import("@/app/api/profile/handle/route");
       const request = makeRequest("http://localhost:3000/api/profile/handle", "PUT", {
@@ -830,8 +793,8 @@ describe("Profile API Integration Tests (20 tests)", () => {
       });
       const response = await PUT(request);
 
-      // Should return 409 due to race condition handling
-      expect([409, 500]).toContain(response.status);
+      // The route maps the unique violation to a deterministic 409
+      expect(response.status).toBe(409);
     });
 
     it("handles handle change with empty body", async () => {
@@ -858,9 +821,11 @@ describe("Profile API Integration Tests (20 tests)", () => {
       expect(response.status).toBe(400);
     });
 
-    it("handles profile fetch with malformed privacy settings JSON", async () => {
+    it("handles profile fetch with null privacy settings (jsonb default normalization)", async () => {
       authedAs("user-123");
 
+      // jsonb columns come back as parsed objects (or null when unset); the
+      // route must normalize a null value to the documented defaults.
       mockLimit.mockResolvedValue([
         {
           id: "user-123",
@@ -869,7 +834,7 @@ describe("Profile API Integration Tests (20 tests)", () => {
           image: null,
           handle: "testuser",
           headline: "Software Engineer",
-          privacySettings: "not valid json", // Malformed
+          privacySettings: null,
           onboardingCompleted: true,
           role: "mid_level",
           roleSource: "user",
@@ -882,8 +847,14 @@ describe("Profile API Integration Tests (20 tests)", () => {
       const { GET } = await import("@/app/api/profile/me/route");
       const response = await GET();
 
-      // Should still succeed - parsePrivacySettings handles errors
       expect(response.status).toBe(200);
+      const body = (await response.json()) as { privacySettings: Record<string, boolean> };
+      expect(body.privacySettings).toEqual({
+        show_phone: false,
+        show_address: false,
+        hide_from_search: false,
+        show_in_directory: true,
+      });
     });
   });
 });

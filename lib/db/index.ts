@@ -1,43 +1,61 @@
-import { type DrizzleD1Database, drizzle } from "drizzle-orm/d1";
+import { type PostgresJsDatabase, drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
 import * as schema from "./schema";
 
 /**
- * Drizzle D1 database instance typed with the local schema.
- * The `$client` property exposes the raw D1 binding for direct SQL access.
+ * Drizzle Postgres instance typed with the canonical schema.
+ * The `$client` property exposes the raw postgres-js client for direct SQL
+ * (e.g. raw conditional inserts keyed on PostgreSQL row counts/codes).
  */
-type SchemaDb = DrizzleD1Database<typeof schema> & { $client: D1Database };
+export type Database = PostgresJsDatabase<typeof schema> & { $client: postgres.Sql };
 
 /**
- * Module-level cache for Drizzle instances, keyed by raw D1 binding identity.
+ * Module-level cache of Drizzle instances, keyed by Hyperdrive connection string.
  *
- * Within a single Cloudflare Workers isolate, `env.CLICKFOLIO_DB` is the same object
- * reference on every request, so the drizzle() constructor (schema parsing,
- * relation graph) runs exactly once per isolate rather than once per request.
- * WeakMap ensures automatic cleanup when the binding is garbage-collected.
+ * Within a single Cloudflare Workers isolate, `env.HYPERDRIVE.connectionString`
+ * is stable across requests, so this keeps one postgres-js socket pool alive
+ * (instead of paying TCP + TLS setup per invocation) AND runs the drizzle()
+ * constructor (schema parsing, relation graph) exactly once per isolate.
+ * Hyperdrive does not support prepared statements at the protocol edge, and a
+ * small pooled-connection cap avoids exhausting PlanetScale connections across
+ * many isolates.
  */
-const dbInstanceCache = new WeakMap<D1Database, SchemaDb>();
+const dbInstanceCache = new Map<string, Database>();
+
+/** Postgres-JS options tuned for Hyperdrive (see Cloudflare + Drizzle docs). */
+const POSTGRES_OPTIONS = {
+  // Hyperdrive does not support prepared statements at the protocol edge —
+  // postgres-js must inline parameters instead.
+  prepare: false,
+  // Avoid a round-trip of type catalog queries on connect; Drizzle maps types.
+  fetch_types: false,
+  // Small pooled-connection cap: each Worker isolate gets its own pool, and
+  // PlanetScale/PG maxes out quickly if isolates open large pools.
+  max: 5,
+  idle_timeout: 20,
+  connect_timeout: 10,
+} as const;
 
 /**
- * Returns a singleton Drizzle D1 database instance per isolate.
+ * Returns a singleton Drizzle Postgres database instance per isolate.
  *
- * Uses a `WeakMap` keyed by the raw `D1Database` binding to cache the drizzle
- * constructor (schema parsing, relation graph) exactly once per Cloudflare
- * Workers isolate, rather than once per request. The WeakMap ensures automatic
- * cleanup when the binding is garbage-collected.
+ * **This is the canonical accessor** — do not construct `postgres()` /
+ * `drizzle()` directly. Multi-statement atomicity uses
+ * `db.transaction(async (tx) => ...)`.
  *
- * **This is the canonical accessor** — do not construct `drizzle()` directly.
- *
- * @param d1 - The raw D1 database binding from the environment.
- * @returns A typed Drizzle database instance.
+ * @param hyperdrive - The HYPERDRIVE binding from the Workers environment.
+ * @returns A typed Drizzle database instance over the PG schema.
  */
-export function getDb(d1: D1Database): SchemaDb {
-  const cached = dbInstanceCache.get(d1);
+export function getDb(hyperdrive: Hyperdrive): Database {
+  const connectionString = hyperdrive.connectionString;
+
+  const cached = dbInstanceCache.get(connectionString);
   if (cached) return cached;
 
-  // SAFETY: drizzle() returns DrizzleD1Database with $client extending D1Database in Workers runtime; SchemaDb adds $client typing that matches runtime shape.
-  const db = drizzle(d1, { schema }) as SchemaDb;
-  dbInstanceCache.set(d1, db);
+  const client = postgres(connectionString, POSTGRES_OPTIONS);
+  // SAFETY: drizzle(client, { schema }) returns PostgresJsDatabase whose runtime
+  // $client is the postgres-js Sql instance; the Database type adds that explicitly.
+  const db = drizzle(client, { schema }) as Database;
+  dbInstanceCache.set(connectionString, db);
   return db;
 }
-
-export type Database = SchemaDb;

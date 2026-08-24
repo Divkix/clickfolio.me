@@ -69,12 +69,12 @@ vi.mock("next/navigation", () => ({
 }));
 
 vi.mock("@/lib/auth/client", () => ({
+  ClerkProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  SignInButton: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  useAuth: vi.fn(() => ({ isSignedIn: false, sessionId: null })),
+  useClerk: () => ({ signOut: vi.fn() }),
+  useUser: vi.fn(() => ({ isLoaded: true, user: null })),
   useSession: () => ({ data: null, isPending: false }),
-  signIn: { social: vi.fn(), email: vi.fn() },
-  signUp: { email: vi.fn() },
-  signOut: vi.fn(),
-  sendVerificationEmail: vi.fn(),
-  resetPassword: vi.fn(),
 }));
 
 vi.mock("sonner", () => ({

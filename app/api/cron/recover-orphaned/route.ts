@@ -21,7 +21,7 @@ import { createErrorResponse, ERROR_CODES } from "@/lib/utils/security-headers";
 export const dynamic = "force-dynamic";
 
 export const GET = withCron(async (env) => {
-  const db = getDb(env.CLICKFOLIO_DB);
+  const db = getDb(env.HYPERDRIVE);
   const queue = env.CLICKFOLIO_PARSE_QUEUE;
   if (!queue) {
     console.error("CLICKFOLIO_PARSE_QUEUE not available");

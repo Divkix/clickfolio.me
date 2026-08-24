@@ -7,15 +7,14 @@
 
 import { eq } from "drizzle-orm";
 import handler from "vinext/server/app-router-entry";
-// Import auth and db session utilities for WebSocket auth
-import { getAuth } from "../lib/auth";
+// Import Clerk session verification for WebSocket auth
+import { extractClerkTokenFromRequest, verifyClerkToken } from "../lib/auth/clerk";
 import { performCleanup } from "../lib/cron/cleanup";
 import { performR2Cleanup, retryPendingR2Deletions } from "../lib/cron/cleanup-r2";
 import { recoverOrphanedResumes } from "../lib/cron/recover-orphaned";
 import { syncDisposableDomains } from "../lib/cron/sync-disposable-domains";
 import { getDb } from "../lib/db";
-import { resumes } from "../lib/db/schema";
-import { getSessionDbForWebhook } from "../lib/db/session";
+import { resumes, user as userTable } from "../lib/db/schema";
 import { INFRA } from "@/lib/resume/lifecycle";
 import { handleQueueMessage } from "../lib/queue/consumer";
 import { handleDLQMessage } from "../lib/queue/dlq-consumer";
@@ -53,14 +52,13 @@ export default {
    * app-router handler.
    *
    * WebSocket flow:
-   * 1. Intercept `/ws/resume-status` with `Upgrade: websocket`.
-   * 2. Extract `resume_id` from query params.
-   * 3. Validate the Better Auth session cookie.
-   * 4. Verify the user owns the resume via D1.
+   * 3. Validate the Clerk `__session` JWT (JWKS verify) and map the Clerk id
+   *    to the local Postgres user row via `user.clerk_id`.
+   * 4. Verify the user owns the resume via Postgres.
    * 5. Forward the request to the DO keyed by `resumeId`.
    *
    * @param request - The incoming HTTP request.
-   * @param env - Cloudflare environment bindings (DB, R2, DO, etc.).
+   * @param env - Cloudflare environment bindings (Hyperdrive PG, R2, Queue, DO, etc.).
    * @param _ctx - Execution context (unused, required by Cloudflare handler signature).
    * @returns The response from the DO or the vinext handler.
    */
@@ -85,32 +83,31 @@ export default {
         return new Response("Missing resume_id query parameter", { status: 400 });
       }
 
-      // Validate authentication before WebSocket upgrade
-      // Extract session token from Cookie header
-      const cookieHeader = request.headers.get("Cookie") || "";
-      const sessionMatch = cookieHeader.match(/better-auth\.session_token=([^;]+)/);
-      const sessionToken = sessionMatch?.[1];
+      // Validate authentication before WebSocket upgrade.
+      // Extract and cryptographically verify the Clerk session JWT from the
+      // `__session` cookie (or Authorization bearer header), then map it to
+      // the local user row via the clerk_id backfill column.
+      const token = extractClerkTokenFromRequest(request);
+      const claims = token ? await verifyClerkToken(token) : null;
 
-      if (!sessionToken) {
-        return new Response("Unauthorized: No session token", { status: 401 });
-      }
-
-      // Validate session using Better Auth
-      const auth = await getAuth();
-      // Create a Headers object with the Cookie for auth validation
-      const headersForAuth = new Headers();
-      headersForAuth.set("Cookie", cookieHeader);
-
-      const session = await auth.api.getSession({ headers: headersForAuth });
-
-      if (!session?.user?.id) {
+      if (!claims?.sub) {
         return new Response("Unauthorized: Invalid session", { status: 401 });
       }
 
-      const userId = session.user.id;
+      // Map the Clerk identity to the local Postgres user row, then verify
+      // resume ownership via Postgres query.
+      const db = getDb(env.HYPERDRIVE);
+      const owner = await db.query.user.findFirst({
+        where: eq(userTable.clerkId, claims.sub),
+        columns: { id: true },
+      });
 
-      // Verify resume ownership via D1 query
-      const { db } = getSessionDbForWebhook(env.CLICKFOLIO_DB);
+      if (!owner) {
+        return new Response("Unauthorized: Unknown user", { status: 401 });
+      }
+
+      const userId = owner.id;
+
       const resume = await db.query.resumes.findFirst({
         where: eq(resumes.id, resumeId),
         columns: { id: true, userId: true },
@@ -226,15 +223,11 @@ export default {
    * - `0 4 * * *` – Disposable domain sync (`syncDisposableDomains`).
    * - `* /15 * * * *` (every 15 minutes) – Orphaned resume recovery (`recoverOrphanedResumes`).
    *
-   * Email safety: no cron path touches `env.EMAIL`. Auth emails are only sent
-   * via Better Auth callbacks (throttled at 60s per email) and never from
-   * scheduled tasks — this was verified to prevent amplification to 24k.
-   *
    * @param controller - The scheduled controller containing the cron expression.
    * @param env - Cloudflare environment bindings.
    */
   async scheduled(controller: ScheduledController, env: CloudflareEnv): Promise<void> {
-    const db = getDb(env.CLICKFOLIO_DB);
+    const db = getDb(env.HYPERDRIVE);
 
     try {
       switch (controller.cron) {

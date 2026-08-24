@@ -6,7 +6,6 @@ import { EditResumeFormWrapper } from "@/components/forms/EditResumeFormWrapper"
 import { getServerSession } from "@/lib/auth/session";
 import { getDb } from "@/lib/db";
 import { siteData } from "@/lib/db/schema";
-import type { ResumeContent } from "@/lib/types/database";
 
 /** Force dynamic rendering for the editable resume page. */
 export const dynamic = "force-dynamic";
@@ -28,7 +27,7 @@ export default async function EditPage() {
     redirect("/");
   }
 
-  const db = getDb(env.CLICKFOLIO_DB);
+  const db = getDb(env.HYPERDRIVE);
 
   // Fetch user's site data
   const siteDataResult = await db.query.siteData.findFirst({
@@ -40,15 +39,8 @@ export default async function EditPage() {
     redirect("/dashboard");
   }
 
-  // Parse content JSON (stored as text in D1)
-  let content: ResumeContent;
-  try {
-    // SAFETY: D1 content is schema-validated JSON written only by our queue consumer; JSON.parse failure is caught and returns null.
-    content = JSON.parse(siteDataResult.content) as ResumeContent;
-  } catch (error) {
-    console.error("Failed to parse siteData content:", error);
-    redirect("/dashboard?error=corrupt_data");
-  }
+  // Content arrives pre-parsed from the JSONB column.
+  const content = siteDataResult.content;
 
   return (
     <div className="min-h-screen py-8">

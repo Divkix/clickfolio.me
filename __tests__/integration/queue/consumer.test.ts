@@ -1,3 +1,4 @@
+import { getDb } from "@/lib/db";
 import type { UnknownRecord, JsonValue } from "@/lib/types/json";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
@@ -11,9 +12,12 @@ import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 interface ResumeRecord {
   id: string;
   status: string;
-  parsedContent: string | null;
-  parsedContentStaged: string | null;
+  /** PG jsonb column — selects back as a parsed object. */
+  parsedContent: Record<string, unknown> | null;
+  /** PG jsonb column — legacy value only; the consumer never reads it. */
+  parsedContentStaged: Record<string, unknown> | null;
   totalAttempts: number;
+  /** text column — stores the stringified classifyQueueError JSON. */
   lastAttemptError: string | null;
 }
 
@@ -64,96 +68,6 @@ function createResume(record: Partial<ResumeRecord>): ResumeRecord {
 
 // ── Module Mocks ───────────────────────────────────────────────────
 
-vi.mock("@/lib/db/session", () => ({
-  getSessionDbForWebhook: vi.fn().mockImplementation(() => {
-    // Create a mock db that reads from/writes to mockDbState
-    const mockDb = {
-      select: vi.fn().mockImplementation((fields: JsonValue) => {
-        const isHandleQuery =
-          fields !== null &&
-          typeof fields === "object" &&
-          "handle" in (fields as Record<string, unknown>);
-        if (isHandleQuery) {
-          const hasId = "id" in (fields as Record<string, unknown>);
-          // Primary handle query: select({handle}) with limit(1) → single handle
-          // Waiting handle query: select({id, handle}) with inArray → per-user handles
-          const handleRows = hasId
-            ? [{ id: "user-1", handle: "test-handle" }]
-            : [{ handle: "test-handle" }];
-          return {
-            from: vi.fn().mockImplementation((_table: JsonValue) => ({
-              where: vi.fn().mockImplementation((_condition: JsonValue) => ({
-                limit: vi.fn().mockImplementation((_n: number) => Promise.resolve(handleRows)),
-                then: vi
-                  .fn()
-                  .mockImplementation((onFulfilled: (value: JsonValue) => JsonValue) =>
-                    Promise.resolve(onFulfilled(handleRows as unknown as JsonValue)),
-                  ),
-              })),
-            })),
-          };
-        }
-        return {
-          from: vi.fn().mockImplementation((_table: JsonValue) => ({
-            where: vi.fn().mockImplementation((_condition: JsonValue) => ({
-              limit: vi.fn().mockImplementation((n: number) => {
-                // Extract resumeId from condition if possible
-                const records = Array.from(mockDbState.resumes.values());
-                return Promise.resolve(records.slice(0, n));
-              }),
-              // For waiting resumes query (select without limit, awaited via then)
-              then: vi.fn().mockImplementation((onFulfilled: (value: JsonValue) => JsonValue) => {
-                // Filter for waiting_for_cache if condition contains that status - simplified: return empty
-                // Tests with custom mockDb handle waiting explicitly
-                return Promise.resolve(onFulfilled([] as unknown as JsonValue));
-              }),
-            })),
-          })),
-        };
-      }),
-      update: vi.fn().mockImplementation((_table: JsonValue) => ({
-        set: vi.fn().mockImplementation((values: UnknownRecord) => ({
-          where: vi.fn().mockImplementation((condition: UnknownRecord) => {
-            // Simple mock - update by id
-            const resumeId = condition.id || condition.resumeId;
-            if (resumeId && mockDbState.resumes.has(resumeId as string)) {
-              const existing = mockDbState.resumes.get(resumeId as string)!;
-              mockDbState.resumes.set(resumeId as string, { ...existing, ...values });
-            }
-            return Promise.resolve(undefined);
-          }),
-        })),
-      })),
-      insert: vi.fn().mockImplementation((_table: JsonValue) => ({
-        values: vi.fn().mockImplementation((values: UnknownRecord) => {
-          if (values.id) {
-            mockDbState.siteData.set(
-              values.id as string,
-              values as { content: string; userId: string },
-            );
-          }
-          return Promise.resolve(undefined);
-        }),
-      })),
-      batch: vi.fn().mockImplementation((queries: JsonValue[]) => {
-        // Execute all queries in batch
-        for (const query of queries) {
-          if (typeof query === "object" && query !== null) {
-            // Handle insert/update by checking query type
-            const q = query as { toSQL?: () => JsonValue };
-            if (q.toSQL) {
-              // Just resolve for now
-              void Promise.resolve(q);
-            }
-          }
-        }
-        return Promise.resolve(undefined);
-      }),
-    };
-    return { db: mockDb };
-  }),
-}));
-
 vi.mock("@/lib/r2", () => ({
   getR2Binding: vi.fn().mockReturnValue({} as R2Bucket),
   R2: {
@@ -195,18 +109,93 @@ vi.mock("@/lib/data/site-data-upsert", () => ({
 // and the Batch A consumer test asserts the consumer's permanent-error branch
 // reaches the same real sendAlert() via its DLQ_ALERT log output.
 
-vi.mock("@/lib/db", () => ({
-  getDb: vi.fn().mockImplementation(() => ({
-    update: vi.fn().mockReturnValue({
+/**
+ * Drizzle select chain stub. The where-result is both `.limit()`-able and
+ * directly awaitable (thenable), mirroring postgres-js RowList semantics —
+ * the consumer awaits some queries without calling .limit().
+ */
+function mockSelectChain(getRows: () => Array<UnknownRecord>) {
+  return {
+    from: vi.fn(() => ({
+      where: vi.fn(() => ({
+        limit: vi.fn(async () => getRows()),
+        then: (
+          onFulfilled: (value: Array<UnknownRecord>) => unknown,
+          onRejected?: (reason: unknown) => unknown,
+        ) => Promise.resolve(getRows()).then(onFulfilled, onRejected),
+      })),
+    })),
+  };
+}
+
+/**
+ * State-backed default DB shared by every handler entry point. getDb runs once
+ * per handler (handleQueueMessage AND handleResumeParse each call it), so both
+ * calls receive equivalent chains over mockDbState. Queries are discriminated
+ * by the selected columns, exactly as the consumer selects them.
+ */
+function mockBuildDefaultMockDb() {
+  const allRows = () => Array.from(mockDbState.resumes.values()) as unknown as UnknownRecord[];
+  const db = {
+    select: vi.fn().mockImplementation((cols: JsonValue) => {
+      const keys = cols !== null && typeof cols === "object" ? (cols as UnknownRecord) : {};
+      if ("handle" in keys) {
+        // user-table lookups: the publish gate ({handle}) returns a handle;
+        // the waiting-users fetch ({id, handle}) starts empty.
+        const rows: Array<UnknownRecord> = "id" in keys ? [] : [{ handle: "test-handle" }];
+        return mockSelectChain(() => rows);
+      }
+      if ("status" in keys) {
+        // Current-resume lookup (limit 1 → newest row for this resumeId).
+        return mockSelectChain(allRows);
+      }
+      if ("userId" in keys) {
+        // waiting_for_cache fan-out candidates (awaited without .limit).
+        return mockSelectChain(() =>
+          allRows()
+            .filter((r) => r.status === "waiting_for_cache")
+            .map((r) => ({ id: r.id, userId: r.userId })),
+        );
+      }
+      // fileHash cache lookup: completed rows holding parsed content.
+      return mockSelectChain(() =>
+        allRows()
+          .filter((r) => r.status === "completed" && r.parsedContent !== null)
+          .map((r) => ({ id: r.id, parsedContent: r.parsedContent })),
+      );
+    }),
+    update: vi.fn().mockImplementation(() => ({
       set: vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue(undefined),
       }),
-    }),
-    insert: vi.fn().mockReturnValue({
-      values: vi.fn().mockResolvedValue(undefined),
-    }),
-  })),
+    })),
+    insert: vi.fn().mockImplementation(() => ({
+      values: vi.fn().mockReturnValue({
+        onConflictDoUpdate: vi.fn().mockResolvedValue(undefined),
+        onConflictDoNothing: vi.fn().mockResolvedValue(undefined),
+      }),
+    })),
+  };
+  // Multi-statement atomicity = transaction(cb) invoking cb with the tx (itself).
+  return Object.assign(db, {
+    transaction: vi.fn(async (cb: (tx: typeof db) => Promise<void>) => cb(db)),
+  });
+}
+
+vi.mock("@/lib/db", () => ({
+  getDb: vi.fn(() => mockBuildDefaultMockDb()),
 }));
+
+/**
+ * Attach PG transaction semantics to a hand-rolled mock db: transaction(cb)
+ * invokes cb with the db itself as tx, so tx writes flow through the same
+ * spies the test installed.
+ */
+function withTransaction<T extends Record<string, unknown>>(db: T) {
+  return Object.assign(db, {
+    transaction: vi.fn(async (cb: (tx: T) => Promise<void>) => cb(db)),
+  });
+}
 
 // ── AI Parser Mock (Dynamic) ────────────────────────────────────────
 
@@ -219,6 +208,9 @@ let mockAiResult: {
 
 let mockAiError: Error | null = null;
 
+// parseResumeWithAi contractually returns JSON.stringify'd content
+// (ParseResumeResult.parsedContent: string); the consumer decodes it once
+// before writing the jsonb columns.
 vi.mock("@/lib/ai", () => ({
   parseResumeWithAi: vi.fn().mockImplementation(async () => {
     if (mockAiError) throw mockAiError;
@@ -226,12 +218,15 @@ vi.mock("@/lib/ai", () => ({
       return {
         success: true,
         parsedContent: JSON.stringify({
-          name: "Test User",
+          full_name: "Test User",
           headline: "Developer",
+          summary: "Experienced developer.",
           contact: { email: "test@example.com" },
           experience: [],
           education: [],
           skills: [],
+          certifications: [],
+          projects: [],
         }),
         professionalLevel: "mid_level",
       };
@@ -252,6 +247,11 @@ function makePdfBuffer(): ArrayBuffer {
 function resetAll() {
   vi.clearAllMocks();
   resetMockState();
+  // clearAllMocks preserves implementations/return values, so reinstall the
+  // state-backed default explicitly — per-test mockReturnValue overrides must
+  // never leak into the next test.
+  vi.mocked(getDb).mockReset();
+  vi.mocked(getDb).mockImplementation(() => mockBuildDefaultMockDb() as never);
   mockAiResult = null;
   mockAiError = null;
 }
@@ -278,7 +278,9 @@ function createMessage(params: {
 function createEnv(): CloudflareEnv {
   return {
     CLICKFOLIO_R2_BUCKET: {} as R2Bucket,
-    CLICKFOLIO_DB: {} as D1Database,
+    HYPERDRIVE: {
+      connectionString: "postgres://user:pass@localhost:5432/clickfolio",
+    } as CloudflareEnv["HYPERDRIVE"],
     CLICKFOLIO_STATUS_DO: {
       idFromName: vi.fn().mockReturnValue({} as DurableObjectId),
       get: vi.fn().mockReturnValue({
@@ -293,7 +295,7 @@ function createEnv(): CloudflareEnv {
 describe("Queue Consumer - Main Processing", () => {
   beforeEach(resetAll);
 
-  it("1. Process valid resume → completed status in D1", async () => {
+  it("1. Process valid resume → completed status + siteData upsert", async () => {
     const { handleQueueMessage } = await import("@/lib/queue/consumer");
 
     const resumeId = crypto.randomUUID();
@@ -365,7 +367,7 @@ describe("Queue Consumer - Main Processing", () => {
     await expect(handleQueueMessage(message, env)).rejects.toThrow();
   });
 
-  it("4. Process with permanent error → does not throw (should ack)", async () => {
+  it("4. R2 file missing → permanent error (no retry)", async () => {
     const { handleQueueMessage } = await import("@/lib/queue/consumer");
 
     const resumeId = crypto.randomUUID();
@@ -377,41 +379,11 @@ describe("Queue Consumer - Main Processing", () => {
     // R2 file not found is a permanent error
     mockR2Store.clear(); // No file
 
-    const mockDb = {
-      select: vi.fn().mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            limit: vi.fn().mockResolvedValue([
-              {
-                status: "queued",
-                parsedContent: null,
-                parsedContentStaged: null,
-                totalAttempts: 0,
-              },
-            ]),
-          }),
-        }),
-      }),
-      update: vi.fn().mockReturnValue({
-        set: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue(undefined),
-        }),
-      }),
-      insert: vi.fn().mockReturnValue({
-        values: vi.fn().mockResolvedValue(undefined),
-      }),
-      batch: vi.fn().mockResolvedValue(undefined),
-    };
-
-    vi.mocked((await import("@/lib/db/session")).getSessionDbForWebhook).mockReturnValueOnce({
-      db: mockDb as never,
-    });
-
     const message = createMessage({ resumeId, userId, r2Key });
     const env = createEnv();
 
     // Should throw file not found error
-    await expect(handleQueueMessage(message, env)).rejects.toThrow();
+    await expect(handleQueueMessage(message, env)).rejects.toThrow(/Failed to fetch PDF/);
   });
 
   it("5. Process already completed → idempotent skip", async () => {
@@ -420,7 +392,7 @@ describe("Queue Consumer - Main Processing", () => {
     const resumeId = crypto.randomUUID();
     const userId = "user-1";
     const r2Key = `users/${userId}/123/resume.pdf`;
-    const existingContent = JSON.stringify({ name: "Already Done" });
+    const existingContent = { name: "Already Done" };
 
     createResume({
       id: resumeId,
@@ -429,41 +401,24 @@ describe("Queue Consumer - Main Processing", () => {
     });
     mockR2Store.set(r2Key, makePdfBuffer());
 
-    const mockDb = {
-      select: vi.fn().mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            limit: vi.fn().mockResolvedValue([
-              {
-                status: "completed",
-                parsedContent: existingContent,
-                parsedContentStaged: null,
-                totalAttempts: 1,
-              },
-            ]),
-          }),
-        }),
-      }),
-      update: vi.fn().mockReturnValue({
-        set: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue(undefined),
-        }),
-      }),
-      batch: vi.fn().mockResolvedValue(undefined),
-    };
-
-    vi.mocked((await import("@/lib/db/session")).getSessionDbForWebhook).mockReturnValueOnce({
-      db: mockDb as never,
-    });
+    // Shared select chain returning the completed row for BOTH the status
+    // check and the cache lookup — the idempotency guard fires first anyway.
+    const mockDb = mockBuildDefaultMockDb();
+    vi.mocked(mockDb.select).mockImplementation(() =>
+      mockSelectChain(() => [
+        { status: "completed", parsedContent: existingContent, totalAttempts: 1 },
+      ]),
+    );
+    vi.mocked(getDb).mockReturnValue(mockDb as never);
 
     const message = createMessage({ resumeId, userId, r2Key });
     const env = createEnv();
 
-    // Should complete without errors
     await expect(handleQueueMessage(message, env)).resolves.not.toThrow();
 
-    // Should not have called batch (no re-processing)
-    expect(mockDb.batch).not.toHaveBeenCalled();
+    // Idempotent skip: no resume writes and no completion transaction at all.
+    expect(vi.mocked(mockDb.update)).not.toHaveBeenCalled();
+    expect(vi.mocked(mockDb.transaction)).not.toHaveBeenCalled();
   });
 
   it("6. does NOT recover via the removed parsedContentStaged branch", async () => {
@@ -479,7 +434,7 @@ describe("Queue Consumer - Main Processing", () => {
       id: resumeId,
       status: "queued",
       totalAttempts: 1,
-      parsedContentStaged: JSON.stringify({ name: "Staged" }),
+      parsedContentStaged: { name: "Staged" },
     });
     mockR2Store.set(r2Key, makePdfBuffer());
 
@@ -508,13 +463,25 @@ describe("Queue Consumer - Main Processing", () => {
     const message = createMessage({ resumeId, userId, r2Key, attempt: 3 });
     const env = createEnv();
 
-    // Processing should complete successfully
+    // Capture the UPDATE payloads: the processing-status write must fold the
+    // totalAttempts increment (2 stored + this attempt = 3) into its SET.
+    const setValues: Array<UnknownRecord> = [];
+    const mockDb = mockBuildDefaultMockDb();
+    vi.mocked(mockDb.update).mockImplementation(() => ({
+      set: vi.fn().mockImplementation((values: UnknownRecord) => {
+        setValues.push(values);
+        return { where: vi.fn().mockResolvedValue(undefined) };
+      }),
+    }));
+    vi.mocked(getDb).mockReturnValue(mockDb as never);
+
     await handleQueueMessage(message, env);
 
-    // Verify the resume record was updated during processing
-    // The mock updates mockDbState.resumes when update is called
-    const updatedResume = mockDbState.resumes.get(resumeId);
-    expect(updatedResume).toBeDefined();
+    // Completed notification proves full success…
+    expect(mockWebSocketNotifications.some((n) => n.status === "completed")).toBe(true);
+    // …and the processing update carried the folded attempt count.
+    const processingUpdate = setValues.find((v) => v.status === "processing");
+    expect(processingUpdate?.totalAttempts).toBe(3);
   });
 
   it("8. Process notifies waiting resumes on completion", async () => {
@@ -531,7 +498,7 @@ describe("Queue Consumer - Main Processing", () => {
 
     const selectCalls: Array<string> = [];
 
-    const mockDb = {
+    const mockDb = withTransaction({
       select: vi.fn().mockImplementation((cols: JsonValue) => {
         const isHandleQuery =
           cols !== null &&
@@ -610,20 +577,20 @@ describe("Queue Consumer - Main Processing", () => {
       insert: vi.fn().mockReturnValue({
         values: vi.fn().mockResolvedValue(undefined),
       }),
-      batch: vi.fn().mockResolvedValue(undefined),
-    };
-    vi.mocked((await import("@/lib/db/session")).getSessionDbForWebhook).mockReturnValue({
-      db: mockDb as never,
     });
+    vi.mocked(getDb).mockReturnValue(mockDb as never);
 
     const message = createMessage({ resumeId, userId, r2Key, fileHash });
     const env = createEnv();
 
     await handleQueueMessage(message, env);
 
-    // Should have notified waiting resumes
-    void mockWebSocketNotifications.find((_n) => _n.resumeId === waitingResumeId);
-    // Note: Full waiting resume logic depends on proper mock setup
+    // The waiting resume was completed via the fan-out batch notification.
+    expect(
+      mockWebSocketNotifications.some(
+        (n) => n.resumeId === waitingResumeId && n.status === "completed",
+      ),
+    ).toBe(true);
   });
 
   it("8b. Process with no handle → publish:false still completes and upserts siteData", async () => {
@@ -636,47 +603,21 @@ describe("Queue Consumer - Main Processing", () => {
 
     createResume({ id: resumeId, status: "queued" });
     mockR2Store.set(r2Key, makePdfBuffer());
-
-    const mockDb = {
+    const mockDb = withTransaction({
       select: vi.fn().mockImplementation((cols: JsonValue) => {
         const isHandleQuery =
           cols !== null &&
           typeof cols === "object" &&
           "handle" in (cols as Record<string, unknown>);
         if (isHandleQuery) {
-          const rows: JsonValue[] = [];
-          return {
-            from: vi.fn().mockReturnValue({
-              where: vi.fn().mockReturnValue({
-                limit: vi.fn().mockResolvedValue(rows),
-                then: vi
-                  .fn()
-                  .mockImplementation((onFulfilled: (value: JsonValue) => JsonValue) =>
-                    Promise.resolve(onFulfilled(rows as unknown as JsonValue)),
-                  ),
-              }),
-            }),
-          };
+          // No handle rows → publish gate closes.
+          return mockSelectChain(() => []);
         }
-        return {
-          from: vi.fn().mockReturnValue({
-            where: vi.fn().mockReturnValue({
-              limit: vi.fn().mockImplementation((_n: number) => {
-                return Promise.resolve([
-                  {
-                    status: "queued",
-                    parsedContent: null,
-                    parsedContentStaged: null,
-                    totalAttempts: 0,
-                  },
-                ]);
-              }),
-              then: vi.fn().mockImplementation((cb: (value: JsonValue[]) => JsonValue) => {
-                return Promise.resolve(cb([]));
-              }),
-            }),
-          }),
-        };
+        if ("userId" in (cols as Record<string, unknown>)) {
+          // waiting_for_cache fan-out candidates → none.
+          return mockSelectChain(() => []);
+        }
+        return mockSelectChain(() => [{ status: "queued", parsedContent: null, totalAttempts: 0 }]);
       }),
       update: vi.fn().mockReturnValue({
         set: vi.fn().mockReturnValue({
@@ -686,25 +627,22 @@ describe("Queue Consumer - Main Processing", () => {
       insert: vi.fn().mockReturnValue({
         values: vi.fn().mockResolvedValue(undefined),
       }),
-      batch: vi.fn().mockResolvedValue(undefined),
-    };
-
-    vi.mocked((await import("@/lib/db/session")).getSessionDbForWebhook).mockReturnValue({
-      db: mockDb as never,
     });
+
+    vi.mocked(getDb).mockReturnValue(mockDb as never);
 
     const message = createMessage({ resumeId, userId, r2Key });
     const env = createEnv();
 
     await expect(handleQueueMessage(message, env)).resolves.not.toThrow();
 
-    // Even without a handle, the queue must still complete and upsert siteData with publish:false
-    expect(mockDb.batch).toHaveBeenCalled();
+    // Even without a handle, the queue must complete and upsert siteData
+    // atomically with publish:false through the transaction.
+    expect(vi.mocked(mockDb.transaction)).toHaveBeenCalledTimes(1);
     expect(vi.mocked(buildSiteDataUpsert)).toHaveBeenCalledWith(
       expect.anything(),
       userId,
       resumeId,
-      expect.anything(),
       expect.anything(),
       { publish: false },
     );
@@ -720,32 +658,6 @@ describe("Queue Consumer - Main Processing", () => {
     createResume({ id: resumeId, status: "queued" });
     // Don't put file in R2
 
-    const mockDb = {
-      select: vi.fn().mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            limit: vi.fn().mockResolvedValue([
-              {
-                status: "queued",
-                parsedContent: null,
-                parsedContentStaged: null,
-                totalAttempts: 0,
-              },
-            ]),
-          }),
-        }),
-      }),
-      update: vi.fn().mockReturnValue({
-        set: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue(undefined),
-        }),
-      }),
-    };
-
-    vi.mocked((await import("@/lib/db/session")).getSessionDbForWebhook).mockReturnValueOnce({
-      db: mockDb as never,
-    });
-
     const message = createMessage({ resumeId, userId, r2Key });
     const env = createEnv();
 
@@ -753,7 +665,7 @@ describe("Queue Consumer - Main Processing", () => {
     await expect(handleQueueMessage(message, env)).rejects.toThrow(/Failed to fetch PDF/);
   });
 
-  it("10. Invalid JSON in AI response → salvage attempt", async () => {
+  it("10. AI parse failure → records friendly + classified errors, throws", async () => {
     const { handleQueueMessage } = await import("@/lib/queue/consumer");
 
     const resumeId = crypto.randomUUID();
@@ -769,37 +681,11 @@ describe("Queue Consumer - Main Processing", () => {
       error: "Invalid JSON response from AI",
     };
 
-    const mockDb = {
-      select: vi.fn().mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            limit: vi.fn().mockResolvedValue([
-              {
-                status: "queued",
-                parsedContent: null,
-                parsedContentStaged: null,
-                totalAttempts: 0,
-              },
-            ]),
-          }),
-        }),
-      }),
-      update: vi.fn().mockReturnValue({
-        set: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue(undefined),
-        }),
-      }),
-    };
-
-    vi.mocked((await import("@/lib/db/session")).getSessionDbForWebhook).mockReturnValueOnce({
-      db: mockDb as never,
-    });
-
     const message = createMessage({ resumeId, userId, r2Key });
     const env = createEnv();
 
     // Should handle parse failure
-    await expect(handleQueueMessage(message, env)).rejects.toThrow();
+    await expect(handleQueueMessage(message, env)).rejects.toThrow("Invalid JSON response from AI");
   });
 
   it("10b. Retryable AI error should NOT set status to 'failed' — Issue #83", async () => {
@@ -853,11 +739,9 @@ describe("Queue Consumer - Main Processing", () => {
       })),
     };
 
-    // Use mockReturnValue (not mockReturnValueOnce) because getSessionDbForWebhook is called twice:
-    // once in handleResumeParse and once in handleQueueMessage
-    vi.mocked((await import("@/lib/db/session")).getSessionDbForWebhook).mockReturnValue({
-      db: mockDb as never,
-    });
+    // getDb runs once per handler — handleQueueMessage AND handleResumeParse —
+    // so mockReturnValue (not Once) makes BOTH calls use this mock db.
+    vi.mocked(getDb).mockReturnValue(mockDb as never);
 
     const message = createMessage({ resumeId, userId, r2Key });
     const env = createEnv();
@@ -904,7 +788,7 @@ describe("Queue Error Classification", () => {
   it("13. Database connection error classified as retryable", async () => {
     const { classifyQueueError } = await import("@/lib/queue/errors");
 
-    const error = new Error("D1_ERROR: database connection failed");
+    const error = new Error("database connection failed: connect ECONNREFUSED 127.0.0.1:5432");
     const classified = classifyQueueError(error);
 
     expect(classified.isRetryable()).toBe(true);
@@ -1029,9 +913,7 @@ describe("DLQ Consumer", () => {
       })),
     };
 
-    vi.mocked((await import("@/lib/db/session")).getSessionDbForWebhook).mockReturnValueOnce({
-      db: mockDb as never,
-    });
+    vi.mocked(getDb).mockReturnValue(mockDb as never);
 
     const message = {
       type: "parse" as const,
@@ -1043,7 +925,9 @@ describe("DLQ Consumer", () => {
     };
 
     const env = {
-      CLICKFOLIO_DB: {} as D1Database,
+      HYPERDRIVE: {
+        connectionString: "postgres://user:pass@localhost:5432/clickfolio",
+      } as CloudflareEnv["HYPERDRIVE"],
       CLICKFOLIO_STATUS_DO: {
         idFromName: vi.fn().mockReturnValue({} as DurableObjectId),
         get: vi.fn().mockReturnValue({
@@ -1088,9 +972,7 @@ describe("DLQ Consumer", () => {
       }),
     };
 
-    vi.mocked((await import("@/lib/db/session")).getSessionDbForWebhook).mockReturnValueOnce({
-      db: mockDb as never,
-    });
+    vi.mocked(getDb).mockReturnValue(mockDb as never);
 
     const message = {
       type: "parse" as const,
@@ -1102,7 +984,9 @@ describe("DLQ Consumer", () => {
     };
 
     const env = {
-      CLICKFOLIO_DB: {} as D1Database,
+      HYPERDRIVE: {
+        connectionString: "postgres://user:pass@localhost:5432/clickfolio",
+      } as CloudflareEnv["HYPERDRIVE"],
       CLICKFOLIO_STATUS_DO: {
         idFromName: vi.fn().mockReturnValue({} as DurableObjectId),
         get: vi.fn().mockReturnValue({
@@ -1148,9 +1032,7 @@ describe("DLQ Consumer", () => {
       }),
     };
 
-    vi.mocked((await import("@/lib/db/session")).getSessionDbForWebhook).mockReturnValueOnce({
-      db: mockDb as never,
-    });
+    vi.mocked(getDb).mockReturnValue(mockDb as never);
 
     const message = {
       type: "parse" as const,
@@ -1162,7 +1044,9 @@ describe("DLQ Consumer", () => {
     };
 
     const env = {
-      CLICKFOLIO_DB: {} as D1Database,
+      HYPERDRIVE: {
+        connectionString: "postgres://user:pass@localhost:5432/clickfolio",
+      } as CloudflareEnv["HYPERDRIVE"],
       CLICKFOLIO_STATUS_DO: {
         idFromName: vi.fn().mockReturnValue({} as DurableObjectId),
         get: vi.fn().mockReturnValue({
@@ -1213,9 +1097,7 @@ describe("DLQ Consumer", () => {
       }),
     };
 
-    vi.mocked((await import("@/lib/db/session")).getSessionDbForWebhook).mockReturnValueOnce({
-      db: mockDb as never,
-    });
+    vi.mocked(getDb).mockReturnValue(mockDb as never);
 
     const message = {
       type: "parse" as const,
@@ -1227,7 +1109,9 @@ describe("DLQ Consumer", () => {
     };
 
     const env = {
-      CLICKFOLIO_DB: {} as D1Database,
+      HYPERDRIVE: {
+        connectionString: "postgres://user:pass@localhost:5432/clickfolio",
+      } as CloudflareEnv["HYPERDRIVE"],
       CLICKFOLIO_STATUS_DO: {
         idFromName: vi.fn().mockReturnValue({} as DurableObjectId),
         get: vi.fn().mockReturnValue({
@@ -1274,9 +1158,7 @@ describe("DLQ Consumer", () => {
       }),
     };
 
-    vi.mocked((await import("@/lib/db/session")).getSessionDbForWebhook).mockReturnValueOnce({
-      db: mockDb as never,
-    });
+    vi.mocked(getDb).mockReturnValue(mockDb as never);
 
     const originalMessage = {
       type: "parse" as const,
@@ -1295,7 +1177,9 @@ describe("DLQ Consumer", () => {
     };
 
     const env = {
-      CLICKFOLIO_DB: {} as D1Database,
+      HYPERDRIVE: {
+        connectionString: "postgres://user:pass@localhost:5432/clickfolio",
+      } as CloudflareEnv["HYPERDRIVE"],
       CLICKFOLIO_STATUS_DO: {
         idFromName: vi.fn().mockReturnValue({} as DurableObjectId),
         get: vi.fn().mockReturnValue({
@@ -1340,9 +1224,7 @@ describe("DLQ Consumer", () => {
       })),
     };
 
-    vi.mocked((await import("@/lib/db/session")).getSessionDbForWebhook).mockReturnValueOnce({
-      db: mockDb as never,
-    });
+    vi.mocked(getDb).mockReturnValue(mockDb as never);
 
     const message = {
       type: "parse" as const,
@@ -1354,7 +1236,9 @@ describe("DLQ Consumer", () => {
     };
 
     const env = {
-      CLICKFOLIO_DB: {} as D1Database,
+      HYPERDRIVE: {
+        connectionString: "postgres://user:pass@localhost:5432/clickfolio",
+      } as CloudflareEnv["HYPERDRIVE"],
       CLICKFOLIO_STATUS_DO: {
         idFromName: vi.fn().mockReturnValue({} as DurableObjectId),
         get: vi.fn().mockReturnValue({
@@ -1516,7 +1400,7 @@ describe("Batch A — queue/state-machine integrity fixes", () => {
     const selectCalls: string[] = [];
     const updateWhereConds: JsonValue[] = [];
 
-    const mockDb = {
+    const mockDb = withTransaction({
       select: vi.fn().mockImplementation((cols: JsonValue) => {
         const isHandleQuery =
           cols !== null &&
@@ -1589,12 +1473,9 @@ describe("Batch A — queue/state-machine integrity fixes", () => {
         }),
       }),
       insert: vi.fn().mockReturnValue({ values: vi.fn().mockResolvedValue(undefined) }),
-      batch: vi.fn().mockResolvedValue(undefined),
-    };
-
-    vi.mocked((await import("@/lib/db/session")).getSessionDbForWebhook).mockReturnValue({
-      db: mockDb as never,
     });
+
+    vi.mocked(getDb).mockReturnValue(mockDb as never);
 
     const message = createMessage({ resumeId, userId, r2Key, fileHash });
     const env = createEnv();
@@ -1635,26 +1516,15 @@ describe("Batch A — queue/state-machine integrity fixes", () => {
 
     const selectCalls: string[] = [];
 
-    const mockDb = {
+    const mockDb = withTransaction({
       select: vi.fn().mockImplementation((cols: JsonValue) => {
         const isHandleQuery =
           cols !== null &&
           typeof cols === "object" &&
           "handle" in (cols as Record<string, unknown>);
         if (isHandleQuery) {
-          const rows: JsonValue[] = [];
-          return {
-            from: vi.fn().mockReturnValue({
-              where: vi.fn().mockReturnValue({
-                limit: vi.fn().mockResolvedValue(rows),
-                then: vi
-                  .fn()
-                  .mockImplementation((onFulfilled: (value: JsonValue) => JsonValue) =>
-                    Promise.resolve(onFulfilled(rows as unknown as JsonValue)),
-                  ),
-              }),
-            }),
-          };
+          // No handle rows → publish gate closes.
+          return mockSelectChain(() => []);
         }
         const callIdx = selectCalls.length;
         selectCalls.push(`call-${callIdx}`);
@@ -1667,8 +1537,10 @@ describe("Batch A — queue/state-machine integrity fixes", () => {
                     { status: "queued", parsedContent: null, totalAttempts: 0 },
                   ]);
                 }
+                // callIdx 1 = cache lookup → miss
                 return Promise.resolve([]);
               }),
+              // Waiting-resumes query has no .limit — awaited directly.
               then: vi.fn().mockImplementation((cb: (value: JsonValue[]) => JsonValue) => {
                 if (callIdx === 2) {
                   return Promise.resolve(cb([{ id: waitingId, userId }]));
@@ -1685,25 +1557,30 @@ describe("Batch A — queue/state-machine integrity fixes", () => {
         }),
       }),
       insert: vi.fn().mockReturnValue({ values: vi.fn().mockResolvedValue(undefined) }),
-      batch: vi.fn().mockResolvedValue(undefined),
-    };
-
-    vi.mocked((await import("@/lib/db/session")).getSessionDbForWebhook).mockReturnValue({
-      db: mockDb as never,
     });
+    vi.mocked(getDb).mockReturnValue(mockDb as never);
 
     const message = createMessage({ resumeId, userId, r2Key, fileHash });
     const env = createEnv();
 
     await expect(handleQueueMessage(message, env)).resolves.not.toThrow();
 
-    expect(mockDb.batch).toHaveBeenCalled();
+    // Primary completion tx + fan-out tx.
+    expect(vi.mocked(mockDb.transaction)).toHaveBeenCalledTimes(2);
+
     // Primary upsert must be publish:false when handle missing
     expect(vi.mocked(buildSiteDataUpsert)).toHaveBeenCalledWith(
       expect.anything(),
       userId,
       resumeId,
       expect.anything(),
+      { publish: false },
+    );
+    // Waiting users without handles stay unpublished too.
+    expect(vi.mocked(buildSiteDataUpsert)).toHaveBeenCalledWith(
+      expect.anything(),
+      userId,
+      waitingId,
       expect.anything(),
       { publish: false },
     );
@@ -1729,12 +1606,9 @@ describe("Batch A — queue/state-machine integrity fixes", () => {
         }),
       }),
       insert: vi.fn().mockReturnValue({ values: vi.fn().mockResolvedValue(undefined) }),
-      batch: vi.fn().mockResolvedValue(undefined),
     };
 
-    vi.mocked((await import("@/lib/db/session")).getSessionDbForWebhook).mockReturnValue({
-      db: mockDb as never,
-    });
+    vi.mocked(getDb).mockReturnValue(mockDb as never);
 
     const message = createMessage({ resumeId, userId: "user-1", r2Key });
     const env = createEnv();
@@ -1779,13 +1653,9 @@ describe("Batch A — queue/state-machine integrity fixes", () => {
           }),
         }),
       }),
-      insert: vi.fn().mockReturnValue({ values: vi.fn().mockResolvedValue(undefined) }),
-      batch: vi.fn().mockResolvedValue(undefined),
     };
 
-    vi.mocked((await import("@/lib/db/session")).getSessionDbForWebhook).mockReturnValue({
-      db: mockDb as never,
-    });
+    vi.mocked(getDb).mockReturnValue(mockDb as never);
 
     mockR2Store.clear(); // file missing → file_not_found (permanent)
 
@@ -1830,9 +1700,7 @@ describe("Batch A — queue/state-machine integrity fixes", () => {
       }),
     };
 
-    vi.mocked((await import("@/lib/db/session")).getSessionDbForWebhook).mockReturnValue({
-      db: mockDb as never,
-    });
+    vi.mocked(getDb).mockReturnValue(mockDb as never);
 
     const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 

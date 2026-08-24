@@ -1,4 +1,5 @@
-import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { index, integer, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import type { ResumeContent } from "../../types/database";
 import { user } from "./auth";
 import { resumes } from "./resume";
 
@@ -8,7 +9,7 @@ import { resumes } from "./resume";
  * cascades to siteData because of the onDelete: "cascade" on resumeId, which effectively
  * deletes the user's entire site data when their resume is removed.
  */
-export const siteData = sqliteTable(
+export const siteData = pgTable(
   "site_data",
   {
     id: text("id").primaryKey(),
@@ -24,11 +25,14 @@ export const siteData = sqliteTable(
     resumeId: text("resume_id").references(() => resumes.id, {
       onDelete: "cascade",
     }),
-    /** Portfolio content as JSON-in-TEXT. Must be JSON.parse'd on read and JSON.stringify'd on write. */
-    content: text("content").notNull(),
+    /** Portfolio content as JSONB. Drizzle serializes on write and parses on read. */
+    content: jsonb("content").$type<ResumeContent>().notNull(),
     /** Portfolio theme identifier. Defaults to "minimalist_editorial". */
     themeId: text("theme_id").default("minimalist_editorial"),
-    lastPublishedAt: text("last_published_at"), // Nullable - represents "never published"
+    lastPublishedAt: timestamp("last_published_at", {
+      withTimezone: true,
+      mode: "string",
+    }), // Nullable - represents "never published"
     // Preview columns for directory/listing pages (denormalized for performance)
     previewName: text("preview_name"),
     previewHeadline: text("preview_headline"),
@@ -37,10 +41,10 @@ export const siteData = sqliteTable(
     previewExpCount: integer("preview_exp_count"),
     /** Number of education entries shown in directory preview. */
     previewEduCount: integer("preview_edu_count"),
-    /** JSON array of the first 4 skills for directory preview. */
-    previewSkills: text("preview_skills"), // JSON array of first 4 skills
-    createdAt: text("created_at").notNull(),
-    updatedAt: text("updated_at").notNull(),
+    /** JSON array of the first 4 skills for directory preview. Drizzle parses/serializes automatically. */
+    previewSkills: jsonb("preview_skills").$type<string[]>(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull(),
   },
   (table) => [
     index("site_data_resume_id_idx").on(table.resumeId),

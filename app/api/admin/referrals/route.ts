@@ -33,7 +33,7 @@ import { createSuccessResponse } from "@/lib/utils/security-headers";
 
 export async function GET() {
   return withAdmin(undefined, async () => {
-    const db = getDb(env.CLICKFOLIO_DB);
+    const db = getDb(env.HYPERDRIVE);
 
     const [
       referrerCount,

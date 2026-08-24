@@ -61,7 +61,7 @@ function createMocks(options: { changes?: number } = {}) {
         return {
           where: vi.fn().mockImplementation((cond: JsonValue) => {
             updateWhereCaptures.push(cond);
-            return Promise.resolve({ meta: { changes } });
+            return Promise.resolve({ count: changes });
           }),
         };
       }),

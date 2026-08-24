@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { signOut } from "@/lib/auth/client";
+import { useClerk } from "@/lib/auth/client";
 
 interface DeleteAccountCardProps {
   userEmail: string;
@@ -26,6 +26,7 @@ export function DeleteAccountCard({ userEmail }: DeleteAccountCardProps) {
   const [confirmation, setConfirmation] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const clerk = useClerk();
 
   const emailMatches = confirmation.toLowerCase() === userEmail.toLowerCase();
 
@@ -62,15 +63,9 @@ export function DeleteAccountCard({ userEmail }: DeleteAccountCardProps) {
 
       toast.success("Your account has been deleted");
       setIsDialogOpen(false);
-
-      await signOut({
-        fetchOptions: {
-          onSuccess: () => {
-            router.push("/");
-            router.refresh();
-          },
-        },
-      });
+      await clerk.signOut();
+      router.push("/");
+      router.refresh();
     } catch (err) {
       console.error("Account deletion error:", err);
       const errorMessage = "An unexpected error occurred. Please try again.";
@@ -80,7 +75,6 @@ export function DeleteAccountCard({ userEmail }: DeleteAccountCardProps) {
       setIsDeleting(false);
     }
   };
-
   const handleDialogClose = () => {
     if (isDeleting) return;
     setIsDialogOpen(false);

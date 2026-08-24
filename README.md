@@ -1,6 +1,6 @@
 # clickfolio.me
 
-<img width="1624" height="964" alt="Screenshot 2026-06-16 at 4 35 36 PM" src="https://github.com/user-attachments/assets/c2075f44-b11d-4b20-bbe8-68652ebb7f53" />
+<img width="1624" height="964" alt="Screenshot 2026-06-16 at 4 35 36 PM" src="https://github.com/user-attachments/assets/c2075f44-b11d-4b20-bbe8-68652ebb7f53" />
 
 **Turn your PDF resume into a hosted web portfolio in under 60 seconds.**
 
@@ -25,15 +25,15 @@ Upload a PDF. AI parses it. Get a shareable link.
 
 ## Tech Stack
 
-| Layer          | Technology                                                                                                                             |
-| -------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| **Framework**  | [vinext](https://github.com/cloudflare/vinext) (Vite-based Next.js)                                                                    |
-| **Runtime**    | [Cloudflare Workers](https://workers.cloudflare.com)                                                                                   |
-| **Database**   | [Cloudflare D1](https://developers.cloudflare.com/d1/) (SQLite) + [Drizzle ORM](https://orm.drizzle.team)                              |
-| **Auth**       | [Better Auth](https://better-auth.com) (Google OAuth + email/password)                                                                 |
-| **Storage**    | [Cloudflare R2](https://developers.cloudflare.com/r2/) (S3-compatible)                                                                 |
-| **AI Parsing** | [OpenRouter](https://openrouter.ai) via [Cloudflare AI Gateway](https://developers.cloudflare.com/ai-gateway/) (openai/gpt-oss models) |
-| **Styling**    | [shadcn/ui](https://ui.shadcn.com) + [Tailwind CSS 4](https://tailwindcss.com)                                                         |
+| Layer          | Technology                                                                                                                                                           |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Framework**  | [vinext](https://github.com/cloudflare/vinext) (Vite-based Next.js)                                                                                                  |
+| **Runtime**    | [Cloudflare Workers](https://workers.cloudflare.com)                                                                                                                 |
+| **Database**   | [PlanetScale Postgres](https://planetscale.com) via [Cloudflare Hyperdrive](https://developers.cloudflare.com/hyperdrive/) + [Drizzle ORM](https://orm.drizzle.team) |
+| **Auth**       | [Clerk](https://clerk.com) (Google OAuth + credentials; prebuilt `<SignIn>/<SignUp>` UI, JWKS-verified session JWTs)                                                 |
+| **Storage**    | [Cloudflare R2](https://developers.cloudflare.com/r2/) (S3-compatible)                                                                                               |
+| **AI Parsing** | [OpenRouter](https://openrouter.ai) via [Cloudflare AI Gateway](https://developers.cloudflare.com/ai-gateway/) (openai/gpt-oss models)                               |
+| **Styling**    | [shadcn/ui](https://ui.shadcn.com) + [Tailwind CSS 4](https://tailwindcss.com)                                                                                       |
 
 ---
 
@@ -50,21 +50,21 @@ We chose Cloudflare Workers over traditional hosting for several reasons:
 ### Cost Efficiency
 
 - **Free Tier**: 100,000 requests/day free
-- **D1 Database**: 5GB free, built-in SQLite
+- **Hyperdrive**: Free connection pooling and query caching for Postgres at the edge
 - **R2 Storage**: 10GB free, no egress fees
-- **Total**: A production app can run free for most use cases
+- **Total**: A production app can run free for most use cases (plus PlanetScale/Clerk free tiers)
 
 ### Developer Experience
 
 - **No Container Management**: Just deploy code
 - **Automatic Scaling**: From 0 to millions of requests
-- **Integrated Stack**: D1, R2, and Workers work seamlessly together
+- **Integrated Stack**: Hyperdrive, R2, Queues, and Durable Objects work seamlessly together
 
 ### Trade-offs
 
 - **No `fs` Module**: Must use R2 for file operations
 - **No Next.js `<Image />` Component**: Use `<img>` with CSS instead
-- **Edge Middleware Limits**: No D1 access in middleware
+- **No DB in Middleware**: The edge proxy only checks cookie presence
 - **Bundle Size**: Keep dependencies minimal
 
 ---
@@ -74,8 +74,9 @@ We chose Cloudflare Workers over traditional hosting for several reasons:
 ### Prerequisites
 
 - [pnpm](https://pnpm.io) v11+ (package manager)
-- [Cloudflare Account](https://cloudflare.com) with R2 and D1 enabled
-- [Google Cloud Console](https://console.cloud.google.com) project for OAuth
+- [Cloudflare Account](https://cloudflare.com) with R2 + Hyperdrive enabled
+- [PlanetScale](https://planetscale.com) Postgres database (free tier works)
+- [Clerk](https://clerk.com) account (free tier works)
 - [OpenRouter](https://openrouter.ai) account for AI parsing
 
 ### Installation
@@ -88,11 +89,11 @@ cd clickfolio.me
 # Install dependencies
 pnpm install
 
-# Copy environment template
+# Copy environment template and fill in your values
 cp .env.example .dev.vars
 
-# Set up local database
-pnpm run db:migrate
+# Apply database migrations (needs DATABASE_URL from PlanetScale)
+DATABASE_URL="postgres://…" pnpm run db:migrate
 
 # Start development server
 pnpm run dev
@@ -111,7 +112,8 @@ If you are not technical, follow this exact checklist. You only need a terminal 
 **What you need**
 
 - A Cloudflare account (free is fine)
-- A Google Cloud account (for Google Sign-In)
+- A PlanetScale account (Postgres database, free tier is fine)
+- A Clerk account (authentication, free tier is fine)
 - An OpenRouter account (for AI parsing)
 - pnpm installed (copy/paste this in Terminal):
   ```bash
@@ -130,22 +132,28 @@ If you are not technical, follow this exact checklist. You only need a terminal 
    pnpm install
    ```
 
-**Step 1: Create Cloudflare D1 database**
+**Step 1: Create the PlanetScale Postgres database**
+
+1. Create a Postgres database in the PlanetScale console (e.g. `clickfolio`).
+2. Copy the direct connection string (PlanetScale console → your database → Connect → Postgres URL).
+3. You will use it as `DATABASE_URL` below. Note: drizzle-kit uses this DIRECT URL; the deployed Worker connects through Cloudflare Hyperdrive instead.
+
+**Step 2: Create the Cloudflare Hyperdrive binding**
 
 1. In Terminal:
    ```bash
-   pnpm exec wrangler d1 create clickfolio-db
+   pnpm exec wrangler hyperdrive create clickfolio-pg --connection-string="postgres://user:password@host/db"
    ```
-2. Copy the `database_id` printed in the terminal.
-3. Open `wrangler.jsonc` and replace the `database_id` value.
+2. Copy the printed Hyperdrive `id`.
+3. Open `wrangler.jsonc` and put that id under `hyperdrive[0].id`.
 
-**Step 2: Create Cloudflare R2 bucket**
+**Step 3: Create Cloudflare R2 bucket**
 
 1. Go to Cloudflare Dashboard → R2 → Create bucket.
 2. Name it **`clickfolio-bucket`**.
 3. The bucket is accessed via binding in wrangler.jsonc - no API tokens needed.
 
-**Step 3: Configure R2 CORS**
+**Step 4: Configure R2 CORS**
 In Cloudflare R2 bucket settings → CORS, paste:
 
 ```json
@@ -159,47 +167,46 @@ In Cloudflare R2 bucket settings → CORS, paste:
 ]
 ```
 
-**Step 4: Set up Google OAuth**
+**Step 5: Set up Clerk**
 
-1. Go to Google Cloud Console.
-2. Create project → APIs & Services → Credentials.
-3. Create OAuth Client ID (Web app).
-4. Add redirect URIs:
-   - `http://localhost:3000/api/auth/callback/google`
-   - `https://your-domain.com/api/auth/callback/google`
-5. Copy **Client ID** and **Client Secret**.
+1. Create an application at [clerk.com](https://clerk.com) → copy the **Publishable key** (`pk_…`) and **Secret key** (`sk_…`).
+2. Enable the Google social connection in Clerk's dashboard (Clerk hosts the OAuth app — no separate Google Cloud project needed).
+3. Create a webhook in Clerk → Webhooks pointing to `https://your-domain.com/api/webhooks/clerk`, subscribing to `user.created`, `user.updated`, `user.deleted`. Copy the **signing secret** (`whsec_…`).
 
-**Step 5: Set up OpenRouter**
+**Step 6: Set up OpenRouter**
 
 1. Create OpenRouter account → API Keys.
 2. Copy your API key.
 
-**Step 6: Add secrets to Cloudflare (production)**
+**Step 7: Add secrets to Cloudflare (production)**
 Run each command and paste the value when prompted:
 
 ```bash
-pnpm exec wrangler secret put BETTER_AUTH_SECRET
-pnpm exec wrangler secret put BETTER_AUTH_URL              # Also used as app URL
-pnpm exec wrangler secret put GOOGLE_CLIENT_ID
-pnpm exec wrangler secret put GOOGLE_CLIENT_SECRET
+pnpm exec wrangler secret put CLERK_SECRET_KEY                 # sk_… from Clerk
+pnpm exec wrangler secret put CLERK_WEBHOOK_SECRET             # whsec_… from Clerk webhook
+pnpm exec wrangler secret put NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY # pk_… from Clerk
+pnpm exec wrangler secret put APP_URL                          # https://your-domain.com
+openssl rand -base64 32                                        # then:
+pnpm exec wrangler secret put PENDING_UPLOAD_SECRET            # random value from openssl above
 pnpm exec wrangler secret put CF_AI_GATEWAY_ACCOUNT_ID
 pnpm exec wrangler secret put CF_AI_GATEWAY_ID
 pnpm exec wrangler secret put CF_AIG_AUTH_TOKEN
 ```
 
-**Step 7: Deploy**
+**Step 8: Deploy**
 
 ```bash
-pnpm run db:migrate:prod
+DATABASE_URL="postgres://…" pnpm run db:migrate   # apply migrations_pg/ to production
 pnpm run deploy
 ```
 
-**Step 8: Add your domain**
+**Step 9: Add your domain**
 Cloudflare Dashboard → Workers & Pages → your worker → Settings → Domains & Routes.
 
-**Important:** After domain is connected, **update this secret**:
+**Important:** After domain is connected, update these secrets and redeploy:
 
-- `BETTER_AUTH_URL` = `https://your-domain.com`
+- `APP_URL` = `https://your-domain.com`
+- Point the Clerk webhook endpoint URL at `https://your-domain.com/api/webhooks/clerk`
 
 Then redeploy:
 
@@ -213,13 +220,13 @@ If you followed the steps above, the site should be live at your domain.
 
 1. **Create a Cloudflare account** at [cloudflare.com](https://cloudflare.com)
 
-2. **Create D1 Database**
+2. **Create the Hyperdrive binding** over your PlanetScale Postgres:
 
    ```bash
-   pnpm exec wrangler d1 create clickfolio-db
+   pnpm exec wrangler hyperdrive create clickfolio-pg --connection-string="postgres://…"
    ```
 
-   Copy the `database_id` to `wrangler.jsonc`
+   Copy the `id` to `wrangler.jsonc`
 
 3. **Create R2 Bucket**
    - Go to Cloudflare Dashboard > R2
@@ -239,16 +246,12 @@ If you followed the steps above, the site should be live at your domain.
    ]
    ```
 
-### Step 2: Google OAuth Setup
+### Step 2: Clerk Setup
 
-1. Go to [Google Cloud Console](https://console.cloud.google.com)
-2. Create a new project (or select existing)
-3. Go to **APIs & Services > Credentials**
-4. Create **OAuth 2.0 Client ID** (Web application type)
-5. Add authorized redirect URIs:
-   - Development: `http://localhost:3000/api/auth/callback/google`
-   - Production: `https://your-domain.com/api/auth/callback/google`
-6. Copy Client ID and Client Secret
+1. Create an application at [clerk.com](https://clerk.com)
+2. Copy the Publishable key (`pk_…`) and Secret key (`sk_…`)
+3. Enable Google sign-in in Clerk's dashboard (Clerk manages the OAuth app)
+4. Add a webhook endpoint `https://your-domain.com/api/webhooks/clerk` subscribed to `user.created`, `user.updated`, `user.deleted`; copy its signing secret (`whsec_…`)
 
 ### Step 3: OpenRouter + Cloudflare AI Gateway (required)
 
@@ -270,21 +273,23 @@ This project uses Cloudflare AI Gateway for AI calls.
 Create `.dev.vars` for development:
 
 ```bash
-# Generate a secure secret
-openssl rand -base64 32
+# Generate a secure secret with: openssl rand -base64 32
 
-# Copy to .dev.vars
-BETTER_AUTH_SECRET=your-generated-secret
-BETTER_AUTH_URL=http://localhost:3000
+APP_URL=http://localhost:3000
+PENDING_UPLOAD_SECRET=your-generated-secret
 
-GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=your-client-secret
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_…
+CLERK_SECRET_KEY=sk_test_…
+CLERK_WEBHOOK_SECRET=whsec_…
+
+# Direct PlanetScale URL — used ONLY by drizzle-kit locally (db:migrate/push/studio).
+# The dev Worker itself connects through the local Hyperdrive simulation.
+DATABASE_URL=postgres://user:password@host/clickfolio
 
 # Cloudflare AI Gateway (BYOK - OpenRouter key stored in CF Secrets Store)
 CF_AI_GATEWAY_ACCOUNT_ID=your-account-id
 CF_AI_GATEWAY_ID=your-gateway-id
 CF_AIG_AUTH_TOKEN=your-gateway-auth-token
-
 ```
 
 See `.env.example` for complete template with all options.
@@ -294,20 +299,10 @@ See `.env.example` for complete template with all options.
 1. **Apply database migrations**
 
    ```bash
-   pnpm run db:migrate:prod
+   DATABASE_URL="postgres://…" pnpm run db:migrate
    ```
 
-2. **Set production secrets**
-
-   ```bash
-   pnpm exec wrangler secret put BETTER_AUTH_SECRET
-   pnpm exec wrangler secret put BETTER_AUTH_URL              # Also used as app URL
-   pnpm exec wrangler secret put GOOGLE_CLIENT_ID
-   pnpm exec wrangler secret put GOOGLE_CLIENT_SECRET
-   pnpm exec wrangler secret put CF_AI_GATEWAY_ACCOUNT_ID
-   pnpm exec wrangler secret put CF_AI_GATEWAY_ID
-   pnpm exec wrangler secret put CF_AIG_AUTH_TOKEN
-   ```
+2. **Set production secrets** (see Step 7 of the beginner guide above)
 
 3. **Deploy**
 
@@ -335,14 +330,13 @@ pnpm run type-check       # TypeScript check
 # Build & Deploy
 pnpm run build            # Vite production build (vinext)
 pnpm run preview          # Local Cloudflare preview
-pnpm run deploy           # Build and deploy to Cloudflare Workers
+pnpm run deploy           # Thin wrapper around `wrangler deploy` (no build step)
 
-# Database (D1 + Drizzle)
-pnpm run db:generate      # Generate migrations from schema
-pnpm run db:migrate       # Apply migrations locally
-pnpm run db:migrate:prod  # Apply migrations to production
+# Database (PlanetScale Postgres via drizzle-kit; needs DATABASE_URL except generate)
+pnpm run db:generate      # Generate migration files into migrations_pg/
+pnpm run db:migrate       # Apply migrations_pg/ to DATABASE_URL
+pnpm run db:push          # Sync schema without migration files (prototyping only)
 pnpm run db:studio        # Drizzle Studio UI (port 4984)
-pnpm run db:reset         # Wipe local D1 and re-migrate
 
 # Testing
 pnpm run test             # All tests
@@ -361,7 +355,7 @@ pnpm run ci               # type-check + lint + test + build
 
 ```
 app/
-├── api/                 # API routes (auth, upload, resume, etc.)
+├── api/                 # API routes (webhooks/clerk, upload, resume, etc.)
 ├── (admin)/             # Admin dashboard pages
 │   ├── admin/
 │   │   ├── users/       # User management
@@ -376,8 +370,6 @@ app/
 │   ├── themes/          # Theme gallery
 │   ├── waiting/         # AI parsing status (WebSocket)
 │   └── wizard/          # Onboarding wizard
-├── (public)/            # Public pages requiring no auth
-│   └── verify-email/    # Email verification page
 ├── [handle]/            # Public resume viewer /@handle
 ├── for/                 # Landing pages by profession
 │   ├── student/
@@ -389,24 +381,25 @@ app/
 ├── blog/                # Blog posts & content marketing
 ├── preview/[id]/        # Template preview (before claiming)
 ├── page.tsx             # Homepage
-├── layout.tsx           # Root layout
+├── layout.tsx           # Root layout (ClerkProvider wrapper)
 └── globals.css          # Global styles
 
 components/
 ├── templates/           # 10 resume template components
 ├── ui/                  # shadcn/ui components
+├── auth/                # LoginButton using Clerk's native sign-in modal
 ├── dashboard/           # Dashboard-specific components
 ├── icons/               # Custom icon components
 ├── analytics/           # Analytics components
 └── *.tsx                # Shared components (Footer, Logo, etc.)
 
 lib/
-├── auth/                # Better Auth configuration
+├── auth/                # Clerk integration (server JWKS verification, session, client seam)
 ├── ai/                  # AI parsing (OpenRouter via CF AI Gateway)
 ├── cron/                # Scheduled task implementations
-├── db/                  # Drizzle schema, client, migrations
+├── db/                  # Drizzle PG schema + getDb(env.HYPERDRIVE)
 ├── durable-objects/     # WebSocket Durable Object
-├── email/               # Email service (CF Email)
+├── email/               # Disposable-domain check
 ├── queue/               # Queue consumer, types, DLQ
 ├── schemas/             # Zod validation schemas
 ├── templates/           # Theme registry & metadata
@@ -416,7 +409,10 @@ lib/
 └── config/              # Site config, FAQ, retry policies
 
 worker/
-└── index.ts             # Custom worker entry (vinext + Queue + Cron)
+└── index.ts             # Custom worker entry (vinext + Queue + Cron + WebSocket auth)
+
+migrations_pg/
+└── *.sql                # Postgres migrations (drizzle-kit)
 
 __tests__/
 ├── unit/                # Unit tests
@@ -435,8 +431,8 @@ Allows anonymous users to upload before authenticating:
 
 ```
 1. POST /api/upload         → Upload file directly to Worker
-2. Worker stores in R2      → Store temp key in localStorage
-3. User authenticates       → Google OAuth
+2. Worker stores in R2      → Signed pending_upload cookie (HMAC'd with PENDING_UPLOAD_SECRET)
+3. User authenticates       → Clerk (Google OAuth or credentials)
 4. POST /api/resume/claim   → Link upload to user, trigger parsing
 5. Poll /api/resume/status  → Wait for AI parsing (~30-40s)
 ```
@@ -457,7 +453,7 @@ Live status updates during AI parsing:
 - **Endpoint**: `wss://your-domain.com/ws/resume-status?resume_id={id}`
 - **Technology**: Cloudflare Durable Objects (`ClickfolioStatusDO`)
 - **Flow**: WebSocket connection → DO tracks parsing progress → Real-time status pushed to client
-- **Authentication**: Session token validated before upgrade
+- **Authentication**: Clerk session JWT verified against JWKS before upgrade
 - **Use case**: Waiting room shows live parsing progress instead of polling
 
 ### Queue System
@@ -478,7 +474,7 @@ Four cron triggers run automatically:
 | Cron           | Time (UTC)   | Task                                        |
 | -------------- | ------------ | ------------------------------------------- |
 | `0 2 * * *`    | 2:00 AM      | R2 temp file cleanup (old uploads)          |
-| `0 3 * * *`    | 3:00 AM      | Database cleanup (expired sessions)         |
+| `0 3 * * *`    | 3:00 AM      | Database cleanup (expired rate limits)      |
 | `0 4 * * *`    | 4:00 AM      | Sync disposable email domain blocklist      |
 | `*/15 * * * *` | Every 15 min | Recover orphaned resumes (stuck in parsing) |
 
@@ -515,7 +511,7 @@ Unlock premium templates by sharing:
 | **Midnight**             | Modern       | Dark minimal with serif headings and gold accents               | 5 referrals        |
 | **Bold Corporate**       | Professional | Executive typography with bold numbered sections                | 10 referrals       |
 
-All templates receive `content` (ResumeContent) and `user` props, respect privacy settings, and are mobile-responsive. Premium templates unlock through the referral program.
+All templates receive `content` (ResumeContent) and `profile` props, respect privacy settings, and are mobile-responsive. Premium templates unlock through the referral program.
 
 ---
 
@@ -525,7 +521,8 @@ All templates receive `content` (ResumeContent) and `user` props, respect privac
 - **Rate Limiting**: 5 resume uploads/day per user, plus IP-based limits (10/hour, 50/day) for anonymous uploads
 - **Input Validation**: Zod schemas on all endpoints
 - **XSS Protection**: React's default sanitization
-- **Encrypted Secrets**: All secrets encrypted in Cloudflare
+- **Encrypted Secrets**: All secrets encrypted in Cloudflare; Clerk session JWTs verified against JWKS on every server request
+- **Webhook Signatures**: Clerk webhooks are Svix-signature verified before processing
 - **Privacy Controls**: Users control visibility of phone numbers and addresses
 - **IP Privacy**: IP addresses SHA-256 hashed before storage (GDPR-friendly)
 
@@ -556,11 +553,17 @@ pnpm run type-check  # See all errors
 pnpm run build       # Fix errors and rebuild
 ```
 
-### OAuth Redirect Loop
+### Auth Redirect Issues / Users Missing After Sign-Up
 
-1. Verify `BETTER_AUTH_URL` includes `https://` for production
-2. Check redirect URIs match in Google Cloud Console
+1. Verify `CLERK_SECRET_KEY` / `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` match the same Clerk application
+2. Confirm the Clerk webhook points at `/api/webhooks/clerk` and `CLERK_WEBHOOK_SECRET` matches — a signed-in user with no synced row gets 404s until the webhook lands
 3. Clear browser cookies
+
+### Database Connection Failures
+
+1. Verify the Hyperdrive binding id in `wrangler.jsonc` matches `wrangler hyperdrive create` output
+2. For `db:*` scripts, confirm `DATABASE_URL` is set to the DIRECT PlanetScale connection string
+3. Check PlanetScale console → your database is awake and credentials are valid
 
 ### R2 Upload Fails
 
@@ -589,8 +592,9 @@ MIT License - see [LICENSE](LICENSE) for details.
 ## Acknowledgments
 
 - [vinext](https://github.com/cloudflare/vinext) - Vite-based Next.js for Cloudflare Workers
-- [Better Auth](https://better-auth.com) - Authentication
-- [Drizzle ORM](https://orm.drizzle.team) - Type-safe database
+- [Clerk](https://clerk.com) - Authentication and user management
+- [PlanetScale](https://planetscale.com) - Serverless Postgres
+- [Drizzle ORM](https://orm.drizzle.team) - Type-safe database access
 - [Cloudflare](https://cloudflare.com) - Edge infrastructure
 - [OpenRouter](https://openrouter.ai) - AI API gateway
 - [OpenAI](https://openai.com) - AI inference

@@ -10,8 +10,6 @@ import type { JsonValue } from "@/lib/types/json";
 
 // ── Mocks ────────────────────────────────────────────────────────────
 
-const mockCaptureBookmark = vi.fn().mockResolvedValue(undefined);
-
 // DB mock: findFirst returns are configured per-test
 const mockFindFirst = vi.fn();
 const mockSelect = vi.fn().mockReturnThis();
@@ -140,14 +138,18 @@ function authedAs(userId: string) {
       image: null,
       handle: "testuser",
       headline: null,
-      privacySettings: "{}",
+      privacySettings: {
+        show_phone: false,
+        show_address: false,
+        hide_from_search: false,
+        show_in_directory: true,
+      },
       onboardingCompleted: true,
       role: "mid_level",
     },
     db: mockDb as never,
-    captureBookmark: mockCaptureBookmark,
-    dbUser: { id: userId, handle: "testuser" },
-    env: { DB: {}, CLICKFOLIO_PARSE_QUEUE: {} } as never,
+    dbUser: { id: userId, handle: "testuser", clerkId: "user_clerk_1" },
+    env: { CLICKFOLIO_PARSE_QUEUE: {} } as never,
     error: null,
   });
 }

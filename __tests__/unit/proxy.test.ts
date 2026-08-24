@@ -8,7 +8,8 @@ import { proxy } from "@/proxy";
  * Tests redirect vs. pass-through behavior for:
  * - Each protected prefix (/dashboard, /edit, /settings, /waiting, /wizard)
  * - A public (unprotected) path
- * - Both session cookie variants (bare and __Secure- prefixed)
+ * - The Clerk `__session` session cookie granting pass-through
+ * - The Clerk `__client` device cookie alone NOT granting access
  * - Missing cookie → redirect to /
  */
 
@@ -55,28 +56,28 @@ describe("Protected routes — no session cookie → redirect to /", () => {
   });
 });
 
-// ── Tests: protected routes with valid bare session cookie ─────────────
+// ── Tests: protected routes with the Clerk __session cookie ────────────
 
-describe("Protected routes — bare 'better-auth.session_token' cookie → pass-through", () => {
+describe("Protected routes — '__session' cookie → pass-through", () => {
   it.each([["/dashboard"], ["/edit"], ["/settings"], ["/waiting"], ["/wizard"]])(
-    "allows %s when bare session cookie is present",
+    "allows %s when __session cookie is present",
     (pathname) => {
-      const response = proxy(makeRequest(pathname, "better-auth.session_token=valid-token-value"));
+      const response = proxy(makeRequest(pathname, "__session=valid-clerk-jwt"));
       expectPassThrough(response);
     },
   );
 });
 
-// ── Tests: protected routes with __Secure- prefixed cookie ─────────────
+// ── Tests: __client device cookie must never grant access ──────────────
 
-describe("Protected routes — '__Secure-better-auth.session_token' cookie → pass-through", () => {
+describe("Protected routes — '__client' cookie alone → redirect to /", () => {
+  // Clerk sets __client even when signed out, so its presence must not open
+  // protected routes; only an active-session __session cookie counts.
   it.each([["/dashboard"], ["/edit"], ["/settings"], ["/waiting"], ["/wizard"]])(
-    "allows %s when __Secure- session cookie is present",
+    "redirects %s when only the __client cookie is present",
     (pathname) => {
-      const response = proxy(
-        makeRequest(pathname, "__Secure-better-auth.session_token=secure-token"),
-      );
-      expectPassThrough(response);
+      const response = proxy(makeRequest(pathname, "__client=uat-device-token"));
+      expectRedirectToRoot(response);
     },
   );
 });
@@ -93,7 +94,7 @@ describe("Public paths — always pass-through regardless of cookie", () => {
   );
 
   it("also passes through public paths with a session cookie", () => {
-    const response = proxy(makeRequest("/", "better-auth.session_token=any-token"));
+    const response = proxy(makeRequest("/", "__session=any-clerk-jwt"));
     expectPassThrough(response);
   });
 });
@@ -108,18 +109,22 @@ describe("Edge cases", () => {
     expectRedirectToRoot(response);
   });
 
-  it("redirects when an unrelated cookie is present but session cookie is missing", () => {
+  it("redirects when an unrelated cookie is present but __session is missing", () => {
     const response = proxy(makeRequest("/settings", "some-other-cookie=value"));
     expectRedirectToRoot(response);
   });
 
-  it("passes through when both cookie variants are present (uses first match)", () => {
+  it("passes through when __session coexists with other cookies", () => {
     const response = proxy(
-      makeRequest(
-        "/dashboard",
-        "__Secure-better-auth.session_token=secure; better-auth.session_token=bare",
-      ),
+      makeRequest("/dashboard", "__client=uat-device-token; __session=clerk-jwt"),
     );
+    expectPassThrough(response);
+  });
+
+  it("passes through a present-but-invalid __session (JWT crypto is deferred to page-level auth)", () => {
+    // The proxy is a cheap presence gate by design: signature/expiry checks
+    // run once per request in requireAuthClerk, which then rejects with 401.
+    const response = proxy(makeRequest("/dashboard", "__session=definitely-not-a-valid-jwt"));
     expectPassThrough(response);
   });
 });

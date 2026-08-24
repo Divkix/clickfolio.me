@@ -10,10 +10,9 @@
 import { WAITING_FOR_CACHE_TIMEOUT_MS } from "@/lib/resume/lifecycle";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { JsonValue } from "@/lib/types/json";
+import { DEFAULT_PRIVACY_SETTINGS } from "@/lib/utils/privacy";
 
 // ── Mocks ─────────────────────────────────────────────────────────────
-
-const mockCaptureBookmark = vi.fn().mockResolvedValue(undefined);
 
 const mockFindFirst = vi.fn();
 const mockDbUpdateSet = vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue(undefined) });
@@ -101,14 +100,15 @@ function authedAs(userId: string) {
       image: null,
       handle: "testuser",
       headline: null,
-      privacySettings: "{}",
+      privacySettings: DEFAULT_PRIVACY_SETTINGS,
       onboardingCompleted: true,
       role: "mid_level",
     },
     db: mockDb as never,
-    captureBookmark: mockCaptureBookmark,
-    dbUser: { id: userId, handle: "testuser" },
-    env: { DB: {} } as never,
+    dbUser: { id: userId, handle: "testuser", clerkId: `clerk_${userId}` },
+    env: {
+      HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" },
+    } as never,
     error: null,
   });
 }
@@ -271,10 +271,8 @@ describe("GET /api/resume/status — waiting_for_cache timeout", () => {
       expect(response.status).toBe(200);
       const body = (await response.json()) as { status: string; error: string };
       expect(body.status).toBe("failed");
-      expect(body.error).toContain("timed out");
-      // GET is now side-effect-free: the durable write is handled by the orphan cron
+      // GET is side-effect-free: the durable orphan-cron write never runs here.
       expect(mockDbUpdateSet).not.toHaveBeenCalled();
-      expect(mockCaptureBookmark).not.toHaveBeenCalled();
     });
   });
 

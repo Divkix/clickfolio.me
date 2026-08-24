@@ -132,9 +132,9 @@ export default function PrivacyAtClickfolioPage() {
             <h3 className="font-semibold text-foreground mb-1">Cloudflare</h3>
             <p className="text-muted-foreground text-sm">
               All data — your account, your resume, your portfolio — is stored on Cloudflare's
-              infrastructure (Workers, D1 database, R2 storage). Cloudflare is SOC 2 Type II and ISO
-              27001 certified. They provide infrastructure-level encryption at rest. They do not
-              access or use your data.
+              infrastructure (Workers, a managed Postgres database, R2 storage). Cloudflare is SOC 2
+              Type II and ISO 27001 certified. They provide infrastructure-level encryption at rest.
+              They do not access or use your data.
             </p>
           </div>
           <div className="rounded-lg border border-border bg-card p-4">
@@ -189,9 +189,9 @@ export default function PrivacyAtClickfolioPage() {
             everywhere.
           </li>
           <li>
-            <strong>D1 (SQLite database).</strong> Your account data and parsed resume content are
-            stored in Cloudflare D1, a globally distributed SQLite database. Data is replicated
-            across Cloudflare's network for reliability.
+            <strong>Postgres database (PlanetScale).</strong> Your account data and parsed resume
+            content are stored in a managed Postgres database hosted by PlanetScale, accessed
+            securely through Cloudflare Hyperdrive. Data is backed up automatically for reliability.
           </li>
           <li>
             <strong>R2 (object storage).</strong> Your uploaded PDF files are stored in Cloudflare

@@ -102,22 +102,42 @@ export type QueueErrorJson = {
  * Each pattern maps a case-insensitive regex to a transient or permanent error type.
  */
 const ERROR_PATTERNS: Array<{ pattern: RegExp; type: QueueErrorType }> = [
-  // DB constraint violations (FK/UNIQUE) are permanent — retrying can never fix
-  // them. This MUST stay ahead of the D1_ERROR pattern: "D1_ERROR: FOREIGN KEY
-  // constraint failed" would otherwise classify as a retryable connection error
-  // and burn 3 retries before reaching the DLQ.
+  // PostgreSQL constraint violations (UNIQUE/FK/NOT NULL/CHECK/EXCLUSION) are
+  // permanent — retrying can never fix them. This MUST stay ahead of the
+  // connection-error patterns: a constraint failure must never be retried as a
+  // transient outage, and a dropped connection must never look like bad data.
   {
-    pattern: /constraint.*failed|constraint.*violation/i,
+    pattern:
+      /duplicate key value violates unique constraint|violates foreign key constraint|violates not-null constraint|violates check constraint|violates exclusion constraint/i,
+    type: QueueErrorType.PARSE_VALIDATION_ERROR,
+  },
+  // PostgreSQL SQLSTATE integrity codes, matched against the "[pg_code=…]" tag
+  // appended by extractErrorMessage (23000/23001 integrity_constraint_violation,
+  // 23502 not_null_violation, 23503 foreign_key_violation, 23505 unique_violation,
+  // 23514 check_violation) — covers drivers that surface only the code.
+  {
+    pattern: /\[pg_code=(?:23000|23001|23502|23503|23505|23514)\]/,
     type: QueueErrorType.PARSE_VALIDATION_ERROR,
   },
 
-  // D1/Database connection errors (transient)
+  // PostgreSQL/Hyperdrive connection errors (transient)
   {
-    pattern: /D1_ERROR|database.*connection|connection.*refused|SQLITE_BUSY|database.*locked/i,
+    // Connection-state and capacity SQLSTATEs: 080xx connection_exception
+    // family, 53300/53400 too many connections, 57P01-57P03 server shutdown/
+    // crash/cannot-connect-now, 40001 serialization failure, 40P01 deadlock,
+    // 55P03 lock not available. All are safe to retry.
+    pattern:
+      /\[pg_code=(?:08000|08001|08003|08004|08006|53300|53400|57P01|57P02|57P03|40001|40P01|55P03)\]/,
     type: QueueErrorType.DB_CONNECTION_ERROR,
   },
   {
-    pattern: /database.*unavailable|db.*timeout|transaction.*failed/i,
+    pattern:
+      /database.*connection|connection.*(?:refused|reset|terminated|closed|aborted|timed?\s*out)|server closed the connection|terminating connection|too many clients|too many connections|ECONNREFUSED|ECONNRESET|ECONNABORTED|EPIPE|ETIMEDOUT|ENOTFOUND|getaddrinfo|failed to connect/i,
+    type: QueueErrorType.DB_CONNECTION_ERROR,
+  },
+  {
+    pattern:
+      /database.*unavailable|db.*timeout|transaction.*failed|deadlock detected|serialization failure|could not serialize|statement timeout|lock wait timeout/i,
     type: QueueErrorType.DB_CONNECTION_ERROR,
   },
 
@@ -275,18 +295,28 @@ export function classifyQueueError(error: QueueErrorInput): QueueError {
  * Extract a string message from various error types.
  *
  * Strategy:
- * - `Error` instances: includes `error.message` and recursively extracts `cause`.
+ * - `Error` instances: includes `error.message`, the PostgreSQL SQLSTATE (as a
+ *   "[pg_code=…]" tag when the driver exposes one — postgres-js sets
+ *   `Error.code`), and recursively extracts `cause`.
  * - Plain strings: returned directly.
  * - Response-like objects: checks `message`, `error`, and `status` properties.
  * - Falls back to "Unknown error" for anything else.
  */
 function extractErrorMessage(error: QueueErrorInput): string {
   if (error instanceof Error) {
+    // Surface the PostgreSQL SQLSTATE so ERROR_PATTERNS can classify by code
+    // even when server messages are localized or truncated by intermediaries;
+    // postgres-js attaches the SQLSTATE string to Error.code.
+    const pgCode = z
+      .string()
+      .min(1)
+      .safeParse("code" in error ? error.code : undefined);
+    const codeTag = pgCode.success ? ` [pg_code=${pgCode.data}]` : "";
     // Include cause if available
     // SAFETY: error.cause is from Error instance, narrowed via instanceof Error branch; QueueErrorInput is safe union for recursion.
     const cause =
       error.cause != null ? ` (cause: ${extractErrorMessage(error.cause as QueueErrorInput)})` : "";
-    return `${error.message}${cause}`;
+    return `${error.message}${codeTag}${cause}`;
   }
 
   if (z.string().safeParse(error).success) {

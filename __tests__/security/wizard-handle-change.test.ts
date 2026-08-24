@@ -1,19 +1,64 @@
 import type { UnknownRecord, JsonValue } from "@/lib/types/json";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import { DEFAULT_PRIVACY_SETTINGS } from "@/lib/utils/privacy";
 
 /**
  * Regression tests for the wizard/complete handle-change rate limit.
  *
  * A re-onboarding user who changes their handle must be subject to the SAME
  * 3-per-24h handle_changes limit as PUT /api/profile/handle, and the change
- * must be recorded as a handleChanges audit row inside the same db.batch().
+ * must be recorded as a handleChanges audit row inside the same transaction.
  * First-time onboarding is exempt (no prior handle, no rate limit, no audit row).
  */
 
 // ── Mocks ────────────────────────────────────────────────────────────
 
-const mockCaptureBookmark = vi.fn().mockResolvedValue(undefined);
-const mockBatch = vi.fn().mockResolvedValue(undefined);
+// Transaction capture: production writes run inside ONE db.transaction(cb);
+// each awaited tx statement counts once and inserted rows are captured.
+let txStatementCount = 0;
+const txValues: UnknownRecord[] = [];
+
+/** Owner contract for the mocked Drizzle transaction write chain. */
+interface MockTxChain {
+  set: (...args: unknown[]) => MockTxChain;
+  where: (...args: unknown[]) => MockTxChain;
+  values: (rows: UnknownRecord) => MockTxChain;
+  onConflictDoNothing: (...args: unknown[]) => MockTxChain;
+  onConflictDoUpdate: (...args: unknown[]) => MockTxChain;
+  returning: (...args: unknown[]) => MockTxChain;
+  then: (
+    resolve: (value: undefined) => unknown,
+    reject?: (reason: unknown) => unknown,
+  ) => Promise<unknown>;
+}
+
+const createTxChain = (): MockTxChain => {
+  const chain: MockTxChain = {
+    set: vi.fn(() => chain),
+    where: vi.fn(() => chain),
+    values: vi.fn((rows: UnknownRecord) => {
+      txValues.push(rows);
+      return chain;
+    }),
+    onConflictDoNothing: vi.fn(() => chain),
+    onConflictDoUpdate: vi.fn(() => chain),
+    returning: vi.fn(() => chain),
+    then: vi.fn((resolve: (value: undefined) => unknown) => {
+      txStatementCount += 1;
+      return Promise.resolve(resolve(undefined));
+    }),
+  };
+  return chain;
+};
+
+const txUpdate = vi.fn(() => createTxChain());
+const txInsert = vi.fn(() => createTxChain());
+
+const mockTransaction = vi.fn(async (callback: (tx: unknown) => Promise<void>) => {
+  txStatementCount = 0;
+  txValues.length = 0;
+  await callback({ update: txUpdate, insert: txInsert });
+});
 
 let selectResults: JsonValue[][] = [];
 
@@ -34,23 +79,9 @@ const mockSelect = vi.fn(() => {
   return chain;
 });
 
-const mockInsert = vi.fn(() => ({
-  values: vi.fn().mockReturnThis(),
-  onConflictDoNothing: vi.fn().mockReturnThis(),
-  onConflictDoUpdate: vi.fn().mockReturnThis(),
-  returning: vi.fn().mockReturnThis(),
-}));
-
-const mockUpdate = vi.fn(() => ({
-  set: vi.fn().mockReturnThis(),
-  where: vi.fn().mockReturnThis(),
-}));
-
 const mockDb = {
   select: mockSelect,
-  insert: mockInsert,
-  update: mockUpdate,
-  batch: mockBatch,
+  transaction: mockTransaction,
 };
 
 vi.mock("@/lib/auth/middleware", () => ({
@@ -166,13 +197,12 @@ function authed() {
       image: null,
       handle: "avery",
       headline: null,
-      privacySettings: "{}",
+      privacySettings: DEFAULT_PRIVACY_SETTINGS,
       onboardingCompleted: true,
       role: "mid_level",
     },
     db: mockDb as never,
-    captureBookmark: mockCaptureBookmark,
-    dbUser: { id: "user_1", handle: "avery" },
+    dbUser: { id: "user_1", handle: "avery", clerkId: "user_clerk_1" },
     env: {} as never,
     error: null,
   });
@@ -190,6 +220,8 @@ beforeEach(() => {
   vi.clearAllMocks();
   selectResults = [];
   authed();
+  txStatementCount = 0;
+  txValues.length = 0;
 });
 
 // ── Tests ────────────────────────────────────────────────────────────
@@ -204,10 +236,10 @@ describe("wizard/complete handle-change rate limit", () => {
     const response = await POST(requestWith(validBody));
 
     expect(response.status).toBe(429);
-    expect(mockBatch).not.toHaveBeenCalled();
+    expect(mockTransaction).not.toHaveBeenCalled();
   });
 
-  it("inserts the handleChanges audit row inside the batch for an under-limit change", async () => {
+  it("inserts the handleChanges audit row inside the transaction for an under-limit change", async () => {
     const { POST } = await import("@/app/api/wizard/complete/route");
 
     selectResults.push([{ handle: "old-handle", onboardingCompleted: true }]);
@@ -216,15 +248,13 @@ describe("wizard/complete handle-change rate limit", () => {
     const response = await POST(requestWith(validBody));
 
     expect(response.status).toBe(200);
-    expect(mockBatch).toHaveBeenCalledTimes(1);
-    const statements = mockBatch.mock.calls[0][0] as unknown[];
-    expect(statements).toHaveLength(3);
+    expect(mockTransaction).toHaveBeenCalledTimes(1);
+    expect(txStatementCount).toBe(3);
 
-    // Second db.insert call is the audit row for the handleChanges table.
-    expect(mockInsert).toHaveBeenNthCalledWith(1, siteData);
-    expect(mockInsert).toHaveBeenNthCalledWith(2, handleChanges);
-    const auditValues = (statements[2] as { values: { mock: { calls: JsonValue[][] } } }).values
-      .mock.calls[0][0] as UnknownRecord;
+    // Statements: user update → siteData upsert → handleChanges audit row.
+    expect(txInsert).toHaveBeenNthCalledWith(1, siteData);
+    expect(txInsert).toHaveBeenNthCalledWith(2, handleChanges);
+    const auditValues = txValues.at(-1) as UnknownRecord;
     expect(auditValues).toMatchObject({
       userId: "user_1",
       oldHandle: "old-handle",
@@ -243,13 +273,12 @@ describe("wizard/complete handle-change rate limit", () => {
     const response = await POST(requestWith(validBody));
 
     expect(response.status).toBe(200);
-    // Only the current-user fetch ran (no rate-limit count query).
+    // Only the current-user fetch ran (no rate-limit count query), and the
+    // transaction wrote exactly two statements (update + siteData upsert).
     expect(mockSelect).toHaveBeenCalledTimes(1);
-    const statements = mockBatch.mock.calls[0][0] as unknown[];
-    expect(statements).toHaveLength(2);
-    // No handleChanges insert.
-    expect(mockInsert).toHaveBeenNthCalledWith(1, siteData);
-    expect(mockInsert).toHaveBeenCalledTimes(1);
+    expect(txStatementCount).toBe(2);
+    expect(txInsert).toHaveBeenNthCalledWith(1, siteData);
+    expect(txInsert).toHaveBeenCalledTimes(1);
   });
 
   it("skips the rate limit when an onboarded user keeps the same handle", async () => {
@@ -257,12 +286,10 @@ describe("wizard/complete handle-change rate limit", () => {
 
     selectResults.push([{ handle: "avery", onboardingCompleted: true }]);
 
-    const response = await POST(requestWith(validBody));
+    await POST(requestWith(validBody));
 
-    expect(response.status).toBe(200);
     expect(mockSelect).toHaveBeenCalledTimes(1);
-    const statements = mockBatch.mock.calls[0][0] as unknown[];
-    expect(statements).toHaveLength(2);
-    expect(mockInsert).toHaveBeenCalledTimes(1);
+    expect(txStatementCount).toBe(2);
+    expect(txInsert).toHaveBeenCalledTimes(1);
   });
 });

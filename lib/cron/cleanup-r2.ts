@@ -125,7 +125,7 @@ export interface PendingDeletionsResult extends UnknownRecord {
  * `lastError` are updated. Once a row reaches {@link PENDING_DELETIONS_MAX_ATTEMPTS}
  * it is left untouched and an error is logged for manual review.
  *
- * @param db      - Drizzle D1 database instance
+ * @param db      - Drizzle Postgres (Hyperdrive) database instance
  * @param binding - R2Bucket binding from Cloudflare environment
  * @returns Result counts and timestamp
  */

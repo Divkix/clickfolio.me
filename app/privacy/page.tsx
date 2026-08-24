@@ -281,7 +281,8 @@ export default function PrivacyPolicyPage() {
                   <div className="rounded-lg border border-border bg-card p-4">
                     <h4 className="font-semibold text-foreground mb-1">Cloudflare</h4>
                     <p className="text-muted-foreground text-sm mb-2">
-                      Used for hosting, storage (R2), database (D1), and content delivery
+                      Used for hosting, storage (R2), and content delivery. Database hosting is
+                      provided by PlanetScale
                     </p>
                     <a
                       href="https://www.cloudflare.com/privacypolicy/"

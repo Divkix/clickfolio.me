@@ -55,7 +55,7 @@ interface RetryRequestBody {
 export async function POST(request: Request) {
   return withUser(
     request,
-    async ({ user: authUser, db, captureBookmark, env }) => {
+    async ({ user: authUser, db, env }) => {
       const userId = authUser.id;
 
       // Validate request size before parsing (prevent DoS)
@@ -76,7 +76,7 @@ export async function POST(request: Request) {
           rawBodyResult.reason === "too_large" ? 413 : 400,
         );
       }
-      // SAFETY: D1 JSON is schema-validated before write; rawBodyResult.data is bounded JSON, cast to RetryRequestBody for field access.
+      // SAFETY: rawBodyResult.data is bounded JSON, cast to RetryRequestBody for field access.
       const body = rawBodyResult.data as RetryRequestBody;
       const { resume_id } = body;
 
@@ -122,12 +122,12 @@ export async function POST(request: Request) {
       // `failed` by GET /status; accept an immediate manual retry without waiting
       // for the cron to durably persist the timeout (otherwise can_retry=true in
       // the UI would be denied here until the next 15m tick).
-      // SAFETY: D1 status and createdAt are validated enum/string columns; casts bridge Drizzle nullable type to ResumeStatus for lifecycle helpers.
+      // SAFETY: status and createdAt are validated enum/string columns; casts bridge Drizzle nullable type to ResumeStatus for lifecycle helpers.
       const isVirtualTimeout = waitingForCacheTimedOut({
         status: resume.status as ResumeStatus,
         createdAt: resume.createdAt as string | null,
       });
-      // SAFETY: D1 status/retry fields are validated enum/number columns; casts bridge Drizzle type to ResumeStatus for eligibility check.
+      // SAFETY: status/retry fields are validated enum/number columns; casts bridge Drizzle type to ResumeStatus for eligibility check.
       const eligibility = checkRetryEligibility({
         status: isVirtualTimeout ? "failed" : (resume.status as ResumeStatus),
         retryCount: resume.retryCount as number,
@@ -162,7 +162,7 @@ export async function POST(request: Request) {
         let pdfBuffer: Uint8Array;
 
         try {
-          // SAFETY: D1 r2Key is validated R2 key written only by our upload flow; cast bridges nullable Drizzle type.
+          // SAFETY: r2Key is validated R2 key written only by our upload flow; cast bridges nullable Drizzle type.
           const fileBuffer = await R2.getAsUint8Array(r2Binding, resume.r2Key as string);
 
           if (!fileBuffer) {
@@ -191,7 +191,7 @@ export async function POST(request: Request) {
         fileHash = await sha256Hex(bufferCopy);
       }
       // Update resume status to queued BEFORE publishing to queue (prevents race condition)
-      // SAFETY: D1 retryCount is integer column; cast bridges Drizzle nullable to number.
+      // SAFETY: retryCount is integer column; cast bridges Drizzle nullable to number.
       const previousRetryCount = resume.retryCount as number;
       const nextRetryCount = previousRetryCount + 1;
       const updatePayload: Partial<NewResume> = {
@@ -259,14 +259,11 @@ export async function POST(request: Request) {
       const queue = env.CLICKFOLIO_PARSE_QUEUE;
       if (!queue) {
         await rollbackRetryUpdate();
-        try {
-          await captureBookmark();
-        } catch {}
         return createErrorResponse("Queue service unavailable", ERROR_CODES.INTERNAL_ERROR, 500);
       }
 
       try {
-        // SAFETY: D1 id and r2Key are validated string columns; casts bridge Drizzle type to string for queue payload.
+        // SAFETY: id and r2Key are validated string columns; casts bridge Drizzle type to string for queue payload.
         await publishResumeParse(queue, {
           resumeId: resume.id as string,
           userId,
@@ -276,22 +273,17 @@ export async function POST(request: Request) {
         });
       } catch (queueError) {
         await rollbackRetryUpdate();
-        try {
-          await captureBookmark();
-        } catch {}
         console.error("Failed to publish retry parse job:", queueError);
         return createErrorResponse("Queue service unavailable", ERROR_CODES.INTERNAL_ERROR, 500);
       }
 
-      await captureBookmark();
-
-      // SAFETY: D1 id is validated string PK; cast bridges Drizzle type for event and response payload.
+      // SAFETY: id is a validated string PK; cast bridges Drizzle type for event payload.
       await captureServerEvent(userId, "resume_parse_retried", {
         resume_id: resume.id as string,
         retry_count: nextRetryCount,
       });
 
-      // SAFETY: D1 id is validated string PK; cast bridges Drizzle type for response payload.
+      // SAFETY: id is a validated string PK; cast bridges Drizzle type for response payload.
       return createSuccessResponse({
         resume_id: resume.id as string,
         status: "queued",

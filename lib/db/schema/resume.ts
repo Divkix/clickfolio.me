@@ -1,4 +1,6 @@
-import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { index, integer, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import type { ResumeContent } from "../../types/database";
+import type { JsonValue } from "../../types/json";
 import { user } from "./auth";
 
 /**
@@ -17,7 +19,7 @@ import { user } from "./auth";
  *   - totalAttempts: cumulative count of all parse attempts across all retries
  *   - updatedAt: nullable — set on updates but may be null for newly created rows
  */
-export const resumes = sqliteTable(
+export const resumes = pgTable(
   "resumes",
   {
     id: text("id").primaryKey(),
@@ -37,24 +39,24 @@ export const resumes = sqliteTable(
       .default("pending_claim"),
     /** Terminal error message when parsing reaches the failed state. */
     errorMessage: text("error_message"),
-    parsedAt: text("parsed_at"),
+    parsedAt: timestamp("parsed_at", { withTimezone: true, mode: "string" }),
     /** Number of retry attempts in the current retry cycle. Resets on each retry. */
     retryCount: integer("retry_count").notNull().default(0),
     /** SHA-256 hash of the uploaded file for deduplication. */
     fileHash: text("file_hash"),
-    /** Final validated parsed resume content as JSON-in-TEXT. */
-    parsedContent: text("parsed_content"),
+    /** Final validated parsed resume content as JSONB. Drizzle parses/serializes automatically. */
+    parsedContent: jsonb("parsed_content").$type<ResumeContent>(),
     // Queue idempotency fields
-    queuedAt: text("queued_at"),
-    /** Raw AI-parsed output before validation. Cleared once parsing succeeds. */
-    parsedContentStaged: text("parsed_content_staged"),
+    queuedAt: timestamp("queued_at", { withTimezone: true, mode: "string" }),
+    /** Raw AI-parsed output before validation. Cleared once parsing succeeds. Drizzle parses/serializes automatically. */
+    parsedContentStaged: jsonb("parsed_content_staged").$type<JsonValue>(),
     /** Error from the most recent parse attempt. May be cleared on retry. */
     lastAttemptError: text("last_attempt_error"),
     /** Cumulative number of parse attempts across all retries. */
     totalAttempts: integer("total_attempts").notNull().default(0),
-    createdAt: text("created_at").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull(),
     /** Nullable — updated timestamp. May be null for newly created rows. */
-    updatedAt: text("updated_at"),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }),
   },
   (table) => [
     index("resumes_user_id_idx").on(table.userId),

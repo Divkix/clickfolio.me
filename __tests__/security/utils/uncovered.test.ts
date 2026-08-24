@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vite-plus/test";
-import { parsePreviewSkills } from "@/lib/utils/preview-skills";
 import { escapeXml } from "@/lib/utils/xml";
 
 describe("XML utilities", () => {
@@ -44,60 +43,6 @@ describe("XML utilities", () => {
     it("handles strings with no special characters", () => {
       expect(escapeXml("hello world")).toBe("hello world");
       expect(escapeXml("normal text 123")).toBe("normal text 123");
-    });
-  });
-});
-
-describe("Preview skills utilities", () => {
-  describe("parsePreviewSkills", () => {
-    it("returns empty array for null input", () => {
-      expect(parsePreviewSkills(null)).toEqual([]);
-    });
-
-    it("returns empty array for undefined input", () => {
-      expect(parsePreviewSkills(undefined)).toEqual([]);
-    });
-
-    it("returns empty array for empty string", () => {
-      expect(parsePreviewSkills("")).toEqual([]);
-    });
-
-    it("returns empty array for empty JSON array", () => {
-      expect(parsePreviewSkills("[]")).toEqual([]);
-    });
-
-    it("parses valid JSON array of strings", () => {
-      expect(parsePreviewSkills('["React", "TypeScript", "Node.js"]')).toEqual([
-        "React",
-        "TypeScript",
-        "Node.js",
-      ]);
-    });
-
-    it("trims whitespace from skills", () => {
-      expect(parsePreviewSkills('["  React  ", "  TypeScript"]')).toEqual(["React", "TypeScript"]);
-    });
-
-    it("filters out empty strings after trimming", () => {
-      expect(parsePreviewSkills('["React", "  ", "TypeScript"]')).toEqual(["React", "TypeScript"]);
-    });
-
-    it("filters out non-string values", () => {
-      expect(parsePreviewSkills('["React", 123, null, true, "TypeScript"]')).toEqual([
-        "React",
-        "TypeScript",
-      ]);
-    });
-
-    it("returns empty array for invalid JSON", () => {
-      expect(parsePreviewSkills("not json")).toEqual([]);
-      expect(parsePreviewSkills("{invalid}")).toEqual([]);
-    });
-
-    it("returns empty array for non-array JSON", () => {
-      expect(parsePreviewSkills('{"key": "value"}')).toEqual([]);
-      expect(parsePreviewSkills('"just a string"')).toEqual([]);
-      expect(parsePreviewSkills("123")).toEqual([]);
     });
   });
 });

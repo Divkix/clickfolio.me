@@ -2,6 +2,7 @@ import { env } from "cloudflare:workers";
 import { z } from "zod";
 import { getR2Binding, R2 } from "@/lib/r2";
 import { checkIPRateLimit, getClientIP } from "@/lib/rate-limit/ip";
+import { getOptionalEnvValue } from "@/lib/utils/env";
 import { COOKIE_NAME, createSignedCookieValue } from "@/lib/utils/pending-upload-cookie";
 import {
   createErrorResponse,
@@ -188,7 +189,7 @@ export async function POST(request: Request) {
     }
 
     // 10. Create signed cookie for claim verification (Issue #89)
-    const cookieSecret = typedEnv.BETTER_AUTH_SECRET;
+    const cookieSecret = getOptionalEnvValue(typedEnv, "PENDING_UPLOAD_SECRET");
     let setCookieHeader: string | undefined;
     if (cookieSecret && z.string().safeParse(cookieSecret).success) {
       const signedCookieValue = await createSignedCookieValue(key, cookieSecret);
@@ -198,7 +199,7 @@ export async function POST(request: Request) {
         setCookieHeader += "; Secure";
       }
     } else {
-      console.warn("BETTER_AUTH_SECRET not configured - upload will not be claimable");
+      console.warn("PENDING_UPLOAD_SECRET not configured - upload will not be claimable");
     }
 
     // 11. Return success with rate limit info and cookie

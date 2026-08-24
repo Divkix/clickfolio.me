@@ -19,8 +19,8 @@ type RateLimitAction = keyof typeof RATE_LIMITS;
  * Count a user's handle changes within the `handle_change` rate-limit window
  * (24h by default). Shared by `PUT /api/profile/handle` and re-onboarding handle
  * changes in `POST /api/wizard/complete` so the two routes can't drift on the
- * limit or the window. Accepts the caller's `db` (the `withUser` session `db` or
- * a `getDb()` instance) so it never opens its own connection.
+ * limit or the window. Accepts the caller's `db` so it never opens its own
+ * connection.
  */
 export async function countHandleChangesInWindow(db: Database, userId: string): Promise<number> {
   const windowMs = RATE_LIMITS.handle_change.windowHours * 60 * 60 * 1000;
@@ -46,14 +46,14 @@ interface RateLimitResult {
 
 /**
  * Checks if a user has exceeded the rate limit for a specific action
- * Uses Drizzle/D1 to count actions in the time window
+ * Uses Drizzle over Postgres (Hyperdrive) to count actions in the time window
  *
  * @param existingEnv - Optional pre-fetched CloudflareEnv to override the module-level env
  */
 export async function checkRateLimit(
   userId: string,
   action: RateLimitAction,
-  existingEnv?: Pick<CloudflareEnv, "CLICKFOLIO_DB">,
+  existingEnv?: Pick<CloudflareEnv, "HYPERDRIVE">,
 ): Promise<RateLimitResult> {
   const config = RATE_LIMITS[action];
   const windowMs = config.windowHours * 60 * 60 * 1000;
@@ -64,7 +64,7 @@ export async function checkRateLimit(
 
   try {
     const resolvedEnv = existingEnv ?? env;
-    const db = getDb(resolvedEnv.CLICKFOLIO_DB);
+    const db = getDb(resolvedEnv.HYPERDRIVE);
 
     // Determine which table and column to query based on action
     let count = 0;
@@ -152,7 +152,7 @@ export async function checkRateLimit(
 export async function enforceRateLimit(
   userId: string,
   action: RateLimitAction,
-  env?: Pick<CloudflareEnv, "CLICKFOLIO_DB">,
+  env?: Pick<CloudflareEnv, "HYPERDRIVE">,
 ): Promise<Response | null> {
   // Skip rate limiting in development
   if (process.env.NODE_ENV !== "production") {

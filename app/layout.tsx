@@ -1,4 +1,6 @@
 import type { Metadata, Viewport } from "next";
+import { env } from "cloudflare:workers";
+import { ClerkProvider } from "@/lib/auth/client";
 import { PostHogIdentifier } from "@/components/PostHogIdentifier";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Toaster } from "@/components/ui/sonner";
@@ -76,15 +78,17 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <a
-            href="#main-content"
-            className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-brand focus:text-brand-foreground focus:rounded-md"
-          >
-            Skip to main content
-          </a>
-          <PostHogIdentifier />
-          {children}
-          <Toaster />
+          <ClerkProvider publishableKey={env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}>
+            <a
+              href="#main-content"
+              className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-brand focus:text-brand-foreground focus:rounded-md"
+            >
+              Skip to main content
+            </a>
+            <PostHogIdentifier />
+            {children}
+            <Toaster />
+          </ClerkProvider>
         </ThemeProvider>
         <script
           dangerouslySetInnerHTML={{

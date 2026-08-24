@@ -5,15 +5,6 @@ import { RESERVED_HANDLES } from "@/lib/rate-limit/handle-validation";
 import { generateVisitorHash } from "@/lib/utils/analytics";
 import { createSignedCookieValue, parseSignedCookieValue } from "@/lib/utils/pending-upload-cookie";
 
-// Mock the Better Auth module
-vi.mock("@/lib/auth", () => ({
-  getAuth: vi.fn().mockResolvedValue({
-    api: {
-      getSession: vi.fn().mockResolvedValue(null),
-    },
-  }),
-}));
-
 // Mock headers
 vi.mock("next/headers", () => ({
   headers: vi.fn().mockResolvedValue(new Headers()),

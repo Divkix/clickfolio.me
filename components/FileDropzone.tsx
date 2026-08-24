@@ -4,11 +4,10 @@ import { ShieldCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { AuthDialog } from "@/components/auth/AuthDialog";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useFileUpload } from "@/hooks/useFileUpload";
-import { useSession } from "@/lib/auth/client";
+import { SignInButton, useSession } from "@/lib/auth/client";
 import { clearStoredReferralCode, getStoredReferralCode } from "@/lib/referral";
 import { clearPendingUploadCookie } from "@/lib/utils/pending-upload-client";
 import { MAX_FILE_SIZE_LABEL } from "@/lib/utils/validation";
@@ -29,7 +28,6 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
   const user = session?.user ?? null;
 
   const [claiming, setClaiming] = useState(false);
-  const [authDialogOpen, setAuthDialogOpen] = useState(false);
 
   const {
     file,
@@ -419,14 +417,11 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
             ) : (
               /* Anonymous user - show login button */
               <>
-                <Button
-                  type="button"
-                  onClick={() => setAuthDialogOpen(true)}
-                  disabled={claiming}
-                  className="w-full max-w-xs"
-                >
-                  Sign in to Publish
-                </Button>
+                <SignInButton mode="modal" fallbackRedirectUrl="/wizard">
+                  <Button type="button" disabled={claiming} className="w-full max-w-xs">
+                    Sign in to Publish
+                  </Button>
+                </SignInButton>
 
                 <p className="text-xs text-muted-foreground text-center">
                   Your upload will be automatically claimed after login
@@ -439,12 +434,6 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
                 >
                   Upload a different file
                 </button>
-
-                <AuthDialog
-                  open={authDialogOpen}
-                  onOpenChange={setAuthDialogOpen}
-                  callbackURL="/wizard"
-                />
               </>
             )}
           </div>

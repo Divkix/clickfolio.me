@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { withUser } from "@/lib/auth/with-auth";
 import { user } from "@/lib/db/schema";
-import { parsePrivacySettings } from "@/lib/utils/privacy";
+import { normalizePrivacySettings } from "@/lib/utils/privacy";
 import {
   createErrorResponse,
   createSuccessResponse,
@@ -55,8 +55,8 @@ export async function GET(request?: Request) {
 
       const profile = userRecord[0];
 
-      // Parse privacy settings JSON
-      const privacySettings = parsePrivacySettings(profile.privacySettings);
+      // Normalize privacy settings (jsonb object) with defaults for missing fields
+      const privacySettings = normalizePrivacySettings(profile.privacySettings);
 
       return createSuccessResponse({
         ...profile,

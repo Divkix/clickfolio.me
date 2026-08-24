@@ -1,73 +1,63 @@
-import type { UnknownRecord } from "@/lib/types/json";
+import type { Mock } from "vite-plus/test";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { performCleanup } from "@/lib/cron/cleanup";
 import { recoverOrphanedResumes } from "@/lib/cron/recover-orphaned";
 import type { ResumeParseMessage } from "@/lib/queue/types";
 
-// Mock Database type
-type MockDb = {
-  batch: ReturnType<typeof vi.fn>;
-  select: ReturnType<typeof vi.fn>;
-  delete: ReturnType<typeof vi.fn>;
-  update: ReturnType<typeof vi.fn>;
-  insert: ReturnType<typeof vi.fn>;
-  prepare: ReturnType<typeof vi.fn>;
-  query: {
-    user: {
-      findFirst: ReturnType<typeof vi.fn>;
-    };
-  };
-};
+/**
+ * Cron maintenance tasks against Postgres semantics.
+ *
+ * These exercise the shared handlers the worker feeds `getDb(env.HYPERDRIVE)`
+ * into from its scheduled hook:
+ * - performCleanup deletes expired uploadRateLimits + 90-day-old handleChanges
+ *   inside ONE transaction, reading postgres-js RowList.count off each DELETE.
+ * - recoverOrphanedResumes requeues stuck resumes; its TOCTOU guards read
+ *   RowList.count from conditional UPDATEs (postgres-js row counts).
+ */
 
-// Mock Queue type
-type MockQueue = {
-  send: ReturnType<typeof vi.fn>;
-};
+interface MockCronDb {
+  transaction: Mock;
+  select: Mock;
+  update: Mock;
+  delete: Mock;
+}
 
-function createMockDb(): MockDb {
-  const mockResults = {
-    meta: { changes: 0 },
-    results: [] as UnknownRecord[],
-  };
+interface MockQueue {
+  send: Mock;
+}
+
+/** Drizzle chain whose where-result is awaitable AND `.limit()`-able. */
+function selectChain(rows: unknown[]) {
   return {
-    batch: vi.fn().mockResolvedValue([mockResults, mockResults, mockResults]),
-    select: vi.fn().mockReturnValue({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          limit: vi.fn().mockResolvedValue([]),
-        }),
-      }),
-    }),
-    delete: vi.fn().mockReturnValue({
+    from: vi.fn().mockReturnValue({
       where: vi.fn().mockReturnValue({
-        prepare: vi.fn().mockReturnValue({
-          run: vi.fn().mockResolvedValue({ meta: { changes: 0 } }),
-        }),
+        limit: vi.fn().mockResolvedValue(rows),
+        then: (
+          onFulfilled: (value: unknown[]) => unknown,
+          onRejected?: (reason: unknown) => unknown,
+        ) => Promise.resolve(rows).then(onFulfilled, onRejected),
       }),
     }),
-    update: vi.fn().mockReturnValue({
-      set: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          run: vi.fn().mockResolvedValue({ meta: { changes: 0 } }),
-        }),
-      }),
-    }),
-    insert: vi.fn().mockReturnValue({
-      values: vi.fn().mockReturnValue({
-        onConflictDoNothing: vi.fn().mockResolvedValue(undefined),
-        run: vi.fn().mockResolvedValue(undefined),
-      }),
-    }),
-    prepare: vi.fn().mockReturnValue({
-      first: vi.fn().mockResolvedValue({}),
-      run: vi.fn().mockResolvedValue({ meta: { changes: 0 } }),
-    }),
-    query: {
-      user: {
-        findFirst: vi.fn().mockResolvedValue(null),
-      },
-    },
   };
+}
+
+function createMockDb(): MockCronDb {
+  const db: MockCronDb = {
+    // Default: transaction(cb) invokes cb with the tx (= the db itself).
+    transaction: vi.fn(async (cb: (tx: MockCronDb) => Promise<unknown>) => cb(db)),
+    select: vi.fn(() => selectChain([])),
+    // postgres-js RowList shape: conditional UPDATE reports affected rows via .count
+    update: vi.fn(() => ({
+      set: vi.fn(() => ({
+        where: vi.fn().mockResolvedValue({ count: 0 }),
+      })),
+    })),
+    // DELETE ... WHERE resolves directly to a RowList carrying .count
+    delete: vi.fn(() => ({
+      where: vi.fn().mockResolvedValue({ count: 0 }),
+    })),
+  };
+  return db;
 }
 
 function createMockQueue(): MockQueue {
@@ -76,8 +66,12 @@ function createMockQueue(): MockQueue {
   };
 }
 
+function asQueue(queue: MockQueue): Queue<ResumeParseMessage> {
+  return queue as unknown as Queue<ResumeParseMessage>;
+}
+
 describe("Cron Scheduled Tasks", () => {
-  let mockDb: MockDb;
+  let mockDb: MockCronDb;
   let mockQueue: MockQueue;
 
   beforeEach(() => {
@@ -87,60 +81,34 @@ describe("Cron Scheduled Tasks", () => {
   });
 
   describe("performCleanup", () => {
-    it("should cleanup expired sessions from D1", async () => {
-      const mockResult = {
-        meta: { changes: 5 },
-        results: [],
-      };
-      mockDb.batch.mockResolvedValueOnce([mockResult, mockResult, mockResult]);
+    it("deletes rate limits and handle changes in ONE transaction using RowList.count", async () => {
+      (mockDb.delete as Mock)
+        .mockReturnValueOnce({
+          // First DELETE: expired uploadRateLimits
+          where: vi.fn().mockResolvedValue({ count: 5 }),
+        })
+        .mockReturnValueOnce({
+          // Second DELETE: handleChanges older than 90 days
+          where: vi.fn().mockResolvedValue({ count: 10 }),
+        });
 
       const result = await performCleanup(mockDb as never);
 
       expect(result.ok).toBe(true);
-      expect(result.deleted.sessions).toBe(5);
+      expect(result.deleted).toEqual({ rateLimits: 5, handleChanges: 10 });
+      expect(mockDb.transaction).toHaveBeenCalledTimes(1);
+      expect(mockDb.delete).toHaveBeenCalledTimes(2);
     });
 
-    it("should cleanup expired verifications", async () => {
-      const mockResult = {
-        meta: { changes: 3 },
-        results: [],
-      };
-      mockDb.batch.mockResolvedValueOnce([mockResult, mockResult, mockResult]);
-
+    it("handles empty tables gracefully", async () => {
       const result = await performCleanup(mockDb as never);
 
       expect(result.ok).toBe(true);
-    });
-
-    it("should cleanup old handleChanges older than 90 days", async () => {
-      const rateLimitResult = { meta: { changes: 0 }, results: [] };
-      const sessionsResult = { meta: { changes: 0 }, results: [] };
-      const handleChangesResult = { meta: { changes: 10 }, results: [] };
-
-      mockDb.batch.mockResolvedValueOnce([rateLimitResult, sessionsResult, handleChangesResult]);
-
-      const result = await performCleanup(mockDb as never);
-
-      expect(result.ok).toBe(true);
-      expect(result.deleted.handleChanges).toBe(10);
-    });
-
-    it("should handle empty tables gracefully", async () => {
-      const emptyResult = {
-        meta: { changes: 0 },
-        results: [],
-      };
-      mockDb.batch.mockResolvedValueOnce([emptyResult, emptyResult, emptyResult]);
-
-      const result = await performCleanup(mockDb as never);
-
-      expect(result.ok).toBe(true);
-      expect(result.deleted.sessions).toBe(0);
       expect(result.deleted.rateLimits).toBe(0);
       expect(result.deleted.handleChanges).toBe(0);
     });
 
-    it("should be idempotent - safe to run multiple times", async () => {
+    it("is idempotent - safe to run multiple times", async () => {
       const result1 = await performCleanup(mockDb as never);
       const result2 = await performCleanup(mockDb as never);
       const result3 = await performCleanup(mockDb as never);
@@ -148,233 +116,43 @@ describe("Cron Scheduled Tasks", () => {
       expect(result1.ok).toBe(true);
       expect(result2.ok).toBe(true);
       expect(result3.ok).toBe(true);
-      expect(mockDb.batch).toHaveBeenCalledTimes(3);
-    });
-
-    it("should handle session expiry at exact boundary", async () => {
-      const boundarySession = {
-        meta: { changes: 1 },
-        results: [],
-      };
-      mockDb.batch.mockResolvedValueOnce([boundarySession, boundarySession, boundarySession]);
-
-      const result = await performCleanup(mockDb as never);
-      expect(result.ok).toBe(true);
-    });
-
-    it("should preserve verifications for active users", async () => {
-      // Mock that no verifications are deleted (active users)
-      const emptyResult = {
-        meta: { changes: 0 },
-        results: [],
-      };
-      mockDb.batch.mockResolvedValueOnce([emptyResult, emptyResult, emptyResult]);
-
-      const result = await performCleanup(mockDb as never);
-      expect(result.deleted.sessions).toBe(0); // Active user sessions preserved
+      expect(mockDb.transaction).toHaveBeenCalledTimes(3);
     });
   });
 
   describe("recoverOrphanedResumes", () => {
-    it("should recover orphaned resumes in pending_claim status", async () => {
+    const EMPTY_CHAIN = selectChain([]);
+
+    function orphanChain(resume: Record<string, unknown>) {
+      return selectChain([resume]);
+    }
+
+    it("recovers orphaned resumes stuck in pending_claim", async () => {
       const orphanedResume = {
         id: "resume-123",
         userId: "user-456",
-        r2Key: "**********************",
+        status: "pending_claim",
+        r2Key: "uploads/user-456/file.pdf",
         fileHash: "abc123",
         totalAttempts: 0,
       };
-
-      // Mock 4 parallel selects: pending has orphan, others empty (including waiting)
-      const emptyChain = {
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            limit: vi.fn().mockResolvedValue([]),
-          }),
-        }),
-      };
-      const orphanChain = {
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            limit: vi.fn().mockResolvedValue([orphanedResume]),
-          }),
-        }),
-      };
+      // Four parallel selects: pending_claim, processing, queued, waiting_for_cache.
+      // TOCTOU re-queue guard must report exactly one changed row (RowList.count).
+      mockDb.update.mockReturnValue({
+        set: vi.fn(() => ({
+          where: vi.fn().mockResolvedValue({ count: 1 }),
+        })),
+      });
       mockDb.select
-        .mockReturnValueOnce(orphanChain)
-        .mockReturnValueOnce(emptyChain)
-        .mockReturnValueOnce(emptyChain)
-        .mockReturnValueOnce(emptyChain);
+        .mockReturnValueOnce(orphanChain(orphanedResume))
+        .mockReturnValueOnce(EMPTY_CHAIN)
+        .mockReturnValueOnce(EMPTY_CHAIN)
+        .mockReturnValueOnce(EMPTY_CHAIN);
 
-      const result = await recoverOrphanedResumes(
-        mockDb as never,
-        mockQueue as unknown as Queue<ResumeParseMessage>,
-      );
+      const result = await recoverOrphanedResumes(mockDb as never, asQueue(mockQueue));
 
       expect(result.ok).toBe(true);
-      expect(result.found).toBeGreaterThan(0);
-    });
-
-    it("should recover orphaned resumes in processing status", async () => {
-      const processingOrphan = {
-        id: "resume-processing",
-        userId: "user-789",
-        r2Key: "uploads/user-789/file.pdf",
-        fileHash: "def456",
-        totalAttempts: 1,
-      };
-
-      mockDb.select.mockImplementation(() => ({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            limit: vi.fn().mockResolvedValue([]),
-          }),
-        }),
-      }));
-
-      // Second call returns processing orphans
-      mockDb.select
-        .mockReturnValueOnce({
-          from: vi.fn().mockReturnValue({
-            where: vi.fn().mockReturnValue({
-              limit: vi.fn().mockResolvedValue([]),
-            }),
-          }),
-        })
-        .mockReturnValueOnce({
-          from: vi.fn().mockReturnValue({
-            where: vi.fn().mockReturnValue({
-              limit: vi.fn().mockResolvedValue([processingOrphan]),
-            }),
-          }),
-        });
-
-      const result = await recoverOrphanedResumes(
-        mockDb as never,
-        mockQueue as unknown as Queue<ResumeParseMessage>,
-      );
-
-      expect(result).toBeDefined();
-    });
-
-    it("should detect orphaned resumes no user linked > 24hrs", async () => {
-      const oldOrphan = {
-        id: "old-resume",
-        userId: null,
-        r2Key: "temp/old/file.pdf",
-        fileHash: "old123",
-        createdAt: new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString(),
-      };
-
-      const emptyChain = {
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            limit: vi.fn().mockResolvedValue([]),
-          }),
-        }),
-      };
-      const orphanChain = {
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            limit: vi.fn().mockResolvedValue([oldOrphan]),
-          }),
-        }),
-      };
-      mockDb.select
-        .mockReturnValueOnce(orphanChain)
-        .mockReturnValueOnce(emptyChain)
-        .mockReturnValueOnce(emptyChain)
-        .mockReturnValueOnce(emptyChain);
-
-      const result = await recoverOrphanedResumes(
-        mockDb as never,
-        mockQueue as unknown as Queue<ResumeParseMessage>,
-      );
-
-      expect(result).toBeDefined();
-    });
-
-    it("should skip resumes at max attempts", async () => {
-      const maxAttemptsResume = {
-        id: "max-attempts",
-        userId: "user-123",
-        r2Key: "uploads/file.pdf",
-        fileHash: "hash123",
-        totalAttempts: 6,
-      };
-
-      const emptyChain2 = {
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            limit: vi.fn().mockResolvedValue([]),
-          }),
-        }),
-      };
-      const maxedChain = {
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            limit: vi.fn().mockResolvedValue([maxAttemptsResume]),
-          }),
-        }),
-      };
-      mockDb.select
-        .mockReturnValueOnce(maxedChain)
-        .mockReturnValueOnce(emptyChain2)
-        .mockReturnValueOnce(emptyChain2)
-        .mockReturnValueOnce(emptyChain2);
-
-      const result = await recoverOrphanedResumes(
-        mockDb as never,
-        mockQueue as unknown as Queue<ResumeParseMessage>,
-      );
-
-      expect(result.recovered).toBe(0);
-      expect(mockQueue.send).not.toHaveBeenCalled();
-    });
-
-    it("should re-queue recovered resumes", async () => {
-      const orphanedResume = {
-        id: "orphan-123",
-        userId: "user-456",
-        r2Key: "temp/file.pdf",
-        fileHash: "hash789",
-        totalAttempts: 0,
-      };
-
-      const emptyChain3 = {
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            limit: vi.fn().mockResolvedValue([]),
-          }),
-        }),
-      };
-      const orphanChain3 = {
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            limit: vi.fn().mockResolvedValue([orphanedResume]),
-          }),
-        }),
-      };
-      mockDb.select
-        .mockReturnValueOnce(orphanChain3)
-        .mockReturnValueOnce(emptyChain3)
-        .mockReturnValueOnce(emptyChain3)
-        .mockReturnValueOnce(emptyChain3);
-
-      // The TOCTOU re-queue guard skips the publish unless the conditional
-      // UPDATE reports exactly one changed row, so the mock must return
-      // meta.changes = 1 here.
-      mockDb.update.mockReturnValue({
-        set: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue({ meta: { changes: 1 } }),
-        }),
-      });
-
-      await recoverOrphanedResumes(
-        mockDb as never,
-        mockQueue as unknown as Queue<ResumeParseMessage>,
-      );
-
+      expect(result.recovered).toBeGreaterThan(0);
       expect(mockQueue.send).toHaveBeenCalledWith(
         expect.objectContaining({
           type: "parse",
@@ -386,28 +164,114 @@ describe("Cron Scheduled Tasks", () => {
       );
     });
 
-    it("should handle no orphaned resumes found", async () => {
-      mockDb.select.mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            limit: vi.fn().mockResolvedValue([]),
-          }),
-        }),
+    it("recovers orphaned resumes stuck in processing status", async () => {
+      const processingOrphan = {
+        id: "resume-processing",
+        userId: "user-789",
+        status: "processing",
+        r2Key: "uploads/user-789/file.pdf",
+        fileHash: "def456",
+        totalAttempts: 1,
+      };
+      mockDb.update.mockReturnValue({
+        set: vi.fn(() => ({
+          where: vi.fn().mockResolvedValue({ count: 1 }),
+        })),
       });
+      mockDb.select
+        .mockReturnValueOnce(EMPTY_CHAIN)
+        .mockReturnValueOnce(orphanChain(processingOrphan))
+        .mockReturnValueOnce(EMPTY_CHAIN)
+        .mockReturnValueOnce(EMPTY_CHAIN);
 
-      const result = await recoverOrphanedResumes(
-        mockDb as never,
-        mockQueue as unknown as Queue<ResumeParseMessage>,
-      );
+      const result = await recoverOrphanedResumes(mockDb as never, asQueue(mockQueue));
+
+      expect(result.ok).toBe(true);
+      expect(result.recovered).toBe(1);
+    });
+
+    it("skips resumes at max attempts", async () => {
+      const maxAttemptsResume = {
+        id: "max-attempts",
+        userId: "user-123",
+        status: "processing",
+        r2Key: "uploads/file.pdf",
+        fileHash: "hash123",
+        totalAttempts: 6,
+      };
+      mockDb.select
+        .mockReturnValueOnce(EMPTY_CHAIN)
+        .mockReturnValueOnce(orphanChain(maxAttemptsResume))
+        .mockReturnValueOnce(EMPTY_CHAIN)
+        .mockReturnValueOnce(EMPTY_CHAIN);
+
+      const result = await recoverOrphanedResumes(mockDb as never, asQueue(mockQueue));
+
+      expect(result.recovered).toBe(0);
+      expect(mockQueue.send).not.toHaveBeenCalled();
+    });
+
+    it("does NOT re-queue when the row moved on since selection (TOCTOU guard)", async () => {
+      const racedResume = {
+        id: "raced-resume",
+        userId: "user-456",
+        status: "pending_claim",
+        r2Key: "uploads/user-456/file.pdf",
+        fileHash: "abc123",
+        totalAttempts: 0,
+      };
+      // Conditional UPDATE hits 0 rows → the consumer already picked it up.
+      mockDb.update.mockReturnValue({
+        set: vi.fn(() => ({
+          where: vi.fn().mockResolvedValue({ count: 0 }),
+        })),
+      });
+      mockDb.select
+        .mockReturnValueOnce(orphanChain(racedResume))
+        .mockReturnValueOnce(EMPTY_CHAIN)
+        .mockReturnValueOnce(EMPTY_CHAIN)
+        .mockReturnValueOnce(EMPTY_CHAIN);
+
+      const result = await recoverOrphanedResumes(mockDb as never, asQueue(mockQueue));
+
+      expect(result.recovered).toBe(0);
+      expect(mockQueue.send).not.toHaveBeenCalled();
+    });
+
+    it("transitions expired waiting_for_cache rows durably", async () => {
+      // Fourth parallel select presents the expired rows; each timeout UPDATE
+      // reports its affected-row count through RowList.count.
+      mockDb.update.mockReturnValue({
+        set: vi.fn(() => ({
+          where: vi.fn().mockResolvedValue({ count: 1 }),
+        })),
+      });
+      mockDb.select
+        .mockReturnValueOnce(EMPTY_CHAIN)
+        .mockReturnValueOnce(EMPTY_CHAIN)
+        .mockReturnValueOnce(EMPTY_CHAIN)
+        .mockReturnValueOnce(selectChain([{ id: "expired-waiting", status: "waiting_for_cache" }]));
+
+      const result = await recoverOrphanedResumes(mockDb as never, asQueue(mockQueue));
+
+      expect(result.ok).toBe(true);
+      expect(result.recovered).toBe(1);
+      expect(result.found).toBe(1);
+      expect(mockQueue.send).not.toHaveBeenCalled();
+    });
+
+    it("handles no orphaned resumes found", async () => {
+      const result = await recoverOrphanedResumes(mockDb as never, asQueue(mockQueue));
 
       expect(result.ok).toBe(true);
       expect(result.recovered).toBe(0);
       expect(result.found).toBe(0);
+      expect(mockQueue.send).not.toHaveBeenCalled();
     });
   });
 
   describe("cron execution logging", () => {
-    it("should log cleanup execution", async () => {
+    it("logs cleanup execution without errors", async () => {
       const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 
       await performCleanup(mockDb as never);
@@ -420,20 +284,14 @@ describe("Cron Scheduled Tasks", () => {
       consoleSpy.mockRestore();
     });
 
-    it("should log recovery execution", async () => {
+    it("logs recovery execution without errors", async () => {
       const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 
-      mockDb.select.mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            limit: vi.fn().mockResolvedValue([]),
-          }),
-        }),
-      });
+      await recoverOrphanedResumes(mockDb as never, asQueue(mockQueue));
 
-      await recoverOrphanedResumes(
-        mockDb as never,
-        mockQueue as unknown as Queue<ResumeParseMessage>,
+      expect(consoleSpy).not.toHaveBeenCalledWith(
+        expect.stringContaining("error"),
+        expect.anything(),
       );
 
       consoleSpy.mockRestore();
@@ -441,53 +299,41 @@ describe("Cron Scheduled Tasks", () => {
   });
 
   describe("error handling", () => {
-    it("should handle database errors during cleanup", async () => {
-      mockDb.batch.mockRejectedValueOnce(new Error("Database connection failed"));
+    it("propagates database errors during cleanup", async () => {
+      mockDb.transaction.mockRejectedValueOnce(new Error("Database connection failed"));
 
       await expect(performCleanup(mockDb as never)).rejects.toThrow("Database connection failed");
     });
 
-    it("should handle queue errors during recovery", async () => {
+    it("rolls back and reports zero recovered when queue publishing fails", async () => {
       const orphanedResume = {
         id: "orphan-123",
         userId: "user-456",
+        status: "pending_claim",
         r2Key: "temp/file.pdf",
         fileHash: "hash789",
         totalAttempts: 0,
       };
-
-      const emptyChain4 = {
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            limit: vi.fn().mockResolvedValue([]),
-          }),
-        }),
-      };
-      const orphanChain4 = {
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            limit: vi.fn().mockResolvedValue([orphanedResume]),
-          }),
-        }),
-      };
+      // Re-queue guard succeeds (count 1), then the queue send throws.
+      mockDb.update.mockReturnValue({
+        set: vi.fn(() => ({
+          where: vi.fn().mockResolvedValue({ count: 1 }),
+        })),
+      });
       mockDb.select
-        .mockReturnValueOnce(orphanChain4)
-        .mockReturnValueOnce(emptyChain4)
-        .mockReturnValueOnce(emptyChain4)
-        .mockReturnValueOnce(emptyChain4);
-
+        .mockReturnValueOnce(selectChain([orphanedResume]))
+        .mockReturnValueOnce(selectChain([]))
+        .mockReturnValueOnce(selectChain([]))
+        .mockReturnValueOnce(selectChain([]));
       mockQueue.send.mockRejectedValueOnce(new Error("Queue unavailable"));
 
-      const result = await recoverOrphanedResumes(
-        mockDb as never,
-        mockQueue as unknown as Queue<ResumeParseMessage>,
-      );
+      const result = await recoverOrphanedResumes(mockDb as never, asQueue(mockQueue));
 
-      // Should handle gracefully and report 0 recovered
+      // Per-row isolation: the failure is caught, rolled back, and reported.
       expect(result.recovered).toBe(0);
     });
 
-    it("should handle concurrent cron jobs without conflicts", async () => {
+    it("handles concurrent cron jobs without conflicts", async () => {
       const cleanup1 = performCleanup(mockDb as never);
       const cleanup2 = performCleanup(mockDb as never);
 
@@ -496,16 +342,7 @@ describe("Cron Scheduled Tasks", () => {
   });
 
   describe("cron timing", () => {
-    it("should run cleanup at scheduled time", async () => {
-      const beforeCleanup = new Date();
-
-      await performCleanup(mockDb as never);
-
-      const afterCleanup = new Date();
-      expect(afterCleanup.getTime()).toBeGreaterThanOrEqual(beforeCleanup.getTime());
-    });
-
-    it("should include timestamp in results", async () => {
+    it("includes timestamp in results", async () => {
       const result = await performCleanup(mockDb as never);
 
       expect(result.timestamp).toBeDefined();
@@ -514,18 +351,10 @@ describe("Cron Scheduled Tasks", () => {
   });
 
   describe("multiple cron jobs", () => {
-    it("should handle multiple job types concurrently", async () => {
-      mockDb.select.mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            limit: vi.fn().mockResolvedValue([]),
-          }),
-        }),
-      });
-
+    it("handles multiple job types concurrently", async () => {
       const [cleanupResult, recoveryResult] = await Promise.all([
         performCleanup(mockDb as never),
-        recoverOrphanedResumes(mockDb as never, mockQueue as unknown as Queue<ResumeParseMessage>),
+        recoverOrphanedResumes(mockDb as never, asQueue(mockQueue)),
       ]);
 
       expect(cleanupResult.ok).toBe(true);

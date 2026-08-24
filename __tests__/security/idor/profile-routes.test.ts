@@ -1,5 +1,6 @@
 import type { UnknownRecord, JsonValue } from "@/lib/types/json";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import { DEFAULT_PRIVACY_SETTINGS } from "@/lib/utils/privacy";
 
 /**
  * IDOR (Insecure Direct Object Reference) tests for profile routes
@@ -8,39 +9,105 @@ import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 // ── Mocks ────────────────────────────────────────────────────────────
 
-const mockCaptureBookmark = vi.fn().mockResolvedValue(undefined);
+// DB mock: SELECT chains dequeue from a shared result queue in call order;
+// writes run through the transaction spy, which counts awaited statements and
+// captures inserted rows.
+let selectResults: JsonValue[][] = [];
 
-// DB mock
-const mockFindFirst = vi.fn();
-const mockSelect = vi.fn().mockImplementation(() => ({
-  from: vi.fn().mockReturnThis(),
-  where: vi.fn().mockReturnThis(),
-  limit: vi.fn().mockImplementation(() => [{ handle: "old-handle" }]),
-}));
-const mockFrom = vi.fn().mockReturnThis();
-const mockWhere = vi.fn().mockReturnThis();
-const mockLimit = vi.fn().mockImplementation(() => []);
+/** Owner contract for the mocked Drizzle select-builder chain. */
+interface MockQueryChain {
+  from: (...args: unknown[]) => MockQueryChain;
+  where: (...args: unknown[]) => MockQueryChain;
+  orderBy: (...args: unknown[]) => MockQueryChain;
+  limit: (...args: unknown[]) => MockQueryChain;
+  innerJoin: (...args: unknown[]) => MockQueryChain;
+  leftJoin: (...args: unknown[]) => MockQueryChain;
+  then: (
+    resolve: (value: JsonValue[]) => JsonValue,
+    reject?: (reason: unknown) => unknown,
+  ) => Promise<JsonValue>;
+}
+
+/** Owner contract for the mocked Drizzle transaction write chain. */
+interface MockTxChain {
+  set: (...args: unknown[]) => MockTxChain;
+  where: (...args: unknown[]) => MockTxChain;
+  values: (rows: UnknownRecord) => MockTxChain;
+  onConflictDoNothing: (...args: unknown[]) => MockTxChain;
+  onConflictDoUpdate: (...args: unknown[]) => MockTxChain;
+  returning: (...args: unknown[]) => MockTxChain;
+  then: (
+    resolve: (value: undefined) => unknown,
+    reject?: (reason: unknown) => unknown,
+  ) => Promise<unknown>;
+}
+
+const createQueryChain = (): MockQueryChain => {
+  const chain: MockQueryChain = {
+    from: vi.fn(() => chain),
+    where: vi.fn(() => chain),
+    orderBy: vi.fn(() => chain),
+    limit: vi.fn(() => chain),
+    innerJoin: vi.fn(() => chain),
+    leftJoin: vi.fn(() => chain),
+    then: vi.fn(
+      (resolve: (value: JsonValue[]) => JsonValue, reject?: (reason: unknown) => unknown) => {
+        const next = selectResults.shift();
+        if (next === undefined) {
+          const error = new Error("No select result queued");
+          return reject ? Promise.reject(reject(error)) : Promise.reject(error);
+        }
+        return Promise.resolve(resolve(next));
+      },
+    ),
+  };
+  return chain;
+};
+
+const mockSelect = vi.fn(() => createQueryChain());
+
+let txStatementCount = 0;
+const txValues: UnknownRecord[] = [];
+
+const createTxChain = (): MockTxChain => {
+  const chain: MockTxChain = {
+    set: vi.fn(() => chain),
+    where: vi.fn(() => chain),
+    values: vi.fn((rows: UnknownRecord) => {
+      txValues.push(rows);
+      return chain;
+    }),
+    onConflictDoNothing: vi.fn(() => chain),
+    onConflictDoUpdate: vi.fn(() => chain),
+    returning: vi.fn(() => chain),
+    then: vi.fn((resolve: (value: undefined) => unknown) => {
+      txStatementCount += 1;
+      return Promise.resolve(resolve(undefined));
+    }),
+  };
+  return chain;
+};
+
+const txUpdate = vi.fn(() => createTxChain());
+const txInsert = vi.fn(() => createTxChain());
+
+const mockTransaction = vi.fn(async (callback: (tx: unknown) => Promise<void>) => {
+  txStatementCount = 0;
+  txValues.length = 0;
+  await callback({ update: txUpdate, insert: txInsert });
+});
+
+// Standalone (non-tx) write builder used by the privacy route.
 const mockUpdate = vi.fn().mockReturnValue({
   set: vi.fn().mockReturnValue({
     where: vi.fn().mockResolvedValue(undefined),
   }),
 });
-const mockInsert = vi.fn().mockReturnValue({
-  values: vi.fn().mockResolvedValue(undefined),
-});
 
 const mockDb = {
-  query: {
-    user: {
-      findFirst: mockFindFirst,
-    },
-  },
   select: mockSelect,
-  from: mockFrom,
-  where: mockWhere,
-  limit: mockLimit,
   update: mockUpdate,
-  insert: mockInsert,
+  transaction: mockTransaction,
 };
 
 // Mock requireAuthWithUserValidation
@@ -124,15 +191,9 @@ vi.mock("@/lib/utils/validation", () => ({
 }));
 
 // Mock rate limiting
-vi.mock("@/lib/rate-limit/user", () => ({
+vi.mock("@/lib/rate-limit/user", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/rate-limit/user")>()),
   enforceRateLimit: vi.fn().mockResolvedValue(null),
-}));
-
-// Mock session DB for profile routes
-vi.mock("@/lib/db/session", () => ({
-  getSessionDbWithPrimaryFirst: vi.fn(() =>
-    Promise.resolve({ db: mockDb, captureBookmark: mockCaptureBookmark }),
-  ),
 }));
 
 import { requireAuthWithMessage, requireAuthWithUserValidation } from "@/lib/auth/middleware";
@@ -151,14 +212,15 @@ function authedAs(userId: string, _overrides: UnknownRecord = {}) {
       image: null,
       handle: "testuser",
       headline: null,
-      privacySettings: "{}",
+      privacySettings: DEFAULT_PRIVACY_SETTINGS,
       onboardingCompleted: true,
       role: "mid_level",
     },
     db: mockDb as never,
-    captureBookmark: mockCaptureBookmark,
-    dbUser: { id: userId, handle: "testuser" },
-    env: { DB: {} } as never,
+    dbUser: { id: userId, handle: "testuser", clerkId: `clerk_${userId}` },
+    env: {
+      HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" },
+    } as never,
     error: null,
   });
 }
@@ -172,7 +234,7 @@ function authedAsMessage(userId: string, _overrides: UnknownRecord = {}) {
       image: null,
       handle: "testuser",
       headline: null,
-      privacySettings: "{}",
+      privacySettings: DEFAULT_PRIVACY_SETTINGS,
       onboardingCompleted: true,
       role: "mid_level",
     },
@@ -182,8 +244,10 @@ function authedAsMessage(userId: string, _overrides: UnknownRecord = {}) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  selectResults = [];
+  txStatementCount = 0;
+  txValues.length = 0;
 });
-
 // ── Test Suite ──────────────────────────────────────────────────────
 
 describe("IDOR - Profile Routes Security", () => {
@@ -242,7 +306,6 @@ describe("IDOR - Profile Routes Security", () => {
       mockedAuth.mockResolvedValue({
         user: null as never,
         db: null,
-        captureBookmark: null,
         dbUser: null,
         env: null,
         error: new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 }),
@@ -266,11 +329,11 @@ describe("IDOR - Profile Routes Security", () => {
     it("returns 409 when attempting to squat someone else's handle", async () => {
       authedAs("user-a");
 
-      // Mock finding existing user with that handle
-      mockFindFirst.mockResolvedValue({
-        id: "user-b",
-        handle: "wanted-handle",
-      });
+      // Rate-limit count → current profile fetch → pre-check finds the
+      // handle owned by another user.
+      selectResults.push([{ count: 0 }]);
+      selectResults.push([{ handle: "current-handle" }]);
+      selectResults.push([{ id: "user-b" }]);
 
       const { PUT } = await import("@/app/api/profile/handle/route");
       const request = new Request("http://localhost:3000/api/profile/handle", {
@@ -280,12 +343,17 @@ describe("IDOR - Profile Routes Security", () => {
       });
       const response = await PUT(request);
 
-      // Should return 409 if handle exists, 500 if auth fails due to DB issues
-      expect([200, 409, 400, 500]).toContain(response.status);
+      // The availability pre-check found a conflicting owner → hard conflict.
+      expect(response.status).toBe(409);
     });
 
     it("prevents handle change for another user via ID injection", async () => {
       authedAs("user-a");
+
+      // Happy path so the route reaches its transaction write.
+      selectResults.push([{ count: 0 }]);
+      selectResults.push([{ handle: "old-handle" }]);
+      selectResults.push([]);
 
       // Attempt to include user_id in payload
       const { PUT } = await import("@/app/api/profile/handle/route");
@@ -299,19 +367,18 @@ describe("IDOR - Profile Routes Security", () => {
       });
       await PUT(request);
 
-      // The route uses authUser.id, ignoring any user_id in body
-      // Handle change should be recorded for user-a, not user-b
-      expect(mockInsert).not.toHaveBeenCalledWith(expect.objectContaining({ userId: "user-b" }));
+      // Every captured audit row belongs to the authenticated user — the
+      // injected user_id never leaks into the write.
+      for (const row of txValues) {
+        expect(row.userId).toBe("user-a");
+      }
     });
 
-    it.skip("enforces handle change rate limit (3 per 24 hours)", async () => {
+    it("enforces handle change rate limit (3 per 24 hours)", async () => {
       authedAs("user-a");
 
-      // Mock rate limit enforcement
-      const { enforceRateLimit } = await import("@/lib/rate-limit/user");
-      vi.mocked(enforceRateLimit).mockResolvedValue(
-        new Response(JSON.stringify({ error: "Rate limit exceeded" }), { status: 429 }),
-      );
+      // Three handle_changes rows inside the window → blocked before any write.
+      selectResults.push([{ count: 3 }]);
 
       const { PUT } = await import("@/app/api/profile/handle/route");
       const request = new Request("http://localhost:3000/api/profile/handle", {
@@ -322,16 +389,22 @@ describe("IDOR - Profile Routes Security", () => {
       const response = await PUT(request);
 
       expect(response.status).toBe(429);
+      expect(mockTransaction).not.toHaveBeenCalled();
     });
 
-    it.skip("blocks handle change for taken handles via unique constraint", async () => {
+    it("blocks handle change when the transaction hits the unique constraint", async () => {
       authedAs("user-a");
 
-      // Simulate unique constraint violation
-      mockFindFirst.mockResolvedValue({
-        id: "existing-user",
-        handle: "taken-handle",
-      });
+      // Pre-check sees the handle free, but a concurrent writer wins the
+      // unique index inside the transaction → Postgres SQLSTATE 23505 → 409.
+      selectResults.push([{ count: 0 }]);
+      selectResults.push([{ handle: "old-handle" }]);
+      selectResults.push([]);
+      mockTransaction.mockRejectedValueOnce(
+        Object.assign(new Error("duplicate key value violates unique constraint"), {
+          code: "23505",
+        }),
+      );
 
       const { PUT } = await import("@/app/api/profile/handle/route");
       const request = new Request("http://localhost:3000/api/profile/handle", {
@@ -341,56 +414,40 @@ describe("IDOR - Profile Routes Security", () => {
       });
       const response = await PUT(request);
 
-      expect([409, 400, 200]).toContain(response.status);
-    });
-  });
-
-  describe("PUT /api/profile/role", () => {
-    it.skip("returns 403 when non-admin tries to change role", async () => {
-      authedAs("user-a", { isAdmin: false });
-
-      const { PUT } = await import("@/app/api/profile/role/route");
-      const request = new Request("http://localhost:3000/api/profile/role", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role: "admin" }),
-      });
-      const response = await PUT(request);
-
-      expect(response.status).toBe(403);
-    });
-
-    it.skip("returns 403 for role escalation attempt by regular user", async () => {
-      authedAs("user-a", { isAdmin: false, role: "mid_level" });
-
-      // Attempt to escalate own role
-      const { PUT } = await import("@/app/api/profile/role/route");
-      const request = new Request("http://localhost:3000/api/profile/role", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role: "senior" }),
-      });
-      const response = await PUT(request);
-
-      expect([403, 401]).toContain(response.status);
+      expect(response.status).toBe(409);
     });
   });
 
   describe("GET /api/profile/me", () => {
-    it.skip("returns only authenticated user's own data", async () => {
-      authedAsMessage("user-a");
+    it("returns only authenticated user's own data", async () => {
+      authedAs("user-a");
+
+      // The route queries by the session's own id; return that row.
+      selectResults.push([
+        {
+          id: "user-a",
+          name: "Test User",
+          email: "user-a@test.com",
+          privacySettings: {},
+          onboardingCompleted: true,
+          role: "mid_level",
+          roleSource: null,
+          isAdmin: false,
+        },
+      ]);
 
       const { GET } = await import("@/app/api/profile/me/route");
       const response = await GET();
 
       expect(response.status).toBe(200);
+      const body = (await response.json()) as { id: string };
+      expect(body.id).toBe("user-a");
     });
 
     it("returns 401 for cross-user data access attempt", async () => {
       mockedAuth.mockResolvedValue({
         user: null as never,
         db: null,
-        captureBookmark: null,
         dbUser: null,
         env: null,
         error: new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 }),
@@ -405,8 +462,8 @@ describe("IDOR - Profile Routes Security", () => {
     it("prevents profile data access via different endpoint", async () => {
       authedAs("user-a");
 
-      // Mock db to return user data for authenticated user
-      mockLimit.mockResolvedValue([
+      // Queue the owner's row for the authenticated-user SELECT.
+      selectResults.push([
         {
           id: "user-a",
           name: "Test User",
@@ -414,13 +471,11 @@ describe("IDOR - Profile Routes Security", () => {
           image: null,
           handle: "testuser",
           headline: null,
-          privacySettings: "{}",
+          privacySettings: {},
           onboardingCompleted: true,
           role: "mid_level",
           roleSource: null,
           isAdmin: false,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
         },
       ]);
 
@@ -441,10 +496,6 @@ describe("IDOR - Profile Routes Security", () => {
 
       // Rapid handle checks should be rate limited
       const handles = ["alice", "bob", "charlie", "dave", "eve"];
-
-      for (const _handle of handles) {
-        mockFindFirst.mockResolvedValue(null); // Available
-      }
 
       // Verify rate limiting is checked
       const { enforceRateLimit } = await import("@/lib/rate-limit/user");
@@ -492,19 +543,6 @@ describe("IDOR - Profile Routes Security", () => {
       }
     });
   });
-
-  describe("Admin Impersonation Prevention", () => {
-    it.skip("returns 403 for admin impersonation attempt", async () => {
-      authedAs("user-a", { isAdmin: false });
-
-      // Attempt to access admin endpoints
-      const { requireAdminAuthForApi } = await import("@/lib/auth/admin");
-      // Note: requireAdminAuthForApi is not mocked in this test file
-      const result = await requireAdminAuthForApi();
-
-      expect(result.error?.status).toBe(403);
-    });
-  });
 });
 
 describe("Deleted User Profile Access", () => {
@@ -518,14 +556,15 @@ describe("Deleted User Profile Access", () => {
         image: null,
         handle: "deleted",
         headline: null,
-        privacySettings: "{}",
+        privacySettings: DEFAULT_PRIVACY_SETTINGS,
         onboardingCompleted: true,
         role: "mid_level",
       },
       db: mockDb as never,
-      captureBookmark: mockCaptureBookmark,
       dbUser: null as never, // User not found in DB
-      env: { DB: {} } as never,
+      env: {
+        HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" },
+      } as never,
       error: new Response(JSON.stringify({ error: "User account not found" }), { status: 404 }),
     } as never);
 

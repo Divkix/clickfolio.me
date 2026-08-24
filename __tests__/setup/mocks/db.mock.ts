@@ -1,13 +1,17 @@
 /**
- * Drizzle ORM + D1 mock factories for database operations.
+ * Drizzle ORM (Postgres / postgres-js) mock factories for database operations.
  *
  * Provides lightweight stubs for Drizzle's query builder surface so tests
  * can assert on `.select()`, `.insert()`, `.where()`, etc. without a real
- * D1 binding. Each helper returns a vi.fn() mock that can be customised
- * per test via `.mockResolvedValue()` / `.mockReturnValue()`.
+ * Postgres connection. Each helper returns a vi.fn() mock that can be
+ * customised per test via `.mockResolvedValue()` / `.mockReturnValue()`.
+ *
+ * jsonb semantics: jsonb columns select back as parsed objects/arrays, never
+ * JSON strings — build fixtures for privacySettings, parsedContent,
+ * parsedContentStaged, siteData.content and previewSkills as plain JS values.
  */
 
-import { vi } from "vite-plus/test";
+import { vi, type Mock } from "vite-plus/test";
 import type { Resume } from "@/lib/db/schema";
 import type { JsonValue } from "@/lib/types/json";
 
@@ -29,8 +33,7 @@ import type { JsonValue } from "@/lib/types/json";
  * The terminal method (`execute` / when awaited) resolves to the stored rows.
  */
 export function createMockQueryChain<T = unknown>(rows: T[] = []) {
-  const chain: Record<string, ReturnType<typeof vi.fn>> = {};
-
+  const chain: Record<string, Mock> = {};
   const handler: ProxyHandler<() => Promise<T[]>> = {
     get(_target, prop) {
       const strProp = String(prop);
@@ -51,7 +54,7 @@ export function createMockQueryChain<T = unknown>(rows: T[] = []) {
   };
 
   return new Proxy(() => {}, handler) as unknown as {
-    [K in string]: ReturnType<typeof vi.fn>;
+    [K in string]: Mock;
   } & Promise<T[]>;
 }
 
@@ -59,15 +62,29 @@ export function createMockQueryChain<T = unknown>(rows: T[] = []) {
 // Mock database object
 // ---------------------------------------------------------------------------
 
+/** The raw postgres-js client surface exposed as Drizzle's `$client`. */
+export interface SqlClient extends Mock {
+  prepare: Mock;
+  sql: Mock;
+  un: Mock;
+}
+
 export interface MockDb {
-  select: ReturnType<typeof vi.fn>;
-  insert: ReturnType<typeof vi.fn>;
-  update: ReturnType<typeof vi.fn>;
-  delete: ReturnType<typeof vi.fn>;
-  /** Raw D1 binding used for direct SQL (e.g. conditional INSERT rate limiting). */
-  $client: {
-    prepare: ReturnType<typeof vi.fn>;
-  };
+  select: Mock;
+  insert: Mock;
+  update: Mock;
+  delete: Mock;
+  /** Drizzle transaction: invokes the callback with this mock db as `tx`. */
+  transaction: Mock;
+  /**
+   * Raw postgres-js client exposed by Drizzle's postgres-js driver.
+   * Callable as a tagged template (`db.$client\`...\``) resolving to a RowList
+   * whose `.count` reports affected rows (default: 1); also carries minimal
+   * prepare/sql/un surface for direct-SQL paths (e.g. conditional INSERT rate
+   * limiting). Use `$client.mockResolvedValue({ count: 0 })` to simulate a
+   * concurrent request winning the last slot, or `mockImplementation` to throw.
+   */
+  $client: SqlClient;
 }
 
 /**
@@ -80,25 +97,25 @@ export interface MockDb {
  * const result = await db.select().from(userTable).where(eq(...));
  * ```
  *
- * `$client` stubs the raw D1 binding: `prepare(sql)` returns a statement whose
- * `.bind(...).run()` resolves to `{ meta: { changes: 1 } }` by default —
- * override per test to simulate a denied conditional insert (changes: 0) or a
- * thrown DB error.
+ * `transaction(cb)` awaits `cb(db)` out of the box — the callback receives the
+ * same mock db as its `tx` handle, so per-test chain stubs apply inside
+ * transactions too. `$client` is the raw postgres-js client used for direct
+ * SQL: calling it as a tagged template resolves `{ count: 1 }` by default.
  */
 export function createMockDb(): MockDb {
-  return {
+  const db = {
     select: vi.fn().mockReturnValue(createMockQueryChain()),
     insert: vi.fn().mockReturnValue(createMockQueryChain()),
     update: vi.fn().mockReturnValue(createMockQueryChain()),
     delete: vi.fn().mockReturnValue(createMockQueryChain()),
-    $client: {
-      prepare: vi.fn().mockReturnValue({
-        bind: vi.fn().mockReturnValue({
-          run: vi.fn().mockResolvedValue({ meta: { changes: 1 } }),
-        }),
-      }),
-    },
-  };
+    $client: Object.assign(vi.fn().mockResolvedValue({ count: 1 }), {
+      prepare: vi.fn(),
+      sql: vi.fn(),
+      un: vi.fn(),
+    }),
+  } as MockDb;
+  db.transaction = vi.fn(async (cb: (tx: MockDb) => unknown) => cb(db));
+  return db;
 }
 
 export function createMockDbResume(overrides: Partial<Resume> = {}): Resume {

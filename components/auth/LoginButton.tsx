@@ -1,33 +1,32 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { useSession } from "@/lib/auth/client";
-import { AuthDialog } from "./AuthDialog";
+import { SignInButton, useSession } from "@/lib/auth/client";
 
 export function LoginButton() {
-  const [dialogOpen, setDialogOpen] = useState(false);
   const { data: session, isPending } = useSession();
   const router = useRouter();
-
   const isLoggedIn = !isPending && !!session?.user;
 
-  const handleClick = () => {
-    if (isLoggedIn) {
-      router.push("/dashboard");
-    } else {
-      setDialogOpen(true);
-    }
-  };
+  if (isLoggedIn) {
+    return (
+      <Button
+        type="button"
+        onClick={() => router.push("/dashboard")}
+        loading={isPending}
+        className="whitespace-nowrap"
+      >
+        Dashboard
+      </Button>
+    );
+  }
 
   return (
-    <>
-      <Button type="button" onClick={handleClick} loading={isPending} className="whitespace-nowrap">
-        {isLoggedIn ? "Dashboard" : "Sign in"}
+    <SignInButton mode="modal" fallbackRedirectUrl="/dashboard">
+      <Button type="button" loading={isPending} className="whitespace-nowrap">
+        Sign in
       </Button>
-
-      <AuthDialog open={dialogOpen} onOpenChange={setDialogOpen} />
-    </>
+    </SignInButton>
   );
 }

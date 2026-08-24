@@ -38,7 +38,7 @@ export async function PUT(request: Request) {
 
   return withUser(
     request,
-    async ({ user: authUser, db, captureBookmark }) => {
+    async ({ user: authUser, db }) => {
       // Parse and validate request body (size-capped read, no trust in Content-Length)
       const rawBodyResult = await readJsonWithLimit(request);
       if (!rawBodyResult.ok) {
@@ -62,13 +62,13 @@ export async function PUT(request: Request) {
 
       const { show_phone, show_address, hide_from_search, show_in_directory } = validation.data;
 
-      // Update privacy_settings (stored as JSON string in D1)
-      const privacySettings = JSON.stringify({
+      // Update privacy_settings (jsonb) and its denormalized directory column together
+      const privacySettings = {
         show_phone,
         show_address,
         hide_from_search,
         show_in_directory,
-      });
+      };
 
       await db
         .update(user)
@@ -79,7 +79,6 @@ export async function PUT(request: Request) {
         })
         .where(eq(user.id, authUser.id));
 
-      await captureBookmark();
       return createSuccessResponse({
         success: true,
         privacy_settings: {

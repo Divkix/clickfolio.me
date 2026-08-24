@@ -13,11 +13,10 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import { DEFAULT_PRIVACY_SETTINGS } from "@/lib/utils/privacy";
 import type { JsonValue } from "@/lib/types/json";
 
 // ── Mocks ─────────────────────────────────────────────────────────────
-
-const mockCaptureBookmark = vi.fn().mockResolvedValue(undefined);
 
 const mockFindFirst = vi.fn();
 const mockDb = {
@@ -78,14 +77,15 @@ function authedAs(userId: string, db: JsonValue) {
       image: null,
       handle: "testuser",
       headline: null,
-      privacySettings: "{}",
+      privacySettings: DEFAULT_PRIVACY_SETTINGS,
       onboardingCompleted: true,
       role: "mid_level",
     },
     db: db as never,
-    captureBookmark: mockCaptureBookmark,
-    dbUser: { id: userId, handle: "testuser" },
-    env: { DB: {} } as never,
+    dbUser: { id: userId, handle: "testuser", clerkId: `clerk_${userId}` },
+    env: {
+      HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" },
+    } as never,
     error: null,
   });
 }

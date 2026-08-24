@@ -1,5 +1,7 @@
 import { env } from "cloudflare:workers";
 import { getR2Binding } from "@/lib/r2";
+import { getDb } from "@/lib/db";
+import { sql } from "drizzle-orm";
 import {
   createErrorResponse,
   createSuccessResponse,
@@ -20,7 +22,7 @@ interface HealthResponse {
   status: ServiceStatus;
   timestamp: string;
   services: {
-    d1: ServiceHealth;
+    pg: ServiceHealth;
     r2: ServiceHealth;
     aiProvider: ServiceHealth;
   };
@@ -32,15 +34,16 @@ type AiProviderEnv = Pick<
 >;
 
 /**
- * Checks D1 database connectivity by running a lightweight `SELECT 1` query.
+ * Checks Postgres (via Hyperdrive) connectivity with a lightweight `SELECT 1`.
  *
- * @param db - The D1 database binding.
+ * @param hyperdrive - The HYPERDRIVE binding from the environment.
  * @returns ServiceHealth with latency and status.
  */
-async function checkD1(db: D1Database): Promise<ServiceHealth> {
+async function checkPg(hyperdrive: Hyperdrive): Promise<ServiceHealth> {
   const start = Date.now();
   try {
-    await db.prepare("SELECT 1").first();
+    const db = getDb(hyperdrive);
+    await db.execute(sql`SELECT 1`);
     return { status: "healthy", latencyMs: Date.now() - start };
   } catch (error) {
     return {
@@ -105,7 +108,7 @@ function aggregateStatus(services: HealthResponse["services"]): ServiceStatus {
  * GET /api/health
  *
  * Returns health status of all services:
- * - D1 database
+ * - Postgres database (via Hyperdrive)
  * - R2 bucket
  * - AI provider configuration
  *
@@ -119,19 +122,19 @@ export async function GET() {
     const r2Binding = getR2Binding(typedEnv);
 
     // Run all health checks in parallel
-    const [d1Health, r2Health] = await Promise.all([
-      checkD1(typedEnv.CLICKFOLIO_DB),
+    const [r2Health, pgHealth] = await Promise.all([
       r2Binding
         ? checkR2(r2Binding)
         : Promise.resolve({ status: "unhealthy" as const, error: "R2 binding not available" }),
+      checkPg(typedEnv.HYPERDRIVE),
     ]);
 
     // Check AI provider config (synchronous)
     const aiHealth = checkAiProviderConfig(typedEnv);
 
     const services = {
-      d1: d1Health,
       r2: r2Health,
+      pg: pgHealth,
       aiProvider: aiHealth,
     };
 

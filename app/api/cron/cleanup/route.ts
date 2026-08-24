@@ -7,7 +7,6 @@
  * Scheduled daily at 3 AM UTC via wrangler.jsonc
  * Deletes:
  * - Expired rate limits (expiresAt < now)
- * - Expired sessions (expiresAt < now)
  * - Old handleChanges (older than 90 days)
  *
  * @returns Response from {@link performCleanup} on success.
@@ -19,4 +18,4 @@ import { getDb } from "@/lib/db";
 import { performCleanup } from "@/lib/cron/cleanup";
 import { withCron } from "@/lib/cron/with-cron";
 
-export const GET = withCron(async (env) => performCleanup(getDb(env.CLICKFOLIO_DB)));
+export const GET = withCron(async (env) => performCleanup(getDb(env.HYPERDRIVE)));

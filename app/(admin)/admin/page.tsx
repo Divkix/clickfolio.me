@@ -19,17 +19,17 @@ export const metadata: Metadata = {
 };
 
 /**
- * Aggregates D1 and Umami analytics into admin dashboard stats.
+ * Aggregates database and Umami analytics into admin dashboard stats.
  * Umami failures are handled gracefully so the page never crashes.
  */
 async function getAdminStats() {
-  const db = getDb(env.CLICKFOLIO_DB);
+  const db = getDb(env.HYPERDRIVE);
 
   const now = new Date();
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-  // D1 queries and Umami calls separated so Umami outage doesn't crash the whole page
+  // Database queries and Umami calls separated so Umami outage doesn't crash the whole page
   const [userCount, siteDataCount, resumeStats, recentSignups] = await Promise.all([
     db.select({ count: count() }).from(user),
     db.select({ count: count() }).from(siteData),
@@ -58,7 +58,7 @@ async function getAdminStats() {
     console.error("[admin] Umami API unavailable:", err);
   }
 
-  // SAFETY: D1 status is validated string column; cast initializes typed map for counting.
+  // SAFETY: status is a validated string column; cast initializes typed map for counting.
   const statusMap = resumeStats.reduce(
     (acc, r) => {
       acc[r.status || "unknown"] = r.count;

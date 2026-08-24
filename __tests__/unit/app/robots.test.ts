@@ -7,7 +7,7 @@ describe("robots metadata", () => {
   });
 
   it("points sitemap to rewritten /sitemap.xml endpoint", () => {
-    vi.stubEnv("BETTER_AUTH_URL", "https://example.com");
+    vi.stubEnv("APP_URL", "https://example.com");
 
     const config = robots();
 

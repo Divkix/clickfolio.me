@@ -15,7 +15,7 @@ import {
 } from "@/lib/rate-limit/ip";
 // Mock the modules
 vi.mock("cloudflare:workers", () => ({
-  env: { CLICKFOLIO_DB: {} as D1Database },
+  env: { HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" } },
 }));
 
 vi.mock("@/lib/db", () => ({
@@ -43,6 +43,15 @@ vi.mock("drizzle-orm", async (importOriginal) => {
 
 import { getDb } from "@/lib/db";
 import { isLocalEnvironment } from "@/lib/utils/environment";
+
+/**
+ * SQL text of a postgres-js tagged-template call: raw text chunks joined by
+ * parameter placeholders (the interpolated values travel as the call's
+ * remaining arguments).
+ */
+function sqlText(call: readonly unknown[] | undefined): string {
+  return ((call?.[0] as TemplateStringsArray | undefined) ?? []).join("?");
+}
 
 describe("getClientIP", () => {
   it("extracts IP from CF-Connecting-IP header", () => {
@@ -195,10 +204,6 @@ describe("checkIPRateLimit - Production Rate Limiting", () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.mocked(isLocalEnvironment).mockReturnValue(false);
     vi.mocked(getDb).mockReturnValue(mockDb as never);
-    // Setup insert mock as it may be called for successful requests
-    mockDb.insert.mockReturnValue({
-      values: vi.fn().mockResolvedValue(undefined),
-    } as never);
   });
 
   afterEach(() => {
@@ -281,15 +286,13 @@ describe("checkIPRateLimit - Production Rate Limiting", () => {
 
     await checkIPRateLimit("192.168.1.1");
 
-    // The count-then-insert path was replaced by a single atomic
-    // INSERT ... SELECT via the raw D1 client (item 21).
-    expect(mockDb.$client.prepare).toHaveBeenCalledWith(
-      expect.stringContaining("INSERT INTO upload_rate_limits"),
-    );
+    // Enforcement runs through one atomic conditional INSERT ... SELECT issued
+    // as postgres-js tagged templates on the raw client: call[0] builds the
+    // daily guard fragment, call[1] is the INSERT itself.
+    expect(mockDb.$client).toHaveBeenCalledTimes(2);
+    expect(sqlText(mockDb.$client.mock.calls[1])).toContain("INSERT INTO upload_rate_limits");
     expect(mockDb.insert).not.toHaveBeenCalled();
-    const bindMock = mockDb.$client.prepare.mock.results[0]?.value.bind as ReturnType<typeof vi.fn>;
-    expect(bindMock).toHaveBeenCalled();
-    expect(bindMock.mock.calls[0]).toContain("upload");
+    expect(mockDb.$client.mock.calls[1]?.slice(1)).toContain("upload");
   });
 
   it("enforces the daily limit in the atomic upload insert", async () => {
@@ -301,11 +304,13 @@ describe("checkIPRateLimit - Production Rate Limiting", () => {
 
     await checkIPRateLimit("192.168.1.1");
 
-    const sql = mockDb.$client.prepare.mock.calls[0]?.[0] as string;
-    expect(sql).toContain("created_at >= ?");
-    expect(sql.match(/created_at >= \?/g)).toHaveLength(2);
-    const bindMock = mockDb.$client.prepare.mock.results[0]?.value.bind as ReturnType<typeof vi.fn>;
-    expect(bindMock.mock.calls[0]).toContain(50);
+    const guardSql = sqlText(mockDb.$client.mock.calls[0]);
+    const insertSql = sqlText(mockDb.$client.mock.calls[1]);
+    // The daily guard carries its own created_at cutoff; the hourly cutoff in
+    // the INSERT makes two window checks total across the two statements.
+    expect(guardSql).toContain("created_at >= ?");
+    expect(insertSql.match(/created_at >= \?/g)).toHaveLength(1);
+    expect(mockDb.$client.mock.calls[0]?.slice(1)).toContain(50);
   });
 
   it("counts only upload actions toward anonymous upload limits", async () => {
@@ -345,7 +350,7 @@ describe("checkIPRateLimit - Production Rate Limiting", () => {
     const result = await checkIPRateLimit("unknown");
 
     expect(result.allowed).toBe(true);
-    expect(mockDb.$client.prepare).toHaveBeenCalled();
+    expect(mockDb.$client).toHaveBeenCalled();
   });
 
   it("still allows request when record fails (fail open)", async () => {
@@ -354,7 +359,7 @@ describe("checkIPRateLimit - Production Rate Limiting", () => {
         where: vi.fn().mockResolvedValue([{ hourly: 0, daily: 0 }]),
       }),
     } as never);
-    mockDb.$client.prepare.mockImplementation(() => {
+    mockDb.$client.mockImplementation(() => {
       throw new Error("Insert failed");
     });
 
@@ -363,11 +368,7 @@ describe("checkIPRateLimit - Production Rate Limiting", () => {
     expect(result.allowed).toBe(true);
 
     // Restore the default insert path for subsequent tests.
-    mockDb.$client.prepare.mockReturnValue({
-      bind: vi.fn().mockReturnValue({
-        run: vi.fn().mockResolvedValue({ meta: { changes: 1 } }),
-      }),
-    });
+    mockDb.$client.mockResolvedValue({ count: 1 });
   });
 
   it("denies when the atomic conditional insert records 0 changes (item 21)", async () => {
@@ -377,11 +378,7 @@ describe("checkIPRateLimit - Production Rate Limiting", () => {
         where: vi.fn().mockResolvedValue([{ hourly: 3, daily: 20 }]),
       }),
     } as never);
-    mockDb.$client.prepare.mockReturnValue({
-      bind: vi.fn().mockReturnValue({
-        run: vi.fn().mockResolvedValue({ meta: { changes: 0 } }),
-      }),
-    });
+    mockDb.$client.mockResolvedValue({ count: 0 });
 
     const result = await checkIPRateLimit("192.168.1.1");
 
@@ -389,11 +386,7 @@ describe("checkIPRateLimit - Production Rate Limiting", () => {
     expect(result.message).toContain("Try again in an hour");
 
     // Restore the default insert path for subsequent tests.
-    mockDb.$client.prepare.mockReturnValue({
-      bind: vi.fn().mockReturnValue({
-        run: vi.fn().mockResolvedValue({ meta: { changes: 1 } }),
-      }),
-    });
+    mockDb.$client.mockResolvedValue({ count: 1 });
   });
 
   it("generates consistent IP hash for same IP", async () => {
@@ -443,10 +436,6 @@ describe("checkHandleRateLimit - Production", () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.mocked(isLocalEnvironment).mockReturnValue(false);
     vi.mocked(getDb).mockReturnValue(mockDb as never);
-    // Setup insert mock as it may be called for successful requests
-    mockDb.insert.mockReturnValue({
-      values: vi.fn().mockResolvedValue(undefined),
-    } as never);
   });
 
   afterEach(() => {
@@ -488,9 +477,10 @@ describe("checkHandleRateLimit - Production", () => {
 
     await checkHandleRateLimit("192.168.1.1");
 
-    expect(mockDb.$client.prepare).toHaveBeenCalled();
-    const bindMock = mockDb.$client.prepare.mock.results[0]?.value.bind as ReturnType<typeof vi.fn>;
-    expect(bindMock.mock.calls[0]).toContain("handle_check");
+    expect(mockDb.$client).toHaveBeenCalledTimes(2);
+    // The INSERT is the second tagged-template call; its interpolated values
+    // carry the bucketed action type.
+    expect(mockDb.$client.mock.calls[1]?.slice(1)).toContain("handle_check");
   });
 });
 
@@ -531,9 +521,6 @@ describe("checkEmailValidateRateLimit - Production", () => {
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue([{ count: 20 }]),
       }),
-    } as never);
-    mockDb.insert.mockReturnValue({
-      values: vi.fn().mockResolvedValue(undefined),
     } as never);
 
     const result = await checkEmailValidateRateLimit("192.168.1.1");
@@ -589,9 +576,6 @@ describe("DISABLE_RATE_LIMITS security", () => {
         where: vi.fn().mockResolvedValue([{ hourly: 0, daily: 0 }]),
       }),
     } as never);
-    mockDb.insert.mockReturnValue({
-      values: vi.fn().mockResolvedValue(undefined),
-    } as never);
 
     await checkIPRateLimit("192.168.1.1");
 
@@ -623,9 +607,6 @@ describe("Rate limit window expiration", () => {
         where: vi.fn().mockResolvedValue([{ hourly: 5, daily: 16 }]),
       }),
     } as never);
-    mockDb.insert.mockReturnValue({
-      values: vi.fn().mockResolvedValue(undefined),
-    } as never);
 
     const result = await checkIPRateLimit("192.168.1.1");
 
@@ -638,9 +619,6 @@ describe("Rate limit window expiration", () => {
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue([{ hourly: 0, daily: 49 }]),
       }),
-    } as never);
-    mockDb.insert.mockReturnValue({
-      values: vi.fn().mockResolvedValue(undefined),
     } as never);
 
     const result = await checkIPRateLimit("192.168.1.1");

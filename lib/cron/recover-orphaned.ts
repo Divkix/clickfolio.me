@@ -27,12 +27,6 @@ export interface RecoverOrphanedResult extends UnknownRecord {
   timestamp: string;
 }
 
-type D1ChangesResult = { meta?: { changes?: number }; changes?: number } | null | undefined;
-
-function getChanges(result: D1ChangesResult): number {
-  return result?.meta?.changes ?? result?.changes ?? 0;
-}
-
 export async function recoverOrphanedResumes(
   db: Database,
   queue: Queue<ResumeParseMessage>,
@@ -122,7 +116,7 @@ export async function recoverOrphanedResumes(
 
   // Durably transition expired waiting_for_cache rows to failed.
   // TOCTOU-guarded on still being `waiting_for_cache`. Run in parallel since rows are independent.
-  // Each row is individually try/caught so one D1 transient error does not abort the whole cron tick
+  // Each row is individually try/caught so one transient DB error does not abort the whole cron tick
   // (mirrors the per-row isolation of the sequential requeue loop below).
   const timeoutUpdate = buildWaitingForCacheTimeoutUpdate();
   const timeoutResults = await Promise.all(
@@ -132,7 +126,7 @@ export async function recoverOrphanedResumes(
           .update(resumes)
           .set({ status: timeoutUpdate.status, errorMessage: timeoutUpdate.errorMessage })
           .where(and(eq(resumes.id, row.id), eq(resumes.status, "waiting_for_cache")));
-        const changes = getChanges(result);
+        const changes = result.count;
         if (changes > 0) {
           log("info", "timed out waiting_for_cache resume", { resumeId: row.id });
         }
@@ -195,7 +189,7 @@ export async function recoverOrphanedResumes(
           queuedAt: now,
         })
         .where(and(eq(resumes.id, resume.id), eq(resumes.status, resume.status)));
-      const requeueChanges = getChanges(requeueResult);
+      const requeueChanges = requeueResult.count;
       if (requeueChanges === 0) {
         log("info", "skipping resume - status changed since selection", {
           resumeId: resume.id,

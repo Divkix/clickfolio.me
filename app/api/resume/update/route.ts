@@ -49,7 +49,7 @@ export async function PUT(request: Request) {
 
   return withUser(
     request,
-    async ({ user: authUser, db, captureBookmark }) => {
+    async ({ user: authUser, db }) => {
       const userId = authUser.id;
 
       // Parse and validate request body (size-capped read, no trust in Content-Length)
@@ -85,7 +85,7 @@ export async function PUT(request: Request) {
       const updateResult = await db
         .update(siteData)
         .set({
-          content: JSON.stringify(content),
+          content,
           ...previewFields,
           lastPublishedAt: now,
           updatedAt: now,
@@ -110,7 +110,6 @@ export async function PUT(request: Request) {
       const data = updateResult[0];
 
       // Return success response (no content echo — caller already has validated copy)
-      await captureBookmark();
       return createSuccessResponse({
         success: true,
         data: {

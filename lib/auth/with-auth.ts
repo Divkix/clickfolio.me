@@ -85,8 +85,8 @@ export async function withUser(
     const result = await requireAuthWithUserValidation(unauthorizedMessage);
     if (result.error) return result.error;
 
-    const { user, db, captureBookmark, dbUser, env } = result;
-    return await handler({ user, db, captureBookmark, dbUser, env });
+    const { user, db, dbUser, env } = result;
+    return await handler({ user, db, dbUser, env });
   } catch (error) {
     console.error(`Unhandled error in ${pathnameOf(request)}:`, error);
     return createErrorResponse(UNEXPECTED_ERROR_MESSAGE, ERROR_CODES.INTERNAL_ERROR, 500);

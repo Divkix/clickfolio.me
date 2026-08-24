@@ -15,8 +15,8 @@ import {
   type ThemeId,
 } from "@/lib/templates/theme-ids";
 import type { ResumeContent } from "@/lib/types/database";
-import { parsePreviewSkills } from "@/lib/utils/preview-skills";
-import { extractCityState, parsePrivacySettings } from "@/lib/utils/privacy";
+import { normalizePreviewSkills } from "@/lib/utils/preview-skills";
+import { extractCityState, normalizePrivacySettings } from "@/lib/utils/privacy";
 
 interface ResumeData {
   profile: {
@@ -50,13 +50,13 @@ interface ResumeMetadata {
 }
 
 /**
- * Fetch resume data from D1 via Drizzle WITHOUT using cookies.
+ * Fetch resume data from Postgres via Drizzle WITHOUT using cookies.
  *
  * Privacy filtering is applied during fetch, so returned content
  * is already privacy-filtered.
  */
 async function fetchResumeDataRaw(handle: string): Promise<ResumeData | null> {
-  const db = getDb(env.CLICKFOLIO_DB);
+  const db = getDb(env.HYPERDRIVE);
 
   // Fetch user by handle with siteData relation
   const userData = await db.query.user.findFirst({
@@ -93,20 +93,12 @@ async function fetchResumeDataRaw(handle: string): Promise<ResumeData | null> {
     return null;
   }
 
-  // Parse content JSON (stored as text in D1)
-  // Data is already validated at write time (/api/resume/update)
-  // D1 is a trusted source - skip redundant Zod validation (saves 200-400ms)
-  let content: ResumeContent;
-  try {
-    // SAFETY: D1 content is schema-validated JSON written only by our queue consumer; JSON.parse failure is caught and returns null.
-    content = JSON.parse(userData.siteData.content) as ResumeContent;
-  } catch (error) {
-    console.error("Failed to parse site_data content for handle:", handle, error);
-    return null;
-  }
+  // Content arrives pre-parsed from the JSONB column.
+  // Data is already validated at write time (/api/resume/update and the queue consumer).
+  let content = userData.siteData.content;
 
-  // Parse privacy settings from JSON string
-  const privacySettings = parsePrivacySettings(userData.privacySettings);
+  // Normalize privacy settings (jsonb object) with defaults for missing fields
+  const privacySettings = normalizePrivacySettings(userData.privacySettings);
 
   // Defense-in-depth: Validate theme is unlocked before returning
   // This catches edge cases where theme was set directly in DB or via API bypass
@@ -118,7 +110,7 @@ async function fetchResumeDataRaw(handle: string): Promise<ResumeData | null> {
 
     // Only check referral count if theme requires referrals
     if (themeMetadata.referralsRequired > 0) {
-      // Use denormalized field instead of COUNT query (saves ~15ms D1 roundtrip)
+      // Use denormalized field instead of COUNT query (saves a roundtrip)
       const referralCount = userData.referralCount ?? 0;
       const isPro = userData.isPro ?? false;
 
@@ -173,7 +165,7 @@ async function fetchResumeDataRaw(handle: string): Promise<ResumeData | null> {
  * the full content JSON blob (50-100KB), saving significant I/O and CPU.
  */
 async function fetchResumeMetadataRaw(handle: string): Promise<ResumeMetadata | null> {
-  const db = getDb(env.CLICKFOLIO_DB);
+  const db = getDb(env.HYPERDRIVE);
 
   const userData = await db.query.user.findFirst({
     where: eq(user.handle, handle),
@@ -211,10 +203,10 @@ async function fetchResumeMetadataRaw(handle: string): Promise<ResumeMetadata | 
     return null;
   }
 
-  // Parse privacy settings for hide_from_search
-  const parsedSettings = parsePrivacySettings(userData.privacySettings);
+  // Normalize privacy settings (jsonb object) for hide_from_search
+  const parsedSettings = normalizePrivacySettings(userData.privacySettings);
   const hideFromSearch = parsedSettings.hide_from_search;
-  const parsedSkills = parsePreviewSkills(userData.siteData.previewSkills);
+  const parsedSkills = normalizePreviewSkills(userData.siteData.previewSkills);
 
   // Filter the denormalized previewLocation at READ time (fixes existing rows
   // written before the privacy filter existed). When show_address is false the
@@ -231,8 +223,8 @@ async function fetchResumeMetadataRaw(handle: string): Promise<ResumeMetadata | 
 
   if (userData?.siteData?.content && !hideFromSearch) {
     try {
-      // SAFETY: D1 content is schema-validated JSON written only by our queue consumer; JSON.parse failure is caught and returns null.
-      const content = JSON.parse(userData.siteData.content) as ResumeContent;
+      // SAFETY: content is schema-validated JSONB written by the queue consumer and /api/resume/update; cast bridges the column's wide Record type.
+      const content = userData.siteData.content as ResumeContent;
       const profileUrl = `${siteConfig.url}/@${handle}`;
 
       const jsonLd = generateResumeJsonLd(content, {
@@ -265,7 +257,7 @@ async function fetchResumeMetadataRaw(handle: string): Promise<ResumeMetadata | 
 
 /**
  * Resume data fetcher with request-level deduplication.
- * Wrapped with React.cache() to avoid duplicate D1 queries when
+ * Wrapped with React.cache() to avoid duplicate database queries when
  * both generateMetadata() and the page component call this function.
  *
  * @param handle - The user's unique handle
@@ -288,11 +280,11 @@ export const getRelatedProfiles = cache(
     _skills?: string[] | null,
     _headline?: string | null,
   ): Promise<Array<{ handle: string; name: string; headline?: string | null }>> => {
-    const db = getDb(env.CLICKFOLIO_DB);
+    const db = getDb(env.HYPERDRIVE);
 
     const notHiddenFromSearch = or(
-      sql`json_extract(${user.privacySettings}, '$.hide_from_search') IS NULL`,
-      sql`json_extract(${user.privacySettings}, '$.hide_from_search') = false`,
+      sql`${user.privacySettings}->>'hide_from_search' IS NULL`,
+      sql`${user.privacySettings}->>'hide_from_search' = 'false'`,
     );
 
     const whereClause = and(

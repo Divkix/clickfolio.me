@@ -10,7 +10,7 @@ import type { UnknownRecord } from "@/lib/types/json";
 import { sendAlert, getAlertChannel } from "@/lib/queue/alert";
 
 type MockEnv = {
-  CLICKFOLIO_DB: CloudflareEnv["CLICKFOLIO_DB"];
+  HYPERDRIVE: CloudflareEnv["HYPERDRIVE"];
   CLICKFOLIO_STATUS_DO: undefined;
   ALERT_WEBHOOK_URL?: string;
   ALERT_CHANNEL?: string;
@@ -18,7 +18,9 @@ type MockEnv = {
 
 function createMockEnv(overrides: Record<string, string | undefined> = {}): MockEnv {
   return {
-    CLICKFOLIO_DB: {} as D1Database,
+    HYPERDRIVE: {
+      connectionString: "postgres://user:pass@localhost:5432/clickfolio",
+    } as CloudflareEnv["HYPERDRIVE"],
     CLICKFOLIO_STATUS_DO: undefined,
     ...overrides,
   };

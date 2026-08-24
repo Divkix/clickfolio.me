@@ -2,8 +2,10 @@ import { and, eq, inArray, isNotNull, ne } from "drizzle-orm";
 import { buildSiteDataUpsert } from "../data/site-data-upsert";
 import type { UserRole } from "../db/schema";
 import { resumes, user } from "../db/schema";
-import { getSessionDbForWebhook } from "../db/session";
+import { getDb } from "../db";
 import { getR2Binding, R2 } from "../r2";
+import { resumeContentSchema } from "../schemas/resume";
+import type { ResumeContent } from "../types/database";
 import { getAlertChannel, sendAlert, type AlertEnv } from "./alert";
 import { classifyQueueError, isRetryableError, type QueueErrorInput } from "./errors";
 import { notifyStatusChange, notifyStatusChangeBatch } from "./notify-status";
@@ -53,7 +55,7 @@ function getUserFriendlyError(rawError: string): string {
  *    batch update + siteData upsert, then notify all connected clients.
  */
 async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv): Promise<void> {
-  const { db } = getSessionDbForWebhook(env.CLICKFOLIO_DB);
+  const db = getDb(env.HYPERDRIVE);
   const r2Binding = getR2Binding(env);
 
   if (!r2Binding) {
@@ -117,16 +119,14 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
     .where(eq(user.id, message.userId))
     .limit(1);
   const hasHandle = !!userRow[0]?.handle;
+  const now = new Date().toISOString();
 
   if (cached[0]?.parsedContent) {
-    // Use cached result — M7: include totalAttempts increment in same UPDATE
-    const now = new Date().toISOString();
-    // SAFETY: Drizzle infers parsedContent as string|null; cached row is filtered isNotNull(parsedContent), safe to narrow to string.
-    const cachedContent = cached[0].parsedContent as string;
+    const cachedContent = cached[0].parsedContent;
 
-    // M7: Batch resume completion + siteData upsert atomically
-    await db.batch([
-      db
+    // M7: Complete resume + siteData upsert atomically in a single PG transaction.
+    await db.transaction(async (tx) => {
+      await tx
         .update(resumes)
         .set({
           status: "completed",
@@ -135,11 +135,11 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
           lastAttemptError: null,
           totalAttempts: nextAttemptCount,
         })
-        .where(eq(resumes.id, message.resumeId)),
-      buildSiteDataUpsert(db, message.userId, message.resumeId, cachedContent, now, {
+        .where(eq(resumes.id, message.resumeId));
+      await buildSiteDataUpsert(tx, message.userId, message.resumeId, cachedContent, {
         publish: hasHandle,
-      }),
-    ]);
+      });
+    });
 
     await notifyStatusChange({
       resumeId: message.resumeId,
@@ -201,12 +201,17 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
     throw new Error(rawError);
   }
 
-  // parsedContent is produced by JSON.stringify() in parseResumeWithAi — guaranteed valid JSON
-  const parsedContent = parseResult.parsedContent;
+  // parseResumeWithAi returns JSON.stringify()'d output; PG stores parsedContent/content
+  // as JSONB, so decode once here and re-validate against the resume schema at this
+  // boundary before the parsed object is threaded through every JSONB write.
+  let parsedContent: ResumeContent;
+  try {
+    parsedContent = resumeContentSchema.parse(JSON.parse(parseResult.parsedContent));
+  } catch {
+    throw new Error(`Invalid JSON response from AI parser for resume ${message.resumeId}`);
+  }
   // SAFETY: AI returns professionalLevel as validated string from resumeContentSchema; UserRole cast narrows to enum with undefined fallback if missing.
   const professionalLevel = parseResult.professionalLevel as UserRole | undefined;
-
-  const now = new Date().toISOString();
 
   // Re-fetch hasHandle just before the batch to avoid a stale race: the
   // hasHandle fetched at the top is ~90s stale after the AI parse window.
@@ -221,12 +226,12 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
     .limit(1);
   const freshHasHandle = !!freshRow[0]?.handle;
 
-  // M10: Batch resume completion + siteData upsert atomically.
-  // Without batching, a crash between the UPDATE and upsert leaves the resume
-  // marked "completed" with no siteData, and the idempotency guard at line 93
-  // skips it on retry. db.batch() executes both in a single D1 transaction.
-  await db.batch([
-    db
+  // M10: Complete resume + siteData upsert atomically in a single PG transaction.
+  // Without this, a crash between the UPDATE and upsert leaves the resume
+  // marked "completed" with no siteData, and the idempotency guard above
+  // skips it on retry.
+  await db.transaction(async (tx) => {
+    await tx
       .update(resumes)
       .set({
         status: "completed",
@@ -235,11 +240,11 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
         parsedContentStaged: null,
         lastAttemptError: null,
       })
-      .where(eq(resumes.id, message.resumeId)),
-    buildSiteDataUpsert(db, message.userId, message.resumeId, parsedContent, now, {
+      .where(eq(resumes.id, message.resumeId));
+    await buildSiteDataUpsert(tx, message.userId, message.resumeId, parsedContent, {
       publish: freshHasHandle,
-    }),
-  ]);
+    });
+  });
 
   // Write AI-inferred professional level to user.role separately from the
   // critical resume+siteData batch. If this fails, the resume is still
@@ -265,16 +270,15 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
     .from(resumes)
     .where(and(eq(resumes.fileHash, message.fileHash), eq(resumes.status, "waiting_for_cache")));
 
-  // Batch status update + all siteData upserts atomically.
-  // Without batching, a crash between the bulk UPDATE and individual upserts
+  // Apply status update + all siteData upserts atomically in one PG transaction.
+  // Without this, a crash between the bulk UPDATE and individual upserts
   // leaves some resumes marked "completed" with no siteData, and the
-  // idempotency guard at line 93 skips them on retry.
+  // idempotency guard above skips them on retry.
   if (waitingResumes.length > 0) {
     // Gate publishing per waiting user: each waiting resume's site must only be
     // published if THAT user has a handle. A single hasHandle for the primary
     // user would incorrectly publish/unpublish other users' sites.
-    // SAFETY: D1 rows from Drizzle select have non-null userId; cast narrows string|null to string for per-user handle lookup.
-    const waitingUserIds = [...new Set(waitingResumes.map((w) => w.userId as string))];
+    const waitingUserIds = [...new Set(waitingResumes.map((w) => w.userId))];
     const waitingHandleRows = waitingUserIds.length
       ? await db
           .select({ id: user.id, handle: user.handle })
@@ -287,9 +291,8 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
     // waiting_for_cache between the SELECT and this UPDATE must NOT be completed
     // here — it would be marked "completed" with no siteData upsert. It safely
     // times out in /api/resume/status → failed → manual retry instead.
-    // SAFETY: D1 rows from Drizzle select have non-null primary keys; cast narrows inferred string|null to string for inArray and upsert.
-    await db.batch([
-      db
+    await db.transaction(async (tx) => {
+      await tx
         .update(resumes)
         .set({
           status: "completed",
@@ -300,28 +303,27 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
         .where(
           inArray(
             resumes.id,
-            waitingResumes.map((w) => w.id as string),
+            waitingResumes.map((w) => w.id),
           ),
-        ),
-      ...waitingResumes.map((w) =>
-        buildSiteDataUpsert(db, w.userId as string, w.id as string, parsedContent, now, {
-          publish: handleMap.get(w.userId as string) ?? false,
-        }),
-      ),
-    ]);
+        );
+      for (const w of waitingResumes) {
+        await buildSiteDataUpsert(tx, w.userId, w.id, parsedContent, {
+          publish: handleMap.get(w.userId) ?? false,
+        });
+      }
+    });
 
     // Set AI role for waiting users (same fileHash = same resume content).
     // Separate from batch to avoid Drizzle heterogeneous table type errors.
     // Uses inArray for a single UPDATE instead of N sequential queries.
     if (professionalLevel) {
-      // SAFETY: D1 rows from Drizzle select have non-null userId; cast narrows inferred string|null to string for role update.
       await db
         .update(user)
         .set({ role: professionalLevel, roleSource: "ai", updatedAt: now })
         .where(
           inArray(
             user.id,
-            waitingResumes.map((w) => w.userId as string),
+            waitingResumes.map((w) => w.userId),
           ),
         );
     }
@@ -329,9 +331,8 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
 
   // Notify waiting resumes via WebSocket
   if (waitingResumes.length > 0) {
-    // SAFETY: D1 rows from Drizzle select have non-null ids; cast narrows inferred string|null to string for batch notify.
     await notifyStatusChangeBatch(
-      waitingResumes.map((r) => r.id as string),
+      waitingResumes.map((r) => r.id),
       "completed",
       env,
     );
@@ -343,7 +344,7 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
  * Export this from the worker entry point
  */
 export async function handleQueueMessage(message: QueueMessage, env: CloudflareEnv): Promise<void> {
-  const { db } = getSessionDbForWebhook(env.CLICKFOLIO_DB);
+  const db = getDb(env.HYPERDRIVE);
 
   try {
     // Currently only supporting parse messages

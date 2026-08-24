@@ -28,7 +28,7 @@ export interface DLQAlertPayload extends UnknownRecord {
  * These env vars are only set in production via Cloudflare secrets.
  */
 export interface AlertEnv {
-  CLICKFOLIO_DB: CloudflareEnv["CLICKFOLIO_DB"];
+  HYPERDRIVE: CloudflareEnv["HYPERDRIVE"];
   CLICKFOLIO_STATUS_DO: CloudflareEnv["CLICKFOLIO_STATUS_DO"] | undefined;
   ALERT_WEBHOOK_URL?: string;
   ALERT_CHANNEL?: string;

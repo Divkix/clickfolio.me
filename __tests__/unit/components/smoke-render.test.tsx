@@ -9,8 +9,6 @@ import AdminResumesPage from "@/app/(admin)/admin/resumes/page";
 import AdminUsersPage from "@/app/(admin)/admin/users/page";
 import WaitingPage from "@/app/(protected)/waiting/page";
 import WizardPage from "@/app/(protected)/wizard/page";
-import VerifyEmailPage from "@/app/(public)/verify-email/page";
-import ResetPasswordPage from "@/app/reset-password/page";
 import { AttributionWidget } from "@/components/AttributionWidget";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
@@ -22,16 +20,12 @@ import { Pagination } from "@/components/admin/Pagination";
 import { ResumeStatusBadge } from "@/components/admin/ResumeStatusBadge";
 import { StatCard } from "@/components/admin/StatCard";
 import { UserStatusBadge } from "@/components/admin/UserStatusBadge";
-import { GoogleButton } from "@/components/auth/GoogleButton";
-import { LoginButton } from "@/components/auth/LoginButton";
-import { PasswordInput } from "@/components/auth/PasswordInput";
-import { PasswordStrengthMeter } from "@/components/auth/PasswordStrengthMeter";
 import { StatsGrid } from "@/components/blog/StatsGrid";
+import { LoginButton } from "@/components/auth/LoginButton";
 import { Confetti } from "@/components/Confetti";
 import { AnalyticsCard } from "@/components/dashboard/AnalyticsCard";
 import { CopyLinkButton } from "@/components/dashboard/CopyLinkButton";
 import { DashboardUploadSection } from "@/components/dashboard/DashboardUploadSection";
-import { EmailVerificationBanner } from "@/components/dashboard/EmailVerificationBanner";
 import { MilestoneToasts } from "@/components/dashboard/MilestoneToasts";
 import { RealtimeStatusListener } from "@/components/dashboard/RealtimeStatusListener";
 import { ReferralStats } from "@/components/dashboard/ReferralStats";
@@ -77,7 +71,6 @@ const mocks = vi.hoisted(() => ({
     info: vi.fn(),
     warning: vi.fn(),
   },
-  signInSocial: vi.fn().mockResolvedValue({ data: {}, error: null }),
   signOut: vi.fn().mockResolvedValue(undefined),
   sessionState: {
     current: {
@@ -118,17 +111,22 @@ vi.mock("posthog-js", () => ({
 }));
 
 vi.mock("@/lib/auth/client", () => ({
+  ClerkProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  SignInButton: ({
+    children,
+    fallbackRedirectUrl,
+  }: {
+    children: React.ReactNode;
+    fallbackRedirectUrl: string;
+  }) => (
+    <div data-testid="clerk-sign-in-button" data-redirect={fallbackRedirectUrl}>
+      {children}
+    </div>
+  ),
+  useAuth: vi.fn(() => ({ isSignedIn: false, sessionId: null })),
+  useClerk: () => ({ signOut: mocks.signOut }),
+  useUser: vi.fn(() => ({ isLoaded: true, user: null })),
   useSession: () => mocks.sessionState.current,
-  signIn: {
-    social: (...args: JsonValue[]) => mocks.signInSocial(...args),
-    email: vi.fn().mockResolvedValue({ data: {}, error: null }),
-  },
-  signUp: {
-    email: vi.fn().mockResolvedValue({ data: {}, error: null }),
-  },
-  signOut: (...args: JsonValue[]) => mocks.signOut(...args),
-  sendVerificationEmail: vi.fn().mockResolvedValue({ data: {}, error: null }),
-  resetPassword: vi.fn().mockResolvedValue({ data: {}, error: null }),
 }));
 
 vi.mock("sonner", () => ({
@@ -506,11 +504,6 @@ describe("component smoke rendering", () => {
         />
         <CopyLinkButton handle="avery" />
         <DashboardUploadSection />
-        <EmailVerificationBanner
-          email="avery@example.com"
-          emailVerified={false}
-          isOAuthUser={false}
-        />
         <MilestoneToasts totalViews={1000} />
         <RealtimeStatusListener resumeId="res_123" currentStatus="processing" />
         <ReferralStats referralCount={2} clickCount={10} referralCode="ABCD1234" />
@@ -552,32 +545,25 @@ describe("component smoke rendering", () => {
     }
   });
 
-  it("renders auth controls and handles Google sign-in", async () => {
-    render(
-      <div>
-        <GoogleButton callbackURL="/wizard" onSuccess={vi.fn()} />
-        <LoginButton />
-        <PasswordInput placeholder="Password" />
-        <PasswordStrengthMeter
-          breachCount={2}
-          result={{
-            score: 2,
-            isAcceptable: false,
-            crackTimeDisplay: "3 hours",
-            crackTimeSeconds: 10_800,
-            feedback: {
-              warning: "Needs more variety",
-              suggestions: ["Add another word"],
-            },
-          }}
-        />
-      </div>,
-    );
+  it("renders auth controls through Clerk's native modal trigger", async () => {
+    mocks.sessionState.current = { data: null, isPending: false };
+    const signedOut = render(<LoginButton />);
 
-    await userEvent.click(screen.getByRole("button", { name: /continue with google/i }));
-    expect(mocks.signInSocial).toHaveBeenCalledWith({ provider: "google", callbackURL: "/wizard" });
-    expect(screen.getByText("Fair")).toBeInTheDocument();
-    expect(screen.getByText(/data breaches/)).toBeInTheDocument();
+    expect(screen.getByTestId("clerk-sign-in-button")).toHaveAttribute(
+      "data-redirect",
+      "/dashboard",
+    );
+    expect(screen.getByRole("button", { name: "Sign in" })).toBeInTheDocument();
+
+    // Signed in: the same control navigates to the dashboard.
+    signedOut.unmount();
+    mocks.sessionState.current = {
+      data: { user: { id: "user_1", name: "Avery", email: "avery@example.com" } },
+      isPending: false,
+    };
+    render(<LoginButton />);
+    await userEvent.click(screen.getByRole("button", { name: "Dashboard" }));
+    expect(mocks.router.push).toHaveBeenCalledWith("/dashboard");
   });
 
   it("renders wizard steps and exercises handle availability", async () => {
@@ -673,12 +659,6 @@ describe("component smoke rendering", () => {
 
     rerender(<WaitingPage />);
     expect(screen.getByText(/Parsing failed/)).toBeInTheDocument();
-
-    rerender(<VerifyEmailPage />);
-    expect(screen.getByText(/Email Verified/i)).toBeInTheDocument();
-
-    rerender(<ResetPasswordPage />);
-    expect(screen.getAllByText(/Reset Password/i).length).toBeGreaterThan(0);
   });
 
   it("renders admin client route pages with loaded API data", async () => {

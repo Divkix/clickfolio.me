@@ -20,7 +20,6 @@ import { redirect } from "next/navigation";
 import { AnalyticsCard } from "@/components/dashboard/AnalyticsCard";
 import { CopyLinkButton } from "@/components/dashboard/CopyLinkButton";
 import { DashboardUploadSection } from "@/components/dashboard/DashboardUploadSection";
-import { EmailVerificationBanner } from "@/components/dashboard/EmailVerificationBanner";
 import { RealtimeStatusListener } from "@/components/dashboard/RealtimeStatusListener";
 import { ReferralStats } from "@/components/dashboard/ReferralStats";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -54,7 +53,7 @@ export default async function DashboardPage() {
     redirect("/");
   }
 
-  const db = getDb(env.CLICKFOLIO_DB);
+  const db = getDb(env.HYPERDRIVE);
 
   // Parallelize independent queries: user data + referral click count
   const [userData, clickCountResult] = await Promise.all([
@@ -75,14 +74,12 @@ export default async function DashboardPage() {
             updatedAt: true,
           },
         },
-        accounts: true, // For checking OAuth vs email/password
       },
       columns: {
         id: true,
         handle: true,
         name: true,
         email: true,
-        emailVerified: true, // For email verification banner
         image: true,
         headline: true,
         privacySettings: true,
@@ -105,10 +102,6 @@ export default async function DashboardPage() {
   // SAFETY: Drizzle query returns siteData shape via with.siteData; cast narrows optional relation to siteData select type.
   const siteDataResult = (userData?.siteData ?? null) as typeof siteData.$inferSelect | null;
 
-  // Email verification state
-  const emailVerified = userData?.emailVerified ?? false;
-  const isOAuthUser = userData?.accounts?.some((a) => a.providerId === "google") ?? false;
-
   // Use pre-computed referralCount from user table
   const referralCount = userData?.referralCount ?? 0;
   const clickCount = clickCountResult[0]?.count ?? 0;
@@ -124,13 +117,8 @@ export default async function DashboardPage() {
   const hasPublishedSite = !!siteDataResult;
   let content: ResumeContent | null = null;
   if (siteDataResult?.content) {
-    try {
-      // SAFETY: D1 content is schema-validated JSON written only by our queue consumer; JSON.parse failure is caught and returns null.
-      content = JSON.parse(siteDataResult.content) as ResumeContent;
-    } catch (error) {
-      console.error("Failed to parse siteData content:", error);
-      // content remains null, dashboard will show appropriate fallback state
-    }
+    // SAFETY: content is schema-validated JSONB written by the queue consumer and /api/resume/update; cast bridges the column's wide Record type.
+    content = siteDataResult.content as ResumeContent;
   }
 
   // Calculate profile metrics
@@ -169,17 +157,6 @@ export default async function DashboardPage() {
   return (
     <div className="min-h-screen bg-background">
       <main className="max-w-[1400px] mx-auto px-4 lg:px-6 py-8">
-        {/* Email Verification Banner (client component) */}
-        {profile?.email && (
-          <div className="mb-6">
-            <EmailVerificationBanner
-              email={profile.email}
-              emailVerified={emailVerified}
-              isOAuthUser={isOAuthUser}
-            />
-          </div>
-        )}
-
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
           {hasPublishedSite && content ? (
             <>

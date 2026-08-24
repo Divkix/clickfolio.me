@@ -3,9 +3,7 @@ import {
   DEFAULT_PRIVACY_SETTINGS,
   DEFAULT_PRIVACY_SETTINGS_JSON,
   extractCityState,
-  isValidPrivacySettings,
   normalizePrivacySettings,
-  parsePrivacySettings,
 } from "@/lib/utils/privacy";
 
 // ── extractCityState ─────────────────────────────────────────────────
@@ -60,63 +58,6 @@ describe("extractCityState", () => {
   });
 });
 
-// ── isValidPrivacySettings ───────────────────────────────────────────
-
-describe("isValidPrivacySettings", () => {
-  it("returns true for valid settings with all fields", () => {
-    expect(
-      isValidPrivacySettings({
-        show_phone: true,
-        show_address: false,
-        hide_from_search: false,
-        show_in_directory: true,
-      }),
-    ).toBe(true);
-  });
-
-  it("returns true for valid settings with only required fields (backward compat)", () => {
-    expect(
-      isValidPrivacySettings({
-        show_phone: false,
-        show_address: true,
-      }),
-    ).toBe(true);
-  });
-
-  it("returns false for null", () => {
-    expect(isValidPrivacySettings(null)).toBe(false);
-  });
-
-  it("returns false for non-object", () => {
-    expect(isValidPrivacySettings("string")).toBe(false);
-    expect(isValidPrivacySettings(42)).toBe(false);
-    expect(isValidPrivacySettings(true)).toBe(false);
-  });
-
-  it("returns false when show_phone is not boolean", () => {
-    expect(
-      isValidPrivacySettings({
-        show_phone: "yes",
-        show_address: false,
-      }),
-    ).toBe(false);
-  });
-
-  it("returns false when show_address is missing", () => {
-    expect(isValidPrivacySettings({ show_phone: true })).toBe(false);
-  });
-
-  it("returns false when hide_from_search is wrong type", () => {
-    expect(
-      isValidPrivacySettings({
-        show_phone: true,
-        show_address: true,
-        hide_from_search: "true",
-      }),
-    ).toBe(false);
-  });
-});
-
 // ── normalizePrivacySettings ─────────────────────────────────────────
 
 describe("normalizePrivacySettings", () => {
@@ -150,55 +91,6 @@ describe("normalizePrivacySettings", () => {
       show_in_directory: true,
     };
     expect(normalizePrivacySettings(input)).toEqual(input);
-  });
-});
-
-// ── parsePrivacySettings ─────────────────────────────────────────────
-
-describe("parsePrivacySettings", () => {
-  it("parses valid JSON string", () => {
-    const raw = JSON.stringify({ show_phone: true, show_address: false });
-    const result = parsePrivacySettings(raw);
-    expect(result.show_phone).toBe(true);
-    expect(result.show_address).toBe(false);
-    expect(result.hide_from_search).toBe(false);
-    expect(result.show_in_directory).toBe(true);
-  });
-
-  it("returns defaults for null input", () => {
-    expect(parsePrivacySettings(null)).toEqual({
-      show_phone: false,
-      show_address: false,
-      hide_from_search: false,
-      show_in_directory: true,
-    });
-  });
-
-  it("returns defaults for empty string", () => {
-    expect(parsePrivacySettings("")).toEqual({
-      show_phone: false,
-      show_address: false,
-      hide_from_search: false,
-      show_in_directory: true,
-    });
-  });
-
-  it("returns defaults for invalid JSON", () => {
-    expect(parsePrivacySettings("{invalid json")).toEqual({
-      show_phone: false,
-      show_address: false,
-      hide_from_search: false,
-      show_in_directory: true,
-    });
-  });
-
-  it("returns defaults for valid JSON that fails type guard", () => {
-    expect(parsePrivacySettings(JSON.stringify({ show_phone: "yes" }))).toEqual({
-      show_phone: false,
-      show_address: false,
-      hide_from_search: false,
-      show_in_directory: true,
-    });
   });
 });
 

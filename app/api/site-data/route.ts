@@ -1,5 +1,4 @@
 import { eq } from "drizzle-orm";
-import { z } from "zod";
 import { withUser } from "@/lib/auth/with-auth";
 import { siteData } from "@/lib/db/schema";
 import { createSuccessResponse } from "@/lib/utils/security-headers";
@@ -8,7 +7,7 @@ import { createSuccessResponse } from "@/lib/utils/security-headers";
  * Fetch site_data for the currently authenticated user.
  *
  * Requires authentication. Returns `null` if no site data exists for the user.
- * The `content` field is parsed from a JSON string before being returned.
+ * The `content` field is returned as a parsed object straight from JSONB.
  *
  * Error codes: 500 on unexpected errors.
  */
@@ -37,18 +36,8 @@ export async function GET(request?: Request) {
         return createSuccessResponse(null);
       }
 
-      // Parse JSON content
-      let content = null;
-      if (userSiteData.content) {
-        try {
-          // SAFETY: z.string().safeParse check above guarantees userSiteData.content is string when parsing.
-          content = z.string().safeParse(userSiteData.content).success
-            ? JSON.parse(userSiteData.content as string)
-            : userSiteData.content;
-        } catch (error) {
-          console.error("Failed to parse site_data content", error);
-        }
-      }
+      // Content arrives pre-parsed from the JSONB column
+      const content = userSiteData.content ?? null;
 
       return createSuccessResponse({
         id: userSiteData.id,

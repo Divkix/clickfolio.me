@@ -3,9 +3,10 @@
  *
  * Verifies that:
  * - When an R2 delete fails during account deletion, a `pendingR2Deletions`
- *   row is inserted BEFORE the DB batch (so the key isn't lost if the batch fails).
- * - The DB batch (account deletion) still proceeds even when R2 fails.
- * - When all R2 deletes succeed, no pending row is inserted.
+ *   row is inserted BEFORE identity deletion (so the key isn't lost if a
+ *   later step fails).
+ * - The Clerk identity delete and the local user-row delete still proceed
+ *   even when R2 fails.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
@@ -14,10 +15,9 @@ import type { UnknownRecord, JsonValue } from "@/lib/types/json";
 const mocks = vi.hoisted(() => {
   type MockAuthResult = {
     user: { id: string; email: string };
-    dbUser: { id: string; handle: string };
+    dbUser: { id: string; handle: string; clerkId: string };
     db: JsonValue;
     env: JsonValue;
-    captureBookmark: JsonValue;
     error: JsonValue;
   } | null;
   const state = {
@@ -39,6 +39,9 @@ const mocks = vi.hoisted(() => {
       return Promise.resolve(undefined);
     }),
   };
+
+  const deleteWhere = vi.fn(async () => undefined);
+  const clerkDeleteUser = vi.fn(async () => undefined);
 
   const createChain = () => {
     const chain = {
@@ -73,16 +76,16 @@ const mocks = vi.hoisted(() => {
     select: vi.fn(() => createChain()),
     insert: vi.fn(() => insertChain),
     update: vi.fn(() => createChain()),
-    delete: vi.fn(() => createChain()),
-    batch: vi.fn(async () => undefined),
+    // db.delete must resolve WITHOUT consuming queued select results — the
+    // awaited user-row delete would otherwise dequeue a queued SELECT row.
+    delete: vi.fn(() => ({ where: deleteWhere })),
   };
 
   const env = {
-    CLICKFOLIO_DB: { prepare: vi.fn(() => ({ first: vi.fn(async () => ({ ok: 1 })) })) },
     CLICKFOLIO_R2_BUCKET: { list: vi.fn(async () => ({ objects: [] })) },
     CLICKFOLIO_DISPOSABLE_DOMAINS: { get: vi.fn(async () => "[]") },
     CLICKFOLIO_PARSE_QUEUE: { send: vi.fn(async () => undefined) },
-    BETTER_AUTH_SECRET: "test-secret-key",
+    CLERK_SECRET_KEY: "sk_test_account_delete",
     CF_AI_GATEWAY_ACCOUNT_ID: "acct",
     CF_AI_GATEWAY_ID: "gateway",
     CF_AIG_AUTH_TOKEN: "token",
@@ -90,7 +93,7 @@ const mocks = vi.hoisted(() => {
 
   const r2Delete = vi.fn(async () => undefined);
 
-  return { state, db, env, insertChain, r2Delete };
+  return { state, db, env, insertChain, deleteWhere, clerkDeleteUser, r2Delete };
 });
 
 vi.mock("cloudflare:workers", () => ({
@@ -106,11 +109,8 @@ vi.mock("next/headers", () => ({
   })),
 }));
 
-vi.mock("@/lib/auth", () => ({
-  getAuth: vi.fn(async () => ({
-    api: { getSession: vi.fn(async () => ({ user: { id: "user_1" } })) },
-  })),
-  getEnvValue: vi.fn((env: Record<string, string>, key: string) => env[key] || "fallback-secret"),
+vi.mock("@clerk/backend", () => ({
+  createClerkClient: vi.fn(() => ({ users: { deleteUser: mocks.clerkDeleteUser } })),
 }));
 
 vi.mock("@/lib/auth/middleware", () => ({
@@ -164,10 +164,9 @@ function jsonRequest(path: string, body: JsonValue) {
 function authed(overrides: UnknownRecord = {}) {
   mocks.state.authResult = {
     user: { id: "user_1", email: "avery@example.com" },
-    dbUser: { id: "user_1", handle: "avery" },
+    dbUser: { id: "user_1", handle: "avery", clerkId: "user_clerk_1" },
     db: mocks.db as unknown as JsonValue,
     env: mocks.env as unknown as JsonValue,
-    captureBookmark: vi.fn(async () => undefined) as unknown as JsonValue,
     error: null,
     ...overrides,
   };
@@ -179,7 +178,7 @@ describe("account delete — pending R2 deletion tracking", () => {
     mocks.state.selectResults = [];
     mocks.state.insertCalls = [];
     mocks.state.authResult = null;
-    mocks.db.batch.mockResolvedValue(undefined);
+    mocks.deleteWhere.mockResolvedValue(undefined);
     mocks.r2Delete.mockResolvedValue(undefined);
   });
 
@@ -213,8 +212,14 @@ describe("account delete — pending R2 deletion tracking", () => {
     expect(insertedRows[0].r2Key).toBe("users/user-1/resume.pdf");
     expect(insertedRows[0].attempts).toBe(1);
 
-    // Account deletion batch must still proceed
-    expect(mocks.db.batch).toHaveBeenCalled();
+    // Identity deletion ran against the mapped Clerk id, and the local
+    // user-row delete still executed afterwards.
+    expect(mocks.clerkDeleteUser).toHaveBeenCalledWith("user_clerk_1");
+    expect(mocks.deleteWhere).toHaveBeenCalledTimes(1);
+    // Pending rows land BEFORE the Clerk identity deletion.
+    expect(mocks.db.insert.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.clerkDeleteUser.mock.invocationCallOrder[0],
+    );
   });
 
   it("does not insert any pending row when all R2 deletes succeed", async () => {
@@ -235,7 +240,8 @@ describe("account delete — pending R2 deletion tracking", () => {
 
     // No insert should have been called
     expect(mocks.db.insert).not.toHaveBeenCalled();
-    expect(mocks.db.batch).toHaveBeenCalled();
+    expect(mocks.clerkDeleteUser).toHaveBeenCalledWith("user_clerk_1");
+    expect(mocks.deleteWhere).toHaveBeenCalledTimes(1);
   });
 
   it("records multiple failed keys when more than one R2 delete fails", async () => {
@@ -266,5 +272,46 @@ describe("account delete — pending R2 deletion tracking", () => {
     expect(insertedRows).toHaveLength(2);
     const keys = insertedRows.map((r) => r.r2Key).sort();
     expect(keys).toEqual(["users/user-1/a.pdf", "users/user-1/c.pdf"]);
+  });
+
+  it("returns 503 when Clerk identity deletion fails with a non-404 error", async () => {
+    const { POST } = await import("@/app/api/account/delete/route");
+
+    authed();
+    mocks.state.selectResults = [[{ r2Key: "users/user-1/resume.pdf" }]];
+    mocks.r2Delete.mockRejectedValueOnce(new Error("R2 timeout"));
+    mocks.clerkDeleteUser.mockRejectedValueOnce(
+      Object.assign(new Error("clerk unavailable"), { status: 500 }),
+    );
+
+    const response = await POST(
+      jsonRequest("/api/account/delete", { confirmation: "avery@example.com" }),
+    );
+
+    expect(response.status).toBe(503);
+    // The pending row was durably recorded before the failed identity deletion.
+    const insertedRows = mocks.state.insertCalls[0] as Array<{ r2Key: string }>;
+    expect(insertedRows).toHaveLength(1);
+    expect(insertedRows[0].r2Key).toBe("users/user-1/resume.pdf");
+    // Local user-row delete never ran.
+    expect(mocks.deleteWhere).not.toHaveBeenCalled();
+  });
+
+  it("tolerates a 404 from Clerk (identity already deleted) and finishes locally", async () => {
+    const { POST } = await import("@/app/api/account/delete/route");
+
+    authed();
+    mocks.state.selectResults = [[{ r2Key: null }]];
+    mocks.clerkDeleteUser.mockRejectedValueOnce(
+      Object.assign(new Error("not found"), { status: 404 }),
+    );
+
+    const response = await POST(
+      jsonRequest("/api/account/delete", { confirmation: "avery@example.com" }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(mocks.clerkDeleteUser).toHaveBeenCalledWith("user_clerk_1");
+    expect(mocks.deleteWhere).toHaveBeenCalledTimes(1);
   });
 });

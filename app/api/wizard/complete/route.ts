@@ -3,12 +3,14 @@ import type { z } from "zod";
 import { withUser } from "@/lib/auth/with-auth";
 import { captureServerEvent } from "@/lib/posthog-server";
 
+import { isUniqueViolation } from "@/lib/db/pg-errors";
 import { handleChanges, siteData, user } from "@/lib/db/schema";
 import { isHandleTaken } from "@/lib/rate-limit/handle-validation";
 import { countHandleChangesInWindow } from "@/lib/rate-limit/user";
 import { buildWizardCompleteSchema } from "@/lib/schemas/profile";
 import { verifyThemeUnlocked } from "@/lib/templates/theme-access";
 import { THEME_IDS, type ThemeId } from "@/lib/templates/theme-ids";
+import type { ResumeContent } from "@/lib/types/database";
 import {
   createErrorResponse,
   createSuccessResponse,
@@ -24,6 +26,17 @@ import { readJsonWithLimit, validateRequestSize } from "@/lib/utils/validation";
 const wizardCompleteSchema = buildWizardCompleteSchema([...THEME_IDS] as [ThemeId, ...ThemeId[]]);
 
 type WizardCompleteRequest = z.infer<typeof wizardCompleteSchema>;
+const PENDING_RESUME_CONTENT: ResumeContent = {
+  full_name: "Pending",
+  headline: "Resume processing",
+  summary: "Resume content is being processed.",
+  contact: { email: "" },
+  experience: [],
+  education: [],
+  skills: [],
+  certifications: [],
+  projects: [],
+};
 
 /**
  * POST /api/wizard/complete
@@ -65,7 +78,7 @@ export async function POST(request: Request) {
 
   return withUser(
     request,
-    async ({ user: authUser, db, captureBookmark }) => {
+    async ({ user: authUser, db }) => {
       // Parse and validate request body (size-capped read, no trust in Content-Length)
       const rawBodyResult = await readJsonWithLimit(request);
       if (!rawBodyResult.ok) {
@@ -136,29 +149,28 @@ export async function POST(request: Request) {
         }
       }
 
-      // Update user + upsert siteData atomically via db.batch().
-      // Wrapped in try-catch to handle race condition on unique constraint.
-      const privacySettings = JSON.stringify(body.privacy_settings);
+      // Update user + upsert siteData + audit handle change atomically in one
+      // transaction. Wrapped in try-catch to handle race condition on unique constraint.
       const now = new Date().toISOString();
 
       try {
-        await db.batch([
-          db
+        await db.transaction(async (tx) => {
+          await tx
             .update(user)
             .set({
               handle: body.handle,
-              privacySettings,
+              privacySettings: body.privacy_settings,
               showInDirectory: body.privacy_settings.show_in_directory,
               onboardingCompleted: true,
               updatedAt: now,
             })
-            .where(eq(user.id, authUser.id)),
-          db
+            .where(eq(user.id, authUser.id));
+          await tx
             .insert(siteData)
             .values({
               id: crypto.randomUUID(),
               userId: authUser.id,
-              content: "{}", // Will be populated by queue consumer when parsing completes
+              content: PENDING_RESUME_CONTENT, // Replaced by queue consumer after parsing
               themeId: finalThemeId,
               createdAt: now,
               updatedAt: now,
@@ -170,24 +182,22 @@ export async function POST(request: Request) {
                 lastPublishedAt: now,
                 updatedAt: now,
               },
-            }),
+            });
           // Audit the handle change atomically with the write, mirroring the
           // profile/handle route. First-time onboarding skips this insert.
-          ...(isHandleChange
-            ? [
-                db.insert(handleChanges).values({
-                  id: crypto.randomUUID(),
-                  userId: authUser.id,
-                  oldHandle: currentHandle, // nullable: a first-time set has no prior value
-                  newHandle: body.handle,
-                  createdAt: now,
-                }),
-              ]
-            : []),
-        ]);
+          if (isHandleChange) {
+            await tx.insert(handleChanges).values({
+              id: crypto.randomUUID(),
+              userId: authUser.id,
+              oldHandle: currentHandle, // nullable: a first-time set has no prior value
+              newHandle: body.handle,
+              createdAt: now,
+            });
+          }
+        });
       } catch (error) {
-        // Check if it's a unique constraint violation (race condition on handle)
-        if (error instanceof Error && error.message.includes("UNIQUE constraint failed")) {
+        // Unique constraint violation (race condition): Postgres SQLSTATE 23505 → 409.
+        if (error instanceof Error && isUniqueViolation(error)) {
           return createErrorResponse(
             "This handle was just taken. Please choose a different one.",
             ERROR_CODES.CONFLICT,
@@ -196,9 +206,6 @@ export async function POST(request: Request) {
         }
         throw error; // Re-throw other errors
       }
-
-      // Capture bookmark before returning success
-      await captureBookmark();
 
       await captureServerEvent(authUser.id, "onboarding_completed", {
         handle: body.handle,

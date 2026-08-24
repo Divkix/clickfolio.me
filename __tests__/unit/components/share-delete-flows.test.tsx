@@ -14,9 +14,7 @@ const mocks = vi.hoisted(() => ({
     error: vi.fn(),
     warning: vi.fn(),
   },
-  signOut: vi.fn(async (options?: { fetchOptions?: { onSuccess?: () => void } }) => {
-    options?.fetchOptions?.onSuccess?.();
-  }),
+  signOut: vi.fn(async () => undefined),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -24,7 +22,8 @@ vi.mock("next/navigation", () => ({
 }));
 
 vi.mock("@/lib/auth/client", () => ({
-  signOut: (options?: { fetchOptions?: { onSuccess?: () => void } }) => mocks.signOut(options),
+  // DeleteAccountCard signs out through Clerk after a successful deletion.
+  useClerk: () => ({ signOut: mocks.signOut }),
 }));
 
 vi.mock("sonner", () => ({

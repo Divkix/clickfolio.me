@@ -1,4 +1,4 @@
-import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { index, integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 /**
  * Pending R2 deletions table — tracks R2 file keys that could not be deleted
@@ -12,12 +12,12 @@ import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
  * There is intentionally no FK to the user table — the user row will have been
  * deleted by the time the cron runs.
  */
-export const pendingR2Deletions = sqliteTable(
+export const pendingR2Deletions = pgTable(
   "pending_r2_deletions",
   {
     id: text("id").primaryKey(),
     r2Key: text("r2_key").notNull(),
-    createdAt: text("created_at").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull(),
     attempts: integer("attempts").notNull().default(0),
     lastError: text("last_error"),
   },

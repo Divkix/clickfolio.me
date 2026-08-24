@@ -23,7 +23,7 @@ export default async function ThemesPage() {
   }
 
   // 2. Get database connection
-  const db = getDb(env.CLICKFOLIO_DB);
+  const db = getDb(env.HYPERDRIVE);
 
   // 3. Fetch user's site data (theme + content) and profile info (including referralCount) in parallel
   const [userSiteData, userProfile] = await Promise.all([
@@ -49,8 +49,8 @@ export default async function ThemesPage() {
   const rawThemeId = userSiteData.themeId;
   const currentThemeId: ThemeId =
     rawThemeId && isValidThemeId(rawThemeId) ? rawThemeId : DEFAULT_THEME;
-  // SAFETY: D1 content is schema-validated JSON written only by our queue consumer; JSON.parse failure is caught and returns null.
-  const parsedContent = JSON.parse(userSiteData.content) as ResumeContent;
+  // SAFETY: content is schema-validated JSONB written by the queue consumer and /api/resume/update; cast bridges the column's wide Record type.
+  const parsedContent = userSiteData.content as ResumeContent;
   const profile = {
     handle: userProfile?.handle || session.user.name || "user",
     avatar_url: userProfile?.image || null,

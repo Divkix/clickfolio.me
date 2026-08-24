@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import { DEFAULT_PRIVACY_SETTINGS } from "@/lib/utils/privacy";
 
 /**
  * IDOR (Insecure Direct Object Reference) tests for admin routes
@@ -82,13 +83,13 @@ vi.mock("@/lib/utils/security-headers", () => ({
   },
 }));
 
-import { getServerSession } from "@/lib/auth/session";
+import { getServerSession, type AppSession } from "@/lib/auth/session";
 
 const mockedGetSession = vi.mocked(getServerSession);
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
-function createMockSession(userId: string, isAdmin: boolean) {
+function createMockSession(userId: string, isAdmin: boolean): AppSession {
   return {
     user: {
       id: userId,
@@ -97,7 +98,7 @@ function createMockSession(userId: string, isAdmin: boolean) {
       image: null,
       handle: "testuser",
       headline: null,
-      privacySettings: "{}",
+      privacySettings: DEFAULT_PRIVACY_SETTINGS,
       onboardingCompleted: true,
       role: "mid_level",
       isAdmin,
@@ -255,11 +256,12 @@ describe("IDOR - Admin Routes Security", () => {
           id: "admin-1",
           email: "admin@test.com",
           name: "Admin User",
+          image: null,
           handle: "admin",
           headline: null,
-          privacySettings: "{}",
+          privacySettings: DEFAULT_PRIVACY_SETTINGS,
           onboardingCompleted: true,
-          role: "admin",
+          role: "executive",
           isAdmin: true,
         },
         session: {
@@ -308,11 +310,12 @@ describe("IDOR - Admin Routes Security", () => {
           id: "attacker",
           email: "attacker@test.com",
           name: "Attacker",
+          image: null,
           handle: "attacker",
           headline: null,
-          privacySettings: "{}",
+          privacySettings: DEFAULT_PRIVACY_SETTINGS,
           onboardingCompleted: true,
-          role: "admin", // Claimed admin role
+          role: "executive", // Career level; admin access comes solely from isAdmin
           isAdmin: true, // Claimed admin status
         },
         session: {

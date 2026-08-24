@@ -47,7 +47,7 @@ export async function GET(request: Request) {
       return createErrorResponse("Invalid status filter", ERROR_CODES.VALIDATION_ERROR, 400);
     }
 
-    const db = getDb(env.CLICKFOLIO_DB);
+    const db = getDb(env.HYPERDRIVE);
 
     // Get status counts
     const statusCounts = await db

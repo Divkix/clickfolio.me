@@ -23,7 +23,7 @@ vi.mock("react", async (importOriginal) => {
 
 vi.mock("cloudflare:workers", () => ({
   env: {
-    CLICKFOLIO_DB: {} as D1Database,
+    HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" },
   },
 }));
 
@@ -92,7 +92,12 @@ vi.mock("@/lib/config/site", () => ({
 // ── Fixtures ──────────────────────────────────────────────────────────
 
 function makeUserRow(overrides: {
-  privacySettings?: string;
+  privacySettings?: {
+    show_phone: boolean;
+    show_address: boolean;
+    hide_from_search: boolean;
+    show_in_directory: boolean;
+  };
   isPro?: boolean;
   referralCount?: number;
   themeId?: string;
@@ -120,24 +125,22 @@ function makeUserRow(overrides: {
     handle: "janedoe",
     headline: "Software Engineer",
     image: null,
-    privacySettings:
-      overrides.privacySettings ??
-      JSON.stringify({
-        show_phone: true,
-        show_address: true,
-        hide_from_search: false,
-        show_in_directory: true,
-      }),
+    privacySettings: overrides.privacySettings ?? {
+      show_phone: true,
+      show_address: true,
+      hide_from_search: false,
+      show_in_directory: true,
+    },
     isPro: overrides.isPro ?? false,
     referralCount: overrides.referralCount ?? 0,
     siteData: {
       userId: "user-1",
       themeId: overrides.themeId ?? "minimalist_editorial",
-      content: JSON.stringify(content),
+      content,
       previewName: "Jane Doe",
       previewHeadline: "Software Engineer",
       previewLocation: "San Francisco, CA",
-      previewSkills: JSON.stringify(["TypeScript", "React"]),
+      previewSkills: ["TypeScript", "React"],
       createdAt: "2026-01-01T00:00:00Z",
       updatedAt: "2026-01-02T00:00:00Z",
     },
@@ -163,12 +166,12 @@ describe("getResumeData - phone/address privacy filtering", () => {
     const { getResumeData } = await import("@/lib/data/resume");
     mockUserFindFirst.mockResolvedValueOnce(
       makeUserRow({
-        privacySettings: JSON.stringify({
+        privacySettings: {
           show_phone: false,
           show_address: true,
           hide_from_search: false,
           show_in_directory: true,
-        }),
+        },
       }),
     );
 
@@ -183,12 +186,12 @@ describe("getResumeData - phone/address privacy filtering", () => {
     const { getResumeData } = await import("@/lib/data/resume");
     mockUserFindFirst.mockResolvedValueOnce(
       makeUserRow({
-        privacySettings: JSON.stringify({
+        privacySettings: {
           show_phone: true,
           show_address: true,
           hide_from_search: false,
           show_in_directory: true,
-        }),
+        },
       }),
     );
 
@@ -202,12 +205,12 @@ describe("getResumeData - phone/address privacy filtering", () => {
     const { getResumeData } = await import("@/lib/data/resume");
     mockUserFindFirst.mockResolvedValueOnce(
       makeUserRow({
-        privacySettings: JSON.stringify({
+        privacySettings: {
           show_phone: true,
           show_address: false,
           hide_from_search: false,
           show_in_directory: true,
-        }),
+        },
         contactLocation: "123 Main St, San Francisco, CA 94102",
       }),
     );

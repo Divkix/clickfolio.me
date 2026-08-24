@@ -52,7 +52,7 @@ vi.mock("@/lib/db", () => ({
 }));
 
 vi.mock("cloudflare:workers", () => ({
-  env: { CLICKFOLIO_DB: {} as D1Database },
+  env: { HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" } },
 }));
 
 import {
@@ -69,7 +69,7 @@ import {
 
 describe("generateSitemapEntries", () => {
   beforeEach(() => {
-    vi.stubEnv("BETTER_AUTH_URL", "https://example.com");
+    vi.stubEnv("APP_URL", "https://example.com");
     mockSelectRows = [];
     mockLimitValues = [];
     mockOffsetValues = [];

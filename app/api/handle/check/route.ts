@@ -1,7 +1,6 @@
 import { env } from "cloudflare:workers";
 import { eq } from "drizzle-orm";
-import { headers } from "next/headers";
-import { getAuth } from "@/lib/auth";
+import { getServerSession } from "@/lib/auth/session";
 import { getDb } from "@/lib/db";
 import { user } from "@/lib/db/schema";
 import { RESERVED_HANDLES } from "@/lib/rate-limit/handle-validation";
@@ -18,14 +17,14 @@ import {
  * Rate limited by IP to prevent username enumeration
  *
  * Optimization notes (this is the highest-volume endpoint, called every ~500ms while typing):
- * 1. Format validation runs BEFORE rate limiting — invalid handles never touch D1
- * 2. Uses plain getDb() instead of getSessionDbWithPrimaryFirst() — read-only, no cookie/bookmark overhead
- * 3. Auth is deferred — only resolved when handle IS taken (to distinguish "yours" vs "taken")
- *    Available handles return immediately with zero auth cost.
+ * 1. Format validation runs BEFORE rate limiting — invalid handles never touch Postgres
+ * 2. Auth (Clerk session verification + user-row lookup) is deferred — only resolved when
+ *    the handle IS taken, to distinguish "yours" vs "taken". Available handles return
+ *    immediately with zero auth cost.
  */
 export async function GET(request: Request) {
   try {
-    // 1. Parse and validate handle format BEFORE any D1 operations
+    // 1. Parse and validate handle format BEFORE any database operations
     //    This rejects invalid input (bad chars, too short, reserved) for free.
     const { searchParams } = new URL(request.url);
     const handle = searchParams.get("handle");
@@ -76,7 +75,7 @@ export async function GET(request: Request) {
       );
     }
 
-    // Check reserved handles — pure in-memory Set lookup, no D1
+    // Check reserved handles — pure in-memory Set lookup, no DB
     if (RESERVED_HANDLES.has(normalizedHandle)) {
       return createSuccessResponse({ available: false, reason: "reserved" });
     }
@@ -93,10 +92,9 @@ export async function GET(request: Request) {
       );
     }
 
-    // 3. Check if handle exists in database
-    //    Plain getDb() — this is a read-only availability check, no need for
-    //    session consistency (bookmark cookies) or D1 session wrappers.
-    const db = getDb(env.CLICKFOLIO_DB);
+    // 3. Check if handle exists in database (read-only availability check via
+    //    the shared Hyperdrive pool)
+    const db = getDb(env.HYPERDRIVE);
 
     const existingUser = await db
       .select({ id: user.id })
@@ -110,12 +108,9 @@ export async function GET(request: Request) {
     }
 
     // 5. Handle is taken — resolve auth only now to check "is it yours?"
-    //    This avoids BetterAuth init + D1 session lookup on the happy path.
     let currentUserId: string | null = null;
     try {
-      const auth = await getAuth();
-      const headersList = await headers();
-      const session = await auth.api.getSession({ headers: headersList });
+      const session = await getServerSession();
       currentUserId = session?.user?.id ?? null;
     } catch {
       // Not authenticated — continue as public endpoint

@@ -55,7 +55,7 @@ export async function GET(request?: Request) {
       // Side-effect-free timeout: mirror GET /status — a waiting_for_cache row
       // that has timed out is presented as a virtual "failed" without persisting.
       // The orphan cron will durably transition it on its next tick.
-      // SAFETY: drizzle row fields are D1-inferred; cast narrows to lifecycle helper type
+      // SAFETY: drizzle row fields are nullable; cast narrows to lifecycle helper type
       const view = getStatusView({
         status: resume.status as ResumeStatus,
         createdAt: resume.createdAt as string | null,
@@ -63,12 +63,12 @@ export async function GET(request?: Request) {
         totalAttempts: resume.totalAttempts as number,
         lastAttemptError: resume.lastAttemptError as string | null,
       });
-      // SAFETY: D1 errorMessage is nullable string column; cast bridges Drizzle type.
+      // SAFETY: errorMessage is a nullable string column; cast bridges Drizzle type.
       const error = view.isTimedOut
         ? WAITING_FOR_CACHE_TIMEOUT_MESSAGE
         : (resume.errorMessage as string | null);
 
-      // SAFETY: D1 id and createdAt are validated string columns; casts bridge Drizzle nullable type.
+      // SAFETY: id and createdAt are validated string columns; casts bridge Drizzle nullable type.
       return createSuccessResponse({
         id: resume.id as string,
         status: view.status,

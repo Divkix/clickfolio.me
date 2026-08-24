@@ -10,8 +10,6 @@ type ClaimHeaders = { "Content-Type": string; Cookie?: string };
 
 // ── Mocks ────────────────────────────────────────────────────────────
 
-const mockCaptureBookmark = vi.fn().mockResolvedValue(undefined);
-
 const mockFindFirst = vi.fn();
 const mockDbFrom = vi.fn();
 const mockDbWhere = vi.fn();
@@ -21,7 +19,7 @@ const mockDbInsertValues = vi.fn().mockResolvedValue(undefined);
 const mockDbInsert = vi.fn().mockReturnValue({ values: mockDbInsertValues });
 const mockDbUpdateSet = vi.fn();
 const mockDbUpdateWhere = vi.fn().mockResolvedValue(undefined);
-const mockDbBatch = vi.fn().mockResolvedValue(undefined);
+const mockDbTransaction = vi.fn(async (cb: (tx: typeof mockDb) => unknown) => cb(mockDb));
 
 let mockHandleRows: Array<{ handle: string | null }> = [{ handle: "test-handle" }];
 
@@ -58,7 +56,7 @@ const mockDb = {
   limit: mockDbLimit,
   insert: mockDbInsert,
   update: mockDbUpdate,
-  batch: mockDbBatch,
+  transaction: mockDbTransaction,
 };
 
 // Auth mock
@@ -200,14 +198,18 @@ function authedAs(userId: string) {
       image: null,
       handle: "testuser",
       headline: null,
-      privacySettings: "{}",
+      privacySettings: {
+        show_phone: false,
+        show_address: false,
+        hide_from_search: false,
+        show_in_directory: true,
+      },
       onboardingCompleted: true,
       role: "mid_level",
     },
     db: mockDb as never,
-    captureBookmark: mockCaptureBookmark,
-    dbUser: { id: userId, handle: "testuser" },
-    env: { DB: {}, CLICKFOLIO_PARSE_QUEUE: {}, BETTER_AUTH_SECRET: TEST_SECRET } as never,
+    dbUser: { id: userId, handle: "testuser", clerkId: "user_clerk_1" },
+    env: { CLICKFOLIO_PARSE_QUEUE: {}, PENDING_UPLOAD_SECRET: TEST_SECRET } as never,
     error: null,
   });
 }
@@ -296,7 +298,6 @@ describe("POST /api/resume/claim", () => {
     mockedAuth.mockResolvedValue({
       user: null,
       db: null,
-      captureBookmark: null,
       dbUser: null,
       env: null,
       error: new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 }),
@@ -482,8 +483,9 @@ describe("POST /api/resume/claim", () => {
     const { enforceRateLimit } = await import("@/lib/rate-limit/user");
     vi.mocked(enforceRateLimit).mockResolvedValue(null);
 
-    const cachedContent = JSON.stringify({ full_name: "Test User" });
-    // Cache hit → cachedContent; handle missing → publish:false
+    // Cache hit → parsedContent comes back as a parsed jsonb OBJECT from Postgres;
+    // handle missing → publish:false
+    const cachedContent = { full_name: "Test User" };
     mockDbLimit.mockResolvedValue([{ id: "cached-resume", parsedContent: cachedContent }]);
     mockHandleRows = [];
 
@@ -498,14 +500,13 @@ describe("POST /api/resume/claim", () => {
 
     const { buildSiteDataUpsert } = await import("@/lib/data/site-data-upsert");
     expect(vi.mocked(buildSiteDataUpsert)).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.anything(),
-      expect.anything(),
-      expect.anything(),
-      expect.anything(),
+      expect.anything(), // tx (transaction-scoped)
+      "user-1",
+      expect.anything(), // resumeId
+      cachedContent,
       { publish: false },
     );
-    // Queue still completes without throwing and siteData upsert still invoked
-    expect(mockDbBatch).toHaveBeenCalled();
+    // Resume completion + siteData upsert committed atomically in one PG transaction
+    expect(mockDbTransaction).toHaveBeenCalled();
   });
 });

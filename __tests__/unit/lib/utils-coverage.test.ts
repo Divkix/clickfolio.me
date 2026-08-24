@@ -194,11 +194,11 @@ describe("clipboard utilities", () => {
 
 describe("error and environment utilities", () => {
   const originalHref = window.location.href;
-  const originalAuthUrl = process.env.BETTER_AUTH_URL;
+  const originalSiteUrl = process.env.APP_URL;
 
   afterEach(() => {
     toastError.mockClear();
-    process.env.BETTER_AUTH_URL = originalAuthUrl;
+    process.env.APP_URL = originalSiteUrl;
     window.history.replaceState({}, "", originalHref);
   });
 
@@ -229,9 +229,9 @@ describe("error and environment utilities", () => {
     showErrorToast(500, "profile");
     expect(toastError).toHaveBeenCalledWith("Server error. We're working on it.");
 
-    process.env.BETTER_AUTH_URL = "http://127.0.0.1:3000";
+    process.env.APP_URL = "http://127.0.0.1:3000";
     expect(isLocalEnvironment()).toBe(true);
-    process.env.BETTER_AUTH_URL = "https://clickfolio.me";
+    process.env.APP_URL = "https://clickfolio.me";
     expect(isLocalEnvironment()).toBe(false);
   });
 });

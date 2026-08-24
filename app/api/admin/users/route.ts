@@ -32,11 +32,13 @@ import { safePageParam } from "@/lib/utils/pagination";
 const PAGE_SIZE = 25;
 
 /**
- * Escapes LIKE wildcard characters to prevent pattern injection
- * SQLite LIKE wildcards: % (any sequence), _ (any single char)
+ * Escapes LIKE wildcard characters to prevent pattern injection.
+ * Postgres ILIKE wildcards: % (any sequence), _ (any single char); the
+ * exclamation mark is used as the escape character so no backslash quoting
+ * is involved anywhere in the pattern.
  */
 function escapeLikePattern(input: string): string {
-  return input.replace(/[%_\\]/g, (char) => `\\${char}`);
+  return input.replace(/[%_!]/g, (char) => `!${char}`);
 }
 
 export async function GET(request: Request) {
@@ -46,19 +48,19 @@ export async function GET(request: Request) {
     const search = url.searchParams.get("search")?.trim() || "";
     const offset = (page - 1) * PAGE_SIZE;
 
-    const db = getDb(env.CLICKFOLIO_DB);
+    const db = getDb(env.HYPERDRIVE);
 
-    // Escape LIKE wildcards to prevent pattern injection
+    // Escape ILIKE wildcards to prevent pattern injection
     const escapedSearch = escapeLikePattern(search);
 
-    // Build where clause for search
-    // Use raw sql with ESCAPE '\\' so the escapeLikePattern backslash escapes
-    // are actually honored by SQLite (Drizzle's like() omits the ESCAPE clause)
+    // Build where clause for case-insensitive search.
+    // Raw sql with ESCAPE '!' because Drizzle's ilike() omits the ESCAPE clause;
+    // a literal keeps the escape char valid under every Postgres string config.
     const searchCondition = search
       ? or(
-          sql`${user.name} LIKE ${`%${escapedSearch}%`} ESCAPE '\\'`,
-          sql`${user.email} LIKE ${`%${escapedSearch}%`} ESCAPE '\\'`,
-          sql`${user.handle} LIKE ${`%${escapedSearch}%`} ESCAPE '\\'`,
+          sql`${user.name} ILIKE ${`%${escapedSearch}%`} ESCAPE '!'`,
+          sql`${user.email} ILIKE ${`%${escapedSearch}%`} ESCAPE '!'`,
+          sql`${user.handle} ILIKE ${`%${escapedSearch}%`} ESCAPE '!'`,
         )
       : undefined;
 

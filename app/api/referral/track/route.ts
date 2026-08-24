@@ -68,7 +68,7 @@ export async function POST(request: Request) {
       return EMPTY_204;
     }
 
-    const db = getDb(env.CLICKFOLIO_DB);
+    const db = getDb(env.HYPERDRIVE);
 
     // Single query: match referralCode (uppercase) OR handle (lowercase) in one roundtrip
     const userResult = await db

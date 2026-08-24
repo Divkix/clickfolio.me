@@ -5,8 +5,7 @@ type ClaimBody = { key: string; referral_code?: string };
 type ClaimHeaders = { "Content-Type": string; Cookie?: string };
 
 /**
- * Integration tests for POST /api/upload and POST /api/resume/claim
- * Tests the complete upload-claim-parse flow with mocked D1, R2, Queue, and AI
+ * Tests the complete upload-claim-parse flow with mocked Postgres (via getDb), R2, Queue, and AI
  */
 
 // ── Type Definitions ────────────────────────────────────────────────
@@ -30,8 +29,6 @@ interface MockDbInsertChain {
 
 // ── Mock Setup ──────────────────────────────────────────────────────
 
-const mockCaptureBookmark = vi.fn().mockResolvedValue(undefined);
-
 // Database mock builders
 const createMockDbChain = (returnValue: JsonValue = []): MockDbChain => {
   const limit = vi.fn().mockResolvedValue(returnValue);
@@ -45,11 +42,9 @@ const createMockDbChain = (returnValue: JsonValue = []): MockDbChain => {
 let mockDbSelectChain = createMockDbChain([]);
 let mockDbUpdateChain: MockDbUpdateChain;
 let mockDbInsertChain: MockDbInsertChain;
-let mockDbBatchResult: JsonValue;
 
 const resetMockDbChains = () => {
   mockDbSelectChain = createMockDbChain([]);
-
   const updateWhere = vi.fn().mockResolvedValue(undefined);
   const updateSet = vi.fn().mockReturnValue({ where: updateWhere });
   // db.update() should return an object with a set() method
@@ -71,7 +66,7 @@ const mockDb = {
   update: vi.fn(() => ({ set: mockDbUpdateChain.set })),
   // db.insert(table) must return { values: fn } not the fn directly
   insert: vi.fn(() => ({ values: mockDbInsertChain.values })),
-  batch: vi.fn().mockImplementation(() => Promise.resolve(mockDbBatchResult)),
+  transaction: vi.fn(async (cb: (tx: unknown) => unknown) => cb(mockDb)),
 };
 
 // R2 mock
@@ -121,7 +116,7 @@ let mockAuthUser: {
   image: string | null;
   handle: string | null;
   headline: string | null;
-  privacySettings: string;
+  privacySettings: Record<string, boolean>;
   onboardingCompleted: boolean;
 } | null = null;
 
@@ -134,7 +129,7 @@ const setMockAuthUser = (userId: string | null) => {
       image: null,
       handle: "testuser",
       headline: null,
-      privacySettings: "{}",
+      privacySettings: {},
       onboardingCompleted: true,
     };
   } else {
@@ -148,7 +143,7 @@ vi.mock("cloudflare:workers", () => ({
   env: {
     CLICKFOLIO_R2_BUCKET: mockR2Binding,
     CLICKFOLIO_PARSE_QUEUE: mockQueue,
-    BETTER_AUTH_SECRET: TEST_COOKIE_SECRET,
+    PENDING_UPLOAD_SECRET: TEST_COOKIE_SECRET,
   },
 }));
 
@@ -158,7 +153,6 @@ vi.mock("@/lib/auth/middleware", () => ({
       return {
         user: null,
         db: null,
-        captureBookmark: null,
         dbUser: null,
         env: null,
         error: new Response(JSON.stringify({ error: message || "Unauthorized" }), { status: 401 }),
@@ -167,12 +161,12 @@ vi.mock("@/lib/auth/middleware", () => ({
     return {
       user: mockAuthUser,
       db: mockDb,
-      captureBookmark: mockCaptureBookmark,
-      dbUser: { id: mockAuthUser.id, handle: mockAuthUser.handle },
+      dbUser: { id: mockAuthUser.id, handle: mockAuthUser.handle, clerkId: "user_clerk_1" },
       env: {
+        HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" },
         CLICKFOLIO_R2_BUCKET: mockR2Binding,
         CLICKFOLIO_PARSE_QUEUE: mockQueue,
-        BETTER_AUTH_SECRET: TEST_COOKIE_SECRET,
+        PENDING_UPLOAD_SECRET: TEST_COOKIE_SECRET,
       },
       error: null,
     };
@@ -197,14 +191,6 @@ vi.mock("@/lib/db", () => ({
   getDb: vi.fn().mockReturnValue(mockDb),
 }));
 
-vi.mock("@/lib/db/session", () => ({
-  getSessionDbForWebhook: vi.fn().mockReturnValue({ db: mockDb }),
-  getSessionDbWithPrimaryFirst: vi.fn().mockResolvedValue({
-    db: mockDb,
-    captureBookmark: mockCaptureBookmark,
-  }),
-}));
-
 vi.mock("@/lib/rate-limit/ip", () => ({
   checkIPRateLimit: vi.fn().mockResolvedValue({
     allowed: true,
@@ -226,7 +212,7 @@ vi.mock("@/lib/queue/resume-parse", () => ({
   }),
 }));
 
-vi.mock("@/lib/referral", () => ({
+vi.mock("@/lib/referral-server", () => ({
   writeReferral: vi.fn().mockResolvedValue({ success: true }),
 }));
 
@@ -337,14 +323,12 @@ function extractPendingUploadCookie(uploadResponse: Response): string | null {
   return match?.[1] ?? null;
 }
 
-/** Reset all mocks and state */
 function resetAll() {
   vi.clearAllMocks();
   mockR2Store.clear();
   mockQueueMessages.length = 0;
   setMockAuthUser(null);
   resetMockDbChains();
-  mockDbBatchResult = undefined;
 }
 
 // ── Tests: Upload ───────────────────────────────────────────────────
@@ -611,7 +595,7 @@ describe("POST /api/resume/claim", () => {
   });
 
   it("17. Claim with referral code → referral linked", async () => {
-    const { writeReferral } = await import("@/lib/referral");
+    const { writeReferral } = await import("@/lib/referral-server");
 
     // Upload
     const { POST: uploadPost } = await import("@/app/api/upload/route");
@@ -709,8 +693,8 @@ describe("Queue Processing → siteData Creation", () => {
     };
 
     const env = {
+      HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" },
       CLICKFOLIO_R2_BUCKET: mockR2Binding,
-      CLICKFOLIO_DB: {} as D1Database,
     } as CloudflareEnv;
 
     // Should throw for retry
@@ -719,8 +703,7 @@ describe("Queue Processing → siteData Creation", () => {
 
   // Tests 23 and 24 are deleted: staged-content resume and already-completed idempotency
   // are fully covered by consumer.test.ts tests "6. Process with staged content" and
-  // "5. Process already completed → idempotent skip". Those tests use the proper vi.mock
-  // pattern (hoisted) rather than vi.doMock, and the correct @/lib/db/session mock.
+  // "5. Process already completed → idempotent skip" (hoisted vi.mock pattern).
 
   it("25. Process with cached fileHash → skip AI, use cached siteData", async () => {
     const { handleQueueMessage } = await import("@/lib/queue/consumer");
@@ -730,7 +713,8 @@ describe("Queue Processing → siteData Creation", () => {
     const r2Key = `users/${userId}/123456/resume.pdf`;
     const fileHash = "abc123".repeat(8);
 
-    const cachedContent = JSON.stringify({ name: "Cached User" });
+    // parsedContent is jsonb: the cached row selects back a parsed object.
+    const cachedContent = { name: "Cached User" };
 
     // No staged content, not completed
     mockDbSelectChain.limit.mockResolvedValueOnce([
@@ -760,14 +744,14 @@ describe("Queue Processing → siteData Creation", () => {
     };
 
     const env = {
+      HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" },
       CLICKFOLIO_R2_BUCKET: mockR2Binding,
-      CLICKFOLIO_DB: {} as D1Database,
     } as CloudflareEnv;
 
     await handleQueueMessage(message, env);
 
     // Should use cache without calling AI
-    expect(mockDb.batch).toHaveBeenCalled();
+    expect(mockDb.transaction).toHaveBeenCalled();
   });
 });
 

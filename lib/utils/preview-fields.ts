@@ -15,7 +15,7 @@ export interface PreviewFields {
   previewLocation: string | null;
   previewExpCount: number;
   previewEduCount: number;
-  previewSkills: string;
+  previewSkills: string[];
 }
 
 /**
@@ -28,11 +28,11 @@ export interface PreviewFields {
  * @example
  * const content = { full_name: "John Doe", skills: [{ category: "Languages", items: ["JS", "TS"] }] };
  * extractPreviewFields(content);
- * // Returns: { previewName: "John Doe", previewHeadline: null, ..., previewSkills: '["JS","TS"]' }
+ * // Returns: { previewName: "John Doe", previewHeadline: null, ..., previewSkills: ["JS", "TS"] }
  *
  * @example
  * extractPreviewFields(null);
- * // Returns: { previewName: null, previewHeadline: null, ..., previewExpCount: 0, previewSkills: '[]' }
+ * // Returns: { previewName: null, previewHeadline: null, ..., previewExpCount: 0, previewSkills: [] }
  */
 export function extractPreviewFields(content: ResumeContent | null | undefined): PreviewFields {
   // Handle null/undefined content
@@ -43,7 +43,7 @@ export function extractPreviewFields(content: ResumeContent | null | undefined):
       previewLocation: null,
       previewExpCount: 0,
       previewEduCount: 0,
-      previewSkills: "[]",
+      previewSkills: [],
     };
   }
 
@@ -59,6 +59,6 @@ export function extractPreviewFields(content: ResumeContent | null | undefined):
     previewLocation: content.contact?.location || null,
     previewExpCount: Array.isArray(content.experience) ? content.experience.length : 0,
     previewEduCount: Array.isArray(content.education) ? content.education.length : 0,
-    previewSkills: JSON.stringify(flattenedSkills),
+    previewSkills: flattenedSkills,
   };
 }

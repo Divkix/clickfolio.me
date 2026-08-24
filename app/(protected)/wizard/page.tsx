@@ -259,7 +259,7 @@ export default function WizardPage() {
           const siteData = (await siteDataResponse.json()) as SiteDataResponse | null;
 
           if (siteData?.content) {
-            // SAFETY: D1 content is schema-validated JSON written only by our queue consumer; JSON.parse failure is caught and returns null.
+            // SAFETY: content is schema-validated JSON written only by our queue consumer.
             const content = siteData.content as ResumeContent;
 
             // Load resume data into state

@@ -85,8 +85,8 @@ export async function GET(request: Request) {
       }
       // Side-effect-free waiting_for_cache timeout: present as failed virtually.
       // The DB row stays `waiting_for_cache` until the orphan cron persists the
-      // timeout (lib/cron/recover-orphaned). No `db.update` / `captureBookmark` here.
-      // SAFETY: drizzle row fields are string/number but getStatusView expects exact types; casts narrow D1-inferred types for lifecycle helper
+      // timeout (lib/cron/recover-orphaned). No `db.update` here.
+      // SAFETY: drizzle row fields are string/number but getStatusView expects exact types; casts narrow Drizzle-inferred types for lifecycle helper
       const view = getStatusView({
         status: resume.status as ResumeStatus,
         createdAt: resume.createdAt as string | null,
@@ -113,23 +113,8 @@ export async function GET(request: Request) {
           },
         });
 
-        // SAFETY: D1 parsedContent is nullable text column validated via resumeContentSchema; cast bridges nullable to string|null.
-        const parsedContent = (resumeContent?.parsedContent as string | null) ?? null;
-        let parsedJson: UnknownRecord | null = null;
-
-        if (parsedContent) {
-          try {
-            // SAFETY: parsedContent is JSON string from D1 validated on write via resumeContentSchema; parsing to UnknownRecord is safe, failure is caught and returns 500.
-            parsedJson = JSON.parse(parsedContent) as UnknownRecord;
-          } catch (error) {
-            console.error("Failed to parse stored resume JSON:", error);
-            return createErrorResponse(
-              "Stored resume data is invalid",
-              ERROR_CODES.INTERNAL_ERROR,
-              500,
-            );
-          }
-        }
+        // SAFETY: parsedContent is schema-validated JSONB written by our queue consumer; cast bridges the column's wide Record type.
+        const parsedJson = (resumeContent?.parsedContent as UnknownRecord | null) ?? null;
 
         return createSuccessResponse({
           status: "completed",

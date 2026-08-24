@@ -57,7 +57,7 @@ describe("queue error handling", () => {
     });
 
     it("should return QueueError with correct type for transient DB errors", () => {
-      const error = classifyQueueError(new Error("D1_ERROR: connection refused"));
+      const error = classifyQueueError(new Error("postgres connection refused through Hyperdrive"));
 
       expect(error.type).toBe(QueueErrorType.DB_CONNECTION_ERROR);
       expect(error.isRetryable()).toBe(true);
@@ -127,22 +127,42 @@ describe("queue error handling", () => {
       expect(error.isRetryable()).toBe(false);
     });
 
-    it("does not treat D1 constraint failures as retryable", () => {
-      // "D1_ERROR" alone is retryable; a FK/UNIQUE constraint violation can never
-      // succeed on retry and must classify as a permanent error instead.
-      const constraintError = classifyQueueError(
-        new Error("D1_ERROR: FOREIGN KEY constraint failed"),
+    it("does not treat PostgreSQL constraint violations as retryable", () => {
+      // Integrity violations can never succeed on retry and must classify as
+      // permanent errors instead of being retried as transient outages.
+      const uniqueError = classifyQueueError(
+        new Error("duplicate key value violates unique constraint on resumes.file_hash"),
       );
-      expect(constraintError.type).toBe(QueueErrorType.PARSE_VALIDATION_ERROR);
-      expect(constraintError.isRetryable()).toBe(false);
-
-      const uniqueError = classifyQueueError(new Error("UNIQUE constraint failed: resumes.id"));
+      expect(uniqueError.type).toBe(QueueErrorType.PARSE_VALIDATION_ERROR);
       expect(uniqueError.isRetryable()).toBe(false);
 
-      // Plain connection errors stay retryable.
-      expect(classifyQueueError(new Error("D1_ERROR: connection refused")).isRetryable()).toBe(
-        true,
+      const fkError = classifyQueueError(
+        new Error('insert or update on table "site_data" violates foreign key constraint'),
       );
+      expect(fkError.type).toBe(QueueErrorType.PARSE_VALIDATION_ERROR);
+      expect(fkError.isRetryable()).toBe(false);
+
+      // postgres-js surfaces the SQLSTATE on Error.code; extractErrorMessage
+      // tags it as [pg_code=…] so classification works even for localized or
+      // truncated server messages. 23505 (unique_violation) is permanent.
+      const codedUnique = classifyQueueError(
+        Object.assign(new Error("unique_violation"), { code: "23505" }),
+      );
+      expect(codedUnique.type).toBe(QueueErrorType.PARSE_VALIDATION_ERROR);
+      expect(codedUnique.isRetryable()).toBe(false);
+
+      // Connection-state SQLSTATEs (40001 serialization_failure) stay retryable —
+      // integrity codes must win over connection patterns, never the reverse.
+      const serialization = classifyQueueError(
+        Object.assign(new Error("serialization failure"), { code: "40001" }),
+      );
+      expect(serialization.type).toBe(QueueErrorType.DB_CONNECTION_ERROR);
+      expect(serialization.isRetryable()).toBe(true);
+
+      // Plain connection errors stay retryable.
+      expect(
+        classifyQueueError(new Error("server closed the connection unexpectedly")).isRetryable(),
+      ).toBe(true);
     });
 
     it("matches a bare 404 but not a 404 embedded in a longer number", () => {

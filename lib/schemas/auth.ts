@@ -1,27 +1,12 @@
 /**
- * Zod schemas and inferred types for authentication forms.
+ * Zod schemas for auth-adjacent validation that survives on the server:
+ * email format (shared) and the /api/email/validate request body.
  *
- * Covers sign-up, sign-in, forgot-password, and reset-password flows.
- * Password strength (zxcvbn) is enforced client-side only to avoid
- * bundling dictionaries into the Cloudflare Worker.
+ * Sign-in/sign-up/password-reset form schemas were removed with the custom
+ * forms — Clerk's prebuilt UI owns those flows.
  */
 
 import { z } from "zod";
-import { noXssPattern } from "@/lib/utils/sanitization";
-
-/**
- * Password validation requirements
- * - Minimum 8 characters (Better Auth default)
- * - Maximum 128 characters (prevent DoS)
- *
- * Strength checking (zxcvbn) is enforced CLIENT-SIDE only via PasswordInput.
- * Server-side only validates length to avoid bundling 1.73 MB of zxcvbn dictionaries
- * into the Cloudflare Worker.
- */
-const passwordSchema = z
-  .string()
-  .min(8, "Password must be at least 8 characters")
-  .max(128, "Password is too long");
 
 /**
  * Email validation with proper format check.
@@ -33,72 +18,6 @@ export const emailSchema = z
   .min(1, "Email is required")
   .email({ message: "Invalid email address" })
   .max(255, "Email is too long");
-
-/**
- * Sign up form schema
- *
- * Validates user registration data for email/password sign up.
- * Name is required for Better Auth user creation.
- */
-export const signUpSchema = z.object({
-  name: z
-    .string()
-    .trim()
-    .min(1, "Name is required")
-    .max(100, "Name is too long")
-    .refine(noXssPattern, { message: "Name contains invalid characters" }),
-  email: emailSchema,
-  password: passwordSchema,
-});
-
-/** Inferred type for sign-up form values. */
-export type SignUpFormData = z.infer<typeof signUpSchema>;
-
-/**
- * Sign in form schema
- *
- * Validates login credentials. Password min length not enforced here
- * since existing users may have varying password requirements.
- */
-export const signInSchema = z.object({
-  email: emailSchema,
-  password: z.string().min(1, "Password is required"),
-});
-
-/** Inferred type for sign-in form values. */
-export type SignInFormData = z.infer<typeof signInSchema>;
-
-/**
- * Forgot password form schema
- *
- * Only requires email address. Response should not reveal
- * whether the email exists (prevent enumeration attacks).
- */
-export const forgotPasswordSchema = z.object({
-  email: emailSchema,
-});
-
-/** Inferred type for forgot-password form values. */
-export type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
-
-/**
- * Reset password form schema
- *
- * Validates new password with confirmation match.
- * Token is handled separately from the URL.
- */
-export const resetPasswordSchema = z
-  .object({
-    newPassword: passwordSchema,
-    confirmPassword: z.string().min(1, "Please confirm your password"),
-  })
-  .refine((data) => data.newPassword === data.confirmPassword, {
-    message: "Passwords do not match",
-    path: ["confirmPassword"],
-  });
-
-/** Inferred type for reset-password form values. */
-export type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;
 
 /**
  * Email validation request schema for the /api/email/validate endpoint.

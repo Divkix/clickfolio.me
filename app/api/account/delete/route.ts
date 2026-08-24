@@ -1,8 +1,10 @@
 import { eq } from "drizzle-orm";
+import { createClerkClient } from "@clerk/backend";
+import { z } from "zod";
 import { withUser } from "@/lib/auth/with-auth";
 import { captureServerEvent } from "@/lib/posthog-server";
 
-import { pendingR2Deletions, resumes, user, verification } from "@/lib/db/schema";
+import { pendingR2Deletions, resumes, user } from "@/lib/db/schema";
 import { getR2Binding, R2 } from "@/lib/r2";
 import { deleteAccountSchema } from "@/lib/schemas/account";
 import {
@@ -16,6 +18,17 @@ interface DeletionWarning {
   type: "r2";
   message: string;
 }
+const clerkErrorSchema = z.object({ status: z.number() });
+
+/** Per-isolate Clerk Backend client (CLERK_SECRET_KEY is stable per isolate). */
+let clerkClient: ReturnType<typeof createClerkClient> | null = null;
+
+function getClerkClient(secretKey: string) {
+  if (!clerkClient) {
+    clerkClient = createClerkClient({ secretKey });
+  }
+  return clerkClient;
+}
 
 /**
  * POST /api/account/delete
@@ -23,8 +36,15 @@ interface DeletionWarning {
  *
  * GDPR-compliant deletion order:
  * 1. R2 files (resume uploads — must be deleted before DB records)
- * 2. verification (no FK to user — must be explicitly deleted)
- * 3. user (CASCADE handles: session, account, resumes, siteData, handleChanges, referralClicks)
+ * 2. Clerk identity via Backend API — deleting locally first would leave a
+ *    survivor identity that re-authenticates into a 404 dead-end; once Clerk
+ *    has deleted the user, even a failed local delete is cleaned up by the
+ *    `user.deleted` webhook.
+ * 3. local Postgres user row (CASCADE handles resumes, siteData,
+ *    handleChanges, referralClicks)
+ *
+ * Session cookies are Clerk-owned: the client signs out via useClerk()
+ * after the success response; no app-side cookie surgery here.
  */
 export async function POST(request: Request) {
   // Validate request size before parsing (prevent DoS)
@@ -39,7 +59,7 @@ export async function POST(request: Request) {
 
   return withUser(
     request,
-    async ({ user: authUser, db, captureBookmark, env }) => {
+    async ({ user: authUser, db, dbUser, env }) => {
       const warnings: DeletionWarning[] = [];
 
       // Get R2 binding for direct operations
@@ -87,6 +107,15 @@ export async function POST(request: Request) {
         );
       }
 
+      if (!env.CLERK_SECRET_KEY) {
+        console.error("CLERK_SECRET_KEY is not configured");
+        return createErrorResponse(
+          "Account deletion is unavailable due to server misconfiguration",
+          ERROR_CODES.INTERNAL_ERROR,
+          500,
+        );
+      }
+
       // Fetch all resume R2 keys before deletion
       const userResumes = await db
         .select({ r2Key: resumes.r2Key })
@@ -111,9 +140,8 @@ export async function POST(request: Request) {
       });
 
       // Durably track failed R2 deletes so the 2 AM cron can retry them.
-      // Must happen BEFORE the db.batch() below because that batch removes the user
-      // and all cascade-linked rows — after that we'd have no record of which files
-      // still need to be purged (GDPR obligation).
+      // Must happen BEFORE the user row below is removed — after that we'd have
+      // no record of which files still need to be purged (GDPR obligation).
       if (failedKeys.length > 0) {
         await db.insert(pendingR2Deletions).values(
           failedKeys.map((key) => ({
@@ -125,16 +153,29 @@ export async function POST(request: Request) {
         );
       }
 
-      // Delete database records in a transaction using batch
-      // D1 supports atomic transactions via db.batch() - all operations succeed or all fail
-      // This prevents orphaned records if deletion fails midway
+      // Delete the Clerk identity first (see docstring ordering rationale).
       try {
-        await db.batch([
-          // Delete verification records (no FK to user — must be explicit)
-          db.delete(verification).where(eq(verification.identifier, userEmail)),
-          // Delete user (CASCADE handles: session, account, resumes, siteData, handleChanges, referralClicks)
-          db.delete(user).where(eq(user.id, userId)),
-        ]);
+        await getClerkClient(env.CLERK_SECRET_KEY).users.deleteUser(dbUser.clerkId);
+      } catch (clerkError) {
+        // Already gone upstream (e.g. retry after partial failure): proceed to
+        // finish the local cleanup instead of stranding the Postgres row.
+        const parsedError = clerkErrorSchema.safeParse(clerkError);
+        if (!parsedError.success || parsedError.data.status !== 404) {
+          console.error("Clerk user deletion error:", clerkError);
+          return createErrorResponse(
+            "Failed to delete account. Please try again.",
+            ERROR_CODES.EXTERNAL_SERVICE_ERROR,
+            503,
+          );
+        }
+      }
+
+      // Delete the local user row. A single statement is atomic in Postgres;
+      // CASCADE removes resumes, siteData, handleChanges, and referralClicks.
+      // The `user.deleted` webhook fired by Clerk performs the same cleanup as
+      // a safety net if this step fails after a successful Clerk deletion.
+      try {
+        await db.delete(user).where(eq(user.id, userId));
       } catch (dbError) {
         console.error("Account deletion error:", dbError);
         return createErrorResponse("Failed to delete account", ERROR_CODES.DATABASE_ERROR, 500);
@@ -145,41 +186,10 @@ export async function POST(request: Request) {
         had_r2_warnings: warnings.length > 0,
       });
 
-      // Capture session bookmark (write path), then clear cookies in response
-      // Clear both cookie names to handle different deployment environments:
-      // - "better-auth.session_token" (dev / non-HTTPS)
-      // - "__Secure-better-auth.session_token" (production HTTPS with Secure prefix)
-      await captureBookmark();
-      const response = createSuccessResponse({
+      return createSuccessResponse({
         success: true,
         message: "Your account has been permanently deleted",
         warnings: warnings.length > 0 ? warnings : undefined,
-      });
-
-      const responseHeaders = new Headers(response.headers);
-      responseHeaders.append(
-        "Set-Cookie",
-        "better-auth.session_token=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=Lax",
-      );
-      responseHeaders.append(
-        "Set-Cookie",
-        "__Secure-better-auth.session_token=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=Lax",
-      );
-      // Also expire the session_data cookie (both forms). Without this, a deleted
-      // account leaves a ghost session cookie behind (better-auth issue #8273).
-      responseHeaders.append(
-        "Set-Cookie",
-        "better-auth.session_data=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=Lax",
-      );
-      responseHeaders.append(
-        "Set-Cookie",
-        "__Secure-better-auth.session_data=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=Lax",
-      );
-
-      return new Response(response.body, {
-        status: response.status,
-        statusText: response.statusText,
-        headers: responseHeaders,
       });
     },
     "You must be logged in to delete your account",

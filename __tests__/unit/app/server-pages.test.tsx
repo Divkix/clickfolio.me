@@ -43,7 +43,9 @@ const mocks = vi.hoisted(() => {
   return {
     state,
     db,
-    env: { CLICKFOLIO_DB: {} },
+    env: {
+      HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" },
+    },
     redirect: vi.fn((url: string) => {
       throw new Error(`redirect:${url}`);
     }),
@@ -51,6 +53,7 @@ const mocks = vi.hoisted(() => {
       throw new Error("notFound");
     }),
     requireAdminAuth: vi.fn(async () => undefined),
+    signOut: vi.fn(async () => undefined),
     getStats: vi.fn(async () => ({ pageviews: 111, visitors: 22 })),
     getPageviews: vi.fn(async () => ({
       pageviews: [{ x: "2026-05-20T00:00:00Z", y: 9 }],
@@ -93,6 +96,7 @@ vi.mock("@/lib/auth/admin", () => ({
 
 vi.mock("@/lib/auth/client", () => ({
   useSession: () => ({ data: mocks.state.session, isPending: false }),
+  useClerk: () => ({ signOut: mocks.signOut }),
 }));
 
 vi.mock("@/lib/db", () => ({
@@ -241,7 +245,7 @@ function siteDataRow(overrides: UnknownRecord = {}) {
     id: "site_1",
     userId: "user_1",
     resumeId: "res_1",
-    content: JSON.stringify(resumeContent),
+    content: resumeContent,
     themeId: "minimalist_editorial",
     createdAt: "2026-05-20T00:00:00Z",
     updatedAt: "2026-05-20T00:00:00Z",
@@ -251,7 +255,7 @@ function siteDataRow(overrides: UnknownRecord = {}) {
     previewLocation: "Phoenix, AZ",
     previewExpCount: 1,
     previewEduCount: 1,
-    previewSkills: JSON.stringify(["TypeScript", "SQL", "React", "Workers", "D1"]),
+    previewSkills: ["TypeScript", "SQL", "React", "Workers", "D1"],
     ...overrides,
   };
 }
@@ -268,8 +272,7 @@ function installDbDefaults() {
             email: "avery@example.com",
             emailVerified: false,
             image: null,
-            headline: "Engineer",
-            privacySettings: "{}",
+            privacySettings: {},
             onboardingCompleted: true,
             createdAt: "2026-05-20T00:00:00Z",
             referralCount: 0,
@@ -287,7 +290,7 @@ function installDbDefaults() {
           emailVerified: false,
           image: null,
           headline: "Engineer",
-          privacySettings: "{}",
+          privacySettings: {},
           onboardingCompleted: true,
           createdAt: "2026-05-20T00:00:00Z",
           referralCount: 3,
@@ -317,12 +320,12 @@ function installDbDefaults() {
           handle: "avery",
           headline: "Staff Product Engineer",
           image: null,
-          privacySettings: JSON.stringify({
+          privacySettings: {
             show_phone: false,
             show_address: false,
             hide_from_search: false,
             show_in_directory: true,
-          }),
+          },
           isPro: false,
           referralCount: 0,
           siteData: siteDataRow(),
@@ -335,7 +338,7 @@ function installDbDefaults() {
         handle: "avery",
         headline: "Staff Product Engineer",
         image: null,
-        privacySettings: "{}",
+        privacySettings: {},
         role: "senior",
         roleSource: "ai",
       };
@@ -346,7 +349,6 @@ function installDbDefaults() {
   mocks.db.query.resumes.findFirst.mockResolvedValue({
     id: "res_1",
     createdAt: "2026-05-20T00:00:00Z",
-    status: "failed",
     errorMessage: "Parse failed",
   });
 }
@@ -422,7 +424,7 @@ describe("server rendered app pages", () => {
           previewLocation: "Phoenix, AZ",
           previewExpCount: 1,
           previewEduCount: 1,
-          previewSkills: JSON.stringify(["TypeScript", "SQL", "React", "Workers", "D1"]),
+          previewSkills: ["TypeScript", "SQL", "React", "Workers", "D1"],
         },
       ],
     ];
@@ -446,7 +448,7 @@ describe("server rendered app pages", () => {
           previewLocation: "Phoenix, AZ",
           previewExpCount: 1,
           previewEduCount: 1,
-          previewSkills: JSON.stringify(["TypeScript", "SQL"]),
+          previewSkills: ["TypeScript", "SQL"],
         },
       ],
     ];
@@ -466,12 +468,12 @@ describe("server rendered app pages", () => {
       handle: "avery",
       headline: "Staff Product Engineer",
       image: null,
-      privacySettings: JSON.stringify({
+      privacySettings: {
         show_phone: false,
         show_address: false,
         hide_from_search: false,
         show_in_directory: true,
-      }),
+      },
       isPro: false,
       referralCount: 0,
       siteData: siteDataRow(),

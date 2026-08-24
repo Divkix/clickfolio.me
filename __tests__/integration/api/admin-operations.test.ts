@@ -22,7 +22,7 @@ vi.mock("@/lib/auth/session", () => ({
 
 vi.mock("cloudflare:workers", () => ({
   env: {
-    CLICKFOLIO_DB: {},
+    HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" },
     UMAMI_API_URL: "https://analytics.example.com",
     UMAMI_USERNAME: "admin",
     UMAMI_PASSWORD: "secret",
@@ -224,7 +224,6 @@ const mockDb = {
   select: mockSelect,
   insert: mockInsert,
   update: mockUpdate,
-  batch: vi.fn().mockResolvedValue(undefined),
 };
 type AdminAuthedResult = { user: AdminUser; error: null };
 type AuthErrorResult = { user: null; error: Response };

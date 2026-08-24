@@ -35,7 +35,7 @@ interface ThemeUpdateRequestBody {
 export async function POST(request: Request) {
   return withUser(
     request,
-    async ({ user: authUser, db, captureBookmark }) => {
+    async ({ user: authUser, db }) => {
       const userId = authUser.id;
 
       // Validate request size before parsing (prevent DoS)
@@ -103,8 +103,6 @@ export async function POST(request: Request) {
       }
 
       const data = updateResult[0];
-
-      await captureBookmark();
 
       await captureServerEvent(userId, "theme_changed", {
         theme_id: data.themeId,

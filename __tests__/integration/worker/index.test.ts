@@ -1,10 +1,13 @@
+import worker from "@/worker/index";
+import { QueueError, QueueErrorType } from "@/lib/queue/errors";
+import { verifyClerkToken } from "@/lib/auth/clerk";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { JsonValue } from "@/lib/types/json";
 
 /**
  * Integration tests for worker/index.ts
  *
- * Tests the worker's fetch (WebSocket auth gate), queue (message dispatch/ack/retry),
+ * Tests the worker's fetch (WebSocket Clerk auth gate), queue (message dispatch/ack/retry),
  * and scheduled (cron dispatch) handlers by importing the default export directly.
  *
  * Mocks all production dependencies so no real I/O occurs.
@@ -36,66 +39,82 @@ vi.mock("vinext/server/app-router-entry", () => ({
   },
 }));
 
-const mockGetSession = vi.fn();
+// Shared mock fns must exist before the hoisted vi.mock factories run — the
+// static worker import makes factories execute during module collection.
+const {
+  mockVerifyClerkToken,
+  mockHandleQueueMessage,
+  mockHandleDLQMessage,
+  mockPerformCleanup,
+  mockPerformR2Cleanup,
+  mockRetryPendingR2Deletions,
+  mockSyncDisposableDomains,
+  mockRecoverOrphanedResumes,
+  mockUserFindFirst,
+  mockResumeFindFirst,
+} = vi.hoisted(() => {
+  // Token → claims table backing the mocked verifyClerkToken. The real JWKS
+  // verification is out of scope here; extractClerkTokenFromRequest stays REAL
+  // so the __session-cookie vs Authorization-bearer extraction precedence is
+  // exercised end-to-end against the actual cookie parser.
+  const claims = {
+    "jwt.for.clerk-user-1": { sub: "user_clerk_1", sid: "sess_1" },
+    "jwt.for.clerk-other": { sub: "clerk_user_other", sid: "sess_2" },
+  };
+  return {
+    mockVerifyClerkToken: vi.fn(
+      async (token: string) =>
+        Object.entries(claims).find(([known]) => known === token)?.[1] ?? null,
+    ),
+    mockHandleQueueMessage: vi.fn(),
+    mockHandleDLQMessage: vi.fn(),
+    mockPerformCleanup: vi.fn(),
+    mockPerformR2Cleanup: vi.fn(),
+    mockRetryPendingR2Deletions: vi.fn(),
+    mockSyncDisposableDomains: vi.fn(),
+    mockRecoverOrphanedResumes: vi.fn(),
+    mockUserFindFirst: vi.fn(),
+    mockResumeFindFirst: vi.fn(),
+  };
+});
 
-vi.mock("@/lib/auth", () => ({
-  getAuth: vi.fn().mockImplementation(async () => ({
-    api: { getSession: mockGetSession },
-  })),
-  getEnvValue: vi.fn((env: Record<string, string>, key: string) => env[key] || ""),
+vi.mock("@/lib/auth/clerk", async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  verifyClerkToken: mockVerifyClerkToken,
 }));
 
-const mockHandleQueueMessage = vi.fn().mockResolvedValue(undefined);
 vi.mock("@/lib/queue/consumer", () => ({
   handleQueueMessage: mockHandleQueueMessage,
 }));
 
-const mockHandleDLQMessage = vi.fn().mockResolvedValue(undefined);
 vi.mock("@/lib/queue/dlq-consumer", () => ({
   handleDLQMessage: mockHandleDLQMessage,
 }));
 
-const mockPerformCleanup = vi.fn().mockResolvedValue({ deleted: 1 });
 vi.mock("@/lib/cron/cleanup", () => ({
   performCleanup: mockPerformCleanup,
 }));
 
-const mockPerformR2Cleanup = vi.fn().mockResolvedValue({ deleted: 2 });
-const mockRetryPendingR2Deletions = vi.fn().mockResolvedValue({ retried: 0 });
 vi.mock("@/lib/cron/cleanup-r2", () => ({
   performR2Cleanup: mockPerformR2Cleanup,
   retryPendingR2Deletions: mockRetryPendingR2Deletions,
 }));
 
-const mockSyncDisposableDomains = vi.fn().mockResolvedValue({ synced: 3 });
 vi.mock("@/lib/cron/sync-disposable-domains", () => ({
   syncDisposableDomains: mockSyncDisposableDomains,
 }));
 
-const mockRecoverOrphanedResumes = vi.fn().mockResolvedValue({ recovered: 4 });
 vi.mock("@/lib/cron/recover-orphaned", () => ({
   recoverOrphanedResumes: mockRecoverOrphanedResumes,
 }));
 
-const mockFindFirst = vi.fn();
-const mockDb = {
-  query: {
-    resumes: {
-      findFirst: mockFindFirst,
-    },
-  },
-  select: vi.fn(),
-  insert: vi.fn(),
-  update: vi.fn(),
-  batch: vi.fn(),
-};
-
 vi.mock("@/lib/db", () => ({
-  getDb: vi.fn().mockReturnValue(mockDb),
-}));
-
-vi.mock("@/lib/db/session", () => ({
-  getSessionDbForWebhook: vi.fn().mockReturnValue({ db: mockDb }),
+  getDb: vi.fn(() => ({
+    query: {
+      user: { findFirst: mockUserFindFirst },
+      resumes: { findFirst: mockResumeFindFirst },
+    },
+  })),
 }));
 
 vi.mock("drizzle-orm", () => ({
@@ -124,28 +143,39 @@ vi.mock("drizzle-orm", () => ({
 
 // ── Helpers ────────────────────────────────────────────────────────────
 
-function makeEnv(overrides: Partial<CloudflareEnv> = {}): CloudflareEnv {
-  const doStub = {
+/** Durable-object namespace stub whose forwarded requests can be inspected. */
+function makeStatusDo() {
+  const forward = vi.fn().mockResolvedValue(new Response("WS response"));
+  const namespace = {
     idFromName: vi.fn().mockReturnValue({ toString: () => "test-do-id" }),
-    get: vi.fn().mockReturnValue({
-      fetch: vi.fn().mockResolvedValue(new Response("WS response")),
-    }),
-  };
+    get: vi.fn().mockReturnValue({ fetch: forward }),
+  } as unknown as CloudflareEnv["CLICKFOLIO_STATUS_DO"];
+  return { namespace, forward };
+}
 
+function makeEnv(overrides: Partial<CloudflareEnv> = {}): CloudflareEnv {
   return {
-    CLICKFOLIO_DB: {} as D1Database,
+    HYPERDRIVE: {
+      connectionString: "postgres://user:pass@localhost:5432/clickfolio",
+    } as CloudflareEnv["HYPERDRIVE"],
     CLICKFOLIO_R2_BUCKET: {} as R2Bucket,
     CLICKFOLIO_PARSE_QUEUE: { send: vi.fn() } as unknown as Queue,
-    CLICKFOLIO_STATUS_DO: doStub as unknown as DurableObjectNamespace,
-    BETTER_AUTH_SECRET: "test-secret",
+    CLICKFOLIO_STATUS_DO: makeStatusDo().namespace,
     ...overrides,
   } as CloudflareEnv;
 }
 
+interface MockQueueMessage {
+  id: string;
+  body: JsonValue;
+  ack: () => void;
+  retry: () => void;
+}
+
 function makeMessage(
   body: JsonValue,
-  overrides: { ack?: ReturnType<typeof vi.fn>; retry?: ReturnType<typeof vi.fn> } = {},
-) {
+  overrides: { ack?: () => void; retry?: () => void } = {},
+): MockQueueMessage {
   return {
     id: crypto.randomUUID(),
     body,
@@ -154,7 +184,7 @@ function makeMessage(
   };
 }
 
-function makeBatch(queueName: string, messages: ReturnType<typeof makeMessage>[]) {
+function makeBatch(queueName: string, messages: MockQueueMessage[]) {
   return {
     queue: queueName,
     messages,
@@ -168,13 +198,29 @@ function makeCtx(): ExecutionContext {
   } as unknown as ExecutionContext;
 }
 
+/** WebSocket upgrade request against the resume-status endpoint. */
+function makeWsRequest(
+  headers: Record<string, string> = {},
+  query = "?resume_id=res-123",
+): Request {
+  return new Request(`https://clickfolio.me/ws/resume-status${query}`, {
+    headers: { Upgrade: "websocket", ...headers },
+  });
+}
+
 function resetAll() {
   vi.clearAllMocks();
   mockHandleQueueMessage.mockResolvedValue(undefined);
   mockHandleDLQMessage.mockResolvedValue(undefined);
-  mockGetSession.mockResolvedValue(null);
-  mockFindFirst.mockResolvedValue(null);
-  mockPerformCleanup.mockResolvedValue({ deleted: 1 });
+  mockUserFindFirst.mockReset();
+  mockResumeFindFirst.mockReset();
+  mockUserFindFirst.mockResolvedValue(null);
+  mockResumeFindFirst.mockResolvedValue(null);
+  mockPerformCleanup.mockResolvedValue({
+    ok: true,
+    deleted: { rateLimits: 1, handleChanges: 0 },
+    timestamp: new Date().toISOString(),
+  });
   mockPerformR2Cleanup.mockResolvedValue({ deleted: 2 });
   mockRetryPendingR2Deletions.mockResolvedValue({ retried: 0 });
   mockSyncDisposableDomains.mockResolvedValue({ synced: 3 });
@@ -187,11 +233,10 @@ describe("Worker fetch handler", () => {
   beforeEach(resetAll);
 
   it("adds security headers to non-WebSocket responses", async () => {
-    const worker = await import("@/worker/index");
     const env = makeEnv();
     const request = new Request("https://clickfolio.me/dashboard");
 
-    const response = await worker.default.fetch(request, env, makeCtx());
+    const response = await worker.fetch(request, env, makeCtx());
 
     expect(response.headers.get("X-Frame-Options")).toBe("DENY");
     expect(response.headers.get("X-Content-Type-Options")).toBe("nosniff");
@@ -205,98 +250,154 @@ describe("Worker fetch handler", () => {
   });
 
   it("returns 400 for WebSocket upgrade missing resume_id", async () => {
-    const worker = await import("@/worker/index");
     const env = makeEnv();
-    const request = new Request("https://clickfolio.me/ws/resume-status", {
-      headers: { Upgrade: "websocket" },
-    });
 
-    const response = await worker.default.fetch(request, env, makeCtx());
+    const response = await worker.fetch(makeWsRequest({}, ""), env, makeCtx());
 
     expect(response.status).toBe(400);
+    expect(await response.text()).toBe("Missing resume_id query parameter");
   });
 
-  it("returns 401 for WebSocket upgrade with no session cookie", async () => {
-    const worker = await import("@/worker/index");
+  it("returns 401 for WebSocket upgrade with no session token", async () => {
     const env = makeEnv();
-    const request = new Request("https://clickfolio.me/ws/resume-status?resume_id=res-123", {
-      headers: { Upgrade: "websocket" },
-    });
 
-    const response = await worker.default.fetch(request, env, makeCtx());
+    const response = await worker.fetch(makeWsRequest(), env, makeCtx());
 
     expect(response.status).toBe(401);
+    expect(await response.text()).toBe("Unauthorized: Invalid session");
   });
 
-  it("returns 401 for WebSocket upgrade with invalid session token", async () => {
-    const worker = await import("@/worker/index");
+  it("returns 401 when the Clerk token fails verification", async () => {
     const env = makeEnv();
-    mockGetSession.mockResolvedValueOnce(null); // invalid session
 
-    const request = new Request("https://clickfolio.me/ws/resume-status?resume_id=res-123", {
-      headers: {
-        Upgrade: "websocket",
-        Cookie: "better-auth.session_token=bad-token",
-      },
-    });
-
-    const response = await worker.default.fetch(request, env, makeCtx());
+    const response = await worker.fetch(
+      makeWsRequest({ Cookie: "__session=tampered-or-expired-jwt" }),
+      env,
+      makeCtx(),
+    );
 
     expect(response.status).toBe(401);
+    expect(await response.text()).toBe("Unauthorized: Invalid session");
+    expect(vi.mocked(verifyClerkToken)).toHaveBeenCalledWith("tampered-or-expired-jwt");
   });
 
-  it("returns 404 for WebSocket upgrade when resume not found", async () => {
-    const worker = await import("@/worker/index");
+  it("authenticates via the Authorization Bearer header", async () => {
     const env = makeEnv();
-    mockGetSession.mockResolvedValueOnce({ user: { id: "user-1" } });
-    mockFindFirst.mockResolvedValueOnce(null); // resume not found
+    mockUserFindFirst.mockResolvedValue({ id: "pg-user-1" });
+    mockResumeFindFirst.mockResolvedValue({ id: "res-123", userId: "pg-user-1" });
 
-    const request = new Request("https://clickfolio.me/ws/resume-status?resume_id=missing-id", {
-      headers: {
-        Upgrade: "websocket",
-        Cookie: "better-auth.session_token=valid-token",
-      },
-    });
+    const response = await worker.fetch(
+      makeWsRequest({ Authorization: "Bearer jwt.for.clerk-user-1" }),
+      env,
+      makeCtx(),
+    );
 
-    const response = await worker.default.fetch(request, env, makeCtx());
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe("WS response");
+    // JWT sub must be resolved against the local PG user row via clerkId…
+    expect(mockUserFindFirst).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { op: "eq", value: "user_clerk_1" } }),
+    );
+  });
+
+  it("prefers the __session cookie over an Authorization header when both are present", async () => {
+    const env = makeEnv();
+
+    await worker.fetch(
+      makeWsRequest({
+        Cookie: "__session=jwt.for.clerk-user-1",
+        Authorization: "Bearer jwt.for.clerk-other",
+      }),
+      env,
+      makeCtx(),
+    );
+
+    // Extraction precedence: exactly one verification, against the cookie token.
+    expect(vi.mocked(verifyClerkToken)).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(verifyClerkToken)).toHaveBeenCalledWith("jwt.for.clerk-user-1");
+  });
+
+  it("returns 401 Unknown user for a valid token with no local PG user row", async () => {
+    const env = makeEnv();
+    // Default resetAll(): user.findFirst resolves null.
+
+    const response = await worker.fetch(
+      makeWsRequest({ Cookie: "__session=jwt.for.clerk-user-1" }),
+      env,
+      makeCtx(),
+    );
+
+    expect(response.status).toBe(401);
+    expect(await response.text()).toBe("Unauthorized: Unknown user");
+  });
+
+  it("returns 404 when the resume does not exist", async () => {
+    const env = makeEnv();
+    mockUserFindFirst.mockResolvedValue({ id: "pg-user-1" });
+    mockResumeFindFirst.mockResolvedValue(null);
+
+    const response = await worker.fetch(
+      makeWsRequest({ Cookie: "__session=jwt.for.clerk-user-1" }, "?resume_id=missing-id"),
+      env,
+      makeCtx(),
+    );
 
     expect(response.status).toBe(404);
+    expect(await response.text()).toBe("Resume not found");
   });
 
-  it("returns 403 for WebSocket upgrade when user does not own resume", async () => {
-    const worker = await import("@/worker/index");
+  it("returns 403 when the user does not own the resume", async () => {
     const env = makeEnv();
-    mockGetSession.mockResolvedValueOnce({ user: { id: "user-1" } });
-    mockFindFirst.mockResolvedValueOnce({ id: "res-123", userId: "user-2" }); // different owner
+    mockUserFindFirst.mockResolvedValue({ id: "pg-user-1" });
+    mockResumeFindFirst.mockResolvedValue({ id: "res-123", userId: "pg-user-2" });
 
-    const request = new Request("https://clickfolio.me/ws/resume-status?resume_id=res-123", {
-      headers: {
-        Upgrade: "websocket",
-        Cookie: "better-auth.session_token=valid-token",
-      },
-    });
-
-    const response = await worker.default.fetch(request, env, makeCtx());
+    const response = await worker.fetch(
+      makeWsRequest({ Cookie: "__session=jwt.for.clerk-user-1" }),
+      env,
+      makeCtx(),
+    );
 
     expect(response.status).toBe(403);
+    expect(await response.text()).toBe("Forbidden: You don't own this resume");
   });
 
   it("returns 503 when STATUS_DO binding is missing", async () => {
-    const worker = await import("@/worker/index");
-    const env = makeEnv({ CLICKFOLIO_STATUS_DO: undefined as any });
-    mockGetSession.mockResolvedValueOnce({ user: { id: "user-1" } });
-    mockFindFirst.mockResolvedValueOnce({ id: "res-123", userId: "user-1" }); // owner match
-
-    const request = new Request("https://clickfolio.me/ws/resume-status?resume_id=res-123", {
-      headers: {
-        Upgrade: "websocket",
-        Cookie: "better-auth.session_token=valid-token",
-      },
+    const env = makeEnv({
+      CLICKFOLIO_STATUS_DO: undefined as unknown as CloudflareEnv["CLICKFOLIO_STATUS_DO"],
     });
+    mockUserFindFirst.mockResolvedValue({ id: "pg-user-1" });
+    mockResumeFindFirst.mockResolvedValue({ id: "res-123", userId: "pg-user-1" });
 
-    const response = await worker.default.fetch(request, env, makeCtx());
+    const response = await worker.fetch(
+      makeWsRequest({ Cookie: "__session=jwt.for.clerk-user-1" }),
+      env,
+      makeCtx(),
+    );
 
     expect(response.status).toBe(503);
+    expect(await response.text()).toBe("WebSocket not available");
+  });
+
+  it("forwards the upgrade to the DO keyed by resumeId with the PG user id header", async () => {
+    const statusDo = makeStatusDo();
+    const env = makeEnv({ CLICKFOLIO_STATUS_DO: statusDo.namespace });
+    mockUserFindFirst.mockResolvedValue({ id: "pg-user-1" });
+    mockResumeFindFirst.mockResolvedValue({ id: "res-123", userId: "pg-user-1" });
+
+    const response = await worker.fetch(
+      makeWsRequest({ Cookie: "__session=jwt.for.clerk-user-1" }),
+      env,
+      makeCtx(),
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe("WS response");
+    expect(statusDo.namespace.idFromName).toHaveBeenCalledWith("res-123");
+    expect(statusDo.forward).toHaveBeenCalledTimes(1);
+    const forwarded = statusDo.forward.mock.calls[0][0] as Request;
+    // The header carries the Postgres owner id, never the raw Clerk sub.
+    expect(forwarded.headers.get("x-authenticated-user-id")).toBe("pg-user-1");
+    expect(forwarded.headers.get("x-authenticated-user-id")).not.toBe("user_clerk_1");
   });
 });
 
@@ -315,34 +416,30 @@ describe("Worker queue handler", () => {
   };
 
   it("acks malformed messages (invalid schema)", async () => {
-    const worker = await import("@/worker/index");
     const env = makeEnv();
     const ack = vi.fn();
     const batch = makeBatch("clickfolio-parse-queue", [
       makeMessage({ type: "unknown", random: "data" }, { ack }),
     ]);
 
-    await worker.default.queue(batch, env);
+    await worker.queue(batch, env);
 
     expect(ack).toHaveBeenCalled();
     expect(mockHandleQueueMessage).not.toHaveBeenCalled();
   });
 
   it("acks valid main-queue messages after successful processing", async () => {
-    const worker = await import("@/worker/index");
     const env = makeEnv();
     const ack = vi.fn();
     const batch = makeBatch("clickfolio-parse-queue", [makeMessage(VALID_BODY, { ack })]);
 
-    await worker.default.queue(batch, env);
+    await worker.queue(batch, env);
 
     expect(mockHandleQueueMessage).toHaveBeenCalled();
     expect(ack).toHaveBeenCalled();
   });
 
   it("retries message when handleQueueMessage throws a retryable error", async () => {
-    const { QueueError, QueueErrorType } = await import("@/lib/queue/errors");
-    const worker = await import("@/worker/index");
     const env = makeEnv();
     const ack = vi.fn();
     const retry = vi.fn();
@@ -353,15 +450,13 @@ describe("Worker queue handler", () => {
 
     const batch = makeBatch("clickfolio-parse-queue", [makeMessage(VALID_BODY, { ack, retry })]);
 
-    await worker.default.queue(batch, env);
+    await worker.queue(batch, env);
 
     expect(retry).toHaveBeenCalled();
     expect(ack).not.toHaveBeenCalled();
   });
 
   it("acks (sends to DLQ) on permanent processing error", async () => {
-    const { QueueError, QueueErrorType } = await import("@/lib/queue/errors");
-    const worker = await import("@/worker/index");
     const env = makeEnv();
     const ack = vi.fn();
     const retry = vi.fn();
@@ -372,19 +467,18 @@ describe("Worker queue handler", () => {
 
     const batch = makeBatch("clickfolio-parse-queue", [makeMessage(VALID_BODY, { ack, retry })]);
 
-    await worker.default.queue(batch, env);
+    await worker.queue(batch, env);
 
     expect(ack).toHaveBeenCalled();
     expect(retry).not.toHaveBeenCalled();
   });
 
   it("routes to DLQ handler for messages from the DLQ queue", async () => {
-    const worker = await import("@/worker/index");
     const env = makeEnv();
     const ack = vi.fn();
     const batch = makeBatch("clickfolio-parse-dlq", [makeMessage(VALID_BODY, { ack })]);
 
-    await worker.default.queue(batch, env);
+    await worker.queue(batch, env);
 
     expect(mockHandleDLQMessage).toHaveBeenCalled();
     expect(mockHandleQueueMessage).not.toHaveBeenCalled();
@@ -406,35 +500,31 @@ describe("Worker scheduled handler", () => {
   }
 
   it("dispatches R2 cleanup on '0 2 * * *' cron", async () => {
-    const worker = await import("@/worker/index");
     const env = makeEnv();
 
-    await worker.default.scheduled(makeController("0 2 * * *"), env);
+    await worker.scheduled(makeController("0 2 * * *"), env);
 
     expect(mockPerformR2Cleanup).toHaveBeenCalled();
     expect(mockRetryPendingR2Deletions).toHaveBeenCalled();
   });
 
   it("skips R2 cleanup when R2 binding is missing", async () => {
-    const worker = await import("@/worker/index");
     const env = makeEnv({ CLICKFOLIO_R2_BUCKET: undefined as unknown as R2Bucket });
 
-    await worker.default.scheduled(makeController("0 2 * * *"), env);
+    await worker.scheduled(makeController("0 2 * * *"), env);
 
     expect(mockPerformR2Cleanup).not.toHaveBeenCalled();
   });
 
   it("dispatches DB cleanup on '0 3 * * *' cron", async () => {
-    const worker = await import("@/worker/index");
     const env = makeEnv();
 
-    await worker.default.scheduled(makeController("0 3 * * *"), env);
+    await worker.scheduled(makeController("0 3 * * *"), env);
 
     expect(mockPerformCleanup).toHaveBeenCalled();
   });
 
   it("dispatches disposable domain sync on '0 4 * * *' cron", async () => {
-    const worker = await import("@/worker/index");
     const env = makeEnv({
       CLICKFOLIO_DISPOSABLE_DOMAINS: {
         get: vi.fn(),
@@ -442,44 +532,38 @@ describe("Worker scheduled handler", () => {
       } as unknown as KVNamespace,
     });
 
-    await worker.default.scheduled(makeController("0 4 * * *"), env);
+    await worker.scheduled(makeController("0 4 * * *"), env);
 
     expect(mockSyncDisposableDomains).toHaveBeenCalled();
   });
 
   it("skips domain sync when KV binding is missing", async () => {
-    const worker = await import("@/worker/index");
     const env = makeEnv({ CLICKFOLIO_DISPOSABLE_DOMAINS: undefined as unknown as KVNamespace });
 
-    await worker.default.scheduled(makeController("0 4 * * *"), env);
+    await worker.scheduled(makeController("0 4 * * *"), env);
 
     expect(mockSyncDisposableDomains).not.toHaveBeenCalled();
   });
 
   it("dispatches orphan recovery on '*/15 * * * *' cron", async () => {
-    const worker = await import("@/worker/index");
     const env = makeEnv();
 
-    await worker.default.scheduled(makeController("*/15 * * * *"), env);
+    await worker.scheduled(makeController("*/15 * * * *"), env);
 
     expect(mockRecoverOrphanedResumes).toHaveBeenCalled();
   });
 
   it("skips orphan recovery when queue binding is missing", async () => {
-    const worker = await import("@/worker/index");
     const env = makeEnv({ CLICKFOLIO_PARSE_QUEUE: undefined as unknown as Queue });
 
-    await worker.default.scheduled(makeController("*/15 * * * *"), env);
+    await worker.scheduled(makeController("*/15 * * * *"), env);
 
     expect(mockRecoverOrphanedResumes).not.toHaveBeenCalled();
   });
 
   it("does not throw on unknown cron expression", async () => {
-    const worker = await import("@/worker/index");
     const env = makeEnv();
 
-    await expect(
-      worker.default.scheduled(makeController("0 12 * * MON"), env),
-    ).resolves.not.toThrow();
+    await expect(worker.scheduled(makeController("0 12 * * MON"), env)).resolves.not.toThrow();
   });
 });

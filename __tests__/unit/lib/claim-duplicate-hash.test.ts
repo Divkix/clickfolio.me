@@ -13,8 +13,6 @@ import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { UnknownRecord, JsonValue } from "@/lib/types/json";
 // ── Mocks ─────────────────────────────────────────────────────────────
 
-const mockCaptureBookmark = vi.fn().mockResolvedValue(undefined);
-
 const mockFindFirst = vi.fn();
 const mockDbFrom = vi.fn();
 const mockDbWhere = vi.fn();
@@ -24,7 +22,7 @@ const mockDbInsertValues = vi.fn().mockResolvedValue(undefined);
 const mockDbInsert = vi.fn().mockReturnValue({ values: mockDbInsertValues });
 const mockDbUpdateSet = vi.fn();
 const mockDbUpdateWhere = vi.fn().mockResolvedValue(undefined);
-const mockDbBatch = vi.fn().mockResolvedValue(undefined);
+const mockDbTransaction = vi.fn(async (cb: (tx: typeof mockDb) => unknown) => cb(mockDb));
 
 let mockHandleRows: Array<{ handle: string | null }> = [{ handle: "test-handle" }];
 
@@ -61,7 +59,7 @@ const mockDb = {
   limit: mockDbLimit,
   insert: mockDbInsert,
   update: mockDbUpdate,
-  batch: mockDbBatch,
+  transaction: mockDbTransaction,
 };
 
 // Auth mock
@@ -233,14 +231,18 @@ function authedAs(userId: string) {
       image: null,
       handle: "testuser",
       headline: null,
-      privacySettings: "{}",
+      privacySettings: {
+        show_phone: false,
+        show_address: false,
+        hide_from_search: false,
+        show_in_directory: true,
+      },
       onboardingCompleted: true,
       role: "mid_level",
     },
     db: mockDb as never,
-    captureBookmark: mockCaptureBookmark,
-    dbUser: { id: userId, handle: "testuser" },
-    env: { DB: {}, CLICKFOLIO_PARSE_QUEUE: {}, BETTER_AUTH_SECRET: TEST_SECRET } as never,
+    dbUser: { id: userId, handle: "testuser", clerkId: "user_clerk_1" },
+    env: { CLICKFOLIO_PARSE_QUEUE: {}, PENDING_UPLOAD_SECRET: TEST_SECRET } as never,
     error: null,
   });
 }
@@ -396,7 +398,8 @@ describe("POST /api/resume/claim — Duplicate file hash detection", () => {
     it("uses cached result when same user uploads same file that was already completed", async () => {
       authedAs("user-1");
 
-      const cachedContent = JSON.stringify({ full_name: "Test User" });
+      // parsedContent is jsonb: Postgres hands back a parsed OBJECT
+      const cachedContent = { full_name: "Test User" };
       // Cache lookup returns hit; handle query is detected via select({handle:...}) not positional
       mockDbLimit.mockResolvedValue([{ id: "cached-resume", parsedContent: cachedContent }]);
       mockHandleRows = [{ handle: "test-handle" }];
@@ -416,11 +419,10 @@ describe("POST /api/resume/claim — Duplicate file hash detection", () => {
       // Verify publish gating used handle (hasHandle true → publish:true)
       const { buildSiteDataUpsert } = await import("@/lib/data/site-data-upsert");
       expect(vi.mocked(buildSiteDataUpsert)).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.anything(),
-        expect.anything(),
-        expect.anything(),
-        expect.anything(),
+        expect.anything(), // tx (transaction-scoped)
+        "user-1",
+        expect.anything(), // resumeId
+        cachedContent,
         { publish: true },
       );
     });
@@ -428,7 +430,8 @@ describe("POST /api/resume/claim — Duplicate file hash detection", () => {
     it("uses cached result with publish:false when user has no handle (prevents unreachable published site)", async () => {
       authedAs("user-1");
 
-      const cachedContent = JSON.stringify({ full_name: "Test User" });
+      // parsedContent is jsonb: Postgres hands back a parsed OBJECT
+      const cachedContent = { full_name: "Test User" };
       // Cache hit but user handle missing → lastPublishedAt must stay null (publish:false)
       mockDbLimit.mockResolvedValue([{ id: "cached-resume", parsedContent: cachedContent }]);
       mockHandleRows = []; // no handle → hasHandle false
@@ -448,11 +451,10 @@ describe("POST /api/resume/claim — Duplicate file hash detection", () => {
       // Must gate publish on handle: no handle → publish:false so site remains unpublished
       const { buildSiteDataUpsert } = await import("@/lib/data/site-data-upsert");
       expect(vi.mocked(buildSiteDataUpsert)).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.anything(),
-        expect.anything(),
-        expect.anything(),
-        expect.anything(),
+        expect.anything(), // tx (transaction-scoped)
+        "user-1",
+        expect.anything(), // resumeId
+        cachedContent,
         { publish: false },
       );
       // Also ensure queue still completes without throwing and site_data upsert still invoked
@@ -528,29 +530,6 @@ describe("POST /api/resume/claim — Duplicate file hash detection", () => {
       expect(and).toBeDefined();
       expect(isNotNull).toBeDefined();
       expect(ne).toBeDefined();
-    });
-
-    it("cache lookup query includes userId, fileHash, status, and parsedContent filters", () => {
-      // The actual query in the claim route (lines 225-237):
-      //
-      // db.select({ id: resumes.id, parsedContent: resumes.parsedContent })
-      //   .from(resumes)
-      //   .where(and(
-      //     eq(resumes.userId, userId),
-      //     eq(resumes.fileHash, hash),
-      //     eq(resumes.status, "completed"),
-      //     isNotNull(resumes.parsedContent),
-      //     ne(resumes.id, resumeId),
-      //   ))
-      //   .limit(1);
-      //
-      // The composite index resumes_file_hash_status_idx covers
-      // (fileHash, status) filtering, and the row-level userId check
-      // is application-level enforcement (no cross-user leaks).
-
-      // This test documents the index usage pattern — the actual index
-      // is defined in the Drizzle schema and created by D1 migration.
-      expect(true).toBe(true);
     });
   });
 });

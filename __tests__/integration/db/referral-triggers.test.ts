@@ -1,13 +1,13 @@
 /**
  * Referral count trigger integrity tests.
  *
- * Migration 0024_steady_gazelle.sql defines DB triggers that maintain
- * user.referralCount when user.referredBy is inserted, updated, or deleted.
+ * migrations_pg/0002_referral_count_triggers.sql defines PostgreSQL triggers
+ * that maintain user.referralCount when user.referredBy is inserted, updated,
+ * or deleted.
  *
- * Since D1 triggers run at the SQL level and cannot be exercised through
- * Drizzle mocks alone, this test replicates the trigger logic from the
- * migration and verifies every trigger scenario against a simulated
- * in-memory user table.
+ * Since triggers run at the SQL level and cannot be exercised through Drizzle
+ * mocks alone, this test replicates the trigger logic from the migration and
+ * verifies every trigger scenario against a simulated in-memory user table.
  */
 
 import { beforeEach, describe, expect, it } from "vite-plus/test";

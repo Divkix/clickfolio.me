@@ -27,7 +27,7 @@ export async function requireAdminAuth(): Promise<AdminUser> {
     redirect("/");
   }
 
-  const db = getDb(env.CLICKFOLIO_DB);
+  const db = getDb(env.HYPERDRIVE);
 
   const dbUser = await db.query.user.findFirst({
     where: eq(users.id, session.user.id),
@@ -67,7 +67,7 @@ export async function requireAdminAuthForApi(): Promise<
     };
   }
 
-  const db = getDb(env.CLICKFOLIO_DB);
+  const db = getDb(env.HYPERDRIVE);
 
   const dbUser = await db.query.user.findFirst({
     where: eq(users.id, session.user.id),

@@ -39,7 +39,7 @@ export function clearKeyCache(): void {
  * sign/verify call. If the secret changes at runtime (e.g., key rotation),
  * a new CryptoKey is derived for the new secret.
  *
- * @param secret - The raw signing secret (e.g., BETTER_AUTH_SECRET)
+ * @param secret - The raw signing secret (PENDING_UPLOAD_SECRET)
  * @returns CryptoKey ready for HMAC-SHA256 signing
  */
 async function getCryptoKey(secret: string): Promise<CryptoKey> {
@@ -88,7 +88,7 @@ async function verifySignature(value: string, signature: string, secret: string)
  * Create a signed cookie value containing upload key
  *
  * @param tempKey - The R2 temp key (e.g., "temp/{uuid}/{filename}")
- * @param secret - The signing secret (BETTER_AUTH_SECRET)
+ * @param secret - The signing secret (PENDING_UPLOAD_SECRET)
  * @returns Signed cookie value ready for storage
  */
 export async function createSignedCookieValue(tempKey: string, secret: string): Promise<string> {
@@ -109,7 +109,7 @@ interface ParsedPendingUpload {
  * Parse and verify a signed cookie value
  *
  * @param cookieValue - The raw cookie value
- * @param secret - The signing secret (BETTER_AUTH_SECRET)
+ * @param secret - The signing secret (PENDING_UPLOAD_SECRET)
  * @returns Parsed data if valid and not expired, null otherwise
  */
 export async function parseSignedCookieValue(

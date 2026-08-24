@@ -38,12 +38,11 @@
     // Cloudflare smart placement routes requests to the nearest data center.
     "mode": "smart",
   },
-  // D1 Database binding
-  "d1_databases": [
+  // Hyperdrive → PlanetScale Postgres (logical DB `clickfolio` on `side-projects` cluster)
+  "hyperdrive": [
     {
-      "binding": "CLICKFOLIO_DB",
-      "database_name": "clickfolio-db",
-      "database_id": "37cf1935-96c5-40c8-aa2e-0d0655f9b652",
+      "binding": "HYPERDRIVE",
+      "id": "98b93ea7291f4a3fa5e05693a6d72a3d",
     },
   ],
   // KV namespaces
@@ -60,14 +59,6 @@
       "bucket_name": "clickfolio-bucket",
     },
   ],
-  // Cloudflare Email Service for transactional emails (password reset, verification)
-  "send_email": [
-    {
-      "name": "EMAIL",
-      "allowed_sender_addresses": ["noreply@clickfolio.me"],
-    },
-  ],
-  // Cloudflare Queues for async processing
   "queues": {
     "producers": [
       {
@@ -144,10 +135,13 @@
     // and in .dev.vars for local development (vite loads these automatically)
     //
     // ===== REQUIRED SECRETS =====
-    //   wrangler secret put BETTER_AUTH_SECRET
-    //   wrangler secret put BETTER_AUTH_URL                      # Also used as app URL
-    //   wrangler secret put GOOGLE_CLIENT_ID
-    //   wrangler secret put GOOGLE_CLIENT_SECRET
+    //   wrangler secret put PENDING_UPLOAD_SECRET       # HMAC key for signed pending-upload claim cookies
+    //   wrangler secret put CLERK_SECRET_KEY            # sk_live_… — server-side session verification + webhook
+    //   wrangler secret put CLERK_WEBHOOK_SECRET        # whsec_… — Svix signing secret for /api/webhooks/clerk
+    //
+    // ===== REQUIRED CONFIG (non-secret) =====
+    //   APP_URL                            # canonical site URL (e.g. https://clickfolio.me)
+    //   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY  # public Clerk key — set in CF Workers dashboard/build env
     //
     // ===== OPTIONAL: DLQ alerting (defaults to Cloudflare Logpush) =====
     //   wrangler secret put ALERT_CHANNEL       # logpush | webhook
@@ -174,6 +168,8 @@
     // Note: R2 is accessed via binding (CLICKFOLIO_R2_BUCKET) - no API credentials needed
     // NODE_ENV: Runtime environment for the Cloudflare Worker.
     "NODE_ENV": "production",
+    "APP_URL": "https://clickfolio.me",
+    "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_live_Y2xlcmsuY2xpY2tmb2xpby5tZSQ",
     // AI_MODEL: OpenRouter model accessed via Cloudflare AI Gateway for resume parsing.
     "AI_MODEL": "openai/gpt-5.6-luna:nitro",
     // Reasoning effort (medium|high, default medium) — controls thinking tokens for reasoning models.

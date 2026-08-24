@@ -3,7 +3,7 @@ import { Resvg } from "@cf-wasm/resvg/workerd";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { siteData, user } from "@/lib/db/schema";
-import { parsePreviewSkills } from "@/lib/utils/preview-skills";
+import { normalizePreviewSkills } from "@/lib/utils/preview-skills";
 import { escapeXml } from "@/lib/utils/xml";
 
 const RESVG_OPTIONS = {
@@ -67,7 +67,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ han
   }
 
   try {
-    const db = getDb(env.CLICKFOLIO_DB);
+    const db = getDb(env.HYPERDRIVE);
 
     // Lightweight query: only preview columns needed for OG card
     const rows = await db
@@ -93,7 +93,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ han
     const displayName = escapeXml(row.previewName || row.name || handle);
     const headline = row.previewHeadline ? escapeXml(row.previewHeadline) : "";
 
-    const skills = parsePreviewSkills(row.previewSkills)
+    const skills = normalizePreviewSkills(row.previewSkills)
       .slice(0, 4)
       .map((skill) => escapeXml(skill));
 

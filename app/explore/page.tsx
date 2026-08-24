@@ -18,8 +18,8 @@ import {
   generatePageBreadcrumbJsonLd,
   serializeJsonLd,
 } from "@/lib/seo/json-ld";
-import { parsePreviewSkills } from "@/lib/utils/preview-skills";
-import { extractCityState, parsePrivacySettings } from "@/lib/utils/privacy";
+import { normalizePreviewSkills } from "@/lib/utils/preview-skills";
+import { extractCityState, normalizePrivacySettings } from "@/lib/utils/privacy";
 import { safePageParam } from "@/lib/utils/pagination";
 
 /** Revalidate explore page every 5 minutes for directory freshness. */
@@ -79,12 +79,12 @@ export default async function ExplorePage({
   const currentPage = safePageParam(params.page);
   const roleFilter = params.role || "";
 
-  const db = getDb(env.CLICKFOLIO_DB);
+  const db = getDb(env.HYPERDRIVE);
 
   // Build where conditions
   const whereConditions = [
     isNotNull(user.handle),
-    // Denormalized boolean column — indexed, no json_extract() needed
+    // Denormalized boolean column — indexed
     eq(user.showInDirectory, true),
     // Must have completed onboarding
     eq(user.onboardingCompleted, true),
@@ -96,7 +96,7 @@ export default async function ExplorePage({
     whereConditions.push(eq(user.role, roleFilter as (typeof user.role.enumValues)[number]));
   }
 
-  // Run count and data queries in parallel (independent D1 reads)
+  // Run count and data queries in parallel (independent database reads)
   const [countResult, usersWithData] = await Promise.all([
     // Total count for pagination
     db
@@ -132,15 +132,15 @@ export default async function ExplorePage({
   const directoryUsers: DirectoryUser[] = usersWithData
     .filter((u) => u.handle !== null)
     .map((u) => {
-      const previewSkills = parsePreviewSkills(u.previewSkills);
-      const showAddress = parsePrivacySettings(u.privacySettings).show_address;
+      const previewSkills = normalizePreviewSkills(u.previewSkills);
+      const showAddress = normalizePrivacySettings(u.privacySettings).show_address;
 
       // Filter the denormalized previewLocation at READ time — existing rows
       // may predate the privacy filter. Cards render split(",")[0], so without
       // this a full street address would leak into the directory.
       const previewLocation =
         u.previewLocation && !showAddress ? extractCityState(u.previewLocation) : u.previewLocation;
-      // SAFETY: D1 handle is filtered for non-null above; cast bridges nullable to string.
+      // SAFETY: handle is filtered for non-null above; cast bridges nullable to string.
       return {
         handle: u.handle as string,
         role: u.role,

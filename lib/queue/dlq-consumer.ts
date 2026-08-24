@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { resumes } from "../db/schema";
-import { getSessionDbForWebhook } from "../db/session";
+import { getDb } from "../db";
 import { getLastAttemptErrorType } from "../resume/lifecycle";
 import { getAlertChannel, sendAlert, type AlertEnv } from "./alert";
 import { QueueErrorType } from "./errors";
@@ -19,7 +19,7 @@ import { log } from "../utils/log";
 export async function handleDLQMessage(
   message: QueueMessage | DeadLetterMessage,
   env: {
-    CLICKFOLIO_DB: CloudflareEnv["CLICKFOLIO_DB"];
+    HYPERDRIVE: CloudflareEnv["HYPERDRIVE"];
     CLICKFOLIO_STATUS_DO: CloudflareEnv["CLICKFOLIO_STATUS_DO"] | undefined;
   },
 ): Promise<void> {
@@ -28,8 +28,8 @@ export async function handleDLQMessage(
   const failureReason =
     "failureReason" in message ? message.failureReason : "Unknown (moved to DLQ)";
 
-  // Use webhook variant since cookies are not available in Worker queue context
-  const { db } = getSessionDbForWebhook(env.CLICKFOLIO_DB);
+  // Queue consumers run without request/cookie scope; open the shared Hyperdrive pool directly.
+  const db = getDb(env.HYPERDRIVE);
 
   // Fetch current resume state
   const currentResume = await db
@@ -63,7 +63,7 @@ export async function handleDLQMessage(
 
   // Parse last attempt error if available (shape owned by lifecycle).
   // Validate against the known enum so an arbitrary stored string does not leak through as `errorType`.
-  // SAFETY: D1 lastAttemptError is QueueError JSON from classifyQueueError().toJSON(); lifecycle.parseLastAttemptError validates shape, cast narrows nullable string.
+  // SAFETY: stored lastAttemptError is QueueError JSON from classifyQueueError().toJSON(); lifecycle.parseLastAttemptError validates shape, cast narrows nullable string.
   const rawErrorType = getLastAttemptErrorType(
     (currentResume[0]?.lastAttemptError as string | null) ?? null,
   );

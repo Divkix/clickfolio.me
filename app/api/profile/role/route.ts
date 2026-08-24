@@ -37,7 +37,7 @@ export async function PUT(request: Request) {
 
   return withUser(
     request,
-    async ({ user: authUser, db, captureBookmark }) => {
+    async ({ user: authUser, db }) => {
       const rawBodyResult = await readJsonWithLimit(request);
       if (!rawBodyResult.ok) {
         return createErrorResponse(
@@ -66,7 +66,6 @@ export async function PUT(request: Request) {
         })
         .where(eq(user.id, authUser.id));
 
-      await captureBookmark();
       return createSuccessResponse({ role: validation.data.role, roleSource: "user" });
     },
     "You must be logged in to update your role",

@@ -5,12 +5,14 @@ import { withUser } from "@/lib/auth/with-auth";
 import { buildSiteDataUpsert } from "@/lib/data/site-data-upsert";
 import type { NewResume } from "@/lib/db/schema";
 import { resumes, user } from "@/lib/db/schema";
+import type { ResumeContent } from "@/lib/types/database";
 import { publishResumeParse } from "@/lib/queue/resume-parse";
 import { getR2Binding, R2 } from "@/lib/r2";
 import { enforceRateLimit } from "@/lib/rate-limit/user";
-import { writeReferral } from "@/lib/referral";
+import { writeReferral } from "@/lib/referral-server";
 import { claimRequestSchema } from "@/lib/schemas/resume";
 import { sha256Hex } from "@/lib/utils/hash";
+import { getOptionalEnvValue } from "@/lib/utils/env";
 import { COOKIE_NAME, parseSignedCookieValue } from "@/lib/utils/pending-upload-cookie";
 import {
   createErrorResponse,
@@ -59,7 +61,7 @@ export async function POST(request: Request) {
 
   return withUser(
     request,
-    async ({ user: authUser, db, captureBookmark, env }) => {
+    async ({ user: authUser, db, env }) => {
       const userId = authUser.id;
 
       // Get R2 binding for direct operations (uses env from auth result)
@@ -110,7 +112,7 @@ export async function POST(request: Request) {
         );
       }
       // Get the secret from env for cookie verification
-      const cookieSecret = env.BETTER_AUTH_SECRET;
+      const cookieSecret = getOptionalEnvValue(env, "PENDING_UPLOAD_SECRET");
       if (!cookieSecret || !z.string().safeParse(cookieSecret).success) {
         return createErrorResponse(
           "Upload verification unavailable. Server configuration error.",
@@ -278,7 +280,7 @@ export async function POST(request: Request) {
 
       // Check for cached parse result (same file uploaded before BY THIS USER)
       // SECURITY: Only look up cache for current user's own resumes to prevent cross-user data access
-      // Single query to fetch both existence and content (saves one D1 roundtrip)
+      // Single query to fetch both existence and content (saves one database roundtrip)
       const cached = await db
         .select({ id: resumes.id, parsedContent: resumes.parsedContent })
         .from(resumes)
@@ -293,8 +295,8 @@ export async function POST(request: Request) {
         )
         .limit(1);
 
-      // SAFETY: D1 parsedContent is nullable text column validated via resumeContentSchema; cast bridges nullable to string|null.
-      const cachedContent = cached[0]?.parsedContent as string | null;
+      // SAFETY: parsedContent is schema-validated JSONB written only by our queue consumer; cast bridges the column's wide Record type to ResumeContent.
+      const cachedContent = (cached[0]?.parsedContent as ResumeContent | null) ?? null;
 
       if (cachedContent) {
         // DATA INTEGRITY FIX: Store file to user's folder using existing buffer
@@ -324,12 +326,12 @@ export async function POST(request: Request) {
               .where(eq(user.id, userId))
               .limit(1);
             const hasHandle = !!userRow[0]?.handle;
-            // Batch resume completion + siteData upsert atomically.
-            // Without batching, a crash between the UPDATE and upsert leaves
+            // Complete the resume and upsert siteData in one transaction.
+            // Without it, a crash between the UPDATE and the upsert leaves
             // the resume "completed" with no siteData, and the idempotency
             // guard in the queue consumer skips it on retry.
-            await db.batch([
-              db
+            await db.transaction(async (tx) => {
+              await tx
                 .update(resumes)
                 .set({
                   status: "completed",
@@ -337,12 +339,13 @@ export async function POST(request: Request) {
                   parsedAt: now,
                   parsedContent: cachedContent,
                 })
-                .where(eq(resumes.id, resumeId)),
-              buildSiteDataUpsert(db, userId, resumeId, cachedContent, now, { publish: hasHandle }),
-            ]);
+                .where(eq(resumes.id, resumeId));
+              await buildSiteDataUpsert(tx, userId, resumeId, cachedContent, {
+                publish: hasHandle,
+              });
+            });
 
             // R2 and DB both succeeded - return cached result
-            await captureBookmark();
             await captureServerEvent(userId, "resume_claim_cached", {
               resume_id: resumeId,
             });
@@ -405,7 +408,6 @@ export async function POST(request: Request) {
               })
               .where(eq(resumes.id, resumeId));
 
-            await captureBookmark();
             return createSuccessResponse({
               resume_id: resumeId,
               status: "processing", // Client sees "processing" and subscribes to realtime
@@ -491,7 +493,6 @@ export async function POST(request: Request) {
         );
       }
 
-      await captureBookmark();
       await captureServerEvent(userId, "resume_claimed", {
         resume_id: resumeId,
         has_referral: !!body.referral_code,

@@ -99,16 +99,14 @@ export function extractCityState(location: string | undefined): string {
   return "";
 }
 
-import { z } from "zod";
 import type { PrivacySettings } from "@/lib/db/schema/auth";
-import type { JsonValue } from "@/lib/types/json";
+
 export type { PrivacySettings };
 
 /**
  * Canonical default privacy settings for a new user. Single source of truth —
- * the DB column default, Better Auth additionalFields default, the seed script,
- * and the parse fallback must all derive from this. New users are
- * directory-visible by default (opt-out).
+ * the DB column default, the seed script, and the normalization fallback must
+ * all derive from this. New users are directory-visible by default (opt-out).
  */
 export const DEFAULT_PRIVACY_SETTINGS: PrivacySettings = {
   show_phone: false,
@@ -117,31 +115,8 @@ export const DEFAULT_PRIVACY_SETTINGS: PrivacySettings = {
   show_in_directory: true,
 };
 
-/** Serialized form for storing in the JSON-in-TEXT column. */
+/** Serialized form of the defaults (used by seed tooling). */
 export const DEFAULT_PRIVACY_SETTINGS_JSON = JSON.stringify(DEFAULT_PRIVACY_SETTINGS);
-/**
- * Type guard to check if privacy settings are valid
- * Backward compatible: hide_from_search and show_in_directory are optional (defaults to false)
- */
-export function isValidPrivacySettings(settings: JsonValue): settings is {
-  show_phone: boolean;
-  show_address: boolean;
-  hide_from_search?: boolean;
-  show_in_directory?: boolean;
-} {
-  if (!(settings instanceof Object) || settings === null) return false;
-  if (!("show_phone" in settings) || !("show_address" in settings)) return false;
-  // SAFETY: Object guard above ensures settings is a non-null object; Record cast is safe for dynamic key access after validation.
-  const record = settings as Record<string, JsonValue>;
-  if (!z.boolean().safeParse(record.show_phone).success) return false;
-  if (!z.boolean().safeParse(record.show_address).success) return false;
-  if ("hide_from_search" in record && !z.boolean().safeParse(record.hide_from_search).success)
-    return false;
-  if ("show_in_directory" in record && !z.boolean().safeParse(record.show_in_directory).success)
-    return false;
-  return true;
-}
-
 /**
  * Normalizes privacy settings with defaults for missing fields
  * Ensures backward compatibility with existing data
@@ -164,22 +139,4 @@ export function normalizePrivacySettings(
     hide_from_search: settings.hide_from_search ?? DEFAULT_PRIVACY_SETTINGS.hide_from_search,
     show_in_directory: settings.show_in_directory ?? DEFAULT_PRIVACY_SETTINGS.show_in_directory,
   };
-}
-
-/**
- * Parses privacy settings from a raw JSON string (as stored in D1).
- * Handles null, invalid JSON, and missing fields with safe defaults.
- */
-export function parsePrivacySettings(raw: string | null): PrivacySettings {
-  if (!raw) {
-    return normalizePrivacySettings(null);
-  }
-
-  try {
-    // SAFETY: JSON.parse result is validated via isValidPrivacySettings before use; JsonValue is safe intermediate type.
-    const parsed = JSON.parse(raw) as JsonValue;
-    return normalizePrivacySettings(isValidPrivacySettings(parsed) ? parsed : null);
-  } catch {
-    return normalizePrivacySettings(null);
-  }
 }

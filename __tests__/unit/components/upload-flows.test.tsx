@@ -44,13 +44,17 @@ vi.mock("posthog-js", () => ({
 
 vi.mock("@/lib/auth/client", () => ({
   useSession: () => mocks.sessionState.current,
-  signIn: {
-    social: vi.fn().mockResolvedValue({ data: {}, error: null }),
-    email: vi.fn().mockResolvedValue({ data: {}, error: null }),
-  },
-  signUp: {
-    email: vi.fn().mockResolvedValue({ data: {}, error: null }),
-  },
+  SignInButton: ({
+    children,
+    fallbackRedirectUrl,
+  }: {
+    children: React.ReactNode;
+    fallbackRedirectUrl: string;
+  }) => (
+    <div data-testid="clerk-sign-in-button" data-redirect={fallbackRedirectUrl}>
+      {children}
+    </div>
+  ),
 }));
 
 vi.mock("sonner", () => ({
@@ -65,17 +69,6 @@ vi.mock("@/lib/referral", () => ({
 
 vi.mock("@/lib/utils/wait-for-completion", () => ({
   waitForResumeCompletion: vi.fn(async () => mocks.waitResult),
-}));
-
-vi.mock("@/components/auth/AuthDialog", () => ({
-  AuthDialog: ({
-    open,
-    callbackURL,
-  }: {
-    open: boolean;
-    callbackURL: string;
-    onOpenChange: (open: boolean) => void;
-  }) => (open ? <div data-testid="auth-dialog">Auth {callbackURL}</div> : null),
 }));
 
 const resumeContent: ResumeContent = {
@@ -150,8 +143,7 @@ describe("upload flow components", () => {
     await waitFor(() => expect(screen.getByText("Upload Complete!")).toBeInTheDocument());
     expect(mocks.toast.success).toHaveBeenCalledWith("File uploaded successfully!");
 
-    await userEvent.click(screen.getByRole("button", { name: /sign in to publish/i }));
-    expect(screen.getByTestId("auth-dialog")).toHaveTextContent("/wizard");
+    expect(screen.getByTestId("clerk-sign-in-button")).toHaveAttribute("data-redirect", "/wizard");
 
     await userEvent.click(screen.getByRole("button", { name: /upload a different file/i }));
     expect(screen.getByText("Drop your PDF here")).toBeInTheDocument();

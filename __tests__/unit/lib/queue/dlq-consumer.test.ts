@@ -11,9 +11,8 @@ import { handleDLQMessage } from "@/lib/queue/dlq-consumer";
 import { QueueErrorType } from "@/lib/queue/errors";
 import type { DeadLetterMessage, QueueMessage } from "@/lib/queue/types";
 
-// Mock the database and related modules
-vi.mock("@/lib/db/session", () => ({
-  getSessionDbForWebhook: vi.fn(),
+vi.mock("@/lib/db", () => ({
+  getDb: vi.fn(),
 }));
 
 vi.mock("@/lib/queue/notify-status", () => ({
@@ -21,17 +20,18 @@ vi.mock("@/lib/queue/notify-status", () => ({
 }));
 
 import { createMockDb, createMockDbResume } from "@/__tests__/setup/fixtures";
-import { getSessionDbForWebhook } from "@/lib/db/session";
+import { getDb } from "@/lib/db";
 import { notifyStatusChange } from "@/lib/queue/notify-status";
 
 describe("DLQ Consumer", () => {
-  type MockEnv = { CLICKFOLIO_DB: CloudflareEnv["CLICKFOLIO_DB"]; CLICKFOLIO_STATUS_DO: undefined };
+  type MockEnv = { HYPERDRIVE: CloudflareEnv["HYPERDRIVE"]; CLICKFOLIO_STATUS_DO: undefined };
   const createMockEnv = (overrides: Record<string, string> = {}): MockEnv => ({
-    CLICKFOLIO_DB: {} as D1Database,
+    HYPERDRIVE: {
+      connectionString: "postgres://user:pass@localhost:5432/clickfolio",
+    } as CloudflareEnv["HYPERDRIVE"],
     CLICKFOLIO_STATUS_DO: undefined,
     ...overrides,
   });
-
   const createMockDeadLetterMessage = (
     overrides: Partial<DeadLetterMessage> = {},
   ): DeadLetterMessage => ({
@@ -86,9 +86,7 @@ describe("DLQ Consumer", () => {
         }),
       });
 
-      vi.mocked(getSessionDbForWebhook).mockReturnValue({ db: mockDb } as unknown as ReturnType<
-        typeof getSessionDbForWebhook
-      >);
+      vi.mocked(getDb).mockReturnValue(mockDb as never);
 
       const message = createMockDeadLetterMessage();
       const env = createMockEnv();
@@ -120,9 +118,7 @@ describe("DLQ Consumer", () => {
         }),
       });
 
-      vi.mocked(getSessionDbForWebhook).mockReturnValue({ db: mockDb } as unknown as ReturnType<
-        typeof getSessionDbForWebhook
-      >);
+      vi.mocked(getDb).mockReturnValue(mockDb as never);
 
       const message = createMockQueueMessage();
       const env = createMockEnv();
@@ -154,9 +150,7 @@ describe("DLQ Consumer", () => {
         }),
       });
 
-      vi.mocked(getSessionDbForWebhook).mockReturnValue({ db: mockDb } as unknown as ReturnType<
-        typeof getSessionDbForWebhook
-      >);
+      vi.mocked(getDb).mockReturnValue(mockDb as never);
 
       const message = createMockDeadLetterMessage({
         failureReason: "AI parsing permanently failed",
@@ -202,9 +196,7 @@ describe("DLQ Consumer", () => {
         }),
       });
 
-      vi.mocked(getSessionDbForWebhook).mockReturnValue({ db: mockDb } as unknown as ReturnType<
-        typeof getSessionDbForWebhook
-      >);
+      vi.mocked(getDb).mockReturnValue(mockDb as never);
 
       const message = createMockDeadLetterMessage();
       const env = createMockEnv();
@@ -252,9 +244,7 @@ describe("DLQ Consumer", () => {
         }),
       });
 
-      vi.mocked(getSessionDbForWebhook).mockReturnValue({ db: mockDb } as unknown as ReturnType<
-        typeof getSessionDbForWebhook
-      >);
+      vi.mocked(getDb).mockReturnValue(mockDb as never);
 
       const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
@@ -298,9 +288,7 @@ describe("DLQ Consumer", () => {
         }),
       });
 
-      vi.mocked(getSessionDbForWebhook).mockReturnValue({ db: mockDb } as unknown as ReturnType<
-        typeof getSessionDbForWebhook
-      >);
+      vi.mocked(getDb).mockReturnValue(mockDb as never);
 
       const fetchSpy = vi.spyOn(global, "fetch").mockResolvedValue(new Response("OK"));
 
@@ -345,9 +333,7 @@ describe("DLQ Consumer", () => {
         }),
       });
 
-      vi.mocked(getSessionDbForWebhook).mockReturnValue({ db: mockDb } as unknown as ReturnType<
-        typeof getSessionDbForWebhook
-      >);
+      vi.mocked(getDb).mockReturnValue(mockDb as never);
 
       const fetchSpy = vi.spyOn(global, "fetch").mockRejectedValue(new Error("Network error"));
       const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
@@ -396,9 +382,7 @@ describe("DLQ Consumer", () => {
         }),
       });
 
-      vi.mocked(getSessionDbForWebhook).mockReturnValue({ db: mockDb } as unknown as ReturnType<
-        typeof getSessionDbForWebhook
-      >);
+      vi.mocked(getDb).mockReturnValue(mockDb as never);
 
       const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
       const fetchSpy = vi.spyOn(global, "fetch");
@@ -440,9 +424,7 @@ describe("DLQ Consumer", () => {
         }),
       });
 
-      vi.mocked(getSessionDbForWebhook).mockReturnValue({ db: mockDb } as unknown as ReturnType<
-        typeof getSessionDbForWebhook
-      >);
+      vi.mocked(getDb).mockReturnValue(mockDb as never);
 
       const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
@@ -497,9 +479,7 @@ describe("DLQ Consumer", () => {
         }),
       });
 
-      vi.mocked(getSessionDbForWebhook).mockReturnValue({ db: mockDb } as unknown as ReturnType<
-        typeof getSessionDbForWebhook
-      >);
+      vi.mocked(getDb).mockReturnValue(mockDb as never);
 
       const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
@@ -546,9 +526,7 @@ describe("DLQ Consumer", () => {
         }),
       });
 
-      vi.mocked(getSessionDbForWebhook).mockReturnValue({ db: mockDb } as unknown as ReturnType<
-        typeof getSessionDbForWebhook
-      >);
+      vi.mocked(getDb).mockReturnValue(mockDb as never);
 
       const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
@@ -595,9 +573,7 @@ describe("DLQ Consumer", () => {
         }),
       });
 
-      vi.mocked(getSessionDbForWebhook).mockReturnValue({ db: mockDb } as unknown as ReturnType<
-        typeof getSessionDbForWebhook
-      >);
+      vi.mocked(getDb).mockReturnValue(mockDb as never);
 
       const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
@@ -638,9 +614,7 @@ describe("DLQ Consumer", () => {
         }),
       });
 
-      vi.mocked(getSessionDbForWebhook).mockReturnValue({ db: mockDb } as unknown as ReturnType<
-        typeof getSessionDbForWebhook
-      >);
+      vi.mocked(getDb).mockReturnValue(mockDb as never);
 
       const message = createMockDeadLetterMessage();
       const env = createMockEnv();
@@ -670,9 +644,7 @@ describe("DLQ Consumer", () => {
         }),
       });
 
-      vi.mocked(getSessionDbForWebhook).mockReturnValue({ db: mockDb } as unknown as ReturnType<
-        typeof getSessionDbForWebhook
-      >);
+      vi.mocked(getDb).mockReturnValue(mockDb as never);
 
       const message = createMockQueueMessage();
       const env = createMockEnv();
@@ -708,9 +680,7 @@ describe("DLQ Consumer", () => {
         }),
       });
 
-      vi.mocked(getSessionDbForWebhook).mockReturnValue({ db: mockDb } as unknown as ReturnType<
-        typeof getSessionDbForWebhook
-      >);
+      vi.mocked(getDb).mockReturnValue(mockDb as never);
 
       const message = createMockDeadLetterMessage({ attempts: 10 });
       const env = createMockEnv();
@@ -746,9 +716,7 @@ describe("DLQ Consumer", () => {
         }),
       });
 
-      vi.mocked(getSessionDbForWebhook).mockReturnValue({ db: mockDb } as unknown as ReturnType<
-        typeof getSessionDbForWebhook
-      >);
+      vi.mocked(getDb).mockReturnValue(mockDb as never);
 
       const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 
@@ -796,9 +764,7 @@ describe("DLQ Consumer", () => {
         }),
       });
 
-      vi.mocked(getSessionDbForWebhook).mockReturnValue({ db: mockDb } as unknown as ReturnType<
-        typeof getSessionDbForWebhook
-      >);
+      vi.mocked(getDb).mockReturnValue(mockDb as never);
 
       const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 

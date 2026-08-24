@@ -28,8 +28,7 @@ vi.mock("@/lib/auth/session", () => ({
 
 vi.mock("cloudflare:workers", () => ({
   env: {
-    CLICKFOLIO_DB: {},
-    CLICKFOLIO_R2: {},
+    HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" },
     CLICKFOLIO_PARSE_QUEUE: {},
   },
 }));
@@ -51,12 +50,6 @@ vi.mock("drizzle-orm", () => ({
 
 vi.mock("@/lib/db", () => ({
   getDb: vi.fn(() => mockDb),
-}));
-
-vi.mock("@/lib/db/session", () => ({
-  getSessionDbWithPrimaryFirst: vi.fn(() =>
-    Promise.resolve({ db: mockDb, captureBookmark: mockCaptureBookmark }),
-  ),
 }));
 
 vi.mock("@/lib/r2", () => ({
@@ -271,7 +264,6 @@ const mockedAuthMessage = vi.mocked(requireAuthWithMessage);
 const mockedValidateRequestSize = vi.mocked(validateRequestSize);
 
 // DB mock helpers
-const mockCaptureBookmark = vi.fn().mockResolvedValue(undefined);
 const mockFindFirst = vi.fn();
 const mockSelect = vi.fn();
 const mockFrom = vi.fn();
@@ -284,7 +276,7 @@ const mockUpdate = vi.fn();
 const mockUpdateSet = vi.fn();
 const mockUpdateWhere = vi.fn();
 const mockReturning = vi.fn();
-const mockBatch = vi.fn();
+const mockTransaction = vi.fn();
 
 // Build chainable mock
 mockSelect.mockReturnValue({ from: mockFrom });
@@ -301,7 +293,7 @@ mockUpdateSet.mockReturnValue({ where: mockUpdateWhere });
 mockUpdateWhere.mockReturnValue({ returning: mockReturning });
 mockReturning.mockResolvedValue([{ id: "resume-123" }]);
 
-mockBatch.mockResolvedValue(undefined);
+mockTransaction.mockImplementation(async (cb: (tx: typeof mockDb) => unknown) => cb(mockDb));
 
 const mockDb = {
   query: {
@@ -316,7 +308,7 @@ const mockDb = {
   limit: mockLimit,
   insert: mockInsert,
   update: mockUpdate,
-  batch: mockBatch,
+  transaction: mockTransaction,
 };
 
 // ── Helper Functions ─────────────────────────────────────────────────
@@ -353,7 +345,7 @@ type AuthedUser = {
   image: null;
   handle: string;
   headline: string;
-  privacySettings: string;
+  privacySettings: Record<string, boolean>;
   onboardingCompleted: boolean;
   role: "student" | "entry_level" | "mid_level" | "senior" | "executive";
   isAdmin: boolean;
@@ -363,8 +355,7 @@ type AuthedUser = {
 type AuthedAsResult = {
   user: AuthedUser;
   db: typeof mockDb;
-  captureBookmark: typeof mockCaptureBookmark;
-  dbUser: { id: string; handle: string };
+  dbUser: { id: string; handle: string; clerkId: string };
   env: CloudflareEnv;
   error: null;
 };
@@ -382,7 +373,7 @@ function authedAs(
       image: null,
       handle: "testuser",
       headline: "Software Engineer",
-      privacySettings: "{}",
+      privacySettings: {},
       onboardingCompleted: true,
       role: "mid_level" as const,
       isAdmin,
@@ -390,13 +381,11 @@ function authedAs(
       isPro,
     },
     db: mockDb as never,
-    captureBookmark: mockCaptureBookmark,
-    dbUser: { id: userId, handle: "testuser" },
+    dbUser: { id: userId, handle: "testuser", clerkId: "user_clerk_1" },
     env: {
-      DB: {},
-      CLICKFOLIO_R2: {},
+      HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" },
       CLICKFOLIO_PARSE_QUEUE: {},
-      BETTER_AUTH_SECRET: TEST_COOKIE_SECRET,
+      PENDING_UPLOAD_SECRET: TEST_COOKIE_SECRET,
     } as never,
     error: null,
   };
@@ -410,7 +399,6 @@ function unauthenticated() {
   mockedAuth.mockResolvedValue({
     user: null,
     db: null,
-    captureBookmark: null,
     dbUser: null,
     env: null,
     error,
@@ -534,12 +522,13 @@ describe("Resume API Integration Tests (25 tests)", () => {
     it("returns completed status with parsed content (test 10)", async () => {
       authedAs("user-123");
 
-      const parsedContent = JSON.stringify({
+      // parsedContent is a jsonb column: it selects back as a parsed object.
+      const parsedContent = {
         full_name: "Test User",
         headline: "Developer",
         summary: "A developer",
         contact: { email: "test@example.com" },
-      });
+      };
 
       mockFindFirst
         .mockResolvedValueOnce({
@@ -948,6 +937,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
     it("returns 409 (not 500) when the retry UPDATE affects 0 rows (concurrent retry/status change)", async () => {
       const { hasExceededMaxAttempts } = await import("@/lib/resume/lifecycle");
       vi.mocked(hasExceededMaxAttempts).mockReturnValue(false);
+      const { publishResumeParse } = await import("@/lib/queue/resume-parse");
 
       authedAs("user-123");
 
@@ -975,7 +965,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
       expect(response.status).toBe(409);
       const resBody = (await response.json()) as { error: string };
       expect(resBody.error).toContain("already retried");
-      expect(mockCaptureBookmark).not.toHaveBeenCalled();
+      expect(vi.mocked(publishResumeParse)).not.toHaveBeenCalled();
     });
 
     it("rolls back retry state when queue publish fails", async () => {
@@ -1022,7 +1012,6 @@ describe("Resume API Integration Tests (25 tests)", () => {
           status: "failed",
         }),
       );
-      expect(mockCaptureBookmark).toHaveBeenCalledTimes(1);
     });
 
     it("returns 403 when retrying another user's resume (IDOR) (test 13)", async () => {
@@ -1354,18 +1343,16 @@ describe("Resume API Integration Tests (25 tests)", () => {
           image: null,
           handle: "testuser",
           headline: null,
-          privacySettings: "{}",
+          privacySettings: {},
           onboardingCompleted: true,
           role: "mid_level",
         },
         db: mockDb as never,
-        captureBookmark: mockCaptureBookmark,
-        dbUser: { id: "user-123", handle: "testuser" },
+        dbUser: { id: "user-123", handle: "testuser", clerkId: "user_clerk_1" },
         env: {
-          DB: {},
-          CLICKFOLIO_R2: {},
+          HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" },
           CLICKFOLIO_PARSE_QUEUE: undefined, // Missing queue
-          BETTER_AUTH_SECRET: TEST_COOKIE_SECRET,
+          PENDING_UPLOAD_SECRET: TEST_COOKIE_SECRET,
         } as never,
         error: null,
       } as never);

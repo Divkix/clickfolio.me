@@ -1,1 +1,0 @@
-ALTER TABLE `user` ADD `is_pro` integer DEFAULT false NOT NULL;

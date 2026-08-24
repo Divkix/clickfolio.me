@@ -36,9 +36,9 @@ function clientModuleStubs(): Plugin {
  *
  * vinext intentionally only splits React/scheduler into "framework" and its own
  * shims into "vinext", leaving all other vendor code to Rollup's default splitting.
- * This works well for most apps, but ours pulls radix-ui, react-hook-form, and
- * better-auth into a single mega-chunk. We wrap vinext's function to split those
- * specific packages out while preserving all other vinext chunking decisions.
+ * This works well for most apps, but ours pulls radix-ui and react-hook-form
+ * into a single mega-chunk. We wrap vinext's function to split those specific
+ * packages out while preserving all other vinext chunking decisions.
  */
 function clientVendorSplit(): Plugin {
   return {
@@ -52,7 +52,6 @@ function clientVendorSplit(): Plugin {
           // Split heavy vendor deps that bloat the client mega-chunk
           if (id.includes("node_modules/@radix-ui")) return "vendor-radix";
           if (id.includes("node_modules/react-hook-form")) return "vendor-forms";
-          if (id.includes("node_modules/better-auth")) return "vendor-auth";
           // Delegate to vinext's default chunking
           if (original instanceof Function) {
             // SAFETY: original is Rollup manualChunks from vinext; signature (id: string, cause: unknown) => string | undefined matches our wrapper — cast bridges untyped config.
@@ -213,10 +212,6 @@ export default defineConfig({
       // Bundle stubs — replaces wrangler.jsonc alias block
       // @vercel/og — doesn't work on CF Workers, vinext bundles it anyway (~2MB)
       "next/dist/compiled/@vercel/og/index.edge.js": resolve("lib/stubs/og-stub.js"),
-      // @zxcvbn-ts — password dictionaries (1.73MB), only client-side
-      "@zxcvbn-ts/core": resolve("lib/stubs/zxcvbn-core-stub.mjs"),
-      "@zxcvbn-ts/language-common": resolve("lib/stubs/zxcvbn-lang-stub.mjs"),
-      "@zxcvbn-ts/language-en": resolve("lib/stubs/zxcvbn-lang-stub.mjs"),
       // zod/v3 — required bundle shim; only the runtime v3 conversion path is dead
       "zod/v3": resolve("lib/stubs/zod-v3-stub.mjs"),
     },

@@ -22,16 +22,16 @@ describe("getSitemapBaseUrl", () => {
     vi.unstubAllEnvs();
   });
 
-  it("returns BETTER_AUTH_URL when set", () => {
-    vi.stubEnv("BETTER_AUTH_URL", "https://example.com");
+  it("returns APP_URL when set", () => {
+    vi.stubEnv("APP_URL", "https://example.com");
 
     const result = getSitemapBaseUrl();
 
     expect(result).toBe("https://example.com");
   });
 
-  it("returns default URL when BETTER_AUTH_URL not set", () => {
-    vi.stubEnv("BETTER_AUTH_URL", "");
+  it("returns default URL when APP_URL not set", () => {
+    vi.stubEnv("APP_URL", "");
 
     const result = getSitemapBaseUrl();
 
@@ -199,7 +199,7 @@ describe("buildSitemapIndexXml", () => {
   });
 
   it("formats sitemap locations correctly", () => {
-    vi.stubEnv("BETTER_AUTH_URL", "https://example.com");
+    vi.stubEnv("APP_URL", "https://example.com");
 
     const result = buildSitemapIndexXml(2);
 

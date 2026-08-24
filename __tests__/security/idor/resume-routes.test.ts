@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { JsonValue } from "@/lib/types/json";
+import { DEFAULT_PRIVACY_SETTINGS } from "@/lib/utils/privacy";
 
 /**
  * IDOR (Insecure Direct Object Reference) tests for resume routes
@@ -7,8 +8,6 @@ import type { JsonValue } from "@/lib/types/json";
  */
 
 // ── Mocks ────────────────────────────────────────────────────────────
-
-const mockCaptureBookmark = vi.fn().mockResolvedValue(undefined);
 
 // DB mock: query results configured per-test
 const mockFindFirst = vi.fn();
@@ -92,13 +91,6 @@ vi.mock("@/lib/db/schema", () => ({
     referralCount: "referralCount",
     isPro: "isPro",
   },
-}));
-
-// Mock session DB for latest-status route
-vi.mock("@/lib/db/session", () => ({
-  getSessionDbWithPrimaryFirst: vi.fn(() =>
-    Promise.resolve({ db: mockDb, captureBookmark: mockCaptureBookmark }),
-  ),
 }));
 vi.mock("@/lib/queue/resume-parse", () => ({
   publishResumeParse: vi.fn().mockResolvedValue(undefined),
@@ -239,14 +231,16 @@ function authedAs(userId: string) {
       image: null,
       handle: "testuser",
       headline: null,
-      privacySettings: "{}",
+      privacySettings: DEFAULT_PRIVACY_SETTINGS,
       onboardingCompleted: true,
       role: "mid_level",
     },
     db: mockDb as never,
-    captureBookmark: mockCaptureBookmark,
-    dbUser: { id: userId, handle: "testuser" },
-    env: { DB: {}, CLICKFOLIO_PARSE_QUEUE: {} } as never,
+    dbUser: { id: userId, handle: "testuser", clerkId: `clerk_${userId}` },
+    env: {
+      HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" },
+      CLICKFOLIO_PARSE_QUEUE: {},
+    } as never,
     error: null,
   });
 }
@@ -260,7 +254,7 @@ function authedAsMessage(userId: string) {
       image: null,
       handle: "testuser",
       headline: null,
-      privacySettings: "{}",
+      privacySettings: DEFAULT_PRIVACY_SETTINGS,
       onboardingCompleted: true,
       role: "mid_level",
     },
@@ -388,7 +382,6 @@ describe("IDOR - Resume Routes Security", () => {
       mockedAuth.mockResolvedValue({
         user: null as never,
         db: null,
-        captureBookmark: null,
         dbUser: null,
         env: null,
         error: new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 }),
@@ -648,7 +641,6 @@ describe("IDOR - Resume Routes Security", () => {
       mockedAuth.mockResolvedValue({
         user: null,
         db: null,
-        captureBookmark: null,
         dbUser: null,
         env: null,
         error: new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 }),
@@ -892,7 +884,6 @@ describe("IDOR - Resume Routes Security", () => {
       mockedAuth.mockResolvedValue({
         user: null as never,
         db: null,
-        captureBookmark: null,
         dbUser: null,
         env: null,
         error: new Response(JSON.stringify({ error: "Session expired" }), { status: 401 }),

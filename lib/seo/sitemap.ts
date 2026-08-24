@@ -20,11 +20,11 @@ const SITEMAP_XMLNS = "http://www.sitemaps.org/schemas/sitemap/0.9";
 
 /**
  * Filter condition for users who haven't opted out of search indexing.
- * Uses json_extract to check the hide_from_search field in privacySettings.
+ * Checks the hide_from_search field of the privacySettings JSONB column.
  */
 const notHiddenFromSearch = or(
-  sql`json_extract(${user.privacySettings}, '$.hide_from_search') IS NULL`,
-  sql`json_extract(${user.privacySettings}, '$.hide_from_search') = false`,
+  sql`${user.privacySettings}->>'hide_from_search' IS NULL`,
+  sql`${user.privacySettings}->>'hide_from_search' = 'false'`,
 );
 
 export const URLS_PER_SITEMAP = 50000; // Google's limit
@@ -159,7 +159,7 @@ export async function generateSitemapEntries(id: number): Promise<MetadataRoute.
   }
 
   try {
-    const db = getDb(env.CLICKFOLIO_DB);
+    const db = getDb(env.HYPERDRIVE);
     const { limit, offset } = getUserShardWindow(id);
 
     const users = await db
@@ -205,7 +205,7 @@ export async function generateSitemapEntries(id: number): Promise<MetadataRoute.
  * Count total indexable users (have a handle, not hidden from search).
  */
 export async function getTotalIndexableUserCount(): Promise<number> {
-  const db = getDb(env.CLICKFOLIO_DB);
+  const db = getDb(env.HYPERDRIVE);
   const result = await db
     .select({ count: sql<number>`count(*)` })
     .from(user)

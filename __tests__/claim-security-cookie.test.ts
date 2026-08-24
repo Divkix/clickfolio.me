@@ -10,8 +10,6 @@ import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 // ── Mocks ────────────────────────────────────────────────────────────
 
-const mockCaptureBookmark = vi.fn().mockResolvedValue(undefined);
-
 const mockFindFirst = vi.fn();
 const mockDbFrom = vi.fn();
 const mockDbWhere = vi.fn();
@@ -21,7 +19,7 @@ const mockDbInsertValues = vi.fn().mockResolvedValue(undefined);
 const mockDbInsert = vi.fn().mockReturnValue({ values: mockDbInsertValues });
 const mockDbUpdateSet = vi.fn();
 const mockDbUpdateWhere = vi.fn().mockResolvedValue(undefined);
-const mockDbBatch = vi.fn().mockResolvedValue(undefined);
+const mockDbTransaction = vi.fn(async (cb: (tx: typeof mockDb) => unknown) => cb(mockDb));
 
 let mockHandleRows: Array<{ handle: string | null }> = [{ handle: "test-handle" }];
 
@@ -58,7 +56,7 @@ const mockDb = {
   limit: mockDbLimit,
   insert: mockDbInsert,
   update: mockDbUpdate,
-  batch: mockDbBatch,
+  transaction: mockDbTransaction,
 };
 
 // Auth mock
@@ -200,17 +198,20 @@ function authedAs(userId: string) {
       image: null,
       handle: "testuser",
       headline: null,
-      privacySettings: "{}",
+      privacySettings: {
+        show_phone: false,
+        show_address: false,
+        hide_from_search: false,
+        show_in_directory: true,
+      },
       onboardingCompleted: true,
       role: "mid_level",
     },
     db: mockDb as never,
-    captureBookmark: mockCaptureBookmark,
-    dbUser: { id: userId, handle: "testuser" },
+    dbUser: { id: userId, handle: "testuser", clerkId: "user_clerk_1" },
     env: {
-      DB: {},
       CLICKFOLIO_PARSE_QUEUE: {},
-      BETTER_AUTH_SECRET: "test-secret-key-for-testing-only",
+      PENDING_UPLOAD_SECRET: "test-secret-key-for-testing-only",
     } as never,
     error: null,
   });
@@ -386,7 +387,8 @@ describe("POST /api/resume/claim - Cookie Security (Issue #89)", () => {
   it("uses handle-aware mock: cached path with no handle → publish:false", async () => {
     authedAs("user-1");
 
-    const cachedContent = JSON.stringify({ full_name: "Test User" });
+    // parsedContent is jsonb: Postgres hands back a parsed OBJECT
+    const cachedContent = { full_name: "Test User" };
     mockDbLimit.mockResolvedValue([{ id: "cached-resume", parsedContent: cachedContent }]);
     mockHandleRows = [];
 
@@ -402,13 +404,13 @@ describe("POST /api/resume/claim - Cookie Security (Issue #89)", () => {
 
     const { buildSiteDataUpsert } = await import("@/lib/data/site-data-upsert");
     expect(vi.mocked(buildSiteDataUpsert)).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.anything(),
-      expect.anything(),
-      expect.anything(),
-      expect.anything(),
+      expect.anything(), // tx (transaction-scoped)
+      "user-1",
+      expect.anything(), // resumeId
+      cachedContent,
       { publish: false },
     );
-    expect(mockDbBatch).toHaveBeenCalled();
+    // Resume completion + siteData upsert committed atomically in one PG transaction
+    expect(mockDbTransaction).toHaveBeenCalled();
   });
 });

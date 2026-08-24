@@ -34,6 +34,12 @@ const mocks = vi.hoisted(() => {
       user: { id: "admin_1", email: "admin@example.com", name: "Admin", isAdmin: true },
       error: null,
     } as unknown,
+    // Transaction capture for wizard-complete: awaited statement count and the
+    // rows passed to each tx insert.
+    txStatementCount: 0,
+    txValues: [] as JsonValue[],
+    // Resolved by the @/lib/auth/session mock (handle/check ownership branch).
+    serverSession: null as unknown,
     cookieStore,
   };
 
@@ -75,10 +81,10 @@ const mocks = vi.hoisted(() => {
     return chain;
   };
 
-  // Insert chains must not consume a select result — they resolve to undefined so
-  // that awaiting db.insert(...).values(...) does not dequeue from selectResults.
-  // All chain methods still return `insertChain` so that builder expressions like
-  // .values(...).onConflictDoUpdate(...) work when passed into db.batch([...]).
+  // Write chains (insert/delete builders) must not consume a select result —
+  // they resolve to undefined so that awaiting db.insert(...).values(...) does
+  // not dequeue from selectResults. All chain methods still return `chain` so
+  // builder expressions like .values(...).onConflictDoUpdate(...) work.
   const createInsertChain = (): Record<string, unknown> => {
     const chain: Record<string, unknown> = {
       values: vi.fn(() => chain),
@@ -97,6 +103,29 @@ const mocks = vi.hoisted(() => {
     return chain;
   };
 
+  // Transaction statement builder: a fresh chain per awaited statement, so
+  // `then` fires exactly once per production tx.update/tx.insert call.
+  const makeTxChain = (): Record<string, unknown> => {
+    const txChain: Record<string, unknown> = {
+      set: vi.fn(() => txChain),
+      where: vi.fn(() => txChain),
+      values: vi.fn((rows: JsonValue) => {
+        state.txValues.push(rows);
+        return txChain;
+      }),
+      onConflictDoNothing: vi.fn(() => txChain),
+      onConflictDoUpdate: vi.fn(() => txChain),
+      // Awaiting one tx statement counts exactly once.
+      then: vi.fn(
+        (resolve: (value: undefined) => JsonValue, _reject?: (reason: JsonValue) => JsonValue) => {
+          state.txStatementCount += 1;
+          return Promise.resolve(resolve(undefined));
+        },
+      ),
+    };
+    return txChain;
+  };
+
   const db = {
     query: {
       user: { findFirst: vi.fn() },
@@ -106,16 +135,29 @@ const mocks = vi.hoisted(() => {
     select: vi.fn(() => createChain()),
     insert: vi.fn(() => createInsertChain()),
     update: vi.fn(() => createChain()),
-    delete: vi.fn(() => createChain()),
-    batch: vi.fn(async () => undefined),
+    delete: vi.fn(() => createInsertChain()),
+    // Health route probes connectivity via db.execute(sql`SELECT 1`).
+    execute: vi.fn(async () => undefined),
+    // Multi-statement atomicity: production uses db.transaction(cb). The mock
+    // counts every awaited statement and captures inserted rows so tests can
+    // assert write shape without touching SQL text.
+    transaction: vi.fn(async (callback: (tx: Record<string, unknown>) => Promise<void>) => {
+      state.txStatementCount = 0;
+      state.txValues = [];
+      await callback({
+        update: () => makeTxChain(),
+        insert: () => makeTxChain(),
+        delete: () => makeTxChain(),
+      });
+    }),
   };
 
   const env = {
-    CLICKFOLIO_DB: { prepare: vi.fn(() => ({ first: vi.fn(async () => ({ ok: 1 })) })) },
     CLICKFOLIO_R2_BUCKET: { list: vi.fn(async () => ({ objects: [] })) },
     CLICKFOLIO_DISPOSABLE_DOMAINS: { get: vi.fn(async () => "[]") },
     CLICKFOLIO_PARSE_QUEUE: { send: vi.fn(async () => undefined) },
-    BETTER_AUTH_SECRET: "test-secret-key-for-pending-upload",
+    PENDING_UPLOAD_SECRET: "test-secret-key-for-pending-upload",
+    CLERK_SECRET_KEY: "sk_test_coverage",
     CF_AI_GATEWAY_ACCOUNT_ID: "acct",
     CF_AI_GATEWAY_ID: "gateway",
     CF_AIG_AUTH_TOKEN: "token",
@@ -125,11 +167,8 @@ const mocks = vi.hoisted(() => {
     state,
     db,
     env,
-    getAuth: vi.fn(async () => ({
-      api: { getSession: vi.fn(async () => ({ user: { id: "user_1" } })) },
-    })),
-    authHandlerGet: vi.fn(async () => Response.json({ method: "GET" })),
-    authHandlerPost: vi.fn(async () => Response.json({ method: "POST" })),
+    makeTxChain,
+    clerkDeleteUser: vi.fn(async () => undefined),
     getStats: vi.fn(async () => ({ pageviews: 10, visitors: 4 })),
     getPageviews: vi.fn(async () => ({
       pageviews: [{ x: "2026-05-20T00:00:00Z", y: 6 }],
@@ -165,19 +204,18 @@ vi.mock("next/headers", () => ({
   cookies: vi.fn(async () => mocks.state.cookieStore),
 }));
 
-vi.mock("better-auth/next-js", () => ({
-  toNextJsHandler: vi.fn(() => ({ GET: mocks.authHandlerGet, POST: mocks.authHandlerPost })),
-}));
-
 vi.mock("@cf-wasm/resvg/workerd", () => ({
   Resvg: {
     async: mocks.resvgAsync,
   },
 }));
 
-vi.mock("@/lib/auth", () => ({
-  getAuth: mocks.getAuth,
-  getEnvValue: vi.fn((env: Record<string, string>, key: string) => env[key] || "fallback-secret"),
+vi.mock("@clerk/backend", () => ({
+  createClerkClient: vi.fn(() => ({ users: { deleteUser: mocks.clerkDeleteUser } })),
+}));
+
+vi.mock("@/lib/auth/session", () => ({
+  getServerSession: vi.fn(async () => mocks.state.serverSession),
 }));
 
 vi.mock("@/lib/auth/middleware", () => ({
@@ -304,7 +342,6 @@ function authed(overrides: Record<string, unknown> = {}) {
       dbUser: null,
       db: null,
       env: null,
-      captureBookmark: null,
       error: overrides.error,
     };
     return;
@@ -312,10 +349,9 @@ function authed(overrides: Record<string, unknown> = {}) {
 
   mocks.state.authResult = {
     user: { id: "user_1", email: "avery@example.com" },
-    dbUser: { id: "user_1", handle: "avery" },
+    dbUser: { id: "user_1", handle: "avery", clerkId: "user_clerk_1" },
     db: mocks.db,
     env: mocks.env,
-    captureBookmark: vi.fn(async () => undefined),
     error: null,
     ...overrides,
   };
@@ -348,7 +384,22 @@ describe("API route coverage", () => {
     mocks.db.query.user.findFirst.mockResolvedValue(null);
     mocks.db.query.siteData.findFirst.mockResolvedValue(null);
     mocks.db.query.resumes.findFirst.mockResolvedValue(null);
-    mocks.env.CLICKFOLIO_DB.prepare.mockReturnValue({ first: vi.fn(async () => ({ ok: 1 })) });
+    mocks.db.execute.mockResolvedValue(undefined);
+    mocks.clerkDeleteUser.mockResolvedValue(undefined);
+    mocks.state.txStatementCount = 0;
+    mocks.state.txValues = [];
+    mocks.state.serverSession = null;
+    mocks.db.transaction.mockImplementation(
+      async (callback: (tx: Record<string, unknown>) => Promise<void>) => {
+        mocks.state.txStatementCount = 0;
+        mocks.state.txValues = [];
+        await callback({
+          update: () => mocks.makeTxChain(),
+          insert: () => mocks.makeTxChain(),
+          delete: () => mocks.makeTxChain(),
+        });
+      },
+    );
     mocks.env.CLICKFOLIO_R2_BUCKET.list.mockResolvedValue({ objects: [] });
     mocks.r2Put.mockResolvedValue(undefined);
     mocks.r2Delete.mockResolvedValue(undefined);
@@ -409,6 +460,8 @@ describe("API route coverage", () => {
     ).toEqual({ available: true });
 
     mocks.state.selectResults = [[{ id: "user_1" }]];
+    // Taken handle owned by the current Clerk session → isCurrentHandle.
+    mocks.state.serverSession = { user: { id: "user_1" } };
     expect(
       await (await GET(new Request("https://clickfolio.me/api/handle/check?handle=avery"))).json(),
     ).toEqual({ available: true, isCurrentHandle: true });
@@ -506,7 +559,7 @@ describe("API route coverage", () => {
           id: "site_1",
           userId: "user_1",
           resumeId: "res_1",
-          content: '{"full_name":"Avery"}',
+          content: { full_name: "Avery" },
           themeId: "minimalist_editorial",
           lastPublishedAt: "2026-05-20T00:00:00Z",
           createdAt: "2026-05-20T00:00:00Z",
@@ -698,7 +751,7 @@ describe("API route coverage", () => {
     expect(success.headers.get("Set-Cookie")).toContain("pending_upload=");
   });
 
-  it("deletes account data, clears auth cookies, and reports partial storage warnings", async () => {
+  it("deletes account data via Clerk identity deletion and reports partial storage warnings", async () => {
     const { POST } = await import("@/app/api/account/delete/route");
     const originalBucket = mocks.env.CLICKFOLIO_R2_BUCKET;
 
@@ -755,22 +808,16 @@ describe("API route coverage", () => {
     });
     expect(mocks.r2Delete).toHaveBeenCalledWith(originalBucket, "one.pdf");
     expect(mocks.r2Delete).toHaveBeenCalledWith(originalBucket, "two.pdf");
-    expect(mocks.db.batch).toHaveBeenCalled();
-    expect(success.headers.get("Set-Cookie")).toContain("better-auth.session_token=");
-    // Ghost session cookies must also be expired (better-auth issue #8273).
-    const setCookies = success.headers.getSetCookie();
-    expect(setCookies).toEqual(
-      expect.arrayContaining([
-        expect.stringContaining("better-auth.session_token=; Max-Age=0"),
-        expect.stringContaining("__Secure-better-auth.session_token=; Max-Age=0"),
-        expect.stringContaining("better-auth.session_data=; Max-Age=0"),
-        expect.stringContaining("__Secure-better-auth.session_data=; Max-Age=0"),
-      ]),
-    );
+    // Clerk identity deleted with the mapped Clerk id; the local user-row
+    // delete (CASCADE cleanup) still ran.
+    expect(mocks.clerkDeleteUser).toHaveBeenCalledWith("user_clerk_1");
+    expect(mocks.db.delete).toHaveBeenCalled();
 
     authed();
     mocks.state.selectResults = [[{ r2Key: "three.pdf" }]];
-    mocks.db.batch.mockRejectedValueOnce(new Error("db down"));
+    mocks.db.delete.mockReturnValueOnce({
+      where: vi.fn(() => Promise.reject(new Error("db down"))),
+    });
     expect(
       (await POST(jsonRequest("/api/account/delete", { confirmation: "avery@example.com" })))
         .status,
@@ -812,7 +859,7 @@ describe("API route coverage", () => {
           handle: "avery",
           previewName: "Avery <Lead>",
           previewHeadline: "Builds > ships",
-          previewSkills: JSON.stringify(["TypeScript", "Cloudflare", "D1", "R2", "Hidden"]),
+          previewSkills: ["TypeScript", "Cloudflare", "D1", "R2", "Hidden"],
         },
       ],
     ];
@@ -1124,7 +1171,7 @@ describe("API route coverage", () => {
 
     mocks.state.handleTaken = false;
     // First-time onboarding: current user is not onboarded yet — exempt from the
-    // handle-changes rate limit and no audit row is inserted (batch stays at 2).
+    // handle-changes rate limit and no audit row is inserted (2 statements).
     mocks.state.selectResults = [[{ handle: null, onboardingCompleted: false }]];
     expect(await (await POST(jsonRequest("/api/wizard/complete", validBody))).json()).toMatchObject(
       {
@@ -1132,40 +1179,32 @@ describe("API route coverage", () => {
         handle: "avery",
       },
     );
-    const firstTimeBatch = (
-      vi.mocked(mocks.db.batch).mock.calls.at(-1) as JsonValue[] | undefined
-    )?.[0] as JsonValue[];
-    expect(firstTimeBatch).toHaveLength(2);
+    expect(mocks.state.txStatementCount).toBe(2);
 
-    mocks.db.batch.mockRejectedValueOnce(new Error("UNIQUE constraint failed: user.handle"));
+    mocks.db.transaction.mockRejectedValueOnce(
+      Object.assign(new Error("duplicate key value violates unique constraint"), { code: "23505" }),
+    );
     mocks.state.selectResults = [[{ handle: "avery", onboardingCompleted: true }]];
     expect((await POST(jsonRequest("/api/wizard/complete", validBody))).status).toBe(409);
 
     // Re-onboarding with a handle change over the 3/24h limit → 429 (mirrors
     // PUT /api/profile/handle). The count query consumes a second select result.
-    mocks.db.batch.mockResolvedValue(undefined);
     mocks.state.selectResults = [
       [{ handle: "old-handle", onboardingCompleted: true }],
       [{ count: 3 }],
     ];
     expect((await POST(jsonRequest("/api/wizard/complete", validBody))).status).toBe(429);
-
-    // Re-onboarding with a handle change under the limit → audit row inserted
-    // inside the batch (3 statements), success.
+    // Re-onboarding with a handle change under the limit → audit row written
+    // inside the same transaction (3 statements), success.
     mocks.state.selectResults = [
       [{ handle: "old-handle", onboardingCompleted: true }],
       [{ count: 2 }],
     ];
     const changed = await POST(jsonRequest("/api/wizard/complete", validBody));
     expect(changed.status).toBe(200);
-    const changedBatch = (
-      vi.mocked(mocks.db.batch).mock.calls.at(-1) as JsonValue[] | undefined
-    )?.[0] as JsonValue[];
-    expect(changedBatch).toHaveLength(3);
-    const auditInsert = changedBatch[2] as {
-      values: { mock: { calls: Array<[Record<string, unknown>]> } };
-    };
-    expect(auditInsert.values.mock.calls[0]?.[0]).toMatchObject({
+    expect(mocks.state.txStatementCount).toBe(3);
+    const auditValues = mocks.state.txValues.at(-1) as Record<string, unknown>;
+    expect(auditValues).toMatchObject({
       userId: "user_1",
       oldHandle: "old-handle",
       newHandle: "avery",
@@ -1179,18 +1218,13 @@ describe("API route coverage", () => {
   it("covers health, client-error, cron, and auth wrappers", async () => {
     const health = await import("@/app/api/health/route");
     const clientError = await import("@/app/api/client-error/route");
-    const auth = await import("@/app/api/auth/[...all]/route");
     const cleanup = await import("@/app/api/cron/cleanup/route");
     const cleanupR2 = await import("@/app/api/cron/cleanup-r2/route");
     const syncDomains = await import("@/app/api/cron/sync-domains/route");
     const recover = await import("@/app/api/cron/recover-orphaned/route");
 
     expect((await health.GET()).status).toBe(200);
-    mocks.env.CLICKFOLIO_DB.prepare.mockReturnValueOnce({
-      first: vi.fn(async () => {
-        throw new Error("db down");
-      }),
-    });
+    mocks.db.execute.mockRejectedValueOnce(new Error("db down"));
     expect((await health.GET()).status).toBe(503);
 
     expect(
@@ -1211,13 +1245,6 @@ describe("API route coverage", () => {
         )
       ).status,
     ).toBe(204);
-
-    expect((await auth.GET(new Request("https://clickfolio.me/api/auth/session"))).status).toBe(
-      200,
-    );
-    expect((await auth.POST(new Request("https://clickfolio.me/api/auth/signout"))).status).toBe(
-      200,
-    );
 
     const cronRequest = new Request("https://clickfolio.me/api/cron/cleanup", {
       headers: { Authorization: "Bearer cron-secret" },

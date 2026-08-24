@@ -1,21 +1,14 @@
 import { z } from "zod";
+import type { JsonValue } from "@/lib/types/json";
 
 /**
- * Safely parse preview skills stored as JSON text.
- * Returns an empty array for invalid/malformed data.
+ * Normalizes preview skills read from the jsonb column.
+ * Trims entries, drops non-string/empty values, and returns an empty array
+ * for missing or malformed data.
  */
-export function parsePreviewSkills(raw: string | null | undefined): string[] {
-  if (!raw) return [];
+export function normalizePreviewSkills(raw: JsonValue): string[] {
+  const parsed = z.array(z.string()).safeParse(raw);
+  if (!parsed.success) return [];
 
-  try {
-    const parsed: unknown = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-
-    return parsed
-      .filter((item): item is string => z.string().safeParse(item).success)
-      .map((skill) => skill.trim())
-      .filter((skill) => skill.length > 0);
-  } catch {
-    return [];
-  }
+  return parsed.data.map((skill) => skill.trim()).filter((skill) => skill.length > 0);
 }

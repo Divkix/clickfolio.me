@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { JsonValue } from "@/lib/types/json";
+import { DEFAULT_PRIVACY_SETTINGS } from "@/lib/utils/privacy";
 
 /**
  * Unit tests for the authenticated-route wrappers (ADR-0002 inner-callback form).
@@ -39,14 +40,15 @@ function successResult(): AuthSuccess {
       image: null,
       handle: "testuser",
       headline: null,
-      privacySettings: "{}",
+      privacySettings: DEFAULT_PRIVACY_SETTINGS,
       onboardingCompleted: true,
       role: "mid_level",
     },
     db: { marker: "db" } as never,
-    captureBookmark: vi.fn().mockResolvedValue(undefined),
-    dbUser: { id: "user-1", handle: "testuser" },
-    env: { CLICKFOLIO_DB: {} } as never,
+    dbUser: { id: "user-1", handle: "testuser", clerkId: "user_2clerkAbc" },
+    env: {
+      HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" },
+    } as never,
     error: null,
   };
 }
@@ -73,7 +75,6 @@ describe("withUser", () => {
     mockedAuth.mockResolvedValue({
       user: null,
       db: null,
-      captureBookmark: null,
       dbUser: null,
       env: null,
       error: authError,
@@ -96,7 +97,6 @@ describe("withUser", () => {
       // Context is guaranteed non-null and carries the full auth result.
       expect(ctx.user).toBe(result.user);
       expect(ctx.db).toBe(result.db);
-      expect(ctx.captureBookmark).toBe(result.captureBookmark);
       expect(ctx.dbUser).toBe(result.dbUser);
       expect(ctx.env).toBe(result.env);
       return handlerResponse;

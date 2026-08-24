@@ -2,7 +2,7 @@
  * GET /api/admin/stats
  *
  * Returns overview statistics for admin dashboard.
- * User/resume stats from D1, traffic stats from Umami.
+ * User/resume stats from Postgres (Hyperdrive), traffic stats from Umami.
  *
  * @returns Response with shape:
  * ```json
@@ -36,7 +36,7 @@ import {
 export async function GET() {
   return withAdmin(undefined, async () => {
     try {
-      const db = getDb(env.CLICKFOLIO_DB);
+      const db = getDb(env.HYPERDRIVE);
 
       const now = new Date();
       const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -82,7 +82,7 @@ export async function GET() {
         ]);
 
       // Process resume stats
-      // SAFETY: resumeStats is aggregated string keys from D1; cast initializes typed map for counting.
+      // SAFETY: resumeStats is aggregated string keys from the database; cast initializes typed map for counting.
       const resumeStatusMap = resumeStats.reduce(
         (acc, r) => {
           acc[r.status || "unknown"] = r.count;

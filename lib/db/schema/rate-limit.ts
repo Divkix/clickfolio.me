@@ -1,4 +1,4 @@
-import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { boolean, index, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 import { user } from "./auth";
 
 // =============================================================================
@@ -10,7 +10,7 @@ import { user } from "./auth";
  * Users are limited to 3 handle changes per 24 hours.
  * oldHandle is nullable because the first handle assignment has no previous value.
  */
-export const handleChanges = sqliteTable(
+export const handleChanges = pgTable(
   "handle_changes",
   {
     id: text("id").primaryKey(),
@@ -20,7 +20,7 @@ export const handleChanges = sqliteTable(
     /** Previous handle. Nullable because the first handle set has no prior value. */
     oldHandle: text("old_handle"),
     newHandle: text("new_handle").notNull(),
-    createdAt: text("created_at").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull(),
   },
   (table) => [
     index("handle_changes_user_id_idx").on(table.userId),
@@ -32,7 +32,7 @@ export const handleChanges = sqliteTable(
  * Upload rate limits table — tracks per-IP actions for rate limiting.
  * actionType enum: "upload" (resume upload), "handle_check" (handle availability check), "email_validate" (email validation).
  */
-export const uploadRateLimits = sqliteTable(
+export const uploadRateLimits = pgTable(
   "upload_rate_limits",
   {
     id: text("id").primaryKey(),
@@ -43,8 +43,11 @@ export const uploadRateLimits = sqliteTable(
     })
       .notNull()
       .default("upload"),
-    createdAt: text("created_at").notNull(),
-    expiresAt: text("expires_at").notNull(), // TTL: createdAt + 24h for automatic cleanup
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull(),
+    expiresAt: timestamp("expires_at", {
+      withTimezone: true,
+      mode: "string",
+    }).notNull(), // TTL: createdAt + 24h for automatic cleanup
   },
   (table) => [
     // Redundant standalone (ipHash) index removed — (ipHash, createdAt) and
@@ -61,7 +64,7 @@ export const uploadRateLimits = sqliteTable(
  * visitorHash is a fingerprint hash of the visitor to deduplicate clicks.
  * converted is set to true when the visitor signs up and is linked to a user.
  */
-export const referralClicks = sqliteTable(
+export const referralClicks = pgTable(
   "referral_clicks",
   {
     id: text("id").primaryKey(),
@@ -73,13 +76,13 @@ export const referralClicks = sqliteTable(
     /** Referral source. Values: "homepage" (landing page), "cta" (button), "share" (direct link). */
     source: text("source", { enum: ["homepage", "cta", "share"] }),
     /** Whether the click resulted in a signup. */
-    converted: integer("converted", { mode: "boolean" }).notNull().default(false),
+    converted: boolean("converted").notNull().default(false),
     convertedUserId: text("converted_user_id").references(() => user.id, {
       onDelete: "set null",
     }),
-    /** ISO timestamp when the referral was converted (signup completed). */
-    convertedAt: text("converted_at"),
-    createdAt: text("created_at").notNull(),
+    /** Timestamp when the referral was converted (signup completed). */
+    convertedAt: timestamp("converted_at", { withTimezone: true, mode: "string" }),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull(),
   },
   (table) => [
     index("referral_clicks_referrer_idx").on(table.referrerUserId),

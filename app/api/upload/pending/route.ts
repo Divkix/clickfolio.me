@@ -16,7 +16,7 @@
 import { env } from "cloudflare:workers";
 import { cookies } from "next/headers";
 import { z } from "zod";
-import { getEnvValue } from "@/lib/auth";
+import { getEnvValue } from "@/lib/utils/env";
 import { getR2Binding, R2 } from "@/lib/r2";
 import {
   COOKIE_MAX_AGE,
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
   try {
     // SAFETY: env is untyped Cloudflare Workers binding; cast bridges to typed CloudflareEnv.
     const typedEnv = env as CloudflareEnv;
-    const secret = getEnvValue(typedEnv, "BETTER_AUTH_SECRET");
+    const secret = getEnvValue(typedEnv, "PENDING_UPLOAD_SECRET");
 
     // Validate request size before parsing (prevent DoS)
     const sizeCheck = validateRequestSize(request);
@@ -110,7 +110,7 @@ export async function GET() {
   try {
     // SAFETY: env is untyped Cloudflare Workers binding; cast bridges to typed CloudflareEnv.
     const typedEnv = env as CloudflareEnv;
-    const secret = getEnvValue(typedEnv, "BETTER_AUTH_SECRET");
+    const secret = getEnvValue(typedEnv, "PENDING_UPLOAD_SECRET");
 
     const cookieStore = await cookies();
     const cookie = cookieStore.get(COOKIE_NAME);

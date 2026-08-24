@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Logo } from "@/components/Logo";
-import { signOut, useSession } from "@/lib/auth/client";
+import { useClerk, useSession } from "@/lib/auth/client";
 
 interface SidebarProps {
   isOpen?: boolean;
@@ -25,6 +25,7 @@ interface ProfileResponse {
 export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const clerk = useClerk();
 
   const { data: session, isPending } = useSession();
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -68,7 +69,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
   }, [session?.user, isPending, pathname]);
 
   const handleLogout = async () => {
-    await signOut();
+    await clerk.signOut();
     router.push("/");
     router.refresh();
   };

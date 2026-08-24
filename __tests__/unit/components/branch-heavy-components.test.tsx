@@ -2,10 +2,7 @@ import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event";
 import type React from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
-import { GoogleButton } from "@/components/auth/GoogleButton";
-import { PasswordInput } from "@/components/auth/PasswordInput";
 import { CopyLinkButton } from "@/components/dashboard/CopyLinkButton";
-import { EmailVerificationBanner } from "@/components/dashboard/EmailVerificationBanner";
 import { MilestoneToasts } from "@/components/dashboard/MilestoneToasts";
 import { ReferralStats } from "@/components/dashboard/ReferralStats";
 import { EditResumeFormWrapper } from "@/components/forms/EditResumeFormWrapper";
@@ -30,10 +27,6 @@ const mocks = vi.hoisted(() => ({
     info: vi.fn(),
   },
   copyToClipboard: vi.fn(),
-  sendVerificationEmail: vi.fn(),
-  checkBreached: vi.fn(),
-  checkPasswordStrength: vi.fn(),
-  signInSocial: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -80,21 +73,6 @@ vi.mock("posthog-js", () => ({
   },
 }));
 
-vi.mock("@/lib/auth/client", () => ({
-  sendVerificationEmail: (...args: JsonValue[]) => mocks.sendVerificationEmail(...args),
-  signIn: {
-    social: (...args: JsonValue[]) => mocks.signInSocial(...args),
-  },
-}));
-
-vi.mock("@/lib/password/hibp", () => ({
-  checkBreached: (...args: JsonValue[]) => mocks.checkBreached(...args),
-}));
-
-vi.mock("@/lib/password/strength", () => ({
-  checkPasswordStrength: (...args: JsonValue[]) => mocks.checkPasswordStrength(...args),
-}));
-
 vi.mock("@/lib/templates/theme-registry.client", () => ({
   DYNAMIC_TEMPLATES: Object.fromEntries(
     [
@@ -138,11 +116,6 @@ vi.mock("@/components/forms/EditResumeForm", () => ({
   ),
 }));
 
-async function flushMicrotasks() {
-  await Promise.resolve();
-  await Promise.resolve();
-}
-
 const resumeContent: ResumeContent = {
   full_name: "Avery Quinn",
   headline: "Staff Product Engineer",
@@ -181,16 +154,6 @@ describe("branch-heavy component interactions", () => {
     vi.useRealTimers();
     localStorage.clear();
     mocks.copyToClipboard.mockResolvedValue(true);
-    mocks.sendVerificationEmail.mockResolvedValue({ data: {}, error: null });
-    mocks.checkBreached.mockResolvedValue({ isBreached: false, count: 0 });
-    mocks.checkPasswordStrength.mockResolvedValue({
-      score: 4,
-      isAcceptable: true,
-      crackTimeDisplay: "centuries",
-      crackTimeSeconds: 31_536_000_000,
-      feedback: { warning: "", suggestions: [] },
-    });
-    mocks.signInSocial.mockResolvedValue({ data: {}, error: null });
     global.fetch = vi.fn(async () =>
       Response.json({ handle: "new-handle" }, { status: 200 }),
     ) as unknown as typeof fetch;
@@ -296,245 +259,6 @@ describe("branch-heavy component interactions", () => {
       await waitFor(() =>
         expect(mocks.toast.error).toHaveBeenCalledWith("Failed to update handle"),
       );
-    });
-  });
-
-  describe("EmailVerificationBanner", () => {
-    it("stays hidden for verified, OAuth, and recently dismissed users", () => {
-      const now = Date.now();
-      vi.spyOn(Date, "now").mockReturnValue(now);
-      localStorage.setItem("email_verification_dismissed", now.toString());
-
-      const { rerender } = render(
-        <EmailVerificationBanner email="avery@example.com" emailVerified isOAuthUser={false} />,
-      );
-      expect(screen.queryByText("Verify your email")).not.toBeInTheDocument();
-
-      rerender(
-        <EmailVerificationBanner email="avery@example.com" emailVerified={false} isOAuthUser />,
-      );
-      expect(screen.queryByText("Verify your email")).not.toBeInTheDocument();
-
-      rerender(
-        <EmailVerificationBanner
-          email="avery@example.com"
-          emailVerified={false}
-          isOAuthUser={false}
-        />,
-      );
-      expect(screen.queryByText("Verify your email")).not.toBeInTheDocument();
-    });
-
-    it("resends verification email, runs cooldown, and dismisses the banner", async () => {
-      vi.useFakeTimers();
-
-      render(
-        <EmailVerificationBanner
-          email="avery@example.com"
-          emailVerified={false}
-          isOAuthUser={false}
-        />,
-      );
-
-      expect(screen.getByText("Verify your email")).toBeInTheDocument();
-      await act(async () => {
-        fireEvent.click(screen.getByRole("button", { name: "Resend verification email" }));
-        await flushMicrotasks();
-      });
-
-      expect(mocks.sendVerificationEmail).toHaveBeenCalledWith({
-        email: "avery@example.com",
-        callbackURL: "/verify-email",
-      });
-      expect(mocks.toast.success).toHaveBeenCalledWith(
-        "Verification email sent! Check your inbox.",
-      );
-      expect(screen.getByRole("button", { name: "Resend in 60s" })).toBeDisabled();
-
-      fireEvent.click(screen.getByRole("button", { name: "Resend in 60s" }));
-      expect(mocks.sendVerificationEmail).toHaveBeenCalledTimes(1);
-
-      await act(async () => {
-        vi.advanceTimersByTime(60_000);
-      });
-      expect(screen.getByRole("button", { name: "Resend verification email" })).toBeEnabled();
-
-      fireEvent.click(screen.getByLabelText("Dismiss"));
-      expect(screen.queryByText("Verify your email")).not.toBeInTheDocument();
-      expect(localStorage.getItem("email_verification_dismissed")).toBeTruthy();
-    });
-
-    it("clears expired dismissal and reports resend errors", async () => {
-      vi.spyOn(Date, "now").mockReturnValue(9 * 24 * 60 * 60 * 1000);
-      localStorage.setItem("email_verification_dismissed", "0");
-      mocks.sendVerificationEmail
-        .mockResolvedValueOnce({ error: { message: "Mail quota reached" } })
-        .mockRejectedValueOnce(new Error("network"));
-      const user = userEvent.setup();
-
-      render(
-        <EmailVerificationBanner
-          email="avery@example.com"
-          emailVerified={false}
-          isOAuthUser={false}
-        />,
-      );
-
-      expect(await screen.findByText("Verify your email")).toBeInTheDocument();
-      expect(localStorage.getItem("email_verification_dismissed")).toBeNull();
-
-      await user.click(screen.getByRole("button", { name: "Resend verification email" }));
-      expect(mocks.toast.error).toHaveBeenCalledWith("Mail quota reached");
-
-      await user.click(screen.getByRole("button", { name: "Resend verification email" }));
-      await waitFor(() =>
-        expect(mocks.toast.error).toHaveBeenCalledWith("Something went wrong. Please try again."),
-      );
-    });
-  });
-
-  describe("PasswordInput", () => {
-    it("supports uncontrolled visibility toggling without the strength meter", async () => {
-      const user = userEvent.setup();
-      render(<PasswordInput aria-label="Password" hasError className="custom-class" />);
-
-      const input = screen.getByLabelText("Password");
-      expect(input).toHaveAttribute("type", "password");
-
-      await user.type(input, "secret");
-      expect(input).toHaveValue("secret");
-      expect(screen.queryByText("Strong")).not.toBeInTheDocument();
-
-      await user.click(screen.getByRole("button", { name: "Show password" }));
-      expect(input).toHaveAttribute("type", "text");
-      await user.click(screen.getByRole("button", { name: "Hide password" }));
-      expect(input).toHaveAttribute("type", "password");
-    });
-
-    it("debounces strength and breach checks for controlled values", async () => {
-      vi.useFakeTimers();
-      const onStrengthChange = vi.fn();
-
-      render(
-        <PasswordInput
-          aria-label="Password"
-          checkBreach
-          email="avery@example.com"
-          name="Avery"
-          onStrengthChange={onStrengthChange}
-          showStrengthMeter
-          value="long-password"
-        />,
-      );
-
-      await act(async () => {
-        vi.advanceTimersByTime(150);
-        await flushMicrotasks();
-      });
-      expect(mocks.checkPasswordStrength).toHaveBeenCalledWith("long-password", [
-        "avery@example.com",
-        "Avery",
-      ]);
-      expect(onStrengthChange).toHaveBeenCalledWith(expect.any(Object));
-
-      await act(async () => {
-        vi.advanceTimersByTime(350);
-        await flushMicrotasks();
-      });
-      expect(mocks.checkBreached).toHaveBeenCalledWith("long-password");
-    });
-
-    it("clears strength state and skips breach checks for short or empty values", async () => {
-      const onStrengthChange = vi.fn();
-      const { rerender } = render(
-        <PasswordInput
-          aria-label="Password"
-          checkBreach
-          onStrengthChange={onStrengthChange}
-          showStrengthMeter
-          value="short"
-        />,
-      );
-
-      expect(screen.getByLabelText("Password")).toHaveValue("short");
-      expect(mocks.checkBreached).not.toHaveBeenCalled();
-
-      rerender(
-        <PasswordInput
-          aria-label="Password"
-          checkBreach
-          onStrengthChange={onStrengthChange}
-          showStrengthMeter
-          value=""
-        />,
-      );
-
-      expect(onStrengthChange).toHaveBeenCalledWith(null);
-      expect(screen.queryByText("Very Weak")).not.toBeInTheDocument();
-    });
-  });
-
-  describe("GoogleButton", () => {
-    it("starts Google sign-in, shows loading state, and calls success callbacks", async () => {
-      const user = userEvent.setup();
-      const onSuccess = vi.fn();
-      let resolveSignIn: (value: JsonValue) => void = () => undefined;
-      mocks.signInSocial.mockImplementationOnce(
-        () =>
-          new Promise((resolve) => {
-            resolveSignIn = resolve;
-          }),
-      );
-
-      render(
-        <GoogleButton
-          callbackURL="/dashboard"
-          fullWidth
-          onSuccess={onSuccess}
-          text="Sign in with Google"
-        />,
-      );
-
-      await user.click(screen.getByRole("button", { name: "Sign in with Google" }));
-      expect(screen.getByRole("button", { name: /signing in/i })).toBeDisabled();
-      expect(mocks.signInSocial).toHaveBeenCalledWith({
-        provider: "google",
-        callbackURL: "/dashboard",
-      });
-
-      await act(async () => {
-        resolveSignIn({ data: {}, error: null });
-        await flushMicrotasks();
-      });
-      expect(onSuccess).toHaveBeenCalled();
-    });
-
-    it.each([
-      [new Error("Popup blocked"), "Popup blocked. Please allow popups for this site."],
-      [new Error("network fetch failed"), "Network error. Check your connection."],
-      [new Error("user cancelled"), "Sign in was cancelled."],
-      [new Error("oauth failed"), "Sign in failed. Please try again."],
-      ["blocked", "Sign in failed. Please try again."],
-    ])("maps sign-in error %s to a friendly toast", async (error, message) => {
-      const user = userEvent.setup();
-      const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
-      mocks.signInSocial.mockRejectedValueOnce(error);
-
-      render(<GoogleButton />);
-
-      await user.click(screen.getByRole("button", { name: "Continue with Google" }));
-
-      await waitFor(() => expect(mocks.toast.error).toHaveBeenCalledWith(message));
-      expect(consoleError).toHaveBeenCalledWith("Google sign in error:", error);
-    });
-
-    it("does not submit when externally disabled", async () => {
-      const user = userEvent.setup();
-
-      render(<GoogleButton disabled />);
-
-      await user.click(screen.getByRole("button", { name: "Continue with Google" }));
-      expect(mocks.signInSocial).not.toHaveBeenCalled();
     });
   });
 

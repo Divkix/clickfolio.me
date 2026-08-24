@@ -12,7 +12,7 @@ import { Separator } from "@/components/ui/separator";
 import { getServerSession } from "@/lib/auth/session";
 import { getDb } from "@/lib/db";
 import { resumes, user } from "@/lib/db/schema";
-import { parsePrivacySettings } from "@/lib/utils/privacy";
+import { normalizePrivacySettings } from "@/lib/utils/privacy";
 
 export const dynamic = "force-dynamic";
 
@@ -87,7 +87,7 @@ export default async function SettingsPage() {
     redirect("/");
   }
 
-  const db = getDb(env.CLICKFOLIO_DB);
+  const db = getDb(env.HYPERDRIVE);
 
   const [profile, resumeData, latestResume] = await Promise.all([
     db.query.user.findFirst({
@@ -126,7 +126,7 @@ export default async function SettingsPage() {
     redirect("/dashboard");
   }
 
-  const privacySettings = parsePrivacySettings(profile.privacySettings);
+  const privacySettings = normalizePrivacySettings(profile.privacySettings);
 
   const resumeCount = resumeData[0]?.count ?? 0;
 
