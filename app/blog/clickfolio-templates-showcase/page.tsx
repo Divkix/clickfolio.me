@@ -23,14 +23,14 @@ export default function TemplatesShowcasePage() {
         <p>
           Your resume content deserves more than a plain text document. It deserves a design that
           matches your profession, personality, and ambition. clickfolio.me offers 10 distinct
-          templates — each with its own typography, color scheme, and layout philosophy. Six are
-          free. Four are premium, unlocked by sharing clickfolio.me with your network.
+          templates — each with its own typography, color scheme, and layout philosophy — and all of
+          them are completely free.
         </p>
         <p>Here's every template, what makes it unique, and who it's best for.</p>
       </section>
 
       <section>
-        <h2>Free Templates (No Referrals Required)</h2>
+        <h2>Free Templates</h2>
 
         <h3>{THEME_METADATA.minimalist_editorial.name}</h3>
         <p>
@@ -141,7 +141,7 @@ export default function TemplatesShowcasePage() {
         <ol className="list-decimal pl-6 space-y-2">
           <li>Go to your dashboard and click "Themes"</li>
           <li>Browse the template gallery — each shows a preview thumbnail</li>
-          <li>Click "Apply" on any unlocked template</li>
+          <li>Click "Apply" on any template</li>
           <li>Your live site updates immediately</li>
         </ol>
         <p>

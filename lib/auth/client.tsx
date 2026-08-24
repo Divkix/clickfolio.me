@@ -17,7 +17,7 @@
 import { ClerkProvider, SignInButton, useAuth, useClerk, useUser } from "@clerk/react";
 import { useMemo } from "react";
 
-export { ClerkProvider, SignInButton, useAuth, useClerk, useUser };
+export { ClerkProvider, SignInButton, useClerk, useUser };
 
 /** User block of the session adapter. */
 export interface ClientSessionUser {

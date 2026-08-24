@@ -5,7 +5,7 @@ import { env } from "cloudflare:workers";
 import { PgDialect } from "drizzle-orm/pg-core";
 import { getDb, type Database } from "@/lib/db";
 import { user as userTable } from "@/lib/db/schema";
-import { CLERK_CLIENT_COOKIE, CLERK_SESSION_COOKIE } from "@/lib/auth/clerk";
+import { CLERK_SESSION_COOKIE } from "@/lib/auth/clerk";
 import { requireAuthWithMessage, requireAuthWithUserValidation } from "@/lib/auth/middleware";
 
 /**
@@ -91,7 +91,7 @@ beforeEach(() => {
             return { name, value: sessionCookieValue };
           }
           // The __client device cookie is always present in real browsers.
-          if (name === CLERK_CLIENT_COOKIE) {
+          if (name === "__client") {
             return { name, value: "uat_client_token" };
           }
           return undefined;

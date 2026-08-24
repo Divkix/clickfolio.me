@@ -1,5 +1,10 @@
 import { defineConfig } from "vite-plus";
-import { sharedAlias, sharedCoverageProvider, sharedSetupFiles } from "./vitest.base.config";
+import {
+  sharedAlias,
+  sharedCoverageProvider,
+  sharedExclude,
+  sharedSetupFiles,
+} from "./vitest.base.config";
 
 export default defineConfig({
   test: {
@@ -7,6 +12,7 @@ export default defineConfig({
     globals: true,
     setupFiles: sharedSetupFiles,
     include: ["**/__tests__/**/*.test.{ts,tsx}"],
+    exclude: sharedExclude,
     // Retry flaky tests twice before failing
     retry: 2,
     // Parallel test execution - uses threads by default in vitest v4

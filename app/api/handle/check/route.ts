@@ -1,15 +1,46 @@
 import { env } from "cloudflare:workers";
 import { eq } from "drizzle-orm";
+import type { ZodError } from "zod";
 import { getServerSession } from "@/lib/auth/session";
 import { getDb } from "@/lib/db";
 import { user } from "@/lib/db/schema";
 import { RESERVED_HANDLES } from "@/lib/rate-limit/handle-validation";
 import { checkHandleRateLimit, getClientIP } from "@/lib/rate-limit/ip";
+import { handleSchema } from "@/lib/schemas/profile";
 import {
   createErrorResponse,
   createSuccessResponse,
   ERROR_CODES,
 } from "@/lib/utils/security-headers";
+
+/**
+ * Map handleSchema issues onto the granular error messages this endpoint has
+ * always returned. Buckets are evaluated in the same order as the previous
+ * sequential guards so every invalid case produces the exact same response.
+ */
+function handleFormatErrorMessage(error: ZodError): string {
+  const issues = error.issues;
+  const failedPatterns = issues.flatMap((issue) =>
+    // eslint-disable-next-line anti-slop/no-runtime-typeof -- ZodError issue.pattern is string | undefined at I/O boundary; typeof safely narrows to string before string ops
+    issue.code === "invalid_format" && typeof issue.pattern === "string"
+      ? [issue.pattern.replace(/^\//, "").replace(/\/$/, "")]
+      : [],
+  );
+
+  if (issues.some((issue) => issue.code === "too_small")) {
+    return "Handle must be at least 3 characters";
+  }
+  if (issues.some((issue) => issue.code === "too_big")) {
+    return "Handle must be at most 30 characters";
+  }
+  if (failedPatterns.includes("^[a-z0-9-]+$")) {
+    return "Handle can only contain lowercase letters, numbers, and hyphens";
+  }
+  if (failedPatterns.includes("^[a-z0-9]") || failedPatterns.includes("[a-z0-9]$")) {
+    return "Handle cannot start or end with a hyphen";
+  }
+  return "Handle cannot contain consecutive hyphens";
+}
 
 /**
  * GET /api/handle/check?handle=example
@@ -35,41 +66,10 @@ export async function GET(request: Request) {
 
     const normalizedHandle = handle.toLowerCase().trim();
 
-    if (normalizedHandle.length < 3) {
+    const parsedHandle = handleSchema.safeParse(normalizedHandle);
+    if (!parsedHandle.success) {
       return createErrorResponse(
-        "Handle must be at least 3 characters",
-        ERROR_CODES.BAD_REQUEST,
-        400,
-      );
-    }
-
-    if (normalizedHandle.length > 30) {
-      return createErrorResponse(
-        "Handle must be at most 30 characters",
-        ERROR_CODES.BAD_REQUEST,
-        400,
-      );
-    }
-
-    if (!/^[a-z0-9-]+$/.test(normalizedHandle)) {
-      return createErrorResponse(
-        "Handle can only contain lowercase letters, numbers, and hyphens",
-        ERROR_CODES.BAD_REQUEST,
-        400,
-      );
-    }
-
-    if (/^-|-$/.test(normalizedHandle)) {
-      return createErrorResponse(
-        "Handle cannot start or end with a hyphen",
-        ERROR_CODES.BAD_REQUEST,
-        400,
-      );
-    }
-
-    if (/--/.test(normalizedHandle)) {
-      return createErrorResponse(
-        "Handle cannot contain consecutive hyphens",
+        handleFormatErrorMessage(parsedHandle.error),
         ERROR_CODES.BAD_REQUEST,
         400,
       );

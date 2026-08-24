@@ -7,12 +7,16 @@
     "components/**/*.{ts,tsx}",
     "hooks/**/*.{ts,tsx}",
     "lib/**/*.{ts,tsx}",
+    "worker/**/*.{ts,tsx}",
+    "proxy.ts",
+    "instrumentation-client.ts",
+    "global.d.ts",
   ],
   "ignore": [],
   "ignoreBinaries": [],
   "ignoreDependencies": [
     // Tailwind CSS ecosystem and build-time dependencies:
-    "cloudflare", // Cloudflare Workers type stubs
+    "cloudflare", // Cloudflare Workers `cloudflare:workers` runtime import
     "postcss", // Build-time CSS processor
     "tailwindcss", // Utility-first CSS framework
     "tw-animate-css", // Tailwind CSS animation plugin

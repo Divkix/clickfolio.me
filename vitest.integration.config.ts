@@ -23,7 +23,6 @@ export default defineConfig({
     include: [
       "__tests__/integration/**/*.test.{ts,tsx}",
       "__tests__/claim-flow.test.ts",
-      "__tests__/referral.test.ts",
       "__tests__/share.test.ts",
     ],
     exclude: sharedExclude,

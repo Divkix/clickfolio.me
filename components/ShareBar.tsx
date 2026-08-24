@@ -4,26 +4,20 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { Check, Copy, Share2, XIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { LinkedInIcon, WhatsAppIcon } from "@/components/icons/BrandIcons";
+import {
+  DEFAULT_SHARE_VARIANT,
+  shareButtonStyles,
+  shareContainerStyles,
+} from "@/lib/templates/share-variants";
 import { cn } from "@/lib/utils/cn";
 import { isWebShareSupported } from "@/lib/utils/share";
 import { getLinkedInIconVariant, useShareActions } from "@/lib/utils/share-actions";
 const shareBarVariants = cva("flex items-center gap-2 flex-wrap", {
   variants: {
-    variant: {
-      "minimalist-editorial": "",
-      "neo-brutalist": "",
-      "glass-morphic": "",
-      "bento-grid": "",
-      spotlight: "",
-      midnight: "",
-      "bold-corporate": "",
-      "classic-ats": "",
-      "design-folio": "",
-      "dev-terminal": "",
-    },
+    variant: shareContainerStyles,
   },
   defaultVariants: {
-    variant: "minimalist-editorial",
+    variant: DEFAULT_SHARE_VARIANT,
   },
 });
 
@@ -31,31 +25,10 @@ const buttonVariants = cva(
   "inline-flex items-center justify-center transition-colors duration-200 min-w-[44px] min-h-[44px]",
   {
     variants: {
-      variant: {
-        "minimalist-editorial":
-          "text-neutral-500 hover:text-neutral-900 border border-neutral-200 rounded-full px-3 py-1.5 text-xs uppercase tracking-widest hover:bg-neutral-100",
-        "neo-brutalist":
-          "bg-white text-black border-2 border-black px-3 py-1.5 font-bold hover:bg-yellow-300 hover:translate-x-0.5 hover:-translate-y-0.5 shadow-[2px_2px_0_0_black] hover:shadow-[4px_4px_0_0_black]",
-        "glass-morphic":
-          "bg-white/10 backdrop-blur-sm border border-white/20 text-white/80 hover:text-white hover:bg-white/20 rounded-lg px-3 py-1.5",
-        "bento-grid":
-          "bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-xl px-3 py-1.5",
-        spotlight:
-          "bg-orange-50 text-orange-700 hover:bg-orange-100 border border-orange-200 rounded-lg px-3 py-1.5",
-        midnight:
-          "bg-amber-900/20 text-amber-200 hover:bg-amber-900/40 border border-amber-700/30 rounded-lg px-3 py-1.5",
-        "bold-corporate":
-          "bg-white text-neutral-700 hover:bg-neutral-50 border border-neutral-200 rounded-md px-3 py-1.5 shadow-sm",
-        "classic-ats":
-          "text-gray-500 hover:text-gray-900 border border-gray-300 rounded px-3 py-1.5 text-xs uppercase tracking-wider hover:bg-gray-100",
-        "design-folio":
-          "bg-[#1a1a1a] text-[#888] hover:text-[#CCFF00] border border-[#333] hover:border-[#CCFF00] rounded-full px-3 py-1.5 font-mono text-xs uppercase tracking-widest",
-        "dev-terminal":
-          "bg-[#161b22] text-[#c9d1d9] hover:text-[#58a6ff] border border-[#30363d] rounded px-3 py-1.5",
-      },
+      variant: shareButtonStyles,
     },
     defaultVariants: {
-      variant: "minimalist-editorial",
+      variant: DEFAULT_SHARE_VARIANT,
     },
   },
 );

@@ -35,9 +35,6 @@ import { createErrorResponse, ERROR_CODES } from "@/lib/utils/security-headers";
 /** Cookie holding the Clerk session JWT. */
 export const CLERK_SESSION_COOKIE = "__session";
 
-/** Cookie holding the Clerk client token (device identity, set even signed out). */
-export const CLERK_CLIENT_COOKIE = "__client";
-
 /**
  * Minimal shape of the Clerk session JWT claims this app consumes.
  * `sub` is the Clerk user id, `sid` the Clerk session id.
@@ -179,13 +176,6 @@ export async function getAuthClerk(request?: Request): Promise<ClerkAuthContext 
     console.error("[clerk] failed to resolve session:", error);
     return null;
   }
-}
-
-/**
- * Convenience helper: the current Clerk user id, or null.
- */
-export async function getClerkUserId(request?: Request): Promise<string | null> {
-  return (await getAuthClerk(request))?.clerkId ?? null;
 }
 
 /**

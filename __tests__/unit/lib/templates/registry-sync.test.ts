@@ -12,6 +12,7 @@
  */
 
 import { describe, expect, it } from "vite-plus/test";
+import { SHARE_VARIANT_KEYS } from "@/lib/templates/share-variants";
 import { THEME_IDS, THEME_METADATA, themeToShareVariant } from "@/lib/templates/theme-ids";
 
 describe("Registry sync guard", () => {
@@ -54,5 +55,13 @@ describe("Registry sync guard", () => {
     // Both maps must be keyed by exactly the same set of ids.
     // If they diverge, one registry surface was updated and the other was not.
     expect(metadataKeys).toEqual(variantKeys);
+  });
+
+  it("themeToShareVariant values match SHARE_VARIANT_KEYS exactly (cross-check)", () => {
+    const mapped = Object.values(themeToShareVariant).sort();
+    const keys = [...SHARE_VARIANT_KEYS].sort();
+    // Every kebab-case share variant must come from the single shared key
+    // list; if they diverge, a theme was added without updating both files.
+    expect(mapped).toEqual(keys);
   });
 });

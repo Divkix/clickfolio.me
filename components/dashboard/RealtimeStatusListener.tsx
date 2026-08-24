@@ -18,7 +18,12 @@ type DetectedState = {
 
 /**
  * Status listener component that uses WebSocket for real-time resume status changes.
- * Falls back to polling automatically via useResumeWebSocket.
+ *
+ * Updates arrive exclusively via WebSocket push: this component does not
+ * consume useResumeWebSocket's connectionState, so when the hook exhausts
+ * its reconnect budget (connectionState "fallback") NO polling happens here.
+ * The page still recovers via the server render / router.refresh() once a
+ * terminal status is delivered over WS.
  */
 export function RealtimeStatusListener({ resumeId, currentStatus }: RealtimeStatusListenerProps) {
   const router = useRouter();

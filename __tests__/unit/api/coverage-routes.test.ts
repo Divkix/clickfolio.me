@@ -28,7 +28,6 @@ const mocks = vi.hoisted(() => {
     },
     disposableResult: { disposable: false } as { disposable: boolean },
     handleTaken: false,
-    themeError: null as Response | null,
     requestSize: { valid: true } as { valid: boolean; error?: string },
     adminAuthResult: {
       user: { id: "admin_1", email: "admin@example.com", name: "Admin", isAdmin: true },
@@ -260,10 +259,6 @@ vi.mock("@/lib/email/disposable-check", () => ({
   isDisposableEmail: vi.fn(async () => mocks.state.disposableResult),
 }));
 
-vi.mock("@/lib/templates/theme-access", () => ({
-  verifyThemeUnlocked: vi.fn(async () => mocks.state.themeError),
-}));
-
 vi.mock("@/lib/utils/validation", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/utils/validation")>();
   return {
@@ -374,7 +369,6 @@ describe("API route coverage", () => {
     };
     mocks.state.disposableResult = { disposable: false };
     mocks.state.handleTaken = false;
-    mocks.state.themeError = null;
     mocks.state.requestSize = { valid: true };
     mocks.state.adminAuthResult = {
       user: { id: "admin_1", email: "admin@example.com", name: "Admin", isAdmin: true },
@@ -470,42 +464,6 @@ describe("API route coverage", () => {
     expect(
       await (await GET(new Request("https://clickfolio.me/api/handle/check?handle=taken"))).json(),
     ).toEqual({ available: false });
-  });
-
-  it("validates disposable email requests and fails open on service errors", async () => {
-    const { POST } = await import("@/app/api/email/validate/route");
-
-    expect((await POST(new Request("https://clickfolio.me/api/email/validate"))).status).toBe(400);
-    expect((await POST(jsonRequest("/api/email/validate", { email: "bad" }))).status).toBe(400);
-    // Uncapped-body guards: malformed JSON → 400, oversized → 413.
-    expect(
-      (
-        await POST(
-          new Request("https://clickfolio.me/api/email/validate", { method: "POST", body: "{" }),
-        )
-      ).status,
-    ).toBe(400);
-    mocks.state.requestSize = { valid: false, error: "too large" };
-    expect(
-      (await POST(jsonRequest("/api/email/validate", { email: "a@example.com" }))).status,
-    ).toBe(413);
-    mocks.state.requestSize = { valid: true };
-
-    mocks.state.emailRateLimit = { allowed: false, message: "too many" };
-    expect(
-      (await POST(jsonRequest("/api/email/validate", { email: "a@example.com" }))).status,
-    ).toBe(429);
-
-    mocks.state.emailRateLimit = { allowed: true };
-    mocks.state.disposableResult = { disposable: true };
-    expect(
-      await (await POST(jsonRequest("/api/email/validate", { email: "a@example.com" }))).json(),
-    ).toEqual({ valid: false, reason: "Please use a permanent email address" });
-
-    mocks.state.disposableResult = { disposable: false };
-    expect(
-      await (await POST(jsonRequest("/api/email/validate", { email: "a@example.com" }))).json(),
-    ).toEqual({ valid: true });
   });
 
   it("aggregates analytics across current and historical handles", async () => {

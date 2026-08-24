@@ -6,8 +6,6 @@
 import { describe, expect, it } from "vite-plus/test";
 import {
   DEFAULT_THEME,
-  getThemeReferralRequirement,
-  isThemeUnlocked,
   isValidThemeId,
   THEME_IDS,
   THEME_METADATA,
@@ -88,7 +86,6 @@ describe("THEME_METADATA", () => {
       expect(metadata.description).toBeDefined();
       expect(metadata.category).toBeDefined();
       expect(metadata.preview).toBeDefined();
-      expect(typeof metadata.referralsRequired).toBe("number");
     }
   });
 
@@ -110,33 +107,6 @@ describe("THEME_METADATA", () => {
       const metadata = THEME_METADATA[themeId];
       expect(metadata.name.length).toBeGreaterThan(0);
       expect(metadata.description.length).toBeGreaterThan(0);
-    }
-  });
-});
-
-describe("All themes are free", () => {
-  it("every theme has referralsRequired of 0", () => {
-    for (const themeId of THEME_IDS) {
-      expect(THEME_METADATA[themeId].referralsRequired).toBe(0);
-    }
-  });
-});
-
-describe("isThemeUnlocked", () => {
-  it("always returns true, ignoring legacy referral/pro arguments", () => {
-    for (const themeId of THEME_IDS) {
-      expect(isThemeUnlocked(themeId)).toBe(true);
-      expect(isThemeUnlocked(themeId, 0)).toBe(true);
-      expect(isThemeUnlocked(themeId, 0, false)).toBe(true);
-      expect(isThemeUnlocked(themeId, 100, true)).toBe(true);
-    }
-  });
-});
-
-describe("getThemeReferralRequirement", () => {
-  it("returns 0 for every theme", () => {
-    for (const themeId of THEME_IDS) {
-      expect(getThemeReferralRequirement(themeId)).toBe(0);
     }
   });
 });

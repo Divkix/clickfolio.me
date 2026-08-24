@@ -83,7 +83,7 @@ describe("Utility APIs", () => {
     });
   });
 
-  describe("email/validate", () => {
+  describe("disposable-check", () => {
     it("should accept valid email addresses", async () => {
       const validEmails = [
         "user@gmail.com",

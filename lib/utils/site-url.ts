@@ -4,14 +4,15 @@
  * Returns the public-facing site URL from APP_URL,
  * falling back to the production default.
  */
+import { siteConfig } from "@/lib/config/site";
 
-const DEFAULT_PUBLIC_SITE_URL = "https://clickfolio.me";
+const DEFAULT_PUBLIC_SITE_URL = siteConfig.url;
 
 /**
  * Returns the public site URL for canonical links and redirects.
  *
  * Uses APP_URL env var when available; otherwise falls back
- * to the production default https://clickfolio.me. Trailing slashes are
+ * to the production default (siteConfig.url). Trailing slashes are
  * stripped so URL concatenation (e.g. `${url}/sitemap.xml`) never produces
  * double slashes.
  *

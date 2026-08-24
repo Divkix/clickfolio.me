@@ -158,10 +158,6 @@ vi.mock("@/lib/rate-limit/handle-validation", () => ({
   isHandleTaken: vi.fn().mockResolvedValue(false),
 }));
 
-vi.mock("@/lib/templates/theme-access", () => ({
-  verifyThemeUnlocked: vi.fn().mockResolvedValue(null),
-}));
-
 vi.mock("@/lib/templates/theme-ids", () => ({
   THEME_IDS: ["minimalist_editorial", "neo_brutalist", "design_folio", "dev_terminal"],
 }));

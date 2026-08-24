@@ -10,8 +10,6 @@ import { requireAuthClerk, type AuthUser, type DbUser } from "@/lib/auth/clerk";
 import type { Database } from "@/lib/db";
 import { createErrorResponse, ERROR_CODES } from "@/lib/utils/security-headers";
 
-export type { AuthUser, DbUser };
-
 /**
  * Helper to require authentication with custom error message
  *
