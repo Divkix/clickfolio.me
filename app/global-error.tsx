@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect } from "react";
+import { captureAnalyticsError } from "@/lib/analytics/client";
 
 /**
  * Global Error Boundary
@@ -24,16 +25,8 @@ interface GlobalErrorProps {
 export default function GlobalError({ error, reset }: GlobalErrorProps) {
   useEffect(() => {
     console.error("Global error boundary caught:", error);
-
-    fetch("/api/client-error", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        message: error.message,
-        stack: error.stack,
-        url: window.location.href,
-      }),
-    }).catch(() => {});
+    // Report to PostHog Error Tracking; never let reporting break recovery UI.
+    captureAnalyticsError(error);
   }, [error]);
 
   return (

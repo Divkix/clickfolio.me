@@ -1,6 +1,5 @@
 import type { UnknownRecord, JsonValue } from "@/lib/types/json";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
-import { _resetCache, extractDomain, isDisposableEmail } from "@/lib/email/disposable-check";
 import { RESERVED_HANDLES } from "@/lib/rate-limit/handle-validation";
 import { createSignedCookieValue, parseSignedCookieValue } from "@/lib/utils/pending-upload-cookie";
 
@@ -19,7 +18,6 @@ describe("Utility APIs", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    _resetCache();
   });
 
   describe("handle/check", () => {
@@ -79,107 +77,6 @@ describe("Utility APIs", () => {
           !/--/.test(handle) &&
           !RESERVED_HANDLES.has(handle);
         expect(isValid).toBe(true);
-      }
-    });
-  });
-
-  describe("disposable-check", () => {
-    it("should accept valid email addresses", async () => {
-      const validEmails = [
-        "user@gmail.com",
-        "test@outlook.com",
-        "hello@yahoo.com",
-        "dev@icloud.com",
-        "admin@company.com",
-      ];
-
-      for (const email of validEmails) {
-        const domain = extractDomain(email);
-        expect(domain).not.toBeNull();
-      }
-    });
-
-    it("should reject disposable email domains", async () => {
-      const mockKV = {
-        get: vi
-          .fn()
-          .mockResolvedValue(JSON.stringify(["tempmail.com", "throwaway.com", "mailinator.com"])),
-      };
-
-      const disposableEmail = "test@tempmail.com";
-      const result = await isDisposableEmail(disposableEmail, mockKV as unknown as KVNamespace);
-
-      expect(result.disposable).toBe(true);
-    });
-
-    it("should accept trusted email domains", async () => {
-      const mockKV = {
-        get: vi.fn().mockResolvedValue(JSON.stringify(["tempmail.com"])),
-      };
-
-      const trustedEmails = [
-        "user@gmail.com",
-        "test@outlook.com",
-        "hello@yahoo.com",
-        "dev@icloud.com",
-        "admin@protonmail.com",
-      ];
-
-      for (const email of trustedEmails) {
-        const result = await isDisposableEmail(email, mockKV as unknown as KVNamespace);
-        expect(result.disposable).toBe(false);
-      }
-    });
-
-    it("should fail open when KV is unavailable", async () => {
-      const result = await isDisposableEmail("test@tempmail.com", null);
-      expect(result.disposable).toBe(false);
-    });
-
-    it("should handle malformed email addresses", async () => {
-      const malformedEmails = [
-        "notanemail",
-        "@nodomain.com",
-        "noat.com",
-        "spaces in@email.com",
-        "",
-      ];
-
-      for (const email of malformedEmails) {
-        const domain = extractDomain(email);
-        if (domain === null) {
-          // This is acceptable - domain extraction failed
-          expect(domain).toBeNull();
-        }
-      }
-    });
-
-    it("should cache domain list for performance", async () => {
-      const mockKV = {
-        get: vi.fn().mockResolvedValue(JSON.stringify(["tempmail.com"])),
-      };
-
-      // First call - should hit KV
-      await isDisposableEmail("test@tempmail.com", mockKV as unknown as KVNamespace);
-
-      // Second call - should use cache
-      await isDisposableEmail("test@tempmail.com", mockKV as unknown as KVNamespace);
-
-      // KV should only be called once due to caching
-      expect(mockKV.get).toHaveBeenCalledTimes(1);
-    });
-
-    it("should handle edge cases in email parsing", async () => {
-      const edgeCases = [
-        { email: "user@@domain.com", expected: "domain.com" },
-        { email: "User@Domain.COM", expected: "domain.com" },
-        { email: "user+tag@gmail.com", expected: "gmail.com" },
-        { email: "user.name@sub.domain.com", expected: "sub.domain.com" },
-      ];
-
-      for (const { email, expected } of edgeCases) {
-        const domain = extractDomain(email);
-        expect(domain).toBe(expected);
       }
     });
   });
@@ -276,59 +173,6 @@ describe("Utility APIs", () => {
       for (const key of invalidKeys) {
         const isValid = key.startsWith("temp/") && key.length > 5;
         expect(isValid).toBe(false);
-      }
-    });
-  });
-
-  describe("client-error", () => {
-    it("should sanitize error messages", () => {
-      const sanitizeMessage = (msg: string): string => {
-        const maxLength = 1000;
-        return msg.length > maxLength ? msg.slice(0, maxLength) : msg;
-      };
-
-      const longMessage = "a".repeat(2000);
-      const sanitized = sanitizeMessage(longMessage);
-
-      expect(sanitized.length).toBeLessThanOrEqual(1000);
-    });
-
-    it("should sanitize stack traces", () => {
-      const sanitizeStack = (stack: string): string => {
-        const maxLength = 2000;
-        return stack.length > maxLength ? stack.slice(0, maxLength) : stack;
-      };
-
-      const longStack = "Error: Test\n".repeat(500);
-      const sanitized = sanitizeStack(longStack);
-
-      expect(sanitized.length).toBeLessThanOrEqual(2000);
-    });
-
-    it("should sanitize URLs", () => {
-      const sanitizeUrl = (url: string): string => {
-        const maxLength = 500;
-        return url.length > maxLength ? url.slice(0, maxLength) : url;
-      };
-
-      const longUrl = `https://example.com/${"path/".repeat(100)}`;
-      const sanitized = sanitizeUrl(longUrl);
-
-      expect(sanitized.length).toBeLessThanOrEqual(500);
-    });
-
-    it("should handle empty error messages", () => {
-      const emptyMessage = "";
-      const shouldLog = emptyMessage.length > 0;
-      expect(shouldLog).toBe(false);
-    });
-
-    it("should handle non-string error inputs", () => {
-      const nonStringInputs = [null, undefined, 123, {}, [], true];
-
-      for (const input of nonStringInputs) {
-        const isValidString = typeof input === "string" && input.length > 0;
-        expect(isValidString).toBe(false);
       }
     });
   });

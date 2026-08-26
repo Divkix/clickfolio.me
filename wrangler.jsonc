@@ -45,13 +45,6 @@
       "id": "8132893bf32b4e0b8b1b7edc8dad16c1",
     },
   ],
-  // KV namespaces
-  "kv_namespaces": [
-    {
-      "binding": "CLICKFOLIO_DISPOSABLE_DOMAINS",
-      "id": "6fe2480a4f4d46a9970eb2c441ecf38a",
-    },
-  ],
   // R2 bucket binding for direct access (replaces AWS SDK for most operations)
   "r2_buckets": [
     {
@@ -126,7 +119,6 @@
     "crons": [
       "0 2 * * *", // Daily at 2 AM UTC - R2 temp file cleanup
       "0 3 * * *", // Daily at 3 AM UTC - runs /api/cron/cleanup
-      "0 4 * * *", // Daily at 4 AM UTC - syncs disposable email domain blocklist
       "*/15 * * * *", // Every 15 minutes - runs /api/cron/recover-orphaned
     ],
   },
@@ -154,10 +146,9 @@
     //   wrangler secret put UMAMI_PASSWORD
     //
     // ===== ANALYTICS (PostHog) =====
-    // Project API key is public-by-design (same value the browser gets). Plain
-    // vars (not secrets) so CF Workers Builds inject them into the build env and
-    // vinext can inline NEXT_PUBLIC_* into the client bundle. Also available at
-    // runtime for server-side capture (lib/posthog-server.ts).
+    // No Worker env vars: the public project token + managed proxy host
+    // (https://s.clickfolio.me) live in lib/analytics/config.ts, and source-
+    // map upload credentials stay in gitignored local deploy env only.
     //
     // ===== AI PROVIDER (resume parsing) =====
     // Cloudflare AI Gateway (proxies to OpenRouter)

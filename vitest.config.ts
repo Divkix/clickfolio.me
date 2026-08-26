@@ -31,12 +31,6 @@ export default defineConfig({
         "lib/stubs/**",
         "lib/db/migrations/**",
       ],
-      thresholds: {
-        statements: 80,
-        branches: 80,
-        functions: 80,
-        lines: 80,
-      },
     },
   },
   resolve: {

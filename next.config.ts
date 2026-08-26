@@ -14,11 +14,10 @@ const nextConfig: NextConfig = {
     },
   },
 
-  // Required to support PostHog trailing slash API requests
+  // Keeps trailing-slash API paths (e.g. `/base/`) distinct from their bare form.
   skipTrailingSlashRedirect: true,
 
   // Rewrites for sitemap index (vinext generateSitemaps doesn't create sitemap index)
-  // and PostHog reverse proxy (avoids ad blockers)
   async rewrites() {
     return [
       {
@@ -29,32 +28,19 @@ const nextConfig: NextConfig = {
         source: "/sitemap/:id.xml",
         destination: "/api/sitemap/:id",
       },
-      {
-        source: "/ingest/static/:path*",
-        destination: "https://us-assets.i.posthog.com/static/:path*",
-      },
-      {
-        source: "/ingest/array/:path*",
-        destination: "https://us-assets.i.posthog.com/array/:path*",
-      },
-      {
-        source: "/ingest/:path*",
-        destination: "https://us.i.posthog.com/:path*",
-      },
     ];
   },
-
   // Redirects for backward compatibility (old /handle URLs to new /@handle URLs)
   async redirects() {
     return [
       {
         // Redirect old /{handle} to /@{handle}
         // Exclude known routes, static files, and paths already starting with @
-        // for/ingest/ws are real top-level routes/rewrites that
-        // must never be 308'd to /@<path> (cheap insurance against future
-        // vinext/Next parity changes running these redirects).
+        // for/ws are real top-level routes that must never be 308'd to
+        // /@<path> (cheap insurance against future vinext/Next parity changes
+        // running these redirects).
         source:
-          "/:handle((?!@|(?:api|_next|admin|about|blog|dashboard|edit|explore|faq|settings|themes|waiting|wizard|privacy|terms|preview|sitemap|for|ingest|ws|robots\\.txt|manifest\\.webmanifest|favicon\\.ico)(?![a-z0-9-]))[a-z0-9][a-z0-9-]*[a-z0-9]|[a-z0-9])",
+          "/:handle((?!@|(?:api|_next|admin|about|blog|dashboard|edit|explore|faq|settings|themes|waiting|wizard|privacy|terms|preview|sitemap|for|ws|robots\\.txt|manifest\\.webmanifest|favicon\\.ico)(?![a-z0-9-]))[a-z0-9][a-z0-9-]*[a-z0-9]|[a-z0-9])",
         destination: "/@:handle",
         permanent: true, // 308 redirect for SEO
       },
@@ -75,7 +61,7 @@ const nextConfig: NextConfig = {
           {
             key: "Content-Security-Policy",
             value:
-              "default-src 'self'; script-src 'self' 'unsafe-inline' https://analytics.divkix.me https://clerk.clickfolio.me https://challenges.cloudflare.com https://*.protect.clerk.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://analytics.divkix.me https://accounts.google.com https://clerk.clickfolio.me https://*.protect.clerk.com:* https://cloudflareinsights.com; worker-src 'self' blob:; frame-src 'self' https://challenges.cloudflare.com https://*.protect.clerk.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'",
+              "default-src 'self'; script-src 'self' 'unsafe-inline' https://s.clickfolio.me https://analytics.divkix.me https://clerk.clickfolio.me https://challenges.cloudflare.com https://*.protect.clerk.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://s.clickfolio.me https://analytics.divkix.me https://accounts.google.com https://clerk.clickfolio.me https://*.protect.clerk.com:* https://cloudflareinsights.com; worker-src 'self' blob:; frame-src 'self' https://challenges.cloudflare.com https://*.protect.clerk.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'",
           },
         ],
       },

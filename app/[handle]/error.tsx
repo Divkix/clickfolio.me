@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { siteConfig } from "@/lib/config/site";
+import { captureAnalyticsError } from "@/lib/analytics/client";
 
 /**
  * Public Profile Error Boundary
@@ -20,16 +21,8 @@ export default function ProfileError({
 }) {
   useEffect(() => {
     console.error("Public profile error:", error);
-
-    fetch("/api/client-error", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        message: error.message,
-        stack: error.stack,
-        url: window.location.href,
-      }),
-    }).catch(() => {});
+    // Report to PostHog Error Tracking; never let reporting break recovery UI.
+    captureAnalyticsError(error);
   }, [error]);
 
   return (

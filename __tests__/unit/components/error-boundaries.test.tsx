@@ -11,13 +11,15 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vite-plus/test";
 
+const analyticsMocks = vi.hoisted(() => ({
+  captureAnalyticsError: vi.fn(),
+}));
+
+vi.mock("@/lib/analytics/client", () => analyticsMocks);
+
 // Store original globals
-const originalFetch = globalThis.fetch;
 const originalConsoleError = console.error;
 const originalEnv = process.env.NODE_ENV;
-
-// Create mock fetch
-const mockFetch = vi.fn();
 
 import ProtectedError from "@/app/(protected)/error";
 import ProfileError from "@/app/[handle]/error";
@@ -28,14 +30,10 @@ describe("Error Boundary Tests", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     console.error = vi.fn();
-    mockFetch.mockReset();
-    mockFetch.mockResolvedValue({ ok: true });
-    globalThis.fetch = mockFetch;
   });
 
   afterEach(() => {
     console.error = originalConsoleError;
-    globalThis.fetch = originalFetch;
     (process.env as { NODE_ENV: string }).NODE_ENV = originalEnv;
   });
 
@@ -142,7 +140,7 @@ describe("Error Boundary Tests", () => {
       ).toBeInTheDocument();
     });
 
-    test("6. Error reporting to /api/client-error endpoint", async () => {
+    test("6. Reports errors through captureAnalyticsError", async () => {
       const error = new Error("Reportable error");
       error.stack = "Error: Reportable error\n    at TestComponent";
       const reset = vi.fn();
@@ -151,14 +149,7 @@ describe("Error Boundary Tests", () => {
 
       // Wait for the useEffect to fire
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith(
-          "/api/client-error",
-          expect.objectContaining({
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: expect.stringContaining("Reportable error"),
-          }),
-        );
+        expect(analyticsMocks.captureAnalyticsError).toHaveBeenCalledWith(error);
       });
     });
 
@@ -259,7 +250,7 @@ describe("Error Boundary Tests", () => {
       expect(screen.getByText(/We couldn't load this resume/)).toBeInTheDocument();
     });
 
-    test("6. Handle route error reporting to /api/client-error endpoint", async () => {
+    test("6. Handle route reports errors through captureAnalyticsError", async () => {
       const error = new Error("Profile page error");
       error.stack = "Error: Profile page error\n    at ProfileComponent";
       const reset = vi.fn();
@@ -267,14 +258,7 @@ describe("Error Boundary Tests", () => {
       render(<ProfileError error={error} reset={reset} />);
 
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith(
-          "/api/client-error",
-          expect.objectContaining({
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: expect.stringContaining("Profile page error"),
-          }),
-        );
+        expect(analyticsMocks.captureAnalyticsError).toHaveBeenCalledWith(error);
       });
     });
 
@@ -338,21 +322,22 @@ describe("Error Boundary Tests", () => {
       expect(screen.getByText("Something went wrong")).toBeInTheDocument();
     });
 
-    test("Error boundary fetch failure is handled gracefully", async () => {
-      // Make fetch fail
-      mockFetch.mockRejectedValue(new Error("Network failure"));
-
-      const error = new Error("Test error");
+    test("Error boundary reports each new error instance", async () => {
+      const error = new Error("First error");
       const reset = vi.fn();
 
-      // Should not throw when fetch fails
-      expect(() => {
-        render(<ProtectedError error={error} reset={reset} />);
-      }).not.toThrow();
+      const { rerender } = render(<ProtectedError error={error} reset={reset} />);
 
-      // Wait for the async operation to complete
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalled();
+        expect(analyticsMocks.captureAnalyticsError).toHaveBeenCalledWith(error);
+      });
+
+      // A recovered-then-rethrown error reports again under its own identity.
+      const nextError = new Error("Second error");
+      rerender(<ProtectedError error={nextError} reset={reset} />);
+
+      await waitFor(() => {
+        expect(analyticsMocks.captureAnalyticsError).toHaveBeenCalledWith(nextError);
       });
 
       // UI should still be rendered

@@ -396,7 +396,6 @@ lib/
 ├── cron/                # Scheduled task implementations
 ├── db/                  # Drizzle PG schema + getDb(env.HYPERDRIVE)
 ├── durable-objects/     # WebSocket Durable Object
-├── email/               # Disposable-domain check
 ├── queue/               # Queue consumer, types, DLQ
 ├── schemas/             # Zod validation schemas
 ├── templates/           # Theme registry & metadata
@@ -466,13 +465,12 @@ Asynchronous resume parsing pipeline:
 
 ### Scheduled Tasks (Cron)
 
-Four cron triggers run automatically:
+Three cron triggers run automatically:
 
 | Cron           | Time (UTC)   | Task                                        |
 | -------------- | ------------ | ------------------------------------------- |
 | `0 2 * * *`    | 2:00 AM      | R2 temp file cleanup (old uploads)          |
 | `0 3 * * *`    | 3:00 AM      | Database cleanup (expired rate limits)      |
-| `0 4 * * *`    | 4:00 AM      | Sync disposable email domain blocklist      |
 | `*/15 * * * *` | Every 15 min | Recover orphaned resumes (stuck in parsing) |
 
 All run via `worker/index.ts` without self-fetch (avoids double billing).

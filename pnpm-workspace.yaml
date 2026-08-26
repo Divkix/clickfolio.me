@@ -20,6 +20,10 @@ supportedArchitectures:
 overrides:
   vite: "catalog:"
   vitest: "catalog:"
+  # vite-plus 0.2.9 bundles vitest@4.1.10 and refuses to run `--coverage` unless
+  # the installed coverage provider is the exact same version (mixed 4.1.11
+  # otherwise fails CI at startup).
+  "@vitest/coverage-v8": "4.1.10"
   # Force vite-plus's internal hard-pinned @voidzero-dev/vite-plus-core dep to
   # match the top-level `vite` alias. Without this, pnpm installs two copies of
   # core (the alias version + vite-plus's pinned version) and the divergent
@@ -27,6 +31,7 @@ overrides:
   "@voidzero-dev/vite-plus-core": "^0.2.9"
 
 allowBuilds:
+  "@posthog/cli": true
   better-sqlite3: false
   core-js: true
   esbuild: true
@@ -34,7 +39,7 @@ allowBuilds:
   workerd: true
 catalog:
   vite: npm:@voidzero-dev/vite-plus-core@^0.2.9
-  vitest: 4.1.11
+  vitest: 4.1.10
 peerDependencyRules:
   allowAny:
     - vite
@@ -45,10 +50,11 @@ peerDependencyRules:
 minimumReleaseAgeExclude:
   - "@ai-sdk/gateway@4.0.51"
   - "@cloudflare/vite-plugin@1.52.1"
-  - "@posthog/core@1.48.0"
-  - "@posthog/types@1.403.1"
+  - "@posthog/browser-common@0.6.0"
+  - "@posthog/core@1.48.11"
+  - "@posthog/types@1.406.1"
   - ai@7.0.64
   - miniflare@5.20260811.1-alpha
-  - posthog-js@1.416.1
-  - posthog-node@5.49.0
+  - posthog-js@1.419.4
+  - posthog-node@5.51.2
   - wrangler@4.123.0

@@ -7,7 +7,7 @@ describe("bare-handle redirect configuration", () => {
     const source = redirect?.source ?? "";
 
     expect(source).toContain(
-      "(?:api|_next|admin|about|blog|dashboard|edit|explore|faq|settings|themes|waiting|wizard|privacy|terms|preview|sitemap|for|ingest|ws|robots\\.txt|manifest\\.webmanifest|favicon\\.ico)(?![a-z0-9-])",
+      "(?:api|_next|admin|about|blog|dashboard|edit|explore|faq|settings|themes|waiting|wizard|privacy|terms|preview|sitemap|for|ws|robots\\.txt|manifest\\.webmanifest|favicon\\.ico)(?![a-z0-9-])",
     );
 
     const handlePattern = source.match(/^\/:handle\((.*)\)$/s)?.[1];

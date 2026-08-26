@@ -12,7 +12,6 @@ import { extractClerkTokenFromRequest, verifyClerkToken } from "../lib/auth/cler
 import { performCleanup } from "../lib/cron/cleanup";
 import { performR2Cleanup, retryPendingR2Deletions } from "../lib/cron/cleanup-r2";
 import { recoverOrphanedResumes } from "../lib/cron/recover-orphaned";
-import { syncDisposableDomains } from "../lib/cron/sync-disposable-domains";
 import { getDb } from "../lib/db";
 import { resumes, user as userTable } from "../lib/db/schema";
 import { INFRA } from "@/lib/resume/lifecycle";
@@ -220,7 +219,6 @@ export default {
    * Supported triggers:
    * - `0 2 * * *` – R2 temp file cleanup (`performR2Cleanup`).
    * - `0 3 * * *` – DB cleanup (`performCleanup`).
-   * - `0 4 * * *` – Disposable domain sync (`syncDisposableDomains`).
    * - `* /15 * * * *` (every 15 minutes) – Orphaned resume recovery (`recoverOrphanedResumes`).
    *
    * @param controller - The scheduled controller containing the cron expression.
@@ -275,18 +273,6 @@ export default {
         case "0 3 * * *": {
           const result = await performCleanup(db, env.CLICKFOLIO_R2_BUCKET ?? null);
           log("info", "cron completed", { cron: controller.cron, result });
-          break;
-        }
-        case "0 4 * * *": {
-          const kv = env.CLICKFOLIO_DISPOSABLE_DOMAINS;
-          if (!kv) {
-            log("error", "CLICKFOLIO_DISPOSABLE_DOMAINS KV not available for domain sync", {
-              cron: controller.cron,
-            });
-            return;
-          }
-          const syncResult = await syncDisposableDomains(kv);
-          log("info", "cron completed", { cron: controller.cron, result: syncResult });
           break;
         }
         case "*/15 * * * *": {

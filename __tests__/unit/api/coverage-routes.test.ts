@@ -17,7 +17,6 @@ const mocks = vi.hoisted(() => {
     selectResults: [] as JsonValue[][],
     authResult: null as unknown,
     handleRateLimit: { allowed: true } as { allowed: boolean; message?: string },
-    emailRateLimit: { allowed: true } as { allowed: boolean; message?: string },
     uploadRateLimit: {
       allowed: true,
       remaining: { hourly: 9, daily: 49 },
@@ -26,7 +25,6 @@ const mocks = vi.hoisted(() => {
       message?: string;
       remaining: { hourly: number; daily: number };
     },
-    disposableResult: { disposable: false } as { disposable: boolean },
     handleTaken: false,
     requestSize: { valid: true } as { valid: boolean; error?: string },
     adminAuthResult: {
@@ -153,7 +151,6 @@ const mocks = vi.hoisted(() => {
 
   const env = {
     CLICKFOLIO_R2_BUCKET: { list: vi.fn(async () => ({ objects: [] })) },
-    CLICKFOLIO_DISPOSABLE_DOMAINS: { get: vi.fn(async () => "[]") },
     CLICKFOLIO_PARSE_QUEUE: { send: vi.fn(async () => undefined) },
     PENDING_UPLOAD_SECRET: "test-secret-key-for-pending-upload",
     CLERK_SECRET_KEY: "sk_test_coverage",
@@ -180,7 +177,6 @@ const mocks = vi.hoisted(() => {
     }),
     performCleanup: vi.fn(async () => ({ deleted: 1 })),
     performR2Cleanup: vi.fn(async () => ({ deleted: 2 })),
-    syncDisposableDomains: vi.fn(async () => ({ synced: 3 })),
     recoverOrphanedResumes: vi.fn(async () => ({ recovered: 4 })),
     r2Put: vi.fn(async () => undefined),
     r2Delete: vi.fn(async () => undefined),
@@ -243,7 +239,6 @@ vi.mock("@/lib/rate-limit/ip", () => ({
   getClientIP: vi.fn(() => "203.0.113.10"),
   checkIPRateLimit: vi.fn(async () => mocks.state.uploadRateLimit),
   checkHandleRateLimit: vi.fn(async () => mocks.state.handleRateLimit),
-  checkEmailValidateRateLimit: vi.fn(async () => mocks.state.emailRateLimit),
 }));
 
 vi.mock("@/lib/rate-limit/handle-validation", async (importOriginal) => {
@@ -254,10 +249,6 @@ vi.mock("@/lib/rate-limit/handle-validation", async (importOriginal) => {
     isHandleTaken: vi.fn(async () => mocks.state.handleTaken),
   };
 });
-
-vi.mock("@/lib/email/disposable-check", () => ({
-  isDisposableEmail: vi.fn(async () => mocks.state.disposableResult),
-}));
 
 vi.mock("@/lib/utils/validation", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/utils/validation")>();
@@ -279,10 +270,6 @@ vi.mock("@/lib/cron/cleanup", () => ({
 
 vi.mock("@/lib/cron/cleanup-r2", () => ({
   performR2Cleanup: mocks.performR2Cleanup,
-}));
-
-vi.mock("@/lib/cron/sync-disposable-domains", () => ({
-  syncDisposableDomains: mocks.syncDisposableDomains,
 }));
 
 vi.mock("@/lib/cron/recover-orphaned", () => ({
@@ -362,12 +349,10 @@ describe("API route coverage", () => {
     mocks.state.selectResults = [];
     mocks.state.authResult = null;
     mocks.state.handleRateLimit = { allowed: true };
-    mocks.state.emailRateLimit = { allowed: true };
     mocks.state.uploadRateLimit = {
       allowed: true,
       remaining: { hourly: 9, daily: 49 },
     };
-    mocks.state.disposableResult = { disposable: false };
     mocks.state.handleTaken = false;
     mocks.state.requestSize = { valid: true };
     mocks.state.adminAuthResult = {
@@ -1036,36 +1021,15 @@ describe("API route coverage", () => {
     expect((await POST(jsonRequest("/api/wizard/complete", validBody))).status).toBe(200);
   });
 
-  it("covers health, client-error, cron, and auth wrappers", async () => {
+  it("covers health, cron, and auth wrappers", async () => {
     const health = await import("@/app/api/health/route");
-    const clientError = await import("@/app/api/client-error/route");
     const cleanup = await import("@/app/api/cron/cleanup/route");
     const cleanupR2 = await import("@/app/api/cron/cleanup-r2/route");
-    const syncDomains = await import("@/app/api/cron/sync-domains/route");
     const recover = await import("@/app/api/cron/recover-orphaned/route");
 
     expect((await health.GET()).status).toBe(200);
     mocks.db.execute.mockRejectedValueOnce(new Error("db down"));
     expect((await health.GET()).status).toBe(503);
-
-    expect(
-      (await clientError.POST(new Request("https://clickfolio.me/api/client-error"))).status,
-    ).toBe(204);
-    expect((await clientError.POST(jsonRequest("/api/client-error", { message: 1 }))).status).toBe(
-      204,
-    );
-    expect(
-      (
-        await clientError.POST(
-          jsonRequest("/api/client-error", {
-            message: "boom".repeat(400),
-            stack: "stack",
-            componentStack: "component",
-            url: "https://clickfolio.me/dashboard",
-          }),
-        )
-      ).status,
-    ).toBe(204);
 
     const cronRequest = new Request("https://clickfolio.me/api/cron/cleanup", {
       headers: { Authorization: "Bearer cron-secret" },
@@ -1075,7 +1039,6 @@ describe("API route coverage", () => {
     );
     expect(await (await cleanup.GET(cronRequest)).json()).toEqual({ deleted: 1 });
     expect(await (await cleanupR2.GET(cronRequest)).json()).toEqual({ deleted: 2 });
-    expect(await (await syncDomains.GET(cronRequest)).json()).toEqual({ synced: 3 });
     expect(await (await recover.GET(cronRequest)).json()).toEqual({ recovered: 4 });
   });
 });

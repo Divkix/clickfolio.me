@@ -4,6 +4,7 @@ import { AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { captureAnalyticsError } from "@/lib/analytics/client";
 
 /**
  * Error Boundary for route segments
@@ -25,8 +26,9 @@ interface ErrorPageProps {
  */
 export default function ErrorPage({ error, reset }: ErrorPageProps) {
   useEffect(() => {
-    // Log error to console for debugging
+    // Log error to console for debugging, and report to PostHog Error Tracking.
     console.error("Error boundary caught:", error);
+    captureAnalyticsError(error);
   }, [error]);
 
   return (
