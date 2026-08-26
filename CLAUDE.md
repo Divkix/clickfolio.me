@@ -117,7 +117,7 @@ pnpm run test             # ALL test files (vp test run, no --config → vitest.
 pnpm run test:unit        # unit suite (vp test run --config vitest.unit.config.ts)
 pnpm run test:integration # integration suite (--config vitest.integration.config.ts)
 pnpm run test:security    # security suite (--config vitest.security.config.ts)
-pnpm run test:coverage    # combined coverage, 80% gate (vp test run --coverage → vitest.config.ts)
+pnpm run test:coverage    # combined coverage report (vp test run --coverage → vitest.config.ts; no global threshold)
 pnpm run test:watch       # interactive watch mode (vp test)
 pnpm run test:ui          # Vitest browser UI (vp test --ui)
 pnpm run test:ci          # vp test run --coverage --reporter=json (NOT wired into ci.yml)
@@ -183,7 +183,7 @@ Tests follow the trophy model. Five vitest config files exist — one shared bas
 | Unit        | `test:unit`        | `vitest.unit.config.ts`        | threads | 0     | true    | default | stmts/lines/fns: 20%, branches: 15%       |
 | Integration | `test:integration` | `vitest.integration.config.ts` | default | 2     | —       | 10s     | stmts/lines: 34%, branches: 24%, fns: 27% |
 | Security    | `test:security`    | `vitest.security.config.ts`    | forks   | 0     | —       | 15s     | stmts/lines: 20%, branches/fns: 15%       |
-| Combined    | `test:coverage`    | `vitest.config.ts`             | threads | 2     | —       | default | **80% (CI gate)**                         |
+| Combined    | `test:coverage`    | `vitest.config.ts`             | threads | 2     | —       | default | report only (no global threshold)         |
 
 > Suite selection is via the `--config` flag baked into each npm script. `test`/`test:coverage` pass NO `--config` → use `vitest.config.ts`, whose `include` is `**/__tests__/**/*.test.{ts,tsx}` (every file, regardless of "assigned" suite, at `retry:2`/`threads`). All four configs `exclude` `["node_modules",".next","dist","__tests__/e2e/**",".worktrees/**"]`.
 
@@ -242,18 +242,17 @@ PR requirements:
 
 One workflow exists: `ci.yml` (there is no AI-review workflow — no `ai-review.yml`/`ai-review-commands.yml` in `.github/workflows`).
 
-CI (`.github/workflows/ci.yml`) is **8 jobs**. The five primary jobs run **in parallel** (no inter-dependencies); only the downstream jobs have `needs`. `ci-success` is the single required gate. Workflow-level `permissions: { contents: read }`. `concurrency` group `${{ github.workflow }}-${{ github.ref }}` with `cancel-in-progress: true`. Triggers: push + PR on `main`/`master`. **All actions are pinned to full commit SHAs except `voidzero-dev/setup-vp@v1`** (floating tag); every checkout sets `persist-credentials: false`.
+CI (`.github/workflows/ci.yml`) is **7 jobs**. The five primary jobs run **in parallel** (no inter-dependencies); only the downstream jobs have `needs`. `ci-success` is the single required gate. Workflow-level `permissions: { contents: read }`. `concurrency` group `${{ github.workflow }}-${{ github.ref }}` with `cancel-in-progress: true`. Triggers: push + PR on `main`/`master`. **All actions are pinned to full commit SHAs except `voidzero-dev/setup-vp@v1`** (floating tag); every checkout sets `persist-credentials: false`.
 
-| Job                 | `needs`                                                         | Command (reproduce locally)                            | Gates / notes                                                                                                         |
-| ------------------- | --------------------------------------------------------------- | ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
-| `quality`           | —                                                               | `vp check` (via `pnpm install` + `pnpm exec vp check`) | Lint+format+type-check (Vite+). Uses `pnpm/action-setup` + `actions/setup-node` with `cache: pnpm`.                   |
-| `type-check`        | —                                                               | `pnpm run type-check` (`tsc --noEmit`)                 | Strict TS flags are errors. `pnpm/action-setup` + `actions/setup-node` with `cache: pnpm`. Parallel.                  |
-| `unit-tests`        | —                                                               | `pnpm run test:unit --coverage`                        | `pool:threads`,`retry:0`; enforces the unit coverage thresholds.                                                      |
-| `integration-tests` | —                                                               | `pnpm run test:integration --coverage`                 | `retry:2`,10s; enforces the integration coverage thresholds.                                                          |
-| `security-tests`    | —                                                               | `pnpm run test:security --coverage`                    | `pool:forks`,`retry:0`,15s; enforces the security coverage thresholds.                                                |
-| `coverage-gate`     | unit, integration, security                                     | `pnpm run test:coverage`                               | **Hard 80% gate** across lines/statements/functions/branches.                                                         |
-| `build`             | quality, type-check, unit, integration, security, coverage-gate | `pnpm exec knip` + `pnpm run build`                    | Production build; `knip` fails on unused exports. Uses `pnpm/action-setup` + `actions/setup-node` with `cache: pnpm`. |
-| `ci-success`        | all 7 above (`if: always()`)                                    | shell check of each `needs.*.result`                   | **The required status check.** Fails if any upstream job != success.                                                  |
+| Job                 | `needs`                                          | Command (reproduce locally)                            | Gates / notes                                                                                                         |
+| ------------------- | ------------------------------------------------ | ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| `quality`           | —                                                | `vp check` (via `pnpm install` + `pnpm exec vp check`) | Lint+format+type-check (Vite+). Uses `pnpm/action-setup` + `actions/setup-node` with `cache: pnpm`.                   |
+| `type-check`        | —                                                | `pnpm run type-check` (`tsc --noEmit`)                 | Strict TS flags are errors. `pnpm/action-setup` + `actions/setup-node` with `cache: pnpm`. Parallel.                  |
+| `unit-tests`        | —                                                | `pnpm run test:unit --coverage`                        | `pool:threads`,`retry:0`; enforces the unit coverage thresholds.                                                      |
+| `integration-tests` | —                                                | `pnpm run test:integration --coverage`                 | `retry:2`,10s; enforces the integration coverage thresholds.                                                          |
+| `security-tests`    | —                                                | `pnpm run test:security --coverage`                    | `pool:forks`,`retry:0`,15s; enforces the security coverage thresholds.                                                |
+| `build`             | quality, type-check, unit, integration, security | `pnpm exec knip` + `pnpm run build`                    | Production build; `knip` fails on unused exports. Uses `pnpm/action-setup` + `actions/setup-node` with `cache: pnpm`. |
+| `ci-success`        | all 6 above (`if: always()`)                     | shell check of each `needs.*.result`                   | **The required status check.** Fails if any upstream job != success.                                                  |
 
 pnpm forwards script arguments directly, so coverage commands use `--coverage` without an npm-style `--` separator. The pnpm store cache key is managed by `actions/setup-node` with `cache: pnpm` (key derived from `pnpm-lock.yaml`).
 
