@@ -5,7 +5,13 @@ import type React from "react";
 import { useCallback, useRef, useState } from "react";
 import { ShareBar } from "@/components/ShareBar";
 import { getContactLinks } from "@/lib/templates/contact-links";
-import { flattenSkills, formatDateRange, formatYear, getInitials } from "@/lib/templates/helpers";
+import {
+  flattenSkills,
+  formatDateRange,
+  formatShortDate,
+  formatYear,
+  getInitials,
+} from "@/lib/templates/helpers";
 import type { TemplateProps } from "@/lib/types/template";
 import { getContactIcon } from "./shared/ContactIcon";
 import { TemplateFontLinks } from "./shared/TemplateFontLinks";
@@ -34,7 +40,7 @@ function SpotlightCard({
     <div
       ref={cardRef}
       onMouseMove={handleMouseMove}
-      className={`relative bg-stone-50/80 border border-stone-200/50 rounded-2xl p-6 md:p-8 transition-shadow duration-300 hover:shadow-lg hover:shadow-orange-500/5 overflow-hidden ${className}`}
+      className={`group relative bg-stone-50/80 border border-stone-200/50 rounded-2xl p-6 md:p-8 transition-shadow duration-300 hover:shadow-lg hover:shadow-orange-500/5 overflow-hidden ${className}`}
       style={
         // SAFETY: --spot-x/--spot-y are valid CSS custom properties not in React.CSSProperties type; cast is safe — values are controlled pixel strings for spotlight effect.
         {
@@ -45,7 +51,7 @@ function SpotlightCard({
     >
       {/* Cursor spotlight overlay */}
       <div
-        className="pointer-events-none absolute inset-0 rounded-2xl opacity-0 hover-parent:opacity-100 transition-opacity duration-300"
+        className="pointer-events-none absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"
         style={{
           background:
             "radial-gradient(circle 300px at var(--spot-x) var(--spot-y), rgba(232,77,14,0.06), transparent 60%)",
@@ -77,9 +83,9 @@ const AwardIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
 
 /* ─── Opacity class for marquee sweep ─── */
 function getMarqueeOpacity(index: number): string {
-  if (index % 5 === 0) return "opacity-25";
-  if (index % 2 === 0) return "opacity-[0.12]";
-  return "opacity-[0.08]";
+  if (index % 5 === 0) return "opacity-70";
+  if (index % 2 === 0) return "opacity-45";
+  return "opacity-30";
 }
 
 /* ─── Main component ─── */
@@ -179,7 +185,7 @@ export const Spotlight: React.FC<TemplateProps> = ({ content, profile, isPreview
                 <a
                   key={link.href}
                   href={link.href}
-                  className="text-sm font-body-sl text-stone-400 hover:text-[#E84D0E] transition-colors"
+                  className="text-sm font-body-sl text-stone-400 hover:text-[#E84D0E] transition-colors focus-visible:outline-none focus-visible:text-[#E84D0E]"
                 >
                   {link.label}
                 </a>
@@ -188,25 +194,24 @@ export const Spotlight: React.FC<TemplateProps> = ({ content, profile, isPreview
 
             {/* Mobile nav — horizontal at top */}
             <nav
-              className="fixed top-6 left-0 right-0 z-50 flex md:hidden justify-center gap-4 px-4 pt-[env(safe-area-inset-top)]"
+              className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex md:hidden items-center gap-3 px-4 py-2 bg-[#FFFCF9]/90 backdrop-blur-md border border-stone-200/80 rounded-full shadow-sm max-w-[calc(100%-2rem)] overflow-x-auto no-scrollbar"
               aria-label="Main navigation"
             >
               {navLinks.map((link) => (
                 <a
                   key={link.href}
                   href={link.href}
-                  className="text-sm font-body-sl text-stone-400 hover:text-[#E84D0E] transition-colors"
+                  className="text-sm font-body-sl text-stone-500 hover:text-[#E84D0E] transition-colors whitespace-nowrap focus-visible:outline-none focus-visible:text-[#E84D0E]"
                 >
                   {link.label}
                 </a>
               ))}
             </nav>
 
-            {/* "Hire Me" pill — fixed top-right */}
             {content.contact.email && (
               <a
                 href="#contact"
-                className="fixed top-8 right-8 z-50 px-5 py-2 text-sm font-display-sl font-semibold bg-[#E84D0E] text-white rounded-full hover:bg-[#d4430c] transition-colors shadow-lg shadow-orange-500/20"
+                className="hidden md:inline-flex fixed top-8 right-8 z-50 px-5 py-2 text-sm font-display-sl font-semibold bg-[#E84D0E] text-white rounded-full hover:bg-[#d4430c] transition-colors shadow-lg shadow-orange-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E84D0E] focus-visible:ring-offset-2"
               >
                 Hire Me
               </a>
@@ -223,10 +228,10 @@ export const Spotlight: React.FC<TemplateProps> = ({ content, profile, isPreview
                   <span className="inline-block px-3 py-1 rounded-full bg-orange-50 border border-orange-200/60 text-xs font-display-sl font-semibold text-[#E84D0E] tracking-wide">
                     Available for work
                   </span>
-                  <h1 className="text-5xl md:text-7xl font-display-sl font-extrabold tracking-tight text-[#1C1917]">
+                  <h1 className="text-5xl md:text-7xl font-display-sl font-extrabold tracking-tight text-[#1C1917] [text-wrap:unset] break-words">
                     I&apos;m {firstName}.
                   </h1>
-                  <h2 className="text-2xl md:text-3xl text-[#78716C] font-display-sl font-semibold tracking-tight">
+                  <h2 className="text-2xl md:text-3xl text-[#78716C] font-display-sl font-semibold tracking-tight [text-wrap:unset] break-words">
                     {content.headline}
                   </h2>
                 </div>
@@ -360,16 +365,20 @@ export const Spotlight: React.FC<TemplateProps> = ({ content, profile, isPreview
                     )}
 
                     {job.highlights && job.highlights.length > 0 && (
-                      <div className="flex flex-wrap gap-2">
-                        {job.highlights.map((tag, i) => (
-                          <span
-                            key={`${job.title}-${tag}-${i}`}
-                            className="px-2 py-1 text-xs text-stone-600 bg-stone-100 rounded border border-stone-200/60 font-body-sl"
+                      <ul className="space-y-1.5">
+                        {job.highlights.map((highlight, i) => (
+                          <li
+                            key={`${job.title}-${highlight}-${i}`}
+                            className="flex items-start gap-2 text-sm text-stone-600 leading-relaxed font-body-sl"
                           >
-                            {tag}
-                          </span>
+                            <span
+                              className="mt-2 w-1 h-1 rounded-full bg-[#E84D0E]/70 shrink-0"
+                              aria-hidden="true"
+                            />
+                            <span>{highlight}</span>
+                          </li>
                         ))}
-                      </div>
+                      </ul>
                     )}
                   </SpotlightCard>
                 ))}
@@ -459,27 +468,44 @@ export const Spotlight: React.FC<TemplateProps> = ({ content, profile, isPreview
                     <AwardIcon className="w-4 h-4" aria-hidden="true" /> Certifications
                   </h3>
                   <div className="space-y-4">
-                    {content.certifications.map((cert, index) => (
-                      <a
-                        key={index}
-                        href={cert.url || "#"}
-                        target={cert.url ? "_blank" : undefined}
-                        className="flex items-center justify-between p-4 bg-[#FFFCF9] border border-stone-200/60 rounded-xl hover:border-[#E84D0E]/30 transition-colors group"
-                      >
-                        <div>
-                          <h4 className="font-display-sl font-semibold text-sm text-[#1C1917] group-hover:text-[#E84D0E] transition-colors">
-                            {cert.name}
-                          </h4>
-                          <p className="text-xs text-[#78716C] font-body-sl">{cert.issuer}</p>
-                        </div>
-                        {cert.url && (
-                          <ArrowUpRight
-                            className="w-3 h-3 text-stone-300 group-hover:text-[#E84D0E]"
-                            aria-hidden="true"
-                          />
-                        )}
-                      </a>
-                    ))}
+                    {content.certifications.map((cert, index) => {
+                      const body = (
+                        <>
+                          <div className="min-w-0">
+                            <h4 className="font-display-sl font-semibold text-sm text-[#1C1917] group-hover:text-[#E84D0E] transition-colors [text-wrap:unset] break-words">
+                              {cert.name}
+                            </h4>
+                            <p className="text-xs text-[#78716C] font-body-sl">
+                              {cert.issuer}
+                              {cert.date ? ` · ${formatShortDate(cert.date)}` : ""}
+                            </p>
+                          </div>
+                          {cert.url && (
+                            <ArrowUpRight
+                              className="w-3 h-3 text-stone-300 group-hover:text-[#E84D0E] shrink-0"
+                              aria-hidden="true"
+                            />
+                          )}
+                        </>
+                      );
+                      const certClass =
+                        "flex items-center justify-between gap-3 p-4 bg-[#FFFCF9] border border-stone-200/60 rounded-xl group";
+                      return cert.url ? (
+                        <a
+                          key={index}
+                          href={cert.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={`${certClass} hover:border-[#E84D0E]/30 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E84D0E]`}
+                        >
+                          {body}
+                        </a>
+                      ) : (
+                        <article key={index} className={certClass}>
+                          {body}
+                        </article>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -489,7 +515,7 @@ export const Spotlight: React.FC<TemplateProps> = ({ content, profile, isPreview
           {/* ─── CTA Footer ─── */}
           <footer id="contact" className="py-20 border-t border-stone-200/60">
             <div className="flex flex-col items-center text-center space-y-6">
-              <h2 className="text-4xl md:text-5xl font-display-sl font-extrabold tracking-tight text-[#1C1917]">
+              <h2 className="text-4xl md:text-5xl font-display-sl font-extrabold tracking-tight text-[#1C1917] [text-wrap:unset]">
                 The stage is yours.
               </h2>
               <p className="text-[#78716C] max-w-md font-body-sl">

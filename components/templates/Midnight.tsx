@@ -4,7 +4,13 @@ import { Mail, MapPin } from "lucide-react";
 import { useState } from "react";
 import { ShareBar } from "@/components/ShareBar";
 import { getContactLinks } from "@/lib/templates/contact-links";
-import { flattenSkills, formatDateRange, formatYear, getInitials } from "@/lib/templates/helpers";
+import {
+  flattenSkills,
+  formatDateRange,
+  formatShortDate,
+  formatYear,
+  getInitials,
+} from "@/lib/templates/helpers";
 import type { TemplateProps } from "@/lib/types/template";
 import { getContactIcon } from "./shared/ContactIcon";
 import { TemplateFontLinks } from "./shared/TemplateFontLinks";
@@ -68,7 +74,7 @@ function SectionHeader({ label }: { label: string }) {
 }
 
 export const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
-  const [expandedJobs, setExpandedJobs] = useState<number[]>([]);
+  const [expandedJobs, setExpandedJobs] = useState<number[]>([0]);
   const flatSkills = content.skills ? flattenSkills(content.skills) : [];
   const contactLinks = getContactLinks(content.contact);
   const emailLink = contactLinks.find((l) => l.type === "email");
@@ -93,6 +99,9 @@ export const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
             0%, 100% { opacity: 0.3; }
             50% { opacity: 0.8; }
           }
+          @media (prefers-reduced-motion: reduce) {
+            .midnight-star-twinkle { animation: none !important; }
+          }
         `}</style>
 
         {/* Star field background */}
@@ -110,7 +119,7 @@ export const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
           {STAR_POSITIONS.map((star, i) => (
             <div
               key={`star-${star.x}-${star.y}-${i}`}
-              className="absolute rounded-full bg-white"
+              className={`absolute rounded-full bg-white${star.bright ? " midnight-star-twinkle" : ""}`}
               style={{
                 left: `${star.x}%`,
                 top: `${star.y}%`,
@@ -148,7 +157,7 @@ export const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
                 </div>
               </div>
 
-              <h1 className="text-5xl md:text-6xl font-display-mn font-semibold tracking-tight mb-4 text-white">
+              <h1 className="text-5xl md:text-6xl font-display-mn font-semibold tracking-tight mb-4 text-white [text-wrap:unset] break-words">
                 {content.full_name}
               </h1>
 
@@ -209,10 +218,10 @@ export const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
                             <button
                               type="button"
                               onClick={() => toggleJob(index)}
-                              className="w-full flex items-center justify-between px-6 py-4 text-left cursor-pointer group"
+                              className="w-full flex items-center justify-between gap-4 px-6 py-4 text-left cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A96E]/50"
                               aria-expanded={isExpanded}
                             >
-                              <span className="font-body-mn text-sm text-neutral-200 group-hover:text-white transition-colors">
+                              <span className="font-body-mn text-sm text-neutral-200 group-hover:text-white transition-colors min-w-0">
                                 <span className="font-medium">{job.title}</span>
                                 <span className="text-neutral-500 mx-2">·</span>
                                 <span className="text-[#C9A96E]/80">{job.company}</span>
@@ -276,17 +285,17 @@ export const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
                     <div className="grid grid-cols-1 gap-6">
                       {content.projects.map((project, index) => (
                         <div
-                          key={index}
-                          className="group relative bg-white/2 border border-white/5 hover:border-[#C9A96E]/30 rounded-lg p-6 transition-[border-color,box-shadow] duration-300 hover:shadow-[0_0_20px_rgba(201,169,110,0.05)] overflow-hidden"
+                          key={`${project.title}-${index}`}
+                          className="group relative bg-white/2 border border-white/5 hover:border-[#C9A96E]/30 rounded-lg p-6 transition-[border-color,box-shadow] duration-300 hover:shadow-[0_0_20px_rgba(201,169,110,0.05)] overflow-hidden min-w-0"
                         >
                           <div className="flex flex-col md:flex-row gap-4 md:items-start justify-between">
-                            <div className="flex-1">
+                            <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-3 mb-2">
-                                <h3 className="text-base font-display-mn font-semibold text-white group-hover:text-[#DFC08A] transition-colors">
+                                <h3 className="text-base font-display-mn font-semibold text-white group-hover:text-[#DFC08A] transition-colors break-words">
                                   {project.title}
                                 </h3>
                               </div>
-                              <p className="text-neutral-400 text-sm leading-relaxed font-body-mn mb-4 line-clamp-2">
+                              <p className="text-neutral-400 text-sm leading-relaxed font-body-mn mb-4">
                                 {project.description}
                               </p>
                               {project.technologies && (
@@ -301,6 +310,16 @@ export const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
                                   ))}
                                 </div>
                               )}
+                              {project.url && (
+                                <a
+                                  href={project.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex mt-4 text-xs text-[#C9A96E] hover:text-[#DFC08A] font-body-mn focus-visible:outline-none focus-visible:underline"
+                                >
+                                  View project →
+                                </a>
+                              )}
                             </div>
 
                             {project.year && (
@@ -309,17 +328,6 @@ export const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
                               </div>
                             )}
                           </div>
-
-                          {project.url && (
-                            <a
-                              href={project.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="absolute inset-0 z-20"
-                            >
-                              <span className="sr-only">View {project.title}</span>
-                            </a>
-                          )}
                         </div>
                       ))}
                     </div>
@@ -393,7 +401,7 @@ export const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
                             <p className="text-neutral-500 text-xs font-body-mn">{cert.issuer}</p>
                             {cert.date && (
                               <p className="text-neutral-600 text-[10px] font-body-mn">
-                                {cert.date}
+                                {formatShortDate(cert.date)}
                               </p>
                             )}
                           </div>

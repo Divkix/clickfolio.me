@@ -14,13 +14,6 @@ import { TemplateFontLinks } from "./shared/TemplateFontLinks";
  *
  * Single-column, ATS-optimized layout with "legal brief" typography.
  * Designed for traditional industries: finance, legal, healthcare, government.
- *
- * Features:
- * - Semantic HTML structure for ATS parsing
- * - Double border header with centered name
- * - Uppercase tracking on section titles with bullet markers
- * - Em-dash list markers for highlights
- * - Print-optimized with Tailwind print: classes
  */
 export const ClassicATS: React.FC<TemplateProps> = ({ content, profile, isPreview }) => {
   const flatSkills = content.skills ? flattenSkills(content.skills) : [];
@@ -32,16 +25,16 @@ export const ClassicATS: React.FC<TemplateProps> = ({ content, profile, isPrevie
       <style>{`
         .font-serif-ats { font-family: 'Lora', serif; }
       `}</style>
-      <main className="min-h-screen bg-stone-100 print:bg-white text-gray-900 font-serif-ats selection:bg-gray-200 overflow-x-hidden print:overflow-visible">
-        <article className="max-w-[8.5in] mx-auto px-8 py-12 print:px-[0.75in] print:py-[0.5in] bg-[#FAFAF8] shadow-xl print:shadow-none print:bg-white">
-          {/* Header with Double Border */}
+      <main className="min-h-screen bg-stone-200 print:bg-white text-gray-900 font-serif-ats selection:bg-gray-200 overflow-x-hidden print:overflow-visible py-8 print:py-0">
+        <article className="max-w-[8.5in] mx-auto px-8 py-12 print:px-[0.75in] print:py-[0.5in] bg-[#FAFAF8] shadow-[0_1px_3px_rgba(0,0,0,0.08),0_12px_32px_rgba(0,0,0,0.08)] print:shadow-none print:bg-white">
           <header className="border-y-4 border-double border-gray-900 py-6 mb-8 text-center print:break-inside-avoid">
-            <h1 className="text-3xl font-bold tracking-wide uppercase mb-2">{content.full_name}</h1>
+            <h1 className="text-3xl font-bold tracking-wide uppercase mb-2 [text-wrap:unset] break-words">
+              {content.full_name}
+            </h1>
             {content.headline && (
               <p className="text-sm text-gray-600 italic mb-4">{content.headline}</p>
             )}
 
-            {/* Contact Row */}
             <nav
               aria-label="Contact information"
               className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-sm text-gray-700"
@@ -71,7 +64,7 @@ export const ClassicATS: React.FC<TemplateProps> = ({ content, profile, isPrevie
                     href={link.href}
                     target={link.isExternal ? "_blank" : undefined}
                     rel={link.isExternal ? "noopener noreferrer" : undefined}
-                    className="inline-flex items-center gap-1 hover:text-gray-900 hover:underline"
+                    className="inline-flex items-center gap-1 hover:text-gray-900 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-900"
                   >
                     {getContactIcon(link.type, {
                       className: "w-3.5 h-3.5 print:hidden",
@@ -96,19 +89,17 @@ export const ClassicATS: React.FC<TemplateProps> = ({ content, profile, isPrevie
             </nav>
           </header>
 
-          {/* Summary Section */}
           {content.summary && (
             <section className="mb-8 print:break-inside-avoid">
               <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-gray-900 mb-3 flex items-center gap-2">
                 <span aria-hidden="true">&#9632;</span> Professional Summary
               </h2>
-              <p className="text-sm leading-relaxed text-justify text-gray-700">
+              <p className="text-sm leading-relaxed text-left md:text-justify text-gray-700">
                 {content.summary}
               </p>
             </section>
           )}
 
-          {/* Experience Section */}
           {content.experience && content.experience.length > 0 && (
             <section className="mb-8">
               <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-gray-900 mb-4 flex items-center gap-2 border-b border-gray-300 pb-1">
@@ -116,7 +107,7 @@ export const ClassicATS: React.FC<TemplateProps> = ({ content, profile, isPrevie
               </h2>
               <div className="space-y-6">
                 {content.experience.map((job, idx) => (
-                  <article key={idx} className="print:break-inside-avoid">
+                  <article key={`${job.title}-${idx}`} className="print:break-inside-avoid">
                     <div className="flex flex-wrap justify-between items-baseline gap-x-4 mb-1">
                       <h3 className="font-bold text-base">{job.title}</h3>
                       <span className="text-xs text-gray-600 shrink-0">
@@ -130,16 +121,21 @@ export const ClassicATS: React.FC<TemplateProps> = ({ content, profile, isPrevie
                       </p>
                     </div>
                     {job.description && (
-                      <p className="text-sm text-gray-700 mb-2 text-justify">{job.description}</p>
+                      <p className="text-sm text-gray-700 mb-2 text-left md:text-justify">
+                        {job.description}
+                      </p>
                     )}
                     {job.highlights && job.highlights.length > 0 && (
-                      <ul className="text-sm text-gray-700 space-y-1 ml-4">
+                      <ul className="text-sm text-gray-700 space-y-1">
                         {job.highlights.map((highlight, i) => (
-                          <li key={`${job.title}-${highlight}-${i}`} className="pl-4">
-                            <span className="text-gray-400 mr-2" aria-hidden="true">
+                          <li
+                            key={`${job.title}-${highlight}-${i}`}
+                            className="flex gap-2 items-start"
+                          >
+                            <span className="text-gray-400 shrink-0 mt-px" aria-hidden="true">
                               &mdash;
                             </span>
-                            {highlight}
+                            <span className="min-w-0">{highlight}</span>
                           </li>
                         ))}
                       </ul>
@@ -150,7 +146,6 @@ export const ClassicATS: React.FC<TemplateProps> = ({ content, profile, isPrevie
             </section>
           )}
 
-          {/* Education Section */}
           {content.education && content.education.length > 0 && (
             <section className="mb-8">
               <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-gray-900 mb-4 flex items-center gap-2 border-b border-gray-300 pb-1">
@@ -158,7 +153,7 @@ export const ClassicATS: React.FC<TemplateProps> = ({ content, profile, isPrevie
               </h2>
               <div className="space-y-4">
                 {content.education.map((edu, idx) => (
-                  <article key={idx} className="print:break-inside-avoid">
+                  <article key={`${edu.institution}-${idx}`} className="print:break-inside-avoid">
                     <div className="flex flex-wrap justify-between items-baseline gap-x-4 mb-1">
                       <h3 className="font-bold text-base">{edu.degree}</h3>
                       {edu.graduation_date && (
@@ -178,7 +173,6 @@ export const ClassicATS: React.FC<TemplateProps> = ({ content, profile, isPrevie
             </section>
           )}
 
-          {/* Skills Section */}
           {flatSkills.length > 0 && (
             <section className="mb-8 print:break-inside-avoid">
               <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-gray-900 mb-3 flex items-center gap-2 border-b border-gray-300 pb-1">
@@ -188,7 +182,6 @@ export const ClassicATS: React.FC<TemplateProps> = ({ content, profile, isPrevie
             </section>
           )}
 
-          {/* Certifications Section */}
           {content.certifications && content.certifications.length > 0 && (
             <section className="mb-8">
               <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-gray-900 mb-3 flex items-center gap-2 border-b border-gray-300 pb-1">
@@ -197,10 +190,10 @@ export const ClassicATS: React.FC<TemplateProps> = ({ content, profile, isPrevie
               <div className="space-y-2">
                 {content.certifications.map((cert, idx) => (
                   <div
-                    key={idx}
+                    key={`${cert.name}-${idx}`}
                     className="flex flex-wrap justify-between items-baseline gap-x-4 text-sm print:break-inside-avoid"
                   >
-                    <p className="text-gray-700">
+                    <p className="text-gray-700 min-w-0">
                       <span className="font-medium">
                         {cert.url ? (
                           <a
@@ -228,7 +221,6 @@ export const ClassicATS: React.FC<TemplateProps> = ({ content, profile, isPrevie
             </section>
           )}
 
-          {/* Projects Section */}
           {content.projects && content.projects.length > 0 && (
             <section className="mb-8">
               <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-gray-900 mb-4 flex items-center gap-2 border-b border-gray-300 pb-1">
@@ -236,7 +228,7 @@ export const ClassicATS: React.FC<TemplateProps> = ({ content, profile, isPrevie
               </h2>
               <div className="space-y-4">
                 {content.projects.map((proj, idx) => (
-                  <article key={idx} className="print:break-inside-avoid">
+                  <article key={`${proj.title}-${idx}`} className="print:break-inside-avoid">
                     <div className="flex flex-wrap justify-between items-baseline gap-x-4 mb-1">
                       <h3 className="font-bold text-base">
                         {proj.url ? (
@@ -257,7 +249,9 @@ export const ClassicATS: React.FC<TemplateProps> = ({ content, profile, isPrevie
                       )}
                     </div>
                     {proj.description && (
-                      <p className="text-sm text-gray-700 mb-1 text-justify">{proj.description}</p>
+                      <p className="text-sm text-gray-700 mb-1 text-left md:text-justify">
+                        {proj.description}
+                      </p>
                     )}
                     {proj.technologies && proj.technologies.length > 0 && (
                       <p className="text-xs text-gray-500 italic">
@@ -270,9 +264,8 @@ export const ClassicATS: React.FC<TemplateProps> = ({ content, profile, isPrevie
             </section>
           )}
 
-          {/* Share Bar - Hidden on Print */}
           <footer className="mt-12 pt-6 border-t border-gray-200 print:hidden">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-4">
               <p className="text-xs text-gray-400" suppressHydrationWarning>
                 &copy; {new Date().getFullYear()} {content.full_name}
               </p>
@@ -289,10 +282,11 @@ export const ClassicATS: React.FC<TemplateProps> = ({ content, profile, isPrevie
           <button
             type="button"
             onClick={() => window.print()}
-            className="fixed bottom-8 right-8 z-50 print:hidden bg-white border border-gray-300 rounded-full p-3 shadow-lg hover:shadow-xl hover:border-gray-400 transition-shadow"
+            className="fixed bottom-8 right-8 z-50 print:hidden bg-gray-900 text-white rounded-full px-4 py-3 shadow-lg hover:bg-gray-800 transition-colors inline-flex items-center gap-2 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2"
             aria-label="Print resume"
           >
-            <Printer className="w-5 h-5 text-gray-600" />
+            <Printer className="w-4 h-4" />
+            Print
           </button>
         )}
       </main>
