@@ -34,7 +34,7 @@ function SpotlightCard({
     <div
       ref={cardRef}
       onMouseMove={handleMouseMove}
-      className={`relative bg-stone-50/80 border border-stone-200/50 rounded-2xl p-6 md:p-8 transition-shadow duration-300 hover:shadow-lg hover:shadow-orange-500/5 overflow-hidden ${className}`}
+      className={`group relative bg-stone-50/80 border border-stone-200/50 rounded-2xl p-6 md:p-8 transition-shadow duration-300 hover:shadow-lg hover:shadow-orange-500/5 overflow-hidden ${className}`}
       style={
         // SAFETY: --spot-x/--spot-y are valid CSS custom properties not in React.CSSProperties type; cast is safe — values are controlled pixel strings for spotlight effect.
         {
@@ -45,7 +45,7 @@ function SpotlightCard({
     >
       {/* Cursor spotlight overlay */}
       <div
-        className="pointer-events-none absolute inset-0 rounded-2xl opacity-0 hover-parent:opacity-100 transition-opacity duration-300"
+        className="pointer-events-none absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"
         style={{
           background:
             "radial-gradient(circle 300px at var(--spot-x) var(--spot-y), rgba(232,77,14,0.06), transparent 60%)",
@@ -77,9 +77,9 @@ const AwardIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
 
 /* ─── Opacity class for marquee sweep ─── */
 function getMarqueeOpacity(index: number): string {
-  if (index % 5 === 0) return "opacity-25";
-  if (index % 2 === 0) return "opacity-[0.12]";
-  return "opacity-[0.08]";
+  if (index % 5 === 0) return "opacity-70";
+  if (index % 2 === 0) return "opacity-45";
+  return "opacity-30";
 }
 
 /* ─── Main component ─── */
@@ -188,25 +188,24 @@ export const Spotlight: React.FC<TemplateProps> = ({ content, profile, isPreview
 
             {/* Mobile nav — horizontal at top */}
             <nav
-              className="fixed top-6 left-0 right-0 z-50 flex md:hidden justify-center gap-4 px-4 pt-[env(safe-area-inset-top)]"
+              className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex md:hidden items-center gap-3 px-4 py-2 bg-[#FFFCF9]/90 backdrop-blur-md border border-stone-200/80 rounded-full shadow-sm max-w-[calc(100%-2rem)] overflow-x-auto no-scrollbar"
               aria-label="Main navigation"
             >
               {navLinks.map((link) => (
                 <a
                   key={link.href}
                   href={link.href}
-                  className="text-sm font-body-sl text-stone-400 hover:text-[#E84D0E] transition-colors"
+                  className="text-sm font-body-sl text-stone-500 hover:text-[#E84D0E] transition-colors whitespace-nowrap"
                 >
                   {link.label}
                 </a>
               ))}
             </nav>
 
-            {/* "Hire Me" pill — fixed top-right */}
             {content.contact.email && (
               <a
                 href="#contact"
-                className="fixed top-8 right-8 z-50 px-5 py-2 text-sm font-display-sl font-semibold bg-[#E84D0E] text-white rounded-full hover:bg-[#d4430c] transition-colors shadow-lg shadow-orange-500/20"
+                className="hidden md:inline-flex fixed top-8 right-8 z-50 px-5 py-2 text-sm font-display-sl font-semibold bg-[#E84D0E] text-white rounded-full hover:bg-[#d4430c] transition-colors shadow-lg shadow-orange-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E84D0E] focus-visible:ring-offset-2"
               >
                 Hire Me
               </a>
@@ -223,7 +222,7 @@ export const Spotlight: React.FC<TemplateProps> = ({ content, profile, isPreview
                   <span className="inline-block px-3 py-1 rounded-full bg-orange-50 border border-orange-200/60 text-xs font-display-sl font-semibold text-[#E84D0E] tracking-wide">
                     Available for work
                   </span>
-                  <h1 className="text-5xl md:text-7xl font-display-sl font-extrabold tracking-tight text-[#1C1917]">
+                  <h1 className="text-5xl md:text-7xl font-display-sl font-extrabold tracking-tight text-[#1C1917] [text-wrap:unset] break-words">
                     I&apos;m {firstName}.
                   </h1>
                   <h2 className="text-2xl md:text-3xl text-[#78716C] font-display-sl font-semibold tracking-tight">
@@ -462,9 +461,10 @@ export const Spotlight: React.FC<TemplateProps> = ({ content, profile, isPreview
                     {content.certifications.map((cert, index) => (
                       <a
                         key={index}
-                        href={cert.url || "#"}
+                        href={cert.url || undefined}
                         target={cert.url ? "_blank" : undefined}
-                        className="flex items-center justify-between p-4 bg-[#FFFCF9] border border-stone-200/60 rounded-xl hover:border-[#E84D0E]/30 transition-colors group"
+                        rel={cert.url ? "noopener noreferrer" : undefined}
+                        className={`flex items-center justify-between p-4 bg-[#FFFCF9] border border-stone-200/60 rounded-xl hover:border-[#E84D0E]/30 transition-colors group ${cert.url ? "" : "pointer-events-none"}`}
                       >
                         <div>
                           <h4 className="font-display-sl font-semibold text-sm text-[#1C1917] group-hover:text-[#E84D0E] transition-colors">

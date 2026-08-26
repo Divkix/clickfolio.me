@@ -174,49 +174,36 @@ export const GlassMorphic: React.FC<TemplateProps> = ({ content, profile, isPrev
       <TemplateFontLinks href={FONT_URL} />
 
       <style>{`
-        :root {
+        .glass-morphic-root {
           --glass-border: rgba(255, 255, 255, 0.08);
           --glass-surface: rgba(20, 20, 20, 0.6);
           --primary-glow: #A78BFA;
           --secondary-glow: #2DD4BF;
         }
-        
+
         .font-display-gm { font-family: 'Outfit', sans-serif; }
         .font-mono-gm { font-family: 'JetBrains Mono', monospace; }
 
-        html { scroll-behavior: smooth; }
+        .glass-morphic-root ::-webkit-scrollbar { width: 6px; }
+        .glass-morphic-root ::-webkit-scrollbar-track { background: #050505; }
+        .glass-morphic-root ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
 
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #050505; }
-        ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #555; }
-
-        /* Animations */
-        @keyframes blob {
+        @keyframes glass-blob {
           0% { transform: translate(0px, 0px) scale(1); }
           33% { transform: translate(30px, -50px) scale(1.1); }
           66% { transform: translate(-20px, 20px) scale(0.9); }
           100% { transform: translate(0px, 0px) scale(1); }
         }
-        .animate-blob {
-          animation: blob 10s infinite;
+        .glass-animate-blob {
+          animation: glass-blob 10s infinite;
         }
         .animation-delay-2000 { animation-delay: 2s; }
         .animation-delay-4000 { animation-delay: 4s; }
 
         @media (prefers-reduced-motion: reduce) {
-          .animate-blob { animation: none; }
-          .animate-ping { animation: none; }
-          .animate-pulse { animation: none; }
+          .glass-animate-blob { animation: none; }
         }
 
-        .text-gradient {
-          background: linear-gradient(135deg, #fff 0%, #a5a5a5 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-        }
-        
         .text-gradient-purple {
           background: linear-gradient(135deg, #E879F9 0%, #A78BFA 100%);
           -webkit-background-clip: text;
@@ -224,12 +211,12 @@ export const GlassMorphic: React.FC<TemplateProps> = ({ content, profile, isPrev
         }
       `}</style>
 
-      <div className="min-h-screen bg-[#030303] text-slate-300 relative selection:bg-lavender/30 selection:text-white font-display-gm overflow-x-hidden">
+      <div className="glass-morphic-root min-h-screen bg-[#030303] text-slate-300 relative selection:bg-lavender/30 selection:text-white font-display-gm overflow-x-hidden">
         {/* --- Background Ambient Layer --- */}
         <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-0 left-1/4 w-[50vw] h-[50vw] bg-lavender/20 rounded-full mix-blend-screen filter blur-[100px] opacity-20 animate-blob" />
-          <div className="absolute top-0 right-1/4 w-[50vw] h-[50vw] bg-[#2DD4BF]/10 rounded-full mix-blend-screen filter blur-[100px] opacity-20 animate-blob animation-delay-2000" />
-          <div className="absolute -bottom-32 left-1/3 w-[60vw] h-[60vw] bg-[#F472B6]/10 rounded-full mix-blend-screen filter blur-[120px] opacity-20 animate-blob animation-delay-4000" />
+          <div className="absolute top-0 left-1/4 w-[50vw] h-[50vw] max-w-[520px] max-h-[520px] bg-lavender/20 rounded-full mix-blend-screen filter blur-[100px] opacity-20 glass-animate-blob" />
+          <div className="absolute top-0 right-1/4 w-[50vw] h-[50vw] max-w-[520px] max-h-[520px] bg-[#2DD4BF]/10 rounded-full mix-blend-screen filter blur-[100px] opacity-20 glass-animate-blob animation-delay-2000" />
+          <div className="absolute -bottom-32 left-1/3 w-[60vw] h-[60vw] max-w-[640px] max-h-[640px] bg-[#F472B6]/10 rounded-full mix-blend-screen filter blur-[120px] opacity-20 glass-animate-blob animation-delay-4000" />
 
           {/* Noise Overlay */}
           <div
@@ -242,8 +229,8 @@ export const GlassMorphic: React.FC<TemplateProps> = ({ content, profile, isPrev
 
         {/* --- Floating Navigation --- */}
         {!isPreview && (
-          <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
-            <div className="flex items-center gap-1 p-1.5 rounded-full bg-white/3 backdrop-blur-xl border border-white/8 shadow-2xl shadow-black/50">
+          <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-1.5rem)] max-w-md pb-[env(safe-area-inset-bottom)]">
+            <div className="flex items-center justify-center gap-1 p-1.5 rounded-full bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl shadow-black/50 overflow-x-auto no-scrollbar">
               {availableNavSections.map((section) => {
                 const Icon = section.icon;
                 return (
@@ -290,16 +277,18 @@ export const GlassMorphic: React.FC<TemplateProps> = ({ content, profile, isPrev
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-lavender opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-lavender"></span>
                 </span>
-                <span className="text-xs font-mono-gm text-[#D8B4FE]">ONLINE_V2.0</span>
+                <span className="text-xs font-mono-gm text-[#D8B4FE]">Available</span>
               </div>
 
               <div className="grid md:grid-cols-[1fr_auto] gap-8 items-end">
                 <div className="space-y-2">
-                  <h1 className="text-6xl md:text-8xl lg:text-9xl font-extrabold tracking-tighter text-white leading-[0.9]">
+                  <h1 className="text-5xl sm:text-6xl md:text-8xl font-extrabold tracking-tighter text-white leading-[0.9] [text-wrap:unset] break-words">
                     <span className="block">{content.full_name.split(" ")[0]}</span>
-                    <span className="block text-white/20">
-                      {content.full_name.split(" ").slice(1).join(" ")}
-                    </span>
+                    {content.full_name.split(" ").slice(1).join(" ") ? (
+                      <span className="block text-white/55">
+                        {content.full_name.split(" ").slice(1).join(" ")}
+                      </span>
+                    ) : null}
                   </h1>
                   <h2 className="text-xl md:text-2xl font-light text-gradient-purple tracking-wide">
                     {content.headline}
@@ -642,7 +631,7 @@ export const GlassMorphic: React.FC<TemplateProps> = ({ content, profile, isPrev
                 System Operational
               </span>
             </div>
-            <p className="text-slate-600 text-sm font-light" suppressHydrationWarning>
+            <p className="text-slate-500 text-sm font-light" suppressHydrationWarning>
               &copy; {new Date().getFullYear()} {content.full_name}. <br className="md:hidden" />
               <span className="hidden md:inline mx-2">&middot;</span>
               Designed with precision.

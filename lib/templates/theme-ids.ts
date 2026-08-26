@@ -63,7 +63,7 @@ export const THEME_METADATA = {
   },
   design_folio: {
     name: "DesignFolio",
-    description: "Digital brutalism meets Swiss typography. Dark theme with acid lime accents.",
+    description: "Dark Swiss editorial with acid lime accents and a frosted nav.",
     category: "Creative",
     preview: "/previews/design-folio.webp",
   },
@@ -93,7 +93,7 @@ export const THEME_METADATA = {
   },
   neo_brutalist: {
     name: "Neo Brutalist",
-    description: "Bold design with thick borders and loud colors",
+    description: "Loud poster layout with thick borders and high-contrast type",
     category: "Creative",
     preview: "/previews/brutalist.webp",
   },

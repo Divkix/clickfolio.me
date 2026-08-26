@@ -230,6 +230,22 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   TEMPLATE UTILITIES — used by resume templates (bento, terminal, etc.)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.mask-image-b {
+  mask-image: linear-gradient(to bottom, #000 72%, transparent 100%);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    BASE STYLES
    ═══════════════════════════════════════════════════════════════════════════ */
 
