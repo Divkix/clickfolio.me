@@ -7,8 +7,6 @@ import { formatDateRange, formatShortDate } from "@/lib/templates/helpers";
 import type { TemplateProps } from "@/lib/types/template";
 import { TemplateFontLinks } from "./shared/TemplateFontLinks";
 
-const ACCENT = "#C4704F";
-
 const navIconMap = {
   email: <Mail className="w-4 h-4 text-neutral-600 group-hover:text-black" aria-hidden="true" />,
   phone: <Phone className="w-4 h-4 text-neutral-600 group-hover:text-black" aria-hidden="true" />,
@@ -211,7 +209,7 @@ export const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile,
               <SectionTitle title="Selected Works" count={projects.length} />
               <div className="flex flex-col border-t border-black/10">
                 {projects.map((project, index) => {
-                  const Wrapper = project.url ? "a" : "div";
+                  const Wrapper = project.url ? "a" : "article";
                   return (
                     <Wrapper
                       key={`${project.title}-${index}`}
@@ -366,7 +364,6 @@ export const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile,
               <a
                 href={emailLink.href}
                 className="mb-8 text-sm font-medium tracking-wide underline decoration-neutral-300 underline-offset-4 hover:decoration-[#C4704F] hover:text-[#C4704F] transition-colors"
-                style={{ textDecorationColor: ACCENT }}
               >
                 {emailLink.label}
               </a>

@@ -274,7 +274,7 @@ export const GlassMorphic: React.FC<TemplateProps> = ({ content, profile, isPrev
               {/* Status Indicator */}
               <div className="inline-flex items-center gap-2 self-start px-3 py-1 rounded-full border border-lavender/30 bg-lavender/5 backdrop-blur-md">
                 <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-lavender opacity-75"></span>
+                  <span className="motion-safe:animate-ping absolute inline-flex h-full w-full rounded-full bg-lavender opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-lavender"></span>
                 </span>
                 <span className="text-xs font-mono-gm text-[#D8B4FE]">Available</span>
@@ -629,7 +629,7 @@ export const GlassMorphic: React.FC<TemplateProps> = ({ content, profile, isPrev
           {/* FOOTER */}
           <footer className="pt-20 pb-32 text-center">
             <div className="inline-flex items-center justify-center p-1 rounded-full border border-white/10 bg-white/5 mb-8">
-              <div className="w-2 h-2 bg-green-500 rounded-full mx-3 animate-pulse" />
+              <div className="w-2 h-2 bg-green-500 rounded-full mx-3 motion-safe:animate-pulse" />
               <span className="text-xs font-mono-gm text-white/50 pr-4 py-1">
                 System Operational
               </span>
