@@ -30,7 +30,7 @@ If a decision's rationale isn't obvious from code, capture the _why_ as a new nu
 | --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Runtime         | Cloudflare Workers                                                                                                                                               |
 | Framework       | [vinext](https://github.com/cloudflare/vinext) (Vite-based Next.js — NOT standard Next.js) `1.0.0-beta.8` (on Next `^16.3.2`, React `^19.2.8`)                   |
-| Toolchain       | Vite+ (`vp`) — `vite-plus@^0.2.9`; `vite` aliases `@voidzero-dev/vite-plus-core@^0.2.9`; `vitest` resolves to `4.1.10` through the pnpm catalog/overrides        |
+| Toolchain       | Vite+ (`vp`) — `vite-plus@^0.2.9`; `vite` aliases `@voidzero-dev/vite-plus-core@^0.2.9`; `vitest` + `@vitest/coverage-v8` pinned to `4.1.10` (vite-plus's bundled runner; a mismatch fails `--coverage` at startup) |
 | Package manager | `pnpm` (pinned `pnpm@11.10.0` via `packageManager`)                                                                                                              |
 | DB              | PlanetScale **Postgres** via Cloudflare Hyperdrive (`HYPERDRIVE`) + Drizzle ORM (`drizzle-orm/pg-core`, postgres-js driver)                                      |
 | Auth            | [Clerk](https://clerk.com) — `@clerk/react` client provider + prebuilt `<SignIn>/<SignUp>`; `@clerk/backend` server-side JWKS verification (NOT `@clerk/nextjs`) |
@@ -146,6 +146,8 @@ pnpm run generate:favicons # regen favicons from scripts/generate-favicons.ts
 
 > **pnpm lockfile gotcha (`catalog:` refs + `--frozen-lockfile`).** In pnpm 11.10 an inconsistent state can leave the lockfile importer block storing the raw `specifier:'catalog:'` for `vite` and `vitest` even though `package.json` uses `catalog:` and `pnpm-workspace.yaml`'s `catalog:` block resolves to concrete versions. A fresh `pnpm install --frozen-lockfile` (or any consume-from-scratch environment like Cloudflare Pages' clean checkout) then fails with `ERR_PNPM_OUTDATED_LOCKFILE` citing `lockfile: catalog:, manifest: npm:@voidzero-dev/vite-plus-core@^0.2.9`. Repro: `rm -rf node_modules && pnpm install --frozen-lockfile`. Fix: `pnpm install --no-frozen-lockfile` once locally and commit the regenerated `pnpm-lock.yaml` (the importer block will then write the resolved specifier `npm:@voidzero-dev/vite-plus-core@^0.2.9` / `4.1.10`, and the now-empty top-level `catalogs:` block is dropped). A populated local `node_modules/.modules.yaml` can mask the bug, so always reproduce against a fresh `node_modules` before declaring the lockfile healthy. If recurring, inline the resolved versions in `package.json` directly to bypass `catalog:` entirely.
 
+> **Coverage provider pin.** `vite-plus@0.2.9` bundles `vitest@4.1.10` and **hard-fails** `vp test --coverage` if `@vitest/coverage-v8` is any other version (`Pin @vitest/coverage-v8 to 4.1.10`). Keep the catalog `vitest` entry, the `package.json` coverage-v8 dep, and the `pnpm-workspace.yaml` `@vitest/coverage-v8` override all at `4.1.10`. Bumping only one of them (Dependabot often does) makes every CI test job abort at startup.
+
 > **Note:** `db:push` skips migration files — `db:generate` + `db:migrate` is the canonical path. drizzle-kit talks DIRECTLY to PlanetScale via `DATABASE_URL` (the direct connection string from the PlanetScale console) because the Hyperdrive binding only resolves inside a Worker. A signed-in Clerk user with no mapped local row (webhook not yet processed, or row deleted) gets **404** from `requireAuthWithUserValidation()` (see Common gotchas).
 
 **Scripts detail (`scripts/`):**
@@ -174,7 +176,7 @@ pnpm run generate:favicons # regen favicons from scripts/generate-favicons.ts
 
 ## Testing Guidelines
 
-Tests follow the trophy model. Five vitest config files exist — one shared base (`vitest.base.config.ts`: `sharedExclude`/`sharedSetupFiles`/`sharedAlias`/zxcvbn aliases/coverage provider), one per suite, and one combined. **All test files import from `vite-plus/test`, NOT `vitest`** (`import { describe, it, expect, vi } from "vite-plus/test"`); `vitest` is a regular dev dependency resolved to `4.1.10` through the pnpm catalog/overrides and provides the runner that the `vite-plus/test` wrapper re-exports. This is the #1 thing needed to write a test.
+Tests follow the trophy model. Five vitest config files exist — one shared base (`vitest.base.config.ts`: `sharedExclude`/`sharedSetupFiles`/`sharedAlias`/zxcvbn aliases/coverage provider), one per suite, and one combined. **All test files import from `vite-plus/test`, NOT `vitest`** (`import { describe, it, expect, vi } from "vite-plus/test"`); `vitest` is a regular dev dependency resolved to `4.1.10` through the pnpm catalog/overrides (matching `@vitest/coverage-v8@4.1.10`) and provides the runner that the `vite-plus/test` wrapper re-exports. This is the #1 thing needed to write a test.
 
 | Suite       | Command            | Config                         | Pool    | Retry | Isolate | Timeout | Coverage gate                             |
 | ----------- | ------------------ | ------------------------------ | ------- | ----- | ------- | ------- | ----------------------------------------- |
