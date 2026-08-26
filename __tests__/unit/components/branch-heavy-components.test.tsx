@@ -63,13 +63,12 @@ vi.mock("@/lib/utils/clipboard", () => ({
   copyToClipboard: (...args: JsonValue[]) => mocks.copyToClipboard(...args),
 }));
 
-vi.mock("posthog-js", () => ({
-  default: {
-    __loaded: true,
-    capture: vi.fn(),
-    identify: vi.fn(),
-    reset: vi.fn(),
-  },
+vi.mock("@/lib/analytics/client", () => ({
+  trackAnalyticsEvent: vi.fn(),
+  identifyAnalyticsUser: vi.fn(),
+  resetAnalyticsIdentity: vi.fn(),
+  isAnalyticsInitialized: vi.fn(() => true),
+  captureAnalyticsError: vi.fn(),
 }));
 
 vi.mock("@/lib/templates/theme-registry.client", () => ({

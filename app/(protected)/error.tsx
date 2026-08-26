@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { captureAnalyticsError } from "@/lib/analytics/client";
 import { siteConfig } from "@/lib/config/site";
 
 /**
@@ -19,16 +20,8 @@ export default function ProtectedError({
 }) {
   useEffect(() => {
     console.error("Protected route error:", error);
-
-    fetch("/api/client-error", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        message: error.message,
-        stack: error.stack,
-        url: window.location.href,
-      }),
-    }).catch(() => {});
+    // Report to PostHog Error Tracking; never let reporting break recovery UI.
+    captureAnalyticsError(error);
   }, [error]);
 
   return (

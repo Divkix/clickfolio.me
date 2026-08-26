@@ -1,6 +1,6 @@
 import { and, eq, lt } from "drizzle-orm";
 import { withUser } from "@/lib/auth/with-auth";
-import { captureServerEvent } from "@/lib/posthog-server";
+import { captureServerEvent } from "@/lib/analytics/server";
 import { RETRY_LIMITS } from "@/lib/resume/lifecycle";
 import type { NewResume } from "@/lib/db/schema";
 import type { ResumeStatus } from "@/lib/db/schema/resume";
@@ -278,7 +278,7 @@ export async function POST(request: Request) {
       }
 
       // SAFETY: id is a validated string PK; cast bridges Drizzle type for event payload.
-      await captureServerEvent(userId, "resume_parse_retried", {
+      captureServerEvent(userId, "resume_parse_retried", {
         resume_id: resume.id as string,
         retry_count: nextRetryCount,
       });

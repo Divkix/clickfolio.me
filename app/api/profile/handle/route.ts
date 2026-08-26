@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { withUser } from "@/lib/auth/with-auth";
-import { captureServerEvent } from "@/lib/posthog-server";
+import { captureServerEvent } from "@/lib/analytics/server";
 
 import { isUniqueViolation } from "@/lib/db/pg-errors";
 import { handleChanges, user } from "@/lib/db/schema";
@@ -150,7 +150,7 @@ export async function PUT(request: Request) {
         throw error; // Re-throw other errors
       }
 
-      await captureServerEvent(authUser.id, "handle_changed", {
+      captureServerEvent(authUser.id, "handle_changed", {
         new_handle: newHandle,
       });
 

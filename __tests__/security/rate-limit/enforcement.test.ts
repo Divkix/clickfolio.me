@@ -169,21 +169,6 @@ describe("Rate Limit Security Enforcement", () => {
     });
   });
 
-  describe("Email Validation Rate Limiting", () => {
-    it("enforces email validate rate limit", async () => {
-      mockSelect.mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([{ count: 30 }]),
-        }),
-      });
-
-      const { checkEmailValidateRateLimit } = await import("@/lib/rate-limit/ip");
-      const result = await checkEmailValidateRateLimit("192.168.1.1");
-
-      expect(result.allowed).toBe(false);
-    });
-  });
-
   describe("Authenticated Rate Limiting", () => {
     it("enforces authenticated upload limit - 5/day", async () => {
       mockSelect.mockReturnValue({

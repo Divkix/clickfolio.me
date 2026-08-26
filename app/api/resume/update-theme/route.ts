@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { withUser } from "@/lib/auth/with-auth";
-import { captureServerEvent } from "@/lib/posthog-server";
+import { captureServerEvent } from "@/lib/analytics/server";
 
 import { siteData } from "@/lib/db/schema";
 import { isValidThemeId, THEME_IDS } from "@/lib/templates/theme-ids";
@@ -99,8 +99,8 @@ export async function POST(request: Request) {
 
       const data = updateResult[0];
 
-      await captureServerEvent(userId, "theme_changed", {
-        theme_id: data.themeId,
+      captureServerEvent(userId, "theme_changed", {
+        theme_id,
       });
 
       return createSuccessResponse({

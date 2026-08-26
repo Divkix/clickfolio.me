@@ -1,9 +1,10 @@
 import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { cloudflare } from "@cloudflare/vite-plugin";
+import posthogRollupPlugin from "@posthog/rollup-plugin";
 import { visualizer } from "rollup-plugin-visualizer";
 import vinext from "vinext";
-import { defineConfig, type Plugin } from "vite-plus";
+import { defineConfig, loadEnv, type Plugin } from "vite-plus";
 
 /**
  * Vite plugin that stubs server-only modules for client environments.
@@ -85,160 +86,199 @@ function ensureClientDir(): Plugin {
   };
 }
 
-export default defineConfig({
-  // Oxfmt: matches previous Biome formatter settings (all defaults already match)
-  fmt: {
-    ignorePatterns: [
-      "dist/**",
-      "lib/cloudflare-env.d.ts",
-      ".agent/**",
-      ".agents/**",
-      ".claude/**",
-      ".codex/**",
-      ".continue/**",
-      ".cursor/**",
-      ".gemini/**",
-      ".opencode/**",
-      ".pi/**",
-      ".roo/**",
-      ".windsurf/**",
-      "tools/oxlint/anti-slop/**",
-    ],
-  },
-  // Oxlint: matches previous Biome linter rule set
-  lint: {
-    ignorePatterns: [
-      "dist/**",
-      "lib/cloudflare-env.d.ts",
-      ".agent/**",
-      ".agents/**",
-      ".claude/**",
-      ".codex/**",
-      ".continue/**",
-      ".cursor/**",
-      ".gemini/**",
-      ".opencode/**",
-      ".pi/**",
-      ".roo/**",
-      ".windsurf/**",
-      "tools/oxlint/anti-slop/**",
-    ],
-    plugins: ["react", "typescript", "jsx-a11y", "oxc"],
-    options: {
-      typeAware: true,
-      typeCheck: true,
+/**
+ * Builds the PostHog source-map upload plugin — ONLY when the deploy script
+ * exports POSTHOG_UPLOAD_SOURCEMAPS=true. Ordinary builds (including
+ * production builds and dry-runs) never upload, even when credentials exist.
+ * Credentials come from Vite env loading (.env* + process.env) and are read
+ * only here; they must never be inlined into client output.
+ */
+function sourceMapUploadPlugin(mode: string): Plugin | null {
+  if (process.env.POSTHOG_UPLOAD_SOURCEMAPS !== "true") return null;
+
+  // Empty prefix: load every var from .env* files plus process.env.
+  const env = loadEnv(mode, process.cwd(), "");
+  if (!env.POSTHOG_API_KEY || !env.POSTHOG_PROJECT_ID) {
+    throw new Error(
+      "POSTHOG_UPLOAD_SOURCEMAPS=true requires POSTHOG_API_KEY and POSTHOG_PROJECT_ID " +
+        "(source-map upload credentials live in gitignored local deploy env)",
+    );
+  }
+
+  const plugin: unknown = posthogRollupPlugin({
+    personalApiKey: env.POSTHOG_API_KEY,
+    projectId: env.POSTHOG_PROJECT_ID,
+    host: "https://us.posthog.com",
+    sourcemaps: {
+      enabled: true,
+      deleteAfterUpload: true,
+      releaseName: "clickfolio",
     },
-    rules: {
-      "vite-plus/prefer-vite-plus-imports": "error",
-      "typescript/no-explicit-any": "warn",
-      "typescript/no-unused-vars": "error",
-      "anti-slop/no-chained-type-assertions": "error",
-      "anti-slop/no-conditional-empty-object-spread": "error",
-      "anti-slop/no-known-value-widening": "error",
-      "anti-slop/no-object-parameters": "error",
-      "anti-slop/no-reflect-apply": "error",
-      "anti-slop/no-reflect-get": "error",
-      "anti-slop/no-runtime-typeof": "error",
-      "anti-slop/no-shape-in-symbol-names": "error",
-      "anti-slop/no-unknown-parameters": "error",
-      "anti-slop/no-unknown-returns": "error",
-      "anti-slop/no-unknown-type-aliases": "error",
-      "anti-slop/no-unsafe-dictionary-type": "error",
-      "anti-slop/no-widen-then-assert": "error",
-      "anti-slop/require-safety-comment-for-type-assertion": "error",
-    },
-    jsPlugins: [
-      { name: "vite-plus", specifier: "vite-plus/oxlint-plugin" },
-      { name: "anti-slop", specifier: "./tools/oxlint/anti-slop/index.ts" },
-    ],
-    overrides: [
-      {
-        files: ["__tests__/**"],
-        rules: {
-          "anti-slop/no-chained-type-assertions": "off",
-          "anti-slop/require-safety-comment-for-type-assertion": "off",
-          "anti-slop/no-runtime-typeof": "off",
-          "anti-slop/no-unsafe-dictionary-type": "off",
-          "anti-slop/no-unknown-parameters": "off",
-          "anti-slop/no-unknown-returns": "off",
-          // Test idioms that are intentionally unbound / type-loose
-          "typescript/unbound-method": "off",
-          "typescript/no-base-to-string": "off",
-          "typescript/no-misused-spread": "off",
-          "typescript/no-this-alias": "off",
-          "typescript/no-explicit-any": "off",
-          "@typescript-eslint/no-explicit-any": "off",
-          "unicorn/no-thenable": "off",
-          "jsx-a11y/control-has-associated-label": "off",
-          "no-control-regex": "off",
-        },
-      },
-      {
-        // SAFETY: coverage-routes uses mock DB chains with Record<string, unknown> for test doubles; widening to concrete types would obscure mock behavior and is test-only.
-        files: ["__tests__/unit/api/coverage-routes.test.ts"],
-        rules: {
-          "anti-slop/no-known-value-widening": "off",
-          "anti-slop/no-unsafe-dictionary-type": "off",
-        },
-      },
-      {
-        // SAFETY: backfill script parses wrangler JSON (unknown shape) and must branch on typeof / Record<string, unknown> at I/O boundary; concrete types would obscure the unknown-boundary handling and script is one-off.
-        files: ["scripts/backfill-handles.ts"],
-        rules: {
-          "anti-slop/no-unsafe-dictionary-type": "off",
-          "anti-slop/no-runtime-typeof": "off",
-          "anti-slop/no-unknown-returns": "off",
-          "anti-slop/no-unknown-parameters": "off",
-          "anti-slop/require-safety-comment-for-type-assertion": "off",
-          "typescript/no-base-to-string": "off",
-        },
-      },
-    ],
-  },
-  staged: {
-    "*.{ts,tsx,js,jsx,json,css}": ["vp check --fix"],
-  },
-  plugins: [
-    ensureClientDir(),
-    vinext(),
-    cloudflare({
-      viteEnvironment: { name: "rsc", childEnvironments: ["ssr"] },
-    }),
-    clientModuleStubs(),
-    clientVendorSplit(),
-  ],
-  resolve: {
-    alias: {
-      // Bundle stubs — replaces wrangler.jsonc alias block
-      // @vercel/og — doesn't work on CF Workers, vinext bundles it anyway (~2MB)
-      "next/dist/compiled/@vercel/og/index.edge.js": resolve("lib/stubs/og-stub.js"),
-      // zod/v3 — required bundle shim; only the runtime v3 conversion path is dead
-      "zod/v3": resolve("lib/stubs/zod-v3-stub.mjs"),
-    },
-  },
-  optimizeDeps: {
-    exclude: ["lucide-react"],
-  },
-  build: {
-    rollupOptions: {
-      plugins: [
-        // Bundle visualizer — only runs when ANALYZE=true
-        ...(process.env.ANALYZE === "true"
-          ? [visualizer({ open: true, gzipSize: true, filename: "dist/stats.html" })]
-          : []),
+  });
+  // SAFETY: The PostHog plugin uses standard Rollup hooks supported by Vite+'s
+  // Rolldown compatibility layer; this bridges only the two packages' contexts.
+  return plugin as Plugin;
+}
+
+export default defineConfig(({ mode }) => {
+  const sourcemapPlugin = sourceMapUploadPlugin(mode);
+  return {
+    // Oxfmt: matches previous Biome formatter settings (all defaults already match)
+    fmt: {
+      ignorePatterns: [
+        "dist/**",
+        "lib/cloudflare-env.d.ts",
+        ".agent/**",
+        ".agents/**",
+        ".claude/**",
+        ".codex/**",
+        ".continue/**",
+        ".cursor/**",
+        ".gemini/**",
+        ".opencode/**",
+        ".pi/**",
+        ".roo/**",
+        ".windsurf/**",
+        "tools/oxlint/anti-slop/**",
       ],
-      onwarn(warning, warn) {
-        // vinext virtual entry imports "middleware" from proxy.ts even though
-        // only "proxy" / "default" are used — suppress the harmless warning
-        if (
-          warning.code === "MISSING_EXPORT" &&
-          warning.message?.includes('"middleware"') &&
-          warning.message?.includes("proxy.ts")
-        ) {
-          return;
-        }
-        warn(warning);
+    },
+    // Oxlint: matches previous Biome linter rule set
+    lint: {
+      ignorePatterns: [
+        "dist/**",
+        "lib/cloudflare-env.d.ts",
+        ".agent/**",
+        ".agents/**",
+        ".claude/**",
+        ".codex/**",
+        ".continue/**",
+        ".cursor/**",
+        ".gemini/**",
+        ".opencode/**",
+        ".pi/**",
+        ".roo/**",
+        ".windsurf/**",
+        "tools/oxlint/anti-slop/**",
+      ],
+      plugins: ["react", "typescript", "jsx-a11y", "oxc"],
+      options: {
+        typeAware: true,
+        typeCheck: true,
+      },
+      rules: {
+        "vite-plus/prefer-vite-plus-imports": "error",
+        "typescript/no-explicit-any": "warn",
+        "typescript/no-unused-vars": "error",
+        "anti-slop/no-chained-type-assertions": "error",
+        "anti-slop/no-conditional-empty-object-spread": "error",
+        "anti-slop/no-known-value-widening": "error",
+        "anti-slop/no-object-parameters": "error",
+        "anti-slop/no-reflect-apply": "error",
+        "anti-slop/no-reflect-get": "error",
+        "anti-slop/no-runtime-typeof": "error",
+        "anti-slop/no-shape-in-symbol-names": "error",
+        "anti-slop/no-unknown-parameters": "error",
+        "anti-slop/no-unknown-returns": "error",
+        "anti-slop/no-unknown-type-aliases": "error",
+        "anti-slop/no-unsafe-dictionary-type": "error",
+        "anti-slop/no-widen-then-assert": "error",
+        "anti-slop/require-safety-comment-for-type-assertion": "error",
+      },
+      jsPlugins: [
+        { name: "vite-plus", specifier: "vite-plus/oxlint-plugin" },
+        { name: "anti-slop", specifier: "./tools/oxlint/anti-slop/index.ts" },
+      ],
+      overrides: [
+        {
+          files: ["__tests__/**"],
+          rules: {
+            "anti-slop/no-chained-type-assertions": "off",
+            "anti-slop/require-safety-comment-for-type-assertion": "off",
+            "anti-slop/no-runtime-typeof": "off",
+            "anti-slop/no-unsafe-dictionary-type": "off",
+            "anti-slop/no-unknown-parameters": "off",
+            "anti-slop/no-unknown-returns": "off",
+            // Test idioms that are intentionally unbound / type-loose
+            "typescript/unbound-method": "off",
+            "typescript/no-base-to-string": "off",
+            "typescript/no-misused-spread": "off",
+            "typescript/no-this-alias": "off",
+            "typescript/no-explicit-any": "off",
+            "@typescript-eslint/no-explicit-any": "off",
+            "unicorn/no-thenable": "off",
+            "jsx-a11y/control-has-associated-label": "off",
+            "no-control-regex": "off",
+          },
+        },
+        {
+          // SAFETY: coverage-routes uses mock DB chains with Record<string, unknown> for test doubles; widening to concrete types would obscure mock behavior and is test-only.
+          files: ["__tests__/unit/api/coverage-routes.test.ts"],
+          rules: {
+            "anti-slop/no-known-value-widening": "off",
+            "anti-slop/no-unsafe-dictionary-type": "off",
+          },
+        },
+        {
+          // SAFETY: backfill script parses wrangler JSON (unknown shape) and must branch on typeof / Record<string, unknown> at I/O boundary; concrete types would obscure the unknown-boundary handling and script is one-off.
+          files: ["scripts/backfill-handles.ts"],
+          rules: {
+            "anti-slop/no-unsafe-dictionary-type": "off",
+            "anti-slop/no-runtime-typeof": "off",
+            "anti-slop/no-unknown-returns": "off",
+            "anti-slop/no-unknown-parameters": "off",
+            "anti-slop/require-safety-comment-for-type-assertion": "off",
+            "typescript/no-base-to-string": "off",
+          },
+        },
+      ],
+    },
+    staged: {
+      "*.{ts,tsx,js,jsx,json,css}": ["vp check --fix"],
+    },
+    plugins: [
+      ensureClientDir(),
+      vinext(),
+      cloudflare({
+        viteEnvironment: { name: "rsc", childEnvironments: ["ssr"] },
+      }),
+      clientModuleStubs(),
+      clientVendorSplit(),
+    ],
+    resolve: {
+      alias: {
+        // Bundle stubs — replaces wrangler.jsonc alias block
+        // @vercel/og — doesn't work on CF Workers, vinext bundles it anyway (~2MB)
+        "next/dist/compiled/@vercel/og/index.edge.js": resolve("lib/stubs/og-stub.js"),
+        // zod/v3 — required bundle shim; only the runtime v3 conversion path is dead
+        "zod/v3": resolve("lib/stubs/zod-v3-stub.mjs"),
       },
     },
-  },
+    optimizeDeps: {
+      exclude: ["lucide-react"],
+    },
+    build: {
+      rollupOptions: {
+        plugins: [
+          // Source-map upload — only present when POSTHOG_UPLOAD_SOURCEMAPS=true
+          ...(sourcemapPlugin ? [sourcemapPlugin] : []),
+          // Bundle visualizer — only runs when ANALYZE=true
+          ...(process.env.ANALYZE === "true"
+            ? [visualizer({ open: true, gzipSize: true, filename: "dist/stats.html" })]
+            : []),
+        ],
+        onwarn(warning, warn) {
+          // vinext virtual entry imports "middleware" from proxy.ts even though
+          // only "proxy" / "default" are used — suppress the harmless warning
+          if (
+            warning.code === "MISSING_EXPORT" &&
+            warning.message?.includes('"middleware"') &&
+            warning.message?.includes("proxy.ts")
+          ) {
+            return;
+          }
+          warn(warning);
+        },
+      },
+    },
+  };
 });

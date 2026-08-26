@@ -1,6 +1,6 @@
 import { and, desc, eq, gte, inArray, isNotNull, ne } from "drizzle-orm";
 import { z } from "zod";
-import { captureServerEvent } from "@/lib/posthog-server";
+import { captureServerEvent } from "@/lib/analytics/server";
 import { withUser } from "@/lib/auth/with-auth";
 import { buildSiteDataUpsert } from "@/lib/data/site-data-upsert";
 import type { NewResume } from "@/lib/db/schema";
@@ -331,7 +331,7 @@ export async function POST(request: Request) {
             });
 
             // R2 and DB both succeeded - return cached result
-            await captureServerEvent(userId, "resume_claim_cached", {
+            captureServerEvent(userId, "resume_claim_cached", {
               resume_id: resumeId,
             });
             return createSuccessResponse({
@@ -478,7 +478,7 @@ export async function POST(request: Request) {
         );
       }
 
-      await captureServerEvent(userId, "resume_claimed", {
+      captureServerEvent(userId, "resume_claimed", {
         resume_id: resumeId,
       });
       return createSuccessResponse({

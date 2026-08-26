@@ -83,7 +83,6 @@ const mocks = vi.hoisted(() => {
 
   const env = {
     CLICKFOLIO_R2_BUCKET: { list: vi.fn(async () => ({ objects: [] })) },
-    CLICKFOLIO_DISPOSABLE_DOMAINS: { get: vi.fn(async () => "[]") },
     CLICKFOLIO_PARSE_QUEUE: { send: vi.fn(async () => undefined) },
     CLERK_SECRET_KEY: "sk_test_account_delete",
     CF_AI_GATEWAY_ACCOUNT_ID: "acct",

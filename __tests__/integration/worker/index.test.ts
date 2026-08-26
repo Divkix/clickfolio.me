@@ -48,7 +48,6 @@ const {
   mockPerformCleanup,
   mockPerformR2Cleanup,
   mockRetryPendingR2Deletions,
-  mockSyncDisposableDomains,
   mockRecoverOrphanedResumes,
   mockUserFindFirst,
   mockResumeFindFirst,
@@ -71,7 +70,6 @@ const {
     mockPerformCleanup: vi.fn(),
     mockPerformR2Cleanup: vi.fn(),
     mockRetryPendingR2Deletions: vi.fn(),
-    mockSyncDisposableDomains: vi.fn(),
     mockRecoverOrphanedResumes: vi.fn(),
     mockUserFindFirst: vi.fn(),
     mockResumeFindFirst: vi.fn(),
@@ -98,10 +96,6 @@ vi.mock("@/lib/cron/cleanup", () => ({
 vi.mock("@/lib/cron/cleanup-r2", () => ({
   performR2Cleanup: mockPerformR2Cleanup,
   retryPendingR2Deletions: mockRetryPendingR2Deletions,
-}));
-
-vi.mock("@/lib/cron/sync-disposable-domains", () => ({
-  syncDisposableDomains: mockSyncDisposableDomains,
 }));
 
 vi.mock("@/lib/cron/recover-orphaned", () => ({
@@ -223,7 +217,6 @@ function resetAll() {
   });
   mockPerformR2Cleanup.mockResolvedValue({ deleted: 2 });
   mockRetryPendingR2Deletions.mockResolvedValue({ retried: 0 });
-  mockSyncDisposableDomains.mockResolvedValue({ synced: 3 });
   mockRecoverOrphanedResumes.mockResolvedValue({ recovered: 4 });
 }
 
@@ -522,27 +515,6 @@ describe("Worker scheduled handler", () => {
     await worker.scheduled(makeController("0 3 * * *"), env);
 
     expect(mockPerformCleanup).toHaveBeenCalled();
-  });
-
-  it("dispatches disposable domain sync on '0 4 * * *' cron", async () => {
-    const env = makeEnv({
-      CLICKFOLIO_DISPOSABLE_DOMAINS: {
-        get: vi.fn(),
-        put: vi.fn(),
-      } as unknown as KVNamespace,
-    });
-
-    await worker.scheduled(makeController("0 4 * * *"), env);
-
-    expect(mockSyncDisposableDomains).toHaveBeenCalled();
-  });
-
-  it("skips domain sync when KV binding is missing", async () => {
-    const env = makeEnv({ CLICKFOLIO_DISPOSABLE_DOMAINS: undefined as unknown as KVNamespace });
-
-    await worker.scheduled(makeController("0 4 * * *"), env);
-
-    expect(mockSyncDisposableDomains).not.toHaveBeenCalled();
   });
 
   it("dispatches orphan recovery on '*/15 * * * *' cron", async () => {

@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { createClerkClient } from "@clerk/backend";
 import { z } from "zod";
 import { withUser } from "@/lib/auth/with-auth";
-import { captureServerEvent } from "@/lib/posthog-server";
+import { captureServerEvent } from "@/lib/analytics/server";
 
 import { pendingR2Deletions, resumes, user } from "@/lib/db/schema";
 import { getR2Binding, R2 } from "@/lib/r2";
@@ -182,7 +182,7 @@ export async function POST(request: Request) {
       }
 
       // Best-effort analytics — never fails the delete response
-      await captureServerEvent(userId, "account_deleted", {
+      captureServerEvent(userId, "account_deleted", {
         had_r2_warnings: warnings.length > 0,
       });
 

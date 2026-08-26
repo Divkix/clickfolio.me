@@ -162,8 +162,8 @@ vi.mock("@/lib/templates/theme-ids", () => ({
   THEME_IDS: ["minimalist_editorial", "neo_brutalist", "design_folio", "dev_terminal"],
 }));
 
-vi.mock("@/lib/posthog-server", () => ({
-  captureServerEvent: vi.fn().mockResolvedValue(undefined),
+vi.mock("@/lib/analytics/server", () => ({
+  captureServerEvent: vi.fn(),
 }));
 
 import { requireAuthWithUserValidation } from "@/lib/auth/middleware";

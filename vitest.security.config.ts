@@ -18,7 +18,6 @@ export default defineConfig({
       "__tests__/security/**/*.test.{ts,tsx}",
       "__tests__/idor-ownership.test.ts",
       "__tests__/sanitization.test.ts",
-      "__tests__/disposable-email.test.ts",
       "__tests__/claim-security-cookie.test.ts",
     ],
     // Security tests must be reliable - no retries

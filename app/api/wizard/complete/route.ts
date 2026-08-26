@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import type { z } from "zod";
 import { withUser } from "@/lib/auth/with-auth";
-import { captureServerEvent } from "@/lib/posthog-server";
+import { captureServerEvent } from "@/lib/analytics/server";
 
 import { isUniqueViolation } from "@/lib/db/pg-errors";
 import { handleChanges, siteData, user } from "@/lib/db/schema";
@@ -196,7 +196,7 @@ export async function POST(request: Request) {
         throw error; // Re-throw other errors
       }
 
-      await captureServerEvent(authUser.id, "onboarding_completed", {
+      captureServerEvent(authUser.id, "onboarding_completed", {
         handle: body.handle,
         theme_id: body.theme_id,
         show_in_directory: body.privacy_settings.show_in_directory,

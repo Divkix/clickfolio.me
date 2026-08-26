@@ -15,7 +15,6 @@ import { sha256Hex } from "@/lib/utils/hash";
 const HOURLY_LIMIT = 10;
 const DAILY_LIMIT = 50;
 const HANDLE_CHECK_HOURLY_LIMIT = 100;
-const EMAIL_VALIDATE_HOURLY_LIMIT = 30;
 
 const LOCAL_IPS = new Set(["127.0.0.1", "::1", "localhost", "0.0.0.0", "::ffff:127.0.0.1"]);
 
@@ -51,7 +50,7 @@ async function hashIP(ip: string): Promise<string> {
 async function recordRateLimitAction(
   db: Database,
   ipHash: string,
-  actionType: "upload" | "handle_check" | "email_validate",
+  actionType: "upload" | "handle_check",
   now: Date,
   oneHourAgo: string,
   limit: number,
@@ -246,26 +245,8 @@ export async function checkHandleRateLimit(ip: string): Promise<IPRateLimitResul
 }
 
 /**
- * Check and record IP-based rate limit for email validation checks
- * Moderate limit (30/hour) to prevent email enumeration attacks
- * Uses separate action type to not share quota with uploads or handle checks
- *
- * Protects against:
- * - Email enumeration attacks
- * - DoS via rapid validation checks
- */
-export async function checkEmailValidateRateLimit(ip: string): Promise<IPRateLimitResult> {
-  return checkHourlyActionLimit(ip, {
-    actionType: "email_validate",
-    limit: EMAIL_VALIDATE_HOURLY_LIMIT,
-    blockedMessage: "Too many email validation checks. Please try again later.",
-    checkErrorLabel: "Email validate rate limit check failed:",
-  });
-}
-
-/**
  * Shared implementation for single-hourly-limit IP rate limits
- * (handle availability checks and email validation checks).
+ * (handle availability checks).
  *
  * Both actions share the same shape: skip in development, ignore
  * DISABLE_RATE_LIMITS in production, skip for local IPs/environment,
@@ -275,7 +256,7 @@ export async function checkEmailValidateRateLimit(ip: string): Promise<IPRateLim
 async function checkHourlyActionLimit(
   ip: string,
   options: {
-    actionType: "handle_check" | "email_validate";
+    actionType: "handle_check";
     limit: number;
     blockedMessage: string;
     checkErrorLabel: string;

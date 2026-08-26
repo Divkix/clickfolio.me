@@ -20,7 +20,6 @@ function isString(value: JsonValue): value is string {
 
 export const INFRA = {
   DLQ_NAME: "clickfolio-parse-dlq",
-  DISPOSABLE_DOMAINS_KEY: "disposable-domains",
 } as const;
 
 export const RETRY_LIMITS = {

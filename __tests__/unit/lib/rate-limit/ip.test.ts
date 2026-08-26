@@ -7,12 +7,7 @@ import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { createMockDb } from "@/__tests__/setup/mocks/db.mock";
 import type { JsonValue } from "@/lib/types/json";
-import {
-  checkEmailValidateRateLimit,
-  checkHandleRateLimit,
-  checkIPRateLimit,
-  getClientIP,
-} from "@/lib/rate-limit/ip";
+import { checkHandleRateLimit, checkIPRateLimit, getClientIP } from "@/lib/rate-limit/ip";
 // Mock the modules
 vi.mock("cloudflare:workers", () => ({
   env: { HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" } },
@@ -481,76 +476,6 @@ describe("checkHandleRateLimit - Production", () => {
     // The INSERT is the second tagged-template call; its interpolated values
     // carry the bucketed action type.
     expect(mockDb.$client.mock.calls[1]?.slice(1)).toContain("handle_check");
-  });
-});
-
-describe("checkEmailValidateRateLimit - Development", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    vi.stubEnv("NODE_ENV", "development");
-  });
-
-  afterEach(() => {
-    vi.unstubAllEnvs();
-  });
-
-  it("allows all email validations in development", async () => {
-    const result = await checkEmailValidateRateLimit("192.168.1.1");
-
-    expect(result.allowed).toBe(true);
-    expect(result.remaining.hourly).toBe(30);
-  });
-});
-
-describe("checkEmailValidateRateLimit - Production", () => {
-  const mockDb = createMockDb();
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-    vi.stubEnv("NODE_ENV", "production");
-    vi.mocked(isLocalEnvironment).mockReturnValue(false);
-    vi.mocked(getDb).mockReturnValue(mockDb as never);
-  });
-
-  afterEach(() => {
-    vi.unstubAllEnvs();
-  });
-
-  it("allows email validation when under limit", async () => {
-    mockDb.select.mockReturnValue({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockResolvedValue([{ count: 20 }]),
-      }),
-    } as never);
-
-    const result = await checkEmailValidateRateLimit("192.168.1.1");
-
-    expect(result.allowed).toBe(true);
-    expect(result.remaining.hourly).toBe(9);
-  });
-
-  it("blocks email validation when limit exceeded", async () => {
-    mockDb.select.mockReturnValue({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockResolvedValue([{ count: 30 }]),
-      }),
-    } as never);
-
-    const result = await checkEmailValidateRateLimit("192.168.1.1");
-
-    expect(result.allowed).toBe(false);
-    expect(result.message).toContain("Too many email validation checks");
-  });
-
-  it("fails open on database errors", async () => {
-    mockDb.select.mockImplementation(() => {
-      throw new Error("Database error");
-    });
-
-    const result = await checkEmailValidateRateLimit("192.168.1.1");
-
-    expect(result.allowed).toBe(true);
-    expect(result.remaining).toEqual({ hourly: 1, daily: 1 });
   });
 });
 

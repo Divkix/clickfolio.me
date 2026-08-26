@@ -27,16 +27,16 @@ export const handleChanges = pgTable(
 
 /**
  * Upload rate limits table — tracks per-IP actions for rate limiting.
- * actionType enum: "upload" (resume upload), "handle_check" (handle availability check), "email_validate" (email validation).
+ * actionType enum: "upload" (resume upload), "handle_check" (handle availability check).
  */
 export const uploadRateLimits = pgTable(
   "upload_rate_limits",
   {
     id: text("id").primaryKey(),
     ipHash: text("ip_hash").notNull(),
-    /** Action being rate-limited. Values: "upload", "handle_check", "email_validate". */
+    /** Action being rate-limited. Values: "upload", "handle_check". */
     actionType: text("action_type", {
-      enum: ["upload", "handle_check", "email_validate"],
+      enum: ["upload", "handle_check"],
     })
       .notNull()
       .default("upload"),
