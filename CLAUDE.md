@@ -26,23 +26,23 @@ If a decision's rationale isn't obvious from code, capture the _why_ as a new nu
 
 ## Stack
 
-| Layer           | Technology                                                                                                                                                       |
-| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Runtime         | Cloudflare Workers                                                                                                                                               |
-| Framework       | [vinext](https://github.com/cloudflare/vinext) (Vite-based Next.js — NOT standard Next.js) `1.0.0-beta.8` (on Next `^16.3.2`, React `^19.2.8`)                   |
+| Layer           | Technology                                                                                                                                                                                                          |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Runtime         | Cloudflare Workers                                                                                                                                                                                                  |
+| Framework       | [vinext](https://github.com/cloudflare/vinext) (Vite-based Next.js — NOT standard Next.js) `1.0.0-beta.8` (on Next `^16.3.2`, React `^19.2.8`)                                                                      |
 | Toolchain       | Vite+ (`vp`) — `vite-plus@^0.2.9`; `vite` aliases `@voidzero-dev/vite-plus-core@^0.2.9`; `vitest` + `@vitest/coverage-v8` pinned to `4.1.10` (vite-plus's bundled runner; a mismatch fails `--coverage` at startup) |
-| Package manager | `pnpm` (pinned `pnpm@11.10.0` via `packageManager`)                                                                                                              |
-| DB              | PlanetScale **Postgres** via Cloudflare Hyperdrive (`HYPERDRIVE`) + Drizzle ORM (`drizzle-orm/pg-core`, postgres-js driver)                                      |
-| Auth            | [Clerk](https://clerk.com) — `@clerk/react` client provider + prebuilt `<SignIn>/<SignUp>`; `@clerk/backend` server-side JWKS verification (NOT `@clerk/nextjs`) |
-| AI parsing      | OpenRouter via Cloudflare AI Gateway (`openai/gpt-5.6-luna:nitro` default) + `unpdf` + Vercel AI SDK                                                             |
-| Storage         | Cloudflare R2 (`CLICKFOLIO_R2_BUCKET`)                                                                                                                           |
-| Queue           | Cloudflare Queues (`CLICKFOLIO_PARSE_QUEUE`) + DLQ                                                                                                               |
-| Realtime        | Cloudflare Durable Objects (`ClickfolioStatusDO`) over WebSocket                                                                                                 |
-| Email           | Clerk-managed auth email (verification/reset) — no app-side email code                                                                                           |
-| Styling         | shadcn/ui (new-york, `rsc:true`, lucide) + Tailwind CSS 4 (PostCSS-only, no `tailwind.config`)                                                                   |
-| Validation      | Zod (v4 throughout)                                                                                                                                              |
-| Lint/format     | Oxlint + Oxfmt via `vp check` — NOT Biome/ESLint/Prettier                                                                                                        |
-| Testing         | Vitest (via `vite-plus/test`) + jsdom + @testing-library/react                                                                                                   |
+| Package manager | `pnpm` (pinned `pnpm@11.10.0` via `packageManager`)                                                                                                                                                                 |
+| DB              | PlanetScale **Postgres** via Cloudflare Hyperdrive (`HYPERDRIVE`) + Drizzle ORM (`drizzle-orm/pg-core`, postgres-js driver)                                                                                         |
+| Auth            | [Clerk](https://clerk.com) — `@clerk/react` client provider + prebuilt `<SignIn>/<SignUp>`; `@clerk/backend` server-side JWKS verification (NOT `@clerk/nextjs`)                                                    |
+| AI parsing      | OpenRouter via Cloudflare AI Gateway (`openai/gpt-5.6-luna:nitro` default) + `unpdf` + Vercel AI SDK                                                                                                                |
+| Storage         | Cloudflare R2 (`CLICKFOLIO_R2_BUCKET`)                                                                                                                                                                              |
+| Queue           | Cloudflare Queues (`CLICKFOLIO_PARSE_QUEUE`) + DLQ                                                                                                                                                                  |
+| Realtime        | Cloudflare Durable Objects (`ClickfolioStatusDO`) over WebSocket                                                                                                                                                    |
+| Email           | Clerk-managed auth email (verification/reset) — no app-side email code                                                                                                                                              |
+| Styling         | shadcn/ui (new-york, `rsc:true`, lucide) + Tailwind CSS 4 (PostCSS-only, no `tailwind.config`)                                                                                                                      |
+| Validation      | Zod (v4 throughout)                                                                                                                                                                                                 |
+| Lint/format     | Oxlint + Oxfmt via `vp check` — NOT Biome/ESLint/Prettier                                                                                                                                                           |
+| Testing         | Vitest (via `vite-plus/test`) + jsdom + @testing-library/react                                                                                                                                                      |
 
 ## Project Structure
 
