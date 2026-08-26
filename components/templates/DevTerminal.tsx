@@ -57,10 +57,22 @@ export const DevTerminal: React.FC<TemplateProps> = ({ content, profile }) => {
     <>
       <TemplateFontLinks href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" />
 
-      <div className="min-h-screen bg-[#0d1117] text-[#c9d1d9] selection:bg-[#388bfd] selection:text-white w-full overflow-x-hidden">
+      <div className="term-root min-h-screen bg-[#0d1117] text-[#c9d1d9] selection:bg-[#388bfd] selection:text-white w-full overflow-x-hidden">
         <style>{`
           .font-mono-term { font-family: 'JetBrains Mono', monospace; }
           .font-sans-term { font-family: 'Inter', sans-serif; }
+          .term-root:not(:has(:target)) a[href="#readme"],
+          .term-root:has(#readme:target) a[href="#readme"],
+          .term-root:has(#skills:target) a[href="#skills"],
+          .term-root:has(#experience:target) a[href="#experience"],
+          .term-root:has(#projects:target) a[href="#projects"],
+          .term-root:has(#education:target) a[href="#education"],
+          .term-root:has(#certifications:target) a[href="#certifications"],
+          .term-root:has(#contact:target) a[href="#contact"] {
+            color: #c9d1d9;
+            background: #0d1117;
+            border-top-color: #f78166;
+          }
         `}</style>
 
         <nav
@@ -91,7 +103,7 @@ export const DevTerminal: React.FC<TemplateProps> = ({ content, profile }) => {
         <main className="max-w-5xl mx-auto px-4 py-8">
           <header
             id="readme"
-            className="mb-12 bg-[#161b22] border border-[#30363d] rounded-md overflow-hidden"
+            className="mb-12 scroll-mt-14 bg-[#161b22] border border-[#30363d] rounded-md overflow-hidden"
           >
             <div className="px-4 py-3 bg-[#0d1117] border-b border-[#30363d] flex items-center gap-2">
               <Folder className="size-4 text-[#8b949e]" aria-hidden="true" />
@@ -155,7 +167,7 @@ export const DevTerminal: React.FC<TemplateProps> = ({ content, profile }) => {
           </header>
 
           {skills && skills.length > 0 && (
-            <section id="skills" className="mb-8">
+            <section id="skills" className="mb-8 scroll-mt-14">
               <div className="bg-[#161b22] border border-[#30363d] rounded-md overflow-hidden">
                 <div className="px-4 py-3 bg-[#0d1117] border-b border-[#30363d]">
                   <h2 className="font-mono-term text-sm text-[#c9d1d9] flex items-center gap-2">
@@ -192,7 +204,7 @@ export const DevTerminal: React.FC<TemplateProps> = ({ content, profile }) => {
           )}
 
           {experience && experience.length > 0 && (
-            <section id="experience" className="mb-8">
+            <section id="experience" className="mb-8 scroll-mt-14">
               <div className="bg-[#161b22] border border-[#30363d] rounded-md overflow-hidden">
                 <div className="px-4 py-3 bg-[#0d1117] border-b border-[#30363d]">
                   <h2 className="font-mono-term text-sm text-[#c9d1d9] flex items-center gap-2">
@@ -243,7 +255,7 @@ export const DevTerminal: React.FC<TemplateProps> = ({ content, profile }) => {
           )}
 
           {projects && projects.length > 0 && (
-            <section id="projects" className="mb-8">
+            <section id="projects" className="mb-8 scroll-mt-14">
               <div className="bg-[#161b22] border border-[#30363d] rounded-md overflow-hidden">
                 <div className="px-4 py-3 bg-[#0d1117] border-b border-[#30363d]">
                   <h2 className="font-mono-term text-sm text-[#c9d1d9] flex items-center gap-2">
@@ -310,7 +322,7 @@ export const DevTerminal: React.FC<TemplateProps> = ({ content, profile }) => {
             {education && education.length > 0 && (
               <section
                 id="education"
-                className="bg-[#161b22] border border-[#30363d] rounded-md overflow-hidden"
+                className="scroll-mt-14 bg-[#161b22] border border-[#30363d] rounded-md overflow-hidden"
               >
                 <div className="px-4 py-3 bg-[#0d1117] border-b border-[#30363d]">
                   <h2 className="font-mono-term text-sm text-[#c9d1d9] flex items-center gap-2">
@@ -337,7 +349,7 @@ export const DevTerminal: React.FC<TemplateProps> = ({ content, profile }) => {
             {certifications && certifications.length > 0 && (
               <section
                 id="certifications"
-                className="bg-[#161b22] border border-[#30363d] rounded-md overflow-hidden"
+                className="scroll-mt-14 bg-[#161b22] border border-[#30363d] rounded-md overflow-hidden"
               >
                 <div className="px-4 py-3 bg-[#0d1117] border-b border-[#30363d]">
                   <h2 className="font-mono-term text-sm text-[#c9d1d9] flex items-center gap-2">
@@ -374,7 +386,7 @@ export const DevTerminal: React.FC<TemplateProps> = ({ content, profile }) => {
 
           <footer
             id="contact"
-            className="bg-[#161b22] border border-[#30363d] rounded-md overflow-hidden"
+            className="scroll-mt-14 bg-[#161b22] border border-[#30363d] rounded-md overflow-hidden"
           >
             <div className="px-4 py-3 bg-[#0d1117] border-b border-[#30363d]">
               <h2 className="font-mono-term text-sm text-[#c9d1d9] flex items-center gap-2">

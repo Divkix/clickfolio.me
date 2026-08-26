@@ -5,7 +5,13 @@ import type React from "react";
 import { useCallback, useRef, useState } from "react";
 import { ShareBar } from "@/components/ShareBar";
 import { getContactLinks } from "@/lib/templates/contact-links";
-import { flattenSkills, formatDateRange, formatYear, getInitials } from "@/lib/templates/helpers";
+import {
+  flattenSkills,
+  formatDateRange,
+  formatShortDate,
+  formatYear,
+  getInitials,
+} from "@/lib/templates/helpers";
 import type { TemplateProps } from "@/lib/types/template";
 import { getContactIcon } from "./shared/ContactIcon";
 import { TemplateFontLinks } from "./shared/TemplateFontLinks";
@@ -179,7 +185,7 @@ export const Spotlight: React.FC<TemplateProps> = ({ content, profile, isPreview
                 <a
                   key={link.href}
                   href={link.href}
-                  className="text-sm font-body-sl text-stone-400 hover:text-[#E84D0E] transition-colors"
+                  className="text-sm font-body-sl text-stone-400 hover:text-[#E84D0E] transition-colors focus-visible:outline-none focus-visible:text-[#E84D0E]"
                 >
                   {link.label}
                 </a>
@@ -195,7 +201,7 @@ export const Spotlight: React.FC<TemplateProps> = ({ content, profile, isPreview
                 <a
                   key={link.href}
                   href={link.href}
-                  className="text-sm font-body-sl text-stone-500 hover:text-[#E84D0E] transition-colors whitespace-nowrap"
+                  className="text-sm font-body-sl text-stone-500 hover:text-[#E84D0E] transition-colors whitespace-nowrap focus-visible:outline-none focus-visible:text-[#E84D0E]"
                 >
                   {link.label}
                 </a>
@@ -225,7 +231,7 @@ export const Spotlight: React.FC<TemplateProps> = ({ content, profile, isPreview
                   <h1 className="text-5xl md:text-7xl font-display-sl font-extrabold tracking-tight text-[#1C1917] [text-wrap:unset] break-words">
                     I&apos;m {firstName}.
                   </h1>
-                  <h2 className="text-2xl md:text-3xl text-[#78716C] font-display-sl font-semibold tracking-tight">
+                  <h2 className="text-2xl md:text-3xl text-[#78716C] font-display-sl font-semibold tracking-tight [text-wrap:unset] break-words">
                     {content.headline}
                   </h2>
                 </div>
@@ -359,16 +365,20 @@ export const Spotlight: React.FC<TemplateProps> = ({ content, profile, isPreview
                     )}
 
                     {job.highlights && job.highlights.length > 0 && (
-                      <div className="flex flex-wrap gap-2">
-                        {job.highlights.map((tag, i) => (
-                          <span
-                            key={`${job.title}-${tag}-${i}`}
-                            className="px-2 py-1 text-xs text-stone-600 bg-stone-100 rounded border border-stone-200/60 font-body-sl"
+                      <ul className="space-y-1.5">
+                        {job.highlights.map((highlight, i) => (
+                          <li
+                            key={`${job.title}-${highlight}-${i}`}
+                            className="flex items-start gap-2 text-sm text-stone-600 leading-relaxed font-body-sl"
                           >
-                            {tag}
-                          </span>
+                            <span
+                              className="mt-2 w-1 h-1 rounded-full bg-[#E84D0E]/70 shrink-0"
+                              aria-hidden="true"
+                            />
+                            <span>{highlight}</span>
+                          </li>
                         ))}
-                      </div>
+                      </ul>
                     )}
                   </SpotlightCard>
                 ))}
@@ -458,28 +468,44 @@ export const Spotlight: React.FC<TemplateProps> = ({ content, profile, isPreview
                     <AwardIcon className="w-4 h-4" aria-hidden="true" /> Certifications
                   </h3>
                   <div className="space-y-4">
-                    {content.certifications.map((cert, index) => (
-                      <a
-                        key={index}
-                        href={cert.url || undefined}
-                        target={cert.url ? "_blank" : undefined}
-                        rel={cert.url ? "noopener noreferrer" : undefined}
-                        className={`flex items-center justify-between p-4 bg-[#FFFCF9] border border-stone-200/60 rounded-xl hover:border-[#E84D0E]/30 transition-colors group ${cert.url ? "" : "pointer-events-none"}`}
-                      >
-                        <div>
-                          <h4 className="font-display-sl font-semibold text-sm text-[#1C1917] group-hover:text-[#E84D0E] transition-colors">
-                            {cert.name}
-                          </h4>
-                          <p className="text-xs text-[#78716C] font-body-sl">{cert.issuer}</p>
-                        </div>
-                        {cert.url && (
-                          <ArrowUpRight
-                            className="w-3 h-3 text-stone-300 group-hover:text-[#E84D0E]"
-                            aria-hidden="true"
-                          />
-                        )}
-                      </a>
-                    ))}
+                    {content.certifications.map((cert, index) => {
+                      const body = (
+                        <>
+                          <div className="min-w-0">
+                            <h4 className="font-display-sl font-semibold text-sm text-[#1C1917] group-hover:text-[#E84D0E] transition-colors [text-wrap:unset] break-words">
+                              {cert.name}
+                            </h4>
+                            <p className="text-xs text-[#78716C] font-body-sl">
+                              {cert.issuer}
+                              {cert.date ? ` · ${formatShortDate(cert.date)}` : ""}
+                            </p>
+                          </div>
+                          {cert.url && (
+                            <ArrowUpRight
+                              className="w-3 h-3 text-stone-300 group-hover:text-[#E84D0E] shrink-0"
+                              aria-hidden="true"
+                            />
+                          )}
+                        </>
+                      );
+                      const certClass =
+                        "flex items-center justify-between gap-3 p-4 bg-[#FFFCF9] border border-stone-200/60 rounded-xl group";
+                      return cert.url ? (
+                        <a
+                          key={index}
+                          href={cert.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={`${certClass} hover:border-[#E84D0E]/30 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E84D0E]`}
+                        >
+                          {body}
+                        </a>
+                      ) : (
+                        <article key={index} className={certClass}>
+                          {body}
+                        </article>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -489,7 +515,7 @@ export const Spotlight: React.FC<TemplateProps> = ({ content, profile, isPreview
           {/* ─── CTA Footer ─── */}
           <footer id="contact" className="py-20 border-t border-stone-200/60">
             <div className="flex flex-col items-center text-center space-y-6">
-              <h2 className="text-4xl md:text-5xl font-display-sl font-extrabold tracking-tight text-[#1C1917]">
+              <h2 className="text-4xl md:text-5xl font-display-sl font-extrabold tracking-tight text-[#1C1917] [text-wrap:unset]">
                 The stage is yours.
               </h2>
               <p className="text-[#78716C] max-w-md font-body-sl">

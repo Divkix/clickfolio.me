@@ -4,7 +4,13 @@ import { Mail, MapPin } from "lucide-react";
 import { useState } from "react";
 import { ShareBar } from "@/components/ShareBar";
 import { getContactLinks } from "@/lib/templates/contact-links";
-import { flattenSkills, formatDateRange, formatYear, getInitials } from "@/lib/templates/helpers";
+import {
+  flattenSkills,
+  formatDateRange,
+  formatShortDate,
+  formatYear,
+  getInitials,
+} from "@/lib/templates/helpers";
 import type { TemplateProps } from "@/lib/types/template";
 import { getContactIcon } from "./shared/ContactIcon";
 import { TemplateFontLinks } from "./shared/TemplateFontLinks";
@@ -93,6 +99,9 @@ export const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
             0%, 100% { opacity: 0.3; }
             50% { opacity: 0.8; }
           }
+          @media (prefers-reduced-motion: reduce) {
+            .midnight-star-twinkle { animation: none !important; }
+          }
         `}</style>
 
         {/* Star field background */}
@@ -110,7 +119,7 @@ export const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
           {STAR_POSITIONS.map((star, i) => (
             <div
               key={`star-${star.x}-${star.y}-${i}`}
-              className="absolute rounded-full bg-white"
+              className={`absolute rounded-full bg-white${star.bright ? " midnight-star-twinkle" : ""}`}
               style={{
                 left: `${star.x}%`,
                 top: `${star.y}%`,
@@ -392,7 +401,7 @@ export const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
                             <p className="text-neutral-500 text-xs font-body-mn">{cert.issuer}</p>
                             {cert.date && (
                               <p className="text-neutral-600 text-[10px] font-body-mn">
-                                {cert.date}
+                                {formatShortDate(cert.date)}
                               </p>
                             )}
                           </div>

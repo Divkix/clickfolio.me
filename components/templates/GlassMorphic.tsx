@@ -458,18 +458,21 @@ export const GlassMorphic: React.FC<TemplateProps> = ({ content, profile, isPrev
                       </p>
                     )}
 
-                    {job.highlights && (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {job.highlights && job.highlights.length > 0 && (
+                      <ul className="space-y-2">
                         {job.highlights.map((item, i) => (
-                          <div
+                          <li
                             key={`${job.title}-${item}-${i}`}
                             className="flex items-start gap-3 text-sm text-slate-400/80"
                           >
-                            <span className="mt-1.5 w-1 h-1 rounded-full bg-lavender/50 shrink-0" />
+                            <span
+                              className="mt-1.5 w-1 h-1 rounded-full bg-lavender/50 shrink-0"
+                              aria-hidden="true"
+                            />
                             <span>{item}</span>
-                          </div>
+                          </li>
                         ))}
-                      </div>
+                      </ul>
                     )}
                   </SpotlightCard>
                 ))}
