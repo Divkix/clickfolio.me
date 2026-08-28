@@ -156,7 +156,9 @@ describe("public page rendering", () => {
     expect(listing.getAllByRole("link", { name: "About" }).length).toBeGreaterThan(0);
     expect(listing.queryByText("Back to Home")).toBeNull();
 
-    const listingSchemas = [...listing.container.querySelectorAll('script[type="application/ld+json"]')].map(
+    const listingSchemas = [
+      ...listing.container.querySelectorAll('script[type="application/ld+json"]'),
+    ].map(
       (node) => JSON.parse(node.textContent ?? "{}") as { "@type"?: string; blogPost?: unknown[] },
     );
     expect(listingSchemas.some((schema) => schema["@type"] === "BreadcrumbList")).toBe(true);
@@ -175,9 +177,9 @@ describe("public page rendering", () => {
     expect(post.getAllByRole("link", { name: "FAQ" }).length).toBeGreaterThan(0);
     expect(post.queryByText("All Posts")).toBeNull();
 
-    const postSchemas = [...post.container.querySelectorAll('script[type="application/ld+json"]')].map(
-      (node) => JSON.parse(node.textContent ?? "{}") as { "@type"?: string },
-    );
+    const postSchemas = [
+      ...post.container.querySelectorAll('script[type="application/ld+json"]'),
+    ].map((node) => JSON.parse(node.textContent ?? "{}") as { "@type"?: string });
     expect(postSchemas.some((schema) => schema["@type"] === "BlogPosting")).toBe(true);
     expect(postSchemas.some((schema) => schema["@type"] === "BreadcrumbList")).toBe(true);
   });
