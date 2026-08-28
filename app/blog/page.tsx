@@ -1,15 +1,13 @@
 import { ArrowRight } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Footer } from "@/components/Footer";
-import { Logo } from "@/components/Logo";
 import { Badge } from "@/components/ui/badge";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { BLOG_POSTS } from "@/lib/blog/posts";
 import { siteConfig } from "@/lib/config/site";
 import {
-  generatePageBreadcrumbJsonLd,
+  generateBlogListingJsonLd,
   generateWebPageJsonLd,
   serializeJsonLd,
 } from "@/lib/seo/json-ld";
@@ -40,43 +38,28 @@ const sortedPosts = [...BLOG_POSTS].sort(
  */
 export default function BlogPage() {
   const blogJsonLd = generateWebPageJsonLd(blogHeading, "/blog", blogDescription);
-  const breadcrumbJsonLd = generatePageBreadcrumbJsonLd("Blog", "/blog");
+  const listingJsonLd = generateBlogListingJsonLd(sortedPosts);
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(blogJsonLd) }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(listingJsonLd) }}
       />
-      <header className="sticky top-0 z-50 border-b border-border bg-background/90 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <Link
-            href="/"
-            className="hover:opacity-80 transition-opacity"
-            aria-label="clickfolio.me home"
-          >
-            <Logo size="md" />
-          </Link>
-          <Link
-            href="/"
-            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Back to Home
-          </Link>
-        </div>
-      </header>
-
       <Breadcrumb
         items={[
           { label: "Home", href: "/" },
           { label: "Blog", href: "/blog" },
         ]}
       />
-      <main className="flex-1 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 w-full">
+      <main
+        id="main-content"
+        className="flex-1 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 w-full"
+      >
         <div className="text-center mb-12">
           <h1 className="text-4xl sm:text-5xl font-bold text-foreground mb-4 tracking-tight">
             {blogHeading}
@@ -134,8 +117,6 @@ export default function BlogPage() {
           </Button>
         </div>
       </main>
-
-      <Footer />
-    </div>
+    </>
   );
 }

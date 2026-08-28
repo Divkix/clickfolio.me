@@ -4,11 +4,7 @@ import { Footer } from "@/components/Footer";
 import { Logo } from "@/components/Logo";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { siteConfig } from "@/lib/config/site";
-import {
-  generatePageBreadcrumbJsonLd,
-  generateWebPageJsonLd,
-  serializeJsonLd,
-} from "@/lib/seo/json-ld";
+import { generateWebPageJsonLd, serializeJsonLd } from "@/lib/seo/json-ld";
 import { buildPublicPageMetadata } from "@/lib/seo/page-metadata";
 
 /** Revalidate privacy page daily since it's static content. */
@@ -29,7 +25,6 @@ export const metadata: Metadata = buildPublicPageMetadata({
  * Privacy policy page — full legal disclosure with structured data and breadcrumbs.
  */
 export default function PrivacyPolicyPage() {
-  const breadcrumb = generatePageBreadcrumbJsonLd("Privacy Policy", "/privacy");
   const webPage = generateWebPageJsonLd(
     "Privacy Policy",
     "/privacy",
@@ -39,10 +34,6 @@ export default function PrivacyPolicyPage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumb) }}
-      />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(webPage) }}

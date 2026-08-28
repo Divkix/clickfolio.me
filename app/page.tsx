@@ -170,7 +170,7 @@ export default function Home() {
                   <ArrowRight className="size-4 text-muted-foreground" />
                 </a>
 
-                <p className="text-center text-xs text-muted-foreground">
+                <p className="text-center text-xs text-foreground/80">
                   Powered by <span className="font-medium text-foreground">Cloudflare</span> ·{" "}
                   <span className="font-medium text-foreground">OpenAI</span>
                 </p>
@@ -279,7 +279,7 @@ export default function Home() {
                   <BottomCTAButton />
                   <a
                     href="/blog"
-                    className="text-sm text-background/70 underline underline-offset-4 transition-colors hover:text-background"
+                    className="inline-flex min-h-11 items-center px-3 text-sm text-background/80 underline underline-offset-4 transition-colors hover:text-background"
                   >
                     Read our guides
                   </a>

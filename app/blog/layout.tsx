@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { Footer } from "@/components/Footer";
+import { SiteHeader } from "@/components/SiteHeader";
 import { buildPublicPageMetadata } from "@/lib/seo/page-metadata";
 
 /** SEO metadata fallback for the blog section (listing + posts override). */
@@ -13,12 +15,15 @@ export const metadata: Metadata = {
 };
 
 /**
- * Blog section layout — simple wrapper with consistent background styling.
+ * Blog section layout — same public nav (Explore / Blog / FAQ / About) as the
+ * rest of the marketing site. Listing and posts keep their own `<main>`.
  */
 export default function BlogLayout({ children }: { children: React.ReactNode }) {
   return (
-    <main className="min-h-screen bg-background" id="main-content">
-      {children}
-    </main>
+    <div className="flex min-h-screen flex-col bg-background">
+      <SiteHeader />
+      <div className="flex flex-1 flex-col">{children}</div>
+      <Footer />
+    </div>
   );
 }

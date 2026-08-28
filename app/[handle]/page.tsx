@@ -193,6 +193,7 @@ export default async function HandlePage({ params }: PageProps) {
       )}
       {!privacy_settings.hide_from_search && (
         <Breadcrumb
+          includeJsonLd={false}
           items={[
             { label: "Home", href: "/" },
             { label: "Explore", href: "/explore" },

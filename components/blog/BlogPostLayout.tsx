@@ -1,14 +1,15 @@
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { FaqAccordion } from "@/components/Faq";
-import { Footer } from "@/components/Footer";
-import { Logo } from "@/components/Logo";
 import { Badge } from "@/components/ui/badge";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import type { BlogPostMeta } from "@/lib/blog/posts";
 import { authorPersona } from "@/lib/config/author";
-import { siteConfig } from "@/lib/config/site";
-import { generateFAQPageJsonLd, serializeJsonLd } from "@/lib/seo/json-ld";
+import {
+  generateBlogPostingJsonLd,
+  generateFAQPageJsonLd,
+  serializeJsonLd,
+} from "@/lib/seo/json-ld";
 
 interface BlogPostLayoutProps {
   post: BlogPostMeta;
@@ -16,89 +17,17 @@ interface BlogPostLayoutProps {
   relatedPosts?: BlogPostMeta[];
 }
 
-function generateArticleJsonLd(post: BlogPostMeta) {
-  return {
-    "@context": "https://schema.org",
-    "@type": "Article",
-    "@id": `${siteConfig.url}/blog/${post.slug}#article`,
-    headline: post.title,
-    description: post.description,
-    datePublished: post.date,
-    dateModified: post.dateModified ?? post.date,
-    url: `${siteConfig.url}/blog/${post.slug}`,
-    keywords: post.keywords?.join(", "),
-    author: {
-      "@type": "Person",
-      name: authorPersona.name,
-      description: authorPersona.bio,
-      url: authorPersona.url,
-    },
-    publisher: {
-      "@type": "Organization",
-      name: siteConfig.fullName,
-      url: siteConfig.url,
-      logo: {
-        "@type": "ImageObject",
-        url: `${siteConfig.url}/icon-512.png`,
-      },
-    },
-    isPartOf: {
-      "@type": "Blog",
-      "@id": `${siteConfig.url}/blog#blog`,
-      name: `${siteConfig.fullName} Blog`,
-      url: `${siteConfig.url}/blog`,
-    },
-    mainEntityOfPage: {
-      "@type": "WebPage",
-      "@id": `${siteConfig.url}/blog/${post.slug}#webpage`,
-      url: `${siteConfig.url}/blog/${post.slug}`,
-    },
-  };
-}
-
-function generateBlogBreadcrumbJsonLd(post: BlogPostMeta) {
-  return {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    itemListElement: [
-      {
-        "@type": "ListItem",
-        position: 1,
-        name: "Home",
-        item: siteConfig.url,
-      },
-      {
-        "@type": "ListItem",
-        position: 2,
-        name: "Blog",
-        item: `${siteConfig.url}/blog`,
-      },
-      {
-        "@type": "ListItem",
-        position: 3,
-        name: post.title,
-        item: `${siteConfig.url}/blog/${post.slug}`,
-      },
-    ],
-  };
-}
-
 export function BlogPostLayout({ post, children, relatedPosts }: BlogPostLayoutProps) {
-  const articleJsonLd = generateArticleJsonLd(post);
-  const breadcrumbJsonLd = generateBlogBreadcrumbJsonLd(post);
+  const postingJsonLd = generateBlogPostingJsonLd(post);
   const faqJsonLd = post.faq && post.faq.length > 0 ? generateFAQPageJsonLd(post.faq) : null;
   const updatedDate = post.dateModified ?? post.date;
   const wasUpdated = Boolean(post.dateModified && post.dateModified !== post.date);
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: serializeJsonLd(articleJsonLd) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(postingJsonLd) }}
       />
       {faqJsonLd && (
         <script
@@ -106,24 +35,6 @@ export function BlogPostLayout({ post, children, relatedPosts }: BlogPostLayoutP
           dangerouslySetInnerHTML={{ __html: serializeJsonLd(faqJsonLd) }}
         />
       )}
-      <header className="sticky top-0 z-50 border-b border-border bg-background/90 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <Link
-            href="/"
-            className="hover:opacity-80 transition-opacity"
-            aria-label="clickfolio.me home"
-          >
-            <Logo size="md" />
-          </Link>
-          <Link
-            href="/blog"
-            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-          >
-            All Posts
-          </Link>
-        </div>
-      </header>
-
       <Breadcrumb
         items={[
           { label: "Home", href: "/" },
@@ -132,7 +43,7 @@ export function BlogPostLayout({ post, children, relatedPosts }: BlogPostLayoutP
         ]}
       />
 
-      <main className="flex-1 px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+      <main id="main-content" className="flex-1 px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
         <article className="max-w-3xl mx-auto">
           <header className="mb-12">
             <Badge variant="brand" className="mb-4">
@@ -199,7 +110,7 @@ export function BlogPostLayout({ post, children, relatedPosts }: BlogPostLayoutP
           <div className="mt-8 text-center">
             <Link
               href="/blog"
-              className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              className="inline-flex min-h-11 items-center gap-2 px-3 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
               <ArrowLeft className="w-4 h-4" aria-hidden="true" />
               Back to Blog
@@ -230,8 +141,6 @@ export function BlogPostLayout({ post, children, relatedPosts }: BlogPostLayoutP
           )}
         </article>
       </main>
-
-      <Footer />
-    </div>
+    </>
   );
 }

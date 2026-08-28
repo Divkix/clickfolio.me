@@ -424,6 +424,9 @@ describe("server rendered app pages", () => {
     expect(screen.getByText("Avery Quinn")).toBeInTheDocument();
     expect(screen.getByText("+1 more")).toBeInTheDocument();
     expect(screen.getByText("Previous")).toBeInTheDocument();
+    const skillChip = screen.getByText("TypeScript");
+    expect(skillChip.className).toMatch(/truncate/);
+    expect(skillChip.parentElement?.className).toMatch(/min-w-0/);
   });
   it("renders explore with a NaN ?page= as page 1 (no NaN offset/links)", async () => {
     const { default: ExplorePage } = await import("@/app/explore/page");

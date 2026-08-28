@@ -4,11 +4,7 @@ import { Footer } from "@/components/Footer";
 import { Logo } from "@/components/Logo";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { siteConfig } from "@/lib/config/site";
-import {
-  generatePageBreadcrumbJsonLd,
-  generateWebPageJsonLd,
-  serializeJsonLd,
-} from "@/lib/seo/json-ld";
+import { generateWebPageJsonLd, serializeJsonLd } from "@/lib/seo/json-ld";
 import { buildPublicPageMetadata } from "@/lib/seo/page-metadata";
 
 /** Revalidate terms page daily since it's static content. */
@@ -29,7 +25,6 @@ export const metadata: Metadata = buildPublicPageMetadata({
  * Terms of service page — full legal terms with structured data and breadcrumbs.
  */
 export default function TermsOfServicePage() {
-  const breadcrumb = generatePageBreadcrumbJsonLd("Terms of Service", "/terms");
   const webPage = generateWebPageJsonLd(
     "Terms of Service",
     "/terms",
@@ -39,10 +34,6 @@ export default function TermsOfServicePage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumb) }}
-      />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(webPage) }}
