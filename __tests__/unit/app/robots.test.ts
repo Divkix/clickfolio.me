@@ -19,16 +19,65 @@ describe("robots metadata", () => {
 
     expect(config.rules).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ userAgent: "GPTBot", allow: ["/", "/explore", "/blog"] }),
-        expect.objectContaining({ userAgent: "ChatGPT-User", allow: ["/", "/explore", "/blog"] }),
-        expect.objectContaining({ userAgent: "ClaudeBot", allow: ["/", "/explore", "/blog"] }),
-        expect.objectContaining({ userAgent: "PerplexityBot", allow: ["/", "/explore", "/blog"] }),
+        expect.objectContaining({
+          userAgent: "GPTBot",
+          allow: ["/", "/explore", "/blog"],
+          disallow: expect.arrayContaining(["/admin/", "/dashboard/", "/edit/"]),
+        }),
+        expect.objectContaining({
+          userAgent: "ChatGPT-User",
+          allow: ["/", "/explore", "/blog"],
+          disallow: expect.arrayContaining(["/admin/", "/dashboard/", "/edit/"]),
+        }),
+        expect.objectContaining({
+          userAgent: "ClaudeBot",
+          allow: ["/", "/explore", "/blog"],
+          disallow: expect.arrayContaining(["/admin/", "/dashboard/", "/edit/"]),
+        }),
+        expect.objectContaining({
+          userAgent: "PerplexityBot",
+          allow: ["/", "/explore", "/blog"],
+          disallow: expect.arrayContaining(["/admin/", "/dashboard/", "/edit/"]),
+        }),
         expect.objectContaining({
           userAgent: "Google-Extended",
           allow: ["/", "/explore", "/blog"],
+          disallow: expect.arrayContaining(["/admin/", "/dashboard/", "/edit/"]),
         }),
-        expect.objectContaining({ userAgent: "GoogleOther", allow: ["/", "/explore", "/blog"] }),
+        expect.objectContaining({
+          userAgent: "GoogleOther",
+          allow: ["/", "/explore", "/blog"],
+          disallow: expect.arrayContaining(["/admin/", "/dashboard/", "/edit/"]),
+        }),
       ]),
     );
+  });
+
+  it("copies the * Disallow list onto every AI crawler group", () => {
+    const config = robots();
+    const starRule = config.rules.find((rule) => rule.userAgent === "*");
+    const aiAgents = [
+      "GPTBot",
+      "ChatGPT-User",
+      "ClaudeBot",
+      "PerplexityBot",
+      "Google-Extended",
+      "GoogleOther",
+    ];
+
+    expect(starRule?.disallow).toEqual([
+      "/admin/",
+      "/dashboard/",
+      "/edit/",
+      "/preview/",
+      "/settings/",
+      "/waiting/",
+      "/wizard/",
+    ]);
+
+    for (const userAgent of aiAgents) {
+      const rule = config.rules.find((entry) => entry.userAgent === userAgent);
+      expect(rule?.disallow).toEqual(starRule?.disallow);
+    }
   });
 });

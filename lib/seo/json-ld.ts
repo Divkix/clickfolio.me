@@ -7,6 +7,7 @@
 import type { Metadata } from "next";
 import { FAQ_ITEMS } from "@/lib/config/faq";
 import { siteConfig } from "@/lib/config/site";
+import { buildPublicPageMetadata } from "@/lib/seo/page-metadata";
 import type { ResumeContent } from "@/lib/types/database";
 import type { UnknownRecord } from "@/lib/types/json";
 
@@ -571,30 +572,15 @@ export function generateWebPageJsonLd(
 /**
  * Builds the Next.js Metadata object for a /for/<role> profession landing page.
  * Shared by every app/for/<role>/page.tsx so the per-page `export const metadata`
- * stays a one-line call. Output is identical to the previous inline definition.
+ * stays a one-line call. Delegates to `buildPublicPageMetadata` so og:url,
+ * og:type, and twitter:card/images are always set (not inherited from root).
  */
 export function buildRolePageMetadata(params: {
   title: string;
   description: string;
   path: string;
 }): Metadata {
-  const { title, description, path } = params;
-  return {
-    title,
-    description,
-    alternates: { canonical: `${siteConfig.url}${path}` },
-    openGraph: {
-      title,
-      description,
-      siteName: siteConfig.fullName,
-      images: [{ url: `${siteConfig.url}/api/og/home`, width: 1200, height: 630 }],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-    },
-  };
+  return buildPublicPageMetadata(params);
 }
 
 /**

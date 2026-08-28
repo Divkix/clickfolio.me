@@ -9,6 +9,7 @@ import {
   generateWebPageJsonLd,
   serializeJsonLd,
 } from "@/lib/seo/json-ld";
+import { buildPublicPageMetadata } from "@/lib/seo/page-metadata";
 
 /** Revalidate privacy page daily since it's static content. */
 export const revalidate = 86400;
@@ -17,22 +18,12 @@ const privacyTitle = `Privacy Policy - ${siteConfig.fullName}`;
 const privacyDescription = `Privacy Policy for ${siteConfig.fullName}. Learn how we collect, use, and protect your personal information.`;
 
 /** SEO metadata for the privacy policy page. */
-export const metadata: Metadata = {
+export const metadata: Metadata = buildPublicPageMetadata({
   title: "Privacy Policy",
+  ogTitle: privacyTitle,
   description: privacyDescription,
-  alternates: { canonical: `${siteConfig.url}/privacy` },
-  openGraph: {
-    title: privacyTitle,
-    description: privacyDescription,
-    siteName: siteConfig.fullName,
-    images: [{ url: "/api/og/home", width: 1200, height: 630 }],
-  },
-  twitter: {
-    card: "summary",
-    title: privacyTitle,
-    description: privacyDescription,
-  },
-};
+  path: "/privacy",
+});
 
 /**
  * Privacy policy page — full legal disclosure with structured data and breadcrumbs.

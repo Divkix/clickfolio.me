@@ -10,30 +10,20 @@ import {
   generateWebPageJsonLd,
   serializeJsonLd,
 } from "@/lib/seo/json-ld";
+import { buildPublicPageMetadata } from "@/lib/seo/page-metadata";
 
 /** Revalidate daily — static marketing content. */
 export const revalidate = 86400;
 
-const aboutTitle = `About - ${siteConfig.fullName}`;
+const aboutTitle = "About clickfolio.me — from PDF resume to hosted portfolio";
 const aboutDescription = `${siteConfig.fullName} turns your PDF resume into a hosted web portfolio in seconds. Learn what we believe, how it works, and why it's free.`;
 
 /** SEO metadata for the about page. */
-export const metadata: Metadata = {
-  title: "About",
+export const metadata: Metadata = buildPublicPageMetadata({
+  title: aboutTitle,
   description: aboutDescription,
-  alternates: { canonical: `${siteConfig.url}/about` },
-  openGraph: {
-    title: aboutTitle,
-    description: aboutDescription,
-    siteName: siteConfig.fullName,
-    images: [{ url: "/api/og/home", width: 1200, height: 630 }],
-  },
-  twitter: {
-    card: "summary",
-    title: aboutTitle,
-    description: aboutDescription,
-  },
-};
+  path: "/about",
+});
 
 const VALUES = [
   {
@@ -81,7 +71,7 @@ const STEPS = [
  */
 export default function AboutPage() {
   const breadcrumb = generatePageBreadcrumbJsonLd("About", "/about");
-  const webPage = generateWebPageJsonLd("About", "/about", aboutDescription);
+  const webPage = generateWebPageJsonLd(aboutTitle, "/about", aboutDescription);
 
   return (
     <div className="flex min-h-screen flex-col bg-background">

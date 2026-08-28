@@ -126,10 +126,20 @@ describe("public page rendering", () => {
 
   it("renders the homepage with its upload CTA and discovery content", () => {
     const { container } = render(<Home />);
+    const h1 = container.querySelector("h1");
 
-    expect(container.textContent).toContain("Your resume is already a website");
+    expect(h1?.textContent).toMatch(/resume website builder/i);
+    expect(h1?.textContent).toContain("Your resume is already a website");
     expect(container.textContent).toContain("Drop your PDF");
     expect(container.textContent).toContain("Open source");
+  });
+
+  it("renders a specific blog listing H1, not a generic Blog label", () => {
+    const { container } = render(<BlogPage />);
+    const h1 = container.querySelector("h1");
+
+    expect(h1?.textContent).toMatch(/resume website/i);
+    expect(h1?.textContent?.trim()).not.toBe("Blog");
   });
 
   it.each(pages)("renders %s", (_name, Page) => {

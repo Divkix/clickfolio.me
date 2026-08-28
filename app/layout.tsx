@@ -52,7 +52,6 @@ export const metadata: Metadata = {
   },
   openGraph: {
     siteName: siteConfig.fullName,
-    images: [{ url: "/api/og/home", width: 1200, height: 630 }],
   },
   other: {
     "msapplication-TileColor": "#D94E4E",

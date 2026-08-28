@@ -13,31 +13,23 @@ import {
   generateWebPageJsonLd,
   serializeJsonLd,
 } from "@/lib/seo/json-ld";
+import { buildPublicPageMetadata } from "@/lib/seo/page-metadata";
 
 /** Revalidate blog listing every 30 minutes for fresh content. */
 export const revalidate = 86400;
 
+const blogHeading = "Writing about resume websites";
 const blogTitle = `Resume Website & Portfolio Guides | ${siteConfig.fullName}`;
 const blogDescription =
   "Guides, comparisons, and tips on building a resume website and online portfolio. Compare builders, see examples, and learn how to turn your PDF resume into a site.";
 
 /** SEO metadata for the blog listing page. */
-export const metadata: Metadata = {
+export const metadata: Metadata = buildPublicPageMetadata({
   title: "Resume Website & Portfolio Guides",
+  ogTitle: blogTitle,
   description: blogDescription,
-  alternates: { canonical: `${siteConfig.url}/blog` },
-  openGraph: {
-    title: blogTitle,
-    description: blogDescription,
-    siteName: siteConfig.fullName,
-    images: [{ url: "/api/og/home", width: 1200, height: 630 }],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: blogTitle,
-    description: blogDescription,
-  },
-};
+  path: "/blog",
+});
 
 const sortedPosts = [...BLOG_POSTS].sort(
   (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
@@ -47,7 +39,7 @@ const sortedPosts = [...BLOG_POSTS].sort(
  * Blog listing page — displays all published posts with structured data.
  */
 export default function BlogPage() {
-  const blogJsonLd = generateWebPageJsonLd("Blog", "/blog", blogDescription);
+  const blogJsonLd = generateWebPageJsonLd(blogHeading, "/blog", blogDescription);
   const breadcrumbJsonLd = generatePageBreadcrumbJsonLd("Blog", "/blog");
 
   return (
@@ -87,7 +79,7 @@ export default function BlogPage() {
       <main className="flex-1 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 w-full">
         <div className="text-center mb-12">
           <h1 className="text-4xl sm:text-5xl font-bold text-foreground mb-4 tracking-tight">
-            Blog
+            {blogHeading}
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Guides, comparisons, and tips for building your online portfolio.

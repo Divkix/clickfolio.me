@@ -1,6 +1,26 @@
 import type { MetadataRoute } from "next";
 import { getPublicSiteUrl } from "@/lib/utils/site-url";
 
+/** Protected app surfaces — copied onto AI crawler groups (they do not inherit `*`). */
+const DISALLOW_PROTECTED = [
+  "/admin/",
+  "/dashboard/",
+  "/edit/",
+  "/preview/",
+  "/settings/",
+  "/waiting/",
+  "/wizard/",
+] as const;
+
+const AI_CRAWLERS = [
+  "GPTBot",
+  "ChatGPT-User",
+  "ClaudeBot",
+  "PerplexityBot",
+  "Google-Extended",
+  "GoogleOther",
+] as const;
+
 /**
  * Generates the robots.txt rules for search engine crawlers.
  * Allows public pages and AI crawlers; blocks protected routes.
@@ -13,40 +33,13 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: ["/", "/api/og/"],
-        disallow: [
-          "/admin/",
-          "/dashboard/",
-          "/edit/",
-          "/preview/",
-          "/settings/",
-          "/waiting/",
-          "/wizard/",
-        ],
+        disallow: [...DISALLOW_PROTECTED],
       },
-      {
-        userAgent: "GPTBot",
+      ...AI_CRAWLERS.map((userAgent) => ({
+        userAgent,
         allow: ["/", "/explore", "/blog"],
-      },
-      {
-        userAgent: "ChatGPT-User",
-        allow: ["/", "/explore", "/blog"],
-      },
-      {
-        userAgent: "ClaudeBot",
-        allow: ["/", "/explore", "/blog"],
-      },
-      {
-        userAgent: "PerplexityBot",
-        allow: ["/", "/explore", "/blog"],
-      },
-      {
-        userAgent: "Google-Extended",
-        allow: ["/", "/explore", "/blog"],
-      },
-      {
-        userAgent: "GoogleOther",
-        allow: ["/", "/explore", "/blog"],
-      },
+        disallow: [...DISALLOW_PROTECTED],
+      })),
     ],
     sitemap: `${baseUrl}/sitemap.xml`,
   };

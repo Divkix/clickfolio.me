@@ -18,6 +18,7 @@ import {
   generatePageBreadcrumbJsonLd,
   serializeJsonLd,
 } from "@/lib/seo/json-ld";
+import { buildPublicPageMetadata } from "@/lib/seo/page-metadata";
 import { normalizePreviewSkills } from "@/lib/utils/preview-skills";
 import { extractCityState, normalizePrivacySettings } from "@/lib/utils/privacy";
 import { safePageParam } from "@/lib/utils/pagination";
@@ -30,25 +31,12 @@ const exploreDescription =
   "Discover professionals in our community. Browse portfolios and connect with talented individuals.";
 
 /** SEO metadata for the explore directory page. */
-export const metadata: Metadata = {
+export const metadata: Metadata = buildPublicPageMetadata({
   title: "Browse Professional Portfolios",
+  ogTitle: exploreTitle,
   description: exploreDescription,
-  alternates: {
-    canonical: `${siteConfig.url}/explore`,
-  },
-  openGraph: {
-    title: exploreTitle,
-    description: exploreDescription,
-    url: `${siteConfig.url}/explore`,
-    siteName: siteConfig.fullName,
-    images: [{ url: "/api/og/home", width: 1200, height: 630 }],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: exploreTitle,
-    description: exploreDescription,
-  },
-};
+  path: "/explore",
+});
 
 /** Shape of a user entry in the public directory. */
 interface DirectoryUser {

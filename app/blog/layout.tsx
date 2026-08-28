@@ -1,18 +1,14 @@
 import type { Metadata } from "next";
-import { siteConfig } from "@/lib/config/site";
+import { buildPublicPageMetadata } from "@/lib/seo/page-metadata";
 
-/** SEO metadata for the blog section. */
+/** SEO metadata fallback for the blog section (listing + posts override). */
 export const metadata: Metadata = {
-  title: "Blog | clickfolio.me",
-  description:
-    "Guides, comparisons, and tips for building your online portfolio. Learn how to turn your PDF resume into a professional website.",
-  alternates: { canonical: `${siteConfig.url}/blog` },
-  openGraph: {
-    title: `Blog | ${siteConfig.fullName}`,
-    description: "Guides, comparisons, and tips for building your online portfolio.",
-    siteName: siteConfig.fullName,
-    images: [{ url: "/api/og/home", width: 1200, height: 630 }],
-  },
+  ...buildPublicPageMetadata({
+    title: "Resume website guides",
+    description:
+      "Guides, comparisons, and tips for building your online portfolio. Learn how to turn your PDF resume into a professional website.",
+    path: "/blog",
+  }),
   robots: { index: true, follow: true },
 };
 
