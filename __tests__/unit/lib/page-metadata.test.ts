@@ -71,13 +71,19 @@ describe("public page social metadata", () => {
   });
 
   it("keeps About and Blog titles specific, with complete share tags", () => {
-    expect(String(aboutMetadata.title)).toMatch(/clickfolio\.me/i);
+    // Document title must not include the brand — root template is `%s | clickfolio.me`.
+    expect(String(aboutMetadata.title)).not.toMatch(/clickfolio\.me/i);
+    expect(String(aboutMetadata.title)).toMatch(/from PDF resume to hosted portfolio/i);
     expect(String(aboutMetadata.title)).not.toBe("About");
     expect(aboutMetadata.openGraph).toMatchObject({
       type: "website",
       url: `${siteConfig.url}/about`,
+      title: expect.stringMatching(/clickfolio\.me/i),
     });
-    expect(aboutMetadata.twitter).toMatchObject({ card: "summary_large_image" });
+    expect(aboutMetadata.twitter).toMatchObject({
+      card: "summary_large_image",
+      title: expect.stringMatching(/clickfolio\.me/i),
+    });
 
     expect(String(blogListingMetadata.title)).toMatch(/resume website/i);
     expect(blogListingMetadata.openGraph).toMatchObject({

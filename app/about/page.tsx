@@ -15,12 +15,16 @@ import { buildPublicPageMetadata } from "@/lib/seo/page-metadata";
 /** Revalidate daily — static marketing content. */
 export const revalidate = 86400;
 
-const aboutTitle = "About clickfolio.me — from PDF resume to hosted portfolio";
+/** Document title — no brand; root layout template is `%s | clickfolio.me`. */
+const aboutTitle = "About — from PDF resume to hosted portfolio";
+/** OG/Twitter skip the HTML title template, so they keep the brand. */
+const aboutOgTitle = `About ${siteConfig.fullName} — from PDF resume to hosted portfolio`;
 const aboutDescription = `${siteConfig.fullName} turns your PDF resume into a hosted web portfolio in seconds. Learn what we believe, how it works, and why it's free.`;
 
 /** SEO metadata for the about page. */
 export const metadata: Metadata = buildPublicPageMetadata({
   title: aboutTitle,
+  ogTitle: aboutOgTitle,
   description: aboutDescription,
   path: "/about",
 });
