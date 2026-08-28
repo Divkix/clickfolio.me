@@ -55,7 +55,8 @@ describe("robots metadata", () => {
 
   it("copies the * Disallow list onto every AI crawler group", () => {
     const config = robots();
-    const starRule = config.rules.find((rule) => rule.userAgent === "*");
+    const rules = Array.isArray(config.rules) ? config.rules : [config.rules];
+    const starRule = rules.find((rule) => rule.userAgent === "*");
     const aiAgents = [
       "GPTBot",
       "ChatGPT-User",
@@ -76,7 +77,7 @@ describe("robots metadata", () => {
     ]);
 
     for (const userAgent of aiAgents) {
-      const rule = config.rules.find((entry) => entry.userAgent === userAgent);
+      const rule = rules.find((entry) => entry.userAgent === userAgent);
       expect(rule?.disallow).toEqual(starRule?.disallow);
     }
   });
