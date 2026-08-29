@@ -241,7 +241,7 @@ PR requirements:
 
 ## CI pipeline (deep)
 
-One workflow exists: `ci.yml` (there is no AI-review workflow — no `ai-review.yml`/`ai-review-commands.yml` in `.github/workflows`).
+One workflow exists: `ci.yml` (no AI-review / Pullfrog workflow — `.github/workflows/` has only `ci.yml`; the Pullfrog GitHub App is not part of this repo's CI).
 
 CI (`.github/workflows/ci.yml`) is **7 jobs**. The five primary jobs run **in parallel** (no inter-dependencies); only the downstream jobs have `needs`. `ci-success` is the single required gate. Workflow-level `permissions: { contents: read }`. `concurrency` group `${{ github.workflow }}-${{ github.ref }}` with `cancel-in-progress: true`. Triggers: push + PR on `main`/`master`. **All actions are pinned to full commit SHAs except `voidzero-dev/setup-vp@v1`** (floating tag); every checkout sets `persist-credentials: false`.
 
