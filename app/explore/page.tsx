@@ -13,11 +13,8 @@ import { siteConfig } from "@/lib/config/site";
 import { getDb } from "@/lib/db";
 import { siteData, user } from "@/lib/db/schema";
 import { ROLE_OPTIONS } from "@/lib/schemas/profile";
-import {
-  generateExploreJsonLd,
-  generatePageBreadcrumbJsonLd,
-  serializeJsonLd,
-} from "@/lib/seo/json-ld";
+import { generateExploreJsonLd, serializeJsonLd } from "@/lib/seo/json-ld";
+import { buildPublicPageMetadata } from "@/lib/seo/page-metadata";
 import { normalizePreviewSkills } from "@/lib/utils/preview-skills";
 import { extractCityState, normalizePrivacySettings } from "@/lib/utils/privacy";
 import { safePageParam } from "@/lib/utils/pagination";
@@ -30,25 +27,12 @@ const exploreDescription =
   "Discover professionals in our community. Browse portfolios and connect with talented individuals.";
 
 /** SEO metadata for the explore directory page. */
-export const metadata: Metadata = {
+export const metadata: Metadata = buildPublicPageMetadata({
   title: "Browse Professional Portfolios",
+  ogTitle: exploreTitle,
   description: exploreDescription,
-  alternates: {
-    canonical: `${siteConfig.url}/explore`,
-  },
-  openGraph: {
-    title: exploreTitle,
-    description: exploreDescription,
-    url: `${siteConfig.url}/explore`,
-    siteName: siteConfig.fullName,
-    images: [{ url: "/api/og/home", width: 1200, height: 630 }],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: exploreTitle,
-    description: exploreDescription,
-  },
-};
+  path: "/explore",
+});
 
 /** Shape of a user entry in the public directory. */
 interface DirectoryUser {
@@ -160,8 +144,6 @@ export default async function ExplorePage({
       headline: u.previewHeadline,
     })),
   );
-  const exploreBreadcrumb = generatePageBreadcrumbJsonLd("Explore Professionals", "/explore");
-
   // Role options for filter (shared constant from profile schema)
   const roleOptions = [{ value: "", label: "All Roles" }, ...ROLE_OPTIONS];
 
@@ -170,10 +152,6 @@ export default async function ExplorePage({
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(exploreJsonLd) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: serializeJsonLd(exploreBreadcrumb) }}
       />
       {/* Pagination hints for crawlers */}
       {currentPage > 1 && (
@@ -237,7 +215,7 @@ export default async function ExplorePage({
               <Link
                 key={person.handle}
                 href={`/@${person.handle}`}
-                className="group bg-card rounded-xl border border-border shadow-sm p-6 transition-colors hover:border-border-strong hover:bg-surface-2"
+                className="group min-w-0 overflow-hidden bg-card rounded-xl border border-border shadow-sm p-6 transition-colors hover:border-border-strong hover:bg-surface-2"
               >
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1 min-w-0">
@@ -276,9 +254,13 @@ export default async function ExplorePage({
 
                 {/* Skills preview */}
                 {person.previewSkills && person.previewSkills.length > 0 && (
-                  <div className="mt-4 flex flex-wrap gap-1.5">
+                  <div className="mt-4 flex min-w-0 flex-wrap gap-1.5">
                     {person.previewSkills.slice(0, 4).map((skill, idx) => (
-                      <Badge key={`${skill}-${idx}`} variant="outline">
+                      <Badge
+                        key={`${skill}-${idx}`}
+                        variant="outline"
+                        className="max-w-full min-w-0 truncate"
+                      >
                         {skill}
                       </Badge>
                     ))}

@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { PROFESSIONS } from "@/lib/config/professions";
 import { siteConfig } from "@/lib/config/site";
 import { generateFAQJsonLd, generateHomepageJsonLd, serializeJsonLd } from "@/lib/seo/json-ld";
+import { HOME_OG_IMAGE } from "@/lib/seo/page-metadata";
 import { DEMO_PROFILES } from "@/lib/templates/demo-data";
 
 export const revalidate = 3600;
@@ -35,20 +36,13 @@ export const metadata: Metadata = {
     type: "website",
     url: siteConfig.url,
     siteName: siteConfig.fullName,
-    images: [
-      {
-        url: `${siteConfig.url}/api/og/home`,
-        width: 1200,
-        height: 630,
-        alt: siteConfig.fullName,
-      },
-    ],
+    images: [HOME_OG_IMAGE],
   },
   twitter: {
     card: "summary_large_image",
     title: pageTitle,
     description: pageDescription,
-    images: [`${siteConfig.url}/api/og/home`],
+    images: [HOME_OG_IMAGE.url],
   },
 };
 
@@ -86,7 +80,8 @@ export default function Home() {
                     Free · No sign-up to start
                   </Badge>
                   <h1 className="font-display text-4xl font-extrabold leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl">
-                    Your resume is already a <span className="text-brand">website</span>.
+                    Free <span className="text-brand">resume website builder</span>.
+                    <span className="mt-3 block">Your resume is already a website.</span>
                   </h1>
                   <p className="mt-5 max-w-lg text-lg text-muted-foreground">
                     clickfolio.me is a free{" "}
@@ -175,7 +170,7 @@ export default function Home() {
                   <ArrowRight className="size-4 text-muted-foreground" />
                 </a>
 
-                <p className="text-center text-xs text-muted-foreground">
+                <p className="text-center text-xs text-foreground/80">
                   Powered by <span className="font-medium text-foreground">Cloudflare</span> ·{" "}
                   <span className="font-medium text-foreground">OpenAI</span>
                 </p>
@@ -284,7 +279,7 @@ export default function Home() {
                   <BottomCTAButton />
                   <a
                     href="/blog"
-                    className="text-sm text-background/70 underline underline-offset-4 transition-colors hover:text-background"
+                    className="inline-flex min-h-11 items-center px-3 text-sm text-background/80 underline underline-offset-4 transition-colors hover:text-background"
                   >
                     Read our guides
                   </a>

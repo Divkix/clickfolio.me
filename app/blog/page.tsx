@@ -1,43 +1,33 @@
 import { ArrowRight } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Footer } from "@/components/Footer";
-import { Logo } from "@/components/Logo";
 import { Badge } from "@/components/ui/badge";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { BLOG_POSTS } from "@/lib/blog/posts";
 import { siteConfig } from "@/lib/config/site";
 import {
-  generatePageBreadcrumbJsonLd,
+  generateBlogListingJsonLd,
   generateWebPageJsonLd,
   serializeJsonLd,
 } from "@/lib/seo/json-ld";
+import { buildPublicPageMetadata } from "@/lib/seo/page-metadata";
 
 /** Revalidate blog listing every 30 minutes for fresh content. */
 export const revalidate = 86400;
 
+const blogHeading = "Writing about resume websites";
 const blogTitle = `Resume Website & Portfolio Guides | ${siteConfig.fullName}`;
 const blogDescription =
   "Guides, comparisons, and tips on building a resume website and online portfolio. Compare builders, see examples, and learn how to turn your PDF resume into a site.";
 
 /** SEO metadata for the blog listing page. */
-export const metadata: Metadata = {
+export const metadata: Metadata = buildPublicPageMetadata({
   title: "Resume Website & Portfolio Guides",
+  ogTitle: blogTitle,
   description: blogDescription,
-  alternates: { canonical: `${siteConfig.url}/blog` },
-  openGraph: {
-    title: blogTitle,
-    description: blogDescription,
-    siteName: siteConfig.fullName,
-    images: [{ url: "/api/og/home", width: 1200, height: 630 }],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: blogTitle,
-    description: blogDescription,
-  },
-};
+  path: "/blog",
+});
 
 const sortedPosts = [...BLOG_POSTS].sort(
   (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
@@ -47,47 +37,32 @@ const sortedPosts = [...BLOG_POSTS].sort(
  * Blog listing page — displays all published posts with structured data.
  */
 export default function BlogPage() {
-  const blogJsonLd = generateWebPageJsonLd("Blog", "/blog", blogDescription);
-  const breadcrumbJsonLd = generatePageBreadcrumbJsonLd("Blog", "/blog");
+  const blogJsonLd = generateWebPageJsonLd(blogHeading, "/blog", blogDescription);
+  const listingJsonLd = generateBlogListingJsonLd(sortedPosts);
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(blogJsonLd) }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(listingJsonLd) }}
       />
-      <header className="sticky top-0 z-50 border-b border-border bg-background/90 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <Link
-            href="/"
-            className="hover:opacity-80 transition-opacity"
-            aria-label="clickfolio.me home"
-          >
-            <Logo size="md" />
-          </Link>
-          <Link
-            href="/"
-            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Back to Home
-          </Link>
-        </div>
-      </header>
-
       <Breadcrumb
         items={[
           { label: "Home", href: "/" },
           { label: "Blog", href: "/blog" },
         ]}
       />
-      <main className="flex-1 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 w-full">
+      <main
+        id="main-content"
+        className="flex-1 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 w-full"
+      >
         <div className="text-center mb-12">
           <h1 className="text-4xl sm:text-5xl font-bold text-foreground mb-4 tracking-tight">
-            Blog
+            {blogHeading}
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Guides, comparisons, and tips for building your online portfolio.
@@ -142,8 +117,6 @@ export default function BlogPage() {
           </Button>
         </div>
       </main>
-
-      <Footer />
-    </div>
+    </>
   );
 }

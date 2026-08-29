@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { siteConfig } from "@/lib/config/site";
+import { buildPublicPageMetadata } from "@/lib/seo/page-metadata";
 
 export interface BlogPostFaq {
   q: string;
@@ -476,16 +477,13 @@ export function getPostBySlug(slug: string): BlogPostMeta | undefined {
  */
 export function buildBlogPostMetadata(post: BlogPostMeta): Metadata {
   return {
-    title: post.title,
-    description: post.description,
-    alternates: { canonical: `${siteConfig.url}/blog/${post.slug}` },
-    openGraph: {
-      title: `${post.title} | ${siteConfig.fullName}`,
+    ...buildPublicPageMetadata({
+      title: post.title,
+      ogTitle: `${post.title} | ${siteConfig.fullName}`,
       description: post.description,
-      siteName: siteConfig.fullName,
-      images: [{ url: "/api/og/home", width: 1200, height: 630 }],
-    },
-    twitter: { card: "summary_large_image" },
+      path: `/blog/${post.slug}`,
+      ogType: "article",
+    }),
     robots: { index: true, follow: true },
   };
 }

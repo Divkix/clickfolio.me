@@ -12,6 +12,7 @@ import {
   generateWebPageJsonLd,
   serializeJsonLd,
 } from "@/lib/seo/json-ld";
+import { buildPublicPageMetadata } from "@/lib/seo/page-metadata";
 
 /** Revalidate daily — static marketing content. */
 export const revalidate = 86400;
@@ -20,22 +21,12 @@ const faqTitle = `FAQ - ${siteConfig.fullName}`;
 const faqDescription = `Answers to common questions about ${siteConfig.fullName}: how the AI resume parsing works, pricing, privacy, customization, and more.`;
 
 /** SEO metadata for the FAQ page. */
-export const metadata: Metadata = {
+export const metadata: Metadata = buildPublicPageMetadata({
   title: "FAQ",
+  ogTitle: faqTitle,
   description: faqDescription,
-  alternates: { canonical: `${siteConfig.url}/faq` },
-  openGraph: {
-    title: faqTitle,
-    description: faqDescription,
-    siteName: siteConfig.fullName,
-    images: [{ url: "/api/og/home", width: 1200, height: 630 }],
-  },
-  twitter: {
-    card: "summary",
-    title: faqTitle,
-    description: faqDescription,
-  },
-};
+  path: "/faq",
+});
 
 /**
  * Full FAQ page — server-rendered accordion (native <details>) plus FAQPage,

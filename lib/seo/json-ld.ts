@@ -5,8 +5,11 @@
  */
 
 import type { Metadata } from "next";
+import type { BlogPostMeta } from "@/lib/blog/posts";
+import { authorPersona } from "@/lib/config/author";
 import { FAQ_ITEMS } from "@/lib/config/faq";
 import { siteConfig } from "@/lib/config/site";
+import { buildPublicPageMetadata } from "@/lib/seo/page-metadata";
 import type { ResumeContent } from "@/lib/types/database";
 import type { UnknownRecord } from "@/lib/types/json";
 
@@ -516,27 +519,111 @@ export function generateFAQPageJsonLd(items: Array<{ q: string; a: string }>) {
 }
 
 /**
- * Generates a generic 2-item BreadcrumbList: Home > Page.
- * Reusable for explore, privacy, terms, etc.
+ * Absolute URL for a site path. Home (`/`) is the origin with no trailing slash,
+ * matching the existing BreadcrumbList `item` values.
  */
-export function generatePageBreadcrumbJsonLd(pageName: string, pagePath: string) {
+function absoluteUrl(path: string): string {
+  return path === "/" ? siteConfig.url : `${siteConfig.url}${path}`;
+}
+
+/**
+ * Editorial byline used on blog JSON-LD. Comes from `authorPersona` — never invent
+ * a personal author name or a publish date that is not on the post.
+ */
+function blogAuthorJsonLd() {
+  return {
+    "@type": "Person" as const,
+    name: authorPersona.name,
+    description: authorPersona.bio,
+    url: authorPersona.url,
+  };
+}
+
+/**
+ * BreadcrumbList from the visible crumb trail (label + href). Used by
+ * `components/ui/breadcrumb.tsx` so the on-page nav and the schema stay in sync.
+ */
+export function generateBreadcrumbListJsonLd(items: readonly { name: string; path: string }[]) {
   return {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
-    itemListElement: [
-      {
-        "@type": "ListItem",
-        position: 1,
-        name: "Home",
-        item: siteConfig.url,
+    itemListElement: items.map((item, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      name: item.name,
+      item: absoluteUrl(item.path),
+    })),
+  };
+}
+
+/**
+ * Generates a generic 2-item BreadcrumbList: Home > Page.
+ * Reusable for for/ pages, FAQ, About (pages without the visible Breadcrumb nav).
+ */
+export function generatePageBreadcrumbJsonLd(pageName: string, pagePath: string) {
+  return generateBreadcrumbListJsonLd([
+    { name: "Home", path: "/" },
+    { name: pageName, path: pagePath },
+  ]);
+}
+
+/**
+ * BlogPosting for an individual post. headline/datePublished/author come from
+ * `BlogPostMeta` + `authorPersona` — no invented authors or dates.
+ */
+export function generateBlogPostingJsonLd(post: BlogPostMeta) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "@id": `${siteConfig.url}/blog/${post.slug}#article`,
+    headline: post.title,
+    description: post.description,
+    datePublished: post.date,
+    dateModified: post.dateModified ?? post.date,
+    url: `${siteConfig.url}/blog/${post.slug}`,
+    keywords: post.keywords?.join(", "),
+    author: blogAuthorJsonLd(),
+    publisher: {
+      "@type": "Organization",
+      name: siteConfig.fullName,
+      url: siteConfig.url,
+      logo: {
+        "@type": "ImageObject",
+        url: `${siteConfig.url}/icon-512.png`,
       },
-      {
-        "@type": "ListItem",
-        position: 2,
-        name: pageName,
-        item: `${siteConfig.url}${pagePath}`,
-      },
-    ],
+    },
+    isPartOf: {
+      "@type": "Blog",
+      "@id": `${siteConfig.url}/blog#blog`,
+      name: `${siteConfig.fullName} Blog`,
+      url: `${siteConfig.url}/blog`,
+    },
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": `${siteConfig.url}/blog/${post.slug}#webpage`,
+      url: `${siteConfig.url}/blog/${post.slug}`,
+    },
+  };
+}
+
+/**
+ * Blog listing schema: a Blog whose `blogPost` entries are BlogPosting objects
+ * built from existing `BLOG_POSTS` fields only.
+ */
+export function generateBlogListingJsonLd(posts: readonly BlogPostMeta[]) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Blog",
+    "@id": `${siteConfig.url}/blog#blog`,
+    name: `${siteConfig.fullName} Blog`,
+    url: `${siteConfig.url}/blog`,
+    blogPost: posts.map((post) => ({
+      "@type": "BlogPosting",
+      headline: post.title,
+      datePublished: post.date,
+      url: `${siteConfig.url}/blog/${post.slug}`,
+      author: blogAuthorJsonLd(),
+    })),
   };
 }
 
@@ -571,58 +658,24 @@ export function generateWebPageJsonLd(
 /**
  * Builds the Next.js Metadata object for a /for/<role> profession landing page.
  * Shared by every app/for/<role>/page.tsx so the per-page `export const metadata`
- * stays a one-line call. Output is identical to the previous inline definition.
+ * stays a one-line call. Delegates to `buildPublicPageMetadata` so og:url,
+ * og:type, and twitter:card/images are always set (not inherited from root).
  */
 export function buildRolePageMetadata(params: {
   title: string;
   description: string;
   path: string;
 }): Metadata {
-  const { title, description, path } = params;
-  return {
-    title,
-    description,
-    alternates: { canonical: `${siteConfig.url}${path}` },
-    openGraph: {
-      title,
-      description,
-      siteName: siteConfig.fullName,
-      images: [{ url: `${siteConfig.url}/api/og/home`, width: 1200, height: 630 }],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-    },
-  };
+  return buildPublicPageMetadata(params);
 }
 
 /**
  * Generates BreadcrumbList JSON-LD for profile pages: Home > Explore > @name
  */
 export function generateBreadcrumbJsonLd(handle: string, displayName: string) {
-  return {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    itemListElement: [
-      {
-        "@type": "ListItem",
-        position: 1,
-        name: "Home",
-        item: siteConfig.url,
-      },
-      {
-        "@type": "ListItem",
-        position: 2,
-        name: "Explore",
-        item: `${siteConfig.url}/explore`,
-      },
-      {
-        "@type": "ListItem",
-        position: 3,
-        name: displayName,
-        item: `${siteConfig.url}/@${handle}`,
-      },
-    ],
-  };
+  return generateBreadcrumbListJsonLd([
+    { name: "Home", path: "/" },
+    { name: "Explore", path: "/explore" },
+    { name: displayName, path: `/@${handle}` },
+  ]);
 }

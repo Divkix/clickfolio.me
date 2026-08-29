@@ -220,7 +220,7 @@ export function UploadStep({ onContinue }: UploadStepProps) {
               </p>
 
               {/* Secondary text */}
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-foreground/80">
                 or click to browse - Max {MAX_FILE_SIZE_LABEL}
               </p>
             </div>

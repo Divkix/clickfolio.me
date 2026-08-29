@@ -125,11 +125,63 @@ describe("public page rendering", () => {
   });
 
   it("renders the homepage with its upload CTA and discovery content", () => {
-    const { container } = render(<Home />);
+    const { container, getByRole } = render(<Home />);
+    const h1 = container.querySelector("h1");
 
-    expect(container.textContent).toContain("Your resume is already a website");
+    expect(h1?.textContent).toMatch(/resume website builder/i);
+    expect(h1?.textContent).toContain("Your resume is already a website");
     expect(container.textContent).toContain("Drop your PDF");
     expect(container.textContent).toContain("Open source");
+    expect(getByRole("link", { name: "See all" }).className).toMatch(/min-h-11/);
+    expect(getByRole("link", { name: "Read our guides" }).className).toMatch(/min-h-11/);
+    expect(container.textContent).toContain("or click to browse");
+  });
+
+  it("renders a specific blog listing H1, not a generic Blog label", () => {
+    const { container } = render(<BlogPage />);
+    const h1 = container.querySelector("h1");
+
+    expect(h1?.textContent).toMatch(/resume website/i);
+    expect(h1?.textContent?.trim()).not.toBe("Blog");
+  });
+
+  it("keeps Explore, FAQ, and About in the public nav on blog listing and posts", () => {
+    const listing = render(
+      <BlogLayout>
+        <BlogPage />
+      </BlogLayout>,
+    );
+    expect(listing.getAllByRole("link", { name: "Explore" }).length).toBeGreaterThan(0);
+    expect(listing.getAllByRole("link", { name: "FAQ" }).length).toBeGreaterThan(0);
+    expect(listing.getAllByRole("link", { name: "About" }).length).toBeGreaterThan(0);
+    expect(listing.queryByText("Back to Home")).toBeNull();
+
+    const listingSchemas = [
+      ...listing.container.querySelectorAll('script[type="application/ld+json"]'),
+    ].map(
+      (node) => JSON.parse(node.textContent ?? "{}") as { "@type"?: string; blogPost?: unknown[] },
+    );
+    expect(listingSchemas.some((schema) => schema["@type"] === "BreadcrumbList")).toBe(true);
+    const blogSchema = listingSchemas.find((schema) => schema["@type"] === "Blog");
+    expect(blogSchema?.blogPost?.length).toBeGreaterThan(0);
+    expect(blogSchema?.blogPost?.[0]).toEqual(
+      expect.objectContaining({ "@type": "BlogPosting", headline: expect.any(String) }),
+    );
+
+    const post = render(
+      <BlogLayout>
+        <PdfResumeToWebsitePage />
+      </BlogLayout>,
+    );
+    expect(post.getAllByRole("link", { name: "Explore" }).length).toBeGreaterThan(0);
+    expect(post.getAllByRole("link", { name: "FAQ" }).length).toBeGreaterThan(0);
+    expect(post.queryByText("All Posts")).toBeNull();
+
+    const postSchemas = [
+      ...post.container.querySelectorAll('script[type="application/ld+json"]'),
+    ].map((node) => JSON.parse(node.textContent ?? "{}") as { "@type"?: string });
+    expect(postSchemas.some((schema) => schema["@type"] === "BlogPosting")).toBe(true);
+    expect(postSchemas.some((schema) => schema["@type"] === "BreadcrumbList")).toBe(true);
   });
 
   it.each(pages)("renders %s", (_name, Page) => {

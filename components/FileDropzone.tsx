@@ -236,7 +236,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
             <p className="font-semibold text-lg text-foreground mb-1">
               {file ? file.name : "Drop your PDF here"}
             </p>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-foreground/80">
               or click to browse • Max {MAX_FILE_SIZE_LABEL}
             </p>
             {!uploading && !error && !file && (

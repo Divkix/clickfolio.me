@@ -714,8 +714,11 @@ describe("API route coverage", () => {
     const dynamic = await import("@/app/api/og/[handle]/route");
 
     const homeResponse = await home.GET();
-    expect(homeResponse.headers.get("Content-Type")).toBe("image/svg+xml");
-    expect(await homeResponse.text()).toContain("clickfolio");
+    expect(homeResponse.headers.get("Content-Type")).toBe("image/png");
+    expect(mocks.resvgAsync).toHaveBeenCalledWith(
+      expect.stringContaining("Turn your resume into a website"),
+      expect.any(Object),
+    );
 
     // Empty handle → static SVG (no resvg) to avoid WASM cost for bot probes.
     const emptyHandle = await dynamic.GET(new Request("https://clickfolio.me/api/og/"), {

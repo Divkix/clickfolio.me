@@ -4,11 +4,8 @@ import { Footer } from "@/components/Footer";
 import { Logo } from "@/components/Logo";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { siteConfig } from "@/lib/config/site";
-import {
-  generatePageBreadcrumbJsonLd,
-  generateWebPageJsonLd,
-  serializeJsonLd,
-} from "@/lib/seo/json-ld";
+import { generateWebPageJsonLd, serializeJsonLd } from "@/lib/seo/json-ld";
+import { buildPublicPageMetadata } from "@/lib/seo/page-metadata";
 
 /** Revalidate terms page daily since it's static content. */
 export const revalidate = 86400;
@@ -17,28 +14,17 @@ const termsTitle = `Terms of Service - ${siteConfig.fullName}`;
 const termsDescription = `Terms of Service for ${siteConfig.fullName}. Read our terms and conditions for using the service.`;
 
 /** SEO metadata for the terms of service page. */
-export const metadata: Metadata = {
+export const metadata: Metadata = buildPublicPageMetadata({
   title: "Terms of Service",
+  ogTitle: termsTitle,
   description: termsDescription,
-  alternates: { canonical: `${siteConfig.url}/terms` },
-  openGraph: {
-    title: termsTitle,
-    description: termsDescription,
-    siteName: siteConfig.fullName,
-    images: [{ url: "/api/og/home", width: 1200, height: 630 }],
-  },
-  twitter: {
-    card: "summary",
-    title: termsTitle,
-    description: termsDescription,
-  },
-};
+  path: "/terms",
+});
 
 /**
  * Terms of service page — full legal terms with structured data and breadcrumbs.
  */
 export default function TermsOfServicePage() {
-  const breadcrumb = generatePageBreadcrumbJsonLd("Terms of Service", "/terms");
   const webPage = generateWebPageJsonLd(
     "Terms of Service",
     "/terms",
@@ -48,10 +34,6 @@ export default function TermsOfServicePage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumb) }}
-      />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(webPage) }}

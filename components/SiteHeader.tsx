@@ -12,7 +12,7 @@ const NAV_LINKS = [
 ];
 
 /**
- * Shared sticky header used on homepage and marketing pages.
+ * Shared sticky header used on homepage, marketing pages, and the blog section.
  * Server component — LoginButton, MobileNav, and ThemeToggle are client boundaries.
  */
 export function SiteHeader() {

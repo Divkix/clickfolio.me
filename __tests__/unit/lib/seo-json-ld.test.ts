@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vite-plus/test";
+import { authorPersona } from "@/lib/config/author";
 import {
+  generateBlogListingJsonLd,
+  generateBlogPostingJsonLd,
   generateBreadcrumbJsonLd,
+  generateBreadcrumbListJsonLd,
   generateExploreJsonLd,
   generateFAQJsonLd,
   generateHomepageJsonLd,
@@ -206,6 +210,52 @@ describe("JSON-LD generators", () => {
         expect.objectContaining({ name: "Home" }),
         expect.objectContaining({ name: "Explore" }),
         expect.objectContaining({ name: "Avery Quinn", item: "https://clickfolio.me/@avery" }),
+      ],
+    });
+
+    expect(
+      generateBreadcrumbListJsonLd([
+        { name: "Home", path: "/" },
+        { name: "Blog", path: "/blog" },
+      ]),
+    ).toMatchObject({
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        expect.objectContaining({ position: 1, name: "Home", item: "https://clickfolio.me" }),
+        expect.objectContaining({ position: 2, name: "Blog", item: "https://clickfolio.me/blog" }),
+      ],
+    });
+
+    const samplePost = {
+      slug: "pdf-resume-to-website",
+      title: "Turn a PDF Resume Into a Website",
+      description: "How to publish a resume as a site.",
+      date: "2026-03-01",
+      dateModified: "2026-03-15",
+      readTime: "5 min read",
+      category: "Guide",
+      keywords: ["pdf resume"],
+    };
+    expect(generateBlogPostingJsonLd(samplePost)).toMatchObject({
+      "@type": "BlogPosting",
+      headline: samplePost.title,
+      datePublished: samplePost.date,
+      dateModified: samplePost.dateModified,
+      author: {
+        "@type": "Person",
+        name: authorPersona.name,
+        url: authorPersona.url,
+      },
+    });
+    expect(generateBlogListingJsonLd([samplePost])).toMatchObject({
+      "@type": "Blog",
+      blogPost: [
+        expect.objectContaining({
+          "@type": "BlogPosting",
+          headline: samplePost.title,
+          datePublished: samplePost.date,
+          author: expect.objectContaining({ name: authorPersona.name }),
+        }),
       ],
     });
   });

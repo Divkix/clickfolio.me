@@ -1,21 +1,23 @@
+import { Resvg } from "@cf-wasm/resvg/workerd";
+
 /**
  * GET /api/og/home
- * Homepage OG image — branded SVG card with browser mockup and template preview.
- * 1200x630 SVG, cached for 1 week.
- *
- * NOTE: PNG conversion via workers-og failed due to Turbopack incompatibility
- * with WASM modules. SVG OG images are supported by Facebook, LinkedIn, and most
- * crawlers. Twitter/X has limited SVG support but falls back to meta description.
+ * Homepage OG image — branded 1200×630 PNG (rasterized from SVG via resvg).
+ * Cached for 1 week. Facebook/LinkedIn/Slack drop SVG OG images, so this
+ * must stay a raster type.
  *
  * Response headers:
- * - `Content-Type: image/svg+xml`
+ * - `Content-Type: image/png`
  * - `Cache-Control: public, max-age=604800`
  *
- * Returns 500 on unexpected errors.
+ * Returns 500 on unexpected errors (including resvg failure).
  */
-export async function GET() {
-  try {
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+
+const RESVG_OPTIONS = {
+  fitTo: { mode: "width" as const, value: 1200 },
+};
+
+const HOME_OG_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
   <defs>
     <linearGradient id="bgGrad" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0%" stop-color="#1a1a2e"/>
@@ -124,9 +126,14 @@ export async function GET() {
   </text>
 </svg>`;
 
-    return new Response(svg, {
+export async function GET() {
+  try {
+    const resvg = await Resvg.async(HOME_OG_SVG, RESVG_OPTIONS);
+    const png = resvg.render();
+
+    return new Response(new Uint8Array(png.asPng()), {
       headers: {
-        "Content-Type": "image/svg+xml",
+        "Content-Type": "image/png",
         "Cache-Control": "public, max-age=604800",
       },
     });
