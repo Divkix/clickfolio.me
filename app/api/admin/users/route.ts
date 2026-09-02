@@ -60,6 +60,7 @@ export async function GET(request: Request) {
           sql`${user.name} ILIKE ${`%${escapedSearch}%`} ESCAPE '!'`,
           sql`${user.email} ILIKE ${`%${escapedSearch}%`} ESCAPE '!'`,
           sql`${user.handle} ILIKE ${`%${escapedSearch}%`} ESCAPE '!'`,
+          sql`EXISTS (SELECT 1 FROM site_data WHERE site_data.user_id = ${user.id} AND site_data.preview_name ILIKE ${`%${escapedSearch}%`} ESCAPE '!')`,
         )
       : undefined;
 
@@ -108,7 +109,11 @@ export async function GET(request: Request) {
         ),
 
       db
-        .select({ userId: siteData.userId, lastPublishedAt: siteData.lastPublishedAt })
+        .select({
+          userId: siteData.userId,
+          lastPublishedAt: siteData.lastPublishedAt,
+          previewName: siteData.previewName,
+        })
         .from(siteData)
         .where(
           sql`${siteData.userId} IN (${sql.join(
@@ -132,6 +137,17 @@ export async function GET(request: Request) {
       }
     }
 
+    const siteDataMap = new Map<
+      string,
+      { lastPublishedAt: string | null; previewName: string | null }
+    >();
+    for (const s of hasSiteData) {
+      siteDataMap.set(s.userId, {
+        lastPublishedAt: s.lastPublishedAt,
+        previewName: s.previewName,
+      });
+    }
+
     const siteDataSet = new Set(
       hasSiteData.filter((s) => s.lastPublishedAt !== null).map((s) => s.userId),
     );
@@ -143,6 +159,7 @@ export async function GET(request: Request) {
     const enrichedUsers = users.map((u) => {
       let status: "live" | "processing" | "no_resume" | "failed" = "no_resume";
       const resumeStatus = resumeStatusMap.get(u.id);
+      const siteInfo = siteDataMap.get(u.id);
 
       if (resumeStatus === "failed") {
         status = "failed";
@@ -152,9 +169,15 @@ export async function GET(request: Request) {
         status = "live";
       }
 
+      // Fallback to site_data.previewName if user.name is "Unnamed" or blank
+      const displayName =
+        u.name && u.name !== "Unnamed"
+          ? u.name
+          : siteInfo?.previewName?.trim() || u.name || "Unnamed";
+
       return {
         id: u.id,
-        name: u.name,
+        name: displayName,
         email: u.email,
         handle: u.handle,
         status,

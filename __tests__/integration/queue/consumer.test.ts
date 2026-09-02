@@ -648,6 +648,102 @@ describe("Queue Consumer - Main Processing", () => {
     );
   });
 
+  it("8c. Syncs parsed name to user.name when current user.name is Unnamed", async () => {
+    const { handleQueueMessage } = await import("@/lib/queue/consumer");
+
+    const resumeId = crypto.randomUUID();
+    const userId = "user-1";
+    const r2Key = `users/${userId}/123/resume.pdf`;
+
+    createResume({ id: resumeId, status: "queued" });
+    mockR2Store.set(r2Key, makePdfBuffer());
+
+    const setValues: Array<UnknownRecord> = [];
+    const mockDb = withTransaction({
+      select: vi.fn().mockImplementation((cols: JsonValue) => {
+        const isUserQuery =
+          cols !== null &&
+          typeof cols === "object" &&
+          "handle" in (cols as Record<string, unknown>);
+        if (isUserQuery) {
+          // User exists with handle but name is "Unnamed"
+          return mockSelectChain(() => [{ handle: "test-handle", name: "Unnamed" }]);
+        }
+        if ("userId" in (cols as Record<string, unknown>)) {
+          return mockSelectChain(() => []);
+        }
+        return mockSelectChain(() => [{ status: "queued", parsedContent: null, totalAttempts: 0 }]);
+      }),
+      update: vi.fn().mockImplementation(() => ({
+        set: vi.fn().mockImplementation((values: UnknownRecord) => {
+          setValues.push(values);
+          return { where: vi.fn().mockResolvedValue(undefined) };
+        }),
+      })),
+      insert: vi.fn().mockReturnValue({
+        values: vi.fn().mockResolvedValue(undefined),
+      }),
+    });
+
+    vi.mocked(getDb).mockReturnValue(mockDb as never);
+
+    const message = createMessage({ resumeId, userId, r2Key });
+    const env = createEnv();
+
+    await handleQueueMessage(message, env);
+
+    const userUpdate = setValues.find((v) => "name" in v);
+    expect(userUpdate?.name).toBe("Test User");
+  });
+
+  it("8d. Preserves existing user.name when already set", async () => {
+    const { handleQueueMessage } = await import("@/lib/queue/consumer");
+
+    const resumeId = crypto.randomUUID();
+    const userId = "user-1";
+    const r2Key = `users/${userId}/123/resume.pdf`;
+
+    createResume({ id: resumeId, status: "queued" });
+    mockR2Store.set(r2Key, makePdfBuffer());
+
+    const setValues: Array<UnknownRecord> = [];
+    const mockDb = withTransaction({
+      select: vi.fn().mockImplementation((cols: JsonValue) => {
+        const isUserQuery =
+          cols !== null &&
+          typeof cols === "object" &&
+          "handle" in (cols as Record<string, unknown>);
+        if (isUserQuery) {
+          // User already has a real name
+          return mockSelectChain(() => [{ handle: "test-handle", name: "Existing Name" }]);
+        }
+        if ("userId" in (cols as Record<string, unknown>)) {
+          return mockSelectChain(() => []);
+        }
+        return mockSelectChain(() => [{ status: "queued", parsedContent: null, totalAttempts: 0 }]);
+      }),
+      update: vi.fn().mockImplementation(() => ({
+        set: vi.fn().mockImplementation((values: UnknownRecord) => {
+          setValues.push(values);
+          return { where: vi.fn().mockResolvedValue(undefined) };
+        }),
+      })),
+      insert: vi.fn().mockReturnValue({
+        values: vi.fn().mockResolvedValue(undefined),
+      }),
+    });
+
+    vi.mocked(getDb).mockReturnValue(mockDb as never);
+
+    const message = createMessage({ resumeId, userId, r2Key });
+    const env = createEnv();
+
+    await handleQueueMessage(message, env);
+
+    const nameUpdate = setValues.find((v) => "name" in v);
+    expect(nameUpdate).toBeUndefined();
+  });
+
   it("9. R2 file not found → permanent error", async () => {
     const { handleQueueMessage } = await import("@/lib/queue/consumer");
 
@@ -1485,10 +1581,11 @@ describe("Batch A — queue/state-machine integrity fixes", () => {
     // Update where calls (deterministic order):
     //   0: status→processing (eq id)
     //   1: batch completion for THIS resume (eq id)
-    //   2: user.role update for this user (eq user.id)
+    //   2: user.role + name update for this user (eq user.id)
     //   3: batch fan-out for waiting resumes  ← must be inArray on resumes.id
     //   4: user.role update for waiting users (inArray user.id)
-    expect(updateWhereConds.length).toBe(5);
+    //   5: user.name update for waiting users (inArray user.id)
+    expect(updateWhereConds.length).toBe(6);
     const fanOutCond = updateWhereConds[3];
     const cols = collectColumns(fanOutCond);
     expect(cols.has("id")).toBe(true);

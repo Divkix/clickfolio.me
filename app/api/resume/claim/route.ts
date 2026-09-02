@@ -306,11 +306,19 @@ export async function POST(request: Request) {
         if (r2PutSucceeded) {
           try {
             const userRow = await db
-              .select({ handle: user.handle })
+              .select({ handle: user.handle, name: user.name })
               .from(user)
               .where(eq(user.id, userId))
               .limit(1);
             const hasHandle = !!userRow[0]?.handle;
+            const currentName = userRow[0]?.name;
+            const cachedName = cachedContent.full_name?.trim();
+            const shouldUpdateName =
+              cachedName &&
+              cachedName !== "Pending" &&
+              cachedName !== "Unnamed" &&
+              (!currentName || currentName === "Unnamed" || currentName.trim() === "");
+
             // Complete the resume and upsert siteData in one transaction.
             // Without it, a crash between the UPDATE and the upsert leaves
             // the resume "completed" with no siteData, and the idempotency
@@ -328,6 +336,12 @@ export async function POST(request: Request) {
               await buildSiteDataUpsert(tx, userId, resumeId, cachedContent, {
                 publish: hasHandle,
               });
+              if (shouldUpdateName) {
+                await tx
+                  .update(user)
+                  .set({ name: cachedName, updatedAt: now })
+                  .where(eq(user.id, userId));
+              }
             });
 
             // R2 and DB both succeeded - return cached result

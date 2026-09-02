@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { withUser } from "@/lib/auth/with-auth";
 
-import { siteData } from "@/lib/db/schema";
+import { siteData, user } from "@/lib/db/schema";
 import { resumeContentSchemaStrict } from "@/lib/schemas/resume";
 import type { ResumeContent } from "@/lib/types/database";
 import { extractPreviewFields } from "@/lib/utils/preview-fields";
@@ -108,6 +108,23 @@ export async function PUT(request: Request) {
       }
 
       const data = updateResult[0];
+
+      // Backfill user.name if currently Unnamed or blank
+      const updatedName = content.full_name?.trim();
+      if (updatedName && updatedName !== "Pending" && updatedName !== "Unnamed") {
+        const userRow = await db
+          .select({ name: user.name })
+          .from(user)
+          .where(eq(user.id, userId))
+          .limit(1);
+        const currentName = userRow[0]?.name;
+        if (!currentName || currentName === "Unnamed" || currentName.trim() === "") {
+          await db
+            .update(user)
+            .set({ name: updatedName, updatedAt: now })
+            .where(eq(user.id, userId));
+        }
+      }
 
       // Return success response (no content echo — caller already has validated copy)
       return createSuccessResponse({
