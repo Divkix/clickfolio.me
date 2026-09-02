@@ -114,11 +114,12 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
   // cached path (no AI delay, still fresh); re-fetched just before the parsed
   // batch to avoid ~90s stale race after AI parsing.
   const userRow = await db
-    .select({ handle: user.handle })
+    .select({ handle: user.handle, name: user.name })
     .from(user)
     .where(eq(user.id, message.userId))
     .limit(1);
   const hasHandle = !!userRow[0]?.handle;
+  const cachedCurrentName = userRow[0]?.name;
   const now = new Date().toISOString();
 
   if (cached[0]?.parsedContent) {
@@ -140,6 +141,20 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
         publish: hasHandle,
       });
     });
+
+    // Backfill user.name from cached resume if currently Unnamed or blank
+    const cachedName = cachedContent.full_name?.trim();
+    if (
+      cachedName &&
+      cachedName !== "Pending" &&
+      cachedName !== "Unnamed" &&
+      (!cachedCurrentName || cachedCurrentName === "Unnamed" || cachedCurrentName.trim() === "")
+    ) {
+      await db
+        .update(user)
+        .set({ name: cachedName, updatedAt: now })
+        .where(eq(user.id, message.userId));
+    }
 
     await notifyStatusChange({
       resumeId: message.resumeId,
@@ -213,18 +228,19 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
   // SAFETY: AI returns professionalLevel as validated string from resumeContentSchema; UserRole cast narrows to enum with undefined fallback if missing.
   const professionalLevel = parseResult.professionalLevel as UserRole | undefined;
 
-  // Re-fetch hasHandle just before the batch to avoid a stale race: the
+  // Re-fetch hasHandle and name just before the batch to avoid a stale race: the
   // hasHandle fetched at the top is ~90s stale after the AI parse window.
   // If the user added a handle during parsing we must publish (lastPublishedAt=now);
   // stale false would otherwise destructively unpublish via site-data-upsert
   // (publish=false path now preserves lastPublishedAt, but fresh read is still
   // correct for newly inserted rows).
   const freshRow = await db
-    .select({ handle: user.handle })
+    .select({ handle: user.handle, name: user.name })
     .from(user)
     .where(eq(user.id, message.userId))
     .limit(1);
   const freshHasHandle = !!freshRow[0]?.handle;
+  const freshCurrentName = freshRow[0]?.name;
 
   // M10: Complete resume + siteData upsert atomically in a single PG transaction.
   // Without this, a crash between the UPDATE and upsert leaves the resume
@@ -246,16 +262,32 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
     });
   });
 
-  // Write AI-inferred professional level to user.role separately from the
-  // critical resume+siteData batch. If this fails, the resume is still
-  // completed and the user can set their role manually via settings.
+  // Sync AI-inferred role and sync parsed full_name to user.name if currently
+  // "Unnamed" or blank. Written separately from the critical resume+siteData
+  // batch. If this fails, the resume is still completed and the user can set
+  // their role/name manually via settings.
   // Intentionally overwrites user-set roles on re-upload — the new resume
   // may reflect a different career stage.
-  if (professionalLevel) {
-    await db
-      .update(user)
-      .set({ role: professionalLevel, roleSource: "ai", updatedAt: now })
-      .where(eq(user.id, message.userId));
+  const parsedName = parsedContent.full_name?.trim();
+  const shouldUpdateName =
+    parsedName &&
+    parsedName !== "Pending" &&
+    parsedName !== "Unnamed" &&
+    (!freshCurrentName || freshCurrentName === "Unnamed" || freshCurrentName.trim() === "");
+
+  if (professionalLevel || shouldUpdateName) {
+    type UserUpdatePayload = Partial<typeof user.$inferInsert>;
+    const userUpdate: UserUpdatePayload = {
+      updatedAt: now,
+    };
+    if (professionalLevel) {
+      userUpdate.role = professionalLevel;
+      userUpdate.roleSource = "ai";
+    }
+    if (shouldUpdateName) {
+      userUpdate.name = parsedName;
+    }
+    await db.update(user).set(userUpdate).where(eq(user.id, message.userId));
   }
 
   await notifyStatusChange({
@@ -281,7 +313,7 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
     const waitingUserIds = [...new Set(waitingResumes.map((w) => w.userId))];
     const waitingHandleRows = waitingUserIds.length
       ? await db
-          .select({ id: user.id, handle: user.handle })
+          .select({ id: user.id, handle: user.handle, name: user.name })
           .from(user)
           .where(inArray(user.id, waitingUserIds))
       : [];
@@ -326,6 +358,19 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
             waitingResumes.map((w) => w.userId),
           ),
         );
+    }
+
+    // Sync parsed name to waiting users if their name is "Unnamed" or blank.
+    if (parsedName && parsedName !== "Pending" && parsedName !== "Unnamed") {
+      const waitingNeedingName = waitingHandleRows
+        .filter((r) => !r.name || r.name === "Unnamed" || r.name.trim() === "")
+        .map((r) => r.id);
+      if (waitingNeedingName.length > 0) {
+        await db
+          .update(user)
+          .set({ name: parsedName, updatedAt: now })
+          .where(inArray(user.id, waitingNeedingName));
+      }
     }
   }
 

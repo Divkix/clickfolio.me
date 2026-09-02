@@ -13,7 +13,6 @@
 
 import { vi, type Mock } from "vite-plus/test";
 import type { Resume } from "@/lib/db/schema";
-import type { JsonValue } from "@/lib/types/json";
 
 // ---------------------------------------------------------------------------
 // Query chain builder
@@ -38,9 +37,13 @@ export function createMockQueryChain<T = unknown>(rows: T[] = []) {
     get(_target, prop) {
       const strProp = String(prop);
 
-      if (strProp === "then" || strProp === "toJSON") {
+      if (strProp === "then") {
         // Make the chain awaitable — returns the rows
-        return (_resolve: JsonValue, _reject: JsonValue) => Promise.resolve(rows);
+        return (onFulfilled?: (value: T[]) => unknown, onRejected?: (reason: unknown) => unknown) =>
+          Promise.resolve(rows).then(onFulfilled, onRejected);
+      }
+      if (strProp === "toJSON") {
+        return () => rows;
       }
 
       if (!(strProp in chain)) {

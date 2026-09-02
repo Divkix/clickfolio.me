@@ -1,5 +1,5 @@
 import { env } from "cloudflare:workers";
-import { count, sql } from "drizzle-orm";
+import { count, eq, sql } from "drizzle-orm";
 import { AlertTriangle, Eye, FileText, Loader2, Users } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -35,8 +35,14 @@ async function getAdminStats() {
     db.select({ count: count() }).from(siteData),
     db.select({ status: resumes.status, count: count() }).from(resumes).groupBy(resumes.status),
     db
-      .select({ email: user.email, name: user.name, createdAt: user.createdAt })
+      .select({
+        email: user.email,
+        name: user.name,
+        previewName: siteData.previewName,
+        createdAt: user.createdAt,
+      })
       .from(user)
+      .leftJoin(siteData, eq(user.id, siteData.userId))
       .orderBy(sql`${user.createdAt} DESC`)
       .limit(10),
   ]);
@@ -154,22 +160,26 @@ export default async function AdminOverviewPage() {
             {stats.recentSignups.length === 0 ? (
               <p className="text-sm text-muted-foreground">No signups yet</p>
             ) : (
-              stats.recentSignups.map((signup, i) => (
-                <div
-                  key={`${signup.email}-${i}`}
-                  className="flex items-center justify-between text-sm"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium text-foreground truncate">
-                      {signup.name || "Unnamed"}
-                    </p>
-                    <p className="text-muted-foreground truncate">{signup.email}</p>
+              stats.recentSignups.map((signup, i) => {
+                const displayName =
+                  signup.name && signup.name !== "Unnamed"
+                    ? signup.name
+                    : signup.previewName?.trim() || signup.name || "Unnamed";
+                return (
+                  <div
+                    key={`${signup.email}-${i}`}
+                    className="flex items-center justify-between text-sm"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-foreground truncate">{displayName}</p>
+                      <p className="text-muted-foreground truncate">{signup.email}</p>
+                    </div>
+                    <span className="text-xs text-muted-foreground/70 shrink-0 ml-2">
+                      {formatRelativeTime(signup.createdAt)}
+                    </span>
                   </div>
-                  <span className="text-xs text-muted-foreground/70 shrink-0 ml-2">
-                    {formatRelativeTime(signup.createdAt)}
-                  </span>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>
