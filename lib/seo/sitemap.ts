@@ -35,17 +35,6 @@ export const STATIC_SITEMAP_ENTRY_COUNT =
   BASE_STATIC_SITEMAP_ENTRY_COUNT + PROFESSIONS.length + BLOG_POSTS.length;
 
 /**
- * Returns the base URL for all sitemap entries.
- *
- * Delegates to getPublicSiteUrl() for consistency across the app.
- *
- * @returns Fully qualified public site URL
- */
-export function getSitemapBaseUrl(): string {
-  return getPublicSiteUrl();
-}
-
-/**
  * Calculates the number of sitemap shards needed.
  *
  * Combines STATIC_SITEMAP_ENTRY_COUNT with the total indexable user count,
@@ -151,7 +140,7 @@ export async function generateSitemapEntries(id: number): Promise<MetadataRoute.
     return [];
   }
 
-  const baseUrl = getSitemapBaseUrl();
+  const baseUrl = getPublicSiteUrl();
   const entries: MetadataRoute.Sitemap = [];
 
   if (id === 0) {
@@ -217,7 +206,7 @@ export async function getTotalIndexableUserCount(): Promise<number> {
  * Build a sitemap index XML string for the given number of shards.
  */
 export function buildSitemapIndexXml(shardCount: number): string {
-  const baseUrl = getSitemapBaseUrl();
+  const baseUrl = getPublicSiteUrl();
   const sitemaps = Array.from({ length: shardCount }, (_, i) =>
     [
       `  <sitemap>`,

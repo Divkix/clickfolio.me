@@ -4,12 +4,8 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
-import {
-  buildSitemapIndexXml,
-  buildSitemapXml,
-  getSitemapBaseUrl,
-  URLS_PER_SITEMAP,
-} from "@/lib/seo/sitemap";
+import { buildSitemapIndexXml, buildSitemapXml, URLS_PER_SITEMAP } from "@/lib/seo/sitemap";
+import { getPublicSiteUrl } from "@/lib/utils/site-url";
 
 describe("URLS_PER_SITEMAP", () => {
   it("equals Google's limit of 50000", () => {
@@ -17,7 +13,7 @@ describe("URLS_PER_SITEMAP", () => {
   });
 });
 
-describe("getSitemapBaseUrl", () => {
+describe("getPublicSiteUrl (sitemap base)", () => {
   beforeEach(() => {
     vi.unstubAllEnvs();
   });
@@ -25,7 +21,7 @@ describe("getSitemapBaseUrl", () => {
   it("returns APP_URL when set", () => {
     vi.stubEnv("APP_URL", "https://example.com");
 
-    const result = getSitemapBaseUrl();
+    const result = getPublicSiteUrl();
 
     expect(result).toBe("https://example.com");
   });
@@ -33,7 +29,7 @@ describe("getSitemapBaseUrl", () => {
   it("returns default URL when APP_URL not set", () => {
     vi.stubEnv("APP_URL", "");
 
-    const result = getSitemapBaseUrl();
+    const result = getPublicSiteUrl();
 
     expect(result).toBe("https://clickfolio.me");
   });

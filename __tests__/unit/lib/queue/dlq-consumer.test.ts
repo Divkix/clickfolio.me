@@ -19,7 +19,7 @@ vi.mock("@/lib/queue/notify-status", () => ({
   notifyStatusChange: vi.fn().mockResolvedValue(undefined),
 }));
 
-import { createMockDb, createMockDbResume } from "@/__tests__/setup/fixtures";
+import { createMockDb, createMockDbResume } from "@/__tests__/setup/mocks/db.mock";
 import { getDb } from "@/lib/db";
 import { notifyStatusChange } from "@/lib/queue/notify-status";
 

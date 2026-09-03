@@ -12,8 +12,8 @@ export const metadata: Metadata = {
 export const revalidate = 604800;
 
 /**
- * Standalone template preview page used by the thumbnail generator script.
- * Not linked from the UI — only accessed via scripts/generate-thumbnails.ts.
+ * Standalone template preview page (demo data only, no auth/DB).
+ * Not linked from the UI — used to shoot `public/previews/*.webp` thumbnails.
  */
 export default async function PreviewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

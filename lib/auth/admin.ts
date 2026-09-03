@@ -16,6 +16,16 @@ export interface AdminUser {
   isAdmin: boolean;
 }
 
+async function loadAdminRow(userId: string): Promise<AdminUser | null> {
+  const db = getDb(env.HYPERDRIVE);
+  const dbUser = await db.query.user.findFirst({
+    where: eq(users.id, userId),
+    columns: { id: true, email: true, name: true, isAdmin: true },
+  });
+  // SAFETY: dbUser columns id,email,name,isAdmin match AdminUser shape from Drizzle query with explicit columns, safe to cast.
+  return (dbUser as AdminUser) ?? null;
+}
+
 /**
  * Server-side admin auth check for pages.
  * Redirects to / if not logged in, /dashboard if not admin.
@@ -27,17 +37,7 @@ export async function requireAdminAuth(): Promise<AdminUser> {
     redirect("/");
   }
 
-  const db = getDb(env.HYPERDRIVE);
-
-  const dbUser = await db.query.user.findFirst({
-    where: eq(users.id, session.user.id),
-    columns: {
-      id: true,
-      email: true,
-      name: true,
-      isAdmin: true,
-    },
-  });
+  const dbUser = await loadAdminRow(session.user.id);
 
   if (!dbUser) {
     redirect("/");
@@ -47,8 +47,7 @@ export async function requireAdminAuth(): Promise<AdminUser> {
     redirect("/dashboard");
   }
 
-  // SAFETY: dbUser columns id,email,name,isAdmin match AdminUser shape from Drizzle query with explicit columns, safe to cast.
-  return dbUser as AdminUser;
+  return dbUser;
 }
 
 /**
@@ -67,17 +66,7 @@ export async function requireAdminAuthForApi(): Promise<
     };
   }
 
-  const db = getDb(env.HYPERDRIVE);
-
-  const dbUser = await db.query.user.findFirst({
-    where: eq(users.id, session.user.id),
-    columns: {
-      id: true,
-      email: true,
-      name: true,
-      isAdmin: true,
-    },
-  });
+  const dbUser = await loadAdminRow(session.user.id);
 
   if (!dbUser) {
     return {
@@ -93,6 +82,5 @@ export async function requireAdminAuthForApi(): Promise<
     };
   }
 
-  // SAFETY: dbUser columns id,email,name,isAdmin match AdminUser shape from Drizzle query with explicit columns, safe to cast.
-  return { user: dbUser as AdminUser, error: null };
+  return { user: dbUser, error: null };
 }

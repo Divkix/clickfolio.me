@@ -120,46 +120,34 @@ function sourceMapUploadPlugin(mode: string): Plugin | null {
   return plugin as Plugin;
 }
 
+// Shared Oxfmt/Oxlint ignore list (one source).
+const SHARED_IGNORE_PATTERNS = [
+  "dist/**",
+  "lib/cloudflare-env.d.ts",
+  ".agent/**",
+  ".agents/**",
+  ".claude/**",
+  ".codex/**",
+  ".continue/**",
+  ".cursor/**",
+  ".gemini/**",
+  ".opencode/**",
+  ".pi/**",
+  ".roo/**",
+  ".windsurf/**",
+  "tools/oxlint/anti-slop/**",
+];
+
 export default defineConfig(({ mode }) => {
   const sourcemapPlugin = sourceMapUploadPlugin(mode);
   return {
     // Oxfmt: matches previous Biome formatter settings (all defaults already match)
     fmt: {
-      ignorePatterns: [
-        "dist/**",
-        "lib/cloudflare-env.d.ts",
-        ".agent/**",
-        ".agents/**",
-        ".claude/**",
-        ".codex/**",
-        ".continue/**",
-        ".cursor/**",
-        ".gemini/**",
-        ".opencode/**",
-        ".pi/**",
-        ".roo/**",
-        ".windsurf/**",
-        "tools/oxlint/anti-slop/**",
-      ],
+      ignorePatterns: SHARED_IGNORE_PATTERNS,
     },
     // Oxlint: matches previous Biome linter rule set
     lint: {
-      ignorePatterns: [
-        "dist/**",
-        "lib/cloudflare-env.d.ts",
-        ".agent/**",
-        ".agents/**",
-        ".claude/**",
-        ".codex/**",
-        ".continue/**",
-        ".cursor/**",
-        ".gemini/**",
-        ".opencode/**",
-        ".pi/**",
-        ".roo/**",
-        ".windsurf/**",
-        "tools/oxlint/anti-slop/**",
-      ],
+      ignorePatterns: SHARED_IGNORE_PATTERNS,
       plugins: ["react", "typescript", "jsx-a11y", "oxc"],
       options: {
         typeAware: true,
@@ -216,18 +204,6 @@ export default defineConfig(({ mode }) => {
           rules: {
             "anti-slop/no-known-value-widening": "off",
             "anti-slop/no-unsafe-dictionary-type": "off",
-          },
-        },
-        {
-          // SAFETY: backfill script parses wrangler JSON (unknown shape) and must branch on typeof / Record<string, unknown> at I/O boundary; concrete types would obscure the unknown-boundary handling and script is one-off.
-          files: ["scripts/backfill-handles.ts"],
-          rules: {
-            "anti-slop/no-unsafe-dictionary-type": "off",
-            "anti-slop/no-runtime-typeof": "off",
-            "anti-slop/no-unknown-returns": "off",
-            "anti-slop/no-unknown-parameters": "off",
-            "anti-slop/require-safety-comment-for-type-assertion": "off",
-            "typescript/no-base-to-string": "off",
           },
         },
       ],
