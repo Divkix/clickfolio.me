@@ -92,6 +92,9 @@ function ensureClientDir(): Plugin {
  * production builds and dry-runs) never upload, even when credentials exist.
  * Credentials come from Vite env loading (.env* + process.env) and are read
  * only here; they must never be inlined into client output.
+ * Missing credentials warn and skip the upload (Cloudflare Builds has no
+ * access to the gitignored local deploy env) — add them to the build env to
+ * re-enable it. Upload is observability, never a deploy blocker.
  */
 function sourceMapUploadPlugin(mode: string): Plugin | null {
   if (process.env.POSTHOG_UPLOAD_SOURCEMAPS !== "true") return null;
@@ -99,10 +102,10 @@ function sourceMapUploadPlugin(mode: string): Plugin | null {
   // Empty prefix: load every var from .env* files plus process.env.
   const env = loadEnv(mode, process.cwd(), "");
   if (!env.POSTHOG_API_KEY || !env.POSTHOG_PROJECT_ID) {
-    throw new Error(
-      "POSTHOG_UPLOAD_SOURCEMAPS=true requires POSTHOG_API_KEY and POSTHOG_PROJECT_ID " +
-        "(source-map upload credentials live in gitignored local deploy env)",
+    console.warn(
+      "[posthog] POSTHOG_UPLOAD_SOURCEMAPS=true but POSTHOG_API_KEY/POSTHOG_PROJECT_ID are missing — skipping source-map upload",
     );
+    return null;
   }
 
   const plugin: unknown = posthogRollupPlugin({
