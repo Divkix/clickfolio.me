@@ -51,7 +51,7 @@ lib/db/schema/                # auth.ts, resume.ts, site.ts, rate-limit.ts, main
 worker/index.ts               # real entrypoint: vinext + queue + cron + WS
 proxy.ts                      # edge auth gate (dual export proxy/default) — replaces middleware.ts
 instrumentation.ts / instrumentation-client.ts  # PostHog server/client hooks
-__tests__/  migrations_pg/  scripts/ (deploy.ts, generate-thumbnails.ts, generate-favicons.ts)
+__tests__/  migrations_pg/  scripts/ (deploy.ts, generate-favicons.ts)
 ```
 
 ## Build, Test & Dev Commands
@@ -88,7 +88,6 @@ pnpm run db:studio      # drizzle-kit studio --port 4984
   # Codegen
 pnpm run cf-typegen         # wrangler types → lib/cloudflare-env.d.ts
 pnpm run generate:favicons  # sharp from public/icon.svg → favicons
-pnpm exec tsx scripts/generate-thumbnails.ts  # 10 .webp (see below)
 ```
 
 - `prepare` (`vp config`) runs on `pnpm install`.
@@ -96,7 +95,7 @@ pnpm exec tsx scripts/generate-thumbnails.ts  # 10 .webp (see below)
 - **pnpm lockfile:** `catalog:` refs can leave importer storing `specifier:'catalog:'`; clean checkout then fails `ERR_PNPM_OUTDATED_LOCKFILE`. Fix: `pnpm install --no-frozen-lockfile` once, commit regenerated `pnpm-lock.yaml`.
 - **Coverage pin:** `catalog:vitest == vitest == @vitest/coverage-v8 == 4.1.10` (3 places).
 - **`db:push` vs `db:generate+migrate`:** `push` is prototyping only; canonical is `generate` + `migrate`.
-- **Thumbnails:** `scripts/generate-thumbnails.ts` emits **10 `.webp`** (bento, bold_corporate, classic_ats, design_folio, dev_terminal, glass, midnight, minimalist_editorial→`minimalist.webp`, neo_brutalist→`brutalist.webp`, spotlight) via Playwright 1280×800 @2x. Requires dev server; override with `BASE_URL` (default `http://localhost:3000`). Slug shortenings are intentional.
+- **Thumbnails:** `public/previews/` holds 10 committed `.webp` (bento, bold_corporate, classic_ats, design_folio, dev_terminal, glass, midnight, minimalist_editorial→`minimalist.webp`, neo_brutalist→`brutalist.webp`, spotlight) shot at 1280×800 @2x via `/preview/[id]`. No generator script in repo (deleted with `playwright` devDep); re-add as doc snippet when re-shooting. Slug shortenings are intentional.
 - **Deploy:** `scripts/deploy.ts` runs `pnpm run build` with `POSTHOG_UPLOAD_SOURCEMAPS=true` (unless `--dry-run` → `false`), then `pnpm exec wrangler deploy`; forwards args/exit codes.
 - **Config pointer:** CSP/HSTS lives in `next.config.ts:headers()` — allowlist Umami/Clerk/Google OAuth/CF Insights (see file); vendor chunks wrap vinext `manualChunks`; `viteEnvironment rsc/ssr` + `onwarn MISSING_EXPORT middleware` (see `vite.config.ts:15-31,239-254`).
 - **Module aliases:** `resolve.alias` has 2 entries (`next/dist/compiled/@vercel/og/index.edge.js→lib/stubs/og-stub.js`, `zod/v3→zod-v3-stub.mjs`); client `cloudflare:workers` + `node:async_hooks` are `clientModuleStubs()` plugin (`vite.config.ts:15-31`), not alias. Zxcvbn stubs removed.

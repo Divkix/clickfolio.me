@@ -11,17 +11,6 @@ import { sanitizeEmail, sanitizeUrl } from "@/lib/utils/sanitization";
 const REPEATING_SEGMENT_PATTERN = /\/([^/]+)\/\1\/\1(?:\/|$)/;
 
 /**
- * Normalize URL - add protocol if missing, return empty string if invalid
- * Delegates scheme validation to canonical sanitizeUrl.
- */
-export function normalizeUrl(value: JsonValue): string {
-  // SAFETY: zod safeParse guarantees value is string if success
-  if (!z.string().safeParse(value).success || !(value as string).trim()) return "";
-  // SAFETY: zod safeParse guarantees value is string
-  return sanitizeUrl((value as string).trim());
-}
-
-/**
  * Validate URL with garbage pattern detection
  * Detects pathological patterns like repeating path segments.
  * Delegates scheme normalization to canonical sanitizeUrl,

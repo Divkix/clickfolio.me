@@ -2,62 +2,12 @@ import { describe, expect, it } from "vite-plus/test";
 import {
   normalizeEndDate,
   normalizeString,
-  normalizeUrl,
   transformAiOutput,
   transformAiResponse,
   validateUrl,
 } from "@/lib/ai/transform";
 import { truncateText } from "@/lib/utils/format";
 import type { ResumeContentFormData } from "@/lib/schemas/resume";
-describe("normalizeUrl", () => {
-  it("returns empty string for non-string input", () => {
-    expect(normalizeUrl(null)).toBe("");
-    expect(normalizeUrl(undefined)).toBe("");
-    expect(normalizeUrl(123)).toBe("");
-  });
-
-  it("returns empty string for empty/whitespace string", () => {
-    expect(normalizeUrl("")).toBe("");
-    expect(normalizeUrl("   ")).toBe("");
-  });
-
-  it("preserves http:// URLs", () => {
-    expect(normalizeUrl("http://example.com")).toBe("http://example.com");
-  });
-
-  it("preserves https:// URLs", () => {
-    expect(normalizeUrl("https://example.com")).toBe("https://example.com");
-  });
-
-  it("preserves mailto: URLs", () => {
-    expect(normalizeUrl("mailto:test@example.com")).toBe("mailto:test@example.com");
-  });
-
-  it("blocks javascript: URLs", () => {
-    expect(normalizeUrl("javascript:alert(1)")).toBe("");
-  });
-
-  it("blocks data: URLs", () => {
-    expect(normalizeUrl("data:text/html,<script>alert(1)</script>")).toBe("");
-  });
-
-  it("blocks vbscript: URLs", () => {
-    expect(normalizeUrl("vbscript:msgbox(1)")).toBe("");
-  });
-
-  it("adds https:// to URLs without protocol", () => {
-    expect(normalizeUrl("example.com")).toBe("https://example.com");
-  });
-
-  it("preserves trailing slashes", () => {
-    expect(normalizeUrl("example.com/path/")).toBe("https://example.com/path/");
-  });
-
-  it("handles uppercase protocols case-insensitively", () => {
-    expect(normalizeUrl("HTTPS://example.com")).toBe("HTTPS://example.com");
-    expect(normalizeUrl("HTTP://example.com")).toBe("HTTP://example.com");
-  });
-});
 
 describe("validateUrl", () => {
   it("returns empty string for non-string input", () => {

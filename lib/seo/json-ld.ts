@@ -94,51 +94,17 @@ interface JsonLdOptions {
  * Validates LinkedIn profile/company URLs
  * Accepts: linkedin.com/in/username, linkedin.com/company/name
  */
-const LINKEDIN_PATTERN = /^https?:\/\/(www\.)?linkedin\.com\/(in|company)\/[\w-]+\/?$/i;
+const URL_PATTERNS = {
+  linkedin: /^https?:\/\/(www\.)?linkedin\.com\/(in|company)\/[\w-]+\/?$/i,
+  github: /^https?:\/\/(www\.)?github\.com\/[\w-]+\/?$/i,
+  website: /^https?:\/\/[\w.-]+\.[a-z]{2,}(\/.*)?$/i,
+  dribbble: /^https?:\/\/(www\.)?dribbble\.com\/[\w-]+\/?$/i,
+  behance: /^https?:\/\/(www\.)?behance\.net\/[\w-]+\/?$/i,
+} as const;
 
-/**
- * Validates GitHub profile URLs
- * Accepts: github.com/username
- */
-const GITHUB_PATTERN = /^https?:\/\/(www\.)?github\.com\/[\w-]+\/?$/i;
+type UrlField = keyof typeof URL_PATTERNS;
 
-/**
- * Validates general website URLs
- * Basic validation - must be http(s) with a domain
- */
-const WEBSITE_PATTERN = /^https?:\/\/[\w.-]+\.[a-z]{2,}(\/.*)?$/i;
-
-/**
- * Validates Dribbble profile URLs
- * Accepts: dribbble.com/username
- */
-const DRIBBBLE_PATTERN = /^https?:\/\/(www\.)?dribbble\.com\/[\w-]+\/?$/i;
-
-/**
- * Validates Behance profile URLs
- * Accepts: behance.net/username
- */
-const BEHANCE_PATTERN = /^https?:\/\/(www\.)?behance\.net\/[\w-]+\/?$/i;
-
-function isValidLinkedInUrl(url: string): boolean {
-  return LINKEDIN_PATTERN.test(url.trim());
-}
-
-function isValidGitHubUrl(url: string): boolean {
-  return GITHUB_PATTERN.test(url.trim());
-}
-
-function isValidWebsiteUrl(url: string): boolean {
-  return WEBSITE_PATTERN.test(url.trim());
-}
-
-function isValidDribbbleUrl(url: string): boolean {
-  return DRIBBBLE_PATTERN.test(url.trim());
-}
-
-function isValidBehanceUrl(url: string): boolean {
-  return BEHANCE_PATTERN.test(url.trim());
-}
+const CONTACT_URL_FIELDS: UrlField[] = ["linkedin", "github", "website", "dribbble", "behance"];
 
 // =============================================================================
 // Helper Functions
@@ -212,24 +178,11 @@ function buildWorkExperiences(experience: ResumeContent["experience"]): JsonLdRo
 function buildSameAsArray(contact: ResumeContent["contact"]): string[] | undefined {
   const urls: string[] = [];
 
-  if (contact.linkedin && isValidLinkedInUrl(contact.linkedin)) {
-    urls.push(contact.linkedin.trim());
-  }
-
-  if (contact.github && isValidGitHubUrl(contact.github)) {
-    urls.push(contact.github.trim());
-  }
-
-  if (contact.website && isValidWebsiteUrl(contact.website)) {
-    urls.push(contact.website.trim());
-  }
-
-  if (contact.dribbble && isValidDribbbleUrl(contact.dribbble)) {
-    urls.push(contact.dribbble.trim());
-  }
-
-  if (contact.behance && isValidBehanceUrl(contact.behance)) {
-    urls.push(contact.behance.trim());
+  for (const field of CONTACT_URL_FIELDS) {
+    const value = contact[field];
+    if (value && URL_PATTERNS[field].test(value.trim())) {
+      urls.push(value.trim());
+    }
   }
 
   return urls.length > 0 ? urls : undefined;
