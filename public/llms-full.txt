@@ -6,13 +6,13 @@ Turn your PDF resume into a hosted web portfolio website in seconds. Upload your
 
 clickfolio.me is an AI-powered resume-to-website platform. Users upload a PDF resume, and within ~30 seconds the system extracts work experience, education, skills, projects, and contact information using advanced language models. The result is a live, shareable portfolio website at `clickfolio.me/@handle`.
 
-The platform is free for all base features with no time limits. Premium templates are unlockable through a referral system. There is no paywall — the business model relies on viral growth through portfolio sharing.
+The platform is free for all features with no time limits. All 10 templates are free for every user — no paywall, no referrals, no premium locks.
 
 ### Key Differentiators
 
 - **No signup to upload**: Users drop their PDF first, authenticate later
 - **Instant publishing**: ~30 seconds from upload to live portfolio
-- **10 professionally designed templates**: 6 free, 4 referral-gated
+- **10 professionally designed templates**: all free for every user
 - **Full editing suite**: Inline content editing with auto-save
 - **Privacy controls**: Per-field visibility toggles (phone, address, search indexing)
 - **Custom @handle URLs**: Permanent, memorable URLs
@@ -21,7 +21,7 @@ The platform is free for all base features with no time limits. Premium template
 
 ## All 10 Templates
 
-### Free Templates (0 referrals required)
+All 10 templates are free for every user — no referrals, no payment, no premium locks.
 
 1. **Minimalist Editorial** (default) — Clean magazine-style layout with serif typography. Professional and timeless.
    - Category: Professional
@@ -41,18 +41,16 @@ The platform is free for all base features with no time limits. Premium template
 6. **DevTerminal** — GitHub-inspired dark terminal aesthetic for developers. Monospace typography, console-style presentation.
    - Category: Developer
 
-### Premium Templates (referral-gated)
-
-7. **DesignFolio** (3 referrals) — Digital brutalism meets Swiss typography. Dark theme with acid lime accents.
+7. **DesignFolio** — Digital brutalism meets Swiss typography. Dark theme with acid lime accents.
    - Category: Creative
 
-8. **Spotlight** (3 referrals) — Warm creative portfolio with animated sections. Engaging, dynamic presentation.
+8. **Spotlight** — Warm creative portfolio with animated sections. Engaging, dynamic presentation.
    - Category: Creative
 
-9. **Midnight** (5 referrals) — Dark minimal with serif headings and gold accents. Elegant and sophisticated.
+9. **Midnight** — Dark minimal with serif headings and gold accents. Elegant and sophisticated.
    - Category: Modern
 
-10. **Bold Corporate** (10 referrals) — Executive typography with bold numbered sections. Premium professional look.
+10. **Bold Corporate** — Executive typography with bold numbered sections. Premium professional look.
     - Category: Professional
 
 ## FAQ
@@ -67,7 +65,7 @@ We use advanced language models to extract your work experience, education, skil
 
 ### Is clickfolio.me really free?
 
-Yes. All 6 base templates are completely free with no time limits. You can upgrade to 4 premium templates by sharing your portfolio with others via our referral system.
+Yes. All 10 templates are completely free with no time limits, no referrals, and no payment required.
 
 ### Can I customize my portfolio after publishing?
 
@@ -126,7 +124,7 @@ Absolutely. You get a full editing suite to update your content anytime. Changes
 - **Language**: TypeScript
 
 ### Storage
-- **Database**: Cloudflare D1 (SQLite-compatible, distributed)
+- **Database**: PlanetScale Postgres via Hyperdrive
 - **File Storage**: Cloudflare R2 (S3-compatible object storage)
 
 ### AI & Parsing
@@ -135,8 +133,8 @@ Absolutely. You get a full editing suite to update your content anytime. Changes
 - **AI SDK**: Vercel AI SDK for structured output parsing
 
 ### Authentication
-- **Auth Provider**: Better Auth (Google OAuth + email/password)
-- **Session Management**: Database-backed sessions with cookie transport
+- **Auth Provider**: Clerk (Google OAuth)
+- **Session Management**: Clerk sessions (JWT-verified via @clerk/backend; edge proxy checks cookie presence only)
 
 ### Real-time
 - **WebSocket**: Cloudflare Durable Objects for live parsing status updates
@@ -155,8 +153,8 @@ Absolutely. You get a full editing suite to update your content anytime. Changes
 
 ## Privacy & Security
 
-- All user data stored in D1 (SQLite) and R2 (object storage)
-- Authentication via Better Auth with Google OAuth and email/password
+- All user data stored in PlanetScale Postgres (via Hyperdrive) and R2 (object storage)
+- Authentication via Clerk with Google OAuth
 - Session tokens stored in HTTP-only cookies
 - Privacy controls allow users to selectively hide phone numbers, full addresses, and opt out of search engine indexing
 - R2 file storage uses signed URLs for uploads
