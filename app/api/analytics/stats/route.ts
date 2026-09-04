@@ -1,30 +1,3 @@
-/**
- * GET /api/analytics/stats?period=7d|30d|90d
- *
- * Authenticated endpoint returning aggregated page view analytics
- * for the logged-in user's resume page. Proxies Umami Analytics API.
- *
- * @returns Response with shape:
- * ```json
- * {
- *   "totalViews": number,
- *   "uniqueVisitors": number,
- *   "viewsByDay": Array<{ date: string; views: number; uniques: number }>,
- *   "topReferrers": Array<{ referrer: string; count: number }>,
- *   "directVisits": number,
- *   "deviceBreakdown": Array<{ device: string; count: number }>,
- *   "countryBreakdown": Array<{ country: string; count: number }>,
- *   "period": "7d" | "30d" | "90d"
- * }
- * ```
- *
- * Error codes:
- * - 400 for invalid period.
- * - 503 for Umami API failures.
- *
- * Caching: `Cache-Control: private, max-age=60, stale-while-revalidate=120`
- */
-
 import { desc, eq } from "drizzle-orm";
 import { withUser } from "@/lib/auth/with-auth";
 import { handleChanges } from "@/lib/db/schema";
@@ -72,7 +45,6 @@ export async function GET(request: Request) {
         const endAt = Date.now();
         const startAt = endAt - days * 24 * 60 * 60 * 1000;
 
-        // Collect all handles (current + historical) for users who changed handles
         const oldHandleRows = await db
           .select({ oldHandle: handleChanges.oldHandle })
           .from(handleChanges)
@@ -86,10 +58,8 @@ export async function GET(request: Request) {
             handleSet.add(row.oldHandle);
           }
         }
-        // Umami tracks profile URLs as /@handle
         const handlePaths = [...handleSet].map((h) => `/@${h}`);
 
-        // Fan out all Umami queries for all handle paths in parallel
         const [statsResults, pageviewsResults, referrerResults, deviceResults, countryResults] =
           await Promise.all([
             Promise.all(handlePaths.map((p) => getStats(env, { startAt, endAt, path: p }))),
@@ -153,7 +123,6 @@ export async function GET(request: Request) {
           uniqueVisitors += s.visitors ?? 0;
         }
 
-        // Aggregate daily pageviews and sessions (uniques) by date
         const dailyMap = new Map<string, number>();
         const dailyUniquesMap = new Map<string, number>();
         for (const pv of pageviewsResults) {
@@ -167,7 +136,6 @@ export async function GET(request: Request) {
           }
         }
 
-        // Aggregate referrer metrics (skip empty/null referrers)
         const referrerMap = new Map<string, number>();
         for (const metrics of referrerResults) {
           for (const m of metrics) {
@@ -177,7 +145,6 @@ export async function GET(request: Request) {
           }
         }
 
-        // Aggregate device metrics
         const deviceMap = new Map<string, number>();
         for (const metrics of deviceResults) {
           for (const m of metrics) {
@@ -186,7 +153,6 @@ export async function GET(request: Request) {
           }
         }
 
-        // Aggregate country metrics
         const countryMap = new Map<string, number>();
         for (const metrics of countryResults) {
           for (const m of metrics) {
@@ -195,28 +161,23 @@ export async function GET(request: Request) {
           }
         }
 
-        // Build topReferrers (sorted desc, top 10)
         const topReferrers = [...referrerMap.entries()]
           .map(([referrer, count]) => ({ referrer, count }))
           .sort((a, b) => b.count - a.count)
           .slice(0, 10);
 
-        // Direct visits = total views minus all known referrer views
         const allReferrerTotal = [...referrerMap.values()].reduce((sum, c) => sum + c, 0);
         const directVisits = Math.max(0, totalViews - allReferrerTotal);
 
-        // Device breakdown (sorted desc)
         const deviceBreakdown = [...deviceMap.entries()]
           .map(([device, count]) => ({ device, count }))
           .sort((a, b) => b.count - a.count);
 
-        // Country breakdown (sorted desc, top 10)
         const countryBreakdown = [...countryMap.entries()]
           .map(([country, count]) => ({ country, count }))
           .sort((a, b) => b.count - a.count)
           .slice(0, 10);
 
-        // Fill missing dates for chart continuity
         const viewsByDay = lastNUtcDays(days).map((date) => ({
           date,
           views: dailyMap.get(date) ?? 0,

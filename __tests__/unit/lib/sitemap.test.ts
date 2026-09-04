@@ -1,8 +1,3 @@
-/**
- * Sitemap generation unit tests
- * Tests for lib/sitemap.ts - Pure functions only
- */
-
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { buildSitemapIndexXml, buildSitemapXml, URLS_PER_SITEMAP } from "@/lib/seo/sitemap";
 import { getPublicSiteUrl } from "@/lib/utils/site-url";
@@ -171,7 +166,6 @@ describe("buildSitemapXml", () => {
 
     const result = buildSitemapXml(entries);
 
-    // Should not include lastmod for invalid date
     expect(result).toContain("<loc>https://example.com/</loc>");
     expect(result).not.toContain("<lastmod>Invalid Date</lastmod>");
   });
@@ -204,10 +198,8 @@ describe("buildSitemapIndexXml", () => {
   });
 
   it("escapes special characters in base URL", () => {
-    // Test with URL that would need escaping (edge case)
     const result = buildSitemapIndexXml(1);
 
-    // Should contain proper XML structure
     expect(result).toContain("<loc>");
     expect(result).toContain("</loc>");
   });

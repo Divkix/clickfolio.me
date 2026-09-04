@@ -8,12 +8,7 @@ interface AttributionWidgetProps {
   theme: string;
 }
 
-/**
- * Persistent attribution widget for public resume pages
- * Theme-adaptive styling with shimmer animation on hover
- */
 export function AttributionWidget({ theme }: AttributionWidgetProps) {
-  // Theme-specific styles using data attributes for clean conditional rendering
   const themeStyles = {
     minimalist_editorial: {
       container:
@@ -88,12 +83,10 @@ export function AttributionWidget({ theme }: AttributionWidgetProps) {
     { container: string; accent: string; shimmer: string; shadow: string }
   >;
 
-  // Type guard to check if theme is a valid ThemeId
   const isValidTheme = (t: string): t is ThemeId => {
     return t in themeStyles;
   };
 
-  // Use theme if valid, otherwise default to bento
   const currentTheme = isValidTheme(theme) ? themeStyles[theme] : themeStyles.bento;
 
   return (
@@ -110,7 +103,6 @@ export function AttributionWidget({ theme }: AttributionWidgetProps) {
       `}
       aria-label={`Visit ${siteConfig.fullName} homepage`}
     >
-      {/* Shimmer effect overlay - only visible on hover */}
       <div
         className={`
           absolute inset-0 bg-linear-to-r
@@ -120,7 +112,6 @@ export function AttributionWidget({ theme }: AttributionWidgetProps) {
         `}
       />
 
-      {/* Content */}
       <div className="relative z-10 flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs font-medium">
         <span>Built with</span>
         <span className="font-semibold">

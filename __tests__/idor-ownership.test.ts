@@ -1,16 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { JsonValue } from "@/lib/types/json";
 
-/**
- * IDOR ownership tests for /api/resume/status and /api/resume/retry.
- *
- * These tests verify that one user cannot access another user's resumes.
- * We mock the auth middleware and DB layer to isolate ownership logic.
- */
-
-// ── Mocks ────────────────────────────────────────────────────────────
-
-// DB mock: findFirst returns are configured per-test
 const mockFindFirst = vi.fn();
 const mockSelect = vi.fn().mockReturnThis();
 const mockFrom = vi.fn().mockReturnThis();
@@ -41,12 +31,10 @@ const mockDb = {
   insert: mockInsert,
 };
 
-// Mock requireAuthWithUserValidation
 vi.mock("@/lib/auth/middleware", () => ({
   requireAuthWithUserValidation: vi.fn(),
 }));
 
-// Mock drizzle-orm eq
 vi.mock("drizzle-orm", () => ({
   eq: vi.fn((_col, val) => val),
   gte: vi.fn(),
@@ -58,7 +46,6 @@ vi.mock("drizzle-orm", () => ({
   inArray: vi.fn(() => "inArray"),
 }));
 
-// Mock the schema
 vi.mock("@/lib/db/schema", () => ({
   resumes: {
     id: "id",
@@ -76,12 +63,10 @@ vi.mock("@/lib/db/schema", () => ({
   },
 }));
 
-// Mock queue publisher
 vi.mock("@/lib/queue/resume-parse", () => ({
   publishResumeParse: vi.fn().mockResolvedValue(undefined),
 }));
 
-// Mock R2
 vi.mock("@/lib/r2", () => ({
   getR2Binding: vi.fn(() => ({})),
   R2: {
@@ -92,7 +77,6 @@ vi.mock("@/lib/r2", () => ({
   },
 }));
 
-// Mock retry config
 vi.mock("@/lib/resume/lifecycle", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/resume/lifecycle")>();
   return {
@@ -102,7 +86,6 @@ vi.mock("@/lib/resume/lifecycle", async (importOriginal) => {
   };
 });
 
-// Mock security headers
 vi.mock("@/lib/utils/security-headers", () => ({
   createErrorResponse: vi.fn((error: string, _code: string, status: number) => {
     return new Response(JSON.stringify({ error }), { status });
@@ -126,8 +109,6 @@ vi.mock("@/lib/utils/security-headers", () => ({
 import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
 
 const mockedAuth = vi.mocked(requireAuthWithUserValidation);
-
-// ── Helpers ──────────────────────────────────────────────────────────
 
 function authedAs(userId: string) {
   mockedAuth.mockResolvedValue({
@@ -158,14 +139,10 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
-// ── Status endpoint IDOR tests ───────────────────────────────────────
-
 describe("GET /api/resume/status — ownership checks", () => {
   it("returns 403 when user tries to access another user's resume", async () => {
-    // User A is authenticated
     authedAs("user-a");
 
-    // Resume belongs to User B
     mockFindFirst.mockResolvedValue({
       id: "resume-1",
       userId: "user-b",
@@ -205,8 +182,6 @@ describe("GET /api/resume/status — ownership checks", () => {
     expect(response.status).toBe(200);
   });
 });
-
-// ── Retry endpoint IDOR tests ────────────────────────────────────────
 
 describe("POST /api/resume/retry — ownership checks", () => {
   it("returns 403 when user tries to retry another user's resume", async () => {

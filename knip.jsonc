@@ -15,13 +15,12 @@
   "ignore": [],
   "ignoreBinaries": [],
   "ignoreDependencies": [
-    // Tailwind CSS ecosystem and build-time dependencies:
-    "cloudflare", // Cloudflare Workers `cloudflare:workers` runtime import
-    "postcss", // Build-time CSS processor
-    "tailwindcss", // Utility-first CSS framework
-    "tw-animate-css", // Tailwind CSS animation plugin
-    "@tailwindcss/typography", // Tailwind CSS prose plugin
-    "oxlint", // Used via `vp check` / `vp lint` (vite-plus), not directly imported
+    "cloudflare",
+    "postcss",
+    "tailwindcss",
+    "tw-animate-css",
+    "@tailwindcss/typography",
+    "oxlint",
   ],
   "ignoreExportsUsedInFile": true,
 }

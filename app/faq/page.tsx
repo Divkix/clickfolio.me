@@ -14,13 +14,11 @@ import {
 } from "@/lib/seo/json-ld";
 import { buildPublicPageMetadata } from "@/lib/seo/page-metadata";
 
-/** Revalidate daily — static marketing content. */
 export const revalidate = 86400;
 
 const faqTitle = `FAQ - ${siteConfig.fullName}`;
 const faqDescription = `Answers to common questions about ${siteConfig.fullName}: how the AI resume parsing works, pricing, privacy, customization, and more.`;
 
-/** SEO metadata for the FAQ page. */
 export const metadata: Metadata = buildPublicPageMetadata({
   title: "FAQ",
   ogTitle: faqTitle,
@@ -28,10 +26,6 @@ export const metadata: Metadata = buildPublicPageMetadata({
   path: "/faq",
 });
 
-/**
- * Full FAQ page — server-rendered accordion (native <details>) plus FAQPage,
- * WebPage, and BreadcrumbList structured data.
- */
 export default function FAQPage() {
   const faqJsonLd = generateFAQJsonLd();
   const breadcrumb = generatePageBreadcrumbJsonLd("FAQ", "/faq");
@@ -56,7 +50,6 @@ export default function FAQPage() {
 
       <main className="flex-1 px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
         <div className="mx-auto max-w-3xl">
-          {/* Header */}
           <div className="text-center">
             <p className="text-sm font-semibold uppercase tracking-wide text-brand">Support</p>
             <h1 className="mt-3 font-display text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
@@ -75,10 +68,8 @@ export default function FAQPage() {
             </p>
           </div>
 
-          {/* Accordion */}
           <FaqAccordion items={FAQ_ITEMS} className="mt-12" />
 
-          {/* CTA */}
           <div className="mt-16 rounded-2xl border border-border bg-brand-subtle p-8 text-center sm:p-12">
             <h2 className="font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
               Ready to build yours?

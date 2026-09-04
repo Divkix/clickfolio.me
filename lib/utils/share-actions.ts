@@ -13,10 +13,6 @@ import {
 } from "@/lib/utils/share";
 import type { BrandIconVariant } from "@/components/icons/BrandIcons";
 
-/**
- * Build a shareable URL for a portfolio.
- * Client-side uses location.origin when available; SSR falls back to siteConfig.url.
- */
 export function getShareUrl(handle: string | undefined): string {
   if (globalThis.window !== undefined && handle) {
     return `${globalThis.window.location.origin}/@${handle}`;
@@ -24,10 +20,6 @@ export function getShareUrl(handle: string | undefined): string {
   return `${siteConfig.url}/@${handle ?? ""}`;
 }
 
-/**
- * Returns the appropriate LinkedIn icon color variant for the given theme.
- * Dark themes use the white variant; all others use black.
- */
 export function getLinkedInIconVariant(
   themeId: ThemeId | (string & {}) | null | undefined,
 ): BrandIconVariant {
@@ -41,7 +33,6 @@ export function getLinkedInIconVariant(
       return "black";
   }
 }
-// --- plain share action handlers (used by useShareActions and directly) ---
 
 function handleTwitterShare(text: string, url: string): void {
   globalThis.window?.open(generateTwitterShareUrl(text, url), "_blank", "noopener,noreferrer");
@@ -70,10 +61,6 @@ async function handleCopyLink(
   });
 }
 
-/**
- * Hook that returns memoized share URL/text and bound share action handlers.
- * Centralizes webShare fallback and copy logic.
- */
 export function useShareActions(options: {
   url?: string;
   handle?: string;

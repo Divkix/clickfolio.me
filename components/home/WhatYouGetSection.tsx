@@ -1,8 +1,5 @@
 import { Code2, Layout, Link2, Lock, Share2, Sparkles } from "lucide-react";
 
-/**
- * "What you get" feature grid. Server component — no client interactivity needed.
- */
 export function WhatYouGetSection() {
   const features = [
     { icon: Link2, title: "Custom URL", desc: "Your own clickfolio.me/@handle" },

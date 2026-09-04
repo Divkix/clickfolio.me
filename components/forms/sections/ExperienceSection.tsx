@@ -184,7 +184,6 @@ export function ExperienceSection({ form }: ExperienceSectionProps) {
                   />
                 </div>
 
-                {/* Highlights Section */}
                 <div className="mt-4">
                   <FormField
                     control={form.control}

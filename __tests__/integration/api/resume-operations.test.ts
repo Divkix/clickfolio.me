@@ -1,18 +1,6 @@
 import type { UnknownRecord, JsonValue } from "@/lib/types/json";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
-/**
- * Integration tests for Resume API operations (Phase 3, Section 3.4)
- *
- * Tests all resume API endpoints with proper authentication,
- * database state management, and error handling scenarios.
- *
- * Total: 25 tests
- */
-
-// ── Mocks ────────────────────────────────────────────────────────────
-
-// Mock modules before imports
 vi.mock("@/lib/auth/middleware", () => ({
   requireAuthWithUserValidation: vi.fn(),
   requireAuthWithMessage: vi.fn(),
@@ -70,13 +58,6 @@ vi.mock("@/lib/queue/resume-parse", () => ({
   publishResumeParse: vi.fn().mockResolvedValue(undefined),
 }));
 
-// Use the REAL canRetryResume (and RETRY_LIMITS / PERMANENT_ERROR_TYPES) so the
-// cross-endpoint agreement tests below are load-bearing against the actual
-// eligibility rule -- not a hand-rolled double that could silently drift from
-// it (e.g. by ignoring the permanent-error dimension). Only hasExceededMaxAttempts
-// and isPermanentErrorType stay mocked because the retry route toggles them
-// directly per-test to drive its gates; the real canRetryResume closes over the
-// module's own copies, so those overrides don't affect it.
 vi.mock("@/lib/resume/lifecycle", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/resume/lifecycle")>();
   return {
@@ -132,7 +113,6 @@ vi.mock("@/lib/utils/security-headers", () => ({
   },
 }));
 
-// Mock schemas
 vi.mock("@/lib/db/schema", () => ({
   user: {
     id: "id",
@@ -180,8 +160,6 @@ vi.mock("@/lib/db/schema", () => ({
   },
 }));
 
-// ── Setup ─────────────────────────────────────────────────────────────
-
 import { requireAuthWithMessage, requireAuthWithUserValidation } from "@/lib/auth/middleware";
 import { validateRequestSize } from "@/lib/utils/validation";
 
@@ -191,7 +169,6 @@ const mockedAuth = vi.mocked(requireAuthWithUserValidation);
 const mockedAuthMessage = vi.mocked(requireAuthWithMessage);
 const mockedValidateRequestSize = vi.mocked(validateRequestSize);
 
-// DB mock helpers
 const mockFindFirst = vi.fn();
 const mockSelect = vi.fn();
 const mockFrom = vi.fn();
@@ -206,7 +183,6 @@ const mockUpdateWhere = vi.fn();
 const mockReturning = vi.fn();
 const mockTransaction = vi.fn();
 
-// Build chainable mock
 mockSelect.mockReturnValue({ from: mockFrom });
 mockFrom.mockReturnValue({ where: mockWhere });
 mockWhere.mockReturnValue({ orderBy: mockOrderBy, limit: mockLimit });
@@ -239,9 +215,6 @@ const mockDb = {
   transaction: mockTransaction,
 };
 
-// ── Helper Functions ─────────────────────────────────────────────────
-
-// Cookie helper for claim route testing
 const TEST_COOKIE_SECRET = "test-secret-key-for-testing-only";
 
 async function createSignedCookieValue(
@@ -250,7 +223,7 @@ async function createSignedCookieValue(
   expiresAt?: number,
 ): Promise<string> {
   const encoder = new TextEncoder();
-  const actualExpiresAt = expiresAt ?? Date.now() + 30 * 60 * 1000; // 30 min default
+  const actualExpiresAt = expiresAt ?? Date.now() + 30 * 60 * 1000;
   const payload = `${tempKey}|${actualExpiresAt}`;
 
   const key = await crypto.subtle.importKey(
@@ -343,8 +316,6 @@ function makeRequest(url: string, method = "GET", body?: JsonValue, cookieValue?
   return new Request(url, init);
 }
 
-// ── Test Suite ───────────────────────────────────────────────────────
-
 beforeEach(() => {
   vi.clearAllMocks();
   mockedValidateRequestSize.mockReturnValue({ valid: true });
@@ -354,10 +325,6 @@ beforeEach(() => {
 });
 
 describe("Resume API Integration Tests (25 tests)", () => {
-  // ─────────────────────────────────────────────────────────────────
-  // GET /api/resume/status
-  // ─────────────────────────────────────────────────────────────────
-
   describe("GET /api/resume/status", () => {
     it("returns 200 with status when authenticated user accesses own resume (test 1)", async () => {
       authedAs("user-123");
@@ -425,7 +392,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
         errorMessage: null,
         retryCount: 0,
         totalAttempts: 1,
-        createdAt: new Date(Date.now() - 5000).toISOString(), // 5 seconds ago
+        createdAt: new Date(Date.now() - 5000).toISOString(),
       });
 
       const { GET } = await import("@/app/api/resume/status/route");
@@ -441,7 +408,6 @@ describe("Resume API Integration Tests (25 tests)", () => {
     it("returns completed status with parsed content (test 10)", async () => {
       authedAs("user-123");
 
-      // parsedContent is a jsonb column: it selects back as a parsed object.
       const parsedContent = {
         full_name: "Test User",
         headline: "Developer",
@@ -518,10 +484,6 @@ describe("Resume API Integration Tests (25 tests)", () => {
     });
   });
 
-  // ─────────────────────────────────────────────────────────────────
-  // GET /api/resume/latest-status
-  // ─────────────────────────────────────────────────────────────────
-
   describe("GET /api/resume/latest-status", () => {
     it("returns 200 with latest resume status for authenticated user (test 2)", async () => {
       authedAs("user-123");
@@ -567,21 +529,12 @@ describe("Resume API Integration Tests (25 tests)", () => {
     });
   });
 
-  // ─────────────────────────────────────────────────────────────────
-  // Retry-eligibility agreement between status and latest-status (issue #174)
-  //
-  // Both endpoints must answer "can this resume be retried?" via the single
-  // canonical canRetryResume() so the two never disagree for the same row.
-  // ─────────────────────────────────────────────────────────────────
-
   describe("Retry eligibility: status and latest-status agree", () => {
     async function canRetryFromBothEndpoints(row: UnknownRecord): Promise<{
       status: boolean;
       latest: boolean;
     }> {
-      // Primary status endpoint reads the row via db.query.resumes.findFirst
       mockFindFirst.mockResolvedValue(row);
-      // latest-status reads the row via db.select()...orderBy().limit()
       mockLimit.mockResolvedValue([row]);
 
       const { GET: statusGET } = await import("@/app/api/resume/status/route");
@@ -624,7 +577,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
         status: "failed",
         errorMessage: "PDF parsing error",
         retryCount: 0,
-        totalAttempts: 6, // at the real cap (RETRY_LIMITS.TOTAL_MAX_ATTEMPTS)
+        totalAttempts: 6,
         lastAttemptError: null,
         createdAt: new Date().toISOString(),
       };
@@ -636,9 +589,6 @@ describe("Resume API Integration Tests (25 tests)", () => {
     });
 
     it("both deny retry for a failed resume with a permanent error", async () => {
-      // Exercises the lastAttemptError -> error-type parse path through BOTH
-      // endpoints: a permanent error must be denied identically, which only
-      // holds if latest-status parses lastAttemptError the same way status does.
       authedAs("user-123");
       const row = {
         id: "resume-agree-permanent",
@@ -658,31 +608,24 @@ describe("Resume API Integration Tests (25 tests)", () => {
     });
   });
 
-  // ─────────────────────────────────────────────────────────────────
-  // POST /api/resume/claim
-  // ─────────────────────────────────────────────────────────────────
-
   describe("POST /api/resume/claim", () => {
     it("queues a new resume for parsing on valid claim (test 3)", async () => {
       const { R2 } = await import("@/lib/r2");
       const mockedR2 = vi.mocked(R2.getAsArrayBuffer);
-      mockedR2.mockResolvedValue(new ArrayBuffer(8)); // Minimal PDF buffer
+      mockedR2.mockResolvedValue(new ArrayBuffer(8));
 
       const { publishResumeParse } = await import("@/lib/queue/resume-parse");
       vi.mocked(publishResumeParse).mockResolvedValue(undefined);
 
       authedAs("user-123");
 
-      // Setup the limit mock chain
       mockLimit.mockResolvedValue([]);
 
       const { POST } = await import("@/app/api/resume/claim/route");
 
-      // Create a valid cookie for the temp key
       const tempKey = "temp/uuid/resume.pdf";
       const cookieValue = await createSignedCookieValue(tempKey, TEST_COOKIE_SECRET);
 
-      // Create a properly formatted request with cookie
       const request = new Request("http://localhost:3000/api/resume/claim", {
         method: "POST",
         headers: {
@@ -694,8 +637,6 @@ describe("Resume API Integration Tests (25 tests)", () => {
 
       const response = await POST(request);
 
-      // If validation fails, it returns 400
-      // The test validates the integration pattern
       expect([200, 400, 500]).toContain(response.status);
     });
 
@@ -744,7 +685,6 @@ describe("Resume API Integration Tests (25 tests)", () => {
 
       const { POST } = await import("@/app/api/resume/claim/route");
 
-      // Create a valid cookie for the temp key
       const tempKey = "temp/uuid/resume.pdf";
       const cookieValue = await createSignedCookieValue(tempKey, TEST_COOKIE_SECRET);
 
@@ -767,7 +707,6 @@ describe("Resume API Integration Tests (25 tests)", () => {
       mockedR2.mockResolvedValue(null);
 
       authedAs("user-123");
-      // Recent resume exists (within 2 minutes)
       mockLimit.mockResolvedValue([
         {
           id: "existing-resume",
@@ -778,7 +717,6 @@ describe("Resume API Integration Tests (25 tests)", () => {
 
       const { POST } = await import("@/app/api/resume/claim/route");
 
-      // Create a valid cookie for the temp key
       const tempKey = "temp/uuid/resume.pdf";
       const cookieValue = await createSignedCookieValue(tempKey, TEST_COOKIE_SECRET);
 
@@ -811,10 +749,6 @@ describe("Resume API Integration Tests (25 tests)", () => {
     });
   });
 
-  // ─────────────────────────────────────────────────────────────────
-  // POST /api/resume/retry
-  // ─────────────────────────────────────────────────────────────────
-
   describe("POST /api/resume/retry", () => {
     it("re-queues failed resume for parsing (test 4)", async () => {
       const { hasExceededMaxAttempts } = await import("@/lib/resume/lifecycle");
@@ -844,8 +778,6 @@ describe("Resume API Integration Tests (25 tests)", () => {
       expect(body.status).toBe("queued");
       expect(body.retry_count).toBe(1);
 
-      // TOCTOU guard: the re-queue UPDATE must be conditioned on the row still
-      // being "failed" AND under the manual-retry cap, not just on resume id.
       expect(mockUpdateWhere).toHaveBeenCalledWith(
         expect.objectContaining({
           and: [{ eq: "resume-123" }, { eq: "failed" }, { lt: 2 }],
@@ -871,8 +803,6 @@ describe("Resume API Integration Tests (25 tests)", () => {
         fileHash: "abc123hash",
       });
 
-      // The row changed between the read and the UPDATE (e.g. another retry
-      // already moved it to queued) → .returning() yields no rows.
       mockReturning.mockResolvedValue([]);
 
       const { POST } = await import("@/app/api/resume/retry/route");
@@ -1031,10 +961,6 @@ describe("Resume API Integration Tests (25 tests)", () => {
     });
   });
 
-  // ─────────────────────────────────────────────────────────────────
-  // PUT /api/resume/update
-  // ─────────────────────────────────────────────────────────────────
-
   describe("PUT /api/resume/update", () => {
     const validResumeContent = {
       full_name: "Test User",
@@ -1106,7 +1032,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
       const { PUT } = await import("@/app/api/resume/update/route");
       const request = makeRequest("http://localhost:3000/api/resume/update", "PUT", {
         content: {
-          full_name: "", // Empty name should fail validation
+          full_name: "",
           headline: "Test",
           summary: "Test summary",
           contact: { email: "invalid-email" },
@@ -1133,7 +1059,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
     it("returns 404 when site_data update affects no rows (no resume uploaded yet)", async () => {
       authedAs("user-123");
 
-      mockReturning.mockResolvedValue([]); // Empty result = no rows updated
+      mockReturning.mockResolvedValue([]);
 
       const { PUT } = await import("@/app/api/resume/update/route");
       const request = makeRequest("http://localhost:3000/api/resume/update", "PUT", {
@@ -1141,17 +1067,11 @@ describe("Resume API Integration Tests (25 tests)", () => {
       });
       const response = await PUT(request);
 
-      // Mirrors POST /api/resume/update-theme: no site_data row yet is a 404
-      // (NOT_FOUND), not a 500 — the client can recover by showing an upload prompt.
       expect(response.status).toBe(404);
       const body = (await response.json()) as { error: string };
       expect(body.error).toContain("Resume data not found");
     });
   });
-
-  // ─────────────────────────────────────────────────────────────────
-  // PUT /api/resume/update-theme (actually POST in implementation)
-  // ─────────────────────────────────────────────────────────────────
 
   describe("PUT /api/resume/update-theme", () => {
     it("updates theme successfully (test 6)", async () => {
@@ -1159,7 +1079,6 @@ describe("Resume API Integration Tests (25 tests)", () => {
 
       mockReturning.mockResolvedValue([{ themeId: "bento" }]);
 
-      // Re-import to clear module cache
       const { POST } = await import("@/app/api/resume/update-theme/route");
       const request = makeRequest("http://localhost:3000/api/resume/update-theme", "POST", {
         theme_id: "bento",
@@ -1203,7 +1122,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
     it("returns 404 when site_data not found", async () => {
       authedAs("user-123");
 
-      mockReturning.mockResolvedValue([]); // No rows updated
+      mockReturning.mockResolvedValue([]);
 
       const { POST } = await import("@/app/api/resume/update-theme/route");
       const request = makeRequest("http://localhost:3000/api/resume/update-theme", "POST", {
@@ -1215,15 +1134,10 @@ describe("Resume API Integration Tests (25 tests)", () => {
     });
   });
 
-  // ─────────────────────────────────────────────────────────────────
-  // Additional Edge Cases
-  // ─────────────────────────────────────────────────────────────────
-
   describe("Edge Cases and Error Handling", () => {
     it("handles status polling for deleted resume (test 18)", async () => {
       authedAs("user-123");
 
-      // Resume exists but belongs to user - simulate deleted by returning null
       mockFindFirst.mockResolvedValue(null);
 
       const { GET } = await import("@/app/api/resume/status/route");
@@ -1240,7 +1154,6 @@ describe("Resume API Integration Tests (25 tests)", () => {
       const mockedR2 = vi.mocked(R2.getAsArrayBuffer);
       mockedR2.mockResolvedValue(new ArrayBuffer(8));
 
-      // Mock missing queue in env
       mockedAuth.mockResolvedValue({
         user: {
           id: "user-123",
@@ -1257,7 +1170,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
         dbUser: { id: "user-123", handle: "testuser", clerkId: "user_clerk_1" },
         env: {
           HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" },
-          CLICKFOLIO_PARSE_QUEUE: undefined, // Missing queue
+          CLICKFOLIO_PARSE_QUEUE: undefined,
           PENDING_UPLOAD_SECRET: TEST_COOKIE_SECRET,
         } as never,
         error: null,
@@ -1265,7 +1178,6 @@ describe("Resume API Integration Tests (25 tests)", () => {
 
       mockLimit.mockResolvedValue([]);
 
-      // Create a valid cookie for the temp key
       const tempKey = "temp/uuid/resume.pdf";
       const cookieValue = await createSignedCookieValue(tempKey, TEST_COOKIE_SECRET);
 
@@ -1280,7 +1192,6 @@ describe("Resume API Integration Tests (25 tests)", () => {
       });
       const response = await POST(request);
 
-      // Should handle missing queue gracefully
       expect([400, 500]).toContain(response.status);
     });
   });
@@ -1333,8 +1244,6 @@ describe("Resume API Integration Tests (25 tests)", () => {
 
       expect(response.status).toBe(200);
       const body = (await response.json()) as { status: string };
-      // pending_claim surfaces as "processing" to the client (a pending claim
-      // is an in-progress parse from the user's point of view).
       expect(body.status).toBe("processing");
     });
 

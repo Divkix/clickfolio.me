@@ -1,10 +1,5 @@
 import { z } from "zod";
 
-/**
- * Read an environment value from the Workers binding with a `process.env`
- * fallback (handy for scripts and local Node contexts), returning `undefined`
- * when the key is missing or blank.
- */
 export function getOptionalEnvValue<K extends keyof CloudflareEnv>(
   env: Partial<CloudflareEnv>,
   key: K,
@@ -21,14 +16,6 @@ export function getOptionalEnvValue<K extends keyof CloudflareEnv>(
   return undefined;
 }
 
-/**
- * Read a required environment value from the Workers binding with a
- * `process.env` fallback, throwing a descriptive error when missing.
- *
- * Relocated from the removed Better Auth module (`lib/auth/index.ts`); the
- * remaining consumers are pending-upload HMAC signing/verification
- * (`PENDING_UPLOAD_SECRET`) and other app-owned secrets.
- */
 export function getEnvValue<K extends keyof CloudflareEnv>(
   env: Partial<CloudflareEnv>,
   key: K,

@@ -14,27 +14,7 @@ import {
 } from "@/lib/utils/security-headers";
 import { readJsonWithLimit, validateRequestSize } from "@/lib/utils/validation";
 
-/**
- * PUT /api/profile/handle
- * Update user's handle (old handle becomes immediately available).
- *
- * Rate limit: 3 handle changes per 24 hours (prevent abuse).
- *
- * Request body:
- *   { handle: string }
- *
- * Response:
- *   { success: true, handle: string, old_handle: string | null }
- *
- * Error codes:
- *   - 400: invalid JSON, invalid handle format, or handle already set to this value
- *   - 409: handle is already taken by another user
- *   - 413: request body too large
- *   - 429: rate limit exceeded (3 changes per 24 hours)
- *   - 500: database error or unexpected error
- */
 export async function PUT(request: Request) {
-  // Validate request size before parsing (prevent DoS)
   const sizeCheck = validateRequestSize(request);
   if (!sizeCheck.valid) {
     return createErrorResponse(
@@ -47,7 +27,6 @@ export async function PUT(request: Request) {
   return withUser(
     request,
     async ({ user: authUser, db }) => {
-      // Check rate limit (3 handle changes per 24 hours)
       const changesIn24h = await countHandleChangesInWindow(db, authUser.id);
 
       if (changesIn24h >= 3) {
@@ -58,7 +37,6 @@ export async function PUT(request: Request) {
         );
       }
 
-      // Parse and validate request body (size-capped read, no trust in Content-Length)
       const rawBodyResult = await readJsonWithLimit(request);
       if (!rawBodyResult.ok) {
         return createErrorResponse(
@@ -81,7 +59,6 @@ export async function PUT(request: Request) {
 
       const { handle: newHandle } = validation.data;
 
-      // Fetch current profile to get old handle
       const currentUser = await db
         .select({ handle: user.handle })
         .from(user)
@@ -98,7 +75,6 @@ export async function PUT(request: Request) {
 
       const oldHandle = currentUser[0].handle;
 
-      // Check if handle is already the same
       if (oldHandle === newHandle) {
         return createErrorResponse(
           "Handle is already set to this value",
@@ -107,7 +83,6 @@ export async function PUT(request: Request) {
         );
       }
 
-      // Check if new handle is already taken by another user
       const handleTaken = await isHandleTaken(db, authUser.id, newHandle);
 
       if (handleTaken) {
@@ -118,7 +93,6 @@ export async function PUT(request: Request) {
         );
       }
 
-      // Atomically update handle and record the audit row in one transaction
       const now = new Date().toISOString();
 
       try {
@@ -147,7 +121,7 @@ export async function PUT(request: Request) {
             409,
           );
         }
-        throw error; // Re-throw other errors
+        throw error;
       }
 
       captureServerEvent(authUser.id, "handle_changed", {

@@ -21,7 +21,6 @@ export function RoleSelectorCard({ currentRole, roleSource }: RoleSelectorCardPr
     const previousRole = role;
     const previousSource = source;
 
-    // Optimistic update
     setRole(newRole);
     setSource("user");
     setIsSaving(true);
@@ -39,7 +38,6 @@ export function RoleSelectorCard({ currentRole, roleSource }: RoleSelectorCardPr
 
       toast.success("Professional level updated");
     } catch {
-      // Rollback on error
       setRole(previousRole);
       setSource(previousSource);
       toast.error("Failed to update professional level");

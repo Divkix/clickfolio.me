@@ -1,13 +1,3 @@
-/**
- * OwnerDetector regression tests.
- *
- * window.__clickfolioOwner must be:
- *  - true when the session user owns the profile
- *  - false when a different/anonymous user views the profile (a stale `true`
- *    from a previous profile would suppress analytics for other users' pages)
- *  - cleared on unmount so the flag never leaks across page navigations
- */
-
 import { render } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { OwnerDetector } from "@/components/analytics/OwnerDetector";

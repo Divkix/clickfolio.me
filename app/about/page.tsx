@@ -12,7 +12,6 @@ import {
 } from "@/lib/seo/json-ld";
 import { buildPublicPageMetadata } from "@/lib/seo/page-metadata";
 
-/** Revalidate daily — static marketing content. */
 export const revalidate = 86400;
 
 /** Document title — no brand; root layout template is `%s | clickfolio.me`. */
@@ -21,7 +20,6 @@ const aboutTitle = "About — from PDF resume to hosted portfolio";
 const aboutOgTitle = `About ${siteConfig.fullName} — from PDF resume to hosted portfolio`;
 const aboutDescription = `${siteConfig.fullName} turns your PDF resume into a hosted web portfolio in seconds. Learn what we believe, how it works, and why it's free.`;
 
-/** SEO metadata for the about page. */
 export const metadata: Metadata = buildPublicPageMetadata({
   title: aboutTitle,
   ogTitle: aboutOgTitle,
@@ -70,9 +68,6 @@ const STEPS = [
   },
 ];
 
-/**
- * About page — mission, values, and how it works, in the bolder marketing register.
- */
 export default function AboutPage() {
   const breadcrumb = generatePageBreadcrumbJsonLd("About", "/about");
   const webPage = generateWebPageJsonLd(aboutTitle, "/about", aboutDescription);
@@ -91,7 +86,6 @@ export default function AboutPage() {
       <SiteHeader />
 
       <main className="flex-1">
-        {/* Hero */}
         <section className="px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
           <div className="mx-auto max-w-3xl text-center">
             <p className="text-sm font-semibold uppercase tracking-wide text-brand">Our mission</p>
@@ -106,7 +100,6 @@ export default function AboutPage() {
           </div>
         </section>
 
-        {/* Values */}
         <section className="px-4 pb-16 sm:px-6 lg:px-8 lg:pb-24">
           <div className="mx-auto max-w-5xl">
             <h2 className="font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
@@ -129,7 +122,6 @@ export default function AboutPage() {
           </div>
         </section>
 
-        {/* How it works */}
         <section className="border-t border-border bg-surface-2 px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
           <div className="mx-auto max-w-5xl">
             <div className="max-w-xl">
@@ -157,7 +149,6 @@ export default function AboutPage() {
           </div>
         </section>
 
-        {/* CTA */}
         <section className="px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
           <div className="mx-auto max-w-3xl rounded-2xl border border-border bg-brand-subtle p-8 text-center sm:p-12">
             <h2 className="font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl">

@@ -10,7 +10,6 @@ import "@fontsource-variable/bricolage-grotesque/index.css";
 import "@fontsource-variable/jetbrains-mono/index.css";
 import "./globals.css";
 
-/** Viewport configuration for responsive design and theme color. */
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
@@ -22,7 +21,6 @@ export const viewport: Viewport = {
   ],
 };
 
-/** Site-wide metadata defaults used for SEO and social sharing. */
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
   title: {
@@ -59,10 +57,6 @@ export const metadata: Metadata = {
   },
 };
 
-/**
- * Root layout wrapping all pages with global HTML structure,
- * skip-link accessibility, toast notifications, and analytics.
- */
 export default function RootLayout({
   children,
 }: Readonly<{

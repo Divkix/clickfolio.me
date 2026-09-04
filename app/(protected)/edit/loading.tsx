@@ -4,15 +4,12 @@ export default function EditLoading() {
   return (
     <div className="min-h-screen py-8">
       <div className="max-w-6xl mx-auto px-4 lg:px-6">
-        {/* Header */}
         <div className="mb-8">
           <Skeleton className="h-9 w-48 mb-2" />
           <Skeleton className="h-5 w-80" />
         </div>
 
-        {/* Form Cards */}
         <div className="space-y-6">
-          {/* Card 1: Basic Information */}
           <div className="bg-card rounded-xl border border-border shadow-sm p-6">
             <Skeleton className="h-6 w-40 mb-4" />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -31,7 +28,6 @@ export default function EditLoading() {
             </div>
           </div>
 
-          {/* Card 2: Contact Information */}
           <div className="bg-card rounded-xl border border-border shadow-sm p-6">
             <Skeleton className="h-6 w-44 mb-4" />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -54,7 +50,6 @@ export default function EditLoading() {
             </div>
           </div>
 
-          {/* Card 3: Experience */}
           <div className="bg-card rounded-xl border border-border shadow-sm p-6">
             <div className="flex items-center justify-between mb-4">
               <Skeleton className="h-6 w-28" />
@@ -77,7 +72,6 @@ export default function EditLoading() {
             </div>
           </div>
 
-          {/* Card 4: Skills */}
           <div className="bg-card rounded-xl border border-border shadow-sm p-6">
             <div className="flex items-center justify-between mb-4">
               <Skeleton className="h-6 w-16" />

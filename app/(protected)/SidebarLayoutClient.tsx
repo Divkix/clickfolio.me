@@ -7,7 +7,6 @@ import { Sidebar } from "@/components/dashboard/Sidebar";
 export function SidebarLayoutClient({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Close sidebar on Escape key
   useEffect(() => {
     if (!sidebarOpen) return;
 
@@ -21,7 +20,6 @@ export function SidebarLayoutClient({ children }: { children: React.ReactNode })
     return () => document.removeEventListener("keydown", handleEscape);
   }, [sidebarOpen]);
 
-  // Prevent body scroll when mobile sidebar is open
   useEffect(() => {
     if (sidebarOpen) {
       document.body.style.overflow = "hidden";
@@ -36,10 +34,8 @@ export function SidebarLayoutClient({ children }: { children: React.ReactNode })
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Sidebar - Desktop: always visible, Mobile: controlled by state */}
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-      {/* Mobile hamburger button */}
       <button
         type="button"
         onClick={() => setSidebarOpen(true)}
@@ -49,7 +45,6 @@ export function SidebarLayoutClient({ children }: { children: React.ReactNode })
         <Menu size={24} className="text-foreground" />
       </button>
 
-      {/* Main content area */}
       <main id="main-content" className="md:ml-60 min-h-screen">
         {children}
       </main>

@@ -7,11 +7,6 @@ import { Button } from "@/components/ui/button";
 import { siteConfig } from "@/lib/config/site";
 import { captureAnalyticsError } from "@/lib/analytics/client";
 
-/**
- * Public Profile Error Boundary
- * Catches errors in public resume pages
- * Maintains clean, professional branding even in error states
- */
 export default function ProfileError({
   error,
   reset,
@@ -21,7 +16,6 @@ export default function ProfileError({
 }) {
   useEffect(() => {
     console.error("Public profile error:", error);
-    // Report to PostHog Error Tracking; never let reporting break recovery UI.
     captureAnalyticsError(error);
   }, [error]);
 

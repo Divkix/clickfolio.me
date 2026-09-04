@@ -1,11 +1,3 @@
-/**
- * Resume parse-lifecycle module — single owner of the resume state machine.
- *
- * Concentrates: retry eligibility, QueueError JSON shape, progress %
- * mapping, and the `waiting_for_cache` timeout predicate so callers
- * stop pre-parsing `lastAttemptError` and GET /status stops writing.
- */
-
 import type { JsonValue, UnknownRecord } from "@/lib/types/json";
 import type { ResumeStatus } from "@/lib/db/schema/resume";
 import { z } from "zod";
@@ -14,9 +6,6 @@ import { QueueErrorType } from "@/lib/queue/errors";
 function isString(value: JsonValue): value is string {
   return z.string().safeParse(value).success;
 }
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
 
 export const INFRA = {
   DLQ_NAME: "clickfolio-parse-dlq",
@@ -40,10 +29,6 @@ export const WAITING_FOR_CACHE_TIMEOUT_MS = 10 * 60 * 1000;
 export const WAITING_FOR_CACHE_TIMEOUT_MESSAGE =
   "Parsing timed out while waiting for cached result. Please try uploading again.";
 
-// ---------------------------------------------------------------------------
-// Low-level helpers (private-ish — exported for the compat shim only)
-// ---------------------------------------------------------------------------
-
 export function hasExceededMaxAttempts(totalAttempts: number): boolean {
   return totalAttempts >= RETRY_LIMITS.TOTAL_MAX_ATTEMPTS;
 }
@@ -53,10 +38,6 @@ export function isPermanentErrorType(errorType: string): errorType is QueueError
   return PERMANENT_ERROR_TYPES.has(errorType as QueueErrorType);
 }
 
-// ---------------------------------------------------------------------------
-// QueueError JSON shape encapsulation
-// ---------------------------------------------------------------------------
-
 export type ParsedLastAttemptError = {
   type: string | null;
   message: string | null;
@@ -65,12 +46,6 @@ export type ParsedLastAttemptError = {
   name?: string | null;
 } | null;
 
-/**
- * Parse the `resumes.lastAttemptError` text column, which stores
- * `JSON.stringify(classifyQueueError(error).toJSON())`.
- * One place that knows the storage shape — all callers pass the raw row
- * or the raw string (both supported for backwards compatibility).
- */
 export function parseLastAttemptError(
   row: { lastAttemptError: string | null } | string | null,
 ): ParsedLastAttemptError {
@@ -119,10 +94,6 @@ export function getLastAttemptErrorType(
   return parseLastAttemptError(row)?.type ?? null;
 }
 
-// ---------------------------------------------------------------------------
-// Retry eligibility
-// ---------------------------------------------------------------------------
-
 export type ResumeRetryRow = {
   status: ResumeStatus;
   retryCount: number;
@@ -142,19 +113,10 @@ export type RetryEligibility =
       details?: UnknownRecord;
     };
 
-/**
- * Whether a resume is eligible for a manual retry.
- * Delegates to checkRetryEligibility so the 4 gates stay in one place.
- */
 export function canRetryResume(row: ResumeRetryRow): boolean {
   return checkRetryEligibility(row).eligible;
 }
 
-/**
- * Discriminated eligibility check for `POST /api/resume/retry`.
- * Maps each gate to its HTTP status / error code so the route returns
- * without re-implementing the rules.
- */
 export function checkRetryEligibility(row: ResumeRetryRow): RetryEligibility {
   if (hasExceededMaxAttempts(row.totalAttempts ?? 0)) {
     return {
@@ -218,10 +180,6 @@ export function checkRetryEligibility(row: ResumeRetryRow): RetryEligibility {
   return { eligible: true, nextAttempt: (row.retryCount as number) + 1 };
 }
 
-// ---------------------------------------------------------------------------
-// Presentation + waiting_for_cache timeout
-// ---------------------------------------------------------------------------
-
 export type StatusRow = {
   status: ResumeStatus;
   createdAt: string | null;
@@ -230,11 +188,8 @@ export type StatusRow = {
 export function waitingForCacheTimedOut(row: StatusRow): boolean {
   if (row.status !== "waiting_for_cache") return false;
   // null → epoch (0) → timed out (preserves legacy `new Date(null)` semantics:
-  // a row with no timestamp is treated as infinitely old)
   if (row.createdAt === null) return true;
   const ts = Date.parse(row.createdAt);
-  // Invalid date string ("" or garbage) → NaN → not timed out (fail open:
-  // don't clobber a row we can't date)
   if (Number.isNaN(ts)) return false;
   return Date.now() - ts > WAITING_FOR_CACHE_TIMEOUT_MS;
 }
@@ -247,11 +202,6 @@ export type StatusPresentation = {
   isTerminal: boolean;
   isWaitingForCacheTimeout?: boolean;
 };
-/**
- * Central progress-% + display-status mapping.
- * Covers pending_claim (15), queued (25), waiting_for_cache (30 or virtual failed),
- * processing (50), completed (100), failed (0).
- */
 export function statusPresentation(row: StatusRow): StatusPresentation {
   if (row.status === "waiting_for_cache") {
     if (waitingForCacheTimedOut(row)) {
@@ -290,14 +240,9 @@ export function statusPresentation(row: StatusRow): StatusPresentation {
     return { publicStatus: "processing", progressPct: 50, isTerminal: false };
   }
 
-  // Unknown status — treat as non-terminal with 0 progress
   return { publicStatus: row.status, progressPct: 0, isTerminal: false };
 }
 
-/**
- * Payload for the cron that persists the waiting_for_cache timeout.
- * Keeps the literal in one place with the predicate.
- */
 export type WaitingForCacheTimeoutUpdate = {
   status: "failed";
   errorMessage: string;
@@ -306,10 +251,6 @@ export type WaitingForCacheTimeoutUpdate = {
 export function buildWaitingForCacheTimeoutUpdate(): WaitingForCacheTimeoutUpdate {
   return { status: "failed", errorMessage: WAITING_FOR_CACHE_TIMEOUT_MESSAGE };
 }
-
-// ---------------------------------------------------------------------------
-// Unified status view — single call that encodes timeout + presentation + retry
-// ---------------------------------------------------------------------------
 
 export type ResumeRow = StatusRow & ResumeRetryRow;
 export function getStatusView(row: ResumeRow) {

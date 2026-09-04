@@ -1,10 +1,3 @@
-/**
- * Text formatting utilities
- */
-
-/**
- * Format relative time (e.g., "2 days ago") - deterministic to avoid hydration mismatch
- */
 export function formatRelativeTime(date: string | Date): string {
   const d = date instanceof Date ? date : new Date(date);
   const nowMs = Date.now();
@@ -35,9 +28,6 @@ export function formatRelativeTime(date: string | Date): string {
   return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
 }
 
-/**
- * Truncate text with ellipsis (maxLength inclusive of ellipsis)
- */
 export function truncateText(text: string, maxLength: number): string {
   if (text.length <= maxLength) return text;
   if (maxLength <= 3) return "...".slice(0, maxLength);

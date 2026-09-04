@@ -1,10 +1,3 @@
-/**
- * DLQ Consumer Tests
- *
- * Tests for the Dead Letter Queue consumer that handles permanently
- * failed messages and sends alerts.
- */
-
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { UnknownRecord } from "@/lib/types/json";
 import { handleDLQMessage } from "@/lib/queue/dlq-consumer";
@@ -203,15 +196,11 @@ describe("DLQ Consumer", () => {
 
       await handleDLQMessage(message, env);
 
-      // The friendly message already on the row must survive — the DLQ must not
-      // replace it with "Permanently failed after N attempts: ...".
       expect(updateSets[0]).toMatchObject({
         status: "failed",
         errorMessage: friendlyMessage,
       });
       expect(updateSets[0]?.errorMessage).not.toContain("Permanently failed");
-      // The synthesized message is only built when errorMessage is null — the
-      // WebSocket notification must also carry the friendly message.
       expect(notifyStatusChange).toHaveBeenCalledWith(
         expect.objectContaining({
           status: "failed",
@@ -253,7 +242,6 @@ describe("DLQ Consumer", () => {
 
       await handleDLQMessage(message, env);
 
-      // log() emits a single JSON string; find the DLQ_ALERT entry by msg field
       const dlqAlert = consoleSpy.mock.calls.find((call) => {
         try {
           return (JSON.parse(call[0]) as UnknownRecord)["msg"] === "DLQ_ALERT";
@@ -346,7 +334,6 @@ describe("DLQ Consumer", () => {
 
       await handleDLQMessage(message, env);
 
-      // log() emits a single JSON string; find the webhook alert failure entry by msg field
       const webhookFailLog = consoleSpy.mock.calls.find((call) => {
         try {
           return (JSON.parse(call[0]) as UnknownRecord)["msg"] === "webhook alert failed";
@@ -390,12 +377,10 @@ describe("DLQ Consumer", () => {
       const message = createMockDeadLetterMessage();
       const env = createMockEnv({
         ALERT_CHANNEL: "webhook",
-        // ALERT_WEBHOOK_URL not set
       });
 
       await handleDLQMessage(message, env);
 
-      // Should not attempt fetch without webhook URL
       expect(fetchSpy).not.toHaveBeenCalled();
 
       consoleSpy.mockRestore();
@@ -435,7 +420,6 @@ describe("DLQ Consumer", () => {
 
       await handleDLQMessage(message, env);
 
-      // log() emits a single JSON string; unsupported channel falls back to logpush (DLQ_ALERT msg)
       const parsedCalls = consoleSpy.mock.calls.map((call) => {
         try {
           return JSON.parse(call[0]) as UnknownRecord;
@@ -488,7 +472,6 @@ describe("DLQ Consumer", () => {
 
       await handleDLQMessage(message, env);
 
-      // log() emits a single JSON string with all payload fields at the top level
       const dlqAlert = consoleSpy.mock.calls.find((call) => {
         try {
           return (JSON.parse(call[0]) as UnknownRecord)["msg"] === "DLQ_ALERT";
@@ -535,7 +518,6 @@ describe("DLQ Consumer", () => {
 
       await handleDLQMessage(message, env);
 
-      // log() emits a single JSON string with all payload fields at the top level
       const dlqAlert = consoleSpy.mock.calls.find((call) => {
         try {
           return (JSON.parse(call[0]) as UnknownRecord)["msg"] === "DLQ_ALERT";
@@ -582,7 +564,6 @@ describe("DLQ Consumer", () => {
 
       await handleDLQMessage(message, env);
 
-      // Should not throw and should default to UNKNOWN; log() emits single JSON string
       const dlqAlert = consoleSpy.mock.calls.find((call) => {
         try {
           return (JSON.parse(call[0]) as UnknownRecord)["msg"] === "DLQ_ALERT";
@@ -725,7 +706,6 @@ describe("DLQ Consumer", () => {
 
       await handleDLQMessage(message, env);
 
-      // log() emits a single JSON string; find the success entry by msg and resumeId fields
       const successLog = consoleSpy.mock.calls.find((call) => {
         try {
           const parsed = JSON.parse(call[0]) as UnknownRecord;
@@ -776,7 +756,6 @@ describe("DLQ Consumer", () => {
 
       await handleDLQMessage(message, env);
 
-      // log() emits a single JSON string with all DLQAlertPayload fields at the top level
       const dlqAlert = consoleSpy.mock.calls.find((call) => {
         try {
           return (JSON.parse(call[0]) as UnknownRecord)["msg"] === "DLQ_ALERT";

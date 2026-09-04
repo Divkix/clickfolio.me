@@ -1,10 +1,3 @@
-/**
- * Vitest configuration for security tests
- *
- * Security tests verify authorization, IDOR protection,
- * rate limiting, input sanitization, and authentication middleware.
- */
-
 import { defineConfig } from "vite-plus";
 import { sharedAlias, sharedCoverageProvider, sharedSetupFiles } from "./vitest.base.config";
 
@@ -20,11 +13,8 @@ export default defineConfig({
       "__tests__/sanitization.test.ts",
       "__tests__/claim-security-cookie.test.ts",
     ],
-    // Security tests must be reliable - no retries
     retry: 0,
-    // Use forks for security test isolation
     pool: "forks",
-    // Security tests need longer timeouts for complex attack scenarios
     testTimeout: 15000,
     coverage: {
       provider: sharedCoverageProvider,
@@ -38,7 +28,6 @@ export default defineConfig({
         "lib/rate-limit/**/*.{ts,tsx}",
       ],
       exclude: ["**/*.d.ts", "**/*.test.{ts,tsx}", "lib/stubs/**", "**/__tests__/**"],
-      // Security tests require high coverage
       thresholds: {
         statements: 20,
         branches: 15,

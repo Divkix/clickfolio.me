@@ -24,7 +24,6 @@ describe("root instrumentation onRequestError", () => {
 
   it("forwards path, method, and route context — never request headers", async () => {
     const error = new Error("boom");
-    // Headers present in the platform payload must NOT reach analytics.
     const request = {
       path: "/dashboard",
       method: "POST",
@@ -56,8 +55,6 @@ describe("root instrumentation onRequestError", () => {
 
     const returned = onRequestError(new Error("boom"), { path: "/x", method: "GET" }, context);
 
-    // vinext registers the returned promise; the send must not be considered
-    // done until captureServerException settles.
     let settled = false;
     void returned.then(() => {
       settled = true;

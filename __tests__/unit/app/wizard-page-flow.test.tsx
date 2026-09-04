@@ -296,8 +296,6 @@ describe("wizard page flow", () => {
       isPending: false,
     };
 
-    // A stale pending-upload cookie exists, but the onboarding-completed check
-    // must run FIRST — no claim, no cookie read, no parse wait on page load.
     installFetchScenario("pending-claim");
     render(<WizardPage />);
 

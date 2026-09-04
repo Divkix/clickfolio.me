@@ -519,7 +519,6 @@ describe("branch-heavy component interactions", () => {
       expect(mocks.toast.success).toHaveBeenCalledWith("Link copied to clipboard!");
 
       mocks.copyToClipboard.mockRejectedValueOnce(new Error("blocked"));
-      // Button shows "Copied!" after success; query flexibly
       await user.click(screen.getByRole("button", { name: /Copy Share Link|Copied!/i }));
       expect(mocks.toast.error).toHaveBeenCalledWith("Failed to copy link. Please copy manually.");
     });

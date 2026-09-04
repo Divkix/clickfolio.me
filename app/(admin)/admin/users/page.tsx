@@ -70,7 +70,6 @@ export default function AdminUsersPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-2">
           <Users className="w-5 h-5 text-muted-foreground" aria-hidden="true" />
@@ -79,7 +78,6 @@ export default function AdminUsersPage() {
           </span>
         </div>
 
-        {/* Search */}
         <form onSubmit={handleSearch} className="relative">
           <Search
             className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"
@@ -96,7 +94,6 @@ export default function AdminUsersPage() {
         </form>
       </div>
 
-      {/* Table */}
       <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -179,7 +176,6 @@ export default function AdminUsersPage() {
           </table>
         </div>
 
-        {/* Pagination */}
         {totalPages > 1 && (
           <div className="border-t border-border px-4 py-3">
             <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />

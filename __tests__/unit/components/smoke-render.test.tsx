@@ -527,7 +527,6 @@ describe("component smoke rendering", () => {
     );
     expect(screen.getByRole("button", { name: "Sign in" })).toBeInTheDocument();
 
-    // Signed in: the same control navigates to the dashboard.
     signedOut.unmount();
     mocks.sessionState.current = {
       data: { user: { id: "user_1", name: "Avery", email: "avery@example.com" } },

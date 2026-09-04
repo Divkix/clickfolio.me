@@ -50,10 +50,8 @@ function clientVendorSplit(): Plugin {
       if (output && output instanceof Object && !Array.isArray(output)) {
         const original = output.manualChunks;
         output.manualChunks = (id: string, cause: unknown) => {
-          // Split heavy vendor deps that bloat the client mega-chunk
           if (id.includes("node_modules/@radix-ui")) return "vendor-radix";
           if (id.includes("node_modules/react-hook-form")) return "vendor-forms";
-          // Delegate to vinext's default chunking
           if (original instanceof Function) {
             // SAFETY: original is Rollup manualChunks from vinext; signature (id: string, cause: unknown) => string | undefined matches our wrapper — cast bridges untyped config.
             return (original as (id: string, cause: unknown) => string | undefined)(id, cause);
@@ -99,7 +97,6 @@ function ensureClientDir(): Plugin {
 function sourceMapUploadPlugin(mode: string): Plugin | null {
   if (process.env.POSTHOG_UPLOAD_SOURCEMAPS !== "true") return null;
 
-  // Empty prefix: load every var from .env* files plus process.env.
   const env = loadEnv(mode, process.cwd(), "");
   if (!env.POSTHOG_API_KEY || !env.POSTHOG_PROJECT_ID) {
     console.warn(
@@ -119,11 +116,9 @@ function sourceMapUploadPlugin(mode: string): Plugin | null {
     },
   });
   // SAFETY: The PostHog plugin uses standard Rollup hooks supported by Vite+'s
-  // Rolldown compatibility layer; this bridges only the two packages' contexts.
   return plugin as Plugin;
 }
 
-// Shared Oxfmt/Oxlint ignore list (one source).
 const SHARED_IGNORE_PATTERNS = [
   "dist/**",
   "lib/cloudflare-env.d.ts",
@@ -144,11 +139,9 @@ const SHARED_IGNORE_PATTERNS = [
 export default defineConfig(({ mode }) => {
   const sourcemapPlugin = sourceMapUploadPlugin(mode);
   return {
-    // Oxfmt: matches previous Biome formatter settings (all defaults already match)
     fmt: {
       ignorePatterns: SHARED_IGNORE_PATTERNS,
     },
-    // Oxlint: matches previous Biome linter rule set
     lint: {
       ignorePatterns: SHARED_IGNORE_PATTERNS,
       plugins: ["react", "typescript", "jsx-a11y", "oxc"],
@@ -189,7 +182,6 @@ export default defineConfig(({ mode }) => {
             "anti-slop/no-unsafe-dictionary-type": "off",
             "anti-slop/no-unknown-parameters": "off",
             "anti-slop/no-unknown-returns": "off",
-            // Test idioms that are intentionally unbound / type-loose
             "typescript/unbound-method": "off",
             "typescript/no-base-to-string": "off",
             "typescript/no-misused-spread": "off",
@@ -225,10 +217,7 @@ export default defineConfig(({ mode }) => {
     ],
     resolve: {
       alias: {
-        // Bundle stubs — replaces wrangler.jsonc alias block
-        // @vercel/og — doesn't work on CF Workers, vinext bundles it anyway (~2MB)
         "next/dist/compiled/@vercel/og/index.edge.js": resolve("lib/stubs/og-stub.js"),
-        // zod/v3 — required bundle shim; only the runtime v3 conversion path is dead
         "zod/v3": resolve("lib/stubs/zod-v3-stub.mjs"),
       },
     },
@@ -238,16 +227,12 @@ export default defineConfig(({ mode }) => {
     build: {
       rollupOptions: {
         plugins: [
-          // Source-map upload — only present when POSTHOG_UPLOAD_SOURCEMAPS=true
           ...(sourcemapPlugin ? [sourcemapPlugin] : []),
-          // Bundle visualizer — only runs when ANALYZE=true
           ...(process.env.ANALYZE === "true"
             ? [visualizer({ open: true, gzipSize: true, filename: "dist/stats.html" })]
             : []),
         ],
         onwarn(warning, warn) {
-          // vinext virtual entry imports "middleware" from proxy.ts even though
-          // only "proxy" / "default" are used — suppress the harmless warning
           if (
             warning.code === "MISSING_EXPORT" &&
             warning.message?.includes('"middleware"') &&

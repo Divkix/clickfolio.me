@@ -1,8 +1,3 @@
-/**
- * Theme registry unit tests
- * Tests for lib/templates/theme-registry.ts
- */
-
 import { describe, expect, it } from "vite-plus/test";
 import { DEFAULT_THEME, isValidThemeId } from "@/lib/templates/theme-ids";
 import { getTemplate } from "@/lib/templates/theme-registry";
@@ -40,7 +35,6 @@ describe("getTemplate", () => {
     const defaultComponent = await getTemplate(DEFAULT_THEME);
     const nullComponent = await getTemplate(null);
 
-    // Both should return the same theme component
     expect(typeof defaultComponent).toBe("function");
     expect(typeof nullComponent).toBe("function");
   });
@@ -81,7 +75,6 @@ describe("getTemplate", () => {
   });
 
   it("loads premium themes successfully", async () => {
-    // Note: These may be async imports
     const designFolio = await getTemplate("design_folio");
     const spotlight = await getTemplate("spotlight");
     const midnight = await getTemplate("midnight");
@@ -124,7 +117,6 @@ describe("Theme loading behavior", () => {
   });
 
   it("gracefully handles theme load errors by falling back to default", async () => {
-    // Test with invalid theme ID - should fall back to default
     const component = await getTemplate("nonexistent_theme_12345");
 
     expect(component).toBeDefined();

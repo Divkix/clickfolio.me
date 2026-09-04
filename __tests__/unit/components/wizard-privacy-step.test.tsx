@@ -3,10 +3,6 @@ import { describe, expect, it, vi } from "vite-plus/test";
 import { PrivacyStep } from "@/components/wizard/PrivacyStep";
 import type { ResumeContent } from "@/lib/types/database";
 
-// ============================================================================
-// Mock resume content with contact info
-// ============================================================================
-
 const mockContent: ResumeContent = {
   contact: {
     email: "test@example.com",
@@ -39,17 +35,12 @@ const mockContent: ResumeContent = {
   ],
 };
 
-// ============================================================================
-// PrivacyStep Component Tests
-// ============================================================================
-
 describe("PrivacyStep Component", () => {
   it("renders with default initial settings", () => {
     const onContinue = vi.fn();
 
     render(<PrivacyStep content={mockContent} onContinue={onContinue} />);
 
-    // Check that all toggles are present
     expect(screen.getByLabelText(/Show Phone Number/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Show Full Address/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Show in Explore Directory/i)).toBeInTheDocument();
@@ -73,7 +64,6 @@ describe("PrivacyStep Component", () => {
       />,
     );
 
-    // Check toggles reflect initial settings
     expect(screen.getByLabelText(/Show Phone Number/i)).toBeChecked();
     expect(screen.getByLabelText(/Show Full Address/i)).toBeChecked();
     expect(screen.getByLabelText(/Show in Explore Directory/i)).not.toBeChecked();
@@ -85,20 +75,17 @@ describe("PrivacyStep Component", () => {
 
     render(<PrivacyStep content={mockContent} onContinue={onContinue} />);
 
-    // Toggle some settings
     fireEvent.click(screen.getByLabelText(/Show Phone Number/i));
     fireEvent.click(screen.getByLabelText(/Hide from Search Engines/i));
 
-    // Click continue
     fireEvent.click(screen.getByText(/Continue/i));
 
-    // Verify onContinue was called with all 4 settings
     expect(onContinue).toHaveBeenCalledTimes(1);
     expect(onContinue).toHaveBeenCalledWith({
-      show_phone: true, // toggled from default false
-      show_address: false, // default
-      show_in_directory: true, // default
-      hide_from_search: true, // toggled from default false
+      show_phone: true,
+      show_address: false,
+      show_in_directory: true,
+      hide_from_search: true,
     });
   });
 
@@ -107,10 +94,8 @@ describe("PrivacyStep Component", () => {
 
     render(<PrivacyStep content={mockContent} onContinue={onContinue} />);
 
-    // Click continue without changing anything
     fireEvent.click(screen.getByText(/Continue/i));
 
-    // Verify default includes hide_from_search: false
     expect(onContinue).toHaveBeenCalledWith({
       show_phone: false,
       show_address: false,
@@ -124,10 +109,8 @@ describe("PrivacyStep Component", () => {
 
     render(<PrivacyStep content={mockContent} onContinue={onContinue} />);
 
-    // Enable hide from search
     fireEvent.click(screen.getByLabelText(/Hide from Search Engines/i));
 
-    // Check preview text
     expect(screen.getByText(/Not indexed by search engines/i)).toBeInTheDocument();
     expect(screen.getByText(/\(noindex\)/i)).toBeInTheDocument();
   });
@@ -137,7 +120,6 @@ describe("PrivacyStep Component", () => {
 
     render(<PrivacyStep content={mockContent} onContinue={onContinue} />);
 
-    // Default is disabled, check preview
     expect(screen.getByText(/Visible in search results/i)).toBeInTheDocument();
   });
 });

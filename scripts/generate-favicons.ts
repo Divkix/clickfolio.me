@@ -29,7 +29,6 @@ async function main() {
   console.log("Reading icon.svg...");
   const svg = await readFile(ICON_SVG);
 
-  // Generate PNGs
   const pngBuffers: Map<number, Buffer> = new Map();
 
   for (const config of PNG_CONFIGS) {
@@ -39,7 +38,6 @@ async function main() {
     await writeFile(join(PUBLIC, config.name), png);
   }
 
-  // Generate favicon.ico (multi-size: 16 + 32)
   console.log("Generating favicon.ico (16x16 + 32x32)...");
   const ico16 = pngBuffers.get(16)!;
   const ico32 = pngBuffers.get(32)!;

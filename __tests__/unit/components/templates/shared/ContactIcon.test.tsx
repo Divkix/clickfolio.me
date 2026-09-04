@@ -1,10 +1,3 @@
-/**
- * getContactIcon shared renderer tests
- *
- * Verifies that the shared icon function returns the expected icon element
- * for each ContactLinkType, with the correct props (className, size, variant).
- */
-
 import { render } from "@testing-library/react";
 import { describe, expect, it } from "vite-plus/test";
 import { getContactIcon } from "@/components/templates/shared/ContactIcon";

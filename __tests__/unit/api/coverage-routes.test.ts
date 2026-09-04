@@ -31,11 +31,8 @@ const mocks = vi.hoisted(() => {
       user: { id: "admin_1", email: "admin@example.com", name: "Admin", isAdmin: true },
       error: null,
     } as unknown,
-    // Transaction capture for wizard-complete: awaited statement count and the
-    // rows passed to each tx insert.
     txStatementCount: 0,
     txValues: [] as JsonValue[],
-    // Resolved by the @/lib/auth/session mock (handle/check ownership branch).
     serverSession: null as unknown,
     cookieStore,
   };
@@ -78,10 +75,6 @@ const mocks = vi.hoisted(() => {
     return chain;
   };
 
-  // Write chains (insert/delete builders) must not consume a select result —
-  // they resolve to undefined so that awaiting db.insert(...).values(...) does
-  // not dequeue from selectResults. All chain methods still return `chain` so
-  // builder expressions like .values(...).onConflictDoUpdate(...) work.
   const createInsertChain = (): Record<string, unknown> => {
     const chain: Record<string, unknown> = {
       values: vi.fn(() => chain),
@@ -90,7 +83,6 @@ const mocks = vi.hoisted(() => {
       onConflictDoUpdate: vi.fn(() => chain),
       returning: vi.fn(() => chain),
       where: vi.fn(() => chain),
-      // does not consume a queued select result when awaited directly.
       then: vi.fn(
         (resolve: (value: undefined) => JsonValue, _reject?: (reason: JsonValue) => JsonValue) => {
           return Promise.resolve(resolve(undefined));
@@ -100,8 +92,6 @@ const mocks = vi.hoisted(() => {
     return chain;
   };
 
-  // Transaction statement builder: a fresh chain per awaited statement, so
-  // `then` fires exactly once per production tx.update/tx.insert call.
   const makeTxChain = (): Record<string, unknown> => {
     const txChain: Record<string, unknown> = {
       set: vi.fn(() => txChain),
@@ -112,7 +102,6 @@ const mocks = vi.hoisted(() => {
       }),
       onConflictDoNothing: vi.fn(() => txChain),
       onConflictDoUpdate: vi.fn(() => txChain),
-      // Awaiting one tx statement counts exactly once.
       then: vi.fn(
         (resolve: (value: undefined) => JsonValue, _reject?: (reason: JsonValue) => JsonValue) => {
           state.txStatementCount += 1;
@@ -133,11 +122,7 @@ const mocks = vi.hoisted(() => {
     insert: vi.fn(() => createInsertChain()),
     update: vi.fn(() => createChain()),
     delete: vi.fn(() => createInsertChain()),
-    // Health route probes connectivity via db.execute(sql`SELECT 1`).
     execute: vi.fn(async () => undefined),
-    // Multi-statement atomicity: production uses db.transaction(cb). The mock
-    // counts every awaited statement and captures inserted rows so tests can
-    // assert write shape without touching SQL text.
     transaction: vi.fn(async (callback: (tx: Record<string, unknown>) => Promise<void>) => {
       state.txStatementCount = 0;
       state.txValues = [];
@@ -439,7 +424,6 @@ describe("API route coverage", () => {
     ).toEqual({ available: true });
 
     mocks.state.selectResults = [[{ id: "user_1" }]];
-    // Taken handle owned by the current Clerk session → isCurrentHandle.
     mocks.state.serverSession = { user: { id: "user_1" } };
     expect(
       await (await GET(new Request("https://clickfolio.me/api/handle/check?handle=avery"))).json(),
@@ -518,7 +502,6 @@ describe("API route coverage", () => {
     const { POST, GET, DELETE } = await import("@/app/api/upload/pending/route");
 
     expect((await POST(jsonRequest("/api/upload/pending", { key: "bad/key" }))).status).toBe(400);
-    // Uncapped-body guards: malformed JSON → 400, oversized → 413.
     expect(
       (
         await POST(
@@ -532,13 +515,11 @@ describe("API route coverage", () => {
     ).toBe(413);
     mocks.state.requestSize = { valid: true };
 
-    // Plan 004 guard: object not found in R2 → 404
     mocks.r2Head.mockResolvedValueOnce({ exists: false });
     expect(
       (await POST(jsonRequest("/api/upload/pending", { key: "temp/upload.pdf" }))).status,
     ).toBe(404);
 
-    // Plan 004 guard: object exists in R2 → 200 and cookie set
     expect(
       (await POST(jsonRequest("/api/upload/pending", { key: "temp/upload.pdf" }))).status,
     ).toBe(200);
@@ -556,7 +537,7 @@ describe("API route coverage", () => {
     const { POST } = await import("@/app/api/upload/route");
     const originalBucket = mocks.env.CLICKFOLIO_R2_BUCKET;
     const pdf = new Uint8Array(120);
-    pdf.set([0x25, 0x50, 0x44, 0x46]); // %PDF
+    pdf.set([0x25, 0x50, 0x44, 0x46]);
 
     const uploadRequest = (overrides: { headers?: HeadersInit; body?: BodyInit } = {}) =>
       new Request("https://clickfolio.me/api/upload", {
@@ -693,8 +674,6 @@ describe("API route coverage", () => {
     });
     expect(mocks.r2Delete).toHaveBeenCalledWith(originalBucket, "one.pdf");
     expect(mocks.r2Delete).toHaveBeenCalledWith(originalBucket, "two.pdf");
-    // Clerk identity deleted with the mapped Clerk id; the local user-row
-    // delete (CASCADE cleanup) still ran.
     expect(mocks.clerkDeleteUser).toHaveBeenCalledWith("user_clerk_1");
     expect(mocks.db.delete).toHaveBeenCalled();
 
@@ -720,20 +699,17 @@ describe("API route coverage", () => {
       expect.any(Object),
     );
 
-    // Empty handle → static SVG (no resvg) to avoid WASM cost for bot probes.
     const emptyHandle = await dynamic.GET(new Request("https://clickfolio.me/api/og/"), {
       params: Promise.resolve({ handle: "" }),
     });
     expect(emptyHandle.headers.get("Content-Type")).toBe("image/svg+xml");
 
-    // Malformed percent-encoding must not crash with a URIError → static SVG.
     const malformedHandle = await dynamic.GET(new Request("https://clickfolio.me/api/og/x"), {
       params: Promise.resolve({ handle: "%E0%A4%A" }),
     });
     expect(malformedHandle.status).toBe(200);
     expect(malformedHandle.headers.get("Content-Type")).toBe("image/svg+xml");
 
-    // Unknown handle → static SVG (no resvg).
     mocks.state.selectResults = [[]];
     const missing = await dynamic.GET(new Request("https://clickfolio.me/api/og/missing"), {
       params: Promise.resolve({ handle: "missing" }),
@@ -979,8 +955,6 @@ describe("API route coverage", () => {
     expect((await POST(jsonRequest("/api/wizard/complete", validBody))).status).toBe(400);
 
     mocks.state.handleTaken = false;
-    // First-time onboarding: current user is not onboarded yet — exempt from the
-    // handle-changes rate limit and no audit row is inserted (2 statements).
     mocks.state.selectResults = [[{ handle: null, onboardingCompleted: false }]];
     expect(await (await POST(jsonRequest("/api/wizard/complete", validBody))).json()).toMatchObject(
       {
@@ -996,15 +970,11 @@ describe("API route coverage", () => {
     mocks.state.selectResults = [[{ handle: "avery", onboardingCompleted: true }]];
     expect((await POST(jsonRequest("/api/wizard/complete", validBody))).status).toBe(409);
 
-    // Re-onboarding with a handle change over the 3/24h limit → 429 (mirrors
-    // PUT /api/profile/handle). The count query consumes a second select result.
     mocks.state.selectResults = [
       [{ handle: "old-handle", onboardingCompleted: true }],
       [{ count: 3 }],
     ];
     expect((await POST(jsonRequest("/api/wizard/complete", validBody))).status).toBe(429);
-    // Re-onboarding with a handle change under the limit → audit row written
-    // inside the same transaction (3 statements), success.
     mocks.state.selectResults = [
       [{ handle: "old-handle", onboardingCompleted: true }],
       [{ count: 2 }],
@@ -1019,7 +989,6 @@ describe("API route coverage", () => {
       newHandle: "avery",
     });
 
-    // Re-onboarding with the SAME handle → no rate limit, no audit insert.
     mocks.state.selectResults = [[{ handle: "avery", onboardingCompleted: true }]];
     expect((await POST(jsonRequest("/api/wizard/complete", validBody))).status).toBe(200);
   });

@@ -1,11 +1,6 @@
 import type { JsonValue, UnknownRecord } from "@/lib/types/json";
 import { describe, expect, it } from "vite-plus/test";
 
-/**
- * Input Validation and Sanitization Security Tests
- * Tests for XSS, SQL injection, command injection, and other input-based attacks
- */
-
 describe("Input Validation and Sanitization Security", () => {
   describe("XSS Prevention", () => {
     it("removes script tags from resume content", () => {
@@ -87,7 +82,6 @@ describe("Input Validation and Sanitization Security", () => {
   describe("SQL Injection Prevention", () => {
     it("rejects SQL comment attacks", () => {
       const sqlComment = "' OR 1=1 --";
-      // Should be treated as plain string, not executed
       expect(sqlComment).toBe("' OR 1=1 --");
     });
 
@@ -102,9 +96,7 @@ describe("Input Validation and Sanitization Security", () => {
     });
 
     it("handles parameterized queries safely", () => {
-      // Drizzle ORM uses parameterized queries
       const userId = "'; DROP TABLE users; --";
-      // When using eq() from drizzle-orm, values are parameterized
       expect(typeof userId).toBe("string");
     });
 
@@ -142,15 +134,14 @@ describe("Input Validation and Sanitization Security", () => {
         "@context": "https://schema.org",
         name: "<script>alert(1)</script>",
       };
-      // JSON.stringify with explicit escaping of HTML chars for security
       const jsonString = JSON.stringify(jsonLd).replace(/</g, "\\u003c").replace(/>/g, "\\u003e");
-      expect(jsonString).toContain("\\u003c"); // < is escaped
-      expect(jsonString).toContain("\\u003e"); // > is escaped
+      expect(jsonString).toContain("\\u003c");
+      expect(jsonString).toContain("\\u003e");
     });
 
     it("validates JSON structure before parsing", () => {
       const validJson = '{"name": "John", "email": "john@test.com"}';
-      const invalidJson = '{"name": "John", "email": }'; // Invalid
+      const invalidJson = '{"name": "John", "email": }';
 
       expect(() => JSON.parse(validJson)).not.toThrow();
       expect(() => JSON.parse(invalidJson)).toThrow();
@@ -159,8 +150,8 @@ describe("Input Validation and Sanitization Security", () => {
 
   describe("Request Size Validation", () => {
     it("rejects oversized request bodies", () => {
-      const maxSize = 5_000_000; // 5MB
-      const contentLength = 10_000_000; // 10MB
+      const maxSize = 5_000_000;
+      const contentLength = 10_000_000;
       const isOversized = contentLength > maxSize;
       expect(isOversized).toBe(true);
     });
@@ -211,14 +202,13 @@ describe("Input Validation and Sanitization Security", () => {
 
   describe("Unicode Normalization", () => {
     it("handles unicode homoglyphs", () => {
-      // Similar-looking characters
-      const homoglyph = "аdmin"; // Cyrillic 'а' instead of Latin 'a'
+      const homoglyph = "аdmin";
       const normalized = homoglyph.normalize("NFKC");
       expect(normalized).toBeDefined();
     });
 
     it("handles combining characters", () => {
-      const combining = "a\u0300"; // a + combining grave
+      const combining = "a\u0300";
       const normalized = combining.normalize("NFC");
       expect(normalized.length).toBeLessThanOrEqual(combining.length);
     });
@@ -276,17 +266,14 @@ describe("Input Validation and Sanitization Security", () => {
       const deeplyNested = createNested(1000);
       const jsonString = JSON.stringify(deeplyNested);
 
-      // Should be parseable but very deep
       expect(jsonString.length).toBeGreaterThan(1000);
     });
 
     it("handles prototype pollution attempts", () => {
       const maliciousPayload = JSON.parse('{ "__proto__": { "isAdmin": true } }');
-      // Modern Node.js/JS engines protect against __proto__ pollution
       const obj: UnknownRecord = {};
       Object.assign(obj, maliciousPayload);
 
-      // __proto__ should not affect object prototype
       expect(({} as UnknownRecord).isAdmin).toBeUndefined();
     });
   });
@@ -294,14 +281,14 @@ describe("Input Validation and Sanitization Security", () => {
   describe("File Upload Validation", () => {
     it("rejects executable file extensions", () => {
       const dangerousExtensions = [".exe", ".bat", ".sh", ".php", ".jsp"];
-      const filename = "malicious.exe.pdf"; // Double extension
+      const filename = "malicious.exe.pdf";
 
       const isDangerous = dangerousExtensions.some((ext) => filename.toLowerCase().includes(ext));
       expect(isDangerous).toBe(true);
     });
 
     it("validates PDF magic number", () => {
-      const pdfMagic = new Uint8Array([0x25, 0x50, 0x44, 0x46]); // %PDF
+      const pdfMagic = new Uint8Array([0x25, 0x50, 0x44, 0x46]);
       const isValidPDF =
         pdfMagic[0] === 0x25 &&
         pdfMagic[1] === 0x50 &&
@@ -312,7 +299,7 @@ describe("Input Validation and Sanitization Security", () => {
 
     it("rejects files with wrong content-type", () => {
       const declaredType = "application/pdf";
-      const actualContent = "GIF89a"; // Actually a GIF
+      const actualContent = "GIF89a";
       const mismatch = declaredType === "application/pdf" && actualContent.startsWith("GIF");
       expect(mismatch).toBe(true);
     });
@@ -320,7 +307,6 @@ describe("Input Validation and Sanitization Security", () => {
 
   describe("Parameter Pollution Prevention", () => {
     it("handles duplicate keys appropriately", () => {
-      // Express/Node takes last value, but arrays possible
       const params = new URLSearchParams("key=value1&key=value2");
       const values = params.getAll("key");
       expect(values).toEqual(["value1", "value2"]);
@@ -467,7 +453,6 @@ describe("Input Validation and Sanitization Security", () => {
         "spaces in@email.com",
         "double..dots@email.com",
       ];
-      // Stricter regex that also rejects consecutive dots
       const emailRegex = /^(?!.*\.\.)[^\s@]+@[^\s@]+\.[^\s@]+$/;
       for (const email of invalidEmails) {
         expect(emailRegex.test(email)).toBe(false);

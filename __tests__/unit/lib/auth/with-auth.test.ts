@@ -2,15 +2,6 @@ import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { JsonValue } from "@/lib/types/json";
 import { DEFAULT_PRIVACY_SETTINGS } from "@/lib/utils/privacy";
 
-/**
- * Unit tests for the authenticated-route wrappers (ADR-0002 inner-callback form).
- *
- * The wrapper delegates auth to the existing `requireAuthWithUserValidation`
- * primitive (mocked here) and owns: returning the auth-failure response,
- * invoking the callback with a guaranteed-non-null context, and the catch-all
- * 500 (with the request path logged).
- */
-
 vi.mock("@/lib/auth/middleware", () => ({
   requireAuthWithUserValidation: vi.fn(),
 }));
@@ -94,7 +85,6 @@ describe("withUser", () => {
 
     const handlerResponse = new Response("ok", { status: 200 });
     const handler = vi.fn(async (ctx: UserContext) => {
-      // Context is guaranteed non-null and carries the full auth result.
       expect(ctx.user).toBe(result.user);
       expect(ctx.db).toBe(result.db);
       expect(ctx.dbUser).toBe(result.dbUser);
@@ -174,7 +164,6 @@ describe("withAdmin", () => {
 
     const handlerResponse = new Response("ok", { status: 200 });
     const handler = vi.fn(async (ctx: AdminContext) => {
-      // Context is guaranteed non-null and carries the validated admin user.
       expect(ctx.user).toBe(result.user);
       return handlerResponse;
     });

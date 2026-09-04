@@ -1,11 +1,3 @@
-/**
- * Client-side utilities for managing the pending upload cookie via API.
- * Used by FileDropzone (homepage upload) and Wizard (post-auth claim flow).
- */
-
-/**
- * Set the pending upload cookie via API.
- */
 export async function setPendingUploadCookie(key: string): Promise<void> {
   const response = await fetch("/api/upload/pending", {
     method: "POST",
@@ -17,10 +9,6 @@ export async function setPendingUploadCookie(key: string): Promise<void> {
   }
 }
 
-/**
- * Clear pending upload cookie via API
- * Best effort - silent failure is acceptable
- */
 export async function clearPendingUploadCookie(): Promise<void> {
   try {
     await fetch("/api/upload/pending", { method: "DELETE" });

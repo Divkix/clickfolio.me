@@ -1,19 +1,9 @@
-/**
- * Client-side theme registry.
- *
- * Provides `next/dynamic` wrappers for all resume templates so they can be
- * lazily loaded in client components with a shared loading fallback.
- */
-
 "use client";
 
 import dynamic from "next/dynamic";
 import type { TemplateProps } from "@/lib/types/template";
 import type { ThemeId } from "./theme-ids";
 
-/**
- * Loading placeholder shown while a dynamic template chunk loads.
- */
 function TemplateLoadingFallback() {
   return (
     <div className="min-h-screen flex items-center justify-center">
@@ -22,10 +12,6 @@ function TemplateLoadingFallback() {
   );
 }
 
-/**
- * next/dynamic wrappers — for client components that cannot await.
- * Each key lazily loads the template component with a shared loading fallback.
- */
 export const DYNAMIC_TEMPLATES = {
   bento: dynamic(
     () => import("@/components/templates/BentoGrid").then((m) => ({ default: m.BentoGrid })),

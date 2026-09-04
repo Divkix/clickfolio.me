@@ -41,7 +41,6 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
         return;
       }
 
-      // Skip refetch if data is fresh (< 30s old)
       if (profile && Date.now() - lastFetchedRef.current < STALE_TIME_MS) {
         setProfileLoading(false);
         return;
@@ -74,7 +73,6 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
     router.refresh();
   };
 
-  // Get user initials for avatar fallback
   const getInitials = () => {
     if (!session?.user?.name) return "?";
     const names = session.user.name.split(" ");
@@ -123,7 +121,6 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
 
   return (
     <>
-      {/* Mobile backdrop */}
       {isOpen && onClose && (
         <div
           className="fixed inset-0 bg-foreground/20 backdrop-blur-sm z-40 md:hidden"
@@ -132,7 +129,6 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
         />
       )}
 
-      {/* Sidebar */}
       <aside
         className={`
           fixed top-0 left-0 h-full w-60 bg-card border-r border-border
@@ -142,7 +138,6 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
         `}
         aria-label="Main navigation"
       >
-        {/* Mobile close button */}
         {onClose && (
           <button
             type="button"
@@ -154,14 +149,12 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
           </button>
         )}
 
-        {/* Logo Header */}
         <div className="p-4 border-b border-border">
           <a href="/" aria-label="clickfolio.me home">
             <Logo size="xs" />
           </a>
         </div>
 
-        {/* Profile Header */}
         <div className="p-4 border-b border-border">
           {loading ? (
             <div className="animate-pulse">
@@ -190,7 +183,6 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
           ) : null}
         </div>
 
-        {/* Navigation Menu */}
         <nav className="flex-1 p-4 space-y-1">
           {navItems.map((item) => {
             const Icon = item.icon;
@@ -218,7 +210,6 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
             );
           })}
 
-          {/* View Site Link */}
           {profile?.handle && (
             <a
               href={`/@${profile.handle}`}
@@ -232,7 +223,6 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
             </a>
           )}
 
-          {/* Admin Link */}
           {profile?.isAdmin && (
             <Link
               href="/admin"
@@ -245,7 +235,6 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
           )}
         </nav>
 
-        {/* Logout Button */}
         <div className="p-4 border-t border-border mt-auto">
           <button
             type="button"

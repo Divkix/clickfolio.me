@@ -1,12 +1,5 @@
-/**
- * Unit tests for GET /api/admin/users route.
- * Tests pagination, search, and previewName fallback for Unnamed users.
- */
-
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { createMockQueryChain } from "@/__tests__/setup/mocks/db.mock";
-
-// ── Mocks ─────────────────────────────────────────────────────────────
 
 const mockRequireAdminAuthForApi = vi.fn();
 vi.mock("@/lib/auth/admin", () => ({

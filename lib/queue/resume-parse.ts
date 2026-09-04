@@ -1,8 +1,5 @@
 import type { ResumeParseMessage } from "./types";
 
-/**
- * Publish a resume parse job to the queue
- */
 export async function publishResumeParse(
   queue: Queue<ResumeParseMessage>,
   params: {

@@ -1,9 +1,3 @@
-/**
- * Queue Types Tests
- *
- * Tests for Zod schemas and type definitions for queue messages.
- */
-
 import { describe, expect, it } from "vite-plus/test";
 import {
   type DeadLetterMessage,

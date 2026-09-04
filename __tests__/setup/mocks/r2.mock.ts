@@ -1,17 +1,5 @@
-/**
- * Cloudflare R2 storage mock factories.
- *
- * Provides lightweight stubs for `R2Bucket` methods used throughout the
- * codebase (get, put, delete, head, list). Tests can assert on call
- * arguments and control return values per-test.
- */
-
 import { vi } from "vite-plus/test";
 import type { JsonValue } from "@/lib/types/json";
-
-// ---------------------------------------------------------------------------
-// Mock R2Bucket binding
-// ---------------------------------------------------------------------------
 
 export interface MockR2Bucket {
   get: ReturnType<typeof vi.fn>;
@@ -21,23 +9,8 @@ export interface MockR2Bucket {
   list: ReturnType<typeof vi.fn>;
 }
 
-/**
- * Store backing for the mock bucket. Tests can pre-populate this
- * to simulate existing objects, or inspect it after operations.
- */
 export type MockR2Store = Map<string, { body: ArrayBuffer; metadata?: Record<string, string> }>;
 
-/**
- * Creates a mock `R2Bucket` with in-memory store.
- *
- * ```ts
- * const { bucket, store } = createMockR2Bucket();
- * store.set("key.pdf", { body: new TextEncoder().encode("pdf-data").buffer });
- *
- * const obj = await bucket.get("key.pdf");
- * expect(obj).not.toBeNull();
- * ```
- */
 export function createMockR2Bucket(initialStore?: MockR2Store) {
   const store: MockR2Store = initialStore ?? new Map();
 
@@ -67,7 +40,6 @@ export function createMockR2Bucket(initialStore?: MockR2Store) {
       if (body instanceof ArrayBuffer) {
         arrayBuffer = body;
       } else if (body instanceof Uint8Array) {
-        // .buffer is ArrayBufferLike — copy to a fresh ArrayBuffer to satisfy type
         arrayBuffer = new ArrayBuffer(body.byteLength);
         new Uint8Array(arrayBuffer).set(body);
       } else if (typeof body === "string") {

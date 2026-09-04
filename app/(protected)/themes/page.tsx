@@ -15,17 +15,14 @@ export const metadata: Metadata = {
 };
 
 export default async function ThemesPage() {
-  // Use cached session helper to deduplicate auth calls within request
   const session = await getServerSession();
 
   if (!session?.user) {
     redirect("/");
   }
 
-  // 2. Get database connection
   const db = getDb(env.HYPERDRIVE);
 
-  // 3. Fetch user's site data (theme + content) and profile info in parallel
   const [userSiteData, userProfile] = await Promise.all([
     db.query.siteData.findFirst({
       where: eq(siteData.userId, session.user.id),
@@ -37,7 +34,6 @@ export default async function ThemesPage() {
     }),
   ]);
 
-  // Redirect to dashboard if no resume has been uploaded/parsed yet
   if (!userSiteData?.content) {
     redirect("/dashboard");
   }
@@ -55,7 +51,6 @@ export default async function ThemesPage() {
   return (
     <div className="min-h-screen bg-background p-4 md:p-6">
       <div className="max-w-6xl mx-auto">
-        {/* Theme Selector with Live Preview */}
         <ThemeSelector
           initialThemeId={currentThemeId}
           initialContent={parsedContent}

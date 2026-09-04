@@ -74,7 +74,6 @@ export default function AdminAnalyticsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Period Toggle */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <BarChart3 className="w-5 h-5 text-muted-foreground" aria-hidden="true" />
@@ -98,7 +97,6 @@ export default function AdminAnalyticsPage() {
         </div>
       </div>
 
-      {/* Stat Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {loading ? (
           Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)
@@ -139,7 +137,6 @@ export default function AdminAnalyticsPage() {
         )}
       </div>
 
-      {/* Traffic Chart */}
       <div className="bg-card rounded-xl shadow-sm border border-border p-6">
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
           Platform Traffic
@@ -152,7 +149,6 @@ export default function AdminAnalyticsPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Top Profiles */}
         <div className="bg-card rounded-xl shadow-sm border border-border p-6">
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
             Top Profiles
@@ -191,7 +187,6 @@ export default function AdminAnalyticsPage() {
           )}
         </div>
 
-        {/* Traffic Sources */}
         <div className="bg-card rounded-xl shadow-sm border border-border p-6">
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
             Traffic Sources
@@ -216,7 +211,6 @@ export default function AdminAnalyticsPage() {
           )}
         </div>
 
-        {/* Countries */}
         <div className="bg-card rounded-xl shadow-sm border border-border p-6">
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
             Top Countries
@@ -252,7 +246,6 @@ export default function AdminAnalyticsPage() {
           )}
         </div>
 
-        {/* Devices */}
         <div className="bg-card rounded-xl shadow-sm border border-border p-6">
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
             Devices

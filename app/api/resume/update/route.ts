@@ -16,28 +16,7 @@ interface UpdateRequestBody {
   content?: ResumeContent;
 }
 
-/**
- * PUT /api/resume/update
- * Updates the user's resume content in site_data.
- * Includes comprehensive validation.
- *
- * Request body:
- *   { content: ResumeContent }
- *
- * Response:
- *   { success: true, data: { id, last_published_at } }
- *
- * Rate limits:
- *   - 5 uploads per 24 hours per authenticated user
- *
- * Error codes:
- *   - 400: invalid JSON or validation failure
- *   - 404: site_data not found (resume not uploaded yet)
- *   - 413: request body too large
- *   - 500: database error or unexpected error
- */
 export async function PUT(request: Request) {
-  // Validate request size before parsing (prevent DoS)
   const sizeCheck = validateRequestSize(request);
   if (!sizeCheck.valid) {
     return createErrorResponse(
@@ -52,7 +31,6 @@ export async function PUT(request: Request) {
     async ({ user: authUser, db }) => {
       const userId = authUser.id;
 
-      // Parse and validate request body (size-capped read, no trust in Content-Length)
       const rawBodyResult = await readJsonWithLimit(request);
       if (!rawBodyResult.ok) {
         return createErrorResponse(
@@ -78,10 +56,8 @@ export async function PUT(request: Request) {
       const content = validation.data;
       const now = new Date().toISOString();
 
-      // Extract preview fields for denormalized columns
       const previewFields = extractPreviewFields(content);
 
-      // Update site_data (don't return content - we already have it validated)
       const updateResult = await db
         .update(siteData)
         .set({
@@ -97,9 +73,6 @@ export async function PUT(request: Request) {
         });
 
       if (updateResult.length === 0) {
-        // No rows updated - site_data doesn't exist yet. Mirror
-        // update-theme: a 404 is the honest answer (the user has nothing to
-        // update yet), not a 500 the client can't recover from.
         return createErrorResponse(
           "Resume data not found. Please upload a resume first.",
           ERROR_CODES.NOT_FOUND,
@@ -109,7 +82,6 @@ export async function PUT(request: Request) {
 
       const data = updateResult[0];
 
-      // Backfill user.name if currently Unnamed or blank
       const updatedName = content.full_name?.trim();
       if (updatedName && updatedName !== "Pending" && updatedName !== "Unnamed") {
         const userRow = await db
@@ -126,7 +98,6 @@ export async function PUT(request: Request) {
         }
       }
 
-      // Return success response (no content echo — caller already has validated copy)
       return createSuccessResponse({
         success: true,
         data: {

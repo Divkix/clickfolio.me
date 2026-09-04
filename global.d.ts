@@ -6,7 +6,6 @@ declare global {
   }
 }
 
-// Type declarations for vitest and jest-dom matchers
 import type { matchers } from "@testing-library/jest-dom";
 
 declare module "vite-plus/test" {

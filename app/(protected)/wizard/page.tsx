@@ -1,6 +1,5 @@
 "use client";
 
-/** Revalidate wizard page daily since it's a client-side flow. */
 export const revalidate = 86400;
 
 import { Loader2 } from "lucide-react";
@@ -22,7 +21,6 @@ import type { ResumeContent } from "@/lib/types/database";
 import { clearPendingUploadCookie } from "@/lib/utils/pending-upload-client";
 import { waitForResumeCompletion } from "@/lib/utils/wait-for-completion";
 
-// Type definitions for API responses
 interface SiteDataResponse {
   id?: string;
   content?: ResumeContent;
@@ -45,7 +43,6 @@ interface PendingUploadResponse {
   file_hash: string | null;
 }
 
-// Named step identifiers eliminate error-prone numeric offset arithmetic
 type WizardStepId = "upload" | "handle" | "review" | "privacy" | "theme";
 
 function getStepOrder(needsUpload: boolean): WizardStepId[] {
@@ -68,23 +65,6 @@ interface WizardState {
   themeId: ThemeId;
 }
 
-/**
- * Wizard Page - Multi-step onboarding flow
- * Guides users through completing their profile setup
- *
- * Steps (standard 4-step flow):
- * 1. Handle Selection - Choose unique username
- * 2. Content Review - Verify parsed resume data
- * 3. Privacy Settings - Configure visibility of sensitive info
- * 4. Theme Selection - Choose resume template design
- *
- * Steps (5-step flow when needsUpload is true):
- * 1. Upload Resume - Drop PDF to upload
- * 2. Handle Selection - Choose unique username
- * 3. Content Review - Verify parsed resume data
- * 4. Privacy Settings - Configure visibility of sensitive info
- * 5. Theme Selection - Choose resume template design
- */
 export default function WizardPage() {
   const router = useRouter();
   const { data: session, isPending: sessionLoading } = useSession();
@@ -94,7 +74,6 @@ export default function WizardPage() {
   const [needsUpload, setNeedsUpload] = useState(false);
   const [showLiveModal, setShowLiveModal] = useState(false);
 
-  // Refs to prevent race conditions during wizard initialization
   const initializingRef = useRef(false);
   const hasClaimedRef = useRef(false);
   const navigateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -112,18 +91,15 @@ export default function WizardPage() {
     themeId: DEFAULT_THEME,
   });
 
-  // Derive step order and numeric values for WizardProgress component
   const stepOrder = getStepOrder(needsUpload);
   const totalSteps = stepOrder.length;
   const currentStepNumber = stepOrder.indexOf(state.currentStepId) + 1;
   const progress = (currentStepNumber / totalSteps) * 100;
 
-  // Derive onboardingCompleted from session (used by initializeWizard for returning user check)
   // SAFETY: session.user from Better Auth lacks onboardingCompleted typed field; cast adds optional property from session payload validated via DB, safe fallback to false.
   const onboardingCompleted =
     (session?.user as { onboardingCompleted?: boolean } | undefined)?.onboardingCompleted === true;
 
-  // Wait for resume completion via WebSocket (with polling fallback)
   const awaitResumeComplete = useCallback(
     async (resumeId: string): Promise<boolean> => {
       const result = await waitForResumeCompletion(resumeId);
@@ -132,7 +108,6 @@ export default function WizardPage() {
         return true;
       }
 
-      // Failed
       setError(result.error || "Resume parsing failed. Please try again.");
       navigateTimeoutRef.current = setTimeout(() => router.push("/dashboard"), 3000);
       return false;
@@ -140,37 +115,27 @@ export default function WizardPage() {
     [router],
   );
 
-  // Fetch resume data on mount + handle upload claiming
   useEffect(() => {
     const initializeWizard = async () => {
-      // Prevent concurrent initialization (race condition fix)
       if (initializingRef.current) return;
 
-      // Wait for session to load
       if (sessionLoading) return;
 
-      // Check authentication
       if (!userId) {
         router.push("/");
         return;
       }
 
-      // Mark as initializing to prevent re-entry
       initializingRef.current = true;
 
       try {
         setLoading(true);
 
-        // RETURNING USER CHECK: If onboarding already completed, skip the wizard
-        // entirely. This MUST run before the stale pending-cookie auto-claim path
-        // below — otherwise an already-onboarded user re-triggers a claim (and a
-        // re-parse) on every wizard page load.
         if (onboardingCompleted) {
           router.push("/dashboard");
           return;
         }
 
-        // Read the pending upload from the HTTP-only cookie via API.
         let tempKey: string | null = null;
         let fileHash: string | null = null;
 
@@ -189,10 +154,8 @@ export default function WizardPage() {
         }
 
         if (tempKey && !hasClaimedRef.current) {
-          // Mark as claimed to prevent double-claiming on useEffect re-run
           hasClaimedRef.current = true;
 
-          // Claim the upload (include file_hash for deduplication caching)
           setLoading(true);
           try {
             const claimResponse = await fetch("/api/resume/claim", {
@@ -208,18 +171,14 @@ export default function WizardPage() {
               throw new Error(claimData.error || "Failed to claim resume");
             }
 
-            // Validate that resume_id was returned
             if (!claimData.resume_id) {
               throw new Error("Server error: No resume ID returned");
             }
 
-            // Get resume_id from claim response
             const resumeId = claimData.resume_id;
 
-            // Clear HTTP-only cookie after successful claim
             await clearPendingUploadCookie();
 
-            // If not cached, wait for status updates (WS-first with polling fallback)
             if (!claimData.cached) {
               const parsingComplete = await awaitResumeComplete(resumeId);
 
@@ -227,15 +186,12 @@ export default function WizardPage() {
                 return;
               }
             }
-            // If cached, skip waiting - site_data already populated
           } catch (claimError) {
             console.error("Claim error:", claimError);
             setError(claimError instanceof Error ? claimError.message : "Failed to claim resume");
 
-            // Clear the unusable pending-upload cookie.
             await clearPendingUploadCookie();
 
-            // Reset claim ref on error to allow retry
             hasClaimedRef.current = false;
 
             navigateTimeoutRef.current = setTimeout(() => router.push("/dashboard"), 3000);
@@ -243,7 +199,6 @@ export default function WizardPage() {
           }
         }
 
-        // Fetch site_data via API
         const siteDataResponse = await fetch("/api/site-data");
         if (siteDataResponse.ok) {
           // SAFETY: SiteDataResponse is from our /api/site-data endpoint; content is schema-validated JSON written only by queue consumer.
@@ -253,7 +208,6 @@ export default function WizardPage() {
             // SAFETY: content is schema-validated JSON written only by our queue consumer.
             const content = siteData.content as ResumeContent;
 
-            // Load resume data into state
             setState((prev) => ({
               ...prev,
               resumeData: content,
@@ -264,7 +218,6 @@ export default function WizardPage() {
           }
         }
 
-        // No site_data found - check for processing resume
         const statusResponse = await fetch("/api/resume/latest-status");
         if (statusResponse.ok) {
           // SAFETY: LatestResumeResponse is from our /api/resume/latest-status endpoint; shape validated server-side.
@@ -276,7 +229,6 @@ export default function WizardPage() {
           }
         }
 
-        // No resume OR failed status -> show upload step
         setNeedsUpload(true);
         setState((prev) => ({ ...prev, currentStepId: "upload" }));
         setLoading(false);
@@ -285,7 +237,6 @@ export default function WizardPage() {
         setError("Failed to load resume data. Please try again.");
         setLoading(false);
       } finally {
-        // Reset initializing flag when done (success or failure)
         initializingRef.current = false;
       }
     };
@@ -300,10 +251,8 @@ export default function WizardPage() {
     };
   }, [router, userId, sessionLoading, awaitResumeComplete, onboardingCompleted]);
 
-  // Abandonment prevention - warn users before leaving mid-wizard
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      // Only warn if user has moved past the first step and hasn't completed
       const currentIndex = stepOrder.indexOf(state.currentStepId);
       if (currentIndex > 0 && !showLiveModal) {
         e.preventDefault();
@@ -316,7 +265,6 @@ export default function WizardPage() {
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [state.currentStepId, stepOrder, showLiveModal]);
 
-  // Handler for upload completion (moves to handle step)
   const handleUploadComplete = (resumeData: ResumeContent) => {
     setState((prev) => ({
       ...prev,
@@ -325,7 +273,6 @@ export default function WizardPage() {
     }));
   };
 
-  // Handler for handle selection
   const handleHandleContinue = (handle: string) => {
     setState((prev) => ({
       ...prev,
@@ -334,12 +281,10 @@ export default function WizardPage() {
     }));
   };
 
-  // Handler for review continue
   const handleReviewContinue = () => {
     setState((prev) => ({ ...prev, currentStepId: "privacy" }));
   };
 
-  // Handler for privacy settings
   const handlePrivacyContinue = (settings: {
     show_phone: boolean;
     show_address: boolean;
@@ -353,16 +298,13 @@ export default function WizardPage() {
     }));
   };
 
-  // Handler for wizard completion
   const handleThemeContinue = async (themeId: ThemeId) => {
     try {
-      // Update local state
       setState((prev) => ({
         ...prev,
         themeId,
       }));
 
-      // Call wizard completion API
       const response = await fetch("/api/wizard/complete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -389,7 +331,6 @@ export default function WizardPage() {
     }
   };
 
-  // Handle modal close - redirect to dashboard
   const handleLiveModalClose = (open: boolean) => {
     setShowLiveModal(open);
     if (!open) {
@@ -397,7 +338,6 @@ export default function WizardPage() {
     }
   };
 
-  // Loading state (including session loading)
   if (loading || sessionLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -412,7 +352,6 @@ export default function WizardPage() {
     );
   }
 
-  // Error state (only for actual errors, not for "no resume" case which is handled by UploadStep)
   if (error && state.currentStepId === "handle" && !needsUpload) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center px-4">
@@ -440,7 +379,6 @@ export default function WizardPage() {
     );
   }
 
-  // Main wizard UI
   return (
     <div className="min-h-screen bg-background">
       <YouAreLiveModal
@@ -449,7 +387,6 @@ export default function WizardPage() {
         handle={state.handle}
       />
 
-      {/* Progress Indicator */}
       <WizardProgress
         currentStep={currentStepNumber}
         totalSteps={totalSteps}
@@ -457,29 +394,23 @@ export default function WizardPage() {
         hasUploadStep={needsUpload}
       />
 
-      {/* Step Content */}
       <main className="max-w-5xl mx-auto px-4 py-12">
-        {/* Error Alert (shown inline for steps past the first) */}
         {error && stepOrder.indexOf(state.currentStepId) > 0 && (
           <Alert variant="destructive" className="mb-6">
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
 
-        {/* Upload Step */}
         {state.currentStepId === "upload" && <UploadStep onContinue={handleUploadComplete} />}
 
-        {/* Handle Selection */}
         {state.currentStepId === "handle" && (
           <HandleStep initialHandle={state.handle} onContinue={handleHandleContinue} />
         )}
 
-        {/* Content Review */}
         {state.currentStepId === "review" && state.resumeData && (
           <ReviewStep content={state.resumeData} onContinue={handleReviewContinue} />
         )}
 
-        {/* Privacy Settings */}
         {state.currentStepId === "privacy" && state.resumeData && (
           <PrivacyStep
             content={state.resumeData}
@@ -488,7 +419,6 @@ export default function WizardPage() {
           />
         )}
 
-        {/* Theme Selection */}
         {state.currentStepId === "theme" && (
           <ThemeStep initialTheme={state.themeId} onContinue={handleThemeContinue} />
         )}

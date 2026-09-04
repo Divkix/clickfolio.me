@@ -10,23 +10,7 @@ import {
 } from "@/lib/utils/security-headers";
 import { readJsonWithLimit, validateRequestSize } from "@/lib/utils/validation";
 
-/**
- * PUT /api/profile/privacy
- * Update user's privacy settings.
- *
- * Request body fields:
- *   - show_phone: boolean
- *   - show_address: boolean
- *   - hide_from_search: boolean
- *   - show_in_directory: boolean
- *
- * Error codes:
- *   - 400: invalid JSON or validation failure
- *   - 413: request body too large
- *   - 500: unexpected error
- */
 export async function PUT(request: Request) {
-  // Validate request size before parsing (prevent DoS)
   const sizeCheck = validateRequestSize(request);
   if (!sizeCheck.valid) {
     return createErrorResponse(
@@ -39,7 +23,6 @@ export async function PUT(request: Request) {
   return withUser(
     request,
     async ({ user: authUser, db }) => {
-      // Parse and validate request body (size-capped read, no trust in Content-Length)
       const rawBodyResult = await readJsonWithLimit(request);
       if (!rawBodyResult.ok) {
         return createErrorResponse(
@@ -62,7 +45,6 @@ export async function PUT(request: Request) {
 
       const { show_phone, show_address, hide_from_search, show_in_directory } = validation.data;
 
-      // Update privacy_settings (jsonb) and its denormalized directory column together
       const privacySettings = {
         show_phone,
         show_address,

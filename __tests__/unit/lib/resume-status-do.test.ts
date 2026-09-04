@@ -186,7 +186,6 @@ describe("ClickfolioStatusDO", () => {
   it("cancels the cleanup alarm when a non-terminal status arrives (retry within 30s window)", async () => {
     const { ctx, instance } = await createObject();
 
-    // Terminal status schedules the 30s cleanup alarm.
     await instance.fetch(
       new Request("https://do.example/notify", {
         method: "POST",
@@ -195,8 +194,6 @@ describe("ClickfolioStatusDO", () => {
     );
     expect(ctx.storage.setAlarm).toHaveBeenCalledTimes(1);
 
-    // A retry (non-terminal status) arriving inside that window must cancel the
-    // alarm so DO storage isn't wiped mid-flight and sockets force-closed.
     await instance.fetch(
       new Request("https://do.example/notify", {
         method: "POST",

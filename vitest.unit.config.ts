@@ -1,10 +1,3 @@
-/**
- * Vitest configuration for unit tests
- *
- * Unit tests focus on pure functions, utilities, and isolated logic.
- * Fast execution, no external service dependencies.
- */
-
 import { defineConfig } from "vite-plus";
 import {
   sharedAlias,
@@ -20,7 +13,6 @@ export default defineConfig({
     setupFiles: sharedSetupFiles,
     include: [
       "__tests__/unit/**/*.test.{ts,tsx}",
-      // Root-level tests that belong to the unit suite
       "__tests__/privacy.test.ts",
       "__tests__/profile-schema.test.ts",
       "__tests__/resume-schema.test.ts",
@@ -28,9 +20,7 @@ export default defineConfig({
       "__tests__/theme-id-consistency.test.ts",
     ],
     exclude: sharedExclude,
-    // Unit tests should be fast - no retries needed
     retry: 0,
-    // Isolate each test file
     isolate: true,
     coverage: {
       provider: sharedCoverageProvider,
@@ -44,8 +34,8 @@ export default defineConfig({
         "lib/db/migrations/**",
         "**/__tests__/**",
         "worker/**/*",
-        "app/blog/**", // Static content pages — no testable logic
-        "app/for/**", // Static profession landing pages — no testable logic
+        "app/blog/**",
+        "app/for/**",
       ],
       thresholds: {
         statements: 20,

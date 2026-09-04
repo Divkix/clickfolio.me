@@ -1,8 +1,5 @@
 import { extractText, getDocumentProxy } from "unpdf";
 
-/**
- * Check if buffer starts with PDF magic bytes (%PDF-)
- */
 export function isValidPdf(buffer: ArrayBuffer): boolean {
   if (buffer.byteLength < 5) return false;
   const header = new Uint8Array(buffer.slice(0, 5));
@@ -10,11 +7,6 @@ export function isValidPdf(buffer: ArrayBuffer): boolean {
   return magic.startsWith("%PDF-");
 }
 
-/**
- * Result of extracting text from a PDF buffer.
- * `text` contains the concatenated page text, `pageCount` the total pages,
- * and `error` a user-friendly message when extraction fails.
- */
 export interface PdfExtractResult {
   success: boolean;
   text: string;
@@ -22,9 +14,6 @@ export interface PdfExtractResult {
   error?: string;
 }
 
-/**
- * Extract text from PDF buffer using unpdf
- */
 export async function extractPdfText(buffer: ArrayBuffer): Promise<PdfExtractResult> {
   if (!isValidPdf(buffer)) {
     return {

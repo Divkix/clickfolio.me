@@ -11,14 +11,9 @@ interface ReviewStepProps {
   onContinue: () => void;
 }
 
-/**
- * Step 2: Review Content Component
- * Displays parsed resume content for user verification
- */
 export function ReviewStep({ content, onContinue }: ReviewStepProps) {
   return (
     <div className="space-y-8">
-      {/* Header */}
       <div className="text-center">
         <div className="mx-auto w-16 h-16 bg-brand-subtle rounded-xl flex items-center justify-center mb-6">
           <FileCheck className="w-8 h-8 text-brand" />
@@ -31,9 +26,7 @@ export function ReviewStep({ content, onContinue }: ReviewStepProps) {
         </p>
       </div>
 
-      {/* Content Preview */}
       <div className="max-w-3xl mx-auto space-y-6">
-        {/* Header Section */}
         <Card className="p-6 border-border shadow-sm">
           <div className="space-y-4">
             <div>
@@ -41,7 +34,6 @@ export function ReviewStep({ content, onContinue }: ReviewStepProps) {
               <p className="text-lg text-brand font-semibold">{content.headline}</p>
             </div>
 
-            {/* Contact Info */}
             <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
               {content.contact.email && (
                 <div className="flex items-center gap-1">
@@ -63,7 +55,6 @@ export function ReviewStep({ content, onContinue }: ReviewStepProps) {
               )}
             </div>
 
-            {/* Social Links */}
             {(content.contact.linkedin || content.contact.github || content.contact.website) && (
               <div className="flex flex-wrap gap-3">
                 {content.contact.linkedin && (
@@ -89,7 +80,6 @@ export function ReviewStep({ content, onContinue }: ReviewStepProps) {
           </div>
         </Card>
 
-        {/* Summary */}
         {content.summary && (
           <Card className="p-6 border-border shadow-sm">
             <h3 className="text-lg font-bold text-foreground mb-3">Summary</h3>
@@ -97,7 +87,6 @@ export function ReviewStep({ content, onContinue }: ReviewStepProps) {
           </Card>
         )}
 
-        {/* Experience */}
         {content.experience && content.experience.length > 0 && (
           <Card className="p-6 border-border shadow-sm">
             <h3 className="text-lg font-bold text-foreground mb-4">Experience</h3>
@@ -132,7 +121,6 @@ export function ReviewStep({ content, onContinue }: ReviewStepProps) {
           </Card>
         )}
 
-        {/* Education */}
         {content.education && content.education.length > 0 && (
           <Card className="p-6 border-border shadow-sm">
             <h3 className="text-lg font-bold text-foreground mb-4">Education</h3>
@@ -150,7 +138,6 @@ export function ReviewStep({ content, onContinue }: ReviewStepProps) {
           </Card>
         )}
 
-        {/* Skills */}
         {content.skills && content.skills.length > 0 && (
           <Card className="p-6 border-border shadow-sm">
             <h3 className="text-lg font-bold text-foreground mb-4">Skills</h3>
@@ -176,7 +163,6 @@ export function ReviewStep({ content, onContinue }: ReviewStepProps) {
           </Card>
         )}
 
-        {/* Continue Button */}
         <div className="pt-4">
           <Button onClick={onContinue} className="w-full" size="lg">
             Looks Good, Continue
@@ -184,7 +170,6 @@ export function ReviewStep({ content, onContinue }: ReviewStepProps) {
         </div>
       </div>
 
-      {/* Help Text */}
       <div className="text-center">
         <p className="text-sm text-muted-foreground font-medium">
           You can edit all of this information later in your dashboard.

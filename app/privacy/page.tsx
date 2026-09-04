@@ -7,13 +7,11 @@ import { siteConfig } from "@/lib/config/site";
 import { generateWebPageJsonLd, serializeJsonLd } from "@/lib/seo/json-ld";
 import { buildPublicPageMetadata } from "@/lib/seo/page-metadata";
 
-/** Revalidate privacy page daily since it's static content. */
 export const revalidate = 86400;
 
 const privacyTitle = `Privacy Policy - ${siteConfig.fullName}`;
 const privacyDescription = `Privacy Policy for ${siteConfig.fullName}. Learn how we collect, use, and protect your personal information.`;
 
-/** SEO metadata for the privacy policy page. */
 export const metadata: Metadata = buildPublicPageMetadata({
   title: "Privacy Policy",
   ogTitle: privacyTitle,
@@ -21,9 +19,6 @@ export const metadata: Metadata = buildPublicPageMetadata({
   path: "/privacy",
 });
 
-/**
- * Privacy policy page — full legal disclosure with structured data and breadcrumbs.
- */
 export default function PrivacyPolicyPage() {
   const webPage = generateWebPageJsonLd(
     "Privacy Policy",
@@ -38,7 +33,6 @@ export default function PrivacyPolicyPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(webPage) }}
       />
-      {/* Header */}
       <header className="sticky top-0 z-50 border-b border-border bg-background/90 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
           <Link
@@ -63,10 +57,8 @@ export default function PrivacyPolicyPage() {
           { label: "Privacy Policy", href: "/privacy" },
         ]}
       />
-      {/* Main Content */}
       <main className="flex-1 px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
         <article className="max-w-3xl mx-auto">
-          {/* Page Header */}
           <div className="mb-12 text-center">
             <h1 className="text-4xl sm:text-5xl font-bold text-foreground mb-4 tracking-tight">
               Privacy Policy
@@ -74,9 +66,7 @@ export default function PrivacyPolicyPage() {
             <p className="text-muted-foreground text-sm">Last updated: February 2026</p>
           </div>
 
-          {/* Content Card */}
           <div className="rounded-xl border border-border bg-card shadow-sm p-8 sm:p-12">
-            {/* Table of Contents */}
             <nav
               className="mb-10 p-6 rounded-lg bg-surface-2 border border-border"
               aria-label="Table of contents"
@@ -110,7 +100,6 @@ export default function PrivacyPolicyPage() {
               </ol>
             </nav>
 
-            {/* Sections */}
             <div className="prose max-w-none">
               <section id="section-1" className="mb-10">
                 <h2 className="text-xl font-semibold text-foreground mb-4 flex items-center gap-3">
@@ -569,7 +558,6 @@ export default function PrivacyPolicyPage() {
             </div>
           </div>
 
-          {/* Back to top */}
           <div className="mt-8 text-center">
             <Link
               href="/"
@@ -595,7 +583,6 @@ export default function PrivacyPolicyPage() {
         </article>
       </main>
 
-      {/* Footer */}
       <Footer />
     </div>
   );

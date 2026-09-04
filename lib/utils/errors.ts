@@ -1,20 +1,8 @@
-/**
- * Error classification and user-facing error messaging utilities.
- *
- * Maps HTTP status codes to error categories (transient, fatal, auth, etc.)
- * and provides toast-friendly messages with context-aware actions.
- */
-
 import { toast } from "sonner";
 import { MAX_FILE_SIZE_LABEL } from "@/lib/utils/validation";
 
-/** Classification of HTTP errors for retry logic and UI behavior. */
 type ErrorCategory = "transient" | "fatal" | "auth" | "validation" | "rate_limit";
 
-/**
- * Classifies an HTTP status code into an error category.
- * Used to determine retry behavior and user messaging.
- */
 export function classifyError(status: number): ErrorCategory {
   if (status === 401 || status === 403) return "auth";
   if (status === 404) return "fatal";
@@ -24,9 +12,6 @@ export function classifyError(status: number): ErrorCategory {
   return "fatal";
 }
 
-/**
- * Returns a user-friendly error message for a given HTTP status code.
- */
 export function getErrorMessage(status: number, context?: string): string {
   const messages = {
     0: "Network error. Check your connection.",
@@ -48,9 +33,6 @@ export function getErrorMessage(status: number, context?: string): string {
   );
 }
 
-/**
- * Shows a toast notification with category-appropriate styling and actions.
- */
 export function showErrorToast(status: number, context?: string) {
   const category = classifyError(status);
   const message = getErrorMessage(status, context);

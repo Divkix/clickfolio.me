@@ -15,13 +15,6 @@ const RATE_LIMITS = {
 
 type RateLimitAction = keyof typeof RATE_LIMITS;
 
-/**
- * Count a user's handle changes within the `handle_change` rate-limit window
- * (24h by default). Shared by `PUT /api/profile/handle` and re-onboarding handle
- * changes in `POST /api/wizard/complete` so the two routes can't drift on the
- * limit or the window. Accepts the caller's `db` so it never opens its own
- * connection.
- */
 export async function countHandleChangesInWindow(db: Database, userId: string): Promise<number> {
   const windowMs = RATE_LIMITS.handle_change.windowHours * 60 * 60 * 1000;
   const windowStart = new Date(Date.now() - windowMs);
@@ -44,12 +37,6 @@ interface RateLimitResult {
   message?: string;
 }
 
-/**
- * Checks if a user has exceeded the rate limit for a specific action
- * Uses Drizzle over Postgres (Hyperdrive) to count actions in the time window
- *
- * @param existingEnv - Optional pre-fetched CloudflareEnv to override the module-level env
- */
 export async function checkRateLimit(
   userId: string,
   action: RateLimitAction,
@@ -58,21 +45,17 @@ export async function checkRateLimit(
   const config = RATE_LIMITS[action];
   const windowMs = config.windowHours * 60 * 60 * 1000;
   const windowStart = new Date(Date.now() - windowMs);
-  // Computed from the oldest in-window row + windowMs (correct reset time);
-  // falls back to now + windowMs when no in-window rows exist (or on error).
   let resetAt = new Date(Date.now() + windowMs);
 
   try {
     const resolvedEnv = existingEnv ?? env;
     const db = getDb(resolvedEnv.HYPERDRIVE);
 
-    // Determine which table and column to query based on action
     let count = 0;
     let oldest: string | null | undefined;
 
     switch (action) {
       case "handle_change": {
-        // Use handle_changes table for tracking handle changes
         const result = await db
           .select({
             count: sql<number>`count(*)`,
@@ -112,8 +95,6 @@ export async function checkRateLimit(
       }
     }
 
-    // resetAt = oldest in-window row + windowMs — the actual time the window
-    // (and thus the limit) rolls over, not a fixed now + windowMs.
     if (oldest) {
       resetAt = new Date(new Date(oldest).getTime() + windowMs);
     }
@@ -132,8 +113,6 @@ export async function checkRateLimit(
   } catch (error) {
     console.error(`Rate limit check failed for ${action}:`, error);
 
-    // SECURITY: Fail closed - if we can't verify rate limits, deny the action
-    // This prevents abuse during DB outages at the cost of temporary user friction
     return {
       allowed: false,
       remaining: 0,
@@ -143,30 +122,19 @@ export async function checkRateLimit(
   }
 }
 
-/**
- * Helper function to enforce rate limits in API routes
- * Returns a Response object if rate limit is exceeded, null otherwise
- *
- * @param env - Optional pre-fetched CloudflareEnv to override the module-level env
- */
 export async function enforceRateLimit(
   userId: string,
   action: RateLimitAction,
   env?: Pick<CloudflareEnv, "HYPERDRIVE">,
 ): Promise<Response | null> {
-  // Skip rate limiting in development
   if (process.env.NODE_ENV !== "production") {
     return null;
   }
 
-  // Feature flag bypass for temporary testing (non-production only)
-  // Note: this code only runs when NODE_ENV === "production" (the early return above
-  // handles all non-production cases), so DISABLE_RATE_LIMITS is always ignored here.
   if (process.env.DISABLE_RATE_LIMITS === "true") {
     console.warn("[SECURITY] DISABLE_RATE_LIMITS ignored in production environment");
   }
 
-  // Skip for local environment (local preview runs in production mode)
   if (isLocalEnvironment()) {
     return null;
   }

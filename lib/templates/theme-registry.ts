@@ -1,17 +1,6 @@
-/**
- * Server-side theme registry.
- *
- * Provides async template loading for server components via dynamic import().
- * Falls back to the default theme when an invalid ID is requested.
- */
-
 import type { TemplateProps } from "@/lib/types/template";
 import { DEFAULT_THEME, isValidThemeId, type ThemeId } from "./theme-ids";
 
-/**
- * Lazy loaders — each resolves directly to the template component.
- * Used by server components via the async getTemplate().
- */
 type TemplateLoader = () => Promise<React.FC<TemplateProps>>;
 const TEMPLATE_LOADERS = {
   bento: () => import("@/components/templates/BentoGrid").then((m) => m.BentoGrid),
@@ -27,10 +16,6 @@ const TEMPLATE_LOADERS = {
   spotlight: () => import("@/components/templates/Spotlight").then((m) => m.Spotlight),
 } satisfies Record<ThemeId, TemplateLoader>;
 
-/**
- * Get template component by theme ID (async — for server components).
- * Falls back to default theme if ID is invalid.
- */
 export async function getTemplate(
   themeId: string | null | undefined,
 ): Promise<React.FC<TemplateProps>> {

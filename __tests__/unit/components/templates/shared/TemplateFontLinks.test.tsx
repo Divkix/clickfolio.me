@@ -1,16 +1,3 @@
-/**
- * TemplateFontLinks shared component tests
- *
- * Verifies that the shared font-link helper renders the exact three-tag
- * structure every template depends on:
- *   1. <link rel="preconnect" href="https://fonts.googleapis.com">
- *   2. <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous">
- *   3. <link rel="stylesheet" href={the passed href}>
- *
- * Note: React renders <link> elements to document.head in modern React
- * (React 19+), so we query document.head rather than the container.
- */
-
 import { cleanup, render } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vite-plus/test";
 import { TemplateFontLinks } from "@/components/templates/shared/TemplateFontLinks";
@@ -23,12 +10,6 @@ function collectLinks(container: Element) {
 }
 
 afterEach(() => {
-  // Unmount any rendered tree FIRST so React removes the <link> elements it
-  // hoisted into <head> itself (React 19 hoists <link>s). Sweeping <head>
-  // before React unmounts races React's own removal and throws
-  // "Cannot read properties of null (reading 'removeChild')" under the unit
-  // test config (vitest.unit.config.ts). cleanup() forces the unmount first;
-  // the sweep below then only clears any stragglers.
   cleanup();
   for (const link of Array.from(document.head.querySelectorAll("link"))) {
     link.remove();
@@ -68,7 +49,6 @@ describe("TemplateFontLinks", () => {
         l.getAttribute("href") === "https://fonts.gstatic.com",
     );
     expect(gstaticPreconnect).toBeDefined();
-    // crossOrigin="anonymous" serialises to the crossorigin attribute value "anonymous"
     expect(gstaticPreconnect?.getAttribute("crossorigin")).toBe("anonymous");
   });
 
@@ -97,7 +77,6 @@ describe("TemplateFontLinks", () => {
       );
       expect(stylesheetLink).toBeDefined();
       unmount();
-      // Clean up head
       for (const link of Array.from(document.head.querySelectorAll("link"))) {
         link.remove();
       }

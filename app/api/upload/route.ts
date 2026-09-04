@@ -10,42 +10,13 @@ import {
   ERROR_CODES,
 } from "@/lib/utils/security-headers";
 import { generateTempKey, MAX_FILE_SIZE, validatePDFBuffer } from "@/lib/utils/validation";
-// Minimum file size for a valid PDF (100 bytes)
 const MIN_PDF_SIZE = 100;
 
-/**
- * POST /api/upload
- * Direct file upload to R2 via Worker binding (replaces presigned URLs).
- *
- * Request headers:
- *   - Content-Type: application/pdf (required)
- *   - Content-Length: file size in bytes (required)
- *   - X-Filename: original filename (required)
- *
- * Rate limits:
- *   - 10 uploads per hour per IP
- *   - 50 uploads per day per IP
- *
- * Returns:
- *   - key: R2 object key (temp/{uuid}/{filename})
- *   - remaining: { hourly, daily } rate limit remaining
- *   - Set-Cookie: pending_upload cookie for claim verification
- *
- * Error codes:
- *   - 400: invalid Content-Type, missing/invalid Content-Length, empty file,
- *           filename too long, Content-Length mismatch, or invalid PDF
- *   - 411: missing Content-Length header
- *   - 413: file size exceeds MAX_FILE_SIZE
- *   - 429: rate limit exceeded (per IP)
- *   - 500: R2 storage error or unexpected error
- */
 export async function POST(request: Request) {
   try {
-    // 0. Get Cloudflare env bindings for R2
     // SAFETY: env is untyped Cloudflare Workers binding; cast bridges to typed CloudflareEnv. X-Filename header is validated for length and sanitized before use.
     const typedEnv = env as CloudflareEnv;
 
-    // Get R2 binding for direct operations
     const r2Binding = getR2Binding(typedEnv);
     if (!r2Binding) {
       return createErrorResponse(
@@ -55,7 +26,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // 1. Validate Content-Type
     const contentType = request.headers.get("content-type");
     if (!contentType?.includes("application/pdf")) {
       return createErrorResponse(
@@ -65,7 +35,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // 2. Validate Content-Length before reading body
     const contentLengthHeader = request.headers.get("content-length");
     if (!contentLengthHeader) {
       return createErrorResponse("Content-Length header is required", ERROR_CODES.BAD_REQUEST, 411);
@@ -92,7 +61,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // 3. Get filename from header
     const filename = request.headers.get("x-filename");
     if (!filename || !z.string().safeParse(filename).success || filename.trim().length === 0) {
       return createErrorResponse("X-Filename header is required", ERROR_CODES.BAD_REQUEST, 400);
@@ -106,10 +74,8 @@ export async function POST(request: Request) {
       );
     }
 
-    // 4. Extract client IP for rate limiting
     const clientIP = getClientIP(request);
 
-    // 5. Check IP-based rate limit BEFORE any processing
     const rateLimit = await checkIPRateLimit(clientIP);
     if (!rateLimit.allowed) {
       return createErrorResponse(
@@ -120,7 +86,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // 6. Stream body with byte-cap enforcement (do not trust Content-Length for allocation)
     const reader = request.body?.getReader();
     if (!reader) {
       return createErrorResponse("Missing request body", ERROR_CODES.BAD_REQUEST, 400);
@@ -156,12 +121,10 @@ export async function POST(request: Request) {
       combined.byteOffset + combined.byteLength,
     ) as ArrayBuffer;
 
-    // Verify actual streamed size matches Content-Length header
     if (totalBytes !== contentLength) {
       return createErrorResponse("Content-Length mismatch", ERROR_CODES.BAD_REQUEST, 400);
     }
 
-    // 7. Validate PDF magic number
     const pdfValidation = validatePDFBuffer(buffer);
     if (!pdfValidation.valid) {
       return createErrorResponse(
@@ -171,10 +134,8 @@ export async function POST(request: Request) {
       );
     }
 
-    // 8. Generate temp key
     const key = generateTempKey(filename);
 
-    // 9. Store to R2 via binding (hash computed at claim time for efficiency)
     try {
       await R2.put(r2Binding, key, buffer, {
         contentType: "application/pdf",
@@ -193,7 +154,6 @@ export async function POST(request: Request) {
     let setCookieHeader: string | undefined;
     if (cookieSecret && z.string().safeParse(cookieSecret).success) {
       const signedCookieValue = await createSignedCookieValue(key, cookieSecret);
-      // Set HttpOnly cookie (30 minute expiry, secure in production)
       setCookieHeader = `${COOKIE_NAME}=${signedCookieValue}; HttpOnly; SameSite=Strict; Max-Age=1800; Path=/`;
       if (typedEnv.NODE_ENV === "production") {
         setCookieHeader += "; Secure";
@@ -202,7 +162,6 @@ export async function POST(request: Request) {
       console.warn("PENDING_UPLOAD_SECRET not configured - upload will not be claimable");
     }
 
-    // 11. Return success with rate limit info and cookie
     const response = createSuccessResponse({ key, remaining: rateLimit.remaining });
     response.headers.set("X-RateLimit-Remaining-Hourly", String(rateLimit.remaining.hourly));
     response.headers.set("X-RateLimit-Remaining-Daily", String(rateLimit.remaining.daily));

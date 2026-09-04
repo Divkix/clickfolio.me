@@ -22,7 +22,6 @@ vi.mock("next/navigation", () => ({
 }));
 
 vi.mock("@/lib/auth/client", () => ({
-  // DeleteAccountCard signs out through Clerk after a successful deletion.
   useClerk: () => ({ signOut: mocks.signOut }),
 }));
 

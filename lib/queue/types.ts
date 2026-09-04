@@ -1,16 +1,5 @@
-/**
- * Queue message types for Cloudflare Queues
- */
-
 import { z } from "zod";
 
-/**
- * Zod schema for resume parse queue messages.
- * Used at system boundaries (worker/index.ts queue consumer) to validate untrusted input.
- *
- * Currently a single-variant discriminated union.
- * Add more message types here when needed — z.discriminatedUnion("type", [...]).
- */
 export const queueMessageSchema = z.object({
   type: z.literal("parse"),
   resumeId: z.string().min(1),
@@ -20,19 +9,10 @@ export const queueMessageSchema = z.object({
   attempt: z.number().int().positive(),
 });
 
-/**
- * Message for resume parsing queue
- */
 export type ResumeParseMessage = z.infer<typeof queueMessageSchema>;
 
-/**
- * Union type for all queue messages
- */
 export type QueueMessage = ResumeParseMessage;
 
-/**
- * Dead letter queue message wrapper
- */
 export interface DeadLetterMessage {
   originalMessage: QueueMessage;
   failureReason: string;

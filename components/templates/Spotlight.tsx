@@ -16,7 +16,6 @@ import type { TemplateProps } from "@/lib/types/template";
 import { getContactIcon } from "./shared/ContactIcon";
 import { TemplateFontLinks } from "./shared/TemplateFontLinks";
 
-/* ─── Spotlight card with cursor-tracking radial gradient ─── */
 function SpotlightCard({
   children,
   className = "",
@@ -49,7 +48,6 @@ function SpotlightCard({
         } as React.CSSProperties
       }
     >
-      {/* Cursor spotlight overlay */}
       <div
         className="pointer-events-none absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"
         style={{
@@ -62,7 +60,6 @@ function SpotlightCard({
   );
 }
 
-/* ─── Award icon (inline SVG) ─── */
 const AwardIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
   <svg
     aria-hidden="true"
@@ -81,14 +78,12 @@ const AwardIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
   </svg>
 );
 
-/* ─── Opacity class for marquee sweep ─── */
 function getMarqueeOpacity(index: number): string {
   if (index % 5 === 0) return "opacity-70";
   if (index % 2 === 0) return "opacity-45";
   return "opacity-30";
 }
 
-/* ─── Main component ─── */
 export const Spotlight: React.FC<TemplateProps> = ({ content, profile, isPreview }) => {
   const firstName = content.full_name.split(" ")[0] || content.full_name;
   const allSkills = flattenSkills(content.skills);
@@ -121,7 +116,6 @@ export const Spotlight: React.FC<TemplateProps> = ({ content, profile, isPreview
 
   return (
     <>
-      {/* Font preloading */}
       <TemplateFontLinks href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;700;800&family=Instrument+Sans:wght@400;500&display=swap" />
 
       <div
@@ -129,7 +123,6 @@ export const Spotlight: React.FC<TemplateProps> = ({ content, profile, isPreview
         onMouseMove={handlePageMouseMove}
         className="min-h-screen bg-[#FFFCF9] text-[#1C1917] font-body-sl selection:bg-[#E84D0E] selection:text-white relative overflow-x-hidden"
       >
-        {/* Custom CSS */}
         <style>{`
           .font-display-sl { font-family: 'Bricolage Grotesque', sans-serif; }
           .font-body-sl { font-family: 'Instrument Sans', sans-serif; }
@@ -137,7 +130,6 @@ export const Spotlight: React.FC<TemplateProps> = ({ content, profile, isPreview
           .mask-linear-fade { mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent); }
         `}</style>
 
-        {/* Stage beam backgrounds — tall conic triangles from top */}
         <div
           className="absolute inset-0 z-0 pointer-events-none overflow-hidden"
           aria-hidden="true"
@@ -165,7 +157,6 @@ export const Spotlight: React.FC<TemplateProps> = ({ content, profile, isPreview
           />
         </div>
 
-        {/* Cursor-following spotlight overlay */}
         <div
           className="fixed inset-0 z-1 pointer-events-none motion-safe:transition-[background] motion-safe:duration-100"
           aria-hidden="true"
@@ -176,7 +167,6 @@ export const Spotlight: React.FC<TemplateProps> = ({ content, profile, isPreview
 
         {!isPreview && (
           <>
-            {/* Navigation — minimal text links top-left */}
             <nav
               className="fixed top-8 left-8 z-50 hidden md:flex flex-col gap-1.5"
               aria-label="Main navigation"
@@ -192,7 +182,6 @@ export const Spotlight: React.FC<TemplateProps> = ({ content, profile, isPreview
               ))}
             </nav>
 
-            {/* Mobile nav — horizontal at top */}
             <nav
               className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex md:hidden items-center gap-3 px-4 py-2 bg-[#FFFCF9]/90 backdrop-blur-md border border-stone-200/80 rounded-full shadow-sm max-w-[calc(100%-2rem)] overflow-x-auto no-scrollbar"
               aria-label="Main navigation"
@@ -220,7 +209,6 @@ export const Spotlight: React.FC<TemplateProps> = ({ content, profile, isPreview
         )}
 
         <main className="relative z-10 max-w-4xl mx-auto px-6 pt-28 md:pt-40 pb-20">
-          {/* ─── Hero Section ─── */}
           <section id="about" className="mb-24 md:mb-32">
             <div className="flex flex-col-reverse md:flex-row gap-8 items-start md:items-center justify-between">
               <div className="flex-1 space-y-6">
@@ -240,7 +228,6 @@ export const Spotlight: React.FC<TemplateProps> = ({ content, profile, isPreview
                   {content.summary}
                 </p>
 
-                {/* Contact icons */}
                 <div className="flex gap-3 pt-4">
                   {contactLinks.map((link) => {
                     const icon = getContactIcon(link.type, {
@@ -285,9 +272,7 @@ export const Spotlight: React.FC<TemplateProps> = ({ content, profile, isPreview
                 </div>
               </div>
 
-              {/* Avatar with spotlight cone */}
               <div className="relative shrink-0">
-                {/* Conic spotlight cone behind avatar */}
                 <div
                   className="absolute pointer-events-none"
                   aria-hidden="true"
@@ -320,7 +305,6 @@ export const Spotlight: React.FC<TemplateProps> = ({ content, profile, isPreview
             </div>
           </section>
 
-          {/* ─── Skills Marquee with opacity sweep ─── */}
           {allSkills.length > 0 && (
             <section className="mb-24 py-10 border-y border-stone-200/60 relative overflow-hidden mask-linear-fade">
               <div className="flex whitespace-nowrap motion-safe:animate-[marquee_40s_linear_infinite]">
@@ -337,7 +321,6 @@ export const Spotlight: React.FC<TemplateProps> = ({ content, profile, isPreview
             </section>
           )}
 
-          {/* ─── Experience — spotlight cards ─── */}
           {content.experience?.length > 0 && (
             <section id="work" className="mb-24" aria-label="Work history">
               <h3 className="text-sm font-display-sl font-bold uppercase tracking-widest text-[#78716C] mb-10 flex items-center gap-2">
@@ -386,7 +369,6 @@ export const Spotlight: React.FC<TemplateProps> = ({ content, profile, isPreview
             </section>
           )}
 
-          {/* ─── Projects Grid ─── */}
           {content.projects && content.projects.length > 0 && (
             <section id="projects" className="mb-24" aria-label="Selected projects">
               <h3 className="text-sm font-display-sl font-bold uppercase tracking-widest text-[#78716C] mb-10 flex items-center gap-2">
@@ -437,7 +419,6 @@ export const Spotlight: React.FC<TemplateProps> = ({ content, profile, isPreview
             </section>
           )}
 
-          {/* ─── Education & Certifications ─── */}
           {((content.education && content.education.length > 0) ||
             (content.certifications && content.certifications.length > 0)) && (
             <section className="grid grid-cols-1 md:grid-cols-2 gap-12 mb-24">
@@ -512,7 +493,6 @@ export const Spotlight: React.FC<TemplateProps> = ({ content, profile, isPreview
             </section>
           )}
 
-          {/* ─── CTA Footer ─── */}
           <footer id="contact" className="py-20 border-t border-stone-200/60">
             <div className="flex flex-col items-center text-center space-y-6">
               <h2 className="text-4xl md:text-5xl font-display-sl font-extrabold tracking-tight text-[#1C1917] [text-wrap:unset]">

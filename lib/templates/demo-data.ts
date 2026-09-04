@@ -1,9 +1,6 @@
 import type { ResumeContent } from "@/lib/types/database";
 import type { ThemeId } from "./theme-ids";
 
-/**
- * Demo profile metadata for landing page cards
- */
 export interface DemoProfile {
   id: ThemeId;
   name: string;
@@ -15,9 +12,6 @@ export interface DemoProfile {
   badgeTextColor: string;
 }
 
-/**
- * Demo profiles for the landing page example cards
- */
 export const DEMO_PROFILES: DemoProfile[] = [
   {
     id: "minimalist_editorial",
@@ -121,9 +115,6 @@ export const DEMO_PROFILES: DemoProfile[] = [
   },
 ];
 
-/**
- * Full demo resume content for each template preview
- */
 export const DEMO_RESUME_CONTENT = {
   minimalist_editorial: {
     full_name: "Sarah Chen",
@@ -978,9 +969,6 @@ export const DEMO_RESUME_CONTENT = {
   },
 } as const satisfies Record<ThemeId, ResumeContent>;
 
-/**
- * Template background configuration for modal display
- */
 export const TEMPLATE_BACKGROUNDS = {
   bento: { bg: "bg-[#FAF8F5]", isDark: false },
   bold_corporate: { bg: "bg-white", isDark: false },

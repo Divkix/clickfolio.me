@@ -7,10 +7,6 @@ export interface FaqItem {
   a: string;
 }
 
-/**
- * Collapsible FAQ accordion (native <details>). Shared by the full FAQ page and
- * blog post layout. Callers supply their own surrounding section + heading.
- */
 export function FaqAccordion({ items, className }: { items: FaqItem[]; className?: string }) {
   return (
     <div className={cn("space-y-3", className)}>
@@ -33,10 +29,6 @@ export function FaqAccordion({ items, className }: { items: FaqItem[]; className
   );
 }
 
-/**
- * Static (always-expanded) FAQ section used by profession landing pages.
- * Renders the visible Q&A list plus FAQPage JSON-LD in one place.
- */
 export function RoleFaqSection({ items }: { items: FaqItem[] }) {
   return (
     <section className="mb-12">

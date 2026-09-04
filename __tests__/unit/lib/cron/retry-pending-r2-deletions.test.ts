@@ -1,10 +1,3 @@
-/**
- * Unit tests for retryPendingR2Deletions (lib/cron/cleanup-r2.ts).
- *
- * Focus: successful row removal, attempts-increment on failure, and
- * max-attempts skip path.
- */
-
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { retryPendingR2Deletions } from "@/lib/cron/cleanup-r2";
 import type { PendingR2Deletion } from "@/lib/db/schema";
@@ -152,10 +145,7 @@ describe("retryPendingR2Deletions", () => {
     ];
     const db = createDb(rows);
     const binding = {
-      delete: vi
-        .fn()
-        .mockResolvedValueOnce(undefined) // ok-1 succeeds
-        .mockRejectedValueOnce(new Error("timeout")), // fail-1 fails
+      delete: vi.fn().mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error("timeout")),
     };
     const result = await run(db as unknown as JsonValue, binding as unknown as JsonValue);
 

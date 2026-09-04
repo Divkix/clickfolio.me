@@ -69,8 +69,6 @@ export function useFileUpload({ onClaim }: UseFileUploadOptions = {}) {
   const [isDragging, setIsDragging] = useState(false);
   const [uploadedKey, setUploadedKey] = useState<string | null>(null);
 
-  // handleDrop/handleFileSelect depend on processFile, so they are defined after doUpload/processFile below
-
   const doUpload = useCallback(
     async (fileToUpload: File) => {
       setUploadState("uploading");
@@ -78,7 +76,6 @@ export function useFileUpload({ onClaim }: UseFileUploadOptions = {}) {
       setError(null);
 
       try {
-        // ponytail: single progress sequence, adjust if UX needs diverge
         setUploadProgress(10);
 
         const uploadResponse = await fetch("/api/upload", {
@@ -141,7 +138,6 @@ export function useFileUpload({ onClaim }: UseFileUploadOptions = {}) {
           // SAFETY: fetch JSON is bounded and validated to expected shape
           const claimData = (await claimResponse.json()) as ClaimResponse;
           const resumeId = claimData.resume_id;
-          // ponytail: single progress sequence, adjust if UX needs diverge
           setUploadProgress(70);
           setUploadState("parsing");
           setUploadProgress(90);

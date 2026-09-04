@@ -7,20 +7,13 @@ import { getServerSession } from "@/lib/auth/session";
 import { getDb } from "@/lib/db";
 import { siteData } from "@/lib/db/schema";
 
-/** Force dynamic rendering for the editable resume page. */
 export const dynamic = "force-dynamic";
 
-/** Metadata for the edit page — disallows search indexing. */
 export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-/**
- * Resume editing page — loads the user's current site data and
- * renders a form for updating resume content.
- */
 export default async function EditPage() {
-  // Use cached session helper to deduplicate auth calls within request
   const session = await getServerSession();
 
   if (!session) {
@@ -29,23 +22,19 @@ export default async function EditPage() {
 
   const db = getDb(env.HYPERDRIVE);
 
-  // Fetch user's site data
   const siteDataResult = await db.query.siteData.findFirst({
     where: eq(siteData.userId, session.user.id),
   });
 
-  // If no site data exists, redirect to dashboard
   if (!siteDataResult) {
     redirect("/dashboard");
   }
 
-  // Content arrives pre-parsed from the JSONB column.
   const content = siteDataResult.content;
 
   return (
     <div className="min-h-screen py-8">
       <div className="max-w-5xl mx-auto px-4 lg:px-6 space-y-6">
-        {/* Page Header */}
         <div className="mb-2">
           <h1 className="text-3xl font-bold text-foreground">Edit Resume</h1>
           <p className="text-muted-foreground mt-1">

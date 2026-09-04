@@ -26,7 +26,6 @@ const FALLBACK_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" heigh
   </text>
 </svg>`;
 
-/** Last-resort response that never invokes resvg. */
 function renderLastResort(): Response {
   return new Response(FALLBACK_SVG, {
     headers: {
@@ -36,24 +35,9 @@ function renderLastResort(): Response {
   });
 }
 
-/**
- * GET /api/og/[handle]
- * Dynamic profile OG image — shows name, headline, top skills.
- * 1200x630 PNG, cached for 24h with 7d stale-while-revalidate.
- *
- * Not-found handles and empty input return a static SVG (`renderLastResort`,
- * no resvg) to avoid WASM rasterization cost for bot probes. A genuine resvg
- * failure on a real profile also falls back to the static SVG.
- *
- * @param _request - Intentionally ignored (vinext pattern).
- * @param params - Route parameters containing the user `handle`.
- */
 export async function GET(_request: Request, { params }: { params: Promise<{ handle: string }> }) {
   const { handle: rawHandle } = await params;
 
-  // Decode URL-encoded handle and strip @ prefix. A malformed % sequence (e.g.
-  // "%zz" or a truncated UTF-8 escape) throws URIError — treat it like an empty
-  // handle so renderLastResort() serves the static SVG instead of a 500.
   let handle = "";
   try {
     handle = decodeURIComponent(rawHandle).replace(/^@/, "");
@@ -62,14 +46,12 @@ export async function GET(_request: Request, { params }: { params: Promise<{ han
   }
 
   if (!handle) {
-    // Static SVG (no resvg) — avoids paying WASM rasterization for empty/bot probes.
     return renderLastResort();
   }
 
   try {
     const db = getDb(env.HYPERDRIVE);
 
-    // Lightweight query: only preview columns needed for OG card
     const rows = await db
       .select({
         name: user.name,
@@ -86,7 +68,6 @@ export async function GET(_request: Request, { params }: { params: Promise<{ han
     const row = rows[0];
 
     if (!row) {
-      // Static SVG (no resvg) — avoids paying WASM rasterization for unknown handles (bot probes).
       return renderLastResort();
     }
 
@@ -97,7 +78,6 @@ export async function GET(_request: Request, { params }: { params: Promise<{ han
       .slice(0, 4)
       .map((skill) => escapeXml(skill));
 
-    // Build skill pills as SVG elements
     let skillsSvg = "";
     if (skills.length > 0) {
       const startX = 80;
@@ -120,7 +100,6 @@ export async function GET(_request: Request, { params }: { params: Promise<{ han
       ? `<text x="80" y="320" font-family="system-ui,sans-serif" font-size="30" font-weight="500" fill="#F5C542">${headline}</text>`
       : "";
 
-    // Initials for avatar circle
     const initials = displayName
       .split(" ")
       .map((w) => w[0])

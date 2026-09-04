@@ -9,12 +9,6 @@ import type { TemplateProps } from "@/lib/types/template";
 import { getContactIcon } from "./shared/ContactIcon";
 import { TemplateFontLinks } from "./shared/TemplateFontLinks";
 
-/**
- * ClassicATS Template
- *
- * Single-column, ATS-optimized layout with "legal brief" typography.
- * Designed for traditional industries: finance, legal, healthcare, government.
- */
 export const ClassicATS: React.FC<TemplateProps> = ({ content, profile, isPreview }) => {
   const flatSkills = content.skills ? flattenSkills(content.skills) : [];
   const contactLinks = getContactLinks(content.contact);

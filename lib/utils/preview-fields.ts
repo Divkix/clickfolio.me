@@ -1,14 +1,6 @@
-/**
- * Preview fields extraction utility for siteData denormalized columns
- * Extracts essential preview information from ResumeContent for quick access
- */
-
 import { flattenSkills } from "@/lib/templates/helpers";
 import type { ResumeContent } from "@/lib/types/database";
 
-/**
- * Return type for extractPreviewFields function
- */
 export interface PreviewFields {
   previewName: string | null;
   previewHeadline: string | null;
@@ -18,24 +10,7 @@ export interface PreviewFields {
   previewSkills: string[];
 }
 
-/**
- * Extracts denormalized preview fields from resume content
- * Used for quick access to essential data without parsing full JSON
- *
- * @param content - The parsed resume content, may be null/undefined
- * @returns Object with preview fields, all properly defaulted for null safety
- *
- * @example
- * const content = { full_name: "John Doe", skills: [{ category: "Languages", items: ["JS", "TS"] }] };
- * extractPreviewFields(content);
- * // Returns: { previewName: "John Doe", previewHeadline: null, ..., previewSkills: ["JS", "TS"] }
- *
- * @example
- * extractPreviewFields(null);
- * // Returns: { previewName: null, previewHeadline: null, ..., previewExpCount: 0, previewSkills: [] }
- */
 export function extractPreviewFields(content: ResumeContent | null | undefined): PreviewFields {
-  // Handle null/undefined content
   if (!content) {
     return {
       previewName: null,
@@ -47,7 +22,6 @@ export function extractPreviewFields(content: ResumeContent | null | undefined):
     };
   }
 
-  // Extract and flatten skills from skill groups, taking first 4
   const flattenedSkills = flattenSkills(content.skills)
     .map((s) => s.trim())
     .filter(Boolean)

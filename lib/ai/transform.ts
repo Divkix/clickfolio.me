@@ -4,31 +4,19 @@ import type { JsonValue, UnknownRecord } from "@/lib/types/json";
 import { truncateText } from "@/lib/utils/format";
 import { sanitizeEmail, sanitizeUrl } from "@/lib/utils/sanitization";
 
-// Pre-compiled regex for URL validation (avoid per-call compilation overhead)
-// Requires a path segment to appear THREE times consecutively before the URL is
 // treated as pathological. A single repeated pair (e.g. `github.com/user/user`)
-// is legitimate GitHub-style and must NOT be rejected.
 const REPEATING_SEGMENT_PATTERN = /\/([^/]+)\/\1\/\1(?:\/|$)/;
 
-/**
- * Validate URL with garbage pattern detection
- * Detects pathological patterns like repeating path segments.
- * Delegates scheme normalization to canonical sanitizeUrl,
- * then adds AI-specific checks (segment repetition, 12-segment cap).
- */
 export function validateUrl(url: JsonValue): string {
   if (!url || !z.string().safeParse(url).success) return "";
   // SAFETY: zod safeParse above guarantees url is string, cast preserves type after validation.
   const trimmed = (url as string).trim();
   if (!trimmed) return "";
 
-  // Max length check
   if (trimmed.length > 500) return "";
 
-  // AI-specific: Detect repeating path segments (three consecutive identical segments)
   if (REPEATING_SEGMENT_PATTERN.test(trimmed)) return "";
 
-  // AI-specific: Check for excessive path depth
   const pathSegments = trimmed.split("/").filter(Boolean);
   if (pathSegments.length > 12) return "";
 
@@ -46,9 +34,6 @@ export function validateUrl(url: JsonValue): string {
   }
 }
 
-/**
- * Normalize string - convert null/undefined to empty string, trim
- */
 export function normalizeString(value: JsonValue, defaultVal = ""): string {
   if (value === null || value === undefined) return defaultVal;
   // eslint-disable-next-line typescript/no-base-to-string -- value is unknown; String() is intentional for non-object primitives
@@ -57,9 +42,6 @@ export function normalizeString(value: JsonValue, defaultVal = ""): string {
   return (value as string).trim() || defaultVal;
 }
 
-/**
- * Normalize end_date values - treat "Present"/"Current" etc as empty
- */
 export function normalizeEndDate(value: JsonValue): string {
   const normalized = normalizeString(value);
   if (!normalized) return "";
@@ -70,9 +52,6 @@ export function normalizeEndDate(value: JsonValue): string {
   return normalized;
 }
 
-/**
- * Transform AI response - lenient parsing with XSS protection and URL validation
- */
 export function transformAiResponse(raw: JsonValue): UnknownRecord {
   if (!raw || !(raw instanceof Object) || Array.isArray(raw)) {
     return {
@@ -87,11 +66,9 @@ export function transformAiResponse(raw: JsonValue): UnknownRecord {
   // SAFETY: null and object guard above ensures raw is a plain object; UnknownRecord is the safe JSON object representation for AI response manipulation.
   const data = raw as UnknownRecord;
 
-  // Top-level fields
   data.full_name = truncateText(normalizeString(data.full_name, "Unknown"), 100);
   data.headline = truncateText(normalizeString(data.headline, "Professional"), 150);
 
-  // Summary with fallback generation
   let summary = normalizeString(data.summary);
   if (!summary) {
     if (Array.isArray(data.experience) && data.experience.length > 0) {
@@ -112,7 +89,6 @@ export function transformAiResponse(raw: JsonValue): UnknownRecord {
   }
   data.summary = truncateText(summary, 2000);
 
-  // Contact - validate URLs, sanitize email
   if (data.contact && data.contact instanceof Object && !Array.isArray(data.contact)) {
     // SAFETY: object guard above ensures data.contact is a non-null object; UnknownRecord is safe for dynamic contact field access.
     const c = data.contact as UnknownRecord;
@@ -128,7 +104,6 @@ export function transformAiResponse(raw: JsonValue): UnknownRecord {
     data.contact = { email: "" };
   }
 
-  // Experience - filter garbage entries
   if (Array.isArray(data.experience)) {
     data.experience = data.experience.filter((exp) => {
       if (!exp || !(exp instanceof Object) || Array.isArray(exp)) return false;
@@ -158,8 +133,6 @@ export function transformAiResponse(raw: JsonValue): UnknownRecord {
       exp.start_date = truncateText(normalizeString(exp.start_date), 50);
       exp.end_date = truncateText(normalizeEndDate(exp.end_date), 50);
       exp.description = truncateText(normalizeString(exp.description), 2000);
-      // Coerce a plain string highlight into a single-element array to match
-      // the schema's highlights: string[] shape.
       if (z.string().safeParse(exp.highlights).success) {
         // SAFETY: zod safeParse above guarantees exp.highlights is string, cast preserves type after validation.
         exp.highlights = [exp.highlights as string];
@@ -177,7 +150,6 @@ export function transformAiResponse(raw: JsonValue): UnknownRecord {
     data.experience = [];
   }
 
-  // Education - filter garbage entries
   if (Array.isArray(data.education)) {
     data.education = data.education.filter((edu) => {
       if (!edu || !(edu instanceof Object) || Array.isArray(edu)) return false;
@@ -201,7 +173,6 @@ export function transformAiResponse(raw: JsonValue): UnknownRecord {
     }
   }
 
-  // Skills - filter garbage entries
   if (Array.isArray(data.skills)) {
     data.skills = data.skills.filter((skill) => {
       if (!skill || !(skill instanceof Object) || Array.isArray(skill)) return false;
@@ -229,7 +200,6 @@ export function transformAiResponse(raw: JsonValue): UnknownRecord {
       }
     }
   }
-  // Certifications - filter garbage, validate URLs
   if (Array.isArray(data.certifications)) {
     data.certifications = data.certifications.filter((cert) => {
       if (!cert || !(cert instanceof Object) || Array.isArray(cert)) return false;
@@ -253,7 +223,6 @@ export function transformAiResponse(raw: JsonValue): UnknownRecord {
     }
   }
 
-  // Projects - filter garbage, validate URLs
   if (Array.isArray(data.projects)) {
     data.projects = data.projects.filter((proj) => {
       if (!proj || !(proj instanceof Object) || Array.isArray(proj)) return false;
@@ -289,15 +258,9 @@ export function transformAiResponse(raw: JsonValue): UnknownRecord {
   return data;
 }
 
-/**
- * Final cleanup transformations - trim strings, extract LinkedIn from website, remove empty fields
- */
 export function transformAiOutput(raw: ResumeContentFormData): ResumeContentFormData {
   const result = structuredClone(raw);
 
-  /**
-   * Recursively trim all string values in an object or array in-place.
-   */
   const trimStrings = (obj: UnknownRecord): void => {
     if (obj === null || obj === undefined) return;
     if (Array.isArray(obj)) {
@@ -325,13 +288,11 @@ export function transformAiOutput(raw: ResumeContentFormData): ResumeContentForm
   // SAFETY: ResumeContentFormData is JSON-compatible and structurally compatible with UnknownRecord for trimming.
   trimStrings(result as UnknownRecord);
 
-  // Extract LinkedIn from website if misplaced
   if (result.contact?.website?.includes("linkedin.com") && !result.contact.linkedin) {
     result.contact.linkedin = result.contact.website;
     delete result.contact.website;
   }
 
-  // Remove empty contact fields
   if (result.contact) {
     for (const key of Object.keys(result.contact)) {
       // SAFETY: ResumeContentFormData contact is JSON-compatible and structurally compatible with UnknownRecord for dynamic empty-field removal.
@@ -342,7 +303,6 @@ export function transformAiOutput(raw: ResumeContentFormData): ResumeContentForm
     }
   }
 
-  // Normalize project years to just the year
   if (Array.isArray(result.projects)) {
     for (const project of result.projects) {
       if (project?.year) {
@@ -354,7 +314,6 @@ export function transformAiOutput(raw: ResumeContentFormData): ResumeContentForm
     }
   }
 
-  // Remove empty location fields from experience
   if (Array.isArray(result.experience)) {
     for (const exp of result.experience) {
       if (exp?.location === "") {
@@ -366,7 +325,6 @@ export function transformAiOutput(raw: ResumeContentFormData): ResumeContentForm
     }
   }
 
-  // Remove empty fields from education
   if (Array.isArray(result.education)) {
     for (const edu of result.education) {
       if (edu?.location === "") delete edu.location;
@@ -374,14 +332,12 @@ export function transformAiOutput(raw: ResumeContentFormData): ResumeContentForm
     }
   }
 
-  // Remove empty arrays
   for (const key of ["skills", "certifications", "projects", "education"] as const) {
     if (Array.isArray(result[key]) && result[key].length === 0) {
       delete result[key];
     }
   }
 
-  // Remove duplicate website/linkedin
   if (result.contact?.website === result.contact?.linkedin) {
     delete result.contact.website;
   }

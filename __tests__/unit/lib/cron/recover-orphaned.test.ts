@@ -1,14 +1,3 @@
-/**
- * Unit tests for orphaned resume recovery (lib/cron/recover-orphaned.ts).
- *
- * Focus: the queued-orphan scan, queuedAt age-gating on the processing query,
- * publish-failure rollback, and max-attempts skipping.
- *
- * The mocked `db` does not evaluate SQL WHERE clauses, so age-gating behavior is
- * verified by introspecting the drizzle condition passed to `.where()` (asserting
- * which columns it references) rather than by row filtering.
- */
-
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { recoverOrphanedResumes } from "@/lib/cron/recover-orphaned";
 import type { UnknownRecord, JsonValue } from "@/lib/types/json";
@@ -16,7 +5,6 @@ import type { ResumeParseMessage } from "@/lib/queue/types";
 
 type Row = UnknownRecord;
 
-/** Recursively collect drizzle column names referenced inside a SQL condition. */
 function collectColumns(node: JsonValue, depth = 0, acc = new Set<string>()): Set<string> {
   if (node == null || depth > 16) return acc;
   if (Array.isArray(node)) {
@@ -70,7 +58,6 @@ function createMocks(options: { changes?: number } = {}) {
 
   const queue = { send: vi.fn().mockResolvedValue(undefined) };
 
-  /** Configure the four parallel selects in order: pending_claim, processing, queued, waiting_for_cache. */
   const setBuckets = (pending: Row[], processing: Row[], queued: Row[], waiting: Row[] = []) => {
     db.select
       .mockReturnValueOnce(selectChain(pending, whereCaptures))
@@ -115,7 +102,6 @@ describe("recoverOrphanedResumes — queued orphan recovery", () => {
         userId: "user-1",
       }),
     );
-    // Pre-publish status write set it back to "queued".
     expect(setCalls.some((c) => c.status === "queued")).toBe(true);
   });
 
@@ -125,22 +111,18 @@ describe("recoverOrphanedResumes — queued orphan recovery", () => {
 
     await run(db as unknown as JsonValue, queue as unknown as JsonValue);
 
-    // whereCaptures order matches select order: [pending_claim, processing, queued, waiting_for_cache]
     expect(whereCaptures).toHaveLength(4);
     const processingCols = collectColumns(whereCaptures[1]);
     expect(processingCols.has("queued_at")).toBe(true);
-    // createdAt remains only as the null-fallback branch.
     expect(processingCols.has("created_at")).toBe(true);
 
     const queuedCols = collectColumns(whereCaptures[2]);
     expect(queuedCols.has("queued_at")).toBe(true);
 
-    // The pending_claim query still age-gates on created_at only.
     const pendingCols = collectColumns(whereCaptures[0]);
     expect(pendingCols.has("created_at")).toBe(true);
     expect(pendingCols.has("queued_at")).toBe(false);
 
-    // waiting_for_cache query age-gates on created_at only (durably persists timeout)
     const waitingCols = collectColumns(whereCaptures[3]);
     expect(waitingCols.has("created_at")).toBe(true);
     expect(waitingCols.has("status")).toBe(true);
@@ -182,7 +164,6 @@ describe("recoverOrphanedResumes — queued orphan recovery", () => {
 
     expect(result.recovered).toBe(0);
     expect(queue.send).not.toHaveBeenCalled();
-    // Skipped before any DB write — no status change attempted.
     expect(setCalls).toHaveLength(0);
   });
 
@@ -202,8 +183,6 @@ describe("recoverOrphanedResumes — queued orphan recovery", () => {
     expect(result.ok).toBe(true);
     expect(result.recovered).toBe(0);
     expect(result.found).toBe(1);
-    // The re-queue SET was attempted but 0 rows matched — the row moved on
-    // (consumer / manual retry / earlier recovery pass), so no publish.
     expect(setCalls.some((c) => c.status === "queued")).toBe(true);
     expect(queue.send).not.toHaveBeenCalled();
   });
@@ -223,7 +202,6 @@ describe("recoverOrphanedResumes — queued orphan recovery", () => {
     const result = await run(db as unknown as JsonValue, queue as unknown as JsonValue);
 
     expect(result.recovered).toBe(0);
-    // updateWhereCaptures order: [requeue guard, rollback guard].
     expect(updateWhereCaptures).toHaveLength(2);
     const requeueCols = collectColumns(updateWhereCaptures[0]);
     expect(requeueCols.has("status")).toBe(true);
@@ -250,8 +228,6 @@ describe("recoverOrphanedResumes — queued orphan recovery", () => {
     expect(queue.send).toHaveBeenCalledTimes(1);
     const requeue = setCalls.find((c) => c.status === "queued");
     expect(requeue).toBeDefined();
-    // Regression: the old code bumped totalAttempts here AND the queue consumer
-    // bumps it again per actual attempt, double-counting every recovered resume.
     expect(requeue).not.toHaveProperty("totalAttempts");
   });
 });

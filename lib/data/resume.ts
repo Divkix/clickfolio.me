@@ -37,22 +37,13 @@ interface ResumeMetadata {
   skills?: string[] | null;
   created_at: string;
   updated_at: string;
-  /** Serialized JSON-LD script for the resume/Person schema, or null if hidden */
   jsonLdResumeScript: string | null;
-  /** Serialized JSON-LD script for the breadcrumb schema, or null if hidden */
   jsonLdBreadcrumbScript: string | null;
 }
 
-/**
- * Fetch resume data from Postgres via Drizzle WITHOUT using cookies.
- *
- * Privacy filtering is applied during fetch, so returned content
- * is already privacy-filtered.
- */
 async function fetchResumeDataRaw(handle: string): Promise<ResumeData | null> {
   const db = getDb(env.HYPERDRIVE);
 
-  // Fetch user by handle with siteData relation
   const userData = await db.query.user.findFirst({
     where: eq(user.handle, handle),
     columns: {
@@ -80,39 +71,30 @@ async function fetchResumeDataRaw(handle: string): Promise<ResumeData | null> {
     return null;
   }
 
-  // Ensure siteData exists
   if (!userData.siteData) {
     return null;
   }
 
-  // Content arrives pre-parsed from the JSONB column.
-  // Data is already validated at write time (/api/resume/update and the queue consumer).
   let content = userData.siteData.content;
 
-  // Normalize privacy settings (jsonb object) with defaults for missing fields
   const privacySettings = normalizePrivacySettings(userData.privacySettings);
 
-  // Defense-in-depth: Validate theme is unlocked before returning
-  // This catches edge cases where theme was set directly in DB or via API bypass
   // SAFETY: DB themeId is string|null validated immediately after via isValidThemeId; cast narrows to ThemeId for metadata lookup with fallback to DEFAULT_THEME
   let themeId: ThemeId | null = userData.siteData.themeId as ThemeId | null;
   if (!themeId || !isValidThemeId(themeId)) {
     themeId = DEFAULT_THEME;
   }
 
-  // Create defensive copy of contact to avoid mutating parsed JSON
   if (content.contact) {
     content = {
       ...content,
       contact: { ...content.contact },
     };
 
-    // Remove phone if privacy setting is false
     if (!privacySettings.show_phone && content.contact.phone) {
       delete content.contact.phone;
     }
 
-    // Filter address to city/state only if privacy setting is false
     if (!privacySettings.show_address && content.contact.location) {
       content.contact.location = extractCityState(content.contact.location);
     }
@@ -134,11 +116,6 @@ async function fetchResumeDataRaw(handle: string): Promise<ResumeData | null> {
   };
 }
 
-/**
- * Lightweight metadata fetcher for SEO.
- * Uses denormalized preview columns from siteData instead of parsing
- * the full content JSON blob (50-100KB), saving significant I/O and CPU.
- */
 async function fetchResumeMetadataRaw(handle: string): Promise<ResumeMetadata | null> {
   const db = getDb(env.HYPERDRIVE);
 
@@ -171,28 +148,21 @@ async function fetchResumeMetadataRaw(handle: string): Promise<ResumeMetadata | 
     return null;
   }
 
-  // Use denormalized columns instead of parsing full content JSON
   const fullName = userData.siteData.previewName?.trim() || userData.name?.trim() || null;
 
   if (!fullName) {
     return null;
   }
 
-  // Normalize privacy settings (jsonb object) for hide_from_search
   const parsedSettings = normalizePrivacySettings(userData.privacySettings);
   const hideFromSearch = parsedSettings.hide_from_search;
   const parsedSkills = normalizePreviewSkills(userData.siteData.previewSkills);
 
-  // Filter the denormalized previewLocation at READ time (fixes existing rows
-  // written before the privacy filter existed). When show_address is false the
-  // full address must never reach meta/OG descriptions, so truncate to
-  // city/state — mirroring the content.contact.location filter above.
   let previewLocation = userData.siteData.previewLocation?.trim() || null;
   if (previewLocation && !parsedSettings.show_address) {
     previewLocation = extractCityState(previewLocation) || null;
   }
 
-  // Generate JSON-LD structured data for rich search results
   let jsonLdResumeScript: string | null = null;
   let jsonLdBreadcrumbScript: string | null = null;
 
@@ -230,25 +200,10 @@ async function fetchResumeMetadataRaw(handle: string): Promise<ResumeMetadata | 
   };
 }
 
-/**
- * Resume data fetcher with request-level deduplication.
- * Wrapped with React.cache() to avoid duplicate database queries when
- * both generateMetadata() and the page component call this function.
- *
- * @param handle - The user's unique handle
- * @returns Resume data or null if not found
- */
 export const getResumeData = cache((handle: string) => fetchResumeDataRaw(handle));
 
-/**
- * Metadata fetcher for SEO with request-level deduplication.
- */
 export const getResumeMetadata = cache((handle: string) => fetchResumeMetadataRaw(handle));
 
-/**
- * Fetch related public profiles for cross-linking on profile pages.
- * Returns a small randomized set of public profiles excluding the current one.
- */
 export const getRelatedProfiles = cache(
   async (
     currentHandle: string,
@@ -269,7 +224,7 @@ export const getRelatedProfiles = cache(
       isNotNull(siteData.userId),
     );
 
-    const WINDOW = 12; // small pool to randomize within
+    const WINDOW = 12;
     const countRows = await db
       .select({ n: sql<number>`count(*)` })
       .from(user)
@@ -290,11 +245,10 @@ export const getRelatedProfiles = cache(
       .from(user)
       .leftJoin(siteData, sql`${siteData.userId} = ${user.id}`)
       .where(whereClause)
-      .orderBy(user.handle) // stable, indexable ordering — no random() sort
+      .orderBy(user.handle)
       .limit(WINDOW)
       .offset(offset);
 
-    // shuffle the small window in memory and take 3
     const pool = rows.filter((r) => r.handle);
     for (let i = pool.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));

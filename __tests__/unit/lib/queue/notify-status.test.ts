@@ -1,10 +1,3 @@
-/**
- * Notify Status Tests
- *
- * Tests for the status notification system that communicates
- * with Durable Objects for real-time updates.
- */
-
 import { describe, expect, it, vi } from "vite-plus/test";
 import type { Mock } from "vite-plus/test";
 import type { UnknownRecord } from "@/lib/types/json";
@@ -14,7 +7,6 @@ type StatusEnv = {
   CLICKFOLIO_STATUS_DO: CloudflareEnv["CLICKFOLIO_STATUS_DO"] | undefined;
 };
 
-/** Build a minimal env object accepted by notifyStatus* functions. */
 function makeStatusEnv(binding: Record<string, Mock> | UnknownRecord | undefined): StatusEnv {
   return {
     CLICKFOLIO_STATUS_DO: binding as unknown as CloudflareEnv["CLICKFOLIO_STATUS_DO"],
@@ -22,7 +14,6 @@ function makeStatusEnv(binding: Record<string, Mock> | UnknownRecord | undefined
 }
 
 describe("Notify Status", () => {
-  // Mock Durable Object binding
   const createMockDOBinding = () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response("OK", { status: 200 }));
     const getMock = vi.fn().mockReturnValue({ fetch: fetchMock });
@@ -109,7 +100,6 @@ describe("Notify Status", () => {
       await notifyStatusChange({ resumeId: "resume-123", status: "processing", env });
 
       expect(consoleSpy).toHaveBeenCalled();
-      // log() emits a single JSON string; find by msg field containing notify-status
       const errorCall = consoleSpy.mock.calls.find((call) => {
         try {
           const parsed = JSON.parse(call[0]) as UnknownRecord;
@@ -187,7 +177,6 @@ describe("Notify Status", () => {
 
       const callArgs = fetchMock.mock.calls[0];
       const body = JSON.parse(callArgs[1].body);
-      // Empty string is falsy, so it won't be included
       expect(body).not.toHaveProperty("error");
     });
 
@@ -319,7 +308,6 @@ describe("Notify Status", () => {
 
       await notifyStatusChangeBatch(["resume-1", "resume-2", "resume-3"], "processing", env);
 
-      // All calls should have been made (Promise.allSettled runs all in parallel)
       expect(fetchMock).toHaveBeenCalledTimes(3);
     });
 

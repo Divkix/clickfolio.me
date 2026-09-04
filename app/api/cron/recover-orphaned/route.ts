@@ -1,18 +1,3 @@
-/**
- * Cloudflare Cron Trigger handler for orphaned resume recovery (HTTP endpoint)
- *
- * Exists for manual triggers; the scheduled handler in worker/index.ts calls
- * recoverOrphanedResumes() directly to avoid double Worker invocation billing.
- *
- * Scheduled every 15 minutes via wrangler.jsonc
- * Finds resumes stuck in pending_claim status that have valid r2Key and fileHash
- * but weren't successfully queued (e.g., due to worker crash after upload).
- *
- * @returns Response from {@link recoverOrphanedResumes} on success.
- * Returns 401 if cron secret is missing or invalid.
- * Returns 500 on server misconfiguration or recovery failure.
- */
-
 import { getDb } from "@/lib/db";
 import { recoverOrphanedResumes } from "@/lib/cron/recover-orphaned";
 import { withCron } from "@/lib/cron/with-cron";

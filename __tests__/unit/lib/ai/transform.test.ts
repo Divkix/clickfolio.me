@@ -616,12 +616,9 @@ describe("transformAiOutput", () => {
     const result = transformAiOutput(data as ResumeContentFormData);
     expect((result.experience as any[])[0].title).toBe("Engineer");
     expect((result.experience as any[])[0].company).toBe("Acme");
-    // Note: The current implementation doesn't trim strings inside arrays like highlights
-    // This test documents the actual behavior
     expect((result.experience as any[])[0].highlights).toEqual([
       "  Achievement 1  ",
       "  Achievement 2  ",
     ]);
   });
 });
-/* eslint-enable @typescript-eslint/no-explicit-any */

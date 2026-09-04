@@ -2,19 +2,8 @@ import type { UnknownRecord, JsonValue } from "@/lib/types/json";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { DEFAULT_PRIVACY_SETTINGS } from "@/lib/utils/privacy";
 
-/**
- * IDOR (Insecure Direct Object Reference) tests for profile routes
- * Tests that users can only access and modify their own profile data
- */
-
-// ── Mocks ────────────────────────────────────────────────────────────
-
-// DB mock: SELECT chains dequeue from a shared result queue in call order;
-// writes run through the transaction spy, which counts awaited statements and
-// captures inserted rows.
 let selectResults: JsonValue[][] = [];
 
-/** Owner contract for the mocked Drizzle select-builder chain. */
 interface MockQueryChain {
   from: (...args: unknown[]) => MockQueryChain;
   where: (...args: unknown[]) => MockQueryChain;
@@ -28,7 +17,6 @@ interface MockQueryChain {
   ) => Promise<JsonValue>;
 }
 
-/** Owner contract for the mocked Drizzle transaction write chain. */
 interface MockTxChain {
   set: (...args: unknown[]) => MockTxChain;
   where: (...args: unknown[]) => MockTxChain;
@@ -97,7 +85,6 @@ const mockTransaction = vi.fn(async (callback: (tx: unknown) => Promise<void>) =
   await callback({ update: txUpdate, insert: txInsert });
 });
 
-// Standalone (non-tx) write builder used by the privacy route.
 const mockUpdate = vi.fn().mockReturnValue({
   set: vi.fn().mockReturnValue({
     where: vi.fn().mockResolvedValue(undefined),
@@ -110,13 +97,11 @@ const mockDb = {
   transaction: mockTransaction,
 };
 
-// Mock requireAuthWithUserValidation
 vi.mock("@/lib/auth/middleware", () => ({
   requireAuthWithUserValidation: vi.fn(),
   requireAuthWithMessage: vi.fn(),
 }));
 
-// Mock drizzle-orm
 vi.mock("drizzle-orm", () => ({
   eq: vi.fn((_col, val) => val),
   ne: vi.fn((_col, val) => val),
@@ -129,7 +114,6 @@ vi.mock("drizzle-orm", () => ({
   })),
 }));
 
-// Mock the schema
 vi.mock("@/lib/db/schema", () => ({
   user: {
     id: "id",
@@ -160,7 +144,6 @@ vi.mock("@/lib/db/schema", () => ({
   },
 }));
 
-// Mock security headers
 vi.mock("@/lib/utils/security-headers", () => ({
   createErrorResponse: vi.fn((error: string, _code: string, status: number) => {
     return new Response(JSON.stringify({ error }), { status });
@@ -178,7 +161,6 @@ vi.mock("@/lib/utils/security-headers", () => ({
   },
 }));
 
-// Mock validation
 vi.mock("@/lib/utils/validation", () => ({
   validateRequestSize: vi.fn(() => ({ valid: true })),
   readJsonWithLimit: vi.fn(async (req: Request) => {
@@ -190,7 +172,6 @@ vi.mock("@/lib/utils/validation", () => ({
   }),
 }));
 
-// Mock rate limiting
 vi.mock("@/lib/rate-limit/user", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/rate-limit/user")>()),
   enforceRateLimit: vi.fn().mockResolvedValue(null),
@@ -200,8 +181,6 @@ import { requireAuthWithMessage, requireAuthWithUserValidation } from "@/lib/aut
 
 const mockedAuth = vi.mocked(requireAuthWithUserValidation);
 const mockedAuthMessage = vi.mocked(requireAuthWithMessage);
-
-// ── Helpers ──────────────────────────────────────────────────────────
 
 function authedAs(userId: string, _overrides: UnknownRecord = {}) {
   mockedAuth.mockResolvedValue({
@@ -248,16 +227,11 @@ beforeEach(() => {
   txStatementCount = 0;
   txValues.length = 0;
 });
-// ── Test Suite ──────────────────────────────────────────────────────
 
 describe("IDOR - Profile Routes Security", () => {
   describe("PUT /api/profile/privacy", () => {
     it("returns 403 when User A tries to change User B's privacy settings", async () => {
       authedAs("user-a");
-
-      // The update uses authUser.id in WHERE clause
-      // So attempting to modify another user's privacy would fail silently
-      // (0 rows affected) rather than succeeding
 
       const { PUT } = await import("@/app/api/profile/privacy/route");
       const request = new Request("http://localhost:3000/api/profile/privacy", {
@@ -272,23 +246,18 @@ describe("IDOR - Profile Routes Security", () => {
       });
       const response = await PUT(request);
 
-      // Should succeed for own profile
       expect([200, 401]).toContain(response.status);
     });
 
     it("prevents privacy settings exposure via database row-level filtering", async () => {
-      // Verify that privacy update always uses authenticated user's ID
       authedAs("user-a");
-
-      // The route does: .where(eq(user.id, authUser.id))
-      // So even if malicious payload contained another userId, it's ignored
 
       const { PUT } = await import("@/app/api/profile/privacy/route");
       const request = new Request("http://localhost:3000/api/profile/privacy", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          user_id: "user-b", // Attempted injection
+          user_id: "user-b",
           show_phone: true,
           show_address: true,
           hide_from_search: false,
@@ -297,8 +266,6 @@ describe("IDOR - Profile Routes Security", () => {
       });
       await PUT(request);
 
-      // The update query should only use authUser.id
-      // The malicious user_id in body should be ignored
       expect(mockUpdate).toHaveBeenCalled();
     });
 
@@ -329,8 +296,6 @@ describe("IDOR - Profile Routes Security", () => {
     it("returns 409 when attempting to squat someone else's handle", async () => {
       authedAs("user-a");
 
-      // Rate-limit count → current profile fetch → pre-check finds the
-      // handle owned by another user.
       selectResults.push([{ count: 0 }]);
       selectResults.push([{ handle: "current-handle" }]);
       selectResults.push([{ id: "user-b" }]);
@@ -343,32 +308,27 @@ describe("IDOR - Profile Routes Security", () => {
       });
       const response = await PUT(request);
 
-      // The availability pre-check found a conflicting owner → hard conflict.
       expect(response.status).toBe(409);
     });
 
     it("prevents handle change for another user via ID injection", async () => {
       authedAs("user-a");
 
-      // Happy path so the route reaches its transaction write.
       selectResults.push([{ count: 0 }]);
       selectResults.push([{ handle: "old-handle" }]);
       selectResults.push([]);
 
-      // Attempt to include user_id in payload
       const { PUT } = await import("@/app/api/profile/handle/route");
       const request = new Request("http://localhost:3000/api/profile/handle", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           handle: "new-handle",
-          user_id: "user-b", // Attempted injection
+          user_id: "user-b",
         }),
       });
       await PUT(request);
 
-      // Every captured audit row belongs to the authenticated user — the
-      // injected user_id never leaks into the write.
       for (const row of txValues) {
         expect(row.userId).toBe("user-a");
       }
@@ -377,7 +337,6 @@ describe("IDOR - Profile Routes Security", () => {
     it("enforces handle change rate limit (3 per 24 hours)", async () => {
       authedAs("user-a");
 
-      // Three handle_changes rows inside the window → blocked before any write.
       selectResults.push([{ count: 3 }]);
 
       const { PUT } = await import("@/app/api/profile/handle/route");
@@ -395,8 +354,6 @@ describe("IDOR - Profile Routes Security", () => {
     it("blocks handle change when the transaction hits the unique constraint", async () => {
       authedAs("user-a");
 
-      // Pre-check sees the handle free, but a concurrent writer wins the
-      // unique index inside the transaction → Postgres SQLSTATE 23505 → 409.
       selectResults.push([{ count: 0 }]);
       selectResults.push([{ handle: "old-handle" }]);
       selectResults.push([]);
@@ -422,7 +379,6 @@ describe("IDOR - Profile Routes Security", () => {
     it("returns only authenticated user's own data", async () => {
       authedAs("user-a");
 
-      // The route queries by the session's own id; return that row.
       selectResults.push([
         {
           id: "user-a",
@@ -462,7 +418,6 @@ describe("IDOR - Profile Routes Security", () => {
     it("prevents profile data access via different endpoint", async () => {
       authedAs("user-a");
 
-      // Queue the owner's row for the authenticated-user SELECT.
       selectResults.push([
         {
           id: "user-a",
@@ -479,13 +434,9 @@ describe("IDOR - Profile Routes Security", () => {
         },
       ]);
 
-      // Attempt to access via /api/site-data or other endpoints
-      // Should be blocked if not the owner
-
       const { GET } = await import("@/app/api/profile/me/route");
       const response = await GET();
 
-      // Own data accessible
       expect([200, 401]).toContain(response.status);
     });
   });
@@ -494,10 +445,8 @@ describe("IDOR - Profile Routes Security", () => {
     it("blocks handle enumeration attacks via unique constraint errors", async () => {
       authedAs("attacker");
 
-      // Rapid handle checks should be rate limited
       const handles = ["alice", "bob", "charlie", "dave", "eve"];
 
-      // Verify rate limiting is checked
       const { enforceRateLimit } = await import("@/lib/rate-limit/user");
 
       for (const _ of handles) {
@@ -506,20 +455,13 @@ describe("IDOR - Profile Routes Security", () => {
     });
 
     it("prevents privacy settings of another user from being exposed", async () => {
-      // Privacy settings are only exposed through authorized endpoints
-      // with proper authentication
-
       authedAs("user-a");
-
-      // Attempt to access User B's profile data
-      // Should only return User A's data
 
       const { GET } = await import("@/app/api/profile/me/route");
       const response = await GET();
 
       if (response.status === 200) {
         const body = (await response.json()) as { id?: string };
-        // If data is returned, it should be for user-a
         if (body.id) {
           expect(body.id).toBe("user-a");
         }
@@ -536,7 +478,6 @@ describe("IDOR - Profile Routes Security", () => {
 
       if (response.status === 200) {
         const body = (await response.json()) as { referral_code?: string };
-        // Should only see own referral code
         if (body.referral_code) {
           expect(body.referral_code).toBe("USERA123");
         }
@@ -547,7 +488,6 @@ describe("IDOR - Profile Routes Security", () => {
 
 describe("Deleted User Profile Access", () => {
   it("returns 404 for deleted user's profile", async () => {
-    // Simulate stale session for deleted user
     mockedAuth.mockResolvedValue({
       user: {
         id: "deleted-user-id",
@@ -561,7 +501,7 @@ describe("Deleted User Profile Access", () => {
         role: "mid_level",
       },
       db: mockDb as never,
-      dbUser: null as never, // User not found in DB
+      dbUser: null as never,
       env: {
         HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" },
       } as never,
@@ -584,45 +524,37 @@ describe("Profile Update Security", () => {
   it("ignores user_id in update payload", async () => {
     authedAs("user-a");
 
-    // Attempt to include another user's ID in update payload
     const { PUT } = await import("@/app/api/profile/privacy/route");
     const request = new Request("http://localhost:3000/api/profile/privacy", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        user_id: "user-b", // Attempted injection
+        user_id: "user-b",
         show_phone: true,
       }),
     });
     await PUT(request);
-
-    // Verify update was called with only valid fields
-    // The route should filter out user_id from the update
   });
 
   it("prevents CSRF-like handle change attempts", async () => {
     authedAs("user-a");
 
-    // Without proper session validation, handle change should fail
     const { PUT } = await import("@/app/api/profile/handle/route");
     const request = new Request("http://localhost:3000/api/profile/handle", {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
-        // Missing proper auth headers
       },
       body: JSON.stringify({ handle: "new-handle" }),
     });
     const response = await PUT(request);
 
-    // Can be 401 (unauthorized), 403 (forbidden), 409 (conflict if handle check passes), or 500
     expect([401, 403, 409, 500]).toContain(response.status);
   });
 });
 
 describe("UUID Manipulation", () => {
   it("rejects malformed user IDs", async () => {
-    // UUID format should be enforced
     const invalidIds = [
       "not-a-uuid",
       "123",
@@ -642,7 +574,6 @@ describe("UUID Manipulation", () => {
       });
       const response = await PUT(request);
 
-      // Should either succeed (ID is just a string), fail auth, or return validation error
       expect([200, 400, 401, 404]).toContain(response.status);
     }
   });

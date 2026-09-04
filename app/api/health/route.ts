@@ -33,12 +33,6 @@ type AiProviderEnv = Pick<
   "CF_AI_GATEWAY_ACCOUNT_ID" | "CF_AI_GATEWAY_ID" | "CF_AIG_AUTH_TOKEN"
 >;
 
-/**
- * Checks Postgres (via Hyperdrive) connectivity with a lightweight `SELECT 1`.
- *
- * @param hyperdrive - The HYPERDRIVE binding from the environment.
- * @returns ServiceHealth with latency and status.
- */
 async function checkPg(hyperdrive: Hyperdrive): Promise<ServiceHealth> {
   const start = Date.now();
   try {
@@ -54,12 +48,6 @@ async function checkPg(hyperdrive: Hyperdrive): Promise<ServiceHealth> {
   }
 }
 
-/**
- * Checks R2 bucket connectivity by listing a single object.
- *
- * @param r2 - The R2 bucket binding.
- * @returns ServiceHealth with latency and status.
- */
 async function checkR2(r2: R2Bucket): Promise<ServiceHealth> {
   const start = Date.now();
   try {
@@ -74,11 +62,6 @@ async function checkR2(r2: R2Bucket): Promise<ServiceHealth> {
   }
 }
 
-/**
- * Check if AI provider is configured.
- * We can't actually test the provider without making an API call,
- * so we just verify the required env vars are present.
- */
 function checkAiProviderConfig(env: AiProviderEnv): ServiceHealth {
   const hasGateway = env.CF_AI_GATEWAY_ACCOUNT_ID && env.CF_AI_GATEWAY_ID && env.CF_AIG_AUTH_TOKEN;
   if (hasGateway) {
@@ -91,12 +74,6 @@ function checkAiProviderConfig(env: AiProviderEnv): ServiceHealth {
   };
 }
 
-/**
- * Aggregates individual service statuses into an overall health status.
- *
- * @param services - The health statuses of all checked services.
- * @returns The aggregated status: "healthy", "unhealthy", or "degraded".
- */
 function aggregateStatus(services: HealthResponse["services"]): ServiceStatus {
   const statuses = Object.values(services).map((s) => s.status);
   if (statuses.every((s) => s === "healthy")) return "healthy";
@@ -104,16 +81,6 @@ function aggregateStatus(services: HealthResponse["services"]): ServiceStatus {
   return "degraded";
 }
 
-/**
- * GET /api/health
- *
- * Returns health status of all services:
- * - Postgres database (via Hyperdrive)
- * - R2 bucket
- * - AI provider configuration
- *
- * Response shape: {@link HealthResponse}
- */
 export async function GET() {
   try {
     // SAFETY: env is CloudflareEnv in Workers runtime; bindings verified by getR2Binding and health checks — cast bridges missing CloudflareEnv augmentation.
@@ -121,7 +88,6 @@ export async function GET() {
 
     const r2Binding = getR2Binding(typedEnv);
 
-    // Run all health checks in parallel
     const [r2Health, pgHealth] = await Promise.all([
       r2Binding
         ? checkR2(r2Binding)
@@ -129,7 +95,6 @@ export async function GET() {
       checkPg(typedEnv.HYPERDRIVE),
     ]);
 
-    // Check AI provider config (synchronous)
     const aiHealth = checkAiProviderConfig(typedEnv);
 
     const services = {

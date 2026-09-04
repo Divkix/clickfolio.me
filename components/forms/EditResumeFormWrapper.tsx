@@ -27,7 +27,6 @@ export function EditResumeFormWrapper({ initialData }: EditResumeFormWrapperProp
       const error = (await response.json()) as ApiErrorBody;
       const errorMessage = error.error || "Failed to update resume";
 
-      // Display specific error messages to user
       if (response.status === 429) {
         toast.error("Rate limit exceeded. Please try again later.");
       } else if (response.status === 401) {
@@ -41,9 +40,6 @@ export function EditResumeFormWrapper({ initialData }: EditResumeFormWrapperProp
 
     await response.json();
 
-    // Only refresh on explicit "Publish Changes" (manual submit), not autosave.
-    // Autosave already persists data to D1 — the RSC re-render + D1 read from
-    // router.refresh() is unnecessary overhead for background saves.
     if (!isAutoSave) {
       router.refresh();
     }

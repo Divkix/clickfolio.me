@@ -1,10 +1,3 @@
-/**
- * IP-based rate limiting for anonymous endpoints
- *
- * Uses Drizzle over Hyperdrive (Postgres) for persistence.
- * Hashes IPs for privacy (GDPR-friendly, no raw IPs stored).
- */
-
 import { env } from "cloudflare:workers";
 import { and, eq, gte, sql } from "drizzle-orm";
 import { getDb, type Database } from "@/lib/db";
@@ -27,26 +20,10 @@ interface IPRateLimitResult {
   message?: string;
 }
 
-/**
- * Hash IP address for privacy-preserving storage
- * Uses SHA-256 which is sufficient for rate limiting (equality checks only)
- */
 async function hashIP(ip: string): Promise<string> {
   return sha256Hex(new TextEncoder().encode(ip));
 }
 
-/**
- * Atomically record a rate-limit row via a conditional INSERT ... SELECT.
- *
- * The row is inserted only while the count of in-window rows for this
- * (ip, action) is below `limit`, using the SAME oneHourAgo cutoff as the
- * caller's counting SELECT. Uploads also enforce their daily limit in this
- * statement, closing both count-then-insert TOCTOU windows.
- *
- * @returns true when the row was inserted, false when a concurrent request
- *          won the last slot (in-window count already at/over `limit`).
- * @throws propagates to the caller's try/catch (fail open on DB errors).
- */
 async function recordRateLimitAction(
   db: Database,
   ipHash: string,
@@ -64,12 +41,6 @@ async function recordRateLimitAction(
       ? db.$client` AND (SELECT COUNT(*) FROM upload_rate_limits
        WHERE ip_hash = ${ipHash} AND action_type = ${actionType} AND created_at >= ${dailyCutoff}) < ${dailyLimit}`
       : db.$client``;
-  // Conditional INSERT … SELECT: the row lands only while the in-window count
-  // is below `limit`, enforced atomically by PostgreSQL (the SAME oneHourAgo
-  // cutoff as the caller's counting SELECT). Uploads also enforce their daily
-  // limit inside this statement, closing both TOCTOU windows.
-  // RowList.count === 1 when the row was inserted; === 0 when a concurrent
-  // request won the last slot.
   const result = await db.$client`
     INSERT INTO upload_rate_limits (id, ip_hash, action_type, created_at, expires_at)
     SELECT ${crypto.randomUUID()}, ${ipHash}, ${actionType}, ${now.toISOString()}, ${expiresAt}
@@ -79,33 +50,17 @@ async function recordRateLimitAction(
   return result.count === 1;
 }
 
-/**
- * Extract client IP from request (Cloudflare Workers)
- * CF-Connecting-IP is set by Cloudflare and cannot be spoofed by clients
- */
 export function getClientIP(request: Request): string {
-  // CF-Connecting-IP is authoritative on Cloudflare Workers
   const cfIP = request.headers.get("cf-connecting-ip");
   if (cfIP) return cfIP;
 
-  // Fallback for local development
   const forwarded = request.headers.get("x-forwarded-for");
   if (forwarded) return forwarded.split(",")[0].trim();
 
-  // Final fallback
   return "unknown";
 }
 
-/**
- * Check and record IP-based rate limit for presigned URL generation
- * Returns allowed: false if limit exceeded
- *
- * Rate limits:
- * - 10 requests per IP per hour
- * - 50 requests per IP per 24 hours
- */
 export async function checkIPRateLimit(ip: string): Promise<IPRateLimitResult> {
-  // Skip in development
   if (process.env.NODE_ENV !== "production") {
     return {
       allowed: true,
@@ -113,14 +68,10 @@ export async function checkIPRateLimit(ip: string): Promise<IPRateLimitResult> {
     };
   }
 
-  // Feature flag bypass for temporary testing (non-production only)
-  // Note: this code only runs when NODE_ENV === "production" (the early return above
-  // handles all non-production cases), so DISABLE_RATE_LIMITS is always ignored here.
   if (process.env.DISABLE_RATE_LIMITS === "true") {
     console.warn("[SECURITY] DISABLE_RATE_LIMITS ignored in production environment");
   }
 
-  // Skip for localhost IPs or local environment (local preview runs in production mode)
   if (LOCAL_IPS.has(ip) || isLocalEnvironment()) {
     return {
       allowed: true,
@@ -136,8 +87,6 @@ export async function checkIPRateLimit(ip: string): Promise<IPRateLimitResult> {
   try {
     const db = getDb(env.HYPERDRIVE);
 
-    // Single query with conditional aggregation (saves 1 roundtrip)
-    // WHERE clause orders ipHash first (index prefix) for optimal index usage
     const result = await db
       .select({
         hourly: sql<number>`SUM(CASE WHEN ${uploadRateLimits.createdAt} >= ${oneHourAgo} THEN 1 ELSE 0 END)`,
@@ -146,7 +95,7 @@ export async function checkIPRateLimit(ip: string): Promise<IPRateLimitResult> {
       .from(uploadRateLimits)
       .where(
         and(
-          eq(uploadRateLimits.ipHash, ipHash), // Index prefix first
+          eq(uploadRateLimits.ipHash, ipHash),
           eq(uploadRateLimits.actionType, "upload"),
           gte(uploadRateLimits.createdAt, oneDayAgo),
         ),
@@ -158,7 +107,6 @@ export async function checkIPRateLimit(ip: string): Promise<IPRateLimitResult> {
     const hourlyRemaining = Math.max(0, HOURLY_LIMIT - hourlyCount);
     const dailyRemaining = Math.max(0, DAILY_LIMIT - dailyCount);
 
-    // Check hourly limit
     if (hourlyCount >= HOURLY_LIMIT) {
       return {
         allowed: false,
@@ -167,7 +115,6 @@ export async function checkIPRateLimit(ip: string): Promise<IPRateLimitResult> {
       };
     }
 
-    // Check daily limit
     if (dailyCount >= DAILY_LIMIT) {
       return {
         allowed: false,
@@ -176,9 +123,6 @@ export async function checkIPRateLimit(ip: string): Promise<IPRateLimitResult> {
       };
     }
 
-    // Record this request atomically (conditional INSERT) — the count SELECT
-    // above is only kept for the `remaining` headers; enforcement happens here.
-    // changes === 0 means a concurrent request won the last slot: deny.
     try {
       const recorded = await recordRateLimitAction(
         db,
@@ -201,8 +145,6 @@ export async function checkIPRateLimit(ip: string): Promise<IPRateLimitResult> {
       }
     } catch (insertError) {
       console.error("Failed to record rate limit:", insertError);
-      // Continue anyway - fail open for legitimate users
-      // The claim endpoint has authenticated rate limiting as a second layer
     }
 
     return {
@@ -215,10 +157,6 @@ export async function checkIPRateLimit(ip: string): Promise<IPRateLimitResult> {
   } catch (error) {
     console.error("Rate limit check failed:", error);
 
-    // SECURITY: Fail OPEN for IP rate limiting on anonymous endpoint
-    // Rationale: False negatives (blocking legitimate users) are worse than
-    // false positives (allowing some abuse) for anonymous onboarding.
-    // The claim endpoint has authenticated rate limiting as a second layer.
     return {
       allowed: true,
       remaining: { hourly: 1, daily: 1 },
@@ -226,15 +164,6 @@ export async function checkIPRateLimit(ip: string): Promise<IPRateLimitResult> {
   }
 }
 
-/**
- * Check and record IP-based rate limit for handle availability checks
- * Higher limit (100/hour) since it's a cheap read operation
- * Uses separate action type to not share quota with uploads
- *
- * Protects against:
- * - Handle enumeration attacks (100/hour is still limiting for scraping)
- * - DoS via rapid checks
- */
 export async function checkHandleRateLimit(ip: string): Promise<IPRateLimitResult> {
   return checkHourlyActionLimit(ip, {
     actionType: "handle_check",
@@ -244,15 +173,6 @@ export async function checkHandleRateLimit(ip: string): Promise<IPRateLimitResul
   });
 }
 
-/**
- * Shared implementation for single-hourly-limit IP rate limits
- * (handle availability checks).
- *
- * Both actions share the same shape: skip in development, ignore
- * DISABLE_RATE_LIMITS in production, skip for local IPs/environment,
- * count actions of `actionType` in the last hour, block at `limit`,
- * otherwise record the action (1hr TTL) and fail open on any DB error.
- */
 async function checkHourlyActionLimit(
   ip: string,
   options: {
@@ -264,7 +184,6 @@ async function checkHourlyActionLimit(
 ): Promise<IPRateLimitResult> {
   const { actionType, limit, blockedMessage, checkErrorLabel } = options;
 
-  // Skip in development
   if (process.env.NODE_ENV !== "production") {
     return {
       allowed: true,
@@ -272,14 +191,10 @@ async function checkHourlyActionLimit(
     };
   }
 
-  // Feature flag bypass for temporary testing (non-production only)
-  // Note: this code only runs when NODE_ENV === "production" (the early return above
-  // handles all non-production cases), so DISABLE_RATE_LIMITS is always ignored here.
   if (process.env.DISABLE_RATE_LIMITS === "true") {
     console.warn("[SECURITY] DISABLE_RATE_LIMITS ignored in production environment");
   }
 
-  // Skip for localhost IPs or local environment (local preview runs in production mode)
   if (LOCAL_IPS.has(ip) || isLocalEnvironment()) {
     return {
       allowed: true,
@@ -294,7 +209,6 @@ async function checkHourlyActionLimit(
   try {
     const db = getDb(env.HYPERDRIVE);
 
-    // Count actions of this type in the last hour
     const result = await db
       .select({ count: sql<number>`COUNT(*)` })
       .from(uploadRateLimits)
@@ -316,8 +230,6 @@ async function checkHourlyActionLimit(
       };
     }
 
-    // Record this check atomically (same TOCTOU guard as uploads). The count
-    // SELECT above only feeds the `remaining` headers; enforcement happens here.
     try {
       const recorded = await recordRateLimitAction(
         db,
@@ -326,7 +238,7 @@ async function checkHourlyActionLimit(
         now,
         oneHourAgo,
         limit,
-        60 * 60 * 1000, // 1hr TTL
+        60 * 60 * 1000,
       );
 
       if (!recorded) {
@@ -338,7 +250,6 @@ async function checkHourlyActionLimit(
       }
     } catch (insertError) {
       console.error(`Failed to record rate limit: ${actionType}`, insertError);
-      // Continue anyway - fail open for legitimate users
     }
 
     return {
@@ -351,7 +262,6 @@ async function checkHourlyActionLimit(
   } catch (error) {
     console.error(checkErrorLabel, error);
 
-    // SECURITY: Fail OPEN - same rationale as upload rate limiting
     return {
       allowed: true,
       remaining: { hourly: 1, daily: 1 },

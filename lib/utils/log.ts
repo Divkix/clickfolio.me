@@ -1,8 +1,3 @@
-/**
- * Minimal structured logger for the always-on backend (worker, queue, cron).
- * Emits a single JSON object so Cloudflare logs are queryable by field
- * (e.g. resumeId, cron, queue) instead of free-form strings.
- */
 import type { UnknownRecord } from "@/lib/types/json";
 
 type LogLevel = "info" | "warn" | "error";

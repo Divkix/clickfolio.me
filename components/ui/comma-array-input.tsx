@@ -14,8 +14,6 @@ export function CommaArrayInput({ value, onChange, onBlur, placeholder }: CommaA
   const [text, setText] = useState(value?.join(", ") || "");
   const focusedRef = useRef(false);
 
-  // Sync from external value changes (form reset, initial load)
-  // only when not actively editing
   const externalText = value?.join(", ") || "";
   const prevExternalRef = useRef(externalText);
   if (externalText !== prevExternalRef.current && !focusedRef.current) {

@@ -82,7 +82,6 @@ export function ResumeManagementCard({
           <h3 className="text-lg font-semibold text-foreground">Resume</h3>
         </div>
 
-        {/* Horizontal stats row */}
         <div className="flex items-center gap-6 mb-4">
           <div className="flex items-center gap-3">
             <div className="bg-brand-subtle p-2.5 rounded-lg">
@@ -114,7 +113,6 @@ export function ResumeManagementCard({
           )}
         </div>
 
-        {/* Error Message - compact version */}
         {latestResumeStatus === "failed" && latestResumeError && (
           <div className="rounded-lg bg-destructive/10 border border-destructive/30 p-3 mb-4">
             <div className="flex items-start gap-2">
@@ -132,7 +130,6 @@ export function ResumeManagementCard({
           </div>
         )}
 
-        {/* Upload button - pushed to bottom */}
         <div className="mt-auto">
           <Button onClick={() => setUploadModalOpen(true)} className="w-full">
             <Upload className="h-4 w-4 mr-2" />

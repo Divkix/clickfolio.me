@@ -9,20 +9,14 @@ import { cn } from "@/lib/utils/cn";
 
 interface ThemeStepProps {
   initialTheme?: ThemeId;
-  /** May be async — the continue handler awaits it to keep the button disabled until the request settles */
   onContinue: (themeId: ThemeId) => void | Promise<void>;
 }
 
-/**
- * Step 4: Theme Selection Component
- * Allows users to choose their resume template design
- */
 export function ThemeStep({ initialTheme = "minimalist_editorial", onContinue }: ThemeStepProps) {
   const [selectedTheme, setSelectedTheme] = useState<ThemeId>(initialTheme);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleContinue = async () => {
-    // Prevent re-entrancy while the completion request is in flight.
     if (isSubmitting) return;
     setIsSubmitting(true);
     try {
@@ -34,7 +28,6 @@ export function ThemeStep({ initialTheme = "minimalist_editorial", onContinue }:
 
   return (
     <div className="space-y-8">
-      {/* Header */}
       <div className="text-center">
         <div className="mx-auto w-16 h-16 bg-brand-subtle rounded-xl flex items-center justify-center mb-6">
           <Palette className="w-8 h-8 text-brand" />
@@ -47,7 +40,6 @@ export function ThemeStep({ initialTheme = "minimalist_editorial", onContinue }:
         </p>
       </div>
 
-      {/* Theme Grid */}
       <div className="max-w-4xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {Object.entries(THEME_METADATA).map(([id, meta]) => {
@@ -65,7 +57,6 @@ export function ThemeStep({ initialTheme = "minimalist_editorial", onContinue }:
                     : "border-border hover:border-border-strong bg-card cursor-pointer",
                 )}
               >
-                {/* Selected Indicator */}
                 {selectedTheme === id && (
                   <div className="absolute top-4 right-4">
                     <div className="flex items-center gap-1 bg-brand text-brand-foreground px-3 py-1 rounded-full text-xs font-bold">
@@ -75,9 +66,7 @@ export function ThemeStep({ initialTheme = "minimalist_editorial", onContinue }:
                   </div>
                 )}
 
-                {/* Theme Content */}
                 <div className="space-y-3">
-                  {/* Category Badge */}
                   <div className="flex items-center gap-2">
                     <span
                       className={cn(
@@ -91,7 +80,6 @@ export function ThemeStep({ initialTheme = "minimalist_editorial", onContinue }:
                     </span>
                   </div>
 
-                  {/* Theme Name */}
                   <h3
                     className={cn(
                       "text-xl font-bold transition-colors",
@@ -101,12 +89,10 @@ export function ThemeStep({ initialTheme = "minimalist_editorial", onContinue }:
                     {meta.name}
                   </h3>
 
-                  {/* Description */}
                   <p className="text-sm leading-relaxed text-muted-foreground">
                     {meta.description}
                   </p>
 
-                  {/* Visual Indicator / Preview */}
                   <div className="pt-2">
                     <div
                       className={cn(
@@ -128,7 +114,6 @@ export function ThemeStep({ initialTheme = "minimalist_editorial", onContinue }:
           })}
         </div>
 
-        {/* Selected Theme Info */}
         <div className="mt-6 text-center">
           <p className="text-sm text-muted-foreground">
             Currently selected:{" "}
@@ -136,7 +121,6 @@ export function ThemeStep({ initialTheme = "minimalist_editorial", onContinue }:
           </p>
         </div>
 
-        {/* Continue Button */}
         <div className="pt-6">
           <Button
             onClick={handleContinue}
@@ -150,7 +134,6 @@ export function ThemeStep({ initialTheme = "minimalist_editorial", onContinue }:
         </div>
       </div>
 
-      {/* Help Text */}
       <div className="text-center">
         <p className="text-sm text-muted-foreground font-medium">
           You can change your template anytime in dashboard settings.

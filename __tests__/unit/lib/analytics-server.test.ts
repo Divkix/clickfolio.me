@@ -28,8 +28,6 @@ const {
   };
 });
 
-// Overrides the global posthog-node mock from __tests__/setup.ts so the
-// wrapper's contract is verified directly.
 vi.mock("posthog-node", () => ({
   PostHog: MockPostHog,
 }));
@@ -39,7 +37,6 @@ vi.mock("cloudflare:workers", () => ({
 vi.mock("@/lib/utils/log", () => ({
   log: mockLog,
 }));
-// Isolate config so tests don't depend on the production token literal.
 vi.mock("@/lib/analytics/config", () => ({
   POSTHOG_PROJECT_TOKEN: "phc_test",
   POSTHOG_API_HOST: "https://s.clickfolio.me",
@@ -86,7 +83,6 @@ describe("captureServerEvent", () => {
     });
     expect(mockWaitUntil).toHaveBeenCalledTimes(1);
 
-    // The registered promise carries the send AND the terminal shutdown.
     await lastWaitUntilPromise();
 
     expect(mockShutdown).toHaveBeenCalledTimes(1);
@@ -175,7 +171,6 @@ describe("captureServerException", () => {
       "analytics exception capture failed",
       expect.objectContaining({ error: "posthog down" }),
     );
-    // finally-shutdown still runs.
     expect(mockShutdown).toHaveBeenCalledWith(1000);
   });
 
@@ -201,7 +196,6 @@ describe("captureServerEvent without token", () => {
       POSTHOG_API_HOST: "https://s.clickfolio.me",
       POSTHOG_UI_HOST: "https://us.posthog.com",
     }));
-    // Re-apply peer mocks after resetModules
     vi.doMock("posthog-node", () => ({ PostHog: MockPostHog }));
     vi.doMock("cloudflare:workers", () => ({ waitUntil: mockWaitUntil }));
     vi.doMock("@/lib/utils/log", () => ({ log: mockLog }));

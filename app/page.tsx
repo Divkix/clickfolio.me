@@ -23,7 +23,6 @@ const pageTitle = `Free Resume Website Builder — ${siteConfig.fullName}`;
 const pageDescription =
   "Free resume website builder. Turn your PDF resume or LinkedIn into a personal portfolio website in 30 seconds — 10 templates, custom @handle URL, privacy controls. No signup to start.";
 
-/** SEO metadata for the marketing homepage. */
 export const metadata: Metadata = {
   title: {
     absolute: `Free Resume Website Builder — Turn Your PDF Into a Site | ${siteConfig.fullName}`,
@@ -46,10 +45,6 @@ export const metadata: Metadata = {
   },
 };
 
-/**
- * Marketing homepage — landing page with hero, upload, examples, and FAQ.
- * Revalidated every hour for fresh content.
- */
 export default function Home() {
   const homepageJsonLd = generateHomepageJsonLd();
   const faqJsonLd = generateFAQJsonLd();
@@ -70,10 +65,8 @@ export default function Home() {
         <SiteHeader />
 
         <main id="main-content" className="flex-1 pb-20 lg:pb-0">
-          {/* Hero */}
           <section className="mx-auto max-w-7xl px-4 pt-12 pb-16 sm:px-6 lg:px-8 lg:pt-20">
             <div className="grid grid-cols-1 items-start gap-10 lg:grid-cols-12 lg:gap-12">
-              {/* Left — headline */}
               <div className="flex flex-col gap-8 lg:col-span-7">
                 <div className="animate-fade-in-up">
                   <Badge variant="brand" className="mb-5">
@@ -91,7 +84,6 @@ export default function Home() {
                     <span className="font-medium text-foreground">30 seconds</span>.
                   </p>
 
-                  {/* Preview mockups */}
                   <div className="mt-8 flex items-end gap-3">
                     {[
                       "/previews/minimalist.webp",
@@ -124,7 +116,6 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* Stat row */}
                 <dl className="grid grid-cols-3 gap-4">
                   {[
                     { value: "Free", label: "Forever" },
@@ -145,7 +136,6 @@ export default function Home() {
                 </dl>
               </div>
 
-              {/* Right — upload */}
               <div className="flex flex-col gap-4 lg:col-span-5 lg:pt-2">
                 <div
                   id="upload-card"
@@ -179,7 +169,6 @@ export default function Home() {
 
             <ExamplesSection profiles={DEMO_PROFILES} />
 
-            {/* Explore bridge */}
             <section className="mt-12 lg:mt-16">
               <Link
                 href="/explore"
@@ -200,7 +189,6 @@ export default function Home() {
               </Link>
             </section>
 
-            {/* How it works */}
             <section className="mt-20 lg:mt-28">
               <h2 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">
                 How it works
@@ -237,7 +225,6 @@ export default function Home() {
               </div>
             </section>
 
-            {/* Built for your role — internal links to profession landing pages */}
             <section className="mt-20 lg:mt-28">
               <h2 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">
                 A resume website built for your role
@@ -266,7 +253,6 @@ export default function Home() {
 
             <UsageStats />
 
-            {/* Bottom CTA */}
             <section className="mt-20 lg:mt-28">
               <div className="rounded-2xl bg-foreground px-6 py-14 text-center text-background lg:px-12">
                 <h2 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">

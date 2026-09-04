@@ -1,13 +1,9 @@
 {
-  // Custom worker wraps vinext handler + adds queue consumer
   "main": "worker/index.ts",
   "name": "clickfolio-me",
   "compatibility_date": "2026-01-22",
-  // Explicitly enable workers.dev subdomain (set to false if using custom domain only)
   "workers_dev": true,
-  // Disable preview URLs to avoid confusion
   "preview_urls": false,
-  // Custom domains (kept in config so CI deploy doesn't remove them)
   "routes": [
     {
       "pattern": "clickfolio.me",
@@ -20,32 +16,20 @@
       "custom_domain": true,
     },
   ],
-  // Bundle stubs are now handled by Vite's resolve.alias in vite.config.ts
-  "compatibility_flags": [
-    // Enable Node.js API
-    // see https://developers.cloudflare.com/workers/configuration/compatibility-flags/#nodejs-compatibility-flag
-    "nodejs_compat",
-    // Allow to fetch URLs in your app
-    // see https://developers.cloudflare.com/workers/configuration/compatibility-flags/#global-fetch-strictly-public
-    "global_fetch_strictly_public",
-  ],
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "assets": {
-    // dist/client is the static asset directory produced by the vinext build.
     "directory": "dist/client",
     "binding": "ASSETS",
   },
   "placement": {
-    // Cloudflare smart placement routes requests to the nearest data center.
     "mode": "smart",
   },
-  // Hyperdrive → PlanetScale Postgres (logical DB `clickfolio` on `side-projects` cluster)
   "hyperdrive": [
     {
       "binding": "HYPERDRIVE",
       "id": "8132893bf32b4e0b8b1b7edc8dad16c1",
     },
   ],
-  // R2 bucket binding for direct access (replaces AWS SDK for most operations)
   "r2_buckets": [
     {
       "binding": "CLICKFOLIO_R2_BUCKET",
@@ -73,7 +57,6 @@
       },
     ],
   },
-  // Durable Objects for real-time WebSocket notifications
   "durable_objects": {
     "bindings": [
       {
@@ -84,18 +67,15 @@
   },
   "migrations": [
     {
-      // v1: Initial migration creating the DOShardedTagCache Durable Object class.
       "tag": "v1",
       "new_sqlite_classes": ["DOShardedTagCache"],
     },
     {
-      // v2: Removed DOShardedTagCache and introduced ResumeStatusDO for real-time resume parsing status.
       "tag": "v2",
       "deleted_classes": ["DOShardedTagCache"],
       "new_classes": ["ResumeStatusDO"],
     },
     {
-      // v3: Renamed ResumeStatusDO to ClickfolioStatusDO for broader real-time status tracking.
       "tag": "v3",
       "renamed_classes": [
         {
@@ -114,13 +94,8 @@
       "invocation_logs": true,
     },
   },
-  // Cron Triggers for scheduled tasks
   "triggers": {
-    "crons": [
-      "0 2 * * *", // Daily at 2 AM UTC - R2 temp file cleanup
-      "0 3 * * *", // Daily at 3 AM UTC - runs /api/cron/cleanup
-      "*/15 * * * *", // Every 15 minutes - runs /api/cron/recover-orphaned
-    ],
+    "crons": ["0 2 * * *", "0 3 * * *", "*/15 * * * *"],
   },
   "vars": {
     // Environment variables are set via 'wrangler secret put' for production
@@ -157,13 +132,10 @@
     //   wrangler secret put CF_AIG_AUTH_TOKEN
     //
     // Note: R2 is accessed via binding (CLICKFOLIO_R2_BUCKET) - no API credentials needed
-    // NODE_ENV: Runtime environment for the Cloudflare Worker.
     "NODE_ENV": "production",
     "APP_URL": "https://clickfolio.me",
     "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_live_Y2xlcmsuY2xpY2tmb2xpby5tZSQ",
-    // AI_MODEL: OpenRouter model accessed via Cloudflare AI Gateway for resume parsing.
     "AI_MODEL": "openai/gpt-5.6-luna:nitro",
-    // Reasoning effort (medium|high, default medium) — controls thinking tokens for reasoning models.
     "AI_REASONING_EFFORT": "medium",
   },
 }

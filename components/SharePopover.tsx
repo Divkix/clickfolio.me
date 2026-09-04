@@ -50,22 +50,13 @@ const itemVariants = cva(
 );
 
 interface SharePopoverProps extends VariantProps<typeof triggerVariants> {
-  /** The URL to share (optional if handle is provided) */
   url?: string;
-  /** The user's handle (used to construct URL if url not provided) */
   handle?: string;
-  /** The page title for share dialogs */
   title: string;
-  /** The person's name for share text */
   name: string;
-  /** Additional CSS classes */
   className?: string;
 }
 
-/**
- * Floating share button with popup menu.
- * Theme-adaptive styling via variant prop.
- */
 export function SharePopover({ url, handle, title, name, variant, className }: SharePopoverProps) {
   const [open, setOpen] = useState(false);
   const popoverId = useId();

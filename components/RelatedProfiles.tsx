@@ -4,10 +4,6 @@ interface Props {
   profiles: Array<{ handle: string; name: string; headline?: string | null }>;
 }
 
-/**
- * Cross-linking widget for public profile pages.
- * Helps crawlability by linking related portfolios.
- */
 export function RelatedProfiles({ profiles }: Props) {
   if (!profiles.length) return null;
 

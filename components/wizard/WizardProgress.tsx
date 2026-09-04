@@ -11,28 +11,19 @@ interface WizardProgressProps {
 
 const getStepTitle = (step: number, hasUploadStep: boolean): string => {
   const uploadStepTitles = [
-    "Upload Resume", // Step 1
-    "Choose Handle", // Step 2
-    "Review Content", // Step 3
-    "Privacy Settings", // Step 4
-    "Select Theme", // Step 5
+    "Upload Resume",
+    "Choose Handle",
+    "Review Content",
+    "Privacy Settings",
+    "Select Theme",
   ];
 
-  const normalStepTitles = [
-    "Choose Handle", // Step 1
-    "Review Content", // Step 2
-    "Privacy Settings", // Step 3
-    "Select Theme", // Step 4
-  ];
+  const normalStepTitles = ["Choose Handle", "Review Content", "Privacy Settings", "Select Theme"];
 
   const titles = hasUploadStep ? uploadStepTitles : normalStepTitles;
   return titles[step - 1] || "Unknown Step";
 };
 
-/**
- * WizardProgress Component
- * Displays the current step progress in the wizard flow
- */
 export function WizardProgress({
   currentStep,
   totalSteps,
@@ -44,7 +35,6 @@ export function WizardProgress({
   return (
     <div className="sticky top-0 z-50 bg-card/95 backdrop-blur-sm border-b border-border shadow-sm">
       <div className="max-w-3xl mx-auto px-4 py-4">
-        {/* Step Counter and Title */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
             <span className="text-sm font-semibold text-brand">
@@ -58,7 +48,6 @@ export function WizardProgress({
           </span>
         </div>
 
-        {/* Progress Bar */}
         <Progress value={progress} className="h-2" />
       </div>
     </div>

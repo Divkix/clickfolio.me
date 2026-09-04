@@ -1,13 +1,8 @@
-/**
- * Custom worker entry point that wraps vinext's generated handler
- * and adds Cloudflare Queue consumer support and Durable Object exports.
- */
 // eslint-disable-next-line typescript/triple-slash-reference -- required for Cloudflare Workers env types; import-style not supported here
 /// <reference path="../lib/cloudflare-env.d.ts" />
 
 import { eq } from "drizzle-orm";
 import handler from "vinext/server/app-router-entry";
-// Import Clerk session verification for WebSocket auth
 import { extractClerkTokenFromRequest, verifyClerkToken } from "../lib/auth/clerk";
 import { performCleanup } from "../lib/cron/cleanup";
 import { performR2Cleanup, retryPendingR2Deletions } from "../lib/cron/cleanup-r2";
@@ -20,52 +15,18 @@ import { handleDLQMessage } from "../lib/queue/dlq-consumer";
 import { isRetryableError, type QueueErrorInput } from "../lib/queue/errors";
 import { queueMessageSchema } from "../lib/queue/types";
 import { log } from "../lib/utils/log";
-// Single source of truth for security headers, shared with the API response
-// toolkit (createSuccessResponse/createErrorResponse). The worker applies it to
-// every response as the catch-all for page routes that never pass through the
-// API toolkit; because it is the same object, "applied last" equals "applied
-// first" and the two layers can no longer drift. See issue #172 / ADR-0001.
+// See issue #172 / ADR-0001.
 import { SECURITY_HEADERS } from "../lib/utils/security-headers";
 
-/** Re-exported Durable Object for WebSocket resume status updates. */
 export { ClickfolioStatusDO } from "../lib/durable-objects/resume-status";
 
-/**
- * Vulnerability-scanner probe paths (WordPress, exposed secrets, DB admin tools).
- * These never map to a real app route, so we 404 them at the edge of the worker
- * instead of running the full vinext/React 404 render — saving CPU on the high
- * volume of automated scanner traffic. Compiled once per isolate.
- *
- * Kept deliberately narrow so legitimate routes (`/@handle`, `/for/*`, `/api/*`,
- * `/blog/*`) can never match. `xmlrpc`/`adminer` are anchored path segments (not
- * bare substrings) so a user handle like `@xmlrpc` is never 404'd; both tokens
- * are also in RESERVED_HANDLES to block new registrations.
- */
 const BLOCKED_PATHS =
   /(?:\.php$|^\/\.env|^\/\.git\/|^\/\.aws\/|^\/wp-|^\/xmlrpc\.php$|(?:^|\/)adminer(?:\/|$)|^\/config\.json$|application\.ya?ml$)/i;
 
 export default {
-  /**
-   * Main request handler. Routes WebSocket upgrade requests to the
-   * `ClickfolioStatusDO` Durable Object and all other requests to the vinext
-   * app-router handler.
-   *
-   * WebSocket flow:
-   * 3. Validate the Clerk `__session` JWT (JWKS verify) and map the Clerk id
-   *    to the local Postgres user row via `user.clerk_id`.
-   * 4. Verify the user owns the resume via Postgres.
-   * 5. Forward the request to the DO keyed by `resumeId`.
-   *
-   * @param request - The incoming HTTP request.
-   * @param env - Cloudflare environment bindings (Hyperdrive PG, R2, Queue, DO, etc.).
-   * @param _ctx - Execution context (unused, required by Cloudflare handler signature).
-   * @returns The response from the DO or the vinext handler.
-   */
   async fetch(request: Request, env: CloudflareEnv, _ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
 
-    // Short-circuit known vulnerability-scanner probes with a cheap 404, skipping
-    // the full vinext/React 404 render. See BLOCKED_PATHS for the (narrow) denylist.
     if (BLOCKED_PATHS.test(url.pathname)) {
       return new Response("Not Found", { status: 404, headers: SECURITY_HEADERS });
     }
@@ -82,10 +43,6 @@ export default {
         return new Response("Missing resume_id query parameter", { status: 400 });
       }
 
-      // Validate authentication before WebSocket upgrade.
-      // Extract and cryptographically verify the Clerk session JWT from the
-      // `__session` cookie (or Authorization bearer header), then map it to
-      // the local user row via the clerk_id backfill column.
       const token = extractClerkTokenFromRequest(request);
       const claims = token ? await verifyClerkToken(token) : null;
 
@@ -93,8 +50,6 @@ export default {
         return new Response("Unauthorized: Invalid session", { status: 401 });
       }
 
-      // Map the Clerk identity to the local Postgres user row, then verify
-      // resume ownership via Postgres query.
       const db = getDb(env.HYPERDRIVE);
       const owner = await db.query.user.findFirst({
         where: eq(userTable.clerkId, claims.sub),
@@ -120,7 +75,6 @@ export default {
         return new Response("Forbidden: You don't own this resume", { status: 403 });
       }
 
-      // Route to the Durable Object keyed by resumeId
       if (!env.CLICKFOLIO_STATUS_DO) {
         return new Response("WebSocket not available", { status: 503 });
       }
@@ -139,8 +93,6 @@ export default {
       return stub.fetch(modifiedRequest);
     }
 
-    // All other requests go to vinext handler
-    // Note: vinext uses cloudflare:workers internally for env access
     const response = await handler.fetch(request);
     const newHeaders = new Headers(response.headers);
     for (const [key, value] of Object.entries(SECURITY_HEADERS)) {
@@ -153,19 +105,6 @@ export default {
     });
   },
 
-  /**
-   * Cloudflare Queue consumer handler.
-   *
-   * Processes messages from `clickfolio-parse-queue` and its dead-letter queue
-   * (`clickfolio-parse-dlq`). Messages are validated against `queueMessageSchema`
-   * and discarded if malformed. Retryable errors trigger a message retry; permanent
-   * errors are acked, which DISCARDS the message — per Cloudflare Queues semantics
-   * only retry-exhausted messages are ever delivered to the DLQ. The consumer marks
-   * the resume failed and sends the alert itself before rethrowing.
-   *
-   * @param batch - The message batch delivered by the queue binding.
-   * @param env - Cloudflare environment bindings.
-   */
   async queue(batch: MessageBatch<unknown>, env: CloudflareEnv): Promise<void> {
     const isDLQ = batch.queue === INFRA.DLQ_NAME;
 
@@ -177,7 +116,7 @@ export default {
             queue: batch.queue,
             error: JSON.stringify(parsed.error.flatten()),
           });
-          message.ack(); // discard malformed messages
+          message.ack();
           continue;
         }
 
@@ -210,27 +149,12 @@ export default {
     }
   },
 
-  /**
-   * Cloudflare Cron trigger handler.
-   *
-   * Calls shared cleanup functions directly to avoid self-fetch, which would
-   * double billed Worker invocations.
-   *
-   * Supported triggers:
-   * - `0 2 * * *` – R2 temp file cleanup (`performR2Cleanup`).
-   * - `0 3 * * *` – DB cleanup (`performCleanup`).
-   * - `* /15 * * * *` (every 15 minutes) – Orphaned resume recovery (`recoverOrphanedResumes`).
-   *
-   * @param controller - The scheduled controller containing the cron expression.
-   * @param env - Cloudflare environment bindings.
-   */
   async scheduled(controller: ScheduledController, env: CloudflareEnv): Promise<void> {
     const db = getDb(env.HYPERDRIVE);
 
     try {
       switch (controller.cron) {
         case "0 2 * * *": {
-          // Daily at 2 AM UTC - R2 temp file cleanup + pending deletion retry
           const r2Binding = env.CLICKFOLIO_R2_BUCKET;
           if (!r2Binding) {
             log("error", "CLICKFOLIO_R2_BUCKET not available for R2 cleanup", {
@@ -238,10 +162,6 @@ export default {
             });
             return;
           }
-          // Run the two independent sweeps concurrently so a slow temp-cleanup
-          // does not delay the GDPR pending-deletion retry (and vice versa).
-          // Each settles independently; a failure in one is logged but never
-          // skips the other.
           const [cleanupSettled, pendingSettled] = await Promise.allSettled([
             performR2Cleanup(r2Binding),
             retryPendingR2Deletions(db, r2Binding),

@@ -4,28 +4,14 @@ import Link from "next/link";
 import { useEffect } from "react";
 import { captureAnalyticsError } from "@/lib/analytics/client";
 
-/**
- * Global Error Boundary
- * Catches all unhandled errors in the application
- * Provides user-friendly error message and recovery options
- */
-/**
- * Global error boundary props for application-wide error handling.
- */
 interface GlobalErrorProps {
   error: Error & { digest?: string };
   reset: () => void;
 }
 
-/**
- * Global Error Boundary
- * Catches all unhandled errors in the application
- * Provides user-friendly error message and recovery options
- */
 export default function GlobalError({ error, reset }: GlobalErrorProps) {
   useEffect(() => {
     console.error("Global error boundary caught:", error);
-    // Report to PostHog Error Tracking; never let reporting break recovery UI.
     captureAnalyticsError(error);
   }, [error]);
 

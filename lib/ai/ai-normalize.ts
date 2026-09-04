@@ -1,14 +1,6 @@
-/**
- * AI response normalization utilities.
- * Maps common alternative key names from AI models to our canonical schema keys.
- */
-
 import { z } from "zod";
 import type { JsonValue, UnknownRecord } from "@/lib/types/json";
 
-/**
- * Return the first value found for any of the given keys on the object.
- */
 export function pickFirstValue(obj: UnknownRecord, keys: string[]): JsonValue | undefined {
   for (const key of keys) {
     if (Object.hasOwn(obj, key)) {
@@ -18,27 +10,16 @@ export function pickFirstValue(obj: UnknownRecord, keys: string[]): JsonValue | 
   return undefined;
 }
 
-/**
- * Coerce an unknown value into a plain object record, or return null.
- * Rejects null, primitives, and arrays.
- */
 export function coerceRecord(value: JsonValue): UnknownRecord | null {
   if (!value || Array.isArray(value) || !(value instanceof Object)) return null;
   // SAFETY: object guard above ensures value is a non-null plain object; UnknownRecord is the safe JSON object representation for untrusted AI records.
   return value as UnknownRecord;
 }
 
-/**
- * Coerce an unknown value into an array, or return null.
- */
 export function coerceArray(value: JsonValue): JsonValue[] | null {
   // SAFETY: Array.isArray guard ensures value is an array; JsonValue[] is the safe JSON array representation for untrusted AI arrays.
   return Array.isArray(value) ? (value as JsonValue[]) : null;
 }
-/**
- * Normalize an experience item by mapping alternative key names to canonical keys.
- * Handles variations like "role", "jobTitle", "company", "employer", "org", etc.
- */
 function normalizeExperienceItem(value: JsonValue): UnknownRecord {
   const obj = coerceRecord(value);
   if (!obj) return {};
@@ -73,10 +54,6 @@ function normalizeExperienceItem(value: JsonValue): UnknownRecord {
   return result;
 }
 
-/**
- * Normalize an education item by mapping alternative key names to canonical keys.
- * Handles variations like "program", "field", "school", "university", "gpa", "grade", etc.
- */
 function normalizeEducationItem(value: JsonValue): UnknownRecord {
   const obj = coerceRecord(value);
   if (!obj) return {};
@@ -105,10 +82,6 @@ function normalizeEducationItem(value: JsonValue): UnknownRecord {
   return result;
 }
 
-/**
- * Normalize a certification item by mapping alternative key names to canonical keys.
- * Falls back to a plain string input as a certification name.
- */
 function normalizeCertificationItem(value: JsonValue): UnknownRecord {
   const obj = coerceRecord(value);
   if (!obj) {
@@ -134,10 +107,6 @@ function normalizeCertificationItem(value: JsonValue): UnknownRecord {
   return result;
 }
 
-/**
- * Normalize a project item by mapping alternative key names to canonical keys.
- * Falls back to a plain string input as a project title.
- */
 function normalizeProjectItem(value: JsonValue): UnknownRecord {
   const obj = coerceRecord(value);
   if (!obj) {
@@ -169,11 +138,6 @@ function normalizeProjectItem(value: JsonValue): UnknownRecord {
   return result;
 }
 
-/**
- * Normalize top-level AI response keys and nested arrays to canonical schema keys.
- * Maps alternative key names (e.g. "fullName", "contactInfo") and normalizes each
- * item in experience, education, skills, certifications, and projects arrays.
- */
 export function normalizeAiKeys(data: UnknownRecord): UnknownRecord {
   const result = { ...data };
 

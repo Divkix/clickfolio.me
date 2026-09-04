@@ -1,22 +1,6 @@
-/**
- * Resume status mapping regression tests.
- *
- * Both GET /api/resume/status and GET /api/resume/latest-status must surface
- * pre-processing statuses (pending_claim / queued / waiting_for_cache) as
- * "processing":
- *  - latest-status feeds the wizard's initializeWizard() duplicate-upload
- *    guard (an in-flight parse must redirect to /waiting, not fall through to
- *    the upload step).
- *  - status feeds /waiting's useResumeStatus hook, which treats any
- *    non-"processing" status as terminal and stops polling (pending_claim
- *    previously stalled the page forever).
- */
-
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { DEFAULT_PRIVACY_SETTINGS } from "@/lib/utils/privacy";
 import type { JsonValue } from "@/lib/types/json";
-
-// ── Mocks ─────────────────────────────────────────────────────────────
 
 const mockFindFirst = vi.fn();
 const mockDb = {
@@ -100,20 +84,11 @@ function latestResumeRow(status: string) {
       retryCount: 0,
       totalAttempts: 1,
       lastAttemptError: null,
-      // Recent timestamp so waiting_for_cache is not considered timed-out by
-      // lifecycle.waitingForCacheTimedOut (10m threshold). The timeout case
-      // is covered separately in resume-status-waiting-cache.test.ts.
       createdAt: new Date().toISOString(),
     },
   ];
 }
 
-/**
- * Hand-rolled select chain for the latest-status route's
- * `.select().from().where().orderBy().limit(1)` shape. Returns a real promise
- * at `.limit()` so awaiting the chain actually settles (the shared
- * createMockQueryChain helper's `then` never calls its resolve callback).
- */
 function selectChainResolving(rows: JsonValue[]) {
   return {
     select: vi.fn().mockReturnValue({
@@ -132,8 +107,6 @@ beforeEach(() => {
   vi.clearAllMocks();
   mockFindFirst.mockReset();
 });
-
-// ── GET /api/resume/latest-status ─────────────────────────────────────
 
 describe("GET /api/resume/latest-status — status mapping", () => {
   it.each(["pending_claim", "queued", "waiting_for_cache"])(
@@ -188,8 +161,6 @@ describe("GET /api/resume/latest-status — status mapping", () => {
     expect(body).toBeNull();
   });
 });
-
-// ── GET /api/resume/status ────────────────────────────────────────────
 
 describe("GET /api/resume/status — pending_claim mapping", () => {
   function makeStatusRequest(resumeId: string) {

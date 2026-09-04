@@ -1,14 +1,3 @@
-/**
- * Focused tests for the pending-R2-deletion path introduced by plan 008.
- *
- * Verifies that:
- * - When an R2 delete fails during account deletion, a `pendingR2Deletions`
- *   row is inserted BEFORE identity deletion (so the key isn't lost if a
- *   later step fails).
- * - The Clerk identity delete and the local user-row delete still proceed
- *   even when R2 fails.
- */
-
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { UnknownRecord, JsonValue } from "@/lib/types/json";
 
@@ -76,8 +65,6 @@ const mocks = vi.hoisted(() => {
     select: vi.fn(() => createChain()),
     insert: vi.fn(() => insertChain),
     update: vi.fn(() => createChain()),
-    // db.delete must resolve WITHOUT consuming queued select results — the
-    // awaited user-row delete would otherwise dequeue a queued SELECT row.
     delete: vi.fn(() => ({ where: deleteWhere })),
   };
 
@@ -201,7 +188,6 @@ describe("account delete — pending R2 deletion tracking", () => {
     expect(body.success).toBe(true);
     expect(body.warnings).toHaveLength(1);
 
-    // Pending row must be inserted for the failed key
     expect(mocks.db.insert).toHaveBeenCalled();
     const insertedRows = mocks.state.insertCalls[0] as Array<{
       r2Key: string;
@@ -211,11 +197,8 @@ describe("account delete — pending R2 deletion tracking", () => {
     expect(insertedRows[0].r2Key).toBe("users/user-1/resume.pdf");
     expect(insertedRows[0].attempts).toBe(1);
 
-    // Identity deletion ran against the mapped Clerk id, and the local
-    // user-row delete still executed afterwards.
     expect(mocks.clerkDeleteUser).toHaveBeenCalledWith("user_clerk_1");
     expect(mocks.deleteWhere).toHaveBeenCalledTimes(1);
-    // Pending rows land BEFORE the Clerk identity deletion.
     expect(mocks.db.insert.mock.invocationCallOrder[0]).toBeLessThan(
       mocks.clerkDeleteUser.mock.invocationCallOrder[0],
     );
@@ -226,7 +209,6 @@ describe("account delete — pending R2 deletion tracking", () => {
 
     authed();
     mocks.state.selectResults = [[{ r2Key: "users/user-1/resume.pdf" }]];
-    // default r2Delete resolves successfully
 
     const response = await POST(
       jsonRequest("/api/account/delete", { confirmation: "avery@example.com" }),
@@ -237,7 +219,6 @@ describe("account delete — pending R2 deletion tracking", () => {
     expect(body.success).toBe(true);
     expect(body.warnings).toBeUndefined();
 
-    // No insert should have been called
     expect(mocks.db.insert).not.toHaveBeenCalled();
     expect(mocks.clerkDeleteUser).toHaveBeenCalledWith("user_clerk_1");
     expect(mocks.deleteWhere).toHaveBeenCalledTimes(1);
@@ -256,7 +237,7 @@ describe("account delete — pending R2 deletion tracking", () => {
     ];
     mocks.r2Delete
       .mockRejectedValueOnce(new Error("fail a"))
-      .mockResolvedValueOnce(undefined) // b succeeds
+      .mockResolvedValueOnce(undefined)
       .mockRejectedValueOnce(new Error("fail c"));
 
     const response = await POST(
@@ -288,11 +269,9 @@ describe("account delete — pending R2 deletion tracking", () => {
     );
 
     expect(response.status).toBe(503);
-    // The pending row was durably recorded before the failed identity deletion.
     const insertedRows = mocks.state.insertCalls[0] as Array<{ r2Key: string }>;
     expect(insertedRows).toHaveLength(1);
     expect(insertedRows[0].r2Key).toBe("users/user-1/resume.pdf");
-    // Local user-row delete never ran.
     expect(mocks.deleteWhere).not.toHaveBeenCalled();
   });
 

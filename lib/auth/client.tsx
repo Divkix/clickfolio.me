@@ -1,17 +1,3 @@
-/**
- * Client-side Clerk authentication seam for Clickfolio.
- *
- * Two things live here:
- *
- *  1. Native Clerk re-exports — new code should import these directly.
- *  2. A minimal `useSession()` adapter matching the shape consumed by
- *     existing non-auth client components (FileDropzone, OwnerDetector,
- *     CreateYoursCTA, wizard, Sidebar, admin layout).
- *
- * Sign-in / sign-up UI is Clerk's prebuilt <SignIn>/<SignUp> components; there
- * is no custom credential or OAuth submission logic anywhere in the app.
- */
-
 "use client";
 
 import { ClerkProvider, SignInButton, useAuth, useClerk, useUser } from "@clerk/react";
@@ -19,7 +5,6 @@ import { useMemo } from "react";
 
 export { ClerkProvider, SignInButton, useClerk, useUser };
 
-/** User block of the session adapter. */
 export interface ClientSessionUser {
   id: string;
   name: string | null;
@@ -33,15 +18,6 @@ interface UseSessionResult {
   isPending: boolean;
 }
 
-/**
- * Minimal session adapter for existing consumers.
- *
- * `user.id` is the APP identity: for imported users Clerk's `externalId`
- * carries the legacy Postgres user id, and new users use their Clerk id as the
- * Postgres PK — so `externalId ?? id` is always the id the app keys on
- * (analytics ownership checks, PostHog identity continuity). `session.userId`
- * remains the raw Clerk id.
- */
 export function useSession(): UseSessionResult {
   const { user, isLoaded } = useUser();
   const { isSignedIn, sessionId } = useAuth();

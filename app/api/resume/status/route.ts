@@ -10,42 +10,12 @@ import {
   ERROR_CODES,
 } from "@/lib/utils/security-headers";
 
-/**
- * GET /api/resume/status
- * Lightweight polling endpoint for resume parsing status.
- *
- * Query parameter:
- *   - resume_id: string (required)
- *
- * Status states:
- *   - waiting_for_cache: 10-minute timeout, then transitions to failed
- *   - queued: shown as processing with early progress (25%)
- *   - pending_claim: shown as processing with earliest progress (15%)
- *   - processing: intermediate progress (50%)
- *   - completed: includes parsed_content JSON
- *   - failed: includes error message and can_retry flag
- *
- * Response fields vary by status:
- *   - progress_pct: number (0-100)
- *   - error: string | null
- *   - can_retry: boolean (true when the resume is actually retry-eligible; see getStatusView/lifecycle)
- *   - parsed_content: object | null (only when completed)
- *   - waiting_for_cache: boolean (only when waiting)
- *   - queued: boolean (only when queued)
- *
- * Error codes:
- *   - 400: missing resume_id
- *   - 403: resume belongs to another user
- *   - 404: resume not found
- *   - 500: unexpected error or invalid stored JSON
- */
 export async function GET(request: Request) {
   return withUser(
     request,
     async ({ user: authUser, db }) => {
       const userId = authUser.id;
 
-      // Get resume_id from query params
       const { searchParams } = new URL(request.url);
       const resumeId = searchParams.get("resume_id");
 
@@ -53,10 +23,6 @@ export async function GET(request: Request) {
         return createErrorResponse("resume_id parameter is required", ERROR_CODES.BAD_REQUEST, 400);
       }
 
-      // Fetch resume from database -- lightweight polling query
-      // Only select columns needed for status checks. Excludes parsedContent
-      // and parsedContentStaged (10-100KB JSON blobs) to avoid transferring
-      // them on every 3-second poll.
       const resume = await db.query.resumes.findFirst({
         where: eq(resumes.id, resumeId),
         columns: {
@@ -75,7 +41,6 @@ export async function GET(request: Request) {
         return createErrorResponse("Resume not found", ERROR_CODES.NOT_FOUND, 404);
       }
 
-      // Verify ownership
       if (resume.userId !== userId) {
         return createErrorResponse(
           "You do not have permission to access this resume",
@@ -83,7 +48,6 @@ export async function GET(request: Request) {
           403,
         );
       }
-      // Side-effect-free waiting_for_cache timeout: present as failed virtually.
       // The DB row stays `waiting_for_cache` until the orphan cron persists the
       // timeout (lib/cron/recover-orphaned). No `db.update` here.
       // SAFETY: drizzle row fields are string/number but getStatusView expects exact types; casts narrow Drizzle-inferred types for lifecycle helper
@@ -104,8 +68,6 @@ export async function GET(request: Request) {
       }
 
       if (resume.status === "completed") {
-        // Only fetch parsedContent when we actually need it (status is completed).
-        // This second query is a one-time cost on completion, not repeated every poll.
         const resumeContent = await db.query.resumes.findFirst({
           where: eq(resumes.id, resumeId),
           columns: {
@@ -134,9 +96,6 @@ export async function GET(request: Request) {
         });
       }
 
-      // Unified presentation for pre-queue / in-flight / unknown statuses via view.
-      // Flags derived from raw status; progress/status from lifecycle so both
-      // endpoints (status + latest-status) stay in sync.
       if (view.status === "processing") {
         const extra: UnknownRecord = {};
         if (resume.status === "waiting_for_cache") extra.waiting_for_cache = true;
@@ -150,7 +109,6 @@ export async function GET(request: Request) {
         });
       }
 
-      // Unknown / non-processing terminal fallback (should not happen for known enum)
       return createSuccessResponse({
         status: view.status,
         progress_pct: view.progressPct,

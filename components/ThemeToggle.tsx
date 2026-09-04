@@ -11,10 +11,6 @@ const OPTIONS = [
   { value: "dark", label: "Dark theme", icon: Moon },
 ] as const;
 
-/**
- * Compact segmented light / system / dark theme switcher.
- * Renders a stable placeholder until mounted to avoid hydration mismatch.
- */
 export function ThemeToggle({ className }: { className?: string }) {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);

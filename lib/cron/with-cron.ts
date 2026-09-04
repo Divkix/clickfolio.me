@@ -6,13 +6,6 @@ import {
   ERROR_CODES,
 } from "@/lib/utils/security-headers";
 
-/**
- * Wrap a cron handler with auth + try/catch boilerplate.
- *
- * Keeps the 4 HTTP cron routes (`/api/cron/*`) DRY while the
- * scheduled direct calls in `worker/index.ts` stay direct per ADR-0013
- * (avoid double Worker billing).
- */
 // eslint-disable-next-line anti-slop/no-unknown-returns -- cron handlers return varied JSON (cleanup stats, sync counts); wrapper serializes via createSuccessResponse
 export function withCron(handler: (env: CloudflareEnv) => Promise<unknown>) {
   return async (request: Request): Promise<Response> => {

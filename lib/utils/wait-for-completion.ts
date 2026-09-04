@@ -1,15 +1,3 @@
-/**
- * Promise-based WebSocket wrapper for wizard inline polling locations.
- *
- * Opens a WebSocket to the ResumeStatusDO, waits for a terminal status
- * (completed/failed), and resolves. Falls back to HTTP polling if the
- * WebSocket fails after WS_MAX_RECONNECT_ATTEMPTS reconnects.
- *
- * Transport mechanics (URL, keepalive pings, message decoding, reconnect
- * backoff) are shared with hooks/useResumeWebSocket.ts via
- * lib/realtime/socket.ts.
- */
-
 import type { ResumeStatus } from "@/lib/db/schema/resume";
 import { isValidResumeStatus, POLL_INTERVAL_MS } from "@/lib/realtime/constants";
 import { createResumeStatusSocket, type ResumeStatusSocketHandle } from "@/lib/realtime/socket";
@@ -19,16 +7,6 @@ interface WaitResult {
   error?: string;
 }
 
-/**
- * Wait for a resume to reach a terminal state (completed or failed).
- *
- * Tries WebSocket first for instant notification. If WS keeps failing after
- * WS_MAX_RECONNECT_ATTEMPTS, falls back to HTTP polling.
- *
- * @param resumeId - Resume ID to monitor
- * @param timeoutMs - Maximum time to wait (default 90s)
- * @returns Promise resolving to the terminal status
- */
 export function waitForResumeCompletion(resumeId: string, timeoutMs = 90_000): Promise<WaitResult> {
   const { promise, resolve } = Promise.withResolvers<WaitResult>();
 
@@ -41,7 +19,6 @@ export function waitForResumeCompletion(resumeId: string, timeoutMs = 90_000): P
     if (resolved) return;
     resolved = true;
 
-    // Cleanup everything. "done" close reason is part of the contract with tests.
     if (socketHandle) {
       socketHandle.dispose("done");
       socketHandle = null;
@@ -58,12 +35,10 @@ export function waitForResumeCompletion(resumeId: string, timeoutMs = 90_000): P
     resolve(result);
   }
 
-  // Overall timeout
   timeoutTimer = setTimeout(() => {
     finish({ status: "failed", error: "Timed out waiting for resume processing" });
   }, timeoutMs);
 
-  // HTTP polling fallback
   function startPolling() {
     const poll = async () => {
       if (resolved) return;
@@ -83,12 +58,9 @@ export function waitForResumeCompletion(resumeId: string, timeoutMs = 90_000): P
         } else if (data.status === "failed") {
           finish({ status: "failed", error: data.error ?? undefined });
         }
-      } catch {
-        // Ignore poll errors, will retry
-      }
+      } catch {}
     };
 
-    // Poll immediately, then on interval
     void poll();
     pollInterval = setInterval(poll, POLL_INTERVAL_MS);
   }
@@ -102,10 +74,6 @@ export function waitForResumeCompletion(resumeId: string, timeoutMs = 90_000): P
         finish({ status: "failed", error: msg.error });
       }
     },
-    // Do NOT suppress on code 1000: the DO alarm closes with 1000 after
-    // 30s and the terminal broadcast may have been missed; every close
-    // (no onClose handler) falls through to reconnect/poll logic unless
-    // already resolved (finish() detaches all handlers).
     onFallback: startPolling,
   });
 

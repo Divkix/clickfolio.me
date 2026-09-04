@@ -1,8 +1,5 @@
 import type { NextConfig } from "next";
 
-/**
- * Next.js configuration for the vinext + Cloudflare Workers runtime.
- */
 // SAFETY: process.env value is string from Node.js env; fallback to default if missing.
 const nextConfig: NextConfig = {
   allowedDevOrigins: ["*.ngrok-free.app"],
@@ -30,24 +27,17 @@ const nextConfig: NextConfig = {
       },
     ];
   },
-  // Redirects for backward compatibility (old /handle URLs to new /@handle URLs)
   async redirects() {
     return [
       {
-        // Redirect old /{handle} to /@{handle}
-        // Exclude known routes, static files, and paths already starting with @
-        // for/ws are real top-level routes that must never be 308'd to
-        // /@<path> (cheap insurance against future vinext/Next parity changes
-        // running these redirects).
         source:
           "/:handle((?!@|(?:api|_next|admin|about|blog|dashboard|edit|explore|faq|settings|themes|waiting|wizard|privacy|terms|preview|sitemap|for|ws|robots\\.txt|manifest\\.webmanifest|favicon\\.ico)(?![a-z0-9-]))[a-z0-9][a-z0-9-]*[a-z0-9]|[a-z0-9])",
         destination: "/@:handle",
-        permanent: true, // 308 redirect for SEO
+        permanent: true,
       },
     ];
   },
 
-  // Security headers for all routes
   async headers() {
     return [
       {

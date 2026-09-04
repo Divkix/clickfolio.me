@@ -16,12 +16,10 @@ import { normalizePrivacySettings } from "@/lib/utils/privacy";
 
 export const dynamic = "force-dynamic";
 
-/** Metadata for the settings page — disallows search indexing. */
 export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-/** Props for the profile card shown in settings. */
 interface ProfileSectionProps {
   name: string;
   email: string;
@@ -30,13 +28,9 @@ interface ProfileSectionProps {
   handle: string | null;
 }
 
-/**
- * Compact profile card showing avatar, name, email, and handle management.
- */
 function ProfileSection({ name, email, headline, image, handle }: ProfileSectionProps) {
   return (
     <div className="bg-card rounded-xl shadow-sm border border-border p-6 h-full flex flex-col">
-      {/* Profile header with avatar */}
       <div className="flex items-start gap-4 mb-4">
         {image ? (
           <img
@@ -77,9 +71,6 @@ function ProfileSection({ name, email, headline, image, handle }: ProfileSection
   );
 }
 
-/**
- * Settings page — account info, privacy controls, resume history, and deletion.
- */
 export default async function SettingsPage() {
   const session = await getServerSession();
 
@@ -142,15 +133,12 @@ export default async function SettingsPage() {
   return (
     <div className="min-h-screen bg-background py-8">
       <div className="max-w-5xl mx-auto px-4 lg:px-6 space-y-6">
-        {/* Page Header */}
         <div className="mb-2">
           <h1 className="text-3xl font-bold text-foreground">Settings</h1>
           <p className="text-muted-foreground mt-1">Manage your account and privacy settings</p>
         </div>
 
-        {/* Top Row: 2-column grid for Profile and Resume */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Left: Profile + Handle combined */}
           <ProfileSection
             name={session.user.name || "User"}
             email={profile.email}
@@ -159,7 +147,6 @@ export default async function SettingsPage() {
             handle={profile.handle}
           />
 
-          {/* Right: Resume compact */}
           <ResumeManagementCard
             resumeCount={resumeCount}
             latestResumeDate={latestResumeDate ?? undefined}
@@ -169,16 +156,13 @@ export default async function SettingsPage() {
           />
         </div>
 
-        {/* Professional Level */}
         <RoleSelectorCard
           currentRole={profile.role ?? null}
           roleSource={profile.roleSource ?? null}
         />
 
-        {/* Full width: Privacy horizontal */}
         <PrivacySettingsForm initialSettings={privacySettings} />
 
-        {/* Full width: Danger zone inline */}
         <DeleteAccountCard userEmail={profile.email} />
       </div>
     </div>

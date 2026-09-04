@@ -1,15 +1,3 @@
-/**
- * R2 storage cleanup for orphaned temp uploads and durable pending deletions.
- *
- * Called by:
- * - worker/index.ts scheduled handler (direct invocation, no extra Worker billing)
- * - /api/cron/cleanup-r2 route handler (manual trigger via HTTP)
- *
- * Deletes:
- * - Temp files in R2 older than 24 hours that were never claimed
- * - R2 files that failed deletion during account deletion (GDPR retry path)
- */
-
 import { eq } from "drizzle-orm";
 import type { Database } from "@/lib/db";
 import { pendingR2Deletions } from "@/lib/db/schema";
@@ -19,16 +7,8 @@ const TEMP_PREFIX = "temp/";
 const TEMP_CUTOFF_HOURS = 24;
 const LIST_PAGE_SIZE = 1000;
 
-/**
- * Maximum number of pending deletions to sweep per cron invocation.
- * Keeps each invocation bounded; remaining rows are picked up on the next run.
- */
 const PENDING_DELETIONS_BATCH = 100;
 
-/**
- * After this many attempts the row is left in place (with an error log) for
- * manual review rather than endlessly retried.
- */
 const PENDING_DELETIONS_MAX_ATTEMPTS = 10;
 
 export interface R2CleanupResult extends UnknownRecord {
@@ -39,15 +19,6 @@ export interface R2CleanupResult extends UnknownRecord {
   timestamp: string;
 }
 
-/**
- * Performs cleanup of orphaned temp files in R2
- *
- * Lists all objects in the temp/ prefix, filters those older than 24 hours,
- * and deletes them. Handles pagination for buckets with many temp files.
- *
- * @param binding - R2Bucket binding from Cloudflare environment
- * @returns Cleanup result with counts and bytes freed
- */
 export async function performR2Cleanup(binding: R2Bucket): Promise<R2CleanupResult> {
   const nowIso = new Date().toISOString();
   const cutoffTime = Date.now() - TEMP_CUTOFF_HOURS * 60 * 60 * 1000;
@@ -58,7 +29,6 @@ export async function performR2Cleanup(binding: R2Bucket): Promise<R2CleanupResu
   let cursor: string | undefined;
   let hasMore = true;
 
-  // Paginate through all temp files
   while (hasMore) {
     const listResult = await binding.list({
       prefix: TEMP_PREFIX,
@@ -66,16 +36,13 @@ export async function performR2Cleanup(binding: R2Bucket): Promise<R2CleanupResu
       cursor,
     });
 
-    // Filter files older than or equal to 24 hours
     const oldObjects = listResult.objects.filter((obj) => {
       const uploadTime = new Date(obj.uploaded).getTime();
       return uploadTime <= cutoffTime;
     });
 
-    // Delete old objects
     for (const obj of oldObjects) {
       try {
-        // Only delete from temp/ prefix as safety check
         if (obj.key.startsWith(TEMP_PREFIX)) {
           await binding.delete(obj.key);
           deleted++;
@@ -87,7 +54,6 @@ export async function performR2Cleanup(binding: R2Bucket): Promise<R2CleanupResu
       }
     }
 
-    // Check if there are more pages
     // R2.list returns `truncated: true` when more objects exist beyond the current page.
     // The `cursor` is only present on the result when truncated is true, so we paginate
     // by passing it back into the next `list` call until truncated becomes false.
@@ -118,17 +84,6 @@ export interface PendingDeletionsResult extends UnknownRecord {
   timestamp: string;
 }
 
-/**
- * Sweeps the `pending_r2_deletions` table and retries each outstanding delete.
- *
- * On success the row is removed. On failure the `attempts` counter and
- * `lastError` are updated. Once a row reaches {@link PENDING_DELETIONS_MAX_ATTEMPTS}
- * it is left untouched and an error is logged for manual review.
- *
- * @param db      - Drizzle Postgres (Hyperdrive) database instance
- * @param binding - R2Bucket binding from Cloudflare environment
- * @returns Result counts and timestamp
- */
 export async function retryPendingR2Deletions(
   db: Database,
   binding: R2Bucket,

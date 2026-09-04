@@ -1,16 +1,6 @@
-/**
- * Zod schemas and types for profile settings.
- *
- * Covers privacy settings, handle validation, and role selection.
- */
-
 import { z } from "zod";
 import { noXssPattern } from "@/lib/utils/sanitization";
 
-/**
- * Privacy settings schema — strict, all fields required.
- * Use for read-validated data and profile/privacy API.
- */
 export const privacySettingsSchema = z.object({
   show_phone: z.boolean({
     message: "Phone visibility setting must be a boolean",
@@ -26,10 +16,6 @@ export const privacySettingsSchema = z.object({
   }),
 });
 
-/**
- * Privacy settings input schema — optional fields with defaults.
- * Use for user-submitted data that may omit newer fields (backward-compatible).
- */
 export const privacySettingsInputSchema = z.object({
   show_phone: z.boolean({
     message: "Phone visibility setting must be a boolean",
@@ -47,11 +33,6 @@ export const privacySettingsInputSchema = z.object({
     .default(true),
 });
 
-/**
- * Handle validation schema
- * Enforces uniqueness, format, and length constraints
- * Includes security checks to prevent injection attacks
- */
 export const handleSchema = z
   .string()
   .trim()
@@ -63,17 +44,12 @@ export const handleSchema = z
   .regex(/^(?!.*--)/, "Handle cannot contain consecutive hyphens")
   .refine(noXssPattern, { message: "Invalid content detected" });
 
-/**
- * Handle update request schema
- */
 export const handleUpdateSchema = z.object({
   handle: handleSchema,
 });
 
-/** Inferred type for handle update request values. */
 export type HandleUpdate = z.infer<typeof handleUpdateSchema>;
 
-/** Available role options for the user's experience level. */
 export const ROLE_OPTIONS = [
   { value: "student", label: "Student" },
   { value: "entry_level", label: "Entry Level" },
@@ -82,17 +58,10 @@ export const ROLE_OPTIONS = [
   { value: "executive", label: "Executive" },
 ] as const;
 
-/** Schema for updating the user's experience role. */
 export const roleUpdateSchema = z.object({
   role: z.enum(["student", "entry_level", "mid_level", "senior", "executive"]),
 });
 
-/**
- * Wizard completion request schema.
- * Theme IDs are injected via the `themeIds` parameter rather than imported here,
- * keeping lib/templates as the single source of truth for valid theme IDs
- * (the caller passes THEME_IDS from lib/templates).
- */
 export function buildWizardCompleteSchema(themeIds: readonly [string, ...string[]]) {
   return z.object({
     handle: handleSchema,

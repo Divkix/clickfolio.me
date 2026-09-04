@@ -29,7 +29,6 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
     <header className="sticky top-0 z-10 bg-card/80 backdrop-blur-sm border-b border-border">
       <div className="flex items-center justify-between h-14 px-4 lg:px-6">
         <div className="flex items-center gap-3">
-          {/* Mobile menu button */}
           <button
             type="button"
             onClick={onMenuClick}

@@ -19,33 +19,21 @@ interface HandleCheckResponse {
   error?: string;
 }
 
-/**
- * Generate alternative handle suggestions when a handle is taken
- */
 function generateSuggestions(handle: string): string[] {
   const suggestions: string[] = [];
 
-  // Add numbers suffix
   suggestions.push(`${handle}123`);
 
-  // Add -dev suffix
   suggestions.push(`${handle}-dev`);
 
-  // Add "the" prefix
   suggestions.push(`the${handle}`);
 
-  // Add random 2-digit number
-  const randomNum = Math.floor(Math.random() * 90) + 10; // 10-99
+  const randomNum = Math.floor(Math.random() * 90) + 10;
   suggestions.push(`${handle}${randomNum}`);
 
-  // Filter out suggestions that are too long (max 30 chars) or too short (min 3)
   return suggestions.filter((s) => s.length >= 3 && s.length <= 30);
 }
 
-/**
- * Step 1: Handle Selection Component
- * Allows users to choose their unique username/handle
- */
 export function HandleStep({ initialHandle = "", onContinue }: HandleStepProps) {
   const [handle, setHandle] = useState(initialHandle);
   const [isChecking, setIsChecking] = useState(false);
@@ -53,17 +41,12 @@ export function HandleStep({ initialHandle = "", onContinue }: HandleStepProps) 
   const [isCurrentHandle, setIsCurrentHandle] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // AbortController for the in-flight availability check. A newer keystroke
-  // aborts the previous request so a stale response can never overwrite a
-  // newer result (out-of-order response guard).
   const availabilityAbortRef = useRef<AbortController | null>(null);
 
-  // Abort any in-flight check on unmount.
   useEffect(() => {
     return () => availabilityAbortRef.current?.abort();
   }, []);
 
-  // Generate suggestions when handle is taken
   const suggestions = useMemo(() => {
     if (isAvailable === false && handle.length >= 3) {
       return generateSuggestions(handle);
@@ -71,14 +54,12 @@ export function HandleStep({ initialHandle = "", onContinue }: HandleStepProps) 
     return [];
   }, [isAvailable, handle]);
 
-  // Debounced availability check via API route
   const checkAvailability = useCallback(async (value: string) => {
     if (!value || value.length < 3) {
       setIsAvailable(null);
       return;
     }
 
-    // Abort the previous in-flight request so stale responses are ignored.
     availabilityAbortRef.current?.abort();
     const controller = new AbortController();
     availabilityAbortRef.current = controller;
@@ -97,7 +78,6 @@ export function HandleStep({ initialHandle = "", onContinue }: HandleStepProps) 
         throw new Error(data.error || "Failed to check availability");
       }
 
-      // A newer check superseded this one — drop the stale result.
       if (controller.signal.aborted) return;
 
       setIsAvailable(data.available);
@@ -108,14 +88,12 @@ export function HandleStep({ initialHandle = "", onContinue }: HandleStepProps) 
       setError("Failed to check availability");
       setIsAvailable(null);
     } finally {
-      // Only the newest check may clear the checking state.
       if (!controller.signal.aborted) {
         setIsChecking(false);
       }
     }
   }, []);
 
-  // Debounce the availability check
   useEffect(() => {
     const timer = setTimeout(() => {
       if (handle && handle.length >= 3) {
@@ -129,19 +107,17 @@ export function HandleStep({ initialHandle = "", onContinue }: HandleStepProps) 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
       .toLowerCase()
-      .replace(/[^a-z0-9-]/g, "") // Only allow alphanumeric and hyphens
-      .replace(/^-+|-+$/g, "") // Remove leading/trailing hyphens
-      .replace(/-+/g, "-") // Collapse multiple hyphens
-      .slice(0, 30); // Max 30 characters
+      .replace(/[^a-z0-9-]/g, "")
+      .replace(/^-+|-+$/g, "")
+      .replace(/-+/g, "-")
+      .slice(0, 30);
 
     setHandle(value);
 
-    // Reset states while typing
     setIsAvailable(null);
     setIsCurrentHandle(false);
     setError(null);
 
-    // Validate length
     if (value.length > 0 && value.length < 3) {
       setError("Handle must be at least 3 characters");
     }
@@ -152,7 +128,6 @@ export function HandleStep({ initialHandle = "", onContinue }: HandleStepProps) 
     setIsAvailable(null);
     setIsCurrentHandle(false);
     setError(null);
-    // Trigger immediate availability check
     void checkAvailability(suggestion);
   };
 
@@ -166,7 +141,6 @@ export function HandleStep({ initialHandle = "", onContinue }: HandleStepProps) 
 
   return (
     <div className="space-y-8">
-      {/* Header */}
       <div className="text-center">
         <div className="mx-auto w-16 h-16 bg-brand-subtle rounded-xl flex items-center justify-center mb-6">
           <User className="w-8 h-8 text-brand" />
@@ -179,7 +153,6 @@ export function HandleStep({ initialHandle = "", onContinue }: HandleStepProps) 
         </p>
       </div>
 
-      {/* Handle Input */}
       <div className="max-w-md mx-auto space-y-4">
         <div className="space-y-2">
           <Label htmlFor="handle" className="text-sm font-semibold text-foreground">
@@ -196,7 +169,6 @@ export function HandleStep({ initialHandle = "", onContinue }: HandleStepProps) 
               // eslint-disable-next-line jsx-a11y/no-autofocus -- intentional: focus handle input on mount
               autoFocus
             />
-            {/* Status Icon */}
             <div className="absolute right-3 top-1/2 -translate-y-1/2">
               {isChecking && <Loader2 className="w-5 h-5 text-muted-foreground animate-spin" />}
               {!isChecking && isAvailable === true && (
@@ -206,7 +178,6 @@ export function HandleStep({ initialHandle = "", onContinue }: HandleStepProps) 
             </div>
           </div>
 
-          {/* URL Preview */}
           {handle && (
             <p className="text-sm text-muted-foreground font-medium">
               Your resume will be at:{" "}
@@ -216,7 +187,6 @@ export function HandleStep({ initialHandle = "", onContinue }: HandleStepProps) 
             </p>
           )}
 
-          {/* Error/Success Messages */}
           {error && (
             <p className="text-sm text-destructive font-medium flex items-center gap-1">
               <X className="w-4 h-4" />
@@ -230,7 +200,6 @@ export function HandleStep({ initialHandle = "", onContinue }: HandleStepProps) 
                 This handle is already taken
               </p>
 
-              {/* Handle Suggestions */}
               {suggestions.length > 0 && (
                 <div className="space-y-2">
                   <p className="text-xs font-semibold text-muted-foreground">Try one of these:</p>
@@ -264,7 +233,6 @@ export function HandleStep({ initialHandle = "", onContinue }: HandleStepProps) 
           )}
         </div>
 
-        {/* Requirements */}
         <div className="bg-surface-2 border border-border rounded-xl p-4">
           <p className="text-xs font-semibold text-foreground mb-2">Requirements:</p>
           <ul className="text-xs text-muted-foreground space-y-1">
@@ -278,13 +246,11 @@ export function HandleStep({ initialHandle = "", onContinue }: HandleStepProps) 
           </ul>
         </div>
 
-        {/* Continue Button */}
         <Button onClick={handleSubmit} disabled={!canContinue} className="w-full" size="lg">
           Continue
         </Button>
       </div>
 
-      {/* Help Text */}
       <div className="text-center">
         <p className="text-sm text-muted-foreground font-medium">
           You can change your handle later in settings.

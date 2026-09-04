@@ -8,27 +8,12 @@ import {
   ERROR_CODES,
 } from "@/lib/utils/security-headers";
 
-/**
- * GET /api/profile/me
- * Fetch the current user's profile.
- *
- * Response:
- *   Profile object with privacy settings parsed from JSON string.
- *   Includes fields: id, name, email, image, handle, headline,
- *   privacySettings, onboardingCompleted, role, roleSource, isAdmin,
- *   createdAt, updatedAt.
- *
- * Error codes:
- *   - 404: user not found
- *   - 500: unexpected error
- */
 export async function GET(request?: Request) {
   return withUser(
     request,
     async ({ user: authUser, db }) => {
       const userId = authUser.id;
 
-      // Fetch user from database
       const userRecord = await db
         .select({
           id: user.id,
@@ -55,7 +40,6 @@ export async function GET(request?: Request) {
 
       const profile = userRecord[0];
 
-      // Normalize privacy settings (jsonb object) with defaults for missing fields
       const privacySettings = normalizePrivacySettings(profile.privacySettings);
 
       return createSuccessResponse({

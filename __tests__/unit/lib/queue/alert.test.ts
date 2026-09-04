@@ -1,10 +1,3 @@
-/**
- * Unit tests for lib/queue/alert.ts (extracted alert-channel logic).
- *
- * Covers getAlertChannel resolution and sendAlert dispatching through
- * both logpush and webhook channels.
- */
-
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { UnknownRecord } from "@/lib/types/json";
 import { sendAlert, getAlertChannel } from "@/lib/queue/alert";
@@ -63,7 +56,6 @@ describe("alert module", () => {
       const env = createMockEnv();
       await sendAlert(defaultPayload, "logpush", env);
 
-      // log() emits a single JSON string with msg: "DLQ_ALERT"
       const dlqAlert = consoleSpy.mock.calls.find((call) => {
         try {
           return (JSON.parse(call[0]) as UnknownRecord)["msg"] === "DLQ_ALERT";
@@ -129,7 +121,6 @@ describe("alert module", () => {
 
       await sendAlert(defaultPayload, "webhook", env);
 
-      // log() emits a single JSON string with msg: "webhook alert failed"
       const webhookFailLog = consoleSpy.mock.calls.find((call) => {
         try {
           return (JSON.parse(call[0]) as UnknownRecord)["msg"] === "webhook alert failed";

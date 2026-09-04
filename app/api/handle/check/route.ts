@@ -13,11 +13,6 @@ import {
   ERROR_CODES,
 } from "@/lib/utils/security-headers";
 
-/**
- * Map handleSchema issues onto the granular error messages this endpoint has
- * always returned. Buckets are evaluated in the same order as the previous
- * sequential guards so every invalid case produces the exact same response.
- */
 function handleFormatErrorMessage(error: ZodError): string {
   const issues = error.issues;
   const failedPatterns = issues.flatMap((issue) =>
@@ -42,21 +37,8 @@ function handleFormatErrorMessage(error: ZodError): string {
   return "Handle cannot contain consecutive hyphens";
 }
 
-/**
- * GET /api/handle/check?handle=example
- * Check if a handle is available (public endpoint)
- * Rate limited by IP to prevent username enumeration
- *
- * Optimization notes (this is the highest-volume endpoint, called every ~500ms while typing):
- * 1. Format validation runs BEFORE rate limiting — invalid handles never touch Postgres
- * 2. Auth (Clerk session verification + user-row lookup) is deferred — only resolved when
- *    the handle IS taken, to distinguish "yours" vs "taken". Available handles return
- *    immediately with zero auth cost.
- */
 export async function GET(request: Request) {
   try {
-    // 1. Parse and validate handle format BEFORE any database operations
-    //    This rejects invalid input (bad chars, too short, reserved) for free.
     const { searchParams } = new URL(request.url);
     const handle = searchParams.get("handle");
 
@@ -75,12 +57,10 @@ export async function GET(request: Request) {
       );
     }
 
-    // Check reserved handles — pure in-memory Set lookup, no DB
     if (RESERVED_HANDLES.has(normalizedHandle)) {
       return createSuccessResponse({ available: false, reason: "reserved" });
     }
 
-    // 2. IP-based rate limiting (only reached for validly-formatted handles)
     const clientIP = getClientIP(request);
     const rateLimitResult = await checkHandleRateLimit(clientIP);
 
@@ -92,7 +72,6 @@ export async function GET(request: Request) {
       );
     }
 
-    // 3. Check if handle exists in the database.
     const db = getDb(env.HYPERDRIVE);
 
     const existingUser = await db
@@ -101,25 +80,20 @@ export async function GET(request: Request) {
       .where(eq(user.handle, normalizedHandle))
       .limit(1);
 
-    // 4. Handle is available — return immediately, skip auth entirely
     if (existingUser.length === 0) {
       return createSuccessResponse({ available: true });
     }
 
-    // 5. Handle is taken — resolve auth only now to check "is it yours?"
     let currentUserId: string | null = null;
     try {
       const session = await getServerSession();
       currentUserId = session?.user?.id ?? null;
-    } catch {
-      // Not authenticated — continue as public endpoint
-    }
+    } catch {}
 
     if (currentUserId && existingUser[0].id === currentUserId) {
       return createSuccessResponse({ available: true, isCurrentHandle: true });
     }
 
-    // Taken by another user
     return createSuccessResponse({ available: false });
   } catch (err) {
     console.error("Error checking handle availability:", err);

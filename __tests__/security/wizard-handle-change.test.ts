@@ -2,23 +2,9 @@ import type { UnknownRecord, JsonValue } from "@/lib/types/json";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { DEFAULT_PRIVACY_SETTINGS } from "@/lib/utils/privacy";
 
-/**
- * Regression tests for the wizard/complete handle-change rate limit.
- *
- * A re-onboarding user who changes their handle must be subject to the SAME
- * 3-per-24h handle_changes limit as PUT /api/profile/handle, and the change
- * must be recorded as a handleChanges audit row inside the same transaction.
- * First-time onboarding is exempt (no prior handle, no rate limit, no audit row).
- */
-
-// ── Mocks ────────────────────────────────────────────────────────────
-
-// Transaction capture: production writes run inside ONE db.transaction(cb);
-// each awaited tx statement counts once and inserted rows are captured.
 let txStatementCount = 0;
 const txValues: UnknownRecord[] = [];
 
-/** Owner contract for the mocked Drizzle transaction write chain. */
 interface MockTxChain {
   set: (...args: unknown[]) => MockTxChain;
   where: (...args: unknown[]) => MockTxChain;
@@ -171,8 +157,6 @@ import { handleChanges, siteData } from "@/lib/db/schema";
 
 const mockedAuth = vi.mocked(requireAuthWithUserValidation);
 
-// ── Helpers ──────────────────────────────────────────────────────────
-
 const validBody = {
   handle: "avery",
   privacy_settings: {
@@ -220,8 +204,6 @@ beforeEach(() => {
   txValues.length = 0;
 });
 
-// ── Tests ────────────────────────────────────────────────────────────
-
 describe("wizard/complete handle-change rate limit", () => {
   it("returns 429 for an onboarded user changing handle with 3+ changes in 24h", async () => {
     const { POST } = await import("@/app/api/wizard/complete/route");
@@ -247,7 +229,6 @@ describe("wizard/complete handle-change rate limit", () => {
     expect(mockTransaction).toHaveBeenCalledTimes(1);
     expect(txStatementCount).toBe(3);
 
-    // Statements: user update → siteData upsert → handleChanges audit row.
     expect(txInsert).toHaveBeenNthCalledWith(1, siteData);
     expect(txInsert).toHaveBeenNthCalledWith(2, handleChanges);
     const auditValues = txValues.at(-1) as UnknownRecord;
@@ -263,14 +244,11 @@ describe("wizard/complete handle-change rate limit", () => {
   it("exempts first-time onboarding: no count query, no audit row", async () => {
     const { POST } = await import("@/app/api/wizard/complete/route");
 
-    // Not onboarded yet — the wizard sets the initial handle.
     selectResults.push([{ handle: null, onboardingCompleted: false }]);
 
     const response = await POST(requestWith(validBody));
 
     expect(response.status).toBe(200);
-    // Only the current-user fetch ran (no rate-limit count query), and the
-    // transaction wrote exactly two statements (update + siteData upsert).
     expect(mockSelect).toHaveBeenCalledTimes(1);
     expect(txStatementCount).toBe(2);
     expect(txInsert).toHaveBeenNthCalledWith(1, siteData);

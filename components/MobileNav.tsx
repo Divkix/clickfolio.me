@@ -12,10 +12,6 @@ interface NavLink {
   label: string;
 }
 
-/**
- * Mobile navigation drawer for the marketing header.
- * Renders a hamburger trigger that opens a full-width sheet of nav links.
- */
 export function MobileNav({ links }: { links: NavLink[] }) {
   const [open, setOpen] = useState(false);
 

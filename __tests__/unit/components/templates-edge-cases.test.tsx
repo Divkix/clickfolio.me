@@ -1,17 +1,3 @@
-/**
- * Template edge case tests — minimal/missing data rendering
- *
- * Tests that all 10 templates render without crashing when presented with:
- * - Missing optional arrays (experience, education, skills, certifications, projects are undefined)
- * - Missing contact object entirely (only email present)
- * - Empty arrays
- * - Malformed date strings
- * - Missing avatar_url
- * - Missing full_name
- *
- * The "happy path" tests are in templates.test.tsx — this file covers edge cases only.
- */
-
 import { render } from "@testing-library/react";
 import { describe, expect, test } from "vite-plus/test";
 import { BentoGrid } from "@/components/templates/BentoGrid";
@@ -27,10 +13,6 @@ import { Spotlight } from "@/components/templates/Spotlight";
 import type { ResumeContent } from "@/lib/types/database";
 import type { TemplateProps } from "@/lib/types/template";
 
-// ============================================================================
-// All 10 template components for iteration
-// ============================================================================
-
 const ALL_TEMPLATES: { name: string; Component: React.ComponentType<TemplateProps> }[] = [
   { name: "MinimalistEditorial", Component: MinimalistEditorial },
   { name: "NeoBrutalist", Component: NeoBrutalist },
@@ -44,20 +26,11 @@ const ALL_TEMPLATES: { name: string; Component: React.ComponentType<TemplateProp
   { name: "BoldCorporate", Component: BoldCorporate },
 ];
 
-// ============================================================================
-// Mock profile
-// ============================================================================
-
 const defaultProfile: TemplateProps["profile"] = {
   handle: "testuser",
   avatar_url: null,
 };
 
-// ============================================================================
-// Edge case content fixtures
-// ============================================================================
-
-/** Absolute minimum: only required fields */
 const bareMinimumContent: ResumeContent = {
   full_name: "Minimal User",
   headline: "",
@@ -72,7 +45,6 @@ const bareMinimumContent: ResumeContent = {
   projects: [],
 };
 
-/** Missing optional arrays entirely (undefined, not empty) */
 const missingOptionalArraysContent: ResumeContent = {
   full_name: "Missing Arrays",
   headline: "Dev",
@@ -81,30 +53,19 @@ const missingOptionalArraysContent: ResumeContent = {
     email: "test@example.com",
   },
   experience: [],
-  // education is optional — omit it
-  // skills is optional — omit it
-  // certifications is optional — omit it
-  // projects is optional — omit it
 };
 
-/** Missing contact fields (only email + phone) */
 const missingContactFieldsContent: ResumeContent = {
   full_name: "No Contact",
   headline: "Ghost",
   summary: "No contact info.",
   contact: {
     email: "ghost@example.com",
-    // phone is missing
-    // location is missing
-    // linkedin is missing
-    // github is missing
-    // website is missing
   },
   experience: [],
   education: [],
 };
 
-/** Missing full_name */
 const missingFullNameContent: ResumeContent = {
   full_name: "",
   headline: "Anonymous Developer",
@@ -116,7 +77,6 @@ const missingFullNameContent: ResumeContent = {
   education: [],
 };
 
-/** Missing avatar_url in profile */
 const profileNoAvatar: TemplateProps["profile"] = {
   handle: "noavatar",
   avatar_url: null,
@@ -127,7 +87,6 @@ const profileWithAvatar: TemplateProps["profile"] = {
   avatar_url: "https://example.com/avatar.jpg",
 };
 
-/** Malformed date strings */
 const malformedDatesContent: ResumeContent = {
   full_name: "Date Tester",
   headline: "Broken Dates",
@@ -190,7 +149,7 @@ const malformedDatesContent: ResumeContent = {
   skills: [
     {
       category: "Languages",
-      items: ["TypeScript", "Python", ""], // empty string in items
+      items: ["TypeScript", "Python", ""],
     },
   ],
   projects: [
@@ -207,7 +166,6 @@ const malformedDatesContent: ResumeContent = {
   ],
 };
 
-/** Empty arrays with zero items */
 const zeroItemsContent: ResumeContent = {
   full_name: "Zero Items",
   headline: "Empty Everything",
@@ -222,7 +180,6 @@ const zeroItemsContent: ResumeContent = {
   projects: [],
 };
 
-/** Null/empty strings in array items */
 const nullishItemsContent: ResumeContent = {
   full_name: "Nullish Items",
   headline: "Edge Case Tester",
@@ -272,10 +229,6 @@ const nullishItemsContent: ResumeContent = {
   ],
 };
 
-// ============================================================================
-// Helper
-// ============================================================================
-
 function testTemplateRenders(
   component: React.ComponentType<TemplateProps>,
   content: ResumeContent,
@@ -284,16 +237,9 @@ function testTemplateRenders(
   return render(React.createElement(component, { content, profile }));
 }
 
-// Need React for createElement
 import React from "react";
 
-// ============================================================================
-// Tests
-// ============================================================================
-
 describe("Template edge case rendering", () => {
-  // ── Bare minimum content ────────────────────────────────────────
-
   describe("bare minimum content (name + email only)", () => {
     test.each(ALL_TEMPLATES)("$name renders without crashing", ({ Component }) => {
       const { container } = testTemplateRenders(Component, bareMinimumContent);
@@ -302,19 +248,14 @@ describe("Template edge case rendering", () => {
     });
   });
 
-  // ── Missing optional arrays ─────────────────────────────────────
-
   describe("missing optional arrays (education, skills, certifications, projects undefined)", () => {
     test.each(ALL_TEMPLATES)("$name renders without crashing", ({ Component }) => {
       const { container } = testTemplateRenders(Component, missingOptionalArraysContent);
       expect(container).toBeTruthy();
-      // Templates may split names into separate elements — textContent may concatenate
       expect(container.textContent).toContain("Missing");
       expect(container.textContent).toContain("Arrays");
     });
   });
-
-  // ── Missing contact fields ──────────────────────────────────────
 
   describe("missing contact fields (only email present)", () => {
     test.each(ALL_TEMPLATES)("$name renders without crashing", ({ Component }) => {
@@ -324,17 +265,12 @@ describe("Template edge case rendering", () => {
     });
   });
 
-  // ── Missing full_name ───────────────────────────────────────────
-
   describe("missing full_name (empty string)", () => {
     test.each(ALL_TEMPLATES)("$name renders without crashing", ({ Component }) => {
       const { container } = testTemplateRenders(Component, missingFullNameContent);
       expect(container).toBeTruthy();
-      // Template should handle empty name without crashing
     });
   });
-
-  // ── Missing avatar_url ──────────────────────────────────────────
 
   describe("missing avatar_url (null)", () => {
     test.each(ALL_TEMPLATES)(
@@ -353,19 +289,14 @@ describe("Template edge case rendering", () => {
     });
   });
 
-  // ── Malformed date strings ──────────────────────────────────────
-
   describe("malformed date strings", () => {
     test.each(ALL_TEMPLATES)("$name renders without crashing with bad dates", ({ Component }) => {
       const { container } = testTemplateRenders(Component, malformedDatesContent);
       expect(container).toBeTruthy();
-      // Templates may split names — check for word parts
       expect(container.textContent).toContain("Date");
       expect(container.textContent).toContain("Tester");
     });
   });
-
-  // ── Zero-item arrays ────────────────────────────────────────────
 
   describe("zero-item arrays (empty arrays present)", () => {
     test.each(ALL_TEMPLATES)("$name renders without crashing", ({ Component }) => {
@@ -375,8 +306,6 @@ describe("Template edge case rendering", () => {
       expect(container.textContent).toContain("Items");
     });
   });
-
-  // ── Nullish/empty items in arrays ───────────────────────────────
 
   describe("nullish/empty items in array fields", () => {
     test.each(ALL_TEMPLATES)(
@@ -390,8 +319,6 @@ describe("Template edge case rendering", () => {
     );
   });
 
-  // ── Summary contains only whitespace ────────────────────────────
-
   describe("whitespace-only summary", () => {
     const whitespaceSummary: ResumeContent = {
       ...bareMinimumContent,
@@ -404,8 +331,6 @@ describe("Template edge case rendering", () => {
       expect(container).toBeTruthy();
     });
   });
-
-  // ── Very long strings in specific fields ────────────────────────
 
   describe("very long strings in fields", () => {
     const longFields: ResumeContent = {
@@ -436,8 +361,6 @@ describe("Template edge case rendering", () => {
     );
   });
 
-  // ── Single-character fields ─────────────────────────────────────
-
   describe("single-character fields", () => {
     const singleChar: ResumeContent = {
       full_name: "X",
@@ -465,8 +388,6 @@ describe("Template edge case rendering", () => {
       },
     );
   });
-
-  // ── Unicode/emoji content ───────────────────────────────────────
 
   describe("unicode and emoji content", () => {
     const unicodeContent: ResumeContent = {
@@ -496,8 +417,6 @@ describe("Template edge case rendering", () => {
       },
     );
   });
-
-  // ── HTML-like content in fields (XSS safety) ────────────────────
 
   describe("HTML-like content in data fields", () => {
     const htmlLikeContent: ResumeContent = {
@@ -530,12 +449,8 @@ describe("Template edge case rendering", () => {
       ({ Component }) => {
         const { container } = testTemplateRenders(Component, htmlLikeContent);
         expect(container).toBeTruthy();
-        // HTML-like content should appear as text, not as DOM elements.
-        // Templates may legitimately include <img> tags (LinkedIn icons, theme assets),
-        // so we check that no <script>, <iframe>, or malicious <img> elements exist.
         expect(container.querySelector("script")).toBeNull();
         expect(container.querySelector("iframe")).toBeNull();
-        // Verify no <img> with data-derived src exists
         const images = container.querySelectorAll("img");
         for (const img of images) {
           const src = img.getAttribute("src") || "";
@@ -545,8 +460,6 @@ describe("Template edge case rendering", () => {
       },
     );
   });
-
-  // ── Combined extreme edge case ──────────────────────────────────
 
   describe("combined extreme edge case (everything missing/broken)", () => {
     const combinedExtreme: ResumeContent = {

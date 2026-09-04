@@ -1,14 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { DEFAULT_PRIVACY_SETTINGS } from "@/lib/utils/privacy";
 
-/**
- * IDOR (Insecure Direct Object Reference) tests for admin routes
- * Tests that only admin users can access admin functionality
- */
-
-// ── Mocks ────────────────────────────────────────────────────────────
-
-// DB mock
 const mockFindFirst = vi.fn();
 const mockSelect = vi.fn().mockReturnThis();
 const mockFrom = vi.fn().mockReturnThis();
@@ -27,12 +19,10 @@ const mockDb = {
   limit: mockLimit,
 };
 
-// Mock getServerSession
 vi.mock("@/lib/auth/session", () => ({
   getServerSession: vi.fn(),
 }));
 
-// Mock drizzle-orm
 vi.mock("drizzle-orm", () => ({
   eq: vi.fn((_col, val) => val),
   gte: vi.fn(),
@@ -43,12 +33,10 @@ vi.mock("drizzle-orm", () => ({
   })),
 }));
 
-// Mock DB module
 vi.mock("@/lib/db", () => ({
   getDb: vi.fn(() => mockDb),
 }));
 
-// Mock the schema
 vi.mock("@/lib/db/schema", () => ({
   user: {
     id: "id",
@@ -71,7 +59,6 @@ vi.mock("@/lib/db/schema", () => ({
   },
 }));
 
-// Mock security headers
 vi.mock("@/lib/utils/security-headers", () => ({
   createErrorResponse: vi.fn((error: string, _code: string, status: number) => {
     return new Response(JSON.stringify({ error }), { status });
@@ -86,8 +73,6 @@ vi.mock("@/lib/utils/security-headers", () => ({
 import { getServerSession, type AppSession } from "@/lib/auth/session";
 
 const mockedGetSession = vi.mocked(getServerSession);
-
-// ── Helpers ──────────────────────────────────────────────────────────
 
 function createMockSession(userId: string, isAdmin: boolean): AppSession {
   return {
@@ -116,13 +101,10 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
-// ── Test Suite ──────────────────────────────────────────────────────
-
 describe("IDOR - Admin Routes Security", () => {
   describe("GET /api/admin/users", () => {
     it("returns 403 for non-admin user", async () => {
       mockedGetSession.mockResolvedValue(createMockSession("user-a", false));
-      // Mock DB to return user without admin flag
       mockFindFirst.mockResolvedValue({
         id: "user-a",
         email: "user-a@test.com",
@@ -165,7 +147,6 @@ describe("IDOR - Admin Routes Security", () => {
   describe("GET /api/admin/stats", () => {
     it("returns 403 for regular user accessing admin stats", async () => {
       mockedGetSession.mockResolvedValue(createMockSession("user-a", false));
-      // Mock DB to return non-admin user
       mockFindFirst.mockResolvedValue({
         id: "user-a",
         email: "user-a@test.com",
@@ -180,16 +161,14 @@ describe("IDOR - Admin Routes Security", () => {
     });
 
     it("blocks admin privilege escalation attempt", async () => {
-      // User tries to trick system into thinking they are admin
       mockedGetSession.mockResolvedValue({
         ...createMockSession("user-a", false),
         user: {
           ...createMockSession("user-a", false).user,
-          isAdmin: true, // Attempted spoof
+          isAdmin: true,
         },
       });
 
-      // But DB check reveals they are not actually admin
       mockFindFirst.mockResolvedValue({
         id: "user-a",
         email: "user@test.com",
@@ -228,9 +207,8 @@ describe("IDOR - Admin Routes Security", () => {
 
   describe("Admin Session Security", () => {
     it("returns 404 or 401 for deleted user with stale admin session", async () => {
-      // Session exists but user was deleted
       mockedGetSession.mockResolvedValue(createMockSession("deleted-admin", true));
-      mockFindFirst.mockResolvedValue(null); // User not found
+      mockFindFirst.mockResolvedValue(null);
 
       const { requireAdminAuthForApi } = await import("@/lib/auth/admin");
       const result = await requireAdminAuthForApi();
@@ -239,7 +217,6 @@ describe("IDOR - Admin Routes Security", () => {
     });
 
     it("blocks admin with expired elevated session", async () => {
-      // Admin session that has expired
       mockedGetSession.mockResolvedValue({
         user: {
           id: "admin-1",
@@ -257,14 +234,13 @@ describe("IDOR - Admin Routes Security", () => {
           id: "expired-session",
           userId: "admin-1",
           token: "expired-token",
-          expiresAt: new Date(Date.now() - 1000), // Expired
+          expiresAt: new Date(Date.now() - 1000),
         },
       });
 
       const { requireAdminAuthForApi } = await import("@/lib/auth/admin");
       const result = await requireAdminAuthForApi();
 
-      // Should be rejected due to expired session
       expect([401, 403]).toContain(result.error?.status);
     });
   });
@@ -272,7 +248,6 @@ describe("IDOR - Admin Routes Security", () => {
   describe("Admin Endpoint Enumeration", () => {
     it("all admin endpoints return 403 for non-admin", async () => {
       mockedGetSession.mockResolvedValue(createMockSession("user-a", false));
-      // Mock DB to return non-admin user
       mockFindFirst.mockResolvedValue({
         id: "user-a",
         email: "user-a@test.com",
@@ -293,7 +268,6 @@ describe("IDOR - Admin Routes Security", () => {
 
   describe("Cookie Tampering Protection", () => {
     it("rejects admin role bypass via cookie tampering", async () => {
-      // Session indicates admin but DB says otherwise
       mockedGetSession.mockResolvedValue({
         user: {
           id: "attacker",
@@ -304,8 +278,8 @@ describe("IDOR - Admin Routes Security", () => {
           headline: null,
           privacySettings: DEFAULT_PRIVACY_SETTINGS,
           onboardingCompleted: true,
-          role: "executive", // Career level; admin access comes solely from isAdmin
-          isAdmin: true, // Claimed admin status
+          role: "executive",
+          isAdmin: true,
         },
         session: {
           id: "tampered-session",
@@ -315,12 +289,11 @@ describe("IDOR - Admin Routes Security", () => {
         },
       });
 
-      // But DB shows they're not admin
       mockFindFirst.mockResolvedValue({
         id: "attacker",
         email: "attacker@test.com",
         name: "Attacker",
-        isAdmin: false, // Actual DB value
+        isAdmin: false,
       });
 
       const { requireAdminAuthForApi } = await import("@/lib/auth/admin");
@@ -332,7 +305,6 @@ describe("IDOR - Admin Routes Security", () => {
 
   describe("Admin Data Access Protection", () => {
     it("prevents admin data access without proper role", async () => {
-      // User with elevated role but not isAdmin flag
       mockedGetSession.mockResolvedValue(createMockSession("manager-1", false));
       mockFindFirst.mockResolvedValue({
         id: "manager-1",
@@ -348,9 +320,8 @@ describe("IDOR - Admin Routes Security", () => {
     });
 
     it("requires both session and DB admin verification", async () => {
-      // Session is admin but DB check fails
       mockedGetSession.mockResolvedValue(createMockSession("admin-1", true));
-      mockFindFirst.mockResolvedValue(null); // DB doesn't have user
+      mockFindFirst.mockResolvedValue(null);
 
       const { requireAdminAuthForApi } = await import("@/lib/auth/admin");
       const result = await requireAdminAuthForApi();
@@ -361,7 +332,6 @@ describe("IDOR - Admin Routes Security", () => {
 
   describe("Valid Session but Non-Admin User", () => {
     it("returns 403 for valid session without admin role", async () => {
-      // Valid authenticated session
       mockedGetSession.mockResolvedValue(createMockSession("user-a", false));
       mockFindFirst.mockResolvedValue({
         id: "user-a",
@@ -379,13 +349,11 @@ describe("IDOR - Admin Routes Security", () => {
 
   describe("Admin Privilege Escalation Attempts", () => {
     it("blocks role escalation via direct API calls", async () => {
-      // User tries to modify their own role to admin
       mockedGetSession.mockResolvedValue(createMockSession("user-a", false));
 
       const { requireAdminAuthForApi } = await import("@/lib/auth/admin");
       const result = await requireAdminAuthForApi();
 
-      // Cannot access admin endpoints to modify roles
       expect(result.error?.status).toBe(403);
     });
   });

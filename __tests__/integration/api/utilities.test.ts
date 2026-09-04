@@ -3,7 +3,6 @@ import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { RESERVED_HANDLES } from "@/lib/rate-limit/handle-validation";
 import { createSignedCookieValue, parseSignedCookieValue } from "@/lib/utils/pending-upload-cookie";
 
-// Mock headers
 vi.mock("next/headers", () => ({
   headers: vi.fn().mockResolvedValue(new Headers()),
   cookies: vi.fn().mockResolvedValue({
@@ -24,7 +23,6 @@ describe("Utility APIs", () => {
     it("should check handle availability", async () => {
       const handle = "availableuser";
 
-      // Check format validation passes
       expect(handle.length).toBeGreaterThanOrEqual(3);
       expect(handle.length).toBeLessThanOrEqual(30);
       expect(/^[a-z0-9-]+$/.test(handle)).toBe(true);
@@ -45,12 +43,12 @@ describe("Utility APIs", () => {
 
     it("should reject invalid handle format", () => {
       const invalidHandles = [
-        "user name", // space
-        "user@name", // special char
-        "UserName", // uppercase
-        "-username", // starts with hyphen
-        "username-", // ends with hyphen
-        "user--name", // consecutive hyphens
+        "user name",
+        "user@name",
+        "UserName",
+        "-username",
+        "username-",
+        "user--name",
       ];
 
       for (const handle of invalidHandles) {
@@ -88,7 +86,7 @@ describe("Utility APIs", () => {
 
       expect(cookieValue).toBeDefined();
       expect(cookieValue).toContain(tempKey);
-      expect(cookieValue.split("|").length).toBe(3); // key|expires|signature
+      expect(cookieValue.split("|").length).toBe(3);
     });
 
     it("should parse valid signed cookie", async () => {
@@ -105,7 +103,6 @@ describe("Utility APIs", () => {
       const tempKey = "temp/user-789/file.pdf";
       const cookieValue = await createSignedCookieValue(tempKey, mockSecret);
 
-      // Tamper with the cookie
       const tamperedValue = cookieValue.replace(tempKey, "hacked/key");
 
       const parsed = await parseSignedCookieValue(tamperedValue, mockSecret);
@@ -113,12 +110,10 @@ describe("Utility APIs", () => {
     });
 
     it("should reject expired cookie", async () => {
-      // Create a cookie with past expiry
       const tempKey = "temp/user-old/file.pdf";
-      const expiredTimestamp = Date.now() - 1000; // 1 second ago
+      const expiredTimestamp = Date.now() - 1000;
       const expiredPayload = `${tempKey}|${expiredTimestamp}`;
 
-      // Generate signature for expired payload
       const encoder = new TextEncoder();
       const key = await crypto.subtle.importKey(
         "raw",
@@ -149,7 +144,6 @@ describe("Utility APIs", () => {
       const tempKey = "temp/user-999/file.pdf";
       const cookieValue = await createSignedCookieValue(tempKey, mockSecret);
 
-      // Try to parse with different secret
       const wrongSecret = "different-secret-key-12345";
       const parsed = await parseSignedCookieValue(cookieValue, wrongSecret);
 
@@ -159,11 +153,7 @@ describe("Utility APIs", () => {
     it("should validate temp key format", () => {
       const validKeys = ["temp/uuid/file.pdf", "temp/123/Resume.pdf", "temp/abc-123/CV.pdf"];
 
-      const invalidKeys = [
-        "uploads/file.pdf", // Not temp/
-        "temp/", // Too short
-        "", // Empty
-      ];
+      const invalidKeys = ["uploads/file.pdf", "temp/", ""];
 
       for (const key of validKeys) {
         expect(key.startsWith("temp/")).toBe(true);
@@ -179,7 +169,6 @@ describe("Utility APIs", () => {
 
   describe("health check", () => {
     it("should check service health status aggregation", () => {
-      // Test healthy status
       const healthyServices = {
         d1: { status: "healthy" as const },
         r2: { status: "healthy" as const },
@@ -199,7 +188,6 @@ describe("Utility APIs", () => {
 
       expect(aggregateStatus(healthyServices)).toBe("healthy");
 
-      // Test unhealthy status
       const unhealthyServices = {
         d1: { status: "healthy" as const },
         r2: { status: "unhealthy" as const },
@@ -207,7 +195,6 @@ describe("Utility APIs", () => {
       };
       expect(aggregateStatus(unhealthyServices)).toBe("unhealthy");
 
-      // Test degraded status
       const degradedServices = {
         d1: { status: "healthy" as const },
         r2: { status: "degraded" as const },
@@ -263,7 +250,6 @@ describe("Utility APIs", () => {
       const parsed = JSON.parse(validJson);
       expect(parsed.name).toBe("Test");
 
-      // Invalid JSON should not throw
       const invalidJson = "not valid json";
       expect(() => JSON.parse(invalidJson)).toThrow();
     });

@@ -11,10 +11,6 @@ export const metadata: Metadata = {
 
 export const revalidate = 604800;
 
-/**
- * Standalone template preview page (demo data only, no auth/DB).
- * Not linked from the UI — used to shoot `public/previews/*.webp` thumbnails.
- */
 export default async function PreviewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   // SAFETY: id is validated ThemeId via isValidThemeId or known demo-data keys; cast bridges string to ThemeId.

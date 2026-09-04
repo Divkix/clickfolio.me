@@ -6,7 +6,6 @@ import type { UserRole, User as SchemaUser } from "@/lib/db/schema";
 import { getDb } from "@/lib/db";
 import { user as users } from "@/lib/db/schema";
 
-/** App-shaped session user returned by {@link getServerSession}. */
 export interface AppSessionUser {
   id: string;
   name: string | null;
@@ -20,7 +19,6 @@ export interface AppSessionUser {
   isAdmin: boolean;
 }
 
-/** App-shaped session so existing consumers stay source-compatible. */
 export interface AppSession {
   user: AppSessionUser;
   session: {
@@ -31,18 +29,6 @@ export interface AppSession {
   };
 }
 
-/**
- * Cached session helper for React Server Components.
- *
- * Verifies the Clerk `__session` JWT and maps the Clerk user id to the local
- * Postgres row via `user.clerk_id`, returning an app-shaped session
- * (`AppSession | null`). `user.id` is always the app/legacy Postgres user id
- * (Clerk `externalId` for imported users) — never the Clerk id.
- *
- * React's cache() ensures that multiple calls to getServerSession()
- * within the same request lifecycle return the same session object
- * without making duplicate verification/DB round-trips.
- */
 export const getServerSession = cache(async (): Promise<AppSession | null> => {
   const auth = await getAuthClerk();
   if (!auth) return null;
@@ -52,9 +38,6 @@ export const getServerSession = cache(async (): Promise<AppSession | null> => {
     where: eq(users.clerkId, auth.clerkId),
   });
 
-  // Unknown Clerk identity (webhook not yet processed / unmapped user) is
-  // treated as "no session" for RSC pages; API routes surface a 401 via
-  // requireAuthClerk instead.
   if (!dbUser) return null;
 
   return {

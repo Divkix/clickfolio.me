@@ -306,7 +306,6 @@ export const DesignFolio: React.FC<TemplateProps> = ({ content, profile, isPrevi
             <div className="flex flex-col md:flex-row flex-wrap gap-8 md:gap-16 font-mono-df text-lg">
               {contactLinks.map((link) => {
                 // SAFETY: link.type is a ContactLinkType; dfIconMap covers phone/location
-                // with undefined fallback for others.
                 const icon = dfIconMap[link.type as keyof typeof dfIconMap];
                 const isBranded = link.type === "behance" || link.type === "dribbble";
                 const brandColor =

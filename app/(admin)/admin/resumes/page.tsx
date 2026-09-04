@@ -57,8 +57,6 @@ export default function AdminResumesPage() {
 
   // SAFETY: searchParams.get returns string|null; cast narrows to validated StatusFilter union with fallback to "all".
   const statusFilter = (searchParams.get("status") as StatusFilter) || "all";
-  // NaN-safe page parse: a non-numeric ?page= must not become NaN in the
-  // fetch URL or Pagination props (NaN.toString() === "NaN").
   const page = safePageParam(searchParams.get("page"));
 
   const fetchResumes = useCallback(async () => {
@@ -87,7 +85,7 @@ export default function AdminResumesPage() {
     const params = new URLSearchParams(searchParams);
     if (updates.status !== undefined) {
       params.set("status", updates.status);
-      params.set("page", "1"); // Reset page on filter change
+      params.set("page", "1");
     }
     if (updates.page !== undefined) {
       params.set("page", updates.page.toString());
@@ -100,7 +98,6 @@ export default function AdminResumesPage() {
     try {
       const res = await fetch(`/api/admin/resumes/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error(await res.text());
-      // Optimistic removal: drop the row and adjust failed/total so pagination recomputes.
       setData((prev) => {
         if (!prev) return prev;
         return {
@@ -123,7 +120,6 @@ export default function AdminResumesPage() {
 
   return (
     <div className="space-y-6">
-      {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <button
           type="button"
@@ -179,7 +175,6 @@ export default function AdminResumesPage() {
         </button>
       </div>
 
-      {/* Filter */}
       <div className="flex items-center gap-4">
         <FileText className="w-5 h-5 text-muted-foreground" aria-hidden="true" />
         <select
@@ -202,7 +197,6 @@ export default function AdminResumesPage() {
         </span>
       </div>
 
-      {/* Table */}
       <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -330,7 +324,6 @@ export default function AdminResumesPage() {
           </table>
         </div>
 
-        {/* Pagination */}
         {totalPages > 1 && (
           <div className="border-t border-border px-4 py-3">
             <Pagination

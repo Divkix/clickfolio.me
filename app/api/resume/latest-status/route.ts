@@ -4,32 +4,12 @@ import { resumes } from "@/lib/db/schema";
 import type { ResumeStatus } from "@/lib/db/schema/resume";
 import { getStatusView, WAITING_FOR_CACHE_TIMEOUT_MESSAGE } from "@/lib/resume/lifecycle";
 import { createSuccessResponse } from "@/lib/utils/security-headers";
-/**
- * GET /api/resume/latest-status
- * Get the latest resume status for the currently authenticated user.
- *
- * Response:
- *   {
- *     id: string,
- *     status: string,
- *     error: string | null,
- *     can_retry: boolean,
- *     createdAt: string
- *   } | null
- *
- * Error codes:
- *   - 500: unexpected error
- */
 export async function GET(request?: Request) {
   return withUser(
     request,
     async ({ user: authUser, db }) => {
       const userId = authUser.id;
 
-      // Fetch the latest resume for the user.
-      // Loads totalAttempts and lastAttemptError (in addition to the display
-      // fields) so retry eligibility can be computed by the canonical
-      // canRetryResume() rather than an inline rule -- keeping this endpoint a
       // mirror of GET /api/resume/status (see issue #174).
       const latestResume = await db
         .select({
@@ -52,9 +32,6 @@ export async function GET(request?: Request) {
 
       const resume = latestResume[0];
 
-      // Side-effect-free timeout: mirror GET /status — a waiting_for_cache row
-      // that has timed out is presented as a virtual "failed" without persisting.
-      // The orphan cron will durably transition it on its next tick.
       // SAFETY: drizzle row fields are nullable; cast narrows to lifecycle helper type
       const view = getStatusView({
         status: resume.status as ResumeStatus,

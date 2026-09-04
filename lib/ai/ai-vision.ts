@@ -116,7 +116,6 @@ function extractJson(text: string): string {
 }
 
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
-  // Workers with nodejs_compat have Buffer
   // SAFETY: globalThis may have Node Buffer in workerd nodejs_compat; narrow via in check
   // eslint-disable-next-line anti-slop/no-chained-type-assertions -- narrowing globalThis to check for Buffer existence
   const maybeBuffer = (globalThis as unknown as { Buffer?: typeof Buffer }).Buffer;
@@ -126,7 +125,6 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
     // eslint-disable-next-line anti-slop/no-chained-type-assertions -- ArrayBuffer to Uint8Array view is safe
     return maybeBuffer.from(buffer as unknown as Uint8Array).toString("base64");
   }
-  // Fallback via btoa chunked to avoid call-stack overflow on 5MB
   const bytes = new Uint8Array(buffer);
   const chunkSize = 0x8000;
   let binary = "";
@@ -138,11 +136,6 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
   return btoa(binary);
 }
 
-/**
- * Parse a scanned PDF resume via Luna vision.
- * Sends the PDF as an inline file part to the same Gateway -> OpenRouter -> Luna model.
- * No new infra: reuses createAiProvider, same model id, same gateway auth.
- */
 export async function parsePdfWithVision(
   pdfBuffer: ArrayBuffer,
   env: Partial<AiEnvVars>,

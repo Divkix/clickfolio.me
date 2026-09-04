@@ -20,45 +20,12 @@ interface RetryRequestBody {
   resume_id?: string;
 }
 
-/**
- * POST /api/resume/retry
- * Retry endpoint for failed resumes.
- *
- * Request body:
- *   { resume_id: string }
- *
- * Retry eligibility checks:
- *   - Max total attempts not exceeded (RETRY_LIMITS.TOTAL_MAX_ATTEMPTS)
- *   - Last error is not a permanent error type
- *   - Resume status is "failed"
- *   - Manual retry count < RETRY_LIMITS.MANUAL_MAX_RETRIES
- *
- * R2 fallback chain:
- *   - Uses stored fileHash if available
- *   - Falls back to downloading from R2 and computing SHA-256 for legacy rows
- *
- * Queue publishing:
- *   - Updates resume status to "queued" BEFORE publishing to prevent race conditions
- *   - Publishes to CLICKFOLIO_PARSE_QUEUE with resumeId, userId, r2Key, fileHash, attempt
- *
- * Rollback behavior:
- *   - On queue publish failure, rolls back status to "failed" and restores previous retryCount
- *
- * Error codes:
- *   - 400: missing resume_id, permanent error type, or resume not in failed state
- *   - 403: resume belongs to another user
- *   - 404: resume not found
- *   - 409: resume was concurrently retried or its status changed (TOCTOU race)
- *   - 429: max total attempts or manual retries exceeded
- *   - 500: storage unavailable, download failure, queue unavailable, or unexpected error
- */
 export async function POST(request: Request) {
   return withUser(
     request,
     async ({ user: authUser, db, env }) => {
       const userId = authUser.id;
 
-      // Validate request size before parsing (prevent DoS)
       const sizeCheck = validateRequestSize(request);
       if (!sizeCheck.valid) {
         return createErrorResponse(
@@ -88,7 +55,6 @@ export async function POST(request: Request) {
         );
       }
 
-      // Fetch resume from database including idempotency fields and fileHash
       const resume = await db.query.resumes.findFirst({
         where: eq(resumes.id, resume_id),
         columns: {
@@ -109,7 +75,6 @@ export async function POST(request: Request) {
         return createErrorResponse("Resume not found", ERROR_CODES.NOT_FOUND, 404);
       }
 
-      // Verify ownership
       if (resume.userId !== userId) {
         return createErrorResponse(
           "You do not have permission to retry this resume",
@@ -117,11 +82,8 @@ export async function POST(request: Request) {
           403,
         );
       }
-      // Canonical eligibility — single source of truth for the 4 gates.
       // A `waiting_for_cache` row that has timed out is presented virtually as
       // `failed` by GET /status; accept an immediate manual retry without waiting
-      // for the cron to durably persist the timeout (otherwise can_retry=true in
-      // the UI would be denied here until the next 15m tick).
       // SAFETY: status and createdAt are validated enum/string columns; casts bridge Drizzle nullable type to ResumeStatus for lifecycle helpers.
       const isVirtualTimeout = waitingForCacheTimedOut({
         status: resume.status as ResumeStatus,
@@ -144,13 +106,11 @@ export async function POST(request: Request) {
         );
       }
 
-      // Get file hash -- use stored hash if available, fall back to R2 download for legacy rows
       let fileHash: string;
 
       if (resume.fileHash) {
         fileHash = resume.fileHash;
       } else {
-        // Legacy fallback: download from R2 and compute hash
         const r2Binding = getR2Binding(env);
         if (!r2Binding) {
           return createErrorResponse(
@@ -182,7 +142,6 @@ export async function POST(request: Request) {
             500,
           );
         }
-        // Compute SHA-256 hash from downloaded PDF
         // SAFETY: pdfBuffer is Uint8Array from R2; slice produces ArrayBuffer for sha256Hex.
         const bufferCopy = pdfBuffer.buffer.slice(
           pdfBuffer.byteOffset,
@@ -190,7 +149,6 @@ export async function POST(request: Request) {
         ) as ArrayBuffer;
         fileHash = await sha256Hex(bufferCopy);
       }
-      // Update resume status to queued BEFORE publishing to queue (prevents race condition)
       // SAFETY: retryCount is integer column; cast bridges Drizzle nullable to number.
       const previousRetryCount = resume.retryCount as number;
       const nextRetryCount = previousRetryCount + 1;
@@ -213,10 +171,6 @@ export async function POST(request: Request) {
         .where(
           and(
             eq(resumes.id, resume_id),
-            // TOCTOU guard: only re-queue if the row is STILL in its expected
-            // status AND still under the manual-retry cap. A concurrent manual
-            // retry, the queue consumer, or orphan recovery may have moved it
-            // between the read above and this UPDATE.
             statusGuard,
             lt(resumes.retryCount, RETRY_LIMITS.MANUAL_MAX_RETRIES),
           ),
@@ -224,8 +178,6 @@ export async function POST(request: Request) {
         .returning({ id: resumes.id });
 
       if (updateResult.length === 0) {
-        // The row changed between our read and this update — this is a race
-        // (concurrent retry / status change), not a storage failure.
         return createErrorResponse(
           "Resume was already retried or is no longer in a retryable state",
           ERROR_CODES.CONFLICT,
@@ -236,9 +188,7 @@ export async function POST(request: Request) {
         try {
           // For a virtual timeout the original status was `waiting_for_cache`; a
           // rollback should restore that, not `failed`, so the row is not left in
-          // a persistently-timed-out state before the cron ticks. For normal
           // retries the original status was already `failed`, so this is a no-op
-          // change — but keep it explicit for clarity.
           const rollbackStatus = isVirtualTimeout ? "waiting_for_cache" : "failed";
           await db
             .update(resumes)
@@ -255,7 +205,6 @@ export async function POST(request: Request) {
         }
       };
 
-      // Publish to queue for background processing (after DB update to prevent race)
       const queue = env.CLICKFOLIO_PARSE_QUEUE;
       if (!queue) {
         await rollbackRetryUpdate();

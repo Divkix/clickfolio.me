@@ -72,7 +72,6 @@ export function ExamplesSection({ profiles }: ExamplesSectionProps) {
         </div>
       </section>
 
-      {/* Template Preview Modal */}
       {previewIndex !== null && (
         <TemplatePreviewModal
           isOpen
