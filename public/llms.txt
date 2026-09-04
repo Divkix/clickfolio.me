@@ -30,7 +30,7 @@ Turn your PDF resume into a hosted portfolio website in seconds. Upload a PDF re
 
 ## Features
 
-- **10 Templates**: 6 free + 4 premium (unlockable via referrals)
+- **10 Templates**: all free for every user, no referrals or payment required
 - **Privacy Controls**: Toggle phone, address visibility
 - **Custom @handle URLs**: `clickfolio.me/@yourname`
 - **Full Editing Suite**: Inline editing, auto-save
@@ -65,4 +65,4 @@ Turn your PDF resume into a hosted portfolio website in seconds. Upload a PDF re
 
 ## Tech Stack
 
-Cloudflare Workers, D1 (SQLite), R2 storage, AI SDK, Better Auth
+Cloudflare Workers, PlanetScale Postgres (via Hyperdrive), R2 storage, AI SDK, Clerk (Google OAuth)
