@@ -73,33 +73,23 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
 
         await claimResponse.json();
 
-        // Clear uploaded key to prevent useEffect re-triggering
         setUploadedKey(null);
 
-        // Clear HTTP-only cookie
         await clearPendingUploadCookie();
 
         toast.success("Resume claimed successfully! Processing...");
 
-        // Close modal if in modal mode
         if (onOpenChange) {
           onOpenChange(false);
         }
 
-        // Brief delay to ensure session cookie is fully established after OAuth
-        // This prevents a race condition where navigation happens before the
-        // browser has fully processed the Set-Cookie header from the OAuth response
         await new Promise((resolve) => setTimeout(resolve, 100));
 
-        // Use replace() to prevent back-button returning to upload flow
-        // refresh() forces RSC re-fetch when already on /dashboard (modal upload flow)
-        // The 100ms delay above handles the OAuth cookie race condition for both calls
         router.replace("/dashboard");
         router.refresh();
       } catch (err) {
         let errorMessage = "Failed to claim resume";
 
-        // Differentiate error types by status code
         // SAFETY: err is Error-like with optional status from fetch throw; cast narrows to status check for rate-limit handling.
         if (err instanceof Response || (err as { status?: number })?.status) {
           // SAFETY: err status check uses optional status property from thrown Response-like error; cast is safe for branching.
@@ -121,10 +111,8 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
           }
         }
 
-        // Clear uploaded key to prevent useEffect re-triggering
         setUploadedKey(null);
 
-        // Clear the unusable pending-upload cookie.
         await clearPendingUploadCookie();
         setError(errorMessage);
         toast.error(errorMessage);
@@ -135,7 +123,6 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
     [router, onOpenChange, setError, setUploadedKey],
   );
 
-  // Auto-claim upload when session loads and upload is complete
   useEffect(() => {
     if (sessionLoading) return;
     if (!uploadedKey) return;
@@ -163,10 +150,8 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
     }
   };
 
-  // Dropzone content (before upload complete)
   const dropzoneContent = (
     <div className="space-y-4">
-      {/* Drop Zone */}
       <button
         type="button"
         onDragEnter={handleDragEnter}
@@ -207,7 +192,6 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
         />
 
         <div className="flex flex-col items-center gap-4">
-          {/* Icon */}
           <div
             className={`
               w-16
@@ -231,7 +215,6 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
             </svg>
           </div>
 
-          {/* Text */}
           <div className="text-center">
             <p className="font-semibold text-lg text-foreground mb-1">
               {file ? file.name : "Drop your PDF here"}
@@ -248,7 +231,6 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
         </div>
       </button>
 
-      {/* Progress Bar */}
       {uploading && (
         <div className="space-y-2">
           <div className="h-2 bg-secondary rounded-full overflow-hidden">
@@ -270,7 +252,6 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
         </div>
       )}
 
-      {/* Error Message with Retry Button */}
       {error && (
         <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4" role="alert">
           <p className="font-medium text-sm text-destructive mb-3">{error}</p>
@@ -280,7 +261,6 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
         </div>
       )}
 
-      {/* Security Badge */}
       {!uploading && !error && (
         <a
           href="https://github.com/divkix/clickfolio.me"
@@ -293,7 +273,6 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
         </a>
       )}
 
-      {/* Info Text - only show when not in modal mode */}
       {!uploading && !error && !isModal && (
         <div className="flex items-center justify-center gap-2 bg-success/10 border border-success/30 rounded-lg px-3 py-2 mt-3">
           <svg
@@ -316,12 +295,10 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
     </div>
   );
 
-  // Upload complete state content - Neubrutalist style
   const uploadCompleteContent = (
     <div className="space-y-4">
       <div className="bg-card border border-border rounded-xl p-6">
         {claiming ? (
-          /* Claiming State - For Authenticated Users */
           <div className="flex flex-col items-center gap-4">
             <div className="w-16 h-16 rounded-xl bg-brand-subtle text-brand flex items-center justify-center">
               <svg
@@ -357,7 +334,6 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
             </div>
           </div>
         ) : error ? (
-          /* Error State during claiming */
           <div className="flex flex-col items-center gap-4">
             <div className="w-16 h-16 rounded-xl bg-destructive/10 text-destructive flex items-center justify-center">
               <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -381,7 +357,6 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
             </Button>
           </div>
         ) : (
-          /* Upload Complete - Show different CTA based on auth status */
           <div className="flex flex-col items-center gap-4">
             <div className="w-16 h-16 rounded-xl bg-success/10 text-success flex items-center justify-center">
               <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -403,12 +378,10 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
             </div>
 
             {user ? (
-              /* Authenticated user - shouldn't reach here as auto-claim happens */
               <p className="text-xs text-muted-foreground text-center" aria-live="polite">
                 Redirecting to dashboard...
               </p>
             ) : (
-              /* Anonymous user - show login button */
               <>
                 <SignInButton mode="modal" fallbackRedirectUrl="/wizard">
                   <Button type="button" disabled={claiming} className="w-full max-w-xs">
@@ -435,10 +408,8 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
     </div>
   );
 
-  // Select content based on upload state
   const content = uploadedKey !== null ? uploadCompleteContent : dropzoneContent;
 
-  // When in modal mode, wrap in Dialog
   if (isModal) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>

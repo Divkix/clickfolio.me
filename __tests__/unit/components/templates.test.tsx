@@ -1,12 +1,3 @@
-/**
- * Template Component Tests
- *
- * Tests all 10 resume template components for rendering,
- * privacy filtering, responsiveness, and edge cases.
- *
- * @module __tests__/unit/components/templates.test
- */
-
 import { render } from "@testing-library/react";
 import { describe, expect, test } from "vite-plus/test";
 import { BentoGrid } from "@/components/templates/BentoGrid";
@@ -16,16 +7,11 @@ import { DesignFolio } from "@/components/templates/DesignFolio";
 import { DevTerminal } from "@/components/templates/DevTerminal";
 import { GlassMorphic } from "@/components/templates/GlassMorphic";
 import { Midnight } from "@/components/templates/Midnight";
-// Import all templates
 import { MinimalistEditorial } from "@/components/templates/MinimalistEditorial";
 import { NeoBrutalist } from "@/components/templates/NeoBrutalist";
 import { Spotlight } from "@/components/templates/Spotlight";
 import type { ResumeContent } from "@/lib/types/database";
 import type { TemplateProps } from "@/lib/types/template";
-
-// ============================================================================
-// Mock Data Fixtures
-// ============================================================================
 
 const mockProfile: TemplateProps["profile"] = {
   handle: "johndoe",
@@ -223,13 +209,6 @@ const longContentResume: ResumeContent = {
   projects: [],
 };
 
-// ============================================================================
-// Helper Functions
-// ============================================================================
-
-/**
- * Test template with given content
- */
 function testTemplate(
   _name: string,
   Component: React.ComponentType<TemplateProps>,
@@ -239,14 +218,7 @@ function testTemplate(
   return render(<Component content={content} profile={profile} />);
 }
 
-// ============================================================================
-// Template Tests
-// ============================================================================
-
 describe("Template Component Tests", () => {
-  // ============================================================================
-  // MinimalistEditorial Tests
-  // ============================================================================
   describe("MinimalistEditorial Template", () => {
     test("1. Template renders without error with mock resume data", () => {
       const { container } = testTemplate(
@@ -262,7 +234,7 @@ describe("Template Component Tests", () => {
         ...fullResumeContent,
         contact: {
           ...fullResumeContent.contact,
-          phone: undefined, // Simulate hidden
+          phone: undefined,
         },
       };
       const { container } = testTemplate(
@@ -270,7 +242,6 @@ describe("Template Component Tests", () => {
         MinimalistEditorial,
         contentWithHiddenPhone,
       );
-      // Should still render without phone - check for name parts since Minimalist splits names
       expect(container.textContent).toContain("John");
       expect(container.textContent).toContain("Doe");
     });
@@ -291,7 +262,6 @@ describe("Template Component Tests", () => {
         MinimalistEditorial,
         minimalResumeContent,
       );
-      // Should render without crashing even with empty arrays
       expect(container.textContent).toContain("Jane");
       expect(container.textContent).toContain("Doe");
     });
@@ -302,8 +272,6 @@ describe("Template Component Tests", () => {
         experience: [],
         education: [],
       });
-      // Experience and education sections may be hidden when empty
-      // Check for name parts since Minimalist splits names
       expect(container.textContent).toContain("John");
       expect(container.textContent).toContain("Doe");
     });
@@ -314,7 +282,6 @@ describe("Template Component Tests", () => {
         MinimalistEditorial,
         longContentResume,
       );
-      // Should render without crashing
       expect(container).toBeTruthy();
     });
 
@@ -324,7 +291,6 @@ describe("Template Component Tests", () => {
         MinimalistEditorial,
         specialCharsContent,
       );
-      // Should render special characters safely (template may remove spaces when splitting names)
       expect(container.textContent).toContain("Ñoño");
       expect(container.textContent).toContain("García");
     });
@@ -339,7 +305,6 @@ describe("Template Component Tests", () => {
         education: [],
       };
       const { container } = testTemplate("MinimalistEditorial", MinimalistEditorial, minimal);
-      // Template splits name into first/last, so check for both parts
       expect(container.textContent).toContain("Minimal");
       expect(container.textContent).toContain("User");
     });
@@ -350,7 +315,6 @@ describe("Template Component Tests", () => {
         MinimalistEditorial,
         fullResumeContent,
       );
-      // Template splits name, so check for parts instead of exact match
       expect(container.textContent).toContain("John");
       expect(container.textContent).toContain("Alexander");
       expect(container.textContent).toContain("Doe");
@@ -358,9 +322,6 @@ describe("Template Component Tests", () => {
     });
   });
 
-  // ============================================================================
-  // NeoBrutalist Tests
-  // ============================================================================
   describe("NeoBrutalist Template", () => {
     test("1. Template renders without error with mock resume data", () => {
       const { container } = testTemplate("NeoBrutalist", NeoBrutalist, fullResumeContent);
@@ -420,9 +381,6 @@ describe("Template Component Tests", () => {
     });
   });
 
-  // ============================================================================
-  // GlassMorphic Tests
-  // ============================================================================
   describe("GlassMorphic Template", () => {
     test("1. Template renders without error with mock resume data", () => {
       const { container } = testTemplate("GlassMorphic", GlassMorphic, fullResumeContent);
@@ -451,9 +409,6 @@ describe("Template Component Tests", () => {
     });
   });
 
-  // ============================================================================
-  // BentoGrid Tests
-  // ============================================================================
   describe("BentoGrid Template", () => {
     test("1. Template renders without error with mock resume data", () => {
       const { container } = testTemplate("BentoGrid", BentoGrid, fullResumeContent);
@@ -482,9 +437,6 @@ describe("Template Component Tests", () => {
     });
   });
 
-  // ============================================================================
-  // ClassicATS Tests
-  // ============================================================================
   describe("ClassicATS Template", () => {
     test("1. Template renders without error with mock resume data", () => {
       const { container } = testTemplate("ClassicATS", ClassicATS, fullResumeContent);
@@ -513,9 +465,6 @@ describe("Template Component Tests", () => {
     });
   });
 
-  // ============================================================================
-  // DevTerminal Tests
-  // ============================================================================
   describe("DevTerminal Template", () => {
     test("1. Template renders without error with mock resume data", () => {
       const { container } = testTemplate("DevTerminal", DevTerminal, fullResumeContent);
@@ -544,9 +493,6 @@ describe("Template Component Tests", () => {
     });
   });
 
-  // ============================================================================
-  // DesignFolio (Premium) Tests
-  // ============================================================================
   describe("DesignFolio Template (Premium)", () => {
     test("1. Template renders without error with mock resume data", () => {
       const { container } = testTemplate("DesignFolio", DesignFolio, fullResumeContent);
@@ -577,9 +523,6 @@ describe("Template Component Tests", () => {
     });
   });
 
-  // ============================================================================
-  // Spotlight (Premium) Tests
-  // ============================================================================
   describe("Spotlight Template (Premium)", () => {
     test("1. Template renders without error with mock resume data", () => {
       const { container } = testTemplate("Spotlight", Spotlight, fullResumeContent);
@@ -608,9 +551,6 @@ describe("Template Component Tests", () => {
     });
   });
 
-  // ============================================================================
-  // Midnight (Premium) Tests
-  // ============================================================================
   describe("Midnight Template (Premium)", () => {
     test("1. Template renders without error with mock resume data", () => {
       const { container } = testTemplate("Midnight", Midnight, fullResumeContent);
@@ -641,9 +581,6 @@ describe("Template Component Tests", () => {
     });
   });
 
-  // ============================================================================
-  // BoldCorporate (Premium) Tests
-  // ============================================================================
   describe("BoldCorporate Template (Premium)", () => {
     test("1. Template renders without error with mock resume data", () => {
       const { container } = testTemplate("BoldCorporate", BoldCorporate, fullResumeContent);
@@ -674,12 +611,8 @@ describe("Template Component Tests", () => {
     });
   });
 
-  // ============================================================================
-  // Template Switching Tests
-  // ============================================================================
   describe("Template Switching", () => {
     test("10. Template switching works correctly", () => {
-      // Test that different templates render different content
       const { container: minimalist } = render(
         <MinimalistEditorial content={fullResumeContent} profile={mockProfile} />,
       );
@@ -687,7 +620,6 @@ describe("Template Component Tests", () => {
         <NeoBrutalist content={fullResumeContent} profile={mockProfile} />,
       );
 
-      // Templates should have different HTML structure
       expect(minimalist.innerHTML).not.toEqual(neoBrutalist.innerHTML);
     });
 
@@ -710,7 +642,6 @@ describe("Template Component Tests", () => {
           <Component content={fullResumeContent} profile={mockProfile} />,
         );
         expect(container).toBeTruthy();
-        // Check for name parts since Minimalist splits names
         expect(container.textContent).toContain("John");
         expect(container.textContent).toContain("Doe");
       }

@@ -13,9 +13,7 @@ export default defineConfig({
     setupFiles: sharedSetupFiles,
     include: ["**/__tests__/**/*.test.{ts,tsx}"],
     exclude: sharedExclude,
-    // Retry flaky tests twice before failing
     retry: 2,
-    // Parallel test execution - uses threads by default in vitest v4
     pool: "threads",
     coverage: {
       provider: sharedCoverageProvider,
@@ -27,7 +25,7 @@ export default defineConfig({
         "**/*.test.{ts,tsx}",
         "**/node_modules/**",
         "**/__tests__/**",
-        "worker/**/*", // Worker entry point (hard to test)
+        "worker/**/*",
         "lib/stubs/**",
         "lib/db/migrations/**",
       ],

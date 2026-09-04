@@ -1,16 +1,5 @@
-/**
- * Pure data module for theme IDs, metadata, and type guards.
- *
- * ZERO component imports — safe for API routes, client components, and anywhere
- * that should not pull in template component bundles.
- *
- * Imports only from lib/templates/share-variants.ts, which is likewise a
- * pure-data module.
- */
-
 import type { SharePopoverVariant } from "@/lib/templates/share-variants";
 
-/** Registry of all available theme IDs. */
 export const THEME_IDS = [
   "bento",
   "bold_corporate",
@@ -24,24 +13,15 @@ export const THEME_IDS = [
   "spotlight",
 ] as const;
 
-/** Union type of all valid theme IDs. */
 export type ThemeId = (typeof THEME_IDS)[number];
 
-/** Default theme ID used when none is selected or an invalid ID is provided. */
 export const DEFAULT_THEME: ThemeId = "minimalist_editorial";
 
-/**
- * Type guard to check if a string is a valid ThemeId
- */
 export function isValidThemeId(id: string): id is ThemeId {
   // SAFETY: ThemeId is a string union; widening THEME_IDS to readonly string[] is safe for includes check — runtime validation via isValidThemeId guarantees id is ThemeId when true.
   return (THEME_IDS as readonly string[]).includes(id);
 }
 
-/**
- * Theme metadata for UI display
- * All themes are free.
- */
 export const THEME_METADATA = {
   bento: {
     name: "Bento Grid",
@@ -113,9 +93,6 @@ export const THEME_METADATA = {
   }
 >;
 
-/**
- * Map database theme IDs (underscore) to share popover variants (kebab-case).
- */
 export const themeToShareVariant = {
   minimalist_editorial: "minimalist-editorial",
   neo_brutalist: "neo-brutalist",

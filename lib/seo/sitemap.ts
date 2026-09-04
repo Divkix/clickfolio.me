@@ -1,11 +1,3 @@
-/**
- * Sitemap generation and sharding for SEO.
- *
- * Splits URLs across multiple sitemap files to stay within Google's 50,000 URL
- * per sitemap limit. Shard 0 includes static pages; all shards include public
- * profile handles. Uses a sitemap index to list all shard files.
- */
-
 import { env } from "cloudflare:workers";
 import { and, isNotNull, or, sql } from "drizzle-orm";
 import type { MetadataRoute } from "next";
@@ -18,32 +10,17 @@ import { getPublicSiteUrl } from "@/lib/utils/site-url";
 import { escapeXml } from "@/lib/utils/xml";
 const SITEMAP_XMLNS = "http://www.sitemaps.org/schemas/sitemap/0.9";
 
-/**
- * Filter condition for users who haven't opted out of search indexing.
- * Checks the hide_from_search field of the privacySettings JSONB column.
- */
 const notHiddenFromSearch = or(
   sql`${user.privacySettings}->>'hide_from_search' IS NULL`,
   sql`${user.privacySettings}->>'hide_from_search' = 'false'`,
 );
 
-export const URLS_PER_SITEMAP = 50000; // Google's limit
+export const URLS_PER_SITEMAP = 50000;
 const BASE_STATIC_SITEMAP_ENTRY_COUNT = 7;
 
-/** Total number of static entries (homepage, legal, blog, professions, etc.). */
 export const STATIC_SITEMAP_ENTRY_COUNT =
   BASE_STATIC_SITEMAP_ENTRY_COUNT + PROFESSIONS.length + BLOG_POSTS.length;
 
-/**
- * Calculates the number of sitemap shards needed.
- *
- * Combines STATIC_SITEMAP_ENTRY_COUNT with the total indexable user count,
- * then divides by URLS_PER_SITEMAP (50,000) and rounds up. Always returns
- * at least 1 shard.
- *
- * @param indexableUserCount - Total users with public profiles
- * @returns Number of sitemap shards required
- */
 export function getSitemapShardCount(indexableUserCount: number): number {
   const safeUserCount = Math.max(0, indexableUserCount);
   return Math.max(1, Math.ceil((STATIC_SITEMAP_ENTRY_COUNT + safeUserCount) / URLS_PER_SITEMAP));
@@ -131,10 +108,6 @@ function buildStaticSitemapEntries(baseUrl: string): MetadataRoute.Sitemap {
   return entries;
 }
 
-/**
- * Build sitemap entries for a specific shard ID.
- * ID 0 includes static pages; all IDs include public handles.
- */
 export async function generateSitemapEntries(id: number): Promise<MetadataRoute.Sitemap> {
   if (!Number.isInteger(id) || id < 0) {
     return [];
@@ -168,11 +141,8 @@ export async function generateSitemapEntries(id: number): Promise<MetadataRoute.
     for (const entry of users) {
       if (!entry.handle) continue;
 
-      // Use lastPublishedAt for accuracy — this only changes when content is
-      // explicitly published, not on privacy/theme/demo-data changes.
       const lastModified = entry.lastPublishedAt || entry.siteUpdatedAt || entry.userUpdatedAt;
 
-      // Fresh profiles (published in last 7 days) get daily crawl priority
       const publishDate = entry.lastPublishedAt ? new Date(entry.lastPublishedAt) : null;
       const isRecent = publishDate && Date.now() - publishDate.getTime() < 7 * 24 * 60 * 60 * 1000;
 
@@ -190,9 +160,6 @@ export async function generateSitemapEntries(id: number): Promise<MetadataRoute.
   return entries;
 }
 
-/**
- * Count total indexable users (have a handle, not hidden from search).
- */
 export async function getTotalIndexableUserCount(): Promise<number> {
   const db = getDb(env.HYPERDRIVE);
   const result = await db
@@ -202,9 +169,6 @@ export async function getTotalIndexableUserCount(): Promise<number> {
   return result[0]?.count ?? 0;
 }
 
-/**
- * Build a sitemap index XML string for the given number of shards.
- */
 export function buildSitemapIndexXml(shardCount: number): string {
   const baseUrl = getPublicSiteUrl();
   const sitemaps = Array.from({ length: shardCount }, (_, i) =>
@@ -229,15 +193,6 @@ function formatLastModified(
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
-/**
- * Builds a complete sitemap XML document from an array of entries.
- *
- * Escapes all text content and includes optional lastmod, changefreq,
- * and priority elements per entry.
- *
- * @param entries - Array of sitemap entries
- * @returns Full XML string with urlset root
- */
 export function buildSitemapXml(entries: MetadataRoute.Sitemap): string {
   const urls = entries
     .map((entry) => {

@@ -13,15 +13,10 @@ import { lastNUtcDays } from "@/lib/utils/date-axis";
 import { formatRelativeTime } from "@/lib/utils/format";
 export const dynamic = "force-dynamic";
 
-/** Metadata for the admin overview page — disallows search indexing. */
 export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-/**
- * Aggregates database and Umami analytics into admin dashboard stats.
- * Umami failures are handled gracefully so the page never crashes.
- */
 async function getAdminStats() {
   const db = getDb(env.HYPERDRIVE);
 
@@ -29,7 +24,6 @@ async function getAdminStats() {
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-  // Database queries and Umami calls separated so Umami outage doesn't crash the whole page
   const [userCount, siteDataCount, resumeStats, recentSignups] = await Promise.all([
     db.select({ count: count() }).from(user),
     db.select({ count: count() }).from(siteData),
@@ -47,7 +41,6 @@ async function getAdminStats() {
       .limit(10),
   ]);
 
-  // Umami calls with graceful fallback — analytics unavailability should not break admin
   let umamiStats: Awaited<ReturnType<typeof getStats>> | null = null;
   let umamiPageviews: Awaited<ReturnType<typeof getPageviews>> | null = null;
   try {
@@ -73,7 +66,6 @@ async function getAdminStats() {
     {} as Record<string, number>,
   );
 
-  // Fill missing dates from Umami pageviews (fallback to zeros if Umami unavailable)
   const umamiMap = new Map(umamiPageviews?.pageviews.map((p) => [p.x.slice(0, 10), p.y]) ?? []);
   const filledDaily: Array<{ date: string; views: number }> = lastNUtcDays(7).map((date) => ({
     date,
@@ -97,7 +89,6 @@ export default async function AdminOverviewPage() {
 
   return (
     <div className="space-y-6">
-      {/* Stat Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           title="Total Users"
@@ -130,7 +121,6 @@ export default async function AdminOverviewPage() {
         />
       </div>
 
-      {/* Failed Resumes Alert */}
       {stats.failedResumes > 0 && (
         <Link
           href="/admin/resumes?status=failed"
@@ -151,7 +141,6 @@ export default async function AdminOverviewPage() {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Signups */}
         <div className="bg-card rounded-xl shadow-sm border border-border p-6">
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
             Recent Signups
@@ -184,7 +173,6 @@ export default async function AdminOverviewPage() {
           </div>
         </div>
 
-        {/* Views Sparkline */}
         <div className="bg-card rounded-xl shadow-sm border border-border p-6">
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
             Views (Last 7 Days)

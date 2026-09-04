@@ -1,13 +1,7 @@
-/**
- * User rate limiting unit tests
- * Tests for lib/rate-limit/user.ts
- */
-
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { createMockDb } from "@/__tests__/setup/mocks/db.mock";
 import { checkRateLimit, enforceRateLimit } from "@/lib/rate-limit/user";
 
-// Mock dependencies
 vi.mock("cloudflare:workers", () => ({
   env: { HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" } },
 }));
@@ -132,8 +126,6 @@ describe("checkRateLimit - resume_upload", () => {
   });
 
   it("respects custom rate limit from environment", async () => {
-    // Use the actual rate limit value in the RATE_LIMITS constant
-    // We test with count=4 against default limit=5, expecting allowed=true and remaining=1
     mockDb.select.mockReturnValue({
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue([{ count: 4 }]),
@@ -306,7 +298,7 @@ describe("enforceRateLimit - Environment Variable Override", () => {
     const result = await enforceRateLimit("user-001", "handle_change");
 
     expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining("DISABLE_RATE_LIMITS ignored"));
-    expect(result).toBeNull(); // Allowed because count is 0, not because of bypass
+    expect(result).toBeNull();
 
     consoleSpy.mockRestore();
   });
@@ -337,7 +329,6 @@ describe("checkRateLimit - concurrent request handling", () => {
       checkRateLimit("user-001", "handle_change"),
     ]);
 
-    // All should resolve without error
     expect(results).toHaveLength(3);
     results.forEach((r) => {
       expect(r).toHaveProperty("allowed");
@@ -366,7 +357,6 @@ describe("checkRateLimit - different user isolation", () => {
     const result1 = await checkRateLimit("user-001", "handle_change");
     const result2 = await checkRateLimit("user-002", "handle_change");
 
-    // Both have same count but are independent users
     expect(result1.remaining).toBe(1);
     expect(result2.remaining).toBe(1);
   });
@@ -419,7 +409,6 @@ describe("enforceRateLimit - bypass attempts", () => {
       }),
     } as never);
 
-    // Try to call with same user ID that has exceeded limit
     const result = await enforceRateLimit("user-001", "handle_change");
 
     expect(result).toBeInstanceOf(Response);

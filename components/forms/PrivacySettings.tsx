@@ -116,7 +116,6 @@ export function PrivacySettingsForm({ initialSettings }: PrivacySettingsFormProp
   };
 
   const handleToggleChange = async (field: keyof PrivacySettings, value: boolean) => {
-    // Optimistic update
     setValue(field, value, { shouldValidate: true });
     setSavingField(field);
 
@@ -129,8 +128,6 @@ export function PrivacySettingsForm({ initialSettings }: PrivacySettingsFormProp
 
     const saved = await onSubmit(newSettings);
 
-    // Roll back the optimistic update when the save failed, so the toggle
-    // reflects the server state instead of a stale optimistic value.
     if (!saved) {
       setValue(field, !value, { shouldValidate: true });
     }
@@ -151,7 +148,6 @@ export function PrivacySettingsForm({ initialSettings }: PrivacySettingsFormProp
         )}
       </div>
 
-      {/* Compact toggle grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
         <ToggleCard
           icon={Phone}
@@ -188,7 +184,6 @@ export function PrivacySettingsForm({ initialSettings }: PrivacySettingsFormProp
         />
       </div>
 
-      {/* Inline status badges */}
       <div className="flex flex-wrap gap-2 text-xs">
         <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-secondary text-secondary-foreground">
           Email: <span className="font-medium">Always visible</span>

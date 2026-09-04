@@ -1,10 +1,3 @@
-/**
- * Test setup file for vitest
- *
- * This creates a proper localStorage mock since some Node.js runtimes
- * may interfere with jsdom's browser globals.
- */
-
 import * as matchers from "@testing-library/jest-dom/matchers";
 import { afterEach, beforeEach, expect, vi } from "vite-plus/test";
 import { clearKeyCache } from "@/lib/utils/pending-upload-cookie";
@@ -25,10 +18,8 @@ vi.mock("posthog-node", () => ({
   }),
 }));
 
-// Add jest-dom matchers
 expect.extend(matchers);
 
-// Create a proper localStorage mock
 const createLocalStorageMock = () => {
   let store: Record<string, string> = {};
 
@@ -55,7 +46,6 @@ const createLocalStorageMock = () => {
   };
 };
 
-// Set up localStorage mock before tests
 const localStorageMock = createLocalStorageMock();
 Object.defineProperty(globalThis, "localStorage", {
   value: localStorageMock,
@@ -63,7 +53,6 @@ Object.defineProperty(globalThis, "localStorage", {
   configurable: true,
 });
 
-// Set up crypto.subtle mock for jsdom environment
 const subtleMock = {
   digest: mockDigest,
   importKey: mockImportKey,
@@ -81,10 +70,6 @@ Object.defineProperty(globalThis, "crypto", {
   configurable: true,
 });
 
-// jsdom does not implement ResizeObserver — provide a minimal mock so
-// chart components (AnalyticsCard, AdminSparkline, AdminTrafficChart) do
-// not throw `ReferenceError: ResizeObserver is not defined` in tests.
-// Per-file tests may still override this with a width-specific mock.
 if (typeof globalThis.ResizeObserver === "undefined") {
   globalThis.ResizeObserver = class {
     callback: ResizeObserverCallback;
@@ -102,7 +87,6 @@ if (typeof globalThis.ResizeObserver === "undefined") {
   } as unknown as typeof ResizeObserver;
 }
 
-// Clear mocks and storage before each test
 beforeEach(() => {
   localStorageMock.clear();
   mockDigest.mockClear();

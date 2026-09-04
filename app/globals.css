@@ -7,12 +7,6 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   CLICKFOLIO DESIGN SYSTEM — "Bold Disciplined Color"
-   One refined coral carries the identity; the layout stays calm.
-   Two registers: marketing can be bold, app surfaces stay restrained.
-   ═══════════════════════════════════════════════════════════════════════════ */
-
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -61,20 +55,15 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  /* Brand scale — the single identity color */
   --color-brand: var(--brand);
   --color-brand-hover: var(--brand-hover);
   --color-brand-active: var(--brand-active);
   --color-brand-subtle: var(--brand-subtle);
   --color-brand-foreground: var(--brand-foreground);
 
-  /* Resume template accent tokens.
-     Used only by self-contained templates in components/templates/, which
-     render their own palettes outside the app's calm/marketing registers. */
   --color-coral: var(--brand);
   --color-lavender: var(--chart-4);
 
-  /* Soft elevation scale — replaces solid offset brutalist shadows */
   --shadow-2xs: 0 1px 2px oklch(0% 0 0 / 0.04);
   --shadow-xs: 0 1px 2px oklch(0% 0 0 / 0.06);
   --shadow-sm: 0 1px 2px oklch(0% 0 0 / 0.06), 0 1px 3px oklch(0% 0 0 / 0.08);
@@ -82,14 +71,13 @@
   --shadow-lg: 0 12px 32px -8px oklch(0% 0 0 / 0.14);
   --shadow-xl: 0 24px 56px -12px oklch(0% 0 0 / 0.18);
 
-  /* Typography */
   --font-sans: "Hanken Grotesk Variable", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Bricolage Grotesque Variable", var(--font-sans);
   --font-mono: "JetBrains Mono Variable", ui-monospace, "SF Mono", monospace;
 }
 
 :root {
-  --radius: 0.625rem; /* 10px base */
+  --radius: 0.625rem;
 
   --background: oklch(98.6% 0.002 67.8);
   --foreground: oklch(21.8% 0.004 84.6);
@@ -128,7 +116,6 @@
   --input: oklch(86.8% 0.008 80.7);
   --ring: oklch(61.2% 0.194 30.2);
 
-  /* Data-viz only — accents demoted out of UI chrome */
   --chart-1: oklch(61.2% 0.194 30.2);
   --chart-2: oklch(72.4% 0.153 71.5);
   --chart-3: oklch(66.1% 0.11 185.6);
@@ -199,10 +186,6 @@
   --sidebar-ring: oklch(71% 0.159 32.4);
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   MOTION — subtle, state-conveying, reduced-motion aware
-   ═══════════════════════════════════════════════════════════════════════════ */
-
 @keyframes fade-in-up {
   from {
     opacity: 0;
@@ -218,7 +201,6 @@
   animation: fade-in-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-/* Staggered animation delay */
 .delay-100 {
   animation-delay: 100ms;
 }
@@ -228,10 +210,6 @@
     animation: none;
   }
 }
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   TEMPLATE UTILITIES — used by resume templates (bento, terminal, etc.)
-   ═══════════════════════════════════════════════════════════════════════════ */
 
 .no-scrollbar {
   -ms-overflow-style: none;
@@ -244,10 +222,6 @@
 .mask-image-b {
   mask-image: linear-gradient(to bottom, #000 72%, transparent 100%);
 }
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   BASE STYLES
-   ═══════════════════════════════════════════════════════════════════════════ */
 
 @layer base {
   * {
@@ -269,10 +243,6 @@
     text-wrap: pretty;
   }
 }
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   PRINT STYLES
-   ═══════════════════════════════════════════════════════════════════════════ */
 
 @media print {
   [class*="animate-"] {

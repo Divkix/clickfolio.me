@@ -445,8 +445,6 @@ describe("server rendered app pages", () => {
         },
       ],
     ];
-    // A non-numeric page must parse to 1: no "NaN" in any pagination link and
-    // the offset stays (1-1)*12 = 0 (a NaN offset would make the query a no-op).
     render(await ExplorePage({ searchParams: Promise.resolve({ page: "abc" }) }));
     expect(screen.getByText("Avery Quinn")).toBeInTheDocument();
     expect(screen.queryByText("Previous")).not.toBeInTheDocument();

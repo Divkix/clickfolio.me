@@ -8,20 +8,6 @@ import { user as userTable } from "@/lib/db/schema";
 import { CLERK_SESSION_COOKIE } from "@/lib/auth/clerk";
 import { requireAuthWithMessage, requireAuthWithUserValidation } from "@/lib/auth/middleware";
 
-/**
- * Authentication Middleware Security Tests
- *
- * Clerk-backed contracts (lib/auth/clerk.ts → lib/auth/middleware.ts):
- * - The Clerk session JWT travels in the `__session` cookie; the `__client`
- *   device cookie exists even signed out and must never authenticate.
- * - `verifyToken()` from @clerk/backend validates signature + expiry against
- *   Clerk's JWKS; any verification failure is treated as unauthenticated.
- * - A verified JWT `sub` must map to a local Postgres row via
- *   `user.clerk_id`, otherwise the account is unknown (404).
- */
-
-// ── Mocks ────────────────────────────────────────────────────────────
-
 const mockVerifyToken = vi.mocked(verifyToken);
 const mockCookies = vi.mocked(cookies);
 const mockGetDb = vi.mocked(getDb);
@@ -53,9 +39,6 @@ interface MockDb {
   where: ReturnType<typeof vi.fn>;
 }
 
-// Chainable Drizzle select mock: .select().from().where().limit() resolving
-// configured rows. Real drizzle-orm eq() runs — conditions are inspected
-// below with PgDialect.sqlToQuery.
 function createMockDb(): MockDb {
   const limit = vi.fn();
   const where = vi.fn(() => ({ limit }));
@@ -73,7 +56,6 @@ function createMockDb(): MockDb {
 
 let mockDb: MockDb;
 
-/** The `__session` cookie value handed to next/headers (undefined = no cookie). */
 let sessionCookieValue: string | undefined;
 
 beforeEach(() => {
@@ -90,7 +72,6 @@ beforeEach(() => {
           if (name === CLERK_SESSION_COOKIE && sessionCookieValue !== undefined) {
             return { name, value: sessionCookieValue };
           }
-          // The __client device cookie is always present in real browsers.
           if (name === "__client") {
             return { name, value: "uat_client_token" };
           }
@@ -99,7 +80,6 @@ beforeEach(() => {
       }) as never,
   );
 
-  // Default verified-claims behavior: valid payload for an imported user.
   mockVerifyToken.mockResolvedValue({
     sub: "user_2clerkAbc",
     sid: "sess_2xyz",
@@ -108,7 +88,6 @@ beforeEach(() => {
   } as never);
 });
 
-/** Full Postgres row shape returned by the select projection in clerk.ts. */
 function pgRow(overrides: Partial<Record<string, unknown>> = {}) {
   return {
     id: "legacy-user-1",
@@ -124,8 +103,6 @@ function pgRow(overrides: Partial<Record<string, unknown>> = {}) {
   };
 }
 
-// ── Test Suite ──────────────────────────────────────────────────────
-
 describe("Authentication Middleware Security", () => {
   describe("requireAuthWithMessage", () => {
     it("returns 401 when no __session cookie exists", async () => {
@@ -135,7 +112,6 @@ describe("Authentication Middleware Security", () => {
 
       expect(result.error?.status).toBe(401);
       expect(result.user).toBeNull();
-      // Fail fast: no JWT verification and no DB round-trip attempted.
       expect(mockVerifyToken).not.toHaveBeenCalled();
       expect(mockDb.select).not.toHaveBeenCalled();
     });
@@ -230,10 +206,8 @@ describe("Authentication Middleware Security", () => {
 
       await requireAuthWithUserValidation("You must be logged in");
 
-      // Row lookup targets the user table…
       expect(mockDb.from).toHaveBeenCalledWith(userTable);
 
-      // …filtered on its clerk_id mapping of the verified sub.
       const condition = mockDb.where.mock.calls[0]?.[0];
       expect(condition).toBeDefined();
       const { sql, params } = new PgDialect().sqlToQuery(condition);
@@ -248,8 +222,6 @@ describe("Authentication Middleware Security", () => {
 
       const result = await requireAuthWithUserValidation("You must be logged in");
 
-      // Unlike the previous cookie-signing scheme, a failed signature can
-      // never succeed via the database — fail closed.
       expect(result.error?.status).toBe(401);
       expect(mockDb.select).not.toHaveBeenCalled();
     });
@@ -301,7 +273,6 @@ describe("Authentication Middleware Security", () => {
       } as never);
       const second = await requireAuthWithMessage("You must be logged in");
 
-      // Each sign-in rotates the JWT (new sid); both resolve to the same row.
       expect(first.error).toBeNull();
       expect(second.error).toBeNull();
       expect(second.user?.id).toBe(first.user?.id);
@@ -336,7 +307,6 @@ describe("Authentication Middleware Security", () => {
 
   describe("Authentication Bypass Prevention", () => {
     it("rejects requests carrying only the __client device cookie", async () => {
-      // __client exists even when signed out — it must never authenticate.
       sessionCookieValue = undefined;
 
       const result = await requireAuthWithMessage("You must be logged in");
@@ -383,8 +353,6 @@ describe("Authentication Middleware Security", () => {
     });
 
     it("rejects verified payloads without a sub claim", async () => {
-      // A token that cryptographically verifies but carries no subject is not
-      // a usable identity.
       sessionCookieValue = "unsigned-subjectless-token";
       mockVerifyToken.mockResolvedValue({} as never);
 
@@ -403,8 +371,6 @@ describe("Authentication Middleware Security", () => {
 
         const result = await requireAuthWithMessage("You must be logged in");
 
-        // Missing secret throws inside verification; getAuthClerk swallows to
-        // null so callers see a uniform 401 rather than a leak or a crash.
         expect(result.error?.status).toBe(401);
         expect(result.user).toBeNull();
       } finally {
@@ -416,7 +382,6 @@ describe("Authentication Middleware Security", () => {
       sessionCookieValue = "signed-clerk-jwt-value";
       mockDb.setQueryError(new Error("Database connection lost"));
 
-      // No silent success: an unverifiable identity state never resolves.
       await expect(requireAuthWithUserValidation("You must be logged in")).rejects.toThrow(
         "Database connection lost",
       );
@@ -425,7 +390,6 @@ describe("Authentication Middleware Security", () => {
 
   describe("Defense in Depth", () => {
     it("still requires a live local row even when the JWT verifies", async () => {
-      // User was deleted after the browser obtained this still-valid JWT.
       sessionCookieValue = "signed-clerk-jwt-value";
       mockDb.setRows([]);
 
@@ -440,8 +404,6 @@ describe("Authentication Middleware Security", () => {
 
       const result = await requireAuthWithMessage("You must be logged in");
 
-      // The single-row lookup keyed on clerk_id returns exactly the mapped
-      // owner; whatever the mock returns IS the authenticated identity.
       expect(result.error).toBeNull();
       expect(result.user?.id).toBe("other-user-row");
       expect(mockDb.where).toHaveBeenCalledTimes(1);

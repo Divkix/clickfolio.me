@@ -1,16 +1,3 @@
-/**
- * Registry-sync guard tests
- *
- * Verifies at runtime that every surface that must cover all ThemeIds
- * actually does so. TypeScript's Record<ThemeId, …> types already enforce
- * this at compile time; these tests catch any future drift where someone
- * uses a weaker type or bypasses the type system.
- *
- * Note: theme-registry.client.tsx uses next/dynamic and cannot be imported
- * in the Node.js test environment. Its Record<ThemeId, …> annotation is
- * sufficient compile-time coverage.
- */
-
 import { describe, expect, it } from "vite-plus/test";
 import { SHARE_VARIANT_KEYS } from "@/lib/templates/share-variants";
 import { THEME_IDS, THEME_METADATA, themeToShareVariant } from "@/lib/templates/theme-ids";
@@ -52,16 +39,12 @@ describe("Registry sync guard", () => {
   it("THEME_METADATA and themeToShareVariant have the same key set (cross-check)", () => {
     const metadataKeys = Object.keys(THEME_METADATA).sort();
     const variantKeys = Object.keys(themeToShareVariant).sort();
-    // Both maps must be keyed by exactly the same set of ids.
-    // If they diverge, one registry surface was updated and the other was not.
     expect(metadataKeys).toEqual(variantKeys);
   });
 
   it("themeToShareVariant values match SHARE_VARIANT_KEYS exactly (cross-check)", () => {
     const mapped = Object.values(themeToShareVariant).sort();
     const keys = [...SHARE_VARIANT_KEYS].sort();
-    // Every kebab-case share variant must come from the single shared key
-    // list; if they diverge, a theme was added without updating both files.
     expect(mapped).toEqual(keys);
   });
 });

@@ -20,34 +20,24 @@ const MILESTONES: MilestoneConfig[] = [
 ];
 
 interface MilestoneToastsProps {
-  /** Total page views count */
   totalViews: number;
 }
 
-/**
- * Client component that shows milestone celebration toasts
- *
- * Uses localStorage to track which milestones have been shown to prevent re-triggering.
- * Only shows one toast per milestone, per user, ever.
- */
 export function MilestoneToasts({ totalViews }: MilestoneToastsProps) {
   const hasChecked = useRef(false);
 
   useEffect(() => {
-    // Only check once per mount
     if (hasChecked.current) return;
     hasChecked.current = true;
 
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
-    // Check each milestone
     for (const milestone of MILESTONES) {
       if (totalViews >= milestone.threshold) {
         const storageKey = `${MILESTONE_PREFIX}${milestone.key}`;
         const alreadyShown = localStorage.getItem(storageKey);
 
         if (!alreadyShown) {
-          // Show toast with slight delay to let dashboard render first
           timeoutId = setTimeout(() => {
             toast.success(milestone.message, {
               duration: 5000,
@@ -55,7 +45,6 @@ export function MilestoneToasts({ totalViews }: MilestoneToastsProps) {
             localStorage.setItem(storageKey, "true");
           }, 1000);
 
-          // Only show one milestone per page load
           break;
         }
       }
@@ -66,7 +55,6 @@ export function MilestoneToasts({ totalViews }: MilestoneToastsProps) {
     };
   }, [totalViews]);
 
-  // This component renders nothing - it's purely for side effects
   return null;
 }
 

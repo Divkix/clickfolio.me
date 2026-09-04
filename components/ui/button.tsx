@@ -51,8 +51,6 @@ function Button({
   }) {
   const Comp = asChild ? Slot : "button";
 
-  // Slot requires a single child element; only decorate the loading spinner
-  // for real <button> usage to avoid breaking asChild composition.
   if (asChild) {
     return (
       <Comp

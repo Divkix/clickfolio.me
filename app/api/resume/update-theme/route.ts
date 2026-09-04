@@ -15,28 +15,12 @@ interface ThemeUpdateRequestBody {
   theme_id?: string;
 }
 
-/**
- * POST /api/resume/update-theme
- * Updates the theme for a user's resume.
- *
- * Request body:
- *   { theme_id: string }
- *
- * Validation:
- *   - theme_id must be a valid entry in THEME_IDS
- *
- * Error codes:
- *   - 400: missing or invalid theme_id
- *   - 404: site_data not found (resume not uploaded yet)
- *   - 500: unexpected error
- */
 export async function POST(request: Request) {
   return withUser(
     request,
     async ({ user: authUser, db }) => {
       const userId = authUser.id;
 
-      // Validate request size before parsing (prevent DoS)
       const sizeCheck = validateRequestSize(request);
       if (!sizeCheck.valid) {
         return createErrorResponse(
@@ -46,7 +30,6 @@ export async function POST(request: Request) {
         );
       }
 
-      // Parse request body (size-capped read, no trust in Content-Length)
       const rawBodyResult = await readJsonWithLimit(request);
       if (!rawBodyResult.ok) {
         return createErrorResponse(
@@ -59,7 +42,6 @@ export async function POST(request: Request) {
       const body = rawBodyResult.data as ThemeUpdateRequestBody;
       const { theme_id } = body;
 
-      // Validate theme_id
       if (!theme_id || !z.string().safeParse(theme_id).success) {
         return createErrorResponse(
           "theme_id is required and must be a string",
@@ -74,11 +56,8 @@ export async function POST(request: Request) {
         });
       }
 
-      // SAFETY: isValidThemeId guard above guarantees id is ThemeId.
-
       const now = new Date().toISOString();
 
-      // Update site_data theme_id
       const updateResult = await db
         .update(siteData)
         .set({
@@ -89,7 +68,6 @@ export async function POST(request: Request) {
         .returning({ themeId: siteData.themeId });
 
       if (updateResult.length === 0) {
-        // No rows updated - site_data doesn't exist yet
         return createErrorResponse(
           "Resume data not found. Please upload a resume first.",
           ERROR_CODES.NOT_FOUND,

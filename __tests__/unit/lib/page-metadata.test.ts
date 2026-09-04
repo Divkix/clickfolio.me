@@ -71,7 +71,6 @@ describe("public page social metadata", () => {
   });
 
   it("keeps About and Blog titles specific, with complete share tags", () => {
-    // Document title must not include the brand — root template is `%s | clickfolio.me`.
     expect(String(aboutMetadata.title)).not.toMatch(/clickfolio\.me/i);
     expect(String(aboutMetadata.title)).toMatch(/from PDF resume to hosted portfolio/i);
     expect(String(aboutMetadata.title)).not.toBe("About");

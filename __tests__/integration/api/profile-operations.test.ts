@@ -1,17 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { JsonValue } from "@/lib/types/json";
 
-/**
- * Integration tests for Profile API operations (Phase 3, Section 3.5)
- *
- * Tests all profile API endpoints with authentication,
- * validation, and error handling scenarios.
- *
- * Total: 20 tests
- */
-
-// ── Mocks ────────────────────────────────────────────────────────────
-
 vi.mock("@/lib/auth/middleware", () => ({
   requireAuthWithUserValidation: vi.fn(),
   requireAuthWithMessage: vi.fn(),
@@ -108,14 +97,11 @@ vi.mock("@/lib/db/schema", () => ({
   },
 }));
 
-// ── Setup ───────────────────────────────────────────────────────────
-
 import { requireAuthWithMessage, requireAuthWithUserValidation } from "@/lib/auth/middleware";
 
 const mockedAuth = vi.mocked(requireAuthWithUserValidation);
 const mockedAuthMessage = vi.mocked(requireAuthWithMessage);
 
-// DB mock helpers
 const mockFindFirst = vi.fn();
 const mockSelect = vi.fn();
 const mockFrom = vi.fn();
@@ -130,7 +116,6 @@ const mockUpdateWhere = vi.fn();
 const mockReturning = vi.fn();
 const mockTransaction = vi.fn();
 
-// Build chainable mock
 mockSelect.mockReturnValue({ from: mockFrom });
 mockFrom.mockReturnValue({ where: mockWhere });
 mockWhere.mockReturnValue({ orderBy: mockOrderBy, limit: mockLimit });
@@ -140,11 +125,9 @@ mockLimit.mockResolvedValue([]);
 mockInsert.mockReturnValue({ values: mockInsertValues });
 mockInsertValues.mockResolvedValue(undefined);
 
-// Fix: The profile role route uses update().set().where() WITHOUT returning()
-// So mockUpdateWhere should resolve directly, not return a returning() chain
 mockUpdate.mockReturnValue({ set: mockUpdateSet });
 mockUpdateSet.mockReturnValue({ where: mockUpdateWhere });
-mockUpdateWhere.mockResolvedValue(undefined); // No returning() used
+mockUpdateWhere.mockResolvedValue(undefined);
 
 mockTransaction.mockImplementation(async (cb: (tx: typeof mockDb) => unknown) => cb(mockDb));
 
@@ -252,23 +235,16 @@ function makeRequest(url: string, method = "GET", body?: JsonValue): Request {
   return new Request(url, init);
 }
 
-// ── Test Suite ─────────────────────────────────────────────────────
-
 beforeEach(() => {
   vi.clearAllMocks();
   mockFindFirst.mockReset();
   mockLimit.mockReset().mockResolvedValue([]);
 
-  // Reset update chain for profile routes (no returning() used)
   mockUpdateWhere.mockResolvedValue(undefined);
   mockUpdateSet.mockReturnValue({ where: mockUpdateWhere });
 });
 
 describe("Profile API Integration Tests (20 tests)", () => {
-  // ─────────────────────────────────────────────────────────────────
-  // GET /api/profile/me
-  // ─────────────────────────────────────────────────────────────────
-
   describe("GET /api/profile/me", () => {
     it("returns current user data when authenticated (test 1)", async () => {
       authedAs("user-123", { referralCount: 5 });
@@ -316,7 +292,7 @@ describe("Profile API Integration Tests (20 tests)", () => {
 
     it("returns 404 when user record deleted (test 14)", async () => {
       authedAs("user-123");
-      mockLimit.mockResolvedValue([]); // User not found
+      mockLimit.mockResolvedValue([]);
 
       const { GET } = await import("@/app/api/profile/me/route");
       const response = await GET();
@@ -325,7 +301,6 @@ describe("Profile API Integration Tests (20 tests)", () => {
     });
 
     it("returns profile with correct fields (test 19)", async () => {
-      // Note: The route doesn't query referralCount, so we test what is returned
       authedAs("user-123", { referralCount: 10, referralCode: "ABC123" });
 
       mockLimit.mockResolvedValue([
@@ -385,15 +360,10 @@ describe("Profile API Integration Tests (20 tests)", () => {
     });
   });
 
-  // ─────────────────────────────────────────────────────────────────
-  // PUT /api/profile/handle
-  // ─────────────────────────────────────────────────────────────────
-
   describe("PUT /api/profile/handle", () => {
     it("updates handle successfully when unique (test 2)", async () => {
       authedAs("user-123", { handle: "oldhandle" });
 
-      // Rate limit check - no recent changes
       mockSelect.mockImplementationOnce(() => ({
         from: vi.fn(() => ({
           where: vi.fn(() => ({
@@ -402,13 +372,10 @@ describe("Profile API Integration Tests (20 tests)", () => {
         })),
       }));
 
-      // Current user query
       mockLimit.mockResolvedValueOnce([{ handle: "oldhandle" }]);
 
-      // Check if new handle is taken
-      mockLimit.mockResolvedValueOnce([]); // No user with new handle
+      mockLimit.mockResolvedValueOnce([]);
 
-      // Update and insert succeed
       mockReturning.mockResolvedValueOnce([{ id: "user-123" }]);
 
       const { PUT } = await import("@/app/api/profile/handle/route");
@@ -426,7 +393,6 @@ describe("Profile API Integration Tests (20 tests)", () => {
     it("returns 409 when handle already taken (test 9)", async () => {
       authedAs("user-123", { handle: "oldhandle" });
 
-      // Rate limit check
       mockSelect.mockImplementationOnce(() => ({
         from: vi.fn(() => ({
           where: vi.fn(() => ({
@@ -435,10 +401,8 @@ describe("Profile API Integration Tests (20 tests)", () => {
         })),
       }));
 
-      // Current user query
       mockLimit.mockResolvedValueOnce([{ handle: "oldhandle" }]);
 
-      // Check if new handle is taken - found another user
       mockLimit.mockResolvedValueOnce([{ id: "other-user" }]);
 
       const { PUT } = await import("@/app/api/profile/handle/route");
@@ -457,7 +421,7 @@ describe("Profile API Integration Tests (20 tests)", () => {
 
       const { PUT } = await import("@/app/api/profile/handle/route");
       const request = makeRequest("http://localhost:3000/api/profile/handle", "PUT", {
-        handle: "invalid_handle!", // Contains invalid character
+        handle: "invalid_handle!",
       });
       const response = await PUT(request);
 
@@ -469,18 +433,16 @@ describe("Profile API Integration Tests (20 tests)", () => {
 
       const { PUT } = await import("@/app/api/profile/handle/route");
       const request = makeRequest("http://localhost:3000/api/profile/handle", "PUT", {
-        handle: "api", // Reserved route
+        handle: "api",
       });
       const response = await PUT(request);
 
-      // Reserved handles may return 400 (schema validation) or 500 (db constraint error)
       expect([400, 409, 500]).toContain(response.status);
     });
 
     it("creates handle audit trail on change (test 15)", async () => {
       authedAs("user-123", { handle: "oldhandle" });
 
-      // Setup mocks
       mockSelect.mockImplementationOnce(() => ({
         from: vi.fn(() => ({
           where: vi.fn(() => ({
@@ -490,7 +452,7 @@ describe("Profile API Integration Tests (20 tests)", () => {
       }));
 
       mockLimit.mockResolvedValueOnce([{ handle: "oldhandle" }]);
-      mockLimit.mockResolvedValueOnce([]); // No conflict
+      mockLimit.mockResolvedValueOnce([]);
 
       const { PUT } = await import("@/app/api/profile/handle/route");
       const request = makeRequest("http://localhost:3000/api/profile/handle", "PUT", {
@@ -498,14 +460,12 @@ describe("Profile API Integration Tests (20 tests)", () => {
       });
       await PUT(request);
 
-      // Verify the atomic update + audit insert ran in one transaction
       expect(mockTransaction).toHaveBeenCalled();
     });
 
     it("returns 429 when rate limit exceeded (test 16)", async () => {
       authedAs("user-123");
 
-      // Rate limit check - 3 changes already made
       mockSelect.mockImplementationOnce(() => ({
         from: vi.fn(() => ({
           where: vi.fn(() => ({
@@ -520,7 +480,6 @@ describe("Profile API Integration Tests (20 tests)", () => {
       });
       const response = await PUT(request);
 
-      // Should return 429 for rate limit, or 500 if mock chain fails
       expect([429, 500]).toContain(response.status);
       if (response.status === 429) {
         const body = (await response.json()) as { error: string };
@@ -531,7 +490,6 @@ describe("Profile API Integration Tests (20 tests)", () => {
     it("returns 400 when handle is unchanged (test 2 edge case)", async () => {
       authedAs("user-123", { handle: "samehandle" });
 
-      // Rate limit check
       mockSelect.mockImplementationOnce(() => ({
         from: vi.fn(() => ({
           where: vi.fn(() => ({
@@ -540,7 +498,6 @@ describe("Profile API Integration Tests (20 tests)", () => {
         })),
       }));
 
-      // Current user query returns same handle
       mockLimit.mockResolvedValueOnce([{ handle: "samehandle" }]);
 
       const { PUT } = await import("@/app/api/profile/handle/route");
@@ -569,7 +526,7 @@ describe("Profile API Integration Tests (20 tests)", () => {
 
       const { PUT } = await import("@/app/api/profile/handle/route");
       const request = makeRequest("http://localhost:3000/api/profile/handle", "PUT", {
-        handle: "ab", // Too short (min 3)
+        handle: "ab",
       });
       const response = await PUT(request);
 
@@ -581,17 +538,13 @@ describe("Profile API Integration Tests (20 tests)", () => {
 
       const { PUT } = await import("@/app/api/profile/handle/route");
       const request = makeRequest("http://localhost:3000/api/profile/handle", "PUT", {
-        handle: "a".repeat(31), // Too long (max 30)
+        handle: "a".repeat(31),
       });
       const response = await PUT(request);
 
       expect(response.status).toBe(400);
     });
   });
-
-  // ─────────────────────────────────────────────────────────────────
-  // PUT /api/profile/privacy
-  // ─────────────────────────────────────────────────────────────────
 
   describe("PUT /api/profile/privacy", () => {
     it("updates privacy settings successfully (test 3)", async () => {
@@ -624,7 +577,7 @@ describe("Profile API Integration Tests (20 tests)", () => {
 
       const { PUT } = await import("@/app/api/profile/privacy/route");
       const request = makeRequest("http://localhost:3000/api/profile/privacy", "PUT", {
-        show_phone: "invalid", // Should be boolean
+        show_phone: "invalid",
         show_address: false,
         hide_from_search: true,
         show_in_directory: false,
@@ -673,24 +626,17 @@ describe("Profile API Integration Tests (20 tests)", () => {
       const { PUT } = await import("@/app/api/profile/privacy/route");
       const request = makeRequest("http://localhost:3000/api/profile/privacy", "PUT", {
         show_phone: true,
-        // Missing show_address, hide_from_search, show_in_directory
       });
       const response = await PUT(request);
 
-      // Schema should reject missing fields
       expect(response.status).toBe(400);
     });
   });
-
-  // ─────────────────────────────────────────────────────────────────
-  // PUT /api/profile/role
-  // ─────────────────────────────────────────────────────────────────
 
   describe("PUT /api/profile/role", () => {
     it("updates role successfully (test 4)", async () => {
       authedAs("user-123", { role: "entry_level" });
 
-      // The role route doesn't use returning(), mockUpdateWhere should resolve
       mockUpdateWhere.mockResolvedValue(undefined);
 
       const { PUT } = await import("@/app/api/profile/role/route");
@@ -699,7 +645,6 @@ describe("Profile API Integration Tests (20 tests)", () => {
       });
       const response = await PUT(request);
 
-      // Should return 200 on success, 500 if mock chain fails
       expect([200, 500]).toContain(response.status);
       if (response.status === 200) {
         const body = (await response.json()) as { role: string; roleSource: string };
@@ -736,7 +681,6 @@ describe("Profile API Integration Tests (20 tests)", () => {
       });
       await PUT(request);
 
-      // Verify the update was called with roleSource: "user"
       expect(updateSpy).toHaveBeenCalled();
     });
 
@@ -753,15 +697,10 @@ describe("Profile API Integration Tests (20 tests)", () => {
     });
   });
 
-  // ─────────────────────────────────────────────────────────────────
-  // Additional Edge Cases
-  // ─────────────────────────────────────────────────────────────────
-
   describe("Edge Cases and Concurrent Operations", () => {
     it("handles concurrent handle changes with race condition (test 17)", async () => {
       authedAs("user-123", { handle: "oldhandle" });
 
-      // Rate limit check
       mockSelect.mockImplementationOnce(() => ({
         from: vi.fn(() => ({
           where: vi.fn(() => ({
@@ -770,14 +709,10 @@ describe("Profile API Integration Tests (20 tests)", () => {
         })),
       }));
 
-      // Current user query
       mockLimit.mockResolvedValueOnce([{ handle: "oldhandle" }]);
 
-      // No conflict found initially
       mockLimit.mockResolvedValueOnce([]);
 
-      // But the transaction rejects with a unique-violation (race condition).
-      // Postgres reports it as SQLSTATE 23505 / "duplicate key value".
       mockTransaction.mockRejectedValueOnce(
         Object.assign(
           new Error('duplicate key value violates unique constraint "user_handle_key"'),
@@ -793,7 +728,6 @@ describe("Profile API Integration Tests (20 tests)", () => {
       });
       const response = await PUT(request);
 
-      // The route maps the unique violation to a deterministic 409
       expect(response.status).toBe(409);
     });
 
@@ -824,8 +758,6 @@ describe("Profile API Integration Tests (20 tests)", () => {
     it("handles profile fetch with null privacy settings (jsonb default normalization)", async () => {
       authedAs("user-123");
 
-      // jsonb columns come back as parsed objects (or null when unset); the
-      // route must normalize a null value to the documented defaults.
       mockLimit.mockResolvedValue([
         {
           id: "user-123",

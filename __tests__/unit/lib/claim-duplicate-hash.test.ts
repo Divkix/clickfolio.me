@@ -1,17 +1,5 @@
-/**
- * Duplicate file hash detection tests for POST /api/resume/claim.
- *
- * The claim route detects duplicate uploads by computing a SHA-256 hash
- * and checking if a processing resume with the same hash exists for the
- * same user. If found, the new upload gets `waiting_for_cache` status.
- *
- * Key security constraint: cache lookups are user-scoped to prevent
- * cross-user data access.
- */
-
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { UnknownRecord, JsonValue } from "@/lib/types/json";
-// ── Mocks ─────────────────────────────────────────────────────────────
 
 const mockFindFirst = vi.fn();
 const mockDbFrom = vi.fn();
@@ -41,13 +29,11 @@ const mockDbSelect = vi.fn().mockImplementation((cols: unknown) => {
   return { from: mockDbFrom };
 });
 
-// Chain helpers for non-handle selects: select().from().where().limit()/orderBy().limit()
 mockDbFrom.mockReturnValue({ where: mockDbWhere });
 mockDbWhere.mockReturnValue({ limit: mockDbLimit, orderBy: mockDbOrderBy });
 mockDbOrderBy.mockReturnValue({ limit: mockDbLimit });
 mockDbLimit.mockResolvedValue([]);
 
-// Chain for update().set().where()
 const mockDbUpdate = vi.fn().mockReturnValue({ set: mockDbUpdateSet });
 mockDbUpdateSet.mockReturnValue({ where: mockDbUpdateWhere });
 
@@ -62,12 +48,10 @@ const mockDb = {
   transaction: mockDbTransaction,
 };
 
-// Auth mock
 vi.mock("@/lib/auth/middleware", () => ({
   requireAuthWithUserValidation: vi.fn(),
 }));
 
-// Drizzle-orm operators
 vi.mock("drizzle-orm", () => ({
   eq: vi.fn((_col, val) => ({ eq: val })),
   and: vi.fn((...args: JsonValue[]) => ({ and: args })),
@@ -78,7 +62,6 @@ vi.mock("drizzle-orm", () => ({
   inArray: vi.fn((col, values) => ({ inArray: { col, values } })),
 }));
 
-// Schema mock
 vi.mock("@/lib/db/schema", () => ({
   resumes: {
     id: "id",
@@ -109,7 +92,6 @@ vi.mock("@/lib/db/schema", () => ({
   },
 }));
 
-// R2 mock
 const mockR2GetAsArrayBuffer = vi.fn();
 const mockR2Put = vi.fn().mockResolvedValue(undefined);
 const mockR2Delete = vi.fn().mockResolvedValue(undefined);
@@ -123,12 +105,10 @@ vi.mock("@/lib/r2", () => ({
   },
 }));
 
-// Rate limit mock
 vi.mock("@/lib/rate-limit/user", () => ({
   enforceRateLimit: vi.fn().mockResolvedValue(null),
 }));
 
-// Validation mock
 vi.mock("@/lib/utils/validation", () => ({
   MAX_FILE_SIZE: 5 * 1024 * 1024,
   MAX_FILE_SIZE_LABEL: "5MB",
@@ -142,17 +122,14 @@ vi.mock("@/lib/utils/validation", () => ({
   }),
 }));
 
-// Queue mock
 vi.mock("@/lib/queue/resume-parse", () => ({
   publishResumeParse: vi.fn().mockResolvedValue(undefined),
 }));
 
-// buildSiteDataUpsert mock
 vi.mock("@/lib/data/site-data-upsert", () => ({
   buildSiteDataUpsert: vi.fn().mockReturnValue("mock-upsert-query"),
 }));
 
-// Security headers
 vi.mock("@/lib/utils/security-headers", () => ({
   createErrorResponse: vi.fn((error: string, _code: string, status: number) => {
     return new Response(JSON.stringify({ error }), { status });
@@ -180,21 +157,15 @@ type ClaimHeaders = { "Content-Type": string; Cookie?: string };
 
 const mockedAuth = vi.mocked(requireAuthWithUserValidation);
 
-// ── Helpers ───────────────────────────────────────────────────────────
-
 const TEST_SECRET = "test-secret-key-for-testing-only";
 
-/**
- * Create a signed cookie value for the pending upload cookie.
- * Format: {temp_key}|{expires_timestamp}|{hmac_signature}
- */
 async function createSignedCookieValue(
   tempKey: string,
   secret: string,
   expiresAt?: number,
 ): Promise<string> {
   const encoder = new TextEncoder();
-  const actualExpiresAt = expiresAt ?? Date.now() + 30 * 60 * 1000; // 30 min default
+  const actualExpiresAt = expiresAt ?? Date.now() + 30 * 60 * 1000;
   const payload = `${tempKey}|${actualExpiresAt}`;
 
   const key = await crypto.subtle.importKey(
@@ -211,7 +182,6 @@ async function createSignedCookieValue(
   return `${payload}|${signatureBase64}`;
 }
 
-/** Create a valid PDF buffer (starts with %PDF- magic bytes) */
 function makePdfBuffer(): ArrayBuffer {
   const header = new TextEncoder().encode("%PDF-1.4 fake content");
   return header.buffer.slice(header.byteOffset, header.byteOffset + header.byteLength);
@@ -255,20 +225,11 @@ function makeClaimRequest(body: UnknownRecord, cookieValue?: string) {
   });
 }
 
-// Since SHA-256 hash computation is deterministic, the same PDF buffer
-// will always produce the same hash. In tests, we control this via the
-// R2 mock returning a fixed buffer. Tests verify the behavior based on
-// the hash comparison logic, not the actual hash value.
-
 beforeEach(() => {
   vi.clearAllMocks();
-  // Default: user has handle so publish=true unless test overrides mockHandleRows
   mockHandleRows = [{ handle: "test-handle" }];
-  // Default: R2 returns a valid PDF buffer
   mockR2GetAsArrayBuffer.mockResolvedValue(makePdfBuffer());
-  // Default: no cached or processing resumes
   mockDbLimit.mockResolvedValue([]);
-  // Re-wire DB chain mocks — use handle-aware select that bypasses positional callCount
   mockDbSelect.mockImplementation((cols: unknown) => {
     const isHandleQuery =
       cols !== null && typeof cols === "object" && "handle" in (cols as Record<string, unknown>);
@@ -293,22 +254,15 @@ beforeEach(() => {
   mockDbUpdateWhere.mockResolvedValue(undefined);
 });
 
-// ── Tests ─────────────────────────────────────────────────────────────
-
 describe("POST /api/resume/claim — Duplicate file hash detection", () => {
   describe("Same user, same file hash", () => {
     it("returns waiting_for_cache when same user uploads same file while first is processing", async () => {
       authedAs("user-1");
 
-      // First call to db.select → checking for completed cache (returns empty)
-      // Second call to db.select → checking for processing with same hash (returns a match)
-      // We need to control the db.limit calls — they happen twice in the route
       let limitCallCount = 0;
       mockDbLimit.mockImplementation(() => {
         limitCallCount++;
-        // First limit call: cache lookup → empty (no completed cache)
         if (limitCallCount === 1) return Promise.resolve([]);
-        // Second limit call: processing check → found a processing resume with same hash
         return Promise.resolve([{ id: "existing-processing-id" }]);
       });
 
@@ -325,7 +279,6 @@ describe("POST /api/resume/claim — Duplicate file hash detection", () => {
       expect(body.status).toBe("processing");
       expect(body.waiting_for_cache).toBe(true);
 
-      // Verify the DB was updated with waiting_for_cache status
       expect(mockDbUpdateSet).toHaveBeenCalledWith(
         expect.objectContaining({
           status: "waiting_for_cache",
@@ -340,7 +293,6 @@ describe("POST /api/resume/claim — Duplicate file hash detection", () => {
       mockDbLimit.mockImplementation(() => {
         limitCallCount++;
         if (limitCallCount === 1) return Promise.resolve([]);
-        // Processing duplicate found
         return Promise.resolve([{ id: "existing-processing-id" }]);
       });
 
@@ -352,7 +304,6 @@ describe("POST /api/resume/claim — Duplicate file hash detection", () => {
       const body = (await response.json()) as { waiting_for_cache?: boolean };
       expect(body.waiting_for_cache).toBe(true);
 
-      // Queue publish should NOT have been called (no duplicate parsing)
       const { publishResumeParse } = await import("@/lib/queue/resume-parse");
       expect(publishResumeParse).not.toHaveBeenCalled();
     });
@@ -363,9 +314,7 @@ describe("POST /api/resume/claim — Duplicate file hash detection", () => {
       let limitCallCount = 0;
       mockDbLimit.mockImplementation(() => {
         limitCallCount++;
-        if (limitCallCount === 1) return Promise.resolve([]); // cache miss
-        // In-flight match: the FIRST claim already published and its row is
-        // "queued" (not yet "processing") when the second claim checks.
+        if (limitCallCount === 1) return Promise.resolve([]);
         return Promise.resolve([{ id: "existing-queued-id" }]);
       });
 
@@ -381,11 +330,9 @@ describe("POST /api/resume/claim — Duplicate file hash detection", () => {
       expect(body.status).toBe("processing");
       expect(body.waiting_for_cache).toBe(true);
 
-      // No duplicate parse job published for the second claim.
       const { publishResumeParse } = await import("@/lib/queue/resume-parse");
       expect(publishResumeParse).not.toHaveBeenCalled();
 
-      // The in-flight check must consider BOTH "processing" and "queued" rows.
       const { inArray } = await import("drizzle-orm");
       expect(inArray).toHaveBeenCalledWith("status", ["processing", "queued"]);
     });
@@ -393,9 +340,7 @@ describe("POST /api/resume/claim — Duplicate file hash detection", () => {
     it("uses cached result when same user uploads same file that was already completed", async () => {
       authedAs("user-1");
 
-      // parsedContent is jsonb: Postgres hands back a parsed OBJECT
       const cachedContent = { full_name: "Test User" };
-      // Cache lookup returns hit; handle query is detected via select({handle:...}) not positional
       mockDbLimit.mockResolvedValue([{ id: "cached-resume", parsedContent: cachedContent }]);
       mockHandleRows = [{ handle: "test-handle" }];
 
@@ -408,15 +353,13 @@ describe("POST /api/resume/claim — Duplicate file hash detection", () => {
       expect(body.status).toBe("completed");
       expect(body.cached).toBe(true);
 
-      // Queue publish should NOT have been called (cached result used)
       const { publishResumeParse } = await import("@/lib/queue/resume-parse");
       expect(publishResumeParse).not.toHaveBeenCalled();
-      // Verify publish gating used handle (hasHandle true → publish:true)
       const { buildSiteDataUpsert } = await import("@/lib/data/site-data-upsert");
       expect(vi.mocked(buildSiteDataUpsert)).toHaveBeenCalledWith(
-        expect.anything(), // tx (transaction-scoped)
+        expect.anything(),
         "user-1",
-        expect.anything(), // resumeId
+        expect.anything(),
         cachedContent,
         { publish: true },
       );
@@ -425,11 +368,9 @@ describe("POST /api/resume/claim — Duplicate file hash detection", () => {
     it("uses cached result with publish:false when user has no handle (prevents unreachable published site)", async () => {
       authedAs("user-1");
 
-      // parsedContent is jsonb: Postgres hands back a parsed OBJECT
       const cachedContent = { full_name: "Test User" };
-      // Cache hit but user handle missing → lastPublishedAt must stay null (publish:false)
       mockDbLimit.mockResolvedValue([{ id: "cached-resume", parsedContent: cachedContent }]);
-      mockHandleRows = []; // no handle → hasHandle false
+      mockHandleRows = [];
 
       const { POST } = await import("@/app/api/resume/claim/route");
       const cookie = await createSignedCookieValue("temp/uuid/resume.pdf", TEST_SECRET);
@@ -440,29 +381,24 @@ describe("POST /api/resume/claim — Duplicate file hash detection", () => {
       expect(body.status).toBe("completed");
       expect(body.cached).toBe(true);
 
-      // Queue publish should NOT have been called (cached result used)
       const { publishResumeParse } = await import("@/lib/queue/resume-parse");
       expect(publishResumeParse).not.toHaveBeenCalled();
-      // Must gate publish on handle: no handle → publish:false so site remains unpublished
       const { buildSiteDataUpsert } = await import("@/lib/data/site-data-upsert");
       expect(vi.mocked(buildSiteDataUpsert)).toHaveBeenCalledWith(
-        expect.anything(), // tx (transaction-scoped)
+        expect.anything(),
         "user-1",
-        expect.anything(), // resumeId
+        expect.anything(),
         cachedContent,
         { publish: false },
       );
-      // Also ensure queue still completes without throwing and site_data upsert still invoked
       expect(vi.mocked(buildSiteDataUpsert)).toHaveBeenCalled();
     });
   });
 
   describe("Different user, same file hash", () => {
     it("processes independently when file hash belongs to different user (no cross-user dedup)", async () => {
-      authedAs("user-2"); // Different user
+      authedAs("user-2");
 
-      // Both cache and processing lookups return empty for user-2
-      // (because the route filters by eq(resumes.userId, userId))
       mockDbLimit.mockResolvedValue([]);
 
       const { POST } = await import("@/app/api/resume/claim/route");
@@ -471,10 +407,8 @@ describe("POST /api/resume/claim — Duplicate file hash detection", () => {
 
       expect(response.status).toBe(200);
       const body = (await response.json()) as { status: string };
-      // Should proceed to normal queue flow (NOT waiting_for_cache, NOT cached)
       expect(body.status).toBe("queued");
 
-      // Queue publish should have been called (independent processing)
       const { publishResumeParse } = await import("@/lib/queue/resume-parse");
       expect(publishResumeParse).toHaveBeenCalled();
     });
@@ -482,7 +416,6 @@ describe("POST /api/resume/claim — Duplicate file hash detection", () => {
     it("does not apply user-1's cache to user-2 even with same file hash", async () => {
       authedAs("user-2");
 
-      // No cached results for user-2
       mockDbLimit.mockResolvedValue([]);
 
       const { POST } = await import("@/app/api/resume/claim/route");
@@ -498,29 +431,11 @@ describe("POST /api/resume/claim — Duplicate file hash detection", () => {
 
   describe("resumes_file_hash_status_idx index", () => {
     it("verifies the schema defines the composite index (fileHash, status)", async () => {
-      // This is a static assertion: the schema at lib/db/schema.ts line 153 defines:
-      //   index("resumes_file_hash_status_idx").on(table.fileHash, table.status)
-      //
-      // The claim route's cache lookup (lines 225-237) filters by:
-      //   - eq(resumes.userId, userId)     → uses resumes_user_id_idx
-      //   - eq(resumes.fileHash, hash)     → first column of resumes_file_hash_status_idx
-      //   - eq(resumes.status, "completed")  → second column of resumes_file_hash_status_idx
-      //
-      // The processing duplicate check (lines 297-308) filters by:
-      //   - eq(resumes.userId, userId)
-      //   - eq(resumes.fileHash, hash)     → first column of resumes_file_hash_status_idx
-      //   - eq(resumes.status, "processing") → second column of resumes_file_hash_status_idx
-      //
-      // Both queries benefit from the composite index on (fileHash, status).
-
       const { resumes } = await import("@/lib/db/schema");
 
-      // The schema object has fileHash and status properties (mocked as strings)
       expect(resumes).toHaveProperty("fileHash");
       expect(resumes).toHaveProperty("status");
 
-      // Verify the query uses eq on both fileHash and status in the cache lookup
-      // These operators are called with the schema columns
       expect(eq).toBeDefined();
       expect(and).toBeDefined();
       expect(isNotNull).toBeDefined();

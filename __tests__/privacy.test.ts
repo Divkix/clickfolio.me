@@ -6,8 +6,6 @@ import {
   normalizePrivacySettings,
 } from "@/lib/utils/privacy";
 
-// ── extractCityState ─────────────────────────────────────────────────
-
 describe("extractCityState", () => {
   it("extracts city/state from full address with ZIP", () => {
     expect(extractCityState("123 Main St, San Francisco, CA 94102")).toBe("San Francisco, CA");
@@ -36,29 +34,20 @@ describe("extractCityState", () => {
   });
 
   it("handles multi-part international-style addresses", () => {
-    // Falls into the last-two-parts fallback
     const result = extractCityState("10 Downing Street, London, UK");
     expect(result).toContain("London");
   });
 
   it("does not treat street-number-only input as city (fail closed)", () => {
-    // "123 Main St" starts with a digit — should not return as-is for single-part
     const result = extractCityState("123 Main St");
-    // Since there's no comma, parts.length === 1, hasStreetNumber = true.
-    // The final fallback fails CLOSED (returns "") rather than leaking the raw
-    // street address (item 15).
     expect(result).toBe("");
   });
 
   it("fails closed on unparseable single-part street addresses", () => {
     expect(extractCityState("999 Elm Blvd")).toBe("");
-    // A single-part string that looks like a bare street (no city/state) must
-    // never be returned verbatim by a privacy filter.
     expect(extractCityState("100 Main Street")).toBe("");
   });
 });
-
-// ── normalizePrivacySettings ─────────────────────────────────────────
 
 describe("normalizePrivacySettings", () => {
   it("returns defaults for null input", () => {
@@ -93,8 +82,6 @@ describe("normalizePrivacySettings", () => {
     expect(normalizePrivacySettings(input)).toEqual(input);
   });
 });
-
-// ── DEFAULT_PRIVACY_SETTINGS alignment (Step 4) ──────────────────────
 
 describe("DEFAULT_PRIVACY_SETTINGS alignment", () => {
   it("normalizePrivacySettings(null) deep-equals DEFAULT_PRIVACY_SETTINGS", () => {

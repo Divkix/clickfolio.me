@@ -8,8 +8,8 @@ import { useSession } from "@/lib/auth/client";
 import { cn } from "@/lib/utils/cn";
 import { useDismissable } from "@/hooks/useDismissable";
 
-const SHOW_DELAY_MS = 3000; // 3 seconds
-const SCROLL_THRESHOLD = 0.3; // 30% of page
+const SHOW_DELAY_MS = 3000;
+const SCROLL_THRESHOLD = 0.3;
 
 const ctaVariants = cva(
   "flex items-center gap-3 px-4 py-3 rounded-full shadow-lg animate-fade-in-up",
@@ -79,32 +79,15 @@ const closeButtonVariants = cva("p-1 rounded-full transition-colors", {
 });
 
 interface CreateYoursCTAProps extends VariantProps<typeof ctaVariants> {
-  /** The handle of the profile being viewed (for UTM tracking) */
   handle: string;
-  /** Additional CSS classes */
   className?: string;
 }
 
-/**
- * "Create yours" CTA component for public resume pages
- *
- * Shows a floating CTA prompting visitors to create their own resume.
- * - Appears after 3s delay OR 30% scroll (whichever first)
- * - Can be dismissed (persists for 7 days)
- * - Hidden when viewing own resume
- * - Theme-adaptive via variant prop
- *
- * @example
- * ```tsx
- * <CreateYoursCTA handle="john" variant="minimalist_editorial" />
- * ```
- */
 export function CreateYoursCTA({ handle, variant, className }: CreateYoursCTAProps) {
   const { data: session } = useSession();
   const [visible, setVisible] = useState(false);
   const [dismissed, dismiss] = useDismissable("cta_dismissed", 7 * 24 * 60 * 60 * 1000);
 
-  // Visibility triggers: timer and scroll
   useEffect(() => {
     if (dismissed) return;
 
@@ -115,15 +98,12 @@ export function CreateYoursCTA({ handle, variant, className }: CreateYoursCTAPro
       if (!hasTriggered) {
         hasTriggered = true;
         setVisible(true);
-        // Clean up scroll listener
         window.removeEventListener("scroll", handleScroll);
       }
     };
 
-    // Timer trigger (3s)
     timer = setTimeout(triggerShow, SHOW_DELAY_MS);
 
-    // Scroll trigger (30%)
     const handleScroll = () => {
       const scrolled = window.scrollY / (document.body.scrollHeight - window.innerHeight);
       if (scrolled >= SCROLL_THRESHOLD) {
@@ -143,12 +123,6 @@ export function CreateYoursCTA({ handle, variant, className }: CreateYoursCTAPro
     setVisible(false);
     dismiss();
   }, [dismiss]);
-  // Hide if:
-  // - Still checking dismissal
-  // - Dismissed
-  // - Not yet visible
-  // - User viewing their own resume
-  // Cast to include handle from Better Auth additional fields
   // SAFETY: session.user is Better Auth user with additional handle field; cast bridges typed user to optional handle.
   const userHandle = (session?.user as { handle?: string } | undefined)?.handle;
   const isOwnResume = userHandle === handle;

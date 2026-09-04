@@ -4,18 +4,6 @@ import { verifyClerkToken } from "@/lib/auth/clerk";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { JsonValue } from "@/lib/types/json";
 
-/**
- * Integration tests for worker/index.ts
- *
- * Tests the worker's fetch (WebSocket Clerk auth gate), queue (message dispatch/ack/retry),
- * and scheduled (cron dispatch) handlers by importing the default export directly.
- *
- * Mocks all production dependencies so no real I/O occurs.
- */
-
-// ── Mocks ─────────────────────────────────────────────────────────────
-
-// Mock cloudflare:workers to provide DurableObject base class (not available in Node.js/jsdom)
 vi.mock("cloudflare:workers", () => ({
   env: {},
   DurableObject: class DurableObject {
@@ -23,7 +11,6 @@ vi.mock("cloudflare:workers", () => ({
   },
 }));
 
-// Mock the Durable Object export to avoid extending DurableObject in jsdom
 vi.mock("@/lib/durable-objects/resume-status", () => ({
   ClickfolioStatusDO: class ClickfolioStatusDO {
     constructor(_state: JsonValue, _env: JsonValue) {}
@@ -39,8 +26,6 @@ vi.mock("vinext/server/app-router-entry", () => ({
   },
 }));
 
-// Shared mock fns must exist before the hoisted vi.mock factories run — the
-// static worker import makes factories execute during module collection.
 const {
   mockVerifyClerkToken,
   mockHandleQueueMessage,
@@ -52,10 +37,6 @@ const {
   mockUserFindFirst,
   mockResumeFindFirst,
 } = vi.hoisted(() => {
-  // Token → claims table backing the mocked verifyClerkToken. The real JWKS
-  // verification is out of scope here; extractClerkTokenFromRequest stays REAL
-  // so the __session-cookie vs Authorization-bearer extraction precedence is
-  // exercised end-to-end against the actual cookie parser.
   const claims = {
     "jwt.for.clerk-user-1": { sub: "user_clerk_1", sid: "sess_1" },
     "jwt.for.clerk-other": { sub: "clerk_user_other", sid: "sess_2" },
@@ -135,9 +116,6 @@ vi.mock("drizzle-orm", () => ({
   ),
 }));
 
-// ── Helpers ────────────────────────────────────────────────────────────
-
-/** Durable-object namespace stub whose forwarded requests can be inspected. */
 function makeStatusDo() {
   const forward = vi.fn().mockResolvedValue(new Response("WS response"));
   const namespace = {
@@ -192,7 +170,6 @@ function makeCtx(): ExecutionContext {
   } as unknown as ExecutionContext;
 }
 
-/** WebSocket upgrade request against the resume-status endpoint. */
 function makeWsRequest(
   headers: Record<string, string> = {},
   query = "?resume_id=res-123",
@@ -219,8 +196,6 @@ function resetAll() {
   mockRetryPendingR2Deletions.mockResolvedValue({ retried: 0 });
   mockRecoverOrphanedResumes.mockResolvedValue({ recovered: 4 });
 }
-
-// ── Tests: fetch handler (WebSocket + security headers) ───────────────
 
 describe("Worker fetch handler", () => {
   beforeEach(resetAll);
@@ -287,7 +262,6 @@ describe("Worker fetch handler", () => {
 
     expect(response.status).toBe(200);
     expect(await response.text()).toBe("WS response");
-    // JWT sub must be resolved against the local PG user row via clerkId…
     expect(mockUserFindFirst).toHaveBeenCalledWith(
       expect.objectContaining({ where: { op: "eq", value: "user_clerk_1" } }),
     );
@@ -305,14 +279,12 @@ describe("Worker fetch handler", () => {
       makeCtx(),
     );
 
-    // Extraction precedence: exactly one verification, against the cookie token.
     expect(vi.mocked(verifyClerkToken)).toHaveBeenCalledTimes(1);
     expect(vi.mocked(verifyClerkToken)).toHaveBeenCalledWith("jwt.for.clerk-user-1");
   });
 
   it("returns 401 Unknown user for a valid token with no local PG user row", async () => {
     const env = makeEnv();
-    // Default resetAll(): user.findFirst resolves null.
 
     const response = await worker.fetch(
       makeWsRequest({ Cookie: "__session=jwt.for.clerk-user-1" }),
@@ -388,13 +360,10 @@ describe("Worker fetch handler", () => {
     expect(statusDo.namespace.idFromName).toHaveBeenCalledWith("res-123");
     expect(statusDo.forward).toHaveBeenCalledTimes(1);
     const forwarded = statusDo.forward.mock.calls[0][0] as Request;
-    // The header carries the Postgres owner id, never the raw Clerk sub.
     expect(forwarded.headers.get("x-authenticated-user-id")).toBe("pg-user-1");
     expect(forwarded.headers.get("x-authenticated-user-id")).not.toBe("user_clerk_1");
   });
 });
-
-// ── Tests: queue handler (ack / retry / DLQ dispatch) ────────────────
 
 describe("Worker queue handler", () => {
   beforeEach(resetAll);
@@ -478,8 +447,6 @@ describe("Worker queue handler", () => {
     expect(ack).toHaveBeenCalled();
   });
 });
-
-// ── Tests: scheduled handler (cron dispatch) ─────────────────────────
 
 describe("Worker scheduled handler", () => {
   beforeEach(resetAll);

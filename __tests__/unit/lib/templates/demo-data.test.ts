@@ -5,19 +5,11 @@ import type { ResumeContent } from "@/lib/types/database";
 const URL_FIELDS = ["linkedin", "github", "website", "behance", "dribbble"] as const;
 const URL_FIELDS_IN_SECTIONS = ["url", "image_url"] as const;
 
-/**
- * Recursively collect every URL-looking value (any string that resembles a
- * web URL — contains a dot and no spaces) from a resume content object.
- */
 function collectUrls(content: ResumeContent): string[] {
   const urls: string[] = [];
 
   const visit = (value: JsonValue): void => {
     if (typeof value === "string") {
-      // URL-like: contains a letter and a dot, no spaces (bare domains/paths).
-      // Exclusions: emails (@) are contact data; pure numbers like GPA "3.9"
-      // and framework names like "Next.js"/"D3.js" (dot-prefixed extension with
-      // a capital letter or two-letter suffix) are not URLs.
       if (
         !value.includes("@") &&
         !value.includes(" ") &&

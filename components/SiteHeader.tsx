@@ -11,10 +11,6 @@ const NAV_LINKS = [
   { href: "/about", label: "About" },
 ];
 
-/**
- * Shared sticky header used on homepage, marketing pages, and the blog section.
- * Server component — LoginButton, MobileNav, and ThemeToggle are client boundaries.
- */
 export function SiteHeader() {
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md">

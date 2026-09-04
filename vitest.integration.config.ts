@@ -1,11 +1,3 @@
-/**
- * Vitest configuration for integration tests
- *
- * Integration tests verify API routes, service interactions,
- * database operations, and queue processing.
- * May use mocked external services.
- */
-
 import { defineConfig } from "vite-plus";
 import {
   sharedAlias,
@@ -26,9 +18,7 @@ export default defineConfig({
       "__tests__/share.test.ts",
     ],
     exclude: sharedExclude,
-    // Integration tests may have timing issues - allow retries
     retry: 2,
-    // Longer timeout for integration tests
     testTimeout: 10000,
     coverage: {
       provider: sharedCoverageProvider,

@@ -92,13 +92,11 @@ describe("parseResumeWithAi", () => {
     expect(parsed.contact.email).toBe("avery@example.com");
     expect(parsed.contact.linkedin).toBeUndefined();
     expect(parsed.experience[0].end_date).toBeUndefined();
-    // Single universal path injects empty arrays for optional fields via transform
     expect(Array.isArray(parsed.education) ? parsed.education.length : 0).toBe(0);
     expect(Array.isArray(parsed.skills) ? parsed.skills.length : 0).toBe(0);
   });
 
   it("retries invalid AI output with validation feedback and reports final validation failure", async () => {
-    // Invalid data that still fails after transform: XSS triggers noXssPattern, plus empty experience is allowed, so we use XSS
     const invalidData = {
       full_name: "<script>alert(1)</script>",
       headline: "Dev",

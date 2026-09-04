@@ -1,14 +1,8 @@
-/**
- * IP-based rate limiting unit tests
- * Tests for lib/rate-limit/ip.ts
- */
-
 import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { createMockDb } from "@/__tests__/setup/mocks/db.mock";
 import type { JsonValue } from "@/lib/types/json";
 import { checkHandleRateLimit, checkIPRateLimit, getClientIP } from "@/lib/rate-limit/ip";
-// Mock the modules
 vi.mock("cloudflare:workers", () => ({
   env: { HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" } },
 }));
@@ -39,11 +33,6 @@ vi.mock("drizzle-orm", async (importOriginal) => {
 import { getDb } from "@/lib/db";
 import { isLocalEnvironment } from "@/lib/utils/environment";
 
-/**
- * SQL text of a postgres-js tagged-template call: raw text chunks joined by
- * parameter placeholders (the interpolated values travel as the call's
- * remaining arguments).
- */
 function sqlText(call: readonly unknown[] | undefined): string {
   return ((call?.[0] as TemplateStringsArray | undefined) ?? []).join("?");
 }
@@ -144,7 +133,6 @@ describe("checkIPRateLimit - Development Environment", () => {
     const result = await checkIPRateLimit("192.168.1.1");
 
     expect(result.allowed).toBe(true);
-    // In development, returns default values regardless of DISABLE_RATE_LIMITS
     expect(result.remaining).toEqual({ hourly: 10, daily: 50 });
   });
 });
@@ -206,7 +194,6 @@ describe("checkIPRateLimit - Production Rate Limiting", () => {
   });
 
   it("allows request when under hourly limit", async () => {
-    // Mock count of 5 requests in the last hour
     mockDb.select.mockReturnValue({
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue([{ hourly: 5, daily: 5 }]),
@@ -281,9 +268,6 @@ describe("checkIPRateLimit - Production Rate Limiting", () => {
 
     await checkIPRateLimit("192.168.1.1");
 
-    // Enforcement runs through one atomic conditional INSERT ... SELECT issued
-    // as postgres-js tagged templates on the raw client: call[0] builds the
-    // daily guard fragment, call[1] is the INSERT itself.
     expect(mockDb.$client).toHaveBeenCalledTimes(2);
     expect(sqlText(mockDb.$client.mock.calls[1])).toContain("INSERT INTO upload_rate_limits");
     expect(mockDb.insert).not.toHaveBeenCalled();
@@ -301,8 +285,6 @@ describe("checkIPRateLimit - Production Rate Limiting", () => {
 
     const guardSql = sqlText(mockDb.$client.mock.calls[0]);
     const insertSql = sqlText(mockDb.$client.mock.calls[1]);
-    // The daily guard carries its own created_at cutoff; the hourly cutoff in
-    // the INSERT makes two window checks total across the two statements.
     expect(guardSql).toContain("created_at >= ?");
     expect(insertSql.match(/created_at >= \?/g)).toHaveLength(1);
     expect(mockDb.$client.mock.calls[0]?.slice(1)).toContain(50);
@@ -321,8 +303,6 @@ describe("checkIPRateLimit - Production Rate Limiting", () => {
   });
 
   it("does not bypass limits for unknown IPs (item 20)", async () => {
-    // "unknown" (getClientIP fallback) is no longer in LOCAL_IPS — it must be
-    // bucketed + limited like any other IP.
     mockDb.select.mockReturnValue({
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue([{ hourly: 10, daily: 10 }]),
@@ -362,12 +342,10 @@ describe("checkIPRateLimit - Production Rate Limiting", () => {
 
     expect(result.allowed).toBe(true);
 
-    // Restore the default insert path for subsequent tests.
     mockDb.$client.mockResolvedValue({ count: 1 });
   });
 
   it("denies when the atomic conditional insert records 0 changes (item 21)", async () => {
-    // Count says under the limit, but a concurrent request won the last slot.
     mockDb.select.mockReturnValue({
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue([{ hourly: 3, daily: 20 }]),
@@ -380,7 +358,6 @@ describe("checkIPRateLimit - Production Rate Limiting", () => {
     expect(result.allowed).toBe(false);
     expect(result.message).toContain("Try again in an hour");
 
-    // Restore the default insert path for subsequent tests.
     mockDb.$client.mockResolvedValue({ count: 1 });
   });
 
@@ -390,13 +367,11 @@ describe("checkIPRateLimit - Production Rate Limiting", () => {
       checkIPRateLimit("192.168.1.100"),
     ]);
 
-    // Both should be allowed (first requests)
     expect(results[0].allowed).toBe(true);
     expect(results[1].allowed).toBe(true);
   });
 
   it("generates different hashes for different IPs", async () => {
-    // This is implicitly tested - different IPs will have different rate limit counts
     const result1 = await checkIPRateLimit("192.168.1.1");
     const result2 = await checkIPRateLimit("192.168.1.2");
 
@@ -473,8 +448,6 @@ describe("checkHandleRateLimit - Production", () => {
     await checkHandleRateLimit("192.168.1.1");
 
     expect(mockDb.$client).toHaveBeenCalledTimes(2);
-    // The INSERT is the second tagged-template call; its interpolated values
-    // carry the bucketed action type.
     expect(mockDb.$client.mock.calls[1]?.slice(1)).toContain("handle_check");
   });
 });
@@ -504,7 +477,6 @@ describe("DISABLE_RATE_LIMITS security", () => {
 
     await checkIPRateLimit("192.168.1.1");
 
-    // Should go through normal rate limiting
     expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining("DISABLE_RATE_LIMITS ignored"));
     consoleSpy.mockRestore();
   });
@@ -525,8 +497,6 @@ describe("Rate limit window expiration", () => {
   });
 
   it("resets hourly count after window expires", async () => {
-    // Simulate 11 old requests (outside 1 hour window) + 5 recent
-    // But our mock counts everything, so we control the query result
     mockDb.select.mockReturnValue({
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue([{ hourly: 5, daily: 16 }]),

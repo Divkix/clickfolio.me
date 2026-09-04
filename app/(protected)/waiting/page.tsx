@@ -1,20 +1,6 @@
 "use client";
 
-/** Revalidate waiting page daily since it's a client-side flow. */
 export const revalidate = 86400;
-
-/**
- * Waiting Room - Error Fallback Page
- *
- * This page is primarily used as a fallback for error cases and retries.
- * Normal flow: Upload → Login → Onboarding → Survey → Dashboard
- * This page is accessed only when:
- * - Resume parsing fails and user needs to retry
- * - Manual navigation or old bookmarks
- * - Error recovery scenarios
- *
- * Dashboard already handles live status updates for processing resumes.
- */
 
 import {
   AlertCircle,
@@ -73,9 +59,6 @@ const PROCESSING_STAGES = [
 
 const INITIAL_COUNTDOWN = 35;
 
-/**
- * Client component that displays resume processing status, countdown, and retry UI.
- */
 function WaitingContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -85,7 +68,6 @@ function WaitingContent() {
 
   const [countdown, setCountdown] = useState(INITIAL_COUNTDOWN);
 
-  // Countdown timer
   useEffect(() => {
     if (status !== "processing") return;
 
@@ -96,22 +78,18 @@ function WaitingContent() {
     return () => clearInterval(interval);
   }, [status]);
 
-  // Reset countdown when status changes to processing
   useEffect(() => {
     if (status === "processing") {
       setCountdown(INITIAL_COUNTDOWN);
     }
   }, [status]);
 
-  // Redirect to dashboard if no resume_id
   useEffect(() => {
     if (!resumeId) {
       router.push("/dashboard");
     }
   }, [resumeId, router]);
 
-  // Auto-redirect on completion with delay for user feedback
-  // Redirect to /wizard to complete remaining onboarding steps (handle, privacy, theme)
   useEffect(() => {
     if (status !== "completed") return;
 
@@ -122,7 +100,6 @@ function WaitingContent() {
     return () => clearTimeout(timeout);
   }, [status, router]);
 
-  // Handle retry
   const handleRetry = useCallback(async () => {
     if (!resumeId) return;
 
@@ -139,7 +116,6 @@ function WaitingContent() {
         throw new Error(data.error || "Failed to retry");
       }
 
-      // Reset countdown and trigger immediate refetch
       setCountdown(INITIAL_COUNTDOWN);
       await refetch();
     } catch (err) {
@@ -149,7 +125,7 @@ function WaitingContent() {
   }, [resumeId, refetch]);
 
   if (!resumeId) {
-    return null; // Will redirect
+    return null;
   }
 
   return (
@@ -173,7 +149,6 @@ function WaitingContent() {
 
           {status === "processing" && (
             <div className="space-y-6">
-              {/* Animated processing icon */}
               <div className="flex flex-col items-center justify-center py-4 space-y-4">
                 <div className="relative">
                   <div className="absolute inset-0 animate-pulse rounded-full bg-brand-subtle scale-150" />
@@ -190,7 +165,6 @@ function WaitingContent() {
                 </div>
               </div>
 
-              {/* Progress bar */}
               <div className="space-y-2">
                 <Progress value={progress} className="w-full h-3" />
                 <p className="text-xs text-center text-muted-foreground font-medium">
@@ -198,7 +172,6 @@ function WaitingContent() {
                 </p>
               </div>
 
-              {/* Processing stage info */}
               <div className="border border-border bg-surface-2 rounded-lg p-4">
                 <div className="space-y-3">
                   {(() => {
@@ -222,7 +195,6 @@ function WaitingContent() {
                   })()}
                 </div>
 
-                {/* What You'll Get preview */}
                 <div className="mt-4 pt-4 border-t border-border">
                   <p className="text-xs font-semibold text-foreground mb-2">
                     What you&apos;ll get:

@@ -1,12 +1,3 @@
-/**
- * Error Boundary Component Tests
- *
- * Tests error boundary behavior, error reporting, recovery mechanisms,
- * and edge cases for React error boundaries in the vinext app.
- *
- * @module __tests__/unit/components/error-boundaries.test
- */
-
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vite-plus/test";
@@ -17,13 +8,11 @@ const analyticsMocks = vi.hoisted(() => ({
 
 vi.mock("@/lib/analytics/client", () => analyticsMocks);
 
-// Store original globals
 const originalConsoleError = console.error;
 const originalEnv = process.env.NODE_ENV;
 
 import ProtectedError from "@/app/(protected)/error";
 import ProfileError from "@/app/[handle]/error";
-// Import error boundary components (these are "use client" so we can test them)
 import ErrorPage from "@/app/error";
 
 describe("Error Boundary Tests", () => {
@@ -37,10 +26,6 @@ describe("Error Boundary Tests", () => {
     (process.env as { NODE_ENV: string }).NODE_ENV = originalEnv;
   });
 
-  // ============================================================================
-  // Root Error Boundary Tests
-  // ============================================================================
-
   describe("Root Error Boundary (app/error.tsx)", () => {
     test("1. Root error boundary catches unhandled errors and displays UI", () => {
       const error = new Error("Test error");
@@ -48,7 +33,6 @@ describe("Error Boundary Tests", () => {
 
       render(<ErrorPage error={error} reset={reset} />);
 
-      // Should display user-friendly error message
       expect(screen.getByText("Something went wrong")).toBeInTheDocument();
       expect(screen.getByText(/We encountered an unexpected error/)).toBeInTheDocument();
     });
@@ -59,11 +43,9 @@ describe("Error Boundary Tests", () => {
 
       render(<ErrorPage error={error} reset={reset} />);
 
-      // Should show friendly message, not technical details (in production)
       expect(screen.getByText("Something went wrong")).toBeInTheDocument();
       expect(screen.getByText(/Please try again or go back to the dashboard/)).toBeInTheDocument();
 
-      // Technical error should not be visible in production mode
       expect(screen.queryByText("Technical error details")).not.toBeInTheDocument();
     });
 
@@ -73,11 +55,9 @@ describe("Error Boundary Tests", () => {
 
       render(<ErrorPage error={error} reset={reset} />);
 
-      // Should have "Try Again" button
       const tryAgainButton = screen.getByRole("button", { name: /Try Again/i });
       expect(tryAgainButton).toBeInTheDocument();
 
-      // Clicking should call reset
       tryAgainButton.click();
       expect(reset).toHaveBeenCalledTimes(1);
     });
@@ -88,7 +68,6 @@ describe("Error Boundary Tests", () => {
 
       render(<ErrorPage error={error} reset={reset} />);
 
-      // Should still render error UI for async errors
       expect(screen.getByText("Something went wrong")).toBeInTheDocument();
     });
 
@@ -98,17 +77,14 @@ describe("Error Boundary Tests", () => {
 
       const { rerender } = render(<ErrorPage error={error} reset={reset} />);
 
-      // Click try again
       const tryAgainButton = screen.getByRole("button", { name: /Try Again/i });
       await userEvent.click(tryAgainButton);
 
       expect(reset).toHaveBeenCalled();
 
-      // Simulate error boundary recovering by passing a new error
       const newError = new Error("Recovered but new error");
       rerender(<ErrorPage error={newError} reset={reset} />);
 
-      // Should still show error UI
       expect(screen.getByText("Something went wrong")).toBeInTheDocument();
     });
 
@@ -118,14 +94,9 @@ describe("Error Boundary Tests", () => {
 
       render(<ErrorPage error={error} reset={reset} />);
 
-      // useEffect should log the error
       expect(console.error).toHaveBeenCalledWith("Error boundary caught:", error);
     });
   });
-
-  // ============================================================================
-  // Protected Route Error Boundary Tests
-  // ============================================================================
 
   describe("Protected Route Error Boundary (app/(protected)/error.tsx)", () => {
     test("2. Protected route error boundary catches errors in protected pages", () => {
@@ -147,7 +118,6 @@ describe("Error Boundary Tests", () => {
 
       render(<ProtectedError error={error} reset={reset} />);
 
-      // Wait for the useEffect to fire
       await waitFor(() => {
         expect(analyticsMocks.captureAnalyticsError).toHaveBeenCalledWith(error);
       });
@@ -166,26 +136,22 @@ describe("Error Boundary Tests", () => {
     });
 
     test("10. Error boundary with nested boundaries — proper error bubbling", () => {
-      // This tests that protected route errors stay in protected boundary
       const error = new Error("Nested boundary test");
       const reset = vi.fn();
 
       render(<ProtectedError error={error} reset={reset} />);
 
-      // Should show protected-specific UI, not generic
       expect(screen.getByText(/Your data is safe/)).toBeInTheDocument();
       expect(screen.getByText(/Back to Dashboard/)).toBeInTheDocument();
     });
 
     test("12. Error boundary with fatal errors shows fatal message", () => {
-      // Create an error that could be considered "fatal"
       const fatalError = new Error("Fatal: Unrecoverable state");
-      fatalError.stack = undefined; // Simulate missing stack
+      fatalError.stack = undefined;
       const reset = vi.fn();
 
       render(<ProtectedError error={fatalError} reset={reset} />);
 
-      // Should still render error UI
       expect(screen.getByText(/Oops! Something went wrong/)).toBeInTheDocument();
       expect(screen.getByRole("button", { name: /Try Again/i })).toBeInTheDocument();
     });
@@ -194,23 +160,19 @@ describe("Error Boundary Tests", () => {
       const error = new Error("Isolation test");
       const reset = vi.fn();
 
-      // Render both protected and root error boundaries to ensure isolation
       const { container: container1 } = render(<ProtectedError error={error} reset={reset} />);
       const protectedContent = container1.textContent;
 
-      // Reset for root boundary render
       reset.mockClear();
       const { container: container2 } = render(<ErrorPage error={error} reset={reset} />);
       const rootContent = container2.textContent;
 
-      // They should have different content (different error messages)
       expect(protectedContent).not.toEqual(rootContent);
       expect(protectedContent).toContain("Oops!");
       expect(rootContent).not.toContain("Oops!");
     });
 
     test("15. Error boundary in production vs dev mode (development info visibility)", () => {
-      // Test in development mode
       (process.env as { NODE_ENV: string }).NODE_ENV = "development";
       const devError = new Error("Dev mode error") as Error & { digest?: string };
       devError.digest = "error-digest-123";
@@ -218,26 +180,19 @@ describe("Error Boundary Tests", () => {
 
       const { unmount } = render(<ProtectedError error={devError} reset={reset} />);
 
-      // In dev mode, error details should be visible
       expect(screen.getByText(/Dev mode error/)).toBeInTheDocument();
       expect(screen.getByText(/error-digest-123/)).toBeInTheDocument();
 
       unmount();
 
-      // Test in production mode
       (process.env as { NODE_ENV: string }).NODE_ENV = "production";
       const prodError = new Error("Prod mode error");
 
       render(<ProtectedError error={prodError} reset={reset} />);
 
-      // In production, error details should NOT be visible
       expect(screen.queryByText(/Prod mode error/)).not.toBeInTheDocument();
     });
   });
-
-  // ============================================================================
-  // Handle Route Error Boundary Tests
-  // ============================================================================
 
   describe("Handle Route Error Boundary (app/[handle]/error.tsx)", () => {
     test("3. Handle route error boundary catches errors in public resume pages", () => {
@@ -268,7 +223,6 @@ describe("Error Boundary Tests", () => {
 
       render(<ProfileError error={error} reset={reset} />);
 
-      // Should provide context-appropriate messaging
       expect(
         screen.getByText(/The page may not exist or there was a temporary error/),
       ).toBeInTheDocument();
@@ -280,14 +234,9 @@ describe("Error Boundary Tests", () => {
 
       render(<ProfileError error={error} reset={reset} />);
 
-      // Should have branding in footer
       expect(screen.getByText(/Powered by/)).toBeInTheDocument();
     });
   });
-
-  // ============================================================================
-  // Error Boundary Edge Cases
-  // ============================================================================
 
   describe("Error Boundary Edge Cases", () => {
     test("Error boundary handles error without message", () => {
@@ -297,7 +246,6 @@ describe("Error Boundary Tests", () => {
 
       render(<ErrorPage error={error} reset={reset} />);
 
-      // Should still render without crashing
       expect(screen.getByText("Something went wrong")).toBeInTheDocument();
     });
 
@@ -318,7 +266,6 @@ describe("Error Boundary Tests", () => {
 
       render(<ErrorPage error={error} reset={reset} />);
 
-      // Should handle without crashing
       expect(screen.getByText("Something went wrong")).toBeInTheDocument();
     });
 
@@ -332,7 +279,6 @@ describe("Error Boundary Tests", () => {
         expect(analyticsMocks.captureAnalyticsError).toHaveBeenCalledWith(error);
       });
 
-      // A recovered-then-rethrown error reports again under its own identity.
       const nextError = new Error("Second error");
       rerender(<ProtectedError error={nextError} reset={reset} />);
 
@@ -340,7 +286,6 @@ describe("Error Boundary Tests", () => {
         expect(analyticsMocks.captureAnalyticsError).toHaveBeenCalledWith(nextError);
       });
 
-      // UI should still be rendered
       expect(screen.getByText(/Oops! Something went wrong/)).toBeInTheDocument();
     });
 
@@ -361,7 +306,6 @@ describe("Error Boundary Tests", () => {
 
       const tryAgainButton = screen.getByRole("button", { name: /Try Again/i });
 
-      // Click multiple times
       await userEvent.click(tryAgainButton);
       await userEvent.click(tryAgainButton);
       await userEvent.click(tryAgainButton);

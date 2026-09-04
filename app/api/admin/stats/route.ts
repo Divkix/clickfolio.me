@@ -1,25 +1,3 @@
-/**
- * GET /api/admin/stats
- *
- * Returns overview statistics for admin dashboard.
- * User/resume stats from Postgres (Hyperdrive), traffic stats from Umami.
- *
- * @returns Response with shape:
- * ```json
- * {
- *   "totalUsers": number,
- *   "publishedResumes": number,
- *   "processingResumes": number,
- *   "viewsToday": number,
- *   "failedResumes": number,
- *   "recentSignups": Array<{ email: string; createdAt: string }>,
- *   "dailyViews": Array<{ date: string; views: number }>
- * }
- * ```
- *
- * Error codes: 503 for Umami API failures.
- */
-
 import { env } from "cloudflare:workers";
 import { count, sql } from "drizzle-orm";
 import { withAdmin } from "@/lib/auth/with-auth";
@@ -44,13 +22,10 @@ export async function GET() {
 
       const [userStats, siteDataCount, resumeStats, umamiStats, umamiPageviews, recentSignups] =
         await Promise.all([
-          // Total user count
           db.select({ total: count() }).from(user),
 
-          // Users with site data
           db.select({ count: count() }).from(siteData),
 
-          // Resume status counts
           db
             .select({
               status: resumes.status,
@@ -70,7 +45,6 @@ export async function GET() {
             timezone: "UTC",
           }),
 
-          // Recent signups (last 10)
           db
             .select({
               email: user.email,
@@ -81,7 +55,6 @@ export async function GET() {
             .limit(10),
         ]);
 
-      // Process resume stats
       // SAFETY: resumeStats is aggregated string keys from the database; cast initializes typed map for counting.
       const resumeStatusMap = resumeStats.reduce(
         (acc, r) => {
@@ -96,7 +69,6 @@ export async function GET() {
 
       // Fill missing dates for sparkline from Umami pageviews
       // Umami returns x as full ISO timestamp (e.g. "2026-02-09T00:00:00Z") when timezone=UTC,
-      // so normalize to YYYY-MM-DD for consistent date matching.
       const viewsMap = new Map(umamiPageviews.pageviews.map((p) => [p.x.slice(0, 10), p.y]));
       const filledDailyViews = lastNUtcDays(7).map((date) => ({
         date,

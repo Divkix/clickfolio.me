@@ -6,11 +6,6 @@ import { Button } from "@/components/ui/button";
 import { captureAnalyticsError } from "@/lib/analytics/client";
 import { siteConfig } from "@/lib/config/site";
 
-/**
- * Protected Routes Error Boundary
- * Catches errors in authenticated routes
- * Provides context-aware error handling for dashboard and protected pages
- */
 export default function ProtectedError({
   error,
   reset,
@@ -20,7 +15,6 @@ export default function ProtectedError({
 }) {
   useEffect(() => {
     console.error("Protected route error:", error);
-    // Report to PostHog Error Tracking; never let reporting break recovery UI.
     captureAnalyticsError(error);
   }, [error]);
 

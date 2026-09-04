@@ -729,4 +729,3 @@ describe("normalizeAiKeys - complete integration", () => {
     expect(result.another_custom).toBe(123);
   });
 });
-/* eslint-enable @typescript-eslint/no-explicit-any */

@@ -19,14 +19,12 @@ import { normalizePreviewSkills } from "@/lib/utils/preview-skills";
 import { extractCityState, normalizePrivacySettings } from "@/lib/utils/privacy";
 import { safePageParam } from "@/lib/utils/pagination";
 
-/** Revalidate explore page every 5 minutes for directory freshness. */
 export const revalidate = 300;
 
 const exploreTitle = `Browse Professional Portfolios | ${siteConfig.fullName}`;
 const exploreDescription =
   "Discover professionals in our community. Browse portfolios and connect with talented individuals.";
 
-/** SEO metadata for the explore directory page. */
 export const metadata: Metadata = buildPublicPageMetadata({
   title: "Browse Professional Portfolios",
   ogTitle: exploreTitle,
@@ -34,7 +32,6 @@ export const metadata: Metadata = buildPublicPageMetadata({
   path: "/explore",
 });
 
-/** Shape of a user entry in the public directory. */
 interface DirectoryUser {
   handle: string;
   role: string | null;
@@ -48,48 +45,35 @@ interface DirectoryUser {
 
 const ITEMS_PER_PAGE = 12;
 
-/**
- * Explore directory — paginated, filterable listing of public portfolios.
- * Fetches preview columns from the database for fast rendering.
- */
 export default async function ExplorePage({
   searchParams,
 }: {
   searchParams: Promise<{ page?: string; role?: string }>;
 }) {
   const params = await searchParams;
-  // NaN-safe page parse: Math.max(1, NaN) is NaN, which would produce a NaN
-  // SQL OFFSET and NaN in the prev/next pagination links.
   const currentPage = safePageParam(params.page);
   const roleFilter = params.role || "";
 
   const db = getDb(env.HYPERDRIVE);
 
-  // Build where conditions
   const whereConditions = [
     isNotNull(user.handle),
-    // Denormalized boolean column — indexed
     eq(user.showInDirectory, true),
-    // Must have completed onboarding
     eq(user.onboardingCompleted, true),
   ];
 
-  // Add role filter if specified
   if (roleFilter) {
     // SAFETY: searchParams are validated via Zod schema before use; roleFilter is from allowed ROLE_OPTIONS.
     whereConditions.push(eq(user.role, roleFilter as (typeof user.role.enumValues)[number]));
   }
 
-  // Run count and data queries in parallel (independent database reads)
   const [countResult, usersWithData] = await Promise.all([
-    // Total count for pagination
     db
       .select({ count: sql<number>`count(*)` })
       .from(user)
       .innerJoin(siteData, eq(user.id, siteData.userId))
       .where(and(...whereConditions)),
 
-    // Paginated users with their site data preview columns
     db
       .select({
         handle: user.handle,
@@ -119,9 +103,6 @@ export default async function ExplorePage({
       const previewSkills = normalizePreviewSkills(u.previewSkills);
       const showAddress = normalizePrivacySettings(u.privacySettings).show_address;
 
-      // Filter the denormalized previewLocation at READ time — existing rows
-      // may predate the privacy filter. Cards render split(",")[0], so without
-      // this a full street address would leak into the directory.
       const previewLocation =
         u.previewLocation && !showAddress ? extractCityState(u.previewLocation) : u.previewLocation;
       // SAFETY: handle is filtered for non-null above; cast bridges nullable to string.
@@ -144,7 +125,6 @@ export default async function ExplorePage({
       headline: u.previewHeadline,
     })),
   );
-  // Role options for filter (shared constant from profile schema)
   const roleOptions = [{ value: "", label: "All Roles" }, ...ROLE_OPTIONS];
 
   return (
@@ -153,7 +133,6 @@ export default async function ExplorePage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(exploreJsonLd) }}
       />
-      {/* Pagination hints for crawlers */}
       {currentPage > 1 && (
         <link
           rel="prev"
@@ -174,7 +153,6 @@ export default async function ExplorePage({
         ]}
       />
       <main id="main-content" className="flex-1 max-w-7xl mx-auto px-4 py-12 w-full">
-        {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-4xl md:text-5xl font-extrabold text-foreground tracking-tight mb-4">
             Explore Professionals
@@ -184,7 +162,6 @@ export default async function ExplorePage({
           </p>
         </div>
 
-        {/* Filters */}
         <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
           <div className="flex items-center gap-3">
             <label htmlFor="role-filter" className="text-sm font-medium text-foreground">
@@ -197,7 +174,6 @@ export default async function ExplorePage({
           </p>
         </div>
 
-        {/* Grid of users */}
         {directoryUsers.length === 0 ? (
           <div className="text-center py-16 bg-card rounded-xl border border-border shadow-sm">
             <p className="text-muted-foreground text-lg">
@@ -229,7 +205,6 @@ export default async function ExplorePage({
                   <ExternalLink className="w-4 h-4 text-muted-foreground group-hover:text-brand shrink-0 ml-2" />
                 </div>
 
-                {/* Quick stats */}
                 <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
                   {person.previewLocation && (
                     <span className="inline-flex items-center gap-1">
@@ -252,7 +227,6 @@ export default async function ExplorePage({
                   )}
                 </div>
 
-                {/* Skills preview */}
                 {person.previewSkills && person.previewSkills.length > 0 && (
                   <div className="mt-4 flex min-w-0 flex-wrap gap-1.5">
                     {person.previewSkills.slice(0, 4).map((skill, idx) => (
@@ -276,7 +250,6 @@ export default async function ExplorePage({
           </div>
         )}
 
-        {/* Pagination */}
         {totalPages > 1 && (
           <div className="mt-12 flex items-center justify-center gap-2">
             {currentPage > 1 && (
@@ -295,7 +268,6 @@ export default async function ExplorePage({
                   (page) => page === 1 || page === totalPages || Math.abs(page - currentPage) <= 1,
                 )
                 .map((page, index, arr) => {
-                  // Add ellipsis if there's a gap
                   const showEllipsis = index > 0 && page - arr[index - 1] > 1;
                   return (
                     <span key={page} className="contents">
@@ -329,7 +301,6 @@ export default async function ExplorePage({
           </div>
         )}
 
-        {/* CTA for non-listed users */}
         <div className="mt-16 text-center bg-brand-subtle rounded-xl border border-border p-8">
           <h2 className="text-2xl font-bold text-foreground mb-3">Join Our Directory</h2>
           <p className="text-muted-foreground mb-6 max-w-xl mx-auto">

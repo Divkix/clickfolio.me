@@ -1,8 +1,3 @@
-/**
- * Tests for social share URL generation and share text formatting.
- * Covers Twitter, LinkedIn, WhatsApp URL builders with proper URL encoding and XSS prevention.
- */
-
 import { describe, expect, it } from "vite-plus/test";
 import {
   generateLinkedInShareUrl,
@@ -21,7 +16,6 @@ describe("generateTwitterShareUrl", () => {
 
   it("encodes special characters to prevent XSS", () => {
     const result = generateTwitterShareUrl('<script>alert("xss")</script>', "https://example.com");
-    // URL-encoded angle brackets and quotes
     expect(result).toContain("%3Cscript%3E");
     expect(result).toContain("%3C%2Fscript%3E");
     expect(result).not.toContain("<script>");
@@ -100,7 +94,7 @@ describe("generateWhatsAppShareUrl", () => {
 
   it("handles newlines in text", () => {
     const result = generateWhatsAppShareUrl("Line 1\nLine 2", "https://example.com");
-    expect(result).toContain("%0A"); // URL-encoded newline
+    expect(result).toContain("%0A");
   });
 });
 

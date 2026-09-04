@@ -74,7 +74,7 @@ describe("R2.getAsArrayBuffer", () => {
 
   it("handles large files correctly", async () => {
     const { bucket, store } = createMockR2Bucket();
-    const largeBuffer = new ArrayBuffer(1024 * 1024); // 1MB
+    const largeBuffer = new ArrayBuffer(1024 * 1024);
     store.set("large-file", { body: largeBuffer });
 
     const result = await R2.getAsArrayBuffer(bucket as unknown as R2Bucket, "large-file");

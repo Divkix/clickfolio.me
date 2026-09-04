@@ -1,18 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { JsonValue } from "@/lib/types/json";
 
-/**
- * Unit tests for lib/data/resume.ts
- *
- * Covers the privacy-filtering logic in getResumeData (phone/address redaction,
- * theme fallback for locked themes), getResumeMetadata (hide_from_search),
- * and getRelatedProfiles (omits hidden and current-handle users).
- */
-
-// ── Mocks ─────────────────────────────────────────────────────────────
-
-// React cache returns the function as-is in test environment so we don't
-// get cross-test caching. Mock it to be a pass-through wrapper.
 vi.mock("react", async (importOriginal) => {
   const actual = await importOriginal<typeof import("react")>();
   return {
@@ -37,8 +25,6 @@ const mockSelectChain = {
   offset: vi.fn(),
 };
 
-// Wire up the select chain — all intermediate methods return the chain itself.
-// Terminal calls (.limit / .offset / .where used as await target) are set per-test.
 mockSelectChain.from.mockReturnValue(mockSelectChain);
 mockSelectChain.where.mockReturnValue(mockSelectChain);
 mockSelectChain.leftJoin.mockReturnValue(mockSelectChain);
@@ -88,8 +74,6 @@ vi.mock("@/lib/seo/json-ld", () => ({
 vi.mock("@/lib/config/site", () => ({
   siteConfig: { url: "https://clickfolio.me" },
 }));
-
-// ── Fixtures ──────────────────────────────────────────────────────────
 
 function makeUserRow(overrides: {
   privacySettings?: {
@@ -143,12 +127,9 @@ function makeUserRow(overrides: {
   };
 }
 
-// ── Tests: getResumeData — phone redaction ────────────────────────────
-
 describe("getResumeData - phone/address privacy filtering", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Re-wire chains after clearAllMocks
     mockSelectChain.from.mockReturnValue(mockSelectChain);
     mockSelectChain.where.mockReturnValue(mockSelectChain);
     mockSelectChain.leftJoin.mockReturnValue(mockSelectChain);
@@ -214,7 +195,6 @@ describe("getResumeData - phone/address privacy filtering", () => {
     const result = await getResumeData("janedoe");
 
     expect(result).not.toBeNull();
-    // Full street address should be filtered to city/state
     expect(result!.content.contact?.location).toBe("San Francisco, CA");
   });
 
@@ -237,8 +217,6 @@ describe("getResumeData - phone/address privacy filtering", () => {
     expect(result).toBeNull();
   });
 });
-
-// ── Tests: getResumeData — theme fallback ─────────────────────────────
 
 describe("getResumeData - theme resolution", () => {
   beforeEach(() => {
@@ -277,11 +255,9 @@ describe("getResumeData - theme resolution", () => {
     const result = await getResumeData("janedoe");
 
     expect(result).not.toBeNull();
-    expect(result!.theme_id).toBe("minimalist_editorial"); // DEFAULT_THEME
+    expect(result!.theme_id).toBe("minimalist_editorial");
   });
 });
-
-// ── Tests: getRelatedProfiles — bounded-window strategy ──────────────
 
 describe("getRelatedProfiles - bounded random window", () => {
   beforeEach(() => {
@@ -298,9 +274,7 @@ describe("getRelatedProfiles - bounded random window", () => {
   it("returns at most 3 entries from a larger pool", async () => {
     const { getRelatedProfiles } = await import("@/lib/data/resume");
 
-    // First select call: count query — .where() resolves with count row
     mockSelectChain.where.mockResolvedValueOnce([{ n: 20 }]);
-    // Second select call: window query — .offset() resolves with 5 rows
     mockSelectChain.offset.mockResolvedValueOnce([
       { handle: "alice", name: "Alice", headline: "Designer" },
       { handle: "bob", name: "Bob", headline: null },
@@ -312,7 +286,6 @@ describe("getRelatedProfiles - bounded random window", () => {
     const result = await getRelatedProfiles("janedoe");
 
     expect(result.length).toBeLessThanOrEqual(3);
-    // All returned handles must be from the pool
     const validHandles = new Set(["alice", "bob", "carol", "dave", "eve"]);
     for (const r of result) {
       expect(validHandles.has(r.handle)).toBe(true);
@@ -330,7 +303,6 @@ describe("getRelatedProfiles - bounded random window", () => {
 
     await getRelatedProfiles("janedoe");
 
-    // Verify where-clause builders were called (ne guards currentHandle)
     expect(ne).toHaveBeenCalled();
     expect(isNotNull).toHaveBeenCalled();
     expect(and).toHaveBeenCalled();

@@ -11,17 +11,11 @@ export interface BlogPostMeta {
   slug: string;
   title: string;
   description: string;
-  /** ISO date the post was first published. */
   date: string;
-  /** ISO date the post was last updated. Falls back to `date` when absent. */
   dateModified?: string;
   readTime: string;
   category: string;
   keywords: string[];
-  /**
-   * Optional FAQ items rendered as a visible section + FAQPage schema.
-   * Boosts rich-result eligibility and AI answer extraction.
-   */
   faq?: BlogPostFaq[];
 }
 
@@ -469,12 +463,6 @@ export function getPostBySlug(slug: string): BlogPostMeta | undefined {
   return BLOG_POSTS.find((p) => p.slug === slug);
 }
 
-/**
- * Builds the Next.js Metadata object for an individual blog post page.
- * Shared by every app/blog/<slug>/page.tsx so the per-page generateMetadata()
- * stays a one-line delegation. Output is identical to the previous inline
- * definition.
- */
 export function buildBlogPostMetadata(post: BlogPostMeta): Metadata {
   return {
     ...buildPublicPageMetadata({

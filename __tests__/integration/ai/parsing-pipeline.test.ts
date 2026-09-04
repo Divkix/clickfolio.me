@@ -13,7 +13,6 @@ vi.mock("@ai-sdk/openai-compatible", () => ({
   })),
 }));
 
-// Mock pdf-extract module
 vi.mock("@/lib/ai/pdf-extract", () => ({
   extractPdfText: vi.fn(),
   isValidPdf: vi.fn(() => true),
@@ -54,7 +53,6 @@ vi.mock("ai", async (importOriginal) => {
   };
 });
 
-// Sample resume text for testing
 const SAMPLE_RESUME_TEXT = `
 John Doe
 Software Engineer
@@ -93,7 +91,6 @@ Frameworks: React, Next.js, Node.js, Express
 Tools: Git, Docker, AWS, Kubernetes
 `;
 
-// Valid AI response matching schema
 const VALID_AI_RESPONSE = {
   full_name: "John Doe",
   headline: "Software Engineer",
@@ -210,7 +207,6 @@ describe("AI Parsing Pipeline", () => {
     it("should use text fallback when initial parse returns invalid JSON then succeeds on retry", async () => {
       const { generateText } = await import("ai");
 
-      // First call returns invalid JSON (triggers retry with truncated text)
       vi.mocked(generateText)
         .mockResolvedValueOnce({
           text: "not json at all",
@@ -231,7 +227,6 @@ describe("AI Parsing Pipeline", () => {
           experimental_output: undefined,
           providerMetadata: {},
         } as never)
-        // Retry succeeds
         .mockResolvedValueOnce({
           text: JSON.stringify(VALID_AI_RESPONSE),
           finishReason: "stop",
@@ -311,7 +306,6 @@ describe("AI Parsing Pipeline", () => {
 
       const result = await parseWithAi(SAMPLE_RESUME_TEXT, mockEnv);
 
-      // Invalid JSON gets repaired or falls back gracefully
       expect(result).toBeDefined();
       expect(result.success).toBeDefined();
     });
@@ -366,7 +360,6 @@ describe("AI Parsing Pipeline", () => {
 
       const result = await parseWithAi(SAMPLE_RESUME_TEXT, mockEnv);
 
-      // Malformed partial data gets normalized and retried
       expect(result).toBeDefined();
     });
 
@@ -375,7 +368,6 @@ describe("AI Parsing Pipeline", () => {
 
       const result = await parseWithAi(SAMPLE_RESUME_TEXT, invalidEnv);
 
-      // Function returns { success: false, ... } instead of throwing
       expect(result.success).toBe(false);
       expect(result.error).toContain("Cloudflare AI Gateway not configured");
     });
@@ -391,7 +383,7 @@ describe("AI Parsing Pipeline", () => {
     });
 
     it("should repair malformed JSON", async () => {
-      const malformedJson = '{"full_name": "John Doe", "headline": "Developer"'; // Missing closing brace
+      const malformedJson = '{"full_name": "John Doe", "headline": "Developer"';
       const result = await parseJsonWithRepair(malformedJson);
 
       expect(result.data).not.toBeNull();
@@ -524,7 +516,6 @@ describe("AI Parsing Pipeline", () => {
 
   describe("parseResumeWithAi", () => {
     it("should complete full parse pipeline with valid PDF", async () => {
-      // Mock PDF extraction to return valid resume text
       const { extractPdfText } = await import("@/lib/ai/pdf-extract");
       vi.mocked(extractPdfText).mockResolvedValueOnce({
         success: true,
@@ -532,7 +523,6 @@ describe("AI Parsing Pipeline", () => {
         pageCount: 1,
       });
 
-      // Mock the AI response
       const { generateText } = await import("ai");
       vi.mocked(generateText).mockResolvedValue({
         output: VALID_AI_RESPONSE,
@@ -564,7 +554,6 @@ describe("AI Parsing Pipeline", () => {
     });
 
     it("should handle PDF extraction failure gracefully", async () => {
-      // Empty buffer simulating failed extraction
       const emptyBuffer = new ArrayBuffer(0);
 
       const result = await parseResumeWithAi(emptyBuffer, mockEnv);
@@ -608,7 +597,7 @@ describe("AI Parsing Pipeline", () => {
 
     it("should reject invalid resume schema", async () => {
       const invalidData = {
-        full_name: "", // Required field empty
+        full_name: "",
         headline: "Developer",
         contact: {},
         experience: [],
@@ -622,7 +611,6 @@ describe("AI Parsing Pipeline", () => {
       const incompleteData = {
         full_name: "John Doe",
         headline: "Developer",
-        // Missing contact.email and experience
       };
 
       const normalized = normalizeAiKeys(incompleteData);
@@ -637,7 +625,6 @@ describe("AI Parsing Pipeline", () => {
       };
 
       const validation = resumeContentSchema.safeParse(dataWithExtras);
-      // Zod strips unknown keys by default - validation should pass
       expect(validation.success).toBe(true);
       if (validation.success) {
         expect(validation.data).not.toHaveProperty("extra_field");
@@ -737,7 +724,7 @@ describe("AI Parsing Pipeline", () => {
         summary: "Visit http://malicious-site.com for free money",
         contact: {
           email: "john@example.com",
-          website: "javascript:alert('xss')", // Should be filtered
+          website: "javascript:alert('xss')",
         },
         experience: [
           {
@@ -775,7 +762,6 @@ describe("AI Parsing Pipeline", () => {
       } as never);
 
       const result = await parseWithAi(SAMPLE_RESUME_TEXT, mockEnv);
-      // Schema validation should filter out malicious content
       expect(result).toBeDefined();
     });
 
@@ -801,13 +787,10 @@ describe("AI Parsing Pipeline", () => {
     it("should retry with validation errors", async () => {
       const { generateText } = await import("ai");
 
-      // First attempt returns incomplete data
       const incompleteResponse = {
         full_name: "John Doe",
-        // Missing required fields
       };
 
-      // Second attempt with error feedback succeeds
       vi.mocked(generateText)
         .mockResolvedValueOnce({
           output: incompleteResponse,
@@ -896,7 +879,6 @@ describe("AI Parsing Pipeline", () => {
       const cacheKey = `parse:${fileHash}`;
       const cachedResult = { success: true, data: VALID_AI_RESPONSE };
 
-      // Simulate cache lookup
       const mockCache = new Map();
       mockCache.set(cacheKey, cachedResult);
 

@@ -13,28 +13,20 @@ import { flattenSkills } from "@/lib/templates/helpers";
 import { DEFAULT_THEME, type ThemeId, themeToShareVariant } from "@/lib/templates/theme-ids";
 import { getTemplate } from "@/lib/templates/theme-registry";
 
-// Dynamic params are always allowed (new handles can be created)
 export const dynamicParams = true;
 export const revalidate = 3600;
 
-/** Props for the public resume viewer page. */
 interface PageProps {
   params: Promise<{
     handle: string;
   }>;
 }
 
-/**
- * Generate dynamic metadata for SEO
- */
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { handle: rawHandleEncoded } = await params;
 
-  // Decode URL-encoded characters (@ becomes %40 in route params)
   const rawHandle = decodeURIComponent(rawHandleEncoded);
 
-  // Handle must start with @ (new URL format: /@username)
-  // Old URLs without @ are redirected via next.config.ts
   if (!rawHandle.startsWith("@")) {
     return {
       title: "Not Found",
@@ -42,11 +34,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     };
   }
 
-  // Strip @ prefix for DB lookup
   const handle = rawHandle.slice(1);
 
-  // Early reject invalid formats — skips DB query for bot probes, missing files, malformed paths
-  // See: lib/rate-limit/handle-validation.ts for why this exists
   if (!isValidHandleFormat(handle)) {
     return {
       title: "Not Found",
@@ -80,11 +69,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title: `${full_name}${headline ? ` — ${headline}` : ""}`,
     description,
-    // Canonical URL for proper SEO
     alternates: {
       canonical: profileUrl,
     },
-    // Conditional noindex when user opts out of search indexing
     ...(hide_from_search && {
       robots: {
         index: false,
@@ -123,29 +110,17 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-/**
- * Public resume viewer page
- * Renders user's resume with privacy filtering applied
- *
- * Caching: ISR refreshes the page at most hourly (`revalidate = 3600`).
- */
 export default async function HandlePage({ params }: PageProps) {
   const { handle: rawHandleEncoded } = await params;
 
-  // Decode URL-encoded characters (@ becomes %40 in route params)
   const rawHandle = decodeURIComponent(rawHandleEncoded);
 
-  // Handle must start with @ (new URL format: /@username)
-  // Old URLs without @ are redirected via next.config.ts
   if (!rawHandle.startsWith("@")) {
     notFound();
   }
 
-  // Strip @ prefix for DB lookup
   const handle = rawHandle.slice(1);
 
-  // Early reject invalid formats — skips DB query for bot probes, missing files, malformed paths
-  // See: lib/rate-limit/handle-validation.ts for why this exists
   if (!isValidHandleFormat(handle)) {
     notFound();
   }
@@ -166,25 +141,21 @@ export default async function HandlePage({ params }: PageProps) {
       )
     : [];
 
-  // Dynamically select template based on theme_id
   const Template = await getTemplate(theme_id);
 
   const ctaVariant: ThemeId = theme_id ?? DEFAULT_THEME;
 
-  // Map theme_id to share popover variant (kebab-case format)
   const shareVariant = themeToShareVariant[theme_id ?? DEFAULT_THEME];
   const pageTitle = `${content.full_name}'s Resume`;
 
   return (
     <>
-      {/* JSON-LD structured data for rich search results */}
       {metadata?.jsonLdResumeScript && (
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: metadata.jsonLdResumeScript }}
         />
       )}
-      {/* Breadcrumb JSON-LD for navigation context in search results */}
       {metadata?.jsonLdBreadcrumbScript && (
         <script
           type="application/ld+json"
@@ -209,7 +180,6 @@ export default async function HandlePage({ params }: PageProps) {
         }}
       />
       <OwnerDetector profileId={profile.id} />
-      {/* Floating actions for visitors */}
       <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-40 print:hidden">
         <CreateYoursCTA handle={handle} variant={ctaVariant} />
       </div>

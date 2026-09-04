@@ -34,35 +34,13 @@ const buttonVariants = cva(
 );
 
 interface ShareBarProps extends VariantProps<typeof shareBarVariants> {
-  /** The URL to share (optional if handle is provided) */
   url?: string;
-  /** The user's handle (used to construct URL if url not provided) */
   handle?: string;
-  /** The page title for share dialogs */
   title: string;
-  /** The person's name for share text */
   name: string;
-  /** Additional CSS classes */
   className?: string;
 }
 
-/**
- * Social share bar component
- *
- * Provides share buttons for Twitter, LinkedIn, WhatsApp, and copy link.
- * Uses Web Share API as primary when available, falls back to individual buttons.
- * Theme-adaptive styling via variant prop.
- *
- * @example
- * ```tsx
- * <ShareBar
- *   url="https://clickfolio.me/john"
- *   title="John Doe's Portfolio"
- *   name="John Doe"
- *   variant="minimalist-editorial"
- * />
- * ```
- */
 export function ShareBar({ url, handle, title, name, variant, className }: ShareBarProps) {
   const [hasWebShare, setHasWebShare] = useState(false);
 
@@ -84,7 +62,6 @@ export function ShareBar({ url, handle, title, name, variant, className }: Share
       className={cn(shareBarVariants({ variant }), "border-none p-0 m-0", className)}
       aria-label="Share options"
     >
-      {/* Native share button (mobile-first) */}
       {hasWebShare && (
         <button
           type="button"
@@ -97,7 +74,6 @@ export function ShareBar({ url, handle, title, name, variant, className }: Share
         </button>
       )}
 
-      {/* Twitter/X */}
       <button
         type="button"
         onClick={handleTwitterShare}
@@ -108,7 +84,6 @@ export function ShareBar({ url, handle, title, name, variant, className }: Share
         <span className="sr-only sm:not-sr-only sm:ml-1.5">X</span>
       </button>
 
-      {/* LinkedIn */}
       <button
         type="button"
         onClick={handleLinkedInShare}
@@ -123,7 +98,6 @@ export function ShareBar({ url, handle, title, name, variant, className }: Share
         <span className="sr-only sm:not-sr-only sm:ml-1.5">LinkedIn</span>
       </button>
 
-      {/* WhatsApp */}
       <button
         type="button"
         onClick={handleWhatsAppShare}
@@ -134,7 +108,6 @@ export function ShareBar({ url, handle, title, name, variant, className }: Share
         <span className="sr-only sm:not-sr-only sm:ml-1.5">WhatsApp</span>
       </button>
 
-      {/* Copy Link */}
       <button
         type="button"
         onClick={handleCopyLink}

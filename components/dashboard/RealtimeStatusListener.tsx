@@ -16,15 +16,6 @@ type DetectedState = {
   errorMessage?: string;
 };
 
-/**
- * Status listener component that uses WebSocket for real-time resume status changes.
- *
- * Updates arrive exclusively via WebSocket push: this component does not
- * consume useResumeWebSocket's connectionState, so when the hook exhausts
- * its reconnect budget (connectionState "fallback") NO polling happens here.
- * The page still recovers via the server render / router.refresh() once a
- * terminal status is delivered over WS.
- */
 export function RealtimeStatusListener({ resumeId, currentStatus }: RealtimeStatusListenerProps) {
   const router = useRouter();
   const hasRefreshedRef = useRef(false);
@@ -56,8 +47,6 @@ export function RealtimeStatusListener({ resumeId, currentStatus }: RealtimeStat
     [router],
   );
 
-  // Clear the debounce timer on unmount so a pending refresh can't fire
-  // after the component is gone (state update on unmounted component / leak).
   useEffect(() => {
     return () => {
       if (refreshDebounceRef.current) {
@@ -67,7 +56,6 @@ export function RealtimeStatusListener({ resumeId, currentStatus }: RealtimeStat
     };
   }, []);
 
-  // Connect WebSocket only when currently processing
   useResumeWebSocket({
     resumeId: currentStatus === "processing" || currentStatus === "queued" ? resumeId : null,
     onStatusChange: handleStatusChange,

@@ -1,21 +1,7 @@
-/**
- * AI Parser Unit Tests
- *
- * Covers the resume parsing pipeline via the AI SDK:
- * - Structured output path (generateObject with Zod schema)
- * - Text fallback path (generateText + manual JSON parsing with repair)
- * - Retry logic for transient failures and NoObjectGeneratedError
- * - Edge cases: empty input, malformed JSON, network errors, timeout
- * - Provider initialization via Cloudflare AI Gateway (OpenRouter)
- *
- * Coverage goal: 100% branch coverage for parseWithAi and createAiProvider.
- */
-
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { setupMockCleanup, suppressConsole } from "@/__tests__/setup/helpers/test-utils";
 import type { UnknownRecord } from "@/lib/types/json";
 import { type AiEnvVars, createAiProvider, parseWithAi } from "@/lib/ai/ai-parser";
-// Mock AI SDK
 vi.mock("@ai-sdk/openai-compatible", () => ({
   createOpenAICompatible: vi.fn(),
 }));
@@ -24,7 +10,6 @@ vi.mock("ai", () => ({
   generateText: vi.fn(),
 }));
 
-// Mock fallback functions
 vi.mock("@/lib/ai/ai-fallback", () => ({
   parseJsonWithRepair: vi.fn(),
   transformToSchema: vi.fn((data) => data),
@@ -212,7 +197,6 @@ describe("parseWithAi - text fallback path", () => {
     vi.mocked(createOpenAICompatible).mockReturnValue(
       mockProvider as unknown as ReturnType<typeof createOpenAICompatible>,
     );
-    // Reset and set default implementations to prevent leakage from previous tests
     vi.mocked(generateText).mockReset();
     vi.mocked(generateText).mockResolvedValue({
       text: '{"full_name":"Default"}',
@@ -406,15 +390,14 @@ describe("parseWithAi - retry with error feedback", () => {
       repaired: false,
     });
 
-    // 70005 chars > 60000 limit → head 38000 + tail 18000 with a marker
-    const longText = `${"h".repeat(38000)}MIDDLE${"t".repeat(31999)}`; // 38000 + 6 + 31999 = 70005
+    const longText = `${"h".repeat(38000)}MIDDLE${"t".repeat(31999)}`;
     await parseWithAi(longText, mockEnv, undefined, retryContext);
 
     const options = vi.mocked(generateText).mock.calls[0][0] as { prompt?: string };
     expect(options.prompt).toContain("...[truncated]...");
-    expect(options.prompt).toContain("h".repeat(38000)); // head preserved
-    expect(options.prompt).toContain("t".repeat(18000)); // tail preserved (last 18000 chars)
-    expect(options.prompt).not.toContain("MIDDLE"); // dropped middle section
+    expect(options.prompt).toContain("h".repeat(38000));
+    expect(options.prompt).toContain("t".repeat(18000));
+    expect(options.prompt).not.toContain("MIDDLE");
   });
 
   it("does NOT instruct the model to invent default values", async () => {
@@ -485,8 +468,6 @@ describe("parseWithAi - provider cache key", () => {
 
     await parseWithAi("Resume text", env2);
 
-    // A token rotation must bust the cache, otherwise the stale provider keeps
-    // the old (now invalid) auth token until the isolate recycles.
     expect(vi.mocked(createOpenAICompatible).mock.calls.length).toBeGreaterThan(callsAfterFirst);
   });
 
@@ -624,7 +605,6 @@ describe("parseWithAi - error handling", () => {
   });
 
   it("returns error for unexpected exceptions", async () => {
-    // Use different env vars to bust the module-level cache
     const uniqueEnv = {
       ...mockEnv,
       CF_AI_GATEWAY_ACCOUNT_ID: "different-account",

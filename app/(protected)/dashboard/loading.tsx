@@ -5,10 +5,8 @@ export default function DashboardLoading() {
     <div className="min-h-screen bg-background">
       <main className="max-w-[1400px] mx-auto px-4 lg:px-6 py-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {/* Row 1: Stats Cards - Full Width */}
           <div className="col-span-full">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {/* Stat Card Skeletons */}
               {[...Array(4)].map((_, i) => (
                 <div key={i} className="bg-card rounded-xl shadow-sm border border-border p-4">
                   <div className="flex items-start gap-3">
@@ -23,10 +21,7 @@ export default function DashboardLoading() {
             </div>
           </div>
 
-          {/* Row 2: Main Content Area */}
-          {/* Left Column - Resume Preview (spans 2 on desktop) */}
           <div className="lg:col-span-2 bg-card rounded-xl shadow-sm border border-border p-8">
-            {/* Header */}
             <div className="mb-6">
               <Skeleton className="h-8 w-64 mb-2" />
               <Skeleton className="h-5 w-48" />
@@ -34,7 +29,6 @@ export default function DashboardLoading() {
 
             <div className="h-px bg-muted mb-6" />
 
-            {/* Summary */}
             <div className="mb-6">
               <Skeleton className="h-4 w-20 mb-2" />
               <Skeleton className="h-4 w-full mb-1" />
@@ -42,7 +36,6 @@ export default function DashboardLoading() {
               <Skeleton className="h-4 w-3/4" />
             </div>
 
-            {/* Stats Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
               {[...Array(4)].map((_, i) => (
                 <div key={i} className="flex items-center gap-3">
@@ -57,18 +50,15 @@ export default function DashboardLoading() {
 
             <div className="h-px bg-muted mb-6" />
 
-            {/* Footer - Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-3">
               <Skeleton className="h-10 flex-1 rounded-md" />
               <Skeleton className="h-10 flex-1 rounded-md" />
             </div>
           </div>
 
-          {/* Right Column - Account Info */}
           <div className="bg-card rounded-xl shadow-sm border border-border p-6">
             <Skeleton className="h-6 w-24 mb-4" />
             <div className="space-y-4">
-              {/* Email */}
               <div className="flex items-start gap-3">
                 <Skeleton className="h-8 w-8 rounded-lg shrink-0" />
                 <div className="flex-1 min-w-0 space-y-1">
@@ -79,7 +69,6 @@ export default function DashboardLoading() {
 
               <div className="h-px bg-muted" />
 
-              {/* Handle */}
               <div className="flex items-start gap-3">
                 <Skeleton className="h-8 w-8 rounded-lg shrink-0" />
                 <div className="flex-1 min-w-0 space-y-1">
@@ -91,7 +80,6 @@ export default function DashboardLoading() {
 
               <div className="h-px bg-muted" />
 
-              {/* Member since */}
               <div className="flex items-start gap-3">
                 <Skeleton className="h-8 w-8 rounded-lg shrink-0" />
                 <div className="flex-1 min-w-0 space-y-1">

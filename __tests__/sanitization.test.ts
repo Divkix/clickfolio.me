@@ -1,9 +1,3 @@
-/**
- * Tests for input sanitization and XSS detection utilities.
- * Covers HTML entity encoding, dangerous protocol blocking, XSS pattern detection,
- * and safe normalization for email, phone, URL, and free-text fields.
- */
-
 import { describe, expect, it } from "vite-plus/test";
 import {
   containsXssPattern,
@@ -13,8 +7,6 @@ import {
   sanitizeText,
   sanitizeUrl,
 } from "@/lib/utils/sanitization";
-
-// ── containsXssPattern ───────────────────────────────────────────────
 
 describe("containsXssPattern", () => {
   it("returns false for plain text", () => {
@@ -77,8 +69,6 @@ describe("containsXssPattern", () => {
   });
 });
 
-// ── noXssPattern (Zod refinement helper) ─────────────────────────────
-
 describe("noXssPattern", () => {
   it("returns true for safe strings", () => {
     expect(noXssPattern("Regular text")).toBe(true);
@@ -88,8 +78,6 @@ describe("noXssPattern", () => {
     expect(noXssPattern("<script>alert(1)</script>")).toBe(false);
   });
 });
-
-// ── sanitizeText ─────────────────────────────────────────────────────
 
 describe("sanitizeText", () => {
   it("returns empty string for empty input", () => {
@@ -117,8 +105,6 @@ describe("sanitizeText", () => {
     expect(sanitizeText("Hello World 123")).toBe("Hello World 123");
   });
 });
-
-// ── sanitizeUrl ──────────────────────────────────────────────────────
 
 describe("sanitizeUrl", () => {
   it("returns empty string for empty input", () => {
@@ -171,8 +157,6 @@ describe("sanitizeUrl", () => {
   });
 });
 
-// ── sanitizeEmail ────────────────────────────────────────────────────
-
 describe("sanitizeEmail", () => {
   it("returns empty string for empty input", () => {
     expect(sanitizeEmail("")).toBe("");
@@ -198,8 +182,6 @@ describe("sanitizeEmail", () => {
     expect(sanitizeEmail("user'\"<>@example.com")).toBe("user@example.com");
   });
 });
-
-// ── sanitizePhone ────────────────────────────────────────────────────
 
 describe("sanitizePhone", () => {
   it("returns empty string for empty input", () => {

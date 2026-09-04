@@ -1,13 +1,6 @@
 import type { UnknownRecord } from "@/lib/types/json";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
-/**
- * Rate Limit Enforcement Security Tests
- * Tests that rate limiting is properly enforced and cannot be bypassed
- */
-
-// ── Mocks ────────────────────────────────────────────────────────────
-
 const mockInsert = vi.fn().mockReturnValue({
   values: vi.fn().mockResolvedValue(undefined),
 });
@@ -16,21 +9,11 @@ const mockSelect = vi.fn().mockReturnThis();
 const mockFrom = vi.fn().mockReturnThis();
 const mockWhere = vi.fn().mockReturnThis();
 
-// Raw postgres-js client exposed on the drizzle instance as db.$client.
-// recordRateLimitAction issues its atomic conditional INSERT ... SELECT via a
-// tagged template and reads RowList.count: 1 = row inserted (allowed),
-// 0 = a concurrent request won the last slot (denied). NOTE: the hourly
-// helper evaluates a second (empty) daily-guard template per call, so tests
-// drive the outcome through rawInsertCount instead of call-order queues.
 let rawInsertCount = 1;
 const mockRawClient = vi.fn((_strings: TemplateStringsArray, ..._values: unknown[]) =>
   Promise.resolve({ count: rawInsertCount }),
 );
 
-/**
- * Last tagged-template SQL received by the raw client. Captures the call
- * explicitly so a missing call throws instead of joining over `undefined`.
- */
 function lastRawSqlText(): string {
   const lastCall = mockRawClient.mock.calls.at(-1);
   if (!lastCall) {
@@ -47,14 +30,12 @@ const mockDb = {
   $client: mockRawClient,
 };
 
-// Mock cloudflare:workers env
 vi.mock("cloudflare:workers", () => ({
   env: {
     HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" },
   },
 }));
 
-// Mock drizzle-orm
 vi.mock("drizzle-orm", () => ({
   eq: vi.fn(() => "eq"),
   gte: vi.fn(() => "gte"),
@@ -66,12 +47,10 @@ vi.mock("drizzle-orm", () => ({
   })),
 }));
 
-// Mock DB module
 vi.mock("@/lib/db", () => ({
   getDb: vi.fn(() => mockDb),
 }));
 
-// Mock the schema
 vi.mock("@/lib/db/schema", () => ({
   uploadRateLimits: {
     id: "id",
@@ -92,24 +71,19 @@ vi.mock("@/lib/db/schema", () => ({
   },
 }));
 
-// Mock environment check
 vi.mock("@/lib/utils/environment", () => ({
   isLocalEnvironment: vi.fn(() => false),
 }));
 
 beforeEach(() => {
   vi.clearAllMocks();
-  // Reset NODE_ENV for each test
   vi.stubGlobal("process", { ...process, env: { ...process.env, NODE_ENV: "production" } });
   rawInsertCount = 1;
 });
 
-// ── Test Suite ──────────────────────────────────────────────────────
-
 describe("Rate Limit Security Enforcement", () => {
   describe("IP-based Rate Limiting", () => {
     it("enforces upload rate limit - 10/hour maximum", async () => {
-      // Mock that user has already made 10 requests in the last hour
       mockSelect.mockReturnValue({
         from: vi.fn().mockReturnValue({
           where: vi.fn().mockResolvedValue([{ hourly: 10, daily: 10 }]),
@@ -124,7 +98,6 @@ describe("Rate Limit Security Enforcement", () => {
     });
 
     it("enforces upload rate limit - 50/day maximum", async () => {
-      // Mock that user has made 50 requests in the last day
       mockSelect.mockReturnValue({
         from: vi.fn().mockReturnValue({
           where: vi.fn().mockResolvedValue([{ hourly: 5, daily: 50 }]),
@@ -199,19 +172,17 @@ describe("Rate Limit Security Enforcement", () => {
 
   describe("Rate Limit Bypass Prevention", () => {
     it("blocks X-Forwarded-For spoofing attempts by using first IP", async () => {
-      // The getClientIP function uses CF-Connecting-IP header which cannot be spoofed
       const { getClientIP } = await import("@/lib/rate-limit/ip");
 
-      // Request with spoofed X-Forwarded-For
       const request = new Request("http://localhost:3000/api/upload", {
         headers: {
-          "X-Forwarded-For": "1.1.1.1, 2.2.2.2, 3.3.3.3", // Spoofed chain
-          "CF-Connecting-IP": "192.168.1.1", // Authoritative
+          "X-Forwarded-For": "1.1.1.1, 2.2.2.2, 3.3.3.3",
+          "CF-Connecting-IP": "192.168.1.1",
         },
       });
 
       const ip = getClientIP(request);
-      expect(ip).toBe("192.168.1.1"); // Uses CF header, not X-Forwarded-For
+      expect(ip).toBe("192.168.1.1");
     });
 
     it("ignores X-Forwarded-For when CF-Connecting-IP is present", async () => {
@@ -219,8 +190,8 @@ describe("Rate Limit Security Enforcement", () => {
 
       const request = new Request("http://localhost:3000/api/upload", {
         headers: {
-          "X-Forwarded-For": "spoofed-ip", // Attempted bypass
-          "CF-Connecting-IP": "real-ip", // Authoritative
+          "X-Forwarded-For": "spoofed-ip",
+          "CF-Connecting-IP": "real-ip",
         },
       });
 
@@ -236,21 +207,18 @@ describe("Rate Limit Security Enforcement", () => {
         },
       });
 
-      // Takes first IP from chain
       expect(getClientIP(request)).toBe("192.168.1.1");
     });
 
     it("handles rapid requests without allowing bypass", async () => {
-      // Simulate burst of requests
       const requests = Array(15)
         .fill(null)
         .map(() => "192.168.1.1");
 
       let callCount = 0;
-      // First 10 should be allowed, then blocked
       mockSelect.mockImplementation(() => {
         callCount++;
-        const currentHourly = Math.min(callCount - 1, 10); // Previous count
+        const currentHourly = Math.min(callCount - 1, 10);
         return {
           from: vi.fn().mockReturnValue({
             where: vi
@@ -268,13 +236,10 @@ describe("Rate Limit Security Enforcement", () => {
         if (result.allowed) allowedCount++;
       }
 
-      // Should allow up to 10 requests
       expect(allowedCount).toBeLessThanOrEqual(10);
     });
 
     it("does not bypass limits for unknown IPs (item 20)", async () => {
-      // "unknown" (getClientIP fallback) is no longer in LOCAL_IPS — it must
-      // be bucketed and limited like any other IP.
       mockSelect.mockReturnValue({
         from: vi.fn().mockReturnValue({
           where: vi.fn().mockResolvedValue([{ hourly: 10, daily: 10 }]),
@@ -297,10 +262,8 @@ describe("Rate Limit Security Enforcement", () => {
       const { checkIPRateLimit } = await import("@/lib/rate-limit/ip");
       const result = await checkIPRateLimit("unknown");
 
-      // Under the limit, so allowed — but only after a real DB roundtrip.
       expect(result.allowed).toBe(true);
       expect(mockSelect).toHaveBeenCalled();
-      // The conditional INSERT goes through the raw postgres-js $client.
       expect(mockRawClient).toHaveBeenCalled();
       const sqlText = lastRawSqlText();
       expect(sqlText).toContain("INSERT INTO upload_rate_limits");
@@ -309,7 +272,6 @@ describe("Rate Limit Security Enforcement", () => {
 
   describe("Atomic Conditional Insert (TOCTOU)", () => {
     it("denies when the conditional insert lands 0 rows (concurrent burst)", async () => {
-      // Count says under the limit, but a concurrent request won the last slot.
       mockSelect.mockReturnValue({
         from: vi.fn().mockReturnValue({
           where: vi.fn().mockResolvedValue([{ hourly: 3, daily: 20 }]),
@@ -353,7 +315,6 @@ describe("Rate Limit Security Enforcement", () => {
       expect(mockRawClient).toHaveBeenCalled();
       const sqlText = lastRawSqlText();
       expect(sqlText).toContain("INSERT INTO upload_rate_limits");
-      // The old count-then-insert path must not be used anymore.
       expect(mockInsert).not.toHaveBeenCalled();
     });
 
@@ -376,7 +337,7 @@ describe("Rate Limit Security Enforcement", () => {
 
   describe("Rate Limit Reset Timing", () => {
     it("computes resetAt from the oldest in-window row + window (item 22)", async () => {
-      const oldest = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(); // 12h ago
+      const oldest = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString();
       mockSelect.mockReturnValue({
         from: vi.fn().mockReturnValue({
           where: vi.fn().mockResolvedValue([{ count: 2, oldest }]),
@@ -386,11 +347,8 @@ describe("Rate Limit Security Enforcement", () => {
       const { checkRateLimit } = await import("@/lib/rate-limit/user");
       const result = await checkRateLimit("user-123", "handle_change");
 
-      // resetAt = oldest + 24h window, NOT now + 24h.
       const expected = new Date(oldest).getTime() + 24 * 60 * 60 * 1000;
       expect(Math.abs(result.resetAt.getTime() - expected)).toBeLessThan(5000);
-      // And it must be earlier than the naive now + 24h (12h of the window
-      // has already elapsed).
       expect(result.resetAt.getTime()).toBeLessThan(
         Date.now() + 24 * 60 * 60 * 1000 - 10 * 60 * 60 * 1000,
       );
@@ -407,7 +365,6 @@ describe("Rate Limit Security Enforcement", () => {
 
       const { enforceRateLimit } = await import("@/lib/rate-limit/user");
 
-      // Mock production environment
       vi.stubGlobal("process", {
         ...process,
         env: { ...process.env, NODE_ENV: "production" },
@@ -429,7 +386,6 @@ describe("Rate Limit Security Enforcement", () => {
       const now = new Date("2026-01-15T12:00:00Z");
       vi.setSystemTime(now);
 
-      // Request at exactly window boundary
       mockSelect.mockReturnValue({
         from: vi.fn().mockReturnValue({
           where: vi.fn().mockResolvedValue([{ hourly: 0, daily: 0 }]),
@@ -443,11 +399,9 @@ describe("Rate Limit Security Enforcement", () => {
     });
 
     it("resets counters at window boundaries", async () => {
-      // Old requests outside window should not count
       mockSelect.mockReturnValue({
         from: vi.fn().mockReturnValue({
           where: vi.fn().mockImplementation(() => {
-            // Simulate requests older than window
             return {
               where: vi.fn().mockResolvedValue([{ hourly: 0, daily: 0 }]),
             };
@@ -475,29 +429,24 @@ describe("Rate Limit Security Enforcement", () => {
 
       const { checkIPRateLimit } = await import("@/lib/rate-limit/ip");
 
-      // IP1 at limit
       const result1 = await checkIPRateLimit(ip1);
       expect(result1.allowed).toBe(false);
 
-      // Reset mock for IP2
       mockSelect.mockImplementation(() => ({
         from: vi.fn().mockReturnValue({
           where: vi.fn().mockResolvedValue([{ hourly: 0, daily: 0 }]),
         }),
       }));
 
-      // IP2 not at limit
       const result2 = await checkIPRateLimit(ip2);
       expect(result2.allowed).toBe(true);
     });
 
     it("tracks different actions independently", async () => {
-      // Uploads at limit but handle checks still allowed
       mockSelect.mockImplementation((columns: UnknownRecord) => ({
         from: vi.fn().mockReturnValue({
           where: vi.fn().mockResolvedValue([
             {
-              // Check column name to determine which action
               hourly: columns?.hourly !== undefined ? 10 : 0,
               daily: columns?.daily !== undefined ? 50 : 0,
             },
@@ -507,7 +456,6 @@ describe("Rate Limit Security Enforcement", () => {
 
       const { checkIPRateLimit } = await import("@/lib/rate-limit/ip");
 
-      // Upload rate limited
       const uploadResult = await checkIPRateLimit("192.168.1.1");
       expect(uploadResult.allowed).toBe(false);
     });
@@ -524,7 +472,6 @@ describe("Rate Limit Security Enforcement", () => {
       const { checkIPRateLimit } = await import("@/lib/rate-limit/ip");
       const result = await checkIPRateLimit("192.168.1.1");
 
-      // Should allow 10th request
       expect(result.allowed).toBe(true);
       expect(result.remaining.hourly).toBe(0);
     });
@@ -532,7 +479,6 @@ describe("Rate Limit Security Enforcement", () => {
     it("handles null or empty IP gracefully", async () => {
       const { checkIPRateLimit } = await import("@/lib/rate-limit/ip");
 
-      // Empty IP should be handled
       const result = await checkIPRateLimit("");
       expect([true, false]).toContain(result.allowed);
     });
@@ -549,12 +495,10 @@ describe("Rate Limit Security Enforcement", () => {
       const { checkIPRateLimit } = await import("@/lib/rate-limit/ip");
       const result = await checkIPRateLimit(ipv6);
 
-      // Should handle IPv6 without error
       expect([true, false]).toContain(result.allowed);
     });
 
     it("rate limit persists across sessions", async () => {
-      // Same IP, multiple "sessions"
       const ip = "192.168.1.1";
 
       mockSelect.mockReturnValue({
@@ -565,14 +509,12 @@ describe("Rate Limit Security Enforcement", () => {
 
       const { checkIPRateLimit } = await import("@/lib/rate-limit/ip");
 
-      // Multiple calls from same IP
       const results = await Promise.all([
         checkIPRateLimit(ip),
         checkIPRateLimit(ip),
         checkIPRateLimit(ip),
       ]);
 
-      // All should see the same rate limit state
       results.forEach((result) => {
         expect(result.allowed).toBe(true);
       });
@@ -581,7 +523,6 @@ describe("Rate Limit Security Enforcement", () => {
 
   describe("Fail-Open vs Fail-Closed Behavior", () => {
     it("fails OPEN for IP rate limiting errors", async () => {
-      // Simulate DB error
       mockSelect.mockImplementation(() => {
         throw new Error("DB connection failed");
       });
@@ -589,12 +530,10 @@ describe("Rate Limit Security Enforcement", () => {
       const { checkIPRateLimit } = await import("@/lib/rate-limit/ip");
       const result = await checkIPRateLimit("192.168.1.1");
 
-      // IP rate limiting fails open to avoid blocking legitimate users
       expect(result.allowed).toBe(true);
     });
 
     it("fails CLOSED for authenticated rate limiting errors", async () => {
-      // Simulate DB error
       mockSelect.mockImplementation(() => {
         throw new Error("DB connection failed");
       });
@@ -602,7 +541,6 @@ describe("Rate Limit Security Enforcement", () => {
       const { checkRateLimit } = await import("@/lib/rate-limit/user");
       const result = await checkRateLimit("user-123", "resume_upload");
 
-      // Auth rate limiting fails closed for security
       expect(result.allowed).toBe(false);
     });
   });
@@ -643,7 +581,6 @@ describe("Rate Limit Security Enforcement", () => {
       const { checkIPRateLimit } = await import("@/lib/rate-limit/ip");
       const result = await checkIPRateLimit("192.168.1.1");
 
-      // Should still enforce rate limit
       expect(result.allowed).toBe(false);
     });
   });

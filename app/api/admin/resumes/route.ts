@@ -1,26 +1,3 @@
-/**
- * GET /api/admin/resumes?status=all&page=1
- *
- * Returns resume processing status breakdown.
- *
- * The `status` query parameter accepts:
- * - `all` (default)
- * - `completed`
- * - `processing`
- * - `queued`
- * - `failed`
- *
- * @returns Response with shape:
- * ```json
- * {
- *   "stats": { "completed": number, "processing": number, "queued": number, "failed": number },
- *   "resumes": Array<{ id: string; userEmail: string; status: string; retryCount: number; totalAttempts: number; lastAttemptError: string | null; updatedAt: string }>,
- *   "total": number,
- *   "page": number,
- *   "pageSize": number
- * }
- * ```
- */
 import { env } from "cloudflare:workers";
 import { count, eq, sql } from "drizzle-orm";
 import { withAdmin } from "@/lib/auth/with-auth";
@@ -49,7 +26,6 @@ export async function GET(request: Request) {
 
     const db = getDb(env.HYPERDRIVE);
 
-    // Get status counts
     const statusCounts = await db
       .select({
         status: resumes.status,
@@ -77,7 +53,6 @@ export async function GET(request: Request) {
       }
     }
 
-    // Build filter condition
     let statusCondition;
     if (statusFilter === "completed") {
       statusCondition = sql`${resumes.status} IN ('completed', 'waiting_for_cache')`;
@@ -89,10 +64,8 @@ export async function GET(request: Request) {
       statusCondition = eq(resumes.status, "failed");
     }
 
-    // Get total for pagination
     const [totalResult] = await db.select({ count: count() }).from(resumes).where(statusCondition);
 
-    // Get resumes with user email
     const resumeList = await db
       .select({
         id: resumes.id,

@@ -4,12 +4,6 @@ import type { JsonValue } from "@/lib/types/json";
 type ClaimBody = { key: string };
 type ClaimHeaders = { "Content-Type": string; Cookie?: string };
 
-/**
- * Tests the complete upload-claim-parse flow with mocked Postgres (via getDb), R2, Queue, and AI
- */
-
-// ── Type Definitions ────────────────────────────────────────────────
-
 interface MockDbChain {
   from: ReturnType<typeof vi.fn>;
   where: ReturnType<typeof vi.fn>;
@@ -27,9 +21,6 @@ interface MockDbInsertChain {
   values: ReturnType<typeof vi.fn>;
 }
 
-// ── Mock Setup ──────────────────────────────────────────────────────
-
-// Database mock builders
 const createMockDbChain = (returnValue: JsonValue = []): MockDbChain => {
   const limit = vi.fn().mockResolvedValue(returnValue);
   const orderBy = vi.fn().mockReturnValue({ limit });
@@ -47,11 +38,9 @@ const resetMockDbChains = () => {
   mockDbSelectChain = createMockDbChain([]);
   const updateWhere = vi.fn().mockResolvedValue(undefined);
   const updateSet = vi.fn().mockReturnValue({ where: updateWhere });
-  // db.update() should return an object with a set() method
   mockDbUpdateChain = {
     set: updateSet,
     where: updateWhere,
-    // The result of db.update(table) - should be callable as a function that returns { set: updateSet }
     updateResult: { set: updateSet },
   };
 
@@ -60,16 +49,12 @@ const resetMockDbChains = () => {
 };
 
 const mockDb = {
-  // db.select() should return an object with .from() method
   select: vi.fn(() => ({ from: mockDbSelectChain.from })),
-  // db.update(table) should return an object with .set() method
   update: vi.fn(() => ({ set: mockDbUpdateChain.set })),
-  // db.insert(table) must return { values: fn } not the fn directly
   insert: vi.fn(() => ({ values: mockDbInsertChain.values })),
   transaction: vi.fn(async (cb: (tx: unknown) => unknown) => cb(mockDb)),
 };
 
-// R2 mock
 const mockR2Store = new Map<string, ArrayBuffer>();
 const mockR2Binding = {} as R2Bucket;
 
@@ -90,7 +75,6 @@ const mockR2 = {
   }),
 };
 
-// Queue mock
 const mockQueueMessages: Array<{
   resumeId: string;
   userId: string;
@@ -105,10 +89,8 @@ const mockQueue = {
   }),
 };
 
-// Cookie helper for claim route testing - declared before mocks so auth mock can use it
 const TEST_COOKIE_SECRET = "test-secret-key-for-testing-only";
 
-// Auth mock
 let mockAuthUser: {
   id: string;
   email: string;
@@ -136,8 +118,6 @@ const setMockAuthUser = (userId: string | null) => {
     mockAuthUser = null;
   }
 };
-
-// ── Module Mocks ─────────────────────────────────────────────────────
 
 vi.mock("cloudflare:workers", () => ({
   env: {
@@ -178,7 +158,6 @@ vi.mock("@/lib/r2", () => ({
   R2: mockR2,
 }));
 
-// Minimal next/headers mock needed by app/api/upload/pending/route.ts
 vi.mock("next/headers", () => ({
   cookies: vi.fn().mockResolvedValue({
     get: vi.fn().mockReturnValue(undefined),
@@ -234,20 +213,14 @@ vi.mock("@/lib/utils/security-headers", () => ({
   },
 }));
 
-// ── Helpers ─────────────────────────────────────────────────────────
-
-/** Create a valid PDF buffer (starts with %PDF- magic bytes, padded to at least 100 bytes) */
 function makePdfBuffer(content = "fake content"): ArrayBuffer {
   const header = new TextEncoder().encode(`%PDF-1.4 ${content}`);
-  // Pad to at least 120 bytes to pass the MIN_PDF_SIZE (100 bytes) validation
   const result = new Uint8Array(Math.max(120, header.byteLength));
   result.set(new Uint8Array(header.buffer, header.byteOffset, header.byteLength));
   return result.buffer;
 }
 
-/** Create an invalid PDF buffer (no %PDF- magic bytes, padded to at least 100 bytes) */
 function makeInvalidBuffer(): ArrayBuffer {
-  // Must be >= MIN_PDF_SIZE (100) to get past the size check and reach PDF magic check
   const data = new Uint8Array(120);
   const header = new TextEncoder().encode("NOT A PDF FILE");
   data.set(new Uint8Array(header.buffer, header.byteOffset, header.byteLength));
@@ -260,7 +233,7 @@ async function createSignedCookieValue(
   expiresAt?: number,
 ): Promise<string> {
   const encoder = new TextEncoder();
-  const actualExpiresAt = expiresAt ?? Date.now() + 30 * 60 * 1000; // 30 min default
+  const actualExpiresAt = expiresAt ?? Date.now() + 30 * 60 * 1000;
   const payload = `${tempKey}|${actualExpiresAt}`;
 
   const key = await crypto.subtle.importKey(
@@ -277,7 +250,6 @@ async function createSignedCookieValue(
   return `${payload}|${signatureBase64}`;
 }
 
-/** Create upload request */
 function makeUploadRequest(
   buffer: ArrayBuffer,
   filename = "test-resume.pdf",
@@ -294,7 +266,6 @@ function makeUploadRequest(
   });
 }
 
-/** Create claim request */
 function makeClaimRequest(key: string, cookieValue?: string): Request {
   const body: ClaimBody = { key };
   const headers: ClaimHeaders = {
@@ -309,7 +280,6 @@ function makeClaimRequest(key: string, cookieValue?: string): Request {
   });
 }
 
-/** Extract the pending_upload cookie value from an upload response's Set-Cookie header */
 function extractPendingUploadCookie(uploadResponse: Response): string | null {
   const setCookieHeader = uploadResponse.headers.get("Set-Cookie");
   if (!setCookieHeader) return null;
@@ -324,8 +294,6 @@ function resetAll() {
   setMockAuthUser(null);
   resetMockDbChains();
 }
-
-// ── Tests: Upload ───────────────────────────────────────────────────
 
 describe("POST /api/upload", () => {
   beforeEach(resetAll);
@@ -418,7 +386,7 @@ describe("POST /api/upload", () => {
       method: "POST",
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Length": "999999", // Wrong size
+        "Content-Length": "999999",
         "X-Filename": "test.pdf",
       },
       body: buffer,
@@ -476,7 +444,7 @@ describe("POST /api/upload", () => {
         "Content-Length": String(largeSize),
         "X-Filename": "large.pdf",
       },
-      body: new ArrayBuffer(100), // Smaller actual body
+      body: new ArrayBuffer(100),
     });
 
     const response = await POST(request);
@@ -486,7 +454,7 @@ describe("POST /api/upload", () => {
 
   it("10. Upload file too small → 400 error", async () => {
     const { POST } = await import("@/app/api/upload/route");
-    const tinyBuffer = new ArrayBuffer(50); // Less than MIN_PDF_SIZE (100)
+    const tinyBuffer = new ArrayBuffer(50);
     const request = new Request("http://localhost:3000/api/upload", {
       method: "POST",
       headers: {
@@ -503,27 +471,21 @@ describe("POST /api/upload", () => {
   });
 });
 
-// ── Tests: Claim ────────────────────────────────────────────────────
-
 describe("POST /api/resume/claim", () => {
   beforeEach(resetAll);
 
   it("11. Claim upload with valid auth → success (resume created, queue triggered)", async () => {
-    // First upload a file
     const { POST: uploadPost } = await import("@/app/api/upload/route");
     const buffer = makePdfBuffer();
     const uploadResponse = await uploadPost(makeUploadRequest(buffer));
     const uploadBody = (await uploadResponse.json()) as { key: string };
     const tempKey = uploadBody.key;
 
-    // Verify file is in R2
     expect(mockR2Store.has(tempKey)).toBe(true);
 
-    // Extract the pending_upload cookie set by the upload route
     const pendingCookie = extractPendingUploadCookie(uploadResponse);
     expect(pendingCookie).not.toBeNull();
 
-    // Now claim it
     setMockAuthUser("user-1");
     const { POST: claimPost } = await import("@/app/api/resume/claim/route");
     const claimResponse = await claimPost(makeClaimRequest(tempKey, pendingCookie!));
@@ -545,23 +507,15 @@ describe("POST /api/resume/claim", () => {
     expect(response.status).toBe(401);
   });
 
-  // Tests 13 and 14 are deleted: already_claimed guard and 404-not-found are fully
-  // covered by __tests__/claim-flow.test.ts ("returns already_claimed when file gone
-  // but recent resume exists" and "returns 404 when file not found in R2 and no
-  // recent resume exists"). Leaving them skipped would misrepresent coverage.
-
   it("15. Claim with queue trigger → verify message sent to queue", async () => {
-    // Upload
     const { POST: uploadPost } = await import("@/app/api/upload/route");
     const buffer = makePdfBuffer();
     const uploadResponse = await uploadPost(makeUploadRequest(buffer));
     const uploadBody = (await uploadResponse.json()) as { key: string };
 
-    // Extract the pending_upload cookie set by the upload route
     const pendingCookie = extractPendingUploadCookie(uploadResponse);
     expect(pendingCookie).not.toBeNull();
 
-    // Claim
     setMockAuthUser("user-1");
     const { POST: claimPost } = await import("@/app/api/resume/claim/route");
     const claimResponse = await claimPost(makeClaimRequest(uploadBody.key, pendingCookie!));
@@ -575,7 +529,7 @@ describe("POST /api/resume/claim", () => {
       attempt: 1,
     });
     expect(mockQueueMessages[0].r2Key).toMatch(/^users\/user-1\//);
-    expect(mockQueueMessages[0].fileHash).toMatch(/^[a-f0-9]{64}$/); // SHA-256 hex
+    expect(mockQueueMessages[0].fileHash).toMatch(/^[a-f0-9]{64}$/);
   });
 
   it("16. Claim with invalid temp key → 404/400 error", async () => {
@@ -586,13 +540,6 @@ describe("POST /api/resume/claim", () => {
     expect(response.status).toBe(400);
   });
 
-  // Tests 18 and 19 are deleted: the shared mockDbSelectChain mock in this file
-  // cannot differentiate between sequential DB queries in the same claim flow
-  // (cache lookup vs. processing-resume lookup). The caching paths are not
-  // directly covered by claim-flow.test.ts but the core claim happy path is
-  // (see "queues a new resume for parsing on valid claim"). If the cache paths
-  // need dedicated coverage, they require a mock redesign outside this plan's scope.
-
   it("20. Claim with rate limit exceeded → 429 error", async () => {
     const { enforceRateLimit } = await import("@/lib/rate-limit/user");
     vi.mocked(enforceRateLimit).mockResolvedValueOnce(
@@ -601,9 +548,6 @@ describe("POST /api/resume/claim", () => {
 
     setMockAuthUser("user-1");
 
-    // Create a valid cookie for the temp key. The claim route fetches the R2
-    // object (double-claim guard) BEFORE the rate-limit check, so the temp
-    // object must exist in the mock store for the request to reach the limiter.
     const tempKey = "temp/test/file.pdf";
     const cookieValue = await createSignedCookieValue(tempKey, TEST_COOKIE_SECRET);
     mockR2Store.set(tempKey, makePdfBuffer());
@@ -615,14 +559,8 @@ describe("POST /api/resume/claim", () => {
   });
 });
 
-// ── Tests: Parse Flow Completion ───────────────────────────────────
-
 describe("Queue Processing → siteData Creation", () => {
   beforeEach(resetAll);
-
-  // Test 21 is deleted: the parse flow completion (siteData created in D1) is fully
-  // covered by consumer.test.ts test "1. Process valid resume → completed status in D1"
-  // which uses the proper mock pattern with vi.mock (hoisted), not vi.doMock (dynamic).
 
   it("22. Parse failure → verify retry mechanism triggered", async () => {
     const { handleQueueMessage } = await import("@/lib/queue/consumer");
@@ -635,7 +573,6 @@ describe("Queue Processing → siteData Creation", () => {
 
     mockR2Store.set(r2Key, makePdfBuffer());
 
-    // Resume in queued state
     mockDbSelectChain.limit.mockResolvedValueOnce([
       {
         status: "queued",
@@ -644,10 +581,8 @@ describe("Queue Processing → siteData Creation", () => {
         totalAttempts: 0,
       },
     ]);
-    // No cache
     mockDbSelectChain.limit.mockResolvedValueOnce([]);
 
-    // Mock AI to throw a retryable error
     vi.doMock("@/lib/ai", () => ({
       parseResumeWithAi: vi
         .fn()
@@ -668,13 +603,8 @@ describe("Queue Processing → siteData Creation", () => {
       CLICKFOLIO_R2_BUCKET: mockR2Binding,
     } as CloudflareEnv;
 
-    // Should throw for retry
     await expect(handleQueueMessage(message, env)).rejects.toThrow();
   });
-
-  // Tests 23 and 24 are deleted: staged-content resume and already-completed idempotency
-  // are fully covered by consumer.test.ts tests "6. Process with staged content" and
-  // "5. Process already completed → idempotent skip" (hoisted vi.mock pattern).
 
   it("25. Process with cached fileHash → skip AI, use cached siteData", async () => {
     const { handleQueueMessage } = await import("@/lib/queue/consumer");
@@ -684,10 +614,8 @@ describe("Queue Processing → siteData Creation", () => {
     const r2Key = `users/${userId}/123456/resume.pdf`;
     const fileHash = "abc123".repeat(8);
 
-    // parsedContent is jsonb: the cached row selects back a parsed object.
     const cachedContent = { name: "Cached User" };
 
-    // No staged content, not completed
     mockDbSelectChain.limit.mockResolvedValueOnce([
       {
         status: "queued",
@@ -697,7 +625,6 @@ describe("Queue Processing → siteData Creation", () => {
       },
     ]);
 
-    // But has cached result from same fileHash
     mockDbSelectChain.limit.mockResolvedValueOnce([
       {
         id: "cached-resume",
@@ -721,19 +648,15 @@ describe("Queue Processing → siteData Creation", () => {
 
     await handleQueueMessage(message, env);
 
-    // Should use cache without calling AI
     expect(mockDb.transaction).toHaveBeenCalled();
   });
 });
-
-// ── Security Tests: POST /api/upload/pending R2 Existence Check ─────
 
 describe("POST /api/upload/pending - R2 existence check (hardening)", () => {
   beforeEach(resetAll);
 
   it("26. POST /api/upload/pending with unknown temp key → 404 (object not in R2)", async () => {
     const { POST } = await import("@/app/api/upload/pending/route");
-    // mockR2Store is empty, so head() will return { exists: false }
     const request = new Request("http://localhost:3000/api/upload/pending", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -745,7 +668,6 @@ describe("POST /api/upload/pending - R2 existence check (hardening)", () => {
     expect(response.status).toBe(404);
     const body = (await response.json()) as { error: string };
     expect(body.error).toContain("Upload not found");
-    // Crucially, no cookie should be set
     expect(response.headers.get("set-cookie")).toBeNull();
   });
 
@@ -767,7 +689,6 @@ describe("POST /api/upload/pending - R2 existence check (hardening)", () => {
   it("28. POST /api/upload/pending with key that exists in R2 → 200 and cookie set", async () => {
     const { POST } = await import("@/app/api/upload/pending/route");
     const tempKey = "temp/real-uuid/my-resume.pdf";
-    // Seed the R2 store so head() returns exists: true
     mockR2Store.set(tempKey, makePdfBuffer());
 
     const request = new Request("http://localhost:3000/api/upload/pending", {

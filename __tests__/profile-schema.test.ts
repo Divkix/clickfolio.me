@@ -1,8 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 import { handleSchema, handleUpdateSchema, privacySettingsSchema } from "@/lib/schemas/profile";
 
-// ── handleSchema ─────────────────────────────────────────────────────
-
 describe("handleSchema", () => {
   it("accepts a valid lowercase handle", () => {
     const result = handleSchema.safeParse("john-doe");
@@ -78,8 +76,6 @@ describe("handleSchema", () => {
   });
 });
 
-// ── handleUpdateSchema ───────────────────────────────────────────────
-
 describe("handleUpdateSchema", () => {
   it("accepts a valid handle update", () => {
     const result = handleUpdateSchema.safeParse({ handle: "new-handle" });
@@ -91,8 +87,6 @@ describe("handleUpdateSchema", () => {
     expect(result.success).toBe(false);
   });
 });
-
-// ── privacySettingsSchema ────────────────────────────────────────────
 
 describe("privacySettingsSchema", () => {
   it("accepts all boolean fields", () => {

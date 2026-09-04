@@ -17,10 +17,6 @@ import {
 } from "@/lib/utils/security-headers";
 import { readJsonWithLimit, validateRequestSize } from "@/lib/utils/validation";
 
-/**
- * Wizard completion request schema
- * Validates handle, privacy settings, and theme selection
- */
 // SAFETY: THEME_IDS is non-empty const array of ThemeId strings; spread cast creates required tuple type for zod enum schema.
 const wizardCompleteSchema = buildWizardCompleteSchema([...THEME_IDS] as [ThemeId, ...ThemeId[]]);
 
@@ -37,33 +33,7 @@ const PENDING_RESUME_CONTENT: ResumeContent = {
   projects: [],
 };
 
-/**
- * POST /api/wizard/complete
- * Completes the onboarding wizard by setting handle, privacy, and theme.
- *
- * Request body:
- *   {
- *     handle: string,
- *     privacy_settings: {
- *       show_phone: boolean,
- *       show_address: boolean,
- *       hide_from_search: boolean (optional, default false),
- *       show_in_directory: boolean (optional, default true)
- *     },
- *     theme_id: ThemeId (any registered theme from theme-registry)
- *   }
- *
- * Response:
- *   { success: true, handle: string }
- *
- * Error codes:
- *   - 400: invalid JSON, validation failure, or handle already taken
- *   - 409: handle was just taken (race condition / unique constraint)
- *   - 413: request body too large
- *   - 500: database error or unexpected error
- */
 export async function POST(request: Request) {
-  // Validate request size before parsing (prevent DoS)
   const sizeCheck = validateRequestSize(request);
   if (!sizeCheck.valid) {
     return createErrorResponse(
@@ -76,7 +46,6 @@ export async function POST(request: Request) {
   return withUser(
     request,
     async ({ user: authUser, db }) => {
-      // Parse and validate request body (size-capped read, no trust in Content-Length)
       const rawBodyResult = await readJsonWithLimit(request);
       if (!rawBodyResult.ok) {
         return createErrorResponse(
@@ -97,7 +66,6 @@ export async function POST(request: Request) {
       }
       const body: WizardCompleteRequest = validation.data;
 
-      // Check if handle is available (not already taken by another user)
       const handleTaken = await isHandleTaken(db, authUser.id, body.handle);
 
       if (handleTaken) {
@@ -109,10 +77,6 @@ export async function POST(request: Request) {
         );
       }
 
-      // Re-onboarding handle change: enforce the same 3/24h handle_changes rate
-      // limit as PUT /api/profile/handle, and record the audit row in the same
-      // batch below. First-time onboarding (onboardingCompleted=false) is exempt —
-      // the initial handle set has no prior value and is not rate-limited.
       const currentUserRow = await db
         .select({
           handle: user.handle,
@@ -138,8 +102,6 @@ export async function POST(request: Request) {
         }
       }
 
-      // Update user + upsert siteData + audit handle change atomically in one
-      // transaction. Wrapped in try-catch to handle race condition on unique constraint.
       const now = new Date().toISOString();
 
       try {
@@ -159,7 +121,7 @@ export async function POST(request: Request) {
             .values({
               id: crypto.randomUUID(),
               userId: authUser.id,
-              content: PENDING_RESUME_CONTENT, // Replaced by queue consumer after parsing
+              content: PENDING_RESUME_CONTENT,
               themeId: body.theme_id,
               createdAt: now,
               updatedAt: now,
@@ -172,13 +134,11 @@ export async function POST(request: Request) {
                 updatedAt: now,
               },
             });
-          // Audit the handle change atomically with the write, mirroring the
-          // profile/handle route. First-time onboarding skips this insert.
           if (isHandleChange) {
             await tx.insert(handleChanges).values({
               id: crypto.randomUUID(),
               userId: authUser.id,
-              oldHandle: currentHandle, // nullable: a first-time set has no prior value
+              oldHandle: currentHandle,
               newHandle: body.handle,
               createdAt: now,
             });
@@ -193,7 +153,7 @@ export async function POST(request: Request) {
             409,
           );
         }
-        throw error; // Re-throw other errors
+        throw error;
       }
 
       captureServerEvent(authUser.id, "onboarding_completed", {
@@ -202,7 +162,6 @@ export async function POST(request: Request) {
         show_in_directory: body.privacy_settings.show_in_directory,
       });
 
-      // Return success response
       return createSuccessResponse({
         success: true,
         handle: body.handle,

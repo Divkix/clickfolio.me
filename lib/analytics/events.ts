@@ -1,10 +1,3 @@
-/**
- * Typed product event map for Clickfolio analytics.
- *
- * Every key becomes an event name; every value is the exact payload shape its
- * callers must send. `trackAnalyticsEvent` and `captureServerEvent` are typed
- * against this map so a typo'd event or missing property fails type-check.
- */
 export interface AnalyticsEventMap {
   resume_uploaded: { file_size_bytes: number; file_name_length: number };
   resume_upload_failed: { error_message: string };

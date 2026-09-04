@@ -10,9 +10,6 @@ const FOOTER_LINKS = [
   { href: "/privacy", label: "Privacy" },
 ];
 
-/**
- * Site footer with brand mark, navigation, and attribution.
- */
 export function Footer() {
   const currentYear = new Date().getFullYear();
 

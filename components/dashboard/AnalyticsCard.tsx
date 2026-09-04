@@ -274,7 +274,6 @@ export function AnalyticsCard() {
 
   return (
     <div className="bg-card rounded-xl shadow-sm border border-border p-6 transition-colors hover:border-border-strong">
-      {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-foreground">Analytics</h3>
         <div className="flex gap-1 bg-muted rounded-lg p-0.5">
@@ -318,7 +317,6 @@ function StatsContent({ stats }: { stats: AnalyticsStats }) {
 
   return (
     <div className="space-y-5">
-      {/* Big Numbers */}
       <div className="grid grid-cols-2 gap-3">
         <div className="flex items-center gap-2.5">
           <div className="shrink-0 bg-brand-subtle p-2 rounded-lg">
@@ -342,12 +340,10 @@ function StatsContent({ stats }: { stats: AnalyticsStats }) {
         </div>
       </div>
 
-      {/* Area Chart */}
       <div className="h-[160px] -mx-2">
         <UPlotChart viewsByDay={stats.viewsByDay} />
       </div>
 
-      {/* Traffic Sources */}
       <div>
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
           Traffic Sources
@@ -371,7 +367,6 @@ function StatsContent({ stats }: { stats: AnalyticsStats }) {
         </div>
       </div>
 
-      {/* Device Breakdown */}
       {stats.deviceBreakdown.length > 0 && (
         <div>
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">

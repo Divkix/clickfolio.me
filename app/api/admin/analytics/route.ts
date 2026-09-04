@@ -1,28 +1,3 @@
-/**
- * GET /api/admin/analytics?period=7d|30d|90d
- *
- * Returns platform-wide traffic analytics via Umami API.
- *
- * @returns Response with shape:
- * ```json
- * {
- *   "totals": { "views": number, "unique": number, "avgPerDay": number, "profilesViewed": number },
- *   "changes": { "views": number, "unique": number, "avgPerDay": number },
- *   "daily": Array<{ date: string; views: number; unique: number }>,
- *   "topProfiles": Array<{ handle: string; views: number }>,
- *   "referrers": Array<{ domain: string; count: number; percent: number }>,
- *   "countries": Array<{ code: string; name: string; percent: number }>,
- *   "devices": Array<{ type: string; percent: number }>
- * }
- * ```
- *
- * Error codes:
- * - 400 for invalid period.
- * - 503 for Umami API failures.
- *
- * Caching: `Cache-Control: private, max-age=30, stale-while-revalidate=60`
- */
-
 import { env } from "cloudflare:workers";
 import { withAdmin } from "@/lib/auth/with-auth";
 import { getMetrics, getPageviews, getStats } from "@/lib/umami/client";
@@ -35,9 +10,7 @@ import {
 
 const VALID_PERIODS = new Set(["7d", "30d", "90d"]);
 
-/** Returns true for paths that are profile URLs (/@handle format). */
 function isProfilePath(path: string): boolean {
-  // Profile URLs are /@handle — single segment starting with @
   if (!path.startsWith("/@")) return false;
   const segments = path.split("/").filter(Boolean);
   return segments.length === 1 && segments[0].startsWith("@") && segments[0].length > 1;
@@ -96,7 +69,6 @@ export async function GET(request: Request) {
       const avgPerDay = Math.round(totalViews / days);
       const prevAvgPerDay = Math.round(prevViews / days);
 
-      // Changes (percentage)
       const viewsChange =
         prevViews > 0 ? Math.round(((totalViews - prevViews) / prevViews) * 100) : 0;
       const uniqueChange =
@@ -118,17 +90,13 @@ export async function GET(request: Request) {
         (date) => dailyMap.get(date) ?? { date, views: 0, unique: 0 },
       );
 
-      // Top profiles — filter URL metrics to profile paths only
       const profileMetrics = urlMetrics.filter((m) => isProfilePath(m.x)).slice(0, 10);
       const profilesViewed = profileMetrics.length;
 
-      // Referrers — compute percentages
       const totalReferrer = referrerMetrics.reduce((sum, r) => sum + r.y, 0);
 
-      // Countries — compute percentages
       const totalCountry = countryMetrics.reduce((sum, c) => sum + c.y, 0);
 
-      // Devices — compute percentages
       const totalDevice = deviceMetrics.reduce((sum, d) => sum + d.y, 0);
 
       const responseData = {

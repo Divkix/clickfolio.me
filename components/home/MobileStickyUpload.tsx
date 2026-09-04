@@ -4,10 +4,6 @@ import { useEffect, useState } from "react";
 import { FileDropzone } from "@/components/FileDropzone";
 import { Button } from "@/components/ui/button";
 
-/**
- * Mobile-only sticky bottom bar with upload CTA.
- * Auto-hides when the real upload card (#upload-card) is in viewport.
- */
 export function MobileStickyUpload() {
   const [visible, setVisible] = useState(false);
   const [open, setOpen] = useState(false);

@@ -2,14 +2,6 @@ import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { JsonValue } from "@/lib/types/json";
 import { DEFAULT_PRIVACY_SETTINGS } from "@/lib/utils/privacy";
 
-/**
- * IDOR (Insecure Direct Object Reference) tests for resume routes
- * Tests that users can only access their own resources
- */
-
-// ── Mocks ────────────────────────────────────────────────────────────
-
-// DB mock: query results configured per-test
 const mockFindFirst = vi.fn();
 const mockSelect = vi.fn().mockReturnThis();
 const mockFrom = vi.fn().mockReturnThis();
@@ -43,13 +35,11 @@ const mockDb = {
   insert: mockInsert,
 };
 
-// Mock requireAuthWithUserValidation and requireAuthWithMessage
 vi.mock("@/lib/auth/middleware", () => ({
   requireAuthWithUserValidation: vi.fn(),
   requireAuthWithMessage: vi.fn(),
 }));
 
-// Mock drizzle-orm eq
 vi.mock("drizzle-orm", () => ({
   eq: vi.fn((_col, val) => val),
   desc: vi.fn(() => "desc"),
@@ -61,7 +51,6 @@ vi.mock("drizzle-orm", () => ({
   inArray: vi.fn(() => "inArray"),
 }));
 
-// Mock the schema
 vi.mock("@/lib/db/schema", () => ({
   resumes: {
     id: "id",
@@ -96,7 +85,6 @@ vi.mock("@/lib/queue/resume-parse", () => ({
   publishResumeParse: vi.fn().mockResolvedValue(undefined),
 }));
 
-// Mock R2
 vi.mock("@/lib/r2", () => ({
   getR2Binding: vi.fn(() => ({})),
   R2: {
@@ -107,7 +95,6 @@ vi.mock("@/lib/r2", () => ({
   },
 }));
 
-// Mock retry config
 vi.mock("@/lib/resume/lifecycle", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/resume/lifecycle")>();
   return {
@@ -126,13 +113,11 @@ vi.mock("@/lib/resume/lifecycle", async (importOriginal) => {
   };
 });
 
-// Mock theme registry
 vi.mock("@/lib/templates/theme-ids", () => ({
   isValidThemeId: vi.fn(() => true),
   THEME_IDS: ["minimalist_editorial", "glass_morphic"],
 }));
 
-// Mock security headers
 vi.mock("@/lib/utils/security-headers", () => ({
   createErrorResponse: vi.fn((error: string, _code: string, status: number) => {
     return new Response(JSON.stringify({ error }), { status });
@@ -153,7 +138,6 @@ vi.mock("@/lib/utils/security-headers", () => ({
   },
 }));
 
-// Mock validation
 vi.mock("@/lib/utils/validation", () => ({
   validateRequestSize: vi.fn(() => ({ valid: true })),
   MAX_FILE_SIZE: 5 * 1024 * 1024,
@@ -171,8 +155,6 @@ import { requireAuthWithMessage, requireAuthWithUserValidation } from "@/lib/aut
 
 const mockedAuth = vi.mocked(requireAuthWithUserValidation);
 const mockedAuthMessage = vi.mocked(requireAuthWithMessage);
-
-// ── Helper: Create valid resume content that passes schema validation ──
 
 function createValidResumeContent() {
   return {
@@ -262,7 +244,6 @@ function authedAsMessage(userId: string) {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  // Reset mock implementations to default
   mockUpdate.mockReturnValue({
     set: vi.fn().mockReturnValue({
       where: vi.fn().mockReturnValue({
@@ -272,18 +253,14 @@ beforeEach(() => {
   });
 });
 
-// ── Test Suite ──────────────────────────────────────────────────────
-
 describe("IDOR - Resume Routes Security", () => {
   describe("PUT /api/resume/update", () => {
     it("returns 403 when User A tries to edit User B's resume via content injection", async () => {
-      // User A authenticated
       authedAs("user-a");
 
-      // Mock siteData.update to simulate no rows updated (user doesn't own it)
       const mockUpdateSet = vi.fn().mockReturnValue({
         where: vi.fn().mockReturnValue({
-          returning: vi.fn().mockResolvedValue([]), // No rows updated
+          returning: vi.fn().mockResolvedValue([]),
         }),
       });
       mockUpdate.mockReturnValue({
@@ -300,18 +277,15 @@ describe("IDOR - Resume Routes Security", () => {
       });
       const response = await PUT(request);
 
-      // Should fail because user doesn't have site_data to update
-      // Mirrors POST /api/resume/update-theme: no site_data row is a 404, not 500.
       expect(response.status).toBe(404);
     });
 
     it("prevents cross-user resume update via database row-level enforcement", async () => {
       authedAs("user-a");
 
-      // Simulate that the update affects 0 rows because WHERE userId clause doesn't match
       const mockUpdateSet = vi.fn().mockReturnValue({
         where: vi.fn().mockReturnValue({
-          returning: vi.fn().mockResolvedValue([]), // No rows match the userId filter
+          returning: vi.fn().mockResolvedValue([]),
         }),
       });
       mockUpdate.mockReturnValue({
@@ -328,7 +302,6 @@ describe("IDOR - Resume Routes Security", () => {
       });
       const response = await PUT(request);
 
-      // No rows updated = no site_data for this user (404, mirroring update-theme).
       expect(response.status).toBe(404);
     });
   });
@@ -337,7 +310,6 @@ describe("IDOR - Resume Routes Security", () => {
     it("returns 403 when User A tries to change User B's theme via userId manipulation", async () => {
       authedAs("user-a");
 
-      // Mock siteData.update to return empty (user B's theme doesn't exist for user A)
       const mockUpdateSet = vi.fn().mockReturnValue({
         where: vi.fn().mockReturnValue({
           returning: vi.fn().mockResolvedValue([]),
@@ -383,10 +355,8 @@ describe("IDOR - Resume Routes Security", () => {
     it("returns 403 when attempting to claim someone else's upload key (missing cookie)", async () => {
       authedAs("user-a");
 
-      // User B's R2 key - trying to claim it without cookie
       const maliciousKey = "temp/user-b-uuid/resume.pdf";
 
-      // Mock R2.getAsArrayBuffer to return data (file exists)
       const { R2 } = await import("@/lib/r2");
       vi.mocked(R2.getAsArrayBuffer).mockResolvedValue(new ArrayBuffer(100));
 
@@ -398,7 +368,6 @@ describe("IDOR - Resume Routes Security", () => {
       });
       const response = await POST(request);
 
-      // Cookie verification blocks the request before key validation
       expect(response.status).toBe(403);
       const body = (await response.json()) as { error: string };
       expect(body.error).toContain("Unauthorized upload attempt");
@@ -407,10 +376,8 @@ describe("IDOR - Resume Routes Security", () => {
     it("blocks claim with temp key from another user session (cookie key mismatch)", async () => {
       authedAs("user-a");
 
-      // Key format is valid but belongs to different upload session
       const stolenKey = "temp/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee/other-user-resume.pdf";
 
-      // File exists - the system processes temp keys anonymously
       const { R2 } = await import("@/lib/r2");
       vi.mocked(R2.getAsArrayBuffer).mockResolvedValue(new ArrayBuffer(100));
 
@@ -422,18 +389,14 @@ describe("IDOR - Resume Routes Security", () => {
       });
       const response = await POST(request);
 
-      // Missing cookie blocks the request
       expect(response.status).toBe(403);
     });
 
     it("prevents claim of leaked temp upload key from another user (missing cookie)", async () => {
       authedAs("user-a");
 
-      // Key that looks like it could be from another session
       const leakedKey = "temp/stolen-uuid/resume.pdf";
 
-      // The system will compute hash and check for existing cache
-      // This doesn't leak User B's data because cache lookup is user-scoped
       const { R2 } = await import("@/lib/r2");
       vi.mocked(R2.getAsArrayBuffer).mockResolvedValue(new ArrayBuffer(100));
 
@@ -445,7 +408,6 @@ describe("IDOR - Resume Routes Security", () => {
       });
       const response = await POST(request);
 
-      // Missing cookie blocks the request before any data access
       expect(response.status).toBe(403);
     });
 
@@ -456,11 +418,10 @@ describe("IDOR - Resume Routes Security", () => {
       const request = new Request("http://localhost:3000/api/resume/claim", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key: "users/user-b/something.pdf" }), // Wrong prefix
+        body: JSON.stringify({ key: "users/user-b/something.pdf" }),
       });
       const response = await POST(request);
 
-      // Body validation fails before cookie check (key must start with temp/)
       expect(response.status).toBe(400);
     });
   });
@@ -469,7 +430,6 @@ describe("IDOR - Resume Routes Security", () => {
     it("returns 403 when User A tries to access User B's resume status", async () => {
       authedAs("user-a");
 
-      // Resume belongs to User B
       mockFindFirst.mockResolvedValue({
         id: "resume-b-001",
         userId: "user-b",
@@ -526,13 +486,12 @@ describe("IDOR - Resume Routes Security", () => {
     it("blocks resume ID enumeration attacks via sequential ID guessing", async () => {
       authedAs("user-a");
 
-      // Attempt to access sequential IDs
       const sequentialIds = ["resume-1", "resume-2", "resume-3", "resume-001", "resume-999"];
 
       for (const id of sequentialIds) {
         mockFindFirst.mockResolvedValue({
           id,
-          userId: "user-other", // All belong to other users
+          userId: "user-other",
           status: "completed",
           errorMessage: null,
           retryCount: 0,
@@ -555,7 +514,6 @@ describe("IDOR - Resume Routes Security", () => {
 
       const { GET } = await import("@/app/api/resume/status/route");
 
-      // Test various malformed IDs
       const malformedIds = ["", "   ", "../../etc/passwd", "<script>", "' OR 1=1 --"];
 
       for (const id of malformedIds) {
@@ -563,7 +521,6 @@ describe("IDOR - Resume Routes Security", () => {
           `http://localhost:3000/api/resume/status?resume_id=${encodeURIComponent(id)}`,
         );
         const response = await GET(request);
-        // Should either 404 or be handled safely
         expect([400, 403, 404, 200]).toContain(response.status);
       }
     });
@@ -573,7 +530,7 @@ describe("IDOR - Resume Routes Security", () => {
 
       mockFindFirst.mockResolvedValue({
         id: "pending-resume-b",
-        userId: "user-b", // Belongs to User B
+        userId: "user-b",
         status: "pending_claim",
         errorMessage: null,
         retryCount: 0,
@@ -595,12 +552,10 @@ describe("IDOR - Resume Routes Security", () => {
     it("returns 403 when accessing another user's latest resume via manipulation", async () => {
       authedAsMessage("user-a");
 
-      // The endpoint always queries by authenticated user's ID
-      // Mock returns User B's resume - this should be blocked
       mockLimit.mockResolvedValue([
         {
           id: "resume-b-001",
-          userId: "user-b", // This is User B's resume
+          userId: "user-b",
           status: "completed",
           errorMessage: null,
           retryCount: 0,
@@ -611,9 +566,6 @@ describe("IDOR - Resume Routes Security", () => {
       const { GET } = await import("@/app/api/resume/latest-status/route");
       const response = await GET();
 
-      // The endpoint uses the authenticated user's ID in the query
-      // So even if DB returns wrong data, it would be filtered by userId
-      // Response can be 200 (returns user's own data), 403 (blocked), or 500 (error)
       expect([200, 403, 500]).toContain(response.status);
     });
 
@@ -639,7 +591,7 @@ describe("IDOR - Resume Routes Security", () => {
 
       mockFindFirst.mockResolvedValue({
         id: "resume-b-001",
-        userId: "user-b", // Belongs to User B
+        userId: "user-b",
         r2Key: "users/user-b/timestamp/resume.pdf",
         status: "failed",
         retryCount: 0,
@@ -664,7 +616,7 @@ describe("IDOR - Resume Routes Security", () => {
 
       mockFindFirst.mockResolvedValue({
         id: "resume-a-001",
-        userId: "user-a", // Own resume
+        userId: "user-a",
         r2Key: "users/user-a/timestamp/resume.pdf",
         status: "failed",
         retryCount: 0,
@@ -673,7 +625,6 @@ describe("IDOR - Resume Routes Security", () => {
         fileHash: "hash123",
       });
 
-      // Reset the mock chain to return a successful update result
       mockReturning.mockResolvedValue([{ id: "resume-a-001" }]);
 
       const { POST } = await import("@/app/api/resume/retry/route");
@@ -710,7 +661,7 @@ describe("IDOR - Resume Routes Security", () => {
         id: "resume-a-001",
         userId: "user-a",
         r2Key: "users/user-a/timestamp/resume.pdf",
-        status: "completed", // Not failed
+        status: "completed",
         retryCount: 0,
         totalAttempts: 1,
         lastAttemptError: null,
@@ -731,10 +682,6 @@ describe("IDOR - Resume Routes Security", () => {
 
   describe("GET /api/site-data/[handle]", () => {
     it("returns filtered content when accessing without permission", async () => {
-      // This is a public endpoint, but privacy settings should be respected
-      // The privacy filter is applied in the [handle]/page.tsx component
-      // This test verifies the filtering logic exists
-
       const privacySettings = {
         show_phone: false,
         show_address: false,
@@ -742,7 +689,6 @@ describe("IDOR - Resume Routes Security", () => {
         show_in_directory: true,
       };
 
-      // Verify privacy settings structure is correct
       expect(privacySettings.show_phone).toBe(false);
       expect(privacySettings.show_address).toBe(false);
     });
@@ -762,13 +708,12 @@ describe("IDOR - Resume Routes Security", () => {
         show_address: false,
       };
 
-      // Simulate privacy filtering
       const filtered = { ...content };
       if (!privacySettings.show_phone && filtered.contact) {
         delete (filtered.contact as Record<string, string>).phone;
       }
       if (!privacySettings.show_address && filtered.contact) {
-        (filtered.contact as Record<string, string>).location = "Secret City"; // City only
+        (filtered.contact as Record<string, string>).location = "Secret City";
       }
 
       expect(filtered.contact).not.toHaveProperty("phone");
@@ -778,24 +723,16 @@ describe("IDOR - Resume Routes Security", () => {
 
   describe("IDOR Prevention at Database Level", () => {
     it("enforces row-level security via userId filters on all queries", async () => {
-      // This test verifies that database queries always include userId filtering
-
-      // Check that eq(resumes.userId, userId) is used in update operations
       const { eq } = await import("drizzle-orm");
 
-      // Verify eq function is called with correct parameters
       // @ts-expect-error - Testing mock function call
       eq("resumes.userId", "user-a");
       expect(eq).toHaveBeenCalledWith("resumes.userId", "user-a");
     });
 
     it("uses UUIDs instead of sequential IDs preventing enumeration", async () => {
-      // Verify resume IDs are UUIDs
       const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-      // In real system this would be a UUID like "550e8400-e29b-41d4-a716-446655440000"
-
-      // The test demonstrates UUIDs are used
       const realUuid = crypto.randomUUID();
       expect(uuidPattern.test(realUuid)).toBe(true);
     });
@@ -805,7 +742,6 @@ describe("IDOR - Resume Routes Security", () => {
     it("concurrent access attempts are all blocked for unauthorized resources", async () => {
       authedAs("attacker");
 
-      // Attempt multiple concurrent IDOR attacks
       const targets = ["user-1", "user-2", "user-3", "user-4", "user-5"];
       const results = await Promise.all(
         targets.map(async (targetUser) => {
@@ -827,7 +763,6 @@ describe("IDOR - Resume Routes Security", () => {
         }),
       );
 
-      // All should be blocked
       for (const response of results) {
         expect(response.status).toBe(403);
       }
@@ -836,7 +771,6 @@ describe("IDOR - Resume Routes Security", () => {
 
   describe("IDOR via Race Condition", () => {
     it("concurrent access with session switching is blocked", async () => {
-      // First request as attacker
       authedAs("attacker");
 
       mockFindFirst.mockResolvedValue({

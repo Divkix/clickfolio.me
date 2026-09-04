@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { setupMockCleanup } from "@/__tests__/setup/helpers/test-utils";
 import { extractPdfText, isValidPdf } from "@/lib/ai/pdf-extract";
 
-// Mock unpdf module
 vi.mock("unpdf", () => ({
   extractText: vi.fn(),
   getDocumentProxy: vi.fn(),
@@ -14,7 +13,6 @@ setupMockCleanup();
 
 type MockPdf = { numPages: number };
 
-// Helper to create mock PDF with proper typing
 function createMockPdf(numPages: number): MockPdf {
   return { numPages };
 }
@@ -23,7 +21,7 @@ describe("isValidPdf", () => {
   it("returns true for valid PDF magic bytes", () => {
     const buffer = new ArrayBuffer(10);
     const view = new Uint8Array(buffer);
-    view.set([0x25, 0x50, 0x44, 0x46, 0x2d]); // "%PDF-"
+    view.set([0x25, 0x50, 0x44, 0x46, 0x2d]);
 
     expect(isValidPdf(buffer)).toBe(true);
   });
@@ -36,7 +34,7 @@ describe("isValidPdf", () => {
   it("returns false for non-PDF magic bytes", () => {
     const buffer = new ArrayBuffer(10);
     const view = new Uint8Array(buffer);
-    view.set([0x48, 0x54, 0x4d, 0x4c, 0x20]); // "HTML "
+    view.set([0x48, 0x54, 0x4d, 0x4c, 0x20]);
 
     expect(isValidPdf(buffer)).toBe(false);
   });
@@ -49,7 +47,7 @@ describe("isValidPdf", () => {
   it("handles PDF version variations", () => {
     const buffer = new ArrayBuffer(10);
     const view = new Uint8Array(buffer);
-    view.set([0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x34]); // "%PDF-1.4"
+    view.set([0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x34]);
 
     expect(isValidPdf(buffer)).toBe(true);
   });
@@ -70,7 +68,7 @@ describe("extractPdfText", () => {
 
     const buffer = new ArrayBuffer(100);
     const view = new Uint8Array(buffer);
-    view.set([0x25, 0x50, 0x44, 0x46, 0x2d]); // "%PDF-"
+    view.set([0x25, 0x50, 0x44, 0x46, 0x2d]);
 
     const result = await extractPdfText(buffer);
 
@@ -83,7 +81,7 @@ describe("extractPdfText", () => {
   it("returns error for invalid PDF format", async () => {
     const buffer = new ArrayBuffer(10);
     const view = new Uint8Array(buffer);
-    view.set([0x48, 0x54, 0x4d, 0x4c, 0x20]); // "HTML "
+    view.set([0x48, 0x54, 0x4d, 0x4c, 0x20]);
 
     const result = await extractPdfText(buffer);
 
@@ -99,7 +97,7 @@ describe("extractPdfText", () => {
 
     const buffer = new ArrayBuffer(100);
     const view = new Uint8Array(buffer);
-    view.set([0x25, 0x50, 0x44, 0x46, 0x2d]); // "%PDF-"
+    view.set([0x25, 0x50, 0x44, 0x46, 0x2d]);
 
     const result = await extractPdfText(buffer);
 

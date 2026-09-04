@@ -5,12 +5,6 @@ import { Resvg } from "@cf-wasm/resvg/workerd";
  * Homepage OG image — branded 1200×630 PNG (rasterized from SVG via resvg).
  * Cached for 1 week. Facebook/LinkedIn/Slack drop SVG OG images, so this
  * must stay a raster type.
- *
- * Response headers:
- * - `Content-Type: image/png`
- * - `Cache-Control: public, max-age=604800`
- *
- * Returns 500 on unexpected errors (including resvg failure).
  */
 
 const RESVG_OPTIONS = {

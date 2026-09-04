@@ -1,18 +1,3 @@
-/**
- * Pure data module for share-component variants.
- *
- * ShareBar and SharePopover both render theme-adaptive share UI. Their cva()
- * variant maps must stay in lockstep with THEME_IDS / themeToShareVariant in
- * theme-ids.ts, so every kebab-case key lives here exactly once.
- *
- * Adding a theme requires editing only two files:
- *   1. theme-ids.ts      — add the ThemeId to THEME_IDS + themeToShareVariant
- *   2. share-variants.ts — add the kebab-case key to SHARE_VARIANT_KEYS and one
- *                          entry per style record below (the `satisfies` checks
- *          make any missed record a compile error)
- */
-
-/** All valid share-variant keys, in kebab-case (one per theme). */
 export const SHARE_VARIANT_KEYS = [
   "minimalist-editorial",
   "neo-brutalist",
@@ -26,22 +11,15 @@ export const SHARE_VARIANT_KEYS = [
   "dev-terminal",
 ] as const;
 
-/** Union of all valid share-variant keys. */
 export type SharePopoverVariant = (typeof SHARE_VARIANT_KEYS)[number];
 
-/** Default share variant, matching DEFAULT_THEME ("minimalist_editorial"). */
 export const DEFAULT_SHARE_VARIANT: SharePopoverVariant = "minimalist-editorial";
 
-/**
- * Outer share-bar container applies identical layout for every theme, so its
- * per-theme map is derived from the key list itself.
- */
 // eslint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- SHARE_VARIANT_KEYS is single source; Object.fromEntries builds exactly that union, cast safe
 export const shareContainerStyles = Object.fromEntries(
   SHARE_VARIANT_KEYS.map((key) => [key, ""]),
 ) as Record<SharePopoverVariant, string>;
 
-/** Per-theme styles for ShareBar's individual action buttons. */
 export const shareButtonStyles = {
   "minimalist-editorial":
     "text-neutral-500 hover:text-neutral-900 border border-neutral-200 rounded-full px-3 py-1.5 text-xs uppercase tracking-widest hover:bg-neutral-100",
@@ -65,7 +43,6 @@ export const shareButtonStyles = {
     "bg-[#161b22] text-[#c9d1d9] hover:text-[#58a6ff] border border-[#30363d] rounded px-3 py-1.5",
 } satisfies Record<SharePopoverVariant, string>;
 
-/** Per-theme styles for SharePopover's trigger button. */
 export const shareTriggerStyles = {
   "minimalist-editorial":
     "bg-white text-neutral-700 border-neutral-200 hover:bg-neutral-50 hover:text-neutral-900",
@@ -84,7 +61,6 @@ export const shareTriggerStyles = {
     "bg-[#161b22] text-[#58a6ff] border-[#30363d] shadow-lg font-mono hover:border-[#58a6ff]",
 } satisfies Record<SharePopoverVariant, string>;
 
-/** Per-theme styles for SharePopover's panel container. */
 export const sharePanelStyles = {
   "minimalist-editorial": "bg-white/95 text-neutral-800 border-neutral-200",
   "neo-brutalist": "bg-yellow-300 text-black border-2 border-black shadow-[4px_4px_0_0_black]",
@@ -99,7 +75,6 @@ export const sharePanelStyles = {
   "dev-terminal": "bg-[#161b22] text-[#c9d1d9] border-[#30363d]",
 } satisfies Record<SharePopoverVariant, string>;
 
-/** Per-theme styles for SharePopover's menu items. */
 export const shareItemStyles = {
   "minimalist-editorial":
     "bg-white text-neutral-600 hover:text-neutral-900 border border-neutral-200 hover:bg-neutral-100",

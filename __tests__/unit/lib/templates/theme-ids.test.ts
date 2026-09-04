@@ -1,8 +1,3 @@
-/**
- * Theme IDs and metadata unit tests
- * Tests for lib/templates/theme-ids.ts
- */
-
 import { describe, expect, it } from "vite-plus/test";
 import {
   DEFAULT_THEME,
@@ -28,7 +23,6 @@ describe("THEME_IDS", () => {
   });
 
   it("is readonly", () => {
-    // Type-level check - array should not be modifiable at compile time
     expect(Array.isArray(THEME_IDS)).toBe(true);
   });
 });
@@ -65,7 +59,6 @@ describe("isValidThemeId", () => {
   it("acts as a type guard", () => {
     const value = "bento";
     if (isValidThemeId(value)) {
-      // TypeScript should narrow value to ThemeId here
       const themeId: ThemeId = value;
       expect(themeId).toBe("bento");
     }

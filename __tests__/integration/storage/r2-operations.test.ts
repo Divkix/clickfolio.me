@@ -1,14 +1,6 @@
-/**
- * R2 Storage Integration Tests
- *
- * Tests R2 bucket operations including upload, retrieval, copy, delete,
- * partial content, and error handling scenarios.
- */
-
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { getR2Binding, R2 } from "@/lib/r2";
 
-// Mock R2Bucket for testing - using separate interface to avoid type conflicts
 interface MockR2Object {
   key: string;
   size: number;
@@ -33,7 +25,6 @@ interface MockR2ObjectBody extends MockR2Object {
   bodyUsed: boolean;
 }
 
-// Mock R2Bucket for testing
 class MockR2Bucket {
   private storage = new Map<
     string,
@@ -48,7 +39,6 @@ class MockR2Bucket {
     const stored = this.storage.get(key);
     if (!stored) return null;
 
-    // Handle range requests
     let bodyArray = stored.body;
     if (options?.range && typeof options.range === "object" && "offset" in options.range) {
       const range = options.range as { offset: number; length: number };
@@ -62,7 +52,6 @@ class MockR2Bucket {
       },
     });
 
-    // Create a stored object with the sliced body for range requests
     const storedForObject = { ...stored, body: bodyArray };
     const baseObj = this.createMockR2Object(key, bodyArray, storedForObject);
 
@@ -90,7 +79,6 @@ class MockR2Bucket {
     } else if (value instanceof Blob) {
       body = new Uint8Array(await value.arrayBuffer());
     } else {
-      // ReadableStream - collect all chunks
       const reader = value.getReader();
       const chunks: Uint8Array[] = [];
       while (true) {
@@ -270,7 +258,7 @@ describe("R2 Storage Integration", () => {
   describe("R2.put", () => {
     it("should upload PDF to R2 with correct key", async () => {
       const key = "resumes/test-user/test.pdf";
-      const content = new Uint8Array([0x25, 0x50, 0x44, 0x46]); // PDF magic bytes
+      const content = new Uint8Array([0x25, 0x50, 0x44, 0x46]);
 
       const result = await R2.put(mockBucket as unknown as R2Bucket, key, content, {
         contentType: "application/pdf",
@@ -461,7 +449,6 @@ describe("R2 Storage Integration", () => {
   describe("large file handling", () => {
     it("should handle large file uploads with chunking", async () => {
       const key = "test/large-file.pdf";
-      // Simulate a 1MB file
       const largeContent = new Uint8Array(1024 * 1024);
       for (let i = 0; i < largeContent.length; i++) {
         largeContent[i] = i % 256;
@@ -529,11 +516,10 @@ describe("R2 Storage Integration", () => {
         try {
           await R2.put(flakyBucket, "test", new Uint8Array([1, 2, 3, 4]));
           success = true;
-          lastError = null; // Clear error on success
+          lastError = null;
           break;
         } catch (e) {
           lastError = e as Error;
-          // Wait a bit before retry
           await new Promise((r) => setTimeout(r, 10));
         }
       }
@@ -546,8 +532,6 @@ describe("R2 Storage Integration", () => {
 
   describe("presigned URL", () => {
     it("should generate valid presigned URL with expiry", async () => {
-      // Note: Real presigned URLs require R2 S3-compatible API
-      // This tests the conceptual URL generation
       const key = "test/presigned.pdf";
       await R2.put(mockBucket as unknown as R2Bucket, key, new Uint8Array([1, 2, 3]));
 

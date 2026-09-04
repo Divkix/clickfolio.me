@@ -1,15 +1,6 @@
 import type { UnknownRecord, JsonValue } from "@/lib/types/json";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
-/**
- * Security tests for POST /api/resume/claim cookie verification.
- *
- * Tests the fix for issue #89: Claim route must verify temp key ownership
- * via signed cookie to prevent unauthorized claims of leaked temp keys.
- */
-
-// ── Mocks ────────────────────────────────────────────────────────────
-
 const mockFindFirst = vi.fn();
 const mockDbFrom = vi.fn();
 const mockDbWhere = vi.fn();
@@ -38,13 +29,11 @@ const mockDbSelect = vi.fn().mockImplementation((cols: unknown) => {
   return { from: mockDbFrom };
 });
 
-// Chain helpers for non-handle selects: select().from().where().orderBy().limit()
 mockDbFrom.mockReturnValue({ where: mockDbWhere });
 mockDbWhere.mockReturnValue({ orderBy: mockDbOrderBy, limit: mockDbLimit });
 mockDbOrderBy.mockReturnValue({ limit: mockDbLimit });
 mockDbLimit.mockResolvedValue([]);
 
-// Chain for update().set().where()
 const mockDbUpdate = vi.fn().mockReturnValue({ set: mockDbUpdateSet });
 mockDbUpdateSet.mockReturnValue({ where: mockDbUpdateWhere });
 
@@ -59,12 +48,10 @@ const mockDb = {
   transaction: mockDbTransaction,
 };
 
-// Auth mock
 vi.mock("@/lib/auth/middleware", () => ({
   requireAuthWithUserValidation: vi.fn(),
 }));
 
-// Drizzle-orm operators
 vi.mock("drizzle-orm", () => ({
   eq: vi.fn((_col, val) => ({ eq: val })),
   and: vi.fn((...args: JsonValue[]) => ({ and: args })),
@@ -75,7 +62,6 @@ vi.mock("drizzle-orm", () => ({
   inArray: vi.fn((_col, vals: JsonValue[]) => ({ inArray: vals })),
 }));
 
-// Schema mock
 vi.mock("@/lib/db/schema", () => ({
   resumes: {
     id: "id",
@@ -106,7 +92,6 @@ vi.mock("@/lib/db/schema", () => ({
   },
 }));
 
-// R2 mock
 const mockR2GetAsArrayBuffer = vi.fn();
 const mockR2Put = vi.fn().mockResolvedValue(undefined);
 const mockR2Delete = vi.fn().mockResolvedValue(undefined);
@@ -120,12 +105,10 @@ vi.mock("@/lib/r2", () => ({
   },
 }));
 
-// Rate limit mock
 vi.mock("@/lib/rate-limit/user", () => ({
   enforceRateLimit: vi.fn().mockResolvedValue(null),
 }));
 
-// Validation mock
 vi.mock("@/lib/utils/validation", () => ({
   MAX_FILE_SIZE: 5 * 1024 * 1024,
   MAX_FILE_SIZE_LABEL: "5MB",
@@ -139,17 +122,14 @@ vi.mock("@/lib/utils/validation", () => ({
   }),
 }));
 
-// Queue mock
 vi.mock("@/lib/queue/resume-parse", () => ({
   publishResumeParse: vi.fn().mockResolvedValue(undefined),
 }));
 
-// buildSiteDataUpsert mock
 vi.mock("@/lib/data/site-data-upsert", () => ({
   buildSiteDataUpsert: vi.fn().mockReturnValue("mock-upsert-query"),
 }));
 
-// Security headers (keep real logic for response format)
 vi.mock("@/lib/utils/security-headers", () => ({
   createErrorResponse: vi.fn((error: string, _code: string, status: number) => {
     return new Response(JSON.stringify({ error }), { status });
@@ -176,9 +156,6 @@ type ClaimHeaders = { "Content-Type": string; Cookie?: string };
 
 const mockedAuth = vi.mocked(requireAuthWithUserValidation);
 
-// ── Helpers ──────────────────────────────────────────────────────────
-
-/** Create a valid PDF buffer (starts with %PDF- magic bytes) */
 function makePdfBuffer(): ArrayBuffer {
   const header = new TextEncoder().encode("%PDF-1.4 fake content");
   return header.buffer.slice(header.byteOffset, header.byteOffset + header.byteLength);
@@ -212,17 +189,13 @@ function authedAs(userId: string) {
   });
 }
 
-/**
- * Create a signed cookie value for the pending upload cookie.
- * Format: {temp_key}|{expires_timestamp}|{hmac_signature}
- */
 async function createSignedCookieValue(
   tempKey: string,
   secret: string,
   expiresAt?: number,
 ): Promise<string> {
   const encoder = new TextEncoder();
-  const actualExpiresAt = expiresAt ?? Date.now() + 30 * 60 * 1000; // 30 min default
+  const actualExpiresAt = expiresAt ?? Date.now() + 30 * 60 * 1000;
   const payload = `${tempKey}|${actualExpiresAt}`;
 
   const key = await crypto.subtle.importKey(
@@ -255,11 +228,8 @@ function makeClaimRequest(body: UnknownRecord, cookieValue?: string) {
 beforeEach(() => {
   vi.clearAllMocks();
   mockHandleRows = [{ handle: "test-handle" }];
-  // Default: R2 returns a valid PDF buffer
   mockR2GetAsArrayBuffer.mockResolvedValue(makePdfBuffer());
-  // Default: no cached or processing resumes
   mockDbLimit.mockResolvedValue([]);
-  // Re-wire DB chain mocks — use handle-aware select that bypasses positional callCount
   mockDbSelect.mockImplementation((cols: unknown) => {
     const isHandleQuery =
       cols !== null && typeof cols === "object" && "handle" in (cols as Record<string, unknown>);
@@ -283,8 +253,6 @@ beforeEach(() => {
   mockDbUpdateSet.mockReturnValue({ where: mockDbUpdateWhere });
   mockDbUpdateWhere.mockResolvedValue(undefined);
 });
-
-// ── Security Tests ────────────────────────────────────────────────────
 
 describe("POST /api/resume/claim - Cookie Security (Issue #89)", () => {
   const TEST_SECRET = "test-secret-key-for-testing-only";
@@ -317,7 +285,7 @@ describe("POST /api/resume/claim - Cookie Security (Issue #89)", () => {
   it("returns 403 when pending_upload cookie has expired", async () => {
     authedAs("user-1");
 
-    const expiredTimestamp = Date.now() - 1000; // 1 second ago
+    const expiredTimestamp = Date.now() - 1000;
     const expiredCookie = await createSignedCookieValue(
       VALID_TEMP_KEY,
       TEST_SECRET,
@@ -335,7 +303,6 @@ describe("POST /api/resume/claim - Cookie Security (Issue #89)", () => {
   it("returns 403 when pending_upload cookie key does not match body key", async () => {
     authedAs("user-1");
 
-    // Cookie contains a different temp key than the request body
     const cookieKey = "temp/uuid-456/other.pdf";
     const mismatchedCookie = await createSignedCookieValue(cookieKey, TEST_SECRET);
 
@@ -373,16 +340,13 @@ describe("POST /api/resume/claim - Cookie Security (Issue #89)", () => {
     expect(body.status).toBe("queued");
     expect(body.resume_id).toBeDefined();
 
-    // Verify R2 put was called (file stored to user's folder)
     expect(mockR2Put).toHaveBeenCalled();
-    // Verify DB insert was called (resume record created)
     expect(mockDbInsert).toHaveBeenCalled();
   });
 
   it("uses handle-aware mock: cached path with no handle → publish:false", async () => {
     authedAs("user-1");
 
-    // parsedContent is jsonb: Postgres hands back a parsed OBJECT
     const cachedContent = { full_name: "Test User" };
     mockDbLimit.mockResolvedValue([{ id: "cached-resume", parsedContent: cachedContent }]);
     mockHandleRows = [];
@@ -399,13 +363,12 @@ describe("POST /api/resume/claim - Cookie Security (Issue #89)", () => {
 
     const { buildSiteDataUpsert } = await import("@/lib/data/site-data-upsert");
     expect(vi.mocked(buildSiteDataUpsert)).toHaveBeenCalledWith(
-      expect.anything(), // tx (transaction-scoped)
+      expect.anything(),
       "user-1",
-      expect.anything(), // resumeId
+      expect.anything(),
       cachedContent,
       { publish: false },
     );
-    // Resume completion + siteData upsert committed atomically in one PG transaction
     expect(mockDbTransaction).toHaveBeenCalled();
   });
 });

@@ -3,12 +3,6 @@ import { readJsonWithLimit } from "@/lib/utils/validation";
 
 type RequestHeaders = { "content-type": string; "content-length"?: string };
 
-/**
- * Security tests for readJsonWithLimit
- * Verifies that the helper enforces a hard byte cap on the request body
- * regardless of whether Content-Length is present, preventing unbounded-body DoS.
- */
-
 function makeRequest(body: string, contentLength?: number): Request {
   const headers: RequestHeaders = {
     "content-type": "application/json",
@@ -22,8 +16,6 @@ function makeRequest(body: string, contentLength?: number): Request {
 }
 
 function makeStreamingRequest(totalBytes: number, chunkSize = 1024): Request {
-  // Build a ReadableStream that produces `totalBytes` bytes in chunks,
-  // with NO Content-Length header — simulating a chunked / header-less request.
   let sent = 0;
   const stream = new ReadableStream<Uint8Array>({
     pull(controller) {
@@ -33,7 +25,7 @@ function makeStreamingRequest(totalBytes: number, chunkSize = 1024): Request {
       }
       const remaining = totalBytes - sent;
       const size = Math.min(chunkSize, remaining);
-      controller.enqueue(new Uint8Array(size).fill(0x20)); // spaces
+      controller.enqueue(new Uint8Array(size).fill(0x20));
       sent += size;
     },
   });
@@ -60,10 +52,9 @@ describe("readJsonWithLimit", () => {
   });
 
   it("returns too_large when a streaming body (no Content-Length) exceeds the cap", async () => {
-    const limit = 100; // 100 bytes
-    // Build a body that is larger than the limit using a plain string
+    const limit = 100;
     const oversizedBody = "x".repeat(limit + 1);
-    const req = makeRequest(oversizedBody, undefined /* no Content-Length */);
+    const req = makeRequest(oversizedBody, undefined);
     const result = await readJsonWithLimit(req, limit);
     expect(result.ok).toBe(false);
     if (!result.ok) {
@@ -83,8 +74,7 @@ describe("readJsonWithLimit", () => {
   });
 
   it("allows a body exactly at the byte cap", async () => {
-    // Build a JSON string that fits within 64 bytes exactly
-    const payload = '{"a":1}'; // 7 bytes
+    const payload = '{"a":1}';
     const req = makeRequest(payload, undefined);
     const result = await readJsonWithLimit(req, 64);
     expect(result.ok).toBe(true);
@@ -94,13 +84,10 @@ describe("readJsonWithLimit", () => {
   });
 
   it("allows a body whose byteLength equals maxSizeBytes exactly (true boundary)", async () => {
-    // Construct a payload whose UTF-8 byte length is exactly maxSizeBytes.
-    // Template: '{"x":"' (6 bytes) + inner + '"}' (2 bytes) = 8 bytes overhead.
-    // So inner length = cap - 8. ASCII-only so byteLength === length.
     const cap = 32;
-    const inner = "A".repeat(cap - 8); // 24 chars
-    const payload = `{"x":"${inner}"}`; // exactly 32 bytes
-    expect(new TextEncoder().encode(payload).byteLength).toBe(cap); // sanity
+    const inner = "A".repeat(cap - 8);
+    const payload = `{"x":"${inner}"}`;
+    expect(new TextEncoder().encode(payload).byteLength).toBe(cap);
     const req = makeRequest(payload, undefined);
     const result = await readJsonWithLimit(req, cap);
     expect(result.ok).toBe(true);
@@ -120,11 +107,9 @@ describe("readJsonWithLimit", () => {
   });
 
   it("enforces the cap without a Content-Length header (the main security property)", async () => {
-    // A client can omit Content-Length entirely with a chunked / streaming body.
-    // This test verifies the cap applies regardless.
     const limit = 50;
-    const bigPayload = JSON.stringify({ data: "A".repeat(200) }); // > 50 bytes
-    const req = makeRequest(bigPayload, undefined /* no Content-Length */);
+    const bigPayload = JSON.stringify({ data: "A".repeat(200) });
+    const req = makeRequest(bigPayload, undefined);
     const result = await readJsonWithLimit(req, limit);
     expect(result.ok).toBe(false);
     if (!result.ok) {
@@ -133,7 +118,7 @@ describe("readJsonWithLimit", () => {
   });
 
   it("includes the configured MB limit in the error message", async () => {
-    const limit = 2_000_000; // 2 MB
+    const limit = 2_000_000;
     const big = "x".repeat(limit + 1);
     const req = makeRequest(big, undefined);
     const result = await readJsonWithLimit(req, limit);

@@ -32,20 +32,13 @@ import type { ResumeContent } from "@/lib/types/database";
 import { formatRelativeTime, truncateText } from "@/lib/utils/format";
 import { calculateCompleteness, getProfileSuggestions } from "@/lib/utils/profile-completeness";
 
-/** Force dynamic rendering for real-time dashboard data. */
 export const dynamic = "force-dynamic";
 
-/** Metadata for the dashboard — disallows search indexing. */
 export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-/**
- * User dashboard — resume status, analytics, profile completeness, and upload.
- * Displays real-time data so it is forced dynamic.
- */
 export default async function DashboardPage() {
-  // Use cached session helper to deduplicate auth calls within request
   const session = await getServerSession();
 
   if (!session) {
@@ -85,20 +78,16 @@ export default async function DashboardPage() {
     },
   });
 
-  // Extract data from the consolidated query
   const profile = userData ?? null;
   // SAFETY: Drizzle query returns Resume shape for first resume; cast narrows optional relation to Resume | null for dashboard logic.
   const resume = (userData?.resumes?.[0] ?? null) as Resume | null;
   // SAFETY: Drizzle query returns siteData shape via with.siteData; cast narrows optional relation to siteData select type.
   const siteDataResult = (userData?.siteData ?? null) as typeof siteData.$inferSelect | null;
 
-  // Safety net: Redirect to wizard if onboarding is incomplete
-  // This catches edge cases where users bypass the wizard flow
   if (profile && !profile.onboardingCompleted) {
     redirect("/wizard");
   }
 
-  // Determine resume state
   const hasResume = !!resume;
   const hasPublishedSite = !!siteDataResult;
   let content: ResumeContent | null = null;
@@ -107,11 +96,9 @@ export default async function DashboardPage() {
     content = siteDataResult.content as ResumeContent;
   }
 
-  // Calculate profile metrics
   const completeness = content ? calculateCompleteness(content) : 0;
   const suggestions = content ? getProfileSuggestions(content) : [];
 
-  // Empty State - No Resume
   if (!hasResume) {
     return (
       <div className="min-h-screen bg-background">
@@ -146,7 +133,6 @@ export default async function DashboardPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
           {hasPublishedSite && content ? (
             <>
-              {/* Show RealtimeStatusListener when a new resume is processing */}
               {(resume.status === "processing" ||
                 resume.status === "pending_claim" ||
                 resume.status === "queued") && (
@@ -155,7 +141,6 @@ export default async function DashboardPage() {
                 </div>
               )}
 
-              {/* Show error message when resume processing failed */}
               {resume.status === "failed" && (
                 <div className="col-span-full">
                   <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 mb-4">
@@ -181,7 +166,6 @@ export default async function DashboardPage() {
                 </div>
               )}
 
-              {/* Profile Completeness - Shown at top when incomplete */}
               {completeness < 100 && suggestions.length > 0 && (
                 <div className="col-span-full">
                   <Alert className="border-border bg-card rounded-xl shadow-sm">
@@ -192,7 +176,6 @@ export default async function DashboardPage() {
                           <h3 className="font-semibold text-foreground">Complete Your Profile</h3>
                         </div>
 
-                        {/* Progress Bar */}
                         <div
                           // eslint-disable-next-line jsx-a11y/prefer-tag-over-role -- custom progressbar with aria attributes; <progress> element lacks styling flexibility
                           role="progressbar"
@@ -238,7 +221,6 @@ export default async function DashboardPage() {
                 </div>
               )}
 
-              {/* Success Alert - Shown at top when profile is complete */}
               {completeness === 100 && (
                 <div className="col-span-full">
                   <Alert className="border-success/30 bg-success/10 rounded-xl shadow-sm">
@@ -252,11 +234,8 @@ export default async function DashboardPage() {
                 </div>
               )}
 
-              {/* Left Column - Resume Preview (spans 2 on desktop) */}
               <div className="lg:col-span-2 space-y-4">
-                {/* Resume Preview Card */}
                 <div className="bg-card rounded-xl shadow-sm border border-border p-4 md:p-6 lg:p-8 transition-colors hover:border-border-strong">
-                  {/* Header */}
                   <div className="mb-6">
                     <h2 className="text-2xl font-bold text-foreground">{content.full_name}</h2>
                     <p className="text-base text-muted-foreground mt-1">{content.headline}</p>
@@ -264,7 +243,6 @@ export default async function DashboardPage() {
 
                   <Separator className="mb-6" />
 
-                  {/* Summary */}
                   {content.summary && (
                     <div className="mb-6">
                       <h3 className="text-sm font-semibold text-foreground/80 mb-2">Summary</h3>
@@ -282,7 +260,6 @@ export default async function DashboardPage() {
                     </div>
                   )}
 
-                  {/* Stats Grid */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
                     <div className="flex items-center gap-3">
                       <div className="shrink-0 bg-surface-2 p-2 rounded-lg">
@@ -351,7 +328,6 @@ export default async function DashboardPage() {
 
                   <Separator className="mb-6" />
 
-                  {/* Footer - Action Buttons */}
                   <div className="flex flex-col sm:flex-row gap-3">
                     <Button asChild className="flex-1">
                       <Link href="/edit">
@@ -364,13 +340,10 @@ export default async function DashboardPage() {
                 </div>
               </div>
 
-              {/* Right Column - Account + Analytics */}
               <div className="space-y-4">
-                {/* Account Info Card */}
                 <div className="bg-card rounded-xl shadow-sm border border-border p-6 transition-colors hover:border-border-strong">
                   <h3 className="text-lg font-semibold text-foreground mb-4">Account</h3>
                   <div className="space-y-4">
-                    {/* Email */}
                     <div className="flex items-start gap-3">
                       <div className="shrink-0 mt-0.5 bg-surface-2 p-2 rounded-lg">
                         <Mail className="w-4 h-4 text-muted-foreground" aria-hidden="true" />
@@ -381,7 +354,6 @@ export default async function DashboardPage() {
                       </div>
                     </div>
 
-                    {/* Handle */}
                     {profile?.handle && (
                       <>
                         <Separator />
@@ -410,7 +382,6 @@ export default async function DashboardPage() {
                       </>
                     )}
 
-                    {/* Member Since */}
                     {profile?.createdAt && (
                       <>
                         <Separator />
@@ -435,12 +406,10 @@ export default async function DashboardPage() {
                   </div>
                 </div>
 
-                {/* Analytics Card */}
                 <AnalyticsCard />
               </div>
             </>
           ) : (
-            /* Show processing/failed state in main content area */
             <div className="col-span-full">
               <div className="bg-card rounded-xl shadow-sm border border-border p-8 transition-colors hover:border-border-strong">
                 {(resume.status === "processing" ||

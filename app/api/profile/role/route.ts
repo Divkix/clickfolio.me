@@ -9,23 +9,7 @@ import {
 } from "@/lib/utils/security-headers";
 import { readJsonWithLimit, validateRequestSize } from "@/lib/utils/validation";
 
-/**
- * PUT /api/profile/role
- * Update user's professional level/role.
- *
- * Request body:
- *   { role: string }
- *
- * Response:
- *   { role: string, roleSource: "user" }
- *
- * Error codes:
- *   - 400: invalid JSON or invalid role value
- *   - 413: request body too large
- *   - 500: unexpected error
- */
 export async function PUT(request: Request) {
-  // Validate request size before parsing (prevent DoS)
   const sizeCheck = validateRequestSize(request);
   if (!sizeCheck.valid) {
     return createErrorResponse(

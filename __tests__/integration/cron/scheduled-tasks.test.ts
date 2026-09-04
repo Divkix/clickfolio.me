@@ -5,24 +5,9 @@ import { recoverOrphanedResumes } from "@/lib/cron/recover-orphaned";
 import { R2 } from "@/lib/r2";
 import type { ResumeParseMessage } from "@/lib/queue/types";
 
-// cleanup.ts invokes the R2 wrapper directly; intercept it to simulate
-// object-store failures without touching real storage.
 vi.mock("@/lib/r2", () => ({
   R2: { delete: vi.fn() },
 }));
-
-/**
- * Cron maintenance tasks against Postgres semantics.
- *
- * These exercise the shared handlers the worker feeds `getDb(env.HYPERDRIVE)`
- * into from its scheduled hook:
- * - performCleanup deletes expired uploadRateLimits + 90-day-old handleChanges
- *   inside ONE transaction, reading postgres-js RowList.count off each DELETE,
- *   then purges failed resumes past the 3-day TTL (best-effort R2 delete with
- *   a pendingR2Deletions fallback).
- * - recoverOrphanedResumes requeues stuck resumes; its TOCTOU guards read
- *   RowList.count from conditional UPDATEs (postgres-js row counts).
- */
 
 interface MockCronDb {
   transaction: Mock;
@@ -36,7 +21,6 @@ interface MockQueue {
   send: Mock;
 }
 
-/** Drizzle chain whose where-result is awaitable AND `.limit()`-able. */
 function selectChain(rows: unknown[]) {
   return {
     from: vi.fn().mockReturnValue({
@@ -53,20 +37,16 @@ function selectChain(rows: unknown[]) {
 
 function createMockDb(): MockCronDb {
   const db: MockCronDb = {
-    // Default: transaction(cb) invokes cb with the tx (= the db itself).
     transaction: vi.fn(async (cb: (tx: MockCronDb) => Promise<unknown>) => cb(db)),
     select: vi.fn(() => selectChain([])),
-    // postgres-js RowList shape: conditional UPDATE reports affected rows via .count
     update: vi.fn(() => ({
       set: vi.fn(() => ({
         where: vi.fn().mockResolvedValue({ count: 0 }),
       })),
     })),
-    // INSERT resolves directly (postgres-js RowList)
     insert: vi.fn(() => ({
       values: vi.fn().mockResolvedValue(undefined),
     })),
-    // DELETE ... WHERE resolves directly to a RowList carrying .count
     delete: vi.fn(() => ({
       where: vi.fn().mockResolvedValue({ count: 0 }),
     })),
@@ -98,11 +78,9 @@ describe("Cron Scheduled Tasks", () => {
     it("deletes rate limits and handle changes in ONE transaction using RowList.count", async () => {
       (mockDb.delete as Mock)
         .mockReturnValueOnce({
-          // First DELETE: expired uploadRateLimits
           where: vi.fn().mockResolvedValue({ count: 5 }),
         })
         .mockReturnValueOnce({
-          // Second DELETE: handleChanges older than 90 days
           where: vi.fn().mockResolvedValue({ count: 10 }),
         });
 
@@ -151,7 +129,6 @@ describe("Cron Scheduled Tasks", () => {
 
       expect(result.ok).toBe(true);
       expect(result.deleted.failedResumes).toBe(1);
-      // The R2 failure is recorded durably BEFORE the resume row disappears.
       expect(R2.delete).toHaveBeenCalledWith(expect.anything(), "uploads/failed.pdf");
       expect(mockDb.insert).toHaveBeenCalledTimes(1);
       expect(mockDb.delete).toHaveBeenCalledTimes(3);
@@ -195,8 +172,6 @@ describe("Cron Scheduled Tasks", () => {
         fileHash: "abc123",
         totalAttempts: 0,
       };
-      // Four parallel selects: pending_claim, processing, queued, waiting_for_cache.
-      // TOCTOU re-queue guard must report exactly one changed row (RowList.count).
       mockDb.update.mockReturnValue({
         set: vi.fn(() => ({
           where: vi.fn().mockResolvedValue({ count: 1 }),
@@ -279,7 +254,6 @@ describe("Cron Scheduled Tasks", () => {
         fileHash: "abc123",
         totalAttempts: 0,
       };
-      // Conditional UPDATE hits 0 rows → the consumer already picked it up.
       mockDb.update.mockReturnValue({
         set: vi.fn(() => ({
           where: vi.fn().mockResolvedValue({ count: 0 }),
@@ -298,8 +272,6 @@ describe("Cron Scheduled Tasks", () => {
     });
 
     it("transitions expired waiting_for_cache rows durably", async () => {
-      // Fourth parallel select presents the expired rows; each timeout UPDATE
-      // reports its affected-row count through RowList.count.
       mockDb.update.mockReturnValue({
         set: vi.fn(() => ({
           where: vi.fn().mockResolvedValue({ count: 1 }),
@@ -373,7 +345,6 @@ describe("Cron Scheduled Tasks", () => {
         fileHash: "hash789",
         totalAttempts: 0,
       };
-      // Re-queue guard succeeds (count 1), then the queue send throws.
       mockDb.update.mockReturnValue({
         set: vi.fn(() => ({
           where: vi.fn().mockResolvedValue({ count: 1 }),
@@ -388,7 +359,6 @@ describe("Cron Scheduled Tasks", () => {
 
       const result = await recoverOrphanedResumes(mockDb as never, asQueue(mockQueue));
 
-      // Per-row isolation: the failure is caught, rolled back, and reported.
       expect(result.recovered).toBe(0);
     });
 

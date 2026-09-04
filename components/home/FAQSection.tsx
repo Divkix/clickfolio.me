@@ -1,10 +1,6 @@
 import Link from "next/link";
 import { FAQ_ITEMS } from "@/lib/config/faq";
 
-/**
- * Condensed FAQ for the homepage. Shows the first handful of questions and
- * links to the full /faq page.
- */
 export function FAQSection() {
   const items = FAQ_ITEMS.slice(0, 6);
 

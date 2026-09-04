@@ -1,13 +1,3 @@
-/**
- * Shared orphaned resume recovery logic.
- *
- * Called by:
- * - worker/index.ts scheduled handler (direct invocation, no extra Worker billing)
- * - /api/cron/recover-orphaned route handler (manual trigger via HTTP)
- *
- * Finds resumes stuck in pending_claim status that have valid r2Key and fileHash
- * but weren't successfully queued (e.g., due to worker crash after upload).
- */
 import { and, eq, isNotNull, isNull, lt, or } from "drizzle-orm";
 import type { Database } from "@/lib/db";
 import {
@@ -31,7 +21,6 @@ export async function recoverOrphanedResumes(
   db: Database,
   queue: Queue<ResumeParseMessage>,
 ): Promise<RecoverOrphanedResult> {
-  // Thresholds: pending_claim = 5 min, processing = 15 min (AI parsing can take ~40s)
   const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
   const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
   const tenMinutesAgo = new Date(Date.now() - WAITING_FOR_CACHE_TIMEOUT_MS).toISOString();
@@ -39,21 +28,14 @@ export async function recoverOrphanedResumes(
   const selectColumns = {
     id: resumes.id,
     userId: resumes.userId,
-    // status is selected so the TOCTOU re-queue guard can condition on the
-    // originally-selected status (see the update below).
     status: resumes.status,
     r2Key: resumes.r2Key,
     fileHash: resumes.fileHash,
     totalAttempts: resumes.totalAttempts,
   };
 
-  // Run all queries in parallel — they hit different index prefixes.
-  // The waiting_for_cache timeout is now handled here instead of in GET /status
-  // (see lifecycle.waitingForCacheTimedOut) so the GET stays side-effect-free;
-  // cron is the durable writer.
   const [pendingOrphans, processingOrphans, queuedOrphans, waitingForCacheExpired] =
     await Promise.all([
-      // Resumes stuck in pending_claim (never queued, e.g. worker crash after upload)
       db
         .select(selectColumns)
         .from(resumes)
@@ -66,10 +48,6 @@ export async function recoverOrphanedResumes(
           ),
         )
         .limit(10),
-      // Resumes stuck in processing (consumer crashed mid-parse).
-      // Age-gate on queuedAt (time-in-processing), not createdAt (row age), so a
-      // manual retry of an old resume isn't treated as orphaned. Fall back to
-      // createdAt for legacy rows that predate queuedAt.
       db
         .select(selectColumns)
         .from(resumes)
@@ -85,9 +63,6 @@ export async function recoverOrphanedResumes(
           ),
         )
         .limit(10),
-      // Resumes stuck in queued (publish failed after status write, never consumed).
-      // Age-gate on queuedAt to avoid racing rows that were legitimately queued
-      // moments ago. Fall back to createdAt for legacy rows with a null queuedAt.
       db
         .select(selectColumns)
         .from(resumes)
@@ -103,10 +78,6 @@ export async function recoverOrphanedResumes(
           ),
         )
         .limit(10),
-      // Resumes stuck in waiting_for_cache beyond the 10-min timeout.
-      // These were previously transitioned inside GET /status (side-effect in a
-      // polling GET); now they are presented virtually by GET and durably
-      // transitioned here.
       db
         .select({ id: resumes.id, status: resumes.status })
         .from(resumes)
@@ -114,10 +85,7 @@ export async function recoverOrphanedResumes(
         .limit(10),
     ]);
 
-  // Durably transition expired waiting_for_cache rows to failed.
   // TOCTOU-guarded on still being `waiting_for_cache`. Run in parallel since rows are independent.
-  // Each row is individually try/caught so one transient DB error does not abort the whole cron tick
-  // (mirrors the per-row isolation of the sequential requeue loop below).
   const timeoutUpdate = buildWaitingForCacheTimeoutUpdate();
   const timeoutResults = await Promise.all(
     waitingForCacheExpired.map(async (row) => {
@@ -142,7 +110,6 @@ export async function recoverOrphanedResumes(
   );
   const waitingForCacheTimedOutCount = timeoutResults.reduce<number>((a, b) => a + b, 0);
 
-  // Merge and deduplicate (shouldn't overlap, but defensive)
   const seenIds = new Set<string>();
   const orphanedResumes = [...pendingOrphans, ...processingOrphans, ...queuedOrphans].filter(
     (r) => {
@@ -164,24 +131,13 @@ export async function recoverOrphanedResumes(
   const now = new Date().toISOString();
   const successfulIds: string[] = [];
 
-  // Process resumes: update DB status first, then publish to queue
-  // This prevents race condition where consumer sees old status
   for (const resume of orphanedResumes) {
-    // Skip if already at max attempts
     if (hasExceededMaxAttempts(resume.totalAttempts ?? 0)) {
       log("info", "skipping resume - max attempts reached", { resumeId: resume.id });
       continue;
     }
 
     try {
-      // Update DB status to "queued" BEFORE publishing to queue
-      // This ensures consumer always sees the correct status.
-      // TOCTOU guard: only re-queue if the row is STILL in the status we
-      // selected it with — the consumer, a manual retry, or a prior recovery
-      // pass may have moved it in the meantime (0 rows updated = skip).
-      // totalAttempts is intentionally NOT incremented here: the queue consumer
-      // already increments it per actual attempt, so an increment here would
-      // double-count every recovered resume.
       const requeueResult = await db
         .update(resumes)
         .set({
@@ -197,7 +153,6 @@ export async function recoverOrphanedResumes(
         continue;
       }
 
-      // Now publish to queue (after DB is updated)
       await publishResumeParse(queue, {
         resumeId: resume.id,
         userId: resume.userId,
@@ -211,11 +166,6 @@ export async function recoverOrphanedResumes(
       log("info", "recovered orphaned resume", { resumeId: resume.id });
     } catch (error) {
       log("error", "failed to recover resume", { resumeId: resume.id, error: String(error) });
-      // Roll status back to pending_claim so the next recovery pass retries it
-      // rather than leaving it stuck in "queued".
-      // TOCTOU guard: only roll back if the row is STILL "queued" — if the
-      // consumer already picked it up (processing) or another path moved it,
-      // leave it alone.
       try {
         await db
           .update(resumes)

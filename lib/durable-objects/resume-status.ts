@@ -3,9 +3,6 @@ import type { ResumeStatus } from "@/lib/db/schema/resume";
 import { isValidResumeStatus } from "@/lib/realtime/constants";
 import type { JsonValue } from "@/lib/types/json";
 
-/**
- * Status message sent to connected WebSocket clients.
- */
 interface StatusMessage {
   type: "status";
   status: ResumeStatus;
@@ -13,43 +10,23 @@ interface StatusMessage {
   timestamp: string;
 }
 
-/**
- * Durable Object for resume status notifications via WebSocket Hibernation.
- * Uses the Hibernatable WebSocket API so the DO is evicted from memory
- * when idle (zero cost during hibernation).
- */
 export class ClickfolioStatusDO extends DurableObject {
-  /**
-   * Handle incoming requests:
-   * - WebSocket upgrade: accept connection, send cached status if available
-   * - POST /notify: store status, broadcast to all connected WebSockets
-   */
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
 
-    // POST /notify — called by queue consumer when status changes
     if (request.method === "POST" && url.pathname === "/notify") {
       return this.handleNotify(request);
     }
 
-    // WebSocket upgrade — client connecting for live updates
     const upgradeHeader = request.headers.get("Upgrade");
     if (upgradeHeader?.toLowerCase() === "websocket") {
-      // Pass request to handleWebSocketUpgrade for auth validation
       return this.handleWebSocketUpgrade(request);
     }
 
     return new Response("Not found", { status: 404 });
   }
 
-  /**
-   * Accept a WebSocket connection via the Hibernation API.
-   * Requires X-Authenticated-User-Id header (set by worker after auth validation).
-   * If there's a cached status, send it immediately so the client
-   * doesn't need a separate HTTP fetch.
-   */
   private async handleWebSocketUpgrade(request: Request): Promise<Response> {
-    // Validate authenticated user header (defense in depth)
     const userId = request.headers.get("X-Authenticated-User-Id");
     if (!userId) {
       return new Response("Unauthorized: Missing authentication", { status: 401 });
@@ -58,10 +35,8 @@ export class ClickfolioStatusDO extends DurableObject {
     const pair = new WebSocketPair();
     const [client, server] = Object.values(pair);
 
-    // Accept via hibernation API (DO can be evicted while WS stays open)
     this.ctx.acceptWebSocket(server);
 
-    // Send cached status immediately if available (batched read)
     const cached = await this.ctx.storage.get<string>(["lastStatus", "lastError"]);
     const cachedStatus = cached.get("lastStatus");
     const cachedError = cached.get("lastError");
@@ -81,10 +56,6 @@ export class ClickfolioStatusDO extends DurableObject {
     return new Response(null, { status: 101, webSocket: client });
   }
 
-  /**
-   * Handle POST /notify from queue consumer.
-   * Stores status in transactional storage and broadcasts to all connected clients.
-   */
   private async handleNotify(request: Request): Promise<Response> {
     let body: { status: ResumeStatus; error?: string };
     try {
@@ -102,13 +73,11 @@ export class ClickfolioStatusDO extends DurableObject {
       return new Response("Invalid status", { status: 400 });
     }
 
-    // Store in DO storage (survives hibernation) — atomic batched write
     await this.ctx.storage.put({
       lastStatus: status,
       lastError: error ?? "",
     });
 
-    // Broadcast to all connected WebSockets
     const msg: StatusMessage = {
       type: "status",
       status,
@@ -123,15 +92,9 @@ export class ClickfolioStatusDO extends DurableObject {
     for (const ws of sockets) {
       try {
         ws.send(payload);
-      } catch {
-        // Socket already closed, ignore
-      }
+      } catch {}
     }
 
-    // If terminal state, schedule cleanup alarm in 30 seconds. A retry that
-    // arrives within that window (non-terminal status) cancels the alarm so DO
-    // storage isn't wiped mid-flight — otherwise a retry ≥30s after "completed"
-    // would find the resume's cached status deleted and the socket force-closed.
     if (status === "completed" || status === "failed") {
       await this.ctx.storage.setAlarm(Date.now() + 30_000);
     } else {
@@ -141,9 +104,6 @@ export class ClickfolioStatusDO extends DurableObject {
     return new Response("OK", { status: 200 });
   }
 
-  /**
-   * Handle incoming WebSocket messages (ping/status requests).
-   */
   async webSocketMessage(ws: WebSocket, message: string | ArrayBuffer): Promise<void> {
     if (message instanceof ArrayBuffer) return;
 
@@ -152,7 +112,6 @@ export class ClickfolioStatusDO extends DurableObject {
       return;
     }
 
-    // Handle explicit status request (batched read)
     if (message === "status") {
       const cached = await this.ctx.storage.get<string>(["lastStatus", "lastError"]);
       const cachedStatus = cached.get("lastStatus");
@@ -172,46 +131,28 @@ export class ClickfolioStatusDO extends DurableObject {
     }
   }
 
-  /**
-   * Handle WebSocket close — cleanup.
-   */
   async webSocketClose(
     _ws: WebSocket,
     _code: number,
     _reason: string,
     _wasClean: boolean,
-  ): Promise<void> {
-    // No special cleanup needed. If all sockets close,
-    // the DO will naturally hibernate and the alarm will clean up storage.
-  }
+  ): Promise<void> {}
 
-  /**
-   * Handle WebSocket error — log and close.
-   */
   async webSocketError(ws: WebSocket, error: JsonValue | Error): Promise<void> {
     console.error("ClickfolioStatusDO WebSocket error:", error);
     try {
       ws.close(1011, "WebSocket error");
-    } catch {
-      // Already closed
-    }
+    } catch {}
   }
 
-  /**
-   * Alarm fires 30s after terminal state.
-   * Closes any remaining sockets and deletes all storage.
-   */
   async alarm(): Promise<void> {
     const sockets = this.ctx.getWebSockets();
     for (const ws of sockets) {
       try {
         ws.close(1000, "Resume processing complete");
-      } catch {
-        // Already closed
-      }
+      } catch {}
     }
 
-    // Clean up all storage
     await this.ctx.storage.deleteAll();
   }
 }

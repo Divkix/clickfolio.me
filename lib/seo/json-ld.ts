@@ -1,9 +1,3 @@
-/**
- * JSON-LD Structured Data Generator
- * Generates schema.org compliant structured data for resume profiles
- * to enable rich snippets in Google/Bing search results.
- */
-
 import type { Metadata } from "next";
 import type { BlogPostMeta } from "@/lib/blog/posts";
 import { authorPersona } from "@/lib/config/author";
@@ -12,10 +6,6 @@ import { siteConfig } from "@/lib/config/site";
 import { buildPublicPageMetadata } from "@/lib/seo/page-metadata";
 import type { ResumeContent } from "@/lib/types/database";
 import type { UnknownRecord } from "@/lib/types/json";
-
-// =============================================================================
-// Types
-// =============================================================================
 
 interface JsonLdOccupation {
   "@type": "Occupation";
@@ -32,49 +22,32 @@ interface JsonLdRole {
 
 interface JsonLdPerson {
   "@type": "Person";
-  /** Canonical identifier for the person (e.g., profile URL + #person). */
   "@id"?: string;
-  /** Full name of the person. */
   name: string;
-  /** URL of the profile page. */
   url: string;
-  /** Avatar or profile image URL. */
   image?: string;
-  /** Current job title. */
   jobTitle?: string;
-  /** Current employer as an Organization. */
   worksFor?: {
     "@type": "Organization";
     name: string;
   };
-  /** Work experience as schema.org Role nodes. */
   hasOccupation?: JsonLdRole[];
-  /** Educational institutions attended. */
   alumniOf?: Array<{
     "@type": "EducationalOrganization";
     name: string;
   }>;
-  /** Validated social profile URLs (LinkedIn, GitHub, etc.). */
   sameAs?: string[];
-  /** Flattened skill names for the knowsAbout field. */
   knowsAbout?: string[];
-  /** Email address (only included when privacy allows). */
   email?: string;
-  /** Resume summary or bio. */
   description?: string;
 }
 
-/** schema.org ProfilePage wrapping the Person entity. */
 interface JsonLdProfilePage {
   "@context": "https://schema.org";
   "@type": "ProfilePage";
-  /** Canonical identifier for the profile page (e.g., profile URL + #webpage). */
   "@id"?: string;
-  /** ISO date string when the profile was first created. */
   dateCreated?: string;
-  /** ISO date string when the profile was last modified. */
   dateModified?: string;
-  /** The Person entity that is the main subject of this page. */
   mainEntity: JsonLdPerson;
 }
 
@@ -86,14 +59,6 @@ interface JsonLdOptions {
   includeEmail?: boolean;
 }
 
-// =============================================================================
-// URL Validation Patterns
-// =============================================================================
-
-/**
- * Validates LinkedIn profile/company URLs
- * Accepts: linkedin.com/in/username, linkedin.com/company/name
- */
 const URL_PATTERNS = {
   linkedin: /^https?:\/\/(www\.)?linkedin\.com\/(in|company)\/[\w-]+\/?$/i,
   github: /^https?:\/\/(www\.)?github\.com\/[\w-]+\/?$/i,
@@ -106,14 +71,6 @@ type UrlField = keyof typeof URL_PATTERNS;
 
 const CONTACT_URL_FIELDS: UrlField[] = ["linkedin", "github", "website", "dribbble", "behance"];
 
-// =============================================================================
-// Helper Functions
-// =============================================================================
-
-/**
- * Extracts current employer from experience array
- * A job is considered "current" if it has no end_date
- */
 function getCurrentEmployer(
   experience: ResumeContent["experience"],
 ): { title: string; company: string } | null {
@@ -121,7 +78,6 @@ function getCurrentEmployer(
     return null;
   }
 
-  // Find first job without end_date (current job)
   const currentJob = experience.find((exp) => !exp.end_date);
 
   if (currentJob) {
@@ -134,11 +90,6 @@ function getCurrentEmployer(
   return null;
 }
 
-/**
- * Builds schema.org EmployeeRole nodes from resume experience
- * Includes company, title, and dates. Omits endDate for current roles.
- * Limited to 5 entries to keep payload reasonable.
- */
 function buildWorkExperiences(experience: ResumeContent["experience"]): JsonLdRole[] | undefined {
   if (!experience || experience.length === 0) {
     return undefined;
@@ -171,10 +122,6 @@ function buildWorkExperiences(experience: ResumeContent["experience"]): JsonLdRo
   return roles.length > 0 ? roles : undefined;
 }
 
-/**
- * Builds array of validated social profile URLs
- * Only includes URLs that pass validation
- */
 function buildSameAsArray(contact: ResumeContent["contact"]): string[] | undefined {
   const urls: string[] = [];
 
@@ -188,9 +135,6 @@ function buildSameAsArray(contact: ResumeContent["contact"]): string[] | undefin
   return urls.length > 0 ? urls : undefined;
 }
 
-/**
- * Flattens skill categories into a single array of skill names
- */
 function flattenSkills(skills: ResumeContent["skills"]): string[] | undefined {
   if (!skills || skills.length === 0) {
     return undefined;
@@ -198,16 +142,11 @@ function flattenSkills(skills: ResumeContent["skills"]): string[] | undefined {
 
   const allSkills = skills.flatMap((category) => category.items);
 
-  // Remove duplicates and empty strings
   const uniqueSkills = [...new Set(allSkills.filter((skill) => skill.trim().length > 0))];
 
   return uniqueSkills.length > 0 ? uniqueSkills : undefined;
 }
 
-/**
- * Builds alumniOf array from education data
- * Maps each education entry to an EducationalOrganization
- */
 function buildAlumniOf(
   education: ResumeContent["education"],
 ): Array<{ "@type": "EducationalOrganization"; name: string }> | undefined {
@@ -225,30 +164,12 @@ function buildAlumniOf(
   return alumni.length > 0 ? alumni : undefined;
 }
 
-// =============================================================================
-// Main Generator
-// =============================================================================
-
-/**
- * Generates JSON-LD structured data for a resume profile
- *
- * @param content - Parsed resume content
- * @param options - Additional options (profileUrl, avatarUrl, etc.)
- * @returns JSON-LD object conforming to schema.org ProfilePage + Person
- *
- * @example
- * const jsonLd = generateResumeJsonLd(content, {
- *   profileUrl: "https://clickfolio.me/@john-doe",
- *   avatarUrl: "https://example.com/avatar.jpg",
- * });
- */
 export function generateResumeJsonLd(
   content: ResumeContent,
   options: JsonLdOptions,
 ): JsonLdProfilePage {
   const { profileUrl, avatarUrl, dateCreated, dateModified, includeEmail = false } = options;
 
-  // Build Person entity
   const person: JsonLdPerson = {
     "@type": "Person",
     "@id": `${profileUrl}#person`,
@@ -256,12 +177,10 @@ export function generateResumeJsonLd(
     url: profileUrl,
   };
 
-  // Add image if available
   if (avatarUrl) {
     person.image = avatarUrl;
   }
 
-  // Add current job title and employer
   const currentEmployer = getCurrentEmployer(content.experience);
   if (currentEmployer) {
     person.jobTitle = currentEmployer.title;
@@ -271,41 +190,34 @@ export function generateResumeJsonLd(
     };
   }
 
-  // Add work experience as hasOccupation (EmployeeRole nodes)
   const hasOccupation = buildWorkExperiences(content.experience);
   if (hasOccupation) {
     person.hasOccupation = hasOccupation;
   }
 
-  // Add education as alumniOf
   const alumniOf = buildAlumniOf(content.education);
   if (alumniOf) {
     person.alumniOf = alumniOf;
   }
 
-  // Add social profiles
   const sameAs = buildSameAsArray(content.contact);
   if (sameAs) {
     person.sameAs = sameAs;
   }
 
-  // Add skills
   const knowsAbout = flattenSkills(content.skills);
   if (knowsAbout) {
     person.knowsAbout = knowsAbout;
   }
 
-  // Add email if explicitly requested (usually not for privacy)
   if (includeEmail && content.contact.email) {
     person.email = content.contact.email;
   }
 
-  // Add summary as description
   if (content.summary && content.summary.trim().length > 0) {
     person.description = content.summary;
   }
 
-  // Build ProfilePage wrapper
   const profilePage: JsonLdProfilePage = {
     "@context": "https://schema.org",
     "@type": "ProfilePage",
@@ -313,7 +225,6 @@ export function generateResumeJsonLd(
     mainEntity: person,
   };
 
-  // Add dates if available
   if (dateCreated) {
     profilePage.dateCreated = dateCreated;
   }
@@ -324,17 +235,6 @@ export function generateResumeJsonLd(
   return profilePage;
 }
 
-/**
- * Serializes JSON-LD to a string for embedding in HTML
- *
- * SECURITY: Escapes characters that could break out of the script tag context.
- * JSON.stringify does NOT escape angle brackets, so a malicious string like
- * "</script><script>alert(1)//" would break out of the JSON-LD script tag.
- * We escape < and > to their Unicode equivalents to prevent XSS.
- *
- * Also escapes U+2028 (LINE SEPARATOR) and U+2029 (PARAGRAPH SEPARATOR)
- * which are valid JSON but can break JavaScript parsing in some contexts.
- */
 export function serializeJsonLd(
   jsonLd: JsonLdProfilePage | UnknownRecord | UnknownRecord[],
 ): string {
@@ -345,13 +245,6 @@ export function serializeJsonLd(
     .replace(/\u2029/g, "\\u2029");
 }
 
-// =============================================================================
-// Homepage & Breadcrumb Generators
-// =============================================================================
-
-/**
- * Generates JSON-LD for the homepage: WebSite + Organization schemas.
- */
 export function generateHomepageJsonLd(): UnknownRecord[] {
   return [
     {
@@ -409,9 +302,6 @@ export function generateHomepageJsonLd(): UnknownRecord[] {
   ];
 }
 
-/**
- * Generates CollectionPage JSON-LD for the explore/directory page.
- */
 export function generateExploreJsonLd(
   users: Array<{ handle: string; name: string; headline?: string | null }>,
 ) {
@@ -444,18 +334,10 @@ export function generateExploreJsonLd(
   };
 }
 
-/**
- * Generates FAQPage JSON-LD for the homepage.
- */
 export function generateFAQJsonLd(): UnknownRecord {
   return generateFAQPageJsonLd(FAQ_ITEMS);
 }
 
-/**
- * Generates FAQPage JSON-LD from an arbitrary list of Q&A items.
- * Used by profession landing pages and blog posts to expose their own FAQs
- * as rich results and AI-extractable answers.
- */
 export function generateFAQPageJsonLd(items: Array<{ q: string; a: string }>) {
   return {
     "@context": "https://schema.org",
@@ -471,18 +353,10 @@ export function generateFAQPageJsonLd(items: Array<{ q: string; a: string }>) {
   };
 }
 
-/**
- * Absolute URL for a site path. Home (`/`) is the origin with no trailing slash,
- * matching the existing BreadcrumbList `item` values.
- */
 function absoluteUrl(path: string): string {
   return path === "/" ? siteConfig.url : `${siteConfig.url}${path}`;
 }
 
-/**
- * Editorial byline used on blog JSON-LD. Comes from `authorPersona` — never invent
- * a personal author name or a publish date that is not on the post.
- */
 function blogAuthorJsonLd() {
   return {
     "@type": "Person" as const,
@@ -492,10 +366,6 @@ function blogAuthorJsonLd() {
   };
 }
 
-/**
- * BreadcrumbList from the visible crumb trail (label + href). Used by
- * `components/ui/breadcrumb.tsx` so the on-page nav and the schema stay in sync.
- */
 export function generateBreadcrumbListJsonLd(items: readonly { name: string; path: string }[]) {
   return {
     "@context": "https://schema.org",
@@ -509,10 +379,6 @@ export function generateBreadcrumbListJsonLd(items: readonly { name: string; pat
   };
 }
 
-/**
- * Generates a generic 2-item BreadcrumbList: Home > Page.
- * Reusable for for/ pages, FAQ, About (pages without the visible Breadcrumb nav).
- */
 export function generatePageBreadcrumbJsonLd(pageName: string, pagePath: string) {
   return generateBreadcrumbListJsonLd([
     { name: "Home", path: "/" },
@@ -520,10 +386,6 @@ export function generatePageBreadcrumbJsonLd(pageName: string, pagePath: string)
   ]);
 }
 
-/**
- * BlogPosting for an individual post. headline/datePublished/author come from
- * `BlogPostMeta` + `authorPersona` — no invented authors or dates.
- */
 export function generateBlogPostingJsonLd(post: BlogPostMeta) {
   return {
     "@context": "https://schema.org",
@@ -559,10 +421,6 @@ export function generateBlogPostingJsonLd(post: BlogPostMeta) {
   };
 }
 
-/**
- * Blog listing schema: a Blog whose `blogPost` entries are BlogPosting objects
- * built from existing `BLOG_POSTS` fields only.
- */
 export function generateBlogListingJsonLd(posts: readonly BlogPostMeta[]) {
   return {
     "@context": "https://schema.org",
@@ -580,9 +438,6 @@ export function generateBlogListingJsonLd(posts: readonly BlogPostMeta[]) {
   };
 }
 
-/**
- * Generates WebPage JSON-LD for informational pages.
- */
 export function generateWebPageJsonLd(
   name: string,
   path: string,
@@ -608,12 +463,6 @@ export function generateWebPageJsonLd(
   return base;
 }
 
-/**
- * Builds the Next.js Metadata object for a /for/<role> profession landing page.
- * Shared by every app/for/<role>/page.tsx so the per-page `export const metadata`
- * stays a one-line call. Delegates to `buildPublicPageMetadata` so og:url,
- * og:type, and twitter:card/images are always set (not inherited from root).
- */
 export function buildRolePageMetadata(params: {
   title: string;
   description: string;
@@ -622,9 +471,6 @@ export function buildRolePageMetadata(params: {
   return buildPublicPageMetadata(params);
 }
 
-/**
- * Generates BreadcrumbList JSON-LD for profile pages: Home > Explore > @name
- */
 export function generateBreadcrumbJsonLd(handle: string, displayName: string) {
   return generateBreadcrumbListJsonLd([
     { name: "Home", path: "/" },

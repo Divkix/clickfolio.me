@@ -424,12 +424,10 @@ describe("upload flow components", () => {
     render(<UploadStep onContinue={onContinue} />);
     dropFile(pdfFile("sitedata-fail.pdf"));
 
-    // Must NOT stall on the "AI is extracting your experience..." screen
     await waitFor(() => expect(screen.getByText("Something Went Wrong")).toBeInTheDocument());
     expect(screen.getByText(/couldn't load the result/i)).toBeInTheDocument();
     expect(onContinue).not.toHaveBeenCalled();
 
-    // Retry affordance is present
     expect(screen.getByRole("button", { name: "Try Again" })).toBeInTheDocument();
   });
 });

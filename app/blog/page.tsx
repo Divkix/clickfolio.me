@@ -13,7 +13,6 @@ import {
 } from "@/lib/seo/json-ld";
 import { buildPublicPageMetadata } from "@/lib/seo/page-metadata";
 
-/** Revalidate blog listing every 30 minutes for fresh content. */
 export const revalidate = 86400;
 
 const blogHeading = "Writing about resume websites";
@@ -21,7 +20,6 @@ const blogTitle = `Resume Website & Portfolio Guides | ${siteConfig.fullName}`;
 const blogDescription =
   "Guides, comparisons, and tips on building a resume website and online portfolio. Compare builders, see examples, and learn how to turn your PDF resume into a site.";
 
-/** SEO metadata for the blog listing page. */
 export const metadata: Metadata = buildPublicPageMetadata({
   title: "Resume Website & Portfolio Guides",
   ogTitle: blogTitle,
@@ -33,9 +31,6 @@ const sortedPosts = [...BLOG_POSTS].sort(
   (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
 );
 
-/**
- * Blog listing page — displays all published posts with structured data.
- */
 export default function BlogPage() {
   const blogJsonLd = generateWebPageJsonLd(blogHeading, "/blog", blogDescription);
   const listingJsonLd = generateBlogListingJsonLd(sortedPosts);

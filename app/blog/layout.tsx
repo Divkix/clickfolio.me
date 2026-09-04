@@ -3,7 +3,6 @@ import { Footer } from "@/components/Footer";
 import { SiteHeader } from "@/components/SiteHeader";
 import { buildPublicPageMetadata } from "@/lib/seo/page-metadata";
 
-/** SEO metadata fallback for the blog section (listing + posts override). */
 export const metadata: Metadata = {
   ...buildPublicPageMetadata({
     title: "Resume website guides",
@@ -14,10 +13,6 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-/**
- * Blog section layout — same public nav (Explore / Blog / FAQ / About) as the
- * rest of the marketing site. Listing and posts keep their own `<main>`.
- */
 export default function BlogLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col bg-background">

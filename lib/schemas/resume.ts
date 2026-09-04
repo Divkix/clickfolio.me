@@ -7,21 +7,9 @@ import {
   sanitizeUrl,
 } from "@/lib/utils/sanitization";
 
-/**
- * Email validation regexes
- * - Lenient: accepts text@text (TLD optional) for AI-parsed incomplete emails
- * - Strict: requires TLD with at least 2 characters for user-entered emails
- */
 const LENIENT_EMAIL_REGEX = /^[^\s@]+@[^\s@]+$/;
 const STRICT_EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
-/**
- * Email field schema for the lenient contact schema (AI-parsed content).
- * Email is OPTIONAL here: resumes may legitimately have no email, so both an
- * omitted field and an empty string parse successfully. Matches the strict
- * edit schema's treatment of email as user-removable and `getContactLinks`,
- * which skips falsy emails.
- */
 const lenientEmailField = z
   .string()
   .trim()
@@ -34,10 +22,6 @@ const lenientEmailField = z
   .or(z.literal(""))
   .describe("Email address (optional — empty when not found in the resume)");
 
-/**
- * Email field schema for the strict contact schema (user edits).
- * Email is REQUIRED and must include a TLD.
- */
 const strictEmailField = z
   .string()
   .trim()
@@ -49,15 +33,6 @@ const strictEmailField = z
   .transform(sanitizeEmail)
   .describe("Email address");
 
-/**
- * Factory function to create contact schema with a configurable email field.
- * Deliberately NOT generic: a generic factory makes `z.infer` of the exported
- * resume schemas resolve to distinct-but-identical types, which react-hook-form
- * reports as "unrelated" when the form passes `UseFormReturn<ResumeContentFormData>`.
- * The email field is selected by a string flag instead; the inferred output type
- * is the union of both email field shapes (`string | undefined`), with strict
- * enforcement happening at validation time, not type time.
- */
 const createContactSchema = (emailField: "lenient" | "strict") =>
   z.object({
     email: emailField === "lenient" ? lenientEmailField : strictEmailField,
@@ -127,19 +102,9 @@ const createContactSchema = (emailField: "lenient" | "strict") =>
       .describe("Full Dribbble URL. Must start with https://dribbble.com/"),
   });
 
-/**
- * Contact schemas
- * - Lenient: for AI-parsed content (email optional, accepts incomplete emails like "user@domain")
- * - Strict: for user edits (requires email with TLD like "user@domain.com")
- */
 const contactSchemaLenient = createContactSchema("lenient");
 const contactSchemaStrict = createContactSchema("strict");
 
-/**
- * Experience item schema
- * Title, company, start_date, and description are required
- * Includes length limits to prevent DoS
- */
 const experienceSchema = z.object({
   title: z
     .string()
@@ -191,10 +156,6 @@ const experienceSchema = z.object({
     .describe("Key achievements or responsibilities (max 500 characters per item)"),
 });
 
-/**
- * Education item schema
- * Degree and institution are required
- */
 const educationSchema = z.object({
   degree: z
     .string()
@@ -236,10 +197,6 @@ const educationSchema = z.object({
     .describe("GPA if applicable"),
 });
 
-/**
- * Skill category schema
- * Used for grouping skills by category
- */
 const skillSchema = z.object({
   category: z
     .string()
@@ -261,10 +218,6 @@ const skillSchema = z.object({
     .describe("List of skills in this category. Must have at least one item."),
 });
 
-/**
- * Certification schema
- * Name and issuer are required
- */
 const certificationSchema = z.object({
   name: z
     .string()
@@ -299,11 +252,6 @@ const certificationSchema = z.object({
     .describe("Certification URL. Must start with https:// or http://"),
 });
 
-/**
- * Project schema
- * Title and description are required
- * Includes URL validation and technology list support
- */
 const projectSchema = z.object({
   title: z
     .string()
@@ -360,11 +308,6 @@ const projectSchema = z.object({
     .describe("URL to project screenshot or thumbnail image. Must start with https:// or http://"),
 });
 
-/**
- * Factory function to create resume content schema with configurable contact validation.
- * Non-generic (see createContactSchema): keeps `ResumeContentFormData` a single
- * stable type identity for react-hook-form.
- */
 const createResumeContentSchema = (contactSchema: ReturnType<typeof createContactSchema>) =>
   z.object({
     full_name: z
@@ -428,23 +371,11 @@ const createResumeContentSchema = (contactSchema: ReturnType<typeof createContac
       ),
   });
 
-/**
- * Resume content schemas
- * - resumeContentSchema: Lenient validation for AI-parsed content (TLD optional)
- * - resumeContentSchemaStrict: Strict validation for user edits (requires TLD)
- */
 export const resumeContentSchema = createResumeContentSchema(contactSchemaLenient);
 export const resumeContentSchemaStrict = createResumeContentSchema(contactSchemaStrict);
 
-/**
- * Type inference for TypeScript
- * Both schemas have the same output type after transformation
- */
 export type ResumeContentFormData = z.infer<typeof resumeContentSchema>;
 
-/**
- * Claim request schema for POST /api/resume/claim
- */
 export const claimRequestSchema = z.object({
   key: z.string().min(1).startsWith("temp/"),
 });

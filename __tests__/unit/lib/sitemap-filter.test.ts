@@ -1,27 +1,11 @@
-/**
- * Sitemap DB filter unit tests
- *
- * Tests the database query logic in generateSitemapEntries and
- * getTotalIndexableUserCount — specifically the notHiddenFromSearch filter,
- * the leftJoin between user and siteData, and the isNotNull(handle) condition.
- *
- * The pure XML builder functions are tested separately in sitemap.test.ts.
- */
-
 import type { MetadataRoute } from "next";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { JsonValue } from "@/lib/types/json";
 
-// ---------------------------------------------------------------------------
-// Mock dependencies
-// ---------------------------------------------------------------------------
-
-// Mutable reference so each test can swap the rows the mock query chain returns
 let mockSelectRows: JsonValue[] = [];
 let mockLimitValues: JsonValue[] = [];
 let mockOffsetValues: JsonValue[] = [];
 
-/** Build a mock query chain that returns `rows` when awaited */
 function buildQueryChain(rows: JsonValue[]) {
   const chain = () => buildQueryChain(rows);
 
@@ -44,7 +28,6 @@ function buildQueryChain(rows: JsonValue[]) {
   };
 }
 
-/** Create a mock DB select that returns a query chain resolving to mockSelectRows */
 vi.mock("@/lib/db", () => ({
   getDb: vi.fn(() => ({
     select: vi.fn(() => buildQueryChain(mockSelectRows)),
@@ -63,10 +46,6 @@ import {
   URLS_PER_SITEMAP,
 } from "@/lib/seo/sitemap";
 
-// ---------------------------------------------------------------------------
-// Tests: generateSitemapEntries
-// ---------------------------------------------------------------------------
-
 describe("generateSitemapEntries", () => {
   beforeEach(() => {
     vi.stubEnv("APP_URL", "https://example.com");
@@ -74,8 +53,6 @@ describe("generateSitemapEntries", () => {
     mockLimitValues = [];
     mockOffsetValues = [];
   });
-
-  // ── Invalid inputs ──────────────────────────────────────────────
 
   it("returns empty array for invalid id (negative)", async () => {
     const entries = await generateSitemapEntries(-1);
@@ -86,8 +63,6 @@ describe("generateSitemapEntries", () => {
     const entries = await generateSitemapEntries(1.5);
     expect(entries).toEqual([]);
   });
-
-  // ── ID 0: Static pages ──────────────────────────────────────────
 
   it("returns static pages for id=0 even when DB returns no users", async () => {
     const entries = await generateSitemapEntries(0);
@@ -130,8 +105,6 @@ describe("generateSitemapEntries", () => {
     );
     expect(exploreEntry?.priority).toBe(0.9);
   });
-
-  // ── DB user entries mapping ─────────────────────────────────────
 
   it("maps DB user rows to sitemap entries with /@handle URLs", async () => {
     mockSelectRows = [
@@ -205,20 +178,18 @@ describe("generateSitemapEntries", () => {
       { handle: "another", userUpdatedAt: "2026-01-01T00:00:00Z", siteUpdatedAt: null },
     ];
 
-    const entries = await generateSitemapEntries(10); // ID > 0 → no static pages
+    const entries = await generateSitemapEntries(10);
 
     const userUrls = entries.map((e: MetadataRoute.Sitemap[number]) => e.url);
     expect(userUrls).toHaveLength(2);
     expect(userUrls).toContain("https://example.com/@valid");
     expect(userUrls).toContain("https://example.com/@another");
-    // null handle should not appear
     expect(userUrls.some((u: string) => u.endsWith("/@null"))).toBe(false);
   });
 
   it("returns only static pages for id=0 when DB returns empty", async () => {
     const entries = await generateSitemapEntries(0);
 
-    // Should have static pages but no /@ URLs
     const userUrls = entries
       .map((e: MetadataRoute.Sitemap[number]) => e.url)
       .filter((u: string) => u.includes("/@"));
@@ -229,11 +200,8 @@ describe("generateSitemapEntries", () => {
   });
 
   it("returns only static pages for id=0 — no user entries from DB", async () => {
-    // DB returns empty — user entries should be empty, only static pages for id=0
     const entries = await generateSitemapEntries(0);
-    // Static pages present
     expect(entries.length).toBeGreaterThan(0);
-    // No @handle entries
     const userEntries = entries.filter((e: MetadataRoute.Sitemap[number]) => e.url.includes("/@"));
     expect(userEntries).toHaveLength(0);
   });
@@ -252,8 +220,6 @@ describe("generateSitemapEntries", () => {
     expect(mockOffsetValues.at(-1)).toBe(URLS_PER_SITEMAP - STATIC_SITEMAP_ENTRY_COUNT);
   });
 
-  // ── Sitemap entry properties ────────────────────────────────────
-
   it("user entries have weekly changeFrequency and 0.8 priority", async () => {
     mockSelectRows = [
       { handle: "testuser", userUpdatedAt: "2026-01-01T00:00:00Z", siteUpdatedAt: null },
@@ -268,19 +234,11 @@ describe("generateSitemapEntries", () => {
     expect(userEntry?.priority).toBe(0.8);
   });
 
-  // ── Error resilience — DB query failing ────────────────────────
-
   it("returns static pages when DB select throws (id=0)", async () => {
-    // Set rows to a value that won't be used because select throws before
-    // We verify the try/catch works by checking the returned entries
-    // The actual DB error is already tested by the catch path: the function
-    // logs the error and continues, returning whatever entries were built
-    // before the DB query (static pages for id=0, nothing for id>0).
     mockSelectRows = [];
 
     const entries = await generateSitemapEntries(0);
 
-    // Should contain static pages (built before DB query)
     const urls = entries.map((e: MetadataRoute.Sitemap[number]) => e.url);
     expect(urls).toContain("https://example.com");
     expect(urls).toContain("https://example.com/privacy");
@@ -292,10 +250,6 @@ describe("generateSitemapEntries", () => {
     expect(entries).toEqual([]);
   });
 });
-
-// ============================================================================
-// Tests: getTotalIndexableUserCount
-// ============================================================================
 
 describe("getTotalIndexableUserCount", () => {
   it("returns 0 when no users match", async () => {

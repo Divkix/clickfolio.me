@@ -163,14 +163,11 @@ describe("PrivacySettingsForm", () => {
       />,
     );
 
-    // Initially on (phone visible)
     expect(screen.getAllByRole("switch")[0]).toBeChecked();
 
-    // Clicking flips the phone toggle optimistically; the save then fails
     await user.click(screen.getAllByRole("switch")[0]);
     await waitFor(() => expect(mocks.toast.error).toHaveBeenCalledWith("Privacy rejected"));
 
-    // Optimistic update must be rolled back to the previous value
     expect(screen.getAllByRole("switch")[0]).toBeChecked();
     expect(screen.getAllByText("Visible").length).toBeGreaterThan(0);
     expect(screen.queryAllByText("Hidden").length).toBe(0);

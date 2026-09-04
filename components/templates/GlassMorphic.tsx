@@ -31,8 +31,6 @@ import type { Project } from "@/lib/types/database";
 import type { TemplateProps } from "@/lib/types/template";
 import { TemplateFontLinks } from "./shared/TemplateFontLinks";
 
-// --- Configuration & Assets ---
-
 const FONT_URL =
   "https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700;800&family=JetBrains+Mono:wght@400;500&display=swap";
 
@@ -62,12 +60,6 @@ const NAV_SECTIONS = [
   { id: "education", label: "Education", icon: GraduationCap },
 ] as const;
 
-// --- Components ---
-
-/**
- * SpotlightCard
- * A card that tracks mouse movement to create a glowing border/background effect
- */
 const SpotlightCard = ({
   children,
   className = "",
@@ -132,13 +124,10 @@ const SectionHeading = ({
   </div>
 );
 
-// --- Main Template ---
-
 export const GlassMorphic: React.FC<TemplateProps> = ({ content, profile, isPreview }) => {
   const flatSkills = content.skills ? flattenSkills(content.skills) : [];
   const contactLinks = getContactLinks(content.contact);
 
-  // Memoized Nav Logic
   const availableNavSections = useMemo(
     () =>
       NAV_SECTIONS.filter((section) => {
@@ -212,13 +201,11 @@ export const GlassMorphic: React.FC<TemplateProps> = ({ content, profile, isPrev
       `}</style>
 
       <div className="glass-morphic-root min-h-screen bg-[#030303] text-slate-300 relative selection:bg-lavender/30 selection:text-white font-display-gm overflow-x-hidden">
-        {/* --- Background Ambient Layer --- */}
         <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
           <div className="absolute top-0 left-1/4 w-[50vw] h-[50vw] max-w-[520px] max-h-[520px] bg-lavender/20 rounded-full mix-blend-screen filter blur-[100px] opacity-20 glass-animate-blob" />
           <div className="absolute top-0 right-1/4 w-[50vw] h-[50vw] max-w-[520px] max-h-[520px] bg-[#2DD4BF]/10 rounded-full mix-blend-screen filter blur-[100px] opacity-20 glass-animate-blob animation-delay-2000" />
           <div className="absolute -bottom-32 left-1/3 w-[60vw] h-[60vw] max-w-[640px] max-h-[640px] bg-[#F472B6]/10 rounded-full mix-blend-screen filter blur-[120px] opacity-20 glass-animate-blob animation-delay-4000" />
 
-          {/* Noise Overlay */}
           <div
             className="absolute inset-0 opacity-[0.04]"
             style={{
@@ -227,7 +214,6 @@ export const GlassMorphic: React.FC<TemplateProps> = ({ content, profile, isPrev
           />
         </div>
 
-        {/* --- Floating Navigation --- */}
         {!isPreview && (
           <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-1.5rem)] max-w-md pb-[env(safe-area-inset-bottom)]">
             <div className="flex items-center justify-center gap-1 p-1.5 rounded-full bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl shadow-black/50 overflow-x-auto no-scrollbar">
@@ -246,7 +232,6 @@ export const GlassMorphic: React.FC<TemplateProps> = ({ content, profile, isPrev
                       strokeWidth={1.5}
                       aria-hidden="true"
                     />
-                    {/* Tooltip */}
                     <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-2 py-1 bg-[#1a1a1a] border border-white/10 text-[10px] font-mono-gm text-white rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
                       {section.label}
                     </span>
@@ -266,12 +251,9 @@ export const GlassMorphic: React.FC<TemplateProps> = ({ content, profile, isPrev
           </nav>
         )}
 
-        {/* --- Main Content --- */}
         <div className="relative z-10 max-w-5xl mx-auto px-6 py-20 md:py-32 space-y-32">
-          {/* HERO SECTION */}
           <section id="about" className="relative">
             <div className="flex flex-col gap-8">
-              {/* Status Indicator */}
               <div className="inline-flex items-center gap-2 self-start px-3 py-1 rounded-full border border-lavender/30 bg-lavender/5 backdrop-blur-md">
                 <span className="relative flex h-2 w-2">
                   <span className="motion-safe:animate-ping absolute inline-flex h-full w-full rounded-full bg-lavender opacity-75"></span>
@@ -295,7 +277,6 @@ export const GlassMorphic: React.FC<TemplateProps> = ({ content, profile, isPrev
                   </h2>
                 </div>
 
-                {/* Abstract Avatar / Photo */}
                 <div className="relative w-32 h-32 md:w-48 md:h-48 rounded-full border-2 border-white/10 p-1">
                   <div className="w-full h-full rounded-full overflow-hidden relative group">
                     {profile.avatar_url ? (
@@ -311,7 +292,6 @@ export const GlassMorphic: React.FC<TemplateProps> = ({ content, profile, isPrev
                         {getInitials(content.full_name)}
                       </div>
                     )}
-                    {/* Scanline overlay */}
                     <div className="absolute inset-0 bg-linear-to-b from-transparent via-white/5 to-transparent bg-size-[100%_4px] pointer-events-none" />
                   </div>
                 </div>
@@ -324,7 +304,6 @@ export const GlassMorphic: React.FC<TemplateProps> = ({ content, profile, isPrev
                       {content.summary}
                     </p>
 
-                    {/* Socials */}
                     <div className="flex flex-wrap gap-3 pt-2">
                       {contactLinks
                         .filter((l) => l.type !== "location")
@@ -374,7 +353,6 @@ export const GlassMorphic: React.FC<TemplateProps> = ({ content, profile, isPrev
                     </div>
                   </div>
 
-                  {/* Meta Data */}
                   <div className="hidden md:block border-l border-white/10 pl-10 space-y-6">
                     <div>
                       <h3 className="text-xs font-mono-gm text-white/30 uppercase tracking-widest mb-2">
@@ -405,7 +383,6 @@ export const GlassMorphic: React.FC<TemplateProps> = ({ content, profile, isPrev
                   </div>
                 </div>
 
-                {/* Mobile ShareBar */}
                 <div className="md:hidden mt-6 flex justify-center opacity-50 hover:opacity-100 transition-opacity">
                   <ShareBar
                     handle={profile.handle}
@@ -418,7 +395,6 @@ export const GlassMorphic: React.FC<TemplateProps> = ({ content, profile, isPrev
             </div>
           </section>
 
-          {/* EXPERIENCE SECTION */}
           {content.experience && content.experience.length > 0 && (
             <section id="experience">
               <SectionHeading
@@ -480,7 +456,6 @@ export const GlassMorphic: React.FC<TemplateProps> = ({ content, profile, isPrev
             </section>
           )}
 
-          {/* PROJECTS SECTION */}
           {content.projects && content.projects.length > 0 && (
             <section id="projects">
               <SectionHeading
@@ -545,7 +520,6 @@ export const GlassMorphic: React.FC<TemplateProps> = ({ content, profile, isPrev
             </section>
           )}
 
-          {/* SKILLS SECTION - CLOUD */}
           {flatSkills.length > 0 && (
             <section id="skills">
               <SectionHeading icon={Zap} title="Stack" subtitle="Tools & Technologies" />
@@ -564,7 +538,6 @@ export const GlassMorphic: React.FC<TemplateProps> = ({ content, profile, isPrev
             </section>
           )}
 
-          {/* EDUCATION & CERTS */}
           {((content.education && content.education.length > 0) ||
             (content.certifications && content.certifications.length > 0)) && (
             <section id="education">
@@ -575,7 +548,6 @@ export const GlassMorphic: React.FC<TemplateProps> = ({ content, profile, isPrev
               />
 
               <div className="grid md:grid-cols-2 gap-6 items-start">
-                {/* Edu Column */}
                 <div className="space-y-4">
                   {content.education?.map((edu, i) => (
                     <SpotlightCard key={`edu-${edu.institution}-${i}`} className="p-6">
@@ -591,7 +563,6 @@ export const GlassMorphic: React.FC<TemplateProps> = ({ content, profile, isPrev
                   ))}
                 </div>
 
-                {/* Certs Column */}
                 <div className="space-y-4">
                   {content.certifications?.map((cert, i) => (
                     <SpotlightCard key={`cert-${cert.name}-${i}`} className="p-6">
@@ -626,7 +597,6 @@ export const GlassMorphic: React.FC<TemplateProps> = ({ content, profile, isPrev
             </section>
           )}
 
-          {/* FOOTER */}
           <footer className="pt-20 pb-32 text-center">
             <div className="inline-flex items-center justify-center p-1 rounded-full border border-white/10 bg-white/5 mb-8">
               <div className="w-2 h-2 bg-green-500 rounded-full mx-3 motion-safe:animate-pulse" />

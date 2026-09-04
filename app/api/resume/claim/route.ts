@@ -25,29 +25,7 @@ import {
   validateRequestSize,
 } from "@/lib/utils/validation";
 
-/**
- * POST /api/resume/claim
- * Claims an anonymous upload and triggers AI parsing.
- *
- * Rate limit: 5 uploads per 24 hours per authenticated user.
- *
- * Request body:
- *   {
- *     key: string (required, must start with "temp/"),
- *   }
- *
- * Response:
- *   { resume_id: string, status: string, cached?: boolean, already_claimed?: boolean }
- *
- * Error codes:
- *   - 400: invalid JSON, invalid key format, file too large, or invalid PDF
- *   - 403: missing or invalid upload verification cookie, or key mismatch
- *   - 404: file not found (expired upload)
- *   - 413: request body too large
- *   - 500: storage unavailable, database error, or unexpected error
- */
 export async function POST(request: Request) {
-  // Validate request size before parsing (prevent DoS)
   const sizeCheck = validateRequestSize(request);
   if (!sizeCheck.valid) {
     return createErrorResponse(
@@ -62,7 +40,6 @@ export async function POST(request: Request) {
     async ({ user: authUser, db, env }) => {
       const userId = authUser.id;
 
-      // Get R2 binding for direct operations (uses env from auth result)
       const r2Binding = getR2Binding(env);
       if (!r2Binding) {
         return createErrorResponse(
@@ -72,7 +49,6 @@ export async function POST(request: Request) {
         );
       }
 
-      // Parse and validate request body (size-capped read, no trust in Content-Length)
       const rawBodyResult = await readJsonWithLimit(request);
       if (!rawBodyResult.ok) {
         return createErrorResponse(
@@ -93,7 +69,6 @@ export async function POST(request: Request) {
       const body = bodyResult.data;
       const { key } = body;
 
-      // Verify signed cookie to ensure the user owns this temp upload
       // SECURITY: Prevents unauthorized claims of leaked temp keys (Issue #89)
       const cookieHeader = request.headers.get("cookie");
       const pendingUploadCookie = cookieHeader
@@ -109,7 +84,6 @@ export async function POST(request: Request) {
           403,
         );
       }
-      // Get the secret from env for cookie verification
       const cookieSecret = getOptionalEnvValue(env, "PENDING_UPLOAD_SECRET");
       if (!cookieSecret || !z.string().safeParse(cookieSecret).success) {
         return createErrorResponse(
@@ -152,19 +126,12 @@ export async function POST(request: Request) {
         return /not\s*found|no\s*such\s*key|does\s*not\s*exist|404/i.test(cause.message);
       };
 
-      // Fetch file and compute SHA-256 hash server-side (early fetch for validation + caching).
-      // The R2 fetch + double-claim guard runs BEFORE the rate-limit check so a
-      // wizard double-mount (auth redirect fires the claim twice) returns
-      // already_claimed instead of burning a rate-limit slot or 429ing the user
-      // at the 5/24h limit.
       let fileBuffer: ArrayBuffer;
       let computedFileHash: string;
 
       try {
         const buffer = await R2.getAsArrayBuffer(r2Binding, key);
         if (!buffer) {
-          // Double-claim guard: auth redirect causes wizard to mount twice,
-          // second mount tries to claim a file already moved by the first.
           const recentResume = await findRecentResume();
 
           if (recentResume) {
@@ -183,10 +150,8 @@ export async function POST(request: Request) {
         }
         fileBuffer = buffer;
 
-        // Compute hash (this is now authoritative, not verification)
         computedFileHash = await sha256Hex(fileBuffer);
 
-        // Validate file size using buffer
         if (fileBuffer.byteLength > MAX_FILE_SIZE) {
           return createErrorResponse(
             `File size exceeds ${MAX_FILE_SIZE_LABEL} limit (${Math.round(fileBuffer.byteLength / 1024 / 1024)}MB)`,
@@ -195,7 +160,6 @@ export async function POST(request: Request) {
           );
         }
 
-        // Validate PDF magic number
         const pdfBytes = new Uint8Array(fileBuffer.slice(0, 5));
         if (!String.fromCharCode(...pdfBytes).startsWith("%PDF-")) {
           return createErrorResponse("Invalid PDF format", ERROR_CODES.VALIDATION_ERROR, 400);
@@ -203,7 +167,6 @@ export async function POST(request: Request) {
       } catch (error) {
         console.error("Error fetching file from R2:", error);
 
-        // Apply the double-claim guard only when R2 indicates the object is missing.
         if (isLikelyMissingObjectError(error)) {
           try {
             const recentResume = await findRecentResume();
@@ -229,16 +192,11 @@ export async function POST(request: Request) {
         );
       }
 
-      // Rate limiting check (5 uploads per 24 hours) — runs AFTER the
-      // double-claim guard so an already-claimed upload never consumes a slot.
-      // Pass env to reuse the same binding reference in rate limiter.
       const rateLimitResponse = await enforceRateLimit(userId, "resume_upload", env);
       if (rateLimitResponse) {
         return rateLimitResponse;
       }
 
-      // Generate new key and insert DB record FIRST
-      // This ensures we always have a record for tracking, even if R2 operations fail
       const timestamp = Date.now();
       const filename = key.split("/").pop();
       const newKey = `users/${userId}/${timestamp}/${filename}`;
@@ -263,9 +221,6 @@ export async function POST(request: Request) {
         );
       }
 
-      // Check for cached parse result (same file uploaded before BY THIS USER)
-      // SECURITY: Only look up cache for current user's own resumes to prevent cross-user data access
-      // Single query to fetch both existence and content (saves one database roundtrip)
       const cached = await db
         .select({ id: resumes.id, parsedContent: resumes.parsedContent })
         .from(resumes)
@@ -284,11 +239,8 @@ export async function POST(request: Request) {
       const cachedContent = (cached[0]?.parsedContent as ResumeContent | null) ?? null;
 
       if (cachedContent) {
-        // DATA INTEGRITY FIX: Store file to user's folder using existing buffer
-        // No need to copy from temp - we already have the file in memory
         let r2PutSucceeded = false;
         try {
-          // Parallelize R2 operations: put must succeed, delete is best-effort
           await Promise.all([
             R2.put(r2Binding, newKey, fileBuffer, { contentType: "application/pdf" }),
             R2.delete(r2Binding, key).catch((err) =>
@@ -298,11 +250,8 @@ export async function POST(request: Request) {
           r2PutSucceeded = true;
         } catch (r2Error) {
           console.error("R2 operations failed for cached resume:", r2Error);
-          // R2 failed - don't update DB, fall through to normal processing
-          // The resume record stays in pending_claim status
         }
 
-        // Only update DB if R2 put succeeded
         if (r2PutSucceeded) {
           try {
             const userRow = await db
@@ -319,10 +268,6 @@ export async function POST(request: Request) {
               cachedName !== "Unnamed" &&
               (!currentName || currentName === "Unnamed" || currentName.trim() === "");
 
-            // Complete the resume and upsert siteData in one transaction.
-            // Without it, a crash between the UPDATE and the upsert leaves
-            // the resume "completed" with no siteData, and the idempotency
-            // guard in the queue consumer skips it on retry.
             await db.transaction(async (tx) => {
               await tx
                 .update(resumes)
@@ -344,7 +289,6 @@ export async function POST(request: Request) {
               }
             });
 
-            // R2 and DB both succeeded - return cached result
             captureServerEvent(userId, "resume_claim_cached", {
               resume_id: resumeId,
             });
@@ -355,17 +299,10 @@ export async function POST(request: Request) {
             });
           } catch (updateError) {
             console.error("Failed to update resume with cached content:", updateError);
-            // Fall through to normal parsing path
           }
         }
       }
 
-      // Check if another resume with same hash is currently being processed or
-      // already queued. If so, wait for it instead of triggering duplicate parsing.
-      // SECURITY: Only look for same-user resumes. Matching "queued" too closes a
-      // back-to-back same-file race: the first claim publishes (row -> queued)
-      // before the second claim's check runs, so only matching "processing" let
-      // the second claim double-parse the file.
       const processing = await db
         .select({ id: resumes.id })
         .from(resumes)
@@ -380,11 +317,8 @@ export async function POST(request: Request) {
         .limit(1);
 
       if (processing[0]) {
-        // This user is already parsing this file - wait for that result
-        // Store file to user's folder using existing buffer
         let r2PutSucceeded = false;
         try {
-          // Parallelize R2 operations: put must succeed, delete is best-effort
           await Promise.all([
             R2.put(r2Binding, newKey, fileBuffer, { contentType: "application/pdf" }),
             R2.delete(r2Binding, key).catch((err) =>
@@ -396,7 +330,6 @@ export async function POST(request: Request) {
           console.error("R2 operations failed for waiting resume:", error);
         }
 
-        // Only update DB and return if R2 put succeeded
         if (r2PutSucceeded) {
           try {
             await db
@@ -409,17 +342,15 @@ export async function POST(request: Request) {
 
             return createSuccessResponse({
               resume_id: resumeId,
-              status: "processing", // Client sees "processing" and subscribes to realtime
+              status: "processing",
               waiting_for_cache: true,
             });
           } catch (waitError) {
             console.error("Failed to set waiting_for_cache status:", waitError);
-            // Fall through to normal processing
           }
         }
       }
 
-      // Helper to mark resume as failed and return error
       const failResume = async (errorMessage: string, errorCode: string, statusCode: number) => {
         await db
           .update(resumes)
@@ -429,8 +360,6 @@ export async function POST(request: Request) {
         return createErrorResponse(errorMessage, errorCode, statusCode);
       };
 
-      // Store file and cleanup temp in parallel
-      // R2.put must succeed, R2.delete is best-effort (can be cleaned by lifecycle rules if fails)
       try {
         await Promise.all([
           R2.put(r2Binding, newKey, fileBuffer, { contentType: "application/pdf" }),
@@ -445,7 +374,6 @@ export async function POST(request: Request) {
         );
       }
 
-      // Update resume status to queued BEFORE publishing to queue (prevents race condition)
       const updatePayload: Partial<NewResume> = {
         status: "queued",
         fileHash: computedFileHash,
@@ -458,10 +386,8 @@ export async function POST(request: Request) {
         return await failResume("Failed to update resume status", ERROR_CODES.DATABASE_ERROR, 500);
       }
 
-      // Publish to queue for background processing (after DB update to prevent race)
       const queue = env.CLICKFOLIO_PARSE_QUEUE;
       if (!queue) {
-        // Rollback status if queue unavailable
         try {
           await db.update(resumes).set({ status: "pending_claim" }).where(eq(resumes.id, resumeId));
         } catch {}
@@ -478,10 +404,6 @@ export async function POST(request: Request) {
         });
       } catch (queueError) {
         console.error("Failed to publish resume parse job:", queueError);
-        // Leave the row in pending_claim (do NOT mark it failed) so the */15
-        // orphan-recovery cron re-queues it later. Marking it "failed" here
-        // would make it unrecoverable by that cron and force a manual retry
-        // that would never succeed (the queue was down, not the PDF).
         try {
           await db.update(resumes).set({ status: "pending_claim" }).where(eq(resumes.id, resumeId));
         } catch {}

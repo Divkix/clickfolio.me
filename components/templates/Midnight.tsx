@@ -15,7 +15,6 @@ import type { TemplateProps } from "@/lib/types/template";
 import { getContactIcon } from "./shared/ContactIcon";
 import { TemplateFontLinks } from "./shared/TemplateFontLinks";
 
-// Pseudo-random star field positions (seeded, deterministic)
 const STAR_POSITIONS = [
   { x: 5, y: 8, size: 1, bright: false },
   { x: 12, y: 3, size: 1.5, bright: true },
@@ -87,11 +86,9 @@ export const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
 
   return (
     <>
-      {/* Font preloading */}
       <TemplateFontLinks href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=DM+Sans:wght@400;500&display=swap" />
 
       <div className="min-h-screen bg-[#0a0a0a] text-neutral-200 selection:bg-[#C9A96E]/30 selection:text-[#C9A96E] relative overflow-x-hidden">
-        {/* Custom font classes + animations */}
         <style>{`
           .font-display-mn { font-family: 'Cormorant Garamond', serif; }
           .font-body-mn { font-family: 'DM Sans', sans-serif; }
@@ -104,9 +101,7 @@ export const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
           }
         `}</style>
 
-        {/* Star field background */}
         <div className="fixed inset-0 z-0 pointer-events-none" aria-hidden="true">
-          {/* Subtle grid lines */}
           <div
             className="absolute inset-0"
             style={{
@@ -115,7 +110,6 @@ export const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
               backgroundSize: "24px 24px",
             }}
           />
-          {/* Stars */}
           {STAR_POSITIONS.map((star, i) => (
             <div
               key={`star-${star.x}-${star.y}-${i}`}
@@ -134,7 +128,6 @@ export const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
 
         <div className="relative z-10 max-w-4xl mx-auto px-6 py-20 md:py-28">
           <main>
-            {/* Header Section */}
             <header className="flex flex-col items-center text-center mb-32 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4 duration-700">
               <div className="relative mb-8 group">
                 <div className="absolute -inset-1 bg-[#C9A96E]/20 rounded-full blur opacity-40 group-hover:opacity-60 transition-opacity duration-500" />
@@ -185,7 +178,6 @@ export const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
               </div>
             </header>
 
-            {/* About Section */}
             {content.summary && (
               <section className="mb-32 max-w-2xl mx-auto text-center">
                 <SectionHeader label="About" />
@@ -193,11 +185,8 @@ export const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
               </section>
             )}
 
-            {/* Experience & Sidebar Grid */}
             <div className="grid grid-cols-1 md:grid-cols-12 gap-16">
-              {/* Main Column */}
               <div className="md:col-span-8 space-y-32">
-                {/* Experience — Accordion Cards */}
                 {content.experience && content.experience.length > 0 && (
                   <section>
                     <SectionHeader label="Experience" />
@@ -278,7 +267,6 @@ export const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
                   </section>
                 )}
 
-                {/* Projects Section */}
                 {content.projects && content.projects.length > 0 && (
                   <section>
                     <SectionHeader label="Projects" />
@@ -335,9 +323,7 @@ export const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
                 )}
               </div>
 
-              {/* Sidebar Column */}
               <div className="md:col-span-4 space-y-16">
-                {/* Skills — Constellation Nodes */}
                 {flatSkills.length > 0 && (
                   <section>
                     <SectionHeader label="Skills" />
@@ -358,7 +344,6 @@ export const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
                   </section>
                 )}
 
-                {/* Education */}
                 {content.education && content.education.length > 0 && (
                   <section>
                     <SectionHeader label="Education" />
@@ -387,7 +372,6 @@ export const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
                   </section>
                 )}
 
-                {/* Certifications */}
                 {content.certifications && content.certifications.length > 0 && (
                   <section>
                     <SectionHeader label="Certifications" />
@@ -421,7 +405,6 @@ export const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
                   </section>
                 )}
 
-                {/* Contact Links (Sidebar) */}
                 {contactLinks.filter((l) => l.type !== "email" && l.type !== "location").length >
                   0 && (
                   <section>
@@ -472,7 +455,6 @@ export const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
             </div>
           </main>
 
-          {/* Footer / CTA */}
           <footer className="mt-32 pt-16 border-t border-white/5 text-center">
             <h2 className="font-display-mn text-3xl md:text-4xl text-white mb-8 font-medium">
               Let&apos;s discuss what&apos;s next.

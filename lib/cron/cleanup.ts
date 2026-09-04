@@ -1,17 +1,3 @@
-/**
- * Shared cleanup logic for database maintenance.
- *
- * Called by:
- * - worker/index.ts scheduled handler (direct invocation, no extra Worker billing)
- * - /api/cron/cleanup route handler (manual trigger via HTTP)
- *
- * Deletes:
- * - Expired upload rate limits (expiresAt < now)
- * - Old handleChanges (older than 90 days)
- * - Failed resumes older than {@link FAILED_TTL_MS} (3 days), including their
- *   R2 objects; failed R2 deletes fall back to pendingR2Deletions retries
- */
-
 import { and, eq, inArray, lt, sql } from "drizzle-orm";
 import type { Database } from "@/lib/db";
 import { handleChanges, pendingR2Deletions, resumes, uploadRateLimits } from "@/lib/db/schema";
@@ -19,13 +5,8 @@ import { R2 } from "../r2";
 import type { UnknownRecord } from "../types/json";
 import { log } from "../utils/log";
 
-/** Failed resumes are purged this long after their last update. */
 const FAILED_TTL_MS = 3 * 24 * 60 * 60 * 1000;
 
-/**
- * Maximum number of failed resumes purged per invocation. Bounds cron
- * duration; remaining rows are picked up on the next run.
- */
 const FAILED_RESUMES_BATCH = 100;
 
 export interface CleanupResult extends UnknownRecord {
@@ -45,8 +26,6 @@ export async function performCleanup(
   const nowIso = new Date().toISOString();
   const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
 
-  // Run both DELETEs in a single PG transaction; each statement's postgres-js
-  // RowList.count reports the affected-row count.
   const deleted = await db.transaction(async (tx) => {
     const rateLimitsCount = (
       await tx.delete(uploadRateLimits).where(lt(uploadRateLimits.expiresAt, nowIso))
@@ -57,10 +36,6 @@ export async function performCleanup(
     return { rateLimits: rateLimitsCount, handleChanges: handleChangesCount };
   });
 
-  // Auto-purge failed resumes past the TTL. R2 object deletion is best-effort:
-  // a failed delete is recorded durably in pending_r2_deletions so the daily
-  // retry sweep finishes the job, and the DB row is removed either way. Any
-  // purge error is logged and skipped so the core cleanup still reports.
   let failedResumes = 0;
   try {
     const cutoff = new Date(Date.now() - FAILED_TTL_MS).toISOString();

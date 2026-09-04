@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 import { resumeContentSchema, resumeContentSchemaStrict } from "@/lib/schemas/resume";
 
-/**
- * Minimal valid resume fixture.
- * Mutate individual fields in each test to verify single-field rejection.
- */
 const validMinimalResume = {
   full_name: "Jane Doe",
   headline: "Software Engineer",
@@ -21,8 +17,6 @@ const validMinimalResume = {
     },
   ],
 };
-
-// ── Lenient schema (AI-parsed content) ──────────────────────────────
 
 describe("resumeContentSchema (lenient)", () => {
   it("accepts a valid minimal resume", async () => {
@@ -67,8 +61,6 @@ describe("resumeContentSchema (lenient)", () => {
     expect(result.success).toBe(true);
   });
 
-  // ── Required field rejection ────────────────────────────────────
-
   it("rejects missing full_name", async () => {
     const { full_name: _, ...noName } = validMinimalResume;
     const result = await resumeContentSchema.safeParseAsync(noName);
@@ -107,18 +99,12 @@ describe("resumeContentSchema (lenient)", () => {
   });
 
   it("rejects empty experience array", async () => {
-    // experience array itself is required and must have at least one element
-    // (experience field is required since it's not .optional())
     const result = await resumeContentSchema.safeParseAsync({
       ...validMinimalResume,
       experience: [],
     });
-    // An empty array is technically valid for the array itself (no .min()),
-    // but experience entries themselves are validated per-item
     expect(result.success).toBe(true);
   });
-
-  // ── XSS rejection ──────────────────────────────────────────────
 
   it("rejects XSS in full_name", async () => {
     const result = await resumeContentSchema.safeParseAsync({
@@ -164,8 +150,6 @@ describe("resumeContentSchema (lenient)", () => {
   });
 
   it("sanitizes javascript: URL in contact linkedin to empty string", async () => {
-    // javascript: is a valid URL per URL spec, so Zod's .url() accepts it.
-    // sanitizeUrl transforms it to "" — the real defense is the transform, not rejection.
     const result = await resumeContentSchema.safeParseAsync({
       ...validMinimalResume,
       contact: {
@@ -178,8 +162,6 @@ describe("resumeContentSchema (lenient)", () => {
       expect(result.data.contact.linkedin).toBe("");
     }
   });
-
-  // ── URL sanitization ───────────────────────────────────────────
 
   it("transforms sanitized URLs (blocks dangerous protocols)", async () => {
     const result = await resumeContentSchema.safeParseAsync({
@@ -194,8 +176,6 @@ describe("resumeContentSchema (lenient)", () => {
       expect(result.data.contact.website).toBe("https://example.com");
     }
   });
-
-  // ── Length limits ──────────────────────────────────────────────
 
   it("rejects full_name exceeding 200 characters", async () => {
     const result = await resumeContentSchema.safeParseAsync({
@@ -227,8 +207,6 @@ describe("resumeContentSchema (lenient)", () => {
     });
     expect(result.success).toBe(false);
   });
-
-  // ── Array limits ───────────────────────────────────────────────
 
   it("rejects more than 10 experience entries", async () => {
     const entry = {
@@ -262,8 +240,6 @@ describe("resumeContentSchema (lenient)", () => {
     expect(result.success).toBe(false);
   });
 
-  // ── Sanitization transforms ────────────────────────────────────
-
   it("trims whitespace from fields", async () => {
     const result = await resumeContentSchema.safeParseAsync({
       ...validMinimalResume,
@@ -285,8 +261,6 @@ describe("resumeContentSchema (lenient)", () => {
     expect(result.success).toBe(true);
   });
 });
-
-// ── Strict schema (user edits) ──────────────────────────────────────
 
 describe("resumeContentSchemaStrict", () => {
   it("accepts valid email with TLD", async () => {
@@ -331,8 +305,6 @@ describe("resumeContentSchemaStrict", () => {
   });
 });
 
-// ── Professional level field ───────────────────────────────────────
-
 describe("professional_level", () => {
   it("accepts all professional_level values", async () => {
     const levels = ["student", "entry_level", "mid_level", "senior", "executive"] as const;
@@ -361,8 +333,6 @@ describe("professional_level", () => {
     expect(result.success).toBe(false);
   });
 });
-
-// ── Complete resume ────────────────────────────────────────────────
 
 describe("complete resume", () => {
   it("accepts a complete resume with all sections including professional_level", async () => {
@@ -410,8 +380,6 @@ describe("complete resume", () => {
   });
 });
 
-// ── Optional arrays ────────────────────────────────────────────────
-
 describe("optional arrays", () => {
   it("accepts empty optional arrays", async () => {
     const result = await resumeContentSchema.safeParseAsync({
@@ -429,8 +397,6 @@ describe("optional arrays", () => {
     expect(result.success).toBe(true);
   });
 });
-
-// ── Unicode and special characters ─────────────────────────────────
 
 describe("unicode and special characters", () => {
   it("accepts unicode characters in strings", async () => {
@@ -469,8 +435,6 @@ describe("unicode and special characters", () => {
     expect(result.success).toBe(true);
   });
 });
-
-// ── Type inference and error messages ──────────────────────────────
 
 describe("type inference", () => {
   it("provides correct TypeScript types from schema", async () => {
@@ -520,8 +484,6 @@ describe("error messages", () => {
     }
   });
 });
-
-// ── resumeContentSchema alias ──────────────────────────────────────
 
 describe("resumeContentSchema", () => {
   it("validates the same data as resumeContentSchema", async () => {

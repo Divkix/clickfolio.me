@@ -1,9 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 
-// MAX_FILE_SIZE / MAX_FILE_SIZE_LABEL are module-level constants computed at
-// import time from process.env.MAX_UPLOAD_SIZE_MB, so the env override must be
-// set BEFORE the dynamic import (vi.resetModules() drops the cached module).
-
 describe("lib/utils/validation", () => {
   afterEach(() => {
     delete process.env.MAX_UPLOAD_SIZE_MB;

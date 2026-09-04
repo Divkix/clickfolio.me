@@ -24,10 +24,6 @@ interface PrivacyStepProps {
   }) => void;
 }
 
-/**
- * Step 3: Privacy Settings Component
- * Allows users to control visibility of sensitive information
- */
 export function PrivacyStep({
   content,
   initialSettings = {
@@ -52,10 +48,8 @@ export function PrivacyStep({
     });
   };
 
-  // Extract city/state from full address for preview
   const getCityState = (location?: string) => {
     if (!location) return "";
-    // Simple heuristic: take last 2 comma-separated parts (City, State)
     const parts = location.split(",").map((p) => p.trim());
     if (parts.length >= 2) {
       return parts.slice(-2).join(", ");
@@ -65,7 +59,6 @@ export function PrivacyStep({
 
   return (
     <div className="space-y-8">
-      {/* Header */}
       <div className="text-center">
         <div className="mx-auto w-16 h-16 bg-brand-subtle rounded-xl flex items-center justify-center mb-6">
           <Shield className="w-8 h-8 text-brand" />
@@ -78,9 +71,7 @@ export function PrivacyStep({
         </p>
       </div>
 
-      {/* Privacy Controls */}
       <div className="max-w-2xl mx-auto space-y-6">
-        {/* Info Banner */}
         <Card className="p-4 bg-info/10 border-info/30">
           <div className="flex gap-3">
             <Info className="w-5 h-5 text-info shrink-0 mt-0.5" />
@@ -95,7 +86,6 @@ export function PrivacyStep({
           </div>
         </Card>
 
-        {/* Phone Number Toggle */}
         {content.contact.phone && (
           <Card className="p-6 border-border shadow-sm">
             <div className="flex items-start justify-between gap-4">
@@ -134,7 +124,6 @@ export function PrivacyStep({
           </Card>
         )}
 
-        {/* Address Toggle */}
         {content.contact.location && (
           <Card className="p-6 border-border shadow-sm">
             <div className="flex items-start justify-between gap-4">
@@ -174,7 +163,6 @@ export function PrivacyStep({
           </Card>
         )}
 
-        {/* Directory Visibility Toggle */}
         <Card className="p-6 border-border shadow-sm">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
@@ -214,7 +202,6 @@ export function PrivacyStep({
           </div>
         </Card>
 
-        {/* Search Engine Visibility Toggle */}
         <Card className="p-6 border-border shadow-sm">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
@@ -255,7 +242,6 @@ export function PrivacyStep({
           </div>
         </Card>
 
-        {/* No sensitive data message */}
         {!content.contact.phone && !content.contact.location && (
           <Card className="p-6 border-border shadow-sm text-center">
             <Shield className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
@@ -267,7 +253,6 @@ export function PrivacyStep({
           </Card>
         )}
 
-        {/* Continue Button */}
         <div className="pt-4">
           <Button onClick={handleContinue} className="w-full" size="lg">
             Continue
@@ -275,7 +260,6 @@ export function PrivacyStep({
         </div>
       </div>
 
-      {/* Help Text */}
       <div className="text-center">
         <p className="text-sm text-muted-foreground font-medium">
           You can change these settings anytime in your dashboard.

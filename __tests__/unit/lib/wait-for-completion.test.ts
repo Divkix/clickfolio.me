@@ -69,7 +69,6 @@ describe("waitForResumeCompletion", () => {
       );
     }) as unknown as typeof fetch;
 
-    // jitter adds 0-199ms; advance with buffer to cover max. MAX=3 allows 3 retries (4 total attempts)
     const resultPromise = waitForResumeCompletion("res_retry", 20_000);
     MockWebSocket.instances[0].onclose?.({ code: 1006 });
     await vi.advanceTimersByTimeAsync(1200);

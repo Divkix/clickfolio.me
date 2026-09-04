@@ -28,7 +28,6 @@ export function AdminSidebar({ isOpen, onClose, adminEmail }: AdminSidebarProps)
 
   return (
     <>
-      {/* Mobile backdrop */}
       {isOpen && (
         <div
           className="fixed inset-0 bg-foreground/20 backdrop-blur-sm z-40 lg:hidden"
@@ -37,7 +36,6 @@ export function AdminSidebar({ isOpen, onClose, adminEmail }: AdminSidebarProps)
         />
       )}
 
-      {/* Sidebar */}
       <aside
         className={`
           fixed top-0 left-0 h-full w-64 bg-card border-r border-border
@@ -47,7 +45,6 @@ export function AdminSidebar({ isOpen, onClose, adminEmail }: AdminSidebarProps)
         `}
         aria-label="Admin navigation"
       >
-        {/* Mobile close button */}
         <button
           type="button"
           onClick={onClose}
@@ -57,7 +54,6 @@ export function AdminSidebar({ isOpen, onClose, adminEmail }: AdminSidebarProps)
           <X size={20} />
         </button>
 
-        {/* Logo Header */}
         <div className="p-4 border-b border-border">
           <Link href="/" aria-label="clickfolio.me home">
             <Logo size="xs" />
@@ -67,7 +63,6 @@ export function AdminSidebar({ isOpen, onClose, adminEmail }: AdminSidebarProps)
           </span>
         </div>
 
-        {/* Navigation */}
         <nav className="flex-1 p-4 space-y-1">
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
@@ -96,7 +91,6 @@ export function AdminSidebar({ isOpen, onClose, adminEmail }: AdminSidebarProps)
           })}
         </nav>
 
-        {/* Admin Info */}
         <div className="p-4 border-t border-border">
           <p className="text-xs text-muted-foreground">Logged in as</p>
           <p className="text-sm font-medium text-foreground truncate">{adminEmail}</p>

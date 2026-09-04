@@ -1,18 +1,3 @@
-/**
- * Cloudflare Cron Trigger handler for R2 storage cleanup (HTTP endpoint)
- *
- * Exists for manual triggers; the scheduled handler in worker/index.ts calls
- * performR2Cleanup() directly to avoid double Worker invocation billing.
- *
- * Scheduled daily at 2 AM UTC via wrangler.jsonc
- * Deletes:
- * - Orphaned temp files in R2 older than 24 hours
- *
- * @returns Response from {@link performR2Cleanup} on success.
- * Returns 401 if cron secret is missing or invalid.
- * Returns 500 on server misconfiguration or cleanup failure.
- */
-
 import { getR2Binding } from "@/lib/r2";
 import { performR2Cleanup } from "@/lib/cron/cleanup-r2";
 import { withCron } from "@/lib/cron/with-cron";

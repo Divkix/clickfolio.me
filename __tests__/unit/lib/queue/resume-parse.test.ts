@@ -1,15 +1,8 @@
-/**
- * Resume Parse Queue Tests
- *
- * Tests for the resume parsing queue publishing functionality.
- */
-
 import { describe, expect, it, vi } from "vite-plus/test";
 import { publishResumeParse } from "@/lib/queue/resume-parse";
 import type { ResumeParseMessage } from "@/lib/queue/types";
 
 describe("Resume Parse Queue", () => {
-  // Create a mock queue
   const createMockQueue = () => ({
     send: vi.fn().mockResolvedValue(undefined),
     sendBatch: vi.fn().mockResolvedValue(undefined),

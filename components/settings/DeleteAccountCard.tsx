@@ -84,7 +84,6 @@ export function DeleteAccountCard({ userEmail }: DeleteAccountCardProps) {
 
   return (
     <>
-      {/* Compact inline danger zone row */}
       <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-3">

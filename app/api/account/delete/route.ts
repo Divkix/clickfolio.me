@@ -30,24 +30,7 @@ function getClerkClient(secretKey: string) {
   return clerkClient;
 }
 
-/**
- * POST /api/account/delete
- * Permanently deletes a user's account and all associated data
- *
- * GDPR-compliant deletion order:
- * 1. R2 files (resume uploads — must be deleted before DB records)
- * 2. Clerk identity via Backend API — deleting locally first would leave a
- *    survivor identity that re-authenticates into a 404 dead-end; once Clerk
- *    has deleted the user, even a failed local delete is cleaned up by the
- *    `user.deleted` webhook.
- * 3. local Postgres user row (CASCADE handles resumes, siteData,
- *    handleChanges)
- *
- * Session cookies are Clerk-owned: the client signs out via useClerk()
- * after the success response; no app-side cookie surgery here.
- */
 export async function POST(request: Request) {
-  // Validate request size before parsing (prevent DoS)
   const sizeCheck = validateRequestSize(request);
   if (!sizeCheck.valid) {
     return createErrorResponse(
@@ -62,7 +45,6 @@ export async function POST(request: Request) {
     async ({ user: authUser, db, dbUser, env }) => {
       const warnings: DeletionWarning[] = [];
 
-      // Get R2 binding for direct operations
       const r2Binding = getR2Binding(env);
       if (!r2Binding) {
         return createErrorResponse(
@@ -75,7 +57,6 @@ export async function POST(request: Request) {
       const userId = authUser.id;
       const userEmail = authUser.email;
 
-      // Parse and validate request body (size-capped read, no trust in Content-Length)
       const rawBodyResult = await readJsonWithLimit(request);
       if (!rawBodyResult.ok) {
         return createErrorResponse(
@@ -98,7 +79,6 @@ export async function POST(request: Request) {
 
       const { confirmation } = parseResult.data;
 
-      // Verify email confirmation matches user's email (case-insensitive)
       if (confirmation.toLowerCase() !== userEmail.toLowerCase()) {
         return createErrorResponse(
           "Email confirmation does not match your account email",
@@ -116,13 +96,11 @@ export async function POST(request: Request) {
         );
       }
 
-      // Fetch all resume R2 keys before deletion
       const userResumes = await db
         .select({ r2Key: resumes.r2Key })
         .from(resumes)
         .where(eq(resumes.userId, userId));
 
-      // Delete R2 files in parallel (best effort - continue even if some fail)
       const r2Keys = userResumes.map((r) => r.r2Key).filter((key): key is string => Boolean(key));
       const deletionResults = await Promise.allSettled(
         r2Keys.map((r2Key) => R2.delete(r2Binding, r2Key)),
@@ -139,9 +117,6 @@ export async function POST(request: Request) {
         }
       });
 
-      // Durably track failed R2 deletes so the 2 AM cron can retry them.
-      // Must happen BEFORE the user row below is removed — after that we'd have
-      // no record of which files still need to be purged (GDPR obligation).
       if (failedKeys.length > 0) {
         await db.insert(pendingR2Deletions).values(
           failedKeys.map((key) => ({
@@ -153,12 +128,9 @@ export async function POST(request: Request) {
         );
       }
 
-      // Delete the Clerk identity first (see docstring ordering rationale).
       try {
         await getClerkClient(env.CLERK_SECRET_KEY).users.deleteUser(dbUser.clerkId);
       } catch (clerkError) {
-        // Already gone upstream (e.g. retry after partial failure): proceed to
-        // finish the local cleanup instead of stranding the Postgres row.
         const parsedError = clerkErrorSchema.safeParse(clerkError);
         if (!parsedError.success || parsedError.data.status !== 404) {
           console.error("Clerk user deletion error:", clerkError);
@@ -170,10 +142,6 @@ export async function POST(request: Request) {
         }
       }
 
-      // Delete the local user row. A single statement is atomic in Postgres;
-      // CASCADE removes resumes, siteData, and handleChanges.
-      // The `user.deleted` webhook fired by Clerk performs the same cleanup as
-      // a safety net if this step fails after a successful Clerk deletion.
       try {
         await db.delete(user).where(eq(user.id, userId));
       } catch (dbError) {
@@ -181,7 +149,6 @@ export async function POST(request: Request) {
         return createErrorResponse("Failed to delete account", ERROR_CODES.DATABASE_ERROR, 500);
       }
 
-      // Best-effort analytics — never fails the delete response
       captureServerEvent(userId, "account_deleted", {
         had_r2_warnings: warnings.length > 0,
       });

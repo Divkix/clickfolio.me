@@ -8,14 +8,6 @@ import { notifyStatusChange } from "./notify-status";
 import type { DeadLetterMessage, QueueMessage } from "./types";
 import { log } from "../utils/log";
 
-/**
- * Handle a dead letter queue message
- *
- * This function is called when a message has exhausted all retries
- * and been moved to the DLQ. It:
- * 1. Updates the resume status to permanently failed
- * 2. Sends an alert via configured channel
- */
 export async function handleDLQMessage(
   message: QueueMessage | DeadLetterMessage,
   env: {
@@ -23,15 +15,12 @@ export async function handleDLQMessage(
     CLICKFOLIO_STATUS_DO: CloudflareEnv["CLICKFOLIO_STATUS_DO"] | undefined;
   },
 ): Promise<void> {
-  // Extract the original message if wrapped in DeadLetterMessage
   const originalMessage = "originalMessage" in message ? message.originalMessage : message;
   const failureReason =
     "failureReason" in message ? message.failureReason : "Unknown (moved to DLQ)";
 
-  // Queue consumers run without request/cookie scope; create a client for this invocation.
   const db = getDb(env.HYPERDRIVE);
 
-  // Fetch current resume state
   const currentResume = await db
     .select({
       status: resumes.status,
@@ -44,7 +33,6 @@ export async function handleDLQMessage(
     .limit(1);
 
   // Skip if the resume no longer exists (account deletion cascades `resumes`).
-  // Without this guard the DLQ would synthesize a failed state + alert for a deleted row.
   if (!currentResume.length) {
     log("info", "DLQ: resume not found, skipping", {
       resumeId: originalMessage.resumeId,
@@ -52,8 +40,6 @@ export async function handleDLQMessage(
     return;
   }
 
-  // Do not clobber a resume that already completed via a concurrent path
-  // (waiting-for-cache fan-out, cache hit, or orphan-recovery re-queue).
   if (currentResume[0]?.status === "completed") {
     log("info", "DLQ: resume already completed, skipping failure mark", {
       resumeId: originalMessage.resumeId,
@@ -61,7 +47,6 @@ export async function handleDLQMessage(
     return;
   }
 
-  // Parse last attempt error if available (shape owned by lifecycle).
   // Validate against the known enum so an arbitrary stored string does not leak through as `errorType`.
   // SAFETY: stored lastAttemptError is QueueError JSON from classifyQueueError().toJSON(); lifecycle.parseLastAttemptError validates shape, cast narrows nullable string.
   const rawErrorType = getLastAttemptErrorType(
@@ -73,17 +58,11 @@ export async function handleDLQMessage(
       ? (rawErrorType as QueueErrorType)
       : QueueErrorType.UNKNOWN;
 
-  // Preserve the existing user-friendly errorMessage when one is already stored
-  // (the consumer writes it via getUserFriendlyError when parsing fails); only
-  // synthesize the "Permanently failed after N attempts" message when the row
-  // has no friendly message yet. This stops the DLQ from clobbering the
-  // specific, actionable error the user already saw.
   const attemptCount = currentResume[0]?.totalAttempts || "unknown";
   const errorMsg =
     currentResume[0]?.errorMessage ??
     `Permanently failed after ${attemptCount} attempts: ${failureReason}`;
 
-  // Update resume to permanently failed
   await db
     .update(resumes)
     .set({
@@ -93,7 +72,6 @@ export async function handleDLQMessage(
     })
     .where(eq(resumes.id, originalMessage.resumeId));
 
-  // Notify connected WebSocket clients of permanent failure
   await notifyStatusChange({
     resumeId: originalMessage.resumeId,
     status: "failed",
@@ -101,12 +79,10 @@ export async function handleDLQMessage(
     env,
   });
 
-  // Cast env to AlertEnv for optional alert properties
   // SAFETY: env is CloudflareEnv with optional AlertEnv fields; cast narrows to AlertEnv for alert channel access, fallback via getAlertChannel.
   const alertEnv = env as AlertEnv;
   const alertChannel = getAlertChannel(alertEnv.ALERT_CHANNEL);
 
-  // Send alert (shared with the main consumer's non-retryable branch)
   await sendAlert(
     {
       resumeId: originalMessage.resumeId,

@@ -6,11 +6,6 @@ import { extractPdfText } from "./pdf-extract";
 import { truncateResumeText } from "./truncate";
 import { transformAiOutput, transformAiResponse } from "./transform";
 
-/**
- * Result shape from AI resume parsing.
- * Contains the serialized JSON string, an optional error message, and an optional
- * inferred professional level (e.g. "entry_level", "mid_level", "senior_level").
- */
 export interface ParseResumeResult {
   success: boolean;
   parsedContent: string;
@@ -18,10 +13,6 @@ export interface ParseResumeResult {
   professionalLevel?: string;
 }
 
-/**
- * Normalize extracted PDF text for consistent AI input.
- * Converts CRLF to LF, collapses extra spaces/tabs, and trims.
- */
 function normalizeResumeText(text: string): string {
   return text
     .replace(/\r\n/g, "\n")
@@ -34,16 +25,9 @@ type ValidateParseResult =
   | { success: true; data: UnknownRecord }
   | { success: false; errors: string };
 
-/**
- * Validate AI-parsed data against the resume content schema.
- * Single universal path: always run the full `transformAiResponse` pipeline
- * (garbage filtering, caps, URL validation) before Zod validation.
- * Returns `{ success: true, data }` or `{ success: false, errors }`.
- */
 function validateParseResult(data: JsonValue): ValidateParseResult {
   const withDefaults: UnknownRecord = transformAiResponse(data);
 
-  // Inject default empty arrays for optional fields
   for (const key of ["education", "skills", "certifications", "projects"]) {
     if (!Array.isArray(withDefaults[key])) withDefaults[key] = [];
   }
@@ -67,27 +51,13 @@ function extractProfessionalLevel(data: UnknownRecord): string | undefined {
   return level;
 }
 
-/**
- * Parse a PDF resume using AI
- *
- * Pipeline:
- * 1. Extract text from PDF using unpdf
- * 2. Parse text with AI using Vercel AI SDK (structured output)
- * 3. Transform and validate the AI response
- * 4. Return JSON string of parsed content
- *
- * Accepts ArrayBuffer directly from R2 to avoid intermediate buffer copies.
- */
 export async function parseResumeWithAi(
   pdfBuffer: ArrayBuffer,
   env: Partial<CloudflareEnv>,
 ): Promise<ParseResumeResult> {
   try {
-    // Step 1: Extract text from PDF — pass ArrayBuffer directly, no copies
     const extractResult = await extractPdfText(pdfBuffer);
 
-    // Scanned-image fallback: unpdf returns empty/short text but pageCount>0.
-    // No new infra — reuse same Luna model via inline file part (ai-vision.ts).
     const rawText = extractResult.text ?? "";
     const trimmedForScanCheck = rawText.trim();
     const MIN_CHARS_PER_PAGE = 30;
@@ -112,14 +82,11 @@ export async function parseResumeWithAi(
       }
 
       try {
-        // Lazy-load vision: scanned PDFs are rare; keep unpdf/text path bundle small.
         // Dynamic import avoids bundling `ai` file-part handling into page/queue hot paths (same pattern as consumer.ts lazy AI import).
         const { parsePdfWithVision } = await import("./ai-vision");
         const visionResult = await parsePdfWithVision(pdfBuffer, env);
 
         if (visionResult.success && visionResult.data) {
-          // Hallucination guard: Luna vision never returns "" — it invents JSON.
-          // If core fields are both empty, treat as OCR failure, not success.
           // eslint-disable-next-line anti-slop/no-chained-type-assertions, anti-slop/require-safety-comment-for-type-assertion, anti-slop/no-unsafe-dictionary-type -- JsonValue to UnknownRecord for hallucination check
           const raw = visionResult.data as unknown as UnknownRecord;
           const fullNameUnknown = raw["full_name"];
@@ -142,8 +109,6 @@ export async function parseResumeWithAi(
             log("warn", "Vision schema validation failed, retrying with error feedback", {
               errors: validation.errors,
             });
-            // Reuse text error-feedback path by feeding vision JSON as previousOutput.
-            // Resume text is empty for scanned, so retry uses vision output + errors only.
             const retryResult = await parseWithAi("", env, undefined, {
               previousOutput: JSON.stringify(dataForRetry),
               errors: validation.errors,
@@ -207,7 +172,6 @@ export async function parseResumeWithAi(
       };
     }
 
-    // Step 2: Parse with AI
     const parseResult = await parseWithAi(resumeText, env);
 
     if (!parseResult.success || !parseResult.data) {
@@ -218,13 +182,9 @@ export async function parseResumeWithAi(
       };
     }
 
-    // Step 3: Validate (transform → defaults → Zod)
-    // Clone data before validation — transformAiResponse mutates in-place,
-    // and we need the original for retry context if validation fails
     const dataForRetry = structuredClone(parseResult.data);
     let validation = validateParseResult(parseResult.data);
 
-    // Step 3b: Retry with error feedback if validation failed
     if (!validation.success && validation.errors) {
       log("warn", "Schema validation failed, retrying with error feedback", {
         errors: validation.errors,
@@ -249,7 +209,6 @@ export async function parseResumeWithAi(
       };
     }
 
-    // Step 4: Final cleanup
     // SAFETY: resumeContentSchema validation above guarantees validation.data matches ResumeContentFormData; cast preserves type for final cleanup.
     const finalData = transformAiOutput(validation.data as ResumeContentFormData);
     // eslint-disable-next-line anti-slop/no-chained-type-assertions, anti-slop/require-safety-comment-for-type-assertion -- helper handles dynamic access

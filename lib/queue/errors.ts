@@ -1,7 +1,3 @@
-/**
- * Queue error classification system
- * Categorizes errors as transient (retryable) or permanent (should not retry)
- */
 import { z } from "zod";
 import type { JsonValue } from "@/lib/types/json";
 
@@ -13,17 +9,12 @@ export type QueueErrorInput =
   | null
   | undefined;
 
-/**
- * Error types for queue processing
- */
 export enum QueueErrorType {
-  // Transient errors (should retry)
   DB_CONNECTION_ERROR = "db_connection_error",
   SERVICE_BINDING_TIMEOUT = "service_binding_timeout",
   R2_THROTTLE = "r2_throttle",
   AI_PROVIDER_ERROR = "ai_provider_error",
 
-  // Permanent errors (should ack, no retry)
   INVALID_PDF = "invalid_pdf",
   MALFORMED_RESPONSE = "malformed_response",
   SERVICE_BINDING_NOT_FOUND = "service_binding_not_found",
@@ -32,9 +23,6 @@ export enum QueueErrorType {
   UNKNOWN = "unknown",
 }
 
-/**
- * Set of transient error types that should be retried
- */
 const TRANSIENT_ERROR_TYPES = new Set<QueueErrorType>([
   QueueErrorType.DB_CONNECTION_ERROR,
   QueueErrorType.SERVICE_BINDING_TIMEOUT,
@@ -42,9 +30,6 @@ const TRANSIENT_ERROR_TYPES = new Set<QueueErrorType>([
   QueueErrorType.AI_PROVIDER_ERROR,
 ]);
 
-/**
- * Custom error class for queue processing
- */
 export class QueueError extends Error {
   readonly type: QueueErrorType;
   readonly originalError?: QueueErrorInput;
@@ -55,23 +40,15 @@ export class QueueError extends Error {
     this.type = type;
     this.originalError = originalError;
 
-    // Maintain proper stack trace in V8 environments
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, QueueError);
     }
   }
 
-  /**
-   * Determines if this error is retryable
-   * Returns true for transient errors that may succeed on retry
-   */
   isRetryable(): boolean {
     return TRANSIENT_ERROR_TYPES.has(this.type);
   }
 
-  /**
-   * Create a JSON-serializable representation
-   */
   toJSON(): QueueErrorJson {
     return {
       name: this.name,
@@ -97,35 +74,18 @@ export type QueueErrorJson = {
   originalError: unknown;
 };
 
-/**
- * Regex patterns for classifying error messages into QueueErrorTypes.
- * Each pattern maps a case-insensitive regex to a transient or permanent error type.
- */
 const ERROR_PATTERNS: Array<{ pattern: RegExp; type: QueueErrorType }> = [
-  // PostgreSQL constraint violations (UNIQUE/FK/NOT NULL/CHECK/EXCLUSION) are
-  // permanent — retrying can never fix them. This MUST stay ahead of the
-  // connection-error patterns: a constraint failure must never be retried as a
-  // transient outage, and a dropped connection must never look like bad data.
   {
     pattern:
       /duplicate key value violates unique constraint|violates foreign key constraint|violates not-null constraint|violates check constraint|violates exclusion constraint/i,
     type: QueueErrorType.PARSE_VALIDATION_ERROR,
   },
-  // PostgreSQL SQLSTATE integrity codes, matched against the "[pg_code=…]" tag
-  // appended by extractErrorMessage (23000/23001 integrity_constraint_violation,
-  // 23502 not_null_violation, 23503 foreign_key_violation, 23505 unique_violation,
-  // 23514 check_violation) — covers drivers that surface only the code.
   {
     pattern: /\[pg_code=(?:23000|23001|23502|23503|23505|23514)\]/,
     type: QueueErrorType.PARSE_VALIDATION_ERROR,
   },
 
-  // PostgreSQL/Hyperdrive connection errors (transient)
   {
-    // Connection-state and capacity SQLSTATEs: 080xx connection_exception
-    // family, 53300/53400 too many connections, 57P01-57P03 server shutdown/
-    // crash/cannot-connect-now, 40001 serialization failure, 40P01 deadlock,
-    // 55P03 lock not available. All are safe to retry.
     pattern:
       /\[pg_code=(?:08000|08001|08003|08004|08006|53300|53400|57P01|57P02|57P03|40001|40P01|55P03)\]/,
     type: QueueErrorType.DB_CONNECTION_ERROR,
@@ -141,7 +101,6 @@ const ERROR_PATTERNS: Array<{ pattern: RegExp; type: QueueErrorType }> = [
     type: QueueErrorType.DB_CONNECTION_ERROR,
   },
 
-  // Service binding timeouts (transient)
   {
     pattern: /timeout|timed?\s*out|deadline.*exceeded|worker.*timeout/i,
     type: QueueErrorType.SERVICE_BINDING_TIMEOUT,
@@ -151,7 +110,6 @@ const ERROR_PATTERNS: Array<{ pattern: RegExp; type: QueueErrorType }> = [
     type: QueueErrorType.SERVICE_BINDING_TIMEOUT,
   },
 
-  // R2 throttle errors (transient)
   {
     pattern: /R2.*throttle|rate.*limit|too.*many.*requests|429/i,
     type: QueueErrorType.R2_THROTTLE,
@@ -161,7 +119,6 @@ const ERROR_PATTERNS: Array<{ pattern: RegExp; type: QueueErrorType }> = [
     type: QueueErrorType.R2_THROTTLE,
   },
 
-  // Invalid PDF errors (permanent)
   {
     pattern: /invalid.*pdf|corrupt.*pdf|pdf.*corrupt|pdf.*invalid|malformed.*pdf/i,
     type: QueueErrorType.INVALID_PDF,
@@ -182,15 +139,11 @@ const ERROR_PATTERNS: Array<{ pattern: RegExp; type: QueueErrorType }> = [
     pattern: /scanned.*pdf|clearer.*photo|export.*as.*text.*pdf/i,
     type: QueueErrorType.INVALID_PDF,
   },
-  // Too-many-pages PDF — matches lib/ai/pdf-extract.ts:
-  // "PDF has ${numPages} pages (maximum 50). Please upload a shorter document."
-  // (a retry would hit the exact same 50-page cap, so it is permanent)
   {
     pattern: /pdf.*has.*\d+.*pages|too.*many.*pages/i,
     type: QueueErrorType.INVALID_PDF,
   },
 
-  // AI provider errors (transient — provider down, model unavailable, etc.)
   {
     pattern: /NoObjectGeneratedError|no.*object.*generated/i,
     type: QueueErrorType.AI_PROVIDER_ERROR,
@@ -208,9 +161,6 @@ const ERROR_PATTERNS: Array<{ pattern: RegExp; type: QueueErrorType }> = [
       /HTTP\s*5\d{2}|status.*5\d{2}|internal.*server.*error|bad.*gateway|service.*unavailable/i,
     type: QueueErrorType.AI_PROVIDER_ERROR,
   },
-  // AI SDK APICallError shapes (@ai-sdk/provider): name "AI_APICallError" and
-  // messages "Cannot connect to API: ...", "Failed to process error response",
-  // "Failed to process successful response" (the latter two carry statusCode).
   {
     pattern: /AI_APICallError|ai_apicall_error|cannot connect to api/i,
     type: QueueErrorType.AI_PROVIDER_ERROR,
@@ -220,7 +170,6 @@ const ERROR_PATTERNS: Array<{ pattern: RegExp; type: QueueErrorType }> = [
     type: QueueErrorType.AI_PROVIDER_ERROR,
   },
 
-  // Malformed response errors (permanent)
   {
     pattern: /invalid.*json|json.*parse|unexpected.*token|malformed.*response/i,
     type: QueueErrorType.MALFORMED_RESPONSE,
@@ -234,7 +183,6 @@ const ERROR_PATTERNS: Array<{ pattern: RegExp; type: QueueErrorType }> = [
     type: QueueErrorType.MALFORMED_RESPONSE,
   },
 
-  // Service binding not found (permanent)
   {
     pattern: /worker.*not.*available|binding.*not.*available|service.*not.*found/i,
     type: QueueErrorType.SERVICE_BINDING_NOT_FOUND,
@@ -248,7 +196,6 @@ const ERROR_PATTERNS: Array<{ pattern: RegExp; type: QueueErrorType }> = [
     type: QueueErrorType.SERVICE_BINDING_NOT_FOUND,
   },
 
-  // File not found errors (permanent)
   {
     pattern: /file.*not.*found|object.*not.*found|key.*not.*found|\b404\b/i,
     type: QueueErrorType.FILE_NOT_FOUND,
@@ -262,7 +209,6 @@ const ERROR_PATTERNS: Array<{ pattern: RegExp; type: QueueErrorType }> = [
     type: QueueErrorType.FILE_NOT_FOUND,
   },
 
-  // Parse validation errors (permanent)
   {
     pattern: /validation.*error|schema.*validation|zod.*error/i,
     type: QueueErrorType.PARSE_VALIDATION_ERROR,
@@ -273,11 +219,6 @@ const ERROR_PATTERNS: Array<{ pattern: RegExp; type: QueueErrorType }> = [
   },
 ];
 
-/**
- * Classifies an error into a QueueErrorType based on pattern matching
- * @param error - The error to classify (can be Error, string, or QueueErrorInput)
- * @returns A QueueError with the appropriate type
- */
 export function classifyQueueError(error: QueueErrorInput): QueueError {
   const errorMessage = extractErrorMessage(error);
 
@@ -287,32 +228,16 @@ export function classifyQueueError(error: QueueErrorInput): QueueError {
     }
   }
 
-  // Default to UNKNOWN for unrecognized errors
   return new QueueError(QueueErrorType.UNKNOWN, errorMessage, error);
 }
 
-/**
- * Extract a string message from various error types.
- *
- * Strategy:
- * - `Error` instances: includes `error.message`, the PostgreSQL SQLSTATE (as a
- *   "[pg_code=…]" tag when the driver exposes one — postgres-js sets
- *   `Error.code`), and recursively extracts `cause`.
- * - Plain strings: returned directly.
- * - Response-like objects: checks `message`, `error`, and `status` properties.
- * - Falls back to "Unknown error" for anything else.
- */
 function extractErrorMessage(error: QueueErrorInput): string {
   if (error instanceof Error) {
-    // Surface the PostgreSQL SQLSTATE so ERROR_PATTERNS can classify by code
-    // even when server messages are localized or truncated by intermediaries;
-    // postgres-js attaches the SQLSTATE string to Error.code.
     const pgCode = z
       .string()
       .min(1)
       .safeParse("code" in error ? error.code : undefined);
     const codeTag = pgCode.success ? ` [pg_code=${pgCode.data}]` : "";
-    // Include cause if available
     // SAFETY: error.cause is from Error instance, narrowed via instanceof Error branch; QueueErrorInput is safe union for recursion.
     const cause =
       error.cause != null ? ` (cause: ${extractErrorMessage(error.cause as QueueErrorInput)})` : "";
@@ -325,7 +250,6 @@ function extractErrorMessage(error: QueueErrorInput): string {
   }
 
   if (error != null && error instanceof Object) {
-    // Handle response-like objects
     // SAFETY: Object guard above ensures error is a non-null object; Record cast is safe for dynamic key access.
     const record = error as Record<string, JsonValue>;
     if ("message" in record && z.string().safeParse(record.message).success) {
@@ -336,7 +260,6 @@ function extractErrorMessage(error: QueueErrorInput): string {
       // SAFETY: zod safeParse above guarantees record.error is string.
       return record.error as string;
     }
-    // Handle status code objects
     if ("status" in record && z.number().safeParse(record.status).success) {
       // SAFETY: zod safeParse above guarantees record.status is number.
       return `HTTP ${String(record.status as number)}`;
@@ -346,16 +269,10 @@ function extractErrorMessage(error: QueueErrorInput): string {
   return "Unknown error";
 }
 
-/**
- * Type guard to check if an unknown value is a QueueError instance.
- */
 function isQueueError(error: QueueErrorInput): error is QueueError {
   return error instanceof QueueError;
 }
 
-/**
- * Utility to quickly check if an error is retryable without creating a QueueError
- */
 export function isRetryableError(error: QueueErrorInput): boolean {
   if (isQueueError(error)) {
     return error.isRetryable();

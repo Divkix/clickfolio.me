@@ -15,30 +15,12 @@ import {
 } from "@/lib/utils/share";
 
 interface YouAreLiveModalProps {
-  /** Whether the modal is open */
   open: boolean;
-  /** Callback when open state changes */
   onOpenChange: (open: boolean) => void;
-  /** The user's handle */
   handle: string;
-  /** The full URL to the user's resume (optional, will be constructed if not provided) */
   url?: string;
 }
 
-/**
- * "You're Live!" celebration modal
- *
- * Shown after wizard completion to celebrate and encourage sharing.
- *
- * @example
- * ```tsx
- * <YouAreLiveModal
- *   open={showModal}
- *   onOpenChange={setShowModal}
- *   handle="john"
- * />
- * ```
- */
 export function YouAreLiveModal({ open, onOpenChange, handle, url }: YouAreLiveModalProps) {
   const { copied, copy } = useCopyToClipboard();
 
@@ -71,7 +53,6 @@ export function YouAreLiveModal({ open, onOpenChange, handle, url }: YouAreLiveM
 
   return (
     <>
-      {/* Celebration confetti when modal opens */}
       {open && <Confetti />}
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-md text-center">
@@ -87,7 +68,6 @@ export function YouAreLiveModal({ open, onOpenChange, handle, url }: YouAreLiveM
               Your resume is now published and ready to share with the world.
             </p>
 
-            {/* Resume URL */}
             <div className="flex items-center gap-2 p-3 bg-secondary rounded-lg">
               <code className="flex-1 text-sm truncate font-mono">clickfolio.me/@{handle}</code>
               <button
@@ -104,13 +84,11 @@ export function YouAreLiveModal({ open, onOpenChange, handle, url }: YouAreLiveM
               </button>
             </div>
 
-            {/* Primary CTA: LinkedIn */}
             <Button className="w-full" onClick={handleLinkedInShare}>
               <LinkedInIcon variant="white" className="size-5 mr-2" aria-hidden={true} />
               Share on LinkedIn
             </Button>
 
-            {/* Secondary share options */}
             <div className="grid grid-cols-3 gap-2">
               <Button variant="outline" size="sm" onClick={handleTwitterShare}>
                 <XIcon className="size-4 mr-1" />
@@ -126,7 +104,6 @@ export function YouAreLiveModal({ open, onOpenChange, handle, url }: YouAreLiveM
               </Button>
             </div>
 
-            {/* Next Steps */}
             <div className="border-t border-border pt-4 mt-4 text-sm text-muted-foreground text-left">
               <p className="font-semibold text-foreground mb-2">What to do next:</p>
               <ul className="space-y-1">
@@ -136,7 +113,6 @@ export function YouAreLiveModal({ open, onOpenChange, handle, url }: YouAreLiveM
               </ul>
             </div>
 
-            {/* View Resume Link */}
             <Link
               href={`/@${handle}`}
               className="inline-flex items-center gap-2 text-brand hover:underline font-medium"

@@ -6,9 +6,6 @@ import { user as users } from "@/lib/db/schema";
 import { createErrorResponse, ERROR_CODES } from "@/lib/utils/security-headers";
 import { getServerSession } from "./session";
 
-/**
- * User shape returned by admin auth checks (requireAdminAuth / requireAdminAuthForApi).
- */
 export interface AdminUser {
   id: string;
   email: string;
@@ -26,10 +23,6 @@ async function loadAdminRow(userId: string): Promise<AdminUser | null> {
   return (dbUser as AdminUser) ?? null;
 }
 
-/**
- * Server-side admin auth check for pages.
- * Redirects to / if not logged in, /dashboard if not admin.
- */
 export async function requireAdminAuth(): Promise<AdminUser> {
   const session = await getServerSession();
 
@@ -50,10 +43,6 @@ export async function requireAdminAuth(): Promise<AdminUser> {
   return dbUser;
 }
 
-/**
- * API route admin auth check.
- * Returns user or error Response.
- */
 export async function requireAdminAuthForApi(): Promise<
   { user: AdminUser; error: null } | { user: null; error: Response }
 > {

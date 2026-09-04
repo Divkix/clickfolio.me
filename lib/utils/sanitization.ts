@@ -1,9 +1,3 @@
-/**
- * Input sanitization utilities for security and XSS prevention
- * Designed to work in Cloudflare Workers environment (no DOM available)
- */
-
-// Pre-compiled regex and lookup table for sanitizeText (single-pass optimization)
 const HTML_ENTITIES = {
   "&": "&amp;",
   "<": "&lt;",
@@ -14,10 +8,6 @@ const HTML_ENTITIES = {
 } as const satisfies Record<string, string>;
 const HTML_ESCAPE_REGEX = /[&<>"'/]/g;
 
-/**
- * Sanitizes plain text by removing/encoding dangerous HTML characters
- * Prevents XSS attacks by encoding special characters
- */
 export function sanitizeText(input: string): string {
   if (!input) return "";
   // SAFETY: char is matched by HTML_ESCAPE_REGEX, which only matches keys of HTML_ENTITIES.
@@ -27,19 +17,12 @@ export function sanitizeText(input: string): string {
   );
 }
 
-/**
- * Sanitizes and validates URLs
- * Only allows http://, https://, and mailto: protocols
- * Blocks javascript:, data:, and other dangerous protocols
- */
 export function sanitizeUrl(input: string): string {
   if (!input) return "";
 
-  // Trim and lowercase the protocol check
   const trimmed = input.trim();
   const lower = trimmed.toLowerCase();
 
-  // Block dangerous protocols
   const dangerousProtocols = ["javascript:", "data:", "vbscript:", "file:", "about:"];
 
   for (const protocol of dangerousProtocols) {
@@ -48,68 +31,44 @@ export function sanitizeUrl(input: string): string {
     }
   }
 
-  // Allow only safe protocols
   const safeProtocols = ["http://", "https://", "mailto:"];
   const hasProtocol = safeProtocols.some((protocol) => lower.startsWith(protocol));
 
   if (!hasProtocol) {
-    // If no protocol, assume https://
     return `https://${trimmed}`;
   }
 
   return trimmed;
 }
 
-/**
- * Validates and sanitizes email addresses
- * Basic format check and special character encoding
- */
 export function sanitizeEmail(input: string): string {
   if (!input) return "";
 
   const trimmed = input.trim().toLowerCase();
 
-  // Lenient email format validation: just needs @ with text on both sides
-  // Accepts AI-parsed emails without TLD (e.g., user@university)
   const emailRegex = /^[^\s@]+@[^\s@]+$/;
   if (!emailRegex.test(trimmed)) {
     return "";
   }
 
-  // Remove any dangerous characters
   return trimmed.replace(/[<>'"]/g, "");
 }
 
-/**
- * Validates and sanitizes phone numbers
- * Allows only digits, spaces, hyphens, parentheses, and plus sign
- */
 export function sanitizePhone(input: string): string {
   if (!input) return "";
 
-  // Allow only valid phone number characters
   return input.replace(/[^0-9\s\-()+ ]/g, "").trim();
 }
 
-// Pre-compiled combined XSS pattern regex (single-pass optimization)
 const XSS_PATTERN =
   /<script|<iframe|<embed|<object|<applet|<base|<form|<link\s|<meta|javascript:|vbscript:|data:text\/html|\bon\w+\s*=/i;
 
-/**
- * Zod refinement helper: returns true if value is safe (no XSS).
- * Use with `.refine(noXssPattern, { message: "..." })`.
- */
 export function noXssPattern(value: string): boolean {
   return !containsXssPattern(value);
 }
 
-/**
- * Checks if a string contains potential XSS patterns
- * Returns true if suspicious content is detected
- */
 export function containsXssPattern(input: string): boolean {
   if (!input) return false;
-  // Quick check: XSS patterns require '<', ':', or '='
   if (!input.includes("<") && !input.includes(":") && !input.includes("=")) {
     return false;
   }

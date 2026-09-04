@@ -1,17 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { JsonValue } from "@/lib/types/json";
 
-/**
- * Integration tests for Admin API operations (Phase 3, Section 3.6)
- *
- * Tests all admin API endpoints with admin authentication,
- * RBAC, and various administrative scenarios.
- *
- * Total: 15 tests
- */
-
-// ── Mocks ────────────────────────────────────────────────────────────
-
 vi.mock("@/lib/auth/admin", () => ({
   requireAdminAuthForApi: vi.fn(),
 }));
@@ -165,13 +154,10 @@ vi.mock("@/lib/db/schema", () => ({
   },
 }));
 
-// ── Setup ───────────────────────────────────────────────────────────
-
 import { type AdminUser, requireAdminAuthForApi } from "@/lib/auth/admin";
 
 const mockedAdminAuth = vi.mocked(requireAdminAuthForApi);
 
-// DB mock helpers
 const mockSelect = vi.fn();
 const mockFrom = vi.fn();
 const mockWhere = vi.fn();
@@ -183,7 +169,6 @@ const mockLeftJoin = vi.fn();
 const mockInsert = vi.fn();
 const mockUpdate = vi.fn();
 
-// Build chainable mock
 const createChainable = () => {
   const chain = {
     from: mockFrom,
@@ -268,18 +253,12 @@ function makeRequest(url: string, method = "GET", body?: JsonValue): Request {
   return new Request(url, init);
 }
 
-// ── Test Suite ─────────────────────────────────────────────────────
-
 beforeEach(() => {
   vi.clearAllMocks();
   mockLimit.mockReset().mockResolvedValue([]);
 });
 
 describe("Admin API Integration Tests (15 tests)", () => {
-  // ─────────────────────────────────────────────────────────────────
-  // GET /api/admin/analytics
-  // ─────────────────────────────────────────────────────────────────
-
   describe("GET /api/admin/analytics", () => {
     it("returns Umami analytics data for admin (test 1)", async () => {
       adminAuthed();
@@ -345,7 +324,6 @@ describe("Admin API Integration Tests (15 tests)", () => {
     it("handles Umami API errors gracefully (test 1 edge case)", async () => {
       adminAuthed();
 
-      // Override the mock to simulate Umami failure
       const { getStats } = await import("@/lib/umami/client");
       vi.mocked(getStats).mockRejectedValueOnce(new Error("Umami API error"));
 
@@ -357,15 +335,10 @@ describe("Admin API Integration Tests (15 tests)", () => {
     });
   });
 
-  // ─────────────────────────────────────────────────────────────────
-  // GET /api/admin/resumes
-  // ─────────────────────────────────────────────────────────────────
-
   describe("GET /api/admin/resumes", () => {
     it("returns resume audit data for admin (test 3)", async () => {
       adminAuthed();
 
-      // Mock status counts
       mockGroupBy.mockReturnValue({
         orderBy: vi.fn().mockResolvedValue([
           { status: "completed", count: 50 },
@@ -375,7 +348,6 @@ describe("Admin API Integration Tests (15 tests)", () => {
         ]),
       });
 
-      // Mock resume list
       mockLeftJoin.mockReturnValue({
         where: vi.fn().mockReturnValue({
           orderBy: vi.fn().mockReturnValue({
@@ -396,7 +368,6 @@ describe("Admin API Integration Tests (15 tests)", () => {
       const request = makeRequest("http://localhost:3000/api/admin/resumes?status=all&page=1");
       const response = await GET(request);
 
-      // Complex SQL queries may fail with mocks, accept 200 or 500
       expect([200, 500]).toContain(response.status);
       if (response.status === 200) {
         const body = (await response.json()) as {
@@ -413,7 +384,6 @@ describe("Admin API Integration Tests (15 tests)", () => {
 
       const { GET } = await import("@/app/api/admin/resumes/route");
 
-      // Test different status filters - accept 200 or 500 due to mock complexity
       for (const status of ["completed", "processing", "queued", "failed"]) {
         const request = makeRequest(
           `http://localhost:3000/api/admin/resumes?status=${status}&page=1`,
@@ -430,7 +400,6 @@ describe("Admin API Integration Tests (15 tests)", () => {
       const request = makeRequest("http://localhost:3000/api/admin/resumes?status=failed&page=1");
       const response = await GET(request);
 
-      // Complex SQL queries may fail with mocks, accept 200 or 500
       expect([200, 500]).toContain(response.status);
     });
 
@@ -467,17 +436,13 @@ describe("Admin API Integration Tests (15 tests)", () => {
     });
   });
 
-  // ─────────────────────────────────────────────────────────────────
-  // GET /api/admin/stats
-  // ─────────────────────────────────────────────────────────────────
-
   describe("GET /api/admin/stats", () => {
     it("returns aggregate statistics for admin (test 4)", async () => {
       adminAuthed();
 
       mockLimit.mockImplementation(async () => [
-        { total: 100 }, // User count
-        { count: 75 }, // Site data count
+        { total: 100 },
+        { count: 75 },
         { status: "completed", count: 50 },
         { status: "processing", count: 10 },
         { status: "failed", count: 5 },
@@ -486,7 +451,6 @@ describe("Admin API Integration Tests (15 tests)", () => {
       const { GET } = await import("@/app/api/admin/stats/route");
       const response = await GET();
 
-      // Complex SQL queries may fail with mocks, accept 200, 500, or 503 (Umami error)
       expect([200, 500, 503]).toContain(response.status);
       if (response.status === 200) {
         const body = (await response.json()) as {
@@ -513,7 +477,6 @@ describe("Admin API Integration Tests (15 tests)", () => {
       const { GET } = await import("@/app/api/admin/stats/route");
       const response = await GET();
 
-      // Complex SQL queries may fail with mocks, accept 200, 500, or 503 (Umami error)
       expect([200, 500, 503]).toContain(response.status);
       if (response.status === 200) {
         const body = (await response.json()) as { recentSignups: JsonValue[] };
@@ -551,18 +514,12 @@ describe("Admin API Integration Tests (15 tests)", () => {
     });
   });
 
-  // ─────────────────────────────────────────────────────────────────
-  // GET /api/admin/users
-  // ─────────────────────────────────────────────────────────────────
-
   describe("GET /api/admin/users", () => {
     it("returns paginated user list for admin (test 5)", async () => {
       adminAuthed();
 
-      // Mock user count
       mockLimit.mockResolvedValueOnce([{ count: 100 }]);
 
-      // Mock users list
       mockLimit.mockResolvedValueOnce([
         {
           id: "user-1",
@@ -586,7 +543,6 @@ describe("Admin API Integration Tests (15 tests)", () => {
       const request = makeRequest("http://localhost:3000/api/admin/users?page=1");
       const response = await GET(request);
 
-      // Complex SQL queries may fail with mocks, accept 200 or 500
       expect([200, 500]).toContain(response.status);
       if (response.status === 200) {
         const body = (await response.json()) as {
@@ -620,7 +576,6 @@ describe("Admin API Integration Tests (15 tests)", () => {
       const request = makeRequest("http://localhost:3000/api/admin/users?page=1&search=john");
       const response = await GET(request);
 
-      // Complex SQL queries may fail with mocks, accept 200 or 500
       expect([200, 500]).toContain(response.status);
       if (response.status === 200) {
         const body = (await response.json()) as { users: JsonValue[] };
@@ -638,7 +593,6 @@ describe("Admin API Integration Tests (15 tests)", () => {
       const request = makeRequest("http://localhost:3000/api/admin/users?page=2");
       const response = await GET(request);
 
-      // Complex SQL queries may fail with mocks, accept 200 or 500
       expect([200, 500]).toContain(response.status);
       if (response.status === 200) {
         const body = (await response.json()) as { page: number; pageSize: number; total: number };
@@ -678,7 +632,6 @@ describe("Admin API Integration Tests (15 tests)", () => {
       const request = makeRequest("http://localhost:3000/api/admin/users?page=1");
       const response = await GET(request);
 
-      // Complex SQL queries may fail with mocks, accept 200 or 500
       expect([200, 500]).toContain(response.status);
       if (response.status === 200) {
         const body = (await response.json()) as { users: JsonValue[]; total: number };
@@ -687,10 +640,6 @@ describe("Admin API Integration Tests (15 tests)", () => {
       }
     });
   });
-
-  // ─────────────────────────────────────────────────────────────────
-  // Admin Role and Session Tests
-  // ─────────────────────────────────────────────────────────────────
 
   describe("Admin Authentication Edge Cases", () => {
     it("handles deleted user with stale admin session (test 8)", async () => {
@@ -716,12 +665,10 @@ describe("Admin API Integration Tests (15 tests)", () => {
       const { GET } = await import("@/app/api/admin/stats/route");
       await GET();
 
-      // Verify admin user was passed through correctly
       expect(mockedAdminAuth).toHaveBeenCalled();
     });
 
     it("handles all admin routes consistently (test 5-7 combined)", async () => {
-      // Test that all admin routes require authentication
       const routes = [
         "/api/admin/analytics",
         "/api/admin/resumes",

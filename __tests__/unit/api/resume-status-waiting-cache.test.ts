@@ -1,18 +1,7 @@
-/**
- * Resume status route — waiting_for_cache timeout tests.
- *
- * Tests the timeout state machine in GET /api/resume/status:
- * - waiting_for_cache within 10 min → returns "processing" with waiting_for_cache: true
- * - waiting_for_cache past 10 min → transitions to "failed"
- * - Edge cases: invalid/missing createdAt
- */
-
 import { WAITING_FOR_CACHE_TIMEOUT_MS } from "@/lib/resume/lifecycle";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { JsonValue } from "@/lib/types/json";
 import { DEFAULT_PRIVACY_SETTINGS } from "@/lib/utils/privacy";
-
-// ── Mocks ─────────────────────────────────────────────────────────────
 
 const mockFindFirst = vi.fn();
 const mockDbUpdateSet = vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue(undefined) });
@@ -23,12 +12,10 @@ const mockDb = {
   update: mockDbUpdate,
 };
 
-// Auth mock
 vi.mock("@/lib/auth/middleware", () => ({
   requireAuthWithUserValidation: vi.fn(),
 }));
 
-// Drizzle-orm operators
 vi.mock("drizzle-orm", () => ({
   eq: vi.fn((_col, val) => ({ eq: val })),
   and: vi.fn(() => "and"),
@@ -38,7 +25,6 @@ vi.mock("drizzle-orm", () => ({
   isNotNull: vi.fn(() => "isNotNull"),
 }));
 
-// Schema mock
 vi.mock("@/lib/db/schema", () => ({
   resumes: {
     id: "id",
@@ -67,7 +53,6 @@ vi.mock("@/lib/db/schema", () => ({
   },
 }));
 
-// Security headers
 vi.mock("@/lib/utils/security-headers", () => ({
   createErrorResponse: vi.fn((error: string, _code: string, status: number) => {
     return new Response(JSON.stringify({ error }), { status });
@@ -88,8 +73,6 @@ vi.mock("@/lib/utils/security-headers", () => ({
 import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
 
 const mockedAuth = vi.mocked(requireAuthWithUserValidation);
-
-// ── Helpers ───────────────────────────────────────────────────────────
 
 function authedAs(userId: string) {
   mockedAuth.mockResolvedValue({
@@ -126,7 +109,6 @@ function makeResume(overrides: {
   totalAttempts?: number;
   createdAt?: string | null;
 }) {
-  // Only default createdAt when key is absent — not when explicitly passed as null
   const createdAt = "createdAt" in overrides ? overrides.createdAt : new Date().toISOString();
 
   return {
@@ -142,18 +124,15 @@ function makeResume(overrides: {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  // Reset mock chain
   mockDbUpdate.mockReturnValue({ set: mockDbUpdateSet });
 });
-
-// ── Tests ─────────────────────────────────────────────────────────────
 
 describe("GET /api/resume/status — waiting_for_cache timeout", () => {
   describe("Within timeout window (< 10 minutes)", () => {
     it("returns processing with waiting_for_cache flag when status is waiting_for_cache and recently created", async () => {
       authedAs("user-1");
 
-      const recentTime = new Date(Date.now() - 2 * 60 * 1000).toISOString(); // 2 minutes ago
+      const recentTime = new Date(Date.now() - 2 * 60 * 1000).toISOString();
       mockFindFirst.mockResolvedValue(
         makeResume({
           status: "waiting_for_cache",
@@ -205,7 +184,7 @@ describe("GET /api/resume/status — waiting_for_cache timeout", () => {
 
       const staleTime = new Date(
         Date.now() - (WAITING_FOR_CACHE_TIMEOUT_MS + 60_000),
-      ).toISOString(); // 11 minutes ago
+      ).toISOString();
       mockFindFirst.mockResolvedValue(
         makeResume({
           id: "resume-001",
@@ -227,20 +206,20 @@ describe("GET /api/resume/status — waiting_for_cache timeout", () => {
       };
       expect(body.status).toBe("failed");
       expect(body.error).toContain("timed out");
-      expect(body.can_retry).toBe(true); // retryCount 0 < 2
+      expect(body.can_retry).toBe(true);
       expect(body.progress_pct).toBe(0);
     });
 
     it("sets can_retry to false when retry count is exhausted", async () => {
       authedAs("user-1");
 
-      const staleTime = new Date(Date.now() - WAITING_FOR_CACHE_TIMEOUT_MS * 2).toISOString(); // 20 minutes ago
+      const staleTime = new Date(Date.now() - WAITING_FOR_CACHE_TIMEOUT_MS * 2).toISOString();
       mockFindFirst.mockResolvedValue(
         makeResume({
           id: "resume-001",
           status: "waiting_for_cache",
           createdAt: staleTime,
-          retryCount: 2, // Exhausted
+          retryCount: 2,
         }),
       );
 
@@ -267,11 +246,9 @@ describe("GET /api/resume/status — waiting_for_cache timeout", () => {
       const { GET } = await import("@/app/api/resume/status/route");
       const response = await GET(makeStatusRequest("resume-001"));
 
-      // Virtual failed presentation — no DB write
       expect(response.status).toBe(200);
       const body = (await response.json()) as { status: string; error: string };
       expect(body.status).toBe("failed");
-      // GET is side-effect-free: the durable orphan-cron write never runs here.
       expect(mockDbUpdateSet).not.toHaveBeenCalled();
     });
   });
@@ -290,10 +267,6 @@ describe("GET /api/resume/status — waiting_for_cache timeout", () => {
       const { GET } = await import("@/app/api/resume/status/route");
       const response = await GET(makeStatusRequest("resume-001"));
 
-      // new Date("not-a-valid-date") returns Invalid Date
-      // Date.now() - Invalid Date.getTime() = NaN
-      // NaN > WAITING_FOR_CACHE_TIMEOUT_MS is false
-      // So it falls through to the "still within timeout" branch
       expect(response.status).toBe(200);
       const body = (await response.json()) as { status: string; waiting_for_cache?: boolean };
       expect(body.status).toBe("processing");
@@ -312,8 +285,6 @@ describe("GET /api/resume/status — waiting_for_cache timeout", () => {
 
       const { GET } = await import("@/app/api/resume/status/route");
 
-      // new Date(null) returns epoch (1970-01-01), which is well past 10 min
-      // So it should transition to failed
       const response = await GET(makeStatusRequest("resume-001"));
 
       expect(response.status).toBe(200);
@@ -334,9 +305,6 @@ describe("GET /api/resume/status — waiting_for_cache timeout", () => {
       const { GET } = await import("@/app/api/resume/status/route");
       const response = await GET(makeStatusRequest("resume-001"));
 
-      // new Date("") returns Invalid Date
-      // Date.now() - Invalid Date.getTime() = NaN
-      // NaN > timeout → false → falls through to processing
       expect(response.status).toBe(200);
       const body = (await response.json()) as { status: string; waiting_for_cache?: boolean };
       expect(body.status).toBe("processing");
@@ -346,7 +314,7 @@ describe("GET /api/resume/status — waiting_for_cache timeout", () => {
     it("does NOT timeout for non-waiting_for_cache statuses with stale createdAt", async () => {
       authedAs("user-1");
 
-      const staleTime = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(); // 1 day ago
+      const staleTime = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
       mockFindFirst.mockResolvedValue(
         makeResume({
           status: "queued",
@@ -359,7 +327,6 @@ describe("GET /api/resume/status — waiting_for_cache timeout", () => {
 
       expect(response.status).toBe(200);
       const body = (await response.json()) as { status: string; queued?: boolean };
-      // queued status is reported as "processing" with queued flag, NOT failed
       expect(body.status).toBe("processing");
       expect(body.queued).toBe(true);
     });

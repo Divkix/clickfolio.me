@@ -118,7 +118,6 @@ describe("queue error handling", () => {
     });
 
     it("classifies a too-many-pages PDF as permanent invalid_pdf", () => {
-      // Mirrors lib/ai/pdf-extract.ts's exact message text.
       const error = classifyQueueError(
         new Error("PDF has 60 pages (maximum 50). Please upload a shorter document."),
       );
@@ -128,8 +127,6 @@ describe("queue error handling", () => {
     });
 
     it("does not treat PostgreSQL constraint violations as retryable", () => {
-      // Integrity violations can never succeed on retry and must classify as
-      // permanent errors instead of being retried as transient outages.
       const uniqueError = classifyQueueError(
         new Error("duplicate key value violates unique constraint on resumes.file_hash"),
       );
@@ -142,24 +139,18 @@ describe("queue error handling", () => {
       expect(fkError.type).toBe(QueueErrorType.PARSE_VALIDATION_ERROR);
       expect(fkError.isRetryable()).toBe(false);
 
-      // postgres-js surfaces the SQLSTATE on Error.code; extractErrorMessage
-      // tags it as [pg_code=…] so classification works even for localized or
-      // truncated server messages. 23505 (unique_violation) is permanent.
       const codedUnique = classifyQueueError(
         Object.assign(new Error("unique_violation"), { code: "23505" }),
       );
       expect(codedUnique.type).toBe(QueueErrorType.PARSE_VALIDATION_ERROR);
       expect(codedUnique.isRetryable()).toBe(false);
 
-      // Connection-state SQLSTATEs (40001 serialization_failure) stay retryable —
-      // integrity codes must win over connection patterns, never the reverse.
       const serialization = classifyQueueError(
         Object.assign(new Error("serialization failure"), { code: "40001" }),
       );
       expect(serialization.type).toBe(QueueErrorType.DB_CONNECTION_ERROR);
       expect(serialization.isRetryable()).toBe(true);
 
-      // Plain connection errors stay retryable.
       expect(
         classifyQueueError(new Error("server closed the connection unexpectedly")).isRetryable(),
       ).toBe(true);
@@ -170,7 +161,6 @@ describe("queue error handling", () => {
         QueueErrorType.FILE_NOT_FOUND,
       );
       expect(classifyQueueError({ status: 404 }).type).toBe(QueueErrorType.FILE_NOT_FOUND);
-      // "4040" must not match the file-not-found pattern.
       expect(classifyQueueError(new Error("HTTP 4040"))).not.toBe(QueueErrorType.FILE_NOT_FOUND);
     });
 
@@ -223,24 +213,17 @@ describe("queue error handling", () => {
     });
 
     it("should allow proper JSON serialization for DLQ/retry consumers", () => {
-      // Simulates the scenario from issue #91:
-      // DLQ consumer and retry route expect to parse lastAttemptError as JSON
-      // with a .type property to determine error classification
       const classifiedError = classifyQueueError(
         new Error("PDF is password-protected and encrypted"),
       );
 
-      // This is what SHOULD be stored (JSON string):
       const serialized = JSON.stringify(classifiedError.toJSON());
 
-      // DLQ consumer and retry route parse it back:
       const parsed = JSON.parse(serialized);
 
-      // They need .type to determine if it's permanent or retryable
       expect(parsed).toHaveProperty("type", QueueErrorType.INVALID_PDF);
       expect(parsed).toHaveProperty("isRetryable", false);
 
-      // isPermanentErrorType() checks these types
       const permanentTypes = [
         QueueErrorType.INVALID_PDF,
         QueueErrorType.MALFORMED_RESPONSE,
@@ -254,37 +237,25 @@ describe("queue error handling", () => {
 
   describe("error format for consumer storage (issue #91)", () => {
     it("stores JSON format that can be parsed by DLQ and retry consumers", () => {
-      // This test verifies the fix for issue #91:
-      // The consumer should store JSON.stringify(classifiedError.toJSON())
-      // instead of classifiedError.message (plain string)
-
       const classifiedError = classifyQueueError(new Error("Invalid PDF: cannot parse file"));
 
-      // WRONG: storing plain string (what was happening before fix)
       const wrongStorage = classifiedError.message;
       expect(() => {
         const parsed = JSON.parse(wrongStorage);
-        // This will throw because "Invalid PDF: cannot parse file" is not valid JSON
         return parsed.type;
-      }).toThrow(); // Expect SyntaxError
+      }).toThrow();
 
-      // CORRECT: storing JSON string (what should happen after fix)
       const correctStorage = JSON.stringify(classifiedError.toJSON());
       const parsed = JSON.parse(correctStorage);
 
-      // DLQ consumer and retry route need this:
       expect(parsed).toHaveProperty("type");
       expect(parsed).toHaveProperty("message");
       expect(parsed).toHaveProperty("isRetryable");
 
-      // For permanent error detection in retry route:
       expect(typeof parsed.type).toBe("string");
     });
 
     it("allows retry consumer to detect permanent errors", () => {
-      // Simulates retry route logic:
-      // https://github.com/Divkix/clickfolio.me/blob/main/app/api/resume/retry/route.ts#L103-116
-
       const permanentErrors = [
         { error: new Error("Invalid PDF"), type: QueueErrorType.INVALID_PDF },
         { error: new Error("Malformed response"), type: QueueErrorType.MALFORMED_RESPONSE },
@@ -293,11 +264,9 @@ describe("queue error handling", () => {
       for (const { error, type } of permanentErrors) {
         const classifiedError = classifyQueueError(error);
 
-        // Must use JSON.stringify(.toJSON()) to get parseable format
         const storedError = JSON.stringify(classifiedError.toJSON());
         const lastError = JSON.parse(storedError);
 
-        // isPermanentErrorType() logic from retry route:
         const isPermanent = [
           QueueErrorType.INVALID_PDF,
           QueueErrorType.MALFORMED_RESPONSE,
@@ -313,25 +282,18 @@ describe("queue error handling", () => {
     });
 
     it("allows DLQ consumer to extract error type for alerts", () => {
-      // Simulates DLQ consumer logic:
-      // https://github.com/Divkix/clickfolio.me/blob/main/lib/queue/dlq-consumer.ts#L103-112
-
       const classifiedError = classifyQueueError(
         new Error("Failed to fetch PDF from R2: my-file.pdf"),
       );
 
-      // Must use JSON.stringify(.toJSON()) to get parseable format
       const storedError = JSON.stringify(classifiedError.toJSON());
 
       let errorType = QueueErrorType.UNKNOWN;
       try {
         const parsed = JSON.parse(storedError);
         errorType = parsed.type || QueueErrorType.UNKNOWN;
-      } catch {
-        // Ignore parse errors
-      }
+      } catch {}
 
-      // DLQ should get actual error type, not "unknown"
       expect(errorType).toBe(QueueErrorType.FILE_NOT_FOUND);
       expect(errorType).not.toBe(QueueErrorType.UNKNOWN);
     });

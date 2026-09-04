@@ -1,9 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
-/**
- * 404 page shown when a requested resume handle does not exist.
- */
 export default function NotFound() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-6">

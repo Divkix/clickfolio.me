@@ -1,11 +1,3 @@
-/**
- * Security headers for API responses
- * Provides defense-in-depth against common web vulnerabilities
- */
-
-/**
- * Standard security headers for all API responses
- */
 export const SECURITY_HEADERS = {
   "Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload",
   "X-Content-Type-Options": "nosniff",
@@ -15,9 +7,6 @@ export const SECURITY_HEADERS = {
   "Permissions-Policy": "geolocation=(), microphone=(), camera=()",
 } as const;
 
-/**
- * Creates a standardized error response with security headers
- */
 export function createErrorResponse<T>(
   error: string,
   code: string,
@@ -40,9 +29,6 @@ export function createErrorResponse<T>(
   );
 }
 
-/**
- * Creates a standardized success response with security headers
- */
 export function createSuccessResponse<T>(data: T, status = 200): Response {
   return new Response(JSON.stringify(data), {
     status,
@@ -53,9 +39,6 @@ export function createSuccessResponse<T>(data: T, status = 200): Response {
   });
 }
 
-/**
- * Error codes for consistent error handling
- */
 export const ERROR_CODES = {
   UNAUTHORIZED: "UNAUTHORIZED",
   VALIDATION_ERROR: "VALIDATION_ERROR",

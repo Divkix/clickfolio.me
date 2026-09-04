@@ -21,16 +21,6 @@ interface UseResumeStatusReturn {
   refetch: () => Promise<void>;
 }
 
-/**
- * Custom hook to monitor resume parsing status.
- *
- * Uses WebSocket (via ClickfolioStatusDO) as primary channel for instant push
- * notifications. Falls back to 3s HTTP polling if WebSocket fails to connect
- * after 3 attempts.
- *
- * @param resumeId - Resume ID to check status for (null to disable)
- * @returns Status state and refetch function
- */
 export function useResumeStatus(resumeId: string | null): UseResumeStatusReturn {
   const [status, setStatus] = useState<ResumeStatus | null>(null);
   const [progress, setProgress] = useState(0);
@@ -43,11 +33,8 @@ export function useResumeStatus(resumeId: string | null): UseResumeStatusReturn 
   const startTimeRef = useRef<number>(Date.now());
   const hasTimedOutRef = useRef(false);
   const retryCountRef = useRef(0);
-  // Holds the latest fetchStatus so the WebSocket handler (defined earlier) can
-  // trigger an authoritative refetch without a definition-order cycle.
   const fetchStatusRef = useRef<(() => Promise<void>) | null>(null);
 
-  // Handle status updates from WebSocket
   const handleWSStatus = useCallback((newStatus: ResumeStatus, wsError?: string) => {
     if (!isValidResumeStatus(newStatus)) return;
     setStatus(newStatus);
@@ -55,8 +42,6 @@ export function useResumeStatus(resumeId: string | null): UseResumeStatusReturn 
       setError(wsError);
     }
 
-    // Progress mapping matches lib/resume/lifecycle.ts statusPresentation():
-    // pending_claim→15, queued→25, waiting_for_cache→30, processing→50, completed→100, failed→0
     if (newStatus === "pending_claim") {
       setProgress(15);
     } else if (newStatus === "queued") {
@@ -69,14 +54,9 @@ export function useResumeStatus(resumeId: string | null): UseResumeStatusReturn 
       setProgress(100);
     } else if (newStatus === "failed") {
       setProgress(0);
-      // The WebSocket push payload only carries { status, error, timestamp } and
-      // structurally cannot judge retry eligibility. Refetch the authoritative
-      // status endpoint so canRetry always comes from the single canonical source
-      // instead of being optimistically enabled here.
       void fetchStatusRef.current?.();
     }
 
-    // Terminal state — stop any polling that might be running
     if (newStatus === "completed" || newStatus === "failed") {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
@@ -86,13 +66,11 @@ export function useResumeStatus(resumeId: string | null): UseResumeStatusReturn 
     }
   }, []);
 
-  // WebSocket connection
   const { connectionState } = useResumeWebSocket({
     resumeId,
     onStatusChange: handleWSStatus,
   });
 
-  // Memoize fetchStatus for HTTP polling
   const fetchStatus = useCallback(async () => {
     if (!resumeId) {
       setIsLoading(false);
@@ -128,7 +106,6 @@ export function useResumeStatus(resumeId: string | null): UseResumeStatusReturn 
       setCanRetry(data.can_retry);
       setIsLoading(false);
 
-      // Stop polling if terminal state reached
       if (data.status !== "processing") {
         if (intervalRef.current) {
           clearInterval(intervalRef.current);
@@ -136,7 +113,6 @@ export function useResumeStatus(resumeId: string | null): UseResumeStatusReturn 
         }
       }
 
-      // Check for timeout (90 seconds)
       const elapsed = Date.now() - startTimeRef.current;
       if (elapsed > 90000 && data.status === "processing" && !hasTimedOutRef.current) {
         hasTimedOutRef.current = true;
@@ -177,23 +153,19 @@ export function useResumeStatus(resumeId: string | null): UseResumeStatusReturn 
     }
   }, [resumeId]);
 
-  // Keep the ref pointing at the latest fetchStatus so handleWSStatus can call it.
   fetchStatusRef.current = fetchStatus;
 
-  // Initial HTTP fetch for immediate state population + polling fallback
   useEffect(() => {
     if (!resumeId) {
       setIsLoading(false);
       return;
     }
 
-    // Reset state
     startTimeRef.current = Date.now();
     hasTimedOutRef.current = false;
     retryCountRef.current = 0;
     setIsLoading(true);
 
-    // Always do an initial HTTP fetch for immediate state
     void fetchStatus();
 
     return () => {
@@ -208,13 +180,11 @@ export function useResumeStatus(resumeId: string | null): UseResumeStatusReturn 
     };
   }, [resumeId, fetchStatus]);
 
-  // Start polling fallback when WebSocket gives up
   useEffect(() => {
     if (connectionState === "fallback" && resumeId && !intervalRef.current) {
       intervalRef.current = setInterval(fetchStatus, POLL_INTERVAL_MS);
     }
 
-    // If WS connects successfully, stop any polling
     if (connectionState === "connected" && intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;

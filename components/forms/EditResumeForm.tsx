@@ -28,7 +28,6 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Warn user about unsaved changes when navigating away
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (saveStatus === "saving") {
@@ -75,7 +74,6 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
     [onSave],
   );
 
-  // Auto-save functionality with debounce
   useEffect(() => {
     const subscription = form.watch(() => {
       if (autoSaveTimeoutRef.current) {
@@ -113,7 +111,6 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        {/* Save Status Bar */}
         <div className="sticky top-0 z-10 bg-card/95 backdrop-blur-md py-4 -mx-4 px-4 border-b border-border shadow-sm mb-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -137,7 +134,6 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
         <CertificationsSection form={form} />
         <ProjectsSection form={form} />
 
-        {/* Submit Button */}
         <div className="flex justify-end">
           <Button type="submit" size="lg" loading={saveStatus === "saving"}>
             <Save className="h-4 w-4 mr-2" />

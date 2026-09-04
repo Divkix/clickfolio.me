@@ -2,7 +2,6 @@ import { describe, expect, it, vi } from "vite-plus/test";
 import { setupMockCleanup } from "@/__tests__/setup/helpers/test-utils";
 import { parseJsonWithRepair, transformToSchema } from "@/lib/ai/ai-fallback";
 
-// Mock ai module for parsePartialJson
 vi.mock("ai", () => ({
   parsePartialJson: vi.fn(),
 }));
@@ -22,7 +21,7 @@ describe("parseJsonWithRepair", () => {
   });
 
   it("repairs malformed JSON using AI SDK", async () => {
-    const malformedJson = '{"name": "John", "age": 30'; // Missing closing brace
+    const malformedJson = '{"name": "John", "age": 30';
     const repairedData = { name: "John", age: 30 };
 
     vi.mocked(parsePartialJson).mockResolvedValue({
@@ -52,7 +51,7 @@ describe("parseJsonWithRepair", () => {
   });
 
   it("returns null when repaired value is not an object", async () => {
-    const json = "123"; // Valid JSON but not an object
+    const json = "123";
 
     vi.mocked(parsePartialJson).mockResolvedValue({
       value: 123,
@@ -368,4 +367,3 @@ describe("transformToSchema", () => {
     ]);
   });
 });
-/* eslint-enable @typescript-eslint/no-explicit-any */

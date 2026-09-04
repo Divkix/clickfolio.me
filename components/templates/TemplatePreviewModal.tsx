@@ -40,7 +40,6 @@ export function TemplatePreviewModal({
     onNavigate(newIndex);
   }, [selectedIndex, onNavigate]);
 
-  // Keyboard navigation
   useEffect(() => {
     if (!isOpen) return;
 
@@ -71,7 +70,6 @@ export function TemplatePreviewModal({
   return (
     <DialogPrimitive.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogPrimitive.Portal>
-        {/* Overlay */}
         <DialogPrimitive.Overlay
           className={cn(
             "fixed inset-0 z-50 bg-black/80 backdrop-blur-sm",
@@ -80,7 +78,6 @@ export function TemplatePreviewModal({
           )}
         />
 
-        {/* Content */}
         <DialogPrimitive.Content
           className={cn(
             "fixed inset-0 z-50 flex flex-col max-h-[100dvh] h-[100dvh]",
@@ -90,12 +87,10 @@ export function TemplatePreviewModal({
             "duration-200",
           )}
         >
-          {/* Accessible title for screen readers */}
           <DialogPrimitive.Title className="sr-only">
             {metadata.name} template preview
           </DialogPrimitive.Title>
 
-          {/* Header */}
           <div
             className={cn(
               "flex items-center justify-between px-4 py-3 border-b",
@@ -105,7 +100,6 @@ export function TemplatePreviewModal({
               "backdrop-blur-sm",
             )}
           >
-            {/* Navigation - Left */}
             <button
               type="button"
               onClick={handlePrev}
@@ -121,7 +115,6 @@ export function TemplatePreviewModal({
               <span className="hidden sm:inline text-sm font-medium">Prev</span>
             </button>
 
-            {/* Title */}
             <div className="text-center">
               <h2 className="text-sm font-semibold">{metadata.name}</h2>
               <DialogPrimitive.Description className="sr-only">
@@ -132,7 +125,6 @@ export function TemplatePreviewModal({
               </p>
             </div>
 
-            {/* Navigation - Right */}
             <div className="flex items-center gap-2">
               <button
                 type="button"
@@ -149,7 +141,6 @@ export function TemplatePreviewModal({
                 <ChevronRight className="w-5 h-5" />
               </button>
 
-              {/* Close Button */}
               <DialogPrimitive.Close
                 className={cn(
                   "p-2 rounded-lg transition-colors",
@@ -164,7 +155,6 @@ export function TemplatePreviewModal({
             </div>
           </div>
 
-          {/* Template Content - transform-gpu creates containing block for fixed elements */}
           <div
             className={cn(
               "flex-1 overflow-y-auto relative transform-gpu overscroll-contain",
@@ -174,7 +164,6 @@ export function TemplatePreviewModal({
             <Template content={content} profile={profile} isPreview />
           </div>
 
-          {/* Footer with keyboard hint */}
           <div
             className={cn(
               "flex items-center justify-center px-4 py-2 border-t text-xs",

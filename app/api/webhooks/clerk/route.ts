@@ -1,15 +1,4 @@
 /**
- * Clerk webhook receiver — syncs Clerk identities with local Postgres user
- * rows (sole source of truth since the D1 retirement).
- *
- * Events handled:
- *   - user.created / user.updated → upsert the local row keyed by
- *     `user.clerk_id`, preserving Clickfolio-specific fields (handle,
- *     isAdmin, privacySettings…) that Clerk does not own.
- *   - user.deleted                → delete the mapped row.
- *
- * Request authenticity is enforced with the Svix signature scheme (svix-id /
- * svix-timestamp / svix-signature headers) using CLERK_WEBHOOK_SECRET —
  * configure it with `wrangler secret put CLERK_WEBHOOK_SECRET` and point a
  * Clerk Dashboard webhook at https://clickfolio.me/api/webhooks/clerk.
  */
@@ -23,23 +12,19 @@ import { user as users } from "@/lib/db/schema";
 
 export const dynamic = "force-dynamic";
 
-/** Svix-verified Clerk event envelope (subset this handler consumes). */
 const verifiedEventSchema = z.object({
   type: z.string(),
   data: z.unknown().optional(),
 });
 
-/** A `user.deleted` event whose `deleted` flag is false is a deactivation, not a removal. */
 const deactivatedSchema = z.object({ deleted: z.literal(false) });
 
-/** Email address object from the official Clerk user webhook payload. */
 const clerkEmailAddressSchema = z.object({
   id: z.string(),
   email_address: z.string(),
   verification: z.object({ status: z.string().nullish() }).nullish(),
 });
 
-/** Official snake_case Clerk user object delivered by user.* events. */
 const clerkUserSchema = z.object({
   id: z.string(),
   external_id: z.string().nullish(),
@@ -51,7 +36,6 @@ const clerkUserSchema = z.object({
   deleted: z.boolean().optional(),
 });
 
-/** Fields of the Clerk user payload used for the upsert. */
 export interface ClerkUserPayload {
   id: string;
   externalId: string | null;
@@ -66,7 +50,6 @@ export interface ClerkUserPayload {
   }>;
 }
 
-/** Map the verified Clerk user object onto the app-facing payload shape. */
 function toUserPayload(data: z.infer<typeof clerkUserSchema>): ClerkUserPayload {
   return {
     id: data.id,
@@ -94,19 +77,10 @@ function primaryEmailOf(payload: ClerkUserPayload): {
   if (!primary) return null;
   return {
     email: primary.email_address,
-    // Imported users are provisioned verified; new Google users always are.
     verified: primary.verification?.status === "complete",
   };
 }
 
-/**
- * Locate the local row to attach the Clerk identity to, in priority order:
- *   1. already-mapped row (`clerk_id` match),
- *   2. imported legacy id (Clerk `externalId` = pre-migration user.id).
- *
- * Deliberately NO email fallback: matching on email could merge an unrelated
- * Clerk identity into an existing account.
- */
 async function findMappedUser(db: Database, payload: ClerkUserPayload) {
   const byClerkId = await db.query.user.findFirst({
     where: eq(users.clerkId, payload.id),
@@ -123,15 +97,9 @@ async function findMappedUser(db: Database, payload: ClerkUserPayload) {
   return null;
 }
 
-/**
- * Identity-owned columns written on every event. App-owned columns (handle,
- * isAdmin, privacySettings…) are deliberately NOT
- * here so Clerk events can never clobber them.
- */
 interface ProfileColumns {
   name: string;
   image: string | null;
-  /** Omitted when no primary email exists so updates never clobber a stored value. */
   emailVerified?: boolean;
 }
 
@@ -146,11 +114,6 @@ function profileColumns(payload: ClerkUserPayload): ProfileColumns {
   return columns;
 }
 
-/**
- * Upsert the local row for a Clerk identity and return its app user id.
- * Imported users keep their legacy id; brand-new users use the Clerk id as
- * both `id` and `clerk_id` so every foreign key has one stable value.
- */
 async function upsertUser(db: Database, payload: ClerkUserPayload): Promise<string> {
   const existing = await findMappedUser(db, payload);
   const now = new Date().toISOString();
