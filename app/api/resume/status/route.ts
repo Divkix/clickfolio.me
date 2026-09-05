@@ -67,7 +67,7 @@ export async function GET(request: Request) {
         });
       }
 
-      if (resume.status === "completed") {
+      if (view.status === "completed") {
         const resumeContent = await db.query.resumes.findFirst({
           where: eq(resumes.id, resumeId),
           columns: {
@@ -87,7 +87,7 @@ export async function GET(request: Request) {
         });
       }
 
-      if (resume.status === "failed") {
+      if (view.status === "failed") {
         return createSuccessResponse({
           status: view.status,
           progress_pct: view.progressPct,
@@ -98,8 +98,8 @@ export async function GET(request: Request) {
 
       if (view.status === "processing") {
         const extra: UnknownRecord = {};
-        if (resume.status === "waiting_for_cache") extra.waiting_for_cache = true;
-        if (resume.status === "queued") extra.queued = true;
+        if (view.waitingForCache) extra.waiting_for_cache = true;
+        if (view.queued) extra.queued = true;
         return createSuccessResponse({
           status: view.status,
           progress_pct: view.progressPct,

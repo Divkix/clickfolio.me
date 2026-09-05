@@ -10,7 +10,7 @@ export async function GET(request?: Request) {
     async ({ user: authUser, db }) => {
       const userId = authUser.id;
 
-      // mirror of GET /api/resume/status (see issue #174).
+      // Single owner for presentation is getStatusView (lib/resume/lifecycle); keep wire shape, not logic, here.
       const latestResume = await db
         .select({
           id: resumes.id,
