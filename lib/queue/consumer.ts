@@ -1,14 +1,14 @@
-import { and, eq, inArray, isNotNull, ne } from "drizzle-orm";
-import { buildSiteDataUpsert } from "../data/site-data-upsert";
+import { and, eq, isNotNull, ne } from "drizzle-orm";
 import type { UserRole } from "../db/schema";
-import { resumes, user } from "../db/schema";
+import { resumes } from "../db/schema";
 import { getDb } from "../db";
 import { getR2Binding, R2 } from "../r2";
+import { completeResumes } from "../resume/completion";
 import { resumeContentSchema } from "../schemas/resume";
 import type { ResumeContent } from "../types/database";
 import { getAlertChannel, sendAlert, type AlertEnv } from "./alert";
 import { classifyQueueError, isRetryableError, type QueueErrorInput } from "./errors";
-import { notifyStatusChange, notifyStatusChangeBatch } from "./notify-status";
+import { notifyStatusChange } from "./notify-status";
 import type { QueueMessage, ResumeParseMessage } from "./types";
 import { log } from "../utils/log";
 
@@ -84,51 +84,16 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
 
   const nextAttemptCount = (currentResume[0]?.totalAttempts || 0) + 1;
 
-  const userRow = await db
-    .select({ handle: user.handle, name: user.name })
-    .from(user)
-    .where(eq(user.id, message.userId))
-    .limit(1);
-  const hasHandle = !!userRow[0]?.handle;
-  const cachedCurrentName = userRow[0]?.name;
-  const now = new Date().toISOString();
-
   if (cached[0]?.parsedContent) {
-    const cachedContent = cached[0].parsedContent;
-
-    await db.transaction(async (tx) => {
-      await tx
-        .update(resumes)
-        .set({
-          status: "completed",
-          parsedAt: now,
-          parsedContent: cachedContent,
-          lastAttemptError: null,
-          totalAttempts: nextAttemptCount,
-        })
-        .where(eq(resumes.id, message.resumeId));
-      await buildSiteDataUpsert(tx, message.userId, message.resumeId, cachedContent, {
-        publish: hasHandle,
-      });
-    });
-
-    const cachedName = cachedContent.full_name?.trim();
-    if (
-      cachedName &&
-      cachedName !== "Pending" &&
-      cachedName !== "Unnamed" &&
-      (!cachedCurrentName || cachedCurrentName === "Unnamed" || cachedCurrentName.trim() === "")
-    ) {
-      await db
-        .update(user)
-        .set({ name: cachedName, updatedAt: now })
-        .where(eq(user.id, message.userId));
-    }
-
-    await notifyStatusChange({
-      resumeId: message.resumeId,
-      status: "completed",
+    // SAFETY: cached parsedContent is schema-validated ResumeContent written by a prior completion; cast bridges the column's wide Record type.
+    const cachedContent = cached[0].parsedContent as ResumeContent;
+    await completeResumes({
+      db,
       env,
+      items: [{ resumeId: message.resumeId, userId: message.userId }],
+      parsedContent: cachedContent,
+      professionalLevel: cachedContent.professional_level ?? undefined,
+      totalAttempts: nextAttemptCount,
     });
     return;
   }
@@ -181,56 +146,12 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
   // SAFETY: AI returns professionalLevel as validated string from resumeContentSchema; UserRole cast narrows to enum with undefined fallback if missing.
   const professionalLevel = parseResult.professionalLevel as UserRole | undefined;
 
-  const freshRow = await db
-    .select({ handle: user.handle, name: user.name })
-    .from(user)
-    .where(eq(user.id, message.userId))
-    .limit(1);
-  const freshHasHandle = !!freshRow[0]?.handle;
-  const freshCurrentName = freshRow[0]?.name;
-
-  await db.transaction(async (tx) => {
-    await tx
-      .update(resumes)
-      .set({
-        status: "completed",
-        parsedAt: now,
-        parsedContent,
-        parsedContentStaged: null,
-        lastAttemptError: null,
-      })
-      .where(eq(resumes.id, message.resumeId));
-    await buildSiteDataUpsert(tx, message.userId, message.resumeId, parsedContent, {
-      publish: freshHasHandle,
-    });
-  });
-
-  const parsedName = parsedContent.full_name?.trim();
-  const shouldUpdateName =
-    parsedName &&
-    parsedName !== "Pending" &&
-    parsedName !== "Unnamed" &&
-    (!freshCurrentName || freshCurrentName === "Unnamed" || freshCurrentName.trim() === "");
-
-  if (professionalLevel || shouldUpdateName) {
-    type UserUpdatePayload = Partial<typeof user.$inferInsert>;
-    const userUpdate: UserUpdatePayload = {
-      updatedAt: now,
-    };
-    if (professionalLevel) {
-      userUpdate.role = professionalLevel;
-      userUpdate.roleSource = "ai";
-    }
-    if (shouldUpdateName) {
-      userUpdate.name = parsedName;
-    }
-    await db.update(user).set(userUpdate).where(eq(user.id, message.userId));
-  }
-
-  await notifyStatusChange({
-    resumeId: message.resumeId,
-    status: "completed",
+  await completeResumes({
+    db,
     env,
+    items: [{ resumeId: message.resumeId, userId: message.userId }],
+    parsedContent,
+    professionalLevel,
   });
 
   const waitingResumes = await db
@@ -239,67 +160,14 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
     .where(and(eq(resumes.fileHash, message.fileHash), eq(resumes.status, "waiting_for_cache")));
 
   if (waitingResumes.length > 0) {
-    const waitingUserIds = [...new Set(waitingResumes.map((w) => w.userId))];
-    const waitingHandleRows = waitingUserIds.length
-      ? await db
-          .select({ id: user.id, handle: user.handle, name: user.name })
-          .from(user)
-          .where(inArray(user.id, waitingUserIds))
-      : [];
-    const handleMap = new Map(waitingHandleRows.map((r) => [r.id, !!r.handle]));
-    await db.transaction(async (tx) => {
-      await tx
-        .update(resumes)
-        .set({
-          status: "completed",
-          parsedAt: now,
-          parsedContent,
-          parsedContentStaged: null,
-        })
-        .where(
-          inArray(
-            resumes.id,
-            waitingResumes.map((w) => w.id),
-          ),
-        );
-      for (const w of waitingResumes) {
-        await buildSiteDataUpsert(tx, w.userId, w.id, parsedContent, {
-          publish: handleMap.get(w.userId) ?? false,
-        });
-      }
-    });
-
-    if (professionalLevel) {
-      await db
-        .update(user)
-        .set({ role: professionalLevel, roleSource: "ai", updatedAt: now })
-        .where(
-          inArray(
-            user.id,
-            waitingResumes.map((w) => w.userId),
-          ),
-        );
-    }
-
-    if (parsedName && parsedName !== "Pending" && parsedName !== "Unnamed") {
-      const waitingNeedingName = waitingHandleRows
-        .filter((r) => !r.name || r.name === "Unnamed" || r.name.trim() === "")
-        .map((r) => r.id);
-      if (waitingNeedingName.length > 0) {
-        await db
-          .update(user)
-          .set({ name: parsedName, updatedAt: now })
-          .where(inArray(user.id, waitingNeedingName));
-      }
-    }
-  }
-
-  if (waitingResumes.length > 0) {
-    await notifyStatusChangeBatch(
-      waitingResumes.map((r) => r.id),
-      "completed",
+    await completeResumes({
+      db,
       env,
-    );
+      items: waitingResumes.map((w) => ({ resumeId: w.id, userId: w.userId })),
+      parsedContent,
+      professionalLevel,
+      fanOut: true,
+    });
   }
 }
 

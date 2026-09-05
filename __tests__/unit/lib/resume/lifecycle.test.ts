@@ -9,6 +9,7 @@ import {
   hasExceededMaxAttempts,
   isPermanentErrorType,
   checkRetryEligibility,
+  checkRetryEligibilityForRow,
   canRetryResume,
   waitingForCacheTimedOut,
   statusPresentation,
@@ -243,6 +244,8 @@ describe("getStatusView", () => {
       progressPct: 30,
       isTimedOut: false,
       canRetry: false,
+      waitingForCache: true,
+      queued: false,
     });
   });
   it("waiting_for_cache stale with retryCount 0 → failed isTimedOut true canRetry true", () => {
@@ -253,7 +256,25 @@ describe("getStatusView", () => {
       totalAttempts: 1,
       lastAttemptError: null,
     });
-    expect(v).toEqual({ status: "failed", progressPct: 0, isTimedOut: true, canRetry: true });
+    expect(v).toEqual({
+      status: "failed",
+      progressPct: 0,
+      isTimedOut: true,
+      canRetry: true,
+      waitingForCache: false,
+      queued: false,
+    });
+  });
+  it("queued exposes queued flag for thin route callers", () => {
+    const v = getStatusView({
+      status: "queued",
+      createdAt: fresh,
+      retryCount: 0,
+      totalAttempts: 1,
+      lastAttemptError: null,
+    });
+    expect(v.waitingForCache).toBe(false);
+    expect(v.queued).toBe(true);
   });
   it("failed with transient → canRetry true", () => {
     const v = getStatusView({
@@ -266,6 +287,40 @@ describe("getStatusView", () => {
     expect(v.status).toBe("failed");
     expect(v.isTimedOut).toBe(false);
     expect(v.canRetry).toBe(true);
+  });
+});
+describe("checkRetryEligibilityForRow", () => {
+  const fresh = new Date().toISOString();
+  const stale = new Date(Date.now() - (WAITING_FOR_CACHE_TIMEOUT_MS + 1000)).toISOString();
+  it("virtual-timeout row presented as failed-but-retryable", () => {
+    const r = checkRetryEligibilityForRow({
+      status: "waiting_for_cache",
+      createdAt: stale,
+      retryCount: 0,
+      totalAttempts: 1,
+      lastAttemptError: null,
+    });
+    expect(r.eligible).toBe(true);
+  });
+  it("fresh waiting_for_cache is not retryable (not failed)", () => {
+    const r = checkRetryEligibilityForRow({
+      status: "waiting_for_cache",
+      createdAt: fresh,
+      retryCount: 0,
+      totalAttempts: 1,
+      lastAttemptError: null,
+    });
+    expect(r.eligible).toBe(false);
+  });
+  it("failed transient stays eligible", () => {
+    const r = checkRetryEligibilityForRow({
+      status: "failed",
+      createdAt: fresh,
+      retryCount: 0,
+      totalAttempts: 1,
+      lastAttemptError: JSON.stringify({ type: "db_connection_error" }),
+    });
+    expect(r.eligible).toBe(true);
   });
 });
 describe("buildWaitingForCacheTimeoutUpdate", () => {

@@ -253,17 +253,30 @@ export function buildWaitingForCacheTimeoutUpdate(): WaitingForCacheTimeoutUpdat
 }
 
 export type ResumeRow = StatusRow & ResumeRetryRow;
+
+export function checkRetryEligibilityForRow(row: ResumeRow): RetryEligibility {
+  if (waitingForCacheTimedOut(row)) {
+    return checkRetryEligibility({
+      status: "failed",
+      retryCount: row.retryCount,
+      totalAttempts: row.totalAttempts,
+      lastAttemptError: null,
+    });
+  }
+  return checkRetryEligibility(row);
+}
+
 export function getStatusView(row: ResumeRow) {
   const pres = statusPresentation(row);
   const isTimedOut = waitingForCacheTimedOut(row);
   const status: ResumeStatus = isTimedOut ? "failed" : pres.publicStatus;
-  const canRetry = isTimedOut
-    ? canRetryResume({
-        status: "failed",
-        retryCount: row.retryCount,
-        totalAttempts: row.totalAttempts,
-        lastAttemptError: null,
-      })
-    : canRetryResume(row);
-  return { status, progressPct: pres.progressPct, isTimedOut, canRetry };
+  const canRetry = checkRetryEligibilityForRow(row).eligible;
+  return {
+    status,
+    progressPct: pres.progressPct,
+    isTimedOut,
+    canRetry,
+    waitingForCache: pres.waitingForCache ?? false,
+    queued: pres.queued ?? false,
+  };
 }

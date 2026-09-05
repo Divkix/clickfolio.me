@@ -1,11 +1,10 @@
 import { and, eq, lt } from "drizzle-orm";
 import { withUser } from "@/lib/auth/with-auth";
 import { captureServerEvent } from "@/lib/analytics/server";
-import { RETRY_LIMITS } from "@/lib/resume/lifecycle";
+import { checkRetryEligibilityForRow, getStatusView, RETRY_LIMITS } from "@/lib/resume/lifecycle";
 import type { NewResume } from "@/lib/db/schema";
 import type { ResumeStatus } from "@/lib/db/schema/resume";
 import { resumes } from "@/lib/db/schema";
-import { checkRetryEligibility, waitingForCacheTimedOut } from "@/lib/resume/lifecycle";
 import { publishResumeParse } from "@/lib/queue/resume-parse";
 import { getR2Binding, R2 } from "@/lib/r2";
 import { sha256Hex } from "@/lib/utils/hash";
@@ -82,20 +81,16 @@ export async function POST(request: Request) {
           403,
         );
       }
-      // A `waiting_for_cache` row that has timed out is presented virtually as
-      // `failed` by GET /status; accept an immediate manual retry without waiting
-      // SAFETY: status and createdAt are validated enum/string columns; casts bridge Drizzle nullable type to ResumeStatus for lifecycle helpers.
-      const isVirtualTimeout = waitingForCacheTimedOut({
+      // SAFETY: status/retry fields are validated enum/number columns; casts bridge Drizzle type to lifecycle row.
+      const statusRow = {
         status: resume.status as ResumeStatus,
         createdAt: resume.createdAt as string | null,
-      });
-      // SAFETY: status/retry fields are validated enum/number columns; casts bridge Drizzle type to ResumeStatus for eligibility check.
-      const eligibility = checkRetryEligibility({
-        status: isVirtualTimeout ? "failed" : (resume.status as ResumeStatus),
         retryCount: resume.retryCount as number,
         totalAttempts: resume.totalAttempts as number,
-        lastAttemptError: isVirtualTimeout ? null : (resume.lastAttemptError as string | null),
-      });
+        lastAttemptError: resume.lastAttemptError as string | null,
+      };
+      const eligibility = checkRetryEligibilityForRow(statusRow);
+      const isVirtualTimeout = getStatusView(statusRow).isTimedOut;
       if (!eligibility.eligible) {
         // SAFETY: eligibility.errorCode is validated against ERROR_CODES keys; cast narrows string to known enum key.
         return createErrorResponse(
