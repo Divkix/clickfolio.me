@@ -137,7 +137,7 @@ pnpm run generate:favicons  # sharp from public/icon.svg → favicons
 
 - **Conventional Commits:** `<type>(<scope>): <description>` — types `feat, fix, docs, style, refactor, perf, test, chore`. Branch `feat/add-dark-mode`, `fix/oauth-redirect`, `chore/update-deps`.
 - **PR:** title conventional; all CI checks pass (`pnpm run ci`); screenshots for UI changes.
-- **Dependabot** (`.github/dependabot.yml`): daily `npm` (commit `chore(deps)`, label `dependencies`, 10 open-PR limit, minor/patch grouped `all-minor-patch`; majors not grouped) + `github-actions` (prefix `chore(ci)`, labels `ci`+`dependencies`).
+- **Dependabot** (`.github/dependabot.yml`): daily `npm` (commit `chore(deps)`, label `dependencies`, 10 open-PR limit, minor/patch grouped `all-minor-patch`; majors not grouped) + `github-actions` (prefix `chore(ci)`, labels `ci`+`dependencies`). Toolchain (`vite-plus`, `vite`, `vitest`, `@vitest/*`, `@voidzero-dev/vite-plus-core`) is `ignore`d — bump via `vp migrate` only, never solo.
 
 | Job                 | Needs                                          | Command                                | Notes                                    |
 | ------------------- | ---------------------------------------------- | -------------------------------------- | ---------------------------------------- |
