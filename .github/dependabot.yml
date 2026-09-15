@@ -9,6 +9,13 @@ updates:
       prefix: "chore(deps)"
     labels:
       - "dependencies"
+    ignore:
+      # vite-plus toolchain moves in lockstep via `vp migrate` only — solo bumps desync it and break CI (vite-plus→TS2321/TS2769 in vite.config.ts, vitest→coverage startup abort).
+      - dependency-name: "vite-plus"
+      - dependency-name: "vite"
+      - dependency-name: "vitest"
+      - dependency-name: "@vitest/*"
+      - dependency-name: "@voidzero-dev/vite-plus-core"
     groups:
       # Group all minor/patch updates
       all-minor-patch:
