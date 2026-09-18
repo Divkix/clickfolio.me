@@ -8,7 +8,8 @@ import { Webhook } from "svix";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { getDb, type Database } from "@/lib/db";
-import { user as users } from "@/lib/db/schema";
+import { pendingR2Deletions, user as users } from "@/lib/db/schema";
+import { collectR2KeysForUser } from "@/lib/r2";
 
 export const dynamic = "force-dynamic";
 
@@ -201,6 +202,25 @@ export async function POST(request: Request): Promise<Response> {
 
   try {
     if (event.type === "user.deleted") {
+      // Queue R2 cleanup before the cascade removes the resume rows the keys come from.
+      const mapped = await findMappedUser(db, payload);
+      if (mapped) {
+        const r2Keys = await collectR2KeysForUser(db, mapped.id);
+        if (r2Keys.length > 0) {
+          await db
+            .insert(pendingR2Deletions)
+            .values(
+              r2Keys.map((r2Key) => ({
+                id: crypto.randomUUID(),
+                r2Key,
+                createdAt: new Date().toISOString(),
+                attempts: 1,
+              })),
+            )
+            .onConflictDoNothing({ target: pendingR2Deletions.r2Key });
+        }
+      }
+
       await db.delete(users).where(eq(users.clerkId, payload.id));
       const outcome: WebhookOutcome = { received: true, action: "deleted" };
       return Response.json(outcome);

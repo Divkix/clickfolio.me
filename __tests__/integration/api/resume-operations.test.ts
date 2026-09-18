@@ -1,3 +1,4 @@
+import type * as DrizzleOrm from "drizzle-orm";
 import type { UnknownRecord, JsonValue } from "@/lib/types/json";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
@@ -21,20 +22,26 @@ vi.mock("cloudflare:workers", () => ({
   },
 }));
 
-vi.mock("drizzle-orm", () => ({
-  eq: vi.fn((_col, val) => ({ eq: val })),
-  and: vi.fn((...args: JsonValue[]) => ({ and: args })),
-  desc: vi.fn((col) => ({ desc: col })),
-  ne: vi.fn((_col, val) => ({ ne: val })),
-  gte: vi.fn((_col, val) => ({ gte: val })),
-  isNotNull: vi.fn((col) => ({ isNotNull: col })),
-  lt: vi.fn((_col, val) => ({ lt: val })),
-  inArray: vi.fn((col, values) => ({ inArray: { col, values } })),
-  sql: vi.fn((strings: TemplateStringsArray, ...values: JsonValue[]) => ({
-    sql: strings.join("?"),
-    values,
-  })),
-}));
+vi.mock("drizzle-orm", async (importOriginal) => {
+  const actual = await importOriginal<typeof DrizzleOrm>();
+  return {
+    // Real helpers for everything the routes import but tests do not assert on
+    // (lte, isNull, or, sql fallbacks); the ones below keep the shapes assertions read.
+    ...actual,
+    eq: vi.fn((_col, val) => ({ eq: val })),
+    and: vi.fn((...args: JsonValue[]) => ({ and: args })),
+    desc: vi.fn((col) => ({ desc: col })),
+    ne: vi.fn((_col, val) => ({ ne: val })),
+    gte: vi.fn((_col, val) => ({ gte: val })),
+    isNotNull: vi.fn((col) => ({ isNotNull: col })),
+    lt: vi.fn((_col, val) => ({ lt: val })),
+    inArray: vi.fn((col, values) => ({ inArray: { col, values } })),
+    sql: vi.fn((strings: TemplateStringsArray, ...values: JsonValue[]) => ({
+      sql: strings.join("?"),
+      values,
+    })),
+  };
+});
 
 vi.mock("@/lib/db", () => ({
   getDb: vi.fn(() => mockDb),
@@ -780,7 +787,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
 
       expect(mockUpdateWhere).toHaveBeenCalledWith(
         expect.objectContaining({
-          and: [{ eq: "resume-123" }, { eq: "failed" }, { lt: 2 }],
+          and: [{ eq: "resume-123" }, { eq: "failed" }, { eq: 0 }, { lt: 2 }],
         }),
       );
     });
@@ -848,7 +855,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
         1,
         expect.objectContaining({
           errorMessage: null,
-          retryCount: 1,
+          retryCount: { sql: "? + 1", values: ["retry_count"] },
           status: "queued",
         }),
       );
@@ -1071,6 +1078,23 @@ describe("Resume API Integration Tests (25 tests)", () => {
       const body = (await response.json()) as { error: string };
       expect(body.error).toContain("Resume data not found");
     });
+
+    it("returns 409 when the row moved past the version read (concurrent edit)", async () => {
+      authedAs("user-123");
+
+      mockLimit.mockResolvedValue([{ updatedAt: "2026-01-01T00:00:00.000Z" }]);
+      mockReturning.mockResolvedValue([]);
+
+      const { PUT } = await import("@/app/api/resume/update/route");
+      const request = makeRequest("http://localhost:3000/api/resume/update", "PUT", {
+        content: validResumeContent,
+      });
+      const response = await PUT(request);
+
+      expect(response.status).toBe(409);
+      const body = (await response.json()) as { error: string };
+      expect(body.error).toContain("changed elsewhere");
+    });
   });
 
   describe("PUT /api/resume/update-theme", () => {
@@ -1131,6 +1155,21 @@ describe("Resume API Integration Tests (25 tests)", () => {
       const response = await POST(request);
 
       expect(response.status).toBe(404);
+    });
+
+    it("returns 409 when the row moved past the version read (concurrent edit)", async () => {
+      authedAs("user-123");
+
+      mockLimit.mockResolvedValue([{ updatedAt: "2026-01-01T00:00:00.000Z" }]);
+      mockReturning.mockResolvedValue([]);
+
+      const { POST } = await import("@/app/api/resume/update-theme/route");
+      const request = makeRequest("http://localhost:3000/api/resume/update-theme", "POST", {
+        theme_id: "bento",
+      });
+      const response = await POST(request);
+
+      expect(response.status).toBe(409);
     });
   });
 

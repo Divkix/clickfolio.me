@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { JsonValue } from "@/lib/types/json";
 
 let mockSelectRows: JsonValue[] = [];
+let mockCountRows: JsonValue[] = [{ count: 100000 }];
 let mockLimitValues: JsonValue[] = [];
 let mockOffsetValues: JsonValue[] = [];
 
@@ -31,6 +32,17 @@ function buildQueryChain(rows: JsonValue[]) {
 vi.mock("@/lib/db", () => ({
   getDb: vi.fn(() => ({
     select: vi.fn(() => buildQueryChain(mockSelectRows)),
+    // SAFETY: the repeatable-read transaction runs a count query first, then the
+    // page query; each gets its own rows so shard-range checks see a count.
+    transaction: vi.fn(async (fn: (tx: unknown) => unknown) => {
+      let selects = 0;
+      return fn({
+        select: vi.fn(() => {
+          selects += 1;
+          return buildQueryChain(selects === 1 ? mockCountRows : mockSelectRows);
+        }),
+      });
+    }),
   })),
 }));
 
@@ -45,27 +57,27 @@ import {
   STATIC_SITEMAP_ENTRY_COUNT,
   URLS_PER_SITEMAP,
 } from "@/lib/seo/sitemap";
-
 describe("generateSitemapEntries", () => {
   beforeEach(() => {
     vi.stubEnv("APP_URL", "https://example.com");
     mockSelectRows = [];
+    mockCountRows = [{ count: 100000 }];
     mockLimitValues = [];
     mockOffsetValues = [];
   });
 
   it("returns empty array for invalid id (negative)", async () => {
-    const entries = await generateSitemapEntries(-1);
+    const entries = (await generateSitemapEntries(-1)) ?? [];
     expect(entries).toEqual([]);
   });
 
   it("returns empty array for non-integer id", async () => {
-    const entries = await generateSitemapEntries(1.5);
+    const entries = (await generateSitemapEntries(1.5)) ?? [];
     expect(entries).toEqual([]);
   });
 
   it("returns static pages for id=0 even when DB returns no users", async () => {
-    const entries = await generateSitemapEntries(0);
+    const entries = (await generateSitemapEntries(0)) ?? [];
 
     const urls = entries.map((e: MetadataRoute.Sitemap[number]) => e.url);
     expect(urls).toContain("https://example.com");
@@ -76,7 +88,7 @@ describe("generateSitemapEntries", () => {
   });
 
   it("includes profession pages for id=0", async () => {
-    const entries = await generateSitemapEntries(0);
+    const entries = (await generateSitemapEntries(0)) ?? [];
 
     const urls = entries.map((e: MetadataRoute.Sitemap[number]) => e.url);
     expect(urls).toContain("https://example.com/for/software-engineer");
@@ -88,7 +100,7 @@ describe("generateSitemapEntries", () => {
   });
 
   it("has correct priority values for static pages", async () => {
-    const entries = await generateSitemapEntries(0);
+    const entries = (await generateSitemapEntries(0)) ?? [];
 
     const homeEntry = entries.find(
       (e: MetadataRoute.Sitemap[number]) => e.url === "https://example.com",
@@ -116,7 +128,7 @@ describe("generateSitemapEntries", () => {
       },
     ];
 
-    const entries = await generateSitemapEntries(0);
+    const entries = (await generateSitemapEntries(0)) ?? [];
 
     const userUrls = entries
       .map((e: MetadataRoute.Sitemap[number]) => e.url)
@@ -135,7 +147,7 @@ describe("generateSitemapEntries", () => {
       },
     ];
 
-    const entries = await generateSitemapEntries(0);
+    const entries = (await generateSitemapEntries(0)) ?? [];
 
     const userEntry = entries.find((e: MetadataRoute.Sitemap[number]) =>
       e.url.endsWith("/@testuser"),
@@ -148,7 +160,7 @@ describe("generateSitemapEntries", () => {
       { handle: "testuser", userUpdatedAt: "2026-03-15T00:00:00Z", siteUpdatedAt: null },
     ];
 
-    const entries = await generateSitemapEntries(0);
+    const entries = (await generateSitemapEntries(0)) ?? [];
 
     const userEntry = entries.find((e: MetadataRoute.Sitemap[number]) =>
       e.url.endsWith("/@testuser"),
@@ -160,7 +172,7 @@ describe("generateSitemapEntries", () => {
     mockSelectRows = [{ handle: "testuser", userUpdatedAt: null, siteUpdatedAt: null }];
 
     const before = new Date();
-    const entries = await generateSitemapEntries(0);
+    const entries = (await generateSitemapEntries(0)) ?? [];
     const after = new Date();
 
     const userEntry = entries.find((e: MetadataRoute.Sitemap[number]) =>
@@ -172,13 +184,14 @@ describe("generateSitemapEntries", () => {
   });
 
   it("skips DB rows with null handle (belt-and-suspenders)", async () => {
+    mockCountRows = [{ count: 500000 }];
     mockSelectRows = [
       { handle: "valid", userUpdatedAt: "2026-01-01T00:00:00Z", siteUpdatedAt: null },
       { handle: null, userUpdatedAt: "2026-01-01T00:00:00Z", siteUpdatedAt: null },
       { handle: "another", userUpdatedAt: "2026-01-01T00:00:00Z", siteUpdatedAt: null },
     ];
 
-    const entries = await generateSitemapEntries(10);
+    const entries = (await generateSitemapEntries(10)) ?? [];
 
     const userUrls = entries.map((e: MetadataRoute.Sitemap[number]) => e.url);
     expect(userUrls).toHaveLength(2);
@@ -188,7 +201,7 @@ describe("generateSitemapEntries", () => {
   });
 
   it("returns only static pages for id=0 when DB returns empty", async () => {
-    const entries = await generateSitemapEntries(0);
+    const entries = (await generateSitemapEntries(0)) ?? [];
 
     const userUrls = entries
       .map((e: MetadataRoute.Sitemap[number]) => e.url)
@@ -198,9 +211,8 @@ describe("generateSitemapEntries", () => {
     const staticUrls = entries.map((e: MetadataRoute.Sitemap[number]) => e.url);
     expect(staticUrls).toContain("https://example.com");
   });
-
   it("returns only static pages for id=0 — no user entries from DB", async () => {
-    const entries = await generateSitemapEntries(0);
+    const entries = (await generateSitemapEntries(0)) ?? [];
     expect(entries.length).toBeGreaterThan(0);
     const userEntries = entries.filter((e: MetadataRoute.Sitemap[number]) => e.url.includes("/@"));
     expect(userEntries).toHaveLength(0);
@@ -212,7 +224,6 @@ describe("generateSitemapEntries", () => {
     expect(mockLimitValues.at(-1)).toBe(URLS_PER_SITEMAP - STATIC_SITEMAP_ENTRY_COUNT);
     expect(mockOffsetValues.at(-1)).toBe(0);
   });
-
   it("offsets later shards after the reduced first-shard user capacity", async () => {
     await generateSitemapEntries(1);
 
@@ -225,7 +236,7 @@ describe("generateSitemapEntries", () => {
       { handle: "testuser", userUpdatedAt: "2026-01-01T00:00:00Z", siteUpdatedAt: null },
     ];
 
-    const entries = await generateSitemapEntries(0);
+    const entries = (await generateSitemapEntries(0)) ?? [];
     const userEntry = entries.find((e: MetadataRoute.Sitemap[number]) =>
       e.url.endsWith("/@testuser"),
     );
@@ -237,21 +248,18 @@ describe("generateSitemapEntries", () => {
   it("returns static pages when DB select throws (id=0)", async () => {
     mockSelectRows = [];
 
-    const entries = await generateSitemapEntries(0);
+    const entries = (await generateSitemapEntries(0)) ?? [];
 
     const urls = entries.map((e: MetadataRoute.Sitemap[number]) => e.url);
     expect(urls).toContain("https://example.com");
     expect(urls).toContain("https://example.com/privacy");
   });
-
-  it("returns empty for id>0 when DB returns no users", async () => {
+  it("returns null for id>0 when the shard is out of range", async () => {
     mockSelectRows = [];
+    mockCountRows = [];
     const entries = await generateSitemapEntries(5);
-    expect(entries).toEqual([]);
+    expect(entries).toBeNull();
   });
-});
-
-describe("getTotalIndexableUserCount", () => {
   it("returns 0 when no users match", async () => {
     mockSelectRows = [];
     const count = await getTotalIndexableUserCount();

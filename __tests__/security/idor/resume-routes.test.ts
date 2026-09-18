@@ -40,47 +40,55 @@ vi.mock("@/lib/auth/middleware", () => ({
   requireAuthWithMessage: vi.fn(),
 }));
 
-vi.mock("drizzle-orm", () => ({
-  eq: vi.fn((_col, val) => val),
-  desc: vi.fn(() => "desc"),
-  gte: vi.fn(() => "gte"),
-  and: vi.fn(() => "and"),
-  isNotNull: vi.fn(() => "isNotNull"),
-  ne: vi.fn(() => "ne"),
-  lt: vi.fn(() => "lt"),
-  inArray: vi.fn(() => "inArray"),
-}));
+vi.mock("drizzle-orm", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("drizzle-orm")>();
+  return {
+    ...actual,
+    eq: vi.fn((_col, val) => val),
+    desc: vi.fn(() => "desc"),
+    gte: vi.fn(() => "gte"),
+    and: vi.fn(() => "and"),
+    isNotNull: vi.fn(() => "isNotNull"),
+    ne: vi.fn(() => "ne"),
+    lt: vi.fn(() => "lt"),
+    inArray: vi.fn(() => "inArray"),
+  };
+});
 
-vi.mock("@/lib/db/schema", () => ({
-  resumes: {
-    id: "id",
-    userId: "userId",
-    status: "status",
-    errorMessage: "errorMessage",
-    retryCount: "retryCount",
-    totalAttempts: "totalAttempts",
-    createdAt: "createdAt",
-    r2Key: "r2Key",
-    lastAttemptError: "lastAttemptError",
-    fileHash: "fileHash",
-    parsedContent: "parsedContent",
-    queuedAt: "queuedAt",
-  },
-  siteData: {
-    id: "id",
-    userId: "userId",
-    resumeId: "resumeId",
-    content: "content",
-    themeId: "themeId",
-    lastPublishedAt: "lastPublishedAt",
-    updatedAt: "updatedAt",
-  },
-  user: {
-    id: "id",
-    referralCount: "referralCount",
-    isPro: "isPro",
-  },
-}));
+vi.mock("@/lib/db/schema", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/db/schema")>();
+  return {
+    ...actual,
+    resumes: {
+      id: "id",
+      userId: "userId",
+      status: "status",
+      errorMessage: "errorMessage",
+      retryCount: "retryCount",
+      totalAttempts: "totalAttempts",
+      createdAt: "createdAt",
+      r2Key: "r2Key",
+      lastAttemptError: "lastAttemptError",
+      fileHash: "fileHash",
+      parsedContent: "parsedContent",
+      queuedAt: "queuedAt",
+    },
+    siteData: {
+      id: "id",
+      userId: "userId",
+      resumeId: "resumeId",
+      content: "content",
+      themeId: "themeId",
+      lastPublishedAt: "lastPublishedAt",
+      updatedAt: "updatedAt",
+    },
+    user: {
+      id: "id",
+      referralCount: "referralCount",
+      isPro: "isPro",
+    },
+  };
+});
 vi.mock("@/lib/queue/resume-parse", () => ({
   publishResumeParse: vi.fn().mockResolvedValue(undefined),
 }));
@@ -254,10 +262,22 @@ beforeEach(() => {
 });
 
 describe("IDOR - Resume Routes Security", () => {
+  // SAFETY: update/update-theme read a version snapshot before the guarded write;
+  // queue one row per select so the chain mock's .limit() resolves a row, not the chain.
+  function queueVersionSnapshot(row: JsonValue = {}) {
+    mockSelect.mockReturnValueOnce({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          limit: vi.fn().mockResolvedValue([row]),
+        }),
+      }),
+    } as never);
+  }
+
   describe("PUT /api/resume/update", () => {
     it("returns 403 when User A tries to edit User B's resume via content injection", async () => {
       authedAs("user-a");
-
+      queueVersionSnapshot();
       const mockUpdateSet = vi.fn().mockReturnValue({
         where: vi.fn().mockReturnValue({
           returning: vi.fn().mockResolvedValue([]),
@@ -282,7 +302,7 @@ describe("IDOR - Resume Routes Security", () => {
 
     it("prevents cross-user resume update via database row-level enforcement", async () => {
       authedAs("user-a");
-
+      queueVersionSnapshot();
       const mockUpdateSet = vi.fn().mockReturnValue({
         where: vi.fn().mockReturnValue({
           returning: vi.fn().mockResolvedValue([]),
@@ -309,7 +329,7 @@ describe("IDOR - Resume Routes Security", () => {
   describe("POST /api/resume/update-theme", () => {
     it("returns 403 when User A tries to change User B's theme via userId manipulation", async () => {
       authedAs("user-a");
-
+      queueVersionSnapshot();
       const mockUpdateSet = vi.fn().mockReturnValue({
         where: vi.fn().mockReturnValue({
           returning: vi.fn().mockResolvedValue([]),

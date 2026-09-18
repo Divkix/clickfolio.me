@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { recoverOrphanedResumes } from "@/lib/cron/recover-orphaned";
+import { WAITING_FOR_CACHE_TIMEOUT_MESSAGE } from "@/lib/resume/lifecycle";
 import type { UnknownRecord, JsonValue } from "@/lib/types/json";
 import type { ResumeParseMessage } from "@/lib/queue/types";
 
@@ -149,8 +150,8 @@ describe("recoverOrphanedResumes — queued orphan recovery", () => {
     expect(rollback?.queuedAt).toBeNull();
   });
 
-  it("skips queued resumes that have exceeded max attempts", async () => {
-    const { db, queue, setCalls, setBuckets } = createMocks();
+  it("marks queued resumes past the attempt cap as failed instead of leaving them stuck", async () => {
+    const { db, queue, setCalls, updateWhereCaptures, setBuckets } = createMocks();
     const maxedOut = {
       id: "resume-maxed",
       userId: "user-3",
@@ -162,9 +163,21 @@ describe("recoverOrphanedResumes — queued orphan recovery", () => {
 
     const result = await run(db as unknown as JsonValue, queue as unknown as JsonValue);
 
-    expect(result.recovered).toBe(0);
+    expect(result.ok).toBe(true);
+    expect(result.found).toBe(1);
+    expect(result.recovered).toBe(1);
     expect(queue.send).not.toHaveBeenCalled();
-    expect(setCalls).toHaveLength(0);
+    expect(setCalls).toHaveLength(1);
+    expect(setCalls[0]).toMatchObject({
+      status: "failed",
+      errorMessage: WAITING_FOR_CACHE_TIMEOUT_MESSAGE,
+    });
+    // Compare-and-set on the originally-selected row, so a row re-queued since
+    // selection is left alone.
+    const casCols = collectColumns(updateWhereCaptures[0]);
+    expect(casCols.has("id")).toBe(true);
+    expect(casCols.has("status")).toBe(true);
+    expect(casCols.has("queued_at")).toBe(true);
   });
 
   it("skips publishing when the re-queue UPDATE affects 0 rows (TOCTOU)", async () => {

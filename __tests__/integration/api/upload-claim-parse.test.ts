@@ -9,6 +9,7 @@ interface MockDbChain {
   where: ReturnType<typeof vi.fn>;
   orderBy: ReturnType<typeof vi.fn>;
   limit: ReturnType<typeof vi.fn>;
+  for: ReturnType<typeof vi.fn>;
 }
 
 interface MockDbUpdateChain {
@@ -24,10 +25,15 @@ interface MockDbInsertChain {
 const createMockDbChain = (returnValue: JsonValue = []): MockDbChain => {
   const limit = vi.fn().mockResolvedValue(returnValue);
   const orderBy = vi.fn().mockReturnValue({ limit });
-  const where = vi.fn().mockReturnValue({ orderBy, limit });
+  const forUpdate = vi.fn().mockResolvedValue(undefined);
+  const where = vi
+    .fn()
+    .mockReturnValue(
+      Object.assign(Promise.resolve(returnValue), { orderBy, limit, for: forUpdate }),
+    );
   const from = vi.fn().mockReturnValue({ where });
 
-  return { from, where, orderBy, limit };
+  return { from, where, orderBy, limit, for: forUpdate };
 };
 
 let mockDbSelectChain = createMockDbChain([]);
@@ -36,7 +42,9 @@ let mockDbInsertChain: MockDbInsertChain;
 
 const resetMockDbChains = () => {
   mockDbSelectChain = createMockDbChain([]);
-  const updateWhere = vi.fn().mockResolvedValue(undefined);
+
+  const updateReturning = vi.fn().mockResolvedValue([{ id: "resume-id", totalAttempts: 1 }]);
+  const updateWhere = vi.fn().mockReturnValue({ returning: updateReturning });
   const updateSet = vi.fn().mockReturnValue({ where: updateWhere });
   mockDbUpdateChain = {
     set: updateSet,
@@ -44,7 +52,13 @@ const resetMockDbChains = () => {
     updateResult: { set: updateSet },
   };
 
-  const insertValues = vi.fn().mockResolvedValue(undefined);
+  const insertValues = vi.fn().mockImplementation((values: { id?: string }) => ({
+    onConflictDoUpdate: vi.fn().mockReturnValue({
+      returning: vi.fn().mockResolvedValue([{ id: values.id, status: "pending_claim" }]),
+    }),
+    onConflictDoNothing: vi.fn().mockResolvedValue(undefined),
+    returning: vi.fn().mockResolvedValue([{ id: values.id }]),
+  }));
   mockDbInsertChain = { values: insertValues };
 };
 

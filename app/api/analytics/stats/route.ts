@@ -45,19 +45,24 @@ export async function GET(request: Request) {
         const endAt = Date.now();
         const startAt = endAt - days * 24 * 60 * 60 * 1000;
 
-        const oldHandleRows = await db
-          .select({ oldHandle: handleChanges.oldHandle })
-          .from(handleChanges)
-          .where(eq(handleChanges.userId, dbUser.id))
-          .orderBy(desc(handleChanges.createdAt))
-          .limit(3);
+        const loadHandleSet = async () => {
+          const rows = await db
+            .select({ oldHandle: handleChanges.oldHandle })
+            .from(handleChanges)
+            .where(eq(handleChanges.userId, dbUser.id))
+            .orderBy(desc(handleChanges.createdAt))
+            .limit(3);
 
-        const handleSet = new Set([currentHandle]);
-        for (const row of oldHandleRows) {
-          if (row.oldHandle) {
-            handleSet.add(row.oldHandle);
+          const set = new Set([currentHandle]);
+          for (const row of rows) {
+            if (row.oldHandle) {
+              set.add(row.oldHandle);
+            }
           }
-        }
+          return set;
+        };
+
+        const handleSet = await loadHandleSet();
         const handlePaths = [...handleSet].map((h) => `/@${h}`);
 
         const [statsResults, pageviewsResults, referrerResults, deviceResults, countryResults] =
@@ -194,7 +199,17 @@ export async function GET(request: Request) {
           countryBreakdown,
           period,
         });
-        response.headers.set("Cache-Control", "private, max-age=60, stale-while-revalidate=120");
+        // A handle change landing during the fan-out invalidates the aggregate:
+        // never let the browser replay a response built for the old handle set.
+        const freshHandleSet = await loadHandleSet();
+        const handleSetStable =
+          freshHandleSet.size === handleSet.size &&
+          [...handleSet].every((handle) => freshHandleSet.has(handle));
+
+        response.headers.set(
+          "Cache-Control",
+          handleSetStable ? "private, max-age=60, stale-while-revalidate=120" : "private, no-store",
+        );
         return response;
       } catch (err) {
         console.error("[analytics/stats] Umami API error:", err);

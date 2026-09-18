@@ -4,8 +4,8 @@ import { z } from "zod";
 import { withUser } from "@/lib/auth/with-auth";
 import { captureServerEvent } from "@/lib/analytics/server";
 
-import { pendingR2Deletions, resumes, user } from "@/lib/db/schema";
-import { getR2Binding, R2 } from "@/lib/r2";
+import { pendingR2Deletions, user } from "@/lib/db/schema";
+import { collectR2KeysForUser, getR2Binding, R2 } from "@/lib/r2";
 import { deleteAccountSchema } from "@/lib/schemas/account";
 import {
   createErrorResponse,
@@ -19,6 +19,8 @@ interface DeletionWarning {
   message: string;
 }
 const clerkErrorSchema = z.object({ status: z.number() });
+
+const R2_SWEEP_PAGE_SIZE = 1000;
 
 /** Per-isolate Clerk Backend client (CLERK_SECRET_KEY is stable per isolate). */
 let clerkClient: ReturnType<typeof createClerkClient> | null = null;
@@ -96,12 +98,36 @@ export async function POST(request: Request) {
         );
       }
 
-      const userResumes = await db
-        .select({ r2Key: resumes.r2Key })
-        .from(resumes)
-        .where(eq(resumes.userId, userId));
+      // DB first: the cascade removes the resume rows, and the FK stops any new claim
+      // from landing for this user while the R2 sweep below runs.
+      const knownKeys = new Set(await collectR2KeysForUser(db, userId));
 
-      const r2Keys = userResumes.map((r) => r.r2Key).filter((key): key is string => Boolean(key));
+      try {
+        await db.delete(user).where(eq(user.id, userId));
+      } catch (dbError) {
+        console.error("Account deletion error:", dbError);
+        return createErrorResponse("Failed to delete account", ERROR_CODES.DATABASE_ERROR, 500);
+      }
+
+      // Prefix sweep catches every layout (users/{userId}/{timestamp}/… and
+      // users/{userId}/{resumeId}/…) plus objects whose DB row is already gone.
+      try {
+        let cursor: string | undefined;
+        do {
+          const page = await r2Binding.list({
+            prefix: `users/${userId}/`,
+            limit: R2_SWEEP_PAGE_SIZE,
+            cursor,
+          });
+          for (const object of page.objects) knownKeys.add(object.key);
+          // SAFETY: R2 listResult with truncated true guarantees cursor presence per R2 API contract; cast narrows to paginated type for next page.
+          cursor = page.truncated ? (page as R2Objects & { truncated: true }).cursor : undefined;
+        } while (cursor);
+      } catch (listError) {
+        console.error(`Failed to list R2 objects for ${userId}:`, listError);
+      }
+
+      const r2Keys = [...knownKeys];
       const deletionResults = await Promise.allSettled(
         r2Keys.map((r2Key) => R2.delete(r2Binding, r2Key)),
       );
@@ -118,14 +144,22 @@ export async function POST(request: Request) {
       });
 
       if (failedKeys.length > 0) {
-        await db.insert(pendingR2Deletions).values(
-          failedKeys.map((key) => ({
-            id: crypto.randomUUID(),
-            r2Key: key,
-            createdAt: new Date().toISOString(),
-            attempts: 1,
-          })),
-        );
+        try {
+          await db
+            .insert(pendingR2Deletions)
+            .values(
+              failedKeys.map((key) => ({
+                id: crypto.randomUUID(),
+                r2Key: key,
+                createdAt: new Date().toISOString(),
+                attempts: 1,
+              })),
+            )
+            .onConflictDoNothing({ target: pendingR2Deletions.r2Key });
+        } catch (insertError) {
+          // Queue bookkeeping is best-effort: the deletion itself already succeeded.
+          console.error("Failed to record pending R2 deletions:", insertError);
+        }
       }
 
       try {
@@ -140,13 +174,6 @@ export async function POST(request: Request) {
             503,
           );
         }
-      }
-
-      try {
-        await db.delete(user).where(eq(user.id, userId));
-      } catch (dbError) {
-        console.error("Account deletion error:", dbError);
-        return createErrorResponse("Failed to delete account", ERROR_CODES.DATABASE_ERROR, 500);
       }
 
       captureServerEvent(userId, "account_deleted", {

@@ -4,46 +4,87 @@ import { DEFAULT_PRIVACY_SETTINGS } from "@/lib/utils/privacy";
 
 let txStatementCount = 0;
 const txValues: UnknownRecord[] = [];
+const txSelectResults: JsonValue[][] = [];
+const txReturningResults: JsonValue[][] = [];
 
 interface MockTxChain {
+  select: (...args: unknown[]) => MockTxChain;
   set: (...args: unknown[]) => MockTxChain;
   where: (...args: unknown[]) => MockTxChain;
+  from: (...args: unknown[]) => MockTxChain;
+  limit: (...args: unknown[]) => MockTxChain;
+  for: (...args: unknown[]) => MockTxChain;
   values: (rows: UnknownRecord) => MockTxChain;
   onConflictDoNothing: (...args: unknown[]) => MockTxChain;
   onConflictDoUpdate: (...args: unknown[]) => MockTxChain;
   returning: (...args: unknown[]) => MockTxChain;
   then: (
-    resolve: (value: undefined) => unknown,
+    resolve: (value: never) => unknown,
     reject?: (reason: unknown) => unknown,
   ) => Promise<unknown>;
 }
 
-const createTxChain = (): MockTxChain => {
-  const chain: MockTxChain = {
+function nextTxSelect(): JsonValue[] {
+  const next = txSelectResults.shift();
+  if (next === undefined) throw new Error("No tx select result queued");
+  return next;
+}
+
+function nextTxReturning(): JsonValue {
+  const next = txReturningResults.shift();
+  if (next === undefined) throw new Error("No tx returning result queued");
+  return next as JsonValue;
+}
+
+function makeTxBaseChain(): MockTxChain {
+  const chain = {
+    select: vi.fn(() => makeTxSelectChain()),
     set: vi.fn(() => chain),
     where: vi.fn(() => chain),
+    from: vi.fn(() => chain),
+    limit: vi.fn(() => chain),
+    for: vi.fn(() => chain),
     values: vi.fn((rows: UnknownRecord) => {
       txValues.push(rows);
       return chain;
     }),
     onConflictDoNothing: vi.fn(() => chain),
     onConflictDoUpdate: vi.fn(() => chain),
-    returning: vi.fn(() => chain),
+    returning: vi.fn(() => makeTxValueChain(nextTxReturning())),
     then: vi.fn((resolve: (value: undefined) => unknown) => {
       txStatementCount += 1;
       return Promise.resolve(resolve(undefined));
     }),
   };
+  return chain as unknown as MockTxChain;
+}
+
+function makeTxSelectChain(): MockTxChain {
+  const chain = makeTxBaseChain();
+  chain.then = vi.fn((resolve: (value: never) => unknown) =>
+    Promise.resolve(resolve(nextTxSelect() as never)),
+  );
   return chain;
-};
+}
+
+function makeTxValueChain(value: JsonValue): MockTxChain {
+  const chain = makeTxBaseChain();
+  chain.then = vi.fn((resolve: (result: never) => unknown) =>
+    Promise.resolve(resolve(value as never)),
+  );
+  return chain;
+}
+
+const createTxChain = (): MockTxChain => makeTxBaseChain();
 
 const txUpdate = vi.fn(() => createTxChain());
 const txInsert = vi.fn(() => createTxChain());
+const txSelect = vi.fn(() => makeTxSelectChain());
 
-const mockTransaction = vi.fn(async (callback: (tx: unknown) => Promise<void>) => {
+const mockTransaction = vi.fn(async (callback: (tx: unknown) => Promise<unknown>) => {
   txStatementCount = 0;
   txValues.length = 0;
-  await callback({ update: txUpdate, insert: txInsert });
+  return callback({ update: txUpdate, insert: txInsert, select: txSelect });
 });
 
 let selectResults: JsonValue[][] = [];
@@ -75,40 +116,47 @@ vi.mock("@/lib/auth/middleware", () => ({
   requireAuthWithMessage: vi.fn(),
 }));
 
-vi.mock("drizzle-orm", () => ({
-  eq: vi.fn((_col, val) => val),
-  ne: vi.fn((_col, val) => val),
-  and: vi.fn(() => "and"),
-  gte: vi.fn(),
-  sql: vi.fn((strings: TemplateStringsArray) => ({ strings })),
-}));
+vi.mock("drizzle-orm", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("drizzle-orm")>();
+  return {
+    ...actual,
+    eq: vi.fn((_col, val) => val),
+    ne: vi.fn((_col, val) => val),
+    and: vi.fn(() => "and"),
+    gte: vi.fn(),
+  };
+});
 
-vi.mock("@/lib/db/schema", () => ({
-  user: {
-    id: "id",
-    handle: "handle",
-    onboardingCompleted: "onboardingCompleted",
-    privacySettings: "privacySettings",
-    showInDirectory: "showInDirectory",
-    updatedAt: "updatedAt",
-  },
-  handleChanges: {
-    id: "id",
-    userId: "userId",
-    oldHandle: "oldHandle",
-    newHandle: "newHandle",
-    createdAt: "createdAt",
-  },
-  siteData: {
-    id: "id",
-    userId: "userId",
-    content: "content",
-    themeId: "themeId",
-    createdAt: "createdAt",
-    updatedAt: "updatedAt",
-    lastPublishedAt: "lastPublishedAt",
-  },
-}));
+vi.mock("@/lib/db/schema", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/db/schema")>();
+  return {
+    ...actual,
+    user: {
+      id: "id",
+      handle: "handle",
+      onboardingCompleted: "onboardingCompleted",
+      privacySettings: "privacySettings",
+      showInDirectory: "showInDirectory",
+      updatedAt: "updatedAt",
+    },
+    handleChanges: {
+      id: "id",
+      userId: "userId",
+      oldHandle: "oldHandle",
+      newHandle: "newHandle",
+      createdAt: "createdAt",
+    },
+    siteData: {
+      id: "id",
+      userId: "userId",
+      content: "content",
+      themeId: "themeId",
+      createdAt: "createdAt",
+      updatedAt: "updatedAt",
+      lastPublishedAt: "lastPublishedAt",
+    },
+  };
+});
 
 vi.mock("@/lib/utils/security-headers", () => ({
   createErrorResponse: vi.fn((error: string, _code: string, status: number) => {
@@ -142,6 +190,7 @@ vi.mock("@/lib/utils/validation", () => ({
 
 vi.mock("@/lib/rate-limit/handle-validation", () => ({
   isHandleTaken: vi.fn().mockResolvedValue(false),
+  isValidHandleFormat: vi.fn().mockReturnValue(true),
 }));
 
 vi.mock("@/lib/templates/theme-ids", () => ({
@@ -150,6 +199,10 @@ vi.mock("@/lib/templates/theme-ids", () => ({
 
 vi.mock("@/lib/analytics/server", () => ({
   captureServerEvent: vi.fn(),
+}));
+
+vi.mock("@/lib/utils/revalidate", () => ({
+  revalidatePublicProfilePages: vi.fn(),
 }));
 
 import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
@@ -202,32 +255,39 @@ beforeEach(() => {
   authed();
   txStatementCount = 0;
   txValues.length = 0;
+  txSelectResults.length = 0;
+  txReturningResults.length = 0;
 });
 
 describe("wizard/complete handle-change rate limit", () => {
   it("returns 429 for an onboarded user changing handle with 3+ changes in 24h", async () => {
     const { POST } = await import("@/app/api/wizard/complete/route");
 
-    selectResults.push([{ handle: "old-handle", onboardingCompleted: true }]);
-    selectResults.push([{ count: 3 }]);
+    selectResults.push([{ handle: "old-handle" }]);
+    selectResults.push([]);
+    txSelectResults.push([{ handle: "old-handle" }]);
+    txSelectResults.push([{ count: 3 }]);
 
     const response = await POST(requestWith(validBody));
 
     expect(response.status).toBe(429);
-    expect(mockTransaction).not.toHaveBeenCalled();
+    expect(mockTransaction).toHaveBeenCalledTimes(1);
   });
 
   it("inserts the handleChanges audit row inside the transaction for an under-limit change", async () => {
     const { POST } = await import("@/app/api/wizard/complete/route");
 
-    selectResults.push([{ handle: "old-handle", onboardingCompleted: true }]);
-    selectResults.push([{ count: 1 }]);
+    selectResults.push([{ handle: "old-handle" }]);
+    selectResults.push([]);
+    txSelectResults.push([{ handle: "old-handle" }]);
+    txSelectResults.push([{ count: 1 }]);
+    txReturningResults.push([{ id: "user_1" }]);
 
     const response = await POST(requestWith(validBody));
 
     expect(response.status).toBe(200);
     expect(mockTransaction).toHaveBeenCalledTimes(1);
-    expect(txStatementCount).toBe(3);
+    expect(txStatementCount).toBe(2);
 
     expect(txInsert).toHaveBeenNthCalledWith(1, siteData);
     expect(txInsert).toHaveBeenNthCalledWith(2, handleChanges);
@@ -241,29 +301,37 @@ describe("wizard/complete handle-change rate limit", () => {
     expect(auditValues.oldHandle).not.toBeNull();
   });
 
-  it("exempts first-time onboarding: no count query, no audit row", async () => {
+  it("first-time onboarding with a fresh handle writes one audit row", async () => {
     const { POST } = await import("@/app/api/wizard/complete/route");
 
-    selectResults.push([{ handle: null, onboardingCompleted: false }]);
+    selectResults.push([{ handle: null }]);
+    selectResults.push([]);
+    // New handle differs from null, so the quota count runs inside the tx.
+    txSelectResults.push([{ handle: null }]);
+    txSelectResults.push([{ count: 0 }]);
+    txReturningResults.push([{ id: "user_1" }]);
 
     const response = await POST(requestWith(validBody));
 
     expect(response.status).toBe(200);
-    expect(mockSelect).toHaveBeenCalledTimes(1);
+    expect(mockSelect).toHaveBeenCalledTimes(2);
     expect(txStatementCount).toBe(2);
     expect(txInsert).toHaveBeenNthCalledWith(1, siteData);
-    expect(txInsert).toHaveBeenCalledTimes(1);
+    expect(txInsert).toHaveBeenNthCalledWith(2, handleChanges);
   });
 
   it("skips the rate limit when an onboarded user keeps the same handle", async () => {
     const { POST } = await import("@/app/api/wizard/complete/route");
 
-    selectResults.push([{ handle: "avery", onboardingCompleted: true }]);
+    selectResults.push([{ handle: "avery" }]);
+    selectResults.push([]);
+    txSelectResults.push([{ handle: "avery" }]);
+    txReturningResults.push([{ id: "user_1" }]);
 
     await POST(requestWith(validBody));
 
-    expect(mockSelect).toHaveBeenCalledTimes(1);
-    expect(txStatementCount).toBe(2);
+    expect(mockSelect).toHaveBeenCalledTimes(2);
+    expect(txStatementCount).toBe(1);
     expect(txInsert).toHaveBeenCalledTimes(1);
   });
 });

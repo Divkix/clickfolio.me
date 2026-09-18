@@ -31,19 +31,18 @@ const mocks = vi.hoisted(() => {
       user: { id: "admin_1", email: "admin@example.com", name: "Admin", isAdmin: true },
       error: null,
     } as unknown,
-    txStatementCount: 0,
     txValues: [] as JsonValue[],
+    txSelectResults: [] as JsonValue[][],
+    txReturningResults: [] as JsonValue[][],
     serverSession: null as unknown,
     cookieStore,
   };
 
-  const nextSelectResult = () => {
-    if (state.selectResults.length === 0) {
-      throw new Error(
-        "No select result queued — push to mocks.state.selectResults before querying",
-      );
+  const nextQueued = (queue: JsonValue[][], queueName: string) => {
+    if (queue.length === 0) {
+      throw new Error(`No ${queueName} queued — push to mocks.state.${queueName} before querying`);
     }
-    return state.selectResults.shift() as JsonValue[];
+    return queue.shift() as JsonValue[];
   };
   const createChain = (): Record<string, unknown> => {
     const chain: Record<string, unknown> = {
@@ -63,7 +62,7 @@ const mocks = vi.hoisted(() => {
       then: vi.fn(
         (resolve: (value: JsonValue[]) => JsonValue, reject?: (reason: JsonValue) => JsonValue) => {
           try {
-            return Promise.resolve(resolve(nextSelectResult()));
+            return Promise.resolve(resolve(nextQueued(state.selectResults, "selectResults")));
           } catch (error) {
             return reject
               ? Promise.reject(reject(error as JsonValue))
@@ -92,20 +91,36 @@ const mocks = vi.hoisted(() => {
     return chain;
   };
 
-  const makeTxChain = (): Record<string, unknown> => {
+  // Each awaited statement resolves from the queue matching what the route reads:
+  // row-returning selects (including `select(...).for("update")`) from txSelectResults,
+  // `update(...).returning(...)` from txReturningResults, inserts to undefined.
+  const makeTxChain = (
+    read: () => JsonValue = () => nextQueued(state.txSelectResults, "txSelectResults"),
+  ): Record<string, unknown> => {
     const txChain: Record<string, unknown> = {
-      set: vi.fn(() => txChain),
+      from: vi.fn(() => txChain),
       where: vi.fn(() => txChain),
-      values: vi.fn((rows: JsonValue) => {
-        state.txValues.push(rows);
-        return txChain;
-      }),
+      limit: vi.fn(() => txChain),
+      for: vi.fn(() => txChain),
+      set: vi.fn(() => txChain),
       onConflictDoNothing: vi.fn(() => txChain),
       onConflictDoUpdate: vi.fn(() => txChain),
+      values: vi.fn((rows: JsonValue) => {
+        state.txValues.push(rows);
+        return makeTxChain(() => undefined);
+      }),
+      returning: vi.fn(() =>
+        makeTxChain(() => nextQueued(state.txReturningResults, "txReturningResults")),
+      ),
       then: vi.fn(
-        (resolve: (value: undefined) => JsonValue, _reject?: (reason: JsonValue) => JsonValue) => {
-          state.txStatementCount += 1;
-          return Promise.resolve(resolve(undefined));
+        (resolve: (value: JsonValue) => JsonValue, reject?: (reason: JsonValue) => JsonValue) => {
+          try {
+            return Promise.resolve(resolve(read()));
+          } catch (error) {
+            return reject
+              ? Promise.reject(reject(error as JsonValue))
+              : Promise.reject(error as JsonValue);
+          }
         },
       ),
     };
@@ -123,15 +138,14 @@ const mocks = vi.hoisted(() => {
     update: vi.fn(() => createChain()),
     delete: vi.fn(() => createInsertChain()),
     execute: vi.fn(async () => undefined),
-    transaction: vi.fn(async (callback: (tx: Record<string, unknown>) => Promise<void>) => {
-      state.txStatementCount = 0;
-      state.txValues = [];
-      await callback({
+    transaction: vi.fn(async (callback: (tx: Record<string, unknown>) => Promise<JsonValue>) =>
+      callback({
+        select: () => makeTxChain(),
         update: () => makeTxChain(),
         insert: () => makeTxChain(),
         delete: () => makeTxChain(),
-      });
-    }),
+      }),
+    ),
   };
 
   const env = {
@@ -261,15 +275,20 @@ vi.mock("@/lib/cron/recover-orphaned", () => ({
   recoverOrphanedResumes: mocks.recoverOrphanedResumes,
 }));
 
-vi.mock("@/lib/r2", () => ({
-  getR2Binding: vi.fn((env: typeof mocks.env) => env.CLICKFOLIO_R2_BUCKET),
-  R2: {
-    put: mocks.r2Put,
-    delete: mocks.r2Delete,
-    getAsUint8Array: mocks.r2GetAsUint8Array,
-    head: mocks.r2Head,
-  },
-}));
+vi.mock("@/lib/r2", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/r2")>();
+  return {
+    ...actual,
+    getR2Binding: vi.fn((env: typeof mocks.env) => env.CLICKFOLIO_R2_BUCKET),
+    R2: {
+      ...actual.R2,
+      put: mocks.r2Put,
+      delete: mocks.r2Delete,
+      getAsUint8Array: mocks.r2GetAsUint8Array,
+      head: mocks.r2Head,
+    },
+  };
+});
 
 vi.mock("drizzle-orm", () => ({
   relations: vi.fn((_table, build) =>
@@ -286,6 +305,7 @@ vi.mock("drizzle-orm", () => ({
   count: vi.fn(() => ({ op: "count" })),
   desc: vi.fn((field) => ({ op: "desc", field })),
   isNotNull: vi.fn((field) => ({ op: "isNotNull", field })),
+  isNull: vi.fn((field) => ({ op: "isNull", field })),
   sql: Object.assign(
     vi.fn((strings, ...values) => ({ op: "sql", strings, values })),
     {
@@ -324,6 +344,9 @@ function authed(overrides: Record<string, unknown> = {}) {
   };
 }
 
+const isHandleChangeRow = (row: JsonValue) =>
+  typeof row === "object" && row !== null && "newHandle" in row;
+
 describe("API route coverage", () => {
   let originalCronSecret: string | undefined;
 
@@ -350,19 +373,18 @@ describe("API route coverage", () => {
     mocks.db.query.resumes.findFirst.mockResolvedValue(null);
     mocks.db.execute.mockResolvedValue(undefined);
     mocks.clerkDeleteUser.mockResolvedValue(undefined);
-    mocks.state.txStatementCount = 0;
     mocks.state.txValues = [];
+    mocks.state.txSelectResults = [];
+    mocks.state.txReturningResults = [];
     mocks.state.serverSession = null;
     mocks.db.transaction.mockImplementation(
-      async (callback: (tx: Record<string, unknown>) => Promise<void>) => {
-        mocks.state.txStatementCount = 0;
-        mocks.state.txValues = [];
-        await callback({
+      async (callback: (tx: Record<string, unknown>) => Promise<JsonValue>) =>
+        callback({
+          select: () => mocks.makeTxChain(),
           update: () => mocks.makeTxChain(),
           insert: () => mocks.makeTxChain(),
           delete: () => mocks.makeTxChain(),
-        });
-      },
+        }),
     );
     mocks.env.CLICKFOLIO_R2_BUCKET.list.mockResolvedValue({ objects: [] });
     mocks.r2Put.mockResolvedValue(undefined);
@@ -383,6 +405,8 @@ describe("API route coverage", () => {
       process.env.CRON_SECRET = originalCronSecret;
     }
     expect(mocks.state.selectResults).toEqual([]);
+    expect(mocks.state.txSelectResults).toEqual([]);
+    expect(mocks.state.txReturningResults).toEqual([]);
   });
 
   it("exercises handle availability validation and ownership branches", async () => {
@@ -449,10 +473,17 @@ describe("API route coverage", () => {
     ).toMatchObject({ totalViews: 0, period: "7d" });
 
     authed();
-    mocks.state.selectResults = [[{ oldHandle: "old-one" }, { oldHandle: null }]];
+    // loadHandleSet runs before and after the Umami fan-out; both reads need a row set.
+    mocks.state.selectResults = [
+      [{ oldHandle: "old-one" }, { oldHandle: null }],
+      [{ oldHandle: "old-one" }, { oldHandle: null }],
+    ];
     const response = await GET(new Request("https://clickfolio.me/api/analytics/stats?period=30d"));
     const body = (await response.json()) as { viewsByDay: JsonValue[] } & Record<string, unknown>;
     expect(response.status).toBe(200);
+    expect(["private, max-age=60, stale-while-revalidate=120", "private, no-store"]).toContain(
+      response.headers.get("Cache-Control"),
+    );
     expect(body).toMatchObject({
       totalViews: 20,
       uniqueVisitors: 8,
@@ -955,42 +986,58 @@ describe("API route coverage", () => {
     expect((await POST(jsonRequest("/api/wizard/complete", validBody))).status).toBe(400);
 
     mocks.state.handleTaken = false;
-    mocks.state.selectResults = [[{ handle: null, onboardingCompleted: false }]];
+    // A first-time handle set (null → "avery") is a handle change: audited and quota-consuming.
+    mocks.state.txValues = [];
+    mocks.state.selectResults = [[{ handle: null }], [{ updatedAt: null }]];
+    mocks.state.txSelectResults = [[{ handle: null }], [{ count: 0 }]];
+    mocks.state.txReturningResults = [[{ id: "user_1" }]];
     expect(await (await POST(jsonRequest("/api/wizard/complete", validBody))).json()).toMatchObject(
       {
         success: true,
         handle: "avery",
       },
     );
-    expect(mocks.state.txStatementCount).toBe(2);
+    expect(mocks.state.txValues.filter(isHandleChangeRow)).toMatchObject([
+      { userId: "user_1", oldHandle: null, newHandle: "avery" },
+    ]);
+
+    // The first-time set consumes a quota slot: a full 24h window rejects it.
+    mocks.state.selectResults = [[{ handle: null }], [{ updatedAt: null }]];
+    mocks.state.txSelectResults = [[{ handle: null }], [{ count: 3 }]];
+    expect((await POST(jsonRequest("/api/wizard/complete", validBody))).status).toBe(429);
 
     mocks.db.transaction.mockRejectedValueOnce(
       Object.assign(new Error("duplicate key value violates unique constraint"), { code: "23505" }),
     );
-    mocks.state.selectResults = [[{ handle: "avery", onboardingCompleted: true }]];
+    mocks.state.selectResults = [[{ handle: "avery" }], [{ updatedAt: "2026-05-20T00:00:00Z" }]];
     expect((await POST(jsonRequest("/api/wizard/complete", validBody))).status).toBe(409);
 
+    // Compare-and-swap miss: the row moved between the pre-read and the locked update.
+    mocks.state.selectResults = [[{ handle: "avery" }], [{ updatedAt: null }]];
+    mocks.state.txSelectResults = [[{ handle: "avery" }]];
+    mocks.state.txReturningResults = [[]];
+    expect((await POST(jsonRequest("/api/wizard/complete", validBody))).status).toBe(409);
+
+    mocks.state.txValues = [];
     mocks.state.selectResults = [
-      [{ handle: "old-handle", onboardingCompleted: true }],
-      [{ count: 3 }],
+      [{ handle: "old-handle" }],
+      [{ updatedAt: "2026-05-20T00:00:00Z" }],
     ];
-    expect((await POST(jsonRequest("/api/wizard/complete", validBody))).status).toBe(429);
-    mocks.state.selectResults = [
-      [{ handle: "old-handle", onboardingCompleted: true }],
-      [{ count: 2 }],
-    ];
+    mocks.state.txSelectResults = [[{ handle: "old-handle" }], [{ count: 2 }]];
+    mocks.state.txReturningResults = [[{ id: "user_1" }]];
     const changed = await POST(jsonRequest("/api/wizard/complete", validBody));
     expect(changed.status).toBe(200);
-    expect(mocks.state.txStatementCount).toBe(3);
-    const auditValues = mocks.state.txValues.at(-1) as Record<string, unknown>;
-    expect(auditValues).toMatchObject({
-      userId: "user_1",
-      oldHandle: "old-handle",
-      newHandle: "avery",
-    });
+    expect(mocks.state.txValues.filter(isHandleChangeRow)).toMatchObject([
+      { userId: "user_1", oldHandle: "old-handle", newHandle: "avery" },
+    ]);
 
-    mocks.state.selectResults = [[{ handle: "avery", onboardingCompleted: true }]];
+    // Same handle: no quota check, no audit row.
+    mocks.state.txValues = [];
+    mocks.state.selectResults = [[{ handle: "avery" }], [{ updatedAt: "2026-05-20T00:00:00Z" }]];
+    mocks.state.txSelectResults = [[{ handle: "avery" }]];
+    mocks.state.txReturningResults = [[{ id: "user_1" }]];
     expect((await POST(jsonRequest("/api/wizard/complete", validBody))).status).toBe(200);
+    expect(mocks.state.txValues.filter(isHandleChangeRow)).toEqual([]);
   });
 
   it("covers health, cron, and auth wrappers", async () => {

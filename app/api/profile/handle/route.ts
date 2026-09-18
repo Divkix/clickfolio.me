@@ -4,15 +4,22 @@ import { captureServerEvent } from "@/lib/analytics/server";
 
 import { isUniqueViolation } from "@/lib/db/pg-errors";
 import { handleChanges, user } from "@/lib/db/schema";
-import { isHandleTaken } from "@/lib/rate-limit/handle-validation";
+import { isHandleTaken, isValidHandleFormat } from "@/lib/rate-limit/handle-validation";
 import { countHandleChangesInWindow } from "@/lib/rate-limit/user";
 import { handleUpdateSchema } from "@/lib/schemas/profile";
+import { revalidatePublicProfilePages } from "@/lib/utils/revalidate";
 import {
   createErrorResponse,
   createSuccessResponse,
   ERROR_CODES,
 } from "@/lib/utils/security-headers";
 import { readJsonWithLimit, validateRequestSize } from "@/lib/utils/validation";
+
+type HandleUpdateOutcome =
+  | { kind: "ok"; oldHandle: string | null }
+  | { kind: "missing_user" }
+  | { kind: "unchanged" }
+  | { kind: "rate_limited" };
 
 export async function PUT(request: Request) {
   const sizeCheck = validateRequestSize(request);
@@ -27,16 +34,6 @@ export async function PUT(request: Request) {
   return withUser(
     request,
     async ({ user: authUser, db }) => {
-      const changesIn24h = await countHandleChangesInWindow(db, authUser.id);
-
-      if (changesIn24h >= 3) {
-        return createErrorResponse(
-          "Rate limit exceeded. Maximum 3 handle changes per 24 hours.",
-          ERROR_CODES.RATE_LIMIT_EXCEEDED,
-          429,
-        );
-      }
-
       const rawBodyResult = await readJsonWithLimit(request);
       if (!rawBodyResult.ok) {
         return createErrorResponse(
@@ -59,25 +56,9 @@ export async function PUT(request: Request) {
 
       const { handle: newHandle } = validation.data;
 
-      const currentUser = await db
-        .select({ handle: user.handle })
-        .from(user)
-        .where(eq(user.id, authUser.id))
-        .limit(1);
-
-      if (!currentUser.length) {
+      if (!isValidHandleFormat(newHandle)) {
         return createErrorResponse(
-          "Failed to fetch current profile",
-          ERROR_CODES.DATABASE_ERROR,
-          500,
-        );
-      }
-
-      const oldHandle = currentUser[0].handle;
-
-      if (oldHandle === newHandle) {
-        return createErrorResponse(
-          "Handle is already set to this value",
+          "This handle is reserved. Please choose a different one.",
           ERROR_CODES.VALIDATION_ERROR,
           400,
         );
@@ -96,7 +77,25 @@ export async function PUT(request: Request) {
       const now = new Date().toISOString();
 
       try {
-        await db.transaction(async (tx) => {
+        const outcome = await db.transaction(async (tx): Promise<HandleUpdateOutcome> => {
+          // Row lock serializes quota counting, audit insert, and the write for this user.
+          const locked = await tx
+            .select({ handle: user.handle })
+            .from(user)
+            .where(eq(user.id, authUser.id))
+            .limit(1)
+            .for("update");
+
+          if (!locked.length) return { kind: "missing_user" };
+
+          const oldHandle = locked[0].handle;
+
+          if (oldHandle === newHandle) return { kind: "unchanged" };
+
+          const changesIn24h = await countHandleChangesInWindow(tx, authUser.id);
+
+          if (changesIn24h >= 3) return { kind: "rate_limited" };
+
           await tx
             .update(user)
             .set({
@@ -104,13 +103,52 @@ export async function PUT(request: Request) {
               updatedAt: now,
             })
             .where(eq(user.id, authUser.id));
+
           await tx.insert(handleChanges).values({
             id: crypto.randomUUID(),
             userId: authUser.id,
-            oldHandle: oldHandle,
-            newHandle: newHandle,
+            oldHandle,
+            newHandle,
             createdAt: now,
           });
+
+          return { kind: "ok", oldHandle };
+        });
+
+        if (outcome.kind === "missing_user") {
+          return createErrorResponse(
+            "Failed to fetch current profile",
+            ERROR_CODES.DATABASE_ERROR,
+            500,
+          );
+        }
+
+        if (outcome.kind === "unchanged") {
+          return createErrorResponse(
+            "Handle is already set to this value",
+            ERROR_CODES.VALIDATION_ERROR,
+            400,
+          );
+        }
+
+        if (outcome.kind === "rate_limited") {
+          return createErrorResponse(
+            "Rate limit exceeded. Maximum 3 handle changes per 24 hours.",
+            ERROR_CODES.RATE_LIMIT_EXCEEDED,
+            429,
+          );
+        }
+
+        revalidatePublicProfilePages([outcome.oldHandle, newHandle]);
+
+        captureServerEvent(authUser.id, "handle_changed", {
+          new_handle: newHandle,
+        });
+
+        return createSuccessResponse({
+          success: true,
+          handle: newHandle,
+          old_handle: outcome.oldHandle,
         });
       } catch (error) {
         // Unique constraint violation (race condition): Postgres SQLSTATE 23505 → 409.
@@ -123,16 +161,6 @@ export async function PUT(request: Request) {
         }
         throw error;
       }
-
-      captureServerEvent(authUser.id, "handle_changed", {
-        new_handle: newHandle,
-      });
-
-      return createSuccessResponse({
-        success: true,
-        handle: newHandle,
-        old_handle: oldHandle,
-      });
     },
     "You must be logged in to update your handle",
   );

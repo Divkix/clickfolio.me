@@ -1,8 +1,7 @@
-import { and, desc, eq, gte, inArray, isNotNull, ne } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNotNull, ne, sql } from "drizzle-orm";
 import { buildSiteDataUpsert } from "@/lib/data/site-data-upsert";
 import type { Database } from "@/lib/db";
-import type { NewResume } from "@/lib/db/schema";
-import { resumes, user } from "@/lib/db/schema";
+import { pendingR2Deletions, resumes, user } from "@/lib/db/schema";
 import { publishResumeParse } from "@/lib/queue/resume-parse";
 import type { ResumeParseMessage } from "@/lib/queue/types";
 import { R2 } from "@/lib/r2";
@@ -12,6 +11,11 @@ import type { ResumeContent } from "@/lib/types/database";
 import { sha256Hex } from "@/lib/utils/hash";
 import { ERROR_CODES } from "@/lib/utils/security-headers";
 import { MAX_FILE_SIZE, MAX_FILE_SIZE_LABEL } from "@/lib/utils/validation";
+
+// One in-flight claim per (user, file hash) is arbitrated by the narrow unique
+// index resumes_user_hash_pending_uidx (migrations_pg/0006): only a pending_claim
+// row blocks a new claim, so queued/processing/waiting_for_cache rows coexist
+// with the waiting_for_cache clone created by a duplicate claim.
 
 export type ClaimIntakeOutcome =
   | { kind: "already_claimed"; resumeId: string; status: string }
@@ -40,24 +44,55 @@ function isLikelyMissingObjectError(cause: unknown): boolean {
   return /not\s*found|no\s*such\s*key|does\s*not\s*exist|404/i.test(cause.message);
 }
 
+// An object nobody references must still go away; a failed delete is queued for
+// the 2 AM sweep instead of being dropped.
+async function deleteObjectOrQueue(db: Database, r2: R2Bucket, key: string): Promise<void> {
+  await R2.delete(r2, key).catch(async (err) => {
+    console.warn("R2 delete failed:", key, err);
+    try {
+      await db
+        .insert(pendingR2Deletions)
+        .values({
+          id: crypto.randomUUID(),
+          r2Key: key,
+          createdAt: new Date().toISOString(),
+          attempts: 1,
+        })
+        .onConflictDoNothing({ target: pendingR2Deletions.r2Key });
+    } catch (queueError) {
+      console.error("Failed to record pending R2 deletion:", queueError);
+    }
+  });
+}
+
 // Unified R2 failure policy: the object write must succeed or the intake fails;
-// temp-cleanup failure only warns and the intake proceeds.
+// temp-cleanup failure is queued for the 2 AM sweep and the intake proceeds.
 async function moveTempFile(
+  db: Database,
   r2: R2Bucket,
   tempKey: string,
   newKey: string,
   fileBuffer: ArrayBuffer,
 ): Promise<void> {
   await R2.put(r2, newKey, fileBuffer, { contentType: "application/pdf" });
-  await R2.delete(r2, tempKey).catch((err) =>
-    console.warn("R2 delete failed for claim temp key:", err),
-  );
+  await deleteObjectOrQueue(db, r2, tempKey);
 }
 
 export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntakeOutcome> {
   const { db, r2, queue, env, userId, tempKey } = deps;
 
-  const findRecentResume = async () => {
+  // Arbitration rows store r2Key = tempKey until the bytes land on the final key,
+  // so a duplicate claim finds its own row by key; the 2-minute recency heuristic
+  // stays as the fallback for rows whose temp object was already moved.
+  const findExistingClaim = async () => {
+    const byTempKey = await db
+      .select({ id: resumes.id, status: resumes.status })
+      .from(resumes)
+      .where(and(eq(resumes.userId, userId), eq(resumes.r2Key, tempKey)))
+      .orderBy(desc(resumes.createdAt))
+      .limit(1);
+    if (byTempKey[0]) return byTempKey[0];
+
     const twoMinAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
     const recentResume = await db
       .select({ id: resumes.id, status: resumes.status })
@@ -75,13 +110,13 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
   try {
     const buffer = await R2.getAsArrayBuffer(r2, tempKey);
     if (!buffer) {
-      const recentResume = await findRecentResume();
+      const existing = await findExistingClaim();
 
-      if (recentResume) {
+      if (existing) {
         return {
           kind: "already_claimed",
-          resumeId: recentResume.id,
-          status: recentResume.status,
+          resumeId: existing.id,
+          status: existing.status,
         };
       }
 
@@ -119,12 +154,12 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
 
     if (isLikelyMissingObjectError(error)) {
       try {
-        const recentResume = await findRecentResume();
-        if (recentResume) {
+        const existing = await findExistingClaim();
+        if (existing) {
           return {
             kind: "already_claimed",
-            resumeId: recentResume.id,
-            status: recentResume.status,
+            resumeId: existing.id,
+            status: existing.status,
           };
         }
       } catch (recentResumeError) {
@@ -140,34 +175,64 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
     };
   }
 
-  // The double-claim guard above stays ahead of rate-limiting.
-  const rateLimitResponse = await enforceRateLimit(userId, "resume_upload", env);
-  if (rateLimitResponse) {
-    return { kind: "rate_limited", response: rateLimitResponse };
-  }
-
-  const timestamp = Date.now();
   const filename = tempKey.split("/").pop();
-  const newKey = `users/${userId}/${timestamp}/${filename}`;
   const resumeId = crypto.randomUUID();
+  const newKey = `users/${userId}/${resumeId}/${filename}`;
   const now = new Date().toISOString();
 
-  try {
-    await db.insert(resumes).values({
-      id: resumeId,
-      userId,
-      r2Key: newKey,
-      fileHash: computedFileHash,
-      status: "pending_claim",
-      createdAt: now,
-    });
-  } catch (insertError) {
-    console.error("Database insert error:", insertError);
+  // Arbitration row first: it claims the pending_claim slot with r2Key still
+  // pointing at the temp object, so a requeue can never target a key whose bytes
+  // were never written. The per-user row lock serializes the dedup insert with
+  // the rate-limit count. A conflicting pending row comes back from the same
+  // statement (no-op DO UPDATE) instead of a follow-up SELECT that could miss a
+  // status flip; that statement also locks the conflicting row, which a
+  // concurrent completion txn can deadlock against — Postgres aborts one side
+  // and the caller retries.
+  const arbitration = await db.transaction(async (tx) => {
+    await tx.select({ id: user.id }).from(user).where(eq(user.id, userId)).for("update");
+
+    const rateLimitResponse = await enforceRateLimit(userId, "resume_upload", env);
+    if (rateLimitResponse) {
+      return { kind: "rate_limited" as const, response: rateLimitResponse };
+    }
+
+    const arbitrated = await tx
+      .insert(resumes)
+      .values({
+        id: resumeId,
+        userId,
+        r2Key: tempKey,
+        fileHash: computedFileHash,
+        status: "pending_claim",
+        createdAt: now,
+      })
+      .onConflictDoUpdate({
+        target: [resumes.userId, resumes.fileHash],
+        targetWhere: sql`${resumes.fileHash} IS NOT NULL AND ${resumes.status} = 'pending_claim'`,
+        set: { updatedAt: sql`${resumes.updatedAt}` },
+      })
+      .returning({ id: resumes.id, status: resumes.status });
+
+    const row = arbitrated[0];
+    if (row.id === resumeId) {
+      return { kind: "inserted" as const };
+    }
+    return { kind: "duplicate" as const, existing: row };
+  });
+
+  if (arbitration.kind === "rate_limited") {
+    return { kind: "rate_limited", response: arbitration.response };
+  }
+
+  if (arbitration.kind === "duplicate") {
+    // The conflicting row satisfies the pending_claim predicate by construction
+    // (the no-op DO UPDATE returns the locked row), so a claim of the same file is
+    // already underway: report it instead of inserting a second row or burning
+    // quota on its behalf.
     return {
-      kind: "error",
-      message: "Failed to create resume record. Please try again.",
-      code: "DATABASE_ERROR",
-      httpStatus: 500,
+      kind: "already_claimed",
+      resumeId: arbitration.existing.id,
+      status: arbitration.existing.status,
     };
   }
 
@@ -176,6 +241,85 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
       .update(resumes)
       .set({ status: "failed", errorMessage })
       .where(eq(resumes.id, resumeId));
+  };
+
+  // Account deletion can remove the row mid-claim; nothing references the temp
+  // copy or the final copy then, and the account sweep may already have run, so
+  // drop both objects. Returns true when the row was gone.
+  const discardObjectsIfRowGone = async (): Promise<boolean> => {
+    const self = await db
+      .select({ id: resumes.id })
+      .from(resumes)
+      .where(eq(resumes.id, resumeId))
+      .limit(1);
+    if (self[0]) return false;
+
+    await deleteObjectOrQueue(db, r2, newKey);
+    await deleteObjectOrQueue(db, r2, tempKey);
+    return true;
+  };
+
+  // Shared by the cache-hit branch and the post-move recheck: the arbitration row
+  // becomes the completed copy of an identical earlier file.
+  const completeFromCachedContent = async (content: ResumeContent): Promise<boolean> => {
+    try {
+      const userRow = await db
+        .select({ handle: user.handle, name: user.name })
+        .from(user)
+        .where(eq(user.id, userId))
+        .limit(1);
+      const hasHandle = !!userRow[0]?.handle;
+      const currentName = userRow[0]?.name;
+      const cachedName = content.full_name?.trim();
+      // Same rule as fresh parses (single owner: shouldSyncDisplayName):
+      // career level iff AI-provided, display name iff currently missing.
+      const cachedLevel = content.professional_level ?? undefined;
+      const shouldUpdateName = shouldSyncDisplayName(cachedName, currentName);
+
+      let completed = false;
+
+      await db.transaction(async (tx) => {
+        const updated = await tx
+          .update(resumes)
+          .set({
+            status: "completed",
+            r2Key: newKey,
+            fileHash: computedFileHash,
+            parsedAt: now,
+            parsedContent: content,
+          })
+          .where(eq(resumes.id, resumeId))
+          .returning({ id: resumes.id });
+
+        // Row gone (account deletion cascade): skip the site-data and user writes.
+        if (updated.length === 0) return;
+        completed = true;
+
+        await buildSiteDataUpsert(tx, userId, resumeId, content, {
+          publish: hasHandle,
+          // Same snapshot as this row's createdAt: a site_data row written after
+          // the claim started is newer content and must win.
+          onlyIfUpdatedAtLte: now,
+        });
+        if (shouldUpdateName || cachedLevel) {
+          type IntakeUserUpdate = Partial<typeof user.$inferInsert>;
+          const intakeUserUpdate: IntakeUserUpdate = { updatedAt: now };
+          if (shouldSyncDisplayName(cachedName, currentName)) {
+            intakeUserUpdate.name = cachedName;
+          }
+          if (cachedLevel) {
+            intakeUserUpdate.role = cachedLevel;
+            intakeUserUpdate.roleSource = "ai";
+          }
+          await tx.update(user).set(intakeUserUpdate).where(eq(user.id, userId));
+        }
+      });
+
+      return completed;
+    } catch (updateError) {
+      console.error("Failed to update resume with cached content:", updateError);
+      return false;
+    }
   };
 
   const cached = await db
@@ -197,7 +341,7 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
 
   if (cachedContent) {
     try {
-      await moveTempFile(r2, tempKey, newKey, fileBuffer);
+      await moveTempFile(db, r2, tempKey, newKey, fileBuffer);
     } catch (r2Error) {
       console.error("R2 operations failed for cached resume:", r2Error);
       await failResume("Failed to store file for processing");
@@ -209,50 +353,8 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
       };
     }
 
-    try {
-      const userRow = await db
-        .select({ handle: user.handle, name: user.name })
-        .from(user)
-        .where(eq(user.id, userId))
-        .limit(1);
-      const hasHandle = !!userRow[0]?.handle;
-      const currentName = userRow[0]?.name;
-      const cachedName = cachedContent.full_name?.trim();
-      // Same rule as fresh parses (single owner: shouldSyncDisplayName):
-      // career level iff AI-provided, display name iff currently missing.
-      const cachedLevel = cachedContent.professional_level ?? undefined;
-      const shouldUpdateName = shouldSyncDisplayName(cachedName, currentName);
-
-      await db.transaction(async (tx) => {
-        await tx
-          .update(resumes)
-          .set({
-            status: "completed",
-            fileHash: computedFileHash,
-            parsedAt: now,
-            parsedContent: cachedContent,
-          })
-          .where(eq(resumes.id, resumeId));
-        await buildSiteDataUpsert(tx, userId, resumeId, cachedContent, {
-          publish: hasHandle,
-        });
-        if (shouldUpdateName || cachedLevel) {
-          type IntakeUserUpdate = Partial<typeof user.$inferInsert>;
-          const intakeUserUpdate: IntakeUserUpdate = { updatedAt: now };
-          if (shouldSyncDisplayName(cachedName, currentName)) {
-            intakeUserUpdate.name = cachedName;
-          }
-          if (cachedLevel) {
-            intakeUserUpdate.role = cachedLevel;
-            intakeUserUpdate.roleSource = "ai";
-          }
-          await tx.update(user).set(intakeUserUpdate).where(eq(user.id, userId));
-        }
-      });
-
+    if (await completeFromCachedContent(cachedContent)) {
       return { kind: "cached", resumeId };
-    } catch (updateError) {
-      console.error("Failed to update resume with cached content:", updateError);
     }
   }
 
@@ -263,15 +365,47 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
       and(
         eq(resumes.userId, userId),
         eq(resumes.fileHash, computedFileHash),
-        inArray(resumes.status, ["processing", "queued"]),
+        inArray(resumes.status, ["queued", "processing", "waiting_for_cache"]),
         ne(resumes.id, resumeId),
       ),
     )
     .limit(1);
 
   if (processing[0]) {
+    // Mark waiting (and record the final key) before moving: the producer may
+    // finish while we copy, and the consumer's fan-out scans for
+    // `waiting_for_cache` rows. The row never picks up a key without the copy
+    // being attempted next, and a completed row must point at the real object so
+    // account deletion can find it.
     try {
-      await moveTempFile(r2, tempKey, newKey, fileBuffer);
+      const waiting = await db
+        .update(resumes)
+        .set({ status: "waiting_for_cache", fileHash: computedFileHash, r2Key: newKey })
+        .where(and(eq(resumes.id, resumeId), eq(resumes.status, "pending_claim")))
+        .returning({ id: resumes.id });
+
+      if (waiting.length === 0) {
+        await discardObjectsIfRowGone();
+        return {
+          kind: "error",
+          message: "Resume was removed while claiming it",
+          code: "NOT_FOUND",
+          httpStatus: 404,
+        };
+      }
+    } catch (waitError) {
+      console.error("Failed to set waiting_for_cache status:", waitError);
+      await failResume("Failed to prepare resume for processing");
+      return {
+        kind: "error",
+        message: "Failed to prepare resume for processing",
+        code: "DATABASE_ERROR",
+        httpStatus: 500,
+      };
+    }
+
+    try {
+      await moveTempFile(db, r2, tempKey, newKey, fileBuffer);
     } catch (error) {
       console.error("R2 operations failed for waiting resume:", error);
       await failResume("Failed to store file for processing");
@@ -283,23 +417,44 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
       };
     }
 
-    try {
-      await db
-        .update(resumes)
-        .set({
-          status: "waiting_for_cache",
-          fileHash: computedFileHash,
-        })
-        .where(eq(resumes.id, resumeId));
+    // The producer may have completed mid-move: complete inline instead of waiting
+    // for a fan-out that already ran.
+    const completed = await db
+      .select({ parsedContent: resumes.parsedContent })
+      .from(resumes)
+      .where(
+        and(
+          eq(resumes.userId, userId),
+          eq(resumes.fileHash, computedFileHash),
+          eq(resumes.status, "completed"),
+          isNotNull(resumes.parsedContent),
+          ne(resumes.id, resumeId),
+        ),
+      )
+      .limit(1);
+    // SAFETY: parsedContent is schema-validated JSONB written only by our queue consumer; cast bridges the column's wide Record type to ResumeContent.
+    const completedContent = (completed[0]?.parsedContent as ResumeContent | null) ?? null;
 
-      return { kind: "waiting_for_cache", resumeId };
-    } catch (waitError) {
-      console.error("Failed to set waiting_for_cache status:", waitError);
+    if (completedContent && (await completeFromCachedContent(completedContent))) {
+      return { kind: "cached", resumeId };
     }
+
+    // The row itself may have been deleted mid-move (account deletion cascade):
+    // the sweep may already have run, so drop the copy instead of orphaning it.
+    if (await discardObjectsIfRowGone()) {
+      return {
+        kind: "error",
+        message: "Resume was removed while claiming it",
+        code: "NOT_FOUND",
+        httpStatus: 404,
+      };
+    }
+
+    return { kind: "waiting_for_cache", resumeId };
   }
 
   try {
-    await moveTempFile(r2, tempKey, newKey, fileBuffer);
+    await moveTempFile(db, r2, tempKey, newKey, fileBuffer);
   } catch (error) {
     console.error("R2 put error:", error);
     await failResume("Failed to store file for processing");
@@ -311,13 +466,25 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
     };
   }
 
-  const updatePayload: Partial<NewResume> = {
-    status: "queued",
-    fileHash: computedFileHash,
-  };
-
   try {
-    await db.update(resumes).set(updatePayload).where(eq(resumes.id, resumeId));
+    const queued = await db
+      .update(resumes)
+      .set({ r2Key: newKey, status: "queued", queuedAt: now })
+      .where(and(eq(resumes.id, resumeId), eq(resumes.status, "pending_claim")))
+      .returning({ id: resumes.id });
+
+    if (queued.length === 0) {
+      // Row deleted mid-claim (account deletion cascade) after the bytes landed:
+      // the account sweep may already have missed the object, so remove it.
+      await discardObjectsIfRowGone();
+      await failResume("Failed to update resume status");
+      return {
+        kind: "error",
+        message: "Failed to update resume status",
+        code: "DATABASE_ERROR",
+        httpStatus: 500,
+      };
+    }
   } catch (updateError) {
     console.error("Failed to update resume with queued status:", updateError);
     await failResume("Failed to update resume status");
@@ -330,9 +497,6 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
   }
 
   if (!queue) {
-    try {
-      await db.update(resumes).set({ status: "pending_claim" }).where(eq(resumes.id, resumeId));
-    } catch {}
     await failResume("Queue service unavailable");
     return {
       kind: "error",
@@ -351,10 +515,10 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
       attempt: 1,
     });
   } catch (queueError) {
+    // Deliberately leave the row `queued`: the send error may mean the message
+    // landed anyway, so rolling back could double-publish. The 15-minute
+    // queued-orphan sweep re-drives rows stuck in `queued`.
     console.error("Failed to publish resume parse job:", queueError);
-    try {
-      await db.update(resumes).set({ status: "pending_claim" }).where(eq(resumes.id, resumeId));
-    } catch {}
     return {
       kind: "error",
       message: "Failed to queue resume for processing",

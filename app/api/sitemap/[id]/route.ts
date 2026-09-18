@@ -1,9 +1,4 @@
-import {
-  buildSitemapXml,
-  generateSitemapEntries,
-  getSitemapShardCount,
-  getTotalIndexableUserCount,
-} from "@/lib/seo/sitemap";
+import { buildSitemapXml, generateSitemapEntries } from "@/lib/seo/sitemap";
 
 function parseSitemapId(rawId: string): number | null {
   if (!/^\d+$/.test(rawId)) return null;
@@ -24,13 +19,12 @@ export async function GET(
       return new Response("Invalid sitemap id", { status: 400 });
     }
 
-    const indexableUserCount = await getTotalIndexableUserCount();
-    const shardCount = getSitemapShardCount(indexableUserCount);
-    if (id >= shardCount) {
+    // Null means the shard fell outside the indexable-user snapshot (see generateSitemapEntries).
+    const entries = await generateSitemapEntries(id);
+    if (entries === null) {
       return new Response("Sitemap shard not found", { status: 404 });
     }
 
-    const entries = await generateSitemapEntries(id);
     const xml = buildSitemapXml(entries);
 
     return new Response(xml, {

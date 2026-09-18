@@ -3,6 +3,7 @@ import type { Database } from "@/lib/db";
 import {
   buildWaitingForCacheTimeoutUpdate,
   hasExceededMaxAttempts,
+  RETRY_LIMITS,
   WAITING_FOR_CACHE_TIMEOUT_MS,
 } from "@/lib/resume/lifecycle";
 import { resumes } from "@/lib/db/schema";
@@ -130,10 +131,31 @@ export async function recoverOrphanedResumes(
 
   const now = new Date().toISOString();
   const successfulIds: string[] = [];
+  let overCapFailedCount = 0;
 
   for (const resume of orphanedResumes) {
+    // Staleness guard for the compare-and-set below: a row that was re-queued and
+    // re-claimed since selection has a fresh queuedAt, so it must not be clobbered.
+    const stillStale = or(lt(resumes.queuedAt, fifteenMinutesAgo), isNull(resumes.queuedAt));
+
     if (hasExceededMaxAttempts(resume.totalAttempts ?? 0)) {
-      log("info", "skipping resume - max attempts reached", { resumeId: resume.id });
+      // Over-cap orphans are terminal: mark them failed (user-retryable) instead of
+      // skipping them on every sweep, which left them stuck forever.
+      try {
+        const failedResult = await db
+          .update(resumes)
+          .set({ status: timeoutUpdate.status, errorMessage: timeoutUpdate.errorMessage })
+          .where(and(eq(resumes.id, resume.id), eq(resumes.status, resume.status), stillStale));
+        if (failedResult.count > 0) {
+          overCapFailedCount += 1;
+          log("info", "marked over-cap orphaned resume as failed", { resumeId: resume.id });
+        }
+      } catch (error) {
+        log("error", "failed to mark over-cap orphaned resume as failed", {
+          resumeId: resume.id,
+          error: String(error),
+        });
+      }
       continue;
     }
 
@@ -144,7 +166,14 @@ export async function recoverOrphanedResumes(
           status: "queued",
           queuedAt: now,
         })
-        .where(and(eq(resumes.id, resume.id), eq(resumes.status, resume.status)));
+        .where(
+          and(
+            eq(resumes.id, resume.id),
+            eq(resumes.status, resume.status),
+            lt(resumes.totalAttempts, RETRY_LIMITS.TOTAL_MAX_ATTEMPTS),
+            stillStale,
+          ),
+        );
       const requeueChanges = requeueResult.count;
       if (requeueChanges === 0) {
         log("info", "skipping resume - status changed since selection", {
@@ -170,7 +199,9 @@ export async function recoverOrphanedResumes(
         await db
           .update(resumes)
           .set({ status: "pending_claim", queuedAt: null })
-          .where(and(eq(resumes.id, resume.id), eq(resumes.status, "queued")));
+          .where(
+            and(eq(resumes.id, resume.id), eq(resumes.status, "queued"), eq(resumes.queuedAt, now)),
+          );
       } catch (rollbackError) {
         log("error", "failed to roll back resume", {
           resumeId: resume.id,
@@ -180,7 +211,7 @@ export async function recoverOrphanedResumes(
     }
   }
 
-  const recovered = successfulIds.length + waitingForCacheTimedOutCount;
+  const recovered = successfulIds.length + waitingForCacheTimedOutCount + overCapFailedCount;
 
   return {
     ok: true,

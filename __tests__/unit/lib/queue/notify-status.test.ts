@@ -42,7 +42,11 @@ describe("Notify Status", () => {
       expect(fetchMock).toHaveBeenCalledWith("https://do-internal/notify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "processing" }),
+        body: expect.stringContaining('"status":"processing"'),
+      });
+      expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({
+        status: "processing",
+        version: expect.any(Number),
       });
     });
 
@@ -60,9 +64,14 @@ describe("Notify Status", () => {
       expect(fetchMock).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({
-          body: JSON.stringify({ status: "failed", error: "PDF parsing failed" }),
+          body: expect.stringContaining('"status":"failed"'),
         }),
       );
+      expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({
+        status: "failed",
+        error: "PDF parsing failed",
+        version: expect.any(Number),
+      });
     });
 
     it("should return silently when DO binding not configured", async () => {

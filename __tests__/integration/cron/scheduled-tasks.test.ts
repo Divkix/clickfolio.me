@@ -35,6 +35,21 @@ function selectChain(rows: unknown[]) {
   };
 }
 
+// DELETE ... RETURNING: `where(...)` stays awaitable (RowList.count) while exposing
+// `returning(...)`, which yields the rows the delete actually removed.
+function deleteChain(count: number, returned: Array<{ id: string; r2Key: string | null }> = []) {
+  return {
+    where: vi.fn(() => ({
+      count,
+      returning: vi.fn(async () => returned),
+      then: (
+        onFulfilled?: ((value: { count: number }) => unknown) | null,
+        onRejected?: ((reason: unknown) => unknown) | null,
+      ) => Promise.resolve({ count }).then(onFulfilled, onRejected),
+    })),
+  };
+}
+
 function createMockDb(): MockCronDb {
   const db: MockCronDb = {
     transaction: vi.fn(async (cb: (tx: MockCronDb) => Promise<unknown>) => cb(db)),
@@ -45,11 +60,9 @@ function createMockDb(): MockCronDb {
       })),
     })),
     insert: vi.fn(() => ({
-      values: vi.fn().mockResolvedValue(undefined),
+      values: vi.fn(() => ({ onConflictDoNothing: vi.fn(async () => undefined) })),
     })),
-    delete: vi.fn(() => ({
-      where: vi.fn().mockResolvedValue({ count: 0 }),
-    })),
+    delete: vi.fn(() => deleteChain(0)),
   };
   return db;
 }
@@ -120,9 +133,11 @@ describe("Cron Scheduled Tasks", () => {
       };
       mockDb.select.mockReturnValueOnce(selectChain([staleFailed]));
       (mockDb.delete as Mock)
-        .mockReturnValueOnce({ where: vi.fn().mockResolvedValue({ count: 0 }) })
-        .mockReturnValueOnce({ where: vi.fn().mockResolvedValue({ count: 0 }) })
-        .mockReturnValueOnce({ where: vi.fn().mockResolvedValue({ count: 1 }) });
+        .mockReturnValueOnce(deleteChain(0))
+        .mockReturnValueOnce(deleteChain(0))
+        .mockReturnValueOnce(
+          deleteChain(1, [{ id: "resume-failed", r2Key: "uploads/failed.pdf" }]),
+        );
       vi.mocked(R2.delete).mockRejectedValueOnce(new Error("R2 unavailable"));
 
       const result = await performCleanup(mockDb as never, {} as R2Bucket);
@@ -143,9 +158,11 @@ describe("Cron Scheduled Tasks", () => {
       };
       mockDb.select.mockReturnValueOnce(selectChain([staleFailed]));
       (mockDb.delete as Mock)
-        .mockReturnValueOnce({ where: vi.fn().mockResolvedValue({ count: 0 }) })
-        .mockReturnValueOnce({ where: vi.fn().mockResolvedValue({ count: 0 }) })
-        .mockReturnValueOnce({ where: vi.fn().mockResolvedValue({ count: 1 }) });
+        .mockReturnValueOnce(deleteChain(0))
+        .mockReturnValueOnce(deleteChain(0))
+        .mockReturnValueOnce(
+          deleteChain(1, [{ id: "resume-failed", r2Key: "uploads/failed.pdf" }]),
+        );
       vi.mocked(R2.delete).mockResolvedValueOnce(undefined);
 
       const result = await performCleanup(mockDb as never, {} as R2Bucket);
@@ -224,7 +241,7 @@ describe("Cron Scheduled Tasks", () => {
       expect(result.recovered).toBe(1);
     });
 
-    it("skips resumes at max attempts", async () => {
+    it("does not re-queue resumes at max attempts, marking them failed instead", async () => {
       const maxAttemptsResume = {
         id: "max-attempts",
         userId: "user-123",
@@ -233,6 +250,13 @@ describe("Cron Scheduled Tasks", () => {
         fileHash: "hash123",
         totalAttempts: 6,
       };
+      const setValues: Array<Record<string, unknown>> = [];
+      mockDb.update.mockReturnValue({
+        set: vi.fn((values: Record<string, unknown>) => {
+          setValues.push(values);
+          return { where: vi.fn().mockResolvedValue({ count: 1 }) };
+        }),
+      });
       mockDb.select
         .mockReturnValueOnce(EMPTY_CHAIN)
         .mockReturnValueOnce(orphanChain(maxAttemptsResume))
@@ -241,7 +265,8 @@ describe("Cron Scheduled Tasks", () => {
 
       const result = await recoverOrphanedResumes(mockDb as never, asQueue(mockQueue));
 
-      expect(result.recovered).toBe(0);
+      expect(result.recovered).toBe(1);
+      expect(setValues.find((values) => values.status === "failed")).toBeDefined();
       expect(mockQueue.send).not.toHaveBeenCalled();
     });
 

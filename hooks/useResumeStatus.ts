@@ -1,7 +1,12 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ResumeStatus } from "@/lib/db/schema";
-import { isValidResumeStatus, POLL_INTERVAL_MS } from "@/lib/realtime/constants";
+import {
+  isValidResumeStatus,
+  POLL_INTERVAL_MS,
+  SLOW_POLL_INTERVAL_MS,
+} from "@/lib/realtime/constants";
+import { statusPresentation, WAITING_FOR_CACHE_TIMEOUT_MESSAGE } from "@/lib/resume/lifecycle";
 import { classifyError, getErrorMessage, showErrorToast } from "@/lib/utils/errors";
 import { useResumeWebSocket } from "./useResumeWebSocket";
 
@@ -33,31 +38,41 @@ export function useResumeStatus(resumeId: string | null): UseResumeStatusReturn 
   const startTimeRef = useRef<number>(Date.now());
   const hasTimedOutRef = useRef(false);
   const retryCountRef = useRef(0);
+  const waitingForCacheSinceRef = useRef<string | null>(null);
   const fetchStatusRef = useRef<(() => Promise<void>) | null>(null);
 
   const handleWSStatus = useCallback((newStatus: ResumeStatus, wsError?: string) => {
     if (!isValidResumeStatus(newStatus)) return;
-    setStatus(newStatus);
-    if (wsError) {
+
+    if (newStatus === "waiting_for_cache") {
+      if (waitingForCacheSinceRef.current === null) {
+        waitingForCacheSinceRef.current = new Date().toISOString();
+      }
+    } else {
+      waitingForCacheSinceRef.current = null;
+    }
+
+    // Same view mapping as the status API: virtual waiting_for_cache timeout
+    // presents as failed, and progress comes from one shared source.
+    const presentation = statusPresentation({
+      status: newStatus,
+      createdAt: waitingForCacheSinceRef.current,
+    });
+
+    setStatus(presentation.publicStatus);
+    setProgress(presentation.progressPct);
+
+    if (presentation.isWaitingForCacheTimeout) {
+      setError(WAITING_FOR_CACHE_TIMEOUT_MESSAGE);
+      setCanRetry(true);
+    } else if (wsError) {
       setError(wsError);
     }
 
-    if (newStatus === "pending_claim") {
-      setProgress(15);
-    } else if (newStatus === "queued") {
-      setProgress(25);
-    } else if (newStatus === "waiting_for_cache") {
-      setProgress(30);
-    } else if (newStatus === "processing") {
-      setProgress(50);
-    } else if (newStatus === "completed") {
-      setProgress(100);
-    } else if (newStatus === "failed") {
-      setProgress(0);
-      void fetchStatusRef.current?.();
-    }
-
-    if (newStatus === "completed" || newStatus === "failed") {
+    if (presentation.isTerminal) {
+      if (presentation.publicStatus === "failed") {
+        void fetchStatusRef.current?.();
+      }
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
@@ -164,6 +179,7 @@ export function useResumeStatus(resumeId: string | null): UseResumeStatusReturn 
     startTimeRef.current = Date.now();
     hasTimedOutRef.current = false;
     retryCountRef.current = 0;
+    waitingForCacheSinceRef.current = null;
     setIsLoading(true);
 
     void fetchStatus();
@@ -181,14 +197,20 @@ export function useResumeStatus(resumeId: string | null): UseResumeStatusReturn 
   }, [resumeId, fetchStatus]);
 
   useEffect(() => {
-    if (connectionState === "fallback" && resumeId && !intervalRef.current) {
-      intervalRef.current = setInterval(fetchStatus, POLL_INTERVAL_MS);
-    }
+    if (!resumeId) return;
 
-    if (connectionState === "connected" && intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
+    // WS pushes are the fast path: poll slowly while it is healthy (or still
+    // connecting, which can hang without ever firing onclose), and at the
+    // fallback cadence once the socket is gone.
+    const intervalMs =
+      connectionState === "fallback"
+        ? POLL_INTERVAL_MS
+        : connectionState === "closed"
+          ? null
+          : SLOW_POLL_INTERVAL_MS;
+    if (intervalMs === null) return;
+
+    intervalRef.current = setInterval(fetchStatus, intervalMs);
 
     return () => {
       if (intervalRef.current) {

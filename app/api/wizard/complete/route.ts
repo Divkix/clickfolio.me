@@ -1,15 +1,16 @@
-import { eq } from "drizzle-orm";
+import { and, eq, isNull, or, sql } from "drizzle-orm";
 import type { z } from "zod";
 import { withUser } from "@/lib/auth/with-auth";
 import { captureServerEvent } from "@/lib/analytics/server";
 
 import { isUniqueViolation } from "@/lib/db/pg-errors";
 import { handleChanges, siteData, user } from "@/lib/db/schema";
-import { isHandleTaken } from "@/lib/rate-limit/handle-validation";
+import { isHandleTaken, isValidHandleFormat } from "@/lib/rate-limit/handle-validation";
 import { countHandleChangesInWindow } from "@/lib/rate-limit/user";
 import { buildWizardCompleteSchema } from "@/lib/schemas/profile";
 import { THEME_IDS, type ThemeId } from "@/lib/templates/theme-ids";
 import type { ResumeContent } from "@/lib/types/database";
+import { revalidatePublicProfilePages } from "@/lib/utils/revalidate";
 import {
   createErrorResponse,
   createSuccessResponse,
@@ -32,6 +33,12 @@ const PENDING_RESUME_CONTENT: ResumeContent = {
   certifications: [],
   projects: [],
 };
+
+type WizardCompleteOutcome =
+  | { kind: "ok"; oldHandle: string | null }
+  | { kind: "missing_user" }
+  | { kind: "stale" }
+  | { kind: "rate_limited" };
 
 export async function POST(request: Request) {
   const sizeCheck = validateRequestSize(request);
@@ -66,6 +73,15 @@ export async function POST(request: Request) {
       }
       const body: WizardCompleteRequest = validation.data;
 
+      if (!isValidHandleFormat(body.handle)) {
+        return createErrorResponse(
+          "This handle is reserved. Please choose a different one.",
+          ERROR_CODES.VALIDATION_ERROR,
+          400,
+          { field: "handle", message: "Handle is reserved" },
+        );
+      }
+
       const handleTaken = await isHandleTaken(db, authUser.id, body.handle);
 
       if (handleTaken) {
@@ -78,35 +94,46 @@ export async function POST(request: Request) {
       }
 
       const currentUserRow = await db
-        .select({
-          handle: user.handle,
-          onboardingCompleted: user.onboardingCompleted,
-        })
+        .select({ handle: user.handle })
         .from(user)
         .where(eq(user.id, authUser.id))
         .limit(1);
 
-      const currentHandle = currentUserRow[0]?.handle ?? null;
-      const wasOnboarded = currentUserRow[0]?.onboardingCompleted === true;
-      const isHandleChange = wasOnboarded && currentHandle !== body.handle;
+      // Compare-and-swap expectation: the handle this request observed before the transaction.
+      const expectedHandle = currentUserRow[0]?.handle ?? null;
 
-      if (isHandleChange) {
-        const changesIn24h = await countHandleChangesInWindow(db, authUser.id);
+      const siteDataRow = await db
+        .select({ updatedAt: siteData.updatedAt })
+        .from(siteData)
+        .where(eq(siteData.userId, authUser.id))
+        .limit(1);
 
-        if (changesIn24h >= 3) {
-          return createErrorResponse(
-            "Rate limit exceeded. Maximum 3 handle changes per 24 hours.",
-            ERROR_CODES.RATE_LIMIT_EXCEEDED,
-            429,
-          );
-        }
-      }
+      const siteDataSnapshot = siteDataRow[0]?.updatedAt;
 
       const now = new Date().toISOString();
 
       try {
-        await db.transaction(async (tx) => {
-          await tx
+        const outcome = await db.transaction(async (tx): Promise<WizardCompleteOutcome> => {
+          // Row lock serializes concurrent completes for this user (quota count, audit, CAS write).
+          const locked = await tx
+            .select({ handle: user.handle })
+            .from(user)
+            .where(eq(user.id, authUser.id))
+            .limit(1)
+            .for("update");
+
+          if (!locked.length) return { kind: "missing_user" };
+
+          const oldHandle = locked[0].handle;
+          const isHandleChange = oldHandle !== body.handle;
+
+          if (isHandleChange) {
+            const changesIn24h = await countHandleChangesInWindow(tx, authUser.id);
+
+            if (changesIn24h >= 3) return { kind: "rate_limited" };
+          }
+
+          const updated = await tx
             .update(user)
             .set({
               handle: body.handle,
@@ -115,34 +142,99 @@ export async function POST(request: Request) {
               onboardingCompleted: true,
               updatedAt: now,
             })
-            .where(eq(user.id, authUser.id));
-          await tx
-            .insert(siteData)
-            .values({
-              id: crypto.randomUUID(),
-              userId: authUser.id,
-              content: PENDING_RESUME_CONTENT,
-              themeId: body.theme_id,
-              createdAt: now,
-              updatedAt: now,
-            })
-            .onConflictDoUpdate({
-              target: siteData.userId,
-              set: {
+            .where(
+              and(
+                eq(user.id, authUser.id),
+                expectedHandle === null
+                  ? isNull(user.handle)
+                  : or(isNull(user.handle), eq(user.handle, expectedHandle)),
+              ),
+            )
+            .returning({ id: user.id });
+
+          if (!updated.length) return { kind: "stale" };
+
+          const conflictUpdate = {
+            themeId: body.theme_id,
+            lastPublishedAt: now,
+            updatedAt: now,
+          };
+
+          if (siteDataSnapshot) {
+            // Skip when the row moved past the snapshot read at request start (e.g. queue completion published).
+            await tx
+              .insert(siteData)
+              .values({
+                id: crypto.randomUUID(),
+                userId: authUser.id,
+                content: PENDING_RESUME_CONTENT,
                 themeId: body.theme_id,
-                lastPublishedAt: now,
+                createdAt: now,
                 updatedAt: now,
-              },
-            });
+              })
+              .onConflictDoUpdate({
+                target: siteData.userId,
+                set: conflictUpdate,
+                setWhere: sql`${siteData.updatedAt} <= ${siteDataSnapshot}`,
+              });
+          } else {
+            await tx
+              .insert(siteData)
+              .values({
+                id: crypto.randomUUID(),
+                userId: authUser.id,
+                content: PENDING_RESUME_CONTENT,
+                themeId: body.theme_id,
+                createdAt: now,
+                updatedAt: now,
+              })
+              .onConflictDoUpdate({ target: siteData.userId, set: conflictUpdate });
+          }
+
           if (isHandleChange) {
             await tx.insert(handleChanges).values({
               id: crypto.randomUUID(),
               userId: authUser.id,
-              oldHandle: currentHandle,
+              oldHandle,
               newHandle: body.handle,
               createdAt: now,
             });
           }
+
+          return { kind: "ok", oldHandle };
+        });
+
+        if (outcome.kind === "missing_user") {
+          return createErrorResponse("Failed to load profile", ERROR_CODES.DATABASE_ERROR, 500);
+        }
+
+        if (outcome.kind === "stale") {
+          return createErrorResponse(
+            "Your profile was updated elsewhere. Please reload and try again.",
+            ERROR_CODES.CONFLICT,
+            409,
+          );
+        }
+
+        if (outcome.kind === "rate_limited") {
+          return createErrorResponse(
+            "Rate limit exceeded. Maximum 3 handle changes per 24 hours.",
+            ERROR_CODES.RATE_LIMIT_EXCEEDED,
+            429,
+          );
+        }
+
+        revalidatePublicProfilePages([outcome.oldHandle, body.handle]);
+
+        captureServerEvent(authUser.id, "onboarding_completed", {
+          handle: body.handle,
+          theme_id: body.theme_id,
+          show_in_directory: body.privacy_settings.show_in_directory,
+        });
+
+        return createSuccessResponse({
+          success: true,
+          handle: body.handle,
         });
       } catch (error) {
         // Unique constraint violation (race condition): Postgres SQLSTATE 23505 → 409.
@@ -155,17 +247,6 @@ export async function POST(request: Request) {
         }
         throw error;
       }
-
-      captureServerEvent(authUser.id, "onboarding_completed", {
-        handle: body.handle,
-        theme_id: body.theme_id,
-        show_in_directory: body.privacy_settings.show_in_directory,
-      });
-
-      return createSuccessResponse({
-        success: true,
-        handle: body.handle,
-      });
     },
     "You must be logged in to complete onboarding",
   );

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { eq } from "drizzle-orm";
+import { and, eq, lte } from "drizzle-orm";
 import { withUser } from "@/lib/auth/with-auth";
 import { captureServerEvent } from "@/lib/analytics/server";
 
@@ -56,6 +56,14 @@ export async function POST(request: Request) {
         });
       }
 
+      const siteDataRow = await db
+        .select({ updatedAt: siteData.updatedAt })
+        .from(siteData)
+        .where(eq(siteData.userId, userId))
+        .limit(1);
+
+      const expectedUpdatedAt = siteDataRow[0]?.updatedAt;
+
       const now = new Date().toISOString();
 
       const updateResult = await db
@@ -64,14 +72,27 @@ export async function POST(request: Request) {
           themeId: theme_id,
           updatedAt: now,
         })
-        .where(eq(siteData.userId, userId))
+        .where(
+          and(
+            eq(siteData.userId, userId),
+            // Only apply when no other writer moved the row past the version read at request start.
+            expectedUpdatedAt ? lte(siteData.updatedAt, expectedUpdatedAt) : undefined,
+          ),
+        )
         .returning({ themeId: siteData.themeId });
 
       if (updateResult.length === 0) {
+        if (!expectedUpdatedAt) {
+          return createErrorResponse(
+            "Resume data not found. Please upload a resume first.",
+            ERROR_CODES.NOT_FOUND,
+            404,
+          );
+        }
         return createErrorResponse(
-          "Resume data not found. Please upload a resume first.",
-          ERROR_CODES.NOT_FOUND,
-          404,
+          "Theme changed elsewhere. Please reload and try again.",
+          ERROR_CODES.CONFLICT,
+          409,
         );
       }
 

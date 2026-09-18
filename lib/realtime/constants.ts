@@ -2,9 +2,11 @@ import type { ResumeStatus } from "@/lib/db/schema/resume";
 
 export const WS_MAX_RECONNECT_ATTEMPTS = 3;
 export const WS_PING_INTERVAL_MS = 30000;
+export const WS_MAX_MISSED_PINGS = 2;
 export const WS_RECONNECT_BASE_MS = 1000;
 export const WS_RECONNECT_CAP_MS = 10000;
 export const POLL_INTERVAL_MS = 3000;
+export const SLOW_POLL_INTERVAL_MS = 30000;
 
 export const RESUME_STATUSES: ReadonlySet<string> = new Set([
   "pending_claim",

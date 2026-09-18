@@ -6,11 +6,27 @@ const mockDbFrom = vi.fn();
 const mockDbWhere = vi.fn();
 const mockDbLimit = vi.fn();
 const mockDbOrderBy = vi.fn();
-const mockDbInsertValues = vi.fn().mockResolvedValue(undefined);
-const mockDbInsert = vi.fn().mockReturnValue({ values: mockDbInsertValues });
+// `.returning()` is the row probe behind every conditional UPDATE: a non-empty
+// result means the row still existed, so the status change applied.
+const mockDbUpdateReturning = vi.fn().mockResolvedValue([{ id: "row-1" }]);
+const mockDbUpdateWhere = vi.fn(() => ({ returning: mockDbUpdateReturning }));
 const mockDbUpdateSet = vi.fn();
-const mockDbUpdateWhere = vi.fn().mockResolvedValue(undefined);
 const mockDbTransaction = vi.fn(async (cb: (tx: typeof mockDb) => unknown) => cb(mockDb));
+
+let lastInsertValues: Record<string, unknown> = {};
+// The arbitration insert reports the row it just inserted, so the caller sees
+// itself as the winner of the pending_claim slot.
+const mockDbInsertReturning = vi.fn(async () => [
+  { id: String(lastInsertValues.id), status: "pending_claim" },
+]);
+const mockDbInsertValues = vi.fn((values: Record<string, unknown>) => {
+  lastInsertValues = values;
+  return {
+    onConflictDoUpdate: () => ({ returning: mockDbInsertReturning }),
+    onConflictDoNothing: async () => undefined,
+  };
+});
+const mockDbInsert = vi.fn().mockReturnValue({ values: mockDbInsertValues });
 
 let mockHandleRows: Array<{ handle: string | null }> = [{ handle: "test-handle" }];
 
@@ -30,7 +46,11 @@ const mockDbSelect = vi.fn().mockImplementation((cols: unknown) => {
 });
 
 mockDbFrom.mockReturnValue({ where: mockDbWhere });
-mockDbWhere.mockReturnValue({ limit: mockDbLimit, orderBy: mockDbOrderBy });
+mockDbWhere.mockReturnValue({
+  limit: mockDbLimit,
+  orderBy: mockDbOrderBy,
+  for: async () => undefined,
+});
 mockDbOrderBy.mockReturnValue({ limit: mockDbLimit });
 mockDbLimit.mockResolvedValue([]);
 
@@ -60,6 +80,7 @@ vi.mock("drizzle-orm", () => ({
   ne: vi.fn((_col, val) => ({ ne: val })),
   isNotNull: vi.fn((col) => ({ isNotNull: col })),
   inArray: vi.fn((col, values) => ({ inArray: { col, values } })),
+  sql: vi.fn((...args: JsonValue[]) => ({ sql: args })),
 }));
 
 vi.mock("@/lib/db/schema", () => ({
@@ -76,6 +97,13 @@ vi.mock("@/lib/db/schema", () => ({
     parsedContent: "parsedContent",
     queuedAt: "queuedAt",
     parsedAt: "parsedAt",
+    updatedAt: "updatedAt",
+  },
+  pendingR2Deletions: {
+    id: "id",
+    r2Key: "r2Key",
+    createdAt: "createdAt",
+    attempts: "attempts",
   },
   siteData: {
     id: "id",
@@ -228,6 +256,7 @@ function makeClaimRequest(body: UnknownRecord, cookieValue?: string) {
 beforeEach(() => {
   vi.clearAllMocks();
   mockHandleRows = [{ handle: "test-handle" }];
+  lastInsertValues = {};
   mockR2GetAsArrayBuffer.mockResolvedValue(makePdfBuffer());
   mockDbLimit.mockResolvedValue([]);
   mockDbSelect.mockImplementation((cols: unknown) => {
@@ -245,13 +274,20 @@ beforeEach(() => {
     return { from: mockDbFrom };
   });
   mockDbFrom.mockReturnValue({ where: mockDbWhere });
-  mockDbWhere.mockReturnValue({ limit: mockDbLimit, orderBy: mockDbOrderBy });
+  mockDbWhere.mockReturnValue({
+    limit: mockDbLimit,
+    orderBy: mockDbOrderBy,
+    for: async () => undefined,
+  });
   mockDbOrderBy.mockReturnValue({ limit: mockDbLimit });
   mockDbInsert.mockReturnValue({ values: mockDbInsertValues });
-  mockDbInsertValues.mockResolvedValue(undefined);
+  mockDbInsertReturning.mockImplementation(async () => [
+    { id: String(lastInsertValues.id), status: "pending_claim" },
+  ]);
   mockDbUpdate.mockReturnValue({ set: mockDbUpdateSet });
   mockDbUpdateSet.mockReturnValue({ where: mockDbUpdateWhere });
-  mockDbUpdateWhere.mockResolvedValue(undefined);
+  mockDbUpdateWhere.mockImplementation(() => ({ returning: mockDbUpdateReturning }));
+  mockDbUpdateReturning.mockResolvedValue([{ id: "row-1" }]);
 });
 
 describe("POST /api/resume/claim — Duplicate file hash detection", () => {
@@ -324,17 +360,24 @@ describe("POST /api/resume/claim — Duplicate file hash detection", () => {
 
       expect(response.status).toBe(200);
       const body = (await response.json()) as {
+        resume_id: string;
         status: string;
         waiting_for_cache?: boolean;
       };
       expect(body.status).toBe("processing");
       expect(body.waiting_for_cache).toBe(true);
 
+      // The waiting clone records its own final key before the bytes move, so a
+      // later completion can never point at the temp object.
+      expect(mockDbUpdateSet).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: "waiting_for_cache",
+          r2Key: `users/user-1/${body.resume_id}/resume.pdf`,
+        }),
+      );
+
       const { publishResumeParse } = await import("@/lib/queue/resume-parse");
       expect(publishResumeParse).not.toHaveBeenCalled();
-
-      const { inArray } = await import("drizzle-orm");
-      expect(inArray).toHaveBeenCalledWith("status", ["processing", "queued"]);
     });
 
     it("uses cached result when same user uploads same file that was already completed", async () => {
@@ -361,7 +404,7 @@ describe("POST /api/resume/claim — Duplicate file hash detection", () => {
         "user-1",
         expect.anything(),
         cachedContent,
-        { publish: true },
+        expect.objectContaining({ publish: true }),
       );
     });
 
@@ -389,7 +432,7 @@ describe("POST /api/resume/claim — Duplicate file hash detection", () => {
         "user-1",
         expect.anything(),
         cachedContent,
-        { publish: false },
+        expect.objectContaining({ publish: false }),
       );
       expect(vi.mocked(buildSiteDataUpsert)).toHaveBeenCalled();
     });

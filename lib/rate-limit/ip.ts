@@ -8,6 +8,7 @@ import { sha256Hex } from "@/lib/utils/hash";
 const HOURLY_LIMIT = 10;
 const DAILY_LIMIT = 50;
 const HANDLE_CHECK_HOURLY_LIMIT = 100;
+const UPLOAD_UNAVAILABLE_MESSAGE = "Upload temporarily unavailable. Please try again in a moment.";
 
 const LOCAL_IPS = new Set(["127.0.0.1", "::1", "localhost", "0.0.0.0", "::ffff:127.0.0.1"]);
 
@@ -36,18 +37,25 @@ async function recordRateLimitAction(
   dailyLimit?: number,
 ): Promise<boolean> {
   const expiresAt = new Date(now.getTime() + ttlMs).toISOString();
-  const dailyGuard =
-    dailyCutoff !== undefined && dailyLimit !== undefined
-      ? db.$client` AND (SELECT COUNT(*) FROM upload_rate_limits
-       WHERE ip_hash = ${ipHash} AND action_type = ${actionType} AND created_at >= ${dailyCutoff}) < ${dailyLimit}`
-      : db.$client``;
-  const result = await db.$client`
-    INSERT INTO upload_rate_limits (id, ip_hash, action_type, created_at, expires_at)
-    SELECT ${crypto.randomUUID()}, ${ipHash}, ${actionType}, ${now.toISOString()}, ${expiresAt}
-    WHERE (SELECT COUNT(*) FROM upload_rate_limits
-           WHERE ip_hash = ${ipHash} AND action_type = ${actionType} AND created_at >= ${oneHourAgo}) < ${limit}${dailyGuard}`;
 
-  return result.count === 1;
+  // Serialize same-IP check+insert: the advisory xact lock is held until commit,
+  // so concurrent requests cannot both read a below-limit count and insert.
+  return db.$client.begin(async (tx) => {
+    await tx`SELECT pg_advisory_xact_lock(hashtext(${`${ipHash}||${actionType}`}))`;
+
+    const dailyGuard =
+      dailyCutoff !== undefined && dailyLimit !== undefined
+        ? tx` AND (SELECT COUNT(*) FROM upload_rate_limits
+         WHERE ip_hash = ${ipHash} AND action_type = ${actionType} AND created_at >= ${dailyCutoff}) < ${dailyLimit}`
+        : tx``;
+    const result = await tx`
+      INSERT INTO upload_rate_limits (id, ip_hash, action_type, created_at, expires_at)
+      SELECT ${crypto.randomUUID()}, ${ipHash}, ${actionType}, ${now.toISOString()}, ${expiresAt}
+      WHERE (SELECT COUNT(*) FROM upload_rate_limits
+             WHERE ip_hash = ${ipHash} AND action_type = ${actionType} AND created_at >= ${oneHourAgo}) < ${limit}${dailyGuard}`;
+
+    return result.count === 1;
+  });
 }
 
 export function getClientIP(request: Request): string {
@@ -144,7 +152,15 @@ export async function checkIPRateLimit(ip: string): Promise<IPRateLimitResult> {
         };
       }
     } catch (insertError) {
+      // Fail closed: dropping the increment would let every request in a
+      // DB-error window through unmetered.
       console.error("Failed to record rate limit:", insertError);
+
+      return {
+        allowed: false,
+        remaining: { hourly: 0, daily: dailyRemaining },
+        message: UPLOAD_UNAVAILABLE_MESSAGE,
+      };
     }
 
     return {
@@ -158,8 +174,9 @@ export async function checkIPRateLimit(ip: string): Promise<IPRateLimitResult> {
     console.error("Rate limit check failed:", error);
 
     return {
-      allowed: true,
-      remaining: { hourly: 1, daily: 1 },
+      allowed: false,
+      remaining: { hourly: 0, daily: 0 },
+      message: UPLOAD_UNAVAILABLE_MESSAGE,
     };
   }
 }

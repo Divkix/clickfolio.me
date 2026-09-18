@@ -1,48 +1,51 @@
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { retryPendingR2Deletions } from "@/lib/cron/cleanup-r2";
-import type { PendingR2Deletion } from "@/lib/db/schema";
 import type { JsonValue } from "@/lib/types/json";
 
-type Row = PendingR2Deletion;
+interface PendingRow {
+  id: string;
+  r2Key: string;
+  attempts: number;
+}
 
-function createDb(rows: Row[]) {
-  const whereDeleteCaptures: JsonValue[] = [];
-  const updateSetCaptures: JsonValue[] = [];
+interface Statement {
+  text: string;
+  values: unknown[];
+}
 
-  const deleteChain = {
-    where: vi.fn((cond: JsonValue) => {
-      whereDeleteCaptures.push(cond);
-      return Promise.resolve(undefined);
+const MAX_ATTEMPTS = 10;
+
+function normalize(strings: TemplateStringsArray): string {
+  return strings.join("?").replace(/\s+/g, " ").trim();
+}
+
+function createDb(rows: PendingRow[]) {
+  const statements: Statement[] = [];
+
+  const tx = vi.fn(async (strings: TemplateStringsArray, ...values: unknown[]) => {
+    const text = normalize(strings);
+    statements.push({ text, values });
+    if (text.startsWith("SELECT id, r2_key")) {
+      return rows.filter((row) => row.attempts < MAX_ATTEMPTS);
+    }
+    return [];
+  });
+
+  const client = Object.assign(
+    vi.fn(async (strings: TemplateStringsArray, ...values: unknown[]) => {
+      statements.push({ text: normalize(strings), values });
+      return [{ count: rows.filter((row) => row.attempts >= MAX_ATTEMPTS).length }];
     }),
-  };
+    {
+      begin: vi.fn(async (callback: (txFn: typeof tx) => Promise<unknown>) => callback(tx)),
+    },
+  );
 
-  const updateWhereChain = {
-    where: vi.fn((cond: JsonValue) => {
-      updateSetCaptures.push(cond);
-      return Promise.resolve(undefined);
-    }),
-  };
+  return { $client: client, _statements: statements };
+}
 
-  const updateSetChain = {
-    set: vi.fn(() => updateWhereChain),
-  };
-
-  const selectChain = {
-    from: vi.fn().mockReturnValue({
-      limit: vi.fn().mockResolvedValue(rows),
-    }),
-  };
-
-  const db = {
-    select: vi.fn().mockReturnValue(selectChain),
-    delete: vi.fn().mockReturnValue(deleteChain),
-    update: vi.fn().mockReturnValue(updateSetChain),
-    _whereDeleteCaptures: whereDeleteCaptures,
-    _updateSetCaptures: updateSetCaptures,
-    _updateSetChain: updateSetChain,
-  };
-
-  return db;
+function findStatement(db: { _statements: Statement[] }, needle: string): Statement | undefined {
+  return db._statements.find((statement) => statement.text.includes(needle));
 }
 
 function createBinding(deleteImpl?: () => Promise<void>) {
@@ -55,21 +58,13 @@ function run(db: JsonValue, binding: JsonValue) {
   return retryPendingR2Deletions(db as never, binding as unknown as R2Bucket);
 }
 
-const baseRow: Row = {
-  id: "pending-1",
-  r2Key: "users/user-1/resume.pdf",
-  createdAt: "2026-06-10T00:00:00.000Z",
-  attempts: 1,
-  lastError: null,
-};
-
 describe("retryPendingR2Deletions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it("removes a pending row when the R2 delete succeeds", async () => {
-    const db = createDb([baseRow]);
+    const db = createDb([{ id: "pending-1", r2Key: "users/user-1/resume.pdf", attempts: 1 }]);
     const binding = createBinding();
 
     const result = await run(db as unknown as JsonValue, binding as unknown as JsonValue);
@@ -81,46 +76,54 @@ describe("retryPendingR2Deletions", () => {
     expect(result.skipped).toBe(0);
 
     expect(binding.delete).toHaveBeenCalledWith("users/user-1/resume.pdf");
-    expect(db.delete).toHaveBeenCalled();
+    const deleteStatement = findStatement(db, "DELETE FROM pending_r2_deletions");
+    expect(deleteStatement?.values).toEqual(["pending-1"]);
   });
 
-  it("increments attempts and records lastError when R2 delete fails", async () => {
-    const db = createDb([baseRow]);
+  it("increments attempts in SQL and records lastError when R2 delete fails", async () => {
+    const db = createDb([{ id: "pending-1", r2Key: "users/user-1/resume.pdf", attempts: 1 }]);
     const binding = createBinding(() => Promise.reject(new Error("R2 unavailable")));
 
     const result = await run(db as unknown as JsonValue, binding as unknown as JsonValue);
 
-    expect(result.ok).toBe(true);
     expect(result.retried).toBe(1);
     expect(result.succeeded).toBe(0);
     expect(result.failed).toBe(1);
-    expect(result.skipped).toBe(0);
 
-    expect(db.update).toHaveBeenCalled();
-    const rawSetCalls = db._updateSetChain.set.mock.calls as JsonValue[][];
-    const setArg = rawSetCalls[0]?.[0] as {
-      attempts: number;
-      lastError: string;
-    };
-    expect(setArg.attempts).toBe(2);
-    expect(setArg.lastError).toBe("R2 unavailable");
+    const updateStatement = findStatement(db, "UPDATE pending_r2_deletions");
+    expect(updateStatement?.text).toContain("attempts = attempts + 1");
+    expect(updateStatement?.values).toEqual(["R2 unavailable", "pending-1"]);
+    expect(findStatement(db, "DELETE FROM pending_r2_deletions")).toBeUndefined();
   });
 
-  it("skips rows that have reached max attempts (10) without touching R2 or DB", async () => {
-    const maxedRow: Row = { ...baseRow, attempts: 10 };
-    const db = createDb([maxedRow]);
+  it("sweeps oldest-first, skips locked rows, and caps attempts in SQL", async () => {
+    const db = createDb([]);
+    const binding = createBinding();
+
+    await run(db as unknown as JsonValue, binding as unknown as JsonValue);
+
+    const selectStatement = findStatement(db, "SELECT id, r2_key");
+    expect(selectStatement?.text).toContain("WHERE attempts < ?");
+    expect(selectStatement?.text).toContain("ORDER BY created_at");
+    expect(selectStatement?.text).toContain("FOR UPDATE SKIP LOCKED");
+    expect(selectStatement?.text).toContain("LIMIT ?");
+    expect(selectStatement?.values).toEqual([MAX_ATTEMPTS, 100]);
+  });
+
+  it("reports rows at the attempt cap as skipped without touching R2 or DB", async () => {
+    const db = createDb([{ id: "max-1", r2Key: "users/u1/a.pdf", attempts: MAX_ATTEMPTS }]);
     const binding = createBinding();
 
     const result = await run(db as unknown as JsonValue, binding as unknown as JsonValue);
 
-    expect(result.retried).toBe(1);
+    expect(result.retried).toBe(0);
     expect(result.skipped).toBe(1);
     expect(result.succeeded).toBe(0);
     expect(result.failed).toBe(0);
 
     expect(binding.delete).not.toHaveBeenCalled();
-    expect(db.delete).not.toHaveBeenCalled();
-    expect(db.update).not.toHaveBeenCalled();
+    expect(findStatement(db, "DELETE FROM pending_r2_deletions")).toBeUndefined();
+    expect(findStatement(db, "UPDATE pending_r2_deletions")).toBeUndefined();
   });
 
   it("returns zero counts and a timestamp when there are no pending rows", async () => {
@@ -138,18 +141,18 @@ describe("retryPendingR2Deletions", () => {
   });
 
   it("handles a mix of successful, failing, and max-attempts rows", async () => {
-    const rows: Row[] = [
-      { ...baseRow, id: "ok-1", r2Key: "users/u1/a.pdf", attempts: 1 },
-      { ...baseRow, id: "fail-1", r2Key: "users/u2/b.pdf", attempts: 2 },
-      { ...baseRow, id: "max-1", r2Key: "users/u3/c.pdf", attempts: 10 },
-    ];
-    const db = createDb(rows);
+    const db = createDb([
+      { id: "ok-1", r2Key: "users/u1/a.pdf", attempts: 1 },
+      { id: "fail-1", r2Key: "users/u2/b.pdf", attempts: 2 },
+      { id: "max-1", r2Key: "users/u3/c.pdf", attempts: MAX_ATTEMPTS },
+    ]);
     const binding = {
       delete: vi.fn().mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error("timeout")),
     };
+
     const result = await run(db as unknown as JsonValue, binding as unknown as JsonValue);
 
-    expect(result.retried).toBe(3);
+    expect(result.retried).toBe(2);
     expect(result.succeeded).toBe(1);
     expect(result.failed).toBe(1);
     expect(result.skipped).toBe(1);

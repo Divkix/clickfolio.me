@@ -1,8 +1,9 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { withUser } from "@/lib/auth/with-auth";
 
 import { user } from "@/lib/db/schema";
 import { privacySettingsSchema } from "@/lib/schemas/profile";
+import { revalidatePublicProfilePages } from "@/lib/utils/revalidate";
 import {
   createErrorResponse,
   createSuccessResponse,
@@ -22,7 +23,7 @@ export async function PUT(request: Request) {
 
   return withUser(
     request,
-    async ({ user: authUser, db }) => {
+    async ({ user: authUser, db, dbUser }) => {
       const rawBodyResult = await readJsonWithLimit(request);
       if (!rawBodyResult.ok) {
         return createErrorResponse(
@@ -52,17 +53,34 @@ export async function PUT(request: Request) {
         show_in_directory,
       };
 
-      await db
+      // Version the client loaded; absent means a legacy client, which keeps the unguarded write.
+      const expectedUpdatedAt = request.headers.get("If-Unmodified-Since");
+
+      const now = new Date().toISOString();
+
+      const updated = await db
         .update(user)
         .set({
           privacySettings,
           showInDirectory: show_in_directory,
-          updatedAt: new Date().toISOString(),
+          updatedAt: now,
         })
-        .where(eq(user.id, authUser.id));
+        .where(
+          expectedUpdatedAt
+            ? and(eq(user.id, authUser.id), eq(user.updatedAt, expectedUpdatedAt))
+            : eq(user.id, authUser.id),
+        )
+        .returning({ id: user.id });
+
+      if (expectedUpdatedAt && updated.length === 0) {
+        return createErrorResponse("Settings changed elsewhere, reload", ERROR_CODES.CONFLICT, 409);
+      }
+
+      revalidatePublicProfilePages([dbUser.handle]);
 
       return createSuccessResponse({
         success: true,
+        updated_at: now,
         privacy_settings: {
           show_phone,
           show_address,

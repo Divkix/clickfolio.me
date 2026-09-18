@@ -1,10 +1,23 @@
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { JsonValue } from "@/lib/types/json";
 
-const mockLimitQueue: Array<Array<Record<string, JsonValue>>> = [];
-const mockLimit = vi.fn(async () => mockLimitQueue.shift() ?? []);
+// Awaited SELECTs (`.limit(1)` or bare) and `.returning()` results are served in
+// call order from queues: user row → createdAt snapshot → site_data, then the ids
+// the guarded UPDATE matched.
+const mockSelectQueue: Array<Array<Record<string, JsonValue>>> = [];
+const mockReturningQueue: Array<Array<Record<string, JsonValue>>> = [];
+const mockLimit = vi.fn(async () => mockSelectQueue.shift() ?? []);
+const mockSelectWhere = vi.fn(() => ({
+  limit: mockLimit,
+  then: (onFulfilled: (value: Array<Record<string, JsonValue>>) => unknown) =>
+    Promise.resolve(mockSelectQueue.shift() ?? []).then(onFulfilled),
+}));
 const mockUpdateSets: Array<Record<string, JsonValue>> = [];
-const mockUpdateWhere = vi.fn(async () => undefined);
+const mockUpdateWhere = vi.fn(() => ({
+  returning: async () => mockReturningQueue.shift() ?? [],
+  then: (onFulfilled: (value: undefined) => unknown) =>
+    Promise.resolve(undefined).then(onFulfilled),
+}));
 const mockUpdateSet = vi.fn((values: Record<string, JsonValue>) => {
   mockUpdateSets.push(values);
   return { where: mockUpdateWhere };
@@ -17,27 +30,22 @@ const mockTransaction = vi.fn(async (cb: (tx: typeof mockDb) => unknown) => {
 });
 
 const mockDb = {
-  select: vi.fn(() => ({
-    from: () => ({
-      where: () => ({
-        limit: mockLimit,
-        then: (onFulfilled: (value: Array<Record<string, JsonValue>>) => unknown) =>
-          Promise.resolve(mockLimitQueue.shift() ?? []).then(onFulfilled),
-      }),
-    }),
-  })),
+  select: vi.fn(() => ({ from: () => ({ where: mockSelectWhere }) })),
   update: mockUpdate,
   transaction: mockTransaction,
 };
 
 vi.mock("drizzle-orm", () => ({
   eq: vi.fn((_col: JsonValue, val: JsonValue) => ({ eq: val })),
+  ne: vi.fn((col: JsonValue, val: JsonValue) => ({ ne: { col, val } })),
   inArray: vi.fn((col: JsonValue, values: JsonValue) => ({ inArray: { col, values } })),
+  and: vi.fn((...conditions: JsonValue[]) => ({ and: conditions })),
 }));
 
 vi.mock("@/lib/db/schema", () => ({
   resumes: {
     id: "id",
+    createdAt: "createdAt",
     parsedContent: "parsedContent",
     parsedContentStaged: "parsedContentStaged",
     lastAttemptError: "lastAttemptError",
@@ -45,6 +53,7 @@ vi.mock("@/lib/db/schema", () => ({
     parsedAt: "parsedAt",
     totalAttempts: "totalAttempts",
   },
+  siteData: { userId: "userId", updatedAt: "updatedAt" },
   user: { id: "id", handle: "handle", name: "name", role: "role" },
 }));
 
@@ -79,20 +88,38 @@ const parsedContent = {
   professional_level: "senior",
 } as never;
 
+const resumeCreatedAt = "2024-01-01T00:00:00.000Z";
+
+// DB responses in call order: user rows → createdAt snapshot → site_data rows, and
+// the ids the guarded UPDATE reports as written (defaults to every requested id).
+function seedCompletion(options: {
+  userRows: Array<Record<string, JsonValue>>;
+  resumeIds: string[];
+  siteRows?: Array<Record<string, JsonValue>>;
+  updatedIds?: string[];
+}) {
+  mockSelectQueue.push(
+    options.userRows,
+    options.resumeIds.map((id) => ({ id, createdAt: resumeCreatedAt })),
+    options.siteRows ?? [],
+  );
+  mockReturningQueue.push((options.updatedIds ?? options.resumeIds).map((id) => ({ id })));
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
-  mockLimitQueue.length = 0;
+  mockSelectQueue.length = 0;
+  mockReturningQueue.length = 0;
   mockUpdateSets.length = 0;
   mockTransactions.length = 0;
   mockUpsertCalls.length = 0;
   mockNotifyBatches.length = 0;
-  mockLimit.mockImplementation(async () => mockLimitQueue.shift() ?? []);
+  mockLimit.mockImplementation(async () => mockSelectQueue.shift() ?? []);
   mockUpdate.mockReturnValue({ set: mockUpdateSet });
   mockUpdateSet.mockImplementation((values: Record<string, JsonValue>) => {
     mockUpdateSets.push(values);
     return { where: mockUpdateWhere };
   });
-  mockUpdateWhere.mockResolvedValue(undefined);
   mockTransaction.mockImplementation(async (cb: (tx: typeof mockDb) => unknown) => {
     mockTransactions.push(true);
     return cb(mockDb);
@@ -116,7 +143,10 @@ describe("shouldSyncDisplayName", () => {
 
 describe("completeResumes", () => {
   it("fresh single → atomic batch, combined name+role update, notify", async () => {
-    mockLimitQueue.push([{ handle: "test-handle", name: "Unnamed" }]);
+    seedCompletion({
+      userRows: [{ handle: "test-handle", name: "Unnamed" }],
+      resumeIds: ["resume-1"],
+    });
 
     await completeResumes({
       db: mockDb as never,
@@ -146,7 +176,7 @@ describe("completeResumes", () => {
   });
 
   it("cached single → sets totalAttempts and gains career-level sync", async () => {
-    mockLimitQueue.push([{ handle: "test-handle", name: null }]);
+    seedCompletion({ userRows: [{ handle: "test-handle", name: null }], resumeIds: ["resume-1"] });
 
     await completeResumes({
       db: mockDb as never,
@@ -166,7 +196,10 @@ describe("completeResumes", () => {
   });
 
   it("single with existing name and no level → no user update, still completes", async () => {
-    mockLimitQueue.push([{ handle: null, name: "Existing Name" }]);
+    seedCompletion({
+      userRows: [{ handle: null, name: "Existing Name" }],
+      resumeIds: ["resume-1"],
+    });
 
     await completeResumes({
       db: mockDb as never,
@@ -182,10 +215,13 @@ describe("completeResumes", () => {
   });
 
   it("fan-out → one batch, per-user publish, split role/name sync, one notify", async () => {
-    mockLimitQueue.push([
-      { id: "user-1", handle: "h1", name: null },
-      { id: "user-2", handle: null, name: "Existing Name" },
-    ]);
+    seedCompletion({
+      userRows: [
+        { id: "user-1", handle: "h1", name: null },
+        { id: "user-2", handle: null, name: "Existing Name" },
+      ],
+      resumeIds: ["resume-1", "resume-2"],
+    });
 
     await completeResumes({
       db: mockDb as never,
@@ -210,5 +246,52 @@ describe("completeResumes", () => {
     const nameUpdates = mockUpdateSets.filter((s) => "name" in s);
     expect(nameUpdates).toHaveLength(1);
     expect(mockNotifyBatches).toEqual([{ ids: ["resume-1", "resume-2"], status: "completed" }]);
+  });
+
+  it("no rows updated (already completed or deleted) → no user sync, no notify, no writes", async () => {
+    seedCompletion({
+      userRows: [{ handle: "test-handle", name: "Unnamed" }],
+      resumeIds: ["resume-1"],
+      updatedIds: [],
+    });
+
+    await completeResumes({
+      db: mockDb as never,
+      env: { CLICKFOLIO_STATUS_DO: undefined },
+      items: [{ resumeId: "resume-1", userId: "user-1" }],
+      parsedContent,
+      professionalLevel: "senior",
+    });
+
+    expect(mockTransactions).toHaveLength(1);
+    expect(mockUpdateSets).toContainEqual(
+      expect.objectContaining({ status: "completed", parsedContentStaged: null }),
+    );
+    // The site_data SELECT never ran: only the user row and the createdAt snapshot were read.
+    expect(mockSelectQueue).toHaveLength(1);
+    expect(mockUpsertCalls).toEqual([]);
+    expect(mockUpdateSets.filter((s) => "role" in s || "name" in s)).toHaveLength(0);
+    expect(mockNotifyBatches).toEqual([]);
+  });
+
+  it("skips the site-data write when a manual edit is newer than the resume", async () => {
+    seedCompletion({
+      userRows: [{ handle: "test-handle", name: "Unnamed" }],
+      resumeIds: ["resume-1"],
+      siteRows: [{ userId: "user-1", updatedAt: "2024-06-01T00:00:00.000Z" }],
+    });
+
+    await completeResumes({
+      db: mockDb as never,
+      env: { CLICKFOLIO_STATUS_DO: undefined },
+      items: [{ resumeId: "resume-1", userId: "user-1" }],
+      parsedContent,
+      professionalLevel: "senior",
+    });
+
+    expect(mockUpsertCalls).toEqual([]);
+    expect(mockNotifyBatches).toEqual([{ ids: ["resume-1"], status: "completed" }]);
+    // The site_data row was read and the newer updatedAt is what suppressed the write.
+    expect(mockSelectQueue).toEqual([]);
   });
 });

@@ -1,0 +1,134 @@
+import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import type { JsonValue } from "@/lib/types/json";
+
+const mocks = vi.hoisted(() => {
+  const state = {
+    event: null as JsonValue,
+    mappedUser: null as JsonValue,
+    selectResults: [] as JsonValue[][],
+    insertCalls: [] as JsonValue[],
+    deleteWhereCalls: [] as JsonValue[],
+  };
+
+  const createSelectChain = () => {
+    const chain = {
+      from: vi.fn(() => chain),
+      where: vi.fn(() => chain),
+      then: vi.fn(
+        (resolve: (value: JsonValue[]) => unknown, reject?: (reason: unknown) => unknown) =>
+          Promise.resolve(state.selectResults.shift() ?? []).then(resolve, reject),
+      ),
+    };
+    return chain;
+  };
+
+  const createInsertChain = () => {
+    const chain = {
+      values: vi.fn((rows: JsonValue) => {
+        state.insertCalls.push(rows);
+        return chain;
+      }),
+      onConflictDoNothing: vi.fn(async () => undefined),
+    };
+    return chain;
+  };
+
+  const db = {
+    query: { user: { findFirst: vi.fn(async () => state.mappedUser) } },
+    select: vi.fn(() => createSelectChain()),
+    insert: vi.fn(() => createInsertChain()),
+    delete: vi.fn(() => ({
+      where: vi.fn(async (condition: JsonValue) => {
+        state.deleteWhereCalls.push(condition);
+      }),
+    })),
+  };
+
+  const env = {
+    CLERK_WEBHOOK_SECRET: "whsec_test",
+    HYPERDRIVE: { connectionString: "postgres://test" },
+  };
+
+  return { state, db, env };
+});
+
+vi.mock("cloudflare:workers", () => ({
+  env: mocks.env,
+}));
+
+vi.mock("svix", () => ({
+  Webhook: class {
+    verify() {
+      return mocks.state.event;
+    }
+  },
+}));
+
+vi.mock("@/lib/db", () => ({
+  getDb: vi.fn(() => mocks.db),
+}));
+
+function deletedUserEvent() {
+  return {
+    type: "user.deleted",
+    data: {
+      id: "user_clerk_1",
+      external_id: null,
+      first_name: "Avery",
+      last_name: "Quinn",
+      image_url: null,
+      primary_email_address_id: null,
+      email_addresses: [],
+    },
+  };
+}
+
+async function postWebhook() {
+  const { POST } = await import("@/app/api/webhooks/clerk/route");
+  return POST(
+    new Request("https://clickfolio.me/api/webhooks/clerk", { method: "POST", body: "{}" }),
+  );
+}
+
+describe("POST /api/webhooks/clerk — user.deleted", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.state.event = deletedUserEvent();
+    mocks.state.mappedUser = { id: "user_1", clerkId: "user_clerk_1" };
+    mocks.state.selectResults = [];
+    mocks.state.insertCalls = [];
+    mocks.state.deleteWhereCalls = [];
+  });
+
+  it("enqueues the user's R2 keys before cascading the account away", async () => {
+    mocks.state.selectResults = [
+      [{ r2Key: "users/user_1/resume-1/cv.pdf" }, { r2Key: "users/user_1/1712345678901/cv.pdf" }],
+    ];
+
+    const response = await postWebhook();
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ received: true, action: "deleted" });
+    expect(mocks.state.insertCalls).toHaveLength(1);
+    const insertedRows = mocks.state.insertCalls[0] as Array<{ r2Key: string; attempts: number }>;
+    expect(insertedRows.map((row) => row.r2Key).sort()).toEqual([
+      "users/user_1/1712345678901/cv.pdf",
+      "users/user_1/resume-1/cv.pdf",
+    ]);
+    expect(insertedRows[0].attempts).toBe(1);
+    expect(mocks.db.insert.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.db.delete.mock.invocationCallOrder[0],
+    );
+    expect(mocks.state.deleteWhereCalls).toHaveLength(1);
+  });
+
+  it("deletes the account without inserts when no keys or user row exist", async () => {
+    mocks.state.mappedUser = null;
+
+    const response = await postWebhook();
+
+    expect(response.status).toBe(200);
+    expect(mocks.state.insertCalls).toHaveLength(0);
+    expect(mocks.state.deleteWhereCalls).toHaveLength(1);
+  });
+});

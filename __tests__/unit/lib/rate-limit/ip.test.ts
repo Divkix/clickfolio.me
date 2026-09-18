@@ -248,15 +248,15 @@ describe("checkIPRateLimit - Production Rate Limiting", () => {
     expect(result.remaining.daily).toBe(0);
   });
 
-  it("fails open on database errors", async () => {
+  it("fails closed on database errors", async () => {
     mockDb.select.mockImplementation(() => {
       throw new Error("Database connection failed");
     });
 
     const result = await checkIPRateLimit("192.168.1.1");
 
-    expect(result.allowed).toBe(true);
-    expect(result.remaining).toEqual({ hourly: 1, daily: 1 });
+    expect(result.allowed).toBe(false);
+    expect(result.message).toContain("temporarily unavailable");
   });
 
   it("records request on success via atomic conditional insert", async () => {
@@ -268,10 +268,10 @@ describe("checkIPRateLimit - Production Rate Limiting", () => {
 
     await checkIPRateLimit("192.168.1.1");
 
-    expect(mockDb.$client).toHaveBeenCalledTimes(2);
-    expect(sqlText(mockDb.$client.mock.calls[1])).toContain("INSERT INTO upload_rate_limits");
+    expect(mockDb.$client.begin).toHaveBeenCalledTimes(1);
+    expect(sqlText(mockDb.$client.mock.calls[2])).toContain("INSERT INTO upload_rate_limits");
     expect(mockDb.insert).not.toHaveBeenCalled();
-    expect(mockDb.$client.mock.calls[1]?.slice(1)).toContain("upload");
+    expect(mockDb.$client.mock.calls[2]?.slice(1)).toContain("upload");
   });
 
   it("enforces the daily limit in the atomic upload insert", async () => {
@@ -283,11 +283,11 @@ describe("checkIPRateLimit - Production Rate Limiting", () => {
 
     await checkIPRateLimit("192.168.1.1");
 
-    const guardSql = sqlText(mockDb.$client.mock.calls[0]);
-    const insertSql = sqlText(mockDb.$client.mock.calls[1]);
+    const guardSql = sqlText(mockDb.$client.mock.calls[1]);
+    const insertSql = sqlText(mockDb.$client.mock.calls[2]);
     expect(guardSql).toContain("created_at >= ?");
     expect(insertSql.match(/created_at >= \?/g)).toHaveLength(1);
-    expect(mockDb.$client.mock.calls[0]?.slice(1)).toContain(50);
+    expect(mockDb.$client.mock.calls[1]?.slice(1)).toContain(50);
   });
 
   it("counts only upload actions toward anonymous upload limits", async () => {
@@ -328,21 +328,20 @@ describe("checkIPRateLimit - Production Rate Limiting", () => {
     expect(mockDb.$client).toHaveBeenCalled();
   });
 
-  it("still allows request when record fails (fail open)", async () => {
+  it("denies request when record fails (fail closed)", async () => {
     mockDb.select.mockReturnValue({
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue([{ hourly: 0, daily: 0 }]),
       }),
     } as never);
-    mockDb.$client.mockImplementation(() => {
+    mockDb.$client.begin.mockImplementationOnce(() => {
       throw new Error("Insert failed");
     });
 
     const result = await checkIPRateLimit("192.168.1.1");
 
-    expect(result.allowed).toBe(true);
-
-    mockDb.$client.mockResolvedValue({ count: 1 });
+    expect(result.allowed).toBe(false);
+    expect(result.message).toContain("temporarily unavailable");
   });
 
   it("denies when the atomic conditional insert records 0 changes (item 21)", async () => {
@@ -447,8 +446,8 @@ describe("checkHandleRateLimit - Production", () => {
 
     await checkHandleRateLimit("192.168.1.1");
 
-    expect(mockDb.$client).toHaveBeenCalledTimes(2);
-    expect(mockDb.$client.mock.calls[1]?.slice(1)).toContain("handle_check");
+    expect(mockDb.$client.begin).toHaveBeenCalledTimes(1);
+    expect(mockDb.$client.mock.calls[2]?.slice(1)).toContain("handle_check");
   });
 });
 

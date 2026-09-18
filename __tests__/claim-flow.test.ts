@@ -8,10 +8,20 @@ const mockDbFrom = vi.fn();
 const mockDbWhere = vi.fn();
 const mockDbLimit = vi.fn();
 const mockDbOrderBy = vi.fn();
-const mockDbInsertValues = vi.fn().mockResolvedValue(undefined);
+const mockDbForUpdate = vi.fn().mockResolvedValue(undefined);
+let mockArbitratedId = "resume-id";
+const mockDbInsertReturning = vi.fn(async () => [
+  { id: mockArbitratedId, status: "pending_claim" },
+]);
+const mockDbOnConflictDoUpdate = vi.fn().mockReturnValue({ returning: mockDbInsertReturning });
+const mockDbInsertValues = vi.fn((values: { id?: string }) => {
+  mockArbitratedId = values.id ?? mockArbitratedId;
+  return { onConflictDoUpdate: mockDbOnConflictDoUpdate };
+});
 const mockDbInsert = vi.fn().mockReturnValue({ values: mockDbInsertValues });
 const mockDbUpdateSet = vi.fn();
-const mockDbUpdateWhere = vi.fn().mockResolvedValue(undefined);
+const mockDbUpdateReturning = vi.fn(async () => [{ id: "resume-id" }]);
+const mockDbUpdateWhere = vi.fn().mockReturnValue({ returning: mockDbUpdateReturning });
 const mockDbTransaction = vi.fn(async (cb: (tx: typeof mockDb) => unknown) => cb(mockDb));
 
 let mockHandleRows: Array<{ handle: string | null }> = [{ handle: "test-handle" }];
@@ -32,7 +42,7 @@ const mockDbSelect = vi.fn().mockImplementation((cols: unknown) => {
 });
 
 mockDbFrom.mockReturnValue({ where: mockDbWhere });
-mockDbWhere.mockReturnValue({ orderBy: mockDbOrderBy, limit: mockDbLimit });
+mockDbWhere.mockReturnValue({ orderBy: mockDbOrderBy, limit: mockDbLimit, for: mockDbForUpdate });
 mockDbOrderBy.mockReturnValue({ limit: mockDbLimit });
 mockDbLimit.mockResolvedValue([]);
 
@@ -54,15 +64,20 @@ vi.mock("@/lib/auth/middleware", () => ({
   requireAuthWithUserValidation: vi.fn(),
 }));
 
-vi.mock("drizzle-orm", () => ({
-  eq: vi.fn((_col, val) => ({ eq: val })),
-  and: vi.fn((...args: JsonValue[]) => ({ and: args })),
-  desc: vi.fn((col) => ({ desc: col })),
-  gte: vi.fn((_col, val) => ({ gte: val })),
-  ne: vi.fn((_col, val) => ({ ne: val })),
-  isNotNull: vi.fn((col) => ({ isNotNull: col })),
-  inArray: vi.fn((col, values) => ({ inArray: { col, values } })),
-}));
+vi.mock("drizzle-orm", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("drizzle-orm")>();
+  return {
+    ...actual,
+    eq: vi.fn((_col, val) => ({ eq: val })),
+    and: vi.fn((...args: JsonValue[]) => ({ and: args })),
+    desc: vi.fn((col) => ({ desc: col })),
+    gte: vi.fn((_col, val) => ({ gte: val })),
+    ne: vi.fn((_col, val) => ({ ne: val })),
+    isNotNull: vi.fn((col) => ({ isNotNull: col })),
+    inArray: vi.fn((col, values) => ({ inArray: { col, values } })),
+    sql: actual.sql,
+  };
+});
 
 vi.mock("@/lib/db/schema", () => ({
   resumes: {
@@ -247,13 +262,13 @@ beforeEach(() => {
     return { from: mockDbFrom };
   });
   mockDbFrom.mockReturnValue({ where: mockDbWhere });
-  mockDbWhere.mockReturnValue({ orderBy: mockDbOrderBy, limit: mockDbLimit });
+  mockDbWhere.mockReturnValue({ orderBy: mockDbOrderBy, limit: mockDbLimit, for: mockDbForUpdate });
   mockDbOrderBy.mockReturnValue({ limit: mockDbLimit });
   mockDbInsert.mockReturnValue({ values: mockDbInsertValues });
-  mockDbInsertValues.mockResolvedValue(undefined);
+  mockArbitratedId = "resume-id";
   mockDbUpdate.mockReturnValue({ set: mockDbUpdateSet });
   mockDbUpdateSet.mockReturnValue({ where: mockDbUpdateWhere });
-  mockDbUpdateWhere.mockResolvedValue(undefined);
+  mockDbUpdateWhere.mockReturnValue({ returning: mockDbUpdateReturning });
 });
 
 describe("POST /api/resume/claim", () => {
@@ -380,7 +395,7 @@ describe("POST /api/resume/claim", () => {
     expect(mockDbInsert).toHaveBeenCalled();
   });
 
-  it("leaves resume in pending_claim (orphan-cron recoverable) when queue publish fails", async () => {
+  it("leaves resume queued (orphan-cron recoverable) when queue publish fails", async () => {
     authedAs("user-1");
     const { publishResumeParse } = await import("@/lib/queue/resume-parse");
     vi.mocked(publishResumeParse).mockRejectedValueOnce(new Error("Queue unavailable"));
@@ -391,9 +406,7 @@ describe("POST /api/resume/claim", () => {
 
     expect(response.status).toBe(500);
     expect(mockDbUpdateSet).not.toHaveBeenCalledWith(expect.objectContaining({ status: "failed" }));
-    expect(mockDbUpdateSet).toHaveBeenCalledWith(
-      expect.objectContaining({ status: "pending_claim" }),
-    );
+    expect(mockDbUpdateSet).toHaveBeenCalledWith(expect.objectContaining({ status: "queued" }));
   });
 
   it("returns already_claimed BEFORE rate limiting (double-claim does not burn a rate-limit slot)", async () => {
@@ -455,7 +468,7 @@ describe("POST /api/resume/claim", () => {
       "user-1",
       expect.anything(),
       cachedContent,
-      { publish: false },
+      expect.objectContaining({ publish: false }),
     );
     expect(mockDbTransaction).toHaveBeenCalled();
   });

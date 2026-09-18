@@ -1,8 +1,7 @@
-import { and, eq, lt } from "drizzle-orm";
+import { and, eq, lt, sql } from "drizzle-orm";
 import { withUser } from "@/lib/auth/with-auth";
 import { captureServerEvent } from "@/lib/analytics/server";
 import { checkRetryEligibilityForRow, getStatusView, RETRY_LIMITS } from "@/lib/resume/lifecycle";
-import type { NewResume } from "@/lib/db/schema";
 import type { ResumeStatus } from "@/lib/db/schema/resume";
 import { resumes } from "@/lib/db/schema";
 import { publishResumeParse } from "@/lib/queue/resume-parse";
@@ -147,12 +146,6 @@ export async function POST(request: Request) {
       // SAFETY: retryCount is integer column; cast bridges Drizzle nullable to number.
       const previousRetryCount = resume.retryCount as number;
       const nextRetryCount = previousRetryCount + 1;
-      const updatePayload: Partial<NewResume> = {
-        status: "queued",
-        errorMessage: null,
-        retryCount: nextRetryCount,
-        queuedAt: new Date().toISOString(),
-      };
 
       // TOCTOU guard: for a virtual timeout the row is still `waiting_for_cache`
       // in the DB, so guard on that status; otherwise guard on `failed`.
@@ -160,13 +153,21 @@ export async function POST(request: Request) {
         ? eq(resumes.status, "waiting_for_cache")
         : eq(resumes.status, "failed");
 
+      // Increment in SQL, compare-and-set on the value read above: two concurrent
+      // retries of the same row cannot both bump retryCount.
       const updateResult = await db
         .update(resumes)
-        .set(updatePayload)
+        .set({
+          status: "queued",
+          errorMessage: null,
+          retryCount: sql`${resumes.retryCount} + 1`,
+          queuedAt: new Date().toISOString(),
+        })
         .where(
           and(
             eq(resumes.id, resume_id),
             statusGuard,
+            eq(resumes.retryCount, previousRetryCount),
             lt(resumes.retryCount, RETRY_LIMITS.MANUAL_MAX_RETRIES),
           ),
         )
@@ -182,9 +183,10 @@ export async function POST(request: Request) {
       const rollbackRetryUpdate = async () => {
         try {
           // For a virtual timeout the original status was `waiting_for_cache`; a
-          // rollback should restore that, not `failed`, so the row is not left in
-          // retries the original status was already `failed`, so this is a no-op
+          // rollback should restore that, not `failed`.
           const rollbackStatus = isVirtualTimeout ? "waiting_for_cache" : "failed";
+          // Compare-and-set on (status, retryCount): undo only this request's own
+          // increment, never a concurrent retry that has since taken over the row.
           await db
             .update(resumes)
             .set({
@@ -194,7 +196,13 @@ export async function POST(request: Request) {
               retryCount: previousRetryCount,
               queuedAt: null,
             })
-            .where(eq(resumes.id, resume_id));
+            .where(
+              and(
+                eq(resumes.id, resume_id),
+                eq(resumes.status, "queued"),
+                eq(resumes.retryCount, nextRetryCount),
+              ),
+            );
         } catch (rollbackError) {
           console.error("Failed to roll back retry queue state:", rollbackError);
         }

@@ -108,7 +108,7 @@ function buildStaticSitemapEntries(baseUrl: string): MetadataRoute.Sitemap {
   return entries;
 }
 
-export async function generateSitemapEntries(id: number): Promise<MetadataRoute.Sitemap> {
+export async function generateSitemapEntries(id: number): Promise<MetadataRoute.Sitemap | null> {
   if (!Number.isInteger(id) || id < 0) {
     return [];
   }
@@ -124,19 +124,37 @@ export async function generateSitemapEntries(id: number): Promise<MetadataRoute.
     const db = getDb(env.HYPERDRIVE);
     const { limit, offset } = getUserShardWindow(id);
 
-    const users = await db
-      .select({
-        handle: user.handle,
-        userUpdatedAt: user.updatedAt,
-        siteUpdatedAt: siteData.updatedAt,
-        lastPublishedAt: siteData.lastPublishedAt,
-      })
-      .from(user)
-      .leftJoin(siteData, sql`${siteData.userId} = ${user.id}`)
-      .where(and(isNotNull(user.handle), notHiddenFromSearch))
-      .orderBy(user.handle)
-      .limit(limit)
-      .offset(offset);
+    const users = await db.transaction(
+      async (tx) => {
+        // Shard range and shard rows come from one snapshot so a shard never serves another state's rows.
+        const countRows = await tx
+          .select({ count: sql<number>`count(*)` })
+          .from(user)
+          .where(and(isNotNull(user.handle), notHiddenFromSearch));
+
+        if (id >= getSitemapShardCount(countRows[0]?.count ?? 0)) return null;
+
+        return (
+          tx
+            .select({
+              handle: user.handle,
+              userUpdatedAt: user.updatedAt,
+              siteUpdatedAt: siteData.updatedAt,
+              lastPublishedAt: siteData.lastPublishedAt,
+            })
+            .from(user)
+            .leftJoin(siteData, sql`${siteData.userId} = ${user.id}`)
+            .where(and(isNotNull(user.handle), notHiddenFromSearch))
+            // id breaks handle ties so shard boundaries stay stable.
+            .orderBy(user.handle, user.id)
+            .limit(limit)
+            .offset(offset)
+        );
+      },
+      { isolationLevel: "repeatable read" },
+    );
+
+    if (users === null) return null;
 
     for (const entry of users) {
       if (!entry.handle) continue;

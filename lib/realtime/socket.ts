@@ -4,6 +4,7 @@ import {
   getReconnectDelay,
   isValidResumeStatus,
   shouldRetry,
+  WS_MAX_MISSED_PINGS,
   WS_PING_INTERVAL_MS,
 } from "@/lib/realtime/constants";
 
@@ -78,19 +79,31 @@ export function createResumeStatusSocket(
   function connect() {
     if (disposed) return;
 
+    let lastActivityAt = Date.now();
     socket = new WebSocket(buildResumeStatusWsUrl(resumeId));
 
     socket.onopen = () => {
       attempts = 0;
+      lastActivityAt = Date.now();
       pingTimer = setInterval(() => {
-        if (socket?.readyState === WebSocket.OPEN) {
-          socket.send("ping");
+        if (socket?.readyState !== WebSocket.OPEN) return;
+
+        // A half-open socket never fires onclose, so liveness is judged by
+        // traffic: no message (pong or status) for WS_MAX_MISSED_PINGS pings
+        // means the connection is dead and polling takes over.
+        if (Date.now() - lastActivityAt >= WS_PING_INTERVAL_MS * WS_MAX_MISSED_PINGS) {
+          dispose("unresponsive connection");
+          handlers.onFallback?.();
+          return;
         }
+
+        socket.send("ping");
       }, WS_PING_INTERVAL_MS);
       handlers.onOpen?.();
     };
 
     socket.onmessage = (event) => {
+      lastActivityAt = Date.now();
       const msg = decodeResumeStatusMessage(event.data);
       if (msg) handlers.onMessage?.(msg);
     };

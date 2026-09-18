@@ -1,6 +1,4 @@
-import { eq } from "drizzle-orm";
 import type { Database } from "@/lib/db";
-import { pendingR2Deletions } from "@/lib/db/schema";
 import type { UnknownRecord } from "@/lib/types/json";
 import { log } from "@/lib/utils/log";
 const TEMP_PREFIX = "temp/";
@@ -90,43 +88,56 @@ export async function retryPendingR2Deletions(
 ): Promise<PendingDeletionsResult> {
   const nowIso = new Date().toISOString();
 
-  const pending = await db.select().from(pendingR2Deletions).limit(PENDING_DELETIONS_BATCH);
-
+  let retried = 0;
   let succeeded = 0;
   let failed = 0;
-  let skipped = 0;
 
-  for (const row of pending) {
-    if (row.attempts >= PENDING_DELETIONS_MAX_ATTEMPTS) {
-      log("error", "pending R2 deletion reached max attempts; skipping for manual review", {
-        id: row.id,
-        r2Key: row.r2Key,
-        attempts: row.attempts,
-      });
-      skipped++;
-      continue;
-    }
+  // One transaction holds the row locks for the whole sweep: a second sweep skips these
+  // rows instead of deleting the same objects twice and clobbering the attempt counts.
+  await db.$client.begin(async (tx) => {
+    const rows = await tx<Array<{ id: string; r2Key: string }>>`
+      SELECT id, r2_key AS "r2Key" FROM pending_r2_deletions
+      WHERE attempts < ${PENDING_DELETIONS_MAX_ATTEMPTS}
+      ORDER BY created_at
+      FOR UPDATE SKIP LOCKED
+      LIMIT ${PENDING_DELETIONS_BATCH}
+    `;
+    retried = rows.length;
 
-    try {
-      await binding.delete(row.r2Key);
-      await db.delete(pendingR2Deletions).where(eq(pendingR2Deletions.id, row.id));
-      succeeded++;
-    } catch (error) {
-      const errMessage = error instanceof Error ? error.message : String(error);
-      log("error", "failed to retry pending R2 deletion", {
-        id: row.id,
-        r2Key: row.r2Key,
-        error: errMessage,
-      });
-      await db
-        .update(pendingR2Deletions)
-        .set({
-          attempts: row.attempts + 1,
-          lastError: errMessage,
-        })
-        .where(eq(pendingR2Deletions.id, row.id));
-      failed++;
+    for (const row of rows) {
+      try {
+        await binding.delete(row.r2Key);
+        await tx`DELETE FROM pending_r2_deletions WHERE id = ${row.id}`;
+        succeeded++;
+      } catch (error) {
+        const errMessage = error instanceof Error ? error.message : String(error);
+        log("error", "failed to retry pending R2 deletion", {
+          id: row.id,
+          r2Key: row.r2Key,
+          error: errMessage,
+        });
+        // Increment in SQL: a read-modify-write here loses counts under overlapping sweeps.
+        await tx`
+          UPDATE pending_r2_deletions
+          SET attempts = attempts + 1, last_error = ${errMessage}
+          WHERE id = ${row.id}
+        `;
+        failed++;
+      }
     }
+  });
+
+  // Rows at the attempt cap are excluded from the sweep above so they cannot starve
+  // newer rows out of the batch; surface them for manual review instead.
+  const cappedRows = await db.$client<Array<{ count: number }>>`
+    SELECT COUNT(*)::int AS count FROM pending_r2_deletions
+    WHERE attempts >= ${PENDING_DELETIONS_MAX_ATTEMPTS}
+  `;
+  const skipped = cappedRows[0]?.count ?? 0;
+  if (skipped > 0) {
+    log("error", "pending R2 deletions reached max attempts; skipping for manual review", {
+      skipped,
+    });
   }
 
   if (succeeded > 0 || failed > 0 || skipped > 0) {
@@ -135,7 +146,7 @@ export async function retryPendingR2Deletions(
 
   return {
     ok: true,
-    retried: pending.length,
+    retried,
     succeeded,
     failed,
     skipped,

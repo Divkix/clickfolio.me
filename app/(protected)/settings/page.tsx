@@ -92,6 +92,7 @@ export default async function SettingsPage() {
         privacySettings: true,
         role: true,
         roleSource: true,
+        updatedAt: true,
       },
     }),
     db
@@ -161,7 +162,10 @@ export default async function SettingsPage() {
           roleSource={profile.roleSource ?? null}
         />
 
-        <PrivacySettingsForm initialSettings={privacySettings} />
+        <PrivacySettingsForm
+          initialSettings={privacySettings}
+          initialUpdatedAt={profile.updatedAt}
+        />
 
         <DeleteAccountCard userEmail={profile.email} />
       </div>

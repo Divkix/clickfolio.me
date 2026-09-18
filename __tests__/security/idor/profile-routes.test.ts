@@ -18,14 +18,18 @@ interface MockQueryChain {
 }
 
 interface MockTxChain {
+  select: (...args: unknown[]) => MockTxChain;
   set: (...args: unknown[]) => MockTxChain;
   where: (...args: unknown[]) => MockTxChain;
+  from: (...args: unknown[]) => MockTxChain;
+  limit: (...args: unknown[]) => MockTxChain;
+  for: (...args: unknown[]) => MockTxChain;
   values: (rows: UnknownRecord) => MockTxChain;
   onConflictDoNothing: (...args: unknown[]) => MockTxChain;
   onConflictDoUpdate: (...args: unknown[]) => MockTxChain;
   returning: (...args: unknown[]) => MockTxChain;
   then: (
-    resolve: (value: undefined) => unknown,
+    resolve: (value: never) => unknown,
     reject?: (reason: unknown) => unknown,
   ) => Promise<unknown>;
 }
@@ -56,38 +60,77 @@ const mockSelect = vi.fn(() => createQueryChain());
 
 let txStatementCount = 0;
 const txValues: UnknownRecord[] = [];
+const txSelectResults: JsonValue[][] = [];
+const txReturningResults: JsonValue[][] = [];
 
-const createTxChain = (): MockTxChain => {
-  const chain: MockTxChain = {
+function nextTxSelect(): JsonValue[] {
+  const next = txSelectResults.shift();
+  if (next === undefined) throw new Error("No tx select result queued");
+  return next;
+}
+
+function nextTxReturning(): JsonValue {
+  const next = txReturningResults.shift();
+  if (next === undefined) throw new Error("No tx returning result queued");
+  return next as JsonValue;
+}
+
+function makeTxSelectChain(): MockTxChain {
+  const chain = makeTxBaseChain();
+  chain.then = vi.fn((resolve: (value: never) => unknown) =>
+    Promise.resolve(resolve(nextTxSelect() as never)),
+  );
+  return chain;
+}
+
+function makeTxBaseChain(): MockTxChain {
+  const chain = {
+    select: vi.fn(() => makeTxSelectChain()),
     set: vi.fn(() => chain),
     where: vi.fn(() => chain),
+    from: vi.fn(() => chain),
+    limit: vi.fn(() => chain),
+    for: vi.fn(() => chain),
     values: vi.fn((rows: UnknownRecord) => {
       txValues.push(rows);
       return chain;
     }),
     onConflictDoNothing: vi.fn(() => chain),
     onConflictDoUpdate: vi.fn(() => chain),
-    returning: vi.fn(() => chain),
+    returning: vi.fn(() => makeTxValueChain(nextTxReturning())),
     then: vi.fn((resolve: (value: undefined) => unknown) => {
       txStatementCount += 1;
       return Promise.resolve(resolve(undefined));
     }),
   };
+  return chain as unknown as MockTxChain;
+}
+
+function makeTxValueChain(value: JsonValue): MockTxChain {
+  const chain = makeTxBaseChain();
+  chain.then = vi.fn((resolve: (result: never) => unknown) =>
+    Promise.resolve(resolve(value as never)),
+  );
   return chain;
-};
+}
+
+const createTxChain = (): MockTxChain => makeTxBaseChain();
 
 const txUpdate = vi.fn(() => createTxChain());
 const txInsert = vi.fn(() => createTxChain());
+const txSelect = vi.fn(() => makeTxSelectChain());
 
-const mockTransaction = vi.fn(async (callback: (tx: unknown) => Promise<void>) => {
+const mockTransaction = vi.fn(async (callback: (tx: unknown) => Promise<unknown>) => {
   txStatementCount = 0;
   txValues.length = 0;
-  await callback({ update: txUpdate, insert: txInsert });
+  return callback({ update: txUpdate, insert: txInsert, select: txSelect });
 });
 
 const mockUpdate = vi.fn().mockReturnValue({
   set: vi.fn().mockReturnValue({
-    where: vi.fn().mockResolvedValue(undefined),
+    where: vi.fn().mockReturnValue({
+      returning: vi.fn().mockResolvedValue([{ id: "user-a" }]),
+    }),
   }),
 });
 
@@ -102,17 +145,17 @@ vi.mock("@/lib/auth/middleware", () => ({
   requireAuthWithMessage: vi.fn(),
 }));
 
-vi.mock("drizzle-orm", () => ({
-  eq: vi.fn((_col, val) => val),
-  ne: vi.fn((_col, val) => val),
-  and: vi.fn(() => "and"),
-  gte: vi.fn(),
-  desc: vi.fn(() => "desc"),
-  sql: vi.fn((strings: TemplateStringsArray, ...values: JsonValue[]) => ({
-    strings,
-    values,
-  })),
-}));
+vi.mock("drizzle-orm", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("drizzle-orm")>();
+  return {
+    ...actual,
+    eq: vi.fn((_col, val) => val),
+    ne: vi.fn((_col, val) => val),
+    and: vi.fn(() => "and"),
+    gte: vi.fn(),
+    desc: vi.fn(() => "desc"),
+  };
+});
 
 vi.mock("@/lib/db/schema", () => ({
   user: {
@@ -177,6 +220,15 @@ vi.mock("@/lib/rate-limit/user", async (importOriginal) => ({
   enforceRateLimit: vi.fn().mockResolvedValue(null),
 }));
 
+vi.mock("@/lib/utils/revalidate", () => ({
+  revalidatePublicProfilePages: vi.fn(),
+}));
+
+vi.mock("@/lib/rate-limit/handle-validation", () => ({
+  isHandleTaken: vi.fn().mockResolvedValue(false),
+  isValidHandleFormat: vi.fn().mockReturnValue(true),
+}));
+
 import { requireAuthWithMessage, requireAuthWithUserValidation } from "@/lib/auth/middleware";
 
 const mockedAuth = vi.mocked(requireAuthWithUserValidation);
@@ -226,6 +278,15 @@ beforeEach(() => {
   selectResults = [];
   txStatementCount = 0;
   txValues.length = 0;
+  txSelectResults.length = 0;
+  txReturningResults.length = 0;
+  mockUpdate.mockReturnValue({
+    set: vi.fn().mockReturnValue({
+      where: vi.fn().mockReturnValue({
+        returning: vi.fn().mockResolvedValue([{ id: "user-a" }]),
+      }),
+    }),
+  });
 });
 
 describe("IDOR - Profile Routes Security", () => {
@@ -296,9 +357,8 @@ describe("IDOR - Profile Routes Security", () => {
     it("returns 409 when attempting to squat someone else's handle", async () => {
       authedAs("user-a");
 
-      selectResults.push([{ count: 0 }]);
-      selectResults.push([{ handle: "current-handle" }]);
-      selectResults.push([{ id: "user-b" }]);
+      const { isHandleTaken } = await import("@/lib/rate-limit/handle-validation");
+      vi.mocked(isHandleTaken).mockResolvedValueOnce(true);
 
       const { PUT } = await import("@/app/api/profile/handle/route");
       const request = new Request("http://localhost:3000/api/profile/handle", {
@@ -314,9 +374,9 @@ describe("IDOR - Profile Routes Security", () => {
     it("prevents handle change for another user via ID injection", async () => {
       authedAs("user-a");
 
-      selectResults.push([{ count: 0 }]);
-      selectResults.push([{ handle: "old-handle" }]);
-      selectResults.push([]);
+      txSelectResults.push([{ handle: "old-handle" }]);
+      txSelectResults.push([{ count: 0 }]);
+      txReturningResults.push([{ id: "user-a" }]);
 
       const { PUT } = await import("@/app/api/profile/handle/route");
       const request = new Request("http://localhost:3000/api/profile/handle", {
@@ -337,7 +397,8 @@ describe("IDOR - Profile Routes Security", () => {
     it("enforces handle change rate limit (3 per 24 hours)", async () => {
       authedAs("user-a");
 
-      selectResults.push([{ count: 3 }]);
+      txSelectResults.push([{ handle: "old-handle" }]);
+      txSelectResults.push([{ count: 3 }]);
 
       const { PUT } = await import("@/app/api/profile/handle/route");
       const request = new Request("http://localhost:3000/api/profile/handle", {
@@ -348,15 +409,14 @@ describe("IDOR - Profile Routes Security", () => {
       const response = await PUT(request);
 
       expect(response.status).toBe(429);
-      expect(mockTransaction).not.toHaveBeenCalled();
+      expect(mockTransaction).toHaveBeenCalledTimes(1);
     });
 
     it("blocks handle change when the transaction hits the unique constraint", async () => {
       authedAs("user-a");
 
-      selectResults.push([{ count: 0 }]);
-      selectResults.push([{ handle: "old-handle" }]);
-      selectResults.push([]);
+      txSelectResults.push([{ handle: "old-handle" }]);
+      txSelectResults.push([{ count: 0 }]);
       mockTransaction.mockRejectedValueOnce(
         Object.assign(new Error("duplicate key value violates unique constraint"), {
           code: "23505",

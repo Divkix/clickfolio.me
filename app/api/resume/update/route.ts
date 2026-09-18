@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq, isNull, lte, or, sql } from "drizzle-orm";
 import { withUser } from "@/lib/auth/with-auth";
 
 import { siteData, user } from "@/lib/db/schema";
@@ -58,6 +58,14 @@ export async function PUT(request: Request) {
 
       const previewFields = extractPreviewFields(content);
 
+      const siteDataRow = await db
+        .select({ updatedAt: siteData.updatedAt })
+        .from(siteData)
+        .where(eq(siteData.userId, userId))
+        .limit(1);
+
+      const expectedUpdatedAt = siteDataRow[0]?.updatedAt;
+
       const updateResult = await db
         .update(siteData)
         .set({
@@ -66,17 +74,30 @@ export async function PUT(request: Request) {
           lastPublishedAt: now,
           updatedAt: now,
         })
-        .where(eq(siteData.userId, userId))
+        .where(
+          and(
+            eq(siteData.userId, userId),
+            // Only apply when no other writer moved the row past the version read at request start.
+            expectedUpdatedAt ? lte(siteData.updatedAt, expectedUpdatedAt) : undefined,
+          ),
+        )
         .returning({
           id: siteData.id,
           lastPublishedAt: siteData.lastPublishedAt,
         });
 
       if (updateResult.length === 0) {
+        if (!expectedUpdatedAt) {
+          return createErrorResponse(
+            "Resume data not found. Please upload a resume first.",
+            ERROR_CODES.NOT_FOUND,
+            404,
+          );
+        }
         return createErrorResponse(
-          "Resume data not found. Please upload a resume first.",
-          ERROR_CODES.NOT_FOUND,
-          404,
+          "Resume changed elsewhere. Please reload and try again.",
+          ERROR_CODES.CONFLICT,
+          409,
         );
       }
 
@@ -94,7 +115,13 @@ export async function PUT(request: Request) {
           await db
             .update(user)
             .set({ name: updatedName, updatedAt: now })
-            .where(eq(user.id, userId));
+            .where(
+              and(
+                eq(user.id, userId),
+                // Same missing-name rule as shouldSyncDisplayName, enforced atomically so a concurrent set survives.
+                or(isNull(user.name), eq(user.name, "Unnamed"), sql`trim(${user.name}) = ''`),
+              ),
+            );
         }
       }
 

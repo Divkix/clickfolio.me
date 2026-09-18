@@ -12,7 +12,7 @@ export const siteData = pgTable(
       .unique()
       .references(() => user.id, { onDelete: "cascade" }),
     resumeId: text("resume_id").references(() => resumes.id, {
-      onDelete: "cascade",
+      onDelete: "set null",
     }),
     content: jsonb("content").$type<ResumeContent>().notNull(),
     themeId: text("theme_id").default("minimalist_editorial"),

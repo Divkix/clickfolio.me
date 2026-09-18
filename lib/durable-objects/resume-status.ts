@@ -57,15 +57,17 @@ export class ClickfolioStatusDO extends DurableObject {
   }
 
   private async handleNotify(request: Request): Promise<Response> {
-    let body: { status: ResumeStatus; error?: string };
+    let body: { status: ResumeStatus; error?: string; version?: number };
     try {
       // SAFETY: request JSON shape is validated immediately after via isValidResumeStatus; cast provides typed destructuring with 400 on invalid status
-      body = (await request.json()) as { status: ResumeStatus; error?: string };
+      body = (await request.json()) as { status: ResumeStatus; error?: string; version?: number };
     } catch {
       return new Response("Invalid JSON", { status: 400 });
     }
 
     const { status, error } = body;
+    // SAFETY: version arrives only from our own notify sender as Date.now() ms; Number.isFinite narrows unknown to number here.
+    const version = Number.isFinite(body.version) ? (body.version as number) : undefined;
     if (!status) {
       return new Response("Missing status", { status: 400 });
     }
@@ -73,10 +75,26 @@ export class ClickfolioStatusDO extends DurableObject {
       return new Response("Invalid status", { status: 400 });
     }
 
-    await this.ctx.storage.put({
-      lastStatus: status,
-      lastError: error ?? "",
-    });
+    const storedVersion = await this.ctx.storage.get<number>("lastVersion");
+    // SAFETY: stored watermark is written only above as a finite number; Number.isFinite re-narrows unknown storage output.
+    const storedRank = Number.isFinite(storedVersion) ? (storedVersion as number) : undefined;
+    if (version !== undefined && storedRank !== undefined && version <= storedRank) {
+      // Out-of-order notify: a newer status is already stored (and its alarm
+      // state already set), so the late one must not overwrite or cancel it.
+      return new Response("OK", { status: 200 });
+    }
+
+    // A version-less (legacy) notify is accepted but must not lower the
+    // ordering watermark for the versioned notifies that follow it.
+    if (version === undefined) {
+      await this.ctx.storage.put({ lastStatus: status, lastError: error ?? "" });
+    } else {
+      await this.ctx.storage.put({
+        lastStatus: status,
+        lastError: error ?? "",
+        lastVersion: version,
+      });
+    }
 
     const msg: StatusMessage = {
       type: "status",

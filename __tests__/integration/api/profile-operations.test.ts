@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import type * as HandleValidation from "@/lib/rate-limit/handle-validation";
 import type { JsonValue } from "@/lib/types/json";
 
 vi.mock("@/lib/auth/middleware", () => ({
@@ -33,6 +34,18 @@ vi.mock("drizzle-orm", () => ({
 vi.mock("@/lib/db", () => ({
   getDb: vi.fn(() => mockDb),
 }));
+
+vi.mock("@/lib/utils/revalidate", () => ({
+  revalidatePublicProfilePages: vi.fn(),
+}));
+
+vi.mock("@/lib/rate-limit/handle-validation", async (importOriginal) => {
+  const actual = await importOriginal<typeof HandleValidation>();
+  return {
+    ...actual,
+    isHandleTaken: vi.fn(async () => false),
+  };
+});
 
 vi.mock("@/lib/utils/security-headers", () => ({
   createErrorResponse: vi.fn(
@@ -98,6 +111,7 @@ vi.mock("@/lib/db/schema", () => ({
 }));
 
 import { requireAuthWithMessage, requireAuthWithUserValidation } from "@/lib/auth/middleware";
+import { isHandleTaken } from "@/lib/rate-limit/handle-validation";
 
 const mockedAuth = vi.mocked(requireAuthWithUserValidation);
 const mockedAuthMessage = vi.mocked(requireAuthWithMessage);
@@ -127,9 +141,42 @@ mockInsertValues.mockResolvedValue(undefined);
 
 mockUpdate.mockReturnValue({ set: mockUpdateSet });
 mockUpdateSet.mockReturnValue({ where: mockUpdateWhere });
-mockUpdateWhere.mockResolvedValue(undefined);
+mockUpdateWhere.mockReturnValue({ returning: mockReturning });
+mockReturning.mockResolvedValue([{ id: "user-123" }]);
 
-mockTransaction.mockImplementation(async (cb: (tx: typeof mockDb) => unknown) => cb(mockDb));
+// Transaction mock: the handle route locks the user row, reads the 24h change quota,
+// then writes the user + audit rows. Each awaited tx select shifts one queued result set.
+const queuedTxSelects: JsonValue[][] = [];
+const mockTxFor = vi.fn();
+
+function queueTxSelects(...rows: JsonValue[][]): void {
+  queuedTxSelects.push(...rows);
+}
+
+function makeTxSelectChain() {
+  const chain = {
+    from: vi.fn(() => chain),
+    where: vi.fn(() => chain),
+    limit: vi.fn(() => chain),
+    for: mockTxFor,
+    then: (
+      onFulfilled: (rows: JsonValue[]) => unknown,
+      onRejected?: (reason: unknown) => unknown,
+    ) => Promise.resolve(queuedTxSelects.shift() ?? []).then(onFulfilled, onRejected),
+  };
+  mockTxFor.mockImplementation(() => chain);
+  return chain;
+}
+
+const mockTxUpdateSet = vi.fn((_values: JsonValue) => ({ where: vi.fn(async () => undefined) }));
+const mockTxInsertValues = vi.fn(async (_values: JsonValue) => undefined);
+const mockTx = {
+  select: vi.fn(() => makeTxSelectChain()),
+  update: vi.fn(() => ({ set: mockTxUpdateSet })),
+  insert: vi.fn(() => ({ values: mockTxInsertValues })),
+};
+
+mockTransaction.mockImplementation(async (cb: (tx: typeof mockTx) => unknown) => cb(mockTx));
 
 const mockDb = {
   query: {
@@ -239,9 +286,8 @@ beforeEach(() => {
   vi.clearAllMocks();
   mockFindFirst.mockReset();
   mockLimit.mockReset().mockResolvedValue([]);
-
-  mockUpdateWhere.mockResolvedValue(undefined);
-  mockUpdateSet.mockReturnValue({ where: mockUpdateWhere });
+  queuedTxSelects.length = 0;
+  vi.mocked(isHandleTaken).mockResolvedValue(false);
 });
 
 describe("Profile API Integration Tests (20 tests)", () => {
@@ -363,20 +409,7 @@ describe("Profile API Integration Tests (20 tests)", () => {
   describe("PUT /api/profile/handle", () => {
     it("updates handle successfully when unique (test 2)", async () => {
       authedAs("user-123", { handle: "oldhandle" });
-
-      mockSelect.mockImplementationOnce(() => ({
-        from: vi.fn(() => ({
-          where: vi.fn(() => ({
-            where: vi.fn().mockResolvedValue([{ count: 0 }]),
-          })),
-        })),
-      }));
-
-      mockLimit.mockResolvedValueOnce([{ handle: "oldhandle" }]);
-
-      mockLimit.mockResolvedValueOnce([]);
-
-      mockReturning.mockResolvedValueOnce([{ id: "user-123" }]);
+      queueTxSelects([{ handle: "oldhandle" }], [{ count: 0 }]);
 
       const { PUT } = await import("@/app/api/profile/handle/route");
       const request = makeRequest("http://localhost:3000/api/profile/handle", "PUT", {
@@ -385,25 +418,23 @@ describe("Profile API Integration Tests (20 tests)", () => {
       const response = await PUT(request);
 
       expect(response.status).toBe(200);
-      const body = (await response.json()) as { success: boolean; handle: string };
+      const body = (await response.json()) as {
+        success: boolean;
+        handle: string;
+        old_handle: string;
+      };
       expect(body.success).toBe(true);
       expect(body.handle).toBe("newhandle");
+      expect(body.old_handle).toBe("oldhandle");
+      expect(mockTxUpdateSet).toHaveBeenCalledWith(
+        expect.objectContaining({ handle: "newhandle" }),
+      );
+      expect(mockTxFor).toHaveBeenCalledWith("update");
     });
 
     it("returns 409 when handle already taken (test 9)", async () => {
       authedAs("user-123", { handle: "oldhandle" });
-
-      mockSelect.mockImplementationOnce(() => ({
-        from: vi.fn(() => ({
-          where: vi.fn(() => ({
-            where: vi.fn().mockResolvedValue([{ count: 0 }]),
-          })),
-        })),
-      }));
-
-      mockLimit.mockResolvedValueOnce([{ handle: "oldhandle" }]);
-
-      mockLimit.mockResolvedValueOnce([{ id: "other-user" }]);
+      vi.mocked(isHandleTaken).mockResolvedValue(true);
 
       const { PUT } = await import("@/app/api/profile/handle/route");
       const request = makeRequest("http://localhost:3000/api/profile/handle", "PUT", {
@@ -414,6 +445,7 @@ describe("Profile API Integration Tests (20 tests)", () => {
       expect(response.status).toBe(409);
       const body = (await response.json()) as { error: string };
       expect(body.error).toContain("already taken");
+      expect(mockTransaction).not.toHaveBeenCalled();
     });
 
     it("returns 400 for invalid handle format (test 10)", async () => {
@@ -437,42 +469,12 @@ describe("Profile API Integration Tests (20 tests)", () => {
       });
       const response = await PUT(request);
 
-      expect([400, 409, 500]).toContain(response.status);
+      expect(response.status).toBe(400);
     });
 
     it("creates handle audit trail on change (test 15)", async () => {
       authedAs("user-123", { handle: "oldhandle" });
-
-      mockSelect.mockImplementationOnce(() => ({
-        from: vi.fn(() => ({
-          where: vi.fn(() => ({
-            where: vi.fn().mockResolvedValue([{ count: 0 }]),
-          })),
-        })),
-      }));
-
-      mockLimit.mockResolvedValueOnce([{ handle: "oldhandle" }]);
-      mockLimit.mockResolvedValueOnce([]);
-
-      const { PUT } = await import("@/app/api/profile/handle/route");
-      const request = makeRequest("http://localhost:3000/api/profile/handle", "PUT", {
-        handle: "newhandle",
-      });
-      await PUT(request);
-
-      expect(mockTransaction).toHaveBeenCalled();
-    });
-
-    it("returns 429 when rate limit exceeded (test 16)", async () => {
-      authedAs("user-123");
-
-      mockSelect.mockImplementationOnce(() => ({
-        from: vi.fn(() => ({
-          where: vi.fn(() => ({
-            where: vi.fn().mockResolvedValue([{ count: 3 }]),
-          })),
-        })),
-      }));
+      queueTxSelects([{ handle: "oldhandle" }], [{ count: 0 }]);
 
       const { PUT } = await import("@/app/api/profile/handle/route");
       const request = makeRequest("http://localhost:3000/api/profile/handle", "PUT", {
@@ -480,25 +482,36 @@ describe("Profile API Integration Tests (20 tests)", () => {
       });
       const response = await PUT(request);
 
-      expect([429, 500]).toContain(response.status);
-      if (response.status === 429) {
-        const body = (await response.json()) as { error: string };
-        expect(body.error).toContain("Rate limit");
-      }
+      expect(response.status).toBe(200);
+      expect(mockTransaction).toHaveBeenCalled();
+      expect(mockTxInsertValues).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: "user-123",
+          oldHandle: "oldhandle",
+          newHandle: "newhandle",
+        }),
+      );
+    });
+
+    it("returns 429 when rate limit exceeded (test 16)", async () => {
+      authedAs("user-123", { handle: "oldhandle" });
+      queueTxSelects([{ handle: "oldhandle" }], [{ count: 3 }]);
+
+      const { PUT } = await import("@/app/api/profile/handle/route");
+      const request = makeRequest("http://localhost:3000/api/profile/handle", "PUT", {
+        handle: "newhandle",
+      });
+      const response = await PUT(request);
+
+      expect(mockTransaction).toHaveBeenCalled();
+      expect(response.status).toBe(429);
+      const body = (await response.json()) as { error: string };
+      expect(body.error).toContain("Rate limit");
     });
 
     it("returns 400 when handle is unchanged (test 2 edge case)", async () => {
       authedAs("user-123", { handle: "samehandle" });
-
-      mockSelect.mockImplementationOnce(() => ({
-        from: vi.fn(() => ({
-          where: vi.fn(() => ({
-            where: vi.fn().mockResolvedValue([{ count: 0 }]),
-          })),
-        })),
-      }));
-
-      mockLimit.mockResolvedValueOnce([{ handle: "samehandle" }]);
+      queueTxSelects([{ handle: "samehandle" }]);
 
       const { PUT } = await import("@/app/api/profile/handle/route");
       const request = makeRequest("http://localhost:3000/api/profile/handle", "PUT", {
@@ -700,18 +713,6 @@ describe("Profile API Integration Tests (20 tests)", () => {
   describe("Edge Cases and Concurrent Operations", () => {
     it("handles concurrent handle changes with race condition (test 17)", async () => {
       authedAs("user-123", { handle: "oldhandle" });
-
-      mockSelect.mockImplementationOnce(() => ({
-        from: vi.fn(() => ({
-          where: vi.fn(() => ({
-            where: vi.fn().mockResolvedValue([{ count: 0 }]),
-          })),
-        })),
-      }));
-
-      mockLimit.mockResolvedValueOnce([{ handle: "oldhandle" }]);
-
-      mockLimit.mockResolvedValueOnce([]);
 
       mockTransaction.mockRejectedValueOnce(
         Object.assign(

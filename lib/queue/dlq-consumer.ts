@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 import { resumes } from "../db/schema";
 import { getDb } from "../db";
 import { getLastAttemptErrorType } from "../resume/lifecycle";
@@ -70,7 +70,7 @@ export async function handleDLQMessage(
       errorMessage: errorMsg,
       updatedAt: new Date().toISOString(),
     })
-    .where(eq(resumes.id, originalMessage.resumeId));
+    .where(and(ne(resumes.status, "completed"), eq(resumes.id, originalMessage.resumeId)));
 
   await notifyStatusChange({
     resumeId: originalMessage.resumeId,

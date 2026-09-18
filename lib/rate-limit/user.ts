@@ -15,7 +15,10 @@ const RATE_LIMITS = {
 
 type RateLimitAction = keyof typeof RATE_LIMITS;
 
-export async function countHandleChangesInWindow(db: Database, userId: string): Promise<number> {
+// Accepts a transaction so quota reads run under the caller's user-row lock.
+type DbOrTx = Database | Parameters<Parameters<Database["transaction"]>[0]>[0];
+
+export async function countHandleChangesInWindow(db: DbOrTx, userId: string): Promise<number> {
   const windowMs = RATE_LIMITS.handle_change.windowHours * 60 * 60 * 1000;
   const windowStart = new Date(Date.now() - windowMs);
   const result = await db

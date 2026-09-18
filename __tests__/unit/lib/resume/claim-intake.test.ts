@@ -3,26 +3,45 @@ import type { JsonValue } from "@/lib/types/json";
 
 const mockLimitQueue: Array<Array<Record<string, JsonValue>>> = [];
 const mockLimit = vi.fn(async () => mockLimitQueue.shift() ?? []);
-const mockInsertValues = vi.fn(async () => undefined);
-const mockInsert = vi.fn(() => ({ values: mockInsertValues }));
+
 const mockUpdateSets: Array<Record<string, JsonValue>> = [];
-const mockUpdateWhere = vi.fn(async () => undefined);
+// `.returning()` is the row probe behind every conditional UPDATE: a non-empty
+// result means the row still existed, so the status change applied.
+const mockUpdateReturning = vi.fn(async () => [{ id: "row-1" }]);
+const mockUpdateWhere = vi.fn(() => ({ returning: mockUpdateReturning }));
 const mockUpdateSet = vi.fn((values: Record<string, JsonValue>) => {
   mockUpdateSets.push(values);
   return { where: mockUpdateWhere };
 });
 const mockUpdate = vi.fn(() => ({ set: mockUpdateSet }));
+
+let lastInsertValues: Record<string, unknown> = {};
+// The arbitration insert reports the row it inserted unless a test forces the
+// conflicting-row shape (a pending_claim claim already in flight).
+let mockArbitrationRows: Array<{ id: string; status: string }> | null = null;
+const mockInsertReturning = vi.fn(
+  async () => mockArbitrationRows ?? [{ id: String(lastInsertValues.id), status: "pending_claim" }],
+);
+const mockInsertValues = vi.fn((values: Record<string, unknown>) => {
+  lastInsertValues = values;
+  return {
+    onConflictDoUpdate: () => ({ returning: mockInsertReturning }),
+    onConflictDoNothing: async () => undefined,
+  };
+});
+const mockInsert = vi.fn(() => ({ values: mockInsertValues }));
+
+const mockWhereChain = {
+  limit: mockLimit,
+  orderBy: () => ({ limit: mockLimit }),
+  for: async () => undefined,
+};
+const mockSelect = vi.fn(() => ({ from: () => ({ where: () => mockWhereChain }) }));
+
 const mockTransaction = vi.fn(async (cb: (tx: typeof mockDb) => unknown) => cb(mockDb));
 
 const mockDb = {
-  select: vi.fn(() => ({
-    from: () => ({
-      where: () => ({
-        orderBy: () => ({ limit: mockLimit }),
-        limit: mockLimit,
-      }),
-    }),
-  })),
+  select: mockSelect,
   insert: mockInsert,
   update: mockUpdate,
   transaction: mockTransaction,
@@ -36,6 +55,7 @@ vi.mock("drizzle-orm", () => ({
   ne: vi.fn((_col: JsonValue, val: JsonValue) => ({ ne: val })),
   isNotNull: vi.fn((col: JsonValue) => ({ isNotNull: col })),
   inArray: vi.fn((col: JsonValue, values: JsonValue) => ({ inArray: { col, values } })),
+  sql: vi.fn((...args: JsonValue[]) => ({ sql: args })),
 }));
 
 vi.mock("@/lib/db/schema", () => ({
@@ -48,9 +68,12 @@ vi.mock("@/lib/db/schema", () => ({
     fileHash: "fileHash",
     parsedContent: "parsedContent",
     parsedAt: "parsedAt",
+    queuedAt: "queuedAt",
     createdAt: "createdAt",
+    updatedAt: "updatedAt",
   },
   user: { id: "id", handle: "handle", name: "name" },
+  pendingR2Deletions: { id: "id", r2Key: "r2Key", createdAt: "createdAt", attempts: "attempts" },
 }));
 
 const mockBuildSiteDataUpsert = vi.fn((..._args: unknown[]) => "mock-upsert-query");
@@ -111,20 +134,27 @@ function makePdfBuffer(): ArrayBuffer {
 }
 
 const TEMP_KEY = "temp/uuid/resume.pdf";
+const finalKey = (resumeId: string) => `users/user-1/${resumeId}/resume.pdf`;
 
 beforeEach(() => {
   vi.clearAllMocks();
   mockLimitQueue.length = 0;
   mockUpdateSets.length = 0;
+  mockArbitrationRows = null;
+  lastInsertValues = {};
   mockLimit.mockImplementation(async () => mockLimitQueue.shift() ?? []);
   mockInsert.mockReturnValue({ values: mockInsertValues });
-  mockInsertValues.mockResolvedValue(undefined);
-  mockUpdate.mockReturnValue({ set: mockUpdateSet });
+  mockInsertReturning.mockImplementation(
+    async () =>
+      mockArbitrationRows ?? [{ id: String(lastInsertValues.id), status: "pending_claim" }],
+  );
+  mockUpdateReturning.mockResolvedValue([{ id: "row-1" }]);
+  mockUpdateWhere.mockImplementation(() => ({ returning: mockUpdateReturning }));
   mockUpdateSet.mockImplementation((values: Record<string, JsonValue>) => {
     mockUpdateSets.push(values);
     return { where: mockUpdateWhere };
   });
-  mockUpdateWhere.mockResolvedValue(undefined);
+  mockUpdate.mockReturnValue({ set: mockUpdateSet });
   mockTransaction.mockImplementation(async (cb: (tx: typeof mockDb) => unknown) => cb(mockDb));
   mockEnforceRateLimit.mockResolvedValue(null);
 });
@@ -133,6 +163,7 @@ describe("runClaimIntake", () => {
   it("fresh upload → queued with enqueue and R2 move", async () => {
     const r2 = makeBucket({ [TEMP_KEY]: makePdfBuffer() });
     const queue = makeQueue();
+    // Cached-content probe, then the in-flight probe: neither finds a rival row.
     mockLimitQueue.push([], []);
 
     const outcome = await runClaimIntake({
@@ -148,9 +179,16 @@ describe("runClaimIntake", () => {
     if (outcome.kind !== "queued") throw new Error("expected queued");
     expect(outcome.resumeId).toBeTruthy();
     expect(queue.sent).toHaveLength(1);
-    expect(queue.sent[0]).toMatchObject({ userId: "user-1", attempt: 1 });
+    expect(queue.sent[0]).toMatchObject({
+      userId: "user-1",
+      r2Key: finalKey(outcome.resumeId),
+      attempt: 1,
+    });
     expect(r2.files.has(TEMP_KEY)).toBe(false);
-    expect(mockUpdateSets).toContainEqual(expect.objectContaining({ status: "queued" }));
+    expect(r2.files.has(finalKey(outcome.resumeId))).toBe(true);
+    expect(mockUpdateSets).toContainEqual(
+      expect.objectContaining({ status: "queued", r2Key: finalKey(outcome.resumeId) }),
+    );
     expect(mockBuildSiteDataUpsert).not.toHaveBeenCalled();
   });
 
@@ -173,13 +211,15 @@ describe("runClaimIntake", () => {
     });
 
     expect(outcome).toMatchObject({ kind: "cached" });
+    if (outcome.kind !== "cached") throw new Error("expected cached");
     expect(queue.sent).toHaveLength(0);
+    expect(r2.files.has(finalKey(outcome.resumeId))).toBe(true);
     expect(mockBuildSiteDataUpsert).toHaveBeenCalledWith(
       expect.anything(),
       "user-1",
       expect.anything(),
       cachedContent,
-      { publish: true },
+      expect.objectContaining({ publish: true }),
     );
     expect(mockUpdateSets).toContainEqual(expect.objectContaining({ status: "completed" }));
     expect(mockUpdateSets).toContainEqual(
@@ -190,7 +230,9 @@ describe("runClaimIntake", () => {
   it("in-flight duplicate → waiting_for_cache without enqueue", async () => {
     const r2 = makeBucket({ [TEMP_KEY]: makePdfBuffer() });
     const queue = makeQueue();
-    mockLimitQueue.push([], [{ id: "inflight-1" }]);
+    // Cached probe, in-flight probe, post-move completed re-check, then the
+    // self-row probe that confirms the row still exists.
+    mockLimitQueue.push([], [{ id: "inflight-1" }], [], [{ id: "row-1" }]);
 
     const outcome = await runClaimIntake({
       db: mockDb as never,
@@ -202,8 +244,37 @@ describe("runClaimIntake", () => {
     });
 
     expect(outcome.kind).toBe("waiting_for_cache");
+    if (outcome.kind !== "waiting_for_cache") throw new Error("expected waiting_for_cache");
     expect(queue.sent).toHaveLength(0);
-    expect(mockUpdateSets).toContainEqual(expect.objectContaining({ status: "waiting_for_cache" }));
+    expect(r2.files.has(finalKey(outcome.resumeId))).toBe(true);
+    expect(mockUpdateSets).toContainEqual(
+      expect.objectContaining({ status: "waiting_for_cache", r2Key: finalKey(outcome.resumeId) }),
+    );
+  });
+
+  it("conflicting pending_claim row from arbitration → already_claimed without enqueue", async () => {
+    const r2 = makeBucket({ [TEMP_KEY]: makePdfBuffer() });
+    const queue = makeQueue();
+    mockArbitrationRows = [{ id: "pending-1", status: "pending_claim" }];
+
+    const outcome = await runClaimIntake({
+      db: mockDb as never,
+      r2: r2 as never,
+      queue: queue as never,
+      env: undefined,
+      userId: "user-1",
+      tempKey: TEMP_KEY,
+    });
+
+    expect(outcome).toEqual({
+      kind: "already_claimed",
+      resumeId: "pending-1",
+      status: "pending_claim",
+    });
+    expect(queue.sent).toHaveLength(0);
+    // The rival claim owns the temp object: no status churn, no move.
+    expect(mockUpdateSets).toHaveLength(0);
+    expect(r2.files.has(TEMP_KEY)).toBe(true);
   });
 
   it("missing temp file with recent resume → already_claimed before rate-limit", async () => {
@@ -267,9 +338,10 @@ describe("runClaimIntake", () => {
     expect(outcome).toMatchObject({ kind: "error", httpStatus: 500 });
     expect(mockBuildSiteDataUpsert).not.toHaveBeenCalled();
     expect(queue.sent).toHaveLength(0);
+    expect(mockUpdateSets).toContainEqual(expect.objectContaining({ status: "failed" }));
   });
 
-  it("queue publish failure → error with rollback to pending_claim", async () => {
+  it("queue publish failure → row stays queued without rollback", async () => {
     const r2 = makeBucket({ [TEMP_KEY]: makePdfBuffer() });
     const queue = makeQueue(true);
     mockLimitQueue.push([], []);
@@ -288,8 +360,11 @@ describe("runClaimIntake", () => {
       message: "Failed to queue resume for processing",
       httpStatus: 500,
     });
+    // The send error may mean the message landed anyway, so the row is left for
+    // the queued-orphan sweep rather than rolled back or failed.
     expect(mockUpdateSets).toContainEqual(expect.objectContaining({ status: "queued" }));
-    expect(mockUpdateSets).toContainEqual(expect.objectContaining({ status: "pending_claim" }));
+    expect(mockUpdateSets).not.toContainEqual(expect.objectContaining({ status: "pending_claim" }));
+    expect(mockUpdateSets).not.toContainEqual(expect.objectContaining({ status: "failed" }));
   });
 
   it("missing queue binding → error and failed row", async () => {

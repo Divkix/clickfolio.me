@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { LucideIcon } from "lucide-react";
 import { Eye, Globe, Loader2, MapPin, Phone, Search, SearchX, Users } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
@@ -13,6 +13,8 @@ import type { ApiErrorBody } from "@/lib/types/api";
 
 interface PrivacySettingsFormProps {
   initialSettings: PrivacySettings;
+  // Version of the user row the page loaded; sent as If-Unmodified-Since so a stale save is rejected.
+  initialUpdatedAt?: string;
 }
 
 interface ToggleCardProps {
@@ -71,9 +73,13 @@ function ToggleCard({
   );
 }
 
-export function PrivacySettingsForm({ initialSettings }: PrivacySettingsFormProps) {
+export function PrivacySettingsForm({
+  initialSettings,
+  initialUpdatedAt,
+}: PrivacySettingsFormProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [savingField, setSavingField] = useState<string | null>(null);
+  const updatedAtRef = useRef(initialUpdatedAt);
 
   const { watch, setValue } = useForm<PrivacySettings>({
     resolver: zodResolver(privacySettingsSchema),
@@ -89,11 +95,12 @@ export function PrivacySettingsForm({ initialSettings }: PrivacySettingsFormProp
     setIsSaving(true);
 
     try {
+      // Chained saves carry the freshly written version; absent ref means first save.
       const response = await fetch("/api/profile/privacy", {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: updatedAtRef.current
+          ? { "Content-Type": "application/json", "If-Unmodified-Since": updatedAtRef.current }
+          : { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
 
@@ -102,6 +109,10 @@ export function PrivacySettingsForm({ initialSettings }: PrivacySettingsFormProp
         const errorData = (await response.json()) as ApiErrorBody;
         throw new Error(errorData.error || "Failed to update privacy settings");
       }
+
+      // SAFETY: success body is our own route response; updated_at is the freshly written version.
+      const successData = (await response.json()) as { updated_at?: string };
+      if (successData.updated_at) updatedAtRef.current = successData.updated_at;
 
       toast.success("Privacy settings updated");
       return true;

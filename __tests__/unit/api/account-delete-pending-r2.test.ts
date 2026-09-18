@@ -69,7 +69,12 @@ const mocks = vi.hoisted(() => {
   };
 
   const env = {
-    CLICKFOLIO_R2_BUCKET: { list: vi.fn(async () => ({ objects: [] })) },
+    CLICKFOLIO_R2_BUCKET: {
+      list: vi.fn(async (): Promise<{ objects: Array<{ key: string }>; truncated: boolean }> => ({
+        objects: [],
+        truncated: false,
+      })),
+    },
     CLICKFOLIO_PARSE_QUEUE: { send: vi.fn(async () => undefined) },
     CLERK_SECRET_KEY: "sk_test_account_delete",
     CF_AI_GATEWAY_ACCOUNT_ID: "acct",
@@ -107,15 +112,17 @@ vi.mock("@/lib/db", () => ({
   getDb: vi.fn(() => mocks.db),
 }));
 
-vi.mock("@/lib/r2", () => ({
-  getR2Binding: vi.fn((env: typeof mocks.env) => env.CLICKFOLIO_R2_BUCKET),
-  R2: {
-    put: vi.fn(async () => undefined),
-    delete: mocks.r2Delete,
-    getAsUint8Array: vi.fn(async () => new Uint8Array([1, 2, 3])),
-    head: vi.fn(async () => ({ exists: true })),
-  },
-}));
+vi.mock("@/lib/r2", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/r2")>();
+  return {
+    ...actual,
+    getR2Binding: vi.fn((env: typeof mocks.env) => env.CLICKFOLIO_R2_BUCKET),
+    R2: {
+      ...actual.R2,
+      delete: mocks.r2Delete,
+    },
+  };
+});
 
 vi.mock("drizzle-orm", () => ({
   relations: vi.fn((_table, build) =>
@@ -199,6 +206,10 @@ describe("account delete — pending R2 deletion tracking", () => {
 
     expect(mocks.clerkDeleteUser).toHaveBeenCalledWith("user_clerk_1");
     expect(mocks.deleteWhere).toHaveBeenCalledTimes(1);
+    // DB-first: the cascade lands before any R2 object is touched.
+    expect(mocks.deleteWhere.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.r2Delete.mock.invocationCallOrder[0],
+    );
     expect(mocks.db.insert.mock.invocationCallOrder[0]).toBeLessThan(
       mocks.clerkDeleteUser.mock.invocationCallOrder[0],
     );
@@ -222,6 +233,36 @@ describe("account delete — pending R2 deletion tracking", () => {
     expect(mocks.db.insert).not.toHaveBeenCalled();
     expect(mocks.clerkDeleteUser).toHaveBeenCalledWith("user_clerk_1");
     expect(mocks.deleteWhere).toHaveBeenCalledTimes(1);
+  });
+
+  it("sweeps the user's R2 prefix so objects racing the delete are still removed", async () => {
+    const { POST } = await import("@/app/api/account/delete/route");
+
+    authed();
+    mocks.state.selectResults = [[{ r2Key: "users/user-1/from-db.pdf" }]];
+    mocks.env.CLICKFOLIO_R2_BUCKET.list.mockResolvedValueOnce({
+      objects: [{ key: "users/user-1/1712345678901/raced.pdf" }],
+      truncated: false,
+    });
+
+    const response = await POST(
+      jsonRequest("/api/account/delete", { confirmation: "avery@example.com" }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(mocks.env.CLICKFOLIO_R2_BUCKET.list).toHaveBeenCalledWith({
+      prefix: "users/user_1/",
+      limit: expect.any(Number),
+      cursor: undefined,
+    });
+    expect(mocks.r2Delete).toHaveBeenCalledWith(
+      mocks.env.CLICKFOLIO_R2_BUCKET,
+      "users/user-1/1712345678901/raced.pdf",
+    );
+    expect(mocks.r2Delete).toHaveBeenCalledWith(
+      mocks.env.CLICKFOLIO_R2_BUCKET,
+      "users/user-1/from-db.pdf",
+    );
   });
 
   it("records multiple failed keys when more than one R2 delete fails", async () => {
@@ -272,7 +313,12 @@ describe("account delete — pending R2 deletion tracking", () => {
     const insertedRows = mocks.state.insertCalls[0] as Array<{ r2Key: string }>;
     expect(insertedRows).toHaveLength(1);
     expect(insertedRows[0].r2Key).toBe("users/user-1/resume.pdf");
-    expect(mocks.deleteWhere).not.toHaveBeenCalled();
+    // DB-first: the local account row and R2 object are already gone when Clerk fails.
+    expect(mocks.deleteWhere).toHaveBeenCalledTimes(1);
+    expect(mocks.r2Delete).toHaveBeenCalledWith(
+      mocks.env.CLICKFOLIO_R2_BUCKET,
+      "users/user-1/resume.pdf",
+    );
   });
 
   it("tolerates a 404 from Clerk (identity already deleted) and finishes locally", async () => {

@@ -35,33 +35,41 @@ vi.mock("@/lib/auth/middleware", () => ({
   requireAuthWithUserValidation: vi.fn(),
 }));
 
-vi.mock("drizzle-orm", () => ({
-  eq: vi.fn((_col, val) => val),
-  gte: vi.fn(),
-  and: vi.fn(() => "and"),
-  desc: vi.fn(() => "desc"),
-  lt: vi.fn(() => "lt"),
-  isNotNull: vi.fn(() => "isNotNull"),
-  ne: vi.fn(() => "ne"),
-  inArray: vi.fn(() => "inArray"),
-}));
+vi.mock("drizzle-orm", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("drizzle-orm")>();
+  return {
+    ...actual,
+    eq: vi.fn((_col, val) => val),
+    gte: vi.fn(),
+    and: vi.fn(() => "and"),
+    desc: vi.fn(() => "desc"),
+    lt: vi.fn(() => "lt"),
+    isNotNull: vi.fn(() => "isNotNull"),
+    ne: vi.fn(() => "ne"),
+    inArray: vi.fn(() => "inArray"),
+  };
+});
 
-vi.mock("@/lib/db/schema", () => ({
-  resumes: {
-    id: "id",
-    userId: "userId",
-    status: "status",
-    errorMessage: "errorMessage",
-    retryCount: "retryCount",
-    totalAttempts: "totalAttempts",
-    createdAt: "createdAt",
-    r2Key: "r2Key",
-    lastAttemptError: "lastAttemptError",
-    fileHash: "fileHash",
-    parsedContent: "parsedContent",
-    queuedAt: "queuedAt",
-  },
-}));
+vi.mock("@/lib/db/schema", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/db/schema")>();
+  return {
+    ...actual,
+    resumes: {
+      id: "id",
+      userId: "userId",
+      status: "status",
+      errorMessage: "errorMessage",
+      retryCount: "retryCount",
+      totalAttempts: "totalAttempts",
+      createdAt: "createdAt",
+      r2Key: "r2Key",
+      lastAttemptError: "lastAttemptError",
+      fileHash: "fileHash",
+      parsedContent: "parsedContent",
+      queuedAt: "queuedAt",
+    },
+  };
+});
 
 vi.mock("@/lib/queue/resume-parse", () => ({
   publishResumeParse: vi.fn().mockResolvedValue(undefined),

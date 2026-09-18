@@ -38,6 +38,10 @@ const mocks = vi.hoisted(() => {
       resumes: { findFirst: vi.fn() },
     },
     select: vi.fn(() => createChain()),
+    // Snapshot queries (explore count + page rows) resolve from the same result queue.
+    transaction: vi.fn(async (callback: (tx: { select: () => unknown }) => Promise<JsonValue>) =>
+      callback({ select: () => createChain() }),
+    ),
   };
 
   return {

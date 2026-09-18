@@ -91,8 +91,10 @@ export async function POST(request: Request) {
       }
 
       if (parsedCookie.tempKey !== key) {
+        // Never clear the cookie on mismatch: it may belong to a newer upload than
+        // the key in this request, and clearing it would orphan that upload.
         return createErrorResponse(
-          "Unauthorized upload attempt. Upload key mismatch.",
+          `Unauthorized upload attempt. Upload key mismatch (expected ${parsedCookie.tempKey}, received ${key}).`,
           ERROR_CODES.FORBIDDEN,
           403,
         );

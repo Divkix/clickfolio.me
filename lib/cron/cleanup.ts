@@ -56,11 +56,29 @@ export async function performCleanup(
       .limit(FAILED_RESUMES_BATCH);
 
     if (staleFailed.length > 0) {
-      if (!r2Binding) {
+      // Delete the rows first, guarded on still being stale `failed`, and use only
+      // the ids the DELETE actually returned: a row that raced back into an active
+      // status (e.g. retry) keeps both its DB row and its R2 object.
+      const deletedRows = await db
+        .delete(resumes)
+        .where(
+          and(
+            inArray(
+              resumes.id,
+              staleFailed.map((row) => row.id),
+            ),
+            eq(resumes.status, "failed"),
+            lt(sql`COALESCE(${resumes.updatedAt}, ${resumes.createdAt})`, cutoff),
+          ),
+        )
+        .returning({ id: resumes.id, r2Key: resumes.r2Key });
+      failedResumes = deletedRows.length;
+
+      if (deletedRows.length > 0 && !r2Binding) {
         log("warn", "R2 binding unavailable; deleting failed resume DB rows only");
       }
       const fallbackRows: Array<typeof pendingR2Deletions.$inferInsert> = [];
-      for (const row of staleFailed) {
+      for (const row of deletedRows) {
         if (!r2Binding || !row.r2Key) continue;
         try {
           await R2.delete(r2Binding, row.r2Key);
@@ -78,10 +96,8 @@ export async function performCleanup(
         }
       }
       if (fallbackRows.length > 0) {
-        await db.insert(pendingR2Deletions).values(fallbackRows);
+        await db.insert(pendingR2Deletions).values(fallbackRows).onConflictDoNothing();
       }
-      const staleIds = staleFailed.map((row) => row.id);
-      failedResumes = (await db.delete(resumes).where(inArray(resumes.id, staleIds))).count;
     }
   } catch (error) {
     log("error", "failed-resume auto-purge failed", { error: String(error) });

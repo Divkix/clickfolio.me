@@ -10,8 +10,11 @@ const mockFrom = vi.fn().mockReturnThis();
 const mockWhere = vi.fn().mockReturnThis();
 
 let rawInsertCount = 1;
-const mockRawClient = vi.fn((_strings: TemplateStringsArray, ..._values: unknown[]) =>
-  Promise.resolve({ count: rawInsertCount }),
+const mockRawClient = Object.assign(
+  vi.fn((_strings: TemplateStringsArray, ..._values: unknown[]) =>
+    Promise.resolve({ count: rawInsertCount }),
+  ),
+  { begin: vi.fn(async (cb: (tx: unknown) => unknown) => cb(mockRawClient)) },
 );
 
 function lastRawSqlText(): string {
@@ -318,20 +321,21 @@ describe("Rate Limit Security Enforcement", () => {
       expect(mockInsert).not.toHaveBeenCalled();
     });
 
-    it("still fails OPEN when the conditional insert throws", async () => {
+    it("fails CLOSED when the conditional insert throws", async () => {
       mockSelect.mockReturnValue({
         from: vi.fn().mockReturnValue({
           where: vi.fn().mockResolvedValue([{ hourly: 0, daily: 0 }]),
         }),
       });
-      mockRawClient.mockImplementationOnce(() => {
+      mockRawClient.begin.mockImplementationOnce(() => {
         throw new Error("Insert failed");
       });
 
       const { checkIPRateLimit } = await import("@/lib/rate-limit/ip");
       const result = await checkIPRateLimit("192.168.1.1");
 
-      expect(result.allowed).toBe(true);
+      expect(result.allowed).toBe(false);
+      expect(result.message).toContain("temporarily unavailable");
     });
   });
 
@@ -522,7 +526,7 @@ describe("Rate Limit Security Enforcement", () => {
   });
 
   describe("Fail-Open vs Fail-Closed Behavior", () => {
-    it("fails OPEN for IP rate limiting errors", async () => {
+    it("fails CLOSED for IP rate limiting errors", async () => {
       mockSelect.mockImplementation(() => {
         throw new Error("DB connection failed");
       });
@@ -530,7 +534,8 @@ describe("Rate Limit Security Enforcement", () => {
       const { checkIPRateLimit } = await import("@/lib/rate-limit/ip");
       const result = await checkIPRateLimit("192.168.1.1");
 
-      expect(result.allowed).toBe(true);
+      expect(result.allowed).toBe(false);
+      expect(result.message).toContain("temporarily unavailable");
     });
 
     it("fails CLOSED for authenticated rate limiting errors", async () => {

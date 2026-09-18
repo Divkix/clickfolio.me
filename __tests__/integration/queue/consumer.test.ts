@@ -101,6 +101,58 @@ function mockSelectChain(getRows: () => Array<UnknownRecord>) {
   };
 }
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function isSqlFragment(value: unknown): value is { queryChunks: unknown } {
+  return typeof value === "object" && value !== null && "queryChunks" in value;
+}
+
+// The ids bound into a mocked where clause: their string params are the row ids a
+// real UPDATE ... RETURNING would match, in every condition shape used here.
+function conditionIds(node: JsonValue, depth = 0, acc: string[] = []): string[] {
+  if (node == null || depth > 16) return acc;
+  if (Array.isArray(node)) {
+    for (const child of node) conditionIds(child, depth + 1, acc);
+    return acc;
+  }
+  if (typeof node === "object") {
+    const obj = node as UnknownRecord;
+    if (typeof obj.value === "string" && UUID_PATTERN.test(obj.value)) acc.push(obj.value);
+    for (const key of ["queryChunks", "chunks", "left", "right", "value", "expr"]) {
+      if (obj[key]) conditionIds(obj[key] as JsonValue, depth + 1, acc);
+    }
+  }
+  return acc;
+}
+
+// Mock drizzle update chain: `where(...)` stays awaitable while exposing `returning(...)`,
+// which resolves the rows the statement would return for the ids it filters on.
+function mockUpdateChain(options?: {
+  setValues?: Array<UnknownRecord>;
+  whereConds?: Array<JsonValue>;
+  returning?: (cond: JsonValue) => Array<UnknownRecord>;
+}) {
+  const rowsFor =
+    options?.returning ?? ((cond: JsonValue) => conditionIds(cond).map((id) => ({ id })));
+  return {
+    set: vi.fn((values: UnknownRecord) => {
+      options?.setValues?.push(values);
+      return {
+        where: vi.fn((cond: JsonValue) => {
+          options?.whereConds?.push(cond);
+          return {
+            returning: vi.fn(async () => rowsFor(cond)),
+            then: (
+              onFulfilled?: ((value: { count: number }) => unknown) | null,
+              onRejected?: ((reason: unknown) => unknown) | null,
+            ) => Promise.resolve({ count: 0 }).then(onFulfilled, onRejected),
+          };
+        }),
+      };
+    }),
+  };
+}
+
 function mockBuildDefaultMockDb() {
   const allRows = () => Array.from(mockDbState.resumes.values()) as unknown as UnknownRecord[];
   const db = {
@@ -126,11 +178,7 @@ function mockBuildDefaultMockDb() {
           .map((r) => ({ id: r.id, parsedContent: r.parsedContent })),
       );
     }),
-    update: vi.fn().mockImplementation(() => ({
-      set: vi.fn().mockReturnValue({
-        where: vi.fn().mockResolvedValue(undefined),
-      }),
-    })),
+    update: vi.fn(() => mockUpdateChain()),
     insert: vi.fn().mockImplementation(() => ({
       values: vi.fn().mockReturnValue({
         onConflictDoUpdate: vi.fn().mockResolvedValue(undefined),
@@ -385,19 +433,15 @@ describe("Queue Consumer - Main Processing", () => {
 
     const setValues: Array<UnknownRecord> = [];
     const mockDb = mockBuildDefaultMockDb();
-    vi.mocked(mockDb.update).mockImplementation(() => ({
-      set: vi.fn().mockImplementation((values: UnknownRecord) => {
-        setValues.push(values);
-        return { where: vi.fn().mockResolvedValue(undefined) };
-      }),
-    }));
+    vi.mocked(mockDb.update).mockImplementation(() => mockUpdateChain({ setValues }));
     vi.mocked(getDb).mockReturnValue(mockDb as never);
 
     await handleQueueMessage(message, env);
 
     expect(mockWebSocketNotifications.some((n) => n.status === "completed")).toBe(true);
     const processingUpdate = setValues.find((v) => v.status === "processing");
-    expect(processingUpdate?.totalAttempts).toBe(3);
+    // The increment is evaluated by the database so concurrent deliveries cannot lose attempts.
+    expect(isSqlFragment(processingUpdate?.totalAttempts)).toBe(true);
   });
 
   it("8. Process notifies waiting resumes on completion", async () => {
@@ -412,80 +456,26 @@ describe("Queue Consumer - Main Processing", () => {
     createResume({ id: resumeId, status: "queued" });
     mockR2Store.set(r2Key, makePdfBuffer());
 
-    const selectCalls: Array<string> = [];
-
     const mockDb = withTransaction({
       select: vi.fn().mockImplementation((cols: JsonValue) => {
-        const isHandleQuery =
-          cols !== null &&
-          typeof cols === "object" &&
-          "handle" in (cols as Record<string, unknown>);
-        if (isHandleQuery) {
-          const hasId = "id" in (cols as Record<string, unknown>);
-          if (hasId) {
-            const rows = [{ id: userId, handle: "test-handle" }];
-            return {
-              from: vi.fn().mockReturnValue({
-                where: vi.fn().mockReturnValue({
-                  limit: vi.fn().mockResolvedValue(rows),
-                  then: vi
-                    .fn()
-                    .mockImplementation((onFulfilled: (value: JsonValue) => JsonValue) =>
-                      Promise.resolve(onFulfilled(rows as unknown as JsonValue)),
-                    ),
-                }),
-              }),
-            };
-          }
-          return {
-            from: vi.fn().mockReturnValue({
-              where: vi.fn().mockReturnValue({
-                limit: vi.fn().mockResolvedValue([{ handle: "test-handle" }]),
-                then: vi
-                  .fn()
-                  .mockImplementation((onFulfilled: (value: JsonValue) => JsonValue) =>
-                    Promise.resolve(
-                      onFulfilled([{ handle: "test-handle" }] as unknown as JsonValue),
-                    ),
-                  ),
-              }),
-            }),
-          };
+        const keys = (cols ?? {}) as Record<string, unknown>;
+        if ("handle" in keys) {
+          return "id" in keys
+            ? mockSelectChain(() => [{ id: userId, handle: "test-handle" }])
+            : mockSelectChain(() => [{ handle: "test-handle" }]);
         }
-        const callCount = selectCalls.length;
-        selectCalls.push(`call-${callCount}`);
-
-        return {
-          from: vi.fn().mockReturnValue({
-            where: vi.fn().mockReturnValue({
-              limit: vi.fn().mockImplementation((_n: number) => {
-                if (callCount === 0) {
-                  return Promise.resolve([
-                    {
-                      status: "queued",
-                      parsedContent: null,
-                      parsedContentStaged: null,
-                      totalAttempts: 0,
-                    },
-                  ]);
-                }
-                return Promise.resolve([]);
-              }),
-              then: vi.fn().mockImplementation((cb: (value: JsonValue[]) => JsonValue) => {
-                if (callCount === 2) {
-                  return Promise.resolve(cb([{ id: waitingResumeId, userId }]));
-                }
-                return Promise.resolve(cb([]));
-              }),
-            }),
-          }),
-        };
+        if ("status" in keys) {
+          return mockSelectChain(() => [
+            { status: "queued", parsedContent: null, parsedContentStaged: null, totalAttempts: 0 },
+          ]);
+        }
+        // Rows waiting on this file hash; every other select (createdAt, siteData) is empty.
+        if ("id" in keys && "userId" in keys) {
+          return mockSelectChain(() => [{ id: waitingResumeId, userId }]);
+        }
+        return mockSelectChain(() => []);
       }),
-      update: vi.fn().mockReturnValue({
-        set: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue(undefined),
-        }),
-      }),
+      update: vi.fn(() => mockUpdateChain()),
       insert: vi.fn().mockReturnValue({
         values: vi.fn().mockResolvedValue(undefined),
       }),
@@ -528,11 +518,7 @@ describe("Queue Consumer - Main Processing", () => {
         }
         return mockSelectChain(() => [{ status: "queued", parsedContent: null, totalAttempts: 0 }]);
       }),
-      update: vi.fn().mockReturnValue({
-        set: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue(undefined),
-        }),
-      }),
+      update: vi.fn(() => mockUpdateChain()),
       insert: vi.fn().mockReturnValue({
         values: vi.fn().mockResolvedValue(undefined),
       }),
@@ -580,12 +566,7 @@ describe("Queue Consumer - Main Processing", () => {
         }
         return mockSelectChain(() => [{ status: "queued", parsedContent: null, totalAttempts: 0 }]);
       }),
-      update: vi.fn().mockImplementation(() => ({
-        set: vi.fn().mockImplementation((values: UnknownRecord) => {
-          setValues.push(values);
-          return { where: vi.fn().mockResolvedValue(undefined) };
-        }),
-      })),
+      update: vi.fn(() => mockUpdateChain({ setValues })),
       insert: vi.fn().mockReturnValue({
         values: vi.fn().mockResolvedValue(undefined),
       }),
@@ -627,12 +608,7 @@ describe("Queue Consumer - Main Processing", () => {
         }
         return mockSelectChain(() => [{ status: "queued", parsedContent: null, totalAttempts: 0 }]);
       }),
-      update: vi.fn().mockImplementation(() => ({
-        set: vi.fn().mockImplementation((values: UnknownRecord) => {
-          setValues.push(values);
-          return { where: vi.fn().mockResolvedValue(undefined) };
-        }),
-      })),
+      update: vi.fn(() => mockUpdateChain({ setValues })),
       insert: vi.fn().mockReturnValue({
         values: vi.fn().mockResolvedValue(undefined),
       }),
@@ -721,18 +697,7 @@ describe("Queue Consumer - Main Processing", () => {
           }),
         }),
       }),
-      update: vi.fn().mockImplementation(() => ({
-        set: vi
-          .fn()
-          .mockImplementation(
-            (values: { status?: string; lastAttemptError?: string; errorMessage?: string }) => {
-              updateCalls.push(values);
-              return {
-                where: vi.fn().mockResolvedValue(undefined),
-              };
-            },
-          ),
-      })),
+      update: vi.fn(() => mockUpdateChain({ setValues: updateCalls })),
     };
 
     vi.mocked(getDb).mockReturnValue(mockDb as never);
@@ -1260,78 +1225,28 @@ describe("Batch A — queue/state-machine integrity fixes", () => {
 
     mockR2Store.set(r2Key, makePdfBuffer());
 
-    const selectCalls: string[] = [];
     const updateWhereConds: JsonValue[] = [];
 
     const mockDb = withTransaction({
       select: vi.fn().mockImplementation((cols: JsonValue) => {
-        const isHandleQuery =
-          cols !== null &&
-          typeof cols === "object" &&
-          "handle" in (cols as Record<string, unknown>);
-        if (isHandleQuery) {
-          const hasId = "id" in (cols as Record<string, unknown>);
-          if (hasId) {
-            const rows = [{ id: userId, handle: "test-handle" }];
-            return {
-              from: vi.fn().mockReturnValue({
-                where: vi.fn().mockReturnValue({
-                  limit: vi.fn().mockResolvedValue(rows),
-                  then: vi
-                    .fn()
-                    .mockImplementation((onFulfilled: (value: JsonValue) => JsonValue) =>
-                      Promise.resolve(onFulfilled(rows as unknown as JsonValue)),
-                    ),
-                }),
-              }),
-            };
-          }
-          return {
-            from: vi.fn().mockReturnValue({
-              where: vi.fn().mockReturnValue({
-                limit: vi.fn().mockResolvedValue([{ handle: "test-handle" }]),
-                then: vi
-                  .fn()
-                  .mockImplementation((onFulfilled: (value: JsonValue) => JsonValue) =>
-                    Promise.resolve(
-                      onFulfilled([{ handle: "test-handle" }] as unknown as JsonValue),
-                    ),
-                  ),
-              }),
-            }),
-          };
+        const keys = (cols ?? {}) as Record<string, unknown>;
+        if ("handle" in keys) {
+          return "id" in keys
+            ? mockSelectChain(() => [{ id: userId, handle: "test-handle" }])
+            : mockSelectChain(() => [{ handle: "test-handle" }]);
         }
-        const callIdx = selectCalls.length;
-        selectCalls.push(`call-${callIdx}`);
-        return {
-          from: vi.fn().mockReturnValue({
-            where: vi.fn().mockReturnValue({
-              limit: vi.fn().mockImplementation((_n: number) => {
-                if (callIdx === 0) {
-                  return Promise.resolve([
-                    { status: "queued", parsedContent: null, totalAttempts: 0 },
-                  ]);
-                }
-                return Promise.resolve([]);
-              }),
-              then: vi.fn().mockImplementation((cb: (value: JsonValue[]) => JsonValue) => {
-                if (callIdx === 2) {
-                  return Promise.resolve(cb([{ id: waitingId, userId }]));
-                }
-                return Promise.resolve(cb([]));
-              }),
-            }),
-          }),
-        };
+        if ("status" in keys) {
+          return mockSelectChain(() => [
+            { status: "queued", parsedContent: null, totalAttempts: 0 },
+          ]);
+        }
+        // Rows waiting on this file hash; every other select (createdAt, siteData) is empty.
+        if ("id" in keys && "userId" in keys) {
+          return mockSelectChain(() => [{ id: waitingId, userId }]);
+        }
+        return mockSelectChain(() => []);
       }),
-      update: vi.fn().mockReturnValue({
-        set: vi.fn().mockReturnValue({
-          where: vi.fn().mockImplementation((cond: JsonValue) => {
-            updateWhereConds.push(cond);
-            return Promise.resolve(undefined);
-          }),
-        }),
-      }),
+      update: vi.fn(() => mockUpdateChain({ whereConds: updateWhereConds })),
       insert: vi.fn().mockReturnValue({ values: vi.fn().mockResolvedValue(undefined) }),
     });
 
@@ -1347,7 +1262,8 @@ describe("Batch A — queue/state-machine integrity fixes", () => {
     const cols = collectColumns(fanOutCond);
     expect(cols.has("id")).toBe(true);
     expect(cols.has("file_hash")).toBe(false);
-    expect(cols.has("status")).toBe(false);
+    // Scoped to exactly the SELECTed id; the status predicate can only be a guard.
+    expect(conditionIds(fanOutCond)).toEqual([waitingId]);
 
     expect(mockWebSocketNotifications.some((n) => n.resumeId === waitingId)).toBe(true);
   });
@@ -1364,45 +1280,24 @@ describe("Batch A — queue/state-machine integrity fixes", () => {
 
     mockR2Store.set(r2Key, makePdfBuffer());
 
-    const selectCalls: string[] = [];
-
     const mockDb = withTransaction({
       select: vi.fn().mockImplementation((cols: JsonValue) => {
-        const isHandleQuery =
-          cols !== null &&
-          typeof cols === "object" &&
-          "handle" in (cols as Record<string, unknown>);
-        if (isHandleQuery) {
+        const keys = (cols ?? {}) as Record<string, unknown>;
+        if ("handle" in keys) {
           return mockSelectChain(() => []);
         }
-        const callIdx = selectCalls.length;
-        selectCalls.push(`call-${callIdx}`);
-        return {
-          from: vi.fn().mockReturnValue({
-            where: vi.fn().mockReturnValue({
-              limit: vi.fn().mockImplementation((_n: number) => {
-                if (callIdx === 0) {
-                  return Promise.resolve([
-                    { status: "queued", parsedContent: null, totalAttempts: 0 },
-                  ]);
-                }
-                return Promise.resolve([]);
-              }),
-              then: vi.fn().mockImplementation((cb: (value: JsonValue[]) => JsonValue) => {
-                if (callIdx === 2) {
-                  return Promise.resolve(cb([{ id: waitingId, userId }]));
-                }
-                return Promise.resolve(cb([]));
-              }),
-            }),
-          }),
-        };
+        if ("status" in keys) {
+          return mockSelectChain(() => [
+            { status: "queued", parsedContent: null, totalAttempts: 0 },
+          ]);
+        }
+        // Rows waiting on this file hash; every other select (createdAt, siteData) is empty.
+        if ("id" in keys && "userId" in keys) {
+          return mockSelectChain(() => [{ id: waitingId, userId }]);
+        }
+        return mockSelectChain(() => []);
       }),
-      update: vi.fn().mockReturnValue({
-        set: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue(undefined),
-        }),
-      }),
+      update: vi.fn(() => mockUpdateChain()),
       insert: vi.fn().mockReturnValue({ values: vi.fn().mockResolvedValue(undefined) }),
     });
     vi.mocked(getDb).mockReturnValue(mockDb as never);
@@ -1486,14 +1381,7 @@ describe("Batch A — queue/state-machine integrity fixes", () => {
           }),
         }),
       }),
-      update: vi.fn().mockReturnValue({
-        set: vi.fn().mockReturnValue({
-          where: vi.fn().mockImplementation((cond: JsonValue) => {
-            updateWhereConds.push(cond);
-            return Promise.resolve(undefined);
-          }),
-        }),
-      }),
+      update: vi.fn(() => mockUpdateChain({ whereConds: updateWhereConds })),
     };
 
     vi.mocked(getDb).mockReturnValue(mockDb as never);
@@ -1531,11 +1419,7 @@ describe("Batch A — queue/state-machine integrity fixes", () => {
           }),
         }),
       }),
-      update: vi.fn().mockReturnValue({
-        set: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue(undefined),
-        }),
-      }),
+      update: vi.fn(() => mockUpdateChain()),
     };
 
     vi.mocked(getDb).mockReturnValue(mockDb as never);

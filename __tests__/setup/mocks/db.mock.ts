@@ -34,6 +34,7 @@ export interface SqlClient extends Mock {
   prepare: Mock;
   sql: Mock;
   un: Mock;
+  begin: Mock;
 }
 
 export interface MockDb {
@@ -46,16 +47,19 @@ export interface MockDb {
 }
 
 export function createMockDb(): MockDb {
+  const raw = Object.assign(vi.fn().mockResolvedValue({ count: 1 }), {
+    prepare: vi.fn(),
+    sql: vi.fn(),
+    un: vi.fn(),
+    begin: vi.fn(),
+  });
+  raw.begin.mockImplementation(async (cb: (tx: unknown) => unknown) => cb(raw));
   const db = {
     select: vi.fn().mockReturnValue(createMockQueryChain()),
     insert: vi.fn().mockReturnValue(createMockQueryChain()),
     update: vi.fn().mockReturnValue(createMockQueryChain()),
     delete: vi.fn().mockReturnValue(createMockQueryChain()),
-    $client: Object.assign(vi.fn().mockResolvedValue({ count: 1 }), {
-      prepare: vi.fn(),
-      sql: vi.fn(),
-      un: vi.fn(),
-    }),
+    $client: raw,
   } as MockDb;
   db.transaction = vi.fn(async (cb: (tx: MockDb) => unknown) => cb(db));
   return db;

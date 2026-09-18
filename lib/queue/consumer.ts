@@ -1,4 +1,4 @@
-import { and, eq, isNotNull, ne } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, ne, sql } from "drizzle-orm";
 import type { UserRole } from "../db/schema";
 import { resumes } from "../db/schema";
 import { getDb } from "../db";
@@ -52,7 +52,6 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
       .select({
         status: resumes.status,
         parsedContent: resumes.parsedContent,
-        totalAttempts: resumes.totalAttempts,
       })
       .from(resumes)
       .where(eq(resumes.id, message.resumeId))
@@ -82,7 +81,27 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
     return;
   }
 
-  const nextAttemptCount = (currentResume[0]?.totalAttempts || 0) + 1;
+  // Single-flight claim: the increment is evaluated by the database, and only one
+  // delivery can move the row out of queued/pending_claim, so duplicate deliveries
+  // never parse the same resume twice or clobber each other's attempt count.
+  const claimed = await db
+    .update(resumes)
+    .set({
+      status: "processing",
+      totalAttempts: sql`${resumes.totalAttempts} + 1`,
+      queuedAt: new Date().toISOString(),
+    })
+    .where(
+      and(eq(resumes.id, message.resumeId), inArray(resumes.status, ["queued", "pending_claim"])),
+    )
+    .returning({ id: resumes.id, totalAttempts: resumes.totalAttempts });
+
+  if (claimed.length === 0) {
+    log("info", "resume not claimable in current status, skipping", {
+      resumeId: message.resumeId,
+    });
+    return;
+  }
 
   if (cached[0]?.parsedContent) {
     // SAFETY: cached parsedContent is schema-validated ResumeContent written by a prior completion; cast bridges the column's wide Record type.
@@ -93,15 +112,11 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
       items: [{ resumeId: message.resumeId, userId: message.userId }],
       parsedContent: cachedContent,
       professionalLevel: cachedContent.professional_level ?? undefined,
-      totalAttempts: nextAttemptCount,
+      totalAttempts: claimed[0].totalAttempts,
     });
     return;
   }
 
-  await db
-    .update(resumes)
-    .set({ status: "processing", totalAttempts: nextAttemptCount })
-    .where(eq(resumes.id, message.resumeId));
   await notifyStatusChange({
     resumeId: message.resumeId,
     status: "processing",
@@ -115,7 +130,7 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
     await db
       .update(resumes)
       .set({ lastAttemptError: JSON.stringify(classifiedError.toJSON()) })
-      .where(eq(resumes.id, message.resumeId));
+      .where(and(ne(resumes.status, "completed"), eq(resumes.id, message.resumeId)));
     throw error;
   }
 
@@ -219,7 +234,7 @@ export async function handleQueueMessage(message: QueueMessage, env: CloudflareE
         .set({
           lastAttemptError: JSON.stringify(classifiedError.toJSON()),
         })
-        .where(eq(resumes.id, message.resumeId));
+        .where(and(ne(resumes.status, "completed"), eq(resumes.id, message.resumeId)));
     }
 
     throw error;
