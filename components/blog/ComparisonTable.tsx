@@ -9,8 +9,8 @@ export function ComparisonTable({ headers, rows }: ComparisonTableProps) {
       <table className="w-full border-collapse overflow-hidden rounded-lg border border-border text-sm">
         <thead>
           <tr>
-            {headers.map((header, index) => (
-              <th key={index} className="border border-border p-3 text-left font-semibold">
+            {headers.map((header) => (
+              <th key={header} className="border border-border p-3 text-left font-semibold">
                 {header}
               </th>
             ))}

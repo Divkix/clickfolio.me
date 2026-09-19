@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BlogPostLayout } from "@/components/blog/BlogPostLayout";
+import { PostList } from "@/components/blog/PostSection";
 import { buildBlogPostMetadata, getPostBySlug } from "@/lib/blog/posts";
 
 export const revalidate = 86400;
@@ -40,20 +41,22 @@ export default function ResumeHostingPage() {
           You have a few options, and they're not equal. A file host stores a document; a resume
           website hosts a page people can read on any device.
         </p>
-        <ul>
-          <li>
-            <strong>Resume website (recommended).</strong> Tools like clickfolio.me turn your PDF
-            into a hosted page with a clean link, mobile layout, and analytics — free.
-          </li>
-          <li>
-            <strong>Cloud file storage.</strong> Google Drive or Dropbox can share a PDF link, but
-            visitors download a file instead of reading a page, and you get no real analytics.
-          </li>
-          <li>
-            <strong>Your own domain.</strong> Full control, but you handle hosting, design, and
-            upkeep yourself.
-          </li>
-        </ul>
+        <PostList
+          items={[
+            {
+              lead: "Resume website (recommended).",
+              body: " Tools like clickfolio.me turn your PDF into a hosted page with a clean link, mobile layout, and analytics — free.",
+            },
+            {
+              lead: "Cloud file storage.",
+              body: " Google Drive or Dropbox can share a PDF link, but visitors download a file instead of reading a page, and you get no real analytics.",
+            },
+            {
+              lead: "Your own domain.",
+              body: " Full control, but you handle hosting, design, and upkeep yourself.",
+            },
+          ]}
+        />
         <p>
           For most people, a resume website is the sweet spot: free, professional, and zero
           maintenance. If you want to understand the underlying conversion, see{" "}

@@ -149,16 +149,13 @@ export default async function AdminOverviewPage() {
             {stats.recentSignups.length === 0 ? (
               <p className="text-sm text-muted-foreground">No signups yet</p>
             ) : (
-              stats.recentSignups.map((signup, i) => {
+              stats.recentSignups.map((signup) => {
                 const displayName =
                   signup.name && signup.name !== "Unnamed"
                     ? signup.name
                     : signup.previewName?.trim() || signup.name || "Unnamed";
                 return (
-                  <div
-                    key={`${signup.email}-${i}`}
-                    className="flex items-center justify-between text-sm"
-                  >
+                  <div key={signup.email} className="flex items-center justify-between text-sm">
                     <div className="min-w-0 flex-1">
                       <p className="font-medium text-foreground truncate">{displayName}</p>
                       <p className="text-muted-foreground truncate">{signup.email}</p>

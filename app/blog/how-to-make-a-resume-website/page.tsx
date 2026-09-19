@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BlogPostLayout } from "@/components/blog/BlogPostLayout";
+import { ComparisonTable } from "@/components/blog/ComparisonTable";
+import { PostList, PostSection } from "@/components/blog/PostSection";
 import { buildBlogPostMetadata, getPostBySlug } from "@/lib/blog/posts";
 
 export const revalidate = 86400;
@@ -76,73 +78,52 @@ export default function HowToMakeAResumeWebsitePage() {
           2018), so your site has to answer "who is this and are they a fit?" before anyone scrolls.
           Lead with the essentials:
         </p>
-        <ul>
-          <li>
-            <strong>Name and headline.</strong> Your name, current role or target role, and one line
-            on what you do.
-          </li>
-          <li>
-            <strong>Summary.</strong> Two or three sentences on your focus and strongest results.
-          </li>
-          <li>
-            <strong>Experience.</strong> Roles with outcomes, not just duties. Numbers beat
-            adjectives.
-          </li>
-          <li>
-            <strong>Skills.</strong> The tools and abilities that match the jobs you want.
-          </li>
-          <li>
-            <strong>Projects or work samples.</strong> Especially useful for engineers, designers,
-            and writers.
-          </li>
-          <li>
-            <strong>Contact.</strong> One obvious way to reach you, plus links to relevant profiles.
-          </li>
-        </ul>
+        <PostList
+          items={[
+            {
+              lead: "Name and headline.",
+              body: " Your name, current role or target role, and one line on what you do.",
+            },
+            {
+              lead: "Summary.",
+              body: " Two or three sentences on your focus and strongest results.",
+            },
+            {
+              lead: "Experience.",
+              body: " Roles with outcomes, not just duties. Numbers beat adjectives.",
+            },
+            {
+              lead: "Skills.",
+              body: " The tools and abilities that match the jobs you want.",
+            },
+            {
+              lead: "Projects or work samples.",
+              body: " Especially useful for engineers, designers, and writers.",
+            },
+            {
+              lead: "Contact.",
+              body: " One obvious way to reach you, plus links to relevant profiles.",
+            },
+          ]}
+        />
         <p>
           If you want to see how this looks in practice, browse the{" "}
           <Link href="/explore">live examples on Explore</Link> before you build your own.
         </p>
       </section>
 
-      <section>
-        <h2>Should you build it yourself or use a builder?</h2>
-        <p>
-          Both produce a real website. The difference is how much time and skill you spend getting
-          there.
-        </p>
-        <div className="overflow-x-auto my-8 not-prose">
-          <table className="w-full border-collapse overflow-hidden rounded-lg border border-border text-sm">
-            <thead>
-              <tr>
-                <th className="border border-border p-3 text-left font-semibold">Approach</th>
-                <th className="border border-border p-3 text-left font-semibold">Time</th>
-                <th className="border border-border p-3 text-left font-semibold">Coding needed</th>
-                <th className="border border-border p-3 text-left font-semibold">Cost</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td className="border border-border p-3">Upload PDF to clickfolio.me</td>
-                <td className="border border-border p-3">~30 seconds</td>
-                <td className="border border-border p-3">None</td>
-                <td className="border border-border p-3">Free</td>
-              </tr>
-              <tr>
-                <td className="border border-border p-3">Drag-and-drop site builder</td>
-                <td className="border border-border p-3">A few hours</td>
-                <td className="border border-border p-3">None</td>
-                <td className="border border-border p-3">Often paid for a custom URL</td>
-              </tr>
-              <tr>
-                <td className="border border-border p-3">Code it from scratch</td>
-                <td className="border border-border p-3">Days</td>
-                <td className="border border-border p-3">Yes</td>
-                <td className="border border-border p-3">Hosting + your time</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+      <PostSection
+        heading="Should you build it yourself or use a builder?"
+        intro="Both produce a real website. The difference is how much time and skill you spend getting there."
+      >
+        <ComparisonTable
+          headers={["Approach", "Time", "Coding needed", "Cost"]}
+          rows={[
+            ["Upload PDF to clickfolio.me", "~30 seconds", "None", "Free"],
+            ["Drag-and-drop site builder", "A few hours", "None", "Often paid for a custom URL"],
+            ["Code it from scratch", "Days", "Yes", "Hosting + your time"],
+          ]}
+        />
         <p>
           Coding your own site is worth it if you're a developer who wants total control and treats
           the site as a portfolio piece in itself. For everyone else, importing a PDF gets you a
@@ -152,7 +133,7 @@ export default function HowToMakeAResumeWebsitePage() {
           </Link>
           .
         </p>
-      </section>
+      </PostSection>
 
       <section>
         <h2>How to pick your URL and keep it professional</h2>

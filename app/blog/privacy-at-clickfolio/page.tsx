@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BlogPostLayout } from "@/components/blog/BlogPostLayout";
+import { PostList } from "@/components/blog/PostSection";
 import { buildBlogPostMetadata, getPostBySlug } from "@/lib/blog/posts";
 import { siteConfig } from "@/lib/config/site";
 
@@ -39,24 +40,22 @@ export default function PrivacyAtClickfolioPage() {
           employment history — this is personal data that deserves granular control. clickfolio.me
           gives you per-field privacy toggles:
         </p>
-        <ul>
-          <li>
-            <strong>Show phone number.</strong> On by default. Toggle off to hide your phone from
-            your public portfolio while keeping it in your account. Recruiters can still reach you
-            via email.
-          </li>
-          <li>
-            <strong>Show full address.</strong> On by default. Toggle off to show only city and
-            state — enough for recruiters to know your general location without exposing your street
-            address.
-          </li>
-          <li>
-            <strong>Show in public directory.</strong> On by default. Toggle off to remove your
-            portfolio from the Explore page and our public directory. Your portfolio still exists —
-            it's just not listed alongside others. People can only find it if you share the link
-            directly.
-          </li>
-        </ul>
+        <PostList
+          items={[
+            {
+              lead: "Show phone number.",
+              body: " On by default. Toggle off to hide your phone from your public portfolio while keeping it in your account. Recruiters can still reach you via email.",
+            },
+            {
+              lead: "Show full address.",
+              body: " On by default. Toggle off to show only city and state — enough for recruiters to know your general location without exposing your street address.",
+            },
+            {
+              lead: "Show in public directory.",
+              body: " On by default. Toggle off to remove your portfolio from the Explore page and our public directory. Your portfolio still exists — it's just not listed alongside others. People can only find it if you share the link directly.",
+            },
+          ]}
+        />
         <p>
           These controls are accessible from your Settings page at any time. Changes take effect
           immediately. There's no delay, no review process, no "contact us to request removal." You
@@ -68,44 +67,47 @@ export default function PrivacyAtClickfolioPage() {
         <h2>Data Collection</h2>
         <p>We believe in minimal data collection. Here's what we do and don't collect:</p>
         <h3>What We Collect</h3>
-        <ul>
-          <li>
-            <strong>Authentication data.</strong> When you sign in with Google, we receive your
-            name, email, and profile picture URL. We don't store your Google password — we never see
-            it.
-          </li>
-          <li>
-            <strong>Resume content.</strong> Your uploaded PDF and the parsed, structured data
-            extracted from it — including name, experience, education, skills, and contact
-            information. This is the content of your portfolio.
-          </li>
-          <li>
-            <strong>Usage analytics.</strong> Page views on your public portfolio — how many
-            visitors, where they came from, what devices they use. This helps you understand your
-            reach. It's also aggregated anonymously for our own platform analytics.
-          </li>
-        </ul>
+        <PostList
+          items={[
+            {
+              lead: "Authentication data.",
+              body: " When you sign in with Google, we receive your name, email, and profile picture URL. We don't store your Google password — we never see it.",
+            },
+            {
+              lead: "Resume content.",
+              body: " Your uploaded PDF and the parsed, structured data extracted from it — including name, experience, education, skills, and contact information. This is the content of your portfolio.",
+            },
+            {
+              lead: "Usage analytics.",
+              body: " Page views on your public portfolio — how many visitors, where they came from, what devices they use. This helps you understand your reach. It's also aggregated anonymously for our own platform analytics.",
+            },
+          ]}
+        />
         <h3>What We Don't Collect</h3>
-        <ul>
-          <li>
-            <strong>Your contacts or address book.</strong> Never.
-          </li>
-          <li>
-            <strong>Your browsing history on other sites.</strong> Never.
-          </li>
-          <li>
-            <strong>Your location beyond what's in your resume.</strong> We use IP geolocation for
-            analytics at the city level, but this is not stored or linked to your account.
-          </li>
-          <li>
-            <strong>Your social media activity.</strong> We don't scrape, monitor, or analyze your
-            social media presence.
-          </li>
-          <li>
-            <strong>Payment information.</strong> clickfolio.me is free. We don't have payment
-            processing, so there's no credit card data to collect.
-          </li>
-        </ul>
+        <PostList
+          items={[
+            {
+              lead: "Your contacts or address book.",
+              body: " Never.",
+            },
+            {
+              lead: "Your browsing history on other sites.",
+              body: " Never.",
+            },
+            {
+              lead: "Your location beyond what's in your resume.",
+              body: " We use IP geolocation for analytics at the city level, but this is not stored or linked to your account.",
+            },
+            {
+              lead: "Your social media activity.",
+              body: " We don't scrape, monitor, or analyze your social media presence.",
+            },
+            {
+              lead: "Payment information.",
+              body: " clickfolio.me is free. We don't have payment processing, so there's no credit card data to collect.",
+            },
+          ]}
+        />
       </section>
 
       <section>
@@ -181,24 +183,22 @@ export default function PrivacyAtClickfolioPage() {
       <section>
         <h2>Where Your Data Lives</h2>
         <p>All clickfolio.me data is stored on Cloudflare's global infrastructure:</p>
-        <ul>
-          <li>
-            <strong>Cloudflare Workers.</strong> Your portfolio website is served from Cloudflare's
-            edge network — over 330 cities worldwide. Requests are handled at the data center
-            closest to your visitor, which means fast load times and reduced latency for everyone,
-            everywhere.
-          </li>
-          <li>
-            <strong>Postgres database (PlanetScale).</strong> Your account data and parsed resume
-            content are stored in a managed Postgres database hosted by PlanetScale, accessed
-            securely through Cloudflare Hyperdrive. Data is backed up automatically for reliability.
-          </li>
-          <li>
-            <strong>R2 (object storage).</strong> Your uploaded PDF files are stored in Cloudflare
-            R2, designed for zero egress fees and S3-compatible object storage. Files are encrypted
-            at rest.
-          </li>
-        </ul>
+        <PostList
+          items={[
+            {
+              lead: "Cloudflare Workers.",
+              body: " Your portfolio website is served from Cloudflare's edge network — over 330 cities worldwide. Requests are handled at the data center closest to your visitor, which means fast load times and reduced latency for everyone, everywhere.",
+            },
+            {
+              lead: "Postgres database (PlanetScale).",
+              body: " Your account data and parsed resume content are stored in a managed Postgres database hosted by PlanetScale, accessed securely through Cloudflare Hyperdrive. Data is backed up automatically for reliability.",
+            },
+            {
+              lead: "R2 (object storage).",
+              body: " Your uploaded PDF files are stored in Cloudflare R2, designed for zero egress fees and S3-compatible object storage. Files are encrypted at rest.",
+            },
+          ]}
+        />
         <p>
           We chose Cloudflare specifically because they provide infrastructure-level security and
           encryption without requiring us to manage servers or implement our own encryption layer.

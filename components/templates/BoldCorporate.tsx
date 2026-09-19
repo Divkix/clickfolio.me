@@ -163,7 +163,7 @@ function ExperienceSection({
           const limitedHighlights = job.highlights?.slice(0, 4) ?? [];
           return (
             <article
-              key={`${job.title}-${idx}`}
+              key={`${job.title}-${job.company}-${job.start_date}`}
               className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6"
             >
               <div className="md:col-span-2">
@@ -222,7 +222,7 @@ function EducationSection({ education }: { education: TemplateProps["content"]["
           const number = String(idx + 1).padStart(2, "0");
           return (
             <article
-              key={`${edu.institution}-${idx}`}
+              key={`${edu.institution}-${edu.degree}-${edu.graduation_date ?? ""}`}
               className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6"
             >
               <div className="md:col-span-2">
@@ -271,8 +271,11 @@ function CertificationsSection({
   return (
     <Section title="Awards">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {certifications.map((cert, idx) => (
-          <article key={`${cert.name}-${idx}`} className="flex items-start gap-4 min-w-0">
+        {certifications.map((cert) => (
+          <article
+            key={`${cert.name}-${cert.issuer}-${cert.date ?? ""}`}
+            className="flex items-start gap-4 min-w-0"
+          >
             <div className="w-2 h-2 rounded-full bg-neutral-900 mt-2 shrink-0" />
             <div className="min-w-0">
               <h3 className="font-heading-bc font-bold text-lg [text-wrap:unset] break-words">
@@ -307,8 +310,11 @@ function ProjectsSection({ projects }: { projects: TemplateProps["content"]["pro
   return (
     <Section title="Projects">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {projects.map((project, idx) => (
-          <article key={`${project.title}-${idx}`} className="min-w-0">
+        {projects.map((project) => (
+          <article
+            key={`${project.title}-${project.year ?? ""}-${project.url ?? ""}`}
+            className="min-w-0"
+          >
             <div className="flex items-start justify-between gap-3 mb-2">
               <h3 className="font-heading-bc text-xl font-bold [text-wrap:unset] break-words">
                 {project.url ? (

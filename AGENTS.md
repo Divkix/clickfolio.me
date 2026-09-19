@@ -42,7 +42,9 @@ app/                          # vinext App Router
   explore/                    # /explore directory (showInDirectory=true) — ISR 300
   preview/[id]/               # demo-data preview for thumbnails — ISR 7d, noindex
   privacy/  terms/  about/  faq/  manifest.webmanifest (theme #d94e4e, background #fdf8f3 — coral)
-  ui/  templates/ (10)  wizard/  home/  blog/  explore/  role/  analytics/  Faq.tsx  BrandIcons.tsx
+  ui/  templates/ (10)  wizard/  home/  blog/  explore/  role/  legal/  analytics/  Faq.tsx  BrandIcons.tsx
+                              #   legal/LegalPage.tsx: shared shell + numbered-section renderer for privacy/ and terms/
+                              #   blog/PostSection.tsx (PostSection/PostList) + blog/ComparisonTable.tsx: shared blog prose
 lib/
   auth/  db/  schemas/  ai/  queue/  rate-limit/  seo/  templates/  config/  types/
   utils/  data/  umami/  blog/  durable-objects/  stubs/  r2.ts  cloudflare-env.d.ts (generated)
@@ -94,7 +96,7 @@ pnpm run generate:favicons  # sharp from public/icon.svg → favicons
 - `prepare` (`vp config`) runs on `pnpm install`.
 - **Pre-push:** `pnpm run type-check && vp check && pnpm run test`
 - **pnpm lockfile:** `catalog:` refs can leave importer storing `specifier:'catalog:'`; clean checkout then fails `ERR_PNPM_OUTDATED_LOCKFILE`. Fix: `pnpm install --no-frozen-lockfile` once, commit regenerated `pnpm-lock.yaml`.
-- **Supply-chain policy:** `pnpm-workspace.yaml` sets `trustPolicy: no-downgrade` — install aborts if a resolved version regresses provenance/signatures. Do **not** add `minimumReleaseAge`: this repo tracks same-week toolchain releases, so any holdback wide enough to matter rejects the committed lockfile (`entries that the active policies reject`).
+- **Supply-chain policy:** `pnpm-workspace.yaml` sets `trustPolicy: no-downgrade` (install aborts if a resolved version regresses provenance/signatures) and `minimumReleaseAge: 4320` (3d holdback on freshly published versions). The holdback value is **measured, not chosen**: the newest version in the committed lockfile is ~4 days old, so 6480 (4.5d)+ rejects it with `entries that the active policies reject` while `4320` installs clean — raise it toward the 10080 (7d) recommended default as the pinned versions age. Bumping a dependency inside the window (`pnpm add`, dependabot) needs an entry in `minimumReleaseAgeExclude` (already used for the vite-plus toolchain) or the install aborts.
 - **Coverage pin:** `catalog:vitest == vitest == @vitest/coverage-v8 == 4.1.11` (3 places).
 - **`db:push` vs `db:generate+migrate`:** `push` is prototyping only; canonical is `generate` + `migrate`.
 - **Thumbnails:** `public/previews/` holds 10 committed `.webp` (bento, bold_corporate, classic_ats, design_folio, dev_terminal, glass, midnight, minimalist_editorial→`minimalist.webp`, neo_brutalist→`brutalist.webp`, spotlight) shot at 1280×800 @2x via `/preview/[id]`. No generator script in repo (deleted with `playwright` devDep); re-add as doc snippet when re-shooting. Slug shortenings are intentional.

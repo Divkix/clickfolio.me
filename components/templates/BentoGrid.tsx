@@ -212,9 +212,9 @@ export const BentoGrid: React.FC<TemplateProps> = ({ content, profile }) => {
               </div>
             )}
 
-            {content.experience?.map((job, index) => (
+            {content.experience?.map((job) => (
               <article
-                key={`${job.company}-${job.title}-${index}`}
+                key={`${job.title}-${job.company}-${job.start_date}`}
                 className="col-span-1 sm:col-span-2 bg-white rounded-[28px] p-6 shadow-md flex flex-col border border-gray-200/80 min-w-0"
               >
                 <div className="flex items-start gap-3 mb-3">
@@ -244,9 +244,9 @@ export const BentoGrid: React.FC<TemplateProps> = ({ content, profile }) => {
               </article>
             ))}
 
-            {content.education?.map((edu, index) => (
+            {content.education?.map((edu) => (
               <article
-                key={`${edu.institution}-${index}`}
+                key={`${edu.institution}-${edu.degree}-${edu.graduation_date ?? ""}`}
                 className="col-span-1 bg-white rounded-[28px] p-6 shadow-sm border border-gray-200/80 flex flex-col justify-between min-h-[150px] min-w-0"
               >
                 <div className="flex justify-between items-start gap-2">
@@ -270,11 +270,11 @@ export const BentoGrid: React.FC<TemplateProps> = ({ content, profile }) => {
               <FeaturedWork project={content.projects[0]} />
             )}
 
-            {extraProjects.map((project, index) => {
+            {extraProjects.map((project) => {
               const Wrapper = project.url ? "a" : "article";
               return (
                 <Wrapper
-                  key={`${project.title}-${index}`}
+                  key={`${project.title}-${project.year ?? ""}-${project.url ?? ""}`}
                   {...(project.url
                     ? {
                         href: project.url,
@@ -322,8 +322,8 @@ export const BentoGrid: React.FC<TemplateProps> = ({ content, profile }) => {
                   </h3>
                 </div>
                 <ul className="space-y-3">
-                  {content.certifications.map((cert, index) => (
-                    <li key={`${cert.name}-${index}`} className="min-w-0">
+                  {content.certifications.map((cert) => (
+                    <li key={`${cert.name}-${cert.issuer}-${cert.date ?? ""}`} className="min-w-0">
                       <p className="font-heading-bg text-sm font-bold text-[#2D2926] break-words">
                         {cert.name}
                       </p>

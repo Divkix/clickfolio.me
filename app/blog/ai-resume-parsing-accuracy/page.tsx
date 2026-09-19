@@ -187,15 +187,10 @@ export default function AiResumeParsingAccuracyPage() {
         />
       </PostSection>
 
-      <section>
-        <h2>The Bottom Line</h2>
-        <p>
-          AI resume parsing is remarkably good — but it's a starting point, not a finish line. Think
-          of it like dictation software: it captures 95% of what you said, but you still need to
-          proofread. The value isn't perfection — it's speed. Typing your entire resume into a form
-          takes 30 minutes. Uploading a PDF and reviewing the AI output takes 30 seconds, plus 2
-          minutes of cleanup.
-        </p>
+      <PostSection
+        heading="The Bottom Line"
+        intro="AI resume parsing is remarkably good — but it's a starting point, not a finish line. Think of it like dictation software: it captures 95% of what you said, but you still need to proofread. The value isn't perfection — it's speed. Typing your entire resume into a form takes 30 minutes. Uploading a PDF and reviewing the AI output takes 30 seconds, plus 2 minutes of cleanup."
+      >
         <p>
           For standard, digitally-created resumes, the parser achieves near-perfect accuracy. For
           edge cases, the built-in editor ensures you can fix any issues before your portfolio goes
@@ -207,7 +202,7 @@ export default function AiResumeParsingAccuracyPage() {
             Upload your resume and see the AI parser in action →
           </Link>
         </p>
-      </section>
+      </PostSection>
     </BlogPostLayout>
   );
 }

@@ -1,6 +1,7 @@
 import { User } from "lucide-react";
 import { FormSectionCard } from "@/components/forms/FormSectionCard";
 import type { FieldPath, UseFormReturn } from "react-hook-form";
+import { useWatch } from "react-hook-form";
 import {
   FormControl,
   FormDescription,
@@ -17,14 +18,21 @@ interface BasicInfoSectionProps {
   form: UseFormReturn<ResumeContentFormData>;
 }
 
-export function BasicInfoSection({ form }: BasicInfoSectionProps) {
-  const getCharacterCount = (fieldName: FieldPath<ResumeContentFormData>, maxLength: number) => {
-    // SAFETY: form.watch returns validated string field from ResumeContentFormData; cast bridges unknown to string.
-    const value = form.watch(fieldName) as string | undefined;
-    const count = value?.length || 0;
-    return `${count}/${maxLength}`;
-  };
+function CharacterCount({
+  form,
+  name,
+  maxLength,
+}: {
+  form: UseFormReturn<ResumeContentFormData>;
+  name: FieldPath<ResumeContentFormData>;
+  maxLength: number;
+}) {
+  // SAFETY: useWatch returns validated string field from ResumeContentFormData; cast bridges unknown to string.
+  const value = useWatch({ control: form.control, name }) as string | undefined;
+  return <>{`${value?.length || 0}/${maxLength}`}</>;
+}
 
+export function BasicInfoSection({ form }: BasicInfoSectionProps) {
   return (
     <FormSectionCard
       icon={User}
@@ -57,7 +65,7 @@ export function BasicInfoSection({ form }: BasicInfoSectionProps) {
               </FormControl>
               <FormDescription>
                 A brief title that describes your professional role (
-                {getCharacterCount("headline", 200)})
+                <CharacterCount form={form} name="headline" maxLength={200} />)
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -78,7 +86,8 @@ export function BasicInfoSection({ form }: BasicInfoSectionProps) {
                 />
               </FormControl>
               <FormDescription>
-                Highlight your key skills and experience ({getCharacterCount("summary", 1000)})
+                Highlight your key skills and experience (
+                <CharacterCount form={form} name="summary" maxLength={1000} />)
               </FormDescription>
               <FormMessage />
             </FormItem>

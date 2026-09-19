@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BlogPostLayout } from "@/components/blog/BlogPostLayout";
+import { ComparisonTable } from "@/components/blog/ComparisonTable";
+import { PostList } from "@/components/blog/PostSection";
 import { buildBlogPostMetadata, getPostBySlug } from "@/lib/blog/posts";
 
 export const revalidate = 86400;
@@ -34,27 +36,30 @@ export default function ResumeWebsiteExamplesPage() {
       <section>
         <h2>What makes a resume website example worth copying?</h2>
         <p>Before the styles, here's the shortlist every strong example shares:</p>
-        <ul>
-          <li>
-            <strong>A clear hero.</strong> Name, current role, and a one-line summary you can read
-            in two seconds.
-          </li>
-          <li>
-            <strong>Scannable experience.</strong> Roles with outcomes, not just duties. Numbers
-            where you have them.
-          </li>
-          <li>
-            <strong>One focus per page.</strong> A designer shows craft; an engineer shows shipped
-            projects. They don't try to be everything.
-          </li>
-          <li>
-            <strong>Fast and mobile-friendly.</strong> Recruiters open links on their phones. A slow
-            or broken layout loses them.
-          </li>
-          <li>
-            <strong>An obvious contact path.</strong> Email or a button, not a buried footer.
-          </li>
-        </ul>
+        <PostList
+          items={[
+            {
+              lead: "A clear hero.",
+              body: " Name, current role, and a one-line summary you can read in two seconds.",
+            },
+            {
+              lead: "Scannable experience.",
+              body: " Roles with outcomes, not just duties. Numbers where you have them.",
+            },
+            {
+              lead: "One focus per page.",
+              body: " A designer shows craft; an engineer shows shipped projects. They don't try to be everything.",
+            },
+            {
+              lead: "Fast and mobile-friendly.",
+              body: " Recruiters open links on their phones. A slow or broken layout loses them.",
+            },
+            {
+              lead: "An obvious contact path.",
+              body: " Email or a button, not a buried footer.",
+            },
+          ]}
+        />
       </section>
 
       <section>
@@ -104,44 +109,25 @@ export default function ResumeWebsiteExamplesPage() {
 
       <section>
         <h2>Resume website styles at a glance</h2>
-        <div className="overflow-x-auto my-8 not-prose">
-          <table className="w-full border-collapse overflow-hidden rounded-lg border border-border text-sm">
-            <thead>
-              <tr>
-                <th className="border border-border p-3 text-left font-semibold">Style</th>
-                <th className="border border-border p-3 text-left font-semibold">Best for</th>
-                <th className="border border-border p-3 text-left font-semibold">Leads with</th>
-                <th className="border border-border p-3 text-left font-semibold">Watch out for</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td className="border border-border p-3">Minimal</td>
-                <td className="border border-border p-3">Most professionals</td>
-                <td className="border border-border p-3">Name, role, summary</td>
-                <td className="border border-border p-3">Looking too plain — add one accent</td>
-              </tr>
-              <tr>
-                <td className="border border-border p-3">Creative</td>
-                <td className="border border-border p-3">Designers, writers</td>
-                <td className="border border-border p-3">Visual work samples</td>
-                <td className="border border-border p-3">Style burying substance</td>
-              </tr>
-              <tr>
-                <td className="border border-border p-3">Developer</td>
-                <td className="border border-border p-3">Engineers</td>
-                <td className="border border-border p-3">Projects + stack</td>
-                <td className="border border-border p-3">Over-animation, slow load</td>
-              </tr>
-              <tr>
-                <td className="border border-border p-3">Corporate</td>
-                <td className="border border-border p-3">PMs, execs, finance</td>
-                <td className="border border-border p-3">Experience + outcomes</td>
-                <td className="border border-border p-3">Reading like a dull PDF</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <ComparisonTable
+          headers={["Style", "Best for", "Leads with", "Watch out for"]}
+          rows={[
+            [
+              "Minimal",
+              "Most professionals",
+              "Name, role, summary",
+              "Looking too plain — add one accent",
+            ],
+            ["Creative", "Designers, writers", "Visual work samples", "Style burying substance"],
+            ["Developer", "Engineers", "Projects + stack", "Over-animation, slow load"],
+            [
+              "Corporate",
+              "PMs, execs, finance",
+              "Experience + outcomes",
+              "Reading like a dull PDF",
+            ],
+          ]}
+        />
         <p>
           Want to see live layouts instead of descriptions? Browse the{" "}
           <Link href="/explore">explore page</Link> for real published sites, and the{" "}

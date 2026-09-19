@@ -50,9 +50,9 @@ export default function Home() {
   const faqJsonLd = generateFAQJsonLd();
   return (
     <>
-      {homepageJsonLd.map((schema, i) => (
+      {homepageJsonLd.map((schema) => (
         <script
-          key={`homepage-jsonld-${i}`}
+          key={`homepage-jsonld-${JSON.stringify(schema["@id"])}`}
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: serializeJsonLd(schema) }}
         />

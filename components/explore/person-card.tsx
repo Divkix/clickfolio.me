@@ -58,12 +58,8 @@ export function PersonCard({ person }: PersonCardProps) {
 
       {person.previewSkills && person.previewSkills.length > 0 && (
         <div className="mt-4 flex min-w-0 flex-wrap gap-1.5">
-          {person.previewSkills.slice(0, 4).map((skill, idx) => (
-            <Badge
-              key={`${skill}-${idx}`}
-              variant="outline"
-              className="max-w-full min-w-0 truncate"
-            >
+          {person.previewSkills.slice(0, 4).map((skill) => (
+            <Badge key={skill} variant="outline" className="max-w-full min-w-0 truncate">
               {skill}
             </Badge>
           ))}

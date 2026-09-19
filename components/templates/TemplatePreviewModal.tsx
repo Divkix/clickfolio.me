@@ -2,7 +2,7 @@
 
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useEffectEvent } from "react";
 import {
   DEMO_PROFILES,
   DEMO_RESUME_CONTENT,
@@ -40,22 +40,25 @@ export function TemplatePreviewModal({
     onNavigate(newIndex);
   }, [selectedIndex, onNavigate]);
 
+  const onPrevKey = useEffectEvent(handlePrev);
+  const onNextKey = useEffectEvent(handleNext);
+
   useEffect(() => {
     if (!isOpen) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "ArrowLeft") {
         e.preventDefault();
-        handlePrev();
+        onPrevKey();
       } else if (e.key === "ArrowRight") {
         e.preventDefault();
-        handleNext();
+        onNextKey();
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, handlePrev, handleNext]);
+  }, [isOpen]);
 
   if (!currentProfile || !themeId) return null;
 

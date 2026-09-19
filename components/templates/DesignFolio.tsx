@@ -35,7 +35,7 @@ function ExperienceSection({ items }: { items: TemplateProps["content"]["experie
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
         {items.map((job, index) => (
           <article
-            key={`${job.title}-${index}`}
+            key={`${job.title}-${job.company}-${job.start_date}`}
             className={`bg-[#1a1a1a] border border-[#333] p-8 flex flex-col justify-between transition-[border-color] duration-300 hover:border-[#CCFF00] min-w-0 ${getSpanClass(index)}`}
           >
             <div className="mb-6">
@@ -57,8 +57,8 @@ function ExperienceSection({ items }: { items: TemplateProps["content"]["experie
             )}
             {job.highlights && job.highlights.length > 0 && (
               <ul className="font-mono-df text-[#aaa] text-sm space-y-2 list-disc pl-4">
-                {job.highlights.slice(0, 3).map((highlight, i) => (
-                  <li key={`${job.title}-${i}`}>{highlight}</li>
+                {job.highlights.slice(0, 3).map((highlight) => (
+                  <li key={`${job.title}-${highlight}`}>{highlight}</li>
                 ))}
               </ul>
             )}
@@ -83,15 +83,15 @@ function SkillsSection({ groups }: { groups: TemplateProps["content"]["skills"] 
         </div>
 
         <div className="space-y-8">
-          {groups.map((skillGroup, index) => (
-            <div key={`${skillGroup.category}-${index}`} className="border-b border-[#333] pb-6">
+          {groups.map((skillGroup) => (
+            <div key={skillGroup.category} className="border-b border-[#333] pb-6">
               <h4 className="font-mono-df text-[#888] text-xs uppercase mb-3 tracking-widest">
                 {skillGroup.category}
               </h4>
               <div className="flex flex-wrap gap-x-4 gap-y-2">
-                {skillGroup.items.map((item, i) => (
+                {skillGroup.items.map((item) => (
                   <span
-                    key={`${skillGroup.category}-${item}-${i}`}
+                    key={`${skillGroup.category}-${item}`}
                     className="text-lg md:text-xl text-[#e0e0e0] hover:text-[#CCFF00] transition-colors cursor-default"
                   >
                     {item}
@@ -117,11 +117,11 @@ function ProjectsSection({ items }: { items: TemplateProps["content"]["projects"
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {items.map((project, index) => {
+        {items.map((project) => {
           const Wrapper = project.url ? "a" : "article";
           return (
             <Wrapper
-              key={`${project.title}-${index}`}
+              key={`${project.title}-${project.year ?? ""}-${project.url ?? ""}`}
               {...(project.url
                 ? {
                     href: project.url,
@@ -147,9 +147,9 @@ function ProjectsSection({ items }: { items: TemplateProps["content"]["projects"
               )}
               <div className="p-8 md:p-10">
                 <div className="flex flex-wrap gap-2 mb-6">
-                  {project.technologies?.map((tech, t) => (
+                  {project.technologies?.map((tech) => (
                     <span
-                      key={`${tech}-${t}`}
+                      key={tech}
                       className="text-[10px] uppercase border border-[#555] text-[#a0a0a0] px-2 py-1 rounded-full group-hover:border-[#CCFF00] group-hover:text-[#CCFF00] transition-colors"
                     >
                       {tech}
@@ -194,8 +194,8 @@ function EducationCertifications({
         <div>
           <h3 className="font-serif-df text-2xl mb-8 border-b border-[#333] pb-4">Education</h3>
           <ul className="space-y-6">
-            {education.map((edu, index) => (
-              <li key={`${edu.institution}-${index}`}>
+            {education.map((edu) => (
+              <li key={`${edu.institution}-${edu.degree}-${edu.graduation_date ?? ""}`}>
                 <span className="block text-[#CCFF00] text-xs mb-1 font-mono-df">
                   {edu.graduation_date ? formatYear(edu.graduation_date) : ""}
                 </span>
@@ -213,8 +213,8 @@ function EducationCertifications({
             Certifications
           </h3>
           <ul className="space-y-6">
-            {certifications.map((cert, index) => (
-              <li key={`${cert.name}-${index}`}>
+            {certifications.map((cert) => (
+              <li key={`${cert.name}-${cert.issuer}-${cert.date ?? ""}`}>
                 <span className="block text-[#CCFF00] text-xs mb-1 font-mono-df">
                   {cert.date ? formatShortDate(cert.date) : ""}
                 </span>
