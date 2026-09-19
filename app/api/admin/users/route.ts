@@ -18,6 +18,7 @@ function escapeLikePattern(input: string): string {
   return input.replace(/[%_!]/g, (char) => `!${char}`);
 }
 
+// react-doctor-disable-next-line nextjs-no-side-effect-in-get-handler -- request-local map built from this query, discarded with the response
 export async function GET(request: Request) {
   return withAdmin(request, async () => {
     const url = new URL(request.url);

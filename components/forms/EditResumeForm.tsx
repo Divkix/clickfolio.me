@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Save } from "lucide-react";
-import { useCallback, useEffect, useEffectEvent, useRef, useState } from "react";
+import { useCallback, useEffect, useEffectEvent, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -26,7 +26,6 @@ interface EditResumeFormProps {
 export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
-  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -76,13 +75,14 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
 
   const runAutoSave = useEffectEvent(handleSave);
 
+  // react-doctor-disable-next-line effect-needs-cleanup -- timer is created by the watch callback but cleared by the returned cleanup
   useEffect(() => {
-    const subscription = form.watch(() => {
-      if (autoSaveTimeoutRef.current) {
-        clearTimeout(autoSaveTimeoutRef.current);
-      }
+    let autoSaveTimeout: NodeJS.Timeout | undefined;
 
-      autoSaveTimeoutRef.current = setTimeout(() => {
+    const subscription = form.watch(() => {
+      clearTimeout(autoSaveTimeout);
+
+      autoSaveTimeout = setTimeout(() => {
         const values = form.getValues();
         const result = resumeContentSchemaStrict.safeParse(values);
 
@@ -99,9 +99,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
 
     return () => {
       subscription.unsubscribe();
-      if (autoSaveTimeoutRef.current) {
-        clearTimeout(autoSaveTimeoutRef.current);
-      }
+      clearTimeout(autoSaveTimeout);
     };
   }, [form]);
 

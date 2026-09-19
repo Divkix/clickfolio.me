@@ -11,6 +11,7 @@ import {
 
 const VALID_PERIODS = new Set(["7d", "30d", "90d"]);
 
+// react-doctor-disable-next-line nextjs-no-side-effect-in-get-handler -- request-local aggregation maps over the Umami payload, no shared state
 export async function GET(request: Request) {
   return withUser(
     request,
