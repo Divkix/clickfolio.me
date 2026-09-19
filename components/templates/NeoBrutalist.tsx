@@ -201,13 +201,13 @@ function NeoBrutalistMarquee({ skills }: { skills: string[] }) {
   return (
     <div className="bg-[#FFDE00] border-2 md:border-4 border-black py-4 overflow-hidden whitespace-nowrap shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transform -rotate-1 my-12 max-w-full">
       <div className="inline-block motion-safe:animate-[marquee_20s_linear_infinite] font-black text-2xl md:text-4xl uppercase">
-        {skills.map((skill: string, i: number) => (
-          <span key={`skill-${skill}-${i}`} className="mx-6 inline-flex items-center">
+        {skills.map((skill: string) => (
+          <span key={`skill-${skill}`} className="mx-6 inline-flex items-center">
             {skill} <Star className="w-6 h-6 ml-6 fill-black" aria-hidden="true" />
           </span>
         ))}
-        {skills.map((skill: string, i: number) => (
-          <span key={`dup-skill-${skill}-${i}`} className="mx-6 inline-flex items-center">
+        {skills.map((skill: string) => (
+          <span key={`dup-skill-${skill}`} className="mx-6 inline-flex items-center">
             {skill} <Star className="w-6 h-6 ml-6 fill-black" aria-hidden="true" />
           </span>
         ))}
@@ -256,11 +256,11 @@ export const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
               <SectionHeading title="Experience" tilt="right" />
 
               <div className="grid grid-cols-1 gap-8">
-                {content.experience.map((job, idx) => {
+                {content.experience.map((job) => {
                   const limitedHighlights = job.highlights?.slice(0, 4) ?? [];
                   return (
                     <article
-                      key={`${job.title}-${idx}`}
+                      key={`${job.title}-${job.company}-${job.start_date}`}
                       className="group nb-sticker-peel bg-white border-2 md:border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] md:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] md:hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] transition-[transform,box-shadow] duration-200"
                     >
                       <div className="border-b-2 md:border-b-4 border-black p-3 flex justify-between items-center gap-3 bg-neutral-100">
@@ -316,9 +316,9 @@ export const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
               <SectionHeading title="Selected Projects" tilt="right" />
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {content.projects.map((project: Project, idx: number) => (
+                {content.projects.map((project: Project) => (
                   <article
-                    key={`${project.title}-${idx}`}
+                    key={`${project.title}-${project.year ?? ""}-${project.url ?? ""}`}
                     className="group nb-sticker-peel bg-white border-2 md:border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] md:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] md:hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] transition-[transform,box-shadow] duration-200 flex flex-col min-w-0"
                   >
                     <div className="border-b-2 md:border-b-4 border-black p-3 flex justify-between items-center bg-neutral-100">
@@ -378,9 +378,9 @@ export const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
               <SectionHeading title="Education" tilt="left" />
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {content.education.map((edu, index) => (
+                {content.education.map((edu) => (
                   <article
-                    key={`${edu.institution}-${index}`}
+                    key={`${edu.institution}-${edu.degree}-${edu.graduation_date ?? ""}`}
                     className="bg-white border-2 md:border-4 border-black p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] min-w-0"
                   >
                     <div className="flex justify-between items-start mb-3 gap-3">
@@ -414,9 +414,9 @@ export const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
               <SectionHeading title="Certifications" />
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {content.certifications.map((cert, index) => (
+                {content.certifications.map((cert) => (
                   <article
-                    key={`${cert.name}-${index}`}
+                    key={`${cert.name}-${cert.issuer}-${cert.date ?? ""}`}
                     className="bg-white border-2 md:border-4 border-black p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] min-w-0"
                   >
                     <div className="flex items-start gap-3">

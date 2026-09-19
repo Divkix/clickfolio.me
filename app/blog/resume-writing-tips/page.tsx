@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BlogPostLayout } from "@/components/blog/BlogPostLayout";
+import { PostList } from "@/components/blog/PostSection";
 import { buildBlogPostMetadata, getPostBySlug } from "@/lib/blog/posts";
 
 export const revalidate = 86400;
@@ -184,38 +185,34 @@ export default function ResumeWritingTipsPage() {
 
       <section>
         <h2>Common Mistakes</h2>
-        <ul>
-          <li>
-            <strong>Too long.</strong> Your resume is a highlight reel, not a documentary. Every
-            line should earn its place. If a bullet point doesn't make you a stronger candidate for
-            the specific role, remove it.
-          </li>
-          <li>
-            <strong>Generic language.</strong> "Team player," "hard worker," "good communicator" —
-            these phrases appear on virtually every resume and convey zero information. Show, don't
-            tell. Instead of "good communicator," write "Presented quarterly results to C-suite
-            stakeholders across 5 business units."
-          </li>
-          <li>
-            <strong>No metrics.</strong> If your entire resume has zero numbers, it's not a resume —
-            it's a job description. Fix this first.
-          </li>
-          <li>
-            <strong>Responsibilities over achievements.</strong> A job title already implies
-            responsibilities. Your bullets should describe achievements — what you accomplished in
-            the role, not what the role required of you.
-          </li>
-          <li>
-            <strong>Outdated information.</strong> That part-time retail job from 2012? Unless it's
-            relevant to your target role, drop it. GPA from 10 years ago? Drop it. "References
-            available upon request"? Always drop it — it's assumed.
-          </li>
-          <li>
-            <strong>Neglecting the portfolio link.</strong> Your resume PDF is the appetizer. Your
-            portfolio website is the main course. If your resume doesn't include a link to your
-            portfolio, you're missing the most powerful conversion tool you have.
-          </li>
-        </ul>
+        <PostList
+          items={[
+            {
+              lead: "Too long.",
+              body: " Your resume is a highlight reel, not a documentary. Every line should earn its place. If a bullet point doesn't make you a stronger candidate for the specific role, remove it.",
+            },
+            {
+              lead: "Generic language.",
+              body: ' "Team player," "hard worker," "good communicator" — these phrases appear on virtually every resume and convey zero information. Show, don\'t tell. Instead of "good communicator," write "Presented quarterly results to C-suite stakeholders across 5 business units."',
+            },
+            {
+              lead: "No metrics.",
+              body: " If your entire resume has zero numbers, it's not a resume — it's a job description. Fix this first.",
+            },
+            {
+              lead: "Responsibilities over achievements.",
+              body: " A job title already implies responsibilities. Your bullets should describe achievements — what you accomplished in the role, not what the role required of you.",
+            },
+            {
+              lead: "Outdated information.",
+              body: " That part-time retail job from 2012? Unless it's relevant to your target role, drop it. GPA from 10 years ago? Drop it. \"References available upon request\"? Always drop it — it's assumed.",
+            },
+            {
+              lead: "Neglecting the portfolio link.",
+              body: " Your resume PDF is the appetizer. Your portfolio website is the main course. If your resume doesn't include a link to your portfolio, you're missing the most powerful conversion tool you have.",
+            },
+          ]}
+        />
       </section>
 
       <section>

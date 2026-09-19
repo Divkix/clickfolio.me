@@ -2,7 +2,7 @@
 
 import { Check, Copy, ExternalLink, Rocket, XIcon } from "lucide-react";
 import Link from "next/link";
-import { useCallback } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 import { Confetti } from "@/components/Confetti";
 import { LinkedInIcon, WhatsAppIcon } from "@/components/icons/BrandIcons";
 import { Button } from "@/components/ui/button";
@@ -21,14 +21,15 @@ interface YouAreLiveModalProps {
   url?: string;
 }
 
+const subscribeToNothing = () => () => {};
+const getOrigin = () => window.location.origin;
+const getServerOrigin = () => "https://clickfolio.me";
+
 export function YouAreLiveModal({ open, onOpenChange, handle, url }: YouAreLiveModalProps) {
   const { copied, copy } = useCopyToClipboard();
+  const origin = useSyncExternalStore(subscribeToNothing, getOrigin, getServerOrigin);
 
-  const resumeUrl =
-    url ||
-    (globalThis.window !== undefined
-      ? `${globalThis.window.location.origin}/@${handle}`
-      : `https://clickfolio.me/@${handle}`);
+  const resumeUrl = url || `${origin}/@${handle}`;
 
   const shareText = "Just published my professional resume! Check it out:";
 

@@ -128,9 +128,9 @@ function EducationAndSkills({
         <section aria-label="Education" className="min-w-0">
           <SectionTitle title="Education" />
           <div className="space-y-8">
-            {education.map((edu, index) => (
+            {education.map((edu) => (
               <div
-                key={`${edu.institution}-${index}`}
+                key={`${edu.institution}-${edu.degree}-${edu.graduation_date ?? ""}`}
                 className="border-l-2 border-neutral-200 pl-6 py-1 hover:border-black transition-colors duration-300"
               >
                 <div className="flex justify-between items-baseline gap-4 mb-1">
@@ -161,9 +161,9 @@ function EducationAndSkills({
           <div className="flex flex-wrap content-start gap-2">
             {skills
               .flatMap((s) => s.items)
-              .map((skill, i) => (
+              .map((skill) => (
                 <span
-                  key={`skill-${skill}-${i}`}
+                  key={`skill-${skill}`}
                   className="px-3.5 py-1.5 bg-white border border-black/10 text-sm hover:bg-[#C4704F] hover:text-white hover:border-[#C4704F] transition-colors duration-200"
                 >
                   {skill}
@@ -254,9 +254,9 @@ export const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile,
             <section className="mb-24 md:mb-32" aria-label="Experience">
               <SectionTitle title="Experience" count={experience.length} />
               <div>
-                {experience.map((job, index) => (
+                {experience.map((job) => (
                   <article
-                    key={`${job.company}-${job.title}-${index}`}
+                    key={`${job.company}-${job.title}-${job.start_date}`}
                     className="grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-8 py-8 border-b border-black/8 last:border-b-0"
                   >
                     <div className="md:col-span-3 min-w-0">
@@ -282,9 +282,9 @@ export const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile,
                       )}
                       {job.highlights && job.highlights.length > 0 && (
                         <ul className="space-y-1.5">
-                          {job.highlights.slice(0, 4).map((highlight, i) => (
+                          {job.highlights.slice(0, 4).map((highlight) => (
                             <li
-                              key={`${job.title}-${highlight}-${i}`}
+                              key={`${job.title}-${highlight}`}
                               className="text-sm text-neutral-500 leading-relaxed pl-4 relative before:absolute before:left-0 before:top-[0.55em] before:w-1.5 before:h-px before:bg-neutral-300"
                             >
                               {highlight}
@@ -303,11 +303,11 @@ export const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile,
             <section className="mb-24 md:mb-32" aria-label="Selected works">
               <SectionTitle title="Selected Works" count={projects.length} />
               <div className="flex flex-col border-t border-black/10">
-                {projects.map((project, index) => {
+                {projects.map((project) => {
                   const Wrapper = project.url ? "a" : "article";
                   return (
                     <Wrapper
-                      key={`${project.title}-${index}`}
+                      key={`${project.title}-${project.year ?? ""}-${project.url ?? ""}`}
                       {...(project.url
                         ? {
                             href: project.url,
@@ -323,9 +323,9 @@ export const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile,
                         </h3>
                         {project.technologies && project.technologies.length > 0 && (
                           <div className="flex flex-wrap gap-x-3 gap-y-1 opacity-60 group-hover:opacity-90">
-                            {project.technologies.slice(0, 4).map((tech, i) => (
+                            {project.technologies.slice(0, 4).map((tech) => (
                               <span
-                                key={`${project.title}-${tech}-${i}`}
+                                key={`${project.title}-${tech}`}
                                 className="text-[11px] uppercase tracking-widest"
                               >
                                 {tech}
@@ -362,9 +362,9 @@ export const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile,
             <section className="mb-24 md:mb-32" aria-label="Certifications">
               <SectionTitle title="Certifications" count={certifications.length} />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {certifications.map((cert, index) => (
+                {certifications.map((cert) => (
                   <div
-                    key={`${cert.name}-${index}`}
+                    key={`${cert.name}-${cert.issuer}-${cert.date ?? ""}`}
                     className="border border-black/10 p-6 hover:border-black/25 transition-colors duration-300 min-w-0"
                   >
                     <div className="flex items-start gap-3">

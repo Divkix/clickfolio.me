@@ -11,6 +11,7 @@ export function RoleFilterSelect({ roleFilter, roleOptions }: RoleFilterSelectPr
       <select
         id="role-filter"
         name="role"
+        aria-label="Filter by role"
         defaultValue={roleFilter}
         onChange={(e) => e.currentTarget.form?.submit()}
       >

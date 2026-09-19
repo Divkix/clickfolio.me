@@ -83,7 +83,7 @@ function SkillsSection({ skills }: { skills: NonNullable<TemplateProps["content"
           {skills.map((skillGroup, index) => {
             const echoText = `$ echo ${skillGroup.category.toUpperCase().replace(/\s+/g, "_")}`;
             return (
-              <div key={`${skillGroup.category}-${index}`} className="mb-4 last:mb-0">
+              <div key={skillGroup.category} className="mb-4 last:mb-0">
                 <div className="text-[#7ee787] mb-2 flex items-start">
                   <span className="text-[#484f58] select-none mr-4 text-right inline-block w-8 shrink-0">
                     {index + 1}
@@ -91,9 +91,9 @@ function SkillsSection({ skills }: { skills: NonNullable<TemplateProps["content"
                   <span>{echoText}</span>
                 </div>
                 <div className="pl-12 flex flex-wrap gap-2">
-                  {skillGroup.items.map((item, i) => (
+                  {skillGroup.items.map((item) => (
                     <span
-                      key={`${skillGroup.category}-${item}-${i}`}
+                      key={`${skillGroup.category}-${item}`}
                       className="px-2 py-1 bg-[#21262d] border border-[#30363d] rounded text-[#c9d1d9] hover:border-[#58a6ff] transition-colors"
                     >
                       {item}
@@ -119,9 +119,9 @@ function ExperienceSection({ experience }: { experience: TemplateProps["content"
           </h2>
         </div>
         <div className="divide-y divide-[#21262d]">
-          {experience.map((job, index) => (
+          {experience.map((job) => (
             <article
-              key={`${job.title}-${index}`}
+              key={`${job.title}-${job.company}-${job.start_date}`}
               className="p-4 hover:bg-[#0d1117] transition-colors"
             >
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
@@ -136,9 +136,9 @@ function ExperienceSection({ experience }: { experience: TemplateProps["content"
               {job.description && <p className="text-[#8b949e] text-sm mb-2">{job.description}</p>}
               {job.highlights && job.highlights.length > 0 && (
                 <ul className="space-y-1">
-                  {job.highlights.map((highlight, i) => (
+                  {job.highlights.map((highlight) => (
                     <li
-                      key={`${job.title}-${highlight}-${i}`}
+                      key={`${job.title}-${highlight}`}
                       className="font-mono-term text-xs text-[#7ee787] flex items-start gap-2"
                     >
                       <span className="text-[#7ee787] font-bold shrink-0" aria-hidden="true">
@@ -171,7 +171,7 @@ function ProjectsSection({
           </h2>
         </div>
         <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-          {projects.map((project, index) => {
+          {projects.map((project) => {
             const href = project.url
               ? project.url.startsWith("http")
                 ? project.url
@@ -180,7 +180,7 @@ function ProjectsSection({
             const Wrapper = href ? "a" : "article";
             return (
               <Wrapper
-                key={`${project.title}-${index}`}
+                key={`${project.title}-${project.year ?? ""}-${project.url ?? ""}`}
                 {...(href
                   ? {
                       href,
@@ -203,9 +203,9 @@ function ProjectsSection({
                 <p className="text-[#8b949e] text-sm mb-3">{project.description}</p>
                 {project.technologies && project.technologies.length > 0 && (
                   <div className="flex flex-wrap gap-2">
-                    {project.technologies.map((tech, i) => (
+                    {project.technologies.map((tech) => (
                       <span
-                        key={`${project.title}-${tech}-${i}`}
+                        key={`${project.title}-${tech}`}
                         className="flex items-center gap-1 text-xs text-[#8b949e]"
                       >
                         <span
@@ -247,8 +247,8 @@ function EducationCertsSection({
             </h2>
           </div>
           <div className="p-4 space-y-4">
-            {education.map((edu, index) => (
-              <div key={`${edu.institution}-${index}`}>
+            {education.map((edu) => (
+              <div key={`${edu.institution}-${edu.degree}-${edu.graduation_date ?? ""}`}>
                 <h3 className="font-sans-term font-semibold text-white text-sm">{edu.degree}</h3>
                 <p className="text-[#58a6ff] text-sm">{edu.institution}</p>
                 <div className="flex items-center gap-2 text-xs text-[#8b949e] mt-1">
@@ -272,8 +272,8 @@ function EducationCertsSection({
             </h2>
           </div>
           <div className="p-4 space-y-4">
-            {certifications.map((cert, index) => (
-              <div key={`${cert.name}-${index}`}>
+            {certifications.map((cert) => (
+              <div key={`${cert.name}-${cert.issuer}-${cert.date ?? ""}`}>
                 <h3 className="font-sans-term font-semibold text-[#F97583] text-sm">
                   {cert.url ? (
                     <a

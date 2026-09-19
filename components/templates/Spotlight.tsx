@@ -297,7 +297,7 @@ function SpotlightCertifications({
         <AwardIcon className="w-4 h-4" aria-hidden="true" /> Certifications
       </h3>
       <div className="space-y-4">
-        {certifications.map((cert, index) => {
+        {certifications.map((cert) => {
           const body = (
             <>
               <div className="min-w-0">
@@ -321,7 +321,7 @@ function SpotlightCertifications({
             "flex items-center justify-between gap-3 p-4 bg-[#FFFCF9] border border-stone-200/60 rounded-xl group";
           return cert.url ? (
             <a
-              key={index}
+              key={`${cert.name}-${cert.issuer}-${cert.date ?? ""}`}
               href={cert.url}
               target="_blank"
               rel="noopener noreferrer"
@@ -330,7 +330,7 @@ function SpotlightCertifications({
               {body}
             </a>
           ) : (
-            <article key={index} className={certClass}>
+            <article key={`${cert.name}-${cert.issuer}-${cert.date ?? ""}`} className={certClass}>
               {body}
             </article>
           );
@@ -405,8 +405,8 @@ export const Spotlight: React.FC<TemplateProps> = ({ content, profile, isPreview
               </h3>
 
               <div className="space-y-4">
-                {content.experience.map((job, index) => (
-                  <SpotlightCard key={index}>
+                {content.experience.map((job) => (
+                  <SpotlightCard key={`${job.title}-${job.company}-${job.start_date}`}>
                     <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1 mb-2">
                       <h4 className="text-xl font-display-sl font-bold text-[#1C1917]">
                         {job.company}
@@ -453,8 +453,11 @@ export const Spotlight: React.FC<TemplateProps> = ({ content, profile, isPreview
               </h3>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {content.projects.map((project, index) => (
-                  <SpotlightCard key={index} className="flex flex-col h-full">
+                {content.projects.map((project) => (
+                  <SpotlightCard
+                    key={`${project.title}-${project.year ?? ""}-${project.url ?? ""}`}
+                    className="flex flex-col h-full"
+                  >
                     <div className="flex justify-between items-start mb-4">
                       <div className="w-10 h-10 rounded-full bg-[#FFFCF9] border border-stone-200 flex items-center justify-center text-[#1C1917] shadow-sm font-display-sl font-bold text-sm">
                         {getInitials(project.title)}
@@ -505,8 +508,11 @@ export const Spotlight: React.FC<TemplateProps> = ({ content, profile, isPreview
                     <GraduationCap className="w-4 h-4" aria-hidden="true" /> Education
                   </h3>
                   <div className="space-y-6">
-                    {content.education.map((edu, index) => (
-                      <div key={index} className="pb-2">
+                    {content.education.map((edu) => (
+                      <div
+                        key={`${edu.institution}-${edu.degree}-${edu.graduation_date ?? ""}`}
+                        className="pb-2"
+                      >
                         <h4 className="font-display-sl font-semibold text-[#1C1917]">
                           {edu.institution}
                         </h4>

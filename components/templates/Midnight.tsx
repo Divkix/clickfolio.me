@@ -101,12 +101,12 @@ function Starfield() {
   );
 }
 
-const jobKey = (job: TemplateProps["content"]["experience"][number], index: number) =>
-  `${job.title}@${job.company}@${index}`;
+const jobKey = (job: TemplateProps["content"]["experience"][number]) =>
+  `${job.title}@${job.company}@${job.start_date}`;
 
 function ExperienceSection({ experience }: { experience: TemplateProps["content"]["experience"] }) {
   const [expandedJobs, setExpandedJobs] = useState<string[]>(() =>
-    experience[0] ? [jobKey(experience[0], 0)] : [],
+    experience[0] ? [jobKey(experience[0])] : [],
   );
 
   const toggleJob = (key: string) => {
@@ -119,8 +119,8 @@ function ExperienceSection({ experience }: { experience: TemplateProps["content"
     <section>
       <SectionHeader label="Experience" />
       <div className="space-y-3">
-        {experience.map((job, index) => {
-          const key = jobKey(job, index);
+        {experience.map((job) => {
+          const key = jobKey(job);
           const isExpanded = expandedJobs.includes(key);
           const limitedHighlights = job.highlights?.slice(0, 4) ?? [];
 
@@ -206,8 +206,11 @@ function EducationSection({
     <section>
       <SectionHeader label="Education" />
       <div className="space-y-6">
-        {education.map((edu, index) => (
-          <div key={`${edu.institution}-${index}`} className="border-l border-[#C9A96E]/20 pl-4">
+        {education.map((edu) => (
+          <div
+            key={`${edu.institution}-${edu.degree}-${edu.graduation_date ?? ""}`}
+            className="border-l border-[#C9A96E]/20 pl-4"
+          >
             <div className="text-white font-display-mn font-medium text-sm">{edu.institution}</div>
             <div className="text-neutral-400 text-xs font-body-mn mt-0.5 mb-1">{edu.degree}</div>
             <div className="flex justify-between items-center gap-2 text-[10px] text-neutral-600 uppercase tracking-wider font-body-mn">
@@ -234,8 +237,11 @@ function CertificationsSection({
     <section>
       <SectionHeader label="Certifications" />
       <div className="space-y-5">
-        {certifications.map((cert, index) => (
-          <div key={`${cert.name}-${index}`} className="group border-l border-[#C9A96E]/20 pl-4">
+        {certifications.map((cert) => (
+          <div
+            key={`${cert.name}-${cert.issuer}-${cert.date ?? ""}`}
+            className="group border-l border-[#C9A96E]/20 pl-4"
+          >
             <h3 className="text-neutral-200 text-sm font-body-mn font-medium group-hover:text-[#DFC08A] transition-colors">
               {cert.name}
             </h3>
@@ -365,9 +371,9 @@ function ProjectsSection({ projects }: { projects: TemplateProps["content"]["pro
     <section>
       <SectionHeader label="Projects" />
       <div className="grid grid-cols-1 gap-6">
-        {projects.map((project, index) => (
+        {projects.map((project) => (
           <div
-            key={`${project.title}-${index}`}
+            key={`${project.title}-${project.year ?? ""}-${project.url ?? ""}`}
             className="group relative bg-white/2 border border-white/5 hover:border-[#C9A96E]/30 rounded-lg p-6 transition-[border-color,box-shadow] duration-300 hover:shadow-[0_0_20px_rgba(201,169,110,0.05)] overflow-hidden min-w-0"
           >
             <div className="flex flex-col md:flex-row gap-4 md:items-start justify-between">

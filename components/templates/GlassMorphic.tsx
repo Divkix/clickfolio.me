@@ -326,8 +326,11 @@ const GlassExperience = ({ experience }: { experience: ResumeContent["experience
       <SectionHeading icon={Briefcase} title="Experience" subtitle="Professional trajectory" />
 
       <div className="space-y-4">
-        {experience.map((job, i) => (
-          <SpotlightCard key={`${job.title}-${job.company}-${i}`} className="group p-6 md:p-8">
+        {experience.map((job) => (
+          <SpotlightCard
+            key={`${job.title}-${job.company}-${job.start_date}`}
+            className="group p-6 md:p-8"
+          >
             <div className="flex flex-col md:flex-row gap-4 md:items-start justify-between mb-4">
               <div>
                 <h3 className="text-xl font-bold text-white group-hover:text-lavender transition-colors">
@@ -387,8 +390,11 @@ const GlassProjects = ({ projects }: { projects: ResumeContent["projects"] }) =>
       <SectionHeading icon={Layers} title="Projects" subtitle="Selected works & experiments" />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {projects.map((project: Project, i: number) => (
-          <SpotlightCard key={`${project.title}-${i}`} className="group flex flex-col h-full">
+        {projects.map((project: Project) => (
+          <SpotlightCard
+            key={`${project.title}-${project.year ?? ""}-${project.url ?? ""}`}
+            className="group flex flex-col h-full"
+          >
             <div className="p-6 md:p-8 flex flex-col h-full">
               <div className="flex justify-between items-start mb-6">
                 <div className="w-12 h-12 rounded-xl bg-linear-to-br from-white/10 to-transparent border border-white/5 flex items-center justify-center">
@@ -477,8 +483,11 @@ const GlassEducation = ({
 
       <div className="grid md:grid-cols-2 gap-6 items-start">
         <div className="space-y-4">
-          {education?.map((edu, i) => (
-            <SpotlightCard key={`edu-${edu.institution}-${i}`} className="p-6">
+          {education?.map((edu) => (
+            <SpotlightCard
+              key={`edu-${edu.institution}-${edu.degree}-${edu.graduation_date ?? ""}`}
+              className="p-6"
+            >
               <div className="text-xs font-mono-gm text-lavender mb-2">
                 {edu.graduation_date ? formatYear(edu.graduation_date) : "Present"}
               </div>
@@ -492,8 +501,11 @@ const GlassEducation = ({
         </div>
 
         <div className="space-y-4">
-          {certifications?.map((cert, i) => (
-            <SpotlightCard key={`cert-${cert.name}-${i}`} className="p-6">
+          {certifications?.map((cert) => (
+            <SpotlightCard
+              key={`cert-${cert.name}-${cert.issuer}-${cert.date ?? ""}`}
+              className="p-6"
+            >
               <div className="flex justify-between items-start">
                 <div>
                   <h4 className="text-base font-bold text-white mb-1">{cert.name}</h4>

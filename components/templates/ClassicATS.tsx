@@ -100,8 +100,11 @@ export const ClassicATS: React.FC<TemplateProps> = ({ content, profile, isPrevie
                 <span aria-hidden="true">&#9632;</span> Professional Experience
               </h2>
               <div className="space-y-6">
-                {content.experience.map((job, idx) => (
-                  <article key={`${job.title}-${idx}`} className="print:break-inside-avoid">
+                {content.experience.map((job) => (
+                  <article
+                    key={`${job.title}-${job.company}-${job.start_date}`}
+                    className="print:break-inside-avoid"
+                  >
                     <div className="flex flex-wrap justify-between items-baseline gap-x-4 mb-1">
                       <h3 className="font-bold text-base">{job.title}</h3>
                       <span className="text-xs text-gray-600 shrink-0">
@@ -121,11 +124,8 @@ export const ClassicATS: React.FC<TemplateProps> = ({ content, profile, isPrevie
                     )}
                     {job.highlights && job.highlights.length > 0 && (
                       <ul className="text-sm text-gray-700 space-y-1">
-                        {job.highlights.map((highlight, i) => (
-                          <li
-                            key={`${job.title}-${highlight}-${i}`}
-                            className="flex gap-2 items-start"
-                          >
+                        {job.highlights.map((highlight) => (
+                          <li key={`${job.title}-${highlight}`} className="flex gap-2 items-start">
                             <span className="text-gray-400 shrink-0 mt-px" aria-hidden="true">
                               &mdash;
                             </span>
@@ -146,8 +146,11 @@ export const ClassicATS: React.FC<TemplateProps> = ({ content, profile, isPrevie
                 <span aria-hidden="true">&#9632;</span> Education
               </h2>
               <div className="space-y-4">
-                {content.education.map((edu, idx) => (
-                  <article key={`${edu.institution}-${idx}`} className="print:break-inside-avoid">
+                {content.education.map((edu) => (
+                  <article
+                    key={`${edu.institution}-${edu.degree}-${edu.graduation_date ?? ""}`}
+                    className="print:break-inside-avoid"
+                  >
                     <div className="flex flex-wrap justify-between items-baseline gap-x-4 mb-1">
                       <h3 className="font-bold text-base">{edu.degree}</h3>
                       {edu.graduation_date && (
@@ -182,9 +185,9 @@ export const ClassicATS: React.FC<TemplateProps> = ({ content, profile, isPrevie
                 <span aria-hidden="true">&#9632;</span> Certifications & Licenses
               </h2>
               <div className="space-y-2">
-                {content.certifications.map((cert, idx) => (
+                {content.certifications.map((cert) => (
                   <div
-                    key={`${cert.name}-${idx}`}
+                    key={`${cert.name}-${cert.issuer}-${cert.date ?? ""}`}
                     className="flex flex-wrap justify-between items-baseline gap-x-4 text-sm print:break-inside-avoid"
                   >
                     <p className="text-gray-700 min-w-0">
@@ -221,8 +224,11 @@ export const ClassicATS: React.FC<TemplateProps> = ({ content, profile, isPrevie
                 <span aria-hidden="true">&#9632;</span> Projects
               </h2>
               <div className="space-y-4">
-                {content.projects.map((proj, idx) => (
-                  <article key={`${proj.title}-${idx}`} className="print:break-inside-avoid">
+                {content.projects.map((proj) => (
+                  <article
+                    key={`${proj.title}-${proj.year ?? ""}-${proj.url ?? ""}`}
+                    className="print:break-inside-avoid"
+                  >
                     <div className="flex flex-wrap justify-between items-baseline gap-x-4 mb-1">
                       <h3 className="font-bold text-base">
                         {proj.url ? (

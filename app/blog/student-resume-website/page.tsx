@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BlogPostLayout } from "@/components/blog/BlogPostLayout";
+import { PostList } from "@/components/blog/PostSection";
 import { buildBlogPostMetadata, getPostBySlug } from "@/lib/blog/posts";
 
 export const revalidate = 86400;
@@ -55,31 +56,34 @@ export default function StudentResumeWebsitePage() {
           Lead with what you have, and frame it around what you built and learned. A strong student
           site usually includes:
         </p>
-        <ul>
-          <li>
-            <strong>Education.</strong> Your school, program, expected graduation, and relevant
-            coursework. GPA if it helps you.
-          </li>
-          <li>
-            <strong>Projects.</strong> Class projects, hackathons, personal builds, anything you
-            made. Say what the goal was, what you did, and what came of it.
-          </li>
-          <li>
-            <strong>Skills.</strong> Tools, languages, software, and methods you can actually use.
-          </li>
-          <li>
-            <strong>Activities and leadership.</strong> Clubs, teams, student government, organizing
-            — these show ownership and follow-through.
-          </li>
-          <li>
-            <strong>Volunteering and part-time work.</strong> A campus job or tutoring gig
-            demonstrates reliability and real responsibility.
-          </li>
-          <li>
-            <strong>Freelance or personal work.</strong> A side project, a small client, a blog, a
-            design you shipped. All of it counts.
-          </li>
-        </ul>
+        <PostList
+          items={[
+            {
+              lead: "Education.",
+              body: " Your school, program, expected graduation, and relevant coursework. GPA if it helps you.",
+            },
+            {
+              lead: "Projects.",
+              body: " Class projects, hackathons, personal builds, anything you made. Say what the goal was, what you did, and what came of it.",
+            },
+            {
+              lead: "Skills.",
+              body: " Tools, languages, software, and methods you can actually use.",
+            },
+            {
+              lead: "Activities and leadership.",
+              body: " Clubs, teams, student government, organizing — these show ownership and follow-through.",
+            },
+            {
+              lead: "Volunteering and part-time work.",
+              body: " A campus job or tutoring gig demonstrates reliability and real responsibility.",
+            },
+            {
+              lead: "Freelance or personal work.",
+              body: " A side project, a small client, a blog, a design you shipped. All of it counts.",
+            },
+          ]}
+        />
         <p>
           Notice that none of this requires a past internship. "No experience" usually means "no job
           title" — and a resume website is the format that lets your projects and coursework carry

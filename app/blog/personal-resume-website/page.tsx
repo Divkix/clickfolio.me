@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BlogPostLayout } from "@/components/blog/BlogPostLayout";
+import { ComparisonTable } from "@/components/blog/ComparisonTable";
 import { PostList, PostSection } from "@/components/blog/PostSection";
 import { buildBlogPostMetadata, getPostBySlug } from "@/lib/blog/posts";
 
@@ -75,50 +76,16 @@ export default function PersonalResumeWebsitePage() {
 
       <section>
         <h2>Personal website vs PDF vs LinkedIn</h2>
-        <div className="overflow-x-auto my-8 not-prose">
-          <table className="w-full border-collapse overflow-hidden rounded-lg border border-border text-sm">
-            <thead>
-              <tr>
-                <th className="border border-border p-3 text-left font-semibold">Feature</th>
-                <th className="border border-border p-3 text-left font-semibold">Personal site</th>
-                <th className="border border-border p-3 text-left font-semibold">PDF resume</th>
-                <th className="border border-border p-3 text-left font-semibold">LinkedIn</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td className="border border-border p-3">You own it</td>
-                <td className="border border-border p-3">Yes</td>
-                <td className="border border-border p-3">Yes</td>
-                <td className="border border-border p-3">No (rented)</td>
-              </tr>
-              <tr>
-                <td className="border border-border p-3">Custom design</td>
-                <td className="border border-border p-3">Yes</td>
-                <td className="border border-border p-3">Limited</td>
-                <td className="border border-border p-3">No</td>
-              </tr>
-              <tr>
-                <td className="border border-border p-3">Always current</td>
-                <td className="border border-border p-3">Yes, edit anytime</td>
-                <td className="border border-border p-3">No, goes stale</td>
-                <td className="border border-border p-3">Yes</td>
-              </tr>
-              <tr>
-                <td className="border border-border p-3">Ranks for your name</td>
-                <td className="border border-border p-3">Yes</td>
-                <td className="border border-border p-3">No</td>
-                <td className="border border-border p-3">Shared domain only</td>
-              </tr>
-              <tr>
-                <td className="border border-border p-3">View analytics</td>
-                <td className="border border-border p-3">Yes</td>
-                <td className="border border-border p-3">No</td>
-                <td className="border border-border p-3">Partial</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <ComparisonTable
+          headers={["Feature", "Personal site", "PDF resume", "LinkedIn"]}
+          rows={[
+            ["You own it", "Yes", "Yes", "No (rented)"],
+            ["Custom design", "Yes", "Limited", "No"],
+            ["Always current", "Yes, edit anytime", "No, goes stale", "Yes"],
+            ["Ranks for your name", "Yes", "No", "Shared domain only"],
+            ["View analytics", "Yes", "No", "Partial"],
+          ]}
+        />
         <p>
           None of these replaces the others. Keep the PDF for ATS uploads, keep LinkedIn for
           networking, and use your personal site as the full, curated story. For a deeper look at

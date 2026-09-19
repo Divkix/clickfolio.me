@@ -58,34 +58,37 @@ export default async function ExplorePage({
     whereConditions.push(eq(user.role, roleFilter as (typeof user.role.enumValues)[number]));
   }
 
-  // One repeatable-read snapshot: the total count and the page rows must describe the same directory state.
+  // One repeatable-read snapshot: the total count and the page rows are issued together so they
+  // describe the same directory state.
   const [countResult, usersWithData] = await db.transaction(
     async (tx) => {
-      const countRows = await tx
-        .select({ count: sql<number>`count(*)` })
-        .from(user)
-        .innerJoin(siteData, eq(user.id, siteData.userId))
-        .where(and(...whereConditions));
+      const [countRows, pageRows] = await Promise.all([
+        tx
+          .select({ count: sql<number>`count(*)` })
+          .from(user)
+          .innerJoin(siteData, eq(user.id, siteData.userId))
+          .where(and(...whereConditions)),
 
-      const pageRows = await tx
-        .select({
-          handle: user.handle,
-          role: user.role,
-          previewName: siteData.previewName,
-          previewHeadline: siteData.previewHeadline,
-          previewLocation: siteData.previewLocation,
-          previewExpCount: siteData.previewExpCount,
-          previewEduCount: siteData.previewEduCount,
-          previewSkills: siteData.previewSkills,
-          privacySettings: user.privacySettings,
-        })
-        .from(user)
-        .innerJoin(siteData, eq(user.id, siteData.userId))
-        .where(and(...whereConditions))
-        // user_id breaks updated_at ties so a row never shifts between pages.
-        .orderBy(desc(siteData.updatedAt), desc(siteData.userId))
-        .limit(ITEMS_PER_PAGE)
-        .offset((currentPage - 1) * ITEMS_PER_PAGE);
+        tx
+          .select({
+            handle: user.handle,
+            role: user.role,
+            previewName: siteData.previewName,
+            previewHeadline: siteData.previewHeadline,
+            previewLocation: siteData.previewLocation,
+            previewExpCount: siteData.previewExpCount,
+            previewEduCount: siteData.previewEduCount,
+            previewSkills: siteData.previewSkills,
+            privacySettings: user.privacySettings,
+          })
+          .from(user)
+          .innerJoin(siteData, eq(user.id, siteData.userId))
+          .where(and(...whereConditions))
+          // user_id breaks updated_at ties so a row never shifts between pages.
+          .orderBy(desc(siteData.updatedAt), desc(siteData.userId))
+          .limit(ITEMS_PER_PAGE)
+          .offset((currentPage - 1) * ITEMS_PER_PAGE),
+      ]);
 
       return [countRows, pageRows] as const;
     },

@@ -66,12 +66,10 @@ export default function CvWebsiteBuilderPage() {
         />
       </PostSection>
 
-      <section>
-        <h2>How do CV website builders compare?</h2>
-        <p>
-          Here's an honest look at common options. The right pick depends on whether you value speed
-          or a hand-built design.
-        </p>
+      <PostSection
+        heading="How do CV website builders compare?"
+        intro="Here's an honest look at common options. The right pick depends on whether you value speed or a hand-built design."
+      >
         <ComparisonTable
           headers={["Tool", "Imports your CV?", "Cost", "Best for"]}
           rows={[
@@ -100,7 +98,7 @@ export default function CvWebsiteBuilderPage() {
           </Link>
           .
         </p>
-      </section>
+      </PostSection>
 
       <PostSection
         heading="How do you turn your CV into a website?"

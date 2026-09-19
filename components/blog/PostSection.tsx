@@ -20,8 +20,8 @@ export function PostList({
 
   return (
     <List className={className}>
-      {items.map((item, index) => (
-        <li key={index}>
+      {items.map((item) => (
+        <li key={item.lead}>
           <strong>{item.lead}</strong>
           {item.body}
         </li>
