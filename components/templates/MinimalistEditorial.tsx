@@ -2,7 +2,11 @@ import { ArrowUpRight, Award, Globe, Mail, MapPin, Phone } from "lucide-react";
 import type React from "react";
 import { Github } from "@/components/icons/BrandIcons";
 import { ShareBar } from "@/components/ShareBar";
-import { type ContactLinkType, getContactLinks } from "@/lib/templates/contact-links";
+import {
+  type ContactLinkDescriptor,
+  type ContactLinkType,
+  getContactLinks,
+} from "@/lib/templates/contact-links";
 import { formatDateRange, formatShortDate } from "@/lib/templates/helpers";
 import type { TemplateProps } from "@/lib/types/template";
 import { TemplateFontLinks } from "./shared/TemplateFontLinks";
@@ -52,6 +56,126 @@ const SectionTitle = ({ title, count }: { title: string; count?: number }) => (
   </div>
 );
 
+function ContactNav({ links, handle }: { links: ContactLinkDescriptor[]; handle: string }) {
+  return (
+    <nav
+      className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 w-[calc(100%-2rem)] max-w-xl pb-[env(safe-area-inset-bottom)]"
+      aria-label="Contact navigation"
+    >
+      <div className="flex items-center justify-center gap-1 sm:gap-2 px-3 sm:px-5 py-2 bg-white/90 backdrop-blur-md border border-black/8 rounded-full shadow-xl shadow-black/8 overflow-x-auto no-scrollbar">
+        <span className="hidden sm:inline text-[11px] font-bold tracking-widest uppercase text-neutral-400 shrink-0 px-2">
+          {handle}
+        </span>
+        {links
+          .filter((link) => link.type !== "location")
+          .map((link) => (
+            <a
+              key={link.type}
+              href={link.href}
+              target={link.isExternal ? "_blank" : undefined}
+              rel={link.isExternal ? "noreferrer" : undefined}
+              className="group relative p-2.5 rounded-full hover:bg-neutral-100 transition-colors shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
+              aria-label={link.label}
+            >
+              {navIconMap[link.type]}
+              <span className="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 px-2 py-1 bg-black text-white text-[10px] tracking-wide rounded opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity whitespace-nowrap">
+                {link.label}
+              </span>
+            </a>
+          ))}
+      </div>
+    </nav>
+  );
+}
+
+function EditorialFooter({ links, handle }: { links: ContactLinkDescriptor[]; handle: string }) {
+  const emailLink = links.find((link) => link.type === "email");
+
+  return (
+    <footer className="flex flex-col items-center justify-center pt-16 md:pt-20 border-t border-black/10 text-center">
+      <p className="font-serif-me italic text-2xl md:text-3xl mb-4 text-neutral-800">
+        Let&apos;s make something lasting.
+      </p>
+      {emailLink && (
+        <a
+          href={emailLink.href}
+          className="mb-8 text-sm font-medium tracking-wide underline decoration-neutral-300 underline-offset-4 hover:decoration-[#C4704F] hover:text-[#C4704F] transition-colors"
+        >
+          {emailLink.label}
+        </a>
+      )}
+      <div className="text-[11px] font-bold uppercase tracking-[0.2em] flex gap-4 text-neutral-400">
+        <span suppressHydrationWarning>{new Date().getFullYear()}</span>
+        <span aria-hidden="true">•</span>
+        <span>{handle}</span>
+      </div>
+    </footer>
+  );
+}
+
+function EducationAndSkills({
+  education,
+  skills,
+}: {
+  education: TemplateProps["content"]["education"];
+  skills: TemplateProps["content"]["skills"];
+}) {
+  if (!education?.length && !skills?.length) return null;
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-20 mb-24 md:mb-32">
+      {education && education.length > 0 && (
+        <section aria-label="Education" className="min-w-0">
+          <SectionTitle title="Education" />
+          <div className="space-y-8">
+            {education.map((edu, index) => (
+              <div
+                key={`${edu.institution}-${index}`}
+                className="border-l-2 border-neutral-200 pl-6 py-1 hover:border-black transition-colors duration-300"
+              >
+                <div className="flex justify-between items-baseline gap-4 mb-1">
+                  <h3 className="font-semibold text-lg break-words [text-wrap:unset]">
+                    {edu.institution}
+                  </h3>
+                  {edu.graduation_date && (
+                    <span className="text-xs font-mono text-neutral-400 shrink-0">
+                      {formatShortDate(edu.graduation_date)}
+                    </span>
+                  )}
+                </div>
+                <p className="font-serif-me italic text-neutral-600 mb-2">{edu.degree}</p>
+                {edu.gpa && (
+                  <p className="text-xs bg-neutral-100 inline-block px-2 py-1 rounded">
+                    GPA {edu.gpa}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {skills && skills.length > 0 && (
+        <section aria-label="Technical skills" className="min-w-0">
+          <SectionTitle title="Technical Skills" />
+          <div className="flex flex-wrap content-start gap-2">
+            {skills
+              .flatMap((s) => s.items)
+              .map((skill, i) => (
+                <span
+                  key={`skill-${skill}-${i}`}
+                  className="px-3.5 py-1.5 bg-white border border-black/10 text-sm hover:bg-[#C4704F] hover:text-white hover:border-[#C4704F] transition-colors duration-200"
+                >
+                  {skill}
+                </span>
+              ))}
+          </div>
+        </section>
+      )}
+    </div>
+  );
+}
+
 export const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile, isPreview }) => {
   const {
     full_name,
@@ -68,7 +192,6 @@ export const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile,
   const [firstName, ...rest] = full_name.split(" ");
   const lastName = rest.join(" ");
   const contactLinks = getContactLinks(contact);
-  const emailLink = contactLinks.find((link) => link.type === "email");
 
   return (
     <>
@@ -83,35 +206,7 @@ export const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile,
           aria-hidden="true"
         />
 
-        {!isPreview && (
-          <nav
-            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 w-[calc(100%-2rem)] max-w-xl pb-[env(safe-area-inset-bottom)]"
-            aria-label="Contact navigation"
-          >
-            <div className="flex items-center justify-center gap-1 sm:gap-2 px-3 sm:px-5 py-2 bg-white/90 backdrop-blur-md border border-black/8 rounded-full shadow-xl shadow-black/8 overflow-x-auto no-scrollbar">
-              <span className="hidden sm:inline text-[11px] font-bold tracking-widest uppercase text-neutral-400 shrink-0 px-2">
-                {profile.handle}
-              </span>
-              {contactLinks
-                .filter((link) => link.type !== "location")
-                .map((link) => (
-                  <a
-                    key={link.type}
-                    href={link.href}
-                    target={link.isExternal ? "_blank" : undefined}
-                    rel={link.isExternal ? "noreferrer" : undefined}
-                    className="group relative p-2.5 rounded-full hover:bg-neutral-100 transition-colors shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
-                    aria-label={link.label}
-                  >
-                    {navIconMap[link.type]}
-                    <span className="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 px-2 py-1 bg-black text-white text-[10px] tracking-wide rounded opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity whitespace-nowrap">
-                      {link.label}
-                    </span>
-                  </a>
-                ))}
-            </div>
-          </nav>
-        )}
+        {!isPreview && <ContactNav links={contactLinks} handle={profile.handle} />}
 
         <main className="relative z-10 max-w-6xl mx-auto px-6 md:px-12 pt-20 md:pt-28 pb-36">
           <header className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 mb-24 lg:mb-36 border-b border-black/10 pb-16 md:pb-24">
@@ -261,58 +356,7 @@ export const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile,
             </section>
           )}
 
-          {(education && education.length > 0) || (skills && skills.length > 0) ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-20 mb-24 md:mb-32">
-              {education && education.length > 0 && (
-                <section aria-label="Education" className="min-w-0">
-                  <SectionTitle title="Education" />
-                  <div className="space-y-8">
-                    {education.map((edu, index) => (
-                      <div
-                        key={`${edu.institution}-${index}`}
-                        className="border-l-2 border-neutral-200 pl-6 py-1 hover:border-black transition-colors duration-300"
-                      >
-                        <div className="flex justify-between items-baseline gap-4 mb-1">
-                          <h3 className="font-semibold text-lg break-words [text-wrap:unset]">
-                            {edu.institution}
-                          </h3>
-                          {edu.graduation_date && (
-                            <span className="text-xs font-mono text-neutral-400 shrink-0">
-                              {formatShortDate(edu.graduation_date)}
-                            </span>
-                          )}
-                        </div>
-                        <p className="font-serif-me italic text-neutral-600 mb-2">{edu.degree}</p>
-                        {edu.gpa && (
-                          <p className="text-xs bg-neutral-100 inline-block px-2 py-1 rounded">
-                            GPA {edu.gpa}
-                          </p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              )}
-
-              {skills && skills.length > 0 && (
-                <section aria-label="Technical skills" className="min-w-0">
-                  <SectionTitle title="Technical Skills" />
-                  <div className="flex flex-wrap content-start gap-2">
-                    {skills
-                      .flatMap((s) => s.items)
-                      .map((skill, i) => (
-                        <span
-                          key={`skill-${skill}-${i}`}
-                          className="px-3.5 py-1.5 bg-white border border-black/10 text-sm hover:bg-[#C4704F] hover:text-white hover:border-[#C4704F] transition-colors duration-200"
-                        >
-                          {skill}
-                        </span>
-                      ))}
-                  </div>
-                </section>
-              )}
-            </div>
-          ) : null}
+          <EducationAndSkills education={education} skills={skills} />
 
           {certifications && certifications.length > 0 && (
             <section className="mb-24 md:mb-32" aria-label="Certifications">
@@ -356,24 +400,7 @@ export const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile,
             </section>
           )}
 
-          <footer className="flex flex-col items-center justify-center pt-16 md:pt-20 border-t border-black/10 text-center">
-            <p className="font-serif-me italic text-2xl md:text-3xl mb-4 text-neutral-800">
-              Let&apos;s make something lasting.
-            </p>
-            {emailLink && (
-              <a
-                href={emailLink.href}
-                className="mb-8 text-sm font-medium tracking-wide underline decoration-neutral-300 underline-offset-4 hover:decoration-[#C4704F] hover:text-[#C4704F] transition-colors"
-              >
-                {emailLink.label}
-              </a>
-            )}
-            <div className="text-[11px] font-bold uppercase tracking-[0.2em] flex gap-4 text-neutral-400">
-              <span suppressHydrationWarning>{new Date().getFullYear()}</span>
-              <span aria-hidden="true">•</span>
-              <span>{profile.handle}</span>
-            </div>
-          </footer>
+          <EditorialFooter links={contactLinks} handle={profile.handle} />
         </main>
       </div>
     </>

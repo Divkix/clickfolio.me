@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { RoleFaqSection } from "@/components/Faq";
+import { RoleSection } from "@/components/role/RoleSection";
 import { Button } from "@/components/ui/button";
 import {
   buildRolePageMetadata,
@@ -60,114 +62,93 @@ export default function ConsultantPage() {
             polished consulting portfolio with a custom @handle URL — free, in 30 seconds.
           </p>
 
-          <section className="mb-12">
-            <h2 className="font-bold text-xl text-foreground mb-4">
-              Why Consultants Love clickfolio.me
-            </h2>
-            <ul className="space-y-3 text-muted-foreground list-disc pl-5">
-              <li>
-                <strong>Midnight template</strong> — dark minimal with serif headings and gold
-                accents. Elegant and sophisticated, perfect for high-end consulting professionals.
-              </li>
-              <li>
-                <strong>Minimalist Editorial template</strong> — clean, magazine-style layout that
-                puts your track record in focus. No visual noise, just results.
-              </li>
-              <li>
-                <strong>Granular privacy controls</strong> — toggle phone number and address
-                visibility. Share a professional presence publicly while keeping personal contact
-                details private until you choose to share them.
-              </li>
-              <li>
-                <strong>Client engagement list</strong> — AI extracts and highlights the
-                organizations you've worked with, presented in a clean timeline format that builds
-                credibility instantly.
-              </li>
-            </ul>
-          </section>
+          <RoleSection
+            heading="Why Consultants Love clickfolio.me"
+            items={[
+              {
+                lead: "Midnight template",
+                body: "dark minimal with serif headings and gold accents. Elegant and sophisticated, perfect for high-end consulting professionals.",
+              },
+              {
+                lead: "Minimalist Editorial template",
+                body: "clean, magazine-style layout that puts your track record in focus. No visual noise, just results.",
+              },
+              {
+                lead: "Granular privacy controls",
+                body: "toggle phone number and address visibility. Share a professional presence publicly while keeping personal contact details private until you choose to share them.",
+              },
+              {
+                lead: "Client engagement list",
+                body: "AI extracts and highlights the organizations you've worked with, presented in a clean timeline format that builds credibility instantly.",
+              },
+            ]}
+          />
 
-          <section className="mb-12">
-            <h2 className="font-bold text-xl text-foreground mb-4">Your Digital Business Card</h2>
-            <p className="text-muted-foreground mb-4">
-              A clickfolio.me @handle URL is the modern consultant portfolio website and business
-              card in one. Put it on LinkedIn, in your email signature, and on proposals. Clients
-              get a complete picture of your expertise before the first call.
-            </p>
-            <p className="text-muted-foreground">
-              Rich Open Graph previews keep your page looking professional when shared. Typography
-              and layout are tuned to project competence the moment someone clicks.
-            </p>
-          </section>
+          <RoleSection
+            heading="Your Digital Business Card"
+            intro="A clickfolio.me @handle URL is the modern consultant portfolio website and business card in one. Put it on LinkedIn, in your email signature, and on proposals. Clients get a complete picture of your expertise before the first call."
+            outro="Rich Open Graph previews keep your page looking professional when shared. Typography and layout are tuned to project competence the moment someone clicks."
+          />
 
-          <section className="mb-12">
-            <h2 className="font-bold text-xl text-foreground mb-4">
-              What to put on a consultant portfolio
-            </h2>
-            <p className="text-muted-foreground mb-4">
-              Clients buy outcomes and trust. A first scan takes about 7.4 seconds (The Ladders,
-              2018), so make your value obvious before anyone reads the detail.
-            </p>
-            <ul className="space-y-3 text-muted-foreground list-disc pl-5">
-              <li>
-                <strong>Engagements with results</strong> — the problem, your approach, and the
-                measurable outcome, framed by industry when names are confidential.
-              </li>
-              <li>
-                <strong>Areas of expertise</strong> — the two or three problems you solve best, so
-                clients self-qualify.
-              </li>
-              <li>
-                <strong>Credibility markers</strong> — certifications, years in the field, and the
-                kinds of organizations you serve.
-              </li>
-              <li>
-                <strong>A clear next step</strong> — how to reach you, on your terms.
-              </li>
-            </ul>
-          </section>
+          <RoleSection
+            heading="What to put on a consultant portfolio"
+            intro="Clients buy outcomes and trust. A first scan takes about 7.4 seconds (The Ladders, 2018), so make your value obvious before anyone reads the detail."
+            items={[
+              {
+                lead: "Engagements with results",
+                body: "the problem, your approach, and the measurable outcome, framed by industry when names are confidential.",
+              },
+              {
+                lead: "Areas of expertise",
+                body: "the two or three problems you solve best, so clients self-qualify.",
+              },
+              {
+                lead: "Credibility markers",
+                body: "certifications, years in the field, and the kinds of organizations you serve.",
+              },
+              {
+                lead: "A clear next step",
+                body: "how to reach you, on your terms.",
+              },
+            ]}
+          />
 
-          <section className="mb-12">
-            <h2 className="font-bold text-xl text-foreground mb-4">
-              Templates that signal authority
-            </h2>
-            <ul className="space-y-3 text-muted-foreground list-disc pl-5">
-              <li>
-                <strong>Midnight</strong> — dark and minimal with serif headings and gold accents
-                for a high-end feel.
-              </li>
-              <li>
-                <strong>Minimalist Editorial</strong> — magazine-clean, putting your track record in
-                focus.
-              </li>
-              <li>
-                <strong>Bold Corporate</strong> — executive typography for a confident, polished
-                profile.
-              </li>
-            </ul>
-          </section>
+          <RoleSection
+            heading="Templates that signal authority"
+            items={[
+              {
+                lead: "Midnight",
+                body: "dark and minimal with serif headings and gold accents for a high-end feel.",
+              },
+              {
+                lead: "Minimalist Editorial",
+                body: "magazine-clean, putting your track record in focus.",
+              },
+              {
+                lead: "Bold Corporate",
+                body: "executive typography for a confident, polished profile.",
+              },
+            ]}
+          />
 
-          <section className="mb-12">
-            <h2 className="font-bold text-xl text-foreground mb-4">
-              "Most of my work is confidential"
-            </h2>
-            <p className="text-muted-foreground mb-4">
-              That is fine. You can describe each engagement by sector, scope, and result without
-              naming the client, and the privacy controls let you hide contact details until you are
-              ready. Your credibility comes through while every NDA stays intact.
-            </p>
-            <p className="text-muted-foreground">
-              Want the full setup walkthrough? Read{" "}
-              <a className="underline" href="/blog/personal-resume-website">
-                our guide to a personal resume website
-              </a>{" "}
-              before you publish.
-            </p>
-          </section>
+          <RoleSection
+            heading={'"Most of my work is confidential"'}
+            intro="That is fine. You can describe each engagement by sector, scope, and result without naming the client, and the privacy controls let you hide contact details until you are ready. Your credibility comes through while every NDA stays intact."
+            outro={
+              <>
+                Want the full setup walkthrough? Read{" "}
+                <Link className="underline" href="/blog/personal-resume-website">
+                  our guide to a personal resume website
+                </Link>{" "}
+                before you publish.
+              </>
+            }
+          />
 
           <RoleFaqSection items={faqs} />
 
           <Button asChild size="lg">
-            <a href="/">Create Your Consulting Portfolio</a>
+            <Link href="/">Create Your Consulting Portfolio</Link>
           </Button>
         </div>
       </main>

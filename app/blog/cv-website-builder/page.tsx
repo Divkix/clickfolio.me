@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BlogPostLayout } from "@/components/blog/BlogPostLayout";
+import { ComparisonTable } from "@/components/blog/ComparisonTable";
 import { buildBlogPostMetadata, getPostBySlug } from "@/lib/blog/posts";
 
 export const revalidate = 86400;
@@ -13,6 +14,34 @@ const relatedPosts = ["best-resume-website-builders", "how-to-make-a-resume-webs
 
 export function generateMetadata(): Metadata {
   return buildBlogPostMetadata(post);
+}
+
+interface PostListItem {
+  title: string;
+  body: string;
+}
+
+interface PostSectionProps {
+  heading: string;
+  intro: string;
+  items: PostListItem[];
+}
+
+function PostSection({ heading, intro, items }: PostSectionProps) {
+  return (
+    <section>
+      <h2>{heading}</h2>
+      <p>{intro}</p>
+      <ul>
+        {items.map((item, index) => (
+          <li key={index}>
+            <strong>{`${item.title}.`}</strong>
+            {` ${item.body}`}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
 }
 
 export default function CvWebsiteBuilderPage() {
@@ -34,35 +63,32 @@ export default function CvWebsiteBuilderPage() {
         </p>
       </section>
 
-      <section>
-        <h2>What features actually matter in a CV website builder?</h2>
-        <p>
-          Most builders list dozens of features. Only a few change whether you finish and whether
-          the result helps you get hired:
-        </p>
-        <ul>
-          <li>
-            <strong>CV import.</strong> Can it read your PDF and fill the page for you, or do you
-            retype everything? Import is the single biggest time-saver.
-          </li>
-          <li>
-            <strong>Free hosting and a real URL.</strong> A site you can't share isn't a site. Check
-            whether the link is free or paywalled.
-          </li>
-          <li>
-            <strong>Mobile-ready templates.</strong> Recruiters open links on phones. The layout has
-            to hold up on a small screen.
-          </li>
-          <li>
-            <strong>Editing without code.</strong> You should be able to fix a job title or reorder
-            sections in seconds.
-          </li>
-          <li>
-            <strong>Privacy controls and analytics.</strong> Decide who sees your contact details,
-            and see how many people viewed your page.
-          </li>
-        </ul>
-      </section>
+      <PostSection
+        heading="What features actually matter in a CV website builder?"
+        intro="Most builders list dozens of features. Only a few change whether you finish and whether the result helps you get hired:"
+        items={[
+          {
+            title: "CV import",
+            body: "Can it read your PDF and fill the page for you, or do you retype everything? Import is the single biggest time-saver.",
+          },
+          {
+            title: "Free hosting and a real URL",
+            body: "A site you can't share isn't a site. Check whether the link is free or paywalled.",
+          },
+          {
+            title: "Mobile-ready templates",
+            body: "Recruiters open links on phones. The layout has to hold up on a small screen.",
+          },
+          {
+            title: "Editing without code",
+            body: "You should be able to fix a job title or reorder sections in seconds.",
+          },
+          {
+            title: "Privacy controls and analytics",
+            body: "Decide who sees your contact details, and see how many people viewed your page.",
+          },
+        ]}
+      />
 
       <section>
         <h2>How do CV website builders compare?</h2>
@@ -70,42 +96,24 @@ export default function CvWebsiteBuilderPage() {
           Here's an honest look at common options. The right pick depends on whether you value speed
           or a hand-built design.
         </p>
-        <div className="overflow-x-auto my-8 not-prose">
-          <table className="w-full border-collapse overflow-hidden rounded-lg border border-border text-sm">
-            <thead>
-              <tr>
-                <th className="border border-border p-3 text-left font-semibold">Tool</th>
-                <th className="border border-border p-3 text-left font-semibold">
-                  Imports your CV?
-                </th>
-                <th className="border border-border p-3 text-left font-semibold">Cost</th>
-                <th className="border border-border p-3 text-left font-semibold">Best for</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td className="border border-border p-3">clickfolio.me</td>
-                <td className="border border-border p-3">Yes — AI reads your PDF</td>
-                <td className="border border-border p-3">Free</td>
-                <td className="border border-border p-3">
-                  Turning an existing CV into a site fast
-                </td>
-              </tr>
-              <tr>
-                <td className="border border-border p-3">Carrd</td>
-                <td className="border border-border p-3">No — build by hand</td>
-                <td className="border border-border p-3">~$19/yr for a custom domain</td>
-                <td className="border border-border p-3">Hand-built one-page sites</td>
-              </tr>
-              <tr>
-                <td className="border border-border p-3">General site builders</td>
-                <td className="border border-border p-3">No</td>
-                <td className="border border-border p-3">Often paid plans</td>
-                <td className="border border-border p-3">Full design control, more setup</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <ComparisonTable
+          headers={["Tool", "Imports your CV?", "Cost", "Best for"]}
+          rows={[
+            [
+              "clickfolio.me",
+              "Yes — AI reads your PDF",
+              "Free",
+              "Turning an existing CV into a site fast",
+            ],
+            [
+              "Carrd",
+              "No — build by hand",
+              "~$19/yr for a custom domain",
+              "Hand-built one-page sites",
+            ],
+            ["General site builders", "No", "Often paid plans", "Full design control, more setup"],
+          ]}
+        />
         <p>
           Carrd is genuinely good and cheap if you want to design a page block by block, and $19/yr
           for a custom domain is fair. But it won't read your CV — you build everything yourself.

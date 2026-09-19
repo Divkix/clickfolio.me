@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BlogPostLayout } from "@/components/blog/BlogPostLayout";
+import { PostList, PostSection } from "@/components/blog/PostSection";
 import { StatsGrid } from "@/components/blog/StatsGrid";
 import { buildBlogPostMetadata, getPostBySlug } from "@/lib/blog/posts";
 
@@ -32,42 +33,49 @@ export default function AiResumeParsingAccuracyPage() {
         </p>
       </section>
 
-      <section>
-        <h2>What We Tested</h2>
-        <p>We assembled a test set of 50 PDF resumes covering common real-world scenarios:</p>
-        <ul>
-          <li>
-            <strong>Standard single-column resumes</strong> (25 files) — clean, well-structured,
-            digitally created
-          </li>
-          <li>
-            <strong>Two-column layouts</strong> (8 files) — skills sidebar, split sections, creative
-            formatting
-          </li>
-          <li>
-            <strong>Scanned documents</strong> (5 files) — image-based PDFs from actual scanners
-          </li>
-          <li>
-            <strong>Resumes with embedded images</strong> (3 files) — photos, icons, logos in the
-            PDF
-          </li>
-          <li>
-            <strong>Multi-page resumes</strong> (4 files) — 2+ pages of dense content
-          </li>
-          <li>
-            <strong>Non-English resumes</strong> (3 files) — mixed with English sections
-          </li>
-          <li>
-            <strong>Edge case formatting</strong> (2 files) — tables, columns, unusual fonts
-          </li>
-        </ul>
+      <PostSection
+        heading="What We Tested"
+        intro="We assembled a test set of 50 PDF resumes covering common real-world scenarios:"
+      >
+        <PostList
+          items={[
+            {
+              lead: "Standard single-column resumes",
+              body: " (25 files) — clean, well-structured, digitally created",
+            },
+            {
+              lead: "Two-column layouts",
+              body: " (8 files) — skills sidebar, split sections, creative formatting",
+            },
+            {
+              lead: "Scanned documents",
+              body: " (5 files) — image-based PDFs from actual scanners",
+            },
+            {
+              lead: "Resumes with embedded images",
+              body: " (3 files) — photos, icons, logos in the PDF",
+            },
+            {
+              lead: "Multi-page resumes",
+              body: " (4 files) — 2+ pages of dense content",
+            },
+            {
+              lead: "Non-English resumes",
+              body: " (3 files) — mixed with English sections",
+            },
+            {
+              lead: "Edge case formatting",
+              body: " (2 files) — tables, columns, unusual fonts",
+            },
+          ]}
+        />
         <p>
           For each resume, we compared the AI-parsed output against manual extraction of the same
           data. We evaluated accuracy across 8 fields: name, contact info, summary, experience
           entries (company, title, dates, bullets), education, skills, certifications, and
           languages.
         </p>
-      </section>
+      </PostSection>
 
       <section>
         <h2>The Results</h2>
@@ -148,37 +156,36 @@ export default function AiResumeParsingAccuracyPage() {
         </p>
       </section>
 
-      <section>
-        <h2>Tips for Better Parsing Results</h2>
-        <ul>
-          <li>
-            <strong>Use digitally-created PDFs.</strong> Export from Word, Google Docs, or a resume
-            builder. Avoid scanning a printed document unless you have no alternative.
-          </li>
-          <li>
-            <strong>Stick to single-column layouts.</strong> If your resume has a sidebar, consider
-            reformatting to a single column before uploading. It takes 2 minutes and dramatically
-            improves accuracy.
-          </li>
-          <li>
-            <strong>Use standard date formats.</strong> "Jan 2020 - Present" parses correctly.
-            "Started at the beginning of 2020" does not.
-          </li>
-          <li>
-            <strong>List skills in a dedicated section.</strong> A "Skills" heading with
-            comma-separated or bullet-pointed items works best. Skills buried in experience
-            descriptions may be missed.
-          </li>
-          <li>
-            <strong>Avoid images of text.</strong> If your resume is an image-based PDF, consider
-            using a free online OCR tool to convert it to a text PDF first.
-          </li>
-          <li>
-            <strong>Check the output before publishing.</strong> The parser is good but not
-            infallible. A 2-minute review catches 95% of errors.
-          </li>
-        </ul>
-      </section>
+      <PostSection heading="Tips for Better Parsing Results">
+        <PostList
+          items={[
+            {
+              lead: "Use digitally-created PDFs.",
+              body: " Export from Word, Google Docs, or a resume builder. Avoid scanning a printed document unless you have no alternative.",
+            },
+            {
+              lead: "Stick to single-column layouts.",
+              body: " If your resume has a sidebar, consider reformatting to a single column before uploading. It takes 2 minutes and dramatically improves accuracy.",
+            },
+            {
+              lead: "Use standard date formats.",
+              body: ' "Jan 2020 - Present" parses correctly. "Started at the beginning of 2020" does not.',
+            },
+            {
+              lead: "List skills in a dedicated section.",
+              body: ' A "Skills" heading with comma-separated or bullet-pointed items works best. Skills buried in experience descriptions may be missed.',
+            },
+            {
+              lead: "Avoid images of text.",
+              body: " If your resume is an image-based PDF, consider using a free online OCR tool to convert it to a text PDF first.",
+            },
+            {
+              lead: "Check the output before publishing.",
+              body: " The parser is good but not infallible. A 2-minute review catches 95% of errors.",
+            },
+          ]}
+        />
+      </PostSection>
 
       <section>
         <h2>The Bottom Line</h2>

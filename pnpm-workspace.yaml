@@ -49,6 +49,14 @@ peerDependencyRules:
   allowedVersions:
     vite: "*"
     vitest: "*"
+# Supply-chain hardening: refuse any version whose trust signals (provenance,
+# signatures) regressed versus what we already resolved.
+#
+# Deliberately NOT setting `minimumReleaseAge`: this repo tracks same-week
+# toolchain releases (react, vite-plus, typescript), so any holdback wide enough
+# to matter rejects the committed lockfile outright ("entries that the active
+# policies reject") and `pnpm install` fails.
+trustPolicy: no-downgrade
 minimumReleaseAgeExclude:
   - "@ai-sdk/gateway@4.0.51"
   - "@cloudflare/vite-plugin@1.52.1"

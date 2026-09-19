@@ -19,34 +19,54 @@ interface ClaimResponse {
   error?: string;
 }
 
+interface ClaimFailure {
+  status?: number;
+  message?: string;
+}
+
+function claimErrorMessage(err: ClaimFailure): string {
+  // SAFETY: err is a thrown fetch/claim failure (Error-like or Response-like); ClaimFailure
+  // models the optional status read for rate-limit handling.
+  if (err instanceof Response || (err as { status?: number })?.status) {
+    // SAFETY: err status check uses optional status property from thrown Response-like error; cast is safe for branching.
+    const status = err instanceof Response ? err.status : (err as { status?: number }).status;
+    if (status === 429) return "Upload limit reached (5 per day). Try again tomorrow.";
+    if (status === 401) return "Session expired. Please sign in again.";
+    if (status === 404) return "Upload not found. Please try uploading again.";
+    if (status === 409) return "This resume was already claimed.";
+  } else if (err instanceof Error) {
+    if (err.message.includes("network") || err.message.includes("Network")) {
+      return "Network error. Check your connection.";
+    }
+    if (err.message) {
+      return err.message;
+    }
+  }
+
+  return "Failed to claim resume";
+}
+
 export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
   const isModal = open !== undefined && onOpenChange !== undefined;
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const { data: session, isPending: sessionLoading } = useSession();
   const user = session?.user ?? null;
 
   const [claiming, setClaiming] = useState(false);
 
+  const upload = useFileUpload();
   const {
     file,
-    uploadProgress,
     uploadState,
     error,
-    isDragging,
     uploadedKey,
     setUploadedKey,
     setUploadProgress,
     setUploadState,
     setError,
     setFile,
-    handleDragEnter,
-    handleDragLeave,
-    handleDragOver,
-    handleDrop,
-    handleFileSelect,
     processFile,
-  } = useFileUpload();
+  } = upload;
 
   const uploading = uploadState === "uploading" || uploadState === "claiming";
 
@@ -88,28 +108,9 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
         router.replace("/dashboard");
         router.refresh();
       } catch (err) {
-        let errorMessage = "Failed to claim resume";
-
-        // SAFETY: err is Error-like with optional status from fetch throw; cast narrows to status check for rate-limit handling.
-        if (err instanceof Response || (err as { status?: number })?.status) {
-          // SAFETY: err status check uses optional status property from thrown Response-like error; cast is safe for branching.
-          const status = err instanceof Response ? err.status : (err as { status?: number }).status;
-          if (status === 429) {
-            errorMessage = "Upload limit reached (5 per day). Try again tomorrow.";
-          } else if (status === 401) {
-            errorMessage = "Session expired. Please sign in again.";
-          } else if (status === 404) {
-            errorMessage = "Upload not found. Please try uploading again.";
-          } else if (status === 409) {
-            errorMessage = "This resume was already claimed.";
-          }
-        } else if (err instanceof Error) {
-          if (err.message.includes("network") || err.message.includes("Network")) {
-            errorMessage = "Network error. Check your connection.";
-          } else if (err.message) {
-            errorMessage = err.message;
-          }
-        }
+        // SAFETY: caught values are Error-like or Response-like as thrown by fetch/claim;
+        // ClaimFailure models the optional status and message the helper reads.
+        const errorMessage = claimErrorMessage(err as ClaimFailure);
 
         setUploadedKey(null);
 
@@ -150,7 +151,134 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
     }
   };
 
-  const dropzoneContent = (
+  const content =
+    uploadedKey !== null ? (
+      <UploadComplete
+        claiming={claiming}
+        error={error}
+        fileName={file?.name}
+        hasUser={user !== null}
+        onReset={handleReset}
+      />
+    ) : (
+      <FileDropzonePrompt
+        upload={upload}
+        uploading={uploading}
+        isModal={isModal}
+        onRetry={handleRetry}
+      />
+    );
+
+  if (isModal) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Upload New Resume</DialogTitle>
+          </DialogHeader>
+          {content}
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  return content;
+}
+
+function UploadProgress({ uploadProgress }: { uploadProgress: number }) {
+  return (
+    <div className="space-y-2">
+      <div className="h-2 bg-secondary rounded-full overflow-hidden">
+        <div
+          className="h-full bg-brand transition-[width] duration-300"
+          style={{ width: `${uploadProgress}%` }}
+        />
+      </div>
+      <p className="text-xs text-center text-muted-foreground" aria-live="polite">
+        {uploadProgress < 40
+          ? "Preparing upload..."
+          : uploadProgress < 90
+            ? "Uploading file..."
+            : uploadProgress < 100
+              ? "Finalizing..."
+              : "Complete!"}{" "}
+        {uploadProgress}%
+      </p>
+    </div>
+  );
+}
+
+function TrustSignals({
+  uploading,
+  error,
+  isModal,
+}: {
+  uploading: boolean;
+  error: string | null;
+  isModal: boolean;
+}) {
+  return (
+    <>
+      {!uploading && !error && (
+        <a
+          href="https://github.com/divkix/clickfolio.me"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors mt-3"
+        >
+          <ShieldCheck className="w-4 h-4" />
+          <span>Open source &amp; transparent — audit the code yourself</span>
+        </a>
+      )}
+
+      {!uploading && !error && !isModal && (
+        <div className="flex items-center justify-center gap-2 bg-success/10 border border-success/30 rounded-lg px-3 py-2 mt-3">
+          <svg
+            className="w-4 h-4 text-success shrink-0"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M5 13l4 4L19 7" />
+          </svg>
+          <span className="text-xs text-muted-foreground">
+            Upload anonymously. No account needed until you publish.
+          </span>
+        </div>
+      )}
+    </>
+  );
+}
+
+function FileDropzonePrompt({
+  upload,
+  uploading,
+  isModal,
+  onRetry,
+}: {
+  upload: ReturnType<typeof useFileUpload>;
+  uploading: boolean;
+  isModal: boolean;
+  onRetry: () => void;
+}) {
+  const {
+    file,
+    isDragging,
+    uploadProgress,
+    error,
+    handleDragEnter,
+    handleDragLeave,
+    handleDragOver,
+    handleDrop,
+    handleFileSelect,
+  } = upload;
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  return (
     <div className="space-y-4">
       <button
         type="button"
@@ -231,71 +359,36 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
         </div>
       </button>
 
-      {uploading && (
-        <div className="space-y-2">
-          <div className="h-2 bg-secondary rounded-full overflow-hidden">
-            <div
-              className="h-full bg-brand transition-all duration-300"
-              style={{ width: `${uploadProgress}%` }}
-            />
-          </div>
-          <p className="text-xs text-center text-muted-foreground" aria-live="polite">
-            {uploadProgress < 40
-              ? "Preparing upload..."
-              : uploadProgress < 90
-                ? "Uploading file..."
-                : uploadProgress < 100
-                  ? "Finalizing..."
-                  : "Complete!"}{" "}
-            {uploadProgress}%
-          </p>
-        </div>
-      )}
+      {uploading && <UploadProgress uploadProgress={uploadProgress} />}
 
       {error && (
         <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4" role="alert">
           <p className="font-medium text-sm text-destructive mb-3">{error}</p>
-          <Button type="button" onClick={handleRetry} className="w-full">
+          <Button type="button" onClick={onRetry} className="w-full">
             Try Again
           </Button>
         </div>
       )}
 
-      {!uploading && !error && (
-        <a
-          href="https://github.com/divkix/clickfolio.me"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center justify-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors mt-3"
-        >
-          <ShieldCheck className="w-4 h-4" />
-          <span>Open source &amp; transparent — audit the code yourself</span>
-        </a>
-      )}
-
-      {!uploading && !error && !isModal && (
-        <div className="flex items-center justify-center gap-2 bg-success/10 border border-success/30 rounded-lg px-3 py-2 mt-3">
-          <svg
-            className="w-4 h-4 text-success shrink-0"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M5 13l4 4L19 7" />
-          </svg>
-          <span className="text-xs text-muted-foreground">
-            Upload anonymously. No account needed until you publish.
-          </span>
-        </div>
-      )}
+      <TrustSignals uploading={uploading} error={error} isModal={isModal} />
     </div>
   );
+}
 
-  const uploadCompleteContent = (
+function UploadComplete({
+  claiming,
+  error,
+  fileName,
+  hasUser,
+  onReset,
+}: {
+  claiming: boolean;
+  error: string | null;
+  fileName: string | undefined;
+  hasUser: boolean;
+  onReset: () => void;
+}) {
+  return (
     <div className="space-y-4">
       <div className="bg-card border border-border rounded-xl p-6">
         {claiming ? (
@@ -352,7 +445,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
               <p className="font-medium text-sm text-destructive mb-4">{error}</p>
             </div>
 
-            <Button type="button" onClick={handleReset} className="w-full max-w-xs">
+            <Button type="button" onClick={onReset} className="w-full max-w-xs">
               Try Again
             </Button>
           </div>
@@ -373,11 +466,11 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
             <div className="text-center">
               <h3 className="font-semibold text-lg text-foreground mb-2">Upload Complete!</h3>
               <p className="text-sm text-muted-foreground mb-4">
-                {file?.name} has been uploaded successfully.
+                {fileName} has been uploaded successfully.
               </p>
             </div>
 
-            {user ? (
+            {hasUser ? (
               <p className="text-xs text-muted-foreground text-center" aria-live="polite">
                 Redirecting to dashboard...
               </p>
@@ -395,7 +488,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
 
                 <button
                   type="button"
-                  onClick={handleReset}
+                  onClick={onReset}
                   className="text-xs text-muted-foreground hover:text-foreground underline transition-colors"
                 >
                   Upload a different file
@@ -407,21 +500,4 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
       </div>
     </div>
   );
-
-  const content = uploadedKey !== null ? uploadCompleteContent : dropzoneContent;
-
-  if (isModal) {
-    return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Upload New Resume</DialogTitle>
-          </DialogHeader>
-          {content}
-        </DialogContent>
-      </Dialog>
-    );
-  }
-
-  return content;
 }

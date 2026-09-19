@@ -19,7 +19,11 @@ import type React from "react";
 import { useMemo, useRef, useState } from "react";
 import { GitHubIcon, LinkedInIcon } from "@/components/icons/BrandIcons";
 import { ShareBar } from "@/components/ShareBar";
-import { type ContactLinkType, getContactLinks } from "@/lib/templates/contact-links";
+import {
+  type ContactLinkDescriptor,
+  type ContactLinkType,
+  getContactLinks,
+} from "@/lib/templates/contact-links";
 import {
   flattenSkills,
   formatDateRange,
@@ -27,7 +31,7 @@ import {
   formatYear,
   getInitials,
 } from "@/lib/templates/helpers";
-import type { Project } from "@/lib/types/database";
+import type { Project, ResumeContent } from "@/lib/types/database";
 import type { TemplateProps } from "@/lib/types/template";
 import { TemplateFontLinks } from "./shared/TemplateFontLinks";
 
@@ -59,6 +63,7 @@ const NAV_SECTIONS = [
   { id: "skills", label: "Stack", icon: Zap },
   { id: "education", label: "Education", icon: GraduationCap },
 ] as const;
+type NavSection = (typeof NAV_SECTIONS)[number];
 
 const SpotlightCard = ({
   children,
@@ -124,39 +129,421 @@ const SectionHeading = ({
   </div>
 );
 
+const GlassNav = ({ sections, email }: { sections: NavSection[]; email?: string }) => (
+  <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-1.5rem)] max-w-md pb-[env(safe-area-inset-bottom)]">
+    <div className="flex items-center justify-center gap-1 p-1.5 rounded-full bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl shadow-black/50 overflow-x-auto no-scrollbar">
+      {sections.map((section) => {
+        const Icon = section.icon;
+        return (
+          <a
+            key={section.id}
+            href={`#${section.id}`}
+            className="group relative flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-full hover:bg-white/10 transition-colors duration-300"
+            aria-label={section.label}
+          >
+            <Icon
+              size={20}
+              className="text-white/50 group-hover:text-white transition-colors"
+              strokeWidth={1.5}
+              aria-hidden="true"
+            />
+            <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-2 py-1 bg-[#1a1a1a] border border-white/10 text-[10px] font-mono-gm text-white rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+              {section.label}
+            </span>
+          </a>
+        );
+      })}
+      {email && (
+        <a
+          href={`mailto:${email}`}
+          className="flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-full bg-white text-black hover:scale-110 transition-transform duration-300 ml-2"
+          aria-label="Contact"
+        >
+          <Mail size={18} strokeWidth={2.5} aria-hidden="true" />
+        </a>
+      )}
+    </div>
+  </nav>
+);
+
+const GlassAbout = ({
+  content,
+  profile,
+  contactLinks,
+}: {
+  content: ResumeContent;
+  profile: TemplateProps["profile"];
+  contactLinks: ContactLinkDescriptor[];
+}) => (
+  <section id="about" className="relative">
+    <div className="flex flex-col gap-8">
+      <div className="inline-flex items-center gap-2 self-start px-3 py-1 rounded-full border border-lavender/30 bg-lavender/5 backdrop-blur-md">
+        <span className="relative flex h-2 w-2">
+          <span className="motion-safe:animate-ping absolute inline-flex h-full w-full rounded-full bg-lavender opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-2 w-2 bg-lavender"></span>
+        </span>
+        <span className="text-xs font-mono-gm text-[#D8B4FE]">Available</span>
+      </div>
+
+      <div className="grid md:grid-cols-[1fr_auto] gap-8 items-end">
+        <div className="space-y-2">
+          <h1 className="text-5xl sm:text-6xl md:text-8xl font-extrabold tracking-tighter text-white leading-[0.9] [text-wrap:unset] break-words">
+            <span className="block">{content.full_name.split(" ")[0]}</span>
+            {content.full_name.split(" ").slice(1).join(" ") ? (
+              <span className="block text-white/55">
+                {content.full_name.split(" ").slice(1).join(" ")}
+              </span>
+            ) : null}
+          </h1>
+          <h2 className="text-xl md:text-2xl font-light text-gradient-purple tracking-wide">
+            {content.headline}
+          </h2>
+        </div>
+
+        <div className="relative w-32 h-32 md:w-48 md:h-48 rounded-full border-2 border-white/10 p-1">
+          <div className="w-full h-full rounded-full overflow-hidden relative group">
+            {profile.avatar_url ? (
+              <img
+                src={profile.avatar_url}
+                alt={`Portrait of ${content.full_name}`}
+                fetchPriority="high"
+                decoding="async"
+                className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-[filter] duration-500"
+              />
+            ) : (
+              <div className="w-full h-full bg-[#111] flex items-center justify-center text-4xl font-bold text-[#333]">
+                {getInitials(content.full_name)}
+              </div>
+            )}
+            <div className="absolute inset-0 bg-linear-to-b from-transparent via-white/5 to-transparent bg-size-[100%_4px] pointer-events-none" />
+          </div>
+        </div>
+      </div>
+
+      <SpotlightCard className="p-8 md:p-10 mt-8">
+        <div className="grid md:grid-cols-[2fr_1fr] gap-10">
+          <div className="space-y-6">
+            <p className="text-lg md:text-xl font-light leading-relaxed text-slate-300">
+              {content.summary}
+            </p>
+
+            <div className="flex flex-wrap gap-3 pt-2">
+              {contactLinks
+                .filter((l) => l.type !== "location")
+                .map((link) => {
+                  // SAFETY: link.type is ContactLinkType; glassIconMap covers branded icons with ExternalLink fallback.
+                  const Icon = glassIconMap[link.type as keyof typeof glassIconMap] || ExternalLink;
+                  const isBranded = link.type === "behance" || link.type === "dribbble";
+                  const brandColor =
+                    link.type === "behance"
+                      ? "#1769FF"
+                      : link.type === "dribbble"
+                        ? "#EA4C89"
+                        : undefined;
+                  const brandText =
+                    link.type === "behance" ? "Be" : link.type === "dribbble" ? "Dr" : null;
+
+                  return (
+                    <a
+                      key={link.type}
+                      href={link.href}
+                      target={link.isExternal ? "_blank" : undefined}
+                      rel={link.isExternal ? "noopener noreferrer" : undefined}
+                      aria-label={link.label}
+                      className="group flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 transition-colors"
+                    >
+                      {isBranded ? (
+                        <span
+                          className="text-xs font-bold font-mono-gm"
+                          style={{ color: brandColor }}
+                        >
+                          {brandText}
+                        </span>
+                      ) : (
+                        <Icon
+                          size={14}
+                          className="text-white/60 group-hover:text-white"
+                          aria-hidden="true"
+                        />
+                      )}
+                      <span className="text-sm font-mono-gm text-white/60 group-hover:text-white capitalize">
+                        {link.label}
+                      </span>
+                    </a>
+                  );
+                })}
+            </div>
+          </div>
+
+          <div className="hidden md:block border-l border-white/10 pl-10 space-y-6">
+            <div>
+              <h3 className="text-xs font-mono-gm text-white/30 uppercase tracking-widest mb-2">
+                Location
+              </h3>
+              <div className="flex items-center gap-2 text-slate-300">
+                <MapPin size={14} aria-hidden="true" />
+                <span>{content.contact.location || "Remote"}</span>
+              </div>
+            </div>
+            <div>
+              <h3 className="text-xs font-mono-gm text-white/30 uppercase tracking-widest mb-2">
+                Status
+              </h3>
+              <div className="flex items-center gap-2 text-lavender">
+                <Sparkles size={14} aria-hidden="true" />
+                <span>Available for work</span>
+              </div>
+            </div>
+            <div className="pt-4 opacity-50 hover:opacity-100 transition-opacity">
+              <ShareBar
+                handle={profile.handle}
+                title="Portfolio"
+                name={content.full_name}
+                variant="glass-morphic"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="md:hidden mt-6 flex justify-center opacity-50 hover:opacity-100 transition-opacity">
+          <ShareBar
+            handle={profile.handle}
+            title="Portfolio"
+            name={content.full_name}
+            variant="glass-morphic"
+          />
+        </div>
+      </SpotlightCard>
+    </div>
+  </section>
+);
+
+const GlassExperience = ({ experience }: { experience: ResumeContent["experience"] }) => {
+  if (!experience?.length) return null;
+
+  return (
+    <section id="experience">
+      <SectionHeading icon={Briefcase} title="Experience" subtitle="Professional trajectory" />
+
+      <div className="space-y-4">
+        {experience.map((job, i) => (
+          <SpotlightCard key={`${job.title}-${job.company}-${i}`} className="group p-6 md:p-8">
+            <div className="flex flex-col md:flex-row gap-4 md:items-start justify-between mb-4">
+              <div>
+                <h3 className="text-xl font-bold text-white group-hover:text-lavender transition-colors">
+                  {job.title}
+                </h3>
+                <div className="flex items-center gap-2 text-slate-400 mt-1">
+                  <span className="font-medium">{job.company}</span>
+                  {job.location && (
+                    <>
+                      <span className="w-1 h-1 rounded-full bg-slate-600" />
+                      <span className="text-sm text-slate-500">{job.location}</span>
+                    </>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/5 self-start shrink-0">
+                <span className="text-xs font-mono-gm text-slate-300">
+                  {formatDateRange(job.start_date, job.end_date)}
+                </span>
+              </div>
+            </div>
+
+            {job.description && (
+              <p className="text-slate-400 font-light leading-relaxed mb-6 max-w-3xl">
+                {job.description}
+              </p>
+            )}
+
+            {job.highlights && job.highlights.length > 0 && (
+              <ul className="space-y-2">
+                {job.highlights.map((item, i) => (
+                  <li
+                    key={`${job.title}-${item}-${i}`}
+                    className="flex items-start gap-3 text-sm text-slate-400/80"
+                  >
+                    <span
+                      className="mt-1.5 w-1 h-1 rounded-full bg-lavender/50 shrink-0"
+                      aria-hidden="true"
+                    />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </SpotlightCard>
+        ))}
+      </div>
+    </section>
+  );
+};
+
+const GlassProjects = ({ projects }: { projects: ResumeContent["projects"] }) => {
+  if (!projects?.length) return null;
+
+  return (
+    <section id="projects">
+      <SectionHeading icon={Layers} title="Projects" subtitle="Selected works & experiments" />
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {projects.map((project: Project, i: number) => (
+          <SpotlightCard key={`${project.title}-${i}`} className="group flex flex-col h-full">
+            <div className="p-6 md:p-8 flex flex-col h-full">
+              <div className="flex justify-between items-start mb-6">
+                <div className="w-12 h-12 rounded-xl bg-linear-to-br from-white/10 to-transparent border border-white/5 flex items-center justify-center">
+                  <span className="font-display-gm font-bold text-xl text-white">
+                    {project.title.charAt(0)}
+                  </span>
+                </div>
+                {project.url && (
+                  <a
+                    href={project.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`View ${project.title}`}
+                    className="p-2 rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-colors"
+                  >
+                    <ArrowUpRight size={20} aria-hidden="true" />
+                  </a>
+                )}
+              </div>
+
+              <h3 className="text-xl font-bold text-white mb-2 group-hover:text-lavender transition-colors">
+                {project.title}
+              </h3>
+              {project.year && (
+                <span className="text-xs font-mono-gm text-white/30">{project.year}</span>
+              )}
+
+              <p className="text-slate-400 font-light text-sm leading-relaxed mb-6 grow">
+                {project.description}
+              </p>
+
+              <div className="pt-6 border-t border-white/5">
+                <div className="flex flex-wrap gap-2">
+                  {project.technologies?.slice(0, 4).map((tech) => (
+                    <span
+                      key={tech}
+                      className="px-2 py-1 text-[10px] font-mono-gm uppercase tracking-wider text-white bg-lavender/10 rounded border border-lavender/30"
+                    >
+                      {tech}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </SpotlightCard>
+        ))}
+      </div>
+    </section>
+  );
+};
+
+const GlassSkills = ({ skills }: { skills: string[] }) => {
+  if (skills.length === 0) return null;
+
+  return (
+    <section id="skills">
+      <SectionHeading icon={Zap} title="Stack" subtitle="Tools & Technologies" />
+      <SpotlightCard className="p-8 md:p-12">
+        <div className="flex flex-wrap justify-center gap-3">
+          {skills.map((skill, i) => (
+            <span
+              key={`skill-${skill}-${i}`}
+              className="px-4 py-2 rounded-lg bg-white/3 border border-white/15 text-sm text-slate-200 hover:bg-white/8 hover:text-white hover:border-lavender/30 hover:shadow-[0_0_15px_rgba(167,139,250,0.3)] transition-[color,background-color,border-color,box-shadow] duration-300 cursor-default select-none"
+            >
+              {skill}
+            </span>
+          ))}
+        </div>
+      </SpotlightCard>
+    </section>
+  );
+};
+
+const GlassEducation = ({
+  education,
+  certifications,
+}: {
+  education: ResumeContent["education"];
+  certifications: ResumeContent["certifications"];
+}) => {
+  if (!education?.length && !certifications?.length) return null;
+
+  return (
+    <section id="education">
+      <SectionHeading icon={GraduationCap} title="Education" subtitle="Academic background" />
+
+      <div className="grid md:grid-cols-2 gap-6 items-start">
+        <div className="space-y-4">
+          {education?.map((edu, i) => (
+            <SpotlightCard key={`edu-${edu.institution}-${i}`} className="p-6">
+              <div className="text-xs font-mono-gm text-lavender mb-2">
+                {edu.graduation_date ? formatYear(edu.graduation_date) : "Present"}
+              </div>
+              <h4 className="text-lg font-bold text-white mb-1">{edu.institution}</h4>
+              <p className="text-slate-400 text-sm font-medium">{edu.degree}</p>
+              {edu.gpa && (
+                <p className="text-slate-500 text-xs mt-2 font-mono-gm">GPA: {edu.gpa}</p>
+              )}
+            </SpotlightCard>
+          ))}
+        </div>
+
+        <div className="space-y-4">
+          {certifications?.map((cert, i) => (
+            <SpotlightCard key={`cert-${cert.name}-${i}`} className="p-6">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h4 className="text-base font-bold text-white mb-1">{cert.name}</h4>
+                  <p className="text-slate-500 text-xs uppercase tracking-wider">{cert.issuer}</p>
+                  {cert.date && (
+                    <p className="text-slate-500 text-xs mt-1 font-mono-gm">
+                      {formatShortDate(cert.date)}
+                    </p>
+                  )}
+                </div>
+                {cert.url && (
+                  <a
+                    href={cert.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`View ${cert.name} certificate`}
+                    className="text-white/20 hover:text-white transition-colors"
+                  >
+                    <ExternalLink size={16} aria-hidden="true" />
+                  </a>
+                )}
+              </div>
+            </SpotlightCard>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
 export const GlassMorphic: React.FC<TemplateProps> = ({ content, profile, isPreview }) => {
   const flatSkills = content.skills ? flattenSkills(content.skills) : [];
   const contactLinks = getContactLinks(content.contact);
 
-  const availableNavSections = useMemo(
-    () =>
-      NAV_SECTIONS.filter((section) => {
-        switch (section.id) {
-          case "about":
-            return true;
-          case "experience":
-            return content.experience && content.experience.length > 0;
-          case "projects":
-            return content.projects && content.projects.length > 0;
-          case "skills":
-            return flatSkills.length > 0;
-          case "education":
-            return (
-              (content.education && content.education.length > 0) ||
-              (content.certifications && content.certifications.length > 0)
-            );
-          default:
-            return false;
-        }
-      }),
-    [
-      content.experience,
-      content.projects,
-      content.education,
-      content.certifications,
-      flatSkills.length,
-    ],
-  );
+  const availableNavSections = useMemo(() => {
+    const visible = {
+      about: true,
+      experience: Boolean(content.experience?.length),
+      projects: Boolean(content.projects?.length),
+      skills: flatSkills.length > 0,
+      education: Boolean(content.education?.length || content.certifications?.length),
+    } satisfies Record<NavSection["id"], boolean>;
+    return NAV_SECTIONS.filter((section) => visible[section.id]);
+  }, [
+    content.experience,
+    content.projects,
+    content.education,
+    content.certifications,
+    flatSkills.length,
+  ]);
 
   return (
     <>
@@ -214,388 +601,18 @@ export const GlassMorphic: React.FC<TemplateProps> = ({ content, profile, isPrev
           />
         </div>
 
-        {!isPreview && (
-          <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-1.5rem)] max-w-md pb-[env(safe-area-inset-bottom)]">
-            <div className="flex items-center justify-center gap-1 p-1.5 rounded-full bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl shadow-black/50 overflow-x-auto no-scrollbar">
-              {availableNavSections.map((section) => {
-                const Icon = section.icon;
-                return (
-                  <a
-                    key={section.id}
-                    href={`#${section.id}`}
-                    className="group relative flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-full hover:bg-white/10 transition-colors duration-300"
-                    aria-label={section.label}
-                  >
-                    <Icon
-                      size={20}
-                      className="text-white/50 group-hover:text-white transition-colors"
-                      strokeWidth={1.5}
-                      aria-hidden="true"
-                    />
-                    <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-2 py-1 bg-[#1a1a1a] border border-white/10 text-[10px] font-mono-gm text-white rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
-                      {section.label}
-                    </span>
-                  </a>
-                );
-              })}
-              {content.contact.email && (
-                <a
-                  href={`mailto:${content.contact.email}`}
-                  className="flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-full bg-white text-black hover:scale-110 transition-transform duration-300 ml-2"
-                  aria-label="Contact"
-                >
-                  <Mail size={18} strokeWidth={2.5} aria-hidden="true" />
-                </a>
-              )}
-            </div>
-          </nav>
-        )}
+        {!isPreview && <GlassNav sections={availableNavSections} email={content.contact.email} />}
 
         <div className="relative z-10 max-w-5xl mx-auto px-6 py-20 md:py-32 space-y-32">
-          <section id="about" className="relative">
-            <div className="flex flex-col gap-8">
-              <div className="inline-flex items-center gap-2 self-start px-3 py-1 rounded-full border border-lavender/30 bg-lavender/5 backdrop-blur-md">
-                <span className="relative flex h-2 w-2">
-                  <span className="motion-safe:animate-ping absolute inline-flex h-full w-full rounded-full bg-lavender opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-lavender"></span>
-                </span>
-                <span className="text-xs font-mono-gm text-[#D8B4FE]">Available</span>
-              </div>
+          <GlassAbout content={content} profile={profile} contactLinks={contactLinks} />
 
-              <div className="grid md:grid-cols-[1fr_auto] gap-8 items-end">
-                <div className="space-y-2">
-                  <h1 className="text-5xl sm:text-6xl md:text-8xl font-extrabold tracking-tighter text-white leading-[0.9] [text-wrap:unset] break-words">
-                    <span className="block">{content.full_name.split(" ")[0]}</span>
-                    {content.full_name.split(" ").slice(1).join(" ") ? (
-                      <span className="block text-white/55">
-                        {content.full_name.split(" ").slice(1).join(" ")}
-                      </span>
-                    ) : null}
-                  </h1>
-                  <h2 className="text-xl md:text-2xl font-light text-gradient-purple tracking-wide">
-                    {content.headline}
-                  </h2>
-                </div>
+          <GlassExperience experience={content.experience} />
 
-                <div className="relative w-32 h-32 md:w-48 md:h-48 rounded-full border-2 border-white/10 p-1">
-                  <div className="w-full h-full rounded-full overflow-hidden relative group">
-                    {profile.avatar_url ? (
-                      <img
-                        src={profile.avatar_url}
-                        alt={`Portrait of ${content.full_name}`}
-                        fetchPriority="high"
-                        decoding="async"
-                        className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-[#111] flex items-center justify-center text-4xl font-bold text-[#333]">
-                        {getInitials(content.full_name)}
-                      </div>
-                    )}
-                    <div className="absolute inset-0 bg-linear-to-b from-transparent via-white/5 to-transparent bg-size-[100%_4px] pointer-events-none" />
-                  </div>
-                </div>
-              </div>
+          <GlassProjects projects={content.projects} />
 
-              <SpotlightCard className="p-8 md:p-10 mt-8">
-                <div className="grid md:grid-cols-[2fr_1fr] gap-10">
-                  <div className="space-y-6">
-                    <p className="text-lg md:text-xl font-light leading-relaxed text-slate-300">
-                      {content.summary}
-                    </p>
+          <GlassSkills skills={flatSkills} />
 
-                    <div className="flex flex-wrap gap-3 pt-2">
-                      {contactLinks
-                        .filter((l) => l.type !== "location")
-                        .map((link) => {
-                          // SAFETY: link.type is ContactLinkType; glassIconMap covers branded icons with ExternalLink fallback.
-                          const Icon =
-                            glassIconMap[link.type as keyof typeof glassIconMap] || ExternalLink;
-                          const isBranded = link.type === "behance" || link.type === "dribbble";
-                          const brandColor =
-                            link.type === "behance"
-                              ? "#1769FF"
-                              : link.type === "dribbble"
-                                ? "#EA4C89"
-                                : undefined;
-                          const brandText =
-                            link.type === "behance" ? "Be" : link.type === "dribbble" ? "Dr" : null;
-
-                          return (
-                            <a
-                              key={link.type}
-                              href={link.href}
-                              target={link.isExternal ? "_blank" : undefined}
-                              rel={link.isExternal ? "noopener noreferrer" : undefined}
-                              aria-label={link.label}
-                              className="group flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 transition-colors"
-                            >
-                              {isBranded ? (
-                                <span
-                                  className="text-xs font-bold font-mono-gm"
-                                  style={{ color: brandColor }}
-                                >
-                                  {brandText}
-                                </span>
-                              ) : (
-                                <Icon
-                                  size={14}
-                                  className="text-white/60 group-hover:text-white"
-                                  aria-hidden="true"
-                                />
-                              )}
-                              <span className="text-sm font-mono-gm text-white/60 group-hover:text-white capitalize">
-                                {link.label}
-                              </span>
-                            </a>
-                          );
-                        })}
-                    </div>
-                  </div>
-
-                  <div className="hidden md:block border-l border-white/10 pl-10 space-y-6">
-                    <div>
-                      <h3 className="text-xs font-mono-gm text-white/30 uppercase tracking-widest mb-2">
-                        Location
-                      </h3>
-                      <div className="flex items-center gap-2 text-slate-300">
-                        <MapPin size={14} aria-hidden="true" />
-                        <span>{content.contact.location || "Remote"}</span>
-                      </div>
-                    </div>
-                    <div>
-                      <h3 className="text-xs font-mono-gm text-white/30 uppercase tracking-widest mb-2">
-                        Status
-                      </h3>
-                      <div className="flex items-center gap-2 text-lavender">
-                        <Sparkles size={14} aria-hidden="true" />
-                        <span>Available for work</span>
-                      </div>
-                    </div>
-                    <div className="pt-4 opacity-50 hover:opacity-100 transition-opacity">
-                      <ShareBar
-                        handle={profile.handle}
-                        title="Portfolio"
-                        name={content.full_name}
-                        variant="glass-morphic"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="md:hidden mt-6 flex justify-center opacity-50 hover:opacity-100 transition-opacity">
-                  <ShareBar
-                    handle={profile.handle}
-                    title="Portfolio"
-                    name={content.full_name}
-                    variant="glass-morphic"
-                  />
-                </div>
-              </SpotlightCard>
-            </div>
-          </section>
-
-          {content.experience && content.experience.length > 0 && (
-            <section id="experience">
-              <SectionHeading
-                icon={Briefcase}
-                title="Experience"
-                subtitle="Professional trajectory"
-              />
-
-              <div className="space-y-4">
-                {content.experience.map((job, index) => (
-                  <SpotlightCard key={index} className="group p-6 md:p-8">
-                    <div className="flex flex-col md:flex-row gap-4 md:items-start justify-between mb-4">
-                      <div>
-                        <h3 className="text-xl font-bold text-white group-hover:text-lavender transition-colors">
-                          {job.title}
-                        </h3>
-                        <div className="flex items-center gap-2 text-slate-400 mt-1">
-                          <span className="font-medium">{job.company}</span>
-                          {job.location && (
-                            <>
-                              <span className="w-1 h-1 rounded-full bg-slate-600" />
-                              <span className="text-sm text-slate-500">{job.location}</span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/5 self-start shrink-0">
-                        <span className="text-xs font-mono-gm text-slate-300">
-                          {formatDateRange(job.start_date, job.end_date)}
-                        </span>
-                      </div>
-                    </div>
-
-                    {job.description && (
-                      <p className="text-slate-400 font-light leading-relaxed mb-6 max-w-3xl">
-                        {job.description}
-                      </p>
-                    )}
-
-                    {job.highlights && job.highlights.length > 0 && (
-                      <ul className="space-y-2">
-                        {job.highlights.map((item, i) => (
-                          <li
-                            key={`${job.title}-${item}-${i}`}
-                            className="flex items-start gap-3 text-sm text-slate-400/80"
-                          >
-                            <span
-                              className="mt-1.5 w-1 h-1 rounded-full bg-lavender/50 shrink-0"
-                              aria-hidden="true"
-                            />
-                            <span>{item}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </SpotlightCard>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {content.projects && content.projects.length > 0 && (
-            <section id="projects">
-              <SectionHeading
-                icon={Layers}
-                title="Projects"
-                subtitle="Selected works & experiments"
-              />
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {content.projects.map((project: Project, i: number) => (
-                  <SpotlightCard
-                    key={`${project.title}-${i}`}
-                    className="group flex flex-col h-full"
-                  >
-                    <div className="p-6 md:p-8 flex flex-col h-full">
-                      <div className="flex justify-between items-start mb-6">
-                        <div className="w-12 h-12 rounded-xl bg-linear-to-br from-white/10 to-transparent border border-white/5 flex items-center justify-center">
-                          <span className="font-display-gm font-bold text-xl text-white">
-                            {project.title.charAt(0)}
-                          </span>
-                        </div>
-                        {project.url && (
-                          <a
-                            href={project.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            aria-label={`View ${project.title}`}
-                            className="p-2 rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-colors"
-                          >
-                            <ArrowUpRight size={20} aria-hidden="true" />
-                          </a>
-                        )}
-                      </div>
-
-                      <h3 className="text-xl font-bold text-white mb-2 group-hover:text-lavender transition-colors">
-                        {project.title}
-                      </h3>
-                      {project.year && (
-                        <span className="text-xs font-mono-gm text-white/30">{project.year}</span>
-                      )}
-
-                      <p className="text-slate-400 font-light text-sm leading-relaxed mb-6 grow">
-                        {project.description}
-                      </p>
-
-                      <div className="pt-6 border-t border-white/5">
-                        <div className="flex flex-wrap gap-2">
-                          {project.technologies?.slice(0, 4).map((tech) => (
-                            <span
-                              key={tech}
-                              className="px-2 py-1 text-[10px] font-mono-gm uppercase tracking-wider text-white bg-lavender/10 rounded border border-lavender/30"
-                            >
-                              {tech}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </SpotlightCard>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {flatSkills.length > 0 && (
-            <section id="skills">
-              <SectionHeading icon={Zap} title="Stack" subtitle="Tools & Technologies" />
-              <SpotlightCard className="p-8 md:p-12">
-                <div className="flex flex-wrap justify-center gap-3">
-                  {flatSkills.map((skill, i) => (
-                    <span
-                      key={`skill-${skill}-${i}`}
-                      className="px-4 py-2 rounded-lg bg-white/3 border border-white/15 text-sm text-slate-200 hover:bg-white/8 hover:text-white hover:border-lavender/30 hover:shadow-[0_0_15px_rgba(167,139,250,0.3)] transition-all duration-300 cursor-default select-none"
-                    >
-                      {skill}
-                    </span>
-                  ))}
-                </div>
-              </SpotlightCard>
-            </section>
-          )}
-
-          {((content.education && content.education.length > 0) ||
-            (content.certifications && content.certifications.length > 0)) && (
-            <section id="education">
-              <SectionHeading
-                icon={GraduationCap}
-                title="Education"
-                subtitle="Academic background"
-              />
-
-              <div className="grid md:grid-cols-2 gap-6 items-start">
-                <div className="space-y-4">
-                  {content.education?.map((edu, i) => (
-                    <SpotlightCard key={`edu-${edu.institution}-${i}`} className="p-6">
-                      <div className="text-xs font-mono-gm text-lavender mb-2">
-                        {edu.graduation_date ? formatYear(edu.graduation_date) : "Present"}
-                      </div>
-                      <h4 className="text-lg font-bold text-white mb-1">{edu.institution}</h4>
-                      <p className="text-slate-400 text-sm font-medium">{edu.degree}</p>
-                      {edu.gpa && (
-                        <p className="text-slate-500 text-xs mt-2 font-mono-gm">GPA: {edu.gpa}</p>
-                      )}
-                    </SpotlightCard>
-                  ))}
-                </div>
-
-                <div className="space-y-4">
-                  {content.certifications?.map((cert, i) => (
-                    <SpotlightCard key={`cert-${cert.name}-${i}`} className="p-6">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h4 className="text-base font-bold text-white mb-1">{cert.name}</h4>
-                          <p className="text-slate-500 text-xs uppercase tracking-wider">
-                            {cert.issuer}
-                          </p>
-                          {cert.date && (
-                            <p className="text-slate-500 text-xs mt-1 font-mono-gm">
-                              {formatShortDate(cert.date)}
-                            </p>
-                          )}
-                        </div>
-                        {cert.url && (
-                          <a
-                            href={cert.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            aria-label={`View ${cert.name} certificate`}
-                            className="text-white/20 hover:text-white transition-colors"
-                          >
-                            <ExternalLink size={16} aria-hidden="true" />
-                          </a>
-                        )}
-                      </div>
-                    </SpotlightCard>
-                  ))}
-                </div>
-              </div>
-            </section>
-          )}
+          <GlassEducation education={content.education} certifications={content.certifications} />
 
           <footer className="pt-20 pb-32 text-center">
             <div className="inline-flex items-center justify-center p-1 rounded-full border border-white/10 bg-white/5 mb-8">

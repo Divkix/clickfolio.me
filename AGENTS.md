@@ -34,6 +34,7 @@ app/                          # vinext App Router
   [handle]/                   # /@handle public viewer — ISR 3600, dynamicParams true
   (protected)/                # dashboard, edit, settings, waiting, wizard — each page self-gates via getServerSession
                               #   layout sets robots: noindex,nofollow
+                              #   waiting/ = async server page (redirect "/dashboard" when resume_id absent) + waiting-content.tsx "use client"
   (admin)/admin/              # admin (analytics, resumes, users) — layout gates via requireAdminAuth; 4 sub-pages "use client"
   api/                        # 27 routes (see API Contracts)
   blog/                       # 17 route folders ↔ lib/blog/posts.ts BLOG_POSTS 17:17 — ISR 86400
@@ -41,7 +42,7 @@ app/                          # vinext App Router
   explore/                    # /explore directory (showInDirectory=true) — ISR 300
   preview/[id]/               # demo-data preview for thumbnails — ISR 7d, noindex
   privacy/  terms/  about/  faq/  manifest.webmanifest (theme #d94e4e, background #fdf8f3 — coral)
-  ui/  templates/ (10)  wizard/  home/  blog/  analytics/  Faq.tsx  BrandIcons.tsx
+  ui/  templates/ (10)  wizard/  home/  blog/  explore/  role/  analytics/  Faq.tsx  BrandIcons.tsx
 lib/
   auth/  db/  schemas/  ai/  queue/  rate-limit/  seo/  templates/  config/  types/
   utils/  data/  umami/  blog/  durable-objects/  stubs/  r2.ts  cloudflare-env.d.ts (generated)
@@ -93,6 +94,7 @@ pnpm run generate:favicons  # sharp from public/icon.svg → favicons
 - `prepare` (`vp config`) runs on `pnpm install`.
 - **Pre-push:** `pnpm run type-check && vp check && pnpm run test`
 - **pnpm lockfile:** `catalog:` refs can leave importer storing `specifier:'catalog:'`; clean checkout then fails `ERR_PNPM_OUTDATED_LOCKFILE`. Fix: `pnpm install --no-frozen-lockfile` once, commit regenerated `pnpm-lock.yaml`.
+- **Supply-chain policy:** `pnpm-workspace.yaml` sets `trustPolicy: no-downgrade` — install aborts if a resolved version regresses provenance/signatures. Do **not** add `minimumReleaseAge`: this repo tracks same-week toolchain releases, so any holdback wide enough to matter rejects the committed lockfile (`entries that the active policies reject`).
 - **Coverage pin:** `catalog:vitest == vitest == @vitest/coverage-v8 == 4.1.11` (3 places).
 - **`db:push` vs `db:generate+migrate`:** `push` is prototyping only; canonical is `generate` + `migrate`.
 - **Thumbnails:** `public/previews/` holds 10 committed `.webp` (bento, bold_corporate, classic_ats, design_folio, dev_terminal, glass, midnight, minimalist_editorial→`minimalist.webp`, neo_brutalist→`brutalist.webp`, spotlight) shot at 1280×800 @2x via `/preview/[id]`. No generator script in repo (deleted with `playwright` devDep); re-add as doc snippet when re-shooting. Slug shortenings are intentional.
@@ -291,7 +293,7 @@ Shared infra: `rewrites /sitemap.xml→/api/sitemap-index`, `redirects /:handle�
 
 **Wizard (`app/(protected)/wizard`) — 5 steps if `needsUpload`, 4 if has resume:**
 
-Order: needs `onboardingCompleted` check → if true short-circuit to `/dashboard` _before_ claim logic; else `pending_claim→waiting_for_cache/completed` branches; claim → `processing`/`queued`→`/waiting`. **Waiting** (`/waiting`) shows progress via WS/poll; error-fallback after 35s → offers return to wizard → retry.
+Order: `pending_claim→waiting_for_cache/completed` branches; claim → `processing`/`queued`→`/waiting`. Client init (loading/error/needsUpload/state/`awaitResumeComplete`) lives in the page-local `useWizardInit()`; **no client-side onboarding gate** — `useSession().data.user` exposes only `{id,name,email,image}` (`lib/auth/client.tsx`), so the server-side `/dashboard` check owns the onboarding redirect. **Waiting** (`/waiting`) is a server page that renders the `"use client"` `waiting-content.tsx`; it shows progress via WS/poll with an error-fallback after 35s → return to wizard → retry.
 
 **Dashboard (`/dashboard`):** `getServerSession()` → if not `onboardingCompleted` redirect `/wizard`; `RealtimeStatusListener` opens WS only on `processing|queued` (not `pending_claim`).
 

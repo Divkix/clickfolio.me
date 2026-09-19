@@ -38,6 +38,368 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
+function NoResumeState() {
+  return (
+    <div className="min-h-screen bg-background">
+      <main className="flex items-center justify-center min-h-[80vh] px-4">
+        <div className="bg-card rounded-xl shadow-sm border border-border p-12 max-w-md w-full text-center transition-colors hover:border-border-strong">
+          <div className="inline-flex items-center justify-center mb-6 bg-brand-subtle p-6 rounded-xl">
+            <Upload className="w-12 h-12 text-brand mx-auto" aria-hidden="true" />
+          </div>
+          <h2 className="text-2xl font-bold text-foreground mb-3">No Resume Yet</h2>
+          <p className="text-muted-foreground mb-6">
+            Upload your first PDF to get started and create your professional web resume in minutes.
+          </p>
+          <DashboardUploadSection variant="default" className="w-full">
+            <Upload className="h-4 w-4 mr-2" aria-hidden="true" />
+            Upload Your Resume
+          </DashboardUploadSection>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+interface ProfileCompletenessAlertProps {
+  completeness: number;
+  suggestions: string[];
+}
+
+function ProfileCompletenessAlert({ completeness, suggestions }: ProfileCompletenessAlertProps) {
+  if (completeness === 100) {
+    return (
+      <div className="col-span-full">
+        <Alert className="border-success/30 bg-success/10 rounded-xl shadow-sm">
+          <div className="flex items-center gap-3">
+            <CheckCircle2 className="h-5 w-5 text-success" aria-hidden="true" />
+            <AlertDescription className="text-foreground font-medium">
+              Your profile is complete! Your resume looks professional and ready to share.
+            </AlertDescription>
+          </div>
+        </Alert>
+      </div>
+    );
+  }
+
+  if (completeness < 100 && suggestions.length > 0) {
+    return (
+      <div className="col-span-full">
+        <Alert className="border-border bg-card rounded-xl shadow-sm">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-3">
+                <CheckCircle2 className="h-5 w-5 text-foreground" aria-hidden="true" />
+                <h3 className="font-semibold text-foreground">Complete Your Profile</h3>
+              </div>
+
+              <div
+                // eslint-disable-next-line jsx-a11y/prefer-tag-over-role -- custom progressbar with aria attributes; <progress> element lacks styling flexibility
+                role="progressbar"
+                aria-valuenow={completeness}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label={`Profile completeness: ${completeness}%`}
+                className="w-full bg-muted rounded-full h-2 mb-4"
+              >
+                <div
+                  className="h-2 rounded-full bg-brand transition-[width] duration-500"
+                  style={{ width: `${completeness}%` }}
+                />
+              </div>
+
+              <AlertDescription className="text-muted-foreground">
+                <p className="text-sm font-medium mb-2">
+                  Your profile is {completeness}% complete. Add these to reach 100%:
+                </p>
+                <ul className="space-y-1.5">
+                  {suggestions.map((suggestion) => (
+                    <li key={suggestion} className="text-sm flex items-start gap-2">
+                      <span className="text-muted-foreground/70 mt-0.5" aria-hidden="true">
+                        •
+                      </span>
+                      <span>{suggestion}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Button asChild size="sm" variant="outline" className="mt-4">
+                  <Link href="/edit">
+                    <Edit3 className="h-3 w-3 mr-2" aria-hidden="true" />
+                    Complete Now
+                  </Link>
+                </Button>
+              </AlertDescription>
+            </div>
+          </div>
+        </Alert>
+      </div>
+    );
+  }
+
+  return null;
+}
+
+interface ResumeStatusAlertsProps {
+  resumeId: string;
+  status: Resume["status"];
+  error?: string | null;
+}
+
+function ResumeStatusAlerts({ resumeId, status, error }: ResumeStatusAlertsProps) {
+  return (
+    <>
+      {(status === "processing" || status === "pending_claim" || status === "queued") && (
+        <div className="col-span-full">
+          <RealtimeStatusListener resumeId={resumeId} currentStatus={status} />
+        </div>
+      )}
+
+      {status === "failed" && (
+        <div className="col-span-full">
+          <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 mb-4">
+            <div className="flex items-start gap-3">
+              <AlertCircle
+                className="h-5 w-5 text-destructive shrink-0 mt-0.5"
+                aria-hidden="true"
+              />
+              <div className="flex-1">
+                <h3 className="font-semibold text-destructive">Processing Failed</h3>
+                <p className="mt-1 text-sm text-destructive">
+                  {error || "An error occurred while processing your resume."}
+                </p>
+                <div className="mt-3 flex gap-2">
+                  <Button asChild size="sm">
+                    <Link href={`/waiting?resume_id=${resumeId}`}>Retry</Link>
+                  </Button>
+                  <DashboardUploadSection />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+interface ResumeSummaryCardProps {
+  content: ResumeContent;
+}
+
+function ResumeSummaryCard({ content }: ResumeSummaryCardProps) {
+  return (
+    <div className="bg-card rounded-xl shadow-sm border border-border p-4 md:p-6 lg:p-8 transition-colors hover:border-border-strong">
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold text-foreground">{content.full_name}</h2>
+        <p className="text-base text-muted-foreground mt-1">{content.headline}</p>
+      </div>
+
+      <Separator className="mb-6" />
+
+      {content.summary && (
+        <div className="mb-6">
+          <h3 className="text-sm font-semibold text-foreground/80 mb-2">Summary</h3>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            {truncateText(content.summary, 200)}
+            {content.summary.length > 200 && (
+              <Link href="/edit" className="text-brand hover:underline ml-1 font-medium">
+                Read more
+              </Link>
+            )}
+          </p>
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+        <div className="flex items-center gap-3">
+          <div className="shrink-0 bg-surface-2 p-2 rounded-lg">
+            <Briefcase className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+          </div>
+          <div>
+            <p className="text-lg font-semibold text-foreground">
+              {content.experience?.length || 0}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Position{content.experience?.length !== 1 ? "s" : ""}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <div className="shrink-0 bg-surface-2 p-2 rounded-lg">
+            <GraduationCap className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+          </div>
+          <div>
+            <p className="text-lg font-semibold text-foreground">
+              {content.education?.length || 0}
+            </p>
+            <p className="text-xs text-muted-foreground">Education</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <div className="shrink-0 bg-surface-2 p-2 rounded-lg">
+            <Wrench className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+          </div>
+          <div>
+            <p className="text-lg font-semibold text-foreground">{content.skills?.length || 0}</p>
+            <p className="text-xs text-muted-foreground">
+              Skill{content.skills?.length !== 1 ? "s" : ""}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <div className="shrink-0 bg-surface-2 p-2 rounded-lg">
+            <Award className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+          </div>
+          <div>
+            <p className="text-lg font-semibold text-foreground">
+              {content.certifications?.length || 0}
+            </p>
+            {content.certifications?.length === 0 ? (
+              <Link href="/edit" className="text-xs text-brand hover:underline font-medium">
+                Add certs
+              </Link>
+            ) : (
+              <p className="text-xs text-muted-foreground">Certs</p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <Separator className="mb-6" />
+
+      <div className="flex flex-col sm:flex-row gap-3">
+        <Button asChild className="flex-1">
+          <Link href="/edit">
+            <Edit3 className="h-4 w-4 mr-2" aria-hidden="true" />
+            Edit Content
+          </Link>
+        </Button>
+        <DashboardUploadSection />
+      </div>
+    </div>
+  );
+}
+
+interface AccountCardProps {
+  email: string;
+  handle?: string | null;
+  memberSince?: string | null;
+}
+
+function AccountCard({ email, handle, memberSince }: AccountCardProps) {
+  return (
+    <div className="bg-card rounded-xl shadow-sm border border-border p-6 transition-colors hover:border-border-strong">
+      <h3 className="text-lg font-semibold text-foreground mb-4">Account</h3>
+      <div className="space-y-4">
+        <div className="flex items-start gap-3">
+          <div className="shrink-0 mt-0.5 bg-surface-2 p-2 rounded-lg">
+            <Mail className="w-4 h-4 text-muted-foreground" aria-hidden="true" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-medium text-muted-foreground mb-1">Email</p>
+            <p className="text-sm text-foreground truncate">{email}</p>
+          </div>
+        </div>
+
+        {handle && (
+          <>
+            <Separator />
+            <div className="flex items-start gap-3">
+              <div className="shrink-0 mt-0.5 bg-surface-2 p-2 rounded-lg">
+                <LinkIcon className="w-4 h-4 text-muted-foreground" aria-hidden="true" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium text-muted-foreground mb-1">Handle</p>
+                <div className="flex items-center gap-2">
+                  <Link
+                    href={`/@${handle}`}
+                    className="text-sm font-mono text-brand hover:underline truncate block"
+                  >
+                    {siteConfig.domain}/@{handle}
+                  </Link>
+                </div>
+                <div className="mt-2">
+                  <CopyLinkButton handle={handle} />
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {memberSince && (
+          <>
+            <Separator />
+            <div className="flex items-start gap-3">
+              <div className="shrink-0 mt-0.5 bg-surface-2 p-2 rounded-lg">
+                <Calendar className="w-4 h-4 text-muted-foreground" aria-hidden="true" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium text-muted-foreground mb-1">Member since</p>
+                <p className="text-sm text-foreground">{formatRelativeTime(memberSince)}</p>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+interface ResumeProcessingCardProps {
+  resumeId: string;
+  status: Resume["status"];
+  error?: string | null;
+}
+
+function ResumeProcessingCard({ resumeId, status, error }: ResumeProcessingCardProps) {
+  return (
+    <div className="col-span-full">
+      <div className="bg-card rounded-xl shadow-sm border border-border p-8 transition-colors hover:border-border-strong">
+        {(status === "processing" || status === "pending_claim" || status === "queued") && (
+          <div>
+            <RealtimeStatusListener resumeId={resumeId} currentStatus={status} />
+          </div>
+        )}
+
+        {status === "failed" && (
+          <div className="space-y-6">
+            <div className="flex items-center gap-4">
+              <AlertCircle className="h-8 w-8 text-destructive shrink-0" aria-hidden="true" />
+              <div className="flex-1">
+                <h3 className="text-xl font-bold text-destructive mb-1">Processing failed</h3>
+                <p className="text-destructive">
+                  {error || "Unknown error occurred. Please try uploading again."}
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button asChild className="flex-1">
+                <Link href={`/waiting?resume_id=${resumeId}`}>Try Again</Link>
+              </Button>
+              <DashboardUploadSection />
+            </div>
+          </div>
+        )}
+
+        {status === "pending_claim" && (
+          <div className="flex items-center gap-4">
+            <Loader2
+              className="h-8 w-8 animate-spin text-muted-foreground shrink-0"
+              aria-hidden="true"
+            />
+            <div className="flex-1">
+              <h3 className="text-xl font-bold text-foreground mb-1">Claiming your resume...</h3>
+              <p className="text-muted-foreground">Please wait while we process your upload.</p>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default async function DashboardPage() {
   const session = await getServerSession();
 
@@ -81,14 +443,17 @@ export default async function DashboardPage() {
   const profile = userData ?? null;
   // SAFETY: Drizzle query returns Resume shape for first resume; cast narrows optional relation to Resume | null for dashboard logic.
   const resume = (userData?.resumes?.[0] ?? null) as Resume | null;
-  // SAFETY: Drizzle query returns siteData shape via with.siteData; cast narrows optional relation to siteData select type.
-  const siteDataResult = (userData?.siteData ?? null) as typeof siteData.$inferSelect | null;
 
   if (profile && !profile.onboardingCompleted) {
     redirect("/wizard");
   }
 
-  const hasResume = !!resume;
+  if (!resume) {
+    return <NoResumeState />;
+  }
+
+  // SAFETY: Drizzle query returns siteData shape via with.siteData; cast narrows optional relation to siteData select type.
+  const siteDataResult = (userData?.siteData ?? null) as typeof siteData.$inferSelect | null;
   const hasPublishedSite = !!siteDataResult;
   let content: ResumeContent | null = null;
   if (siteDataResult?.content) {
@@ -99,370 +464,39 @@ export default async function DashboardPage() {
   const completeness = content ? calculateCompleteness(content) : 0;
   const suggestions = content ? getProfileSuggestions(content) : [];
 
-  if (!hasResume) {
-    return (
-      <div className="min-h-screen bg-background">
-        <main className="flex items-center justify-center min-h-[80vh] px-4">
-          <div className="bg-card rounded-xl shadow-sm border border-border p-12 max-w-md w-full text-center transition-colors hover:border-border-strong">
-            <div className="inline-flex items-center justify-center mb-6 bg-brand-subtle p-6 rounded-xl">
-              <Upload className="w-12 h-12 text-brand mx-auto" aria-hidden="true" />
-            </div>
-            <h2 className="text-2xl font-bold text-foreground mb-3">No Resume Yet</h2>
-            <p className="text-muted-foreground mb-6">
-              Upload your first PDF to get started and create your professional web resume in
-              minutes.
-            </p>
-            <DashboardUploadSection variant="default" className="w-full">
-              <Upload className="h-4 w-4 mr-2" aria-hidden="true" />
-              Upload Your Resume
-            </DashboardUploadSection>
-          </div>
-        </main>
-      </div>
-    );
-  }
-
-  // SAFETY: resume is non-null after hasResume guard; Drizzle schema ensures id is string for status listener.
-  const safeResumeId = resume?.id as string;
-  // SAFETY: resume.errorMessage is string | null from Drizzle; cast covers nullable/undefined for fallback display.
-  const safeResumeError = resume?.errorMessage as string | undefined | null;
-
   return (
     <div className="min-h-screen bg-background">
       <main className="max-w-[1400px] mx-auto px-4 lg:px-6 py-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
           {hasPublishedSite && content ? (
             <>
-              {(resume.status === "processing" ||
-                resume.status === "pending_claim" ||
-                resume.status === "queued") && (
-                <div className="col-span-full">
-                  <RealtimeStatusListener resumeId={safeResumeId} currentStatus={resume.status} />
-                </div>
-              )}
+              <ResumeStatusAlerts
+                resumeId={resume.id}
+                status={resume.status}
+                error={resume.errorMessage}
+              />
 
-              {resume.status === "failed" && (
-                <div className="col-span-full">
-                  <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 mb-4">
-                    <div className="flex items-start gap-3">
-                      <AlertCircle
-                        className="h-5 w-5 text-destructive shrink-0 mt-0.5"
-                        aria-hidden="true"
-                      />
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-destructive">Processing Failed</h3>
-                        <p className="mt-1 text-sm text-destructive">
-                          {safeResumeError || "An error occurred while processing your resume."}
-                        </p>
-                        <div className="mt-3 flex gap-2">
-                          <Button asChild size="sm">
-                            <Link href={`/waiting?resume_id=${resume.id}`}>Retry</Link>
-                          </Button>
-                          <DashboardUploadSection />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {completeness < 100 && suggestions.length > 0 && (
-                <div className="col-span-full">
-                  <Alert className="border-border bg-card rounded-xl shadow-sm">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-3">
-                          <CheckCircle2 className="h-5 w-5 text-foreground" aria-hidden="true" />
-                          <h3 className="font-semibold text-foreground">Complete Your Profile</h3>
-                        </div>
-
-                        <div
-                          // eslint-disable-next-line jsx-a11y/prefer-tag-over-role -- custom progressbar with aria attributes; <progress> element lacks styling flexibility
-                          role="progressbar"
-                          aria-valuenow={completeness}
-                          aria-valuemin={0}
-                          aria-valuemax={100}
-                          aria-label={`Profile completeness: ${completeness}%`}
-                          className="w-full bg-muted rounded-full h-2 mb-4"
-                        >
-                          <div
-                            className="h-2 rounded-full bg-brand transition-[width] duration-500"
-                            style={{ width: `${completeness}%` }}
-                          />
-                        </div>
-
-                        <AlertDescription className="text-muted-foreground">
-                          <p className="text-sm font-medium mb-2">
-                            Your profile is {completeness}% complete. Add these to reach 100%:
-                          </p>
-                          <ul className="space-y-1.5">
-                            {suggestions.map((suggestion, index) => (
-                              <li key={index} className="text-sm flex items-start gap-2">
-                                <span
-                                  className="text-muted-foreground/70 mt-0.5"
-                                  aria-hidden="true"
-                                >
-                                  •
-                                </span>
-                                <span>{suggestion}</span>
-                              </li>
-                            ))}
-                          </ul>
-                          <Button asChild size="sm" variant="outline" className="mt-4">
-                            <Link href="/edit">
-                              <Edit3 className="h-3 w-3 mr-2" aria-hidden="true" />
-                              Complete Now
-                            </Link>
-                          </Button>
-                        </AlertDescription>
-                      </div>
-                    </div>
-                  </Alert>
-                </div>
-              )}
-
-              {completeness === 100 && (
-                <div className="col-span-full">
-                  <Alert className="border-success/30 bg-success/10 rounded-xl shadow-sm">
-                    <div className="flex items-center gap-3">
-                      <CheckCircle2 className="h-5 w-5 text-success" aria-hidden="true" />
-                      <AlertDescription className="text-foreground font-medium">
-                        Your profile is complete! Your resume looks professional and ready to share.
-                      </AlertDescription>
-                    </div>
-                  </Alert>
-                </div>
-              )}
+              <ProfileCompletenessAlert completeness={completeness} suggestions={suggestions} />
 
               <div className="lg:col-span-2 space-y-4">
-                <div className="bg-card rounded-xl shadow-sm border border-border p-4 md:p-6 lg:p-8 transition-colors hover:border-border-strong">
-                  <div className="mb-6">
-                    <h2 className="text-2xl font-bold text-foreground">{content.full_name}</h2>
-                    <p className="text-base text-muted-foreground mt-1">{content.headline}</p>
-                  </div>
-
-                  <Separator className="mb-6" />
-
-                  {content.summary && (
-                    <div className="mb-6">
-                      <h3 className="text-sm font-semibold text-foreground/80 mb-2">Summary</h3>
-                      <p className="text-sm text-muted-foreground leading-relaxed">
-                        {truncateText(content.summary, 200)}
-                        {content.summary.length > 200 && (
-                          <Link
-                            href="/edit"
-                            className="text-brand hover:underline ml-1 font-medium"
-                          >
-                            Read more
-                          </Link>
-                        )}
-                      </p>
-                    </div>
-                  )}
-
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-                    <div className="flex items-center gap-3">
-                      <div className="shrink-0 bg-surface-2 p-2 rounded-lg">
-                        <Briefcase className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                      </div>
-                      <div>
-                        <p className="text-lg font-semibold text-foreground">
-                          {content.experience?.length || 0}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          Position{content.experience?.length !== 1 ? "s" : ""}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <div className="shrink-0 bg-surface-2 p-2 rounded-lg">
-                        <GraduationCap
-                          className="h-4 w-4 text-muted-foreground"
-                          aria-hidden="true"
-                        />
-                      </div>
-                      <div>
-                        <p className="text-lg font-semibold text-foreground">
-                          {content.education?.length || 0}
-                        </p>
-                        <p className="text-xs text-muted-foreground">Education</p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <div className="shrink-0 bg-surface-2 p-2 rounded-lg">
-                        <Wrench className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                      </div>
-                      <div>
-                        <p className="text-lg font-semibold text-foreground">
-                          {content.skills?.length || 0}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          Skill{content.skills?.length !== 1 ? "s" : ""}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <div className="shrink-0 bg-surface-2 p-2 rounded-lg">
-                        <Award className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                      </div>
-                      <div>
-                        <p className="text-lg font-semibold text-foreground">
-                          {content.certifications?.length || 0}
-                        </p>
-                        {content.certifications?.length === 0 ? (
-                          <Link
-                            href="/edit"
-                            className="text-xs text-brand hover:underline font-medium"
-                          >
-                            Add certs
-                          </Link>
-                        ) : (
-                          <p className="text-xs text-muted-foreground">Certs</p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <Separator className="mb-6" />
-
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <Button asChild className="flex-1">
-                      <Link href="/edit">
-                        <Edit3 className="h-4 w-4 mr-2" aria-hidden="true" />
-                        Edit Content
-                      </Link>
-                    </Button>
-                    <DashboardUploadSection />
-                  </div>
-                </div>
+                <ResumeSummaryCard content={content} />
               </div>
 
               <div className="space-y-4">
-                <div className="bg-card rounded-xl shadow-sm border border-border p-6 transition-colors hover:border-border-strong">
-                  <h3 className="text-lg font-semibold text-foreground mb-4">Account</h3>
-                  <div className="space-y-4">
-                    <div className="flex items-start gap-3">
-                      <div className="shrink-0 mt-0.5 bg-surface-2 p-2 rounded-lg">
-                        <Mail className="w-4 h-4 text-muted-foreground" aria-hidden="true" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-muted-foreground mb-1">Email</p>
-                        <p className="text-sm text-foreground truncate">{session.user.email}</p>
-                      </div>
-                    </div>
-
-                    {profile?.handle && (
-                      <>
-                        <Separator />
-                        <div className="flex items-start gap-3">
-                          <div className="shrink-0 mt-0.5 bg-surface-2 p-2 rounded-lg">
-                            <LinkIcon
-                              className="w-4 h-4 text-muted-foreground"
-                              aria-hidden="true"
-                            />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-medium text-muted-foreground mb-1">Handle</p>
-                            <div className="flex items-center gap-2">
-                              <Link
-                                href={`/@${profile.handle}`}
-                                className="text-sm font-mono text-brand hover:underline truncate block"
-                              >
-                                {siteConfig.domain}/@{profile.handle}
-                              </Link>
-                            </div>
-                            <div className="mt-2">
-                              <CopyLinkButton handle={profile.handle} />
-                            </div>
-                          </div>
-                        </div>
-                      </>
-                    )}
-
-                    {profile?.createdAt && (
-                      <>
-                        <Separator />
-                        <div className="flex items-start gap-3">
-                          <div className="shrink-0 mt-0.5 bg-surface-2 p-2 rounded-lg">
-                            <Calendar
-                              className="w-4 h-4 text-muted-foreground"
-                              aria-hidden="true"
-                            />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-medium text-muted-foreground mb-1">
-                              Member since
-                            </p>
-                            <p className="text-sm text-foreground">
-                              {formatRelativeTime(profile.createdAt)}
-                            </p>
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
-
+                <AccountCard
+                  email={session.user.email}
+                  handle={profile?.handle}
+                  memberSince={profile?.createdAt}
+                />
                 <AnalyticsCard />
               </div>
             </>
           ) : (
-            <div className="col-span-full">
-              <div className="bg-card rounded-xl shadow-sm border border-border p-8 transition-colors hover:border-border-strong">
-                {(resume.status === "processing" ||
-                  resume.status === "pending_claim" ||
-                  resume.status === "queued") && (
-                  <div>
-                    <RealtimeStatusListener resumeId={safeResumeId} currentStatus={resume.status} />
-                  </div>
-                )}
-
-                {resume.status === "failed" && (
-                  <div className="space-y-6">
-                    <div className="flex items-center gap-4">
-                      <AlertCircle
-                        className="h-8 w-8 text-destructive shrink-0"
-                        aria-hidden="true"
-                      />
-                      <div className="flex-1">
-                        <h3 className="text-xl font-bold text-destructive mb-1">
-                          Processing failed
-                        </h3>
-                        <p className="text-destructive">
-                          {safeResumeError || "Unknown error occurred. Please try uploading again."}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex flex-col sm:flex-row gap-3">
-                      <Button asChild className="flex-1">
-                        <Link href={`/waiting?resume_id=${resume.id}`}>Try Again</Link>
-                      </Button>
-                      <DashboardUploadSection />
-                    </div>
-                  </div>
-                )}
-
-                {resume.status === "pending_claim" && (
-                  <div className="flex items-center gap-4">
-                    <Loader2
-                      className="h-8 w-8 animate-spin text-muted-foreground shrink-0"
-                      aria-hidden="true"
-                    />
-                    <div className="flex-1">
-                      <h3 className="text-xl font-bold text-foreground mb-1">
-                        Claiming your resume...
-                      </h3>
-                      <p className="text-muted-foreground">
-                        Please wait while we process your upload.
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
+            <ResumeProcessingCard
+              resumeId={resume.id}
+              status={resume.status}
+              error={resume.errorMessage}
+            />
           )}
         </div>
       </main>

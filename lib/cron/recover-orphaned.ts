@@ -133,7 +133,7 @@ export async function recoverOrphanedResumes(
   const successfulIds: string[] = [];
   let overCapFailedCount = 0;
 
-  for (const resume of orphanedResumes) {
+  const processOrphan = async (resume: (typeof orphanedResumes)[number]) => {
     // Staleness guard for the compare-and-set below: a row that was re-queued and
     // re-claimed since selection has a fresh queuedAt, so it must not be clobbered.
     const stillStale = or(lt(resumes.queuedAt, fifteenMinutesAgo), isNull(resumes.queuedAt));
@@ -156,7 +156,7 @@ export async function recoverOrphanedResumes(
           error: String(error),
         });
       }
-      continue;
+      return;
     }
 
     try {
@@ -179,7 +179,7 @@ export async function recoverOrphanedResumes(
         log("info", "skipping resume - status changed since selection", {
           resumeId: resume.id,
         });
-        continue;
+        return;
       }
 
       await publishResumeParse(queue, {
@@ -209,7 +209,9 @@ export async function recoverOrphanedResumes(
         });
       }
     }
-  }
+  };
+
+  await Promise.allSettled(orphanedResumes.map(processOrphan));
 
   const recovered = successfulIds.length + waitingForCacheTimedOutCount + overCapFailedCount;
 

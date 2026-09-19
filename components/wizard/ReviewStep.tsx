@@ -11,6 +11,156 @@ interface ReviewStepProps {
   onContinue: () => void;
 }
 
+type ResumeContact = ResumeContent["contact"];
+type ResumeExperience = ResumeContent["experience"][number];
+type ResumeEducation = NonNullable<ResumeContent["education"]>[number];
+type ResumeSkill = NonNullable<ResumeContent["skills"]>[number];
+
+function ContactCard({
+  fullName,
+  headline,
+  contact,
+}: {
+  fullName: string;
+  headline: string;
+  contact: ResumeContact;
+}) {
+  return (
+    <Card className="p-6 border-border shadow-sm">
+      <div className="space-y-4">
+        <div>
+          <h2 className="text-2xl font-bold text-foreground">{fullName}</h2>
+          <p className="text-lg text-brand font-semibold">{headline}</p>
+        </div>
+
+        <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+          {contact.email && (
+            <div className="flex items-center gap-1">
+              <Mail className="w-4 h-4" />
+              <span>{contact.email}</span>
+            </div>
+          )}
+          {contact.phone && (
+            <div className="flex items-center gap-1">
+              <Phone className="w-4 h-4" />
+              <span>{contact.phone}</span>
+            </div>
+          )}
+          {contact.location && (
+            <div className="flex items-center gap-1">
+              <MapPin className="w-4 h-4" />
+              <span>{contact.location}</span>
+            </div>
+          )}
+        </div>
+
+        {(contact.linkedin || contact.github || contact.website) && (
+          <div className="flex flex-wrap gap-3">
+            {contact.linkedin && (
+              <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                <Linkedin className="w-4 h-4" />
+                <span className="truncate max-w-[200px]">{contact.linkedin}</span>
+              </div>
+            )}
+            {contact.github && (
+              <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                <Github className="w-4 h-4" />
+                <span className="truncate max-w-[200px]">{contact.github}</span>
+              </div>
+            )}
+            {contact.website && (
+              <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                <Globe className="w-4 h-4" />
+                <span className="truncate max-w-[200px]">{contact.website}</span>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </Card>
+  );
+}
+
+function ExperienceCard({ experience }: { experience: ResumeExperience[] }) {
+  return (
+    <Card className="p-6 border-border shadow-sm">
+      <h3 className="text-lg font-bold text-foreground mb-4">Experience</h3>
+      <div className="space-y-4">
+        {experience.slice(0, 3).map((exp, index) => (
+          <div
+            key={`${exp.title}-${exp.company}-${index}`}
+            className="border-l-2 border-border pl-4"
+          >
+            <div className="flex justify-between items-start mb-1">
+              <div>
+                <h4 className="font-semibold text-foreground">{exp.title}</h4>
+                <p className="text-sm text-muted-foreground">{exp.company}</p>
+              </div>
+              <span className="text-xs text-muted-foreground font-medium whitespace-nowrap">
+                {exp.start_date} - {exp.end_date || "Present"}
+              </span>
+            </div>
+            {exp.description && (
+              <p className="text-sm text-foreground leading-relaxed line-clamp-3">
+                {exp.description}
+              </p>
+            )}
+          </div>
+        ))}
+        {experience.length > 3 && (
+          <p className="text-xs text-muted-foreground font-medium text-center">
+            + {experience.length - 3} more positions
+          </p>
+        )}
+      </div>
+    </Card>
+  );
+}
+
+function EducationCard({ education }: { education: ResumeEducation[] }) {
+  return (
+    <Card className="p-6 border-border shadow-sm">
+      <h3 className="text-lg font-bold text-foreground mb-4">Education</h3>
+      <div className="space-y-3">
+        {education.map((edu, index) => (
+          <div key={`${edu.degree}-${edu.institution}-${index}`}>
+            <h4 className="font-semibold text-foreground">{edu.degree}</h4>
+            <p className="text-sm text-muted-foreground">{edu.institution}</p>
+            {edu.graduation_date && (
+              <p className="text-xs text-muted-foreground">{edu.graduation_date}</p>
+            )}
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
+function SkillsCard({ skills }: { skills: ResumeSkill[] }) {
+  return (
+    <Card className="p-6 border-border shadow-sm">
+      <h3 className="text-lg font-bold text-foreground mb-4">Skills</h3>
+      <div className="space-y-3">
+        {skills.map((skillGroup, index) => (
+          <div key={`${skillGroup.category}-${index}`}>
+            <h4 className="text-sm font-semibold text-foreground mb-1">{skillGroup.category}</h4>
+            <div className="flex flex-wrap gap-2">
+              {skillGroup.items.map((skill, skillIndex) => (
+                <span
+                  key={`${skillGroup.category}-${skill}-${skillIndex}`}
+                  className="px-2 py-1 bg-secondary text-secondary-foreground rounded text-xs font-medium"
+                >
+                  {skill}
+                </span>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
 export function ReviewStep({ content, onContinue }: ReviewStepProps) {
   return (
     <div className="space-y-8">
@@ -27,58 +177,11 @@ export function ReviewStep({ content, onContinue }: ReviewStepProps) {
       </div>
 
       <div className="max-w-3xl mx-auto space-y-6">
-        <Card className="p-6 border-border shadow-sm">
-          <div className="space-y-4">
-            <div>
-              <h2 className="text-2xl font-bold text-foreground">{content.full_name}</h2>
-              <p className="text-lg text-brand font-semibold">{content.headline}</p>
-            </div>
-
-            <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-              {content.contact.email && (
-                <div className="flex items-center gap-1">
-                  <Mail className="w-4 h-4" />
-                  <span>{content.contact.email}</span>
-                </div>
-              )}
-              {content.contact.phone && (
-                <div className="flex items-center gap-1">
-                  <Phone className="w-4 h-4" />
-                  <span>{content.contact.phone}</span>
-                </div>
-              )}
-              {content.contact.location && (
-                <div className="flex items-center gap-1">
-                  <MapPin className="w-4 h-4" />
-                  <span>{content.contact.location}</span>
-                </div>
-              )}
-            </div>
-
-            {(content.contact.linkedin || content.contact.github || content.contact.website) && (
-              <div className="flex flex-wrap gap-3">
-                {content.contact.linkedin && (
-                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                    <Linkedin className="w-4 h-4" />
-                    <span className="truncate max-w-[200px]">{content.contact.linkedin}</span>
-                  </div>
-                )}
-                {content.contact.github && (
-                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                    <Github className="w-4 h-4" />
-                    <span className="truncate max-w-[200px]">{content.contact.github}</span>
-                  </div>
-                )}
-                {content.contact.website && (
-                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                    <Globe className="w-4 h-4" />
-                    <span className="truncate max-w-[200px]">{content.contact.website}</span>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </Card>
+        <ContactCard
+          fullName={content.full_name}
+          headline={content.headline}
+          contact={content.contact}
+        />
 
         {content.summary && (
           <Card className="p-6 border-border shadow-sm">
@@ -88,80 +191,14 @@ export function ReviewStep({ content, onContinue }: ReviewStepProps) {
         )}
 
         {content.experience && content.experience.length > 0 && (
-          <Card className="p-6 border-border shadow-sm">
-            <h3 className="text-lg font-bold text-foreground mb-4">Experience</h3>
-            <div className="space-y-4">
-              {content.experience.slice(0, 3).map((exp, index) => (
-                <div
-                  key={`${exp.title}-${exp.company}-${index}`}
-                  className="border-l-2 border-border pl-4"
-                >
-                  <div className="flex justify-between items-start mb-1">
-                    <div>
-                      <h4 className="font-semibold text-foreground">{exp.title}</h4>
-                      <p className="text-sm text-muted-foreground">{exp.company}</p>
-                    </div>
-                    <span className="text-xs text-muted-foreground font-medium whitespace-nowrap">
-                      {exp.start_date} - {exp.end_date || "Present"}
-                    </span>
-                  </div>
-                  {exp.description && (
-                    <p className="text-sm text-foreground leading-relaxed line-clamp-3">
-                      {exp.description}
-                    </p>
-                  )}
-                </div>
-              ))}
-              {content.experience.length > 3 && (
-                <p className="text-xs text-muted-foreground font-medium text-center">
-                  + {content.experience.length - 3} more positions
-                </p>
-              )}
-            </div>
-          </Card>
+          <ExperienceCard experience={content.experience} />
         )}
 
         {content.education && content.education.length > 0 && (
-          <Card className="p-6 border-border shadow-sm">
-            <h3 className="text-lg font-bold text-foreground mb-4">Education</h3>
-            <div className="space-y-3">
-              {content.education.map((edu, index) => (
-                <div key={`${edu.degree}-${edu.institution}-${index}`}>
-                  <h4 className="font-semibold text-foreground">{edu.degree}</h4>
-                  <p className="text-sm text-muted-foreground">{edu.institution}</p>
-                  {edu.graduation_date && (
-                    <p className="text-xs text-muted-foreground">{edu.graduation_date}</p>
-                  )}
-                </div>
-              ))}
-            </div>
-          </Card>
+          <EducationCard education={content.education} />
         )}
 
-        {content.skills && content.skills.length > 0 && (
-          <Card className="p-6 border-border shadow-sm">
-            <h3 className="text-lg font-bold text-foreground mb-4">Skills</h3>
-            <div className="space-y-3">
-              {content.skills.map((skillGroup, index) => (
-                <div key={`${skillGroup.category}-${index}`}>
-                  <h4 className="text-sm font-semibold text-foreground mb-1">
-                    {skillGroup.category}
-                  </h4>
-                  <div className="flex flex-wrap gap-2">
-                    {skillGroup.items.map((skill, skillIndex) => (
-                      <span
-                        key={`${skillGroup.category}-${skill}-${skillIndex}`}
-                        className="px-2 py-1 bg-secondary text-secondary-foreground rounded text-xs font-medium"
-                      >
-                        {skill}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Card>
-        )}
+        {content.skills && content.skills.length > 0 && <SkillsCard skills={content.skills} />}
 
         <div className="pt-4">
           <Button onClick={onContinue} className="w-full" size="lg">

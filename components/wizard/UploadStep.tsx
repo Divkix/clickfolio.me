@@ -1,10 +1,12 @@
 "use client";
 
 import { Loader2, Upload } from "lucide-react";
-import { useCallback, useRef } from "react";
+import type { ChangeEvent, DragEvent, RefObject } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import type { UploadState } from "@/hooks/useFileUpload";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import type { ResumeContent } from "@/lib/types/database";
 import { MAX_FILE_SIZE_LABEL } from "@/lib/utils/validation";
@@ -16,6 +18,138 @@ interface UploadStepProps {
 
 interface SiteDataResponse {
   content?: ResumeContent;
+}
+
+const PROGRESS_MESSAGES = {
+  uploading: "Uploading your resume...",
+  claiming: "Preparing for AI parsing...",
+  parsing: "AI is extracting your experience...",
+} satisfies Partial<Record<UploadState, string>>;
+
+function UploadError({ message, onRetry }: { message: string | null; onRetry: () => void }) {
+  return (
+    <div className="bg-card rounded-xl border border-border p-8 text-center shadow-sm">
+      <div className="mx-auto w-16 h-16 mb-4 bg-destructive/10 rounded-full flex items-center justify-center">
+        <svg
+          className="w-8 h-8 text-destructive"
+          viewBox="0 0 24 24"
+          fill="none"
+          aria-hidden="true"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            stroke="currentColor"
+            d="M6 18L18 6M6 6l12 12"
+          />
+        </svg>
+      </div>
+
+      <h3 className="text-lg font-bold text-foreground mb-2">Something Went Wrong</h3>
+      <p className="text-sm text-destructive mb-6">{message}</p>
+
+      <Button onClick={onRetry} className="w-full" size="lg">
+        Try Again
+      </Button>
+    </div>
+  );
+}
+
+function UploadProcessing({
+  isParsing,
+  message,
+  progress,
+}: {
+  isParsing: boolean;
+  message: string;
+  progress: number;
+}) {
+  return (
+    <div className="bg-card rounded-xl border border-border p-8 text-center shadow-sm">
+      <div className="mx-auto w-16 h-16 mb-4 bg-brand-subtle rounded-full flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-brand animate-spin" />
+      </div>
+
+      <h3 className="text-lg font-bold text-foreground mb-2">
+        {isParsing ? "AI Parsing Your Resume" : "Processing..."}
+      </h3>
+      <p className="text-sm text-muted-foreground mb-4">{message}</p>
+
+      {isParsing && (
+        <p className="text-xs text-muted-foreground font-medium mb-4">
+          This typically takes ~30 seconds
+        </p>
+      )}
+
+      <Progress value={progress} className="h-2" />
+      <p className="text-xs text-muted-foreground mt-2 font-medium">{progress}%</p>
+    </div>
+  );
+}
+
+function UploadPrompt({
+  file,
+  isDragging,
+  fileInputRef,
+  onDragEnter,
+  onDragLeave,
+  onDragOver,
+  onDrop,
+  onFileSelect,
+}: {
+  file: File | null;
+  isDragging: boolean;
+  fileInputRef: RefObject<HTMLInputElement | null>;
+  onDragEnter: (e: DragEvent<HTMLElement>) => void;
+  onDragLeave: (e: DragEvent<HTMLElement>) => void;
+  onDragOver: (e: DragEvent<HTMLElement>) => void;
+  onDrop: (e: DragEvent<HTMLElement>) => void;
+  onFileSelect: (e: ChangeEvent<HTMLInputElement>) => void;
+}) {
+  return (
+    <button
+      type="button"
+      onDragEnter={onDragEnter}
+      onDragLeave={onDragLeave}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
+      onClick={() => fileInputRef.current?.click()}
+      aria-label="Drop your PDF resume here or click to browse files"
+      className={`
+        group relative w-full bg-card rounded-xl border border-dashed border-border-strong p-12 cursor-pointer transition-colors
+        ${
+          isDragging
+            ? "border-brand bg-brand-subtle"
+            : "hover:border-border-strong hover:bg-surface-2"
+        }
+      `}
+    >
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="application/pdf"
+        onChange={onFileSelect}
+        className="hidden"
+        tabIndex={-1}
+        aria-label="Upload PDF file"
+      />
+
+      <div className="relative z-10 flex flex-col items-center gap-4">
+        <div
+          className={`p-4 rounded-xl transition-colors ${isDragging ? "bg-brand text-brand-foreground" : "bg-brand-subtle text-brand"}`}
+        >
+          <Upload className="w-12 h-12" aria-hidden="true" />
+        </div>
+
+        <p className="text-lg font-semibold text-foreground">
+          {file ? file.name : "Drop your PDF resume here"}
+        </p>
+
+        <p className="text-sm text-foreground/80">or click to browse - Max {MAX_FILE_SIZE_LABEL}</p>
+      </div>
+    </button>
+  );
 }
 
 export function UploadStep({ onContinue }: UploadStepProps) {
@@ -64,8 +198,7 @@ export function UploadStep({ onContinue }: UploadStepProps) {
     [setError, setUploadState],
   );
 
-  // SAFETY: onClaimRef expects (resumeId:string)=>void; async handler returns Promise<void> intentionally ignored (caller does not await)
-  onClaimRef.current = useCallback(
+  const onClaim = useCallback(
     async (resumeId: string) => {
       try {
         const parsingResult = await awaitResumeCompletion(resumeId);
@@ -83,7 +216,11 @@ export function UploadStep({ onContinue }: UploadStepProps) {
       }
     },
     [awaitResumeCompletion, onContinue, setError, setUploadProgress, setUploadState],
-  ) as (resumeId: string) => void;
+  );
+
+  useEffect(() => {
+    onClaimRef.current = onClaim;
+  }, [onClaim]);
 
   const handleRetry = () => {
     setError(null);
@@ -93,19 +230,6 @@ export function UploadStep({ onContinue }: UploadStepProps) {
   };
 
   const isProcessing = uploadState !== "idle" && uploadState !== "error";
-
-  const getProgressMessage = (): string => {
-    switch (uploadState) {
-      case "uploading":
-        return "Uploading your resume...";
-      case "claiming":
-        return "Preparing for AI parsing...";
-      case "parsing":
-        return "AI is extracting your experience...";
-      default:
-        return "";
-    }
-  };
 
   return (
     <div className="space-y-8">
@@ -123,95 +247,24 @@ export function UploadStep({ onContinue }: UploadStepProps) {
 
       <div className="max-w-md mx-auto space-y-4">
         {uploadState === "error" ? (
-          <div className="bg-card rounded-xl border border-border p-8 text-center shadow-sm">
-            <div className="mx-auto w-16 h-16 mb-4 bg-destructive/10 rounded-full flex items-center justify-center">
-              <svg
-                className="w-8 h-8 text-destructive"
-                viewBox="0 0 24 24"
-                fill="none"
-                aria-hidden="true"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  stroke="currentColor"
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </div>
-
-            <h3 className="text-lg font-bold text-foreground mb-2">Something Went Wrong</h3>
-            <p className="text-sm text-destructive mb-6">{error}</p>
-
-            <Button onClick={handleRetry} className="w-full" size="lg">
-              Try Again
-            </Button>
-          </div>
+          <UploadError message={error} onRetry={handleRetry} />
         ) : isProcessing ? (
-          <div className="bg-card rounded-xl border border-border p-8 text-center shadow-sm">
-            <div className="mx-auto w-16 h-16 mb-4 bg-brand-subtle rounded-full flex items-center justify-center">
-              <Loader2 className="w-8 h-8 text-brand animate-spin" />
-            </div>
-
-            <h3 className="text-lg font-bold text-foreground mb-2">
-              {uploadState === "parsing" ? "AI Parsing Your Resume" : "Processing..."}
-            </h3>
-            <p className="text-sm text-muted-foreground mb-4">{getProgressMessage()}</p>
-
-            {uploadState === "parsing" && (
-              <p className="text-xs text-muted-foreground font-medium mb-4">
-                This typically takes ~30 seconds
-              </p>
-            )}
-
-            <Progress value={uploadProgress} className="h-2" />
-            <p className="text-xs text-muted-foreground mt-2 font-medium">{uploadProgress}%</p>
-          </div>
+          <UploadProcessing
+            isParsing={uploadState === "parsing"}
+            message={PROGRESS_MESSAGES[uploadState] ?? ""}
+            progress={uploadProgress}
+          />
         ) : (
-          <button
-            type="button"
+          <UploadPrompt
+            file={file}
+            isDragging={isDragging}
+            fileInputRef={fileInputRef}
             onDragEnter={handleDragEnter}
             onDragLeave={handleDragLeave}
             onDragOver={handleDragOver}
             onDrop={handleDrop}
-            onClick={() => fileInputRef.current?.click()}
-            aria-label="Drop your PDF resume here or click to browse files"
-            className={`
-              group relative w-full bg-card rounded-xl border border-dashed border-border-strong p-12 cursor-pointer transition-colors
-              ${
-                isDragging
-                  ? "border-brand bg-brand-subtle"
-                  : "hover:border-border-strong hover:bg-surface-2"
-              }
-            `}
-          >
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="application/pdf"
-              onChange={handleFileSelect}
-              className="hidden"
-              tabIndex={-1}
-              aria-label="Upload PDF file"
-            />
-
-            <div className="relative z-10 flex flex-col items-center gap-4">
-              <div
-                className={`p-4 rounded-xl transition-colors ${isDragging ? "bg-brand text-brand-foreground" : "bg-brand-subtle text-brand"}`}
-              >
-                <Upload className="w-12 h-12" aria-hidden="true" />
-              </div>
-
-              <p className="text-lg font-semibold text-foreground">
-                {file ? file.name : "Drop your PDF resume here"}
-              </p>
-
-              <p className="text-sm text-foreground/80">
-                or click to browse - Max {MAX_FILE_SIZE_LABEL}
-              </p>
-            </div>
-          </button>
+            onFileSelect={handleFileSelect}
+          />
         )}
 
         {uploadState === "idle" && (

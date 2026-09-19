@@ -28,7 +28,9 @@ export function useResumeWebSocket({
   const onStatusChangeRef = useRef(onStatusChange);
   const lastStatusRef = useRef<ResumeStatus | null>(null);
 
-  onStatusChangeRef.current = onStatusChange;
+  useEffect(() => {
+    onStatusChangeRef.current = onStatusChange;
+  }, [onStatusChange]);
 
   const disconnect = useCallback(() => {
     socketHandleRef.current?.dispose();

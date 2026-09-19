@@ -51,7 +51,9 @@ export function RoleSelectorCard({ currentRole, roleSource }: RoleSelectorCardPr
       <div className="flex items-center justify-between gap-4 mb-4">
         <div className="flex items-center gap-2">
           <UserCheck className="h-5 w-5 text-brand" />
-          <h3 className="text-lg font-semibold text-foreground">Professional Level</h3>
+          <h3 id="professional-level" className="text-lg font-semibold text-foreground">
+            Professional Level
+          </h3>
         </div>
         {isSaving && (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -62,6 +64,7 @@ export function RoleSelectorCard({ currentRole, roleSource }: RoleSelectorCardPr
       </div>
 
       <select
+        aria-labelledby="professional-level"
         value={role}
         onChange={(e) => handleChange(e.target.value)}
         disabled={isSaving}

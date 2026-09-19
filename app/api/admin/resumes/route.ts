@@ -64,28 +64,29 @@ export async function GET(request: Request) {
       statusCondition = eq(resumes.status, "failed");
     }
 
-    const [totalResult] = await db.select({ count: count() }).from(resumes).where(statusCondition);
-
-    const resumeList = await db
-      .select({
-        id: resumes.id,
-        userId: resumes.userId,
-        status: resumes.status,
-        retryCount: resumes.retryCount,
-        totalAttempts: resumes.totalAttempts,
-        lastAttemptError: resumes.lastAttemptError,
-        errorMessage: resumes.errorMessage,
-        queuedAt: resumes.queuedAt,
-        updatedAt: resumes.updatedAt,
-        createdAt: resumes.createdAt,
-        userEmail: user.email,
-      })
-      .from(resumes)
-      .leftJoin(user, eq(resumes.userId, user.id))
-      .where(statusCondition)
-      .orderBy(sql`${resumes.updatedAt} DESC NULLS LAST, ${resumes.createdAt} DESC`)
-      .limit(PAGE_SIZE)
-      .offset(offset);
+    const [[totalResult], resumeList] = await Promise.all([
+      db.select({ count: count() }).from(resumes).where(statusCondition),
+      db
+        .select({
+          id: resumes.id,
+          userId: resumes.userId,
+          status: resumes.status,
+          retryCount: resumes.retryCount,
+          totalAttempts: resumes.totalAttempts,
+          lastAttemptError: resumes.lastAttemptError,
+          errorMessage: resumes.errorMessage,
+          queuedAt: resumes.queuedAt,
+          updatedAt: resumes.updatedAt,
+          createdAt: resumes.createdAt,
+          userEmail: user.email,
+        })
+        .from(resumes)
+        .leftJoin(user, eq(resumes.userId, user.id))
+        .where(statusCondition)
+        .orderBy(sql`${resumes.updatedAt} DESC NULLS LAST, ${resumes.createdAt} DESC`)
+        .limit(PAGE_SIZE)
+        .offset(offset),
+    ]);
 
     return createSuccessResponse({
       stats,

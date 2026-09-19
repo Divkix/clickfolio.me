@@ -5,7 +5,7 @@ import type { ResumeContent } from "@/lib/types/database";
 
 type SessionState = {
   data: {
-    user: { id: string; email: string; name: string; onboardingCompleted?: boolean };
+    user: { id: string; email: string; name: string };
   } | null;
   isPending: boolean;
 };
@@ -280,30 +280,6 @@ describe("wizard page flow", () => {
 
     await waitFor(() => expect(mocks.toast.error).toHaveBeenCalledWith("Handle taken"));
     expect(screen.getByText("Handle taken")).toBeInTheDocument();
-  });
-
-  it("redirects onboarded users to the dashboard without re-claiming pending uploads", async () => {
-    const { default: WizardPage } = await import("@/app/(protected)/wizard/page");
-    mocks.sessionState.current = {
-      data: {
-        user: {
-          id: "user_1",
-          email: "avery@example.com",
-          name: "Avery",
-          onboardingCompleted: true,
-        },
-      },
-      isPending: false,
-    };
-
-    installFetchScenario("pending-claim");
-    render(<WizardPage />);
-
-    await waitFor(() => expect(mocks.router.push).toHaveBeenCalledWith("/dashboard"));
-    expect(fetch).not.toHaveBeenCalledWith("/api/upload/pending");
-    expect(fetch).not.toHaveBeenCalledWith("/api/resume/claim", expect.any(Object));
-    expect(mocks.clearPendingUploadCookie).not.toHaveBeenCalled();
-    expect(mocks.waitForResumeCompletion).not.toHaveBeenCalled();
   });
 
   it("handles parsing failure redirects and reports init crashes", async () => {

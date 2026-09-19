@@ -168,9 +168,9 @@ export function useResumeStatus(resumeId: string | null): UseResumeStatusReturn 
     }
   }, [resumeId]);
 
-  fetchStatusRef.current = fetchStatus;
-
   useEffect(() => {
+    fetchStatusRef.current = fetchStatus;
+
     if (!resumeId) {
       setIsLoading(false);
       return;

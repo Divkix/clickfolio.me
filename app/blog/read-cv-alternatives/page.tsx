@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BlogPostLayout } from "@/components/blog/BlogPostLayout";
+import { ComparisonTable } from "@/components/blog/ComparisonTable";
+import { PostList, PostSection } from "@/components/blog/PostSection";
 import { buildBlogPostMetadata, getPostBySlug } from "@/lib/blog/posts";
 
 export const revalidate = 86400;
@@ -49,72 +51,53 @@ export default function ReadCvAlternativesPage() {
         </p>
       </section>
 
-      <section>
-        <h2>What to look for in a replacement</h2>
-        <p>
-          Read.cv earned trust by doing a few things well. Use these as your checklist when picking
-          where to go next:
-        </p>
-        <ul>
-          <li>
-            <strong>A clean, hosted profile.</strong> One link you can drop into applications, your
-            email signature, and your LinkedIn.
-          </li>
-          <li>
-            <strong>Low effort to set up.</strong> You shouldn't have to retype your whole career to
-            get online again.
-          </li>
-          <li>
-            <strong>You own the content.</strong> After a shutdown, the last thing you want is to be
-            locked into another platform that might vanish.
-          </li>
-          <li>
-            <strong>It stays current.</strong> A live page you can edit beats a static PDF that goes
-            stale the moment you change jobs.
-          </li>
-        </ul>
-      </section>
+      <PostSection
+        heading="What to look for in a replacement"
+        intro="Read.cv earned trust by doing a few things well. Use these as your checklist when picking where to go next:"
+      >
+        <PostList
+          items={[
+            {
+              lead: "A clean, hosted profile.",
+              body: " One link you can drop into applications, your email signature, and your LinkedIn.",
+            },
+            {
+              lead: "Low effort to set up.",
+              body: " You shouldn't have to retype your whole career to get online again.",
+            },
+            {
+              lead: "You own the content.",
+              body: " After a shutdown, the last thing you want is to be locked into another platform that might vanish.",
+            },
+            {
+              lead: "It stays current.",
+              body: " A live page you can edit beats a static PDF that goes stale the moment you change jobs.",
+            },
+          ]}
+        />
+      </PostSection>
 
       <section>
         <h2>The best Read.cv alternatives compared</h2>
-        <div className="overflow-x-auto my-8 not-prose">
-          <table className="w-full border-collapse overflow-hidden rounded-lg border border-border text-sm">
-            <thead>
-              <tr>
-                <th className="border border-border p-3 text-left font-semibold">Tool</th>
-                <th className="border border-border p-3 text-left font-semibold">Best for</th>
-                <th className="border border-border p-3 text-left font-semibold">Imports resume</th>
-                <th className="border border-border p-3 text-left font-semibold">Price</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td className="border border-border p-3">clickfolio.me</td>
-                <td className="border border-border p-3">A hosted resume site from your PDF</td>
-                <td className="border border-border p-3">Yes, AI parses your PDF</td>
-                <td className="border border-border p-3">Free</td>
-              </tr>
-              <tr>
-                <td className="border border-border p-3">Standard Resume</td>
-                <td className="border border-border p-3">A clean resume + simple web version</td>
-                <td className="border border-border p-3">Partial (LinkedIn import)</td>
-                <td className="border border-border p-3">Free + paid plans</td>
-              </tr>
-              <tr>
-                <td className="border border-border p-3">Carrd</td>
-                <td className="border border-border p-3">A hand-built one-page site</td>
-                <td className="border border-border p-3">No, you build it</td>
-                <td className="border border-border p-3">Free + ~$19/yr Pro</td>
-              </tr>
-              <tr>
-                <td className="border border-border p-3">About.me</td>
-                <td className="border border-border p-3">A simple intro/bio page</td>
-                <td className="border border-border p-3">No</td>
-                <td className="border border-border p-3">Free + paid plans</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <ComparisonTable
+          headers={["Tool", "Best for", "Imports resume", "Price"]}
+          rows={[
+            [
+              "clickfolio.me",
+              "A hosted resume site from your PDF",
+              "Yes, AI parses your PDF",
+              "Free",
+            ],
+            [
+              "Standard Resume",
+              "A clean resume + simple web version",
+              "Partial (LinkedIn import)",
+              "Free + paid plans",
+            ],
+            ["Carrd", "A hand-built one-page site", "No, you build it", "Free + ~$19/yr Pro"],
+            ["About.me", "A simple intro/bio page", "No", "Free + paid plans"],
+          ]}
+        />
         <p>
           One note: Bento.me, which some Read.cv users moved to, also shut down around February
           2026. Skip it. Pick a tool that's stable and gives you a portable copy of your content.

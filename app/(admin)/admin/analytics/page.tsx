@@ -4,6 +4,7 @@ export const revalidate = 86400;
 
 import { BarChart3, Eye, TrendingUp, Users } from "lucide-react";
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { useCallback, useEffect, useState } from "react";
 import { AdminTrafficChart } from "@/components/admin/AdminTrafficChart";
 import { HorizontalBarChart } from "@/components/admin/HorizontalBarChart";
@@ -149,127 +150,146 @@ export default function AdminAnalyticsPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-card rounded-xl shadow-sm border border-border p-6">
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
-            Top Profiles
-          </h2>
-          {loading ? (
-            <div className="space-y-2">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="h-6" />
-              ))}
-            </div>
-          ) : data?.topProfiles.length === 0 ? (
-            <p className="text-sm text-muted-foreground/70">No profile views yet</p>
-          ) : (
-            <div className="space-y-2">
-              {data?.topProfiles.map((profile, i) => (
-                <div key={profile.handle} className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground/70 w-6">{i + 1}.</span>
-                    <Link
-                      href={`/@${profile.handle}`}
-                      target="_blank"
-                      className="text-sm font-mono text-brand hover:underline"
-                    >
-                      @{profile.handle}
-                    </Link>
-                  </div>
-                  <span
-                    className="text-sm font-medium text-foreground"
-                    style={{ fontVariantNumeric: "tabular-nums" }}
-                  >
-                    {profile.views.toLocaleString()}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div className="bg-card rounded-xl shadow-sm border border-border p-6">
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
-            Traffic Sources
-          </h2>
-          {loading ? (
-            <div className="space-y-2">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="h-6" />
-              ))}
-            </div>
-          ) : (
-            <HorizontalBarChart
-              items={
-                data?.referrers.map((r) => ({
-                  label: r.domain,
-                  value: r.count,
-                  percent: r.percent,
-                })) ?? []
-              }
-              colorClass="bg-brand"
-            />
-          )}
-        </div>
-
-        <div className="bg-card rounded-xl shadow-sm border border-border p-6">
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
-            Top Countries
-          </h2>
-          {loading ? (
-            <div className="space-y-2">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="h-6" />
-              ))}
-            </div>
-          ) : data?.countries.length === 0 ? (
-            <p className="text-sm text-muted-foreground/70">No country data yet</p>
-          ) : (
-            <div className="space-y-2">
-              {data?.countries.map((c) => {
-                // SAFETY: c.code is a country code string; COUNTRY_FLAGS covers common codes with fallback.
-                const flag = COUNTRY_FLAGS[c.code as keyof typeof COUNTRY_FLAGS] || "\u{1F3F3}";
-                return (
-                  <div key={c.code} className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">
-                      {flag} {c.name}
-                    </span>
-                    <span
-                      className="text-sm font-medium text-foreground"
-                      style={{ fontVariantNumeric: "tabular-nums" }}
-                    >
-                      {c.percent}%
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        <div className="bg-card rounded-xl shadow-sm border border-border p-6">
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
-            Devices
-          </h2>
-          {loading ? (
-            <div className="space-y-2">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <Skeleton key={i} className="h-6" />
-              ))}
-            </div>
-          ) : (
-            <HorizontalBarChart
-              items={
-                data?.devices.map((d) => ({
-                  label: d.type.charAt(0).toUpperCase() + d.type.slice(1),
-                  value: 0,
-                  percent: d.percent,
-                })) ?? []
-              }
-              colorClass="bg-chart-2"
-            />
-          )}
-        </div>
+        <TopProfilesPanel data={data} loading={loading} />
+        <TrafficSourcesPanel data={data} loading={loading} />
+        <TopCountriesPanel data={data} loading={loading} />
+        <DevicesPanel data={data} loading={loading} />
       </div>
     </div>
+  );
+}
+
+interface PanelProps {
+  data: AnalyticsData | null;
+  loading: boolean;
+}
+
+function ChartPanel({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <div className="bg-card rounded-xl shadow-sm border border-border p-6">
+      <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
+        {title}
+      </h2>
+      {children}
+    </div>
+  );
+}
+
+function PanelsSkeleton({ rows }: { rows: number }) {
+  return (
+    <div className="space-y-2">
+      {Array.from({ length: rows }).map((_, i) => (
+        <Skeleton key={i} className="h-6" />
+      ))}
+    </div>
+  );
+}
+
+function TopProfilesPanel({ data, loading }: PanelProps) {
+  return (
+    <ChartPanel title="Top Profiles">
+      {loading ? (
+        <PanelsSkeleton rows={5} />
+      ) : data?.topProfiles.length === 0 ? (
+        <p className="text-sm text-muted-foreground/70">No profile views yet</p>
+      ) : (
+        <div className="space-y-2">
+          {data?.topProfiles.map((profile, i) => (
+            <div key={profile.handle} className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground/70 w-6">{i + 1}.</span>
+                <Link
+                  href={`/@${profile.handle}`}
+                  target="_blank"
+                  className="text-sm font-mono text-brand hover:underline"
+                >
+                  @{profile.handle}
+                </Link>
+              </div>
+              <span
+                className="text-sm font-medium text-foreground"
+                style={{ fontVariantNumeric: "tabular-nums" }}
+              >
+                {profile.views.toLocaleString()}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </ChartPanel>
+  );
+}
+
+function TrafficSourcesPanel({ data, loading }: PanelProps) {
+  return (
+    <ChartPanel title="Traffic Sources">
+      {loading ? (
+        <PanelsSkeleton rows={5} />
+      ) : (
+        <HorizontalBarChart
+          items={
+            data?.referrers.map((r) => ({
+              label: r.domain,
+              value: r.count,
+              percent: r.percent,
+            })) ?? []
+          }
+          colorClass="bg-brand"
+        />
+      )}
+    </ChartPanel>
+  );
+}
+
+function TopCountriesPanel({ data, loading }: PanelProps) {
+  return (
+    <ChartPanel title="Top Countries">
+      {loading ? (
+        <PanelsSkeleton rows={5} />
+      ) : data?.countries.length === 0 ? (
+        <p className="text-sm text-muted-foreground/70">No country data yet</p>
+      ) : (
+        <div className="space-y-2">
+          {data?.countries.map((c) => {
+            // SAFETY: c.code is a country code string; COUNTRY_FLAGS covers common codes with fallback.
+            const flag = COUNTRY_FLAGS[c.code as keyof typeof COUNTRY_FLAGS] || "\u{1F3F3}";
+            return (
+              <div key={c.code} className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">
+                  {flag} {c.name}
+                </span>
+                <span
+                  className="text-sm font-medium text-foreground"
+                  style={{ fontVariantNumeric: "tabular-nums" }}
+                >
+                  {c.percent}%
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </ChartPanel>
+  );
+}
+
+function DevicesPanel({ data, loading }: PanelProps) {
+  return (
+    <ChartPanel title="Devices">
+      {loading ? (
+        <PanelsSkeleton rows={3} />
+      ) : (
+        <HorizontalBarChart
+          items={
+            data?.devices.map((d) => ({
+              label: d.type.charAt(0).toUpperCase() + d.type.slice(1),
+              value: 0,
+              percent: d.percent,
+            })) ?? []
+          }
+          colorClass="bg-chart-2"
+        />
+      )}
+    </ChartPanel>
   );
 }

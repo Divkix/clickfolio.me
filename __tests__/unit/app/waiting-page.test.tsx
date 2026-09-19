@@ -2,11 +2,13 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { act } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import WaitingPage from "@/app/(protected)/waiting/page";
+import { WaitingContent } from "@/app/(protected)/waiting/waiting-content";
 
 const mocks = vi.hoisted(() => ({
   router: {
     push: vi.fn(),
   },
+  redirect: vi.fn(),
   searchParams: "resume_id=res_123",
   resumeStatus: {
     status: "processing" as "processing" | "completed" | "failed" | null,
@@ -21,6 +23,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("next/navigation", () => ({
   useRouter: () => mocks.router,
   useSearchParams: () => new URLSearchParams(mocks.searchParams),
+  redirect: mocks.redirect,
 }));
 
 vi.mock("@/hooks/useResumeStatus", () => ({
@@ -49,19 +52,24 @@ describe("WaitingPage", () => {
     globalThis.alert = originalAlert;
   });
 
-  it("redirects to dashboard when no resume id is present", async () => {
-    mocks.searchParams = "";
-    const { container } = render(<WaitingPage />);
+  it("redirects to the dashboard server-side when no resume id is present", async () => {
+    await WaitingPage({ searchParams: Promise.resolve({}) });
 
-    await waitFor(() => expect(mocks.router.push).toHaveBeenCalledWith("/dashboard"));
-    expect(container.textContent).toBe("");
+    expect(mocks.redirect).toHaveBeenCalledWith("/dashboard");
+  });
+
+  it("renders the waiting card through the server page when a resume id is present", async () => {
+    render(await WaitingPage({ searchParams: Promise.resolve({ resume_id: "res_123" }) }));
+
+    expect(screen.getByText("Analyzing Your Resume")).toBeInTheDocument();
+    expect(mocks.redirect).not.toHaveBeenCalled();
   });
 
   it("renders processing stages, countdown, loading, and inline processing errors", async () => {
     vi.useFakeTimers();
     mocks.resumeStatus.status = null;
     mocks.resumeStatus.isLoading = true;
-    const loading = render(<WaitingPage />);
+    const loading = render(<WaitingContent />);
     expect(screen.getByText("Connecting...")).toBeInTheDocument();
     loading.unmount();
 
@@ -69,7 +77,7 @@ describe("WaitingPage", () => {
     mocks.resumeStatus.isLoading = false;
     mocks.resumeStatus.progress = 55;
     mocks.resumeStatus.error = "Still processing";
-    render(<WaitingPage />);
+    render(<WaitingContent />);
 
     expect(screen.getByText("Processing your resume with AI")).toBeInTheDocument();
     expect(screen.getByText("55% complete")).toBeInTheDocument();
@@ -90,7 +98,7 @@ describe("WaitingPage", () => {
   it("redirects completed resumes to the wizard after the success message", async () => {
     vi.useFakeTimers();
     mocks.resumeStatus.status = "completed";
-    render(<WaitingPage />);
+    render(<WaitingContent />);
 
     expect(screen.getByText("Parsing Complete!")).toBeInTheDocument();
     act(() => {
@@ -107,7 +115,7 @@ describe("WaitingPage", () => {
       .mockResolvedValueOnce(Response.json({ success: true }))
       .mockResolvedValueOnce(Response.json({ error: "Queue unavailable" }, { status: 500 }));
 
-    const { rerender } = render(<WaitingPage />);
+    const { rerender } = render(<WaitingContent />);
 
     expect(screen.getByText("Unknown error occurred")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Try Again" }));
@@ -122,7 +130,7 @@ describe("WaitingPage", () => {
     );
 
     mocks.resumeStatus.error = "Parse failed";
-    rerender(<WaitingPage />);
+    rerender(<WaitingContent />);
     fireEvent.click(screen.getByRole("button", { name: "Try Again" }));
 
     await waitFor(() => expect(globalThis.alert).toHaveBeenCalledWith("Queue unavailable"));

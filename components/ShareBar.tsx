@@ -2,7 +2,7 @@
 
 import { cva, type VariantProps } from "class-variance-authority";
 import { Check, Copy, Share2, XIcon } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { LinkedInIcon, WhatsAppIcon } from "@/components/icons/BrandIcons";
 import {
   DEFAULT_SHARE_VARIANT,
@@ -33,6 +33,8 @@ const buttonVariants = cva(
   },
 );
 
+const subscribeToWebShare = () => () => {};
+
 interface ShareBarProps extends VariantProps<typeof shareBarVariants> {
   url?: string;
   handle?: string;
@@ -42,11 +44,7 @@ interface ShareBarProps extends VariantProps<typeof shareBarVariants> {
 }
 
 export function ShareBar({ url, handle, title, name, variant, className }: ShareBarProps) {
-  const [hasWebShare, setHasWebShare] = useState(false);
-
-  useEffect(() => {
-    setHasWebShare(isWebShareSupported());
-  }, []);
+  const hasWebShare = useSyncExternalStore(subscribeToWebShare, isWebShareSupported, () => false);
 
   const {
     copied,
