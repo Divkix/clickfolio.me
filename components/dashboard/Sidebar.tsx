@@ -35,13 +35,17 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
   const STALE_TIME_MS = 30_000;
 
   useEffect(() => {
+    let cancelled = false;
+
     async function loadProfile() {
       if (!session?.user?.id) {
+        if (cancelled) return;
         setProfileLoading(false);
         return;
       }
 
       if (profile && Date.now() - lastFetchedRef.current < STALE_TIME_MS) {
+        if (cancelled) return;
         setProfileLoading(false);
         return;
       }
@@ -51,19 +55,24 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
         if (response.ok) {
           // SAFETY: ProfileResponse is from our /api/profile/me endpoint; shape validated server-side before use.
           const data = (await response.json()) as ProfileResponse;
+          if (cancelled) return;
           setProfile({ handle: data.handle ?? null, isAdmin: data.isAdmin ?? false });
           lastFetchedRef.current = Date.now();
         }
       } catch (error) {
         console.error("Error loading profile:", error);
       } finally {
-        setProfileLoading(false);
+        if (!cancelled) setProfileLoading(false);
       }
     }
 
     if (!isPending) {
       void loadProfile();
     }
+
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- profile intentionally omitted to prevent infinite refetch loop
   }, [session?.user, isPending, pathname]);
 
@@ -150,9 +159,9 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
         )}
 
         <div className="p-4 border-b border-border">
-          <a href="/" aria-label="clickfolio.me home">
+          <Link href="/" aria-label="clickfolio.me home">
             <Logo size="xs" />
-          </a>
+          </Link>
         </div>
 
         <div className="p-4 border-b border-border">

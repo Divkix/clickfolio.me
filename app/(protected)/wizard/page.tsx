@@ -65,14 +65,56 @@ interface WizardState {
   themeId: ThemeId;
 }
 
-export default function WizardPage() {
+function WizardLoading() {
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="text-center">
+        <Loader2 className="w-12 h-12 animate-spin text-brand mx-auto mb-4" />
+        <p className="text-muted-foreground font-medium">Loading your resume...</p>
+        <p className="text-muted-foreground text-sm mt-2">
+          This may take 30-60 seconds if we&apos;re parsing your PDF
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function WizardError({ message }: { message: string }) {
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center px-4">
+      <div className="bg-card rounded-xl shadow-md border border-border p-8 max-w-md w-full text-center">
+        <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-4">
+          <svg
+            aria-hidden="true"
+            className="w-8 h-8 text-destructive"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
+        </div>
+        <h2 className="text-2xl font-bold text-foreground mb-3">Something Went Wrong</h2>
+        <p className="text-muted-foreground">{message}</p>
+      </div>
+    </div>
+  );
+}
+
+function useWizardInit() {
   const router = useRouter();
   const { data: session, isPending: sessionLoading } = useSession();
   const userId = session?.user?.id;
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [needsUpload, setNeedsUpload] = useState(false);
-  const [showLiveModal, setShowLiveModal] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
 
   const initializingRef = useRef(false);
   const hasClaimedRef = useRef(false);
@@ -91,18 +133,11 @@ export default function WizardPage() {
     themeId: DEFAULT_THEME,
   });
 
-  const stepOrder = getStepOrder(needsUpload);
-  const totalSteps = stepOrder.length;
-  const currentStepNumber = stepOrder.indexOf(state.currentStepId) + 1;
-  const progress = (currentStepNumber / totalSteps) * 100;
-
-  // SAFETY: session.user from Better Auth lacks onboardingCompleted typed field; cast adds optional property from session payload validated via DB, safe fallback to false.
-  const onboardingCompleted =
-    (session?.user as { onboardingCompleted?: boolean } | undefined)?.onboardingCompleted === true;
-
   const awaitResumeComplete = useCallback(
-    async (resumeId: string): Promise<boolean> => {
+    async (resumeId: string, signal: AbortSignal): Promise<boolean> => {
       const result = await waitForResumeCompletion(resumeId);
+
+      if (signal.aborted) return false;
 
       if (result.status === "completed") {
         return true;
@@ -116,6 +151,9 @@ export default function WizardPage() {
   );
 
   useEffect(() => {
+    const controller = new AbortController();
+    let active = true;
+
     const initializeWizard = async () => {
       if (initializingRef.current) return;
 
@@ -131,16 +169,13 @@ export default function WizardPage() {
       try {
         setLoading(true);
 
-        if (onboardingCompleted) {
-          router.push("/dashboard");
-          return;
-        }
-
         let tempKey: string | null = null;
         let fileHash: string | null = null;
 
         try {
-          const pendingResponse = await fetch("/api/upload/pending");
+          const pendingResponse = await fetch("/api/upload/pending", {
+            signal: controller.signal,
+          });
           if (pendingResponse.ok) {
             // SAFETY: PendingUploadResponse is from our /api/upload/pending endpoint backed by HMAC-signed pending_upload cookie verified by server.
             const pending = (await pendingResponse.json()) as PendingUploadResponse;
@@ -150,18 +185,19 @@ export default function WizardPage() {
             }
           }
         } catch (cookieError) {
+          if (!active) return;
           console.warn("Failed to read pending upload cookie:", cookieError);
         }
 
         if (tempKey && !hasClaimedRef.current) {
           hasClaimedRef.current = true;
 
-          setLoading(true);
           try {
             const claimResponse = await fetch("/api/resume/claim", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ key: tempKey, file_hash: fileHash }),
+              signal: controller.signal,
             });
 
             // SAFETY: ClaimResponse is from our /api/resume/claim endpoint; shape is server-controlled and validated before use.
@@ -180,13 +216,14 @@ export default function WizardPage() {
             await clearPendingUploadCookie();
 
             if (!claimData.cached) {
-              const parsingComplete = await awaitResumeComplete(resumeId);
+              const parsingComplete = await awaitResumeComplete(resumeId, controller.signal);
 
               if (!parsingComplete) {
                 return;
               }
             }
           } catch (claimError) {
+            if (!active) return;
             console.error("Claim error:", claimError);
             setError(claimError instanceof Error ? claimError.message : "Failed to claim resume");
 
@@ -194,17 +231,21 @@ export default function WizardPage() {
 
             hasClaimedRef.current = false;
 
+            if (!active) return;
+
             navigateTimeoutRef.current = setTimeout(() => router.push("/dashboard"), 3000);
             return;
           }
         }
 
-        const siteDataResponse = await fetch("/api/site-data");
+        const siteDataResponse = await fetch("/api/site-data", { signal: controller.signal });
         if (siteDataResponse.ok) {
           // SAFETY: SiteDataResponse is from our /api/site-data endpoint; content is schema-validated JSON written only by queue consumer.
           const siteData = (await siteDataResponse.json()) as SiteDataResponse | null;
 
           if (siteData?.content) {
+            if (!active) return;
+
             // SAFETY: content is schema-validated JSON written only by our queue consumer.
             const content = siteData.content as ResumeContent;
 
@@ -213,43 +254,77 @@ export default function WizardPage() {
               resumeData: content,
             }));
 
-            setLoading(false);
             return;
           }
         }
 
-        const statusResponse = await fetch("/api/resume/latest-status");
+        const statusResponse = await fetch("/api/resume/latest-status", {
+          signal: controller.signal,
+        });
         if (statusResponse.ok) {
           // SAFETY: LatestResumeResponse is from our /api/resume/latest-status endpoint; shape validated server-side.
           const resume = (await statusResponse.json()) as LatestResumeResponse | null;
 
           if (resume?.status === "processing" && resume.id) {
+            if (!active) return;
+
+            setRedirecting(true);
             router.push(`/waiting?resume_id=${resume.id}`);
             return;
           }
         }
 
+        if (!active) return;
+
         setNeedsUpload(true);
         setState((prev) => ({ ...prev, currentStepId: "upload" }));
-        setLoading(false);
       } catch (err) {
+        if (!active) return;
         console.error("Error initializing wizard:", err);
         setError("Failed to load resume data. Please try again.");
-        setLoading(false);
       } finally {
-        initializingRef.current = false;
+        if (active) {
+          setLoading(false);
+          initializingRef.current = false;
+        }
       }
     };
 
     void initializeWizard();
 
     return () => {
+      active = false;
+      controller.abort();
+      initializingRef.current = false;
       if (navigateTimeoutRef.current) {
         clearTimeout(navigateTimeoutRef.current);
         navigateTimeoutRef.current = null;
       }
     };
-  }, [router, userId, sessionLoading, awaitResumeComplete, onboardingCompleted]);
+  }, [router, userId, sessionLoading, awaitResumeComplete]);
+
+  // Folding `redirecting` in keeps the spinner up while the wizard hands off to /waiting.
+  return {
+    router,
+    sessionLoading,
+    loading: loading || redirecting,
+    error,
+    setError,
+    needsUpload,
+    state,
+    setState,
+  };
+}
+
+export default function WizardPage() {
+  const { router, sessionLoading, loading, error, setError, needsUpload, state, setState } =
+    useWizardInit();
+  const [showLiveModal, setShowLiveModal] = useState(false);
+
+  const stepOrder = getStepOrder(needsUpload);
+  const totalSteps = stepOrder.length;
+  const currentStepNumber = stepOrder.indexOf(state.currentStepId) + 1;
+  const progress = (currentStepNumber / totalSteps) * 100;
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -339,44 +414,11 @@ export default function WizardPage() {
   };
 
   if (loading || sessionLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-12 h-12 animate-spin text-brand mx-auto mb-4" />
-          <p className="text-muted-foreground font-medium">Loading your resume...</p>
-          <p className="text-muted-foreground text-sm mt-2">
-            This may take 30-60 seconds if we&apos;re parsing your PDF
-          </p>
-        </div>
-      </div>
-    );
+    return <WizardLoading />;
   }
 
   if (error && state.currentStepId === "handle" && !needsUpload) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center px-4">
-        <div className="bg-card rounded-xl shadow-md border border-border p-8 max-w-md w-full text-center">
-          <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg
-              aria-hidden="true"
-              className="w-8 h-8 text-destructive"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </div>
-          <h2 className="text-2xl font-bold text-foreground mb-3">Something Went Wrong</h2>
-          <p className="text-muted-foreground">{error}</p>
-        </div>
-      </div>
-    );
+    return <WizardError message={error} />;
   }
 
   return (

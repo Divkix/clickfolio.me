@@ -41,21 +41,22 @@ export async function GET(request: Request) {
         )
       : undefined;
 
-    const [totalResult] = await db.select({ count: count() }).from(user).where(searchCondition);
-
-    const users = await db
-      .select({
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        handle: user.handle,
-        createdAt: user.createdAt,
-      })
-      .from(user)
-      .where(searchCondition)
-      .orderBy(sql`${user.createdAt} DESC`)
-      .limit(PAGE_SIZE)
-      .offset(offset);
+    const [[totalResult], users] = await Promise.all([
+      db.select({ count: count() }).from(user).where(searchCondition),
+      db
+        .select({
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          handle: user.handle,
+          createdAt: user.createdAt,
+        })
+        .from(user)
+        .where(searchCondition)
+        .orderBy(sql`${user.createdAt} DESC`)
+        .limit(PAGE_SIZE)
+        .offset(offset),
+    ]);
 
     const userIds = users.map((u) => u.id);
 

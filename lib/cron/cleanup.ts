@@ -78,23 +78,25 @@ export async function performCleanup(
         log("warn", "R2 binding unavailable; deleting failed resume DB rows only");
       }
       const fallbackRows: Array<typeof pendingR2Deletions.$inferInsert> = [];
-      for (const row of deletedRows) {
-        if (!r2Binding || !row.r2Key) continue;
-        try {
-          await R2.delete(r2Binding, row.r2Key);
-        } catch (error) {
-          log("warn", "failed-resume R2 delete deferred", {
-            r2Key: row.r2Key,
-            error: String(error),
-          });
-          fallbackRows.push({
-            id: crypto.randomUUID(),
-            r2Key: row.r2Key,
-            createdAt: nowIso,
-            attempts: 1,
-          });
-        }
-      }
+      await Promise.all(
+        deletedRows.map(async (row) => {
+          if (!r2Binding || !row.r2Key) return;
+          try {
+            await R2.delete(r2Binding, row.r2Key);
+          } catch (error) {
+            log("warn", "failed-resume R2 delete deferred", {
+              r2Key: row.r2Key,
+              error: String(error),
+            });
+            fallbackRows.push({
+              id: crypto.randomUUID(),
+              r2Key: row.r2Key,
+              createdAt: nowIso,
+              attempts: 1,
+            });
+          }
+        }),
+      );
       if (fallbackRows.length > 0) {
         await db.insert(pendingR2Deletions).values(fallbackRows).onConflictDoNothing();
       }

@@ -38,7 +38,7 @@ export function ExamplesSection({ profiles }: ExamplesSectionProps) {
               key={profile.id}
               type="button"
               onClick={() => setPreviewIndex(index)}
-              className="group overflow-hidden rounded-xl border border-border bg-card text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-border-strong hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              className="group overflow-hidden rounded-xl border border-border bg-card text-left shadow-sm transition hover:-translate-y-0.5 hover:border-border-strong hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
               <div className="aspect-4/3 overflow-hidden border-b border-border bg-surface-2">
                 <img

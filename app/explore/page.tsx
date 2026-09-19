@@ -1,12 +1,14 @@
 import { env } from "cloudflare:workers";
 import { and, desc, eq, isNotNull, sql } from "drizzle-orm";
-import { Briefcase, ExternalLink, GraduationCap, MapPin } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { RoleFilterSelect } from "@/components/explore/role-filter-select";
+import { ExploreFilters } from "@/components/explore/explore-filters";
+import { ExploreHeader } from "@/components/explore/explore-header";
+import { ExplorePagination } from "@/components/explore/explore-pagination";
+import { NoResults } from "@/components/explore/no-results";
+import { PersonCard, type DirectoryUser } from "@/components/explore/person-card";
 import { Footer } from "@/components/Footer";
 import { SiteHeader } from "@/components/SiteHeader";
-import { Badge } from "@/components/ui/badge";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { siteConfig } from "@/lib/config/site";
@@ -31,17 +33,6 @@ export const metadata: Metadata = buildPublicPageMetadata({
   description: exploreDescription,
   path: "/explore",
 });
-
-interface DirectoryUser {
-  handle: string;
-  role: string | null;
-  previewName: string | null;
-  previewHeadline: string | null;
-  previewLocation: string | null;
-  previewExpCount: number | null;
-  previewEduCount: number | null;
-  previewSkills: string[] | null;
-}
 
 const ITEMS_PER_PAGE = 12;
 
@@ -160,152 +151,26 @@ export default async function ExplorePage({
         ]}
       />
       <main id="main-content" className="flex-1 max-w-7xl mx-auto px-4 py-12 w-full">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-extrabold text-foreground tracking-tight mb-4">
-            Explore Professionals
-          </h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Discover talented professionals in our community. Browse portfolios and get inspired.
-          </p>
-        </div>
+        <ExploreHeader />
 
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
-          <div className="flex items-center gap-3">
-            <label htmlFor="role-filter" className="text-sm font-medium text-foreground">
-              Filter by role:
-            </label>
-            <RoleFilterSelect roleFilter={roleFilter} roleOptions={roleOptions} />
-          </div>
-          <p className="text-sm text-muted-foreground">
-            {totalCount} {totalCount === 1 ? "professional" : "professionals"} listed
-          </p>
-        </div>
+        <ExploreFilters roleFilter={roleFilter} roleOptions={roleOptions} totalCount={totalCount} />
 
         {directoryUsers.length === 0 ? (
-          <div className="text-center py-16 bg-card rounded-xl border border-border shadow-sm">
-            <p className="text-muted-foreground text-lg">
-              No professionals found.{" "}
-              {roleFilter && (
-                <Link href="/explore" className="text-brand hover:underline">
-                  Clear filters
-                </Link>
-              )}
-            </p>
-          </div>
+          <NoResults roleFilter={roleFilter} />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {directoryUsers.map((person) => (
-              <Link
-                key={person.handle}
-                href={`/@${person.handle}`}
-                className="group min-w-0 overflow-hidden bg-card rounded-xl border border-border shadow-sm p-6 transition-colors hover:border-border-strong hover:bg-surface-2"
-              >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-lg font-bold text-foreground truncate group-hover:text-brand transition-colors">
-                      {person.previewName || "Unknown"}
-                    </h3>
-                    <p className="text-sm text-muted-foreground truncate">
-                      {person.previewHeadline || "Professional"}
-                    </p>
-                  </div>
-                  <ExternalLink className="w-4 h-4 text-muted-foreground group-hover:text-brand shrink-0 ml-2" />
-                </div>
-
-                <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-                  {person.previewLocation && (
-                    <span className="inline-flex items-center gap-1">
-                      <MapPin className="w-3 h-3" />
-                      {person.previewLocation.split(",")[0]}
-                    </span>
-                  )}
-                  {person.previewExpCount != null && person.previewExpCount > 0 && (
-                    <span className="inline-flex items-center gap-1">
-                      <Briefcase className="w-3 h-3" />
-                      {person.previewExpCount}{" "}
-                      {person.previewExpCount === 1 ? "position" : "positions"}
-                    </span>
-                  )}
-                  {person.previewEduCount != null && person.previewEduCount > 0 && (
-                    <span className="inline-flex items-center gap-1">
-                      <GraduationCap className="w-3 h-3" />
-                      {person.previewEduCount}
-                    </span>
-                  )}
-                </div>
-
-                {person.previewSkills && person.previewSkills.length > 0 && (
-                  <div className="mt-4 flex min-w-0 flex-wrap gap-1.5">
-                    {person.previewSkills.slice(0, 4).map((skill, idx) => (
-                      <Badge
-                        key={`${skill}-${idx}`}
-                        variant="outline"
-                        className="max-w-full min-w-0 truncate"
-                      >
-                        {skill}
-                      </Badge>
-                    ))}
-                    {person.previewSkills.length > 4 && (
-                      <span className="inline-block px-1 py-0.5 text-muted-foreground text-xs">
-                        +{person.previewSkills.length - 4} more
-                      </span>
-                    )}
-                  </div>
-                )}
-              </Link>
+              <PersonCard key={person.handle} person={person} />
             ))}
           </div>
         )}
 
         {totalPages > 1 && (
-          <div className="mt-12 flex items-center justify-center gap-2">
-            {currentPage > 1 && (
-              <Button asChild variant="outline" size="sm">
-                <Link
-                  href={`/explore?page=${currentPage - 1}${roleFilter ? `&role=${roleFilter}` : ""}`}
-                >
-                  Previous
-                </Link>
-              </Button>
-            )}
-
-            <div className="flex items-center gap-1">
-              {Array.from({ length: totalPages }, (_, i) => i + 1)
-                .filter(
-                  (page) => page === 1 || page === totalPages || Math.abs(page - currentPage) <= 1,
-                )
-                .map((page, index, arr) => {
-                  const showEllipsis = index > 0 && page - arr[index - 1] > 1;
-                  return (
-                    <span key={page} className="contents">
-                      {showEllipsis && <span className="px-2 text-muted-foreground">...</span>}
-                      <Button
-                        asChild
-                        variant={page === currentPage ? "default" : "outline"}
-                        size="icon"
-                      >
-                        <Link
-                          href={`/explore?page=${page}${roleFilter ? `&role=${roleFilter}` : ""}`}
-                          aria-current={page === currentPage ? "page" : undefined}
-                        >
-                          {page}
-                        </Link>
-                      </Button>
-                    </span>
-                  );
-                })}
-            </div>
-
-            {currentPage < totalPages && (
-              <Button asChild variant="outline" size="sm">
-                <Link
-                  href={`/explore?page=${currentPage + 1}${roleFilter ? `&role=${roleFilter}` : ""}`}
-                >
-                  Next
-                </Link>
-              </Button>
-            )}
-          </div>
+          <ExplorePagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            roleFilter={roleFilter}
+          />
         )}
 
         <div className="mt-16 text-center bg-brand-subtle rounded-xl border border-border p-8">

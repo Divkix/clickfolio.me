@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BlogPostLayout } from "@/components/blog/BlogPostLayout";
+import { PostList, PostSection } from "@/components/blog/PostSection";
 import { buildBlogPostMetadata, getPostBySlug } from "@/lib/blog/posts";
 
 export const revalidate = 86400;
@@ -50,126 +51,144 @@ export default function ProductManagerPortfolioWebsitePage() {
         </p>
       </section>
 
-      <section>
-        <h2>What should a product manager portfolio include?</h2>
-        <p>
-          The goal is to show your product thinking end to end. A strong PM portfolio usually
-          includes:
-        </p>
-        <ul>
-          <li>
-            <strong>A short positioning statement.</strong> One or two lines on the kind of products
-            you build, the stage you thrive in, and the outcomes you care about.
-          </li>
-          <li>
-            <strong>Two or three case studies.</strong> Depth beats breadth. A few deep stories
-            prove more than a long list of shallow ones.
-          </li>
-          <li>
-            <strong>Measurable outcomes.</strong> Activation, retention, revenue, time-to-ship —
-            whatever your work actually moved. Numbers earn trust.
-          </li>
-          <li>
-            <strong>Your process.</strong> How you discover problems, validate them, and prioritize.
-            This is the part interviewers probe hardest.
-          </li>
-          <li>
-            <strong>Skills and tools.</strong> Discovery methods, analytics, experimentation, and
-            the cross-functional work you led.
-          </li>
-          <li>
-            <strong>A clear way to reach you.</strong> Email and LinkedIn, easy to find.
-          </li>
-        </ul>
-      </section>
+      <PostSection
+        heading="What should a product manager portfolio include?"
+        intro="The goal is to show your product thinking end to end. A strong PM portfolio usually includes:"
+      >
+        <PostList
+          items={[
+            {
+              lead: "A short positioning statement.",
+              body: " One or two lines on the kind of products you build, the stage you thrive in, and the outcomes you care about.",
+            },
+            {
+              lead: "Two or three case studies.",
+              body: " Depth beats breadth. A few deep stories prove more than a long list of shallow ones.",
+            },
+            {
+              lead: "Measurable outcomes.",
+              body: " Activation, retention, revenue, time-to-ship — whatever your work actually moved. Numbers earn trust.",
+            },
+            {
+              lead: "Your process.",
+              body: " How you discover problems, validate them, and prioritize. This is the part interviewers probe hardest.",
+            },
+            {
+              lead: "Skills and tools.",
+              body: " Discovery methods, analytics, experimentation, and the cross-functional work you led.",
+            },
+            {
+              lead: "A clear way to reach you.",
+              body: " Email and LinkedIn, easy to find.",
+            },
+          ]}
+        />
+      </PostSection>
 
-      <section>
-        <h2>How do you structure a PM case study?</h2>
-        <p>Treat each case study like a product decision you can defend. A reliable structure:</p>
-        <ol className="list-decimal pl-6 space-y-2">
-          <li>
-            <strong>The problem and who had it.</strong> Name the user and the pain. Make the stakes
-            obvious before you mention any feature.
-          </li>
-          <li>
-            <strong>The evidence.</strong> The research, data, and signals that told you this was
-            worth solving. Show that you didn't guess.
-          </li>
-          <li>
-            <strong>The decision.</strong> What you prioritized, what you cut, and the tradeoff you
-            accepted. This is where your judgment shows.
-          </li>
-          <li>
-            <strong>The work.</strong> What you actually shipped, plus how you aligned engineering,
-            design, and stakeholders to get there.
-          </li>
-          <li>
-            <strong>The outcome.</strong> The measurable result, what you learned, and what you'd do
-            differently. Honesty about a miss often reads stronger than a flawless win.
-          </li>
-        </ol>
+      <PostSection
+        heading="How do you structure a PM case study?"
+        intro="Treat each case study like a product decision you can defend. A reliable structure:"
+      >
+        <PostList
+          ordered
+          items={[
+            {
+              lead: "The problem and who had it.",
+              body: " Name the user and the pain. Make the stakes obvious before you mention any feature.",
+            },
+            {
+              lead: "The evidence.",
+              body: " The research, data, and signals that told you this was worth solving. Show that you didn't guess.",
+            },
+            {
+              lead: "The decision.",
+              body: " What you prioritized, what you cut, and the tradeoff you accepted. This is where your judgment shows.",
+            },
+            {
+              lead: "The work.",
+              body: " What you actually shipped, plus how you aligned engineering, design, and stakeholders to get there.",
+            },
+            {
+              lead: "The outcome.",
+              body: " The measurable result, what you learned, and what you'd do differently. Honesty about a miss often reads stronger than a flawless win.",
+            },
+          ]}
+        />
         <p>
           Building these out is real work — and that effort pays off twice. The writing forces you
           to sharpen your own story, so you walk into interviews able to defend every decision. The
           portfolio you assemble yourself is one you're proud to send, because you know exactly
           what's behind every line.
         </p>
-      </section>
+      </PostSection>
 
-      <section>
-        <h2>How do I build a PM portfolio if my work is under NDA?</h2>
-        <p>
-          This stops a lot of PMs before they start, but it's a smaller problem than it looks. You
-          can show your thinking without leaking anything confidential:
-        </p>
-        <ul>
-          <li>
-            <strong>Use ranges, not exact figures.</strong> "Improved activation by roughly 20–30%"
-            communicates impact without exposing internal numbers.
-          </li>
-          <li>
-            <strong>Describe the problem space generically.</strong> "A B2B onboarding flow with
-            high drop-off" tells the story without naming the product.
-          </li>
-          <li>
-            <strong>Lean on public work.</strong> Side projects, product teardowns, and analyses of
-            apps you admire all demonstrate your process with zero NDA risk.
-          </li>
-          <li>
-            <strong>Focus on reasoning over specifics.</strong> Interviewers care more about how you
-            decided than the exact metric you moved.
-          </li>
-        </ul>
+      <PostSection
+        heading="How do I build a PM portfolio if my work is under NDA?"
+        intro="This stops a lot of PMs before they start, but it's a smaller problem than it looks. You can show your thinking without leaking anything confidential:"
+      >
+        <PostList
+          items={[
+            {
+              lead: "Use ranges, not exact figures.",
+              body: ' "Improved activation by roughly 20–30%" communicates impact without exposing internal numbers.',
+            },
+            {
+              lead: "Describe the problem space generically.",
+              body: ' "A B2B onboarding flow with high drop-off" tells the story without naming the product.',
+            },
+            {
+              lead: "Lean on public work.",
+              body: " Side projects, product teardowns, and analyses of apps you admire all demonstrate your process with zero NDA risk.",
+            },
+            {
+              lead: "Focus on reasoning over specifics.",
+              body: " Interviewers care more about how you decided than the exact metric you moved.",
+            },
+          ]}
+        />
         <p>
           A teardown of a product everyone knows can be as convincing as a confidential case study,
           because it shows the same muscle: spotting a problem, weighing options, and arguing for a
           path.
         </p>
-      </section>
+      </PostSection>
 
-      <section>
-        <h2>How to publish a product manager portfolio fast</h2>
-        <p>
-          You don't need to code or pay a designer. If you already have a resume, you can be live in
-          about 30 seconds:
-        </p>
-        <ol className="list-decimal pl-6 space-y-2">
-          <li>
-            <strong>Upload your resume PDF</strong> to <Link href="/">clickfolio.me</Link>. The AI
-            reads your experience, skills, and education and builds a structured site.
-          </li>
-          <li>
-            <strong>Pick a template.</strong> There are 10 to choose from, so you can match the tone
-            you want.
-          </li>
-          <li>
-            <strong>Add your case studies and outcomes</strong> in the editor, then refine the
-            wording.
-          </li>
-          <li>
-            <strong>Publish</strong> to <code>clickfolio.me/@yourhandle</code> and share the link.
-          </li>
-        </ol>
+      <PostSection
+        heading="How to publish a product manager portfolio fast"
+        intro="You don't need to code or pay a designer. If you already have a resume, you can be live in about 30 seconds:"
+      >
+        <PostList
+          ordered
+          items={[
+            {
+              lead: "Upload your resume PDF",
+              body: (
+                <>
+                  {" to "}
+                  <Link href="/">clickfolio.me</Link>. The AI reads your experience, skills, and
+                  education and builds a structured site.
+                </>
+              ),
+            },
+            {
+              lead: "Pick a template.",
+              body: " There are 10 to choose from, so you can match the tone you want.",
+            },
+            {
+              lead: "Add your case studies and outcomes",
+              body: " in the editor, then refine the wording.",
+            },
+            {
+              lead: "Publish",
+              body: (
+                <>
+                  {" to "}
+                  <code>clickfolio.me/@yourhandle</code> and share the link.
+                </>
+              ),
+            },
+          ]}
+        />
         <p>
           It's free forever — no paid tier — and built-in analytics show you how many people opened
           your portfolio, so you can tell which applications actually got read. Custom domains
@@ -178,7 +197,7 @@ export default function ProductManagerPortfolioWebsitePage() {
           <Link href="/blog/resume-website-examples">resume website examples</Link> or read the role
           guide for <Link href="/for/product-manager">product managers</Link> before you start.
         </p>
-      </section>
+      </PostSection>
 
       <section>
         <h2>Make your thinking the thing they remember</h2>

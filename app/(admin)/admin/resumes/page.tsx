@@ -4,7 +4,7 @@ export const revalidate = 86400;
 
 import { AlertTriangle, CheckCircle2, Clock, FileText, Loader2, X } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Fragment, useCallback, useEffect, useState } from "react";
+import { Fragment, Suspense, useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Pagination } from "@/components/admin/Pagination";
 import { ResumeStatusBadge } from "@/components/admin/ResumeStatusBadge";
@@ -46,7 +46,7 @@ const STATUS_OPTIONS: Array<{ value: StatusFilter; label: string }> = [
   { value: "failed", label: "Failed" },
 ];
 
-export default function AdminResumesPage() {
+function AdminResumesContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -224,28 +224,7 @@ export default function AdminResumesPage() {
             </thead>
             <tbody className="divide-y divide-border">
               {loading ? (
-                Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i}>
-                    <td className="px-4 py-3">
-                      <Skeleton className="h-5 w-40" />
-                    </td>
-                    <td className="px-4 py-3">
-                      <Skeleton className="h-5 w-20" />
-                    </td>
-                    <td className="px-4 py-3">
-                      <Skeleton className="h-5 w-12 mx-auto" />
-                    </td>
-                    <td className="px-4 py-3">
-                      <Skeleton className="h-5 w-32" />
-                    </td>
-                    <td className="px-4 py-3">
-                      <Skeleton className="h-5 w-16 ml-auto" />
-                    </td>
-                    <td className="px-4 py-3">
-                      <Skeleton className="h-5 w-8 ml-auto" />
-                    </td>
-                  </tr>
-                ))
+                <ResumeRowsSkeleton />
               ) : !data || data.resumes.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
@@ -335,5 +314,63 @@ export default function AdminResumesPage() {
         )}
       </div>
     </div>
+  );
+}
+
+function ResumeRowsSkeleton() {
+  return (
+    <>
+      {Array.from({ length: 5 }).map((_, i) => (
+        <tr key={i}>
+          <td className="px-4 py-3">
+            <Skeleton className="h-5 w-40" />
+          </td>
+          <td className="px-4 py-3">
+            <Skeleton className="h-5 w-20" />
+          </td>
+          <td className="px-4 py-3">
+            <Skeleton className="h-5 w-12 mx-auto" />
+          </td>
+          <td className="px-4 py-3">
+            <Skeleton className="h-5 w-32" />
+          </td>
+          <td className="px-4 py-3">
+            <Skeleton className="h-5 w-16 ml-auto" />
+          </td>
+          <td className="px-4 py-3">
+            <Skeleton className="h-5 w-8 ml-auto" />
+          </td>
+        </tr>
+      ))}
+    </>
+  );
+}
+
+function AdminResumesFallback() {
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-24 rounded-xl" />
+        ))}
+      </div>
+      <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <tbody className="divide-y divide-border">
+              <ResumeRowsSkeleton />
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function AdminResumesPage() {
+  return (
+    <Suspense fallback={<AdminResumesFallback />}>
+      <AdminResumesContent />
+    </Suspense>
   );
 }

@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { RoleFaqSection } from "@/components/Faq";
+import { RoleSection } from "@/components/role/RoleSection";
 import { Button } from "@/components/ui/button";
 import {
   buildRolePageMetadata,
@@ -60,113 +62,89 @@ export default function DesignerPage() {
             designer-quality portfolio website with a custom @handle URL — free, no signup needed.
           </p>
 
-          <section className="mb-12">
-            <h2 className="font-bold text-xl text-foreground mb-4">
-              Why Designers Love clickfolio.me
-            </h2>
-            <ul className="space-y-3 text-muted-foreground list-disc pl-5">
-              <li>
-                <strong>DesignFolio template</strong> — digital brutalism meets Swiss typography.
-                Dark theme with acid lime accents. Bold, distinctive, and impossible to ignore.
-              </li>
-              <li>
-                <strong>Spotlight template</strong> — warm creative portfolio with animated
-                sections. Designed to give your work the breathing room it needs.
-              </li>
-              <li>
-                <strong>Visual-first layouts</strong> — every template prioritizes typography,
-                whitespace, and visual hierarchy. Your portfolio looks like it was custom-built.
-              </li>
-              <li>
-                <strong>Project gallery display</strong> — AI extracts your projects from your
-                resume and presents them in structured, scannable layouts with role, timeline, and
-                description.
-              </li>
-            </ul>
-          </section>
+          <RoleSection
+            heading="Why Designers Love clickfolio.me"
+            items={[
+              {
+                lead: "DesignFolio template",
+                body: "digital brutalism meets Swiss typography. Dark theme with acid lime accents. Bold, distinctive, and impossible to ignore.",
+              },
+              {
+                lead: "Spotlight template",
+                body: "warm creative portfolio with animated sections. Designed to give your work the breathing room it needs.",
+              },
+              {
+                lead: "Visual-first layouts",
+                body: "every template prioritizes typography, whitespace, and visual hierarchy. Your portfolio looks like it was custom-built.",
+              },
+              {
+                lead: "Project gallery display",
+                body: "AI extracts your projects from your resume and presents them in structured, scannable layouts with role, timeline, and description.",
+              },
+            ]}
+          />
 
-          <section className="mb-12">
-            <h2 className="font-bold text-xl text-foreground mb-4">
-              From PDF to Published in 30 Seconds
-            </h2>
-            <p className="text-muted-foreground mb-4">
-              Drop the PDF resume you already have. The AI extracts your experience, education,
-              skills, and projects. In about 30 seconds you have a live designer portfolio website
-              you can send to studios, agencies, and clients.
-            </p>
-            <p className="text-muted-foreground">
-              Not happy with the first look? Switch between 10 themes with one click. You never
-              touch a layout grid or a font menu unless you want to.
-            </p>
-          </section>
+          <RoleSection
+            heading="From PDF to Published in 30 Seconds"
+            intro="Drop the PDF resume you already have. The AI extracts your experience, education, skills, and projects. In about 30 seconds you have a live designer portfolio website you can send to studios, agencies, and clients."
+            outro="Not happy with the first look? Switch between 10 themes with one click. You never touch a layout grid or a font menu unless you want to."
+          />
 
-          <section className="mb-12">
-            <h2 className="font-bold text-xl text-foreground mb-4">
-              What hiring designers look for
-            </h2>
-            <p className="text-muted-foreground mb-4">
-              Recruiters spend about 7.4 seconds on a first scan (The Ladders, 2018). For design
-              roles, that glance is about taste and clarity, so your page has to look intentional in
-              the first second.
-            </p>
-            <ul className="space-y-3 text-muted-foreground list-disc pl-5">
-              <li>
-                <strong>A clear point of view</strong> — a few strong projects beat a wall of
-                thumbnails. Lead with the work you want more of.
-              </li>
-              <li>
-                <strong>Context per project</strong> — your role, the problem, and the outcome.
-                Designers get hired on thinking, not just pixels.
-              </li>
-              <li>
-                <strong>Craft in the details</strong> — consistent type, spacing, and alignment. A
-                tidy page signals a tidy designer.
-              </li>
-            </ul>
-          </section>
+          <RoleSection
+            heading="What hiring designers look for"
+            intro="Recruiters spend about 7.4 seconds on a first scan (The Ladders, 2018). For design roles, that glance is about taste and clarity, so your page has to look intentional in the first second."
+            items={[
+              {
+                lead: "A clear point of view",
+                body: "a few strong projects beat a wall of thumbnails. Lead with the work you want more of.",
+              },
+              {
+                lead: "Context per project",
+                body: "your role, the problem, and the outcome. Designers get hired on thinking, not just pixels.",
+              },
+              {
+                lead: "Craft in the details",
+                body: "consistent type, spacing, and alignment. A tidy page signals a tidy designer.",
+              },
+            ]}
+          />
 
-          <section className="mb-12">
-            <h2 className="font-bold text-xl text-foreground mb-4">
-              Templates with a designer's eye
-            </h2>
-            <ul className="space-y-3 text-muted-foreground list-disc pl-5">
-              <li>
-                <strong>DesignFolio</strong> — digital brutalism with Swiss typography and acid lime
-                accents. Bold and memorable.
-              </li>
-              <li>
-                <strong>Spotlight</strong> — warm and animated, with room for each project to
-                breathe.
-              </li>
-              <li>
-                <strong>Glass Morphic</strong> — soft, layered, and modern when you want a lighter
-                feel.
-              </li>
-            </ul>
-          </section>
+          <RoleSection
+            heading="Templates with a designer's eye"
+            items={[
+              {
+                lead: "DesignFolio",
+                body: "digital brutalism with Swiss typography and acid lime accents. Bold and memorable.",
+              },
+              {
+                lead: "Spotlight",
+                body: "warm and animated, with room for each project to breathe.",
+              },
+              {
+                lead: "Glass Morphic",
+                body: "soft, layered, and modern when you want a lighter feel.",
+              },
+            ]}
+          />
 
-          <section className="mb-12">
-            <h2 className="font-bold text-xl text-foreground mb-4">
-              "Shouldn't I hand-build my own site?"
-            </h2>
-            <p className="text-muted-foreground mb-4">
-              You can, and some designers do. But a hand-built site is a project that competes with
-              your actual work. clickfolio.me gives you a clean, fast page today, so your time goes
-              into the portfolio pieces instead of CSS.
-            </p>
-            <p className="text-muted-foreground">
-              Looking for inspiration first? Browse{" "}
-              <a className="underline" href="/blog/resume-website-examples">
-                resume website examples
-              </a>{" "}
-              to see layouts you can recreate in minutes.
-            </p>
-          </section>
+          <RoleSection
+            heading={'"Shouldn\'t I hand-build my own site?"'}
+            intro="You can, and some designers do. But a hand-built site is a project that competes with your actual work. clickfolio.me gives you a clean, fast page today, so your time goes into the portfolio pieces instead of CSS."
+            outro={
+              <>
+                Looking for inspiration first? Browse{" "}
+                <Link className="underline" href="/blog/resume-website-examples">
+                  resume website examples
+                </Link>{" "}
+                to see layouts you can recreate in minutes.
+              </>
+            }
+          />
 
           <RoleFaqSection items={faqs} />
 
           <Button asChild size="lg">
-            <a href="/">Create Your Free Design Portfolio</a>
+            <Link href="/">Create Your Free Design Portfolio</Link>
           </Button>
         </div>
       </main>

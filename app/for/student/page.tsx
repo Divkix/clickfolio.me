@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { RoleFaqSection } from "@/components/Faq";
+import { RoleSection } from "@/components/role/RoleSection";
 import { Button } from "@/components/ui/button";
 import {
   buildRolePageMetadata,
@@ -60,116 +62,93 @@ export default function StudentPage() {
             shareable website with a custom @handle URL — completely free, no time limits.
           </p>
 
-          <section className="mb-12">
-            <h2 className="font-bold text-xl text-foreground mb-4">
-              Why Students Love clickfolio.me
-            </h2>
-            <ul className="space-y-3 text-muted-foreground list-disc pl-5">
-              <li>
-                <strong>100% free, forever</strong> — all 6 base templates have no time limits, no
-                trials, and no credit card requirements. Perfect for students building their first
-                online presence.
-              </li>
-              <li>
-                <strong>Classic ATS template</strong> — optimized for applicant tracking systems
-                used by internship and entry-level job portals. Your portfolio works as both a
-                website and a resume.
-              </li>
-              <li>
-                <strong>Education-first layout</strong> — AI automatically surfaces your education,
-                coursework, GPA, and academic projects. Ideal for students with limited work
-                experience.
-              </li>
-              <li>
-                <strong>Bento Grid template</strong> — modern mosaic layout that organizes your
-                coursework, projects, skills, and extracurriculars into visually distinct,
-                impressive cards.
-              </li>
-            </ul>
-          </section>
+          <RoleSection
+            heading="Why Students Love clickfolio.me"
+            items={[
+              {
+                lead: "100% free, forever",
+                body: "all 6 base templates have no time limits, no trials, and no credit card requirements. Perfect for students building their first online presence.",
+              },
+              {
+                lead: "Classic ATS template",
+                body: "optimized for applicant tracking systems used by internship and entry-level job portals. Your portfolio works as both a website and a resume.",
+              },
+              {
+                lead: "Education-first layout",
+                body: "AI automatically surfaces your education, coursework, GPA, and academic projects. Ideal for students with limited work experience.",
+              },
+              {
+                lead: "Bento Grid template",
+                body: "modern mosaic layout that organizes your coursework, projects, skills, and extracurriculars into visually distinct, impressive cards.",
+              },
+            ]}
+          />
 
-          <section className="mb-12">
-            <h2 className="font-bold text-xl text-foreground mb-4">Stand Out from the Stack</h2>
-            <p className="text-muted-foreground mb-4">
-              Most students apply with a PDF. You will apply with a live student resume website.
-              Share your @handle URL on internship applications, LinkedIn, and with recruiters at
-              career fairs. It shows initiative and attention to detail before you say a word.
-            </p>
-            <p className="text-muted-foreground">
-              No design skills? No problem. Drop your existing resume PDF and the AI handles the
-              rest. Switch templates any time as you find your style. Your portfolio grows with you.
-            </p>
-          </section>
+          <RoleSection
+            heading="Stand Out from the Stack"
+            intro="Most students apply with a PDF. You will apply with a live student resume website. Share your @handle URL on internship applications, LinkedIn, and with recruiters at career fairs. It shows initiative and attention to detail before you say a word."
+            outro="No design skills? No problem. Drop your existing resume PDF and the AI handles the rest. Switch templates any time as you find your style. Your portfolio grows with you."
+          />
 
-          <section className="mb-12">
-            <h2 className="font-bold text-xl text-foreground mb-4">
-              What to put on it when you're just starting
-            </h2>
-            <p className="text-muted-foreground mb-4">
-              Recruiters spend about 7.4 seconds on a first scan (The Ladders, 2018), and for
-              entry-level roles they look for potential, not a long career. Give them clear signals
-              fast.
-            </p>
-            <ul className="space-y-3 text-muted-foreground list-disc pl-5">
-              <li>
-                <strong>Projects and coursework</strong> — a capstone, a class build, or a hackathon
-                entry. Show what you can do, not just what you studied.
-              </li>
-              <li>
-                <strong>Skills you actually use</strong> — tools, languages, and software you are
-                comfortable with.
-              </li>
-              <li>
-                <strong>Activities and leadership</strong> — clubs, teams, and volunteer roles that
-                show you follow through.
-              </li>
-              <li>
-                <strong>Education details</strong> — major, expected graduation, and standout
-                results worth highlighting.
-              </li>
-            </ul>
-          </section>
+          <RoleSection
+            heading="What to put on it when you're just starting"
+            intro="Recruiters spend about 7.4 seconds on a first scan (The Ladders, 2018), and for entry-level roles they look for potential, not a long career. Give them clear signals fast."
+            items={[
+              {
+                lead: "Projects and coursework",
+                body: "a capstone, a class build, or a hackathon entry. Show what you can do, not just what you studied.",
+              },
+              {
+                lead: "Skills you actually use",
+                body: "tools, languages, and software you are comfortable with.",
+              },
+              {
+                lead: "Activities and leadership",
+                body: "clubs, teams, and volunteer roles that show you follow through.",
+              },
+              {
+                lead: "Education details",
+                body: "major, expected graduation, and standout results worth highlighting.",
+              },
+            ]}
+          />
 
-          <section className="mb-12">
-            <h2 className="font-bold text-xl text-foreground mb-4">Templates that fit a student</h2>
-            <ul className="space-y-3 text-muted-foreground list-disc pl-5">
-              <li>
-                <strong>Classic ATS</strong> — clean and parser-friendly for internship and
-                entry-level portals.
-              </li>
-              <li>
-                <strong>Bento Grid</strong> — a mosaic that turns coursework, projects, and clubs
-                into impressive cards.
-              </li>
-              <li>
-                <strong>Minimalist Editorial</strong> — simple and readable when you want the work
-                to speak.
-              </li>
-            </ul>
-          </section>
+          <RoleSection
+            heading="Templates that fit a student"
+            items={[
+              {
+                lead: "Classic ATS",
+                body: "clean and parser-friendly for internship and entry-level portals.",
+              },
+              {
+                lead: "Bento Grid",
+                body: "a mosaic that turns coursework, projects, and clubs into impressive cards.",
+              },
+              {
+                lead: "Minimalist Editorial",
+                body: "simple and readable when you want the work to speak.",
+              },
+            ]}
+          />
 
-          <section className="mb-12">
-            <h2 className="font-bold text-xl text-foreground mb-4">
-              "What if I have nothing to show yet?"
-            </h2>
-            <p className="text-muted-foreground mb-4">
-              Everyone starts there. One class project, one internship, or one club role is enough
-              to fill a page that looks intentional. The point is to look organized and motivated,
-              and a clean site does that on its own.
-            </p>
-            <p className="text-muted-foreground">
-              New to all of this? Start with{" "}
-              <a className="underline" href="/blog/student-resume-website">
-                our guide to building a student resume website
-              </a>{" "}
-              for a simple walkthrough.
-            </p>
-          </section>
+          <RoleSection
+            heading={'"What if I have nothing to show yet?"'}
+            intro="Everyone starts there. One class project, one internship, or one club role is enough to fill a page that looks intentional. The point is to look organized and motivated, and a clean site does that on its own."
+            outro={
+              <>
+                New to all of this? Start with{" "}
+                <Link className="underline" href="/blog/student-resume-website">
+                  our guide to building a student resume website
+                </Link>{" "}
+                for a simple walkthrough.
+              </>
+            }
+          />
 
           <RoleFaqSection items={faqs} />
 
           <Button asChild size="lg">
-            <a href="/">Build Your Free Student Portfolio</a>
+            <Link href="/">Build Your Free Student Portfolio</Link>
           </Button>
         </div>
       </main>

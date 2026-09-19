@@ -73,6 +73,73 @@ function ToggleCard({
   );
 }
 
+type StatusTone = "success" | "warning" | "neutral";
+
+const CHIP_CLASS = {
+  success: "inline-flex items-center gap-1 px-2 py-1 rounded-md bg-success/10 text-success",
+  warning: "inline-flex items-center gap-1 px-2 py-1 rounded-md bg-warning/10 text-warning",
+  neutral:
+    "inline-flex items-center gap-1 px-2 py-1 rounded-md bg-secondary text-secondary-foreground",
+} satisfies Record<StatusTone, string>;
+
+interface PrivacyToggleState {
+  icon: LucideIcon;
+  description: string;
+  chipText: string;
+  tone: StatusTone;
+}
+
+interface PrivacyToggle {
+  field: keyof PrivacySettings;
+  label: string;
+  variant?: "warning";
+  state: (on: boolean) => PrivacyToggleState;
+}
+
+const PRIVACY_TOGGLES: PrivacyToggle[] = [
+  {
+    field: "show_phone",
+    label: "Phone",
+    state: (on) => ({
+      icon: Phone,
+      description: on ? "Visible" : "Hidden",
+      chipText: on ? "Visible" : "Hidden",
+      tone: on ? "success" : "neutral",
+    }),
+  },
+  {
+    field: "show_address",
+    label: "Address",
+    state: (on) => ({
+      icon: MapPin,
+      description: on ? "Full address" : "City only",
+      chipText: on ? "Full" : "City only",
+      tone: on ? "success" : "neutral",
+    }),
+  },
+  {
+    field: "hide_from_search",
+    label: "Search",
+    variant: "warning",
+    state: (on) => ({
+      icon: on ? SearchX : Search,
+      description: on ? "Hidden" : "Indexed",
+      chipText: on ? "Hidden" : "Indexed",
+      tone: on ? "warning" : "success",
+    }),
+  },
+  {
+    field: "show_in_directory",
+    label: "Directory",
+    state: (on) => ({
+      icon: on ? Users : Globe,
+      description: on ? "Listed on /explore" : "Not listed",
+      chipText: on ? "Listed" : "Not listed",
+      tone: on ? "success" : "neutral",
+    }),
+  },
+];
+
 export function PrivacySettingsForm({
   initialSettings,
   initialUpdatedAt,
@@ -86,10 +153,12 @@ export function PrivacySettingsForm({
     defaultValues: initialSettings,
   });
 
-  const showPhone = watch("show_phone");
-  const showAddress = watch("show_address");
-  const hideFromSearch = watch("hide_from_search");
-  const showInDirectory = watch("show_in_directory");
+  const values: PrivacySettings = {
+    show_phone: Boolean(watch("show_phone")),
+    show_address: Boolean(watch("show_address")),
+    hide_from_search: Boolean(watch("hide_from_search")),
+    show_in_directory: Boolean(watch("show_in_directory")),
+  };
 
   const onSubmit = async (data: PrivacySettings): Promise<boolean> => {
     setIsSaving(true);
@@ -130,12 +199,8 @@ export function PrivacySettingsForm({
     setValue(field, value, { shouldValidate: true });
     setSavingField(field);
 
-    const newSettings = {
-      show_phone: field === "show_phone" ? value : showPhone,
-      show_address: field === "show_address" ? value : showAddress,
-      hide_from_search: field === "hide_from_search" ? value : (hideFromSearch ?? false),
-      show_in_directory: field === "show_in_directory" ? value : (showInDirectory ?? false),
-    };
+    const newSettings = { ...values };
+    newSettings[field] = value;
 
     const saved = await onSubmit(newSettings);
 
@@ -160,76 +225,37 @@ export function PrivacySettingsForm({
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
-        <ToggleCard
-          icon={Phone}
-          label="Phone"
-          description={showPhone ? "Visible" : "Hidden"}
-          checked={showPhone}
-          onCheckedChange={(checked) => handleToggleChange("show_phone", checked)}
-          disabled={isSaving && savingField === "show_phone"}
-        />
-        <ToggleCard
-          icon={MapPin}
-          label="Address"
-          description={showAddress ? "Full address" : "City only"}
-          checked={showAddress}
-          onCheckedChange={(checked) => handleToggleChange("show_address", checked)}
-          disabled={isSaving && savingField === "show_address"}
-        />
-        <ToggleCard
-          icon={hideFromSearch ? SearchX : Search}
-          label="Search"
-          description={hideFromSearch ? "Hidden" : "Indexed"}
-          checked={hideFromSearch ?? false}
-          onCheckedChange={(checked) => handleToggleChange("hide_from_search", checked)}
-          disabled={isSaving && savingField === "hide_from_search"}
-          variant="warning"
-        />
-        <ToggleCard
-          icon={showInDirectory ? Users : Globe}
-          label="Directory"
-          description={showInDirectory ? "Listed on /explore" : "Not listed"}
-          checked={showInDirectory ?? false}
-          onCheckedChange={(checked) => handleToggleChange("show_in_directory", checked)}
-          disabled={isSaving && savingField === "show_in_directory"}
-        />
+        {PRIVACY_TOGGLES.map(({ field, label, variant, state }) => {
+          const { icon, description } = state(values[field]);
+
+          return (
+            <ToggleCard
+              key={field}
+              icon={icon}
+              label={label}
+              description={description}
+              checked={values[field]}
+              onCheckedChange={(checked) => handleToggleChange(field, checked)}
+              disabled={isSaving && savingField === field}
+              variant={variant}
+            />
+          );
+        })}
       </div>
 
       <div className="flex flex-wrap gap-2 text-xs">
         <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-secondary text-secondary-foreground">
           Email: <span className="font-medium">Always visible</span>
         </span>
-        <span
-          className={`inline-flex items-center gap-1 px-2 py-1 rounded-md ${
-            showPhone ? "bg-success/10 text-success" : "bg-secondary text-secondary-foreground"
-          }`}
-        >
-          Phone: <span className="font-medium">{showPhone ? "Visible" : "Hidden"}</span>
-        </span>
-        <span
-          className={`inline-flex items-center gap-1 px-2 py-1 rounded-md ${
-            showAddress ? "bg-success/10 text-success" : "bg-secondary text-secondary-foreground"
-          }`}
-        >
-          Address: <span className="font-medium">{showAddress ? "Full" : "City only"}</span>
-        </span>
-        <span
-          className={`inline-flex items-center gap-1 px-2 py-1 rounded-md ${
-            hideFromSearch ? "bg-warning/10 text-warning" : "bg-success/10 text-success"
-          }`}
-        >
-          Search: <span className="font-medium">{hideFromSearch ? "Hidden" : "Indexed"}</span>
-        </span>
-        <span
-          className={`inline-flex items-center gap-1 px-2 py-1 rounded-md ${
-            showInDirectory
-              ? "bg-success/10 text-success"
-              : "bg-secondary text-secondary-foreground"
-          }`}
-        >
-          Directory:{" "}
-          <span className="font-medium">{showInDirectory ? "Listed" : "Not listed"}</span>
-        </span>
+        {PRIVACY_TOGGLES.map(({ field, label, state }) => {
+          const { chipText, tone } = state(values[field]);
+
+          return (
+            <span key={field} className={CHIP_CLASS[tone]}>
+              {label}: <span className="font-medium">{chipText}</span>
+            </span>
+          );
+        })}
       </div>
     </div>
   );

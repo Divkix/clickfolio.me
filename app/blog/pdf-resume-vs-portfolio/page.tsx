@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BlogPostLayout } from "@/components/blog/BlogPostLayout";
+import { PostList, PostSection } from "@/components/blog/PostSection";
 import { buildBlogPostMetadata, getPostBySlug } from "@/lib/blog/posts";
 
 export const revalidate = 86400;
@@ -27,107 +28,97 @@ export default function PdfResumeVsPortfolioPage() {
         </p>
       </section>
 
-      <section>
-        <h2>When to Use a PDF Resume</h2>
-        <p>
-          The PDF resume isn't dead — it's the standard format for specific, high-stakes scenarios:
-        </p>
-        <ul>
-          <li>
-            <strong>ATS applications.</strong> Most large companies use Applicant Tracking Systems
-            that expect a file attachment. PDFs preserve formatting across systems and are
-            universally accepted. A portfolio URL in your application won't get parsed — the PDF
-            will. Use a PDF when submitting through job portals, corporate career pages, or
-            recruiter platforms.
-          </li>
-          <li>
-            <strong>Email applications.</strong> When a recruiter says "send me your resume," they
-            expect an attachment. Attach the PDF and include your portfolio URL in the email body as
-            a bonus — you've satisfied the expectation and added value.
-          </li>
-          <li>
-            <strong>Formal settings.</strong> Law firms, government agencies, academic institutions,
-            and traditional corporations expect documents. A portfolio link is a nice addition, but
-            the PDF is the table stakes.
-          </li>
-          <li>
-            <strong>Offline sharing.</strong> Career fairs, in-person interviews, networking events
-            — sometimes you need something you can print or attach. A PDF is reliable offline. A QR
-            code linking to your portfolio is a powerful complement.
-          </li>
-          <li>
-            <strong>Reference checks.</strong> When someone needs to quickly verify your employment
-            history, a clean, single-page PDF is faster to scan than navigating a website.
-          </li>
-        </ul>
-      </section>
+      <PostSection
+        heading="When to Use a PDF Resume"
+        intro="The PDF resume isn't dead — it's the standard format for specific, high-stakes scenarios:"
+      >
+        <PostList
+          items={[
+            {
+              lead: "ATS applications.",
+              body: " Most large companies use Applicant Tracking Systems that expect a file attachment. PDFs preserve formatting across systems and are universally accepted. A portfolio URL in your application won't get parsed — the PDF will. Use a PDF when submitting through job portals, corporate career pages, or recruiter platforms.",
+            },
+            {
+              lead: "Email applications.",
+              body: ' When a recruiter says "send me your resume," they expect an attachment. Attach the PDF and include your portfolio URL in the email body as a bonus — you\'ve satisfied the expectation and added value.',
+            },
+            {
+              lead: "Formal settings.",
+              body: " Law firms, government agencies, academic institutions, and traditional corporations expect documents. A portfolio link is a nice addition, but the PDF is the table stakes.",
+            },
+            {
+              lead: "Offline sharing.",
+              body: " Career fairs, in-person interviews, networking events — sometimes you need something you can print or attach. A PDF is reliable offline. A QR code linking to your portfolio is a powerful complement.",
+            },
+            {
+              lead: "Reference checks.",
+              body: " When someone needs to quickly verify your employment history, a clean, single-page PDF is faster to scan than navigating a website.",
+            },
+          ]}
+        />
+      </PostSection>
 
-      <section>
-        <h2>When to Use a Portfolio Website</h2>
-        <p>A portfolio website excels where a PDF falls short:</p>
-        <ul>
-          <li>
-            <strong>Social media and networking.</strong> Twitter bio, Instagram link, LinkedIn
-            featured section, Discord profile — every platform accepts a URL. None accept a PDF. A
-            portfolio link turns every social profile into a gateway to your professional story.
-          </li>
-          <li>
-            <strong>Personal branding.</strong> Your portfolio is your professional home on the
-            internet. It's where you control the narrative — the design, the content, the messaging.
-            A PDF is a document. A portfolio is a presence.
-          </li>
-          <li>
-            <strong>Search engine discovery.</strong> Recruiters search for "[skill] [location]" on
-            Google. A PDF won't appear in those results. A portfolio website with relevant keywords
-            will.
-          </li>
-          <li>
-            <strong>Analytics and iteration.</strong> Your portfolio tells you how many people
-            viewed it, where they came from, and what they looked at. This data helps you optimize —
-            maybe your skills section gets the most views, or your project descriptions need work. A
-            PDF gives you zero insight.
-          </li>
-          <li>
-            <strong>QR codes and print materials.</strong> Put a QR code on your business card,
-            printed resume, or conference badge. One scan takes someone directly to your full
-            portfolio. This bridges the gap between physical and digital presence elegantly.
-          </li>
-          <li>
-            <strong>Dynamic updates.</strong> Changed jobs on Monday? Update your portfolio in 30
-            seconds and it's live. No need to re-send PDFs to everyone who has the old version.
-          </li>
-        </ul>
-      </section>
+      <PostSection
+        heading="When to Use a Portfolio Website"
+        intro="A portfolio website excels where a PDF falls short:"
+      >
+        <PostList
+          items={[
+            {
+              lead: "Social media and networking.",
+              body: " Twitter bio, Instagram link, LinkedIn featured section, Discord profile — every platform accepts a URL. None accept a PDF. A portfolio link turns every social profile into a gateway to your professional story.",
+            },
+            {
+              lead: "Personal branding.",
+              body: " Your portfolio is your professional home on the internet. It's where you control the narrative — the design, the content, the messaging. A PDF is a document. A portfolio is a presence.",
+            },
+            {
+              lead: "Search engine discovery.",
+              body: ' Recruiters search for "[skill] [location]" on Google. A PDF won\'t appear in those results. A portfolio website with relevant keywords will.',
+            },
+            {
+              lead: "Analytics and iteration.",
+              body: " Your portfolio tells you how many people viewed it, where they came from, and what they looked at. This data helps you optimize — maybe your skills section gets the most views, or your project descriptions need work. A PDF gives you zero insight.",
+            },
+            {
+              lead: "QR codes and print materials.",
+              body: " Put a QR code on your business card, printed resume, or conference badge. One scan takes someone directly to your full portfolio. This bridges the gap between physical and digital presence elegantly.",
+            },
+            {
+              lead: "Dynamic updates.",
+              body: " Changed jobs on Monday? Update your portfolio in 30 seconds and it's live. No need to re-send PDFs to everyone who has the old version.",
+            },
+          ]}
+        />
+      </PostSection>
 
-      <section>
-        <h2>The Hybrid Approach</h2>
-        <p>The optimal strategy uses both formats, linked together:</p>
-        <ol className="list-decimal pl-6 space-y-3">
-          <li>
-            <strong>Maintain a single source of truth.</strong> Your resume content — experience,
-            education, skills — lives in one place: your clickfolio.me account. From there, it
-            powers both your portfolio website and can be exported for PDF use.
-          </li>
-          <li>
-            <strong>Include your portfolio URL on your PDF.</strong> Add your portfolio URL to the
-            header or contact section of your resume PDF. Anyone who receives your PDF is one click
-            away from your full portfolio, with additional details, projects, and interactive
-            elements.
-          </li>
-          <li>
-            <strong>Use the right format for each channel.</strong> Job portal? Attach PDF, include
-            portfolio link in cover letter. LinkedIn message? Send portfolio link. Career fair? Hand
-            over a printed PDF with a QR code to your portfolio. Conference talk? Put your portfolio
-            URL on your last slide.
-          </li>
-          <li>
-            <strong>Match your template to the context.</strong> Use the ClassicATS template on
-            clickfolio.me for a portfolio that mirrors your ATS-optimized PDF. Switch to a more
-            creative template (NeoBrutalist, Spotlight) when sharing on social media. Same content,
-            different presentation — appropriate for different audiences.
-          </li>
-        </ol>
-      </section>
+      <PostSection
+        heading="The Hybrid Approach"
+        intro="The optimal strategy uses both formats, linked together:"
+      >
+        <PostList
+          ordered
+          className="list-decimal pl-6 space-y-3"
+          items={[
+            {
+              lead: "Maintain a single source of truth.",
+              body: " Your resume content — experience, education, skills — lives in one place: your clickfolio.me account. From there, it powers both your portfolio website and can be exported for PDF use.",
+            },
+            {
+              lead: "Include your portfolio URL on your PDF.",
+              body: " Add your portfolio URL to the header or contact section of your resume PDF. Anyone who receives your PDF is one click away from your full portfolio, with additional details, projects, and interactive elements.",
+            },
+            {
+              lead: "Use the right format for each channel.",
+              body: " Job portal? Attach PDF, include portfolio link in cover letter. LinkedIn message? Send portfolio link. Career fair? Hand over a printed PDF with a QR code to your portfolio. Conference talk? Put your portfolio URL on your last slide.",
+            },
+            {
+              lead: "Match your template to the context.",
+              body: " Use the ClassicATS template on clickfolio.me for a portfolio that mirrors your ATS-optimized PDF. Switch to a more creative template (NeoBrutalist, Spotlight) when sharing on social media. Same content, different presentation — appropriate for different audiences.",
+            },
+          ]}
+        />
+      </PostSection>
 
       <section>
         <h2>ATS-Friendly Templates</h2>

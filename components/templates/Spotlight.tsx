@@ -4,7 +4,7 @@ import { ArrowUpRight, Briefcase, Globe, GraduationCap } from "lucide-react";
 import type React from "react";
 import { useCallback, useRef, useState } from "react";
 import { ShareBar } from "@/components/ShareBar";
-import { getContactLinks } from "@/lib/templates/contact-links";
+import { type ContactLinkDescriptor, getContactLinks } from "@/lib/templates/contact-links";
 import {
   flattenSkills,
   formatDateRange,
@@ -84,10 +84,264 @@ function getMarqueeOpacity(index: number): string {
   return "opacity-30";
 }
 
-export const Spotlight: React.FC<TemplateProps> = ({ content, profile, isPreview }) => {
+function SpotlightBackdrop({ cursorPos }: { cursorPos: { x: number; y: number } }) {
+  return (
+    <>
+      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden" aria-hidden="true">
+        <div
+          className="absolute top-0 left-[15%] w-[400px] max-w-[100vw] h-[600px] overflow-hidden"
+          style={{
+            background:
+              "conic-gradient(from 180deg at 50% 0%, transparent 40%, rgba(232,77,14,0.03) 50%, transparent 60%)",
+          }}
+        />
+        <div
+          className="absolute top-0 left-[55%] w-[500px] max-w-[100vw] h-[700px] overflow-hidden"
+          style={{
+            background:
+              "conic-gradient(from 180deg at 50% 0%, transparent 38%, rgba(232,77,14,0.025) 50%, transparent 62%)",
+          }}
+        />
+        <div
+          className="absolute top-0 right-[10%] w-[350px] max-w-[100vw] h-[500px] overflow-hidden"
+          style={{
+            background:
+              "conic-gradient(from 180deg at 50% 0%, transparent 42%, rgba(232,77,14,0.02) 50%, transparent 58%)",
+          }}
+        />
+      </div>
+
+      <div
+        className="fixed inset-0 z-1 pointer-events-none motion-safe:transition-[background] motion-safe:duration-100"
+        aria-hidden="true"
+        style={{
+          background: `radial-gradient(circle 250px at ${cursorPos.x}px ${cursorPos.y}px, rgba(232,77,14,0.04), transparent)`,
+        }}
+      />
+    </>
+  );
+}
+
+function SpotlightNav({ content }: { content: TemplateProps["content"] }) {
+  const navLinks = [
+    { label: "About", href: "#about" },
+    ...(content.experience?.length > 0 ? [{ label: "Work", href: "#work" }] : []),
+    ...(content.projects && content.projects.length > 0
+      ? [{ label: "Projects", href: "#projects" }]
+      : []),
+    { label: "Contact", href: "#contact" },
+  ];
+
+  return (
+    <>
+      <nav
+        className="fixed top-8 left-8 z-50 hidden md:flex flex-col gap-1.5"
+        aria-label="Main navigation"
+      >
+        {navLinks.map((link) => (
+          <a
+            key={link.href}
+            href={link.href}
+            className="text-sm font-body-sl text-stone-400 hover:text-[#E84D0E] transition-colors focus-visible:outline-none focus-visible:text-[#E84D0E]"
+          >
+            {link.label}
+          </a>
+        ))}
+      </nav>
+
+      <nav
+        className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex md:hidden items-center gap-3 px-4 py-2 bg-[#FFFCF9]/90 backdrop-blur-md border border-stone-200/80 rounded-full shadow-sm max-w-[calc(100%-2rem)] overflow-x-auto no-scrollbar"
+        aria-label="Main navigation"
+      >
+        {navLinks.map((link) => (
+          <a
+            key={link.href}
+            href={link.href}
+            className="text-sm font-body-sl text-stone-500 hover:text-[#E84D0E] transition-colors whitespace-nowrap focus-visible:outline-none focus-visible:text-[#E84D0E]"
+          >
+            {link.label}
+          </a>
+        ))}
+      </nav>
+
+      {content.contact.email && (
+        <a
+          href="#contact"
+          className="hidden md:inline-flex fixed top-8 right-8 z-50 px-5 py-2 text-sm font-display-sl font-semibold bg-[#E84D0E] text-white rounded-full hover:bg-[#d4430c] transition-colors shadow-lg shadow-orange-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E84D0E] focus-visible:ring-offset-2"
+        >
+          Hire Me
+        </a>
+      )}
+    </>
+  );
+}
+
+function SpotlightContactLinks({ links }: { links: ContactLinkDescriptor[] }) {
+  return (
+    <div className="flex gap-3 pt-4">
+      {links.map((link) => {
+        const icon = getContactIcon(link.type, {
+          className: "w-5 h-5",
+          "aria-hidden": true,
+        });
+        const isBranded = link.type === "behance" || link.type === "dribbble";
+        const brandColor =
+          link.type === "behance" ? "#1769FF" : link.type === "dribbble" ? "#EA4C89" : undefined;
+        const brandText = link.type === "behance" ? "Bē" : link.type === "dribbble" ? "Dr" : null;
+
+        if (link.type === "location") {
+          return (
+            <div
+              key={link.type}
+              className="p-2 text-[#78716C] rounded-full flex items-center justify-center"
+            >
+              {icon}
+            </div>
+          );
+        }
+
+        return (
+          <a
+            key={link.type}
+            href={link.href}
+            target={link.isExternal ? "_blank" : undefined}
+            rel={link.isExternal ? "noreferrer" : undefined}
+            aria-label={link.label}
+            className="p-2 text-[#78716C] hover:text-[#E84D0E] hover:bg-orange-50 rounded-full transition-colors flex items-center justify-center"
+            style={isBranded ? { color: brandColor } : undefined}
+          >
+            {isBranded ? <span className="font-bold text-sm">{brandText}</span> : icon}
+          </a>
+        );
+      })}
+    </div>
+  );
+}
+
+function SpotlightHero({
+  content,
+  profile,
+}: {
+  content: TemplateProps["content"];
+  profile: TemplateProps["profile"];
+}) {
   const firstName = content.full_name.split(" ")[0] || content.full_name;
-  const allSkills = flattenSkills(content.skills);
   const contactLinks = getContactLinks(content.contact);
+
+  return (
+    <section id="about" className="mb-24 md:mb-32">
+      <div className="flex flex-col-reverse md:flex-row gap-8 items-start md:items-center justify-between">
+        <div className="flex-1 space-y-6">
+          <div className="space-y-3">
+            <span className="inline-block px-3 py-1 rounded-full bg-orange-50 border border-orange-200/60 text-xs font-display-sl font-semibold text-[#E84D0E] tracking-wide">
+              Available for work
+            </span>
+            <h1 className="text-5xl md:text-7xl font-display-sl font-extrabold tracking-tight text-[#1C1917] [text-wrap:unset] break-words">
+              I&apos;m {firstName}.
+            </h1>
+            <h2 className="text-2xl md:text-3xl text-[#78716C] font-display-sl font-semibold tracking-tight [text-wrap:unset] break-words">
+              {content.headline}
+            </h2>
+          </div>
+
+          <p className="text-lg text-stone-600 leading-relaxed max-w-xl font-body-sl">
+            {content.summary}
+          </p>
+
+          <SpotlightContactLinks links={contactLinks} />
+        </div>
+
+        <div className="relative shrink-0">
+          <div
+            className="absolute pointer-events-none"
+            aria-hidden="true"
+            style={{
+              background:
+                "conic-gradient(from 180deg at 50% 0%, transparent 30%, rgba(232,77,14,0.06) 50%, transparent 70%)",
+              top: "-200px",
+              left: "50%",
+              transform: "translateX(-50%)",
+              width: "min(600px, 100vw)",
+              height: "500px",
+            }}
+          />
+          {profile.avatar_url ? (
+            <img
+              src={profile.avatar_url}
+              alt={`Portrait of ${content.full_name}`}
+              width={192}
+              height={192}
+              fetchPriority="high"
+              decoding="async"
+              className="relative w-32 h-32 md:w-48 md:h-48 rounded-full object-cover border-4 border-[#FFFCF9] shadow-xl shadow-orange-500/10"
+            />
+          ) : (
+            <div className="relative w-32 h-32 md:w-48 md:h-48 rounded-full bg-stone-100 flex items-center justify-center text-3xl font-display-sl font-bold text-stone-300 border-4 border-[#FFFCF9] shadow-xl shadow-orange-500/10">
+              {getInitials(content.full_name)}
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function SpotlightCertifications({
+  certifications,
+}: {
+  certifications: NonNullable<TemplateProps["content"]["certifications"]>;
+}) {
+  return (
+    <div>
+      <h3 className="text-sm font-display-sl font-bold uppercase tracking-widest text-[#78716C] mb-8 flex items-center gap-2">
+        <AwardIcon className="w-4 h-4" aria-hidden="true" /> Certifications
+      </h3>
+      <div className="space-y-4">
+        {certifications.map((cert, index) => {
+          const body = (
+            <>
+              <div className="min-w-0">
+                <h4 className="font-display-sl font-semibold text-sm text-[#1C1917] group-hover:text-[#E84D0E] transition-colors [text-wrap:unset] break-words">
+                  {cert.name}
+                </h4>
+                <p className="text-xs text-[#78716C] font-body-sl">
+                  {cert.issuer}
+                  {cert.date ? ` · ${formatShortDate(cert.date)}` : ""}
+                </p>
+              </div>
+              {cert.url && (
+                <ArrowUpRight
+                  className="w-3 h-3 text-stone-300 group-hover:text-[#E84D0E] shrink-0"
+                  aria-hidden="true"
+                />
+              )}
+            </>
+          );
+          const certClass =
+            "flex items-center justify-between gap-3 p-4 bg-[#FFFCF9] border border-stone-200/60 rounded-xl group";
+          return cert.url ? (
+            <a
+              key={index}
+              href={cert.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`${certClass} hover:border-[#E84D0E]/30 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E84D0E]`}
+            >
+              {body}
+            </a>
+          ) : (
+            <article key={index} className={certClass}>
+              {body}
+            </article>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+export const Spotlight: React.FC<TemplateProps> = ({ content, profile, isPreview }) => {
+  const allSkills = flattenSkills(content.skills);
   const containerRef = useRef<HTMLDivElement>(null);
   const [cursorPos, setCursorPos] = useState({ x: -9999, y: -9999 });
   const rafRef = useRef<number | null>(null);
@@ -105,15 +359,6 @@ export const Spotlight: React.FC<TemplateProps> = ({ content, profile, isPreview
     [isPreview],
   );
 
-  const navLinks = [
-    { label: "About", href: "#about" },
-    ...(content.experience?.length > 0 ? [{ label: "Work", href: "#work" }] : []),
-    ...(content.projects && content.projects.length > 0
-      ? [{ label: "Projects", href: "#projects" }]
-      : []),
-    { label: "Contact", href: "#contact" },
-  ];
-
   return (
     <>
       <TemplateFontLinks href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;700;800&family=Instrument+Sans:wght@400;500&display=swap" />
@@ -130,180 +375,12 @@ export const Spotlight: React.FC<TemplateProps> = ({ content, profile, isPreview
           .mask-linear-fade { mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent); }
         `}</style>
 
-        <div
-          className="absolute inset-0 z-0 pointer-events-none overflow-hidden"
-          aria-hidden="true"
-        >
-          <div
-            className="absolute top-0 left-[15%] w-[400px] max-w-[100vw] h-[600px] overflow-hidden"
-            style={{
-              background:
-                "conic-gradient(from 180deg at 50% 0%, transparent 40%, rgba(232,77,14,0.03) 50%, transparent 60%)",
-            }}
-          />
-          <div
-            className="absolute top-0 left-[55%] w-[500px] max-w-[100vw] h-[700px] overflow-hidden"
-            style={{
-              background:
-                "conic-gradient(from 180deg at 50% 0%, transparent 38%, rgba(232,77,14,0.025) 50%, transparent 62%)",
-            }}
-          />
-          <div
-            className="absolute top-0 right-[10%] w-[350px] max-w-[100vw] h-[500px] overflow-hidden"
-            style={{
-              background:
-                "conic-gradient(from 180deg at 50% 0%, transparent 42%, rgba(232,77,14,0.02) 50%, transparent 58%)",
-            }}
-          />
-        </div>
+        <SpotlightBackdrop cursorPos={cursorPos} />
 
-        <div
-          className="fixed inset-0 z-1 pointer-events-none motion-safe:transition-[background] motion-safe:duration-100"
-          aria-hidden="true"
-          style={{
-            background: `radial-gradient(circle 250px at ${cursorPos.x}px ${cursorPos.y}px, rgba(232,77,14,0.04), transparent)`,
-          }}
-        />
-
-        {!isPreview && (
-          <>
-            <nav
-              className="fixed top-8 left-8 z-50 hidden md:flex flex-col gap-1.5"
-              aria-label="Main navigation"
-            >
-              {navLinks.map((link) => (
-                <a
-                  key={link.href}
-                  href={link.href}
-                  className="text-sm font-body-sl text-stone-400 hover:text-[#E84D0E] transition-colors focus-visible:outline-none focus-visible:text-[#E84D0E]"
-                >
-                  {link.label}
-                </a>
-              ))}
-            </nav>
-
-            <nav
-              className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex md:hidden items-center gap-3 px-4 py-2 bg-[#FFFCF9]/90 backdrop-blur-md border border-stone-200/80 rounded-full shadow-sm max-w-[calc(100%-2rem)] overflow-x-auto no-scrollbar"
-              aria-label="Main navigation"
-            >
-              {navLinks.map((link) => (
-                <a
-                  key={link.href}
-                  href={link.href}
-                  className="text-sm font-body-sl text-stone-500 hover:text-[#E84D0E] transition-colors whitespace-nowrap focus-visible:outline-none focus-visible:text-[#E84D0E]"
-                >
-                  {link.label}
-                </a>
-              ))}
-            </nav>
-
-            {content.contact.email && (
-              <a
-                href="#contact"
-                className="hidden md:inline-flex fixed top-8 right-8 z-50 px-5 py-2 text-sm font-display-sl font-semibold bg-[#E84D0E] text-white rounded-full hover:bg-[#d4430c] transition-colors shadow-lg shadow-orange-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E84D0E] focus-visible:ring-offset-2"
-              >
-                Hire Me
-              </a>
-            )}
-          </>
-        )}
+        {!isPreview && <SpotlightNav content={content} />}
 
         <main className="relative z-10 max-w-4xl mx-auto px-6 pt-28 md:pt-40 pb-20">
-          <section id="about" className="mb-24 md:mb-32">
-            <div className="flex flex-col-reverse md:flex-row gap-8 items-start md:items-center justify-between">
-              <div className="flex-1 space-y-6">
-                <div className="space-y-3">
-                  <span className="inline-block px-3 py-1 rounded-full bg-orange-50 border border-orange-200/60 text-xs font-display-sl font-semibold text-[#E84D0E] tracking-wide">
-                    Available for work
-                  </span>
-                  <h1 className="text-5xl md:text-7xl font-display-sl font-extrabold tracking-tight text-[#1C1917] [text-wrap:unset] break-words">
-                    I&apos;m {firstName}.
-                  </h1>
-                  <h2 className="text-2xl md:text-3xl text-[#78716C] font-display-sl font-semibold tracking-tight [text-wrap:unset] break-words">
-                    {content.headline}
-                  </h2>
-                </div>
-
-                <p className="text-lg text-stone-600 leading-relaxed max-w-xl font-body-sl">
-                  {content.summary}
-                </p>
-
-                <div className="flex gap-3 pt-4">
-                  {contactLinks.map((link) => {
-                    const icon = getContactIcon(link.type, {
-                      className: "w-5 h-5",
-                      "aria-hidden": true,
-                    });
-                    const isBranded = link.type === "behance" || link.type === "dribbble";
-                    const brandColor =
-                      link.type === "behance"
-                        ? "#1769FF"
-                        : link.type === "dribbble"
-                          ? "#EA4C89"
-                          : undefined;
-                    const brandText =
-                      link.type === "behance" ? "Bē" : link.type === "dribbble" ? "Dr" : null;
-
-                    if (link.type === "location") {
-                      return (
-                        <div
-                          key={link.type}
-                          className="p-2 text-[#78716C] rounded-full flex items-center justify-center"
-                        >
-                          {icon}
-                        </div>
-                      );
-                    }
-
-                    return (
-                      <a
-                        key={link.type}
-                        href={link.href}
-                        target={link.isExternal ? "_blank" : undefined}
-                        rel={link.isExternal ? "noreferrer" : undefined}
-                        aria-label={link.label}
-                        className="p-2 text-[#78716C] hover:text-[#E84D0E] hover:bg-orange-50 rounded-full transition-colors flex items-center justify-center"
-                        style={isBranded ? { color: brandColor } : undefined}
-                      >
-                        {isBranded ? <span className="font-bold text-sm">{brandText}</span> : icon}
-                      </a>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="relative shrink-0">
-                <div
-                  className="absolute pointer-events-none"
-                  aria-hidden="true"
-                  style={{
-                    background:
-                      "conic-gradient(from 180deg at 50% 0%, transparent 30%, rgba(232,77,14,0.06) 50%, transparent 70%)",
-                    top: "-200px",
-                    left: "50%",
-                    transform: "translateX(-50%)",
-                    width: "min(600px, 100vw)",
-                    height: "500px",
-                  }}
-                />
-                {profile.avatar_url ? (
-                  <img
-                    src={profile.avatar_url}
-                    alt={`Portrait of ${content.full_name}`}
-                    width={192}
-                    height={192}
-                    fetchPriority="high"
-                    decoding="async"
-                    className="relative w-32 h-32 md:w-48 md:h-48 rounded-full object-cover border-4 border-[#FFFCF9] shadow-xl shadow-orange-500/10"
-                  />
-                ) : (
-                  <div className="relative w-32 h-32 md:w-48 md:h-48 rounded-full bg-stone-100 flex items-center justify-center text-3xl font-display-sl font-bold text-stone-300 border-4 border-[#FFFCF9] shadow-xl shadow-orange-500/10">
-                    {getInitials(content.full_name)}
-                  </div>
-                )}
-              </div>
-            </div>
-          </section>
+          <SpotlightHero content={content} profile={profile} />
 
           {allSkills.length > 0 && (
             <section className="mb-24 py-10 border-y border-stone-200/60 relative overflow-hidden mask-linear-fade">
@@ -444,51 +521,7 @@ export const Spotlight: React.FC<TemplateProps> = ({ content, profile, isPreview
               )}
 
               {content.certifications && content.certifications.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-display-sl font-bold uppercase tracking-widest text-[#78716C] mb-8 flex items-center gap-2">
-                    <AwardIcon className="w-4 h-4" aria-hidden="true" /> Certifications
-                  </h3>
-                  <div className="space-y-4">
-                    {content.certifications.map((cert, index) => {
-                      const body = (
-                        <>
-                          <div className="min-w-0">
-                            <h4 className="font-display-sl font-semibold text-sm text-[#1C1917] group-hover:text-[#E84D0E] transition-colors [text-wrap:unset] break-words">
-                              {cert.name}
-                            </h4>
-                            <p className="text-xs text-[#78716C] font-body-sl">
-                              {cert.issuer}
-                              {cert.date ? ` · ${formatShortDate(cert.date)}` : ""}
-                            </p>
-                          </div>
-                          {cert.url && (
-                            <ArrowUpRight
-                              className="w-3 h-3 text-stone-300 group-hover:text-[#E84D0E] shrink-0"
-                              aria-hidden="true"
-                            />
-                          )}
-                        </>
-                      );
-                      const certClass =
-                        "flex items-center justify-between gap-3 p-4 bg-[#FFFCF9] border border-stone-200/60 rounded-xl group";
-                      return cert.url ? (
-                        <a
-                          key={index}
-                          href={cert.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={`${certClass} hover:border-[#E84D0E]/30 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E84D0E]`}
-                        >
-                          {body}
-                        </a>
-                      ) : (
-                        <article key={index} className={certClass}>
-                          {body}
-                        </article>
-                      );
-                    })}
-                  </div>
-                </div>
+                <SpotlightCertifications certifications={content.certifications} />
               )}
             </section>
           )}

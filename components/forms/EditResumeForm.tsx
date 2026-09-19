@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Save } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useEffectEvent, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -74,6 +74,8 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
     [onSave],
   );
 
+  const runAutoSave = useEffectEvent(handleSave);
+
   useEffect(() => {
     const subscription = form.watch(() => {
       if (autoSaveTimeoutRef.current) {
@@ -85,7 +87,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
         const result = resumeContentSchemaStrict.safeParse(values);
 
         if (result.success) {
-          void handleSave(result.data, true);
+          void runAutoSave(result.data, true);
         } else {
           const fieldErrors = result.error.issues.map((i) => i.path.join(".")).slice(0, 3);
           toast.warning(`Fix validation errors: ${fieldErrors.join(", ")}`, {
@@ -101,7 +103,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
         clearTimeout(autoSaveTimeoutRef.current);
       }
     };
-  }, [form, handleSave]);
+  }, [form]);
 
   const onSubmit = async (data: ResumeContentFormData) => {
     // SAFETY: ResumeContentFormData is schema-validated via zodResolver; cast bridges validated form data to ResumeContent.

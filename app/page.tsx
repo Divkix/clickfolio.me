@@ -263,12 +263,12 @@ export default function Home() {
                 </p>
                 <div className="mt-8 flex flex-col items-center gap-4">
                   <BottomCTAButton />
-                  <a
+                  <Link
                     href="/blog"
                     className="inline-flex min-h-11 items-center px-3 text-sm text-background/80 underline underline-offset-4 transition-colors hover:text-background"
                   >
                     Read our guides
-                  </a>
+                  </Link>
                 </div>
               </div>
             </section>

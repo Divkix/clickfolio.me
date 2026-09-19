@@ -11,14 +11,14 @@ interface CommaArrayInputProps {
 }
 
 export function CommaArrayInput({ value, onChange, onBlur, placeholder }: CommaArrayInputProps) {
-  const [text, setText] = useState(value?.join(", ") || "");
+  const [text, setText] = useState(() => value?.join(", ") || "");
   const focusedRef = useRef(false);
 
   const externalText = value?.join(", ") || "";
-  const prevExternalRef = useRef(externalText);
-  if (externalText !== prevExternalRef.current && !focusedRef.current) {
+  const [prevExternal, setPrevExternal] = useState(externalText);
+  if (externalText !== prevExternal && !focusedRef.current) {
+    setPrevExternal(externalText);
     setText(externalText);
-    prevExternalRef.current = externalText;
   }
 
   return (
@@ -38,7 +38,7 @@ export function CommaArrayInput({ value, onChange, onBlur, placeholder }: CommaA
         onChange(items);
         const normalized = items.join(", ");
         setText(normalized);
-        prevExternalRef.current = normalized;
+        setPrevExternal(normalized);
         onBlur?.();
       }}
     />

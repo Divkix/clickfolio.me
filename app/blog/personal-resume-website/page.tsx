@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BlogPostLayout } from "@/components/blog/BlogPostLayout";
+import { PostList, PostSection } from "@/components/blog/PostSection";
 import { buildBlogPostMetadata, getPostBySlug } from "@/lib/blog/posts";
 
 export const revalidate = 86400;
@@ -46,33 +47,31 @@ export default function PersonalResumeWebsitePage() {
         </p>
       </section>
 
-      <section>
-        <h2>Why you need one in 2026</h2>
-        <p>
-          Employers look you up online before they ever reply. A personal site shapes what they
-          find:
-        </p>
-        <ul>
-          <li>
-            <strong>You control the first impression.</strong> A 2017 CareerBuilder/Harris Poll
-            survey found 70% of employers research candidates online during hiring. A polished site
-            decides what that search turns up.
-          </li>
-          <li>
-            <strong>It's a professional link for everything.</strong> Applications, your email
-            signature, your LinkedIn headline, a business card. One URL, always ready.
-          </li>
-          <li>
-            <strong>It can rank for your name.</strong> With your name in the URL, title, and
-            headings, your site can show up when someone Googles you — and build its own authority
-            over time.
-          </li>
-          <li>
-            <strong>You see who's interested.</strong> Built-in analytics tell you how many people
-            viewed your page. A PDF attachment tells you nothing.
-          </li>
-        </ul>
-      </section>
+      <PostSection
+        heading="Why you need one in 2026"
+        intro="Employers look you up online before they ever reply. A personal site shapes what they find:"
+      >
+        <PostList
+          items={[
+            {
+              lead: "You control the first impression.",
+              body: " A 2017 CareerBuilder/Harris Poll survey found 70% of employers research candidates online during hiring. A polished site decides what that search turns up.",
+            },
+            {
+              lead: "It's a professional link for everything.",
+              body: " Applications, your email signature, your LinkedIn headline, a business card. One URL, always ready.",
+            },
+            {
+              lead: "It can rank for your name.",
+              body: " With your name in the URL, title, and headings, your site can show up when someone Googles you — and build its own authority over time.",
+            },
+            {
+              lead: "You see who's interested.",
+              body: " Built-in analytics tell you how many people viewed your page. A PDF attachment tells you nothing.",
+            },
+          ]}
+        />
+      </PostSection>
 
       <section>
         <h2>Personal website vs PDF vs LinkedIn</h2>
@@ -128,30 +127,38 @@ export default function PersonalResumeWebsitePage() {
         </p>
       </section>
 
-      <section>
-        <h2>What to put on your personal resume website</h2>
-        <ol className="list-decimal pl-6 space-y-2">
-          <li>
-            <strong>A hero with your name and role.</strong> Plus a one-line summary of what you do.
-          </li>
-          <li>
-            <strong>Experience with outcomes.</strong> Lead with results, not just responsibilities.
-          </li>
-          <li>
-            <strong>Skills.</strong> Grouped and honest — the tools and areas you actually work in.
-          </li>
-          <li>
-            <strong>Projects or portfolio links.</strong> Proof of the work behind the claims.
-          </li>
-          <li>
-            <strong>Education and credentials.</strong> Brief, unless they're central to your field.
-          </li>
-          <li>
-            <strong>Contact.</strong> One clear way to reach you.
-          </li>
-        </ol>
+      <PostSection heading="What to put on your personal resume website">
+        <PostList
+          ordered
+          items={[
+            {
+              lead: "A hero with your name and role.",
+              body: " Plus a one-line summary of what you do.",
+            },
+            {
+              lead: "Experience with outcomes.",
+              body: " Lead with results, not just responsibilities.",
+            },
+            {
+              lead: "Skills.",
+              body: " Grouped and honest — the tools and areas you actually work in.",
+            },
+            {
+              lead: "Projects or portfolio links.",
+              body: " Proof of the work behind the claims.",
+            },
+            {
+              lead: "Education and credentials.",
+              body: " Brief, unless they're central to your field.",
+            },
+            {
+              lead: "Contact.",
+              body: " One clear way to reach you.",
+            },
+          ]}
+        />
         <p>Keep it scannable. Recruiters skim before they read, so make the important parts pop.</p>
-      </section>
+      </PostSection>
 
       <section>
         <h2>How to make one free</h2>
