@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { BlogPostLayout } from "@/components/blog/BlogPostLayout";
 import { ComparisonTable } from "@/components/blog/ComparisonTable";
+import { PostList, PostSection } from "@/components/blog/PostSection";
 import { buildBlogPostMetadata, getPostBySlug } from "@/lib/blog/posts";
 
 export const revalidate = 86400;
@@ -14,34 +15,6 @@ const relatedPosts = ["best-resume-website-builders", "how-to-make-a-resume-webs
 
 export function generateMetadata(): Metadata {
   return buildBlogPostMetadata(post);
-}
-
-interface PostListItem {
-  title: string;
-  body: string;
-}
-
-interface PostSectionProps {
-  heading: string;
-  intro: string;
-  items: PostListItem[];
-}
-
-function PostSection({ heading, intro, items }: PostSectionProps) {
-  return (
-    <section>
-      <h2>{heading}</h2>
-      <p>{intro}</p>
-      <ul>
-        {items.map((item, index) => (
-          <li key={index}>
-            <strong>{`${item.title}.`}</strong>
-            {` ${item.body}`}
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
 }
 
 export default function CvWebsiteBuilderPage() {
@@ -66,29 +39,32 @@ export default function CvWebsiteBuilderPage() {
       <PostSection
         heading="What features actually matter in a CV website builder?"
         intro="Most builders list dozens of features. Only a few change whether you finish and whether the result helps you get hired:"
-        items={[
-          {
-            title: "CV import",
-            body: "Can it read your PDF and fill the page for you, or do you retype everything? Import is the single biggest time-saver.",
-          },
-          {
-            title: "Free hosting and a real URL",
-            body: "A site you can't share isn't a site. Check whether the link is free or paywalled.",
-          },
-          {
-            title: "Mobile-ready templates",
-            body: "Recruiters open links on phones. The layout has to hold up on a small screen.",
-          },
-          {
-            title: "Editing without code",
-            body: "You should be able to fix a job title or reorder sections in seconds.",
-          },
-          {
-            title: "Privacy controls and analytics",
-            body: "Decide who sees your contact details, and see how many people viewed your page.",
-          },
-        ]}
-      />
+      >
+        <PostList
+          items={[
+            {
+              lead: "CV import.",
+              body: " Can it read your PDF and fill the page for you, or do you retype everything? Import is the single biggest time-saver.",
+            },
+            {
+              lead: "Free hosting and a real URL.",
+              body: " A site you can't share isn't a site. Check whether the link is free or paywalled.",
+            },
+            {
+              lead: "Mobile-ready templates.",
+              body: " Recruiters open links on phones. The layout has to hold up on a small screen.",
+            },
+            {
+              lead: "Editing without code.",
+              body: " You should be able to fix a job title or reorder sections in seconds.",
+            },
+            {
+              lead: "Privacy controls and analytics.",
+              body: " Decide who sees your contact details, and see how many people viewed your page.",
+            },
+          ]}
+        />
+      </PostSection>
 
       <section>
         <h2>How do CV website builders compare?</h2>
@@ -126,26 +102,31 @@ export default function CvWebsiteBuilderPage() {
         </p>
       </section>
 
-      <section>
-        <h2>How do you turn your CV into a website?</h2>
-        <p>With an AI builder, the process is short:</p>
-        <ol className="list-decimal pl-6 space-y-2">
-          <li>
-            <strong>Export your CV as a PDF.</strong> Use the version you already send to employers.
-          </li>
-          <li>
-            <strong>Upload it.</strong> The parser extracts your roles, education, skills, and
-            contact info.
-          </li>
-          <li>
-            <strong>Choose a template and edit.</strong> Pick from 10 designs and fix anything the
-            parser missed.
-          </li>
-          <li>
-            <strong>Publish and share.</strong> Your site is live at a clean handle you can paste
-            anywhere.
-          </li>
-        </ol>
+      <PostSection
+        heading="How do you turn your CV into a website?"
+        intro="With an AI builder, the process is short:"
+      >
+        <PostList
+          ordered
+          items={[
+            {
+              lead: "Export your CV as a PDF.",
+              body: " Use the version you already send to employers.",
+            },
+            {
+              lead: "Upload it.",
+              body: " The parser extracts your roles, education, skills, and contact info.",
+            },
+            {
+              lead: "Choose a template and edit.",
+              body: " Pick from 10 designs and fix anything the parser missed.",
+            },
+            {
+              lead: "Publish and share.",
+              body: " Your site is live at a clean handle you can paste anywhere.",
+            },
+          ]}
+        />
         <p>
           If you'd rather see the full manual walkthrough, our{" "}
           <Link href="/blog/how-to-make-a-resume-website">
@@ -153,7 +134,7 @@ export default function CvWebsiteBuilderPage() {
           </Link>{" "}
           covers both paths.
         </p>
-      </section>
+      </PostSection>
 
       <section>
         <h2>Are CV website builders free?</h2>
