@@ -7,7 +7,7 @@ describe("bare-handle redirect configuration", () => {
     const source = redirect?.source ?? "";
 
     expect(source).toContain(
-      "(?:api|_next|admin|about|blog|dashboard|edit|explore|faq|settings|themes|waiting|wizard|privacy|terms|preview|sitemap|for|ws|robots\\.txt|manifest\\.webmanifest|favicon\\.ico)(?![a-z0-9-])",
+      "(?:api|_next|admin|about|blog|contact|dashboard|edit|explore|faq|settings|themes|waiting|wizard|privacy|terms|preview|sitemap|for|ws|robots\\.txt|manifest\\.webmanifest|favicon\\.ico)(?![a-z0-9-])",
     );
 
     const handlePattern = source.match(/^\/:handle\((.*)\)$/s)?.[1];
@@ -17,5 +17,7 @@ describe("bare-handle redirect configuration", () => {
     expect(matcher.test("forrest")).toBe(true);
     expect(matcher.test("ws")).toBe(false);
     expect(matcher.test("wsj")).toBe(true);
+    expect(matcher.test("contact")).toBe(false);
+    expect(matcher.test("contactless")).toBe(true);
   });
 });

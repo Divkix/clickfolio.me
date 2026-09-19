@@ -275,6 +275,12 @@ export function generateHomepageJsonLd(): UnknownRecord[] {
         "clickfolio.me is a free AI resume website builder that turns a PDF resume into a hosted personal portfolio website with a custom @handle URL.",
       foundingDate: "2025",
       sameAs: [...siteConfig.sameAs],
+      address: {
+        "@type": "PostalAddress",
+        addressLocality: siteConfig.address.locality,
+        addressRegion: siteConfig.address.region,
+        addressCountry: siteConfig.address.country,
+      },
       founder: {
         "@type": "Person",
         name: siteConfig.founder.name,

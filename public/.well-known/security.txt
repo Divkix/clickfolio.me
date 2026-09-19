@@ -1,0 +1,4 @@
+Contact: mailto:support@clickfolio.me
+Expires: 2027-09-19T00:00:00.000Z
+Preferred-Languages: en
+Canonical: https://clickfolio.me/.well-known/security.txt

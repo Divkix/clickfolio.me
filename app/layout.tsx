@@ -54,6 +54,7 @@ export const metadata: Metadata = {
   other: {
     "msapplication-TileColor": "#D94E4E",
     "msapplication-config": "/browserconfig.xml",
+    "is-agentic-site-type": "app",
   },
 };
 

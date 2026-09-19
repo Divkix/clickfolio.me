@@ -10,6 +10,11 @@ export const siteConfig = {
   tagline: "Turn your resume into a website",
   supportEmail: "support@clickfolio.me",
   url: `https://${domain}`,
+  address: {
+    locality: "Tempe",
+    region: "AZ",
+    country: "US",
+  },
   alternateNames: ["clickfolio", "click folio", "Clickfolio"],
   sameAs: ["https://github.com/divkix/clickfolio.me"],
   founder: {

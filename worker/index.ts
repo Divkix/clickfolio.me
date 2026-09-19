@@ -17,11 +17,46 @@ import { queueMessageSchema } from "../lib/queue/types";
 import { log } from "../lib/utils/log";
 // See issue #172 / ADR-0001.
 import { SECURITY_HEADERS } from "../lib/utils/security-headers";
+import {
+  appendLinkEntry,
+  appendVary,
+  isHtmlResponse,
+  markdownResponse,
+  markdownSourcePath,
+  pageLinkHeader,
+  prefersMarkdown,
+} from "../lib/worker/markdown-negotiation";
 
 export { ClickfolioStatusDO } from "../lib/durable-objects/resume-status";
 
 const BLOCKED_PATHS =
   /(?:\.php$|^\/\.env|^\/\.git\/|^\/\.aws\/|^\/wp-|^\/xmlrpc\.php$|(?:^|\/)adminer(?:\/|$)|^\/config\.json$|application\.ya?ml$)/i;
+
+/** Adds the security headers, and renders the Markdown representation when the page is HTML. */
+async function markdownPageResponse(response: Response, url: string): Promise<Response> {
+  const headers = new Headers(response.headers);
+  for (const [key, value] of Object.entries(SECURITY_HEADERS)) {
+    headers.set(key, value);
+  }
+
+  if (!isHtmlResponse(response)) {
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    });
+  }
+
+  return markdownResponse({
+    response: new Response(null, {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    }),
+    html: await response.text(),
+    url,
+  });
+}
 
 export default {
   async fetch(request: Request, env: CloudflareEnv, _ctx: ExecutionContext): Promise<Response> {
@@ -93,10 +128,37 @@ export default {
       return stub.fetch(modifiedRequest);
     }
 
+    // A `.md` URL is a request for the Markdown twin of the page it names.
+    // Static assets win: /pricing.md is a real file, not a twin of /pricing.
+    const markdownPath = markdownSourcePath(url.pathname);
+    if (markdownPath && (request.method === "GET" || request.method === "HEAD")) {
+      const asset = await env.ASSETS.fetch(request);
+      if (asset.status !== 404) return asset;
+
+      const target = new URL(request.url);
+      target.pathname = markdownPath;
+      const appResponse = await handler.fetch(new Request(target, request));
+      return markdownPageResponse(appResponse, request.url);
+    }
+
+    // Agents that explicitly ask for Markdown get a Markdown rendering of the
+    // same SSR response. This must stay ahead of the HTML path so no cache or
+    // header wrapper can serve HTML to a text/markdown client.
+    if (prefersMarkdown(request.headers.get("accept"))) {
+      return markdownPageResponse(await handler.fetch(request), request.url);
+    }
+
     const response = await handler.fetch(request);
     const newHeaders = new Headers(response.headers);
     for (const [key, value] of Object.entries(SECURITY_HEADERS)) {
       newHeaders.set(key, value);
+    }
+    // Keeps shared caches from serving the HTML representation to a client that
+    // asked for Markdown (and vice versa), and points agents at the sitemap and
+    // the Markdown twin before they parse the page.
+    if (isHtmlResponse(response)) {
+      appendVary(newHeaders, "Accept");
+      appendLinkEntry(newHeaders, pageLinkHeader(url.pathname));
     }
     return new Response(response.body, {
       status: response.status,

@@ -16,7 +16,7 @@ const notHiddenFromSearch = or(
 );
 
 export const URLS_PER_SITEMAP = 50000;
-const BASE_STATIC_SITEMAP_ENTRY_COUNT = 7;
+const BASE_STATIC_SITEMAP_ENTRY_COUNT = 8;
 
 export const STATIC_SITEMAP_ENTRY_COUNT =
   BASE_STATIC_SITEMAP_ENTRY_COUNT + PROFESSIONS.length + BLOG_POSTS.length;
@@ -84,6 +84,12 @@ function buildStaticSitemapEntries(baseUrl: string): MetadataRoute.Sitemap {
       lastModified: new Date("2026-04-01"),
       changeFrequency: "monthly",
       priority: 0.6,
+    },
+    {
+      url: `${baseUrl}/contact`,
+      lastModified: new Date("2026-09-19"),
+      changeFrequency: "yearly",
+      priority: 0.5,
     },
   ];
 
