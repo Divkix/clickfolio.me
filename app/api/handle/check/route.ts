@@ -16,7 +16,6 @@ import {
 function handleFormatErrorMessage(error: ZodError): string {
   const issues = error.issues;
   const failedPatterns = issues.flatMap((issue) =>
-    // eslint-disable-next-line anti-slop/no-runtime-typeof -- ZodError issue.pattern is string | undefined at I/O boundary; typeof safely narrows to string before string ops
     issue.code === "invalid_format" && typeof issue.pattern === "string"
       ? [issue.pattern.replace(/^\//, "").replace(/\/$/, "")]
       : [],

@@ -42,11 +42,8 @@ function validateParseResult(data: JsonValue): ValidateParseResult {
 }
 
 function extractProfessionalLevel(data: UnknownRecord): string | undefined {
-  // eslint-disable-next-line anti-slop/no-chained-type-assertions, anti-slop/require-safety-comment-for-type-assertion, anti-slop/no-unsafe-dictionary-type -- dynamic professional_level access
   const raw = (data as unknown as Record<string, unknown>)["professional_level"];
-  // eslint-disable-next-line anti-slop/no-runtime-typeof -- runtime string check for optional professional_level
   const level = typeof raw === "string" ? raw : undefined;
-  // eslint-disable-next-line anti-slop/no-chained-type-assertions, anti-slop/require-safety-comment-for-type-assertion, anti-slop/no-unsafe-dictionary-type -- delete requires record narrow
   delete (data as unknown as Record<string, unknown>)["professional_level"];
   return level;
 }
@@ -87,10 +84,8 @@ export async function parseResumeWithAi(
         const visionResult = await parsePdfWithVision(pdfBuffer, env);
 
         if (visionResult.success && visionResult.data) {
-          // eslint-disable-next-line anti-slop/no-chained-type-assertions, anti-slop/require-safety-comment-for-type-assertion, anti-slop/no-unsafe-dictionary-type -- JsonValue to UnknownRecord for hallucination check
           const raw = visionResult.data as unknown as UnknownRecord;
           const fullNameUnknown = raw["full_name"];
-          // eslint-disable-next-line anti-slop/no-runtime-typeof -- runtime string check for hallucination guard
           const hasName = typeof fullNameUnknown === "string" && fullNameUnknown.trim().length > 0;
           const expUnknown = raw["experience"];
           const hasExp = Array.isArray(expUnknown) && expUnknown.length > 0;
@@ -128,7 +123,6 @@ export async function parseResumeWithAi(
           }
           // SAFETY: validation guarantees ResumeContentFormData shape; cast preserves type for final cleanup
           const finalData = transformAiOutput(validation.data as ResumeContentFormData);
-          // eslint-disable-next-line anti-slop/no-chained-type-assertions, anti-slop/require-safety-comment-for-type-assertion -- helper handles dynamic access
           const professionalLevel = extractProfessionalLevel(finalData as unknown as UnknownRecord);
           return {
             success: true,
@@ -211,7 +205,6 @@ export async function parseResumeWithAi(
 
     // SAFETY: resumeContentSchema validation above guarantees validation.data matches ResumeContentFormData; cast preserves type for final cleanup.
     const finalData = transformAiOutput(validation.data as ResumeContentFormData);
-    // eslint-disable-next-line anti-slop/no-chained-type-assertions, anti-slop/require-safety-comment-for-type-assertion -- helper handles dynamic access
     const professionalLevel2 = extractProfessionalLevel(finalData as unknown as UnknownRecord);
     return {
       success: true,

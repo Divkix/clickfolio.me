@@ -41,7 +41,7 @@ export function buildSiteDataUpsert(
           content,
           ...previewFields,
           updatedAt: now,
-          // eslint-disable-next-line anti-slop/no-conditional-empty-object-spread -- publish=false must not overwrite lastPublishedAt to avoid destructive unpublish on stale race
+          // publish=false must not overwrite lastPublishedAt to avoid destructive unpublish on stale race
           ...(publish ? { lastPublishedAt: now } : {}),
         },
         setWhere: sql`${siteData.updatedAt} <= ${onlyIfUpdatedAtLte}`,
@@ -58,7 +58,7 @@ export function buildSiteDataUpsert(
         content,
         ...previewFields,
         updatedAt: now,
-        // eslint-disable-next-line anti-slop/no-conditional-empty-object-spread -- publish=false must not overwrite lastPublishedAt to avoid destructive unpublish on stale race
+        // publish=false must not overwrite lastPublishedAt to avoid destructive unpublish on stale race
         ...(publish ? { lastPublishedAt: now } : {}),
       },
     });

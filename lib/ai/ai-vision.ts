@@ -117,12 +117,9 @@ function extractJson(text: string): string {
 
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
   // SAFETY: globalThis may have Node Buffer in workerd nodejs_compat; narrow via in check
-  // eslint-disable-next-line anti-slop/no-chained-type-assertions -- narrowing globalThis to check for Buffer existence
   const maybeBuffer = (globalThis as unknown as { Buffer?: typeof Buffer }).Buffer;
-  // eslint-disable-next-line anti-slop/no-runtime-typeof -- runtime buffer detection for Workers vs Node compat
   if (maybeBuffer && typeof maybeBuffer.from === "function") {
     // SAFETY: ArrayBuffer is safe to view as Uint8Array for Buffer.from
-    // eslint-disable-next-line anti-slop/no-chained-type-assertions -- ArrayBuffer to Uint8Array view is safe
     return maybeBuffer.from(buffer as unknown as Uint8Array).toString("base64");
   }
   const bytes = new Uint8Array(buffer);
@@ -130,7 +127,6 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
   let binary = "";
   for (let i = 0; i < bytes.length; i += chunkSize) {
     const chunk = bytes.subarray(i, i + chunkSize);
-    // eslint-disable-next-line anti-slop/no-chained-type-assertions, anti-slop/require-safety-comment-for-type-assertion -- chunk is Uint8Array, spread as numbers for fromCharCode
     binary += String.fromCharCode(...(chunk as unknown as number[]));
   }
   return btoa(binary);
@@ -167,7 +163,6 @@ export async function parsePdfWithVision(
         maxOutputTokens: MAX_OUTPUT_TOKENS,
         abortSignal: AbortSignal.timeout(VISION_TIMEOUT_MS),
         // SAFETY: OpenRouter routing shape is validated by provider; cast bypasses readonly vs mutable JSONValue mismatch
-        // eslint-disable-next-line anti-slop/no-chained-type-assertions -- routing const is readonly, provider expects mutable JSON
         providerOptions: PROVIDER_ROUTING as unknown as never,
       });
 

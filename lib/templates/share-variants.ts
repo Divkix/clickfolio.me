@@ -15,7 +15,6 @@ export type SharePopoverVariant = (typeof SHARE_VARIANT_KEYS)[number];
 
 export const DEFAULT_SHARE_VARIANT: SharePopoverVariant = "minimalist-editorial";
 
-// eslint-disable-next-line anti-slop/require-safety-comment-for-type-assertion -- SHARE_VARIANT_KEYS is single source; Object.fromEntries builds exactly that union, cast safe
 export const shareContainerStyles = Object.fromEntries(
   SHARE_VARIANT_KEYS.map((key) => [key, ""]),
 ) as Record<SharePopoverVariant, string>;
