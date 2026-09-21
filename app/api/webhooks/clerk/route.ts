@@ -164,14 +164,15 @@ export async function POST(request: Request): Promise<Response> {
   let event: z.infer<typeof verifiedEventSchema>;
   try {
     const wh = new Webhook(secret);
-    // svix's verify() returns the JSON payload as unknown and throws on any
-    // signature/timestamp problem, so parse the verified value with Zod here.
-    const verified = wh.verify(rawBody, {
+    // verify() throws on any signature/timestamp problem and, since svix 2.2,
+    // returns undefined instead of the parsed body — parse the verified raw
+    // body here. Parsing the return value breaks every delivery.
+    wh.verify(rawBody, {
       "svix-id": request.headers.get("svix-id") ?? "",
       "svix-timestamp": request.headers.get("svix-timestamp") ?? "",
       "svix-signature": request.headers.get("svix-signature") ?? "",
     });
-    const parsedEvent = verifiedEventSchema.safeParse(verified);
+    const parsedEvent = verifiedEventSchema.safeParse(JSON.parse(rawBody));
     if (!parsedEvent.success) {
       return Response.json({ error: "Invalid payload" }, { status: 400 });
     }
