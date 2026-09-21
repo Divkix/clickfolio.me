@@ -55,7 +55,6 @@ export function captureServerEvent<E extends keyof AnalyticsEventMap>(
   }
 }
 
-// oxlint-disable anti-slop/no-unknown-parameters
 export async function captureServerException(
   error: unknown,
   properties?: AnalyticsProperties,
@@ -81,4 +80,3 @@ export async function captureServerException(
     }
   }
 }
-// oxlint-enable anti-slop/no-unknown-parameters

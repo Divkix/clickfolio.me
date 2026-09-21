@@ -19,7 +19,6 @@ export interface ResumeStatusPayload {
   error?: string;
 }
 
-// eslint-disable-next-line anti-slop/no-unknown-parameters -- WebSocket event.data is untyped at I/O boundary; decoded via z.string().safeParse + isValidResumeStatus inside
 export function decodeResumeStatusMessage(data: unknown): ResumeStatusPayload | null {
   const parsed = z.string().safeParse(data);
   if (!parsed.success || parsed.data === "pong") return null;

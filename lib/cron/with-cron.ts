@@ -6,7 +6,6 @@ import {
   ERROR_CODES,
 } from "@/lib/utils/security-headers";
 
-// eslint-disable-next-line anti-slop/no-unknown-returns -- cron handlers return varied JSON (cleanup stats, sync counts); wrapper serializes via createSuccessResponse
 export function withCron(handler: (env: CloudflareEnv) => Promise<unknown>) {
   return async (request: Request): Promise<Response> => {
     // SAFETY: env from cloudflare:workers is CloudflareEnv at runtime; cast bridges stub typing.

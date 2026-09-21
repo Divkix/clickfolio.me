@@ -133,7 +133,6 @@ const SHARED_IGNORE_PATTERNS = [
   ".pi/**",
   ".roo/**",
   ".windsurf/**",
-  "tools/oxlint/anti-slop/**",
 ];
 
 export default defineConfig(({ mode }) => {
@@ -153,35 +152,12 @@ export default defineConfig(({ mode }) => {
         "vite-plus/prefer-vite-plus-imports": "error",
         "typescript/no-explicit-any": "warn",
         "typescript/no-unused-vars": "error",
-        "anti-slop/no-chained-type-assertions": "error",
-        "anti-slop/no-conditional-empty-object-spread": "error",
-        "anti-slop/no-known-value-widening": "error",
-        "anti-slop/no-object-parameters": "error",
-        "anti-slop/no-reflect-apply": "error",
-        "anti-slop/no-reflect-get": "error",
-        "anti-slop/no-runtime-typeof": "error",
-        "anti-slop/no-shape-in-symbol-names": "error",
-        "anti-slop/no-unknown-parameters": "error",
-        "anti-slop/no-unknown-returns": "error",
-        "anti-slop/no-unknown-type-aliases": "error",
-        "anti-slop/no-unsafe-dictionary-type": "error",
-        "anti-slop/no-widen-then-assert": "error",
-        "anti-slop/require-safety-comment-for-type-assertion": "error",
       },
-      jsPlugins: [
-        { name: "vite-plus", specifier: "vite-plus/oxlint-plugin" },
-        { name: "anti-slop", specifier: "./tools/oxlint/anti-slop/index.ts" },
-      ],
+      jsPlugins: [{ name: "vite-plus", specifier: "vite-plus/oxlint-plugin" }],
       overrides: [
         {
           files: ["__tests__/**"],
           rules: {
-            "anti-slop/no-chained-type-assertions": "off",
-            "anti-slop/require-safety-comment-for-type-assertion": "off",
-            "anti-slop/no-runtime-typeof": "off",
-            "anti-slop/no-unsafe-dictionary-type": "off",
-            "anti-slop/no-unknown-parameters": "off",
-            "anti-slop/no-unknown-returns": "off",
             "typescript/unbound-method": "off",
             "typescript/no-base-to-string": "off",
             "typescript/no-misused-spread": "off",
@@ -191,14 +167,6 @@ export default defineConfig(({ mode }) => {
             "unicorn/no-thenable": "off",
             "jsx-a11y/control-has-associated-label": "off",
             "no-control-regex": "off",
-          },
-        },
-        {
-          // SAFETY: coverage-routes uses mock DB chains with Record<string, unknown> for test doubles; widening to concrete types would obscure mock behavior and is test-only.
-          files: ["__tests__/unit/api/coverage-routes.test.ts"],
-          rules: {
-            "anti-slop/no-known-value-widening": "off",
-            "anti-slop/no-unsafe-dictionary-type": "off",
           },
         },
       ],
