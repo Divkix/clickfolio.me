@@ -15,6 +15,7 @@ function canonicalUrl(path: string): string {
   if (path === "/" || path === "") {
     return siteConfig.url;
   }
+
   return `${siteConfig.url}${path.startsWith("/") ? path : `/${path}`}`;
 }
 

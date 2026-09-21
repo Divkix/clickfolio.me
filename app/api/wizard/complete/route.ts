@@ -22,6 +22,7 @@ import { readJsonWithLimit, validateRequestSize } from "@/lib/utils/validation";
 const wizardCompleteSchema = buildWizardCompleteSchema([...THEME_IDS] as [ThemeId, ...ThemeId[]]);
 
 type WizardCompleteRequest = z.infer<typeof wizardCompleteSchema>;
+
 const PENDING_RESUME_CONTENT: ResumeContent = {
   full_name: "Pending",
   headline: "Resume processing",
@@ -42,6 +43,7 @@ type WizardCompleteOutcome =
 
 export async function POST(request: Request) {
   const sizeCheck = validateRequestSize(request);
+
   if (!sizeCheck.valid) {
     return createErrorResponse(
       sizeCheck.error || "Request body too large",
@@ -54,6 +56,7 @@ export async function POST(request: Request) {
     request,
     async ({ user: authUser, db }) => {
       const rawBodyResult = await readJsonWithLimit(request);
+
       if (!rawBodyResult.ok) {
         return createErrorResponse(
           rawBodyResult.error,
@@ -63,6 +66,7 @@ export async function POST(request: Request) {
       }
 
       const validation = wizardCompleteSchema.safeParse(rawBodyResult.data);
+
       if (!validation.success) {
         return createErrorResponse(
           "Validation failed. Please check your input.",
@@ -71,6 +75,7 @@ export async function POST(request: Request) {
           validation.error.issues,
         );
       }
+
       const body: WizardCompleteRequest = validation.data;
 
       if (!isValidHandleFormat(body.handle)) {
@@ -245,6 +250,7 @@ export async function POST(request: Request) {
             409,
           );
         }
+
         throw error;
       }
     },

@@ -19,6 +19,7 @@ export async function GET(): Promise<Response> {
     });
   } catch (error) {
     console.error("[sitemap-index] Error generating sitemap index:", error);
+
     return new Response("Internal Server Error", { status: 500 });
   }
 }

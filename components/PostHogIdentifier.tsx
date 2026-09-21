@@ -16,12 +16,15 @@ export function PostHogIdentifier() {
 
     if (user) {
       const traits: Record<string, string> = {};
+
       if (user.primaryEmailAddress?.emailAddress) {
         traits.email = user.primaryEmailAddress.emailAddress;
       }
+
       if (user.fullName) {
         traits.name = user.fullName;
       }
+
       identifyAnalyticsUser(user.externalId ?? user.id, traits);
     } else {
       resetAnalyticsIdentity();

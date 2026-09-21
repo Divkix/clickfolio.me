@@ -11,6 +11,7 @@ import { resumes, siteData, user } from "@/lib/db/schema";
 import { getPageviews, getStats } from "@/lib/umami/client";
 import { lastNUtcDays } from "@/lib/utils/date-axis";
 import { formatRelativeTime } from "@/lib/utils/format";
+
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
@@ -43,6 +44,7 @@ async function getAdminStats() {
 
   let umamiStats: Awaited<ReturnType<typeof getStats>> | null = null;
   let umamiPageviews: Awaited<ReturnType<typeof getPageviews>> | null = null;
+
   try {
     [umamiStats, umamiPageviews] = await Promise.all([
       getStats(env, { startAt: todayStart.getTime(), endAt: now.getTime() }),
@@ -61,12 +63,14 @@ async function getAdminStats() {
   const statusMap = resumeStats.reduce(
     (acc, r) => {
       acc[r.status || "unknown"] = r.count;
+
       return acc;
     },
     {} as Record<string, number>,
   );
 
   const umamiMap = new Map(umamiPageviews?.pageviews.map((p) => [p.x.slice(0, 10), p.y]) ?? []);
+
   const filledDaily: Array<{ date: string; views: number }> = lastNUtcDays(7).map((date) => ({
     date,
     views: umamiMap.get(date) ?? 0,
@@ -154,6 +158,7 @@ export default async function AdminOverviewPage() {
                   signup.name && signup.name !== "Unnamed"
                     ? signup.name
                     : signup.previewName?.trim() || signup.name || "Unnamed";
+
                 return (
                   <div key={signup.email} className="flex items-center justify-between text-sm">
                     <div className="min-w-0 flex-1">

@@ -48,6 +48,7 @@ export async function GET(request: Request) {
           403,
         );
       }
+
       // The DB row stays `waiting_for_cache` until the orphan cron persists the
       // timeout (lib/cron/recover-orphaned). No `db.update` here.
       // SAFETY: drizzle row fields are string/number but getStatusView expects exact types; casts narrow Drizzle-inferred types for lifecycle helper
@@ -58,6 +59,7 @@ export async function GET(request: Request) {
         totalAttempts: resume.totalAttempts as number,
         lastAttemptError: resume.lastAttemptError as string | null,
       });
+
       if (view.isTimedOut) {
         return createSuccessResponse({
           status: view.status,
@@ -98,8 +100,11 @@ export async function GET(request: Request) {
 
       if (view.status === "processing") {
         const extra: UnknownRecord = {};
+
         if (view.waitingForCache) extra.waiting_for_cache = true;
+
         if (view.queued) extra.queued = true;
+
         return createSuccessResponse({
           status: view.status,
           progress_pct: view.progressPct,

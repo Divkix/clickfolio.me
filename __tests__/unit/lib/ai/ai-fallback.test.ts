@@ -172,6 +172,7 @@ describe("transformToSchema", () => {
     date?: string;
     description?: string;
   }
+
   it("transforms skills from object to array format", () => {
     const data = {
       full_name: "Jane",

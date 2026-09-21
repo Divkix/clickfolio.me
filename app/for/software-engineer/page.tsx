@@ -13,8 +13,10 @@ import {
 export const revalidate = 86400;
 
 const title = "Resume Website for Software Engineers";
+
 const description =
   "Showcase your code, projects, and experience with a free resume website. 10 templates including DevTerminal, GitHub & LinkedIn integration, and AI-powered PDF parsing.";
+
 const path = "/for/software-engineer";
 
 export const metadata: Metadata = buildRolePageMetadata({ title, description, path });

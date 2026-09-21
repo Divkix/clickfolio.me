@@ -23,6 +23,7 @@ type HandleUpdateOutcome =
 
 export async function PUT(request: Request) {
   const sizeCheck = validateRequestSize(request);
+
   if (!sizeCheck.valid) {
     return createErrorResponse(
       sizeCheck.error || "Request body too large",
@@ -35,6 +36,7 @@ export async function PUT(request: Request) {
     request,
     async ({ user: authUser, db }) => {
       const rawBodyResult = await readJsonWithLimit(request);
+
       if (!rawBodyResult.ok) {
         return createErrorResponse(
           rawBodyResult.error,
@@ -159,6 +161,7 @@ export async function PUT(request: Request) {
             409,
           );
         }
+
         throw error;
       }
     },

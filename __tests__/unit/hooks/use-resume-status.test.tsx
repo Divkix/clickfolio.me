@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test"
 
 const mocks = vi.hoisted(() => {
   let onStatusChange: ((status: string, error?: string) => void) | null = null;
+
   return {
     get onStatusChange() {
       return onStatusChange;
@@ -14,6 +15,7 @@ const mocks = vi.hoisted(() => {
     useResumeWebSocket: vi.fn(
       (args: { onStatusChange: (status: string, error?: string) => void }) => {
         onStatusChange = args.onStatusChange;
+
         return { connectionState: "connected" as const, close: vi.fn() };
       },
     ),

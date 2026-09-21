@@ -81,6 +81,7 @@ describe("markdownResponse", () => {
 
   it("appends a sitemap link to the body of a missing page", async () => {
     const html = "<html><body><h1>404 — page not found</h1></body></html>";
+
     const response = markdownResponse({
       response: new Response(html, { status: 404, headers: { "content-type": "text/html" } }),
       html,
@@ -95,6 +96,7 @@ describe("markdownResponse", () => {
   it("opens with the document title when the page starts with something else", async () => {
     const html =
       "<html><head><title>Clickfolio — your portfolio, one link</title></head><body><main><p>Free forever</p><h1>Build your page</h1></main></body></html>";
+
     const response = markdownResponse({
       response: new Response(html, { headers: { "content-type": "text/html" } }),
       html,

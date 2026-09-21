@@ -37,6 +37,7 @@ vi.mock("@/lib/templates/theme-registry.client", () => {
     "neo_brutalist",
     "spotlight",
   ];
+
   return {
     DYNAMIC_TEMPLATES: Object.fromEntries(
       themeIds.map((id) => [
@@ -192,6 +193,7 @@ describe("ThemeSelector", () => {
   afterEach(() => {
     vi.useRealTimers();
     globalThis.fetch = originalFetch;
+
     if (originalOffsetWidth !== undefined) {
       Object.defineProperty(HTMLElement.prototype, "offsetWidth", originalOffsetWidth);
     } else {

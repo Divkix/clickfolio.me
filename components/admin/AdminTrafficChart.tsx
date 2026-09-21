@@ -15,11 +15,15 @@ export function AdminTrafficChart({ data }: AdminTrafficChartProps) {
 
   useEffect(() => {
     const el = containerRef.current;
+
     if (!el) return;
+
     if (!globalThis.ResizeObserver) {
       setWidth(el.clientWidth || 320);
+
       return;
     }
+
     const ro = new ResizeObserver((entries) => {
       for (const entry of entries) {
         if (entry.contentRect.width > 0) {
@@ -27,12 +31,15 @@ export function AdminTrafficChart({ data }: AdminTrafficChartProps) {
         }
       }
     });
+
     ro.observe(el);
+
     return () => ro.disconnect();
   }, []);
 
   useEffect(() => {
     const el = containerRef.current;
+
     if (!el || width <= 0 || data.length === 0) return;
 
     if (chartRef.current) {
@@ -81,6 +88,7 @@ export function AdminTrafficChart({ data }: AdminTrafficChartProps) {
           values: (_self: uPlot, ticks: number[]) =>
             ticks.map((t) => {
               const d = new Date(t * 1000);
+
               return `${d.getMonth() + 1}/${d.getDate()}`;
             }),
         },

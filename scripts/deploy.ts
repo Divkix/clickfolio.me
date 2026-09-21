@@ -11,6 +11,7 @@ export async function main(): Promise<void> {
       POSTHOG_UPLOAD_SOURCEMAPS: dryRun ? "false" : "true",
     },
   });
+
   if (build.status !== 0) {
     process.exit(build.status ?? 1);
   }
@@ -18,6 +19,7 @@ export async function main(): Promise<void> {
   const deploy = spawnSync("pnpm", ["exec", "wrangler", "deploy", ...args], {
     stdio: "inherit",
   });
+
   if (deploy.status !== 0) {
     process.exit(deploy.status ?? 1);
   }

@@ -5,8 +5,10 @@ import { createErrorResponse, ERROR_CODES } from "@/lib/utils/security-headers";
 
 export const GET = withCron(async (env) => {
   const r2Binding = getR2Binding(env);
+
   if (!r2Binding) {
     return createErrorResponse("R2 bucket not available", ERROR_CODES.INTERNAL_ERROR, 500);
   }
+
   return performR2Cleanup(r2Binding);
 });

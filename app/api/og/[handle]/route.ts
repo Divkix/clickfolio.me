@@ -39,6 +39,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ han
   const { handle: rawHandle } = await params;
 
   let handle = "";
+
   try {
     handle = decodeURIComponent(rawHandle).replace(/^@/, "");
   } catch {
@@ -79,6 +80,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ han
       .map((skill) => escapeXml(skill));
 
     let skillsSvg = "";
+
     if (skills.length > 0) {
       const startX = 80;
       let currentX = startX;
@@ -93,6 +95,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ han
         );
         currentX += textWidth + 12;
       }
+
       skillsSvg = pillParts.join("\n    ");
     }
 
@@ -164,6 +167,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ han
     });
   } catch (error) {
     console.error("OG image generation error:", error);
+
     return renderLastResort();
   }
 }

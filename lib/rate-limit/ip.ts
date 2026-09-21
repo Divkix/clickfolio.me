@@ -6,8 +6,11 @@ import { isLocalEnvironment } from "@/lib/utils/environment";
 import { sha256Hex } from "@/lib/utils/hash";
 
 const HOURLY_LIMIT = 10;
+
 const DAILY_LIMIT = 50;
+
 const HANDLE_CHECK_HOURLY_LIMIT = 100;
+
 const UPLOAD_UNAVAILABLE_MESSAGE = "Upload temporarily unavailable. Please try again in a moment.";
 
 const LOCAL_IPS = new Set(["127.0.0.1", "::1", "localhost", "0.0.0.0", "::ffff:127.0.0.1"]);
@@ -48,6 +51,7 @@ async function recordRateLimitAction(
         ? tx` AND (SELECT COUNT(*) FROM upload_rate_limits
          WHERE ip_hash = ${ipHash} AND action_type = ${actionType} AND created_at >= ${dailyCutoff}) < ${dailyLimit}`
         : tx``;
+
     const result = await tx`
       INSERT INTO upload_rate_limits (id, ip_hash, action_type, created_at, expires_at)
       SELECT ${crypto.randomUUID()}, ${ipHash}, ${actionType}, ${now.toISOString()}, ${expiresAt}
@@ -60,9 +64,11 @@ async function recordRateLimitAction(
 
 export function getClientIP(request: Request): string {
   const cfIP = request.headers.get("cf-connecting-ip");
+
   if (cfIP) return cfIP;
 
   const forwarded = request.headers.get("x-forwarded-for");
+
   if (forwarded) return forwarded.split(",")[0].trim();
 
   return "unknown";

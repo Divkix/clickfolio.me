@@ -76,7 +76,9 @@ function primaryEmailOf(payload: ClerkUserPayload): {
   const primary =
     payload.emailAddresses.find((e) => e.id === payload.primaryEmailAddressId) ??
     payload.emailAddresses[0];
+
   if (!primary) return null;
+
   return {
     email: primary.email_address,
     verified: primary.verification?.status === "complete",
@@ -87,12 +89,14 @@ async function findMappedUser(db: Database, payload: ClerkUserPayload) {
   const byClerkId = await db.query.user.findFirst({
     where: eq(users.clerkId, payload.id),
   });
+
   if (byClerkId) return byClerkId;
 
   if (payload.externalId) {
     const byExternalId = await db.query.user.findFirst({
       where: eq(users.id, payload.externalId),
     });
+
     if (byExternalId) return byExternalId;
   }
 
@@ -108,11 +112,14 @@ interface ProfileColumns {
 function profileColumns(payload: ClerkUserPayload): ProfileColumns {
   const name = [payload.firstName, payload.lastName].filter(Boolean).join(" ").trim();
   const primary = primaryEmailOf(payload);
+
   const columns: ProfileColumns = {
     name: name.length > 0 ? name : "Unnamed",
     image: payload.imageUrl,
   };
+
   if (primary) columns.emailVerified = primary.verified;
+
   return columns;
 }
 
@@ -126,6 +133,7 @@ async function upsertUser(db: Database, payload: ClerkUserPayload): Promise<stri
       .update(users)
       .set({ ...profile, clerkId: payload.id, updatedAt: now })
       .where(eq(users.id, existing.id));
+
     return existing.id;
   }
 
@@ -140,6 +148,7 @@ async function upsertUser(db: Database, payload: ClerkUserPayload): Promise<stri
     createdAt: now,
     updatedAt: now,
   });
+
   return payload.externalId ?? payload.id;
 }
 
@@ -151,18 +160,23 @@ type WebhookOutcome = {
 
 export async function POST(request: Request): Promise<Response> {
   const secret = env.CLERK_WEBHOOK_SECRET;
+
   if (!secret) {
     console.error("[clerk-webhook] CLERK_WEBHOOK_SECRET is not configured");
+
     return Response.json({ error: "Server misconfiguration" }, { status: 500 });
   }
 
   let rawBody: string;
+
   try {
     rawBody = await request.text();
   } catch {
     return Response.json({ error: "Invalid request body" }, { status: 400 });
   }
+
   let event: z.infer<typeof verifiedEventSchema>;
+
   try {
     const wh = new Webhook(secret);
     // verify() throws on any signature/timestamp problem and, since svix 2.2,
@@ -174,30 +188,37 @@ export async function POST(request: Request): Promise<Response> {
       "svix-signature": request.headers.get("svix-signature") ?? "",
     });
     const parsedEvent = verifiedEventSchema.safeParse(JSON.parse(rawBody));
+
     if (!parsedEvent.success) {
       return Response.json({ error: "Invalid payload" }, { status: 400 });
     }
+
     event = parsedEvent.data;
   } catch (error) {
     console.warn("[clerk-webhook] signature verification failed:", error);
+
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   if (!["user.created", "user.updated", "user.deleted"].includes(event.type)) {
     const outcome: WebhookOutcome = { received: true, action: "ignored", detail: event.type };
+
     return Response.json(outcome);
   }
 
   // Deactivations (deleted=false) keep the account; hard deletes remove it.
   if (event.type === "user.deleted" && deactivatedSchema.safeParse(event.data).success) {
     const outcome: WebhookOutcome = { received: true, action: "ignored", detail: "deactivation" };
+
     return Response.json(outcome);
   }
 
   const userResult = clerkUserSchema.safeParse(event.data);
+
   if (!userResult.success) {
     return Response.json({ error: "Unrecognized user payload" }, { status: 400 });
   }
+
   const payload = toUserPayload(userResult.data);
 
   const db = getDb(env.HYPERDRIVE);
@@ -206,8 +227,10 @@ export async function POST(request: Request): Promise<Response> {
     if (event.type === "user.deleted") {
       // Queue R2 cleanup before the cascade removes the resume rows the keys come from.
       const mapped = await findMappedUser(db, payload);
+
       if (mapped) {
         const r2Keys = await collectR2KeysForUser(db, mapped.id);
+
         if (r2Keys.length > 0) {
           await db
             .insert(pendingR2Deletions)
@@ -225,14 +248,17 @@ export async function POST(request: Request): Promise<Response> {
 
       await db.delete(users).where(eq(users.clerkId, payload.id));
       const outcome: WebhookOutcome = { received: true, action: "deleted" };
+
       return Response.json(outcome);
     }
 
     const userId = await upsertUser(db, payload);
     const outcome: WebhookOutcome = { received: true, action: "upserted", detail: userId };
+
     return Response.json(outcome);
   } catch (error) {
     console.error(`[clerk-webhook] ${event.type} handling failed:`, error);
+
     return Response.json({ error: "Internal error" }, { status: 500 });
   }
 }

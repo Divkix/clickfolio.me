@@ -20,6 +20,7 @@ vi.mock("@/lib/ai/pdf-extract", () => ({
 
 vi.mock("ai", async (importOriginal) => {
   const actual = await importOriginal<typeof import("ai")>();
+
   return {
     ...actual,
     generateText: vi.fn(),
@@ -41,6 +42,7 @@ vi.mock("ai", async (importOriginal) => {
         this.text = options.text;
         this.response = options.response;
         this.usage = options.usage;
+
         if (options.finishReason) {
           Object.defineProperty(this, "finishReason", { value: options.finishReason });
         }
@@ -626,6 +628,7 @@ describe("AI Parsing Pipeline", () => {
 
       const validation = resumeContentSchema.safeParse(dataWithExtras);
       expect(validation.success).toBe(true);
+
       if (validation.success) {
         expect(validation.data).not.toHaveProperty("extra_field");
         expect(validation.data).not.toHaveProperty("another_extra");
@@ -671,6 +674,7 @@ describe("AI Parsing Pipeline", () => {
 
       const validation = resumeContentSchema.safeParse(data);
       expect(validation.success).toBe(true);
+
       if (validation.success) {
         expect(Array.isArray(validation.data.skills)).toBe(true);
         expect(Array.isArray(validation.data.experience)).toBe(true);
@@ -852,6 +856,7 @@ describe("AI Parsing Pipeline", () => {
           errorMsg.toLowerCase().includes("rate limit") ||
           errorMsg.toLowerCase().includes("temporary") ||
           errorMsg.toLowerCase().includes("connection");
+
         expect(isRetryable).toBe(true);
       }
     });
@@ -868,6 +873,7 @@ describe("AI Parsing Pipeline", () => {
         const isRetryable =
           errorMsg.toLowerCase().includes("timeout") ||
           errorMsg.toLowerCase().includes("rate limit");
+
         expect(isRetryable).toBe(false);
       }
     });

@@ -2,30 +2,42 @@ import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { UnknownRecord, JsonValue } from "@/lib/types/json";
 
 const mockFindFirst = vi.fn();
+
 const mockDbFrom = vi.fn();
+
 const mockDbWhere = vi.fn();
+
 const mockDbLimit = vi.fn();
+
 const mockDbOrderBy = vi.fn();
+
 // `.returning()` is the row probe behind every conditional UPDATE: a non-empty
 // result means the row still existed, so the status change applied.
 const mockDbUpdateReturning = vi.fn().mockResolvedValue([{ id: "row-1" }]);
+
 const mockDbUpdateWhere = vi.fn(() => ({ returning: mockDbUpdateReturning }));
+
 const mockDbUpdateSet = vi.fn();
+
 const mockDbTransaction = vi.fn(async (cb: (tx: typeof mockDb) => unknown) => cb(mockDb));
 
 let lastInsertValues: Record<string, unknown> = {};
+
 // The arbitration insert reports the row it just inserted, so the caller sees
 // itself as the winner of the pending_claim slot.
 const mockDbInsertReturning = vi.fn(async () => [
   { id: String(lastInsertValues.id), status: "pending_claim" },
 ]);
+
 const mockDbInsertValues = vi.fn((values: Record<string, unknown>) => {
   lastInsertValues = values;
+
   return {
     onConflictDoUpdate: () => ({ returning: mockDbInsertReturning }),
     onConflictDoNothing: async () => undefined,
   };
 });
+
 const mockDbInsert = vi.fn().mockReturnValue({ values: mockDbInsertValues });
 
 let mockHandleRows: Array<{ handle: string | null }> = [{ handle: "test-handle" }];
@@ -33,6 +45,7 @@ let mockHandleRows: Array<{ handle: string | null }> = [{ handle: "test-handle" 
 const mockDbSelect = vi.fn().mockImplementation((cols: unknown) => {
   const isHandleQuery =
     cols !== null && typeof cols === "object" && "handle" in (cols as Record<string, unknown>);
+
   if (isHandleQuery) {
     return {
       from: vi.fn().mockReturnValue({
@@ -42,19 +55,24 @@ const mockDbSelect = vi.fn().mockImplementation((cols: unknown) => {
       }),
     };
   }
+
   return { from: mockDbFrom };
 });
 
 mockDbFrom.mockReturnValue({ where: mockDbWhere });
+
 mockDbWhere.mockReturnValue({
   limit: mockDbLimit,
   orderBy: mockDbOrderBy,
   for: async () => undefined,
 });
+
 mockDbOrderBy.mockReturnValue({ limit: mockDbLimit });
+
 mockDbLimit.mockResolvedValue([]);
 
 const mockDbUpdate = vi.fn().mockReturnValue({ set: mockDbUpdateSet });
+
 mockDbUpdateSet.mockReturnValue({ where: mockDbUpdateWhere });
 
 const mockDb = {
@@ -121,7 +139,9 @@ vi.mock("@/lib/db/schema", () => ({
 }));
 
 const mockR2GetAsArrayBuffer = vi.fn();
+
 const mockR2Put = vi.fn().mockResolvedValue(undefined);
+
 const mockR2Delete = vi.fn().mockResolvedValue(undefined);
 
 vi.mock("@/lib/r2", () => ({
@@ -212,6 +232,7 @@ async function createSignedCookieValue(
 
 function makePdfBuffer(): ArrayBuffer {
   const header = new TextEncoder().encode("%PDF-1.4 fake content");
+
   return header.buffer.slice(header.byteOffset, header.byteOffset + header.byteLength);
 }
 
@@ -244,6 +265,7 @@ function makeClaimRequest(body: UnknownRecord, cookieValue?: string) {
   const headers: ClaimHeaders = {
     "Content-Type": "application/json",
   };
+
   if (cookieValue) headers.Cookie = `pending_upload=${cookieValue}`;
 
   return new Request("http://localhost:3000/api/resume/claim", {
@@ -262,6 +284,7 @@ beforeEach(() => {
   mockDbSelect.mockImplementation((cols: unknown) => {
     const isHandleQuery =
       cols !== null && typeof cols === "object" && "handle" in (cols as Record<string, unknown>);
+
     if (isHandleQuery) {
       return {
         from: vi.fn().mockReturnValue({
@@ -271,6 +294,7 @@ beforeEach(() => {
         }),
       };
     }
+
     return { from: mockDbFrom };
   });
   mockDbFrom.mockReturnValue({ where: mockDbWhere });
@@ -298,7 +322,9 @@ describe("POST /api/resume/claim — Duplicate file hash detection", () => {
       let limitCallCount = 0;
       mockDbLimit.mockImplementation(() => {
         limitCallCount++;
+
         if (limitCallCount === 1) return Promise.resolve([]);
+
         return Promise.resolve([{ id: "existing-processing-id" }]);
       });
 
@@ -307,11 +333,13 @@ describe("POST /api/resume/claim — Duplicate file hash detection", () => {
       const response = await POST(makeClaimRequest({ key: "temp/uuid/resume.pdf" }, cookie));
 
       expect(response.status).toBe(200);
+
       const body = (await response.json()) as {
         resume_id: string;
         status: string;
         waiting_for_cache?: boolean;
       };
+
       expect(body.status).toBe("processing");
       expect(body.waiting_for_cache).toBe(true);
 
@@ -328,7 +356,9 @@ describe("POST /api/resume/claim — Duplicate file hash detection", () => {
       let limitCallCount = 0;
       mockDbLimit.mockImplementation(() => {
         limitCallCount++;
+
         if (limitCallCount === 1) return Promise.resolve([]);
+
         return Promise.resolve([{ id: "existing-processing-id" }]);
       });
 
@@ -350,7 +380,9 @@ describe("POST /api/resume/claim — Duplicate file hash detection", () => {
       let limitCallCount = 0;
       mockDbLimit.mockImplementation(() => {
         limitCallCount++;
+
         if (limitCallCount === 1) return Promise.resolve([]);
+
         return Promise.resolve([{ id: "existing-queued-id" }]);
       });
 
@@ -359,11 +391,13 @@ describe("POST /api/resume/claim — Duplicate file hash detection", () => {
       const response = await POST(makeClaimRequest({ key: "temp/uuid/resume.pdf" }, cookie));
 
       expect(response.status).toBe(200);
+
       const body = (await response.json()) as {
         resume_id: string;
         status: string;
         waiting_for_cache?: boolean;
       };
+
       expect(body.status).toBe("processing");
       expect(body.waiting_for_cache).toBe(true);
 

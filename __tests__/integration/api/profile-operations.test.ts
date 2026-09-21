@@ -41,6 +41,7 @@ vi.mock("@/lib/utils/revalidate", () => ({
 
 vi.mock("@/lib/rate-limit/handle-validation", async (importOriginal) => {
   const actual = await importOriginal<typeof HandleValidation>();
+
   return {
     ...actual,
     isHandleTaken: vi.fn(async () => false),
@@ -51,8 +52,11 @@ vi.mock("@/lib/utils/security-headers", () => ({
   createErrorResponse: vi.fn(
     (error: string, _code: string, status: number, details?: JsonValue) => {
       type ErrorBody = { error: string; details?: JsonValue };
+
       const body: ErrorBody = { error };
+
       if (details !== undefined) body.details = details;
+
       return new Response(JSON.stringify(body), { status });
     },
   ),
@@ -114,39 +118,61 @@ import { requireAuthWithMessage, requireAuthWithUserValidation } from "@/lib/aut
 import { isHandleTaken } from "@/lib/rate-limit/handle-validation";
 
 const mockedAuth = vi.mocked(requireAuthWithUserValidation);
+
 const mockedAuthMessage = vi.mocked(requireAuthWithMessage);
 
 const mockFindFirst = vi.fn();
+
 const mockSelect = vi.fn();
+
 const mockFrom = vi.fn();
+
 const mockWhere = vi.fn();
+
 const mockOrderBy = vi.fn();
+
 const mockLimit = vi.fn();
+
 const mockInsert = vi.fn();
+
 const mockInsertValues = vi.fn();
+
 const mockUpdate = vi.fn();
+
 const mockUpdateSet = vi.fn();
+
 const mockUpdateWhere = vi.fn();
+
 const mockReturning = vi.fn();
+
 const mockTransaction = vi.fn();
 
 mockSelect.mockReturnValue({ from: mockFrom });
+
 mockFrom.mockReturnValue({ where: mockWhere });
+
 mockWhere.mockReturnValue({ orderBy: mockOrderBy, limit: mockLimit });
+
 mockOrderBy.mockReturnValue({ limit: mockLimit });
+
 mockLimit.mockResolvedValue([]);
 
 mockInsert.mockReturnValue({ values: mockInsertValues });
+
 mockInsertValues.mockResolvedValue(undefined);
 
 mockUpdate.mockReturnValue({ set: mockUpdateSet });
+
 mockUpdateSet.mockReturnValue({ where: mockUpdateWhere });
+
 mockUpdateWhere.mockReturnValue({ returning: mockReturning });
+
 mockReturning.mockResolvedValue([{ id: "user-123" }]);
 
 // Transaction mock: the handle route locks the user row, reads the 24h change quota,
 // then writes the user + audit rows. Each awaited tx select shifts one queued result set.
 const queuedTxSelects: JsonValue[][] = [];
+
 const mockTxFor = vi.fn();
 
 function queueTxSelects(...rows: JsonValue[][]): void {
@@ -164,12 +190,16 @@ function makeTxSelectChain() {
       onRejected?: (reason: unknown) => unknown,
     ) => Promise.resolve(queuedTxSelects.shift() ?? []).then(onFulfilled, onRejected),
   };
+
   mockTxFor.mockImplementation(() => chain);
+
   return chain;
 }
 
 const mockTxUpdateSet = vi.fn((_values: JsonValue) => ({ where: vi.fn(async () => undefined) }));
+
 const mockTxInsertValues = vi.fn(async (_values: JsonValue) => undefined);
+
 const mockTx = {
   select: vi.fn(() => makeTxSelectChain()),
   update: vi.fn(() => ({ set: mockTxUpdateSet })),
@@ -191,6 +221,7 @@ const mockDb = {
   update: mockUpdate,
   transaction: mockTransaction,
 };
+
 interface UserProfile {
   id: string;
   email: string;
@@ -217,6 +248,7 @@ interface UserProfile {
 }
 
 type AuthedAsResult = { user: UserProfile; error: null };
+
 function authedAs(userId: string, options: Partial<UserProfile> = {}): AuthedAsResult {
   const defaultProfile: UserProfile = {
     id: userId,
@@ -270,15 +302,18 @@ function unauthenticated() {
     error,
   } as never);
   mockedAuthMessage.mockResolvedValue({ user: null, error });
+
   return error;
 }
 
 function makeRequest(url: string, method = "GET", body?: JsonValue): Request {
   const init: RequestInit = { method };
+
   if (body) {
     init.body = JSON.stringify(body);
     init.headers = { "Content-Type": "application/json" };
   }
+
   return new Request(url, init);
 }
 
@@ -412,17 +447,21 @@ describe("Profile API Integration Tests (20 tests)", () => {
       queueTxSelects([{ handle: "oldhandle" }], [{ count: 0 }]);
 
       const { PUT } = await import("@/app/api/profile/handle/route");
+
       const request = makeRequest("http://localhost:3000/api/profile/handle", "PUT", {
         handle: "newhandle",
       });
+
       const response = await PUT(request);
 
       expect(response.status).toBe(200);
+
       const body = (await response.json()) as {
         success: boolean;
         handle: string;
         old_handle: string;
       };
+
       expect(body.success).toBe(true);
       expect(body.handle).toBe("newhandle");
       expect(body.old_handle).toBe("oldhandle");
@@ -437,9 +476,11 @@ describe("Profile API Integration Tests (20 tests)", () => {
       vi.mocked(isHandleTaken).mockResolvedValue(true);
 
       const { PUT } = await import("@/app/api/profile/handle/route");
+
       const request = makeRequest("http://localhost:3000/api/profile/handle", "PUT", {
         handle: "takenhandle",
       });
+
       const response = await PUT(request);
 
       expect(response.status).toBe(409);
@@ -452,9 +493,11 @@ describe("Profile API Integration Tests (20 tests)", () => {
       authedAs("user-123");
 
       const { PUT } = await import("@/app/api/profile/handle/route");
+
       const request = makeRequest("http://localhost:3000/api/profile/handle", "PUT", {
         handle: "invalid_handle!",
       });
+
       const response = await PUT(request);
 
       expect(response.status).toBe(400);
@@ -464,9 +507,11 @@ describe("Profile API Integration Tests (20 tests)", () => {
       authedAs("user-123");
 
       const { PUT } = await import("@/app/api/profile/handle/route");
+
       const request = makeRequest("http://localhost:3000/api/profile/handle", "PUT", {
         handle: "api",
       });
+
       const response = await PUT(request);
 
       expect(response.status).toBe(400);
@@ -477,9 +522,11 @@ describe("Profile API Integration Tests (20 tests)", () => {
       queueTxSelects([{ handle: "oldhandle" }], [{ count: 0 }]);
 
       const { PUT } = await import("@/app/api/profile/handle/route");
+
       const request = makeRequest("http://localhost:3000/api/profile/handle", "PUT", {
         handle: "newhandle",
       });
+
       const response = await PUT(request);
 
       expect(response.status).toBe(200);
@@ -498,9 +545,11 @@ describe("Profile API Integration Tests (20 tests)", () => {
       queueTxSelects([{ handle: "oldhandle" }], [{ count: 3 }]);
 
       const { PUT } = await import("@/app/api/profile/handle/route");
+
       const request = makeRequest("http://localhost:3000/api/profile/handle", "PUT", {
         handle: "newhandle",
       });
+
       const response = await PUT(request);
 
       expect(mockTransaction).toHaveBeenCalled();
@@ -514,9 +563,11 @@ describe("Profile API Integration Tests (20 tests)", () => {
       queueTxSelects([{ handle: "samehandle" }]);
 
       const { PUT } = await import("@/app/api/profile/handle/route");
+
       const request = makeRequest("http://localhost:3000/api/profile/handle", "PUT", {
         handle: "samehandle",
       });
+
       const response = await PUT(request);
 
       expect(response.status).toBe(400);
@@ -526,9 +577,11 @@ describe("Profile API Integration Tests (20 tests)", () => {
       unauthenticated();
 
       const { PUT } = await import("@/app/api/profile/handle/route");
+
       const request = makeRequest("http://localhost:3000/api/profile/handle", "PUT", {
         handle: "newhandle",
       });
+
       const response = await PUT(request);
 
       expect(response.status).toBe(401);
@@ -538,9 +591,11 @@ describe("Profile API Integration Tests (20 tests)", () => {
       authedAs("user-123");
 
       const { PUT } = await import("@/app/api/profile/handle/route");
+
       const request = makeRequest("http://localhost:3000/api/profile/handle", "PUT", {
         handle: "ab",
       });
+
       const response = await PUT(request);
 
       expect(response.status).toBe(400);
@@ -550,9 +605,11 @@ describe("Profile API Integration Tests (20 tests)", () => {
       authedAs("user-123");
 
       const { PUT } = await import("@/app/api/profile/handle/route");
+
       const request = makeRequest("http://localhost:3000/api/profile/handle", "PUT", {
         handle: "a".repeat(31),
       });
+
       const response = await PUT(request);
 
       expect(response.status).toBe(400);
@@ -566,12 +623,14 @@ describe("Profile API Integration Tests (20 tests)", () => {
       mockReturning.mockResolvedValue([{ id: "user-123" }]);
 
       const { PUT } = await import("@/app/api/profile/privacy/route");
+
       const request = makeRequest("http://localhost:3000/api/profile/privacy", "PUT", {
         show_phone: true,
         show_address: false,
         hide_from_search: true,
         show_in_directory: false,
       });
+
       const response = await PUT(request);
 
       expect(response.status).toBe(200);
@@ -589,12 +648,14 @@ describe("Profile API Integration Tests (20 tests)", () => {
       authedAs("user-123");
 
       const { PUT } = await import("@/app/api/profile/privacy/route");
+
       const request = makeRequest("http://localhost:3000/api/profile/privacy", "PUT", {
         show_phone: "invalid",
         show_address: false,
         hide_from_search: true,
         show_in_directory: false,
       });
+
       const response = await PUT(request);
 
       expect(response.status).toBe(400);
@@ -607,12 +668,14 @@ describe("Profile API Integration Tests (20 tests)", () => {
       mockDb.update = updateSpy;
 
       const { PUT } = await import("@/app/api/profile/privacy/route");
+
       const request = makeRequest("http://localhost:3000/api/profile/privacy", "PUT", {
         show_phone: false,
         show_address: true,
         hide_from_search: false,
         show_in_directory: true,
       });
+
       await PUT(request);
 
       expect(updateSpy).toHaveBeenCalled();
@@ -622,12 +685,14 @@ describe("Profile API Integration Tests (20 tests)", () => {
       unauthenticated();
 
       const { PUT } = await import("@/app/api/profile/privacy/route");
+
       const request = makeRequest("http://localhost:3000/api/profile/privacy", "PUT", {
         show_phone: true,
         show_address: false,
         hide_from_search: false,
         show_in_directory: true,
       });
+
       const response = await PUT(request);
 
       expect(response.status).toBe(401);
@@ -637,9 +702,11 @@ describe("Profile API Integration Tests (20 tests)", () => {
       authedAs("user-123");
 
       const { PUT } = await import("@/app/api/profile/privacy/route");
+
       const request = makeRequest("http://localhost:3000/api/profile/privacy", "PUT", {
         show_phone: true,
       });
+
       const response = await PUT(request);
 
       expect(response.status).toBe(400);
@@ -653,12 +720,15 @@ describe("Profile API Integration Tests (20 tests)", () => {
       mockUpdateWhere.mockResolvedValue(undefined);
 
       const { PUT } = await import("@/app/api/profile/role/route");
+
       const request = makeRequest("http://localhost:3000/api/profile/role", "PUT", {
         role: "senior",
       });
+
       const response = await PUT(request);
 
       expect([200, 500]).toContain(response.status);
+
       if (response.status === 200) {
         const body = (await response.json()) as { role: string; roleSource: string };
         expect(body.role).toBe("senior");
@@ -670,9 +740,11 @@ describe("Profile API Integration Tests (20 tests)", () => {
       authedAs("user-123");
 
       const { PUT } = await import("@/app/api/profile/role/route");
+
       const request = makeRequest("http://localhost:3000/api/profile/role", "PUT", {
         role: "invalid_role",
       });
+
       const response = await PUT(request);
 
       expect(response.status).toBe(400);
@@ -686,12 +758,15 @@ describe("Profile API Integration Tests (20 tests)", () => {
           where: vi.fn().mockResolvedValue(undefined),
         }),
       });
+
       mockDb.update = updateSpy;
 
       const { PUT } = await import("@/app/api/profile/role/route");
+
       const request = makeRequest("http://localhost:3000/api/profile/role", "PUT", {
         role: "executive",
       });
+
       await PUT(request);
 
       expect(updateSpy).toHaveBeenCalled();
@@ -701,9 +776,11 @@ describe("Profile API Integration Tests (20 tests)", () => {
       unauthenticated();
 
       const { PUT } = await import("@/app/api/profile/role/route");
+
       const request = makeRequest("http://localhost:3000/api/profile/role", "PUT", {
         role: "senior",
       });
+
       const response = await PUT(request);
 
       expect(response.status).toBe(401);
@@ -724,9 +801,11 @@ describe("Profile API Integration Tests (20 tests)", () => {
       );
 
       const { PUT } = await import("@/app/api/profile/handle/route");
+
       const request = makeRequest("http://localhost:3000/api/profile/handle", "PUT", {
         handle: "racedhandle",
       });
+
       const response = await PUT(request);
 
       expect(response.status).toBe(409);
@@ -746,11 +825,13 @@ describe("Profile API Integration Tests (20 tests)", () => {
       authedAs("user-123");
 
       const { PUT } = await import("@/app/api/profile/privacy/route");
+
       const request = new Request("http://localhost:3000/api/profile/privacy", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: "not valid json",
       });
+
       const response = await PUT(request);
 
       expect(response.status).toBe(400);

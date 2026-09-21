@@ -60,6 +60,7 @@ export async function completeResumes(input: ResumeCompletionInput): Promise<voi
           .from(user)
           .where(inArray(user.id, userIds))
       : [];
+
     rowsById = new Map(rows.map((row) => [row.id, row]));
     publishFor = (userId: string) => !!rowsById?.get(userId)?.handle;
   } else {
@@ -68,6 +69,7 @@ export async function completeResumes(input: ResumeCompletionInput): Promise<voi
       .from(user)
       .where(eq(user.id, items[0].userId))
       .limit(1);
+
     singleRow = rows[0];
     publishFor = () => !!singleRow?.handle;
   }
@@ -79,6 +81,7 @@ export async function completeResumes(input: ResumeCompletionInput): Promise<voi
     parsedContentStaged: null,
     lastAttemptError: null,
   };
+
   if (totalAttempts !== undefined) {
     completionSet.totalAttempts = totalAttempts;
   }
@@ -92,6 +95,7 @@ export async function completeResumes(input: ResumeCompletionInput): Promise<voi
       .select({ id: resumes.id, createdAt: resumes.createdAt })
       .from(resumes)
       .where(inArray(resumes.id, resumeIds));
+
     const createdAtById = new Map(createdRows.map((row) => [row.id, row.createdAt]));
 
     const updated = await tx
@@ -109,6 +113,7 @@ export async function completeResumes(input: ResumeCompletionInput): Promise<voi
     if (updated.length === 0) {
       return;
     }
+
     completedIds = updated.map((row) => row.id);
     const completedIdSet = new Set(completedIds);
 
@@ -116,12 +121,14 @@ export async function completeResumes(input: ResumeCompletionInput): Promise<voi
       .select({ userId: siteData.userId, updatedAt: siteData.updatedAt })
       .from(siteData)
       .where(inArray(siteData.userId, userIds));
+
     const siteUpdatedAtByUser = new Map(siteRows.map((row) => [row.userId, row.updatedAt]));
 
     for (const item of items) {
       if (!completedIdSet.has(item.resumeId)) continue;
       const resumeCreatedAt = createdAtById.get(item.resumeId);
       const siteUpdatedAt = siteUpdatedAtByUser.get(item.userId);
+
       // A manual edit newer than the resume wins: parsing must not silently clobber it.
       if (siteUpdatedAt && resumeCreatedAt && siteUpdatedAt > resumeCreatedAt) {
         log("info", "skipping site-data upsert - manual edits are newer", {
@@ -130,6 +137,7 @@ export async function completeResumes(input: ResumeCompletionInput): Promise<voi
         });
         continue;
       }
+
       await buildSiteDataUpsert(tx, item.userId, item.resumeId, parsedContent, {
         publish: publishFor(item.userId),
       });
@@ -142,6 +150,7 @@ export async function completeResumes(input: ResumeCompletionInput): Promise<voi
           .set({ role: professionalLevel, roleSource: "ai", updatedAt: now })
           .where(inArray(user.id, userIds));
       }
+
       if (parsedName && parsedName !== "Pending" && parsedName !== "Unnamed") {
         const needingName = [...(rowsById?.values() ?? [])]
           .filter(
@@ -149,6 +158,7 @@ export async function completeResumes(input: ResumeCompletionInput): Promise<voi
               !!row.id && shouldSyncDisplayName(parsedName, row.name),
           )
           .map((row) => row.id);
+
         if (needingName.length > 0) {
           await tx
             .update(user)
@@ -158,16 +168,20 @@ export async function completeResumes(input: ResumeCompletionInput): Promise<voi
       }
     } else if (professionalLevel || shouldSyncDisplayName(parsedName, singleRow?.name)) {
       type UserUpdatePayload = Partial<typeof user.$inferInsert>;
+
       const userUpdate: UserUpdatePayload = {
         updatedAt: now,
       };
+
       if (professionalLevel) {
         userUpdate.role = professionalLevel;
         userUpdate.roleSource = "ai";
       }
+
       if (shouldSyncDisplayName(parsedName, singleRow?.name)) {
         userUpdate.name = parsedName;
       }
+
       await tx.update(user).set(userUpdate).where(eq(user.id, items[0].userId));
     }
   });

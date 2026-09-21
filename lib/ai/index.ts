@@ -33,11 +33,14 @@ function validateParseResult(data: JsonValue): ValidateParseResult {
   }
 
   const result = resumeContentSchema.safeParse(withDefaults);
+
   if (result.success) {
     // SAFETY: resumeContentSchema.safeParse success guarantees result.data matches ResumeContent shape; UnknownRecord is the safe JSON representation for validated resume data.
     return { success: true, data: result.data as UnknownRecord };
   }
+
   const errors = result.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("\n");
+
   return { success: false, errors };
 }
 
@@ -45,6 +48,7 @@ function extractProfessionalLevel(data: UnknownRecord): string | undefined {
   const raw = (data as unknown as Record<string, unknown>)["professional_level"];
   const level = typeof raw === "string" ? raw : undefined;
   delete (data as unknown as Record<string, unknown>)["professional_level"];
+
   return level;
 }
 
@@ -59,6 +63,7 @@ export async function parseResumeWithAi(
     const trimmedForScanCheck = rawText.trim();
     const MIN_CHARS_PER_PAGE = 30;
     const VISION_MAX_PAGES = 50;
+
     const isScanned =
       extractResult.success &&
       extractResult.pageCount > 0 &&
@@ -70,6 +75,7 @@ export async function parseResumeWithAi(
         pageCount: extractResult.pageCount,
         charCount: trimmedForScanCheck.length,
       });
+
       if (extractResult.pageCount > VISION_MAX_PAGES) {
         return {
           success: false,
@@ -89,6 +95,7 @@ export async function parseResumeWithAi(
           const hasName = typeof fullNameUnknown === "string" && fullNameUnknown.trim().length > 0;
           const expUnknown = raw["experience"];
           const hasExp = Array.isArray(expUnknown) && expUnknown.length > 0;
+
           if (!hasName && !hasExp) {
             return {
               success: false,
@@ -97,6 +104,7 @@ export async function parseResumeWithAi(
                 "No text could be extracted from your scanned PDF. Try a clearer photo or export as text PDF.",
             };
           }
+
           const dataForRetry = structuredClone(visionResult.data);
           let validation = validateParseResult(visionResult.data);
 
@@ -104,12 +112,15 @@ export async function parseResumeWithAi(
             log("warn", "Vision schema validation failed, retrying with error feedback", {
               errors: validation.errors,
             });
+
             const retryResult = await parseWithAi("", env, undefined, {
               previousOutput: JSON.stringify(dataForRetry),
               errors: validation.errors,
             });
+
             if (retryResult.success && retryResult.data) {
               validation = validateParseResult(retryResult.data);
+
               if (validation.success) log("info", "Vision retry with error feedback succeeded");
             }
           }
@@ -121,9 +132,11 @@ export async function parseResumeWithAi(
               error: "AI response failed schema validation",
             };
           }
+
           // SAFETY: validation guarantees ResumeContentFormData shape; cast preserves type for final cleanup
           const finalData = transformAiOutput(validation.data as ResumeContentFormData);
           const professionalLevel = extractProfessionalLevel(finalData as unknown as UnknownRecord);
+
           return {
             success: true,
             parsedContent: JSON.stringify(finalData),
@@ -191,6 +204,7 @@ export async function parseResumeWithAi(
 
       if (retryResult.success && retryResult.data) {
         validation = validateParseResult(retryResult.data);
+
         if (validation.success) log("info", "Retry with error feedback succeeded");
       }
     }
@@ -206,6 +220,7 @@ export async function parseResumeWithAi(
     // SAFETY: resumeContentSchema validation above guarantees validation.data matches ResumeContentFormData; cast preserves type for final cleanup.
     const finalData = transformAiOutput(validation.data as ResumeContentFormData);
     const professionalLevel2 = extractProfessionalLevel(finalData as unknown as UnknownRecord);
+
     return {
       success: true,
       parsedContent: JSON.stringify(finalData),

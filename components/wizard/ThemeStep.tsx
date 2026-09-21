@@ -19,6 +19,7 @@ export function ThemeStep({ initialTheme = "minimalist_editorial", onContinue }:
   const handleContinue = async () => {
     if (isSubmitting) return;
     setIsSubmitting(true);
+
     try {
       await onContinue(selectedTheme);
     } finally {

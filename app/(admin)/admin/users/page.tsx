@@ -9,6 +9,7 @@ import { Pagination } from "@/components/admin/Pagination";
 import { UserStatusBadge } from "@/components/admin/UserStatusBadge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatRelativeTime } from "@/lib/utils/format";
+
 interface UserData {
   id: string;
   name: string;
@@ -37,11 +38,14 @@ export default function AdminUsersPage() {
 
   const fetchUsers = useCallback(async (p: number, s: string) => {
     setLoading(true);
+
     try {
       const params = new URLSearchParams({ page: p.toString() });
+
       if (s) params.set("search", s);
 
       const res = await fetch(`/api/admin/users?${params}`);
+
       if (!res.ok) throw new Error("Failed to fetch");
 
       const data: UsersResponse = await res.json();

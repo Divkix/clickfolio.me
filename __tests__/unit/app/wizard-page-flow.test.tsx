@@ -9,6 +9,7 @@ type SessionState = {
   } | null;
   isPending: boolean;
 };
+
 const mocks = vi.hoisted(() => ({
   router: { push: vi.fn() },
   toast: { error: vi.fn(), success: vi.fn() },
@@ -158,6 +159,7 @@ type FetchScenario =
 function installFetchScenario(scenario: FetchScenario) {
   globalThis.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
+
     if (url === "/api/upload/pending") {
       return Response.json(
         scenario === "pending-claim"
@@ -165,10 +167,13 @@ function installFetchScenario(scenario: FetchScenario) {
           : { key: null, file_hash: null },
       );
     }
+
     if (url === "/api/resume/claim") {
       expect(init?.body).toContain("temp/resume.pdf");
+
       return Response.json({ resume_id: "res_1", cached: scenario === "pending-claim" });
     }
+
     if (url === "/api/site-data") {
       return Response.json(
         scenario === "needs-upload" || scenario === "processing"
@@ -176,17 +181,20 @@ function installFetchScenario(scenario: FetchScenario) {
           : { content: resumeContent },
       );
     }
+
     if (url === "/api/resume/latest-status") {
       return Response.json(
         scenario === "processing" ? { id: "res_processing", status: "processing" } : null,
       );
     }
+
     if (url === "/api/wizard/complete") {
       return Response.json(
         scenario === "complete-error" ? { error: "Handle taken" } : { success: true },
         { status: scenario === "complete-error" ? 400 : 200 },
       );
     }
+
     return Response.json({ ok: true });
   }) as unknown as typeof fetch;
 }
@@ -284,16 +292,20 @@ describe("wizard page flow", () => {
 
   it("handles parsing failure redirects and reports init crashes", async () => {
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
     try {
       const { default: WizardPage } = await import("@/app/(protected)/wizard/page");
       globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
         const url = String(input);
+
         if (url === "/api/upload/pending") {
           return Response.json({ key: "temp/cookie.pdf", file_hash: "hash_1" });
         }
+
         if (url === "/api/resume/claim") {
           return Response.json({ resume_id: "res_session", cached: false });
         }
+
         return Response.json(null);
       }) as unknown as typeof fetch;
       mocks.waitForResumeCompletion.mockResolvedValueOnce({
@@ -311,6 +323,7 @@ describe("wizard page flow", () => {
         if (String(input) === "/api/site-data") {
           throw new Error("site-data down");
         }
+
         return Response.json({ key: null, file_hash: null });
       }) as unknown as typeof fetch;
       const loader = render(<WizardPage />);

@@ -13,8 +13,10 @@ import {
 export const revalidate = 86400;
 
 const title = "Resume Website for Consultants";
+
 const description =
   "Launch a professional consulting portfolio website from your PDF resume. Privacy controls, custom URL, 10 templates — free forever with no time limits.";
+
 const path = "/for/consultant";
 
 export const metadata: Metadata = buildRolePageMetadata({ title, description, path });

@@ -15,10 +15,12 @@ export interface AdminUser {
 
 async function loadAdminRow(userId: string): Promise<AdminUser | null> {
   const db = getDb(env.HYPERDRIVE);
+
   const dbUser = await db.query.user.findFirst({
     where: eq(users.id, userId),
     columns: { id: true, email: true, name: true, isAdmin: true },
   });
+
   // SAFETY: dbUser columns id,email,name,isAdmin match AdminUser shape from Drizzle query with explicit columns, safe to cast.
   return (dbUser as AdminUser) ?? null;
 }

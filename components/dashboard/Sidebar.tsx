@@ -41,20 +41,24 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
       if (!session?.user?.id) {
         if (cancelled) return;
         setProfileLoading(false);
+
         return;
       }
 
       if (profile && Date.now() - lastFetchedRef.current < STALE_TIME_MS) {
         if (cancelled) return;
         setProfileLoading(false);
+
         return;
       }
 
       try {
         const response = await fetch("/api/profile/me");
+
         if (response.ok) {
           // SAFETY: ProfileResponse is from our /api/profile/me endpoint; shape validated server-side before use.
           const data = (await response.json()) as ProfileResponse;
+
           if (cancelled) return;
           setProfile({ handle: data.handle ?? null, isAdmin: data.isAdmin ?? false });
           lastFetchedRef.current = Date.now();
@@ -85,9 +89,11 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
   const getInitials = () => {
     if (!session?.user?.name) return "?";
     const names = session.user.name.split(" ");
+
     if (names.length >= 2) {
       return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase();
     }
+
     return names[0][0].toUpperCase();
   };
 
@@ -125,6 +131,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
     if (exact) {
       return pathname === href;
     }
+
     return pathname?.startsWith(href);
   };
 

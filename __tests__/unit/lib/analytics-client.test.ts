@@ -7,6 +7,7 @@ const { posthogState, mockCapture, mockIdentify, mockReset, mockCaptureException
     const mockIdentify = vi.fn();
     const mockReset = vi.fn();
     const mockCaptureException = vi.fn();
+
     return { posthogState, mockCapture, mockIdentify, mockReset, mockCaptureException };
   },
 );

@@ -16,6 +16,7 @@ export async function handleDLQMessage(
   },
 ): Promise<void> {
   const originalMessage = "originalMessage" in message ? message.originalMessage : message;
+
   const failureReason =
     "failureReason" in message ? message.failureReason : "Unknown (moved to DLQ)";
 
@@ -37,6 +38,7 @@ export async function handleDLQMessage(
     log("info", "DLQ: resume not found, skipping", {
       resumeId: originalMessage.resumeId,
     });
+
     return;
   }
 
@@ -44,6 +46,7 @@ export async function handleDLQMessage(
     log("info", "DLQ: resume already completed, skipping failure mark", {
       resumeId: originalMessage.resumeId,
     });
+
     return;
   }
 
@@ -52,6 +55,7 @@ export async function handleDLQMessage(
   const rawErrorType = getLastAttemptErrorType(
     (currentResume[0]?.lastAttemptError as string | null) ?? null,
   );
+
   // SAFETY: QueueErrorType enum values are strings; cast to string[] for includes check and back to QueueErrorType is safe widening/narrowing within enum.
   const errorType =
     rawErrorType !== null && (Object.values(QueueErrorType) as string[]).includes(rawErrorType)
@@ -59,6 +63,7 @@ export async function handleDLQMessage(
       : QueueErrorType.UNKNOWN;
 
   const attemptCount = currentResume[0]?.totalAttempts || "unknown";
+
   const errorMsg =
     currentResume[0]?.errorMessage ??
     `Permanently failed after ${attemptCount} attempts: ${failureReason}`;

@@ -2,10 +2,15 @@ import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { JsonValue } from "@/lib/types/json";
 
 const mockFindFirst = vi.fn();
+
 const mockSelect = vi.fn().mockReturnThis();
+
 const mockFrom = vi.fn().mockReturnThis();
+
 const mockWhere = vi.fn().mockReturnThis();
+
 const mockLimit = vi.fn();
+
 const mockUpdate = vi.fn().mockReturnValue({
   set: vi.fn().mockReturnValue({
     where: vi.fn().mockReturnValue({
@@ -13,6 +18,7 @@ const mockUpdate = vi.fn().mockReturnValue({
     }),
   }),
 });
+
 const mockInsert = vi.fn().mockReturnValue({
   values: vi.fn().mockResolvedValue(undefined),
 });
@@ -37,6 +43,7 @@ vi.mock("@/lib/auth/middleware", () => ({
 
 vi.mock("drizzle-orm", async (importOriginal) => {
   const actual = await importOriginal<typeof import("drizzle-orm")>();
+
   return {
     ...actual,
     eq: vi.fn((_col, val) => val),
@@ -52,6 +59,7 @@ vi.mock("drizzle-orm", async (importOriginal) => {
 
 vi.mock("@/lib/db/schema", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/db/schema")>();
+
   return {
     ...actual,
     resumes: {
@@ -87,6 +95,7 @@ vi.mock("@/lib/r2", () => ({
 
 vi.mock("@/lib/resume/lifecycle", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/resume/lifecycle")>();
+
   return {
     ...actual,
     hasExceededMaxAttempts: vi.fn(() => false),
@@ -207,11 +216,13 @@ describe("POST /api/resume/retry — ownership checks", () => {
     });
 
     const { POST } = await import("@/app/api/resume/retry/route");
+
     const request = new Request("http://localhost:3000/api/resume/retry", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ resume_id: "resume-1" }),
     });
+
     const response = await POST(request);
 
     expect(response.status).toBe(403);
@@ -234,11 +245,13 @@ describe("POST /api/resume/retry — ownership checks", () => {
     });
 
     const { POST } = await import("@/app/api/resume/retry/route");
+
     const request = new Request("http://localhost:3000/api/resume/retry", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ resume_id: "resume-1" }),
     });
+
     const response = await POST(request);
 
     expect(response.status).toBe(200);

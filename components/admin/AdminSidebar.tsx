@@ -23,6 +23,7 @@ export function AdminSidebar({ isOpen, onClose, adminEmail }: AdminSidebarProps)
 
   const isActive = (href: string, exact: boolean) => {
     if (exact) return pathname === href;
+
     return pathname?.startsWith(href);
   };
 

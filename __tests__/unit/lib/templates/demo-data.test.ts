@@ -2,7 +2,9 @@ import { describe, expect, it } from "vite-plus/test";
 import { DEMO_RESUME_CONTENT, DEMO_PROFILES } from "@/lib/templates/demo-data";
 import type { UnknownRecord, JsonValue } from "@/lib/types/json";
 import type { ResumeContent } from "@/lib/types/database";
+
 const URL_FIELDS = ["linkedin", "github", "website", "behance", "dribbble"] as const;
+
 const URL_FIELDS_IN_SECTIONS = ["url", "image_url"] as const;
 
 function collectUrls(content: ResumeContent): string[] {
@@ -19,12 +21,16 @@ function collectUrls(content: ResumeContent): string[] {
       ) {
         urls.push(value);
       }
+
       return;
     }
+
     if (Array.isArray(value)) {
       for (const item of value) visit(item);
+
       return;
     }
+
     if (value !== null && typeof value === "object") {
       for (const key of Object.keys(value as UnknownRecord)) {
         visit((value as UnknownRecord)[key]);
@@ -33,6 +39,7 @@ function collectUrls(content: ResumeContent): string[] {
   };
 
   visit(content);
+
   return urls;
 }
 
@@ -47,6 +54,7 @@ describe("DEMO_RESUME_CONTENT URL audit", () => {
     for (const [themeId, content] of Object.entries(DEMO_RESUME_CONTENT)) {
       for (const field of URL_FIELDS) {
         const value = (content.contact as unknown as Record<string, string | undefined>)?.[field];
+
         if (value) {
           expect(
             value.startsWith("https://"),
@@ -63,6 +71,7 @@ describe("DEMO_RESUME_CONTENT URL audit", () => {
         for (const entry of content[section] ?? []) {
           for (const field of URL_FIELDS_IN_SECTIONS) {
             const value = (entry as UnknownRecord | undefined)?.[field];
+
             if (typeof value === "string" && value) {
               expect(
                 value.startsWith("https://"),

@@ -100,8 +100,10 @@ export async function GET(request: Request) {
     ]);
 
     const resumeStatusMap = new Map<string, string>();
+
     for (const r of resumeStatuses) {
       const existing = resumeStatusMap.get(r.userId);
+
       if (
         !existing ||
         r.status === "failed" ||
@@ -115,6 +117,7 @@ export async function GET(request: Request) {
       string,
       { lastPublishedAt: string | null; previewName: string | null }
     >();
+
     for (const s of hasSiteData) {
       siteDataMap.set(s.userId, {
         lastPublishedAt: s.lastPublishedAt,

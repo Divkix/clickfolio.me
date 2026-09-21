@@ -159,14 +159,23 @@ import { type AdminUser, requireAdminAuthForApi } from "@/lib/auth/admin";
 const mockedAdminAuth = vi.mocked(requireAdminAuthForApi);
 
 const mockSelect = vi.fn();
+
 const mockFrom = vi.fn();
+
 const mockWhere = vi.fn();
+
 const mockOrderBy = vi.fn();
+
 const mockLimit = vi.fn();
+
 const mockOffset = vi.fn();
+
 const mockGroupBy = vi.fn();
+
 const mockLeftJoin = vi.fn();
+
 const mockInsert = vi.fn();
+
 const mockUpdate = vi.fn();
 
 const createChainable = () => {
@@ -210,8 +219,11 @@ const mockDb = {
   insert: mockInsert,
   update: mockUpdate,
 };
+
 type AdminAuthedResult = { user: AdminUser; error: null };
+
 type AuthErrorResult = { user: null; error: Response };
+
 function adminAuthed(userId = "admin-123"): AdminAuthedResult {
   const user: AdminUser = {
     id: userId,
@@ -221,6 +233,7 @@ function adminAuthed(userId = "admin-123"): AdminAuthedResult {
   };
 
   mockedAdminAuth.mockResolvedValue({ user, error: null });
+
   return { user, error: null };
 }
 
@@ -231,6 +244,7 @@ function regularUserAuthed(): AuthErrorResult {
     user: null,
     error,
   });
+
   return { user: null, error };
 }
 
@@ -241,15 +255,18 @@ function unauthenticated(): AuthErrorResult {
     user: null,
     error,
   });
+
   return { user: null, error };
 }
 
 function makeRequest(url: string, method = "GET", body?: JsonValue): Request {
   const init: RequestInit = { method };
+
   if (body) {
     init.body = JSON.stringify(body);
     init.headers = { "Content-Type": "application/json" };
   }
+
   return new Request(url, init);
 }
 
@@ -369,11 +386,13 @@ describe("Admin API Integration Tests (15 tests)", () => {
       const response = await GET(request);
 
       expect([200, 500]).toContain(response.status);
+
       if (response.status === 200) {
         const body = (await response.json()) as {
           stats: { completed: number; processing: number };
           resumes: JsonValue[];
         };
+
         expect(body.stats).toBeDefined();
         expect(body.resumes).toBeDefined();
       }
@@ -388,6 +407,7 @@ describe("Admin API Integration Tests (15 tests)", () => {
         const request = makeRequest(
           `http://localhost:3000/api/admin/resumes?status=${status}&page=1`,
         );
+
         const response = await GET(request);
         expect([200, 500]).toContain(response.status);
       }
@@ -407,9 +427,11 @@ describe("Admin API Integration Tests (15 tests)", () => {
       adminAuthed();
 
       const { GET } = await import("@/app/api/admin/resumes/route");
+
       const request = makeRequest(
         "http://localhost:3000/api/admin/resumes?status=invalid_status&page=1",
       );
+
       const response = await GET(request);
 
       expect(response.status).toBe(400);
@@ -452,6 +474,7 @@ describe("Admin API Integration Tests (15 tests)", () => {
       const response = await GET();
 
       expect([200, 500, 503]).toContain(response.status);
+
       if (response.status === 200) {
         const body = (await response.json()) as {
           totalUsers: number;
@@ -460,6 +483,7 @@ describe("Admin API Integration Tests (15 tests)", () => {
           failedResumes: number;
           dailyViews: JsonValue[];
         };
+
         expect(body.totalUsers).toBeDefined();
         expect(body.publishedResumes).toBeDefined();
         expect(body.dailyViews).toBeDefined();
@@ -478,6 +502,7 @@ describe("Admin API Integration Tests (15 tests)", () => {
       const response = await GET();
 
       expect([200, 500, 503]).toContain(response.status);
+
       if (response.status === 200) {
         const body = (await response.json()) as { recentSignups: JsonValue[] };
         expect(body.recentSignups).toBeDefined();
@@ -544,6 +569,7 @@ describe("Admin API Integration Tests (15 tests)", () => {
       const response = await GET(request);
 
       expect([200, 500]).toContain(response.status);
+
       if (response.status === 200) {
         const body = (await response.json()) as {
           users: JsonValue[];
@@ -551,6 +577,7 @@ describe("Admin API Integration Tests (15 tests)", () => {
           page: number;
           pageSize: number;
         };
+
         expect(body.users).toBeDefined();
         expect(body.total).toBeDefined();
         expect(body.page).toBe(1);
@@ -577,6 +604,7 @@ describe("Admin API Integration Tests (15 tests)", () => {
       const response = await GET(request);
 
       expect([200, 500]).toContain(response.status);
+
       if (response.status === 200) {
         const body = (await response.json()) as { users: JsonValue[] };
         expect(body.users).toBeDefined();
@@ -594,6 +622,7 @@ describe("Admin API Integration Tests (15 tests)", () => {
       const response = await GET(request);
 
       expect([200, 500]).toContain(response.status);
+
       if (response.status === 200) {
         const body = (await response.json()) as { page: number; pageSize: number; total: number };
         expect(body.page).toBe(2);
@@ -633,6 +662,7 @@ describe("Admin API Integration Tests (15 tests)", () => {
       const response = await GET(request);
 
       expect([200, 500]).toContain(response.status);
+
       if (response.status === 200) {
         const body = (await response.json()) as { users: JsonValue[]; total: number };
         expect(body.users).toEqual([]);
@@ -680,9 +710,11 @@ describe("Admin API Integration Tests (15 tests)", () => {
         unauthenticated();
 
         const { GET: AnalyticsGET } = await import("@/app/api/admin/analytics/route");
+
         const analyticsResponse = await AnalyticsGET(
           makeRequest("http://localhost:3000/api/admin/analytics"),
         );
+
         expect(analyticsResponse.status).toBe(401);
       }
     });

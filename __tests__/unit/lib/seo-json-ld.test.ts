@@ -236,6 +236,7 @@ describe("JSON-LD generators", () => {
       category: "Guide",
       keywords: ["pdf resume"],
     };
+
     expect(generateBlogPostingJsonLd(samplePost)).toMatchObject({
       "@type": "BlogPosting",
       headline: samplePost.title,

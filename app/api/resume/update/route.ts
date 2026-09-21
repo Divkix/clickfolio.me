@@ -18,6 +18,7 @@ interface UpdateRequestBody {
 
 export async function PUT(request: Request) {
   const sizeCheck = validateRequestSize(request);
+
   if (!sizeCheck.valid) {
     return createErrorResponse(
       sizeCheck.error || "Request body too large",
@@ -32,6 +33,7 @@ export async function PUT(request: Request) {
       const userId = authUser.id;
 
       const rawBodyResult = await readJsonWithLimit(request);
+
       if (!rawBodyResult.ok) {
         return createErrorResponse(
           rawBodyResult.error,
@@ -39,6 +41,7 @@ export async function PUT(request: Request) {
           rawBodyResult.reason === "too_large" ? 413 : 400,
         );
       }
+
       // SAFETY: rawBodyResult.data is bounded JSON from validated request; cast extracts UpdateRequestBody.
       const body = rawBodyResult.data as UpdateRequestBody;
 
@@ -94,6 +97,7 @@ export async function PUT(request: Request) {
             404,
           );
         }
+
         return createErrorResponse(
           "Resume changed elsewhere. Please reload and try again.",
           ERROR_CODES.CONFLICT,
@@ -104,13 +108,16 @@ export async function PUT(request: Request) {
       const data = updateResult[0];
 
       const updatedName = content.full_name?.trim();
+
       if (updatedName && updatedName !== "Pending" && updatedName !== "Unnamed") {
         const userRow = await db
           .select({ name: user.name })
           .from(user)
           .where(eq(user.id, userId))
           .limit(1);
+
         const currentName = userRow[0]?.name;
+
         if (!currentName || currentName === "Unnamed" || currentName.trim() === "") {
           await db
             .update(user)

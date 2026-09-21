@@ -9,6 +9,7 @@ const env = {
 async function loadClient() {
   vi.resetModules();
   process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID = "site_123";
+
   return import("@/lib/umami/client");
 }
 
@@ -21,14 +22,17 @@ describe("Umami analytics client", () => {
   it("authenticates once and sends filtered stats, pageview, and metric requests", async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
+
       if (url.endsWith("/api/auth/login")) {
         expect(init?.method).toBe("POST");
         expect(JSON.parse(String(init?.body))).toEqual({
           username: "avery",
           password: "secret",
         });
+
         return Response.json({ token: "token-1" });
       }
+
       if (url.includes("/stats?")) {
         return Response.json({
           pageviews: 12,
@@ -45,14 +49,17 @@ describe("Umami analytics client", () => {
           },
         });
       }
+
       if (url.includes("/pageviews?")) {
         return Response.json({
           pageviews: [{ x: "2026-05-20", y: 8 }],
           sessions: [{ x: "2026-05-20", y: 3 }],
         });
       }
+
       return Response.json([{ x: "linkedin.com", y: 2 }]);
     });
+
     vi.stubGlobal("fetch", fetchMock);
 
     const { getMetrics, getPageviews, getStats } = await loadClient();
@@ -101,6 +108,7 @@ describe("Umami analytics client", () => {
       )
       .mockResolvedValueOnce(Response.json({ token: "fresh" }))
       .mockResolvedValueOnce(Response.json([{ x: "US", y: 7 }]));
+
     vi.stubGlobal("fetch", fetchMock);
 
     const { getMetrics } = await loadClient();

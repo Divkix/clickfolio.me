@@ -28,6 +28,7 @@ if (POSTHOG_PROJECT_TOKEN) {
       ) {
         return null;
       }
+
       return event;
     },
   });

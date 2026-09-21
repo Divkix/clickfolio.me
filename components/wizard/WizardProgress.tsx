@@ -21,6 +21,7 @@ const getStepTitle = (step: number, hasUploadStep: boolean): string => {
   const normalStepTitles = ["Choose Handle", "Review Content", "Privacy Settings", "Select Theme"];
 
   const titles = hasUploadStep ? uploadStepTitles : normalStepTitles;
+
   return titles[step - 1] || "Unknown Step";
 };
 

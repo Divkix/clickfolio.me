@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { withUser } from "@/lib/auth/with-auth";
 import { siteData } from "@/lib/db/schema";
 import { createSuccessResponse } from "@/lib/utils/security-headers";
+
 export async function GET(request?: Request) {
   return withUser(
     request,
@@ -20,6 +21,7 @@ export async function GET(request?: Request) {
         .from(siteData)
         .where(eq(siteData.userId, user.id))
         .limit(1);
+
       const userSiteData = rows[0] ?? null;
 
       if (!userSiteData) {

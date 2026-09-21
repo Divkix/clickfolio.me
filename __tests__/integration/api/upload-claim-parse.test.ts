@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { JsonValue } from "@/lib/types/json";
 
 type ClaimBody = { key: string };
+
 type ClaimHeaders = { "Content-Type": string; Cookie?: string };
 
 interface MockDbChain {
@@ -26,18 +27,22 @@ const createMockDbChain = (returnValue: JsonValue = []): MockDbChain => {
   const limit = vi.fn().mockResolvedValue(returnValue);
   const orderBy = vi.fn().mockReturnValue({ limit });
   const forUpdate = vi.fn().mockResolvedValue(undefined);
+
   const where = vi
     .fn()
     .mockReturnValue(
       Object.assign(Promise.resolve(returnValue), { orderBy, limit, for: forUpdate }),
     );
+
   const from = vi.fn().mockReturnValue({ where });
 
   return { from, where, orderBy, limit, for: forUpdate };
 };
 
 let mockDbSelectChain = createMockDbChain([]);
+
 let mockDbUpdateChain: MockDbUpdateChain;
+
 let mockDbInsertChain: MockDbInsertChain;
 
 const resetMockDbChains = () => {
@@ -59,6 +64,7 @@ const resetMockDbChains = () => {
     onConflictDoNothing: vi.fn().mockResolvedValue(undefined),
     returning: vi.fn().mockResolvedValue([{ id: values.id }]),
   }));
+
   mockDbInsertChain = { values: insertValues };
 };
 
@@ -70,6 +76,7 @@ const mockDb = {
 };
 
 const mockR2Store = new Map<string, ArrayBuffer>();
+
 const mockR2Binding = {} as R2Bucket;
 
 const mockR2 = {
@@ -84,7 +91,9 @@ const mockR2 = {
   }),
   head: vi.fn().mockImplementation(async (_binding: R2Bucket, key: string) => {
     const buf = mockR2Store.get(key);
+
     if (!buf) return { exists: false };
+
     return { exists: true, size: buf.byteLength };
   }),
 };
@@ -152,6 +161,7 @@ vi.mock("@/lib/auth/middleware", () => ({
         error: new Response(JSON.stringify({ error: message || "Unauthorized" }), { status: 401 }),
       };
     }
+
     return {
       user: mockAuthUser,
       db: mockDb,
@@ -231,6 +241,7 @@ function makePdfBuffer(content = "fake content"): ArrayBuffer {
   const header = new TextEncoder().encode(`%PDF-1.4 ${content}`);
   const result = new Uint8Array(Math.max(120, header.byteLength));
   result.set(new Uint8Array(header.buffer, header.byteOffset, header.byteLength));
+
   return result.buffer;
 }
 
@@ -238,6 +249,7 @@ function makeInvalidBuffer(): ArrayBuffer {
   const data = new Uint8Array(120);
   const header = new TextEncoder().encode("NOT A PDF FILE");
   data.set(new Uint8Array(header.buffer, header.byteOffset, header.byteLength));
+
   return data.buffer;
 }
 
@@ -282,9 +294,11 @@ function makeUploadRequest(
 
 function makeClaimRequest(key: string, cookieValue?: string): Request {
   const body: ClaimBody = { key };
+
   const headers: ClaimHeaders = {
     "Content-Type": "application/json",
   };
+
   if (cookieValue) headers.Cookie = `pending_upload=${cookieValue}`;
 
   return new Request("http://localhost:3000/api/resume/claim", {
@@ -296,8 +310,10 @@ function makeClaimRequest(key: string, cookieValue?: string): Request {
 
 function extractPendingUploadCookie(uploadResponse: Response): string | null {
   const setCookieHeader = uploadResponse.headers.get("Set-Cookie");
+
   if (!setCookieHeader) return null;
   const match = setCookieHeader.match(/pending_upload=([^;]+)/);
+
   return match?.[1] ?? null;
 }
 
@@ -318,6 +334,7 @@ describe("POST /api/upload", () => {
     const request = makeUploadRequest(buffer);
 
     const response = await POST(request);
+
     const body = (await response.json()) as {
       key: string;
       remaining: { hourly: number; daily: number };
@@ -362,6 +379,7 @@ describe("POST /api/upload", () => {
   it("4. Upload without Content-Type → 400 error", async () => {
     const { POST } = await import("@/app/api/upload/route");
     const buffer = makePdfBuffer();
+
     const request = new Request("http://localhost:3000/api/upload", {
       method: "POST",
       headers: {
@@ -379,6 +397,7 @@ describe("POST /api/upload", () => {
   it("5. Upload without Content-Length → 411 error", async () => {
     const { POST } = await import("@/app/api/upload/route");
     const buffer = makePdfBuffer();
+
     const request = new Request("http://localhost:3000/api/upload", {
       method: "POST",
       headers: {
@@ -396,6 +415,7 @@ describe("POST /api/upload", () => {
   it("6. Upload with mismatched Content-Length → 400 error", async () => {
     const { POST } = await import("@/app/api/upload/route");
     const buffer = makePdfBuffer();
+
     const request = new Request("http://localhost:3000/api/upload", {
       method: "POST",
       headers: {
@@ -414,6 +434,7 @@ describe("POST /api/upload", () => {
   it("7. Upload without X-Filename → 400 error", async () => {
     const { POST } = await import("@/app/api/upload/route");
     const buffer = makePdfBuffer();
+
     const request = new Request("http://localhost:3000/api/upload", {
       method: "POST",
       headers: {
@@ -432,6 +453,7 @@ describe("POST /api/upload", () => {
     const { POST } = await import("@/app/api/upload/route");
     const buffer = makePdfBuffer();
     const longFilename = `${"a".repeat(300)}.pdf`;
+
     const request = new Request("http://localhost:3000/api/upload", {
       method: "POST",
       headers: {
@@ -451,6 +473,7 @@ describe("POST /api/upload", () => {
     const { MAX_FILE_SIZE } = await import("@/lib/utils/validation");
     const { POST } = await import("@/app/api/upload/route");
     const largeSize = MAX_FILE_SIZE + 1;
+
     const request = new Request("http://localhost:3000/api/upload", {
       method: "POST",
       headers: {
@@ -469,6 +492,7 @@ describe("POST /api/upload", () => {
   it("10. Upload file too small → 400 error", async () => {
     const { POST } = await import("@/app/api/upload/route");
     const tinyBuffer = new ArrayBuffer(50);
+
     const request = new Request("http://localhost:3000/api/upload", {
       method: "POST",
       headers: {
@@ -671,6 +695,7 @@ describe("POST /api/upload/pending - R2 existence check (hardening)", () => {
 
   it("26. POST /api/upload/pending with unknown temp key → 404 (object not in R2)", async () => {
     const { POST } = await import("@/app/api/upload/pending/route");
+
     const request = new Request("http://localhost:3000/api/upload/pending", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -687,6 +712,7 @@ describe("POST /api/upload/pending - R2 existence check (hardening)", () => {
 
   it("27. POST /api/upload/pending with invalid key prefix → 400", async () => {
     const { POST } = await import("@/app/api/upload/pending/route");
+
     const request = new Request("http://localhost:3000/api/upload/pending", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

@@ -8,26 +8,41 @@ import { TemplateFontLinks } from "./shared/TemplateFontLinks";
 
 function techDotColor(tech: string): string {
   const key = tech.toLowerCase();
+
   if (key.includes("typescript") || key === "ts") return "#3178c6";
+
   if (key.includes("javascript") || key === "js") return "#f1e05a";
+
   if (key.includes("python")) return "#3572A5";
+
   if (key.includes("go")) return "#00ADD8";
+
   if (key.includes("rust")) return "#dea584";
+
   if (key.includes("react")) return "#61dafb";
+
   if (key.includes("node")) return "#339933";
+
   if (key.includes("next")) return "#ffffff";
+
   if (key.includes("redis")) return "#dc382d";
+
   if (key.includes("vite")) return "#646cff";
+
   if (key.includes("cloudflare") || key.includes("worker")) return "#f38020";
+
   if (key.includes("websocket")) return "#8b949e";
+
   if (key.includes("timescale") || key.includes("postgres") || key.includes("sql")) {
     return "#336791";
   }
+
   return "#238636";
 }
 
 function buildTabs(content: TemplateProps["content"]): { id: string; label: string }[] {
   const { skills, experience, projects, education, certifications } = content;
+
   return [
     { id: "readme", label: "README.md" },
     ...(skills && skills.length > 0 ? [{ id: "skills", label: "config.yml" }] : []),
@@ -82,6 +97,7 @@ function SkillsSection({ skills }: { skills: NonNullable<TemplateProps["content"
         <div className="p-4 font-mono-term text-xs md:text-sm">
           {skills.map((skillGroup, index) => {
             const echoText = `$ echo ${skillGroup.category.toUpperCase().replace(/\s+/g, "_")}`;
+
             return (
               <div key={skillGroup.category} className="mb-4 last:mb-0">
                 <div className="text-[#7ee787] mb-2 flex items-start">
@@ -177,7 +193,9 @@ function ProjectsSection({
                 ? project.url
                 : `https://${project.url}`
               : undefined;
+
             const Wrapper = href ? "a" : "article";
+
             return (
               <Wrapper
                 key={`${project.title}-${project.year ?? ""}-${project.url ?? ""}`}
@@ -424,6 +442,7 @@ export const DevTerminal: React.FC<TemplateProps> = ({ content, profile }) => {
                       </span>
                     );
                   }
+
                   if (link.type === "email") {
                     return (
                       <a
@@ -436,6 +455,7 @@ export const DevTerminal: React.FC<TemplateProps> = ({ content, profile }) => {
                       </a>
                     );
                   }
+
                   if (link.type === "phone") {
                     return (
                       <a
@@ -448,6 +468,7 @@ export const DevTerminal: React.FC<TemplateProps> = ({ content, profile }) => {
                       </a>
                     );
                   }
+
                   return (
                     <a
                       key={link.type}

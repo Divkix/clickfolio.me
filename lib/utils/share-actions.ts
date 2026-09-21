@@ -17,6 +17,7 @@ export function getShareUrl(handle: string | undefined): string {
   if (globalThis.window !== undefined && handle) {
     return `${globalThis.window.location.origin}/@${handle}`;
   }
+
   return `${siteConfig.url}/@${handle ?? ""}`;
 }
 

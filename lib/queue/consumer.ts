@@ -18,24 +18,31 @@ function getUserFriendlyError(rawError: string): string {
   if (/password.protected|encrypted/.test(lower)) {
     return "Your PDF is password-protected. Please upload an unprotected version.";
   }
+
   if (/invalid.*pdf|corrupt/.test(lower)) {
     return "Your PDF couldn't be read. Please upload a valid PDF file.";
   }
+
   if (/scanned.*pdf.*clearer|scanned.*pdf.*export|clearer.*photo/.test(lower)) {
     return "No text could be extracted from your scanned PDF. Try a clearer photo or export as text PDF.";
   }
+
   if (/extracted.*text.*is.*empty/.test(lower)) {
     return "No text could be extracted from your PDF. It may be a scanned image.";
   }
+
   if (/pdf.*has.*\d+.*pages/.test(lower)) {
     return "Your PDF is too long. Please upload a resume under 50 pages.";
   }
+
   if (/schema.*validation/.test(lower)) {
     return "We couldn't parse your resume format. Please try again.";
   }
+
   if (/timeout|timed.*out/.test(lower)) {
     return "Processing timed out. Please try again.";
   }
+
   return "Something went wrong while parsing your resume. Please try again.";
 }
 
@@ -73,11 +80,13 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
 
   if (!currentResume[0]) {
     log("info", "resume not found, skipping parse", { resumeId: message.resumeId });
+
     return;
   }
 
   if (currentResume[0]?.status === "completed" && currentResume[0]?.parsedContent) {
     log("info", "resume already completed, skipping", { resumeId: message.resumeId });
+
     return;
   }
 
@@ -100,6 +109,7 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
     log("info", "resume not claimable in current status, skipping", {
       resumeId: message.resumeId,
     });
+
     return;
   }
 
@@ -114,6 +124,7 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
       professionalLevel: cachedContent.professional_level ?? undefined,
       totalAttempts: claimed[0].totalAttempts,
     });
+
     return;
   }
 
@@ -124,6 +135,7 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
   });
 
   const pdfBuffer = await R2.getAsArrayBuffer(r2Binding, message.r2Key);
+
   if (!pdfBuffer) {
     const error = new Error(`Failed to fetch PDF from R2: ${message.r2Key}`);
     const classifiedError = classifyQueueError(error);
@@ -153,11 +165,13 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
   }
 
   let parsedContent: ResumeContent;
+
   try {
     parsedContent = resumeContentSchema.parse(JSON.parse(parseResult.parsedContent));
   } catch {
     throw new Error(`Invalid JSON response from AI parser for resume ${message.resumeId}`);
   }
+
   // SAFETY: AI returns professionalLevel as validated string from resumeContentSchema; UserRole cast narrows to enum with undefined fallback if missing.
   const professionalLevel = parseResult.professionalLevel as UserRole | undefined;
 

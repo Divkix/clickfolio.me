@@ -5,27 +5,35 @@ export function calculateCompleteness(content: ResumeContent): number {
   let total = 0;
 
   total += 10;
+
   if (content.full_name?.trim()) score += 10;
 
   total += 10;
+
   if (content.headline?.trim()) score += 10;
 
   total += 15;
+
   if (content.summary?.trim()) score += 15;
 
   total += 10;
+
   if (content.contact?.email) score += 10;
 
   total += 20;
+
   if (content.experience?.length > 0) score += 20;
 
   total += 15;
+
   if (content.education && content.education.length > 0) score += 15;
 
   total += 10;
+
   if (content.skills && content.skills.length > 0) score += 10;
 
   total += 10;
+
   if (content.certifications && content.certifications.length > 0) score += 10;
 
   return Math.round((score / total) * 100);

@@ -10,6 +10,7 @@ import {
 
 export function buildResumeStatusWsUrl(resumeId: string): string {
   const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+
   return `${protocol}//${window.location.host}/ws/resume-status?resume_id=${resumeId}`;
 }
 
@@ -21,11 +22,15 @@ export interface ResumeStatusPayload {
 
 export function decodeResumeStatusMessage(data: unknown): ResumeStatusPayload | null {
   const parsed = z.string().safeParse(data);
+
   if (!parsed.success || parsed.data === "pong") return null;
+
   try {
     // SAFETY: status validated immediately below via isValidResumeStatus; cast narrows the parsed shape with early return on invalid status
     const msg = JSON.parse(parsed.data) as ResumeStatusPayload;
+
     if (!isValidResumeStatus(msg.status)) return null;
+
     return msg;
   } catch {
     return null;
@@ -57,14 +62,17 @@ export function createResumeStatusSocket(
   function dispose(reason = "cleanup") {
     if (disposed) return;
     disposed = true;
+
     if (reconnectTimer) {
       clearTimeout(reconnectTimer);
       reconnectTimer = null;
     }
+
     if (pingTimer) {
       clearInterval(pingTimer);
       pingTimer = null;
     }
+
     if (socket) {
       socket.onopen = null;
       socket.onmessage = null;
@@ -93,6 +101,7 @@ export function createResumeStatusSocket(
         if (Date.now() - lastActivityAt >= WS_PING_INTERVAL_MS * WS_MAX_MISSED_PINGS) {
           dispose("unresponsive connection");
           handlers.onFallback?.();
+
           return;
         }
 
@@ -104,6 +113,7 @@ export function createResumeStatusSocket(
     socket.onmessage = (event) => {
       lastActivityAt = Date.now();
       const msg = decodeResumeStatusMessage(event.data);
+
       if (msg) handlers.onMessage?.(msg);
     };
 
@@ -112,16 +122,21 @@ export function createResumeStatusSocket(
         clearInterval(pingTimer);
         pingTimer = null;
       }
+
       socket = null;
+
       if (disposed) return;
 
       if (handlers.onClose?.(event)) return;
 
       attempts++;
+
       if (!shouldRetry(attempts)) {
         handlers.onFallback?.();
+
         return;
       }
+
       handlers.onRetry?.(attempts);
       reconnectTimer = setTimeout(connect, getReconnectDelay(attempts));
     };

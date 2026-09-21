@@ -36,4 +36,5 @@ export const siteData = pgTable(
 );
 
 export type SiteData = typeof siteData.$inferSelect;
+
 export type NewSiteData = typeof siteData.$inferInsert;

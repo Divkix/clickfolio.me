@@ -25,15 +25,18 @@ function createDb(rows: PendingRow[]) {
   const tx = vi.fn(async (strings: TemplateStringsArray, ...values: unknown[]) => {
     const text = normalize(strings);
     statements.push({ text, values });
+
     if (text.startsWith("SELECT id, r2_key")) {
       return rows.filter((row) => row.attempts < MAX_ATTEMPTS);
     }
+
     return [];
   });
 
   const client = Object.assign(
     vi.fn(async (strings: TemplateStringsArray, ...values: unknown[]) => {
       statements.push({ text: normalize(strings), values });
+
       return [{ count: rows.filter((row) => row.attempts >= MAX_ATTEMPTS).length }];
     }),
     {
@@ -146,6 +149,7 @@ describe("retryPendingR2Deletions", () => {
       { id: "fail-1", r2Key: "users/u2/b.pdf", attempts: 2 },
       { id: "max-1", r2Key: "users/u3/c.pdf", attempts: MAX_ATTEMPTS },
     ]);
+
     const binding = {
       delete: vi.fn().mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error("timeout")),
     };

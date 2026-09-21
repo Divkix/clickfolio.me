@@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => {
       where: vi.fn(() => chain),
       limit: vi.fn(async () => state.selectResult),
     };
+
     return chain;
   };
 
@@ -22,6 +23,7 @@ const mocks = vi.hoisted(() => {
       where: vi.fn(() => chain),
       returning: vi.fn(async () => state.deleteResult),
     };
+
     return chain;
   };
 
@@ -29,10 +31,12 @@ const mocks = vi.hoisted(() => {
     const chain = {
       values: vi.fn((rows: JsonValue) => {
         state.insertCalls.push(rows);
+
         return chain;
       }),
       onConflictDoNothing: vi.fn(async () => undefined),
     };
+
     return chain;
   };
 
@@ -84,6 +88,7 @@ vi.mock("drizzle-orm", () => ({
 
 async function dismiss(id = "resume-1") {
   const { DELETE } = await import("@/app/api/admin/resumes/[id]/route");
+
   return DELETE(
     new Request(`https://clickfolio.me/api/admin/resumes/${id}`, { method: "DELETE" }),
     { params: Promise.resolve({ id }) },

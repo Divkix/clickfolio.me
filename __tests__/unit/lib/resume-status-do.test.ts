@@ -51,21 +51,25 @@ function installWebSocketPair(client = new FakeSocket(), server = new FakeSocket
       1 = runtime.nextServer;
     },
   );
+
   return { client, server };
 }
 
 function createObject() {
   const values = new Map<string, string>();
   const sockets: FakeSocket[] = [];
+
   const ctx = {
     storage: {
       get: vi.fn(async (keys: string[]) => {
         const result = new Map<string, string>();
+
         for (const key of keys) {
           if (values.has(key)) {
             result.set(key, values.get(key) ?? "");
           }
         }
+
         return result;
       }),
       put: vi.fn(async (items: Record<string, string>) => {
@@ -216,11 +220,13 @@ describe("ClickfolioStatusDO", () => {
     await instance.webSocketMessage!(socket as never, "status");
     await instance.webSocketClose!(socket as never, 1000, "done", true);
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
     try {
       await instance.webSocketError!(socket as never, new Error("boom"));
     } finally {
       errorSpy.mockRestore();
     }
+
     await instance.alarm();
 
     expect(socket.sent[0]).toBe("pong");

@@ -41,6 +41,7 @@ const {
     "jwt.for.clerk-user-1": { sub: "user_clerk_1", sid: "sess_1" },
     "jwt.for.clerk-other": { sub: "clerk_user_other", sid: "sess_2" },
   };
+
   return {
     mockVerifyClerkToken: vi.fn(
       async (token: string) =>
@@ -118,10 +119,12 @@ vi.mock("drizzle-orm", () => ({
 
 function makeStatusDo() {
   const forward = vi.fn().mockResolvedValue(new Response("WS response"));
+
   const namespace = {
     idFromName: vi.fn().mockReturnValue({ toString: () => "test-do-id" }),
     get: vi.fn().mockReturnValue({ fetch: forward }),
   } as unknown as CloudflareEnv["CLICKFOLIO_STATUS_DO"];
+
   return { namespace, forward };
 }
 
@@ -330,6 +333,7 @@ describe("Worker fetch handler", () => {
     const env = makeEnv({
       CLICKFOLIO_STATUS_DO: undefined as unknown as CloudflareEnv["CLICKFOLIO_STATUS_DO"],
     });
+
     mockUserFindFirst.mockResolvedValue({ id: "pg-user-1" });
     mockResumeFindFirst.mockResolvedValue({ id: "res-123", userId: "pg-user-1" });
 
@@ -380,6 +384,7 @@ describe("Worker queue handler", () => {
   it("acks malformed messages (invalid schema)", async () => {
     const env = makeEnv();
     const ack = vi.fn();
+
     const batch = makeBatch("clickfolio-parse-queue", [
       makeMessage({ type: "unknown", random: "data" }, { ack }),
     ]);

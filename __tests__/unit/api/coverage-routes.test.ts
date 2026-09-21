@@ -42,8 +42,10 @@ const mocks = vi.hoisted(() => {
     if (queue.length === 0) {
       throw new Error(`No ${queueName} queued — push to mocks.state.${queueName} before querying`);
     }
+
     return queue.shift() as JsonValue[];
   };
+
   const createChain = (): Record<string, unknown> => {
     const chain: Record<string, unknown> = {
       from: vi.fn(() => chain),
@@ -71,6 +73,7 @@ const mocks = vi.hoisted(() => {
         },
       ),
     };
+
     return chain;
   };
 
@@ -88,6 +91,7 @@ const mocks = vi.hoisted(() => {
         },
       ),
     };
+
     return chain;
   };
 
@@ -107,6 +111,7 @@ const mocks = vi.hoisted(() => {
       onConflictDoUpdate: vi.fn(() => txChain),
       values: vi.fn((rows: JsonValue) => {
         state.txValues.push(rows);
+
         return makeTxChain(() => undefined);
       }),
       returning: vi.fn(() =>
@@ -124,6 +129,7 @@ const mocks = vi.hoisted(() => {
         },
       ),
     };
+
     return txChain;
   };
 
@@ -171,7 +177,9 @@ const mocks = vi.hoisted(() => {
     })),
     getMetrics: vi.fn(async (_env: JsonValue, options: { type: string }) => {
       if (options.type === "referrer") return [{ x: "linkedin.com", y: 3 }];
+
       if (options.type === "device") return [{ x: "desktop", y: 5 }];
+
       return [{ x: "US", y: 5 }];
     }),
     performCleanup: vi.fn(async () => ({ deleted: 1 })),
@@ -216,12 +224,14 @@ vi.mock("@/lib/auth/middleware", () => ({
   requireAuthWithUserValidation: vi.fn(async () => mocks.state.authResult),
   requireCronAuth: vi.fn((request: Request) => {
     const auth = request.headers.get("Authorization");
+
     if (auth !== `Bearer ${process.env.CRON_SECRET ?? "cron-secret"}`) {
       return new Response(JSON.stringify({ error: "Unauthorized", code: "UNAUTHORIZED" }), {
         status: 401,
         headers: { "Content-Type": "application/json" },
       });
     }
+
     return null;
   }),
 }));
@@ -242,6 +252,7 @@ vi.mock("@/lib/rate-limit/ip", () => ({
 
 vi.mock("@/lib/rate-limit/handle-validation", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/rate-limit/handle-validation")>();
+
   return {
     ...actual,
     RESERVED_HANDLES: new Set(["admin", "api"]),
@@ -251,6 +262,7 @@ vi.mock("@/lib/rate-limit/handle-validation", async (importOriginal) => {
 
 vi.mock("@/lib/utils/validation", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/utils/validation")>();
+
   return {
     ...actual,
     validateRequestSize: vi.fn(() => mocks.state.requestSize),
@@ -277,6 +289,7 @@ vi.mock("@/lib/cron/recover-orphaned", () => ({
 
 vi.mock("@/lib/r2", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/r2")>();
+
   return {
     ...actual,
     getR2Binding: vi.fn((env: typeof mocks.env) => env.CLICKFOLIO_R2_BUCKET),
@@ -331,6 +344,7 @@ function authed(overrides: Record<string, unknown> = {}) {
       env: null,
       error: overrides.error,
     };
+
     return;
   }
 
@@ -404,6 +418,7 @@ describe("API route coverage", () => {
     } else {
       process.env.CRON_SECRET = originalCronSecret;
     }
+
     expect(mocks.state.selectResults).toEqual([]);
     expect(mocks.state.txSelectResults).toEqual([]);
     expect(mocks.state.txReturningResults).toEqual([]);
@@ -694,6 +709,7 @@ describe("API route coverage", () => {
     mocks.r2Delete
       .mockRejectedValueOnce(new Error("delete failed"))
       .mockResolvedValueOnce(undefined);
+
     const success = await POST(
       jsonRequest("/api/account/delete", { confirmation: "AVERY@EXAMPLE.COM" }),
     );
@@ -733,18 +749,22 @@ describe("API route coverage", () => {
     const emptyHandle = await dynamic.GET(new Request("https://clickfolio.me/api/og/"), {
       params: Promise.resolve({ handle: "" }),
     });
+
     expect(emptyHandle.headers.get("Content-Type")).toBe("image/svg+xml");
 
     const malformedHandle = await dynamic.GET(new Request("https://clickfolio.me/api/og/x"), {
       params: Promise.resolve({ handle: "%E0%A4%A" }),
     });
+
     expect(malformedHandle.status).toBe(200);
     expect(malformedHandle.headers.get("Content-Type")).toBe("image/svg+xml");
 
     mocks.state.selectResults = [[]];
+
     const missing = await dynamic.GET(new Request("https://clickfolio.me/api/og/missing"), {
       params: Promise.resolve({ handle: "missing" }),
     });
+
     expect(missing.headers.get("Content-Type")).toBe("image/svg+xml");
 
     mocks.state.selectResults = [
@@ -758,9 +778,11 @@ describe("API route coverage", () => {
         },
       ],
     ];
+
     const profile = await dynamic.GET(new Request("https://clickfolio.me/api/og/%40avery"), {
       params: Promise.resolve({ handle: "%40avery" }),
     });
+
     expect(profile.headers.get("Content-Type")).toBe("image/png");
     expect(mocks.resvgAsync).toHaveBeenLastCalledWith(
       expect.stringContaining("Avery &lt;Lead&gt;"),
@@ -780,9 +802,11 @@ describe("API route coverage", () => {
         },
       ],
     ];
+
     const fallback = await dynamic.GET(new Request("https://clickfolio.me/api/og/broken"), {
       params: Promise.resolve({ handle: "broken" }),
     });
+
     expect(fallback.headers.get("Content-Type")).toBe("image/svg+xml");
   });
 
@@ -837,6 +861,7 @@ describe("API route coverage", () => {
     const body = (await (
       await GET(new Request("https://clickfolio.me/api/admin/users?page=2&search=a%25_%5C"))
     ).json()) as { page: number; users: Array<{ status: string }> };
+
     expect(body.page).toBe(2);
     expect(body.users.map((entry: { status: string }) => entry.status)).toEqual([
       "failed",
@@ -889,6 +914,7 @@ describe("API route coverage", () => {
     const body = (await (
       await GET(new Request("https://clickfolio.me/api/admin/resumes?status=failed&page=2"))
     ).json()) as { stats: JsonValue; resumes: JsonValue; page: number };
+
     expect(body.stats).toEqual({ completed: 3, processing: 3, queued: 9, failed: 6 });
     expect(body.resumes).toEqual([
       {
@@ -935,6 +961,7 @@ describe("API route coverage", () => {
     const body = (await (await GET()).json()) as {
       dailyViews: Array<{ views: number }>;
     } & Record<string, unknown>;
+
     expect(body).toMatchObject({
       totalUsers: 8,
       publishedResumes: 5,
@@ -955,6 +982,7 @@ describe("API route coverage", () => {
 
   it("completes wizard onboarding and handles validation failures", async () => {
     const { POST } = await import("@/app/api/wizard/complete/route");
+
     const validBody = {
       handle: "avery",
       privacy_settings: {
@@ -1053,6 +1081,7 @@ describe("API route coverage", () => {
     const cronRequest = new Request("https://clickfolio.me/api/cron/cleanup", {
       headers: { Authorization: "Bearer cron-secret" },
     });
+
     expect((await cleanup.GET(new Request("https://clickfolio.me/api/cron/cleanup"))).status).toBe(
       401,
     );

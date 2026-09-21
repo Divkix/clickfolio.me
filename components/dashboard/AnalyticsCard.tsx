@@ -49,10 +49,12 @@ const SHORT_MONTHS = [
 function toUPlotData(viewsByDay: Array<{ date: string; views: number }>): [number[], number[]] {
   const timestamps: number[] = [];
   const views: number[] = [];
+
   for (const entry of viewsByDay) {
     timestamps.push(new Date(`${entry.date}T00:00:00`).getTime() / 1000);
     views.push(entry.views);
   }
+
   return [timestamps, views];
 }
 
@@ -77,6 +79,7 @@ function buildChartOpts(width: number, height: number): uPlot.Options {
           const gradient = ctx.createLinearGradient(0, 0, 0, self.bbox.height / devicePixelRatio);
           gradient.addColorStop(0, "#D94E4E80");
           gradient.addColorStop(1, "#D94E4E00");
+
           return gradient;
         },
         paths: uPlot.paths.spline?.() ?? undefined,
@@ -95,6 +98,7 @@ function buildChartOpts(width: number, height: number): uPlot.Options {
         values: (_self: uPlot, ticks: number[]) =>
           ticks.map((t) => {
             const d = new Date(t * 1000);
+
             return `${d.getMonth() + 1}/${d.getDate()}`;
           }),
       },
@@ -149,15 +153,19 @@ function tooltipPlugin(): uPlot.Plugin {
   function setCursor(u: uPlot) {
     if (!tooltip || !dateLine || !viewsLine) return;
     const idx = u.cursor.idx;
+
     if (idx == null || idx < 0) {
       tooltip.style.display = "none";
+
       return;
     }
 
     const ts = u.data[0][idx];
     const val = u.data[1][idx];
+
     if (ts == null || val == null) {
       tooltip.style.display = "none";
+
       return;
     }
 
@@ -175,6 +183,7 @@ function tooltipPlugin(): uPlot.Plugin {
     const overW = u.over.offsetWidth;
 
     let posX = left + 10;
+
     if (posX + tooltipW > overW) {
       posX = left - tooltipW - 10;
     }
@@ -198,25 +207,33 @@ function UPlotChart({ viewsByDay }: { viewsByDay: Array<{ date: string; views: n
 
   useEffect(() => {
     const el = containerRef.current;
+
     if (!el) return;
+
     if (!globalThis.ResizeObserver) {
       setWidth(el.clientWidth || 320);
+
       return;
     }
+
     const ro = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const cr = entry.contentRect;
+
         if (cr.width > 0) {
           setWidth(Math.floor(cr.width));
         }
       }
     });
+
     ro.observe(el);
+
     return () => ro.disconnect();
   }, []);
 
   useEffect(() => {
     const el = containerRef.current;
+
     if (!el || width <= 0 || viewsByDay.length === 0) return;
 
     if (chartRef.current) {
@@ -228,6 +245,7 @@ function UPlotChart({ viewsByDay }: { viewsByDay: Array<{ date: string; views: n
       ...buildChartOpts(width, 160),
       plugins: [tooltipPlugin()],
     };
+
     const data = toUPlotData(viewsByDay);
 
     chartRef.current = new uPlot(opts, data, el);
@@ -252,8 +270,10 @@ export function AnalyticsCard() {
   const fetchStats = useCallback(async (p: Period) => {
     setLoading(true);
     setError(false);
+
     try {
       const res = await fetch(`/api/analytics/stats?period=${p}`);
+
       if (!res.ok) throw new Error("Failed to fetch");
       const data: AnalyticsStats = await res.json();
       setStats(data);
@@ -376,6 +396,7 @@ function StatsContent({ stats }: { stats: AnalyticsStats }) {
             {stats.deviceBreakdown.map((d) => {
               // SAFETY: d.device is a device type string; DEVICE_ICONS covers known devices with Globe fallback.
               const Icon = DEVICE_ICONS[d.device as keyof typeof DEVICE_ICONS] || Globe;
+
               return (
                 <div key={d.device} className="flex items-center gap-1.5 text-sm">
                   <Icon className="w-3.5 h-3.5 text-muted-foreground/70" aria-hidden="true" />
@@ -424,6 +445,8 @@ function LoadingSkeleton() {
 
 function formatNumber(n: number | null | undefined): string {
   if (n == null || Number.isNaN(n)) return "0";
+
   if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
+
   return n.toString();
 }

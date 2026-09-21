@@ -63,6 +63,7 @@ const NAV_SECTIONS = [
   { id: "skills", label: "Stack", icon: Zap },
   { id: "education", label: "Education", icon: GraduationCap },
 ] as const;
+
 type NavSection = (typeof NAV_SECTIONS)[number];
 
 const SpotlightCard = ({
@@ -134,6 +135,7 @@ const GlassNav = ({ sections, email }: { sections: NavSection[]; email?: string 
     <div className="flex items-center justify-center gap-1 p-1.5 rounded-full bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl shadow-black/50 overflow-x-auto no-scrollbar">
       {sections.map((section) => {
         const Icon = section.icon;
+
         return (
           <a
             key={section.id}
@@ -234,12 +236,14 @@ const GlassAbout = ({
                   // SAFETY: link.type is ContactLinkType; glassIconMap covers branded icons with ExternalLink fallback.
                   const Icon = glassIconMap[link.type as keyof typeof glassIconMap] || ExternalLink;
                   const isBranded = link.type === "behance" || link.type === "dribbble";
+
                   const brandColor =
                     link.type === "behance"
                       ? "#1769FF"
                       : link.type === "dribbble"
                         ? "#EA4C89"
                         : undefined;
+
                   const brandText =
                     link.type === "behance" ? "Be" : link.type === "dribbble" ? "Dr" : null;
 
@@ -548,6 +552,7 @@ export const GlassMorphic: React.FC<TemplateProps> = ({ content, profile, isPrev
       skills: flatSkills.length > 0,
       education: Boolean(content.education?.length || content.certifications?.length),
     } satisfies Record<NavSection["id"], boolean>;
+
     return NAV_SECTIONS.filter((section) => visible[section.id]);
   }, [
     content.experience,

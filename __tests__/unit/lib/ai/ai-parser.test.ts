@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { setupMockCleanup, suppressConsole } from "@/__tests__/setup/helpers/test-utils";
 import type { UnknownRecord } from "@/lib/types/json";
 import { type AiEnvVars, createAiProvider, parseWithAi } from "@/lib/ai/ai-parser";
+
 vi.mock("@ai-sdk/openai-compatible", () => ({
   createOpenAICompatible: vi.fn(),
 }));
@@ -110,6 +111,7 @@ describe("parseWithAi - universal text path", () => {
 
   it("uses default model when AI_MODEL not provided", async () => {
     const env = { ...mockEnv, AI_MODEL: undefined };
+
     const mockOutput = {
       full_name: "Test",
       headline: "Dev",
@@ -130,6 +132,7 @@ describe("parseWithAi - universal text path", () => {
 
   it("uses custom model when provided", async () => {
     const env = { ...mockEnv, AI_MODEL: "custom/model" };
+
     const mockOutput = {
       full_name: "Test",
       headline: "Dev",
@@ -361,6 +364,7 @@ describe("parseWithAi - retry with error feedback", () => {
       prompt?: string;
       system?: string;
     };
+
     expect(options.prompt).toContain(resumeText);
     expect(options.prompt).toContain('"full_name"');
     expect(options.prompt).toContain("Previous output");
@@ -381,6 +385,7 @@ describe("parseWithAi - retry with error feedback", () => {
       contact: { email: "" },
       experience: [],
     });
+
     vi.mocked(generateText).mockResolvedValue({
       text: retryJson,
     } as unknown as Awaited<ReturnType<typeof generateText>>);
@@ -413,6 +418,7 @@ describe("parseWithAi - retry with error feedback", () => {
       contact: { email: "" },
       experience: [],
     });
+
     vi.mocked(generateText).mockResolvedValue({
       text: retryJson,
     } as unknown as Awaited<ReturnType<typeof generateText>>);
@@ -560,6 +566,7 @@ describe("parseWithAi - edge cases", () => {
 
   it("handles very long resume text", async () => {
     const longText = "Experience ".repeat(100000);
+
     const mockOutput = {
       full_name: "Jane",
       headline: "Dev",
@@ -610,6 +617,7 @@ describe("parseWithAi - error handling", () => {
       CF_AI_GATEWAY_ACCOUNT_ID: "different-account",
       CF_AI_GATEWAY_ID: "different-gateway",
     };
+
     vi.mocked(createOpenAICompatible).mockImplementation(() => {
       throw new Error("Unexpected error");
     });
@@ -789,6 +797,7 @@ describe("parseWithAi - additional coverage", () => {
 
   it("handles AI model specified in env but overridden by parameter", async () => {
     const customEnv = { ...mockEnv, AI_MODEL: "env-model" };
+
     const mockOutput = {
       full_name: "Test",
       headline: "Dev",

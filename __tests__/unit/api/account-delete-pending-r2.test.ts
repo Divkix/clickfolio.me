@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => {
     env: JsonValue;
     error: JsonValue;
   } | null;
+
   const state = {
     selectResults: [] as JsonValue[][],
     authResult: null as MockAuthResult,
@@ -19,12 +20,14 @@ const mocks = vi.hoisted(() => {
     if (state.selectResults.length === 0) {
       throw new Error("No select result queued");
     }
+
     return state.selectResults.shift() as JsonValue[];
   };
 
   const insertChain = {
     values: vi.fn((rows: JsonValue) => {
       state.insertCalls.push(rows);
+
       return Promise.resolve(undefined);
     }),
   };
@@ -53,6 +56,7 @@ const mocks = vi.hoisted(() => {
         },
       ),
     };
+
     return chain;
   };
 
@@ -114,6 +118,7 @@ vi.mock("@/lib/db", () => ({
 
 vi.mock("@/lib/r2", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/r2")>();
+
   return {
     ...actual,
     getR2Binding: vi.fn((env: typeof mocks.env) => env.CLICKFOLIO_R2_BUCKET),
@@ -196,10 +201,12 @@ describe("account delete — pending R2 deletion tracking", () => {
     expect(body.warnings).toHaveLength(1);
 
     expect(mocks.db.insert).toHaveBeenCalled();
+
     const insertedRows = mocks.state.insertCalls[0] as Array<{
       r2Key: string;
       attempts: number;
     }>;
+
     expect(insertedRows).toHaveLength(1);
     expect(insertedRows[0].r2Key).toBe("users/user-1/resume.pdf");
     expect(insertedRows[0].attempts).toBe(1);

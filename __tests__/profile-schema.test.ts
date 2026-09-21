@@ -15,6 +15,7 @@ describe("handleSchema", () => {
   it("rejects handles shorter than 3 characters", () => {
     const result = handleSchema.safeParse("ab");
     expect(result.success).toBe(false);
+
     if (!result.success) {
       expect(result.error.issues[0].message).toContain("at least 3");
     }
@@ -23,6 +24,7 @@ describe("handleSchema", () => {
   it("rejects handles longer than 30 characters", () => {
     const result = handleSchema.safeParse("a".repeat(31));
     expect(result.success).toBe(false);
+
     if (!result.success) {
       expect(result.error.issues[0].message).toContain("30");
     }
@@ -41,6 +43,7 @@ describe("handleSchema", () => {
   it("rejects handle starting with hyphen", () => {
     const result = handleSchema.safeParse("-john");
     expect(result.success).toBe(false);
+
     if (!result.success) {
       expect(result.error.issues.some((e) => e.message.includes("start with"))).toBe(true);
     }
@@ -49,6 +52,7 @@ describe("handleSchema", () => {
   it("rejects handle ending with hyphen", () => {
     const result = handleSchema.safeParse("john-");
     expect(result.success).toBe(false);
+
     if (!result.success) {
       expect(result.error.issues.some((e) => e.message.includes("end with"))).toBe(true);
     }
@@ -57,6 +61,7 @@ describe("handleSchema", () => {
   it("rejects consecutive hyphens", () => {
     const result = handleSchema.safeParse("john--doe");
     expect(result.success).toBe(false);
+
     if (!result.success) {
       expect(result.error.issues.some((e) => e.message.includes("consecutive"))).toBe(true);
     }
@@ -70,6 +75,7 @@ describe("handleSchema", () => {
   it("trims whitespace", () => {
     const result = handleSchema.safeParse("  john  ");
     expect(result.success).toBe(true);
+
     if (result.success) {
       expect(result.data).toBe("john");
     }
@@ -96,6 +102,7 @@ describe("privacySettingsSchema", () => {
       hide_from_search: false,
       show_in_directory: true,
     });
+
     expect(result.success).toBe(true);
   });
 
@@ -106,6 +113,7 @@ describe("privacySettingsSchema", () => {
       hide_from_search: false,
       show_in_directory: false,
     });
+
     expect(result.success).toBe(false);
   });
 
@@ -113,6 +121,7 @@ describe("privacySettingsSchema", () => {
     const result = privacySettingsSchema.safeParse({
       show_phone: true,
     });
+
     expect(result.success).toBe(false);
   });
 });

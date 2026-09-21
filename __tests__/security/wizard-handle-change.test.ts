@@ -3,8 +3,11 @@ import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { DEFAULT_PRIVACY_SETTINGS } from "@/lib/utils/privacy";
 
 let txStatementCount = 0;
+
 const txValues: UnknownRecord[] = [];
+
 const txSelectResults: JsonValue[][] = [];
+
 const txReturningResults: JsonValue[][] = [];
 
 interface MockTxChain {
@@ -26,13 +29,17 @@ interface MockTxChain {
 
 function nextTxSelect(): JsonValue[] {
   const next = txSelectResults.shift();
+
   if (next === undefined) throw new Error("No tx select result queued");
+
   return next;
 }
 
 function nextTxReturning(): JsonValue {
   const next = txReturningResults.shift();
+
   if (next === undefined) throw new Error("No tx returning result queued");
+
   return next as JsonValue;
 }
 
@@ -46,6 +53,7 @@ function makeTxBaseChain(): MockTxChain {
     for: vi.fn(() => chain),
     values: vi.fn((rows: UnknownRecord) => {
       txValues.push(rows);
+
       return chain;
     }),
     onConflictDoNothing: vi.fn(() => chain),
@@ -53,9 +61,11 @@ function makeTxBaseChain(): MockTxChain {
     returning: vi.fn(() => makeTxValueChain(nextTxReturning())),
     then: vi.fn((resolve: (value: undefined) => unknown) => {
       txStatementCount += 1;
+
       return Promise.resolve(resolve(undefined));
     }),
   };
+
   return chain as unknown as MockTxChain;
 }
 
@@ -64,6 +74,7 @@ function makeTxSelectChain(): MockTxChain {
   chain.then = vi.fn((resolve: (value: never) => unknown) =>
     Promise.resolve(resolve(nextTxSelect() as never)),
   );
+
   return chain;
 }
 
@@ -72,18 +83,22 @@ function makeTxValueChain(value: JsonValue): MockTxChain {
   chain.then = vi.fn((resolve: (result: never) => unknown) =>
     Promise.resolve(resolve(value as never)),
   );
+
   return chain;
 }
 
 const createTxChain = (): MockTxChain => makeTxBaseChain();
 
 const txUpdate = vi.fn(() => createTxChain());
+
 const txInsert = vi.fn(() => createTxChain());
+
 const txSelect = vi.fn(() => makeTxSelectChain());
 
 const mockTransaction = vi.fn(async (callback: (tx: unknown) => Promise<unknown>) => {
   txStatementCount = 0;
   txValues.length = 0;
+
   return callback({ update: txUpdate, insert: txInsert, select: txSelect });
 });
 
@@ -97,12 +112,15 @@ const mockSelect = vi.fn(() => {
     orderBy: vi.fn(() => chain),
     then: vi.fn((resolve: (value: JsonValue[]) => JsonValue) => {
       const next = selectResults.shift();
+
       if (next === undefined) {
         return Promise.reject(new Error("No select result queued"));
       }
+
       return Promise.resolve(resolve(next));
     }),
   };
+
   return chain;
 });
 
@@ -118,6 +136,7 @@ vi.mock("@/lib/auth/middleware", () => ({
 
 vi.mock("drizzle-orm", async (importOriginal) => {
   const actual = await importOriginal<typeof import("drizzle-orm")>();
+
   return {
     ...actual,
     eq: vi.fn((_col, val) => val),
@@ -129,6 +148,7 @@ vi.mock("drizzle-orm", async (importOriginal) => {
 
 vi.mock("@/lib/db/schema", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/db/schema")>();
+
   return {
     ...actual,
     user: {

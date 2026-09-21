@@ -9,7 +9,9 @@ import { CLERK_SESSION_COOKIE } from "@/lib/auth/clerk";
 import { requireAuthWithMessage, requireAuthWithUserValidation } from "@/lib/auth/middleware";
 
 const mockVerifyToken = vi.mocked(verifyToken);
+
 const mockCookies = vi.mocked(cookies);
+
 const mockGetDb = vi.mocked(getDb);
 
 vi.mock("@clerk/backend", () => ({
@@ -26,6 +28,7 @@ vi.mock("cloudflare:workers", () => ({
     HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" },
   },
 }));
+
 vi.mock("@/lib/db", () => ({
   getDb: vi.fn(),
 }));
@@ -44,6 +47,7 @@ function createMockDb(): MockDb {
   const where = vi.fn(() => ({ limit }));
   const from = vi.fn(() => ({ where }));
   const select = vi.fn(() => ({ from }));
+
   return {
     db: { select } as unknown as Database,
     setRows: (rows: Array<Record<string, unknown>>) => limit.mockResolvedValue(rows),
@@ -72,9 +76,11 @@ beforeEach(() => {
           if (name === CLERK_SESSION_COOKIE && sessionCookieValue !== undefined) {
             return { name, value: sessionCookieValue };
           }
+
           if (name === "__client") {
             return { name, value: "uat_client_token" };
           }
+
           return undefined;
         },
       }) as never,
@@ -365,6 +371,7 @@ describe("Authentication Middleware Security", () => {
   describe("Fail-Closed Behavior", () => {
     it("fails closed with 401 when Clerk credentials are unconfigured (auth service throws)", async () => {
       delete (env as unknown as Record<string, unknown>).CLERK_SECRET_KEY;
+
       try {
         sessionCookieValue = "otherwise-valid-jwt";
         mockDb.setRows([pgRow()]);

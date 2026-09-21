@@ -29,10 +29,12 @@ describe("Registry sync guard", () => {
 
   it("every THEME_ID appears in THEME_IDS exactly once", () => {
     const seen = new Set<string>();
+
     for (const id of THEME_IDS) {
       expect(seen.has(id)).toBe(false);
       seen.add(id);
     }
+
     expect(seen.size).toBe(THEME_IDS.length);
   });
 

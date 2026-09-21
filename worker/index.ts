@@ -35,6 +35,7 @@ const BLOCKED_PATHS =
 /** Adds the security headers, and renders the Markdown representation when the page is HTML. */
 async function markdownPageResponse(response: Response, url: string): Promise<Response> {
   const headers = new Headers(response.headers);
+
   for (const [key, value] of Object.entries(SECURITY_HEADERS)) {
     headers.set(key, value);
   }
@@ -74,6 +75,7 @@ export default {
       request.headers.get("Upgrade")?.toLowerCase() === "websocket"
     ) {
       const resumeId = url.searchParams.get("resume_id");
+
       if (!resumeId) {
         return new Response("Missing resume_id query parameter", { status: 400 });
       }
@@ -86,6 +88,7 @@ export default {
       }
 
       const db = getDb(env.HYPERDRIVE);
+
       const owner = await db.query.user.findFirst({
         where: eq(userTable.clerkId, claims.sub),
         columns: { id: true },
@@ -131,13 +134,16 @@ export default {
     // A `.md` URL is a request for the Markdown twin of the page it names.
     // Static assets win: /pricing.md is a real file, not a twin of /pricing.
     const markdownPath = markdownSourcePath(url.pathname);
+
     if (markdownPath && (request.method === "GET" || request.method === "HEAD")) {
       const asset = await env.ASSETS.fetch(request);
+
       if (asset.status !== 404) return asset;
 
       const target = new URL(request.url);
       target.pathname = markdownPath;
       const appResponse = await handler.fetch(new Request(target, request));
+
       return markdownPageResponse(appResponse, request.url);
     }
 
@@ -150,9 +156,11 @@ export default {
 
     const response = await handler.fetch(request);
     const newHeaders = new Headers(response.headers);
+
     for (const [key, value] of Object.entries(SECURITY_HEADERS)) {
       newHeaders.set(key, value);
     }
+
     // Keeps shared caches from serving the HTML representation to a client that
     // asked for Markdown (and vice versa), and points agents at the sitemap and
     // the Markdown twin before they parse the page.
@@ -160,6 +168,7 @@ export default {
       appendVary(newHeaders, "Accept");
       appendLinkEntry(newHeaders, pageLinkHeader(url.pathname));
     }
+
     return new Response(response.body, {
       status: response.status,
       statusText: response.statusText,
@@ -173,6 +182,7 @@ export default {
     for (const message of batch.messages) {
       try {
         const parsed = queueMessageSchema.safeParse(message.body);
+
         if (!parsed.success) {
           log("error", "invalid queue message shape", {
             queue: batch.queue,
@@ -218,16 +228,20 @@ export default {
       switch (controller.cron) {
         case "0 2 * * *": {
           const r2Binding = env.CLICKFOLIO_R2_BUCKET;
+
           if (!r2Binding) {
             log("error", "CLICKFOLIO_R2_BUCKET not available for R2 cleanup", {
               cron: controller.cron,
             });
+
             return;
           }
+
           const [cleanupSettled, pendingSettled] = await Promise.allSettled([
             performR2Cleanup(r2Binding),
             retryPendingR2Deletions(db, r2Binding),
           ]);
+
           if (cleanupSettled.status === "fulfilled") {
             log("info", "cron R2 cleanup completed", {
               cron: controller.cron,
@@ -239,6 +253,7 @@ export default {
               error: String(cleanupSettled.reason),
             });
           }
+
           if (pendingSettled.status === "fulfilled") {
             log("info", "cron pending deletions sweep completed", {
               cron: controller.cron,
@@ -250,25 +265,32 @@ export default {
               error: String(pendingSettled.reason),
             });
           }
+
           break;
         }
+
         case "0 3 * * *": {
           const result = await performCleanup(db, env.CLICKFOLIO_R2_BUCKET ?? null);
           log("info", "cron completed", { cron: controller.cron, result });
           break;
         }
+
         case "*/15 * * * *": {
           const queue = env.CLICKFOLIO_PARSE_QUEUE;
+
           if (!queue) {
             log("error", "CLICKFOLIO_PARSE_QUEUE not available for orphan recovery", {
               cron: controller.cron,
             });
+
             return;
           }
+
           const result = await recoverOrphanedResumes(db, queue);
           log("info", "cron completed", { cron: controller.cron, result });
           break;
         }
+
         default:
           log("error", "unknown cron trigger", { cron: controller.cron });
       }

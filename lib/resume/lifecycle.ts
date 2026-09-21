@@ -50,13 +50,16 @@ export function parseLastAttemptError(
   row: { lastAttemptError: string | null } | string | null,
 ): ParsedLastAttemptError {
   let raw: string | null;
+
   if (row === null || isString(row)) {
     // SAFETY: isString guard above ensures row is string; null check handles null case.
     raw = row as string | null;
   } else {
     raw = row.lastAttemptError;
   }
+
   if (!raw) return null;
+
   try {
     // SAFETY: QueueError JSON is from classifyQueueError().toJSON() validated at write; parse failure falls back to unknown.
     const parsed = JSON.parse(raw) as {
@@ -65,9 +68,11 @@ export function parseLastAttemptError(
       isRetryable?: boolean;
       name?: string;
     };
+
     if (parsed != null && parsed instanceof Object) {
       // SAFETY: parsed is non-null object from JSON.parse validated via instanceof Object; Record<string, JsonValue> is safe for queue error fields.
       const record = parsed as Record<string, JsonValue>;
+
       return {
         // SAFETY: z.string guard above ensures record.type is string when present.
         type: z.string().safeParse(record.type).success ? (record.type as string) : null,
@@ -82,6 +87,7 @@ export function parseLastAttemptError(
         name: z.string().safeParse(record.name).success ? (record.name as string) : null,
       };
     }
+
     return null;
   } catch {
     return null;
@@ -141,6 +147,7 @@ export function checkRetryEligibility(row: ResumeRetryRow): RetryEligibility {
         ? { type: row.lastAttemptErrorType, message: null as string | null }
         : null
       : parseLastAttemptError(row.lastAttemptError ?? null);
+
   if (parsed?.type && isPermanentErrorType(parsed.type)) {
     return {
       eligible: false,
@@ -187,10 +194,13 @@ export type StatusRow = {
 
 export function waitingForCacheTimedOut(row: StatusRow): boolean {
   if (row.status !== "waiting_for_cache") return false;
+
   // null → epoch (0) → timed out (preserves legacy `new Date(null)` semantics:
   if (row.createdAt === null) return true;
   const ts = Date.parse(row.createdAt);
+
   if (Number.isNaN(ts)) return false;
+
   return Date.now() - ts > WAITING_FOR_CACHE_TIMEOUT_MS;
 }
 
@@ -202,6 +212,7 @@ export type StatusPresentation = {
   isTerminal: boolean;
   isWaitingForCacheTimeout?: boolean;
 };
+
 export function statusPresentation(row: StatusRow): StatusPresentation {
   if (row.status === "waiting_for_cache") {
     if (waitingForCacheTimedOut(row)) {
@@ -212,6 +223,7 @@ export function statusPresentation(row: StatusRow): StatusPresentation {
         isWaitingForCacheTimeout: true,
       };
     }
+
     return {
       publicStatus: "processing",
       progressPct: 30,
@@ -263,6 +275,7 @@ export function checkRetryEligibilityForRow(row: ResumeRow): RetryEligibility {
       lastAttemptError: null,
     });
   }
+
   return checkRetryEligibility(row);
 }
 
@@ -271,6 +284,7 @@ export function getStatusView(row: ResumeRow) {
   const isTimedOut = waitingForCacheTimedOut(row);
   const status: ResumeStatus = isTimedOut ? "failed" : pres.publicStatus;
   const canRetry = checkRetryEligibilityForRow(row).eligible;
+
   return {
     status,
     progressPct: pres.progressPct,

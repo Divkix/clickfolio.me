@@ -456,6 +456,7 @@ export default async function DashboardPage() {
   const siteDataResult = (userData?.siteData ?? null) as typeof siteData.$inferSelect | null;
   const hasPublishedSite = !!siteDataResult;
   let content: ResumeContent | null = null;
+
   if (siteDataResult?.content) {
     // SAFETY: content is schema-validated JSONB written by the queue consumer and /api/resume/update; cast bridges the column's wide Record type.
     content = siteDataResult.content as ResumeContent;

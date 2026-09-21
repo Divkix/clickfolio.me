@@ -21,6 +21,7 @@ type DbOrTx = Database | Parameters<Parameters<Database["transaction"]>[0]>[0];
 export async function countHandleChangesInWindow(db: DbOrTx, userId: string): Promise<number> {
   const windowMs = RATE_LIMITS.handle_change.windowHours * 60 * 60 * 1000;
   const windowStart = new Date(Date.now() - windowMs);
+
   const result = await db
     .select({ count: sql<number>`count(*)` })
     .from(handleChanges)
@@ -30,6 +31,7 @@ export async function countHandleChangesInWindow(db: DbOrTx, userId: string): Pr
         gte(handleChanges.createdAt, windowStart.toISOString()),
       ),
     );
+
   return result[0]?.count ?? 0;
 }
 
@@ -71,6 +73,7 @@ export async function checkRateLimit(
               gte(handleChanges.createdAt, windowStart.toISOString()),
             ),
           );
+
         count = result[0]?.count ?? 0;
         oldest = result[0]?.oldest;
         break;
@@ -86,6 +89,7 @@ export async function checkRateLimit(
           .where(
             and(eq(resumes.userId, userId), gte(resumes.createdAt, windowStart.toISOString())),
           );
+
         count = result[0]?.count ?? 0;
         oldest = result[0]?.oldest;
         break;

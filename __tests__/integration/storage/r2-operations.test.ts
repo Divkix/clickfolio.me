@@ -37,9 +37,11 @@ class MockR2Bucket {
 
   async get(key: string, options?: R2GetOptions): Promise<MockR2ObjectBody | null> {
     const stored = this.storage.get(key);
+
     if (!stored) return null;
 
     let bodyArray = stored.body;
+
     if (options?.range && typeof options.range === "object" && "offset" in options.range) {
       const range = options.range as { offset: number; length: number };
       bodyArray = stored.body.slice(range.offset, range.offset + range.length);
@@ -81,14 +83,19 @@ class MockR2Bucket {
     } else {
       const reader = value.getReader();
       const chunks: Uint8Array[] = [];
+
       while (true) {
         const { done, value: chunk } = await reader.read();
+
         if (done) break;
+
         if (chunk) chunks.push(chunk);
       }
+
       const totalLength = chunks.reduce((sum, c) => sum + c.length, 0);
       body = new Uint8Array(totalLength);
       let offset = 0;
+
       for (const chunk of chunks) {
         body.set(chunk, offset);
         offset += chunk.length;
@@ -118,6 +125,7 @@ class MockR2Bucket {
 
   async head(key: string): Promise<MockR2Object | null> {
     const stored = this.storage.get(key);
+
     if (!stored) return null;
 
     return this.createMockR2Object(key, stored.body, stored);
@@ -140,6 +148,7 @@ class MockR2Bucket {
 
     const objects = allKeys.slice(startIndex, startIndex + limit).map((key) => {
       const stored = this.storage.get(key)!;
+
       return this.createMockR2Object(key, stored.body, stored);
     });
 
@@ -167,11 +176,13 @@ class MockR2Bucket {
 
   private hashKey(key: string): string {
     let hash = 0;
+
     for (let i = 0; i < key.length; i++) {
       const char = key.charCodeAt(i);
       hash = (hash << 5) - hash + char;
       hash = hash & hash;
     }
+
     return hash.toString(16);
   }
 
@@ -196,6 +207,7 @@ class MockR2Bucket {
     },
   ): MockR2Object {
     const self = this;
+
     return {
       key,
       size: stored.body.length,
@@ -314,6 +326,7 @@ describe("R2 Storage Integration", () => {
     it("should handle ReadableStream upload", async () => {
       const key = "test/stream-content.bin";
       const chunks = [new Uint8Array([1, 2]), new Uint8Array([3, 4])];
+
       const stream = new ReadableStream<Uint8Array>({
         start(controller) {
           for (const chunk of chunks) controller.enqueue(chunk);
@@ -450,6 +463,7 @@ describe("R2 Storage Integration", () => {
     it("should handle large file uploads with chunking", async () => {
       const key = "test/large-file.pdf";
       const largeContent = new Uint8Array(1024 * 1024);
+
       for (let i = 0; i < largeContent.length; i++) {
         largeContent[i] = i % 256;
       }
@@ -494,11 +508,14 @@ describe("R2 Storage Integration", () => {
   describe("error handling", () => {
     it("should handle service unavailable with retry pattern", async () => {
       let attempts = 0;
+
       const flakyPut = vi.fn().mockImplementation(() => {
         attempts++;
+
         if (attempts < 3) {
           return Promise.reject(new Error("Service unavailable"));
         }
+
         return Promise.resolve({
           key: "test",
           size: 4,

@@ -13,6 +13,7 @@ const VALID_PERIODS = new Set(["7d", "30d", "90d"]);
 function isProfilePath(path: string): boolean {
   if (!path.startsWith("/@")) return false;
   const segments = path.split("/").filter(Boolean);
+
   return segments.length === 1 && segments[0].startsWith("@") && segments[0].length > 1;
 }
 
@@ -71,8 +72,10 @@ export async function GET(request: Request) {
 
       const viewsChange =
         prevViews > 0 ? Math.round(((totalViews - prevViews) / prevViews) * 100) : 0;
+
       const uniqueChange =
         prevUnique > 0 ? Math.round(((totalUnique - prevUnique) / prevUnique) * 100) : 0;
+
       const avgChange =
         prevAvgPerDay > 0 ? Math.round(((avgPerDay - prevAvgPerDay) / prevAvgPerDay) * 100) : 0;
 
@@ -80,12 +83,15 @@ export async function GET(request: Request) {
       // Umami returns x as full ISO timestamp (e.g. "2026-02-09T00:00:00Z") when timezone=UTC,
       // so normalize to YYYY-MM-DD for consistent date matching across the date axis.
       const sessionMap = new Map(pageviews.sessions.map((s) => [s.x.slice(0, 10), s.y]));
+
       const dailyData = pageviews.pageviews.map((p) => ({
         date: p.x.slice(0, 10),
         views: p.y,
         unique: sessionMap.get(p.x.slice(0, 10)) ?? 0,
       }));
+
       const dailyMap = new Map(dailyData.map((d) => [d.date, d]));
+
       const daily = lastNUtcDays(days).map(
         (date) => dailyMap.get(date) ?? { date, views: 0, unique: 0 },
       );
@@ -134,9 +140,11 @@ export async function GET(request: Request) {
 
       const response = createSuccessResponse(responseData);
       response.headers.set("Cache-Control", "private, max-age=30, stale-while-revalidate=60");
+
       return response;
     } catch (err) {
       console.error("[admin/analytics] Umami API error:", err);
+
       return createErrorResponse(
         "Analytics temporarily unavailable",
         ERROR_CODES.INTERNAL_ERROR,

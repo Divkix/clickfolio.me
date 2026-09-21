@@ -23,6 +23,7 @@ export default async function PreviewPage({ params }: { params: Promise<{ id: st
 
   const Template = await getTemplate(themeId);
   const bg = TEMPLATE_BACKGROUNDS[themeId];
+
   const profile = {
     avatar_url: null,
     handle: content.full_name.toLowerCase().replace(/\s+/g, ""),

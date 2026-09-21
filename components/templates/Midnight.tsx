@@ -459,9 +459,12 @@ function ConnectSection({ contactLinks }: { contactLinks: ContactLinkDescriptor[
             variant: "white",
             "aria-hidden": true,
           });
+
           const isBranded = link.type === "behance" || link.type === "dribbble";
+
           const brandColor =
             link.type === "behance" ? "#1769FF" : link.type === "dribbble" ? "#EA4C89" : undefined;
+
           const brandText = link.type === "behance" ? "Bē" : link.type === "dribbble" ? "Dr" : null;
 
           return (

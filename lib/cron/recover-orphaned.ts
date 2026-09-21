@@ -88,6 +88,7 @@ export async function recoverOrphanedResumes(
 
   // TOCTOU-guarded on still being `waiting_for_cache`. Run in parallel since rows are independent.
   const timeoutUpdate = buildWaitingForCacheTimeoutUpdate();
+
   const timeoutResults = await Promise.all(
     waitingForCacheExpired.map(async (row) => {
       try {
@@ -95,27 +96,34 @@ export async function recoverOrphanedResumes(
           .update(resumes)
           .set({ status: timeoutUpdate.status, errorMessage: timeoutUpdate.errorMessage })
           .where(and(eq(resumes.id, row.id), eq(resumes.status, "waiting_for_cache")));
+
         const changes = result.count;
+
         if (changes > 0) {
           log("info", "timed out waiting_for_cache resume", { resumeId: row.id });
         }
+
         return changes > 0 ? 1 : 0;
       } catch (error) {
         log("error", "failed to timeout waiting_for_cache resume", {
           resumeId: row.id,
           error: String(error),
         });
+
         return 0;
       }
     }),
   );
+
   const waitingForCacheTimedOutCount = timeoutResults.reduce<number>((a, b) => a + b, 0);
 
   const seenIds = new Set<string>();
+
   const orphanedResumes = [...pendingOrphans, ...processingOrphans, ...queuedOrphans].filter(
     (r) => {
       if (seenIds.has(r.id)) return false;
       seenIds.add(r.id);
+
       return true;
     },
   );
@@ -146,6 +154,7 @@ export async function recoverOrphanedResumes(
           .update(resumes)
           .set({ status: timeoutUpdate.status, errorMessage: timeoutUpdate.errorMessage })
           .where(and(eq(resumes.id, resume.id), eq(resumes.status, resume.status), stillStale));
+
         if (failedResult.count > 0) {
           overCapFailedCount += 1;
           log("info", "marked over-cap orphaned resume as failed", { resumeId: resume.id });
@@ -156,6 +165,7 @@ export async function recoverOrphanedResumes(
           error: String(error),
         });
       }
+
       return;
     }
 
@@ -174,11 +184,14 @@ export async function recoverOrphanedResumes(
             stillStale,
           ),
         );
+
       const requeueChanges = requeueResult.count;
+
       if (requeueChanges === 0) {
         log("info", "skipping resume - status changed since selection", {
           resumeId: resume.id,
         });
+
         return;
       }
 
@@ -195,6 +208,7 @@ export async function recoverOrphanedResumes(
       log("info", "recovered orphaned resume", { resumeId: resume.id });
     } catch (error) {
       log("error", "failed to recover resume", { resumeId: resume.id, error: String(error) });
+
       try {
         await db
           .update(resumes)

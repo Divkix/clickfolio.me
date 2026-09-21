@@ -11,6 +11,7 @@ const {
   const mockCaptureImmediate = vi.fn();
   const mockCaptureExceptionImmediate = vi.fn();
   const mockShutdown = vi.fn();
+
   const MockPostHog = vi.fn(function MockPostHog() {
     return {
       captureImmediate: mockCaptureImmediate,
@@ -18,6 +19,7 @@ const {
       shutdown: mockShutdown,
     };
   });
+
   return {
     mockCaptureImmediate,
     mockCaptureExceptionImmediate,
@@ -31,12 +33,15 @@ const {
 vi.mock("posthog-node", () => ({
   PostHog: MockPostHog,
 }));
+
 vi.mock("cloudflare:workers", () => ({
   waitUntil: mockWaitUntil,
 }));
+
 vi.mock("@/lib/utils/log", () => ({
   log: mockLog,
 }));
+
 vi.mock("@/lib/analytics/config", () => ({
   POSTHOG_PROJECT_TOKEN: "phc_test",
   POSTHOG_API_HOST: "https://s.clickfolio.me",
@@ -46,6 +51,7 @@ vi.mock("@/lib/analytics/config", () => ({
 function lastWaitUntilPromise(): Promise<void> {
   expect(mockWaitUntil).toHaveBeenCalled();
   const registrations = mockWaitUntil.mock.calls;
+
   return registrations[registrations.length - 1][0] as Promise<void>;
 }
 

@@ -190,6 +190,7 @@ export function ExperienceSection({ form }: ExperienceSectionProps) {
                     name={`experience.${index}.highlights`}
                     render={({ field }) => {
                       const highlights = field.value || [];
+
                       return (
                         <FormItem>
                           <FormLabel className="flex items-center gap-2">
@@ -221,6 +222,7 @@ export function ExperienceSection({ form }: ExperienceSectionProps) {
                                     const newHighlights = highlights.filter(
                                       (_: string, i: number) => i !== hIndex,
                                     );
+
                                     field.onChange(newHighlights);
                                   }}
                                   className="shrink-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"

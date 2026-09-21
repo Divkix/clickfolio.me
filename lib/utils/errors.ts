@@ -5,10 +5,15 @@ type ErrorCategory = "transient" | "fatal" | "auth" | "validation" | "rate_limit
 
 export function classifyError(status: number): ErrorCategory {
   if (status === 401 || status === 403) return "auth";
+
   if (status === 404) return "fatal";
+
   if (status === 422 || status === 400) return "validation";
+
   if (status === 429) return "rate_limit";
+
   if (status >= 500 || status === 0) return "transient";
+
   return "fatal";
 }
 
@@ -26,6 +31,7 @@ export function getErrorMessage(status: number, context?: string): string {
     503: "Service unavailable. Please try again later.",
     504: "Request timed out. Please try again.",
   } as const satisfies Record<number, string>;
+
   // SAFETY: status is number from HTTP, cast to known message key union; fallback handles unknown codes.
   return (
     messages[status as keyof typeof messages] ||

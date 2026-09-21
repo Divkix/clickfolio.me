@@ -59,6 +59,7 @@ export async function GET() {
       const resumeStatusMap = resumeStats.reduce(
         (acc, r) => {
           acc[r.status || "unknown"] = r.count;
+
           return acc;
         },
         {} as Record<string, number>,
@@ -70,6 +71,7 @@ export async function GET() {
       // Fill missing dates for sparkline from Umami pageviews
       // Umami returns x as full ISO timestamp (e.g. "2026-02-09T00:00:00Z") when timezone=UTC,
       const viewsMap = new Map(umamiPageviews.pageviews.map((p) => [p.x.slice(0, 10), p.y]));
+
       const filledDailyViews = lastNUtcDays(7).map((date) => ({
         date,
         views: viewsMap.get(date) ?? 0,
@@ -89,6 +91,7 @@ export async function GET() {
       });
     } catch (err) {
       console.error("[admin/stats] Error:", err);
+
       return createErrorResponse("Stats temporarily unavailable", ERROR_CODES.INTERNAL_ERROR, 503);
     }
   });

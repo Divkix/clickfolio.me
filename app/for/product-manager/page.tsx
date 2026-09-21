@@ -13,8 +13,10 @@ import {
 export const revalidate = 86400;
 
 const title = "Portfolio Website for Product Managers";
+
 const description =
   "Showcase your product launches, roadmaps, and impact with a free portfolio website. 10 templates, AI-powered parsing from PDF, custom @handle URL.";
+
 const path = "/for/product-manager";
 
 export const metadata: Metadata = buildRolePageMetadata({ title, description, path });

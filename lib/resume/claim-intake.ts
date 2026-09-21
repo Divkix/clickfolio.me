@@ -41,6 +41,7 @@ export type ClaimIntakeDeps = {
 
 function isLikelyMissingObjectError(cause: unknown): boolean {
   if (!(cause instanceof Error)) return false;
+
   return /not\s*found|no\s*such\s*key|does\s*not\s*exist|404/i.test(cause.message);
 }
 
@@ -49,6 +50,7 @@ function isLikelyMissingObjectError(cause: unknown): boolean {
 async function deleteObjectOrQueue(db: Database, r2: R2Bucket, key: string): Promise<void> {
   await R2.delete(r2, key).catch(async (err) => {
     console.warn("R2 delete failed:", key, err);
+
     try {
       await db
         .insert(pendingR2Deletions)
@@ -91,9 +93,11 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
       .where(and(eq(resumes.userId, userId), eq(resumes.r2Key, tempKey)))
       .orderBy(desc(resumes.createdAt))
       .limit(1);
+
     if (byTempKey[0]) return byTempKey[0];
 
     const twoMinAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+
     const recentResume = await db
       .select({ id: resumes.id, status: resumes.status })
       .from(resumes)
@@ -109,6 +113,7 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
 
   try {
     const buffer = await R2.getAsArrayBuffer(r2, tempKey);
+
     if (!buffer) {
       const existing = await findExistingClaim();
 
@@ -127,6 +132,7 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
         httpStatus: 404,
       };
     }
+
     fileBuffer = buffer;
 
     computedFileHash = await sha256Hex(fileBuffer);
@@ -141,6 +147,7 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
     }
 
     const pdfBytes = new Uint8Array(fileBuffer.slice(0, 5));
+
     if (!String.fromCharCode(...pdfBytes).startsWith("%PDF-")) {
       return {
         kind: "error",
@@ -155,6 +162,7 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
     if (isLikelyMissingObjectError(error)) {
       try {
         const existing = await findExistingClaim();
+
         if (existing) {
           return {
             kind: "already_claimed",
@@ -192,6 +200,7 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
     await tx.select({ id: user.id }).from(user).where(eq(user.id, userId)).for("update");
 
     const rateLimitResponse = await enforceRateLimit(userId, "resume_upload", env);
+
     if (rateLimitResponse) {
       return { kind: "rate_limited" as const, response: rateLimitResponse };
     }
@@ -214,9 +223,11 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
       .returning({ id: resumes.id, status: resumes.status });
 
     const row = arbitrated[0];
+
     if (row.id === resumeId) {
       return { kind: "inserted" as const };
     }
+
     return { kind: "duplicate" as const, existing: row };
   });
 
@@ -252,10 +263,12 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
       .from(resumes)
       .where(eq(resumes.id, resumeId))
       .limit(1);
+
     if (self[0]) return false;
 
     await deleteObjectOrQueue(db, r2, newKey);
     await deleteObjectOrQueue(db, r2, tempKey);
+
     return true;
   };
 
@@ -268,6 +281,7 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
         .from(user)
         .where(eq(user.id, userId))
         .limit(1);
+
       const hasHandle = !!userRow[0]?.handle;
       const currentName = userRow[0]?.name;
       const cachedName = content.full_name?.trim();
@@ -301,16 +315,21 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
           // the claim started is newer content and must win.
           onlyIfUpdatedAtLte: now,
         });
+
         if (shouldUpdateName || cachedLevel) {
           type IntakeUserUpdate = Partial<typeof user.$inferInsert>;
+
           const intakeUserUpdate: IntakeUserUpdate = { updatedAt: now };
+
           if (shouldSyncDisplayName(cachedName, currentName)) {
             intakeUserUpdate.name = cachedName;
           }
+
           if (cachedLevel) {
             intakeUserUpdate.role = cachedLevel;
             intakeUserUpdate.roleSource = "ai";
           }
+
           await tx.update(user).set(intakeUserUpdate).where(eq(user.id, userId));
         }
       });
@@ -318,6 +337,7 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
       return completed;
     } catch (updateError) {
       console.error("Failed to update resume with cached content:", updateError);
+
       return false;
     }
   };
@@ -345,6 +365,7 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
     } catch (r2Error) {
       console.error("R2 operations failed for cached resume:", r2Error);
       await failResume("Failed to store file for processing");
+
       return {
         kind: "error",
         message: "Failed to store file for processing",
@@ -386,6 +407,7 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
 
       if (waiting.length === 0) {
         await discardObjectsIfRowGone();
+
         return {
           kind: "error",
           message: "Resume was removed while claiming it",
@@ -396,6 +418,7 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
     } catch (waitError) {
       console.error("Failed to set waiting_for_cache status:", waitError);
       await failResume("Failed to prepare resume for processing");
+
       return {
         kind: "error",
         message: "Failed to prepare resume for processing",
@@ -409,6 +432,7 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
     } catch (error) {
       console.error("R2 operations failed for waiting resume:", error);
       await failResume("Failed to store file for processing");
+
       return {
         kind: "error",
         message: "Failed to store file for processing",
@@ -432,6 +456,7 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
         ),
       )
       .limit(1);
+
     // SAFETY: parsedContent is schema-validated JSONB written only by our queue consumer; cast bridges the column's wide Record type to ResumeContent.
     const completedContent = (completed[0]?.parsedContent as ResumeContent | null) ?? null;
 
@@ -458,6 +483,7 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
   } catch (error) {
     console.error("R2 put error:", error);
     await failResume("Failed to store file for processing");
+
     return {
       kind: "error",
       message: "Failed to store file for processing",
@@ -478,6 +504,7 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
       // the account sweep may already have missed the object, so remove it.
       await discardObjectsIfRowGone();
       await failResume("Failed to update resume status");
+
       return {
         kind: "error",
         message: "Failed to update resume status",
@@ -488,6 +515,7 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
   } catch (updateError) {
     console.error("Failed to update resume with queued status:", updateError);
     await failResume("Failed to update resume status");
+
     return {
       kind: "error",
       message: "Failed to update resume status",
@@ -498,6 +526,7 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
 
   if (!queue) {
     await failResume("Queue service unavailable");
+
     return {
       kind: "error",
       message: "Queue service unavailable",
@@ -519,6 +548,7 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
     // landed anyway, so rolling back could double-publish. The 15-minute
     // queued-orphan sweep re-drives rows stuck in `queued`.
     console.error("Failed to publish resume parse job:", queueError);
+
     return {
       kind: "error",
       message: "Failed to queue resume for processing",

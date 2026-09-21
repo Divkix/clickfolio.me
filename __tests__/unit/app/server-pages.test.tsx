@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => {
   };
 
   const nextSelectResult = () => state.selectResults.shift() ?? [];
+
   const createChain = () => {
     const chain = {
       from: vi.fn(() => chain),
@@ -28,6 +29,7 @@ const mocks = vi.hoisted(() => {
       values: vi.fn(() => chain),
       then: vi.fn((resolve: (value: JsonValue[]) => JsonValue) => resolve(nextSelectResult())),
     };
+
     return chain;
   };
 
@@ -132,22 +134,27 @@ vi.mock("drizzle-orm", () => ({
 vi.mock("@/components/dashboard/AnalyticsCard", () => ({
   AnalyticsCard: () => <div>analytics-card</div>,
 }));
+
 vi.mock("@/components/dashboard/CopyLinkButton", () => ({
   CopyLinkButton: ({ handle }: { handle: string }) => <button type="button">copy {handle}</button>,
 }));
+
 vi.mock("@/components/dashboard/DashboardUploadSection", () => ({
   DashboardUploadSection: ({ children }: { children?: React.ReactNode }) => (
     <button type="button">{children || "upload-section"}</button>
   ),
 }));
+
 vi.mock("@/components/dashboard/EmailVerificationBanner", () => ({
   EmailVerificationBanner: ({ email }: { email: string }) => <div>verify {email}</div>,
 }));
+
 vi.mock("@/components/dashboard/RealtimeStatusListener", () => ({
   RealtimeStatusListener: ({ currentStatus }: { currentStatus: string }) => (
     <div>realtime {currentStatus}</div>
   ),
 }));
+
 vi.mock("@/components/dashboard/ThemeSelector", () => ({
   ThemeSelector: ({ initialThemeId }: { initialThemeId: string }) => (
     <div>theme {initialThemeId}</div>
@@ -159,25 +166,31 @@ vi.mock("@/components/forms/EditResumeFormWrapper", () => ({
     <div>edit-wrapper {initialData.full_name}</div>
   ),
 }));
+
 vi.mock("@/components/forms/HandleForm", () => ({
   HandleForm: ({ currentHandle }: { currentHandle: string }) => <div>handle {currentHandle}</div>,
 }));
+
 vi.mock("@/components/forms/PrivacySettings", () => ({
   PrivacySettingsForm: () => <div>privacy-settings</div>,
 }));
+
 vi.mock("@/components/settings/DeleteAccountCard", () => ({
   DeleteAccountCard: ({ userEmail }: { userEmail: string }) => <div>delete {userEmail}</div>,
 }));
+
 vi.mock("@/components/settings/ResumeManagementCard", () => ({
   ResumeManagementCard: ({ resumeCount }: { resumeCount: number }) => (
     <div>resumes {resumeCount}</div>
   ),
 }));
+
 vi.mock("@/components/settings/RoleSelectorCard", () => ({
   RoleSelectorCard: ({ currentRole }: { currentRole: string | null }) => (
     <div>role {currentRole}</div>
   ),
 }));
+
 vi.mock("@/components/admin/AdminHeader", () => ({
   AdminHeader: ({ onMenuClick }: { onMenuClick: () => void }) => (
     <button type="button" onClick={onMenuClick}>
@@ -185,6 +198,7 @@ vi.mock("@/components/admin/AdminHeader", () => ({
     </button>
   ),
 }));
+
 vi.mock("@/components/admin/AdminSidebar", () => ({
   AdminSidebar: ({ isOpen, adminEmail }: { isOpen: boolean; adminEmail?: string }) => (
     <div>
@@ -192,9 +206,11 @@ vi.mock("@/components/admin/AdminSidebar", () => ({
     </div>
   ),
 }));
+
 vi.mock("@/components/admin/AdminSparkline", () => ({
   AdminSparkline: ({ data }: { data: JsonValue[] }) => <div>sparkline {data.length}</div>,
 }));
+
 vi.mock("@/components/admin/StatCard", () => ({
   StatCard: ({ title, value }: { title: string; value: string | number }) => (
     <div>
@@ -204,8 +220,11 @@ vi.mock("@/components/admin/StatCard", () => ({
 }));
 
 vi.mock("@/components/SiteHeader", () => ({ SiteHeader: () => <header>site-header</header> }));
+
 vi.mock("@/components/Footer", () => ({ Footer: () => <footer>footer</footer> }));
+
 vi.mock("@/components/ui/breadcrumb", () => ({ Breadcrumb: () => <nav>breadcrumb</nav> }));
+
 vi.mock("@/components/analytics/OwnerDetector", () => ({
   OwnerDetector: ({ profileId }: { profileId: string }) => <div>owner {profileId}</div>,
 }));
@@ -281,6 +300,7 @@ function installDbDefaults() {
             accounts: [],
           };
         }
+
         return {
           id: "user_1",
           handle: "avery",
@@ -477,6 +497,7 @@ describe("server rendered app pages", () => {
     const metadata = await handlePage.generateMetadata({
       params: Promise.resolve({ handle: "%40avery" }),
     });
+
     expect(metadata.title).toContain("Avery Quinn");
 
     render(await handlePage.default({ params: Promise.resolve({ handle: "%40avery" }) }));

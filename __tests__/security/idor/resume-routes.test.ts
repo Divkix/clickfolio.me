@@ -3,12 +3,19 @@ import type { JsonValue } from "@/lib/types/json";
 import { DEFAULT_PRIVACY_SETTINGS } from "@/lib/utils/privacy";
 
 const mockFindFirst = vi.fn();
+
 const mockSelect = vi.fn().mockReturnThis();
+
 const mockFrom = vi.fn().mockReturnThis();
+
 const mockWhere = vi.fn().mockReturnThis();
+
 const mockLimit = vi.fn();
+
 const mockOrderBy = vi.fn().mockReturnThis();
+
 const mockReturning = vi.fn().mockResolvedValue([{ id: "resume-a-001" }]);
+
 const mockUpdate = vi.fn().mockReturnValue({
   set: vi.fn().mockReturnValue({
     where: vi.fn().mockReturnValue({
@@ -16,6 +23,7 @@ const mockUpdate = vi.fn().mockReturnValue({
     }),
   }),
 });
+
 const mockInsert = vi.fn().mockReturnValue({
   values: vi.fn().mockResolvedValue(undefined),
 });
@@ -42,6 +50,7 @@ vi.mock("@/lib/auth/middleware", () => ({
 
 vi.mock("drizzle-orm", async (importOriginal) => {
   const actual = await importOriginal<typeof import("drizzle-orm")>();
+
   return {
     ...actual,
     eq: vi.fn((_col, val) => val),
@@ -57,6 +66,7 @@ vi.mock("drizzle-orm", async (importOriginal) => {
 
 vi.mock("@/lib/db/schema", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/db/schema")>();
+
   return {
     ...actual,
     resumes: {
@@ -89,6 +99,7 @@ vi.mock("@/lib/db/schema", async (importOriginal) => {
     },
   };
 });
+
 vi.mock("@/lib/queue/resume-parse", () => ({
   publishResumeParse: vi.fn().mockResolvedValue(undefined),
 }));
@@ -105,6 +116,7 @@ vi.mock("@/lib/r2", () => ({
 
 vi.mock("@/lib/resume/lifecycle", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/resume/lifecycle")>();
+
   return {
     ...actual,
     hasExceededMaxAttempts: vi.fn(() => false),
@@ -162,6 +174,7 @@ vi.mock("@/lib/utils/validation", () => ({
 import { requireAuthWithMessage, requireAuthWithUserValidation } from "@/lib/auth/middleware";
 
 const mockedAuth = vi.mocked(requireAuthWithUserValidation);
+
 const mockedAuthMessage = vi.mocked(requireAuthWithMessage);
 
 function createValidResumeContent() {
@@ -278,16 +291,19 @@ describe("IDOR - Resume Routes Security", () => {
     it("returns 403 when User A tries to edit User B's resume via content injection", async () => {
       authedAs("user-a");
       queueVersionSnapshot();
+
       const mockUpdateSet = vi.fn().mockReturnValue({
         where: vi.fn().mockReturnValue({
           returning: vi.fn().mockResolvedValue([]),
         }),
       });
+
       mockUpdate.mockReturnValue({
         set: mockUpdateSet,
       });
 
       const { PUT } = await import("@/app/api/resume/update/route");
+
       const request = new Request("http://localhost:3000/api/resume/update", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -295,6 +311,7 @@ describe("IDOR - Resume Routes Security", () => {
           content: createValidResumeContent(),
         }),
       });
+
       const response = await PUT(request);
 
       expect(response.status).toBe(404);
@@ -303,16 +320,19 @@ describe("IDOR - Resume Routes Security", () => {
     it("prevents cross-user resume update via database row-level enforcement", async () => {
       authedAs("user-a");
       queueVersionSnapshot();
+
       const mockUpdateSet = vi.fn().mockReturnValue({
         where: vi.fn().mockReturnValue({
           returning: vi.fn().mockResolvedValue([]),
         }),
       });
+
       mockUpdate.mockReturnValue({
         set: mockUpdateSet,
       });
 
       const { PUT } = await import("@/app/api/resume/update/route");
+
       const request = new Request("http://localhost:3000/api/resume/update", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -320,6 +340,7 @@ describe("IDOR - Resume Routes Security", () => {
           content: createValidResumeContent(),
         }),
       });
+
       const response = await PUT(request);
 
       expect(response.status).toBe(404);
@@ -330,21 +351,25 @@ describe("IDOR - Resume Routes Security", () => {
     it("returns 403 when User A tries to change User B's theme via userId manipulation", async () => {
       authedAs("user-a");
       queueVersionSnapshot();
+
       const mockUpdateSet = vi.fn().mockReturnValue({
         where: vi.fn().mockReturnValue({
           returning: vi.fn().mockResolvedValue([]),
         }),
       });
+
       mockUpdate.mockReturnValue({
         set: mockUpdateSet,
       });
 
       const { POST } = await import("@/app/api/resume/update-theme/route");
+
       const request = new Request("http://localhost:3000/api/resume/update-theme", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ theme_id: "glass_morphic" }),
       });
+
       const response = await POST(request);
 
       expect(response.status).toBe(404);
@@ -360,11 +385,13 @@ describe("IDOR - Resume Routes Security", () => {
       });
 
       const { POST } = await import("@/app/api/resume/update-theme/route");
+
       const request = new Request("http://localhost:3000/api/resume/update-theme", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ theme_id: "minimalist_editorial" }),
       });
+
       const response = await POST(request);
 
       expect(response.status).toBe(401);
@@ -381,11 +408,13 @@ describe("IDOR - Resume Routes Security", () => {
       vi.mocked(R2.getAsArrayBuffer).mockResolvedValue(new ArrayBuffer(100));
 
       const { POST } = await import("@/app/api/resume/claim/route");
+
       const request = new Request("http://localhost:3000/api/resume/claim", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ key: maliciousKey }),
       });
+
       const response = await POST(request);
 
       expect(response.status).toBe(403);
@@ -402,11 +431,13 @@ describe("IDOR - Resume Routes Security", () => {
       vi.mocked(R2.getAsArrayBuffer).mockResolvedValue(new ArrayBuffer(100));
 
       const { POST } = await import("@/app/api/resume/claim/route");
+
       const request = new Request("http://localhost:3000/api/resume/claim", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ key: stolenKey }),
       });
+
       const response = await POST(request);
 
       expect(response.status).toBe(403);
@@ -421,11 +452,13 @@ describe("IDOR - Resume Routes Security", () => {
       vi.mocked(R2.getAsArrayBuffer).mockResolvedValue(new ArrayBuffer(100));
 
       const { POST } = await import("@/app/api/resume/claim/route");
+
       const request = new Request("http://localhost:3000/api/resume/claim", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ key: leakedKey }),
       });
+
       const response = await POST(request);
 
       expect(response.status).toBe(403);
@@ -435,11 +468,13 @@ describe("IDOR - Resume Routes Security", () => {
       authedAs("user-a");
 
       const { POST } = await import("@/app/api/resume/claim/route");
+
       const request = new Request("http://localhost:3000/api/resume/claim", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ key: "users/user-b/something.pdf" }),
       });
+
       const response = await POST(request);
 
       expect(response.status).toBe(400);
@@ -495,9 +530,11 @@ describe("IDOR - Resume Routes Security", () => {
       mockFindFirst.mockResolvedValue(null);
 
       const { GET } = await import("@/app/api/resume/status/route");
+
       const request = new Request(
         "http://localhost:3000/api/resume/status?resume_id=nonexistent-id",
       );
+
       const response = await GET(request);
 
       expect(response.status).toBe(404);
@@ -540,6 +577,7 @@ describe("IDOR - Resume Routes Security", () => {
         const request = new Request(
           `http://localhost:3000/api/resume/status?resume_id=${encodeURIComponent(id)}`,
         );
+
         const response = await GET(request);
         expect([400, 403, 404, 200]).toContain(response.status);
       }
@@ -559,9 +597,11 @@ describe("IDOR - Resume Routes Security", () => {
       });
 
       const { GET } = await import("@/app/api/resume/status/route");
+
       const request = new Request(
         "http://localhost:3000/api/resume/status?resume_id=pending-resume-b",
       );
+
       const response = await GET(request);
 
       expect(response.status).toBe(403);
@@ -621,11 +661,13 @@ describe("IDOR - Resume Routes Security", () => {
       });
 
       const { POST } = await import("@/app/api/resume/retry/route");
+
       const request = new Request("http://localhost:3000/api/resume/retry", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ resume_id: "resume-b-001" }),
       });
+
       const response = await POST(request);
 
       expect(response.status).toBe(403);
@@ -648,11 +690,13 @@ describe("IDOR - Resume Routes Security", () => {
       mockReturning.mockResolvedValue([{ id: "resume-a-001" }]);
 
       const { POST } = await import("@/app/api/resume/retry/route");
+
       const request = new Request("http://localhost:3000/api/resume/retry", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ resume_id: "resume-a-001" }),
       });
+
       const response = await POST(request);
 
       expect(response.status).toBe(200);
@@ -664,11 +708,13 @@ describe("IDOR - Resume Routes Security", () => {
       mockFindFirst.mockResolvedValue(null);
 
       const { POST } = await import("@/app/api/resume/retry/route");
+
       const request = new Request("http://localhost:3000/api/resume/retry", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ resume_id: "deleted-resume-id" }),
       });
+
       const response = await POST(request);
 
       expect(response.status).toBe(404);
@@ -689,11 +735,13 @@ describe("IDOR - Resume Routes Security", () => {
       });
 
       const { POST } = await import("@/app/api/resume/retry/route");
+
       const request = new Request("http://localhost:3000/api/resume/retry", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ resume_id: "resume-a-001" }),
       });
+
       const response = await POST(request);
 
       expect(response.status).toBe(400);
@@ -729,9 +777,11 @@ describe("IDOR - Resume Routes Security", () => {
       };
 
       const filtered = { ...content };
+
       if (!privacySettings.show_phone && filtered.contact) {
         delete (filtered.contact as Record<string, string>).phone;
       }
+
       if (!privacySettings.show_address && filtered.contact) {
         (filtered.contact as Record<string, string>).location = "Secret City";
       }
@@ -763,6 +813,7 @@ describe("IDOR - Resume Routes Security", () => {
       authedAs("attacker");
 
       const targets = ["user-1", "user-2", "user-3", "user-4", "user-5"];
+
       const results = await Promise.all(
         targets.map(async (targetUser) => {
           mockFindFirst.mockResolvedValue({
@@ -776,9 +827,11 @@ describe("IDOR - Resume Routes Security", () => {
           });
 
           const { GET } = await import("@/app/api/resume/status/route");
+
           const request = new Request(
             `http://localhost:3000/api/resume/status?resume_id=resume-${targetUser}`,
           );
+
           return GET(request);
         }),
       );
@@ -804,9 +857,11 @@ describe("IDOR - Resume Routes Security", () => {
       });
 
       const { GET } = await import("@/app/api/resume/status/route");
+
       const request = new Request(
         "http://localhost:3000/api/resume/status?resume_id=victim-resume",
       );
+
       const response = await GET(request);
 
       expect(response.status).toBe(403);
@@ -824,9 +879,11 @@ describe("IDOR - Resume Routes Security", () => {
       });
 
       const { GET } = await import("@/app/api/resume/status/route");
+
       const request = new Request(
         "http://localhost:3000/api/resume/status?resume_id=any-resume-id",
       );
+
       const response = await GET(request);
 
       expect(response.status).toBe(401);
@@ -848,9 +905,11 @@ describe("IDOR - Resume Routes Security", () => {
       });
 
       const { GET } = await import("@/app/api/resume/status/route");
+
       const request = new Request(
         "http://localhost:3000/api/resume/status?resume_id=target-resume",
       );
+
       const response = await GET(request);
 
       expect(response.status).toBe(403);
@@ -871,11 +930,13 @@ describe("IDOR - Resume Routes Security", () => {
       });
 
       const { POST } = await import("@/app/api/resume/retry/route");
+
       const request = new Request("http://localhost:3000/api/resume/retry", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ resume_id: "target-resume" }),
       });
+
       const response = await POST(request);
 
       expect(response.status).toBe(403);

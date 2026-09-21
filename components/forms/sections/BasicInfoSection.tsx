@@ -29,6 +29,7 @@ function CharacterCount({
 }) {
   // SAFETY: useWatch returns validated string field from ResumeContentFormData; cast bridges unknown to string.
   const value = useWatch({ control: form.control, name }) as string | undefined;
+
   return <>{`${value?.length || 0}/${maxLength}`}</>;
 }
 

@@ -12,7 +12,9 @@ const OPTIONS = [
 ] as const;
 
 const subscribeNoop = () => () => {};
+
 const getClientSnapshot = () => true;
+
 const getServerSnapshot = () => false;
 
 export function ThemeToggle({ className }: { className?: string }) {
@@ -30,6 +32,7 @@ export function ThemeToggle({ className }: { className?: string }) {
     >
       {OPTIONS.map(({ value, label, icon: Icon }) => {
         const active = mounted && theme === value;
+
         return (
           <button
             key={value}

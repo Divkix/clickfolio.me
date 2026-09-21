@@ -30,15 +30,19 @@ export async function performCleanup(
     const rateLimitsCount = (
       await tx.delete(uploadRateLimits).where(lt(uploadRateLimits.expiresAt, nowIso))
     ).count;
+
     const handleChangesCount = (
       await tx.delete(handleChanges).where(lt(handleChanges.createdAt, ninetyDaysAgo))
     ).count;
+
     return { rateLimits: rateLimitsCount, handleChanges: handleChangesCount };
   });
 
   let failedResumes = 0;
+
   try {
     const cutoff = new Date(Date.now() - FAILED_TTL_MS).toISOString();
+
     const staleFailed = await db
       .select({
         id: resumes.id,
@@ -72,15 +76,18 @@ export async function performCleanup(
           ),
         )
         .returning({ id: resumes.id, r2Key: resumes.r2Key });
+
       failedResumes = deletedRows.length;
 
       if (deletedRows.length > 0 && !r2Binding) {
         log("warn", "R2 binding unavailable; deleting failed resume DB rows only");
       }
+
       const fallbackRows: Array<typeof pendingR2Deletions.$inferInsert> = [];
       await Promise.all(
         deletedRows.map(async (row) => {
           if (!r2Binding || !row.r2Key) return;
+
           try {
             await R2.delete(r2Binding, row.r2Key);
           } catch (error) {
@@ -97,6 +104,7 @@ export async function performCleanup(
           }
         }),
       );
+
       if (fallbackRows.length > 0) {
         await db.insert(pendingR2Deletions).values(fallbackRows).onConflictDoNothing();
       }

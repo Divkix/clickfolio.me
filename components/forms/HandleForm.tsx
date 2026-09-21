@@ -48,6 +48,7 @@ export function HandleForm({ currentHandle }: HandleFormProps) {
   const onSubmit = async (data: HandleUpdate) => {
     if (data.handle === currentHandle) {
       toast.info("Handle is already set to this value");
+
       return;
     }
 

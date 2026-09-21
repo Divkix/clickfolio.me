@@ -8,16 +8,21 @@ export function useDismissable(key: string, durationMs: number): [boolean, () =>
   useEffect(() => {
     try {
       const stored = localStorage.getItem(key);
+
       if (stored) {
         const elapsed = Date.now() - Number.parseInt(stored, 10);
+
         if (!Number.isNaN(elapsed) && elapsed < durationMs) {
           setIsDismissed(true);
+
           return;
         }
+
         try {
           localStorage.removeItem(key);
         } catch {}
       }
+
       setIsDismissed(false);
     } catch {
       setIsDismissed(false);
@@ -28,6 +33,7 @@ export function useDismissable(key: string, durationMs: number): [boolean, () =>
     try {
       localStorage.setItem(key, Date.now().toString());
     } catch {}
+
     setIsDismissed(true);
   }, [key]);
 

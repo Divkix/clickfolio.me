@@ -15,19 +15,24 @@ export async function collectR2KeysForUser(db: Database, userId: string): Promis
     .select({ r2Key: resumes.r2Key })
     .from(resumes)
     .where(eq(resumes.userId, userId));
+
   return rows.map((row) => row.r2Key);
 }
 
 export const R2 = {
   async getAsArrayBuffer(binding: R2Bucket, key: string): Promise<ArrayBuffer | null> {
     const object = await binding.get(key);
+
     if (!object) return null;
+
     return object.arrayBuffer();
   },
 
   async getAsUint8Array(binding: R2Bucket, key: string): Promise<Uint8Array | null> {
     const arrayBuffer = await R2.getAsArrayBuffer(binding, key);
+
     if (!arrayBuffer) return null;
+
     return new Uint8Array(arrayBuffer);
   },
 
@@ -55,7 +60,9 @@ export const R2 = {
     key: string,
   ): Promise<{ exists: boolean; size?: number; etag?: string } | null> {
     const object = await binding.head(key);
+
     if (!object) return { exists: false };
+
     return {
       exists: true,
       size: object.size,

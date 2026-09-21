@@ -12,8 +12,11 @@ interface ReviewStepProps {
 }
 
 type ResumeContact = ResumeContent["contact"];
+
 type ResumeExperience = ResumeContent["experience"][number];
+
 type ResumeEducation = NonNullable<ResumeContent["education"]>[number];
+
 type ResumeSkill = NonNullable<ResumeContent["skills"]>[number];
 
 function ContactCard({

@@ -11,6 +11,7 @@ export function validateUrl(url: JsonValue): string {
   if (!url || !z.string().safeParse(url).success) return "";
   // SAFETY: zod safeParse above guarantees url is string, cast preserves type after validation.
   const trimmed = (url as string).trim();
+
   if (!trimmed) return "";
 
   if (trimmed.length > 500) return "";
@@ -18,16 +19,22 @@ export function validateUrl(url: JsonValue): string {
   if (REPEATING_SEGMENT_PATTERN.test(trimmed)) return "";
 
   const pathSegments = trimmed.split("/").filter(Boolean);
+
   if (pathSegments.length > 12) return "";
 
   const normalized = sanitizeUrl(trimmed);
+
   if (!normalized) return "";
 
   try {
     const urlObj = new URL(normalized);
+
     if (!urlObj.hostname.includes(".")) return "";
+
     if (urlObj.hostname.length > 253) return "";
+
     if (REPEATING_SEGMENT_PATTERN.test(urlObj.pathname)) return "";
+
     return normalized;
   } catch {
     return "";
@@ -36,19 +43,24 @@ export function validateUrl(url: JsonValue): string {
 
 export function normalizeString(value: JsonValue, defaultVal = ""): string {
   if (value === null || value === undefined) return defaultVal;
+
   // eslint-disable-next-line typescript/no-base-to-string -- value is unknown; String() is intentional for non-object primitives
   if (!z.string().safeParse(value).success) return String(value);
+
   // SAFETY: zod safeParse above guarantees value is string, cast preserves type after validation.
   return (value as string).trim() || defaultVal;
 }
 
 export function normalizeEndDate(value: JsonValue): string {
   const normalized = normalizeString(value);
+
   if (!normalized) return "";
   const lower = normalized.toLowerCase();
+
   if (lower === "present" || lower === "current" || lower === "ongoing" || lower === "now") {
     return "";
   }
+
   return normalized;
 }
 
@@ -70,23 +82,28 @@ export function transformAiResponse(raw: JsonValue): UnknownRecord {
   data.headline = truncateText(normalizeString(data.headline, "Professional"), 150);
 
   let summary = normalizeString(data.summary);
+
   if (!summary) {
     if (Array.isArray(data.experience) && data.experience.length > 0) {
       // SAFETY: Array.isArray and length guard above ensures data.experience has elements; element is an AI-constructed object compatible with UnknownRecord.
       const firstExp = data.experience[0] as UnknownRecord;
+
       if (firstExp?.description && z.string().safeParse(firstExp.description).success) {
         // SAFETY: zod safeParse above guarantees firstExp.description is string.
         const desc = (firstExp.description as string).trim();
+
         if (desc.length > 0) {
           summary = desc.slice(0, 500);
         }
       }
     }
+
     if (!summary) {
       const headline = normalizeString(data.headline, "Professional");
       summary = `Experienced ${headline.toLowerCase()} with a proven track record.`;
     }
   }
+
   data.summary = truncateText(summary, 2000);
 
   if (data.contact && data.contact instanceof Object && !Array.isArray(data.contact)) {
@@ -109,6 +126,7 @@ export function transformAiResponse(raw: JsonValue): UnknownRecord {
       if (!exp || !(exp instanceof Object) || Array.isArray(exp)) return false;
       // SAFETY: null and object guard above ensures exp is a non-null object; UnknownRecord is the safe JSON record type for experience entries.
       const e = exp as UnknownRecord;
+
       // SAFETY: zod safeParse guarantees e.title/e.company/e.start_date/e.description are strings before cast.
       return (
         e.title &&
@@ -125,6 +143,7 @@ export function transformAiResponse(raw: JsonValue): UnknownRecord {
         (e.description as string).trim().length > 0
       );
     });
+
     // SAFETY: Array.isArray guard above ensures data.experience is an array; UnknownRecord[] is the safe type for iterating AI experience entries.
     for (const exp of data.experience as UnknownRecord[]) {
       exp.title = truncateText(normalizeString(exp.title), 150);
@@ -133,10 +152,12 @@ export function transformAiResponse(raw: JsonValue): UnknownRecord {
       exp.start_date = truncateText(normalizeString(exp.start_date), 50);
       exp.end_date = truncateText(normalizeEndDate(exp.end_date), 50);
       exp.description = truncateText(normalizeString(exp.description), 2000);
+
       if (z.string().safeParse(exp.highlights).success) {
         // SAFETY: zod safeParse above guarantees exp.highlights is string, cast preserves type after validation.
         exp.highlights = [exp.highlights as string];
       }
+
       if (Array.isArray(exp.highlights)) {
         // SAFETY: zod safeParse guarantees highlight is string before cast.
         exp.highlights = exp.highlights
@@ -155,6 +176,7 @@ export function transformAiResponse(raw: JsonValue): UnknownRecord {
       if (!edu || !(edu instanceof Object) || Array.isArray(edu)) return false;
       // SAFETY: null and object guard above ensures edu is a non-null object; UnknownRecord is the safe JSON record type for education entries.
       const e = edu as UnknownRecord;
+
       // SAFETY: zod safeParse guarantees e.degree/e.institution are strings before cast.
       return (
         e.degree &&
@@ -165,6 +187,7 @@ export function transformAiResponse(raw: JsonValue): UnknownRecord {
         (e.institution as string).trim().length > 0
       );
     });
+
     // SAFETY: Array.isArray guard above ensures data.education is an array; UnknownRecord[] is the safe type for iterating AI education entries.
     for (const edu of data.education as UnknownRecord[]) {
       edu.degree = truncateText(normalizeString(edu.degree), 150);
@@ -178,6 +201,7 @@ export function transformAiResponse(raw: JsonValue): UnknownRecord {
       if (!skill || !(skill instanceof Object) || Array.isArray(skill)) return false;
       // SAFETY: null and object guard above ensures skill is a non-null object; UnknownRecord is the safe JSON record type for skill entries.
       const s = skill as UnknownRecord;
+
       // SAFETY: zod safeParse guarantees s.category is string before cast.
       return (
         s.category &&
@@ -187,9 +211,11 @@ export function transformAiResponse(raw: JsonValue): UnknownRecord {
         s.items.length > 0
       );
     });
+
     // SAFETY: Array.isArray guard above ensures data.skills is an array; UnknownRecord[] is the safe type for iterating AI skill entries.
     for (const skill of data.skills as UnknownRecord[]) {
       skill.category = truncateText(normalizeString(skill.category), 100);
+
       if (Array.isArray(skill.items)) {
         // SAFETY: zod safeParse guarantees item is string before cast.
         skill.items = skill.items
@@ -200,11 +226,13 @@ export function transformAiResponse(raw: JsonValue): UnknownRecord {
       }
     }
   }
+
   if (Array.isArray(data.certifications)) {
     data.certifications = data.certifications.filter((cert) => {
       if (!cert || !(cert instanceof Object) || Array.isArray(cert)) return false;
       // SAFETY: null and object guard above ensures cert is a non-null object; UnknownRecord is the safe JSON record type for certification entries.
       const c = cert as UnknownRecord;
+
       // SAFETY: zod safeParse guarantees c.name/c.issuer are strings before cast.
       return (
         c.name &&
@@ -215,6 +243,7 @@ export function transformAiResponse(raw: JsonValue): UnknownRecord {
         (c.issuer as string).trim().length > 0
       );
     });
+
     // SAFETY: Array.isArray guard above ensures data.certifications is an array; UnknownRecord[] is the safe type for iterating AI certification entries.
     for (const cert of data.certifications as UnknownRecord[]) {
       cert.name = truncateText(normalizeString(cert.name), 150);
@@ -228,6 +257,7 @@ export function transformAiResponse(raw: JsonValue): UnknownRecord {
       if (!proj || !(proj instanceof Object) || Array.isArray(proj)) return false;
       // SAFETY: null and object guard above ensures proj is a non-null object; UnknownRecord is the safe JSON record type for project entries.
       const p = proj as UnknownRecord;
+
       // SAFETY: zod safeParse guarantees p.title/p.description are strings before cast.
       return (
         p.title &&
@@ -238,12 +268,14 @@ export function transformAiResponse(raw: JsonValue): UnknownRecord {
         (p.description as string).trim().length > 0
       );
     });
+
     // SAFETY: Array.isArray guard above ensures data.projects is an array; UnknownRecord[] is the safe type for iterating AI project entries.
     for (const proj of data.projects as UnknownRecord[]) {
       proj.title = truncateText(normalizeString(proj.title), 150);
       proj.description = truncateText(normalizeString(proj.description), 1000);
       proj.url = validateUrl(proj.url);
       proj.image_url = validateUrl(proj.image_url);
+
       if (Array.isArray(proj.technologies)) {
         // SAFETY: zod safeParse guarantees technology is string before cast.
         proj.technologies = proj.technologies
@@ -263,6 +295,7 @@ export function transformAiOutput(raw: ResumeContentFormData): ResumeContentForm
 
   const trimStrings = (obj: UnknownRecord): void => {
     if (obj === null || obj === undefined) return;
+
     if (Array.isArray(obj)) {
       for (const item of obj) {
         if (item !== null && item instanceof Object) {
@@ -270,8 +303,10 @@ export function transformAiOutput(raw: ResumeContentFormData): ResumeContentForm
           trimStrings(item as UnknownRecord);
         }
       }
+
       return;
     }
+
     if (obj instanceof Object) {
       for (const key of Object.keys(obj)) {
         if (z.string().safeParse(obj[key]).success) {
@@ -307,6 +342,7 @@ export function transformAiOutput(raw: ResumeContentFormData): ResumeContentForm
     for (const project of result.projects) {
       if (project?.year) {
         const yearMatch = project.year.match(/(\d{4})/);
+
         if (yearMatch) {
           project.year = yearMatch[1];
         }
@@ -319,6 +355,7 @@ export function transformAiOutput(raw: ResumeContentFormData): ResumeContentForm
       if (exp?.location === "") {
         delete exp.location;
       }
+
       if (exp?.end_date === "") {
         delete exp.end_date;
       }
@@ -328,6 +365,7 @@ export function transformAiOutput(raw: ResumeContentFormData): ResumeContentForm
   if (Array.isArray(result.education)) {
     for (const edu of result.education) {
       if (edu?.location === "") delete edu.location;
+
       if (edu?.gpa === "") delete edu.gpa;
     }
   }

@@ -18,6 +18,7 @@ import { notifyStatusChange } from "@/lib/queue/notify-status";
 
 describe("DLQ Consumer", () => {
   type MockEnv = { HYPERDRIVE: CloudflareEnv["HYPERDRIVE"]; CLICKFOLIO_STATUS_DO: undefined };
+
   const createMockEnv = (overrides: Record<string, string> = {}): MockEnv => ({
     HYPERDRIVE: {
       connectionString: "postgres://user:pass@localhost:5432/clickfolio",
@@ -25,6 +26,7 @@ describe("DLQ Consumer", () => {
     CLICKFOLIO_STATUS_DO: undefined,
     ...overrides,
   });
+
   const createMockDeadLetterMessage = (
     overrides: Partial<DeadLetterMessage> = {},
   ): DeadLetterMessage => ({
@@ -59,6 +61,7 @@ describe("DLQ Consumer", () => {
   describe("handleDLQMessage - basic functionality", () => {
     it("should update resume status to failed for DeadLetterMessage", async () => {
       const mockDb = createMockDb();
+
       const mockResume = createMockDbResume({
         id: "resume-123",
         status: "processing",
@@ -91,6 +94,7 @@ describe("DLQ Consumer", () => {
 
     it("should update resume status to failed for raw QueueMessage", async () => {
       const mockDb = createMockDb();
+
       const mockResume = createMockDbResume({
         id: "resume-123",
         status: "processing",
@@ -123,6 +127,7 @@ describe("DLQ Consumer", () => {
 
     it("should notify WebSocket clients of permanent failure", async () => {
       const mockDb = createMockDb();
+
       const mockResume = createMockDbResume({
         id: "resume-123",
         status: "processing",
@@ -148,6 +153,7 @@ describe("DLQ Consumer", () => {
       const message = createMockDeadLetterMessage({
         failureReason: "AI parsing permanently failed",
       });
+
       const env = createMockEnv();
 
       await handleDLQMessage(message, env);
@@ -163,8 +169,10 @@ describe("DLQ Consumer", () => {
 
     it("preserves an existing friendly errorMessage instead of overwriting it", async () => {
       const mockDb = createMockDb();
+
       const friendlyMessage =
         "Your PDF is password-protected. Please upload an unprotected version.";
+
       const mockResume = createMockDbResume({
         id: "resume-123",
         status: "processing",
@@ -185,6 +193,7 @@ describe("DLQ Consumer", () => {
       mockDb.update.mockReturnValue({
         set: vi.fn().mockImplementation((values: UnknownRecord) => {
           updateSets.push(values);
+
           return { where: vi.fn().mockResolvedValue(undefined) };
         }),
       });
@@ -213,6 +222,7 @@ describe("DLQ Consumer", () => {
   describe("handleDLQMessage - alert channels", () => {
     it("should send logpush alert by default", async () => {
       const mockDb = createMockDb();
+
       const mockResume = createMockDbResume({
         id: "resume-123",
         totalAttempts: 3,
@@ -249,6 +259,7 @@ describe("DLQ Consumer", () => {
           return false;
         }
       });
+
       expect(dlqAlert).toBeDefined();
 
       consoleSpy.mockRestore();
@@ -256,6 +267,7 @@ describe("DLQ Consumer", () => {
 
     it("should send webhook alert when ALERT_CHANNEL is webhook", async () => {
       const mockDb = createMockDb();
+
       const mockResume = createMockDbResume({
         id: "resume-123",
         totalAttempts: 3,
@@ -281,6 +293,7 @@ describe("DLQ Consumer", () => {
       const fetchSpy = vi.spyOn(global, "fetch").mockResolvedValue(new Response("OK"));
 
       const message = createMockDeadLetterMessage();
+
       const env = createMockEnv({
         ALERT_CHANNEL: "webhook",
         ALERT_WEBHOOK_URL: "https://hooks.example.com/alerts",
@@ -301,6 +314,7 @@ describe("DLQ Consumer", () => {
 
     it("should handle webhook fetch failure gracefully", async () => {
       const mockDb = createMockDb();
+
       const mockResume = createMockDbResume({
         id: "resume-123",
         totalAttempts: 3,
@@ -327,6 +341,7 @@ describe("DLQ Consumer", () => {
       const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
       const message = createMockDeadLetterMessage();
+
       const env = createMockEnv({
         ALERT_CHANNEL: "webhook",
         ALERT_WEBHOOK_URL: "https://hooks.example.com/alerts",
@@ -341,6 +356,7 @@ describe("DLQ Consumer", () => {
           return false;
         }
       });
+
       expect(webhookFailLog).toBeDefined();
 
       fetchSpy.mockRestore();
@@ -349,6 +365,7 @@ describe("DLQ Consumer", () => {
 
     it("should fallback to logpush when webhook URL is not configured", async () => {
       const mockDb = createMockDb();
+
       const mockResume = createMockDbResume({
         id: "resume-123",
         totalAttempts: 3,
@@ -375,6 +392,7 @@ describe("DLQ Consumer", () => {
       const fetchSpy = vi.spyOn(global, "fetch");
 
       const message = createMockDeadLetterMessage();
+
       const env = createMockEnv({
         ALERT_CHANNEL: "webhook",
       });
@@ -389,6 +407,7 @@ describe("DLQ Consumer", () => {
 
     it("should treat unsupported email alert channel as logpush", async () => {
       const mockDb = createMockDb();
+
       const mockResume = createMockDbResume({
         id: "resume-123",
         totalAttempts: 3,
@@ -414,6 +433,7 @@ describe("DLQ Consumer", () => {
       const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
       const message = createMockDeadLetterMessage();
+
       const env = createMockEnv({
         ALERT_CHANNEL: "email",
       });
@@ -427,6 +447,7 @@ describe("DLQ Consumer", () => {
           return null;
         }
       });
+
       const emailAlert = parsedCalls.find((p) => p?.["msg"] === "DLQ_ALERT_EMAIL");
       const logpushAlert = parsedCalls.find((p) => p?.["msg"] === "DLQ_ALERT");
       expect(emailAlert).toBeUndefined();
@@ -439,6 +460,7 @@ describe("DLQ Consumer", () => {
   describe("handleDLQMessage - error type extraction", () => {
     it("should extract error type from lastAttemptError", async () => {
       const mockDb = createMockDb();
+
       const mockResume = createMockDbResume({
         id: "resume-123",
         totalAttempts: 3,
@@ -479,6 +501,7 @@ describe("DLQ Consumer", () => {
           return false;
         }
       });
+
       expect(dlqAlert).toBeDefined();
       const payload = JSON.parse(dlqAlert![0]) as UnknownRecord;
       expect(payload["errorType"]).toBe(QueueErrorType.AI_PROVIDER_ERROR);
@@ -488,6 +511,7 @@ describe("DLQ Consumer", () => {
 
     it("should handle missing lastAttemptError gracefully", async () => {
       const mockDb = createMockDb();
+
       const mockResume = createMockDbResume({
         id: "resume-123",
         totalAttempts: 3,
@@ -525,6 +549,7 @@ describe("DLQ Consumer", () => {
           return false;
         }
       });
+
       expect(dlqAlert).toBeDefined();
       const payload = JSON.parse(dlqAlert![0]) as UnknownRecord;
       expect(payload["errorType"]).toBe(QueueErrorType.UNKNOWN);
@@ -534,6 +559,7 @@ describe("DLQ Consumer", () => {
 
     it("should handle invalid JSON in lastAttemptError", async () => {
       const mockDb = createMockDb();
+
       const mockResume = createMockDbResume({
         id: "resume-123",
         totalAttempts: 3,
@@ -571,6 +597,7 @@ describe("DLQ Consumer", () => {
           return false;
         }
       });
+
       expect(dlqAlert).toBeDefined();
 
       consoleSpy.mockRestore();
@@ -605,6 +632,7 @@ describe("DLQ Consumer", () => {
 
     it("should handle unknown failure reason for QueueMessage", async () => {
       const mockDb = createMockDb();
+
       const mockResume = createMockDbResume({
         id: "resume-123",
         totalAttempts: 3,
@@ -641,6 +669,7 @@ describe("DLQ Consumer", () => {
 
     it("should handle high attempt counts", async () => {
       const mockDb = createMockDb();
+
       const mockResume = createMockDbResume({
         id: "resume-123",
         totalAttempts: 10,
@@ -677,6 +706,7 @@ describe("DLQ Consumer", () => {
 
     it("should log success message after processing", async () => {
       const mockDb = createMockDb();
+
       const mockResume = createMockDbResume({
         id: "resume-123",
         totalAttempts: 3,
@@ -709,6 +739,7 @@ describe("DLQ Consumer", () => {
       const successLog = consoleSpy.mock.calls.find((call) => {
         try {
           const parsed = JSON.parse(call[0]) as UnknownRecord;
+
           return (
             parsed["msg"] === "DLQ: marked resume as permanently failed" &&
             parsed["resumeId"] === "resume-123"
@@ -717,6 +748,7 @@ describe("DLQ Consumer", () => {
           return false;
         }
       });
+
       expect(successLog).toBeDefined();
 
       consoleSpy.mockRestore();
@@ -724,6 +756,7 @@ describe("DLQ Consumer", () => {
 
     it("should include all required fields in alert payload", async () => {
       const mockDb = createMockDb();
+
       const mockResume = createMockDbResume({
         id: "resume-123",
         totalAttempts: 3,
@@ -752,6 +785,7 @@ describe("DLQ Consumer", () => {
         failureReason: "Specific failure reason",
         attempts: 3,
       });
+
       const env = createMockEnv();
 
       await handleDLQMessage(message, env);
@@ -763,6 +797,7 @@ describe("DLQ Consumer", () => {
           return false;
         }
       });
+
       expect(dlqAlert).toBeDefined();
 
       const payload = JSON.parse(dlqAlert![0]) as UnknownRecord;

@@ -19,6 +19,7 @@ const mocks = vi.hoisted(() => {
           Promise.resolve(state.selectResults.shift() ?? []).then(resolve, reject),
       ),
     };
+
     return chain;
   };
 
@@ -26,10 +27,12 @@ const mocks = vi.hoisted(() => {
     const chain = {
       values: vi.fn((rows: JsonValue) => {
         state.insertCalls.push(rows);
+
         return chain;
       }),
       onConflictDoNothing: vi.fn(async () => undefined),
     };
+
     return chain;
   };
 
@@ -73,6 +76,7 @@ async function postWebhook(event: JsonValue = deletedUserEvent()) {
   const timestamp = new Date();
   const signature = new Webhook(mocks.env.CLERK_WEBHOOK_SECRET).sign(svixId, timestamp, body);
   const { POST } = await import("@/app/api/webhooks/clerk/route");
+
   return POST(
     new Request("https://clickfolio.me/api/webhooks/clerk", {
       method: "POST",

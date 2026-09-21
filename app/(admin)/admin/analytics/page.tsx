@@ -57,8 +57,10 @@ export default function AdminAnalyticsPage() {
 
   const fetchAnalytics = useCallback(async (p: Period) => {
     setLoading(true);
+
     try {
       const res = await fetch(`/api/admin/analytics?period=${p}`);
+
       if (!res.ok) throw new Error("Failed to fetch");
       const json: AnalyticsData = await res.json();
       setData(json);
@@ -253,6 +255,7 @@ function TopCountriesPanel({ data, loading }: PanelProps) {
           {data?.countries.map((c) => {
             // SAFETY: c.code is a country code string; COUNTRY_FLAGS covers common codes with fallback.
             const flag = COUNTRY_FLAGS[c.code as keyof typeof COUNTRY_FLAGS] || "\u{1F3F3}";
+
             return (
               <div key={c.code} className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">

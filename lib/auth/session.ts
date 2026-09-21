@@ -31,9 +31,11 @@ export interface AppSession {
 
 export const getServerSession = cache(async (): Promise<AppSession | null> => {
   const auth = await getAuthClerk();
+
   if (!auth) return null;
 
   const db = getDb(env.HYPERDRIVE);
+
   const dbUser = await db.query.user.findFirst({
     where: eq(users.clerkId, auth.clerkId),
   });

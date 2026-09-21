@@ -5,27 +5,38 @@ import type { JsonValue } from "@/lib/types/json";
 // call order from queues: user row → createdAt snapshot → site_data, then the ids
 // the guarded UPDATE matched.
 const mockSelectQueue: Array<Array<Record<string, JsonValue>>> = [];
+
 const mockReturningQueue: Array<Array<Record<string, JsonValue>>> = [];
+
 const mockLimit = vi.fn(async () => mockSelectQueue.shift() ?? []);
+
 const mockSelectWhere = vi.fn(() => ({
   limit: mockLimit,
   then: (onFulfilled: (value: Array<Record<string, JsonValue>>) => unknown) =>
     Promise.resolve(mockSelectQueue.shift() ?? []).then(onFulfilled),
 }));
+
 const mockUpdateSets: Array<Record<string, JsonValue>> = [];
+
 const mockUpdateWhere = vi.fn(() => ({
   returning: async () => mockReturningQueue.shift() ?? [],
   then: (onFulfilled: (value: undefined) => unknown) =>
     Promise.resolve(undefined).then(onFulfilled),
 }));
+
 const mockUpdateSet = vi.fn((values: Record<string, JsonValue>) => {
   mockUpdateSets.push(values);
+
   return { where: mockUpdateWhere };
 });
+
 const mockUpdate = vi.fn(() => ({ set: mockUpdateSet }));
+
 const mockTransactions: Array<unknown> = [];
+
 const mockTransaction = vi.fn(async (cb: (tx: typeof mockDb) => unknown) => {
   mockTransactions.push(true);
+
   return cb(mockDb);
 });
 
@@ -58,9 +69,11 @@ vi.mock("@/lib/db/schema", () => ({
 }));
 
 const mockUpsertCalls: Array<{ userId: string; publish: boolean }> = [];
+
 const mockBuildSiteDataUpsert = vi.fn(
   (..._args: unknown[]) => "mock-upsert-query" as unknown as never,
 );
+
 vi.mock("@/lib/data/site-data-upsert", () => ({
   buildSiteDataUpsert: (
     _db: unknown,
@@ -70,11 +83,13 @@ vi.mock("@/lib/data/site-data-upsert", () => ({
     opts?: { publish?: boolean },
   ) => {
     mockUpsertCalls.push({ userId, publish: opts?.publish ?? true });
+
     return mockBuildSiteDataUpsert();
   },
 }));
 
 const mockNotifyBatches: Array<{ ids: string[]; status: string }> = [];
+
 vi.mock("@/lib/queue/notify-status", () => ({
   notifyStatusChangeBatch: async (ids: string[], status: string, _env: unknown) => {
     mockNotifyBatches.push({ ids, status });
@@ -118,10 +133,12 @@ beforeEach(() => {
   mockUpdate.mockReturnValue({ set: mockUpdateSet });
   mockUpdateSet.mockImplementation((values: Record<string, JsonValue>) => {
     mockUpdateSets.push(values);
+
     return { where: mockUpdateWhere };
   });
   mockTransaction.mockImplementation(async (cb: (tx: typeof mockDb) => unknown) => {
     mockTransactions.push(true);
+
     return cb(mockDb);
   });
 });

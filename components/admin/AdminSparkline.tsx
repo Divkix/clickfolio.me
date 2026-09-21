@@ -15,11 +15,15 @@ export function AdminSparkline({ data }: AdminSparklineProps) {
 
   useEffect(() => {
     const el = containerRef.current;
+
     if (!el) return;
+
     if (!globalThis.ResizeObserver) {
       setWidth(el.clientWidth || 320);
+
       return;
     }
+
     const ro = new ResizeObserver((entries) => {
       for (const entry of entries) {
         if (entry.contentRect.width > 0) {
@@ -27,12 +31,15 @@ export function AdminSparkline({ data }: AdminSparklineProps) {
         }
       }
     });
+
     ro.observe(el);
+
     return () => ro.disconnect();
   }, []);
 
   useEffect(() => {
     const el = containerRef.current;
+
     if (!el || width <= 0 || data.length === 0) return;
 
     if (chartRef.current) {

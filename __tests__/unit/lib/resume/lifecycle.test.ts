@@ -16,6 +16,7 @@ import {
   getStatusView,
   buildWaitingForCacheTimeoutUpdate,
 } from "@/lib/resume/lifecycle";
+
 describe("parseLastAttemptError", () => {
   it("null → null (both overloads)", () => {
     expect(parseLastAttemptError(null)).toBeNull();
@@ -36,6 +37,7 @@ describe("parseLastAttemptError", () => {
       isRetryable: false,
       name: "QueueError",
     });
+
     const expected = {
       type: "invalid_pdf",
       message: "bad pdf",
@@ -43,6 +45,7 @@ describe("parseLastAttemptError", () => {
       raw,
       name: "QueueError",
     };
+
     expect(parseLastAttemptError(raw)).toEqual(expected);
     expect(parseLastAttemptError({ lastAttemptError: raw })).toEqual(expected);
   });
@@ -62,6 +65,7 @@ describe("parseLastAttemptError", () => {
     expect(parseLastAttemptError('"hello"')).toBeNull();
   });
 });
+
 describe("getLastAttemptErrorType", () => {
   it("returns type", () => {
     expect(getLastAttemptErrorType(JSON.stringify({ type: "invalid_pdf" }))).toBe("invalid_pdf");
@@ -71,6 +75,7 @@ describe("getLastAttemptErrorType", () => {
     expect(getLastAttemptErrorType(JSON.stringify({ message: "x" }))).toBeNull();
   });
 });
+
 describe("hasExceededMaxAttempts / isPermanentErrorType", () => {
   it("5 → false", () => expect(hasExceededMaxAttempts(5)).toBe(false));
   it("6 → true", () => expect(hasExceededMaxAttempts(RETRY_LIMITS.TOTAL_MAX_ATTEMPTS)).toBe(true));
@@ -79,6 +84,7 @@ describe("hasExceededMaxAttempts / isPermanentErrorType", () => {
   it('isPermanentErrorType("db_connection_error") false', () =>
     expect(isPermanentErrorType("db_connection_error")).toBe(false));
 });
+
 describe("checkRetryEligibility", () => {
   const base = {
     status: "failed" as ResumeStatus,
@@ -86,9 +92,11 @@ describe("checkRetryEligibility", () => {
     totalAttempts: 1,
     lastAttemptError: null as string | null,
   };
+
   it("totalAttempts 6 → 429", () => {
     const r = checkRetryEligibility({ ...base, totalAttempts: 6 });
     expect(r.eligible).toBe(false);
+
     if (!r.eligible) expect(r.httpStatus).toBe(429);
   });
   it("permanent invalid_pdf → 400", () => {
@@ -100,17 +108,21 @@ describe("checkRetryEligibility", () => {
         isRetryable: false,
       }),
     });
+
     expect(r.eligible).toBe(false);
+
     if (!r.eligible) expect(r.httpStatus).toBe(400);
   });
   it("status processing → 400", () => {
     const r = checkRetryEligibility({ ...base, status: "processing" });
     expect(r.eligible).toBe(false);
+
     if (!r.eligible) expect(r.httpStatus).toBe(400);
   });
   it("retryCount 2 → 429", () => {
     const r = checkRetryEligibility({ ...base, retryCount: 2 });
     expect(r.eligible).toBe(false);
+
     if (!r.eligible) expect(r.httpStatus).toBe(429);
   });
   it("happy failed+transient → eligible true nextAttempt 1", () => {
@@ -118,25 +130,32 @@ describe("checkRetryEligibility", () => {
       ...base,
       lastAttemptError: JSON.stringify({ type: "db_connection_error" }),
     });
+
     expect(r).toEqual({ eligible: true, nextAttempt: 1 });
   });
   it("deprecated lastAttemptErrorType wins and explicit null honoured", () => {
     const transient = JSON.stringify({ type: "db_connection_error" });
+
     const blocked = checkRetryEligibility({
       ...base,
       lastAttemptError: transient,
       lastAttemptErrorType: "invalid_pdf",
     });
+
     expect(blocked.eligible).toBe(false);
+
     if (!blocked.eligible) expect(blocked.httpStatus).toBe(400);
+
     const explicitNull = checkRetryEligibility({
       ...base,
       lastAttemptError: transient,
       lastAttemptErrorType: null,
     });
+
     expect(explicitNull.eligible).toBe(true);
   });
 });
+
 describe("canRetryResume", () => {
   const base = {
     status: "failed" as ResumeStatus,
@@ -144,6 +163,7 @@ describe("canRetryResume", () => {
     totalAttempts: 1,
     lastAttemptError: null as string | null,
   };
+
   it("permanent false", () =>
     expect(
       canRetryResume({ ...base, lastAttemptError: JSON.stringify({ type: "invalid_pdf" }) }),
@@ -158,6 +178,7 @@ describe("canRetryResume", () => {
   it("status processing false", () =>
     expect(canRetryResume({ ...base, status: "processing" })).toBe(false));
 });
+
 describe("waitingForCacheTimedOut", () => {
   it("not waiting_for_cache → false", () =>
     expect(
@@ -178,6 +199,7 @@ describe("waitingForCacheTimedOut", () => {
       false,
     ));
 });
+
 describe("statusPresentation", () => {
   const row = (status: ResumeStatus, createdAt: string | null) => ({ status, createdAt });
   const fresh = new Date().toISOString();
@@ -228,6 +250,7 @@ describe("statusPresentation", () => {
       isTerminal: true,
     }));
 });
+
 describe("getStatusView", () => {
   const fresh = new Date().toISOString();
   const stale = new Date(Date.now() - (WAITING_FOR_CACHE_TIMEOUT_MS + 1000)).toISOString();
@@ -239,6 +262,7 @@ describe("getStatusView", () => {
       totalAttempts: 1,
       lastAttemptError: null,
     });
+
     expect(v).toEqual({
       status: "processing",
       progressPct: 30,
@@ -256,6 +280,7 @@ describe("getStatusView", () => {
       totalAttempts: 1,
       lastAttemptError: null,
     });
+
     expect(v).toEqual({
       status: "failed",
       progressPct: 0,
@@ -273,6 +298,7 @@ describe("getStatusView", () => {
       totalAttempts: 1,
       lastAttemptError: null,
     });
+
     expect(v.waitingForCache).toBe(false);
     expect(v.queued).toBe(true);
   });
@@ -284,11 +310,13 @@ describe("getStatusView", () => {
       totalAttempts: 1,
       lastAttemptError: JSON.stringify({ type: "db_connection_error" }),
     });
+
     expect(v.status).toBe("failed");
     expect(v.isTimedOut).toBe(false);
     expect(v.canRetry).toBe(true);
   });
 });
+
 describe("checkRetryEligibilityForRow", () => {
   const fresh = new Date().toISOString();
   const stale = new Date(Date.now() - (WAITING_FOR_CACHE_TIMEOUT_MS + 1000)).toISOString();
@@ -300,6 +328,7 @@ describe("checkRetryEligibilityForRow", () => {
       totalAttempts: 1,
       lastAttemptError: null,
     });
+
     expect(r.eligible).toBe(true);
   });
   it("fresh waiting_for_cache is not retryable (not failed)", () => {
@@ -310,6 +339,7 @@ describe("checkRetryEligibilityForRow", () => {
       totalAttempts: 1,
       lastAttemptError: null,
     });
+
     expect(r.eligible).toBe(false);
   });
   it("failed transient stays eligible", () => {
@@ -320,9 +350,11 @@ describe("checkRetryEligibilityForRow", () => {
       totalAttempts: 1,
       lastAttemptError: JSON.stringify({ type: "db_connection_error" }),
     });
+
     expect(r.eligible).toBe(true);
   });
 });
+
 describe("buildWaitingForCacheTimeoutUpdate", () => {
   it('returns {status:"failed", errorMessage: WAITING_FOR_CACHE_TIMEOUT_MESSAGE}', () => {
     expect(buildWaitingForCacheTimeoutUpdate()).toEqual({

@@ -64,6 +64,7 @@ describe("normalizePrivacySettings", () => {
       show_phone: true,
       show_address: true,
     });
+
     expect(result).toEqual({
       show_phone: true,
       show_address: true,
@@ -79,6 +80,7 @@ describe("normalizePrivacySettings", () => {
       hide_from_search: true,
       show_in_directory: true,
     };
+
     expect(normalizePrivacySettings(input)).toEqual(input);
   });
 });

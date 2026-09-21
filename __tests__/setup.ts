@@ -41,12 +41,14 @@ const createLocalStorageMock = () => {
     },
     key: (index: number): string | null => {
       const keys = Object.keys(store);
+
       return keys[index] ?? null;
     },
   };
 };
 
 const localStorageMock = createLocalStorageMock();
+
 Object.defineProperty(globalThis, "localStorage", {
   value: localStorageMock,
   writable: true,

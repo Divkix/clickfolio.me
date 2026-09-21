@@ -9,6 +9,7 @@ import {
   setPendingUploadCookie,
 } from "@/lib/utils/pending-upload-client";
 import { MAX_FILE_SIZE_LABEL, validatePDF } from "@/lib/utils/validation";
+
 export type UploadState = "idle" | "uploading" | "claiming" | "parsing" | "error";
 
 interface UseFileUploadOptions {
@@ -31,33 +32,49 @@ function getFriendlyError(cause: unknown): string {
   if (cause instanceof Error && cause.message) {
     const msg = cause.message;
     const lower = msg.toLowerCase();
+
     if (msg.includes("429") || lower.includes("limit")) {
       return "Upload limit reached (5 per day). Try again tomorrow.";
     }
+
     if (msg.includes("413") || lower.includes("large")) {
       return `File too large. Maximum size is ${MAX_FILE_SIZE_LABEL}.`;
     }
+
     if (msg.includes("401") || lower.includes("expired") || lower.includes("sign in")) {
       if (msg.includes("refresh")) return "Session expired. Please refresh the page.";
+
       return "Session expired. Please sign in again.";
     }
+
     if (lower.includes("network")) {
       return "Network error. Check your connection.";
     }
+
     return msg;
   }
+
   if (cause instanceof Response) {
     if (cause.status === 429) return "Upload limit reached (5 per day). Try again tomorrow.";
+
     if (cause.status === 413) return `File too large. Maximum size is ${MAX_FILE_SIZE_LABEL}.`;
+
     if (cause.status === 409) return "This file was already uploaded.";
+
     if (cause.status === 401) return "Session expired. Please sign in again.";
   }
+
   // SAFETY: cause may carry status from thrown Response-like objects; optional chaining guards shape mismatch.
   const status = (cause as { status?: number })?.status;
+
   if (status === 429) return "Upload limit reached (5 per day). Try again tomorrow.";
+
   if (status === 413) return `File too large. Maximum size is ${MAX_FILE_SIZE_LABEL}.`;
+
   if (status === 409) return "This file was already uploaded.";
+
   if (status === 401) return "Session expired. Please sign in again.";
+
   return "Failed to upload file";
 }
 
@@ -91,20 +108,25 @@ export function useFileUpload({ onClaim }: UseFileUploadOptions = {}) {
         if (!uploadResponse.ok) {
           // SAFETY: fetch JSON is bounded and validated to expected shape
           const data = (await uploadResponse.json().catch(() => ({}))) as UploadResponse;
+
           if (uploadResponse.status === 429) {
             throw new Error(data.error || "Too many upload attempts. Please wait and try again.");
           }
+
           if (uploadResponse.status === 413) {
             throw new Error(
               data.error || `File too large. Maximum size is ${MAX_FILE_SIZE_LABEL}.`,
             );
           }
+
           if (uploadResponse.status === 409) {
             throw new Error(data.error || "This file was already uploaded.");
           }
+
           if (uploadResponse.status === 401) {
             throw new Error(data.error || "Session expired. Please sign in again.");
           }
+
           throw new Error(data.error || "Failed to upload file");
         }
 
@@ -126,12 +148,15 @@ export function useFileUpload({ onClaim }: UseFileUploadOptions = {}) {
           if (!claimResponse.ok) {
             // SAFETY: fetch JSON is bounded and validated to expected shape
             const data = (await claimResponse.json().catch(() => ({}))) as ClaimResponse;
+
             if (claimResponse.status === 429) {
               throw new Error(data.error || "Too many upload attempts. Please wait and try again.");
             }
+
             if (claimResponse.status === 401) {
               throw new Error(data.error || "Session expired. Please refresh the page.");
             }
+
             throw new Error(data.error || "Failed to claim resume");
           }
 
@@ -149,6 +174,7 @@ export function useFileUpload({ onClaim }: UseFileUploadOptions = {}) {
             file_size_bytes: fileToUpload.size,
             file_name_length: fileToUpload.name.length,
           });
+
           return;
         }
 
@@ -169,6 +195,7 @@ export function useFileUpload({ onClaim }: UseFileUploadOptions = {}) {
         toast.error(errorMessage);
         await clearPendingUploadCookie();
         trackAnalyticsEvent("resume_upload_failed", { error_message: errorMessage });
+
         if (!onClaim) {
           setUploadedKey(null);
         }
@@ -181,13 +208,16 @@ export function useFileUpload({ onClaim }: UseFileUploadOptions = {}) {
     (selectedFile: File) => {
       setError(null);
       const validation = validatePDF(selectedFile);
+
       if (!validation.valid) {
         const msg = validation.error!;
         setError(msg);
         setUploadState("error");
         toast.error(msg);
+
         return;
       }
+
       setFile(selectedFile);
       void doUpload(selectedFile);
     },
@@ -200,6 +230,7 @@ export function useFileUpload({ onClaim }: UseFileUploadOptions = {}) {
       e.stopPropagation();
       setIsDragging(false);
       const droppedFile = e.dataTransfer.files[0];
+
       if (droppedFile) {
         processFile(droppedFile);
       }
@@ -210,6 +241,7 @@ export function useFileUpload({ onClaim }: UseFileUploadOptions = {}) {
   const handleFileSelect = useCallback(
     (e: ChangeEvent<HTMLInputElement>) => {
       const selectedFile = e.target.files?.[0];
+
       if (selectedFile) {
         processFile(selectedFile);
       }

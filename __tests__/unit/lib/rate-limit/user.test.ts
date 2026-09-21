@@ -318,6 +318,7 @@ describe("checkRateLimit - concurrent request handling", () => {
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockImplementation(() => {
           callCount++;
+
           return Promise.resolve([{ count: callCount > 3 ? 2 : 1 }]);
         }),
       }),

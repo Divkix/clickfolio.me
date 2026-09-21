@@ -133,6 +133,7 @@ export async function GET() {
     });
   } catch (error) {
     console.error("[og/home] Error generating OG image:", error);
+
     return new Response("Internal Server Error", { status: 500 });
   }
 }

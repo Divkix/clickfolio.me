@@ -11,9 +11,11 @@ import { revalidatePath } from "next/cache";
 export function revalidatePublicProfilePages(handles: Array<string | null>): void {
   try {
     revalidatePath("/explore");
+
     for (const handle of handles) {
       if (handle) revalidatePath(`/@${handle}`);
     }
+
     revalidatePath("/sitemap.xml");
   } catch (error) {
     console.error("Failed to revalidate public profile pages:", error);

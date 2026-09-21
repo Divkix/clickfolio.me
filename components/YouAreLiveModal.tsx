@@ -22,7 +22,9 @@ interface YouAreLiveModalProps {
 }
 
 const subscribeToNothing = () => () => {};
+
 const getOrigin = () => window.location.origin;
+
 const getServerOrigin = () => "https://clickfolio.me";
 
 export function YouAreLiveModal({ open, onOpenChange, handle, url }: YouAreLiveModalProps) {

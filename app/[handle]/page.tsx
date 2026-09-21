@@ -14,6 +14,7 @@ import { DEFAULT_THEME, type ThemeId, themeToShareVariant } from "@/lib/template
 import { getTemplate } from "@/lib/templates/theme-registry";
 
 export const dynamicParams = true;
+
 export const revalidate = 3600;
 
 interface PageProps {
@@ -55,8 +56,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { full_name, headline, hide_from_search, location, skills, created_at, updated_at } = data;
 
   const descParts: string[] = [full_name];
+
   if (headline) descParts.push(`— ${headline}`);
+
   if (location) descParts.push(`in ${location}`);
+
   if (skills?.length) descParts.push(`| ${skills.slice(0, 4).join(", ")}`);
   const assembled = descParts.join(" ");
   const description = assembled.length > 157 ? `${assembled.slice(0, 157)}...` : assembled;
@@ -126,6 +130,7 @@ export default async function HandlePage({ params }: PageProps) {
   }
 
   const resumeData = await getResumeData(handle);
+
   if (!resumeData) {
     notFound();
   }
@@ -133,6 +138,7 @@ export default async function HandlePage({ params }: PageProps) {
   const metadata = await getResumeMetadata(handle);
 
   const { content, profile, theme_id, privacy_settings } = resumeData;
+
   const relatedProfiles = !privacy_settings.hide_from_search
     ? await getRelatedProfiles(
         handle,

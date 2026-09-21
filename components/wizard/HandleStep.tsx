@@ -49,6 +49,7 @@ function useHandleAvailability(handle: string) {
   const checkAvailability = useCallback(async (value: string) => {
     if (!value || value.length < 3) {
       setIsAvailable(null);
+
       return;
     }
 
@@ -63,6 +64,7 @@ function useHandleAvailability(handle: string) {
       const response = await fetch(`/api/handle/check?handle=${encodeURIComponent(value)}`, {
         signal: controller.signal,
       });
+
       // SAFETY: HandleCheckResponse is from our /api/handle/check endpoint; shape validated server-side before use.
       const data = (await response.json()) as HandleCheckResponse;
 
@@ -206,6 +208,7 @@ function HandleStatus({
 
 export function HandleStep({ initialHandle = "", onContinue }: HandleStepProps) {
   const [handle, setHandle] = useState(initialHandle);
+
   const {
     isChecking,
     isAvailable,
@@ -221,6 +224,7 @@ export function HandleStep({ initialHandle = "", onContinue }: HandleStepProps) 
     if (isAvailable === false && handle.length >= 3) {
       return generateSuggestions(handle);
     }
+
     return [];
   }, [isAvailable, handle]);
 

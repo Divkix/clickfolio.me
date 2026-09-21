@@ -24,6 +24,7 @@ vi.mock("cloudflare:workers", () => ({
 
 vi.mock("drizzle-orm", async (importOriginal) => {
   const actual = await importOriginal<typeof DrizzleOrm>();
+
   return {
     // Real helpers for everything the routes import but tests do not assert on
     // (lte, isNull, or, sql fallbacks); the ones below keep the shapes assertions read.
@@ -67,6 +68,7 @@ vi.mock("@/lib/queue/resume-parse", () => ({
 
 vi.mock("@/lib/resume/lifecycle", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/resume/lifecycle")>();
+
   return {
     ...actual,
     hasExceededMaxAttempts: vi.fn(() => false),
@@ -99,7 +101,9 @@ vi.mock("@/lib/utils/security-headers", () => ({
   createErrorResponse: vi.fn(
     (error: string, _code: string, status: number, details?: JsonValue) => {
       const body: ErrorBody = { error };
+
       if (details !== undefined) body.details = details;
+
       return new Response(JSON.stringify(body), { status });
     },
   ),
@@ -173,35 +177,57 @@ import { validateRequestSize } from "@/lib/utils/validation";
 type ErrorBody = { error: string; details?: JsonValue };
 
 const mockedAuth = vi.mocked(requireAuthWithUserValidation);
+
 const mockedAuthMessage = vi.mocked(requireAuthWithMessage);
+
 const mockedValidateRequestSize = vi.mocked(validateRequestSize);
 
 const mockFindFirst = vi.fn();
+
 const mockSelect = vi.fn();
+
 const mockFrom = vi.fn();
+
 const mockWhere = vi.fn();
+
 const mockOrderBy = vi.fn();
+
 const mockLimit = vi.fn();
+
 const mockInsert = vi.fn();
+
 const mockInsertValues = vi.fn();
+
 const mockUpdate = vi.fn();
+
 const mockUpdateSet = vi.fn();
+
 const mockUpdateWhere = vi.fn();
+
 const mockReturning = vi.fn();
+
 const mockTransaction = vi.fn();
 
 mockSelect.mockReturnValue({ from: mockFrom });
+
 mockFrom.mockReturnValue({ where: mockWhere });
+
 mockWhere.mockReturnValue({ orderBy: mockOrderBy, limit: mockLimit });
+
 mockOrderBy.mockReturnValue({ limit: mockLimit });
+
 mockLimit.mockResolvedValue([]);
 
 mockInsert.mockReturnValue({ values: mockInsertValues });
+
 mockInsertValues.mockResolvedValue(undefined);
 
 mockUpdate.mockReturnValue({ set: mockUpdateSet });
+
 mockUpdateSet.mockReturnValue({ where: mockUpdateWhere });
+
 mockUpdateWhere.mockReturnValue({ returning: mockReturning });
+
 mockReturning.mockResolvedValue([{ id: "resume-123" }]);
 
 mockTransaction.mockImplementation(async (cb: (tx: typeof mockDb) => unknown) => cb(mockDb));
@@ -246,6 +272,7 @@ async function createSignedCookieValue(
 
   return `${payload}|${signatureBase64}`;
 }
+
 type AuthedUser = {
   id: string;
   email: string;
@@ -258,6 +285,7 @@ type AuthedUser = {
   role: "student" | "entry_level" | "mid_level" | "senior" | "executive";
   isAdmin: boolean;
 };
+
 type AuthedAsResult = {
   user: AuthedUser;
   db: typeof mockDb;
@@ -265,6 +293,7 @@ type AuthedAsResult = {
   env: CloudflareEnv;
   error: null;
 };
+
 function authedAs(userId: string, isAdmin = false): AuthedAsResult {
   const authResult = {
     user: {
@@ -288,8 +317,10 @@ function authedAs(userId: string, isAdmin = false): AuthedAsResult {
     } as never,
     error: null,
   };
+
   mockedAuth.mockResolvedValue(authResult as never);
   mockedAuthMessage.mockResolvedValue({ user: authResult.user as never, error: null });
+
   return authResult;
 }
 
@@ -303,6 +334,7 @@ function unauthenticated() {
     error,
   } as never);
   mockedAuthMessage.mockResolvedValue({ user: null, error });
+
   return error;
 }
 
@@ -320,6 +352,7 @@ function makeRequest(url: string, method = "GET", body?: JsonValue, cookieValue?
   }
 
   init.headers = headers;
+
   return new Request(url, init);
 }
 
@@ -545,9 +578,11 @@ describe("Resume API Integration Tests (25 tests)", () => {
       mockLimit.mockResolvedValue([row]);
 
       const { GET: statusGET } = await import("@/app/api/resume/status/route");
+
       const statusRes = await statusGET(
         makeRequest(`http://localhost:3000/api/resume/status?resume_id=${row.id as string}`),
       );
+
       const statusBody = (await statusRes.json()) as { can_retry: boolean };
 
       const { GET: latestGET } = await import("@/app/api/resume/latest-status/route");
@@ -559,6 +594,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
 
     it("both allow retry for a failed resume below the attempt cap", async () => {
       authedAs("user-123");
+
       const row = {
         id: "resume-agree-retryable",
         userId: "user-123",
@@ -578,6 +614,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
 
     it("both deny retry for a failed resume at the total-attempt cap", async () => {
       authedAs("user-123");
+
       const row = {
         id: "resume-agree-capped",
         userId: "user-123",
@@ -597,6 +634,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
 
     it("both deny retry for a failed resume with a permanent error", async () => {
       authedAs("user-123");
+
       const row = {
         id: "resume-agree-permanent",
         userId: "user-123",
@@ -661,9 +699,11 @@ describe("Resume API Integration Tests (25 tests)", () => {
       authedAs("user-123");
 
       const { POST } = await import("@/app/api/resume/claim/route");
+
       const request = makeRequest("http://localhost:3000/api/resume/claim", "POST", {
         key: "users/hack/resume.pdf",
       });
+
       const response = await POST(request);
 
       expect(response.status).toBe(400);
@@ -674,9 +714,11 @@ describe("Resume API Integration Tests (25 tests)", () => {
       mockedValidateRequestSize.mockReturnValue({ valid: false, error: "Request too large" });
 
       const { POST } = await import("@/app/api/resume/claim/route");
+
       const request = makeRequest("http://localhost:3000/api/resume/claim", "POST", {
         key: "temp/uuid/resume.pdf",
       });
+
       const response = await POST(request);
 
       expect(response.status).toBe(413);
@@ -703,6 +745,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
         },
         cookieValue,
       );
+
       const response = await POST(request);
 
       expect(response.status).toBe(404);
@@ -735,6 +778,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
         },
         cookieValue,
       );
+
       const response = await POST(request);
 
       expect(response.status).toBe(200);
@@ -747,9 +791,11 @@ describe("Resume API Integration Tests (25 tests)", () => {
       unauthenticated();
 
       const { POST } = await import("@/app/api/resume/claim/route");
+
       const request = makeRequest("http://localhost:3000/api/resume/claim", "POST", {
         key: "temp/uuid/resume.pdf",
       });
+
       const response = await POST(request);
 
       expect(response.status).toBe(401);
@@ -775,9 +821,11 @@ describe("Resume API Integration Tests (25 tests)", () => {
       });
 
       const { POST } = await import("@/app/api/resume/retry/route");
+
       const request = makeRequest("http://localhost:3000/api/resume/retry", "POST", {
         resume_id: "resume-123",
       });
+
       const response = await POST(request);
 
       expect(response.status).toBe(200);
@@ -813,9 +861,11 @@ describe("Resume API Integration Tests (25 tests)", () => {
       mockReturning.mockResolvedValue([]);
 
       const { POST } = await import("@/app/api/resume/retry/route");
+
       const request = makeRequest("http://localhost:3000/api/resume/retry", "POST", {
         resume_id: "resume-123",
       });
+
       const response = await POST(request);
 
       expect(response.status).toBe(409);
@@ -845,9 +895,11 @@ describe("Resume API Integration Tests (25 tests)", () => {
       });
 
       const { POST } = await import("@/app/api/resume/retry/route");
+
       const request = makeRequest("http://localhost:3000/api/resume/retry", "POST", {
         resume_id: "resume-123",
       });
+
       const response = await POST(request);
 
       expect(response.status).toBe(500);
@@ -885,9 +937,11 @@ describe("Resume API Integration Tests (25 tests)", () => {
       });
 
       const { POST } = await import("@/app/api/resume/retry/route");
+
       const request = makeRequest("http://localhost:3000/api/resume/retry", "POST", {
         resume_id: "resume-123",
       });
+
       const response = await POST(request);
 
       expect(response.status).toBe(403);
@@ -898,9 +952,11 @@ describe("Resume API Integration Tests (25 tests)", () => {
       mockFindFirst.mockResolvedValue(null);
 
       const { POST } = await import("@/app/api/resume/retry/route");
+
       const request = makeRequest("http://localhost:3000/api/resume/retry", "POST", {
         resume_id: "nonexistent",
       });
+
       const response = await POST(request);
 
       expect(response.status).toBe(404);
@@ -921,9 +977,11 @@ describe("Resume API Integration Tests (25 tests)", () => {
       });
 
       const { POST } = await import("@/app/api/resume/retry/route");
+
       const request = makeRequest("http://localhost:3000/api/resume/retry", "POST", {
         resume_id: "resume-123",
       });
+
       const response = await POST(request);
 
       expect(response.status).toBe(400);
@@ -947,9 +1005,11 @@ describe("Resume API Integration Tests (25 tests)", () => {
       });
 
       const { POST } = await import("@/app/api/resume/retry/route");
+
       const request = makeRequest("http://localhost:3000/api/resume/retry", "POST", {
         resume_id: "resume-123",
       });
+
       const response = await POST(request);
 
       expect(response.status).toBe(429);
@@ -959,9 +1019,11 @@ describe("Resume API Integration Tests (25 tests)", () => {
       unauthenticated();
 
       const { POST } = await import("@/app/api/resume/retry/route");
+
       const request = makeRequest("http://localhost:3000/api/resume/retry", "POST", {
         resume_id: "resume-123",
       });
+
       const response = await POST(request);
 
       expect(response.status).toBe(401);
@@ -1010,9 +1072,11 @@ describe("Resume API Integration Tests (25 tests)", () => {
       ]);
 
       const { PUT } = await import("@/app/api/resume/update/route");
+
       const request = makeRequest("http://localhost:3000/api/resume/update", "PUT", {
         content: validResumeContent,
       });
+
       const response = await PUT(request);
 
       expect(response.status).toBe(200);
@@ -1025,9 +1089,11 @@ describe("Resume API Integration Tests (25 tests)", () => {
       unauthenticated();
 
       const { PUT } = await import("@/app/api/resume/update/route");
+
       const request = makeRequest("http://localhost:3000/api/resume/update", "PUT", {
         content: validResumeContent,
       });
+
       const response = await PUT(request);
 
       expect(response.status).toBe(401);
@@ -1037,6 +1103,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
       authedAs("user-123");
 
       const { PUT } = await import("@/app/api/resume/update/route");
+
       const request = makeRequest("http://localhost:3000/api/resume/update", "PUT", {
         content: {
           full_name: "",
@@ -1045,6 +1112,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
           contact: { email: "invalid-email" },
         },
       });
+
       const response = await PUT(request);
 
       expect(response.status).toBe(400);
@@ -1055,9 +1123,11 @@ describe("Resume API Integration Tests (25 tests)", () => {
       mockedValidateRequestSize.mockReturnValue({ valid: false, error: "Request body too large" });
 
       const { PUT } = await import("@/app/api/resume/update/route");
+
       const request = makeRequest("http://localhost:3000/api/resume/update", "PUT", {
         content: validResumeContent,
       });
+
       const response = await PUT(request);
 
       expect(response.status).toBe(413);
@@ -1069,9 +1139,11 @@ describe("Resume API Integration Tests (25 tests)", () => {
       mockReturning.mockResolvedValue([]);
 
       const { PUT } = await import("@/app/api/resume/update/route");
+
       const request = makeRequest("http://localhost:3000/api/resume/update", "PUT", {
         content: validResumeContent,
       });
+
       const response = await PUT(request);
 
       expect(response.status).toBe(404);
@@ -1086,9 +1158,11 @@ describe("Resume API Integration Tests (25 tests)", () => {
       mockReturning.mockResolvedValue([]);
 
       const { PUT } = await import("@/app/api/resume/update/route");
+
       const request = makeRequest("http://localhost:3000/api/resume/update", "PUT", {
         content: validResumeContent,
       });
+
       const response = await PUT(request);
 
       expect(response.status).toBe(409);
@@ -1104,9 +1178,11 @@ describe("Resume API Integration Tests (25 tests)", () => {
       mockReturning.mockResolvedValue([{ themeId: "bento" }]);
 
       const { POST } = await import("@/app/api/resume/update-theme/route");
+
       const request = makeRequest("http://localhost:3000/api/resume/update-theme", "POST", {
         theme_id: "bento",
       });
+
       const response = await POST(request);
 
       expect(response.status).toBe(200);
@@ -1119,9 +1195,11 @@ describe("Resume API Integration Tests (25 tests)", () => {
       authedAs("user-123");
 
       const { POST } = await import("@/app/api/resume/update-theme/route");
+
       const request = makeRequest("http://localhost:3000/api/resume/update-theme", "POST", {
         theme_id: "invalid_theme_id",
       });
+
       const response = await POST(request);
 
       expect(response.status).toBe(400);
@@ -1133,9 +1211,11 @@ describe("Resume API Integration Tests (25 tests)", () => {
       mockReturning.mockResolvedValue([{ themeId: "bold_corporate" }]);
 
       const { POST } = await import("@/app/api/resume/update-theme/route");
+
       const request = makeRequest("http://localhost:3000/api/resume/update-theme", "POST", {
         theme_id: "bold_corporate",
       });
+
       const response = await POST(request);
 
       expect(response.status).toBe(200);
@@ -1149,9 +1229,11 @@ describe("Resume API Integration Tests (25 tests)", () => {
       mockReturning.mockResolvedValue([]);
 
       const { POST } = await import("@/app/api/resume/update-theme/route");
+
       const request = makeRequest("http://localhost:3000/api/resume/update-theme", "POST", {
         theme_id: "bento",
       });
+
       const response = await POST(request);
 
       expect(response.status).toBe(404);
@@ -1164,9 +1246,11 @@ describe("Resume API Integration Tests (25 tests)", () => {
       mockReturning.mockResolvedValue([]);
 
       const { POST } = await import("@/app/api/resume/update-theme/route");
+
       const request = makeRequest("http://localhost:3000/api/resume/update-theme", "POST", {
         theme_id: "bento",
       });
+
       const response = await POST(request);
 
       expect(response.status).toBe(409);
@@ -1221,6 +1305,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
       const cookieValue = await createSignedCookieValue(tempKey, TEST_COOKIE_SECRET);
 
       const { POST } = await import("@/app/api/resume/claim/route");
+
       const request = new Request("http://localhost:3000/api/resume/claim", {
         method: "POST",
         headers: {
@@ -1229,6 +1314,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
         },
         body: JSON.stringify({ key: tempKey }),
       });
+
       const response = await POST(request);
 
       expect([400, 500]).toContain(response.status);
@@ -1240,11 +1326,13 @@ describe("Resume API Integration Tests (25 tests)", () => {
       authedAs("user-123");
 
       const { PUT } = await import("@/app/api/resume/update/route");
+
       const request = new Request("http://localhost:3000/api/resume/update", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: "invalid json{",
       });
+
       const response = await PUT(request);
 
       expect(response.status).toBe(400);
@@ -1254,11 +1342,13 @@ describe("Resume API Integration Tests (25 tests)", () => {
       authedAs("user-123");
 
       const { POST } = await import("@/app/api/resume/claim/route");
+
       const request = new Request("http://localhost:3000/api/resume/claim", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: "",
       });
+
       const response = await POST(request);
 
       expect(response.status).toBe(400);
@@ -1334,9 +1424,11 @@ describe("Resume API Integration Tests (25 tests)", () => {
       };
 
       const { PUT } = await import("@/app/api/resume/update/route");
+
       const request = makeRequest("http://localhost:3000/api/resume/update", "PUT", {
         content: privacyContent,
       });
+
       const response = await PUT(request);
 
       expect(response.status).toBe(200);
@@ -1346,9 +1438,11 @@ describe("Resume API Integration Tests (25 tests)", () => {
       authedAs("user-123");
 
       const { PUT } = await import("@/app/api/resume/update/route");
+
       const request = makeRequest("http://localhost:3000/api/resume/update", "PUT", {
         content: null,
       });
+
       const response = await PUT(request);
 
       expect(response.status).toBe(400);

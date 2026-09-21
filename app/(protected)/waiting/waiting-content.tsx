@@ -170,7 +170,9 @@ export function WaitingContent() {
                     const currentStage =
                       PROCESSING_STAGES.find((s) => progress <= s.progress) ||
                       PROCESSING_STAGES[PROCESSING_STAGES.length - 1];
+
                     const StageIcon = currentStage.icon;
+
                     return (
                       <div className="flex items-center gap-3">
                         <div className="bg-brand-subtle rounded-lg p-2">

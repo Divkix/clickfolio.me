@@ -4,7 +4,9 @@ import type { JsonValue } from "@/lib/types/json";
 import { DEFAULT_PRIVACY_SETTINGS } from "@/lib/utils/privacy";
 
 const mockFindFirst = vi.fn();
+
 const mockDbUpdateSet = vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue(undefined) });
+
 const mockDbUpdate = vi.fn().mockReturnValue({ set: mockDbUpdateSet });
 
 const mockDb = {
@@ -144,6 +146,7 @@ describe("GET /api/resume/status — waiting_for_cache timeout", () => {
       const response = await GET(makeStatusRequest("resume-001"));
 
       expect(response.status).toBe(200);
+
       const body = (await response.json()) as {
         status: string;
         progress_pct: number;
@@ -151,6 +154,7 @@ describe("GET /api/resume/status — waiting_for_cache timeout", () => {
         can_retry: boolean;
         error: string | null;
       };
+
       expect(body.status).toBe("processing");
       expect(body.waiting_for_cache).toBe(true);
       expect(body.can_retry).toBe(false);
@@ -185,6 +189,7 @@ describe("GET /api/resume/status — waiting_for_cache timeout", () => {
       const staleTime = new Date(
         Date.now() - (WAITING_FOR_CACHE_TIMEOUT_MS + 60_000),
       ).toISOString();
+
       mockFindFirst.mockResolvedValue(
         makeResume({
           id: "resume-001",
@@ -198,12 +203,14 @@ describe("GET /api/resume/status — waiting_for_cache timeout", () => {
       const response = await GET(makeStatusRequest("resume-001"));
 
       expect(response.status).toBe(200);
+
       const body = (await response.json()) as {
         status: string;
         progress_pct: number;
         error: string;
         can_retry: boolean;
       };
+
       expect(body.status).toBe("failed");
       expect(body.error).toContain("timed out");
       expect(body.can_retry).toBe(true);

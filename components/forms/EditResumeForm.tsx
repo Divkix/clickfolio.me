@@ -34,7 +34,9 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
         e.returnValue = "Changes are being saved. Leave anyway?";
       }
     };
+
     window.addEventListener("beforeunload", handleBeforeUnload);
+
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [saveStatus]);
 
@@ -53,16 +55,19 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
   const handleSave = useCallback(
     async (data: ResumeContent, isAutoSave = false) => {
       setSaveStatus("saving");
+
       try {
         await onSave(data, isAutoSave);
         setLastSaved(new Date());
         setSaveStatus("saved");
+
         if (!isAutoSave) {
           toast.success("Resume updated successfully!");
         }
       } catch (error) {
         console.error("Failed to save resume:", error);
         setSaveStatus("error");
+
         if (!isAutoSave) {
           toast.error("Failed to save resume. Please try again.");
         } else {

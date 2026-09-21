@@ -51,9 +51,11 @@ export function PrivacyStep({
   const getCityState = (location?: string) => {
     if (!location) return "";
     const parts = location.split(",").map((p) => p.trim());
+
     if (parts.length >= 2) {
       return parts.slice(-2).join(", ");
     }
+
     return location;
   };
 

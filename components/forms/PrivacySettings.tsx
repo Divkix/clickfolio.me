@@ -181,13 +181,16 @@ export function PrivacySettingsForm({
 
       // SAFETY: success body is our own route response; updated_at is the freshly written version.
       const successData = (await response.json()) as { updated_at?: string };
+
       if (successData.updated_at) updatedAtRef.current = successData.updated_at;
 
       toast.success("Privacy settings updated");
+
       return true;
     } catch (err) {
       console.error("Privacy update error:", err);
       toast.error(err instanceof Error ? err.message : "Failed to update privacy settings");
+
       return false;
     } finally {
       setIsSaving(false);

@@ -161,6 +161,7 @@ function ExperienceSection({
         {experience.map((job, idx) => {
           const number = String(idx + 1).padStart(2, "0");
           const limitedHighlights = job.highlights?.slice(0, 4) ?? [];
+
           return (
             <article
               key={`${job.title}-${job.company}-${job.start_date}`}
@@ -220,6 +221,7 @@ function EducationSection({ education }: { education: TemplateProps["content"]["
       <div className="space-y-10">
         {education.map((edu, idx) => {
           const number = String(idx + 1).padStart(2, "0");
+
           return (
             <article
               key={`${edu.institution}-${edu.degree}-${edu.graduation_date ?? ""}`}
@@ -356,6 +358,7 @@ function ProjectsSection({ projects }: { projects: TemplateProps["content"]["pro
 
 function SkillsSection({ skills }: { skills: TemplateProps["content"]["skills"] }) {
   const flatSkills = flattenSkills(skills);
+
   if (flatSkills.length === 0) return null;
 
   return (

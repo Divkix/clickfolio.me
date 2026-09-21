@@ -10,6 +10,7 @@ import { useFileUpload } from "@/hooks/useFileUpload";
 import { SignInButton, useSession } from "@/lib/auth/client";
 import { clearPendingUploadCookie } from "@/lib/utils/pending-upload-client";
 import { MAX_FILE_SIZE_LABEL } from "@/lib/utils/validation";
+
 interface FileDropzoneProps {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -30,14 +31,19 @@ function claimErrorMessage(err: ClaimFailure): string {
   if (err instanceof Response || (err as { status?: number })?.status) {
     // SAFETY: err status check uses optional status property from thrown Response-like error; cast is safe for branching.
     const status = err instanceof Response ? err.status : (err as { status?: number }).status;
+
     if (status === 429) return "Upload limit reached (5 per day). Try again tomorrow.";
+
     if (status === 401) return "Session expired. Please sign in again.";
+
     if (status === 404) return "Upload not found. Please try uploading again.";
+
     if (status === 409) return "This resume was already claimed.";
   } else if (err instanceof Error) {
     if (err.message.includes("network") || err.message.includes("Network")) {
       return "Network error. Check your connection.";
     }
+
     if (err.message) {
       return err.message;
     }
@@ -55,6 +61,7 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
   const [claiming, setClaiming] = useState(false);
 
   const upload = useFileUpload();
+
   const {
     file,
     uploadState,
@@ -126,9 +133,12 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
 
   useEffect(() => {
     if (sessionLoading) return;
+
     if (!uploadedKey) return;
     const currentUser = session?.user;
+
     if (!currentUser) return;
+
     if (claiming) return;
 
     void claimUpload(uploadedKey);
@@ -142,10 +152,12 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
     setUploadProgress(0);
     setUploadState("idle");
   };
+
   const handleRetry = () => {
     setError(null);
     setUploadProgress(0);
     setUploadState("idle");
+
     if (file) {
       processFile(file);
     }
@@ -276,6 +288,7 @@ function FileDropzonePrompt({
     handleDrop,
     handleFileSelect,
   } = upload;
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   return (

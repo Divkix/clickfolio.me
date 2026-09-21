@@ -31,6 +31,7 @@ export const user = pgTable(
 );
 
 export type User = typeof user.$inferSelect;
+
 export type NewUser = typeof user.$inferInsert;
 
 export type UserRole = "student" | "entry_level" | "mid_level" | "senior" | "executive";

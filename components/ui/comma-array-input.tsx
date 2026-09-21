@@ -16,6 +16,7 @@ export function CommaArrayInput({ value, onChange, onBlur, placeholder }: CommaA
 
   const externalText = value?.join(", ") || "";
   const [prevExternal, setPrevExternal] = useState(externalText);
+
   if (externalText !== prevExternal && !focusedRef.current) {
     setPrevExternal(externalText);
     setText(externalText);
@@ -31,10 +32,12 @@ export function CommaArrayInput({ value, onChange, onBlur, placeholder }: CommaA
       onChange={(e) => setText(e.target.value)}
       onBlur={() => {
         focusedRef.current = false;
+
         const items = text
           .split(",")
           .map((t) => t.trim())
           .filter((t) => t !== "");
+
         onChange(items);
         const normalized = items.join(", ");
         setText(normalized);

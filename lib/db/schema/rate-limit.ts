@@ -39,7 +39,9 @@ export const uploadRateLimits = pgTable(
 );
 
 export type HandleChange = typeof handleChanges.$inferSelect;
+
 export type NewHandleChange = typeof handleChanges.$inferInsert;
 
 export type UploadRateLimit = typeof uploadRateLimits.$inferSelect;
+
 export type NewUploadRateLimit = typeof uploadRateLimits.$inferInsert;

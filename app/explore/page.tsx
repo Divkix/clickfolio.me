@@ -24,6 +24,7 @@ import { safePageParam } from "@/lib/utils/pagination";
 export const revalidate = 300;
 
 const exploreTitle = `Browse Professional Portfolios | ${siteConfig.fullName}`;
+
 const exploreDescription =
   "Discover professionals in our community. Browse portfolios and connect with talented individuals.";
 
@@ -106,6 +107,7 @@ export default async function ExplorePage({
 
       const previewLocation =
         u.previewLocation && !showAddress ? extractCityState(u.previewLocation) : u.previewLocation;
+
       // SAFETY: handle is filtered for non-null above; cast bridges nullable to string.
       return {
         handle: u.handle as string,
@@ -126,6 +128,7 @@ export default async function ExplorePage({
       headline: u.previewHeadline,
     })),
   );
+
   const roleOptions = [{ value: "", label: "All Roles" }, ...ROLE_OPTIONS];
 
   return (

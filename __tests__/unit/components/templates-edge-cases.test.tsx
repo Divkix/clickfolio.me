@@ -237,6 +237,7 @@ describe("Template edge case rendering", () => {
         expect(container.querySelector("script")).toBeNull();
         expect(container.querySelector("iframe")).toBeNull();
         const images = container.querySelectorAll("img");
+
         for (const img of images) {
           const src = img.getAttribute("src") || "";
           expect(src).not.toContain("onerror");

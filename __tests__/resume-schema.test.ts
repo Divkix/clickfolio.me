@@ -29,6 +29,7 @@ describe("resumeContentSchema (lenient)", () => {
       ...validMinimalResume,
       contact: { email: "jane@university" },
     });
+
     expect(result.success).toBe(true);
   });
 
@@ -57,6 +58,7 @@ describe("resumeContentSchema (lenient)", () => {
       certifications: [{ name: "AWS Solutions Architect", issuer: "Amazon" }],
       projects: [{ title: "Clickfolio", description: "Resume to portfolio tool." }],
     };
+
     const result = await resumeContentSchema.safeParseAsync(full);
     expect(result.success).toBe(true);
   });
@@ -84,6 +86,7 @@ describe("resumeContentSchema (lenient)", () => {
       ...validMinimalResume,
       contact: {},
     });
+
     expect(result.success).toBe(true);
   });
 
@@ -92,7 +95,9 @@ describe("resumeContentSchema (lenient)", () => {
       ...validMinimalResume,
       contact: { email: "" },
     });
+
     expect(result.success).toBe(true);
+
     if (result.success) {
       expect(result.data.contact.email).toBe("");
     }
@@ -103,6 +108,7 @@ describe("resumeContentSchema (lenient)", () => {
       ...validMinimalResume,
       experience: [],
     });
+
     expect(result.success).toBe(true);
   });
 
@@ -111,7 +117,9 @@ describe("resumeContentSchema (lenient)", () => {
       ...validMinimalResume,
       full_name: '<script>alert("xss")</script>',
     });
+
     expect(result.success).toBe(false);
+
     if (!result.success) {
       const issue = result.error.issues.find((e) => e.path.includes("full_name"));
       expect(issue?.message).toBe("Invalid content detected");
@@ -123,6 +131,7 @@ describe("resumeContentSchema (lenient)", () => {
       ...validMinimalResume,
       headline: "<iframe src=evil.com>",
     });
+
     expect(result.success).toBe(false);
   });
 
@@ -131,6 +140,7 @@ describe("resumeContentSchema (lenient)", () => {
       ...validMinimalResume,
       summary: 'Hello <img onerror="alert(1)" src=x>',
     });
+
     expect(result.success).toBe(false);
   });
 
@@ -146,6 +156,7 @@ describe("resumeContentSchema (lenient)", () => {
         },
       ],
     });
+
     expect(result.success).toBe(false);
   });
 
@@ -157,7 +168,9 @@ describe("resumeContentSchema (lenient)", () => {
         linkedin: "javascript:alert(1)",
       },
     });
+
     expect(result.success).toBe(true);
+
     if (result.success) {
       expect(result.data.contact.linkedin).toBe("");
     }
@@ -171,7 +184,9 @@ describe("resumeContentSchema (lenient)", () => {
         website: "https://example.com",
       },
     });
+
     expect(result.success).toBe(true);
+
     if (result.success) {
       expect(result.data.contact.website).toBe("https://example.com");
     }
@@ -182,6 +197,7 @@ describe("resumeContentSchema (lenient)", () => {
       ...validMinimalResume,
       full_name: "A".repeat(201),
     });
+
     expect(result.success).toBe(false);
   });
 
@@ -190,6 +206,7 @@ describe("resumeContentSchema (lenient)", () => {
       ...validMinimalResume,
       summary: "A".repeat(10001),
     });
+
     expect(result.success).toBe(false);
   });
 
@@ -205,6 +222,7 @@ describe("resumeContentSchema (lenient)", () => {
         },
       ],
     });
+
     expect(result.success).toBe(false);
   });
 
@@ -215,28 +233,34 @@ describe("resumeContentSchema (lenient)", () => {
       start_date: "2020",
       description: "Did stuff.",
     };
+
     const result = await resumeContentSchema.safeParseAsync({
       ...validMinimalResume,
       experience: Array.from({ length: 11 }, () => ({ ...entry })),
     });
+
     expect(result.success).toBe(false);
   });
 
   it("rejects more than 20 skill categories", async () => {
     const category = { category: "Cat", items: ["Skill"] };
+
     const result = await resumeContentSchema.safeParseAsync({
       ...validMinimalResume,
       skills: Array.from({ length: 21 }, () => ({ ...category })),
     });
+
     expect(result.success).toBe(false);
   });
 
   it("rejects more than 10 projects", async () => {
     const project = { title: "Proj", description: "Desc" };
+
     const result = await resumeContentSchema.safeParseAsync({
       ...validMinimalResume,
       projects: Array.from({ length: 11 }, () => ({ ...project })),
     });
+
     expect(result.success).toBe(false);
   });
 
@@ -246,7 +270,9 @@ describe("resumeContentSchema (lenient)", () => {
       full_name: "  Jane Doe  ",
       contact: { email: "  jane@example.com  " },
     });
+
     expect(result.success).toBe(true);
+
     if (result.success) {
       expect(result.data.full_name).toBe("Jane Doe");
       expect(result.data.contact.email).toBe("jane@example.com");
@@ -258,6 +284,7 @@ describe("resumeContentSchema (lenient)", () => {
       ...validMinimalResume,
       contact: { email: "jane@example.com", phone: "" },
     });
+
     expect(result.success).toBe(true);
   });
 });
@@ -273,7 +300,9 @@ describe("resumeContentSchemaStrict", () => {
       ...validMinimalResume,
       contact: { email: "jane@university" },
     });
+
     expect(result.success).toBe(false);
+
     if (!result.success) {
       const emailIssue = result.error.issues.find((e) => e.path.includes("email"));
       expect(emailIssue?.message).toContain("domain extension");
@@ -285,6 +314,7 @@ describe("resumeContentSchemaStrict", () => {
       ...validMinimalResume,
       contact: { email: "" },
     });
+
     expect(result.success).toBe(false);
   });
 
@@ -293,6 +323,7 @@ describe("resumeContentSchemaStrict", () => {
       ...validMinimalResume,
       contact: {},
     });
+
     expect(result.success).toBe(false);
   });
 
@@ -301,6 +332,7 @@ describe("resumeContentSchemaStrict", () => {
       ...validMinimalResume,
       contact: { email: "jane@company.co.uk" },
     });
+
     expect(result.success).toBe(true);
   });
 });
@@ -308,11 +340,13 @@ describe("resumeContentSchemaStrict", () => {
 describe("professional_level", () => {
   it("accepts all professional_level values", async () => {
     const levels = ["student", "entry_level", "mid_level", "senior", "executive"] as const;
+
     for (const level of levels) {
       const result = await resumeContentSchema.safeParseAsync({
         ...validMinimalResume,
         professional_level: level,
       });
+
       expect(result.success).toBe(true);
     }
   });
@@ -320,6 +354,7 @@ describe("professional_level", () => {
   it("accepts missing professional_level", async () => {
     const result = await resumeContentSchema.safeParseAsync(validMinimalResume);
     expect(result.success).toBe(true);
+
     if (result.success) {
       expect(result.data.professional_level).toBeUndefined();
     }
@@ -330,6 +365,7 @@ describe("professional_level", () => {
       ...validMinimalResume,
       professional_level: "invalid",
     });
+
     expect(result.success).toBe(false);
   });
 });
@@ -375,6 +411,7 @@ describe("complete resume", () => {
       projects: [{ title: "CLI Tool", description: "Dev tool", year: "2024" }],
       professional_level: "senior" as const,
     };
+
     const result = await resumeContentSchema.safeParseAsync(completeResume);
     expect(result.success).toBe(true);
   });
@@ -389,6 +426,7 @@ describe("optional arrays", () => {
       certifications: [],
       projects: [],
     });
+
     expect(result.success).toBe(true);
   });
 
@@ -414,6 +452,7 @@ describe("unicode and special characters", () => {
         },
       ],
     });
+
     expect(result.success).toBe(true);
   });
 
@@ -432,6 +471,7 @@ describe("unicode and special characters", () => {
         },
       ],
     });
+
     expect(result.success).toBe(true);
   });
 });
@@ -468,6 +508,7 @@ describe("error messages", () => {
     const result = await resumeContentSchema.safeParseAsync(noName);
 
     expect(result.success).toBe(false);
+
     if (!result.success) {
       const fullNameError = result.error.issues.find((i) => i.path.includes("full_name"));
       expect(fullNameError).toBeDefined();
@@ -478,6 +519,7 @@ describe("error messages", () => {
     const result = await resumeContentSchema.safeParseAsync(validMinimalResume);
 
     expect(result.success).toBe(true);
+
     if (result.success) {
       expect(Array.isArray(result.data.experience)).toBe(true);
       expect(result.data.experience?.length).toBe(1);
