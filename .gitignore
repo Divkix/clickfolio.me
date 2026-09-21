@@ -56,3 +56,9 @@ d1-backup-*.sql
 # Localflare generated files
 .localflare/
 /dist/
+
+# Vendored anti-slop rules: `vendor/` is excluded by common global gitignore
+# configs, which would drop the ESLint Stylistic rule, its LICENSE, and its
+# provenance record that `anti-slop/require-readable-spacing` imports at runtime.
+!tools/oxlint/anti-slop/vendor/
+!tools/oxlint/anti-slop/vendor/**
