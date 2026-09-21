@@ -33,7 +33,8 @@ const clerkUserSchema = z.object({
   last_name: z.string().nullish(),
   image_url: z.string().nullish(),
   primary_email_address_id: z.string().nullish(),
-  email_addresses: z.array(clerkEmailAddressSchema),
+  // Clerk sends only { deleted, id, object } on user.deleted, so this is absent there.
+  email_addresses: z.array(clerkEmailAddressSchema).default([]),
   deleted: z.boolean().optional(),
 });
 

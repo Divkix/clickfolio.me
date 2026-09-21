@@ -63,15 +63,7 @@ vi.mock("@/lib/db", () => ({
 function deletedUserEvent() {
   return {
     type: "user.deleted",
-    data: {
-      id: "user_clerk_1",
-      external_id: null,
-      first_name: "Avery",
-      last_name: "Quinn",
-      image_url: null,
-      primary_email_address_id: null,
-      email_addresses: [],
-    },
+    data: { deleted: true, id: "user_clerk_1", object: "user" },
   };
 }
 
