@@ -4,6 +4,7 @@ export async function setPendingUploadCookie(key: string): Promise<void> {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ key }),
   });
+
   if (!response.ok) {
     throw new Error("Failed to save pending upload");
   }

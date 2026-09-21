@@ -18,6 +18,7 @@ function clientModuleStubs(): Plugin {
     "node:async_hooks": resolve("lib/stubs/async-hooks-client-stub.mjs"),
     async_hooks: resolve("lib/stubs/async-hooks-client-stub.mjs"),
   } satisfies Record<string, string>;
+
   return {
     name: "client-module-stubs",
     enforce: "pre",
@@ -26,6 +27,7 @@ function clientModuleStubs(): Plugin {
         // SAFETY: id in stubs guard guarantees id is a key of the stubs record.
         return stubs[id as keyof typeof stubs];
       }
+
       return null;
     },
   };
@@ -47,15 +49,19 @@ function clientVendorSplit(): Plugin {
     configResolved(config) {
       const clientEnv = config.environments?.client;
       const output = clientEnv?.build?.rollupOptions?.output;
+
       if (output && output instanceof Object && !Array.isArray(output)) {
         const original = output.manualChunks;
         output.manualChunks = (id: string, cause: unknown) => {
           if (id.includes("node_modules/@radix-ui")) return "vendor-radix";
+
           if (id.includes("node_modules/react-hook-form")) return "vendor-forms";
+
           if (original instanceof Function) {
             // SAFETY: original is Rollup manualChunks from vinext; signature (id: string, cause: unknown) => string | undefined matches our wrapper — cast bridges untyped config.
             return (original as (id: string, cause: unknown) => string | undefined)(id, cause);
           }
+
           return undefined;
         };
       }
@@ -98,10 +104,12 @@ function sourceMapUploadPlugin(mode: string): Plugin | null {
   if (process.env.POSTHOG_UPLOAD_SOURCEMAPS !== "true") return null;
 
   const env = loadEnv(mode, process.cwd(), "");
+
   if (!env.POSTHOG_API_KEY || !env.POSTHOG_PROJECT_ID) {
     console.warn(
       "[posthog] POSTHOG_UPLOAD_SOURCEMAPS=true but POSTHOG_API_KEY/POSTHOG_PROJECT_ID are missing — skipping source-map upload",
     );
+
     return null;
   }
 
@@ -115,6 +123,7 @@ function sourceMapUploadPlugin(mode: string): Plugin | null {
       releaseName: "clickfolio",
     },
   });
+
   // SAFETY: The PostHog plugin uses standard Rollup hooks supported by Vite+'s
   return plugin as Plugin;
 }
@@ -138,6 +147,7 @@ const SHARED_IGNORE_PATTERNS = [
 
 export default defineConfig(({ mode }) => {
   const sourcemapPlugin = sourceMapUploadPlugin(mode);
+
   return {
     fmt: {
       ignorePatterns: SHARED_IGNORE_PATTERNS,
@@ -231,6 +241,7 @@ export default defineConfig(({ mode }) => {
           ) {
             return;
           }
+
           warn(warning);
         },
       },

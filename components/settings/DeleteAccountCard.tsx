@@ -52,6 +52,7 @@ export function DeleteAccountCard({ userEmail }: DeleteAccountCardProps) {
         const errorMessage = data.error || "Failed to delete account";
         setError(errorMessage);
         toast.error(errorMessage);
+
         return;
       }
 
@@ -75,6 +76,7 @@ export function DeleteAccountCard({ userEmail }: DeleteAccountCardProps) {
       setIsDeleting(false);
     }
   };
+
   const handleDialogClose = () => {
     if (isDeleting) return;
     setIsDialogOpen(false);

@@ -17,6 +17,7 @@ export function SidebarLayoutClient({ children }: { children: React.ReactNode })
     };
 
     document.addEventListener("keydown", handleEscape);
+
     return () => document.removeEventListener("keydown", handleEscape);
   }, [sidebarOpen]);
 

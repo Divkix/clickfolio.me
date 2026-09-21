@@ -9,5 +9,6 @@ export function setupMockCleanup() {
 
 export function suppressConsole(method: "error" | "warn" | "log" | "info" | "debug" = "error") {
   const spy = vi.spyOn(console, method).mockImplementation(() => {});
+
   return spy;
 }

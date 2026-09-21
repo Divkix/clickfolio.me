@@ -64,6 +64,7 @@ describe("waitForResumeCompletion", () => {
     let pollCount = 0;
     globalThis.fetch = vi.fn(async () => {
       pollCount += 1;
+
       return Response.json(
         pollCount === 1 ? { status: "processing" } : { status: "failed", error: "Parser failed" },
       );

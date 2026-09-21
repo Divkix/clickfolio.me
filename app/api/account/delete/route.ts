@@ -18,6 +18,7 @@ interface DeletionWarning {
   type: "r2";
   message: string;
 }
+
 const clerkErrorSchema = z.object({ status: z.number() });
 
 const R2_SWEEP_PAGE_SIZE = 1000;
@@ -29,11 +30,13 @@ function getClerkClient(secretKey: string) {
   if (!clerkClient) {
     clerkClient = createClerkClient({ secretKey });
   }
+
   return clerkClient;
 }
 
 export async function POST(request: Request) {
   const sizeCheck = validateRequestSize(request);
+
   if (!sizeCheck.valid) {
     return createErrorResponse(
       sizeCheck.error || "Request body too large",
@@ -48,6 +51,7 @@ export async function POST(request: Request) {
       const warnings: DeletionWarning[] = [];
 
       const r2Binding = getR2Binding(env);
+
       if (!r2Binding) {
         return createErrorResponse(
           "Storage service unavailable",
@@ -60,6 +64,7 @@ export async function POST(request: Request) {
       const userEmail = authUser.email;
 
       const rawBodyResult = await readJsonWithLimit(request);
+
       if (!rawBodyResult.ok) {
         return createErrorResponse(
           rawBodyResult.error,
@@ -67,9 +72,11 @@ export async function POST(request: Request) {
           rawBodyResult.reason === "too_large" ? 413 : 400,
         );
       }
+
       const body = rawBodyResult.data;
 
       const parseResult = deleteAccountSchema.safeParse(body);
+
       if (!parseResult.success) {
         return createErrorResponse(
           "Invalid request data",
@@ -91,6 +98,7 @@ export async function POST(request: Request) {
 
       if (!env.CLERK_SECRET_KEY) {
         console.error("CLERK_SECRET_KEY is not configured");
+
         return createErrorResponse(
           "Account deletion is unavailable due to server misconfiguration",
           ERROR_CODES.INTERNAL_ERROR,
@@ -106,6 +114,7 @@ export async function POST(request: Request) {
         await db.delete(user).where(eq(user.id, userId));
       } catch (dbError) {
         console.error("Account deletion error:", dbError);
+
         return createErrorResponse("Failed to delete account", ERROR_CODES.DATABASE_ERROR, 500);
       }
 
@@ -113,12 +122,14 @@ export async function POST(request: Request) {
       // users/{userId}/{resumeId}/…) plus objects whose DB row is already gone.
       try {
         let cursor: string | undefined;
+
         do {
           const page = await r2Binding.list({
             prefix: `users/${userId}/`,
             limit: R2_SWEEP_PAGE_SIZE,
             cursor,
           });
+
           for (const object of page.objects) knownKeys.add(object.key);
           // SAFETY: R2 listResult with truncated true guarantees cursor presence per R2 API contract; cast narrows to paginated type for next page.
           cursor = page.truncated ? (page as R2Objects & { truncated: true }).cursor : undefined;
@@ -128,9 +139,11 @@ export async function POST(request: Request) {
       }
 
       const r2Keys = [...knownKeys];
+
       const deletionResults = await Promise.allSettled(
         r2Keys.map((r2Key) => R2.delete(r2Binding, r2Key)),
       );
+
       const failedKeys: string[] = [];
       deletionResults.forEach((result, index) => {
         if (result.status === "rejected") {
@@ -166,8 +179,10 @@ export async function POST(request: Request) {
         await getClerkClient(env.CLERK_SECRET_KEY).users.deleteUser(dbUser.clerkId);
       } catch (clerkError) {
         const parsedError = clerkErrorSchema.safeParse(clerkError);
+
         if (!parsedError.success || parsedError.data.status !== 404) {
           console.error("Clerk user deletion error:", clerkError);
+
           return createErrorResponse(
             "Failed to delete account. Please try again.",
             ERROR_CODES.EXTERNAL_SERVICE_ERROR,

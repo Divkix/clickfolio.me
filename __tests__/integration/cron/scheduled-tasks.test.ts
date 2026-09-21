@@ -64,6 +64,7 @@ function createMockDb(): MockCronDb {
     })),
     delete: vi.fn(() => deleteChain(0)),
   };
+
   return db;
 }
 
@@ -131,6 +132,7 @@ describe("Cron Scheduled Tasks", () => {
         updatedAt: null,
         createdAt: "2026-01-01T00:00:00.000Z",
       };
+
       mockDb.select.mockReturnValueOnce(selectChain([staleFailed]));
       (mockDb.delete as Mock)
         .mockReturnValueOnce(deleteChain(0))
@@ -156,6 +158,7 @@ describe("Cron Scheduled Tasks", () => {
         updatedAt: "2026-01-02T00:00:00.000Z",
         createdAt: "2026-01-01T00:00:00.000Z",
       };
+
       mockDb.select.mockReturnValueOnce(selectChain([staleFailed]));
       (mockDb.delete as Mock)
         .mockReturnValueOnce(deleteChain(0))
@@ -189,6 +192,7 @@ describe("Cron Scheduled Tasks", () => {
         fileHash: "abc123",
         totalAttempts: 0,
       };
+
       mockDb.update.mockReturnValue({
         set: vi.fn(() => ({
           where: vi.fn().mockResolvedValue({ count: 1 }),
@@ -224,6 +228,7 @@ describe("Cron Scheduled Tasks", () => {
         fileHash: "def456",
         totalAttempts: 1,
       };
+
       mockDb.update.mockReturnValue({
         set: vi.fn(() => ({
           where: vi.fn().mockResolvedValue({ count: 1 }),
@@ -250,10 +255,12 @@ describe("Cron Scheduled Tasks", () => {
         fileHash: "hash123",
         totalAttempts: 6,
       };
+
       const setValues: Array<Record<string, unknown>> = [];
       mockDb.update.mockReturnValue({
         set: vi.fn((values: Record<string, unknown>) => {
           setValues.push(values);
+
           return { where: vi.fn().mockResolvedValue({ count: 1 }) };
         }),
       });
@@ -279,6 +286,7 @@ describe("Cron Scheduled Tasks", () => {
         fileHash: "abc123",
         totalAttempts: 0,
       };
+
       mockDb.update.mockReturnValue({
         set: vi.fn(() => ({
           where: vi.fn().mockResolvedValue({ count: 0 }),
@@ -370,6 +378,7 @@ describe("Cron Scheduled Tasks", () => {
         fileHash: "hash789",
         totalAttempts: 0,
       };
+
       mockDb.update.mockReturnValue({
         set: vi.fn(() => ({
           where: vi.fn().mockResolvedValue({ count: 1 }),

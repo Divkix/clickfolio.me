@@ -8,6 +8,7 @@ import { log } from "../utils/log";
 const DEFAULT_AI_MODEL = "openai/gpt-5.6-luna:nitro";
 
 const VISION_TIMEOUT_MS = 90_000;
+
 const MAX_OUTPUT_TOKENS = 16_384;
 
 const PROVIDER_ROUTING = {
@@ -106,29 +107,36 @@ interface VisionParseResult {
 
 function extractJson(text: string): string {
   const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+
   if (codeBlockMatch) return codeBlockMatch[1].trim();
   const firstBrace = text.indexOf("{");
   const lastBrace = text.lastIndexOf("}");
+
   if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
     return text.slice(firstBrace, lastBrace + 1);
   }
+
   return text.trim();
 }
 
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
   // SAFETY: globalThis may have Node Buffer in workerd nodejs_compat; narrow via in check
   const maybeBuffer = (globalThis as unknown as { Buffer?: typeof Buffer }).Buffer;
+
   if (maybeBuffer && typeof maybeBuffer.from === "function") {
     // SAFETY: ArrayBuffer is safe to view as Uint8Array for Buffer.from
     return maybeBuffer.from(buffer as unknown as Uint8Array).toString("base64");
   }
+
   const bytes = new Uint8Array(buffer);
   const chunkSize = 0x8000;
   let binary = "";
+
   for (let i = 0; i < bytes.length; i += chunkSize) {
     const chunk = bytes.subarray(i, i + chunkSize);
     binary += String.fromCharCode(...(chunk as unknown as number[]));
   }
+
   return btoa(binary);
 }
 
@@ -168,6 +176,7 @@ export async function parsePdfWithVision(
 
       const jsonStr = extractJson(responseText);
       const { data: parsed, repaired } = await parseJsonWithRepair(jsonStr);
+
       if (parsed) {
         // SAFETY: parseJsonWithRepair guarantees parsed is a non-null object; UnknownRecord is the safe JSON object type for normalization
         const normalized = normalizeAiKeys(parsed as UnknownRecord);
@@ -177,6 +186,7 @@ export async function parsePdfWithVision(
           durationMs: Date.now() - startTime,
           repaired: repaired || undefined,
         });
+
         return { success: true, data: transformed };
       }
 
@@ -184,6 +194,7 @@ export async function parsePdfWithVision(
         modelId,
         durationMs: Date.now() - startTime,
       });
+
       return {
         success: false,
         data: null,

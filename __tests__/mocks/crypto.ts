@@ -10,13 +10,16 @@ export const mockDigest = vi.fn(
       const hash = crypto.createHash(algorithm.toLowerCase().replace("-", ""));
       hash.update(Buffer.from(input));
       const result = hash.digest();
+
       return new Uint8Array(result).buffer;
     }
 
     const hash = new Uint8Array(32);
+
     for (let i = 0; i < 32; i++) {
       hash[i] = input[i % input.length] ^ (i * 17);
     }
+
     return hash.buffer;
   },
 );
@@ -31,6 +34,7 @@ export const mockImportKey = vi.fn(
   ): Promise<CryptoKey> => {
     const secretBytes = new Uint8Array(keyData as ArrayBuffer);
     const secret = new TextDecoder().decode(secretBytes);
+
     return {
       type: "secret",
       extractable: false,
@@ -62,15 +66,19 @@ export const mockSign = vi.fn(
 );
 
 let uuidCounter = 0;
+
 export const mockRandomUUID = vi.fn((): string => {
   uuidCounter++;
+
   return `00000000-0000-0000-0000-${String(uuidCounter).padStart(12, "0")}`;
 });
 
 export const mockGetRandomValues = vi.fn(<T extends ArrayBufferView>(typedArray: T): T => {
   const view = new Uint8Array(typedArray.buffer, typedArray.byteOffset, typedArray.byteLength);
+
   for (let i = 0; i < view.length; i++) {
     view[i] = (i * 7) % 256;
   }
+
   return typedArray;
 });

@@ -31,8 +31,11 @@ vi.mock("sonner", () => ({
 }));
 
 const origClipboard = navigator.clipboard;
+
 const origShare = navigator.share;
+
 const origCanShare = navigator.canShare;
+
 const origWindowOpen = window.open;
 
 function installShareMocks() {
@@ -51,6 +54,7 @@ function installShareMocks() {
     configurable: true,
   });
   window.open = vi.fn();
+
   return { share, writeText };
 }
 
@@ -66,16 +70,19 @@ describe("SharePopover", () => {
     } else {
       delete (navigator as { clipboard?: typeof navigator.clipboard }).clipboard;
     }
+
     if (origShare !== undefined) {
       Object.defineProperty(navigator, "share", { value: origShare, configurable: true });
     } else {
       delete (navigator as { share?: typeof navigator.share }).share;
     }
+
     if (origCanShare !== undefined) {
       Object.defineProperty(navigator, "canShare", { value: origCanShare, configurable: true });
     } else {
       delete (navigator as { canShare?: typeof navigator.canShare }).canShare;
     }
+
     if (origWindowOpen !== undefined) {
       window.open = origWindowOpen;
     } else {
@@ -179,6 +186,7 @@ describe("SharePopover", () => {
       value: undefined,
       configurable: true,
     });
+
     const variants: SharePopoverVariant[] = [
       "minimalist-editorial",
       "neo-brutalist",
@@ -201,6 +209,7 @@ describe("SharePopover", () => {
           variant={variant}
         />,
       );
+
       fireEvent.click(screen.getByRole("button", { name: /share/i }));
       expect(screen.getByRole("button", { name: "Share on LinkedIn" })).toBeInTheDocument();
       unmount();
@@ -249,6 +258,7 @@ describe("DeleteAccountCard", () => {
 
   it("shows API errors, clears state on cancel, and handles network failures", async () => {
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
     try {
       const user = userEvent.setup();
       vi.mocked(globalThis.fetch)

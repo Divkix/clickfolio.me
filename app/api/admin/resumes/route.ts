@@ -11,6 +11,7 @@ import {
 import { safePageParam } from "@/lib/utils/pagination";
 
 const PAGE_SIZE = 25;
+
 const VALID_STATUSES = new Set(["all", "completed", "processing", "queued", "failed"]);
 
 export async function GET(request: Request) {
@@ -54,6 +55,7 @@ export async function GET(request: Request) {
     }
 
     let statusCondition;
+
     if (statusFilter === "completed") {
       statusCondition = sql`${resumes.status} IN ('completed', 'waiting_for_cache')`;
     } else if (statusFilter === "processing") {

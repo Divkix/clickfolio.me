@@ -23,5 +23,6 @@ export function ResumeStatusBadge({ status }: ResumeStatusBadgeProps) {
     label: status,
     variant: "default" as const,
   };
+
   return <Badge variant={config.variant}>{config.label}</Badge>;
 }

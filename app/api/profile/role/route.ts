@@ -11,6 +11,7 @@ import { readJsonWithLimit, validateRequestSize } from "@/lib/utils/validation";
 
 export async function PUT(request: Request) {
   const sizeCheck = validateRequestSize(request);
+
   if (!sizeCheck.valid) {
     return createErrorResponse(
       sizeCheck.error || "Request body too large",
@@ -23,6 +24,7 @@ export async function PUT(request: Request) {
     request,
     async ({ user: authUser, db }) => {
       const rawBodyResult = await readJsonWithLimit(request);
+
       if (!rawBodyResult.ok) {
         return createErrorResponse(
           rawBodyResult.error,
@@ -32,6 +34,7 @@ export async function PUT(request: Request) {
       }
 
       const validation = roleUpdateSchema.safeParse(rawBodyResult.data);
+
       if (!validation.success) {
         return createErrorResponse(
           "Invalid role value",

@@ -4,6 +4,7 @@ import type { JsonValue, UnknownRecord } from "@/lib/types/json";
 import { parseJsonWithRepair, transformToSchema } from "./ai-fallback";
 import { normalizeAiKeys } from "./ai-normalize";
 import { RESUME_TRUNCATION_MARKER, truncateResumeText } from "./truncate";
+
 const DEFAULT_AI_MODEL = "openai/gpt-5.6-luna:nitro";
 
 const PROVIDER_ROUTING = {
@@ -16,6 +17,7 @@ const PROVIDER_ROUTING = {
 };
 
 const TIMEOUT_MS = 60_000;
+
 const MAX_OUTPUT_TOKENS = 16_384;
 
 interface ParseEvent {
@@ -166,6 +168,7 @@ export function createAiProvider(env: Partial<AiEnvVars>): AiProvider {
 }
 
 let cachedProvider: AiProvider | null = null;
+
 let cachedEnvKey: string | null = null;
 
 function getAiProvider(env: Partial<AiEnvVars>): AiProvider {
@@ -173,11 +176,14 @@ function getAiProvider(env: Partial<AiEnvVars>): AiProvider {
     (env.CF_AI_GATEWAY_ACCOUNT_ID || "") +
     (env.CF_AI_GATEWAY_ID || "") +
     (env.CF_AIG_AUTH_TOKEN || "");
+
   if (cachedProvider && cachedEnvKey === key) return cachedProvider;
   cachedProvider = createAiProvider(env);
   cachedEnvKey = key;
+
   return cachedProvider;
 }
+
 const VALID_REASONING_EFFORTS = [
   "none",
   "minimal",
@@ -187,14 +193,18 @@ const VALID_REASONING_EFFORTS = [
   "xhigh",
   "max",
 ] as const;
+
 type ReasoningEffort = (typeof VALID_REASONING_EFFORTS)[number];
+
 function getReasoningEffort(env: Partial<AiEnvVars>): ReasoningEffort {
   const raw = String(env.AI_REASONING_EFFORT || "medium").toLowerCase();
+
   // SAFETY: raw validated against VALID_REASONING_EFFORTS allowlist
   return (VALID_REASONING_EFFORTS as readonly string[]).includes(raw)
     ? (raw as ReasoningEffort)
     : "medium";
 }
+
 type SafeJsonValue =
   | string
   | number
@@ -202,6 +212,7 @@ type SafeJsonValue =
   | null
   | SafeJsonValue[]
   | { [key: string]: SafeJsonValue };
+
 function withReasoning<T extends Record<string, SafeJsonValue>>(
   base: T,
   effort: ReasoningEffort,
@@ -212,6 +223,7 @@ function withReasoning<T extends Record<string, SafeJsonValue>>(
   // SAFETY: withReasoning unwraps provider shape
   const r = baseOpenrouter as { provider?: Record<string, SafeJsonValue> };
   const baseProvider = r.provider || {};
+
   // SAFETY: withReasoning merges reasoning into provider routing, preserves base shape
   return {
     ...base,
@@ -226,12 +238,14 @@ function withReasoning<T extends Record<string, SafeJsonValue>>(
 
 function extractJson(text: string): string {
   const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+
   if (codeBlockMatch) {
     return codeBlockMatch[1].trim();
   }
 
   const firstBrace = text.indexOf("{");
   const lastBrace = text.lastIndexOf("}");
+
   if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
     return text.slice(firstBrace, lastBrace + 1);
   }
@@ -244,13 +258,16 @@ function buildPrompt(text: string): string {
 }
 
 const RETRY_MAX_CHARS = 32000;
+
 const RETRY_HEAD_CHARS = 20000;
+
 const RETRY_TAIL_CHARS = 11000;
 
 function truncateForRetry(text: string): string {
   if (text.length <= RETRY_MAX_CHARS) return text;
   const head = text.slice(0, RETRY_HEAD_CHARS);
   const tail = text.slice(-RETRY_TAIL_CHARS);
+
   return `${head}${RESUME_TRUNCATION_MARKER}${tail}`;
 }
 
@@ -275,6 +292,7 @@ export async function parseWithAi(
       const retrySystem = `${RETRY_SYSTEM_PROMPT}\n\nValidation errors found:\n${retryContext.errors}`;
 
       const startTime = Date.now();
+
       try {
         const { text: responseText } = await generateText({
           model: provider(modelId),
@@ -288,6 +306,7 @@ export async function parseWithAi(
 
         const jsonStr = extractJson(responseText);
         const { data: parsed } = await parseJsonWithRepair(jsonStr);
+
         if (!parsed) {
           logParseEvent({
             modelId,
@@ -296,6 +315,7 @@ export async function parseWithAi(
             success: false,
             error: "Failed to parse retry response as JSON",
           });
+
           return {
             success: false,
             data: null,
@@ -311,6 +331,7 @@ export async function parseWithAi(
           durationMs: Date.now() - startTime,
           success: true,
         });
+
         return { success: true, data: transformed, structuredOutput: false };
       } catch (retryError) {
         logParseEvent({
@@ -325,6 +346,7 @@ export async function parseWithAi(
     }
 
     const startTime = Date.now();
+
     try {
       const { text: responseText } = await generateText({
         model: provider(modelId),
@@ -335,8 +357,10 @@ export async function parseWithAi(
         abortSignal: AbortSignal.timeout(TIMEOUT_MS),
         providerOptions: withReasoning(PROVIDER_ROUTING, reasoningEffort),
       });
+
       const jsonStr = extractJson(responseText);
       const { data: parsed, repaired } = await parseJsonWithRepair(jsonStr);
+
       if (parsed) {
         // SAFETY: parseJsonWithRepair guard ensures parsed is a non-null object; UnknownRecord is the safe JSON object type for AI normalization.
         const normalized = normalizeAiKeys(parsed as UnknownRecord);
@@ -348,6 +372,7 @@ export async function parseWithAi(
           success: true,
           repaired: repaired || undefined,
         });
+
         return { success: true, data: transformed, structuredOutput: false };
       }
 
@@ -365,6 +390,7 @@ export async function parseWithAi(
       ) {
         throw fallbackError;
       }
+
       logParseEvent({
         modelId,
         path: "text-fallback",
@@ -375,8 +401,10 @@ export async function parseWithAi(
     }
 
     const retryStartTime = Date.now();
+
     try {
       const retryText = truncateForRetry(text);
+
       const { text: responseText } = await generateText({
         model: provider(modelId),
         system: `${SYSTEM_PROMPT}\n\nIMPORTANT: Output a single valid JSON object only.`,
@@ -397,6 +425,7 @@ export async function parseWithAi(
         repaired: repaired || undefined,
         error: parsed ? undefined : "Failed to parse retry response as JSON",
       });
+
       if (!parsed) {
         return {
           success: false,
@@ -404,14 +433,17 @@ export async function parseWithAi(
           error: `Failed to parse AI response as JSON: ${jsonStr.slice(0, 200)}...`,
         };
       }
+
       // SAFETY: parseJsonWithRepair guard ensures parsed is a non-null object; UnknownRecord is the safe JSON object type for AI normalization.
       const normalized = normalizeAiKeys(parsed as UnknownRecord);
       const transformed = transformToSchema(normalized);
+
       return { success: true, data: transformed, structuredOutput: false };
     } catch (retryError) {
       if (retryError instanceof Error && retryError.message.includes("AI Gateway not configured")) {
         throw retryError;
       }
+
       logParseEvent({
         modelId,
         path: "text-fallback-retry",

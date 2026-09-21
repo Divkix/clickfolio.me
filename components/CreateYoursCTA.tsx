@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils/cn";
 import { useDismissable } from "@/hooks/useDismissable";
 
 const SHOW_DELAY_MS = 3000;
+
 const SCROLL_THRESHOLD = 0.3;
 
 const ctaVariants = cva(
@@ -106,6 +107,7 @@ export function CreateYoursCTA({ handle, variant, className }: CreateYoursCTAPro
 
     const handleScroll = () => {
       const scrolled = window.scrollY / (document.body.scrollHeight - window.innerHeight);
+
       if (scrolled >= SCROLL_THRESHOLD) {
         triggerShow();
       }
@@ -123,9 +125,11 @@ export function CreateYoursCTA({ handle, variant, className }: CreateYoursCTAPro
     setVisible(false);
     dismiss();
   }, [dismiss]);
+
   // SAFETY: session.user is Better Auth user with additional handle field; cast bridges typed user to optional handle.
   const userHandle = (session?.user as { handle?: string } | undefined)?.handle;
   const isOwnResume = userHandle === handle;
+
   if (dismissed || !visible || isOwnResume) {
     return null;
   }

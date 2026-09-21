@@ -15,11 +15,15 @@ import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
 import { withAdmin, withUser } from "@/lib/auth/with-auth";
 
 const mockedAuth = vi.mocked(requireAuthWithUserValidation);
+
 const mockedAdminAuth = vi.mocked(requireAdminAuthForApi);
 
 type AuthSuccess = Awaited<ReturnType<typeof requireAuthWithUserValidation>>;
+
 type UserContext = Parameters<Parameters<typeof withUser>[1]>[0];
+
 type AdminAuthSuccess = Awaited<ReturnType<typeof requireAdminAuthForApi>>;
+
 type AdminContext = Parameters<Parameters<typeof withAdmin>[1]>[0];
 
 function successResult(): AuthSuccess {
@@ -84,11 +88,13 @@ describe("withUser", () => {
     mockedAuth.mockResolvedValue(result);
 
     const handlerResponse = new Response("ok", { status: 200 });
+
     const handler = vi.fn(async (ctx: UserContext) => {
       expect(ctx.user).toBe(result.user);
       expect(ctx.db).toBe(result.db);
       expect(ctx.dbUser).toBe(result.dbUser);
       expect(ctx.env).toBe(result.env);
+
       return handlerResponse;
     });
 
@@ -115,6 +121,7 @@ describe("withUser", () => {
     const loggedWithPath = consoleSpy.mock.calls.some((call: JsonValue[]) =>
       call.some((arg: JsonValue) => typeof arg === "string" && arg.includes("/api/resume/update")),
     );
+
     expect(loggedWithPath).toBe(true);
 
     consoleSpy.mockRestore();
@@ -148,6 +155,7 @@ describe("withAdmin", () => {
     const authError = new Response(JSON.stringify({ error: "Admin access required" }), {
       status: 403,
     });
+
     mockedAdminAuth.mockResolvedValue({ user: null, error: authError });
 
     const handler = vi.fn();
@@ -163,8 +171,10 @@ describe("withAdmin", () => {
     mockedAdminAuth.mockResolvedValue(result);
 
     const handlerResponse = new Response("ok", { status: 200 });
+
     const handler = vi.fn(async (ctx: AdminContext) => {
       expect(ctx.user).toBe(result.user);
+
       return handlerResponse;
     });
 
@@ -193,6 +203,7 @@ describe("withAdmin", () => {
         (arg: JsonValue) => typeof arg === "string" && arg.includes("/api/admin/referrals"),
       ),
     );
+
     expect(loggedWithPath).toBe(true);
 
     consoleSpy.mockRestore();

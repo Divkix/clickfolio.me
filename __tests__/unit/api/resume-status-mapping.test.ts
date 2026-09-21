@@ -3,6 +3,7 @@ import { DEFAULT_PRIVACY_SETTINGS } from "@/lib/utils/privacy";
 import type { JsonValue } from "@/lib/types/json";
 
 const mockFindFirst = vi.fn();
+
 const mockDb = {
   query: { resumes: { findFirst: mockFindFirst } },
 };
@@ -184,12 +185,14 @@ describe("GET /api/resume/status — pending_claim mapping", () => {
     const response = await GET(makeStatusRequest("resume-001"));
 
     expect(response.status).toBe(200);
+
     const body = (await response.json()) as {
       status: string;
       progress_pct: number;
       can_retry: boolean;
       error: string | null;
     };
+
     expect(body.status).toBe("processing");
     expect(body.progress_pct).toBe(15);
     expect(body.can_retry).toBe(false);
@@ -213,11 +216,13 @@ describe("GET /api/resume/status — pending_claim mapping", () => {
     const response = await GET(makeStatusRequest("resume-001"));
 
     expect(response.status).toBe(200);
+
     const body = (await response.json()) as {
       status: string;
       progress_pct: number;
       queued: boolean;
     };
+
     expect(body.status).toBe("processing");
     expect(body.progress_pct).toBe(25);
     expect(body.queued).toBe(true);

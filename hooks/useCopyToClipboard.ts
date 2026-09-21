@@ -30,15 +30,20 @@ export function useCopyToClipboard(): UseCopyToClipboardReturn {
   const copy = useCallback(async (text: string, opts: CopyOptions) => {
     try {
       const success = await copyToClipboard(text);
+
       if (!success) {
         toast.error(opts.errorMessage);
+
         return;
       }
+
       setCopied(true);
       toast.success(opts.successMessage);
+
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
+
       timeoutRef.current = setTimeout(() => setCopied(false), 2000);
       opts.onSuccess?.();
     } catch {

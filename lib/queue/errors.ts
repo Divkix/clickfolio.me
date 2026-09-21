@@ -237,10 +237,13 @@ function extractErrorMessage(error: QueueErrorInput): string {
       .string()
       .min(1)
       .safeParse("code" in error ? error.code : undefined);
+
     const codeTag = pgCode.success ? ` [pg_code=${pgCode.data}]` : "";
+
     // SAFETY: error.cause is from Error instance, narrowed via instanceof Error branch; QueueErrorInput is safe union for recursion.
     const cause =
       error.cause != null ? ` (cause: ${extractErrorMessage(error.cause as QueueErrorInput)})` : "";
+
     return `${error.message}${codeTag}${cause}`;
   }
 
@@ -252,14 +255,17 @@ function extractErrorMessage(error: QueueErrorInput): string {
   if (error != null && error instanceof Object) {
     // SAFETY: Object guard above ensures error is a non-null object; Record cast is safe for dynamic key access.
     const record = error as Record<string, JsonValue>;
+
     if ("message" in record && z.string().safeParse(record.message).success) {
       // SAFETY: zod safeParse above guarantees record.message is string.
       return record.message as string;
     }
+
     if ("error" in record && z.string().safeParse(record.error).success) {
       // SAFETY: zod safeParse above guarantees record.error is string.
       return record.error as string;
     }
+
     if ("status" in record && z.number().safeParse(record.status).success) {
       // SAFETY: zod safeParse above guarantees record.status is number.
       return `HTTP ${String(record.status as number)}`;
@@ -277,5 +283,6 @@ export function isRetryableError(error: QueueErrorInput): boolean {
   if (isQueueError(error)) {
     return error.isRetryable();
   }
+
   return classifyQueueError(error).isRetryable();
 }

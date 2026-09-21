@@ -46,6 +46,7 @@ export function useResumeWebSocket({
     if (!resumeId || disabled) {
       disconnect();
       setConnectionState("closed");
+
       return;
     }
 
@@ -60,10 +61,13 @@ export function useResumeWebSocket({
       },
       onClose: (event) => {
         if (event.code !== 1000) return false;
+
         const isTerminal =
           lastStatusRef.current === "completed" || lastStatusRef.current === "failed";
+
         if (!isTerminal) return false;
         setConnectionState("closed");
+
         return true;
       },
       onRetry: () => setConnectionState("reconnecting"),

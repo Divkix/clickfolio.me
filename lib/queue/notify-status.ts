@@ -1,6 +1,7 @@
 import { log } from "../utils/log";
 
 type NotifyBody = { status: string; error?: string; version?: number };
+
 export async function notifyStatusChange({
   resumeId,
   status,
@@ -21,6 +22,7 @@ export async function notifyStatusChange({
     const stub = env.CLICKFOLIO_STATUS_DO.get(doId);
 
     const body: NotifyBody = { status, version: Date.now() };
+
     if (error) {
       body.error = error;
     }

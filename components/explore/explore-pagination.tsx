@@ -23,6 +23,7 @@ export function ExplorePagination({ currentPage, totalPages, roleFilter }: Explo
           .filter((page) => page === 1 || page === totalPages || Math.abs(page - currentPage) <= 1)
           .map((page, index, arr) => {
             const showEllipsis = index > 0 && page - arr[index - 1] > 1;
+
             return (
               <span key={page} className="contents">
                 {showEllipsis && <span className="px-2 text-muted-foreground">...</span>}

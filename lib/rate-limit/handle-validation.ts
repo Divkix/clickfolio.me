@@ -23,5 +23,6 @@ export async function isHandleTaken(
     .from(user)
     .where(and(eq(user.handle, handle), ne(user.id, userId)))
     .limit(1);
+
   return existing.length > 0;
 }

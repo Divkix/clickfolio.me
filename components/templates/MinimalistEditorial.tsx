@@ -305,6 +305,7 @@ export const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile,
               <div className="flex flex-col border-t border-black/10">
                 {projects.map((project) => {
                   const Wrapper = project.url ? "a" : "article";
+
                   return (
                     <Wrapper
                       key={`${project.title}-${project.year ?? ""}-${project.url ?? ""}`}

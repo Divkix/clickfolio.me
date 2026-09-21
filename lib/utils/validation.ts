@@ -12,9 +12,11 @@ export function validatePDF(file: File): ValidationResult {
   if (file.size > MAX_FILE_SIZE) {
     return { valid: false, error: `File size must be less than ${MAX_FILE_SIZE_LABEL}` };
   }
+
   if (file.type !== "application/pdf") {
     return { valid: false, error: "Only PDF files are allowed" };
   }
+
   return { valid: true };
 }
 
@@ -23,18 +25,22 @@ function sanitizeFilename(filename: string): string {
   safe = safe.replace(/[/\\]/g, "");
   safe = safe.replace(/[^a-zA-Z0-9._-]/g, "_");
   safe = safe.slice(0, 255);
+
   if (!safe || safe.length === 0) {
     safe = "resume.pdf";
   }
+
   if (!safe.endsWith(".pdf")) {
     safe = `${safe}.pdf`;
   }
+
   return safe;
 }
 
 export function generateTempKey(filename: string): string {
   const uuid = crypto.randomUUID();
   const safeFilename = sanitizeFilename(filename);
+
   return `temp/${uuid}/${safeFilename}`;
 }
 
@@ -92,31 +98,41 @@ export async function readJsonWithLimit(
   if (!request.body) {
     return { ok: true, data: undefined };
   }
+
   const reader = request.body.getReader();
   const chunks: Uint8Array[] = [];
   let total = 0;
+
   while (true) {
     const { done, value } = await reader.read();
+
     if (done) break;
+
     if (value) {
       total += value.byteLength;
+
       if (total > maxSizeBytes) {
         await reader.cancel();
+
         return {
           ok: false,
           reason: "too_large",
           error: `Request body too large. Maximum size is ${(maxSizeBytes / 1_000_000).toFixed(1)}MB.`,
         };
       }
+
       chunks.push(value);
     }
   }
+
   const buf = new Uint8Array(total);
   let offset = 0;
+
   for (const c of chunks) {
     buf.set(c, offset);
     offset += c.byteLength;
   }
+
   try {
     return { ok: true, data: JSON.parse(new TextDecoder().decode(buf)) };
   } catch {

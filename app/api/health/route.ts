@@ -35,9 +35,11 @@ type AiProviderEnv = Pick<
 
 async function checkPg(hyperdrive: Hyperdrive): Promise<ServiceHealth> {
   const start = Date.now();
+
   try {
     const db = getDb(hyperdrive);
     await db.execute(sql`SELECT 1`);
+
     return { status: "healthy", latencyMs: Date.now() - start };
   } catch (error) {
     return {
@@ -50,8 +52,10 @@ async function checkPg(hyperdrive: Hyperdrive): Promise<ServiceHealth> {
 
 async function checkR2(r2: R2Bucket): Promise<ServiceHealth> {
   const start = Date.now();
+
   try {
     await r2.list({ limit: 1 });
+
     return { status: "healthy", latencyMs: Date.now() - start };
   } catch (error) {
     return {
@@ -64,9 +68,11 @@ async function checkR2(r2: R2Bucket): Promise<ServiceHealth> {
 
 function checkAiProviderConfig(env: AiProviderEnv): ServiceHealth {
   const hasGateway = env.CF_AI_GATEWAY_ACCOUNT_ID && env.CF_AI_GATEWAY_ID && env.CF_AIG_AUTH_TOKEN;
+
   if (hasGateway) {
     return { status: "healthy", error: "Using Cloudflare AI Gateway" };
   }
+
   return {
     status: "unhealthy",
     error:
@@ -76,8 +82,11 @@ function checkAiProviderConfig(env: AiProviderEnv): ServiceHealth {
 
 function aggregateStatus(services: HealthResponse["services"]): ServiceStatus {
   const statuses = Object.values(services).map((s) => s.status);
+
   if (statuses.every((s) => s === "healthy")) return "healthy";
+
   if (statuses.some((s) => s === "unhealthy")) return "unhealthy";
+
   return "degraded";
 }
 
@@ -115,6 +124,7 @@ export async function GET() {
     return createSuccessResponse(response, httpStatus);
   } catch (error) {
     console.error("Health check error:", error);
+
     return createErrorResponse(
       error instanceof Error ? error.message : "Unknown error",
       ERROR_CODES.INTERNAL_ERROR,

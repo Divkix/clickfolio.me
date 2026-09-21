@@ -13,6 +13,7 @@ import {
 import { cn } from "@/lib/utils/cn";
 import { isWebShareSupported } from "@/lib/utils/share";
 import { getLinkedInIconVariant, useShareActions } from "@/lib/utils/share-actions";
+
 const triggerVariants = cva(
   "inline-flex items-center gap-2 px-3 py-2 rounded-full border shadow-lg transition-colors duration-200",
   {
@@ -85,6 +86,7 @@ export function SharePopover({ url, handle, title, name, variant, className }: S
     const handlePointerDown = (event: PointerEvent) => {
       // SAFETY: event.target is DOM Node from trusted pointerdown event; cast bridges EventTarget to Node for contains check.
       const target = event.target as Node;
+
       if (containerRef.current && !containerRef.current.contains(target)) {
         setOpen(false);
       }
@@ -198,4 +200,5 @@ export function SharePopover({ url, handle, title, name, variant, className }: S
 }
 
 export type { SharePopoverProps };
+
 export type { SharePopoverVariant } from "@/lib/templates/share-variants";

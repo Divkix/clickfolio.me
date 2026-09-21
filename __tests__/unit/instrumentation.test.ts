@@ -24,6 +24,7 @@ describe("root instrumentation onRequestError", () => {
 
   it("forwards path, method, and route context — never request headers", async () => {
     const error = new Error("boom");
+
     const request = {
       path: "/dashboard",
       method: "POST",

@@ -13,8 +13,10 @@ import {
 export const revalidate = 86400;
 
 const title = "Resume Website for Marketers";
+
 const description =
   "Create a standout marketing portfolio website from your PDF resume. Highlight campaign metrics, brands you've worked with, and results — free, with 10 templates.";
+
 const path = "/for/marketer";
 
 export const metadata: Metadata = buildRolePageMetadata({ title, description, path });

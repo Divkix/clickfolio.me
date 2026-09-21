@@ -5,9 +5,11 @@ import { proxy } from "@/proxy";
 function makeRequest(pathname: string, cookieHeader?: string): NextRequest {
   const url = `https://clickfolio.me${pathname}`;
   const headers: Record<string, string> = {};
+
   if (cookieHeader) {
     headers.Cookie = cookieHeader;
   }
+
   return new NextRequest(url, { headers });
 }
 
@@ -90,6 +92,7 @@ describe("Edge cases", () => {
     const response = proxy(
       makeRequest("/dashboard", "__client=uat-device-token; __session=clerk-jwt"),
     );
+
     expectPassThrough(response);
   });
 

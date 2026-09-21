@@ -1,4 +1,5 @@
 "use client";
+
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ResumeStatus } from "@/lib/db/schema";
 import {
@@ -73,10 +74,12 @@ export function useResumeStatus(resumeId: string | null): UseResumeStatusReturn 
       if (presentation.publicStatus === "failed") {
         void fetchStatusRef.current?.();
       }
+
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
+
       setIsLoading(false);
     }
   }, []);
@@ -89,6 +92,7 @@ export function useResumeStatus(resumeId: string | null): UseResumeStatusReturn 
   const fetchStatus = useCallback(async () => {
     if (!resumeId) {
       setIsLoading(false);
+
       return;
     }
 
@@ -107,9 +111,11 @@ export function useResumeStatus(resumeId: string | null): UseResumeStatusReturn 
         if (response.status === 401) {
           throw new Error("Unauthorized. Please log in again.");
         }
+
         if (response.status === 404) {
           throw new Error("Resume not found.");
         }
+
         throw new Error("Failed to fetch status");
       }
 
@@ -129,6 +135,7 @@ export function useResumeStatus(resumeId: string | null): UseResumeStatusReturn 
       }
 
       const elapsed = Date.now() - startTimeRef.current;
+
       if (elapsed > 90000 && data.status === "processing" && !hasTimedOutRef.current) {
         hasTimedOutRef.current = true;
         setError("Processing is taking longer than expected. Please check back in a moment.");
@@ -141,6 +148,7 @@ export function useResumeStatus(resumeId: string | null): UseResumeStatusReturn 
       // SAFETY: err is Error-like with optional status from fetch throw; cast narrows to status for error classification.
       const httpStatus =
         (err as { status?: number })?.status || (err instanceof Response ? err.status : 0);
+
       const category = classifyError(httpStatus);
 
       console.error("Error fetching resume status:", err);
@@ -150,18 +158,22 @@ export function useResumeStatus(resumeId: string | null): UseResumeStatusReturn 
           clearInterval(intervalRef.current);
           intervalRef.current = null;
         }
+
         setError(getErrorMessage(httpStatus, "checking resume status"));
         showErrorToast(httpStatus, "checking resume status");
         setIsLoading(false);
       } else {
         retryCountRef.current++;
+
         if (retryCountRef.current >= 5) {
           setError("Unable to check status. Please refresh the page.");
           showErrorToast(0, "checking resume status");
+
           if (intervalRef.current) {
             clearInterval(intervalRef.current);
             intervalRef.current = null;
           }
+
           setIsLoading(false);
         }
       }
@@ -173,6 +185,7 @@ export function useResumeStatus(resumeId: string | null): UseResumeStatusReturn 
 
     if (!resumeId) {
       setIsLoading(false);
+
       return;
     }
 
@@ -189,6 +202,7 @@ export function useResumeStatus(resumeId: string | null): UseResumeStatusReturn 
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
+
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
         abortControllerRef.current = null;
@@ -208,6 +222,7 @@ export function useResumeStatus(resumeId: string | null): UseResumeStatusReturn 
         : connectionState === "closed"
           ? null
           : SLOW_POLL_INTERVAL_MS;
+
     if (intervalMs === null) return;
 
     intervalRef.current = setInterval(fetchStatus, intervalMs);

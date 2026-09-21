@@ -4,24 +4,39 @@ import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 type ClaimHeaders = { "Content-Type": string; Cookie?: string };
 
 const mockFindFirst = vi.fn();
+
 const mockDbFrom = vi.fn();
+
 const mockDbWhere = vi.fn();
+
 const mockDbLimit = vi.fn();
+
 const mockDbOrderBy = vi.fn();
+
 const mockDbForUpdate = vi.fn().mockResolvedValue(undefined);
+
 let mockArbitratedId = "resume-id";
+
 const mockDbInsertReturning = vi.fn(async () => [
   { id: mockArbitratedId, status: "pending_claim" },
 ]);
+
 const mockDbOnConflictDoUpdate = vi.fn().mockReturnValue({ returning: mockDbInsertReturning });
+
 const mockDbInsertValues = vi.fn((values: { id?: string }) => {
   mockArbitratedId = values.id ?? mockArbitratedId;
+
   return { onConflictDoUpdate: mockDbOnConflictDoUpdate };
 });
+
 const mockDbInsert = vi.fn().mockReturnValue({ values: mockDbInsertValues });
+
 const mockDbUpdateSet = vi.fn();
+
 const mockDbUpdateReturning = vi.fn(async () => [{ id: "resume-id" }]);
+
 const mockDbUpdateWhere = vi.fn().mockReturnValue({ returning: mockDbUpdateReturning });
+
 const mockDbTransaction = vi.fn(async (cb: (tx: typeof mockDb) => unknown) => cb(mockDb));
 
 let mockHandleRows: Array<{ handle: string | null }> = [{ handle: "test-handle" }];
@@ -29,6 +44,7 @@ let mockHandleRows: Array<{ handle: string | null }> = [{ handle: "test-handle" 
 const mockDbSelect = vi.fn().mockImplementation((cols: unknown) => {
   const isHandleQuery =
     cols !== null && typeof cols === "object" && "handle" in (cols as Record<string, unknown>);
+
   if (isHandleQuery) {
     return {
       from: vi.fn().mockReturnValue({
@@ -38,15 +54,20 @@ const mockDbSelect = vi.fn().mockImplementation((cols: unknown) => {
       }),
     };
   }
+
   return { from: mockDbFrom };
 });
 
 mockDbFrom.mockReturnValue({ where: mockDbWhere });
+
 mockDbWhere.mockReturnValue({ orderBy: mockDbOrderBy, limit: mockDbLimit, for: mockDbForUpdate });
+
 mockDbOrderBy.mockReturnValue({ limit: mockDbLimit });
+
 mockDbLimit.mockResolvedValue([]);
 
 const mockDbUpdate = vi.fn().mockReturnValue({ set: mockDbUpdateSet });
+
 mockDbUpdateSet.mockReturnValue({ where: mockDbUpdateWhere });
 
 const mockDb = {
@@ -66,6 +87,7 @@ vi.mock("@/lib/auth/middleware", () => ({
 
 vi.mock("drizzle-orm", async (importOriginal) => {
   const actual = await importOriginal<typeof import("drizzle-orm")>();
+
   return {
     ...actual,
     eq: vi.fn((_col, val) => ({ eq: val })),
@@ -110,7 +132,9 @@ vi.mock("@/lib/db/schema", () => ({
 }));
 
 const mockR2GetAsArrayBuffer = vi.fn();
+
 const mockR2Put = vi.fn().mockResolvedValue(undefined);
+
 const mockR2Delete = vi.fn().mockResolvedValue(undefined);
 
 vi.mock("@/lib/r2", () => ({
@@ -171,10 +195,12 @@ import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
 import { validateRequestSize } from "@/lib/utils/validation";
 
 const mockedAuth = vi.mocked(requireAuthWithUserValidation);
+
 const mockedValidateRequestSize = vi.mocked(validateRequestSize);
 
 function makePdfBuffer(): ArrayBuffer {
   const header = new TextEncoder().encode("%PDF-1.4 fake content");
+
   return header.buffer.slice(header.byteOffset, header.byteOffset + header.byteLength);
 }
 
@@ -232,6 +258,7 @@ function makeClaimRequest(body: UnknownRecord, cookieValue?: string) {
   const headers: ClaimHeaders = {
     "Content-Type": "application/json",
   };
+
   if (cookieValue) headers.Cookie = `pending_upload=${cookieValue}`;
 
   return new Request("http://localhost:3000/api/resume/claim", {
@@ -250,6 +277,7 @@ beforeEach(() => {
   mockDbSelect.mockImplementation((cols: unknown) => {
     const isHandleQuery =
       cols !== null && typeof cols === "object" && "handle" in (cols as Record<string, unknown>);
+
     if (isHandleQuery) {
       return {
         from: vi.fn().mockReturnValue({
@@ -259,6 +287,7 @@ beforeEach(() => {
         }),
       };
     }
+
     return { from: mockDbFrom };
   });
   mockDbFrom.mockReturnValue({ where: mockDbWhere });
@@ -535,6 +564,7 @@ describe("POST /api/resume/claim - cookie security", () => {
     authedAs("user-1");
 
     const { POST } = await import("@/app/api/resume/claim/route");
+
     const response = await POST(
       makeClaimRequest({ key: VALID_TEMP_KEY }, "not-a-valid-cookie-format"),
     );

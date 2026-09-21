@@ -2,13 +2,17 @@ import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { createMockQueryChain } from "@/__tests__/setup/mocks/db.mock";
 
 const mockRequireAdminAuthForApi = vi.fn();
+
 vi.mock("@/lib/auth/admin", () => ({
   requireAdminAuthForApi: (...args: unknown[]) => mockRequireAdminAuthForApi(...args),
 }));
 
 let mockUsersRows: Array<Record<string, unknown>> = [];
+
 let mockResumeRows: Array<Record<string, unknown>> = [];
+
 let mockSiteDataRows: Array<Record<string, unknown>> = [];
+
 let mockCountRows: Array<{ count: number }> = [{ count: 0 }];
 
 const mockDb = {
@@ -16,12 +20,15 @@ const mockDb = {
     if (fields && "count" in fields) {
       return createMockQueryChain(mockCountRows);
     }
+
     if (fields && "previewName" in fields) {
       return createMockQueryChain(mockSiteDataRows);
     }
+
     if (fields && "status" in fields) {
       return createMockQueryChain(mockResumeRows);
     }
+
     return createMockQueryChain(mockUsersRows);
   }),
 };
@@ -72,9 +79,11 @@ describe("GET /api/admin/users", () => {
     const response = await GET(request);
 
     expect(response.status).toBe(200);
+
     const body = (await response.json()) as {
       users: Array<{ id: string; name: string; handle: string }>;
     };
+
     expect(body.users[0]?.name).toBe("Parsed Jane Doe");
   });
 
@@ -101,9 +110,11 @@ describe("GET /api/admin/users", () => {
     const response = await GET(request);
 
     expect(response.status).toBe(200);
+
     const body = (await response.json()) as {
       users: Array<{ id: string; name: string }>;
     };
+
     expect(body.users[0]?.name).toBe("Resume Extracted Name");
   });
 
@@ -130,9 +141,11 @@ describe("GET /api/admin/users", () => {
     const response = await GET(request);
 
     expect(response.status).toBe(200);
+
     const body = (await response.json()) as {
       users: Array<{ id: string; name: string }>;
     };
+
     expect(body.users[0]?.name).toBe("Google OAuth User");
   });
 
@@ -153,9 +166,11 @@ describe("GET /api/admin/users", () => {
     const response = await GET(request);
 
     expect(response.status).toBe(200);
+
     const body = (await response.json()) as {
       users: Array<{ id: string; name: string }>;
     };
+
     expect(body.users[0]?.name).toBe("Unnamed");
   });
 });

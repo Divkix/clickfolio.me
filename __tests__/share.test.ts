@@ -37,6 +37,7 @@ describe("generateWhatsAppShareUrl", () => {
       "Check out my portfolio!",
       "https://clickfolio.me/john",
     );
+
     expect(result).toContain("https://wa.me/?text=");
     expect(result).toContain("Check+out+my+portfolio%21+https%3A%2F%2Fclickfolio.me%2Fjohn");
   });
@@ -46,6 +47,7 @@ describe("generateWhatsAppShareUrl", () => {
       '<img onerror="alert(1)" src=x>',
       "https://example.com",
     );
+
     expect(result).toContain("%3Cimg");
     expect(result).not.toContain("<img");
   });

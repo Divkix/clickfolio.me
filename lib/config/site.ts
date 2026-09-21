@@ -1,5 +1,7 @@
 const name = "clickfolio";
+
 const tld = ".me";
+
 const domain = "clickfolio.me";
 
 export const siteConfig = {

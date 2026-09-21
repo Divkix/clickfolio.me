@@ -17,6 +17,7 @@ export function createMockR2Bucket(initialStore?: MockR2Store) {
   const bucket: MockR2Bucket = {
     get: vi.fn().mockImplementation(async (key: string) => {
       const entry = store.get(key);
+
       if (!entry) return null;
 
       return {
@@ -37,6 +38,7 @@ export function createMockR2Bucket(initialStore?: MockR2Store) {
 
     put: vi.fn().mockImplementation(async (key: string, body: JsonValue, options?: JsonValue) => {
       let arrayBuffer: ArrayBuffer;
+
       if (body instanceof ArrayBuffer) {
         arrayBuffer = body;
       } else if (body instanceof Uint8Array) {
@@ -47,18 +49,23 @@ export function createMockR2Bucket(initialStore?: MockR2Store) {
       } else if (body instanceof ReadableStream) {
         const reader = body.getReader();
         const chunks: Uint8Array[] = [];
+
         for (;;) {
           const { done, value } = await reader.read();
+
           if (done) break;
           chunks.push(value);
         }
+
         const totalLength = chunks.reduce((sum, c) => sum + c.byteLength, 0);
         const merged = new Uint8Array(totalLength);
         let offset = 0;
+
         for (const chunk of chunks) {
           merged.set(chunk, offset);
           offset += chunk.byteLength;
         }
+
         arrayBuffer = merged.buffer;
       } else {
         arrayBuffer = new ArrayBuffer(0);
@@ -70,6 +77,7 @@ export function createMockR2Bucket(initialStore?: MockR2Store) {
             customMetadata?: Record<string, string>;
           }
         | undefined;
+
       store.set(key, {
         body: arrayBuffer,
         metadata: opts?.customMetadata,
@@ -87,7 +95,9 @@ export function createMockR2Bucket(initialStore?: MockR2Store) {
 
     head: vi.fn().mockImplementation(async (key: string) => {
       const entry = store.get(key);
+
       if (!entry) return null;
+
       return {
         size: entry.body.byteLength,
         etag: "mock-etag",
@@ -103,6 +113,7 @@ export function createMockR2Bucket(initialStore?: MockR2Store) {
         size: store.get(key)?.body.byteLength ?? 0,
         etag: "mock-etag",
       }));
+
       return {
         objects: keys,
         truncated: false,

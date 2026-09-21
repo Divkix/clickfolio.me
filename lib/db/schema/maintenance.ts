@@ -13,4 +13,5 @@ export const pendingR2Deletions = pgTable(
 );
 
 export type PendingR2Deletion = typeof pendingR2Deletions.$inferSelect;
+
 export type NewPendingR2Deletion = typeof pendingR2Deletions.$inferInsert;

@@ -32,6 +32,7 @@ export function captureServerEvent<E extends keyof AnalyticsEventMap>(
   properties: AnalyticsEventMap[E],
 ): void {
   const posthog = createPostHogClient();
+
   if (!posthog) return;
 
   const send = (async () => {
@@ -60,6 +61,7 @@ export async function captureServerException(
   properties?: AnalyticsProperties,
 ): Promise<void> {
   const posthog = createPostHogClient();
+
   if (!posthog) return;
 
   try {

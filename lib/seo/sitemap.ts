@@ -8,6 +8,7 @@ import { getDb } from "@/lib/db";
 import { siteData, user } from "@/lib/db/schema";
 import { getPublicSiteUrl } from "@/lib/utils/site-url";
 import { escapeXml } from "@/lib/utils/xml";
+
 const SITEMAP_XMLNS = "http://www.sitemaps.org/schemas/sitemap/0.9";
 
 const notHiddenFromSearch = or(
@@ -16,6 +17,7 @@ const notHiddenFromSearch = or(
 );
 
 export const URLS_PER_SITEMAP = 50000;
+
 const BASE_STATIC_SITEMAP_ENTRY_COUNT = 8;
 
 export const STATIC_SITEMAP_ENTRY_COUNT =
@@ -23,6 +25,7 @@ export const STATIC_SITEMAP_ENTRY_COUNT =
 
 export function getSitemapShardCount(indexableUserCount: number): number {
   const safeUserCount = Math.max(0, indexableUserCount);
+
   return Math.max(1, Math.ceil((STATIC_SITEMAP_ENTRY_COUNT + safeUserCount) / URLS_PER_SITEMAP));
 }
 
@@ -186,15 +189,18 @@ export async function generateSitemapEntries(id: number): Promise<MetadataRoute.
 
 export async function getTotalIndexableUserCount(): Promise<number> {
   const db = getDb(env.HYPERDRIVE);
+
   const result = await db
     .select({ count: sql<number>`count(*)` })
     .from(user)
     .where(and(isNotNull(user.handle), notHiddenFromSearch));
+
   return result[0]?.count ?? 0;
 }
 
 export function buildSitemapIndexXml(shardCount: number): string {
   const baseUrl = getPublicSiteUrl();
+
   const sitemaps = Array.from({ length: shardCount }, (_, i) =>
     [
       `  <sitemap>`,
@@ -214,6 +220,7 @@ function formatLastModified(
 ): string | null {
   if (!lastModified) return null;
   const date = lastModified instanceof Date ? lastModified : new Date(lastModified);
+
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
@@ -226,15 +233,18 @@ export function buildSitemapXml(entries: MetadataRoute.Sitemap): string {
       if (lastModified) {
         parts.push(`    <lastmod>${escapeXml(lastModified)}</lastmod>`);
       }
+
       if (entry.changeFrequency) {
         parts.push(`    <changefreq>${escapeXml(entry.changeFrequency)}</changefreq>`);
       }
+
       if (z.number().safeParse(entry.priority).success) {
         // SAFETY: sitemap URL priority is from validated sitemap entries, zod safeParse above guarantees it is number.
         parts.push(`    <priority>${(entry.priority as number).toFixed(1)}</priority>`);
       }
 
       parts.push("  </url>");
+
       return parts.join("\n");
     })
     .join("\n");

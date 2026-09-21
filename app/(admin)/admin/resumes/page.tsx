@@ -61,12 +61,15 @@ function AdminResumesContent() {
 
   const fetchResumes = useCallback(async () => {
     setLoading(true);
+
     try {
       const params = new URLSearchParams({
         status: statusFilter,
         page: page.toString(),
       });
+
       const res = await fetch(`/api/admin/resumes?${params}`);
+
       if (!res.ok) throw new Error("Failed to fetch");
       const json: ResumesResponse = await res.json();
       setData(json);
@@ -83,23 +86,30 @@ function AdminResumesContent() {
 
   const updateParams = (updates: { status?: StatusFilter; page?: number }) => {
     const params = new URLSearchParams(searchParams);
+
     if (updates.status !== undefined) {
       params.set("status", updates.status);
       params.set("page", "1");
     }
+
     if (updates.page !== undefined) {
       params.set("page", updates.page.toString());
     }
+
     router.push(`/admin/resumes?${params}`);
   };
+
   const handleDismiss = async (id: string) => {
     if (dismissingId) return;
     setDismissingId(id);
+
     try {
       const res = await fetch(`/api/admin/resumes/${id}`, { method: "DELETE" });
+
       if (!res.ok) throw new Error(await res.text());
       setData((prev) => {
         if (!prev) return prev;
+
         return {
           ...prev,
           resumes: prev.resumes.filter((r) => r.id !== id),

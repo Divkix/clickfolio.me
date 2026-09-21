@@ -86,7 +86,9 @@ function NeoBrutalistHero({ content, profile }: TemplateProps) {
           content.projects.length > 1 ? ` + ${content.projects.length - 1} more` : ""
         }`
       : null;
+
   const contactLinks = getContactLinks(content.contact);
+
   return (
     <header className="grid grid-cols-1 lg:grid-cols-12 gap-8">
       <div className="lg:col-span-8 bg-[#FF90E8] border-2 md:border-4 border-black p-8 md:p-16 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] md:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] relative overflow-hidden group">
@@ -159,12 +161,14 @@ function NeoBrutalistHero({ content, profile }: TemplateProps) {
               .filter((link) => link.type !== "location")
               .map((link) => {
                 const isBranded = link.type === "behance" || link.type === "dribbble";
+
                 const brandBg =
                   link.type === "behance"
                     ? "bg-[#1769FF] text-white"
                     : link.type === "dribbble"
                       ? "bg-[#EA4C89] text-white"
                       : "bg-white";
+
                 return (
                   <a
                     key={link.type}
@@ -218,6 +222,7 @@ function NeoBrutalistMarquee({ skills }: { skills: string[] }) {
 
 function SectionHeading({ title, tilt }: { title: string; tilt?: "left" | "right" }) {
   let rotation = "";
+
   if (tilt === "left") {
     rotation = " transform -rotate-1";
   } else if (tilt === "right") {
@@ -258,6 +263,7 @@ export const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
               <div className="grid grid-cols-1 gap-8">
                 {content.experience.map((job) => {
                   const limitedHighlights = job.highlights?.slice(0, 4) ?? [];
+
                   return (
                     <article
                       key={`${job.title}-${job.company}-${job.start_date}`}

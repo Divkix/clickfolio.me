@@ -24,6 +24,7 @@ export function useSession(): UseSessionResult {
 
   const data = useMemo<UseSessionResult["data"]>(() => {
     if (!isSignedIn || !user) return null;
+
     return {
       user: {
         id: user.externalId ?? user.id,

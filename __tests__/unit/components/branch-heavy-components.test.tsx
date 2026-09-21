@@ -130,7 +130,9 @@ const resumeContent: ResumeContent = {
 };
 
 const originalFetch = global.fetch;
+
 const originalWindowOpen = window.open;
+
 const originalNavigatorDescriptors = {
   canShare: Object.getOwnPropertyDescriptor(navigator, "canShare"),
   share: Object.getOwnPropertyDescriptor(navigator, "share"),
@@ -138,10 +140,13 @@ const originalNavigatorDescriptors = {
 
 function restoreNavigatorProperty(property: "canShare" | "share") {
   const descriptor = originalNavigatorDescriptors[property];
+
   if (descriptor) {
     Object.defineProperty(navigator, property, descriptor);
+
     return;
   }
+
   Reflect.deleteProperty(navigator, property);
 }
 
@@ -263,6 +268,7 @@ describe("branch-heavy component interactions", () => {
   describe("TemplatePreviewModal", () => {
     it("returns null for invalid selected indexes and inactive keyboard listeners", () => {
       const onNavigate = vi.fn();
+
       const { container, rerender } = render(
         <TemplatePreviewModal
           isOpen
@@ -271,6 +277,7 @@ describe("branch-heavy component interactions", () => {
           selectedIndex={999}
         />,
       );
+
       expect(container).toBeEmptyDOMElement();
 
       rerender(
@@ -289,6 +296,7 @@ describe("branch-heavy component interactions", () => {
       const user = userEvent.setup();
       const onNavigate = vi.fn();
       const onClose = vi.fn();
+
       const { rerender } = render(
         <TemplatePreviewModal isOpen onClose={onClose} onNavigate={onNavigate} selectedIndex={0} />,
       );
@@ -475,6 +483,7 @@ describe("branch-heavy component interactions", () => {
     it("normalizes comma-separated arrays and syncs external values when not focused", async () => {
       const onChange = vi.fn();
       const onBlur = vi.fn();
+
       const { rerender } = render(
         <CommaArrayInput
           onBlur={onBlur}

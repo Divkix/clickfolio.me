@@ -119,6 +119,7 @@ function ProjectsSection({ items }: { items: TemplateProps["content"]["projects"
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {items.map((project) => {
           const Wrapper = project.url ? "a" : "article";
+
           return (
             <Wrapper
               key={`${project.title}-${project.year ?? ""}-${project.url ?? ""}`}
@@ -331,12 +332,14 @@ export const DesignFolio: React.FC<TemplateProps> = ({ content, profile, isPrevi
                 // SAFETY: link.type is a ContactLinkType; dfIconMap covers phone/location
                 const icon = dfIconMap[link.type as keyof typeof dfIconMap];
                 const isBranded = link.type === "behance" || link.type === "dribbble";
+
                 const brandColor =
                   link.type === "behance"
                     ? "#1769FF"
                     : link.type === "dribbble"
                       ? "#EA4C89"
                       : undefined;
+
                 const brandText =
                   link.type === "behance" ? "Bē" : link.type === "dribbble" ? "Dr" : null;
 

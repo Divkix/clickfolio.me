@@ -4,6 +4,7 @@ import { resumes } from "@/lib/db/schema";
 import type { ResumeStatus } from "@/lib/db/schema/resume";
 import { getStatusView, WAITING_FOR_CACHE_TIMEOUT_MESSAGE } from "@/lib/resume/lifecycle";
 import { createSuccessResponse } from "@/lib/utils/security-headers";
+
 export async function GET(request?: Request) {
   return withUser(
     request,
@@ -40,6 +41,7 @@ export async function GET(request?: Request) {
         totalAttempts: resume.totalAttempts as number,
         lastAttemptError: resume.lastAttemptError as string | null,
       });
+
       // SAFETY: errorMessage is a nullable string column; cast bridges Drizzle type.
       const error = view.isTimedOut
         ? WAITING_FOR_CACHE_TIMEOUT_MESSAGE

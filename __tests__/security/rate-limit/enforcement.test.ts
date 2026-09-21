@@ -6,10 +6,13 @@ const mockInsert = vi.fn().mockReturnValue({
 });
 
 const mockSelect = vi.fn().mockReturnThis();
+
 const mockFrom = vi.fn().mockReturnThis();
+
 const mockWhere = vi.fn().mockReturnThis();
 
 let rawInsertCount = 1;
+
 const mockRawClient = Object.assign(
   vi.fn((_strings: TemplateStringsArray, ..._values: unknown[]) =>
     Promise.resolve({ count: rawInsertCount }),
@@ -19,9 +22,11 @@ const mockRawClient = Object.assign(
 
 function lastRawSqlText(): string {
   const lastCall = mockRawClient.mock.calls.at(-1);
+
   if (!lastCall) {
     throw new Error("Expected mockRawClient to have recorded a tagged-template call");
   }
+
   return lastCall[0].join("?");
 }
 
@@ -222,6 +227,7 @@ describe("Rate Limit Security Enforcement", () => {
       mockSelect.mockImplementation(() => {
         callCount++;
         const currentHourly = Math.min(callCount - 1, 10);
+
         return {
           from: vi.fn().mockReturnValue({
             where: vi
@@ -234,8 +240,10 @@ describe("Rate Limit Security Enforcement", () => {
       const { checkIPRateLimit } = await import("@/lib/rate-limit/ip");
 
       let allowedCount = 0;
+
       for (const ip of requests) {
         const result = await checkIPRateLimit(ip);
+
         if (result.allowed) allowedCount++;
       }
 

@@ -7,11 +7,13 @@ export function pickFirstValue(obj: UnknownRecord, keys: string[]): JsonValue | 
       return obj[key];
     }
   }
+
   return undefined;
 }
 
 export function coerceRecord(value: JsonValue): UnknownRecord | null {
   if (!value || Array.isArray(value) || !(value instanceof Object)) return null;
+
   // SAFETY: object guard above ensures value is a non-null plain object; UnknownRecord is the safe JSON object representation for untrusted AI records.
   return value as UnknownRecord;
 }
@@ -20,28 +22,37 @@ export function coerceArray(value: JsonValue): JsonValue[] | null {
   // SAFETY: Array.isArray guard ensures value is an array; JsonValue[] is the safe JSON array representation for untrusted AI arrays.
   return Array.isArray(value) ? (value as JsonValue[]) : null;
 }
+
 function normalizeExperienceItem(value: JsonValue): UnknownRecord {
   const obj = coerceRecord(value);
+
   if (!obj) return {};
   const result = { ...obj };
+
   if (result.title === undefined) {
     result.title = pickFirstValue(obj, ["title", "role", "position", "job_title", "jobTitle"]);
   }
+
   if (result.company === undefined) {
     result.company = pickFirstValue(obj, ["company", "employer", "organization", "org"]);
   }
+
   if (result.location === undefined) {
     result.location = pickFirstValue(obj, ["location", "city", "city_state", "cityState"]);
   }
+
   if (result.start_date === undefined) {
     result.start_date = pickFirstValue(obj, ["start_date", "startDate", "from"]);
   }
+
   if (result.end_date === undefined) {
     result.end_date = pickFirstValue(obj, ["end_date", "endDate", "to"]);
   }
+
   if (result.description === undefined) {
     result.description = pickFirstValue(obj, ["description", "summary", "details"]);
   }
+
   if (result.highlights === undefined) {
     result.highlights = pickFirstValue(obj, [
       "highlights",
@@ -51,22 +62,28 @@ function normalizeExperienceItem(value: JsonValue): UnknownRecord {
       "achievements",
     ]);
   }
+
   return result;
 }
 
 function normalizeEducationItem(value: JsonValue): UnknownRecord {
   const obj = coerceRecord(value);
+
   if (!obj) return {};
   const result = { ...obj };
+
   if (result.degree === undefined) {
     result.degree = pickFirstValue(obj, ["degree", "program", "field", "major"]);
   }
+
   if (result.institution === undefined) {
     result.institution = pickFirstValue(obj, ["institution", "school", "university", "college"]);
   }
+
   if (result.location === undefined) {
     result.location = pickFirstValue(obj, ["location", "city", "city_state", "cityState"]);
   }
+
   if (result.graduation_date === undefined) {
     result.graduation_date = pickFirstValue(obj, [
       "graduation_date",
@@ -76,65 +93,85 @@ function normalizeEducationItem(value: JsonValue): UnknownRecord {
       "year",
     ]);
   }
+
   if (result.gpa === undefined) {
     result.gpa = pickFirstValue(obj, ["gpa", "grade"]);
   }
+
   return result;
 }
 
 function normalizeCertificationItem(value: JsonValue): UnknownRecord {
   const obj = coerceRecord(value);
+
   if (!obj) {
     if (z.string().safeParse(value).success) {
       // SAFETY: zod safeParse above guarantees value is string.
       return { name: value as string, issuer: "" };
     }
+
     return {};
   }
+
   const result = { ...obj };
+
   if (result.name === undefined) {
     result.name = pickFirstValue(obj, ["name", "title", "certification"]);
   }
+
   if (result.issuer === undefined) {
     result.issuer = pickFirstValue(obj, ["issuer", "organization", "org", "authority"]);
   }
+
   if (result.date === undefined) {
     result.date = pickFirstValue(obj, ["date", "issued", "issued_date", "issuedDate", "year"]);
   }
+
   if (result.url === undefined) {
     result.url = pickFirstValue(obj, ["url", "link"]);
   }
+
   return result;
 }
 
 function normalizeProjectItem(value: JsonValue): UnknownRecord {
   const obj = coerceRecord(value);
+
   if (!obj) {
     if (z.string().safeParse(value).success) {
       // SAFETY: zod safeParse above guarantees value is string.
       return { title: value as string, description: "" };
     }
+
     return {};
   }
+
   const result = { ...obj };
+
   if (result.title === undefined) {
     result.title = pickFirstValue(obj, ["title", "name", "project"]);
   }
+
   if (result.description === undefined) {
     result.description = pickFirstValue(obj, ["description", "summary", "details"]);
   }
+
   if (result.year === undefined) {
     result.year = pickFirstValue(obj, ["year", "date", "date_range", "dateRange"]);
   }
+
   if (result.technologies === undefined) {
     result.technologies = pickFirstValue(obj, ["technologies", "tech_stack", "techStack"]);
   }
+
   if (result.url === undefined) {
     result.url = pickFirstValue(obj, ["url", "link", "demo"]);
   }
+
   if (result.image_url === undefined) {
     result.image_url = pickFirstValue(obj, ["image_url", "imageUrl", "image", "thumbnail"]);
   }
+
   return result;
 }
 
@@ -142,12 +179,15 @@ export function normalizeAiKeys(data: UnknownRecord): UnknownRecord {
   const result = { ...data };
 
   const fullName = pickFirstValue(result, ["full_name", "fullName", "fullname", "name"]);
+
   if (fullName !== undefined) result.full_name = fullName;
 
   const headline = pickFirstValue(result, ["headline", "title", "role"]);
+
   if (headline !== undefined && result.headline === undefined) result.headline = headline;
 
   const summary = pickFirstValue(result, ["summary", "profile", "objective"]);
+
   if (summary !== undefined && result.summary === undefined) result.summary = summary;
 
   const contactSource =
@@ -160,11 +200,14 @@ export function normalizeAiKeys(data: UnknownRecord): UnknownRecord {
         "contact_details",
       ]),
     ) ?? null;
+
   if (contactSource) {
     const contact = { ...contactSource };
+
     if (contact.email === undefined) {
       contact.email = pickFirstValue(contactSource, ["email", "e-mail", "mail"]);
     }
+
     if (contact.phone === undefined) {
       contact.phone = pickFirstValue(contactSource, [
         "phone",
@@ -175,6 +218,7 @@ export function normalizeAiKeys(data: UnknownRecord): UnknownRecord {
         "mobilePhone",
       ]);
     }
+
     if (contact.location === undefined) {
       contact.location = pickFirstValue(contactSource, [
         "location",
@@ -184,6 +228,7 @@ export function normalizeAiKeys(data: UnknownRecord): UnknownRecord {
         "cityState",
       ]);
     }
+
     if (contact.linkedin === undefined) {
       contact.linkedin = pickFirstValue(contactSource, [
         "linkedin",
@@ -192,6 +237,7 @@ export function normalizeAiKeys(data: UnknownRecord): UnknownRecord {
         "linkedinUrl",
       ]);
     }
+
     if (contact.github === undefined) {
       contact.github = pickFirstValue(contactSource, [
         "github",
@@ -200,15 +246,19 @@ export function normalizeAiKeys(data: UnknownRecord): UnknownRecord {
         "githubUrl",
       ]);
     }
+
     if (contact.website === undefined) {
       contact.website = pickFirstValue(contactSource, ["website", "portfolio", "site", "url"]);
     }
+
     if (contact.behance === undefined) {
       contact.behance = pickFirstValue(contactSource, ["behance"]);
     }
+
     if (contact.dribbble === undefined) {
       contact.dribbble = pickFirstValue(contactSource, ["dribbble", "dribble"]);
     }
+
     result.contact = contact;
   }
 
@@ -219,7 +269,9 @@ export function normalizeAiKeys(data: UnknownRecord): UnknownRecord {
     "employment",
     "positions",
   ]);
+
   const experienceArray = coerceArray(experienceSource);
+
   if (experienceArray) {
     result.experience = experienceArray.map((item) => normalizeExperienceItem(item));
   }
@@ -230,7 +282,9 @@ export function normalizeAiKeys(data: UnknownRecord): UnknownRecord {
     "educationHistory",
     "studies",
   ]);
+
   const educationArray = coerceArray(educationSource);
+
   if (educationArray) {
     result.education = educationArray.map((item) => normalizeEducationItem(item));
   }
@@ -242,7 +296,9 @@ export function normalizeAiKeys(data: UnknownRecord): UnknownRecord {
     "technical_skills",
     "technicalSkills",
   ]);
+
   const skillsArray = coerceArray(skillsSource);
+
   if (skillsArray) {
     if (skillsArray.every((item) => z.string().safeParse(item).success)) {
       // SAFETY: skillsArray.every guard above ensures every element is string; string[] is the safe type for AI skill items.
@@ -257,7 +313,9 @@ export function normalizeAiKeys(data: UnknownRecord): UnknownRecord {
     "certificates",
     "licenses",
   ]);
+
   const certificationsArray = coerceArray(certificationsSource);
+
   if (certificationsArray) {
     result.certifications = certificationsArray.map((item) => normalizeCertificationItem(item));
   }
@@ -270,7 +328,9 @@ export function normalizeAiKeys(data: UnknownRecord): UnknownRecord {
     "personal_projects",
     "personalProjects",
   ]);
+
   const projectsArray = coerceArray(projectsSource);
+
   if (projectsArray) {
     result.projects = projectsArray.map((item) => normalizeProjectItem(item));
   }
@@ -284,6 +344,7 @@ export function normalizeAiKeys(data: UnknownRecord): UnknownRecord {
     "career_level",
     "careerLevel",
   ]);
+
   if (professionalLevel !== undefined) result.professional_level = professionalLevel;
 
   return result;

@@ -8,6 +8,7 @@ const analyticsMocks = vi.hoisted(() => ({
 vi.mock("@/lib/analytics/client", () => analyticsMocks);
 
 const originalConsoleError = console.error;
+
 const originalEnv = process.env.NODE_ENV;
 
 import ProtectedError from "@/app/(protected)/error";

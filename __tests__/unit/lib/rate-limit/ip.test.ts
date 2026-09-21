@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test"
 import { createMockDb } from "@/__tests__/setup/mocks/db.mock";
 import type { JsonValue } from "@/lib/types/json";
 import { checkHandleRateLimit, checkIPRateLimit, getClientIP } from "@/lib/rate-limit/ip";
+
 vi.mock("cloudflare:workers", () => ({
   env: { HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" } },
 }));
@@ -17,6 +18,7 @@ vi.mock("@/lib/utils/environment", () => ({
 
 vi.mock("drizzle-orm", async (importOriginal) => {
   const actual = await importOriginal<typeof import("drizzle-orm")>();
+
   return {
     ...actual,
     and: vi.fn((...conditions: JsonValue[]) => ({ conditions, type: "and" })),

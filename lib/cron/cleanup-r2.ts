@@ -1,8 +1,11 @@
 import type { Database } from "@/lib/db";
 import type { UnknownRecord } from "@/lib/types/json";
 import { log } from "@/lib/utils/log";
+
 const TEMP_PREFIX = "temp/";
+
 const TEMP_CUTOFF_HOURS = 24;
+
 const LIST_PAGE_SIZE = 1000;
 
 const R2_DELETE_CHUNK_SIZE = 10;
@@ -38,6 +41,7 @@ export async function performR2Cleanup(binding: R2Bucket): Promise<R2CleanupResu
 
     const oldObjects = listResult.objects.filter((obj) => {
       const uploadTime = new Date(obj.uploaded).getTime();
+
       return uploadTime <= cutoffTime;
     });
 
@@ -108,6 +112,7 @@ export async function retryPendingR2Deletions(
       FOR UPDATE SKIP LOCKED
       LIMIT ${PENDING_DELETIONS_BATCH}
     `;
+
     retried = rows.length;
 
     for (const row of rows) {
@@ -139,7 +144,9 @@ export async function retryPendingR2Deletions(
     SELECT COUNT(*)::int AS count FROM pending_r2_deletions
     WHERE attempts >= ${PENDING_DELETIONS_MAX_ATTEMPTS}
   `;
+
   const skipped = cappedRows[0]?.count ?? 0;
+
   if (skipped > 0) {
     log("error", "pending R2 deletions reached max attempts; skipping for manual review", {
       skipped,

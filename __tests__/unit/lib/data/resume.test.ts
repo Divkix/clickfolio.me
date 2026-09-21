@@ -3,6 +3,7 @@ import type { JsonValue } from "@/lib/types/json";
 
 vi.mock("react", async (importOriginal) => {
   const actual = await importOriginal<typeof import("react")>();
+
   return {
     ...actual,
     cache: vi.fn((fn: (...args: JsonValue[]) => JsonValue) => fn),
@@ -16,6 +17,7 @@ vi.mock("cloudflare:workers", () => ({
 }));
 
 const mockUserFindFirst = vi.fn();
+
 const mockSelectChain = {
   from: vi.fn(),
   where: vi.fn(),
@@ -26,10 +28,15 @@ const mockSelectChain = {
 };
 
 mockSelectChain.from.mockReturnValue(mockSelectChain);
+
 mockSelectChain.where.mockReturnValue(mockSelectChain);
+
 mockSelectChain.leftJoin.mockReturnValue(mockSelectChain);
+
 mockSelectChain.orderBy.mockReturnValue(mockSelectChain);
+
 mockSelectChain.limit.mockReturnValue(mockSelectChain);
+
 mockSelectChain.offset.mockResolvedValue([]);
 
 const mockDb = {
@@ -287,6 +294,7 @@ describe("getRelatedProfiles - bounded random window", () => {
 
     expect(result.length).toBeLessThanOrEqual(3);
     const validHandles = new Set(["alice", "bob", "carol", "dave", "eve"]);
+
     for (const r of result) {
       expect(validHandles.has(r.handle)).toBe(true);
     }

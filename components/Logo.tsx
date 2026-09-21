@@ -8,6 +8,7 @@ interface LogoProps {
 }
 
 const iconSizes = { xs: 18, sm: 24, md: 30 } as const satisfies Record<LogoSize, number>;
+
 const textSizes = { xs: "text-base", sm: "text-lg", md: "text-xl" } as const satisfies Record<
   LogoSize,
   string

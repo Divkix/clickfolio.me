@@ -8,6 +8,7 @@ import {
 } from "@/lib/utils/sanitization";
 
 const LENIENT_EMAIL_REGEX = /^[^\s@]+@[^\s@]+$/;
+
 const STRICT_EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 const lenientEmailField = z
@@ -103,6 +104,7 @@ const createContactSchema = (emailField: "lenient" | "strict") =>
   });
 
 const contactSchemaLenient = createContactSchema("lenient");
+
 const contactSchemaStrict = createContactSchema("strict");
 
 const experienceSchema = z.object({
@@ -372,6 +374,7 @@ const createResumeContentSchema = (contactSchema: ReturnType<typeof createContac
   });
 
 export const resumeContentSchema = createResumeContentSchema(contactSchemaLenient);
+
 export const resumeContentSchemaStrict = createResumeContentSchema(contactSchemaStrict);
 
 export type ResumeContentFormData = z.infer<typeof resumeContentSchema>;

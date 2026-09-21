@@ -17,6 +17,7 @@ import { buildPublicPageMetadata } from "@/lib/seo/page-metadata";
 export const revalidate = 86400;
 
 const faqTitle = `FAQ - ${siteConfig.fullName}`;
+
 const faqDescription = `Answers to common questions about ${siteConfig.fullName}: how the AI resume parsing works, pricing, privacy, customization, and more.`;
 
 export const metadata: Metadata = buildPublicPageMetadata({

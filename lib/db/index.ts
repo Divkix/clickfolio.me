@@ -14,6 +14,7 @@ const POSTGRES_OPTIONS = {
 
 export function getDb(hyperdrive: Hyperdrive): Database {
   const client = postgres(hyperdrive.connectionString, POSTGRES_OPTIONS);
+
   // SAFETY: drizzle(client, { schema }) returns PostgresJsDatabase whose runtime
   // $client is the postgres-js Sql instance; the Database type adds that explicitly.
   return drizzle(client, { schema }) as Database;

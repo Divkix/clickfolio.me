@@ -28,6 +28,7 @@ export async function GET(request: Request) {
       }
 
       const currentHandle = dbUser.handle;
+
       if (!currentHandle) {
         return createSuccessResponse({
           totalViews: 0,
@@ -55,11 +56,13 @@ export async function GET(request: Request) {
             .limit(3);
 
           const set = new Set([currentHandle]);
+
           for (const row of rows) {
             if (row.oldHandle) {
               set.add(row.oldHandle);
             }
           }
+
           return set;
         };
 
@@ -124,6 +127,7 @@ export async function GET(request: Request) {
         // This is an acceptable trade-off since Umami doesn't support OR URL filters.
         let totalViews = 0;
         let uniqueVisitors = 0;
+
         for (const s of statsResults) {
           totalViews += s.pageviews ?? 0;
           uniqueVisitors += s.visitors ?? 0;
@@ -131,11 +135,13 @@ export async function GET(request: Request) {
 
         const dailyMap = new Map<string, number>();
         const dailyUniquesMap = new Map<string, number>();
+
         for (const pv of pageviewsResults) {
           for (const entry of pv.pageviews) {
             const date = entry.x.slice(0, 10);
             dailyMap.set(date, (dailyMap.get(date) ?? 0) + entry.y);
           }
+
           for (const entry of pv.sessions) {
             const date = entry.x.slice(0, 10);
             dailyUniquesMap.set(date, (dailyUniquesMap.get(date) ?? 0) + entry.y);
@@ -143,6 +149,7 @@ export async function GET(request: Request) {
         }
 
         const referrerMap = new Map<string, number>();
+
         for (const metrics of referrerResults) {
           for (const m of metrics) {
             if (m.x) {
@@ -152,6 +159,7 @@ export async function GET(request: Request) {
         }
 
         const deviceMap = new Map<string, number>();
+
         for (const metrics of deviceResults) {
           for (const m of metrics) {
             const key = m.x || "unknown";
@@ -160,6 +168,7 @@ export async function GET(request: Request) {
         }
 
         const countryMap = new Map<string, number>();
+
         for (const metrics of countryResults) {
           for (const m of metrics) {
             const key = m.x || "unknown";
@@ -200,9 +209,11 @@ export async function GET(request: Request) {
           countryBreakdown,
           period,
         });
+
         // A handle change landing during the fan-out invalidates the aggregate:
         // never let the browser replay a response built for the old handle set.
         const freshHandleSet = await loadHandleSet();
+
         const handleSetStable =
           freshHandleSet.size === handleSet.size &&
           [...handleSet].every((handle) => freshHandleSet.has(handle));
@@ -211,9 +222,11 @@ export async function GET(request: Request) {
           "Cache-Control",
           handleSetStable ? "private, max-age=60, stale-while-revalidate=120" : "private, no-store",
         );
+
         return response;
       } catch (err) {
         console.error("[analytics/stats] Umami API error:", err);
+
         return createErrorResponse(
           "Analytics temporarily unavailable",
           ERROR_CODES.INTERNAL_ERROR,

@@ -15,6 +15,7 @@ import {
 
 function handleFormatErrorMessage(error: ZodError): string {
   const issues = error.issues;
+
   const failedPatterns = issues.flatMap((issue) =>
     issue.code === "invalid_format" && typeof issue.pattern === "string"
       ? [issue.pattern.replace(/^\//, "").replace(/\/$/, "")]
@@ -24,15 +25,19 @@ function handleFormatErrorMessage(error: ZodError): string {
   if (issues.some((issue) => issue.code === "too_small")) {
     return "Handle must be at least 3 characters";
   }
+
   if (issues.some((issue) => issue.code === "too_big")) {
     return "Handle must be at most 30 characters";
   }
+
   if (failedPatterns.includes("^[a-z0-9-]+$")) {
     return "Handle can only contain lowercase letters, numbers, and hyphens";
   }
+
   if (failedPatterns.includes("^[a-z0-9]") || failedPatterns.includes("[a-z0-9]$")) {
     return "Handle cannot start or end with a hyphen";
   }
+
   return "Handle cannot contain consecutive hyphens";
 }
 
@@ -48,6 +53,7 @@ export async function GET(request: Request) {
     const normalizedHandle = handle.toLowerCase().trim();
 
     const parsedHandle = handleSchema.safeParse(normalizedHandle);
+
     if (!parsedHandle.success) {
       return createErrorResponse(
         handleFormatErrorMessage(parsedHandle.error),
@@ -84,6 +90,7 @@ export async function GET(request: Request) {
     }
 
     let currentUserId: string | null = null;
+
     try {
       const session = await getServerSession();
       currentUserId = session?.user?.id ?? null;
@@ -96,6 +103,7 @@ export async function GET(request: Request) {
     return createSuccessResponse({ available: false });
   } catch (err) {
     console.error("Error checking handle availability:", err);
+
     return createErrorResponse(
       "An unexpected error occurred. Please try again.",
       ERROR_CODES.INTERNAL_ERROR,

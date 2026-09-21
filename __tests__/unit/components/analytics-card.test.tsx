@@ -26,6 +26,7 @@ vi.mock("uplot", () => {
     ) {
       this.data = data;
       el.appendChild(this.over);
+
       for (const plugin of opts.plugins ?? []) {
         plugin.hooks?.init?.(this);
         plugin.hooks?.setCursor?.(this);
@@ -51,6 +52,7 @@ vi.mock("@/components/dashboard/MilestoneToasts", () => ({
 }));
 
 const originalResizeObserver = globalThis.ResizeObserver;
+
 const originalFetch = globalThis.fetch;
 
 function installResizeObserver(width = 420) {
@@ -106,6 +108,7 @@ describe("AnalyticsCard", () => {
     } else {
       globalThis.ResizeObserver = originalResizeObserver;
     }
+
     if (originalFetch === undefined) {
       delete (globalThis as { fetch?: typeof fetch }).fetch;
     } else {

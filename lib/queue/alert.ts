@@ -35,6 +35,7 @@ export async function sendAlert(
 
     case "webhook": {
       const webhookUrl = env.ALERT_WEBHOOK_URL;
+
       if (webhookUrl) {
         try {
           await fetch(webhookUrl, {
@@ -49,6 +50,7 @@ export async function sendAlert(
           log("error", "webhook alert failed", { error: String(error) });
         }
       }
+
       break;
     }
   }

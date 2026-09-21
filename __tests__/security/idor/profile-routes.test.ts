@@ -45,33 +45,44 @@ const createQueryChain = (): MockQueryChain => {
     then: vi.fn(
       (resolve: (value: JsonValue[]) => JsonValue, reject?: (reason: unknown) => unknown) => {
         const next = selectResults.shift();
+
         if (next === undefined) {
           const error = new Error("No select result queued");
+
           return reject ? Promise.reject(reject(error)) : Promise.reject(error);
         }
+
         return Promise.resolve(resolve(next));
       },
     ),
   };
+
   return chain;
 };
 
 const mockSelect = vi.fn(() => createQueryChain());
 
 let txStatementCount = 0;
+
 const txValues: UnknownRecord[] = [];
+
 const txSelectResults: JsonValue[][] = [];
+
 const txReturningResults: JsonValue[][] = [];
 
 function nextTxSelect(): JsonValue[] {
   const next = txSelectResults.shift();
+
   if (next === undefined) throw new Error("No tx select result queued");
+
   return next;
 }
 
 function nextTxReturning(): JsonValue {
   const next = txReturningResults.shift();
+
   if (next === undefined) throw new Error("No tx returning result queued");
+
   return next as JsonValue;
 }
 
@@ -80,6 +91,7 @@ function makeTxSelectChain(): MockTxChain {
   chain.then = vi.fn((resolve: (value: never) => unknown) =>
     Promise.resolve(resolve(nextTxSelect() as never)),
   );
+
   return chain;
 }
 
@@ -93,6 +105,7 @@ function makeTxBaseChain(): MockTxChain {
     for: vi.fn(() => chain),
     values: vi.fn((rows: UnknownRecord) => {
       txValues.push(rows);
+
       return chain;
     }),
     onConflictDoNothing: vi.fn(() => chain),
@@ -100,9 +113,11 @@ function makeTxBaseChain(): MockTxChain {
     returning: vi.fn(() => makeTxValueChain(nextTxReturning())),
     then: vi.fn((resolve: (value: undefined) => unknown) => {
       txStatementCount += 1;
+
       return Promise.resolve(resolve(undefined));
     }),
   };
+
   return chain as unknown as MockTxChain;
 }
 
@@ -111,18 +126,22 @@ function makeTxValueChain(value: JsonValue): MockTxChain {
   chain.then = vi.fn((resolve: (result: never) => unknown) =>
     Promise.resolve(resolve(value as never)),
   );
+
   return chain;
 }
 
 const createTxChain = (): MockTxChain => makeTxBaseChain();
 
 const txUpdate = vi.fn(() => createTxChain());
+
 const txInsert = vi.fn(() => createTxChain());
+
 const txSelect = vi.fn(() => makeTxSelectChain());
 
 const mockTransaction = vi.fn(async (callback: (tx: unknown) => Promise<unknown>) => {
   txStatementCount = 0;
   txValues.length = 0;
+
   return callback({ update: txUpdate, insert: txInsert, select: txSelect });
 });
 
@@ -147,6 +166,7 @@ vi.mock("@/lib/auth/middleware", () => ({
 
 vi.mock("drizzle-orm", async (importOriginal) => {
   const actual = await importOriginal<typeof import("drizzle-orm")>();
+
   return {
     ...actual,
     eq: vi.fn((_col, val) => val),
@@ -232,6 +252,7 @@ vi.mock("@/lib/rate-limit/handle-validation", () => ({
 import { requireAuthWithMessage, requireAuthWithUserValidation } from "@/lib/auth/middleware";
 
 const mockedAuth = vi.mocked(requireAuthWithUserValidation);
+
 const mockedAuthMessage = vi.mocked(requireAuthWithMessage);
 
 function authedAs(userId: string, _overrides: UnknownRecord = {}) {
@@ -295,6 +316,7 @@ describe("IDOR - Profile Routes Security", () => {
       authedAs("user-a");
 
       const { PUT } = await import("@/app/api/profile/privacy/route");
+
       const request = new Request("http://localhost:3000/api/profile/privacy", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -305,6 +327,7 @@ describe("IDOR - Profile Routes Security", () => {
           show_in_directory: true,
         }),
       });
+
       const response = await PUT(request);
 
       expect([200, 401]).toContain(response.status);
@@ -314,6 +337,7 @@ describe("IDOR - Profile Routes Security", () => {
       authedAs("user-a");
 
       const { PUT } = await import("@/app/api/profile/privacy/route");
+
       const request = new Request("http://localhost:3000/api/profile/privacy", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -325,6 +349,7 @@ describe("IDOR - Profile Routes Security", () => {
           show_in_directory: true,
         }),
       });
+
       await PUT(request);
 
       expect(mockUpdate).toHaveBeenCalled();
@@ -340,6 +365,7 @@ describe("IDOR - Profile Routes Security", () => {
       });
 
       const { PUT } = await import("@/app/api/profile/privacy/route");
+
       const request = new Request("http://localhost:3000/api/profile/privacy", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -347,6 +373,7 @@ describe("IDOR - Profile Routes Security", () => {
           show_phone: true,
         }),
       });
+
       const response = await PUT(request);
 
       expect(response.status).toBe(401);
@@ -361,11 +388,13 @@ describe("IDOR - Profile Routes Security", () => {
       vi.mocked(isHandleTaken).mockResolvedValueOnce(true);
 
       const { PUT } = await import("@/app/api/profile/handle/route");
+
       const request = new Request("http://localhost:3000/api/profile/handle", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ handle: "wanted-handle" }),
       });
+
       const response = await PUT(request);
 
       expect(response.status).toBe(409);
@@ -379,6 +408,7 @@ describe("IDOR - Profile Routes Security", () => {
       txReturningResults.push([{ id: "user-a" }]);
 
       const { PUT } = await import("@/app/api/profile/handle/route");
+
       const request = new Request("http://localhost:3000/api/profile/handle", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -387,6 +417,7 @@ describe("IDOR - Profile Routes Security", () => {
           user_id: "user-b",
         }),
       });
+
       await PUT(request);
 
       for (const row of txValues) {
@@ -401,11 +432,13 @@ describe("IDOR - Profile Routes Security", () => {
       txSelectResults.push([{ count: 3 }]);
 
       const { PUT } = await import("@/app/api/profile/handle/route");
+
       const request = new Request("http://localhost:3000/api/profile/handle", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ handle: "new-handle" }),
       });
+
       const response = await PUT(request);
 
       expect(response.status).toBe(429);
@@ -424,11 +457,13 @@ describe("IDOR - Profile Routes Security", () => {
       );
 
       const { PUT } = await import("@/app/api/profile/handle/route");
+
       const request = new Request("http://localhost:3000/api/profile/handle", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ handle: "taken-handle" }),
       });
+
       const response = await PUT(request);
 
       expect(response.status).toBe(409);
@@ -522,6 +557,7 @@ describe("IDOR - Profile Routes Security", () => {
 
       if (response.status === 200) {
         const body = (await response.json()) as { id?: string };
+
         if (body.id) {
           expect(body.id).toBe("user-a");
         }
@@ -538,6 +574,7 @@ describe("IDOR - Profile Routes Security", () => {
 
       if (response.status === 200) {
         const body = (await response.json()) as { referral_code?: string };
+
         if (body.referral_code) {
           expect(body.referral_code).toBe("USERA123");
         }
@@ -569,11 +606,13 @@ describe("Deleted User Profile Access", () => {
     } as never);
 
     const { PUT } = await import("@/app/api/profile/privacy/route");
+
     const request = new Request("http://localhost:3000/api/profile/privacy", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ show_phone: true }),
     });
+
     const response = await PUT(request);
 
     expect(response.status).toBe(404);
@@ -585,6 +624,7 @@ describe("Profile Update Security", () => {
     authedAs("user-a");
 
     const { PUT } = await import("@/app/api/profile/privacy/route");
+
     const request = new Request("http://localhost:3000/api/profile/privacy", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -593,6 +633,7 @@ describe("Profile Update Security", () => {
         show_phone: true,
       }),
     });
+
     await PUT(request);
   });
 
@@ -600,6 +641,7 @@ describe("Profile Update Security", () => {
     authedAs("user-a");
 
     const { PUT } = await import("@/app/api/profile/handle/route");
+
     const request = new Request("http://localhost:3000/api/profile/handle", {
       method: "PUT",
       headers: {
@@ -607,6 +649,7 @@ describe("Profile Update Security", () => {
       },
       body: JSON.stringify({ handle: "new-handle" }),
     });
+
     const response = await PUT(request);
 
     expect([401, 403, 409, 500]).toContain(response.status);
@@ -627,11 +670,13 @@ describe("UUID Manipulation", () => {
       authedAs(id);
 
       const { PUT } = await import("@/app/api/profile/privacy/route");
+
       const request = new Request("http://localhost:3000/api/profile/privacy", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ show_phone: true }),
       });
+
       const response = await PUT(request);
 
       expect([200, 400, 401, 404]).toContain(response.status);

@@ -21,6 +21,7 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
 
   // SAFETY: pathname is a string route path; page titles map covers admin routes with fallback to "Admin".
   const title = PAGE_TITLES[pathname as keyof typeof PAGE_TITLES] || "Admin";
+
   const handleRefresh = () => {
     router.refresh();
   };

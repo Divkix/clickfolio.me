@@ -1,8 +1,11 @@
 const WEBSITE_ID = process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID ?? "";
+
 const TOKEN_TTL_MS = 60 * 60 * 1000;
+
 const FETCH_TIMEOUT_MS = 5_000;
 
 let cachedToken: string | null = null;
+
 let tokenTimestamp = 0;
 
 export interface UmamiStats {
@@ -87,6 +90,7 @@ export async function getUmamiToken(env: CloudflareEnv): Promise<string> {
     const data = (await res.json()) as { token: string };
     cachedToken = data.token;
     tokenTimestamp = Date.now();
+
     return cachedToken;
   } finally {
     clearTimeout(timeout);
@@ -119,6 +123,7 @@ async function umamiGet<T>(
     if (res.status === 401 && retry) {
       clearTokenCache();
       clearTimeout(timeout);
+
       return umamiGet<T>(env, path, params, false);
     }
 
@@ -138,6 +143,7 @@ export async function getStats(env: CloudflareEnv, opts: StatsOptions): Promise<
     startAt: opts.startAt.toString(),
     endAt: opts.endAt.toString(),
   });
+
   appendPathFilter(params, opts.path);
 
   return umamiGet<UmamiStats>(env, `/api/websites/${WEBSITE_ID}/stats`, params);
@@ -153,6 +159,7 @@ export async function getPageviews(
     unit: opts.unit,
     timezone: opts.timezone,
   });
+
   appendPathFilter(params, opts.path);
 
   return umamiGet<UmamiPageviews>(env, `/api/websites/${WEBSITE_ID}/pageviews`, params);
@@ -166,9 +173,11 @@ export async function getMetrics(env: CloudflareEnv, opts: MetricsOptions): Prom
     unit: opts.unit,
     timezone: opts.timezone,
   });
+
   if (opts.limit) {
     params.set("limit", opts.limit.toString());
   }
+
   appendPathFilter(params, opts.path);
 
   return umamiGet<UmamiMetric[]>(env, `/api/websites/${WEBSITE_ID}/metrics`, params);

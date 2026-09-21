@@ -1,4 +1,5 @@
 export const COOKIE_NAME = "pending_upload";
+
 export const COOKIE_MAX_AGE = 30 * 60;
 
 const encoder = new TextEncoder();
@@ -11,6 +12,7 @@ export function clearKeyCache(): void {
 
 async function getCryptoKey(secret: string): Promise<CryptoKey> {
   const cached = keyCache.get(secret);
+
   if (cached) return cached;
 
   const key = await crypto.subtle.importKey(
@@ -20,13 +22,16 @@ async function getCryptoKey(secret: string): Promise<CryptoKey> {
     false,
     ["sign"],
   );
+
   keyCache.set(secret, key);
+
   return key;
 }
 
 async function signValue(value: string, secret: string): Promise<string> {
   const key = await getCryptoKey(secret);
   const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(value));
+
   return btoa(String.fromCharCode(...new Uint8Array(signature)));
 }
 
@@ -36,9 +41,11 @@ async function verifySignature(value: string, signature: string, secret: string)
   if (signature.length !== expected.length) return false;
 
   let result = 0;
+
   for (let i = 0; i < signature.length; i++) {
     result |= signature.charCodeAt(i) ^ expected.charCodeAt(i);
   }
+
   return result === 0;
 }
 
@@ -46,6 +53,7 @@ export async function createSignedCookieValue(tempKey: string, secret: string): 
   const expiresAt = Date.now() + COOKIE_MAX_AGE * 1000;
   const payload = `${tempKey}|${expiresAt}`;
   const signature = await signValue(payload, secret);
+
   return `${payload}|${signature}`;
 }
 

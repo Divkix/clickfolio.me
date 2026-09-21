@@ -23,6 +23,7 @@ export async function POST(request: Request) {
     const secret = getEnvValue(typedEnv, "PENDING_UPLOAD_SECRET");
 
     const sizeCheck = validateRequestSize(request);
+
     if (!sizeCheck.valid) {
       return createErrorResponse(
         sizeCheck.error || "Request body too large",
@@ -32,6 +33,7 @@ export async function POST(request: Request) {
     }
 
     const rawBodyResult = await readJsonWithLimit(request);
+
     if (!rawBodyResult.ok) {
       return createErrorResponse(
         rawBodyResult.error,
@@ -39,6 +41,7 @@ export async function POST(request: Request) {
         rawBodyResult.reason === "too_large" ? 413 : 400,
       );
     }
+
     // SAFETY: rawBodyResult.data is bounded JSON from validated request; cast extracts optional key field.
     const body = rawBodyResult.data as { key?: string };
     const { key } = body ?? {};
@@ -49,6 +52,7 @@ export async function POST(request: Request) {
 
     const r2 = getR2Binding(typedEnv);
     const head = r2 ? await R2.head(r2, key) : null;
+
     if (!head?.exists) {
       return createErrorResponse("Upload not found", ERROR_CODES.NOT_FOUND, 404);
     }
@@ -67,6 +71,7 @@ export async function POST(request: Request) {
     return createSuccessResponse({ success: true });
   } catch (error) {
     console.error("Error setting pending upload cookie:", error);
+
     return createErrorResponse("Failed to save upload", ERROR_CODES.INTERNAL_ERROR, 500);
   }
 }
@@ -93,6 +98,7 @@ export async function GET() {
     return createSuccessResponse({ key: parsed.tempKey });
   } catch (error) {
     console.error("Error reading pending upload cookie:", error);
+
     return createSuccessResponse({ key: null });
   }
 }
@@ -101,9 +107,11 @@ export async function DELETE() {
   try {
     const cookieStore = await cookies();
     cookieStore.delete(COOKIE_NAME);
+
     return createSuccessResponse({ success: true });
   } catch (error) {
     console.error("Error clearing pending upload cookie:", error);
+
     return createSuccessResponse({ success: true });
   }
 }

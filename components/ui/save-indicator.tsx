@@ -3,6 +3,7 @@
 import { AlertCircle, Check, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { formatRelativeTime } from "@/lib/utils/format";
+
 export type SaveStatus = "idle" | "saving" | "saved" | "error" | "unsaved";
 
 interface SaveIndicatorProps {
@@ -27,6 +28,7 @@ export function SaveIndicator({ status, lastSaved, className }: SaveIndicatorPro
         (() => {
           const time = formatRelativeTime(lastSaved);
           const display = time === "Just now" ? "just now" : time;
+
           return (
             <>
               <Check className="h-4 w-4 text-success" />

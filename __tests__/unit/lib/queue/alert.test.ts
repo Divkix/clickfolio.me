@@ -63,6 +63,7 @@ describe("alert module", () => {
           return false;
         }
       });
+
       expect(dlqAlert).toBeDefined();
 
       const payload = JSON.parse(dlqAlert![0]) as UnknownRecord;
@@ -128,6 +129,7 @@ describe("alert module", () => {
           return false;
         }
       });
+
       expect(webhookFailLog).toBeDefined();
 
       fetchSpy.mockRestore();

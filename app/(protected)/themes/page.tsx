@@ -39,10 +39,13 @@ export default async function ThemesPage() {
   }
 
   const rawThemeId = userSiteData.themeId;
+
   const currentThemeId: ThemeId =
     rawThemeId && isValidThemeId(rawThemeId) ? rawThemeId : DEFAULT_THEME;
+
   // SAFETY: content is schema-validated JSONB written by the queue consumer and /api/resume/update; cast bridges the column's wide Record type.
   const parsedContent = userSiteData.content as ResumeContent;
+
   const profile = {
     handle: userProfile?.handle || session.user.name || "user",
     avatar_url: userProfile?.image || null,

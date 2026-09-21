@@ -14,12 +14,15 @@ import { buildPublicPageMetadata } from "@/lib/seo/page-metadata";
 export const revalidate = 86400;
 
 const GITHUB_REPO = "https://github.com/Divkix/clickfolio.me";
+
 const GITHUB_NEW_BUG = `${GITHUB_REPO}/issues/new?template=bug.md`;
 
 /** Document title — no brand; root layout template is `%s | clickfolio.me`. */
 const contactTitle = "Contact & support";
+
 /** OG/Twitter skip the HTML title template, so they keep the brand. */
 const contactOgTitle = `Contact ${siteConfig.fullName} — support, bug reports, and page removal`;
+
 const contactDescription = `Reach the ${siteConfig.fullName} team: email ${siteConfig.supportEmail}, file a bug report on GitHub, learn what to include in a report, and request removal of a portfolio page.`;
 
 export const metadata: Metadata = buildPublicPageMetadata({

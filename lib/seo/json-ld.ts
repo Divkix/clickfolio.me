@@ -127,6 +127,7 @@ function buildSameAsArray(contact: ResumeContent["contact"]): string[] | undefin
 
   for (const field of CONTACT_URL_FIELDS) {
     const value = contact[field];
+
     if (value && URL_PATTERNS[field].test(value.trim())) {
       urls.push(value.trim());
     }
@@ -182,6 +183,7 @@ export function generateResumeJsonLd(
   }
 
   const currentEmployer = getCurrentEmployer(content.experience);
+
   if (currentEmployer) {
     person.jobTitle = currentEmployer.title;
     person.worksFor = {
@@ -191,21 +193,25 @@ export function generateResumeJsonLd(
   }
 
   const hasOccupation = buildWorkExperiences(content.experience);
+
   if (hasOccupation) {
     person.hasOccupation = hasOccupation;
   }
 
   const alumniOf = buildAlumniOf(content.education);
+
   if (alumniOf) {
     person.alumniOf = alumniOf;
   }
 
   const sameAs = buildSameAsArray(content.contact);
+
   if (sameAs) {
     person.sameAs = sameAs;
   }
 
   const knowsAbout = flattenSkills(content.skills);
+
   if (knowsAbout) {
     person.knowsAbout = knowsAbout;
   }
@@ -228,6 +234,7 @@ export function generateResumeJsonLd(
   if (dateCreated) {
     profilePage.dateCreated = dateCreated;
   }
+
   if (dateModified) {
     profilePage.dateModified = dateModified;
   }
@@ -463,9 +470,11 @@ export function generateWebPageJsonLd(
       url: siteConfig.url,
     },
   } satisfies UnknownRecord;
+
   if (dateModified) {
     return { ...base, dateModified } satisfies UnknownRecord;
   }
+
   return base;
 }
 

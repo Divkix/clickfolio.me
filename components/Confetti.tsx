@@ -14,6 +14,7 @@ export function Confetti() {
     setViewport({ width: window.innerWidth, height: window.innerHeight });
     setIsMobile(window.innerWidth < 768);
     const timer = setTimeout(() => setShow(false), 3500);
+
     return () => clearTimeout(timer);
   }, []);
 

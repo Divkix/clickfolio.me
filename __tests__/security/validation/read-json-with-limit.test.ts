@@ -7,7 +7,9 @@ function makeRequest(body: string, contentLength?: number): Request {
   const headers: RequestHeaders = {
     "content-type": "application/json",
   };
+
   if (contentLength !== undefined) headers["content-length"] = String(contentLength);
+
   return new Request("https://example.com/api/test", {
     method: "POST",
     body,
@@ -17,18 +19,22 @@ function makeRequest(body: string, contentLength?: number): Request {
 
 function makeStreamingRequest(totalBytes: number, chunkSize = 1024): Request {
   let sent = 0;
+
   const stream = new ReadableStream<Uint8Array>({
     pull(controller) {
       if (sent >= totalBytes) {
         controller.close();
+
         return;
       }
+
       const remaining = totalBytes - sent;
       const size = Math.min(chunkSize, remaining);
       controller.enqueue(new Uint8Array(size).fill(0x20));
       sent += size;
     },
   });
+
   return new Request("https://example.com/api/test", {
     method: "POST",
     body: stream,
@@ -57,6 +63,7 @@ describe("readJsonWithLimit", () => {
     const req = makeRequest(oversizedBody, undefined);
     const result = await readJsonWithLimit(req, limit);
     expect(result.ok).toBe(false);
+
     if (!result.ok) {
       expect(result.reason).toBe("too_large");
       expect(result.error).toContain("too large");
@@ -68,6 +75,7 @@ describe("readJsonWithLimit", () => {
     const req = makeStreamingRequest(limit + 1, 128);
     const result = await readJsonWithLimit(req, limit);
     expect(result.ok).toBe(false);
+
     if (!result.ok) {
       expect(result.reason).toBe("too_large");
     }
@@ -78,6 +86,7 @@ describe("readJsonWithLimit", () => {
     const req = makeRequest(payload, undefined);
     const result = await readJsonWithLimit(req, 64);
     expect(result.ok).toBe(true);
+
     if (result.ok) {
       expect(result.data).toEqual({ a: 1 });
     }
@@ -91,6 +100,7 @@ describe("readJsonWithLimit", () => {
     const req = makeRequest(payload, undefined);
     const result = await readJsonWithLimit(req, cap);
     expect(result.ok).toBe(true);
+
     if (result.ok) {
       expect(result.data).toEqual({ x: inner });
     }
@@ -100,6 +110,7 @@ describe("readJsonWithLimit", () => {
     const req = makeRequest("not valid json {{{");
     const result = await readJsonWithLimit(req);
     expect(result.ok).toBe(false);
+
     if (!result.ok) {
       expect(result.reason).toBe("invalid_json");
       expect(result.error).toContain("Invalid JSON");
@@ -112,6 +123,7 @@ describe("readJsonWithLimit", () => {
     const req = makeRequest(bigPayload, undefined);
     const result = await readJsonWithLimit(req, limit);
     expect(result.ok).toBe(false);
+
     if (!result.ok) {
       expect(result.reason).toBe("too_large");
     }
@@ -123,6 +135,7 @@ describe("readJsonWithLimit", () => {
     const req = makeRequest(big, undefined);
     const result = await readJsonWithLimit(req, limit);
     expect(result.ok).toBe(false);
+
     if (!result.ok) {
       expect(result.reason).toBe("too_large");
       expect(result.error).toContain("2.0MB");

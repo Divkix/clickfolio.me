@@ -3,6 +3,7 @@ import type { Resume } from "@/lib/db/schema";
 
 export function createMockQueryChain<T = unknown>(rows: T[] = []) {
   const chain: Record<string, Mock> = {};
+
   const handler: ProxyHandler<() => Promise<T[]>> = {
     get(_target, prop) {
       const strProp = String(prop);
@@ -11,6 +12,7 @@ export function createMockQueryChain<T = unknown>(rows: T[] = []) {
         return (onFulfilled?: (value: T[]) => unknown, onRejected?: (reason: unknown) => unknown) =>
           Promise.resolve(rows).then(onFulfilled, onRejected);
       }
+
       if (strProp === "toJSON") {
         return () => rows;
       }
@@ -18,6 +20,7 @@ export function createMockQueryChain<T = unknown>(rows: T[] = []) {
       if (!(strProp in chain)) {
         chain[strProp] = vi.fn().mockReturnValue(new Proxy(() => {}, handler));
       }
+
       return chain[strProp];
     },
     apply() {
@@ -53,7 +56,9 @@ export function createMockDb(): MockDb {
     un: vi.fn(),
     begin: vi.fn(),
   });
+
   raw.begin.mockImplementation(async (cb: (tx: unknown) => unknown) => cb(raw));
+
   const db = {
     select: vi.fn().mockReturnValue(createMockQueryChain()),
     insert: vi.fn().mockReturnValue(createMockQueryChain()),
@@ -61,7 +66,9 @@ export function createMockDb(): MockDb {
     delete: vi.fn().mockReturnValue(createMockQueryChain()),
     $client: raw,
   } as MockDb;
+
   db.transaction = vi.fn(async (cb: (tx: MockDb) => unknown) => cb(db));
+
   return db;
 }
 

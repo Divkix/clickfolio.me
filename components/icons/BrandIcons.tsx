@@ -28,6 +28,7 @@ function BrandAsset({
 }: BrandAssetProps) {
   const decorative = ariaHidden ?? !title;
   const resolvedAlt = decorative ? "" : (title ?? alt);
+
   const resolvedClassName = ["inline-block shrink-0 align-middle object-contain", className]
     .filter(Boolean)
     .join(" ");

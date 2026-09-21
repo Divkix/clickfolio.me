@@ -4,6 +4,7 @@ export function isValidPdf(buffer: ArrayBuffer): boolean {
   if (buffer.byteLength < 5) return false;
   const header = new Uint8Array(buffer.slice(0, 5));
   const magic = String.fromCharCode(...header);
+
   return magic.startsWith("%PDF-");
 }
 
@@ -37,12 +38,14 @@ export async function extractPdfText(buffer: ArrayBuffer): Promise<PdfExtractRes
     }
 
     const { text, totalPages } = await extractText(pdf, { mergePages: true });
+
     return { success: true, text: text ?? "", pageCount: totalPages };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     const lower = message.toLowerCase();
 
     let userError: string;
+
     if (/password|encrypted/.test(lower)) {
       userError = "This PDF is password-protected. Please upload an unprotected version.";
     } else if (/invalid pdf|corrupt|not a pdf/.test(lower)) {

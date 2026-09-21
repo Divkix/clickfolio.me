@@ -11,6 +11,7 @@ describe("Resume Parse Queue", () => {
   describe("publishResumeParse", () => {
     it("should publish a resume parse message with all required fields", async () => {
       const queue = createMockQueue();
+
       const params = {
         resumeId: "resume-123",
         userId: "user-456",
@@ -34,6 +35,7 @@ describe("Resume Parse Queue", () => {
 
     it("should default attempt to 1 when not provided", async () => {
       const queue = createMockQueue();
+
       const params = {
         resumeId: "resume-123",
         userId: "user-456",
@@ -51,6 +53,7 @@ describe("Resume Parse Queue", () => {
       const queue = {
         send: vi.fn().mockRejectedValue(new Error("Queue unavailable")),
       };
+
       const params = {
         resumeId: "resume-123",
         userId: "user-456",
@@ -67,6 +70,7 @@ describe("Resume Parse Queue", () => {
       const queue = {
         send: vi.fn().mockRejectedValue(new Error("timeout")),
       };
+
       const params = {
         resumeId: "resume-123",
         userId: "user-456",
@@ -81,6 +85,7 @@ describe("Resume Parse Queue", () => {
 
     it("should construct correct message structure", async () => {
       const queue = createMockQueue();
+
       const params = {
         resumeId: "resume-123",
         userId: "user-456",

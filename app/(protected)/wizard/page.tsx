@@ -49,6 +49,7 @@ function getStepOrder(needsUpload: boolean): WizardStepId[] {
   if (needsUpload) {
     return ["upload", "handle", "review", "privacy", "theme"];
   }
+
   return ["handle", "review", "privacy", "theme"];
 }
 
@@ -145,6 +146,7 @@ function useWizardInit() {
 
       setError(result.error || "Resume parsing failed. Please try again.");
       navigateTimeoutRef.current = setTimeout(() => router.push("/dashboard"), 3000);
+
       return false;
     },
     [router],
@@ -161,6 +163,7 @@ function useWizardInit() {
 
       if (!userId) {
         router.push("/");
+
         return;
       }
 
@@ -176,9 +179,11 @@ function useWizardInit() {
           const pendingResponse = await fetch("/api/upload/pending", {
             signal: controller.signal,
           });
+
           if (pendingResponse.ok) {
             // SAFETY: PendingUploadResponse is from our /api/upload/pending endpoint backed by HMAC-signed pending_upload cookie verified by server.
             const pending = (await pendingResponse.json()) as PendingUploadResponse;
+
             if (pending.key) {
               tempKey = pending.key;
               fileHash = pending.file_hash;
@@ -234,11 +239,13 @@ function useWizardInit() {
             if (!active) return;
 
             navigateTimeoutRef.current = setTimeout(() => router.push("/dashboard"), 3000);
+
             return;
           }
         }
 
         const siteDataResponse = await fetch("/api/site-data", { signal: controller.signal });
+
         if (siteDataResponse.ok) {
           // SAFETY: SiteDataResponse is from our /api/site-data endpoint; content is schema-validated JSON written only by queue consumer.
           const siteData = (await siteDataResponse.json()) as SiteDataResponse | null;
@@ -261,6 +268,7 @@ function useWizardInit() {
         const statusResponse = await fetch("/api/resume/latest-status", {
           signal: controller.signal,
         });
+
         if (statusResponse.ok) {
           // SAFETY: LatestResumeResponse is from our /api/resume/latest-status endpoint; shape validated server-side.
           const resume = (await statusResponse.json()) as LatestResumeResponse | null;
@@ -270,6 +278,7 @@ function useWizardInit() {
 
             setRedirecting(true);
             router.push(`/waiting?resume_id=${resume.id}`);
+
             return;
           }
         }
@@ -296,6 +305,7 @@ function useWizardInit() {
       active = false;
       controller.abort();
       initializingRef.current = false;
+
       if (navigateTimeoutRef.current) {
         clearTimeout(navigateTimeoutRef.current);
         navigateTimeoutRef.current = null;
@@ -319,6 +329,7 @@ function useWizardInit() {
 export default function WizardPage() {
   const { router, sessionLoading, loading, error, setError, needsUpload, state, setState } =
     useWizardInit();
+
   const [showLiveModal, setShowLiveModal] = useState(false);
 
   const stepOrder = getStepOrder(needsUpload);
@@ -329,6 +340,7 @@ export default function WizardPage() {
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       const currentIndex = stepOrder.indexOf(state.currentStepId);
+
       if (currentIndex > 0 && !showLiveModal) {
         e.preventDefault();
         // returnValue is deprecated but required for cross-browser compatibility
@@ -337,6 +349,7 @@ export default function WizardPage() {
     };
 
     window.addEventListener("beforeunload", handleBeforeUnload);
+
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [state.currentStepId, stepOrder, showLiveModal]);
 
@@ -408,6 +421,7 @@ export default function WizardPage() {
 
   const handleLiveModalClose = (open: boolean) => {
     setShowLiveModal(open);
+
     if (!open) {
       router.push("/dashboard");
     }

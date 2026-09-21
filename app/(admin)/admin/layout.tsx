@@ -10,5 +10,6 @@ export const metadata: Metadata = {
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   await requireAdminAuth();
+
   return <AdminLayoutClient>{children}</AdminLayoutClient>;
 }

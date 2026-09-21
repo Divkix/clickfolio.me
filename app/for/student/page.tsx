@@ -13,8 +13,10 @@ import {
 export const revalidate = 86400;
 
 const title = "Free Resume Website for Students";
+
 const description =
   "Build your first online portfolio as a student — free, with no signup. Upload your PDF resume and get a shareable website with education, projects, and skills sections.";
+
 const path = "/for/student";
 
 export const metadata: Metadata = buildRolePageMetadata({ title, description, path });

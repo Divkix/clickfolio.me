@@ -12,6 +12,7 @@ import { getR2Binding, R2 } from "@/lib/r2";
 describe("getR2Binding", () => {
   it("returns R2 bucket when CLICKFOLIO_R2_BUCKET is set", () => {
     const mockBucket = createMockR2Bucket().bucket as unknown as R2Bucket;
+
     const env: Partial<CloudflareEnv> = {
       CLICKFOLIO_R2_BUCKET: mockBucket,
     };
@@ -165,6 +166,7 @@ describe("R2.put", () => {
     const { bucket, store } = createMockR2Bucket();
     const content = "stream content";
     const encoder = new TextEncoder();
+
     const stream = new ReadableStream({
       start(controller) {
         controller.enqueue(encoder.encode(content));

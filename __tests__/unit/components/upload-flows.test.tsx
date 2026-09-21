@@ -89,6 +89,7 @@ function dropFile(file: File) {
   const dropzone = screen.getByRole("button", {
     name: /drop your pdf resume here or click to browse files/i,
   });
+
   fireEvent.dragEnter(dropzone, { dataTransfer: { files: [file] } });
   fireEvent.dragOver(dropzone, { dataTransfer: { files: [file] } });
   fireEvent.drop(dropzone, { dataTransfer: { files: [file] } });
@@ -122,9 +123,11 @@ describe("upload flow components", () => {
       if (url === "/api/upload") {
         return Response.json({ key: "temp/anon/resume.pdf", remaining: { hourly: 9, daily: 49 } });
       }
+
       if (url === "/api/upload/pending") {
         return Response.json({ success: true });
       }
+
       return Response.json({ ok: true });
     });
 
@@ -145,9 +148,11 @@ describe("upload flow components", () => {
       if (url === "/api/upload") {
         return Response.json({ key: "temp/anon/resume.pdf", remaining: { hourly: 9, daily: 49 } });
       }
+
       if (url === "/api/upload/pending") {
         return Response.json({ error: "Cookie unavailable" }, { status: 500 });
       }
+
       return Response.json({ ok: true });
     });
 
@@ -168,6 +173,7 @@ describe("upload flow components", () => {
       if (url === "/api/upload") {
         return Response.json({ key: "temp/modal/resume.pdf", remaining: { hourly: 9, daily: 49 } });
       }
+
       return Response.json({ success: true });
     });
 
@@ -180,6 +186,7 @@ describe("upload flow components", () => {
     const dropzone = screen.getByRole("button", {
       name: /drop your pdf resume here or click to browse files/i,
     });
+
     fireEvent.dragEnter(dropzone, { dataTransfer: { files: [pdfFile("modal.pdf")] } });
     fireEvent.dragLeave(dropzone, { dataTransfer: { files: [] } });
     const input = document.querySelector('input[type="file"]') as HTMLInputElement;
@@ -195,6 +202,7 @@ describe("upload flow components", () => {
       if (url === "/api/upload") {
         return Response.json({ error: "Server rejected upload" }, { status: 500 });
       }
+
       return Response.json({ success: true });
     });
     const { unmount } = render(<FileDropzone />);
@@ -206,6 +214,7 @@ describe("upload flow components", () => {
       if (String(input) === "/api/upload") {
         throw new Response(null, { status: 413 });
       }
+
       return Response.json({ success: true });
     }) as unknown as typeof fetch;
     const tooLarge = render(<FileDropzone />);
@@ -217,6 +226,7 @@ describe("upload flow components", () => {
       if (String(input) === "/api/upload") {
         throw new Response(null, { status: 401 });
       }
+
       return Response.json({ success: true });
     }) as unknown as typeof fetch;
     const expired = render(<FileDropzone />);
@@ -228,6 +238,7 @@ describe("upload flow components", () => {
       if (String(input) === "/api/upload") {
         throw new Error("Network offline");
       }
+
       return Response.json({ success: true });
     }) as unknown as typeof fetch;
     render(<FileDropzone />);
@@ -245,9 +256,11 @@ describe("upload flow components", () => {
       if (url === "/api/upload") {
         return Response.json({ key: "temp/auth/resume.pdf", remaining: { hourly: 9, daily: 49 } });
       }
+
       if (url === "/api/resume/claim") {
         return Response.json({ resume_id: "res_1" });
       }
+
       return Response.json({ success: true });
     });
 
@@ -273,9 +286,11 @@ describe("upload flow components", () => {
       if (url === "/api/upload") {
         return Response.json({ key: "temp/auth/resume.pdf", remaining: { hourly: 9, daily: 49 } });
       }
+
       if (url === "/api/resume/claim") {
         return Response.json({ error: "This resume was already claimed." }, { status: 409 });
       }
+
       return Response.json({ success: true });
     });
 
@@ -304,12 +319,15 @@ describe("upload flow components", () => {
     };
     globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
+
       if (url === "/api/upload") {
         return Response.json({ key: "temp/auth/missing.pdf", remaining: { hourly: 9, daily: 49 } });
       }
+
       if (url === "/api/resume/claim") {
         throw new Response(null, { status: 404 });
       }
+
       return Response.json({ success: true });
     }) as unknown as typeof fetch;
 
@@ -322,12 +340,15 @@ describe("upload flow components", () => {
 
     globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
+
       if (url === "/api/upload") {
         return Response.json({ key: "temp/auth/modal.pdf", remaining: { hourly: 9, daily: 49 } });
       }
+
       if (url === "/api/resume/claim") {
         return Response.json({ resume_id: "res_modal" });
       }
+
       return Response.json({ success: true });
     }) as unknown as typeof fetch;
 
@@ -343,12 +364,15 @@ describe("upload flow components", () => {
       if (url === "/api/upload") {
         return Response.json({ key: "temp/wizard/resume.pdf", remaining: 9 });
       }
+
       if (url === "/api/resume/claim") {
         return Response.json({ resume_id: "res_1", cached: true });
       }
+
       if (url === "/api/site-data") {
         return Response.json({ content: resumeContent });
       }
+
       return Response.json({ ok: true });
     });
 
@@ -364,6 +388,7 @@ describe("upload flow components", () => {
       if (url === "/api/upload") {
         return Response.json({ error: "Too many upload attempts" }, { status: 429 });
       }
+
       return Response.json({ ok: true });
     });
 
@@ -383,12 +408,15 @@ describe("upload flow components", () => {
       if (url === "/api/upload") {
         return Response.json({ key: "temp/wizard/live.pdf", remaining: 9 });
       }
+
       if (url === "/api/resume/claim") {
         return Response.json({ resume_id: "res_live", cached: false });
       }
+
       if (url === "/api/site-data") {
         return Response.json({ content: resumeContent });
       }
+
       return Response.json({ ok: true });
     });
 
@@ -412,12 +440,15 @@ describe("upload flow components", () => {
       if (url === "/api/upload") {
         return Response.json({ key: "temp/wizard/sitedata.pdf", remaining: 9 });
       }
+
       if (url === "/api/resume/claim") {
         return Response.json({ resume_id: "res_sitedata", cached: false });
       }
+
       if (url === "/api/site-data") {
         return Response.json({ error: "site data down" }, { status: 500 });
       }
+
       return Response.json({ ok: true });
     });
 

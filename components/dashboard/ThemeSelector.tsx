@@ -42,12 +42,14 @@ export function ThemeSelector({ initialThemeId, initialContent, profile }: Theme
   useEffect(() => {
     calculateScale();
     window.addEventListener("resize", calculateScale);
+
     return () => window.removeEventListener("resize", calculateScale);
   }, [calculateScale]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       const currentIndex = THEME_IDS.indexOf(selectedTheme);
+
       if (e.key === "ArrowRight" && currentIndex < THEME_IDS.length - 1) {
         setSelectedTheme(THEME_IDS[currentIndex + 1]);
       } else if (e.key === "ArrowLeft" && currentIndex > 0) {

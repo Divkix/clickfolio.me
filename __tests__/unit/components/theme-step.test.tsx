@@ -5,6 +5,7 @@ import { ThemeStep } from "@/components/wizard/ThemeStep";
 describe("ThemeStep", () => {
   it("prevents re-entrancy while the completion request is in flight", async () => {
     let resolveContinue: (() => void) | undefined;
+
     const onContinue = vi.fn(
       () =>
         new Promise<void>((resolve) => {

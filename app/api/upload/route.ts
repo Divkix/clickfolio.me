@@ -10,6 +10,7 @@ import {
   ERROR_CODES,
 } from "@/lib/utils/security-headers";
 import { generateTempKey, MAX_FILE_SIZE, validatePDFBuffer } from "@/lib/utils/validation";
+
 const MIN_PDF_SIZE = 100;
 
 export async function POST(request: Request) {
@@ -18,6 +19,7 @@ export async function POST(request: Request) {
     const typedEnv = env as CloudflareEnv;
 
     const r2Binding = getR2Binding(typedEnv);
+
     if (!r2Binding) {
       return createErrorResponse(
         "Storage service unavailable",
@@ -27,6 +29,7 @@ export async function POST(request: Request) {
     }
 
     const contentType = request.headers.get("content-type");
+
     if (!contentType?.includes("application/pdf")) {
       return createErrorResponse(
         "Content-Type must be application/pdf",
@@ -36,11 +39,13 @@ export async function POST(request: Request) {
     }
 
     const contentLengthHeader = request.headers.get("content-length");
+
     if (!contentLengthHeader) {
       return createErrorResponse("Content-Length header is required", ERROR_CODES.BAD_REQUEST, 411);
     }
 
     const contentLength = parseInt(contentLengthHeader, 10);
+
     if (Number.isNaN(contentLength) || contentLength <= 0) {
       return createErrorResponse("Invalid Content-Length header", ERROR_CODES.BAD_REQUEST, 400);
     }
@@ -62,6 +67,7 @@ export async function POST(request: Request) {
     }
 
     const filename = request.headers.get("x-filename");
+
     if (!filename || !z.string().safeParse(filename).success || filename.trim().length === 0) {
       return createErrorResponse("X-Filename header is required", ERROR_CODES.BAD_REQUEST, 400);
     }
@@ -77,6 +83,7 @@ export async function POST(request: Request) {
     const clientIP = getClientIP(request);
 
     const rateLimit = await checkIPRateLimit(clientIP);
+
     if (!rateLimit.allowed) {
       return createErrorResponse(
         rateLimit.message || "Rate limit exceeded",
@@ -87,34 +94,45 @@ export async function POST(request: Request) {
     }
 
     const reader = request.body?.getReader();
+
     if (!reader) {
       return createErrorResponse("Missing request body", ERROR_CODES.BAD_REQUEST, 400);
     }
+
     const chunks: Uint8Array[] = [];
     let totalBytes = 0;
+
     while (true) {
       const { done, value } = await reader.read();
+
       if (done) break;
+
       if (!value) continue;
       totalBytes += value.length;
+
       if (totalBytes > MAX_FILE_SIZE) {
         try {
           await reader.cancel();
         } catch {}
+
         return createErrorResponse(
           `File size exceeds limit (${Math.round(MAX_FILE_SIZE / 1024 / 1024)}MB maximum)`,
           ERROR_CODES.BAD_REQUEST,
           413,
         );
       }
+
       chunks.push(value);
     }
+
     const combined = new Uint8Array(totalBytes);
     let offset = 0;
+
     for (const ch of chunks) {
       combined.set(ch, offset);
       offset += ch.length;
     }
+
     // SAFETY: combined is Uint8Array; slice produces ArrayBuffer for validatePDFBuffer/R2 put.
     const buffer = combined.buffer.slice(
       combined.byteOffset,
@@ -126,6 +144,7 @@ export async function POST(request: Request) {
     }
 
     const pdfValidation = validatePDFBuffer(buffer);
+
     if (!pdfValidation.valid) {
       return createErrorResponse(
         pdfValidation.error || "Invalid PDF file",
@@ -146,15 +165,18 @@ export async function POST(request: Request) {
       });
     } catch (r2Error) {
       console.error("R2 upload error:", r2Error);
+
       return createErrorResponse("Failed to store file", ERROR_CODES.EXTERNAL_SERVICE_ERROR, 500);
     }
 
     // 10. Create signed cookie for claim verification (Issue #89)
     const cookieSecret = getOptionalEnvValue(typedEnv, "PENDING_UPLOAD_SECRET");
     let setCookieHeader: string | undefined;
+
     if (cookieSecret && z.string().safeParse(cookieSecret).success) {
       const signedCookieValue = await createSignedCookieValue(key, cookieSecret);
       setCookieHeader = `${COOKIE_NAME}=${signedCookieValue}; HttpOnly; SameSite=Strict; Max-Age=1800; Path=/`;
+
       if (typedEnv.NODE_ENV === "production") {
         setCookieHeader += "; Secure";
       }
@@ -165,12 +187,15 @@ export async function POST(request: Request) {
     const response = createSuccessResponse({ key, remaining: rateLimit.remaining });
     response.headers.set("X-RateLimit-Remaining-Hourly", String(rateLimit.remaining.hourly));
     response.headers.set("X-RateLimit-Remaining-Daily", String(rateLimit.remaining.daily));
+
     if (setCookieHeader) {
       response.headers.set("Set-Cookie", setCookieHeader);
     }
+
     return response;
   } catch (error) {
     console.error("Error uploading file:", error);
+
     return createErrorResponse("Failed to upload file", ERROR_CODES.INTERNAL_ERROR, 500);
   }
 }

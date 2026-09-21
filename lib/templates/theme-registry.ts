@@ -2,6 +2,7 @@ import type { TemplateProps } from "@/lib/types/template";
 import { DEFAULT_THEME, isValidThemeId, type ThemeId } from "./theme-ids";
 
 type TemplateLoader = () => Promise<React.FC<TemplateProps>>;
+
 const TEMPLATE_LOADERS = {
   bento: () => import("@/components/templates/BentoGrid").then((m) => m.BentoGrid),
   bold_corporate: () => import("@/components/templates/BoldCorporate").then((m) => m.BoldCorporate),
@@ -21,5 +22,6 @@ export async function getTemplate(
 ): Promise<React.FC<TemplateProps>> {
   const resolvedId: ThemeId = themeId && isValidThemeId(themeId) ? themeId : DEFAULT_THEME;
   const loader = TEMPLATE_LOADERS[resolvedId] ?? TEMPLATE_LOADERS[DEFAULT_THEME];
+
   return loader();
 }

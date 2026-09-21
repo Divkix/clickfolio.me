@@ -16,7 +16,9 @@ import { buildPublicPageMetadata } from "@/lib/seo/page-metadata";
 export const revalidate = 86400;
 
 const blogHeading = "Writing about resume websites";
+
 const blogTitle = `Resume Website & Portfolio Guides | ${siteConfig.fullName}`;
+
 const blogDescription =
   "Guides, comparisons, and tips on building a resume website and online portfolio. Compare builders, see examples, and learn how to turn your PDF resume into a site.";
 

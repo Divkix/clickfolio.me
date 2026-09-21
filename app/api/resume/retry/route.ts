@@ -25,6 +25,7 @@ export async function POST(request: Request) {
       const userId = authUser.id;
 
       const sizeCheck = validateRequestSize(request);
+
       if (!sizeCheck.valid) {
         return createErrorResponse(
           sizeCheck.error || "Request body too large",
@@ -34,6 +35,7 @@ export async function POST(request: Request) {
       }
 
       const rawBodyResult = await readJsonWithLimit(request);
+
       if (!rawBodyResult.ok) {
         return createErrorResponse(
           rawBodyResult.error,
@@ -41,6 +43,7 @@ export async function POST(request: Request) {
           rawBodyResult.reason === "too_large" ? 413 : 400,
         );
       }
+
       // SAFETY: rawBodyResult.data is bounded JSON, cast to RetryRequestBody for field access.
       const body = rawBodyResult.data as RetryRequestBody;
       const { resume_id } = body;
@@ -80,6 +83,7 @@ export async function POST(request: Request) {
           403,
         );
       }
+
       // SAFETY: status/retry fields are validated enum/number columns; casts bridge Drizzle type to lifecycle row.
       const statusRow = {
         status: resume.status as ResumeStatus,
@@ -88,8 +92,10 @@ export async function POST(request: Request) {
         totalAttempts: resume.totalAttempts as number,
         lastAttemptError: resume.lastAttemptError as string | null,
       };
+
       const eligibility = checkRetryEligibilityForRow(statusRow);
       const isVirtualTimeout = getStatusView(statusRow).isTimedOut;
+
       if (!eligibility.eligible) {
         // SAFETY: eligibility.errorCode is validated against ERROR_CODES keys; cast narrows string to known enum key.
         return createErrorResponse(
@@ -106,6 +112,7 @@ export async function POST(request: Request) {
         fileHash = resume.fileHash;
       } else {
         const r2Binding = getR2Binding(env);
+
         if (!r2Binding) {
           return createErrorResponse(
             "Storage service unavailable",
@@ -113,6 +120,7 @@ export async function POST(request: Request) {
             500,
           );
         }
+
         let pdfBuffer: Uint8Array;
 
         try {
@@ -130,19 +138,23 @@ export async function POST(request: Request) {
           pdfBuffer = fileBuffer;
         } catch (error) {
           console.error("R2 download error:", error);
+
           return createErrorResponse(
             "Failed to download file for processing",
             ERROR_CODES.EXTERNAL_SERVICE_ERROR,
             500,
           );
         }
+
         // SAFETY: pdfBuffer is Uint8Array from R2; slice produces ArrayBuffer for sha256Hex.
         const bufferCopy = pdfBuffer.buffer.slice(
           pdfBuffer.byteOffset,
           pdfBuffer.byteOffset + pdfBuffer.byteLength,
         ) as ArrayBuffer;
+
         fileHash = await sha256Hex(bufferCopy);
       }
+
       // SAFETY: retryCount is integer column; cast bridges Drizzle nullable to number.
       const previousRetryCount = resume.retryCount as number;
       const nextRetryCount = previousRetryCount + 1;
@@ -180,6 +192,7 @@ export async function POST(request: Request) {
           409,
         );
       }
+
       const rollbackRetryUpdate = async () => {
         try {
           // For a virtual timeout the original status was `waiting_for_cache`; a
@@ -209,8 +222,10 @@ export async function POST(request: Request) {
       };
 
       const queue = env.CLICKFOLIO_PARSE_QUEUE;
+
       if (!queue) {
         await rollbackRetryUpdate();
+
         return createErrorResponse("Queue service unavailable", ERROR_CODES.INTERNAL_ERROR, 500);
       }
 
@@ -226,6 +241,7 @@ export async function POST(request: Request) {
       } catch (queueError) {
         await rollbackRetryUpdate();
         console.error("Failed to publish retry parse job:", queueError);
+
         return createErrorResponse("Queue service unavailable", ERROR_CODES.INTERNAL_ERROR, 500);
       }
 

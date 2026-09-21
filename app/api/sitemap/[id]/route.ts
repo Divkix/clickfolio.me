@@ -4,6 +4,7 @@ function parseSitemapId(rawId: string): number | null {
   if (!/^\d+$/.test(rawId)) return null;
 
   const parsed = Number.parseInt(rawId, 10);
+
   return Number.isSafeInteger(parsed) ? parsed : null;
 }
 
@@ -21,6 +22,7 @@ export async function GET(
 
     // Null means the shard fell outside the indexable-user snapshot (see generateSitemapEntries).
     const entries = await generateSitemapEntries(id);
+
     if (entries === null) {
       return new Response("Sitemap shard not found", { status: 404 });
     }
@@ -36,6 +38,7 @@ export async function GET(
     });
   } catch (error) {
     console.error(`[sitemap] Error generating sitemap shard:`, error);
+
     return new Response("Internal Server Error", { status: 500 });
   }
 }

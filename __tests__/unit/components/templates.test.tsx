@@ -130,6 +130,7 @@ describe("Template Component Tests", () => {
         MinimalistEditorial,
         fullResumeContent,
       );
+
       expect(container.querySelector(".font-serif-me")).toBeInTheDocument();
     });
 
@@ -139,6 +140,7 @@ describe("Template Component Tests", () => {
         MinimalistEditorial,
         minimalResumeContent,
       );
+
       expect(container.textContent).toContain("Jane");
       expect(container.textContent).toContain("Doe");
     });
@@ -264,6 +266,7 @@ describe("Template Component Tests", () => {
       const { container: minimalist } = render(
         <MinimalistEditorial content={fullResumeContent} profile={mockProfile} />,
       );
+
       const { container: neoBrutalist } = render(
         <NeoBrutalist content={fullResumeContent} profile={mockProfile} />,
       );

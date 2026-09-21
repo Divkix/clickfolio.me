@@ -8,6 +8,7 @@ import { buildPublicPageMetadata } from "@/lib/seo/page-metadata";
 export const revalidate = 86400;
 
 const termsTitle = `Terms of Service - ${siteConfig.fullName}`;
+
 const termsDescription = `Terms of Service for ${siteConfig.fullName}. Read our terms and conditions for using the service.`;
 
 export const metadata: Metadata = buildPublicPageMetadata({

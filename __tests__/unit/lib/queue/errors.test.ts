@@ -70,24 +70,28 @@ describe("queue error handling", () => {
       const uniqueError = classifyQueueError(
         new Error("duplicate key value violates unique constraint on resumes.file_hash"),
       );
+
       expect(uniqueError.type).toBe(QueueErrorType.PARSE_VALIDATION_ERROR);
       expect(uniqueError.isRetryable()).toBe(false);
 
       const fkError = classifyQueueError(
         new Error('insert or update on table "site_data" violates foreign key constraint'),
       );
+
       expect(fkError.type).toBe(QueueErrorType.PARSE_VALIDATION_ERROR);
       expect(fkError.isRetryable()).toBe(false);
 
       const codedUnique = classifyQueueError(
         Object.assign(new Error("unique_violation"), { code: "23505" }),
       );
+
       expect(codedUnique.type).toBe(QueueErrorType.PARSE_VALIDATION_ERROR);
       expect(codedUnique.isRetryable()).toBe(false);
 
       const serialization = classifyQueueError(
         Object.assign(new Error("serialization failure"), { code: "40001" }),
       );
+
       expect(serialization.type).toBe(QueueErrorType.DB_CONNECTION_ERROR);
       expect(serialization.isRetryable()).toBe(true);
 

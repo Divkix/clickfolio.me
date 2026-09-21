@@ -81,6 +81,7 @@ async function fetchResumeDataRaw(handle: string): Promise<ResumeData | null> {
 
   // SAFETY: DB themeId is string|null validated immediately after via isValidThemeId; cast narrows to ThemeId for metadata lookup with fallback to DEFAULT_THEME
   let themeId: ThemeId | null = userData.siteData.themeId as ThemeId | null;
+
   if (!themeId || !isValidThemeId(themeId)) {
     themeId = DEFAULT_THEME;
   }
@@ -159,6 +160,7 @@ async function fetchResumeMetadataRaw(handle: string): Promise<ResumeMetadata | 
   const parsedSkills = normalizePreviewSkills(userData.siteData.previewSkills);
 
   let previewLocation = userData.siteData.previewLocation?.trim() || null;
+
   if (previewLocation && !parsedSettings.show_address) {
     previewLocation = extractCityState(previewLocation) || null;
   }
@@ -178,6 +180,7 @@ async function fetchResumeMetadataRaw(handle: string): Promise<ResumeMetadata | 
         dateCreated: userData.siteData.createdAt,
         dateModified: userData.siteData.updatedAt,
       });
+
       jsonLdResumeScript = serializeJsonLd(jsonLd);
       jsonLdBreadcrumbScript = serializeJsonLd(generateBreadcrumbJsonLd(handle, fullName));
     } catch (error) {
@@ -225,12 +228,15 @@ export const getRelatedProfiles = cache(
     );
 
     const WINDOW = 12;
+
     const countRows = await db
       .select({ n: sql<number>`count(*)` })
       .from(user)
       .leftJoin(siteData, sql`${siteData.userId} = ${user.id}`)
       .where(whereClause);
+
     const total = Number(countRows[0]?.n ?? 0);
+
     if (total === 0) return [];
 
     const maxOffset = Math.max(0, total - WINDOW);
@@ -250,10 +256,12 @@ export const getRelatedProfiles = cache(
       .offset(offset);
 
     const pool = rows.filter((r) => r.handle);
+
     for (let i = pool.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [pool[i], pool[j]] = [pool[j], pool[i]];
     }
+
     return pool.slice(0, 3).map((r) => ({
       handle: r.handle!,
       name: r.name?.trim() || r.handle!,

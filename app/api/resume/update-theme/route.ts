@@ -11,6 +11,7 @@ import {
   ERROR_CODES,
 } from "@/lib/utils/security-headers";
 import { readJsonWithLimit, validateRequestSize } from "@/lib/utils/validation";
+
 interface ThemeUpdateRequestBody {
   theme_id?: string;
 }
@@ -22,6 +23,7 @@ export async function POST(request: Request) {
       const userId = authUser.id;
 
       const sizeCheck = validateRequestSize(request);
+
       if (!sizeCheck.valid) {
         return createErrorResponse(
           sizeCheck.error || "Request body too large",
@@ -31,6 +33,7 @@ export async function POST(request: Request) {
       }
 
       const rawBodyResult = await readJsonWithLimit(request);
+
       if (!rawBodyResult.ok) {
         return createErrorResponse(
           rawBodyResult.error,
@@ -38,6 +41,7 @@ export async function POST(request: Request) {
           rawBodyResult.reason === "too_large" ? 413 : 400,
         );
       }
+
       // SAFETY: rawBodyResult.data is bounded JSON from validated request; cast extracts typed theme_id field.
       const body = rawBodyResult.data as ThemeUpdateRequestBody;
       const { theme_id } = body;
@@ -89,6 +93,7 @@ export async function POST(request: Request) {
             404,
           );
         }
+
         return createErrorResponse(
           "Theme changed elsewhere. Please reload and try again.",
           ERROR_CODES.CONFLICT,

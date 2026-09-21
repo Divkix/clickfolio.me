@@ -37,6 +37,7 @@ export const ClassicATS: React.FC<TemplateProps> = ({ content, profile, isPrevie
                 const isNonClickable = link.type === "location" || link.type === "phone";
                 const showPrintUrl = link.isExternal;
                 const isBranded = link.type === "behance" || link.type === "dribbble";
+
                 const brandText =
                   link.type === "behance" ? "Be" : link.type === "dribbble" ? "Dr" : null;
 

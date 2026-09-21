@@ -177,15 +177,19 @@ export function UploadStep({ onContinue }: UploadStepProps) {
   const awaitResumeCompletion = useCallback(
     async (resumeId: string): Promise<ResumeContent | null> => {
       const result = await waitForResumeCompletion(resumeId);
+
       if (result.status === "completed") {
         const siteDataResponse = await fetch("/api/site-data");
+
         if (siteDataResponse.ok) {
           // SAFETY: /api/site-data returns bounded SiteDataResponse JSON
           const siteData = (await siteDataResponse.json()) as SiteDataResponse | null;
+
           if (siteData?.content) {
             return siteData.content;
           }
         }
+
         throw new Error(
           "Your resume was parsed, but we couldn't load the result. Please try again.",
         );
@@ -193,6 +197,7 @@ export function UploadStep({ onContinue }: UploadStepProps) {
 
       setError(result.error || "Resume parsing failed. Please try again.");
       setUploadState("error");
+
       return null;
     },
     [setError, setUploadState],

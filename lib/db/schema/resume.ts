@@ -36,6 +36,7 @@ export const resumes = pgTable(
 );
 
 export type Resume = typeof resumes.$inferSelect;
+
 export type NewResume = typeof resumes.$inferInsert;
 
 export type ResumeStatus =

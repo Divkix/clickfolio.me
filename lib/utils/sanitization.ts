@@ -6,10 +6,12 @@ const HTML_ENTITIES = {
   "'": "&#x27;",
   "/": "&#x2F;",
 } as const satisfies Record<string, string>;
+
 const HTML_ESCAPE_REGEX = /[&<>"'/]/g;
 
 export function sanitizeText(input: string): string {
   if (!input) return "";
+
   // SAFETY: char is matched by HTML_ESCAPE_REGEX, which only matches keys of HTML_ENTITIES.
   return input.replace(
     HTML_ESCAPE_REGEX,
@@ -47,6 +49,7 @@ export function sanitizeEmail(input: string): string {
   const trimmed = input.trim().toLowerCase();
 
   const emailRegex = /^[^\s@]+@[^\s@]+$/;
+
   if (!emailRegex.test(trimmed)) {
     return "";
   }
@@ -69,8 +72,10 @@ export function noXssPattern(value: string): boolean {
 
 export function containsXssPattern(input: string): boolean {
   if (!input) return false;
+
   if (!input.includes("<") && !input.includes(":") && !input.includes("=")) {
     return false;
   }
+
   return XSS_PATTERN.test(input);
 }

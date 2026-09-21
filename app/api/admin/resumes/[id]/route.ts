@@ -28,13 +28,16 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
         .from(resumes)
         .where(eq(resumes.id, id))
         .limit(1);
+
       if (!existing) {
         return createErrorResponse("Resume not found", ERROR_CODES.NOT_FOUND, 404);
       }
+
       return createErrorResponse("Only failed resumes can be dismissed", ERROR_CODES.CONFLICT, 409);
     }
 
     const r2 = getR2Binding(env);
+
     if (r2 && deleted.r2Key) {
       try {
         await R2.delete(r2, deleted.r2Key);

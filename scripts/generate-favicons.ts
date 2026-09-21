@@ -4,7 +4,9 @@ import pngToIco from "png-to-ico";
 import sharp from "sharp";
 
 const ROOT = join(import.meta.dirname, "..");
+
 const PUBLIC = join(ROOT, "public");
+
 const ICON_SVG = join(PUBLIC, "icon.svg");
 
 interface FaviconConfig {
@@ -45,9 +47,11 @@ async function main() {
   await writeFile(join(PUBLIC, "favicon.ico"), ico);
 
   console.log("Done! Generated:");
+
   for (const config of PNG_CONFIGS) {
     console.log(`  - ${config.name}`);
   }
+
   console.log("  - favicon.ico");
 }
 

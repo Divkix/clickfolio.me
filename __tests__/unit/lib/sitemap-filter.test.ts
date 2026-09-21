@@ -3,8 +3,11 @@ import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { JsonValue } from "@/lib/types/json";
 
 let mockSelectRows: JsonValue[] = [];
+
 let mockCountRows: JsonValue[] = [{ count: 100000 }];
+
 let mockLimitValues: JsonValue[] = [];
+
 let mockOffsetValues: JsonValue[] = [];
 
 function buildQueryChain(rows: JsonValue[]) {
@@ -19,10 +22,12 @@ function buildQueryChain(rows: JsonValue[]) {
     orderBy: vi.fn(() => chain()),
     limit: vi.fn((value: JsonValue) => {
       mockLimitValues.push(value);
+
       return chain();
     }),
     offset: vi.fn((value: JsonValue) => {
       mockOffsetValues.push(value);
+
       return chain();
     }),
     then: vi.fn((resolve: (v: JsonValue) => JsonValue) => resolve(rows)),
@@ -36,9 +41,11 @@ vi.mock("@/lib/db", () => ({
     // page query; each gets its own rows so shard-range checks see a count.
     transaction: vi.fn(async (fn: (tx: unknown) => unknown) => {
       let selects = 0;
+
       return fn({
         select: vi.fn(() => {
           selects += 1;
+
           return buildQueryChain(selects === 1 ? mockCountRows : mockSelectRows);
         }),
       });
@@ -57,6 +64,7 @@ import {
   STATIC_SITEMAP_ENTRY_COUNT,
   URLS_PER_SITEMAP,
 } from "@/lib/seo/sitemap";
+
 describe("generateSitemapEntries", () => {
   beforeEach(() => {
     vi.stubEnv("APP_URL", "https://example.com");
@@ -105,16 +113,19 @@ describe("generateSitemapEntries", () => {
     const homeEntry = entries.find(
       (e: MetadataRoute.Sitemap[number]) => e.url === "https://example.com",
     );
+
     expect(homeEntry?.priority).toBe(1.0);
 
     const privacyEntry = entries.find(
       (e: MetadataRoute.Sitemap[number]) => e.url === "https://example.com/privacy",
     );
+
     expect(privacyEntry?.priority).toBe(0.3);
 
     const exploreEntry = entries.find(
       (e: MetadataRoute.Sitemap[number]) => e.url === "https://example.com/explore",
     );
+
     expect(exploreEntry?.priority).toBe(0.9);
   });
 
@@ -133,6 +144,7 @@ describe("generateSitemapEntries", () => {
     const userUrls = entries
       .map((e: MetadataRoute.Sitemap[number]) => e.url)
       .filter((u: string) => u.includes("/@"));
+
     expect(userUrls).toHaveLength(2);
     expect(userUrls).toContain("https://example.com/@alice");
     expect(userUrls).toContain("https://example.com/@bob");
@@ -152,6 +164,7 @@ describe("generateSitemapEntries", () => {
     const userEntry = entries.find((e: MetadataRoute.Sitemap[number]) =>
       e.url.endsWith("/@testuser"),
     );
+
     expect(userEntry?.lastModified).toEqual(new Date("2026-02-01T00:00:00Z"));
   });
 
@@ -165,6 +178,7 @@ describe("generateSitemapEntries", () => {
     const userEntry = entries.find((e: MetadataRoute.Sitemap[number]) =>
       e.url.endsWith("/@testuser"),
     );
+
     expect(userEntry?.lastModified).toEqual(new Date("2026-03-15T00:00:00Z"));
   });
 
@@ -178,6 +192,7 @@ describe("generateSitemapEntries", () => {
     const userEntry = entries.find((e: MetadataRoute.Sitemap[number]) =>
       e.url.endsWith("/@testuser"),
     );
+
     const lastMod = userEntry?.lastModified as Date;
     expect(lastMod.getTime()).toBeGreaterThanOrEqual(before.getTime() - 1000);
     expect(lastMod.getTime()).toBeLessThanOrEqual(after.getTime() + 1000);
@@ -206,6 +221,7 @@ describe("generateSitemapEntries", () => {
     const userUrls = entries
       .map((e: MetadataRoute.Sitemap[number]) => e.url)
       .filter((u: string) => u.includes("/@"));
+
     expect(userUrls).toHaveLength(0);
 
     const staticUrls = entries.map((e: MetadataRoute.Sitemap[number]) => e.url);
@@ -237,6 +253,7 @@ describe("generateSitemapEntries", () => {
     ];
 
     const entries = (await generateSitemapEntries(0)) ?? [];
+
     const userEntry = entries.find((e: MetadataRoute.Sitemap[number]) =>
       e.url.endsWith("/@testuser"),
     );

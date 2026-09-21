@@ -57,6 +57,7 @@ export function TemplatePreviewModal({
     };
 
     window.addEventListener("keydown", handleKeyDown);
+
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen]);
 
@@ -65,6 +66,7 @@ export function TemplatePreviewModal({
   const Template = DYNAMIC_TEMPLATES[themeId];
   const content = DEMO_RESUME_CONTENT[themeId];
   const metadata = THEME_METADATA[themeId];
+
   const profile = {
     avatar_url: null,
     handle: currentProfile.name.toLowerCase().replace(/\s+/g, ""),

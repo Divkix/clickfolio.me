@@ -219,6 +219,7 @@ describe("normalizeAiKeys - contact", () => {
         mail: "other@example.com",
       },
     };
+
     const result = normalizeAiKeys(data);
     expect((result.contact as any).email).toBe("test@example.com");
   });
@@ -229,6 +230,7 @@ describe("normalizeAiKeys - contact", () => {
         phone_number: "+1-555-1234",
       },
     };
+
     const result = normalizeAiKeys(data);
     expect((result.contact as any).phone).toBe("+1-555-1234");
   });
@@ -239,6 +241,7 @@ describe("normalizeAiKeys - contact", () => {
         mobile_phone: "+1-555-5678",
       },
     };
+
     const result = normalizeAiKeys(data);
     expect((result.contact as any).phone).toBe("+1-555-5678");
   });
@@ -250,6 +253,7 @@ describe("normalizeAiKeys - contact", () => {
         city_state: "CA",
       },
     };
+
     const result = normalizeAiKeys(data);
     expect((result.contact as any).location).toBe("San Francisco");
   });
@@ -260,6 +264,7 @@ describe("normalizeAiKeys - contact", () => {
         linkedIn: "https://linkedin.com/in/test",
       },
     };
+
     const result = normalizeAiKeys(data);
     expect((result.contact as any).linkedin).toBe("https://linkedin.com/in/test");
   });
@@ -270,6 +275,7 @@ describe("normalizeAiKeys - contact", () => {
         gitHub: "https://github.com/test",
       },
     };
+
     const result = normalizeAiKeys(data);
     expect((result.contact as any).github).toBe("https://github.com/test");
   });
@@ -280,6 +286,7 @@ describe("normalizeAiKeys - contact", () => {
         portfolio: "https://test.dev",
       },
     };
+
     const result = normalizeAiKeys(data);
     expect((result.contact as any).website).toBe("https://test.dev");
   });
@@ -290,6 +297,7 @@ describe("normalizeAiKeys - contact", () => {
         dribble: "https://dribbble.com/test",
       },
     };
+
     const result = normalizeAiKeys(data);
     expect((result.contact as any).dribbble).toBe("https://dribbble.com/test");
   });
@@ -301,6 +309,7 @@ describe("normalizeAiKeys - contact", () => {
         phone: "+1-555-0000",
       },
     };
+
     const result = normalizeAiKeys(data);
     expect((result.contact as any).email).toBe("existing@example.com");
     expect((result.contact as any).phone).toBe("+1-555-0000");
@@ -312,6 +321,7 @@ describe("normalizeAiKeys - experience", () => {
     const data = {
       work_experience: [{ title: "Engineer" }],
     };
+
     const result = normalizeAiKeys(data);
     expect(result.experience).toEqual([{ title: "Engineer" }]);
   });
@@ -320,6 +330,7 @@ describe("normalizeAiKeys - experience", () => {
     const data = {
       workExperience: [{ title: "Engineer" }],
     };
+
     const result = normalizeAiKeys(data);
     expect(result.experience).toEqual([{ title: "Engineer" }]);
   });
@@ -328,6 +339,7 @@ describe("normalizeAiKeys - experience", () => {
     const data = {
       experience: [{ role: "Senior Engineer" }],
     };
+
     const result = normalizeAiKeys(data);
     expect((result.experience as any[])[0].title).toBe("Senior Engineer");
   });
@@ -336,6 +348,7 @@ describe("normalizeAiKeys - experience", () => {
     const data = {
       experience: [{ position: "Developer" }],
     };
+
     const result = normalizeAiKeys(data);
     expect((result.experience as any[])[0].title).toBe("Developer");
   });
@@ -344,6 +357,7 @@ describe("normalizeAiKeys - experience", () => {
     const data = {
       experience: [{ employer: "Acme Corp" }],
     };
+
     const result = normalizeAiKeys(data);
     expect((result.experience as any[])[0].company).toBe("Acme Corp");
   });
@@ -352,6 +366,7 @@ describe("normalizeAiKeys - experience", () => {
     const data = {
       experience: [{ organization: "Tech Inc" }],
     };
+
     const result = normalizeAiKeys(data);
     expect((result.experience as any[])[0].company).toBe("Tech Inc");
   });
@@ -360,6 +375,7 @@ describe("normalizeAiKeys - experience", () => {
     const data = {
       experience: [{ startDate: "2020-01" }],
     };
+
     const result = normalizeAiKeys(data);
     expect((result.experience as any[])[0].start_date).toBe("2020-01");
   });
@@ -368,6 +384,7 @@ describe("normalizeAiKeys - experience", () => {
     const data = {
       experience: [{ from: "2020-01" }],
     };
+
     const result = normalizeAiKeys(data);
     expect((result.experience as any[])[0].start_date).toBe("2020-01");
   });
@@ -376,6 +393,7 @@ describe("normalizeAiKeys - experience", () => {
     const data = {
       experience: [{ endDate: "2022-12" }],
     };
+
     const result = normalizeAiKeys(data);
     expect((result.experience as any[])[0].end_date).toBe("2022-12");
   });
@@ -384,6 +402,7 @@ describe("normalizeAiKeys - experience", () => {
     const data = {
       experience: [{ to: "2022-12" }],
     };
+
     const result = normalizeAiKeys(data);
     expect((result.experience as any[])[0].end_date).toBe("2022-12");
   });
@@ -392,6 +411,7 @@ describe("normalizeAiKeys - experience", () => {
     const data = {
       experience: [{ bullets: ["Task 1", "Task 2"] }],
     };
+
     const result = normalizeAiKeys(data);
     expect((result.experience as any[])[0].highlights).toEqual(["Task 1", "Task 2"]);
   });
@@ -400,6 +420,7 @@ describe("normalizeAiKeys - experience", () => {
     const data = {
       experience: [{ achievements: ["Award 1"] }],
     };
+
     const result = normalizeAiKeys(data);
     expect((result.experience as any[])[0].highlights).toEqual(["Award 1"]);
   });
@@ -410,6 +431,7 @@ describe("normalizeAiKeys - education", () => {
     const data = {
       education_history: [{ degree: "BS" }],
     };
+
     const result = normalizeAiKeys(data);
     expect(result.education).toEqual([{ degree: "BS" }]);
   });
@@ -418,6 +440,7 @@ describe("normalizeAiKeys - education", () => {
     const data = {
       studies: [{ degree: "MS" }],
     };
+
     const result = normalizeAiKeys(data);
     expect(result.education).toEqual([{ degree: "MS" }]);
   });
@@ -426,6 +449,7 @@ describe("normalizeAiKeys - education", () => {
     const data = {
       education: [{ program: "Computer Science" }],
     };
+
     const result = normalizeAiKeys(data);
     expect((result.education as any[])[0].degree).toBe("Computer Science");
   });
@@ -434,6 +458,7 @@ describe("normalizeAiKeys - education", () => {
     const data = {
       education: [{ school: "MIT" }],
     };
+
     const result = normalizeAiKeys(data);
     expect((result.education as any[])[0].institution).toBe("MIT");
   });
@@ -442,6 +467,7 @@ describe("normalizeAiKeys - education", () => {
     const data = {
       education: [{ university: "Stanford" }],
     };
+
     const result = normalizeAiKeys(data);
     expect((result.education as any[])[0].institution).toBe("Stanford");
   });
@@ -450,6 +476,7 @@ describe("normalizeAiKeys - education", () => {
     const data = {
       education: [{ year: "2019" }],
     };
+
     const result = normalizeAiKeys(data);
     expect((result.education as any[])[0].graduation_date).toBe("2019");
   });
@@ -458,6 +485,7 @@ describe("normalizeAiKeys - education", () => {
     const data = {
       education: [{ grad_date: "2020-05" }],
     };
+
     const result = normalizeAiKeys(data);
     expect((result.education as any[])[0].graduation_date).toBe("2020-05");
   });
@@ -466,6 +494,7 @@ describe("normalizeAiKeys - education", () => {
     const data = {
       education: [{ grade: "3.8" }],
     };
+
     const result = normalizeAiKeys(data);
     expect((result.education as any[])[0].gpa).toBe("3.8");
   });
@@ -476,6 +505,7 @@ describe("normalizeAiKeys - skills", () => {
     const data = {
       skillset: [{ category: "Languages", items: ["JS"] }],
     };
+
     const result = normalizeAiKeys(data);
     expect(result.skills).toEqual([{ category: "Languages", items: ["JS"] }]);
   });
@@ -484,6 +514,7 @@ describe("normalizeAiKeys - skills", () => {
     const data = {
       technical_skills: [{ category: "Tech", items: ["React"] }],
     };
+
     const result = normalizeAiKeys(data);
     expect(result.skills).toEqual([{ category: "Tech", items: ["React"] }]);
   });
@@ -492,6 +523,7 @@ describe("normalizeAiKeys - skills", () => {
     const data = {
       skills: ["JavaScript", "Python", "Go"],
     };
+
     const result = normalizeAiKeys(data);
     expect(result.skills).toEqual([{ category: "Skills", items: ["JavaScript", "Python", "Go"] }]);
   });
@@ -500,6 +532,7 @@ describe("normalizeAiKeys - skills", () => {
     const data = {
       skills: [{ category: "Languages", items: ["TS", "JS"] }],
     };
+
     const result = normalizeAiKeys(data);
     expect(result.skills).toEqual([{ category: "Languages", items: ["TS", "JS"] }]);
   });
@@ -510,6 +543,7 @@ describe("normalizeAiKeys - certifications", () => {
     const data = {
       certificates: [{ name: "AWS Cert" }],
     };
+
     const result = normalizeAiKeys(data);
     expect(result.certifications).toEqual([{ name: "AWS Cert" }]);
   });
@@ -518,6 +552,7 @@ describe("normalizeAiKeys - certifications", () => {
     const data = {
       licenses: [{ name: "PMP" }],
     };
+
     const result = normalizeAiKeys(data);
     expect(result.certifications).toEqual([{ name: "PMP" }]);
   });
@@ -526,6 +561,7 @@ describe("normalizeAiKeys - certifications", () => {
     const data = {
       certifications: [{ title: "AWS Solutions Architect" }],
     };
+
     const result = normalizeAiKeys(data);
     expect((result.certifications as any[])[0].name).toBe("AWS Solutions Architect");
   });
@@ -534,6 +570,7 @@ describe("normalizeAiKeys - certifications", () => {
     const data = {
       certifications: [{ organization: "AWS" }],
     };
+
     const result = normalizeAiKeys(data);
     expect((result.certifications as any[])[0].issuer).toBe("AWS");
   });
@@ -542,6 +579,7 @@ describe("normalizeAiKeys - certifications", () => {
     const data = {
       certifications: [{ issued: "2023-06" }],
     };
+
     const result = normalizeAiKeys(data);
     expect((result.certifications as any[])[0].date).toBe("2023-06");
   });
@@ -550,6 +588,7 @@ describe("normalizeAiKeys - certifications", () => {
     const data = {
       certifications: [{ link: "https://cert.example.com" }],
     };
+
     const result = normalizeAiKeys(data);
     expect((result.certifications as any[])[0].url).toBe("https://cert.example.com");
   });
@@ -558,6 +597,7 @@ describe("normalizeAiKeys - certifications", () => {
     const data = {
       certifications: ["AWS Certified"],
     };
+
     const result = normalizeAiKeys(data);
     expect(result.certifications).toEqual([{ name: "AWS Certified", issuer: "" }]);
   });
@@ -568,6 +608,7 @@ describe("normalizeAiKeys - projects", () => {
     const data = {
       project_experience: [{ title: "My Project" }],
     };
+
     const result = normalizeAiKeys(data);
     expect(result.projects).toEqual([{ title: "My Project" }]);
   });
@@ -576,6 +617,7 @@ describe("normalizeAiKeys - projects", () => {
     const data = {
       personal_projects: [{ title: "Side Project" }],
     };
+
     const result = normalizeAiKeys(data);
     expect(result.projects).toEqual([{ title: "Side Project" }]);
   });
@@ -584,6 +626,7 @@ describe("normalizeAiKeys - projects", () => {
     const data = {
       projects: [{ name: "Cool App" }],
     };
+
     const result = normalizeAiKeys(data);
     expect((result.projects as any[])[0].title).toBe("Cool App");
   });
@@ -592,6 +635,7 @@ describe("normalizeAiKeys - projects", () => {
     const data = {
       projects: [{ date_range: "2023-2024" }],
     };
+
     const result = normalizeAiKeys(data);
     expect((result.projects as any[])[0].year).toBe("2023-2024");
   });
@@ -600,6 +644,7 @@ describe("normalizeAiKeys - projects", () => {
     const data = {
       projects: [{ tech_stack: ["React", "Node"] }],
     };
+
     const result = normalizeAiKeys(data);
     expect((result.projects as any[])[0].technologies).toEqual(["React", "Node"]);
   });
@@ -608,6 +653,7 @@ describe("normalizeAiKeys - projects", () => {
     const data = {
       projects: [{ demo: "https://demo.example.com" }],
     };
+
     const result = normalizeAiKeys(data);
     expect((result.projects as any[])[0].url).toBe("https://demo.example.com");
   });
@@ -616,6 +662,7 @@ describe("normalizeAiKeys - projects", () => {
     const data = {
       projects: [{ image: "https://img.example.com" }],
     };
+
     const result = normalizeAiKeys(data);
     expect((result.projects as any[])[0].image_url).toBe("https://img.example.com");
   });
@@ -624,6 +671,7 @@ describe("normalizeAiKeys - projects", () => {
     const data = {
       projects: ["Cool Project"],
     };
+
     const result = normalizeAiKeys(data);
     expect(result.projects).toEqual([{ title: "Cool Project", description: "" }]);
   });

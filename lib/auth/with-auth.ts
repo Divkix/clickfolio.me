@@ -19,10 +19,12 @@ type AuthedAdminContext = Omit<
 >;
 
 const DEFAULT_UNAUTHORIZED_MESSAGE = "You must be logged in";
+
 const UNEXPECTED_ERROR_MESSAGE = "An unexpected error occurred. Please try again.";
 
 function pathnameOf(request: Request | undefined): string {
   if (!request) return "unknown path";
+
   try {
     return new URL(request.url).pathname;
   } catch {
@@ -37,12 +39,15 @@ export async function withUser(
 ): Promise<Response> {
   try {
     const result = await requireAuthWithUserValidation(unauthorizedMessage);
+
     if (result.error) return result.error;
 
     const { user, db, dbUser, env } = result;
+
     return await handler({ user, db, dbUser, env });
   } catch (error) {
     console.error(`Unhandled error in ${pathnameOf(request)}:`, error);
+
     return createErrorResponse(UNEXPECTED_ERROR_MESSAGE, ERROR_CODES.INTERNAL_ERROR, 500);
   }
 }
@@ -53,12 +58,15 @@ export async function withAdmin(
 ): Promise<Response> {
   try {
     const result = await requireAdminAuthForApi();
+
     if (result.error) return result.error;
 
     const { user } = result;
+
     return await handler({ user });
   } catch (error) {
     console.error(`Unhandled error in ${pathnameOf(request)}:`, error);
+
     return createErrorResponse(UNEXPECTED_ERROR_MESSAGE, ERROR_CODES.INTERNAL_ERROR, 500);
   }
 }

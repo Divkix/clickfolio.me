@@ -20,6 +20,7 @@ import { DEMO_PROFILES } from "@/lib/templates/demo-data";
 export const revalidate = 3600;
 
 const pageTitle = `Free Resume Website Builder — ${siteConfig.fullName}`;
+
 const pageDescription =
   "Free resume website builder. Turn your PDF resume or LinkedIn into a personal portfolio website in 30 seconds — 10 templates, custom @handle URL, privacy controls. No signup to start.";
 
@@ -48,6 +49,7 @@ export const metadata: Metadata = {
 export default function Home() {
   const homepageJsonLd = generateHomepageJsonLd();
   const faqJsonLd = generateFAQJsonLd();
+
   return (
     <>
       {homepageJsonLd.map((schema) => (

@@ -13,6 +13,7 @@ function FeaturedWork({
   project: NonNullable<TemplateProps["content"]["projects"]>[number];
 }) {
   const Wrapper = project.url ? "a" : "article";
+
   return (
     <Wrapper
       {...(project.url
@@ -70,12 +71,15 @@ function FeaturedWork({
 
 function ContactPills({ links }: { links: ReturnType<typeof getContactLinks> }) {
   const items = links.filter((link) => link.type !== "location");
+
   return (
     <nav aria-label="Contact links" className="flex gap-2 flex-wrap">
       {items.map((link) => {
         const isBranded = link.type === "behance" || link.type === "dribbble";
+
         const brandColor =
           link.type === "behance" ? "#1769FF" : link.type === "dribbble" ? "#EA4C89" : undefined;
+
         const brandText = link.type === "behance" ? "Be" : link.type === "dribbble" ? "Dr" : null;
 
         return (
@@ -272,6 +276,7 @@ export const BentoGrid: React.FC<TemplateProps> = ({ content, profile }) => {
 
             {extraProjects.map((project) => {
               const Wrapper = project.url ? "a" : "article";
+
               return (
                 <Wrapper
                   key={`${project.title}-${project.year ?? ""}-${project.url ?? ""}`}

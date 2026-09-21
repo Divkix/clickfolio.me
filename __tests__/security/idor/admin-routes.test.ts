@@ -2,9 +2,13 @@ import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { DEFAULT_PRIVACY_SETTINGS } from "@/lib/utils/privacy";
 
 const mockFindFirst = vi.fn();
+
 const mockSelect = vi.fn().mockReturnThis();
+
 const mockFrom = vi.fn().mockReturnThis();
+
 const mockWhere = vi.fn().mockReturnThis();
+
 const mockLimit = vi.fn();
 
 const mockDb = {

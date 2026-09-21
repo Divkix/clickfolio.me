@@ -16,8 +16,10 @@ export const revalidate = 86400;
 
 /** Document title — no brand; root layout template is `%s | clickfolio.me`. */
 const aboutTitle = "About — from PDF resume to hosted portfolio";
+
 /** OG/Twitter skip the HTML title template, so they keep the brand. */
 const aboutOgTitle = `About ${siteConfig.fullName} — from PDF resume to hosted portfolio`;
+
 const aboutDescription = `${siteConfig.fullName} turns your PDF resume into a hosted web portfolio in seconds. Learn what we believe, how it works, and why it's free.`;
 
 export const metadata: Metadata = buildPublicPageMetadata({

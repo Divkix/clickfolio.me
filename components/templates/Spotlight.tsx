@@ -27,6 +27,7 @@ function SpotlightCard({
 
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     const card = cardRef.current;
+
     if (!card) return;
     const rect = card.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -80,7 +81,9 @@ const AwardIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
 
 function getMarqueeOpacity(index: number): string {
   if (index % 5 === 0) return "opacity-70";
+
   if (index % 2 === 0) return "opacity-45";
+
   return "opacity-30";
 }
 
@@ -184,9 +187,12 @@ function SpotlightContactLinks({ links }: { links: ContactLinkDescriptor[] }) {
           className: "w-5 h-5",
           "aria-hidden": true,
         });
+
         const isBranded = link.type === "behance" || link.type === "dribbble";
+
         const brandColor =
           link.type === "behance" ? "#1769FF" : link.type === "dribbble" ? "#EA4C89" : undefined;
+
         const brandText = link.type === "behance" ? "Bē" : link.type === "dribbble" ? "Dr" : null;
 
         if (link.type === "location") {
@@ -317,8 +323,10 @@ function SpotlightCertifications({
               )}
             </>
           );
+
           const certClass =
             "flex items-center justify-between gap-3 p-4 bg-[#FFFCF9] border border-stone-200/60 rounded-xl group";
+
           return cert.url ? (
             <a
               key={`${cert.name}-${cert.issuer}-${cert.date ?? ""}`}
@@ -349,6 +357,7 @@ export const Spotlight: React.FC<TemplateProps> = ({ content, profile, isPreview
   const handlePageMouseMove = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
       if (isPreview) return;
+
       if (rafRef.current !== null) return;
       const { clientX, clientY } = e;
       rafRef.current = requestAnimationFrame(() => {

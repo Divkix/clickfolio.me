@@ -36,6 +36,7 @@ export async function verifyClerkToken(token: string): Promise<ClerkClaims | nul
   if (!token) return null;
 
   const secretKey = env.CLERK_SECRET_KEY;
+
   if (!secretKey) {
     throw new Error(
       "CLERK_SECRET_KEY is not configured. Set it via `wrangler secret put CLERK_SECRET_KEY` (prod) or .dev.vars (dev).",
@@ -44,7 +45,9 @@ export async function verifyClerkToken(token: string): Promise<ClerkClaims | nul
 
   try {
     const payload = await verifyToken(token, { secretKey });
+
     if (!payload?.sub) return null;
+
     return {
       sub: payload.sub,
       sid: payload.sid,
@@ -54,6 +57,7 @@ export async function verifyClerkToken(token: string): Promise<ClerkClaims | nul
     };
   } catch (error) {
     console.warn("[clerk] session token verification failed:", error);
+
     return null;
   }
 }
@@ -61,28 +65,35 @@ export async function verifyClerkToken(token: string): Promise<ClerkClaims | nul
 function readCookieFromHeader(cookieHeader: string, name: string): string | null {
   for (const part of cookieHeader.split(";")) {
     const idx = part.indexOf("=");
+
     if (idx === -1) continue;
+
     if (part.slice(0, idx).trim() === name) {
       return decodeURIComponent(part.slice(idx + 1).trim());
     }
   }
+
   return null;
 }
 
 export function extractClerkTokenFromRequest(request: Request): string | null {
   const cookieHeader = request.headers.get("Cookie") ?? "";
   const fromCookie = readCookieFromHeader(cookieHeader, CLERK_SESSION_COOKIE);
+
   if (fromCookie) return fromCookie;
 
   const authorization = request.headers.get("Authorization");
+
   if (authorization?.startsWith("Bearer ")) {
     return authorization.slice(7).trim() || null;
   }
+
   return null;
 }
 
 async function resolveClaims(request?: Request): Promise<ClerkAuthContext | null> {
   let token: string | null;
+
   if (request) {
     token = extractClerkTokenFromRequest(request);
   } else {
@@ -93,9 +104,11 @@ async function resolveClaims(request?: Request): Promise<ClerkAuthContext | null
       token = null;
     }
   }
+
   if (!token) return null;
 
   const claims = await verifyClerkToken(token);
+
   if (!claims) return null;
 
   return {
@@ -112,6 +125,7 @@ export async function getAuthClerk(request?: Request): Promise<ClerkAuthContext 
     return await resolveClaims(request);
   } catch (error) {
     console.error("[clerk] failed to resolve session:", error);
+
     return null;
   }
 }
@@ -152,6 +166,7 @@ type RequireAuthResult =
 
 export async function requireAuthClerk(errorMessage: string): Promise<RequireAuthResult> {
   const auth = await getAuthClerk();
+
   if (!auth) {
     return {
       user: null,

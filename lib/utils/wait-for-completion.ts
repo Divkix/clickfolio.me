@@ -23,10 +23,12 @@ export function waitForResumeCompletion(resumeId: string, timeoutMs = 90_000): P
       socketHandle.dispose("done");
       socketHandle = null;
     }
+
     if (pollInterval) {
       clearInterval(pollInterval);
       pollInterval = null;
     }
+
     if (timeoutTimer) {
       clearTimeout(timeoutTimer);
       timeoutTimer = null;
@@ -42,8 +44,10 @@ export function waitForResumeCompletion(resumeId: string, timeoutMs = 90_000): P
   function startPolling() {
     const poll = async () => {
       if (resolved) return;
+
       try {
         const response = await fetch(`/api/resume/status?resume_id=${resumeId}`);
+
         if (!response.ok) return;
 
         // SAFETY: HTTP status payload validated immediately after via isValidResumeStatus; cast narrows json shape with early return on invalid status
@@ -51,6 +55,7 @@ export function waitForResumeCompletion(resumeId: string, timeoutMs = 90_000): P
           status: ResumeStatus;
           error?: string | null;
         };
+
         if (!isValidResumeStatus(data.status)) return;
 
         if (data.status === "completed") {
@@ -68,6 +73,7 @@ export function waitForResumeCompletion(resumeId: string, timeoutMs = 90_000): P
   socketHandle = createResumeStatusSocket(resumeId, {
     onMessage: (msg) => {
       if (msg.type !== "status") return;
+
       if (msg.status === "completed") {
         finish({ status: "completed" });
       } else if (msg.status === "failed") {

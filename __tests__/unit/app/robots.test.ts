@@ -57,6 +57,7 @@ describe("robots metadata", () => {
     const config = robots();
     const rules = Array.isArray(config.rules) ? config.rules : [config.rules];
     const starRule = rules.find((rule) => rule.userAgent === "*");
+
     const aiAgents = [
       "GPTBot",
       "ChatGPT-User",

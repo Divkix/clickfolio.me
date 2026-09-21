@@ -10,8 +10,10 @@ export function MobileStickyUpload() {
 
   useEffect(() => {
     const target = document.getElementById("upload-card");
+
     if (!target) {
       setVisible(true);
+
       return;
     }
 
@@ -23,6 +25,7 @@ export function MobileStickyUpload() {
     );
 
     observer.observe(target);
+
     return () => observer.disconnect();
   }, []);
 

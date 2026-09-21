@@ -14,6 +14,7 @@ declare module "vite-plus/test" {
     typeof expect.stringContaining,
     T
   > {}
+
   // @ts-expect-error - vitest's interface merging
   interface AsymmetricMatchersContaining extends matchers.TestingLibraryMatchers<
     typeof expect.stringContaining,

@@ -20,6 +20,7 @@ export function RealtimeStatusListener({ resumeId, currentStatus }: RealtimeStat
   const router = useRouter();
   const hasRefreshedRef = useRef(false);
   const refreshDebounceRef = useRef<NodeJS.Timeout | null>(null);
+
   const [detected, setDetected] = useState<DetectedState>({
     status:
       currentStatus === "completed" || currentStatus === "failed" ? currentStatus : "processing",
@@ -28,10 +29,12 @@ export function RealtimeStatusListener({ resumeId, currentStatus }: RealtimeStat
   const handleStatusChange = useCallback(
     (newStatus: ResumeStatus, errorMessage?: string) => {
       if (hasRefreshedRef.current) return;
+
       if (newStatus === "completed" || newStatus === "failed") {
         if (refreshDebounceRef.current) {
           clearTimeout(refreshDebounceRef.current);
         }
+
         setDetected({
           status: newStatus,
           errorMessage,

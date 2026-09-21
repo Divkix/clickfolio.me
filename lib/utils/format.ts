@@ -7,8 +7,11 @@ export function formatRelativeTime(date: string | Date): string {
   const diffDays = Math.floor(diffMs / 86400000);
 
   if (diffMins < 1) return "Just now";
+
   if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? "s" : ""} ago`;
+
   if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
+
   if (diffDays < 30) return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
 
   const months = [
@@ -25,11 +28,14 @@ export function formatRelativeTime(date: string | Date): string {
     "Nov",
     "Dec",
   ];
+
   return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
 }
 
 export function truncateText(text: string, maxLength: number): string {
   if (text.length <= maxLength) return text;
+
   if (maxLength <= 3) return "...".slice(0, maxLength);
+
   return `${text.slice(0, maxLength - 3).trim()}...`;
 }
