@@ -15,7 +15,7 @@ This file is the **single source of truth** — read top-to-bottom before touchi
 | Package mgr | `pnpm@11.10.0` via `packageManager`                                                                            |
 | DB          | PlanetScale Postgres via Hyperdrive `HYPERDRIVE` + Drizzle `drizzle-orm/pg-core` (postgres-js)                 |
 | Auth        | Clerk `@clerk/react` + `@clerk/backend` (NOT `@clerk/nextjs`) — Google OAuth                                   |
-| AI parsing  | Cloudflare AI Gateway → OpenRouter `openai/gpt-6-luna:nitro` + `unpdf` + Vercel AI SDK `ai`                  |
+| AI parsing  | Cloudflare AI Gateway → OpenRouter `openai/gpt-6-luna:nitro` + `unpdf` + Vercel AI SDK `ai`                    |
 | Storage     | Cloudflare R2 `CLICKFOLIO_R2_BUCKET`                                                                           |
 | Queue       | Cloudflare Queues `CLICKFOLIO_PARSE_QUEUE` + DLQ                                                               |
 | Realtime    | Durable Object `ClickfolioStatusDO` (hibernation)                                                              |
