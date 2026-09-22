@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { retryPendingR2Deletions } from "@/lib/cron/cleanup-r2";
-import type { JsonValue } from "@/lib/types/json";
+import { createMockR2Bucket } from "@/__tests__/setup/mocks/r2.mock";
 
 interface PendingRow {
   id: string;
@@ -40,7 +40,7 @@ function createDb(rows: PendingRow[]) {
       return [{ count: rows.filter((row) => row.attempts >= MAX_ATTEMPTS).length }];
     }),
     {
-      begin: vi.fn(async (callback: (txFn: typeof tx) => Promise<unknown>) => callback(tx)),
+      begin: vi.fn(async (callback: (txFn: typeof tx) => Promise<void>) => callback(tx)),
     },
   );
 
@@ -51,14 +51,18 @@ function findStatement(db: { _statements: Statement[] }, needle: string): Statem
   return db._statements.find((statement) => statement.text.includes(needle));
 }
 
-function createBinding(deleteImpl?: () => Promise<void>) {
+function createBinding(deleteImpl?: () => Promise<void>): R2Bucket {
   return {
+    ...createMockR2Bucket().bucket,
     delete: vi.fn(deleteImpl ?? (() => Promise.resolve(undefined))),
   };
 }
 
-function run(db: JsonValue, binding: JsonValue) {
-  return retryPendingR2Deletions(db as never, binding as unknown as R2Bucket);
+function run(db: { _statements: Statement[] }, binding: R2Bucket) {
+  // SAFETY: Database = PostgresJsDatabase & { $client: postgres.Sql } is only obtainable
+  // from a live postgres-js client; createDb() implements just the statement-recording surface
+  // these tests exercise, so it can never satisfy the full Database type.
+  return retryPendingR2Deletions(db as never, binding);
 }
 
 describe("retryPendingR2Deletions", () => {
@@ -70,7 +74,7 @@ describe("retryPendingR2Deletions", () => {
     const db = createDb([{ id: "pending-1", r2Key: "users/user-1/resume.pdf", attempts: 1 }]);
     const binding = createBinding();
 
-    const result = await run(db as unknown as JsonValue, binding as unknown as JsonValue);
+    const result = await run(db, binding);
 
     expect(result.ok).toBe(true);
     expect(result.retried).toBe(1);
@@ -87,7 +91,7 @@ describe("retryPendingR2Deletions", () => {
     const db = createDb([{ id: "pending-1", r2Key: "users/user-1/resume.pdf", attempts: 1 }]);
     const binding = createBinding(() => Promise.reject(new Error("R2 unavailable")));
 
-    const result = await run(db as unknown as JsonValue, binding as unknown as JsonValue);
+    const result = await run(db, binding);
 
     expect(result.retried).toBe(1);
     expect(result.succeeded).toBe(0);
@@ -103,7 +107,7 @@ describe("retryPendingR2Deletions", () => {
     const db = createDb([]);
     const binding = createBinding();
 
-    await run(db as unknown as JsonValue, binding as unknown as JsonValue);
+    await run(db, binding);
 
     const selectStatement = findStatement(db, "SELECT id, r2_key");
     expect(selectStatement?.text).toContain("WHERE attempts < ?");
@@ -117,7 +121,7 @@ describe("retryPendingR2Deletions", () => {
     const db = createDb([{ id: "max-1", r2Key: "users/u1/a.pdf", attempts: MAX_ATTEMPTS }]);
     const binding = createBinding();
 
-    const result = await run(db as unknown as JsonValue, binding as unknown as JsonValue);
+    const result = await run(db, binding);
 
     expect(result.retried).toBe(0);
     expect(result.skipped).toBe(1);
@@ -133,7 +137,7 @@ describe("retryPendingR2Deletions", () => {
     const db = createDb([]);
     const binding = createBinding();
 
-    const result = await run(db as unknown as JsonValue, binding as unknown as JsonValue);
+    const result = await run(db, binding);
 
     expect(result.retried).toBe(0);
     expect(result.succeeded).toBe(0);
@@ -150,11 +154,11 @@ describe("retryPendingR2Deletions", () => {
       { id: "max-1", r2Key: "users/u3/c.pdf", attempts: MAX_ATTEMPTS },
     ]);
 
-    const binding = {
-      delete: vi.fn().mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error("timeout")),
-    };
+    const binding = createBinding(
+      vi.fn().mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error("timeout")),
+    );
 
-    const result = await run(db as unknown as JsonValue, binding as unknown as JsonValue);
+    const result = await run(db, binding);
 
     expect(result.retried).toBe(2);
     expect(result.succeeded).toBe(1);

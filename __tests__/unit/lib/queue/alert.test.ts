@@ -13,7 +13,14 @@ function createMockEnv(overrides: Record<string, string | undefined> = {}): Mock
   return {
     HYPERDRIVE: {
       connectionString: "postgres://user:pass@localhost:5432/clickfolio",
-    } as CloudflareEnv["HYPERDRIVE"],
+      host: "localhost",
+      ip: "127.0.0.1",
+      port: 5432,
+      user: "user",
+      password: "pass",
+      database: "clickfolio",
+      connect: vi.fn(),
+    },
     CLICKFOLIO_STATUS_DO: undefined,
     ...overrides,
   };
@@ -58,7 +65,9 @@ describe("alert module", () => {
 
       const dlqAlert = consoleSpy.mock.calls.find((call) => {
         try {
-          return (JSON.parse(call[0]) as UnknownRecord)["msg"] === "DLQ_ALERT";
+          const parsed: UnknownRecord = JSON.parse(call[0]);
+
+          return parsed["msg"] === "DLQ_ALERT";
         } catch {
           return false;
         }
@@ -66,7 +75,7 @@ describe("alert module", () => {
 
       expect(dlqAlert).toBeDefined();
 
-      const payload = JSON.parse(dlqAlert![0]) as UnknownRecord;
+      const payload: UnknownRecord = JSON.parse(dlqAlert![0]);
       expect(payload).toMatchObject({
         resumeId: "resume-123",
         userId: "user-456",
@@ -124,7 +133,9 @@ describe("alert module", () => {
 
       const webhookFailLog = consoleSpy.mock.calls.find((call) => {
         try {
-          return (JSON.parse(call[0]) as UnknownRecord)["msg"] === "webhook alert failed";
+          const parsed: UnknownRecord = JSON.parse(call[0]);
+
+          return parsed["msg"] === "webhook alert failed";
         } catch {
           return false;
         }

@@ -1,15 +1,25 @@
 import { describe, expect, it, vi } from "vite-plus/test";
 import type { Mock } from "vite-plus/test";
-import type { UnknownRecord } from "@/lib/types/json";
 import { notifyStatusChange, notifyStatusChangeBatch } from "@/lib/queue/notify-status";
 
 type StatusEnv = {
   CLICKFOLIO_STATUS_DO: CloudflareEnv["CLICKFOLIO_STATUS_DO"] | undefined;
 };
 
-function makeStatusEnv(binding: Record<string, Mock> | UnknownRecord | undefined): StatusEnv {
+function makeNamespace(idFromName: Mock, get: Mock): CloudflareEnv["CLICKFOLIO_STATUS_DO"] {
   return {
-    CLICKFOLIO_STATUS_DO: binding as unknown as CloudflareEnv["CLICKFOLIO_STATUS_DO"],
+    newUniqueId: vi.fn(),
+    idFromName,
+    idFromString: vi.fn(),
+    get,
+    getByName: vi.fn(),
+    jurisdiction: vi.fn(),
+  };
+}
+
+function makeStatusEnv(binding: { idFromName: Mock; get: Mock }): StatusEnv {
+  return {
+    CLICKFOLIO_STATUS_DO: makeNamespace(binding.idFromName, binding.get),
   };
 }
 
@@ -20,10 +30,7 @@ describe("Notify Status", () => {
     const idFromNameMock = vi.fn().mockReturnValue({ toString: () => "do-id-123" });
 
     return {
-      binding: {
-        idFromName: idFromNameMock,
-        get: getMock,
-      } as unknown as CloudflareEnv["CLICKFOLIO_STATUS_DO"],
+      binding: makeNamespace(idFromNameMock, getMock),
       fetchMock,
       getMock,
       idFromNameMock,

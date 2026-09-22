@@ -3,8 +3,25 @@ import { recoverOrphanedResumes } from "@/lib/cron/recover-orphaned";
 import { WAITING_FOR_CACHE_TIMEOUT_MESSAGE } from "@/lib/resume/lifecycle";
 import type { UnknownRecord, JsonValue } from "@/lib/types/json";
 import type { ResumeParseMessage } from "@/lib/queue/types";
+import type { Database } from "@/lib/db";
 
 type Row = UnknownRecord;
+
+/** Drizzle SQL AST node: object nodes carry column metadata; primitive leaves are inert. */
+type SqlNode = {
+  name?: string;
+  columnType?: string;
+  queryChunks?: JsonValue;
+  chunks?: JsonValue;
+  left?: JsonValue;
+  right?: JsonValue;
+  value?: JsonValue;
+  expr?: JsonValue;
+};
+
+function isSqlNode(value: JsonValue): value is SqlNode {
+  return value instanceof Object;
+}
 
 function collectColumns(node: JsonValue, depth = 0, acc = new Set<string>()): Set<string> {
   if (node == null || depth > 16) return acc;
@@ -15,17 +32,15 @@ function collectColumns(node: JsonValue, depth = 0, acc = new Set<string>()): Se
     return acc;
   }
 
-  if (typeof node === "object") {
-    const obj = node as UnknownRecord;
-
-    if (typeof obj.name === "string" && typeof obj.columnType === "string") {
-      acc.add(obj.name);
+  if (isSqlNode(node)) {
+    if (node.name !== undefined && node.columnType !== undefined) {
+      acc.add(node.name);
     }
 
-    if (obj.queryChunks) collectColumns(obj.queryChunks, depth + 1, acc);
+    if (node.queryChunks) collectColumns(node.queryChunks, depth + 1, acc);
 
-    for (const k of ["chunks", "left", "right", "value", "expr"]) {
-      if (obj[k]) collectColumns(obj[k], depth + 1, acc);
+    for (const k of ["chunks", "left", "right", "value", "expr"] as const) {
+      if (node[k]) collectColumns(node[k], depth + 1, acc);
     }
   }
 
@@ -67,7 +82,11 @@ function createMocks(options: { changes?: number } = {}) {
     }),
   };
 
-  const queue = { send: vi.fn().mockResolvedValue(undefined) };
+  const queue = {
+    send: vi.fn().mockResolvedValue(undefined),
+    sendBatch: vi.fn().mockResolvedValue(undefined),
+    metrics: vi.fn().mockResolvedValue(undefined),
+  };
 
   const setBuckets = (pending: Row[], processing: Row[], queued: Row[], waiting: Row[] = []) => {
     db.select
@@ -80,8 +99,11 @@ function createMocks(options: { changes?: number } = {}) {
   return { db, queue, whereCaptures, updateWhereCaptures, setCalls, setBuckets };
 }
 
-function run(db: JsonValue, queue: JsonValue) {
-  return recoverOrphanedResumes(db as never, queue as unknown as Queue<ResumeParseMessage>);
+function run(db: Pick<Database, "select" | "update">, queue: Queue<ResumeParseMessage>) {
+  // SAFETY: recoverOrphanedResumes only issues .select()/.update() — the exact surface the
+  // stub implements — while its signature demands the full PostgresJs Database, which also
+  // requires the live postgres-js $client no test can construct.
+  return recoverOrphanedResumes(db as Database, queue);
 }
 
 describe("recoverOrphanedResumes — queued orphan recovery", () => {
@@ -102,7 +124,7 @@ describe("recoverOrphanedResumes — queued orphan recovery", () => {
 
     setBuckets([], [], [queuedOrphan]);
 
-    const result = await run(db as unknown as JsonValue, queue as unknown as JsonValue);
+    const result = await run(db, queue);
 
     expect(result.ok).toBe(true);
     expect(result.found).toBe(1);
@@ -122,7 +144,7 @@ describe("recoverOrphanedResumes — queued orphan recovery", () => {
     const { db, queue, whereCaptures, setBuckets } = createMocks();
     setBuckets([], [], []);
 
-    await run(db as unknown as JsonValue, queue as unknown as JsonValue);
+    await run(db, queue);
 
     expect(whereCaptures).toHaveLength(4);
     const processingCols = collectColumns(whereCaptures[1]);
@@ -155,7 +177,7 @@ describe("recoverOrphanedResumes — queued orphan recovery", () => {
     setBuckets([], [], [queuedOrphan]);
     queue.send.mockRejectedValueOnce(new Error("Queue unavailable"));
 
-    const result = await run(db as unknown as JsonValue, queue as unknown as JsonValue);
+    const result = await run(db, queue);
 
     expect(result.recovered).toBe(0);
     expect(result.found).toBe(1);
@@ -177,7 +199,7 @@ describe("recoverOrphanedResumes — queued orphan recovery", () => {
 
     setBuckets([], [], [maxedOut]);
 
-    const result = await run(db as unknown as JsonValue, queue as unknown as JsonValue);
+    const result = await run(db, queue);
 
     expect(result.ok).toBe(true);
     expect(result.found).toBe(1);
@@ -209,7 +231,7 @@ describe("recoverOrphanedResumes — queued orphan recovery", () => {
 
     setBuckets([], [], [queuedOrphan]);
 
-    const result = await run(db as unknown as JsonValue, queue as unknown as JsonValue);
+    const result = await run(db, queue);
 
     expect(result.ok).toBe(true);
     expect(result.recovered).toBe(0);
@@ -232,7 +254,7 @@ describe("recoverOrphanedResumes — queued orphan recovery", () => {
     setBuckets([], [], [queuedOrphan]);
     queue.send.mockRejectedValueOnce(new Error("Queue unavailable"));
 
-    const result = await run(db as unknown as JsonValue, queue as unknown as JsonValue);
+    const result = await run(db, queue);
 
     expect(result.recovered).toBe(0);
     expect(updateWhereCaptures).toHaveLength(2);
@@ -257,7 +279,7 @@ describe("recoverOrphanedResumes — queued orphan recovery", () => {
 
     setBuckets([], [], [queuedOrphan]);
 
-    const result = await run(db as unknown as JsonValue, queue as unknown as JsonValue);
+    const result = await run(db, queue);
 
     expect(result.recovered).toBe(1);
     expect(queue.send).toHaveBeenCalledTimes(1);

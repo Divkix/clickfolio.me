@@ -1,15 +1,41 @@
-import { getDb } from "@/lib/db";
+import { getDb, type Database } from "@/lib/db";
+import type { AlertEnv } from "@/lib/queue/alert";
 import type { UnknownRecord, JsonValue } from "@/lib/types/json";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
-interface ResumeRecord {
+function asDatabase(db: {}): Database {
+  // SAFETY: Database = PostgresJsDatabase & { $client: postgres.Sql } is only obtainable
+  // from a live postgres-js client; the in-file drizzle mocks implement just the query
+  // surface these tests exercise, so they can never satisfy the full Database type.
+  return db as Database;
+}
+
+function parseAlertRecord(text: string): UnknownRecord | undefined {
+  const value: unknown = JSON.parse(text);
+
+  if (value instanceof Object && !Array.isArray(value)) {
+    // SAFETY: JSON.parse returns any; dlq-consumer only ever logs object-shaped alert
+    // payloads, so the object branch is a record — anything else reads as undefined.
+    return value as UnknownRecord;
+  }
+
+  return undefined;
+}
+
+// String(v) === v holds exactly for primitive strings — the same values typeof v ===
+// "string" matches — so JSON params narrow without a runtime typeof.
+function isStringJsonValue(value: JsonValue): value is string {
+  return String(value) === value;
+}
+
+type ResumeRecord = {
   id: string;
   status: string;
-  parsedContent: Record<string, unknown> | null;
-  parsedContentStaged: Record<string, unknown> | null;
+  parsedContent: UnknownRecord | null;
+  parsedContentStaged: UnknownRecord | null;
   totalAttempts: number;
   lastAttemptError: string | null;
-}
+};
 
 const mockDbState = {
   resumes: new Map<string, ResumeRecord>(),
@@ -55,6 +81,9 @@ function createResume(record: Partial<ResumeRecord>): ResumeRecord {
 }
 
 vi.mock("@/lib/r2", () => ({
+  // SAFETY: every R2 touch in these tests goes through the vi.fn()-mocked R2.* methods
+  // declared below, so the empty R2Bucket stub is never method-called — it only satisfies
+  // the binding type the wrapper signatures require.
   getR2Binding: vi.fn().mockReturnValue({} as R2Bucket),
   R2: {
     getAsArrayBuffer: vi.fn().mockImplementation(async (_binding: R2Bucket, key: string) => {
@@ -96,8 +125,8 @@ function mockSelectChain(getRows: () => Array<UnknownRecord>) {
       where: vi.fn(() => ({
         limit: vi.fn(async () => getRows()),
         then: (
-          onFulfilled: (value: Array<UnknownRecord>) => unknown,
-          onRejected?: (reason: unknown) => unknown,
+          onFulfilled: (value: Array<UnknownRecord>) => void,
+          onRejected?: (reason: Error) => void,
         ) => Promise.resolve(getRows()).then(onFulfilled, onRejected),
       })),
     })),
@@ -107,7 +136,7 @@ function mockSelectChain(getRows: () => Array<UnknownRecord>) {
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function isSqlFragment(value: unknown): value is { queryChunks: unknown } {
-  return typeof value === "object" && value !== null && "queryChunks" in value;
+  return value instanceof Object && "queryChunks" in value;
 }
 
 // The ids bound into a mocked where clause: their string params are the row ids a
@@ -121,13 +150,11 @@ function conditionIds(node: JsonValue, depth = 0, acc: string[] = []): string[] 
     return acc;
   }
 
-  if (typeof node === "object") {
-    const obj = node as UnknownRecord;
-
-    if (typeof obj.value === "string" && UUID_PATTERN.test(obj.value)) acc.push(obj.value);
+  if (node instanceof Object) {
+    if (isStringJsonValue(node.value) && UUID_PATTERN.test(node.value)) acc.push(node.value);
 
     for (const key of ["queryChunks", "chunks", "left", "right", "value", "expr"]) {
-      if (obj[key]) conditionIds(obj[key] as JsonValue, depth + 1, acc);
+      if (node[key]) conditionIds(node[key], depth + 1, acc);
     }
   }
 
@@ -155,8 +182,8 @@ function mockUpdateChain(options?: {
           return {
             returning: vi.fn(async () => rowsFor(cond)),
             then: (
-              onFulfilled?: ((value: { count: number }) => unknown) | null,
-              onRejected?: ((reason: unknown) => unknown) | null,
+              onFulfilled?: ((value: { count: number }) => void) | null,
+              onRejected?: ((reason: Error) => void) | null,
             ) => Promise.resolve({ count: 0 }).then(onFulfilled, onRejected),
           };
         }),
@@ -166,11 +193,11 @@ function mockUpdateChain(options?: {
 }
 
 function mockBuildDefaultMockDb() {
-  const allRows = () => Array.from(mockDbState.resumes.values()) as unknown as UnknownRecord[];
+  const allRows = (): UnknownRecord[] => Array.from(mockDbState.resumes.values());
 
   const db = {
     select: vi.fn().mockImplementation((cols: JsonValue) => {
-      const keys = cols !== null && typeof cols === "object" ? (cols as UnknownRecord) : {};
+      const keys = cols instanceof Object ? cols : {};
 
       if ("handle" in keys) {
         const rows: Array<UnknownRecord> = "id" in keys ? [] : [{ handle: "test-handle" }];
@@ -265,7 +292,7 @@ function resetAll() {
   vi.clearAllMocks();
   resetMockState();
   vi.mocked(getDb).mockReset();
-  vi.mocked(getDb).mockImplementation(() => mockBuildDefaultMockDb() as never);
+  vi.mocked(getDb).mockImplementation(() => asDatabase(mockBuildDefaultMockDb()));
   mockAiResult = null;
   mockAiError = null;
 }
@@ -288,18 +315,51 @@ function createMessage(params: {
 }
 
 function createEnv(): CloudflareEnv {
+  const statusDo: CloudflareEnv["CLICKFOLIO_STATUS_DO"] = {
+    newUniqueId: vi.fn(),
+    idFromName: vi.fn().mockReturnValue({}),
+    idFromString: vi.fn(),
+    get: vi.fn().mockReturnValue({
+      fetch: vi.fn().mockResolvedValue(new Response("OK")),
+    }),
+    getByName: vi.fn(),
+    jurisdiction: vi.fn(),
+  };
+
+  // SAFETY: workerd bindings cannot be constructed in tests; getDb, the r2 module and
+  // notify-status are all vi.fn()-mocked, so these stubs are consumed structurally —
+  // only connectionString and the namespace members exist because the env types require them.
   return {
     CLICKFOLIO_R2_BUCKET: {} as R2Bucket,
     HYPERDRIVE: {
       connectionString: "postgres://user:pass@localhost:5432/clickfolio",
     } as CloudflareEnv["HYPERDRIVE"],
+    CLICKFOLIO_STATUS_DO: statusDo,
+  } as CloudflareEnv;
+}
+
+function createDlqEnv(alerts?: Pick<AlertEnv, "ALERT_CHANNEL" | "ALERT_WEBHOOK_URL">) {
+  // SAFETY: workerd bindings cannot be constructed in tests and getDb/notify-status are
+  // module-mocked, so Hyperdrive is only a connectionString carrier; the DO namespace
+  // stub implements every member DurableObjectNamespace declares, with vi.fn() covering
+  // the id/stub returns no test can construct. Alerts stay plain AlertEnv data that
+  // handleDLQMessage's inner `env as AlertEnv` reads.
+  return {
+    HYPERDRIVE: {
+      connectionString: "postgres://user:pass@localhost:5432/clickfolio",
+    } as CloudflareEnv["HYPERDRIVE"],
     CLICKFOLIO_STATUS_DO: {
-      idFromName: vi.fn().mockReturnValue({} as DurableObjectId),
+      newUniqueId: vi.fn(),
+      idFromName: vi.fn().mockReturnValue({}),
+      idFromString: vi.fn(),
       get: vi.fn().mockReturnValue({
         fetch: vi.fn().mockResolvedValue(new Response("OK")),
       }),
-    } as unknown as DurableObjectNamespace,
-  } as CloudflareEnv;
+      getByName: vi.fn(),
+      jurisdiction: vi.fn(),
+    },
+    ...alerts,
+  };
 }
 
 describe("Queue Consumer - Main Processing", () => {
@@ -408,7 +468,7 @@ describe("Queue Consumer - Main Processing", () => {
         { status: "completed", parsedContent: existingContent, totalAttempts: 1 },
       ]),
     );
-    vi.mocked(getDb).mockReturnValue(mockDb as never);
+    vi.mocked(getDb).mockReturnValue(asDatabase(mockDb));
 
     const message = createMessage({ resumeId, userId, r2Key });
     const env = createEnv();
@@ -458,7 +518,7 @@ describe("Queue Consumer - Main Processing", () => {
     const setValues: Array<UnknownRecord> = [];
     const mockDb = mockBuildDefaultMockDb();
     vi.mocked(mockDb.update).mockImplementation(() => mockUpdateChain({ setValues }));
-    vi.mocked(getDb).mockReturnValue(mockDb as never);
+    vi.mocked(getDb).mockReturnValue(asDatabase(mockDb));
 
     await handleQueueMessage(message, env);
 
@@ -482,7 +542,7 @@ describe("Queue Consumer - Main Processing", () => {
 
     const mockDb = withTransaction({
       select: vi.fn().mockImplementation((cols: JsonValue) => {
-        const keys = (cols ?? {}) as Record<string, unknown>;
+        const keys = cols instanceof Object ? cols : {};
 
         if ("handle" in keys) {
           return "id" in keys
@@ -509,7 +569,7 @@ describe("Queue Consumer - Main Processing", () => {
       }),
     });
 
-    vi.mocked(getDb).mockReturnValue(mockDb as never);
+    vi.mocked(getDb).mockReturnValue(asDatabase(mockDb));
 
     const message = createMessage({ resumeId, userId, r2Key, fileHash });
     const env = createEnv();
@@ -536,16 +596,13 @@ describe("Queue Consumer - Main Processing", () => {
 
     const mockDb = withTransaction({
       select: vi.fn().mockImplementation((cols: JsonValue) => {
-        const isHandleQuery =
-          cols !== null &&
-          typeof cols === "object" &&
-          "handle" in (cols as Record<string, unknown>);
+        const isHandleQuery = cols instanceof Object && "handle" in cols;
 
         if (isHandleQuery) {
           return mockSelectChain(() => []);
         }
 
-        if ("userId" in (cols as Record<string, unknown>)) {
+        if (cols instanceof Object && "userId" in cols) {
           return mockSelectChain(() => []);
         }
 
@@ -557,7 +614,7 @@ describe("Queue Consumer - Main Processing", () => {
       }),
     });
 
-    vi.mocked(getDb).mockReturnValue(mockDb as never);
+    vi.mocked(getDb).mockReturnValue(asDatabase(mockDb));
 
     const message = createMessage({ resumeId, userId, r2Key });
     const env = createEnv();
@@ -588,16 +645,13 @@ describe("Queue Consumer - Main Processing", () => {
 
     const mockDb = withTransaction({
       select: vi.fn().mockImplementation((cols: JsonValue) => {
-        const isUserQuery =
-          cols !== null &&
-          typeof cols === "object" &&
-          "handle" in (cols as Record<string, unknown>);
+        const isUserQuery = cols instanceof Object && "handle" in cols;
 
         if (isUserQuery) {
           return mockSelectChain(() => [{ handle: "test-handle", name: "Unnamed" }]);
         }
 
-        if ("userId" in (cols as Record<string, unknown>)) {
+        if (cols instanceof Object && "userId" in cols) {
           return mockSelectChain(() => []);
         }
 
@@ -609,7 +663,7 @@ describe("Queue Consumer - Main Processing", () => {
       }),
     });
 
-    vi.mocked(getDb).mockReturnValue(mockDb as never);
+    vi.mocked(getDb).mockReturnValue(asDatabase(mockDb));
 
     const message = createMessage({ resumeId, userId, r2Key });
     const env = createEnv();
@@ -634,16 +688,13 @@ describe("Queue Consumer - Main Processing", () => {
 
     const mockDb = withTransaction({
       select: vi.fn().mockImplementation((cols: JsonValue) => {
-        const isUserQuery =
-          cols !== null &&
-          typeof cols === "object" &&
-          "handle" in (cols as Record<string, unknown>);
+        const isUserQuery = cols instanceof Object && "handle" in cols;
 
         if (isUserQuery) {
           return mockSelectChain(() => [{ handle: "test-handle", name: "Existing Name" }]);
         }
 
-        if ("userId" in (cols as Record<string, unknown>)) {
+        if (cols instanceof Object && "userId" in cols) {
           return mockSelectChain(() => []);
         }
 
@@ -655,7 +706,7 @@ describe("Queue Consumer - Main Processing", () => {
       }),
     });
 
-    vi.mocked(getDb).mockReturnValue(mockDb as never);
+    vi.mocked(getDb).mockReturnValue(asDatabase(mockDb));
 
     const message = createMessage({ resumeId, userId, r2Key });
     const env = createEnv();
@@ -741,7 +792,7 @@ describe("Queue Consumer - Main Processing", () => {
       update: vi.fn(() => mockUpdateChain({ setValues: updateCalls })),
     };
 
-    vi.mocked(getDb).mockReturnValue(mockDb as never);
+    vi.mocked(getDb).mockReturnValue(asDatabase(mockDb));
 
     const message = createMessage({ resumeId, userId, r2Key });
     const env = createEnv();
@@ -805,7 +856,7 @@ describe("DLQ Consumer", () => {
       })),
     };
 
-    vi.mocked(getDb).mockReturnValue(mockDb as never);
+    vi.mocked(getDb).mockReturnValue(asDatabase(mockDb));
 
     const message = {
       type: "parse" as const,
@@ -816,17 +867,7 @@ describe("DLQ Consumer", () => {
       attempt: 3,
     };
 
-    const env = {
-      HYPERDRIVE: {
-        connectionString: "postgres://user:pass@localhost:5432/clickfolio",
-      } as CloudflareEnv["HYPERDRIVE"],
-      CLICKFOLIO_STATUS_DO: {
-        idFromName: vi.fn().mockReturnValue({} as DurableObjectId),
-        get: vi.fn().mockReturnValue({
-          fetch: vi.fn().mockResolvedValue(new Response("OK")),
-        }),
-      } as unknown as DurableObjectNamespace,
-    } as unknown as CloudflareEnv;
+    const env = createDlqEnv();
 
     await handleDLQMessage(message, env);
 
@@ -863,7 +904,7 @@ describe("DLQ Consumer", () => {
       }),
     };
 
-    vi.mocked(getDb).mockReturnValue(mockDb as never);
+    vi.mocked(getDb).mockReturnValue(asDatabase(mockDb));
 
     const message = {
       type: "parse" as const,
@@ -874,17 +915,7 @@ describe("DLQ Consumer", () => {
       attempt: 3,
     };
 
-    const env = {
-      HYPERDRIVE: {
-        connectionString: "postgres://user:pass@localhost:5432/clickfolio",
-      } as CloudflareEnv["HYPERDRIVE"],
-      CLICKFOLIO_STATUS_DO: {
-        idFromName: vi.fn().mockReturnValue({} as DurableObjectId),
-        get: vi.fn().mockReturnValue({
-          fetch: vi.fn().mockResolvedValue(new Response("OK")),
-        }),
-      } as unknown as DurableObjectNamespace,
-    } as unknown as CloudflareEnv;
+    const env = createDlqEnv();
 
     await handleDLQMessage(message, env);
 
@@ -922,7 +953,7 @@ describe("DLQ Consumer", () => {
       }),
     };
 
-    vi.mocked(getDb).mockReturnValue(mockDb as never);
+    vi.mocked(getDb).mockReturnValue(asDatabase(mockDb));
 
     const message = {
       type: "parse" as const,
@@ -933,24 +964,13 @@ describe("DLQ Consumer", () => {
       attempt: 3,
     };
 
-    const env = {
-      HYPERDRIVE: {
-        connectionString: "postgres://user:pass@localhost:5432/clickfolio",
-      } as CloudflareEnv["HYPERDRIVE"],
-      CLICKFOLIO_STATUS_DO: {
-        idFromName: vi.fn().mockReturnValue({} as DurableObjectId),
-        get: vi.fn().mockReturnValue({
-          fetch: vi.fn().mockResolvedValue(new Response("OK")),
-        }),
-      } as unknown as DurableObjectNamespace,
-      ALERT_CHANNEL: "logpush",
-    } as unknown as CloudflareEnv;
+    const env = createDlqEnv({ ALERT_CHANNEL: "logpush" });
 
     await handleDLQMessage(message, env);
 
     const dlqAlert = consoleSpy.mock.calls.find((call) => {
       try {
-        return (JSON.parse(call[0]) as UnknownRecord)["msg"] === "DLQ_ALERT";
+        return parseAlertRecord(call[0])?.["msg"] === "DLQ_ALERT";
       } catch {
         return false;
       }
@@ -987,7 +1007,7 @@ describe("DLQ Consumer", () => {
       }),
     };
 
-    vi.mocked(getDb).mockReturnValue(mockDb as never);
+    vi.mocked(getDb).mockReturnValue(asDatabase(mockDb));
 
     const message = {
       type: "parse" as const,
@@ -998,19 +1018,10 @@ describe("DLQ Consumer", () => {
       attempt: 3,
     };
 
-    const env = {
-      HYPERDRIVE: {
-        connectionString: "postgres://user:pass@localhost:5432/clickfolio",
-      } as CloudflareEnv["HYPERDRIVE"],
-      CLICKFOLIO_STATUS_DO: {
-        idFromName: vi.fn().mockReturnValue({} as DurableObjectId),
-        get: vi.fn().mockReturnValue({
-          fetch: vi.fn().mockResolvedValue(new Response("OK")),
-        }),
-      } as unknown as DurableObjectNamespace,
+    const env = createDlqEnv({
       ALERT_CHANNEL: "webhook",
       ALERT_WEBHOOK_URL: "https://hooks.slack.com/services/TEST",
-    } as unknown as CloudflareEnv;
+    });
 
     await handleDLQMessage(message, env);
 
@@ -1047,7 +1058,7 @@ describe("DLQ Consumer", () => {
       }),
     };
 
-    vi.mocked(getDb).mockReturnValue(mockDb as never);
+    vi.mocked(getDb).mockReturnValue(asDatabase(mockDb));
 
     const originalMessage = {
       type: "parse" as const,
@@ -1065,17 +1076,7 @@ describe("DLQ Consumer", () => {
       attempts: 5,
     };
 
-    const env = {
-      HYPERDRIVE: {
-        connectionString: "postgres://user:pass@localhost:5432/clickfolio",
-      } as CloudflareEnv["HYPERDRIVE"],
-      CLICKFOLIO_STATUS_DO: {
-        idFromName: vi.fn().mockReturnValue({} as DurableObjectId),
-        get: vi.fn().mockReturnValue({
-          fetch: vi.fn().mockResolvedValue(new Response("OK")),
-        }),
-      } as unknown as DurableObjectNamespace,
-    } as unknown as CloudflareEnv;
+    const env = createDlqEnv();
 
     await expect(handleDLQMessage(deadLetterMessage, env)).resolves.not.toThrow();
   });
@@ -1113,7 +1114,7 @@ describe("DLQ Consumer", () => {
       })),
     };
 
-    vi.mocked(getDb).mockReturnValue(mockDb as never);
+    vi.mocked(getDb).mockReturnValue(asDatabase(mockDb));
 
     const message = {
       type: "parse" as const,
@@ -1124,17 +1125,7 @@ describe("DLQ Consumer", () => {
       attempt: 3,
     };
 
-    const env = {
-      HYPERDRIVE: {
-        connectionString: "postgres://user:pass@localhost:5432/clickfolio",
-      } as CloudflareEnv["HYPERDRIVE"],
-      CLICKFOLIO_STATUS_DO: {
-        idFromName: vi.fn().mockReturnValue({} as DurableObjectId),
-        get: vi.fn().mockReturnValue({
-          fetch: vi.fn().mockResolvedValue(new Response("OK")),
-        }),
-      } as unknown as DurableObjectNamespace,
-    } as unknown as CloudflareEnv;
+    const env = createDlqEnv();
 
     await handleDLQMessage(message, env);
 
@@ -1145,7 +1136,7 @@ describe("DLQ Consumer", () => {
 
     const dlqAlertCall = consoleErrorSpy.mock.calls.find((call) => {
       try {
-        return (JSON.parse(call[0]) as UnknownRecord)["msg"] === "DLQ_ALERT";
+        return parseAlertRecord(call[0])?.["msg"] === "DLQ_ALERT";
       } catch {
         return false;
       }
@@ -1224,8 +1215,8 @@ describe("Worker Queue Handler (worker/index.ts)", () => {
     const retryable = isRetryableError(new Error("Timeout"));
     const permanent = isRetryableError(new Error("Invalid PDF"));
 
-    expect(typeof retryable).toBe("boolean");
-    expect(typeof permanent).toBe("boolean");
+    expect(retryable).toBeTypeOf("boolean");
+    expect(permanent).toBeTypeOf("boolean");
   });
 
   it("30. Worker acks permanent errors to DLQ", async () => {
@@ -1248,17 +1239,15 @@ function collectColumns(node: JsonValue, depth = 0, acc = new Set<string>()): Se
     return acc;
   }
 
-  if (typeof node === "object") {
-    const obj = node as UnknownRecord;
-
-    if (typeof obj.name === "string" && typeof obj.columnType === "string") {
-      acc.add(obj.name);
+  if (node instanceof Object) {
+    if (isStringJsonValue(node.name) && isStringJsonValue(node.columnType)) {
+      acc.add(node.name);
     }
 
-    if (obj.queryChunks) collectColumns(obj.queryChunks, depth + 1, acc);
+    if (node.queryChunks) collectColumns(node.queryChunks, depth + 1, acc);
 
     for (const k of ["chunks", "left", "right", "value", "expr"]) {
-      if (obj[k]) collectColumns(obj[k], depth + 1, acc);
+      if (node[k]) collectColumns(node[k], depth + 1, acc);
     }
   }
 
@@ -1283,7 +1272,7 @@ describe("Batch A — queue/state-machine integrity fixes", () => {
 
     const mockDb = withTransaction({
       select: vi.fn().mockImplementation((cols: JsonValue) => {
-        const keys = (cols ?? {}) as Record<string, unknown>;
+        const keys = cols instanceof Object ? cols : {};
 
         if ("handle" in keys) {
           return "id" in keys
@@ -1308,7 +1297,7 @@ describe("Batch A — queue/state-machine integrity fixes", () => {
       insert: vi.fn().mockReturnValue({ values: vi.fn().mockResolvedValue(undefined) }),
     });
 
-    vi.mocked(getDb).mockReturnValue(mockDb as never);
+    vi.mocked(getDb).mockReturnValue(asDatabase(mockDb));
 
     const message = createMessage({ resumeId, userId, r2Key, fileHash });
     const env = createEnv();
@@ -1340,7 +1329,7 @@ describe("Batch A — queue/state-machine integrity fixes", () => {
 
     const mockDb = withTransaction({
       select: vi.fn().mockImplementation((cols: JsonValue) => {
-        const keys = (cols ?? {}) as Record<string, unknown>;
+        const keys = cols instanceof Object ? cols : {};
 
         if ("handle" in keys) {
           return mockSelectChain(() => []);
@@ -1363,7 +1352,7 @@ describe("Batch A — queue/state-machine integrity fixes", () => {
       insert: vi.fn().mockReturnValue({ values: vi.fn().mockResolvedValue(undefined) }),
     });
 
-    vi.mocked(getDb).mockReturnValue(mockDb as never);
+    vi.mocked(getDb).mockReturnValue(asDatabase(mockDb));
 
     const message = createMessage({ resumeId, userId, r2Key, fileHash });
     const env = createEnv();
@@ -1410,7 +1399,7 @@ describe("Batch A — queue/state-machine integrity fixes", () => {
       insert: vi.fn().mockReturnValue({ values: vi.fn().mockResolvedValue(undefined) }),
     };
 
-    vi.mocked(getDb).mockReturnValue(mockDb as never);
+    vi.mocked(getDb).mockReturnValue(asDatabase(mockDb));
 
     const message = createMessage({ resumeId, userId: "user-1", r2Key });
     const env = createEnv();
@@ -1447,7 +1436,7 @@ describe("Batch A — queue/state-machine integrity fixes", () => {
       update: vi.fn(() => mockUpdateChain({ whereConds: updateWhereConds })),
     };
 
-    vi.mocked(getDb).mockReturnValue(mockDb as never);
+    vi.mocked(getDb).mockReturnValue(asDatabase(mockDb));
 
     mockR2Store.clear();
 
@@ -1485,7 +1474,7 @@ describe("Batch A — queue/state-machine integrity fixes", () => {
       update: vi.fn(() => mockUpdateChain()),
     };
 
-    vi.mocked(getDb).mockReturnValue(mockDb as never);
+    vi.mocked(getDb).mockReturnValue(asDatabase(mockDb));
 
     const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
@@ -1496,14 +1485,14 @@ describe("Batch A — queue/state-machine integrity fixes", () => {
 
     const dlqAlert = consoleSpy.mock.calls.find((call) => {
       try {
-        return (JSON.parse(call[0]) as UnknownRecord)["msg"] === "DLQ_ALERT";
+        return parseAlertRecord(call[0])?.["msg"] === "DLQ_ALERT";
       } catch {
         return false;
       }
     });
 
     expect(dlqAlert).toBeDefined();
-    const payload = JSON.parse(dlqAlert![0]) as UnknownRecord;
+    const payload = parseAlertRecord(dlqAlert![0]);
     expect(payload).toMatchObject({
       resumeId,
       userId,
