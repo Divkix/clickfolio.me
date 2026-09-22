@@ -68,7 +68,7 @@ describe("waitForResumeCompletion", () => {
       return Response.json(
         pollCount === 1 ? { status: "processing" } : { status: "failed", error: "Parser failed" },
       );
-    }) as unknown as typeof fetch;
+    });
 
     const resultPromise = waitForResumeCompletion("res_retry", 20_000);
     MockWebSocket.instances[0].onclose?.({ code: 1006 });

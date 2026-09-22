@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
-import type { JsonValue } from "@/lib/types/json";
 import { DEFAULT_PRIVACY_SETTINGS } from "@/lib/utils/privacy";
 
 vi.mock("@/lib/auth/middleware", () => ({
@@ -39,8 +38,13 @@ function successResult(): AuthSuccess {
       onboardingCompleted: true,
       role: "mid_level",
     },
+    // SAFETY: withUser forwards db by identity — the handler asserts ctx.db === result.db
+    // and never queries it, and Database also requires the live postgres-js $client that
+    // no test can construct — so a marker object stands in for the instance.
     db: { marker: "db" } as never,
     dbUser: { id: "user-1", handle: "testuser", clerkId: "user_2clerkAbc" },
+    // SAFETY: the handler only compares ctx.env by identity and never reads a binding, so
+    // the stub needs none of the 30 CloudflareEnv members beyond carrying HYPERDRIVE here.
     env: {
       HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" },
     } as never,
@@ -115,14 +119,12 @@ describe("withUser", () => {
     const response = await withUser(new Request("http://localhost/api/resume/update"), handler);
 
     expect(response.status).toBe(500);
-    const body = (await response.json()) as { code?: string };
+    const body: { code?: string } = await response.json();
     expect(body.code).toBe("INTERNAL_ERROR");
 
-    const loggedWithPath = consoleSpy.mock.calls.some((call: JsonValue[]) =>
-      call.some((arg: JsonValue) => typeof arg === "string" && arg.includes("/api/resume/update")),
-    );
+    const loggedArgs = consoleSpy.mock.calls.flat();
 
-    expect(loggedWithPath).toBe(true);
+    expect(loggedArgs).toContainEqual(expect.stringContaining("/api/resume/update"));
 
     consoleSpy.mockRestore();
   });
@@ -195,16 +197,12 @@ describe("withAdmin", () => {
     const response = await withAdmin(new Request("http://localhost/api/admin/referrals"), handler);
 
     expect(response.status).toBe(500);
-    const body = (await response.json()) as { code?: string };
+    const body: { code?: string } = await response.json();
     expect(body.code).toBe("INTERNAL_ERROR");
 
-    const loggedWithPath = consoleSpy.mock.calls.some((call: JsonValue[]) =>
-      call.some(
-        (arg: JsonValue) => typeof arg === "string" && arg.includes("/api/admin/referrals"),
-      ),
-    );
+    const loggedArgs = consoleSpy.mock.calls.flat();
 
-    expect(loggedWithPath).toBe(true);
+    expect(loggedArgs).toContainEqual(expect.stringContaining("/api/admin/referrals"));
 
     consoleSpy.mockRestore();
   });

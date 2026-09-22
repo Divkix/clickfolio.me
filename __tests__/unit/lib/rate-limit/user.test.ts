@@ -23,6 +23,7 @@ describe("checkRateLimit - handle_change", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // SAFETY: the mock implements only the query surface these tests exercise; `never` is the widest placeholder the Drizzle `Database` parameter accepts.
     vi.mocked(getDb).mockReturnValue(mockDb as never);
   });
 
@@ -31,7 +32,7 @@ describe("checkRateLimit - handle_change", () => {
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue([{ count: 1 }]),
       }),
-    } as never);
+    });
 
     const result = await checkRateLimit(userId, "handle_change");
 
@@ -44,7 +45,7 @@ describe("checkRateLimit - handle_change", () => {
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue([{ count: 3 }]),
       }),
-    } as never);
+    });
 
     const result = await checkRateLimit(userId, "handle_change");
 
@@ -58,7 +59,7 @@ describe("checkRateLimit - handle_change", () => {
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue([{ count: 3 }]),
       }),
-    } as never);
+    });
 
     const result = await checkRateLimit(userId, "handle_change");
 
@@ -70,7 +71,7 @@ describe("checkRateLimit - handle_change", () => {
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue([{ count: 0 }]),
       }),
-    } as never);
+    });
 
     const result = await checkRateLimit(userId, "handle_change");
 
@@ -96,6 +97,7 @@ describe("checkRateLimit - resume_upload", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // SAFETY: the mock implements only the query surface these tests exercise; `never` is the widest placeholder the Drizzle `Database` parameter accepts.
     vi.mocked(getDb).mockReturnValue(mockDb as never);
   });
 
@@ -104,7 +106,7 @@ describe("checkRateLimit - resume_upload", () => {
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue([{ count: 3 }]),
       }),
-    } as never);
+    });
 
     const result = await checkRateLimit(userId, "resume_upload");
 
@@ -117,7 +119,7 @@ describe("checkRateLimit - resume_upload", () => {
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue([{ count: 5 }]),
       }),
-    } as never);
+    });
 
     const result = await checkRateLimit(userId, "resume_upload");
 
@@ -130,7 +132,7 @@ describe("checkRateLimit - resume_upload", () => {
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue([{ count: 4 }]),
       }),
-    } as never);
+    });
 
     const result = await checkRateLimit(userId, "resume_upload");
 
@@ -145,6 +147,7 @@ describe("enforceRateLimit - Development Environment", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.stubEnv("NODE_ENV", "development");
+    // SAFETY: the mock implements only the query surface these tests exercise; `never` is the widest placeholder the Drizzle `Database` parameter accepts.
     vi.mocked(getDb).mockReturnValue(mockDb as never);
   });
 
@@ -174,6 +177,7 @@ describe("enforceRateLimit - Production", () => {
     vi.clearAllMocks();
     vi.stubEnv("NODE_ENV", "production");
     vi.mocked(isLocalEnvironment).mockReturnValue(false);
+    // SAFETY: the mock implements only the query surface these tests exercise; `never` is the widest placeholder the Drizzle `Database` parameter accepts.
     vi.mocked(getDb).mockReturnValue(mockDb as never);
   });
 
@@ -186,7 +190,7 @@ describe("enforceRateLimit - Production", () => {
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue([{ count: 0 }]),
       }),
-    } as never);
+    });
 
     const result = await enforceRateLimit("user-001", "handle_change");
 
@@ -198,7 +202,7 @@ describe("enforceRateLimit - Production", () => {
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue([{ count: 3 }]),
       }),
-    } as never);
+    });
 
     const result = await enforceRateLimit("user-001", "handle_change");
 
@@ -211,7 +215,7 @@ describe("enforceRateLimit - Production", () => {
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue([{ count: 3 }]),
       }),
-    } as never);
+    });
 
     const result = await enforceRateLimit("user-001", "handle_change");
     const body = await result?.json();
@@ -227,7 +231,7 @@ describe("enforceRateLimit - Production", () => {
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue([{ count: 3 }]),
       }),
-    } as never);
+    });
 
     const result = await enforceRateLimit("user-001", "handle_change");
 
@@ -241,7 +245,7 @@ describe("enforceRateLimit - Production", () => {
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue([{ count: 3 }]),
       }),
-    } as never);
+    });
 
     const result = await enforceRateLimit("user-001", "handle_change");
 
@@ -257,6 +261,7 @@ describe("enforceRateLimit - Local Environment", () => {
     vi.clearAllMocks();
     vi.stubEnv("NODE_ENV", "production");
     vi.mocked(isLocalEnvironment).mockReturnValue(true);
+    // SAFETY: the mock implements only the query surface these tests exercise; `never` is the widest placeholder the Drizzle `Database` parameter accepts.
     vi.mocked(getDb).mockReturnValue(mockDb as never);
   });
 
@@ -279,6 +284,7 @@ describe("enforceRateLimit - Environment Variable Override", () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("DISABLE_RATE_LIMITS", "true");
     vi.mocked(isLocalEnvironment).mockReturnValue(false);
+    // SAFETY: the mock implements only the query surface these tests exercise; `never` is the widest placeholder the Drizzle `Database` parameter accepts.
     vi.mocked(getDb).mockReturnValue(mockDb as never);
   });
 
@@ -293,7 +299,7 @@ describe("enforceRateLimit - Environment Variable Override", () => {
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue([{ count: 0 }]),
       }),
-    } as never);
+    });
 
     const result = await enforceRateLimit("user-001", "handle_change");
 
@@ -309,6 +315,7 @@ describe("checkRateLimit - concurrent request handling", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // SAFETY: the mock implements only the query surface these tests exercise; `never` is the widest placeholder the Drizzle `Database` parameter accepts.
     vi.mocked(getDb).mockReturnValue(mockDb as never);
   });
 
@@ -322,7 +329,7 @@ describe("checkRateLimit - concurrent request handling", () => {
           return Promise.resolve([{ count: callCount > 3 ? 2 : 1 }]);
         }),
       }),
-    } as never);
+    });
 
     const results = await Promise.all([
       checkRateLimit("user-001", "handle_change"),
@@ -343,6 +350,7 @@ describe("checkRateLimit - different user isolation", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // SAFETY: the mock implements only the query surface these tests exercise; `never` is the widest placeholder the Drizzle `Database` parameter accepts.
     vi.mocked(getDb).mockReturnValue(mockDb as never);
   });
 
@@ -353,7 +361,7 @@ describe("checkRateLimit - different user isolation", () => {
           return Promise.resolve([{ count: 2 }]);
         }),
       }),
-    } as never);
+    });
 
     const result1 = await checkRateLimit("user-001", "handle_change");
     const result2 = await checkRateLimit("user-002", "handle_change");
@@ -368,6 +376,7 @@ describe("checkRateLimit - time window accuracy", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // SAFETY: the mock implements only the query surface these tests exercise; `never` is the widest placeholder the Drizzle `Database` parameter accepts.
     vi.mocked(getDb).mockReturnValue(mockDb as never);
   });
 
@@ -378,7 +387,7 @@ describe("checkRateLimit - time window accuracy", () => {
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue([{ count: 0 }]),
       }),
-    } as never);
+    });
 
     const result = await checkRateLimit("user-001", "handle_change");
 
@@ -396,6 +405,7 @@ describe("enforceRateLimit - bypass attempts", () => {
     vi.clearAllMocks();
     vi.stubEnv("NODE_ENV", "production");
     vi.mocked(isLocalEnvironment).mockReturnValue(false);
+    // SAFETY: the mock implements only the query surface these tests exercise; `never` is the widest placeholder the Drizzle `Database` parameter accepts.
     vi.mocked(getDb).mockReturnValue(mockDb as never);
   });
 
@@ -408,7 +418,7 @@ describe("enforceRateLimit - bypass attempts", () => {
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue([{ count: 3 }]),
       }),
-    } as never);
+    });
 
     const result = await enforceRateLimit("user-001", "handle_change");
 

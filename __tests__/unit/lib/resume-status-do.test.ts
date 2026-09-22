@@ -1,14 +1,28 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { JsonValue } from "@/lib/types/json";
 
-const runtime = vi.hoisted(() => ({
-  nextClient: null as FakeSocket | null,
-  nextServer: null as FakeSocket | null,
-}));
+const runtime = vi.hoisted<{
+  nextClient: FakeSocket | null;
+  nextServer: FakeSocket | null;
+}>(() => ({ nextClient: null, nextServer: null }));
 
 class FakeSocket {
   sent: string[] = [];
   closed: Array<{ code: number; reason: string }> = [];
+  readonly CONNECTING = 0;
+  readonly OPEN = 1;
+  readonly CLOSING = 2;
+  readonly CLOSED = 3;
+  readonly readyState = 1;
+  bufferedAmount = 0;
+  url = "";
+  protocol = "";
+  extensions = "";
+  binaryType: "blob" | "arraybuffer" = "arraybuffer";
+  onopen = null;
+  onerror = null;
+  onclose = null;
+  onmessage = null;
 
   send(payload: string) {
     this.sent.push(payload);
@@ -16,6 +30,22 @@ class FakeSocket {
 
   close(code: number, reason: string) {
     this.closed.push({ code, reason });
+  }
+
+  accept(): void {}
+
+  serializeAttachment(): void {}
+
+  deserializeAttachment(): null {
+    return null;
+  }
+
+  addEventListener(): void {}
+
+  removeEventListener(): void {}
+
+  dispatchEvent(): boolean {
+    return true;
   }
 }
 
@@ -58,10 +88,11 @@ function installWebSocketPair(client = new FakeSocket(), server = new FakeSocket
 function createObject() {
   const values = new Map<string, string>();
   const sockets: FakeSocket[] = [];
+  const fetcherStub = { fetch: vi.fn(), connect: vi.fn() };
 
   const ctx = {
     storage: {
-      get: vi.fn(async (keys: string[]) => {
+      get: vi.fn(async (keys: string | string[]) => {
         const result = new Map<string, string>();
 
         for (const key of keys) {
@@ -72,7 +103,7 @@ function createObject() {
 
         return result;
       }),
-      put: vi.fn(async (items: Record<string, string>) => {
+      put: vi.fn(async (items: string | Record<string, string>) => {
         for (const [key, value] of Object.entries(items)) {
           values.set(key, value);
         }
@@ -80,19 +111,108 @@ function createObject() {
       setAlarm: vi.fn(async () => undefined),
       deleteAlarm: vi.fn(async () => undefined),
       deleteAll: vi.fn(async () => values.clear()),
+      list: vi.fn(),
+      delete: vi.fn(),
+      transaction: vi.fn(),
+      getAlarm: vi.fn(),
+      sync: vi.fn(),
+      transactionSync: vi.fn(),
+      getCurrentBookmark: vi.fn(),
+      getBookmarkForTime: vi.fn(),
+      onNextSessionRestoreBookmark: vi.fn(),
+      sql: {
+        exec: vi.fn(),
+        databaseSize: 0,
+        Cursor: class {
+          columnNames: string[] = [];
+          rowsRead = 0;
+          rowsWritten = 0;
+
+          next(): never {
+            throw new Error("sql storage is unused in this test");
+          }
+
+          toArray(): never {
+            throw new Error("sql storage is unused in this test");
+          }
+
+          one(): never {
+            throw new Error("sql storage is unused in this test");
+          }
+
+          raw(): never {
+            throw new Error("sql storage is unused in this test");
+          }
+
+          [Symbol.iterator](): never {
+            throw new Error("sql storage is unused in this test");
+          }
+        },
+        Statement: class {},
+      },
+      kv: { get: vi.fn(), list: vi.fn(), put: vi.fn(), delete: vi.fn() },
     },
     acceptWebSocket: vi.fn((socket: FakeSocket) => {
       sockets.push(socket);
     }),
     getWebSockets: vi.fn(() => sockets),
+    waitUntil(): void {},
+    async blockConcurrencyWhile(): Promise<never> {
+      throw new Error("blockConcurrencyWhile is unused in this test");
+    },
+    exports: {
+      ClickfolioStatusDO: Object.assign(
+        vi.fn(() => ({})),
+        {
+          newUniqueId: vi.fn(),
+          idFromName: vi.fn(),
+          idFromString: vi.fn(),
+          get: vi.fn(),
+          getByName: vi.fn(),
+          jurisdiction: vi.fn(),
+        },
+      ),
+      default: Object.assign(
+        vi.fn(() => fetcherStub),
+        fetcherStub,
+      ),
+    },
+    props: {},
+    id: {
+      toString: () => "",
+      equals: () => false,
+    },
+    facets: {
+      get(): never {
+        throw new Error("facets are unused in this test");
+      },
+      abort(): void {},
+      delete(): void {},
+      clone(): void {},
+    },
+    setWebSocketAutoResponse(): void {},
+    getWebSocketAutoResponse(): null {
+      return null;
+    },
+    getWebSocketAutoResponseTimestamp(): null {
+      return null;
+    },
+    setHibernatableWebSocketEventTimeout(): void {},
+    getHibernatableWebSocketEventTimeout(): null {
+      return null;
+    },
+    getTags(): string[] {
+      return [];
+    },
+    abort(): void {},
     sockets,
     values,
   };
 
+  // SAFETY: the DO never reads a binding, and env's live service bindings (R2Bucket,
+  // Hyperdrive, Queue, Fetcher, DurableObjectNamespace) cannot be honestly built in a unit test.
   return import("@/lib/durable-objects/resume-status").then(({ ClickfolioStatusDO }) => ({
-    instance: new ClickfolioStatusDO(ctx as never, {} as never) as InstanceType<
-      typeof ClickfolioStatusDO
-    >,
+    instance: new ClickfolioStatusDO(ctx, {} as never),
     ctx,
   }));
 }
@@ -215,14 +335,14 @@ describe("ClickfolioStatusDO", () => {
     ctx.values.set("lastStatus", "processing");
     ctx.values.set("lastError", "");
 
-    await instance.webSocketMessage!(socket as never, new ArrayBuffer(1));
-    await instance.webSocketMessage!(socket as never, "ping");
-    await instance.webSocketMessage!(socket as never, "status");
-    await instance.webSocketClose!(socket as never, 1000, "done", true);
+    await instance.webSocketMessage!(socket, new ArrayBuffer(1));
+    await instance.webSocketMessage!(socket, "ping");
+    await instance.webSocketMessage!(socket, "status");
+    await instance.webSocketClose!(socket, 1000, "done", true);
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
     try {
-      await instance.webSocketError!(socket as never, new Error("boom"));
+      await instance.webSocketError!(socket, new Error("boom"));
     } finally {
       errorSpy.mockRestore();
     }

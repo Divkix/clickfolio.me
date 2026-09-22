@@ -19,9 +19,14 @@ const mockDbUpdateWhere = vi.fn(() => ({ returning: mockDbUpdateReturning }));
 
 const mockDbUpdateSet = vi.fn();
 
-const mockDbTransaction = vi.fn(async (cb: (tx: typeof mockDb) => unknown) => cb(mockDb));
+const mockDbTransaction = vi.fn(async <T>(cb: (tx: typeof mockDb) => Promise<T>) => cb(mockDb));
 
-let lastInsertValues: Record<string, unknown> = {};
+/** Resume row the claim route inserts; the arbitration probe reads back only its id. */
+interface ResumeInsertValues {
+  id?: string;
+}
+
+let lastInsertValues: ResumeInsertValues = {};
 
 // The arbitration insert reports the row it just inserted, so the caller sees
 // itself as the winner of the pending_claim slot.
@@ -29,7 +34,7 @@ const mockDbInsertReturning = vi.fn(async () => [
   { id: String(lastInsertValues.id), status: "pending_claim" },
 ]);
 
-const mockDbInsertValues = vi.fn((values: Record<string, unknown>) => {
+const mockDbInsertValues = vi.fn((values: ResumeInsertValues) => {
   lastInsertValues = values;
 
   return {
@@ -42,9 +47,13 @@ const mockDbInsert = vi.fn().mockReturnValue({ values: mockDbInsertValues });
 
 let mockHandleRows: Array<{ handle: string | null }> = [{ handle: "test-handle" }];
 
-const mockDbSelect = vi.fn().mockImplementation((cols: unknown) => {
-  const isHandleQuery =
-    cols !== null && typeof cols === "object" && "handle" in (cols as Record<string, unknown>);
+/** db.select() column-selection argument; the mock branches on whether `handle` was asked for. */
+type SelectColumns = {
+  handle?: string | null;
+};
+
+const mockDbSelect = vi.fn().mockImplementation((cols?: SelectColumns) => {
+  const isHandleQuery = cols != null && "handle" in cols;
 
   if (isHandleQuery) {
     return {
@@ -254,8 +263,13 @@ function authedAs(userId: string) {
       onboardingCompleted: true,
       role: "mid_level",
     },
+    // SAFETY: mockDb implements exactly the select/insert/update/transaction surface the
+    // claim route calls; Database additionally requires the live postgres-js $client, which
+    // no test can construct — the auth context only forwards db through to the handler.
     db: mockDb as never,
     dbUser: { id: userId, handle: "testuser", clerkId: "user_clerk_1" },
+    // SAFETY: the route reads only PENDING_UPLOAD_SECRET (cookie HMAC) and passes the queue
+    // binding to the mocked publisher; the other 28 CloudflareEnv bindings stay untouched.
     env: { CLICKFOLIO_PARSE_QUEUE: {}, PENDING_UPLOAD_SECRET: TEST_SECRET } as never,
     error: null,
   });
@@ -281,9 +295,8 @@ beforeEach(() => {
   lastInsertValues = {};
   mockR2GetAsArrayBuffer.mockResolvedValue(makePdfBuffer());
   mockDbLimit.mockResolvedValue([]);
-  mockDbSelect.mockImplementation((cols: unknown) => {
-    const isHandleQuery =
-      cols !== null && typeof cols === "object" && "handle" in (cols as Record<string, unknown>);
+  mockDbSelect.mockImplementation((cols?: SelectColumns) => {
+    const isHandleQuery = cols != null && "handle" in cols;
 
     if (isHandleQuery) {
       return {
@@ -334,11 +347,11 @@ describe("POST /api/resume/claim — Duplicate file hash detection", () => {
 
       expect(response.status).toBe(200);
 
-      const body = (await response.json()) as {
+      const body: {
         resume_id: string;
         status: string;
         waiting_for_cache?: boolean;
-      };
+      } = await response.json();
 
       expect(body.status).toBe("processing");
       expect(body.waiting_for_cache).toBe(true);
@@ -367,7 +380,7 @@ describe("POST /api/resume/claim — Duplicate file hash detection", () => {
       const response = await POST(makeClaimRequest({ key: "temp/uuid/resume.pdf" }, cookie));
 
       expect(response.status).toBe(200);
-      const body = (await response.json()) as { waiting_for_cache?: boolean };
+      const body: { waiting_for_cache?: boolean } = await response.json();
       expect(body.waiting_for_cache).toBe(true);
 
       const { publishResumeParse } = await import("@/lib/queue/resume-parse");
@@ -392,11 +405,11 @@ describe("POST /api/resume/claim — Duplicate file hash detection", () => {
 
       expect(response.status).toBe(200);
 
-      const body = (await response.json()) as {
+      const body: {
         resume_id: string;
         status: string;
         waiting_for_cache?: boolean;
-      };
+      } = await response.json();
 
       expect(body.status).toBe("processing");
       expect(body.waiting_for_cache).toBe(true);
@@ -426,7 +439,7 @@ describe("POST /api/resume/claim — Duplicate file hash detection", () => {
       const response = await POST(makeClaimRequest({ key: "temp/uuid/resume.pdf" }, cookie));
 
       expect(response.status).toBe(200);
-      const body = (await response.json()) as { status: string; cached?: boolean };
+      const body: { status: string; cached?: boolean } = await response.json();
       expect(body.status).toBe("completed");
       expect(body.cached).toBe(true);
 
@@ -454,7 +467,7 @@ describe("POST /api/resume/claim — Duplicate file hash detection", () => {
       const response = await POST(makeClaimRequest({ key: "temp/uuid/resume.pdf" }, cookie));
 
       expect(response.status).toBe(200);
-      const body = (await response.json()) as { status: string; cached?: boolean };
+      const body: { status: string; cached?: boolean } = await response.json();
       expect(body.status).toBe("completed");
       expect(body.cached).toBe(true);
 
@@ -483,7 +496,7 @@ describe("POST /api/resume/claim — Duplicate file hash detection", () => {
       const response = await POST(makeClaimRequest({ key: "temp/uuid/resume.pdf" }, cookie));
 
       expect(response.status).toBe(200);
-      const body = (await response.json()) as { status: string };
+      const body: { status: string } = await response.json();
       expect(body.status).toBe("queued");
 
       const { publishResumeParse } = await import("@/lib/queue/resume-parse");
@@ -500,7 +513,7 @@ describe("POST /api/resume/claim — Duplicate file hash detection", () => {
       const response = await POST(makeClaimRequest({ key: "temp/uuid/resume.pdf" }, cookie));
 
       expect(response.status).toBe(200);
-      const body = (await response.json()) as { status: string; cached?: boolean };
+      const body: { status: string; cached?: boolean } = await response.json();
       expect(body.status).toBe("queued");
       expect(body.cached).toBeUndefined();
     });

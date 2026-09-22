@@ -10,7 +10,19 @@ let mockLimitValues: JsonValue[] = [];
 
 let mockOffsetValues: JsonValue[] = [];
 
-function buildQueryChain(rows: JsonValue[]) {
+interface MockQueryChain {
+  innerJoin: () => MockQueryChain;
+  leftJoin: () => MockQueryChain;
+  select: () => MockQueryChain;
+  from: () => MockQueryChain;
+  where: () => MockQueryChain;
+  orderBy: () => MockQueryChain;
+  limit: (value: JsonValue) => MockQueryChain;
+  offset: (value: JsonValue) => MockQueryChain;
+  then: (resolve: (value: JsonValue) => JsonValue) => JsonValue;
+}
+
+function buildQueryChain(rows: JsonValue[]): MockQueryChain {
   const chain = () => buildQueryChain(rows);
 
   return {
@@ -34,12 +46,14 @@ function buildQueryChain(rows: JsonValue[]) {
   };
 }
 
+type SitemapTx = Pick<MockQueryChain, "select">;
+
 vi.mock("@/lib/db", () => ({
   getDb: vi.fn(() => ({
     select: vi.fn(() => buildQueryChain(mockSelectRows)),
     // SAFETY: the repeatable-read transaction runs a count query first, then the
     // page query; each gets its own rows so shard-range checks see a count.
-    transaction: vi.fn(async (fn: (tx: unknown) => unknown) => {
+    transaction: vi.fn(async (fn: (tx: SitemapTx) => Promise<JsonValue[] | null>) => {
       let selects = 0;
 
       return fn({
@@ -193,7 +207,12 @@ describe("generateSitemapEntries", () => {
       e.url.endsWith("/@testuser"),
     );
 
-    const lastMod = userEntry?.lastModified as Date;
+    const lastMod = userEntry?.lastModified;
+
+    if (!(lastMod instanceof Date)) {
+      throw new Error("expected the sitemap entry lastModified to be a Date");
+    }
+
     expect(lastMod.getTime()).toBeGreaterThanOrEqual(before.getTime() - 1000);
     expect(lastMod.getTime()).toBeLessThanOrEqual(after.getTime() + 1000);
   });

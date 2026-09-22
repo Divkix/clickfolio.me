@@ -35,8 +35,8 @@ vi.mock("drizzle-orm", async (importOriginal) => {
 import { getDb } from "@/lib/db";
 import { isLocalEnvironment } from "@/lib/utils/environment";
 
-function sqlText(call: readonly unknown[] | undefined): string {
-  return ((call?.[0] as TemplateStringsArray | undefined) ?? []).join("?");
+function sqlText(strings: TemplateStringsArray | undefined): string {
+  return (strings ?? []).join("?");
 }
 
 describe("getClientIP", () => {
@@ -188,6 +188,7 @@ describe("checkIPRateLimit - Production Rate Limiting", () => {
     vi.clearAllMocks();
     vi.stubEnv("NODE_ENV", "production");
     vi.mocked(isLocalEnvironment).mockReturnValue(false);
+    // SAFETY: the mock implements only the query surface these tests exercise; `never` is the widest placeholder the Drizzle `Database` parameter accepts.
     vi.mocked(getDb).mockReturnValue(mockDb as never);
   });
 
@@ -200,7 +201,7 @@ describe("checkIPRateLimit - Production Rate Limiting", () => {
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue([{ hourly: 5, daily: 5 }]),
       }),
-    } as never);
+    });
 
     const result = await checkIPRateLimit("192.168.1.1");
 
@@ -214,7 +215,7 @@ describe("checkIPRateLimit - Production Rate Limiting", () => {
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue([{ hourly: 9, daily: 9 }]),
       }),
-    } as never);
+    });
 
     const result = await checkIPRateLimit("192.168.1.1");
 
@@ -227,7 +228,7 @@ describe("checkIPRateLimit - Production Rate Limiting", () => {
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue([{ hourly: 10, daily: 10 }]),
       }),
-    } as never);
+    });
 
     const result = await checkIPRateLimit("192.168.1.1");
 
@@ -241,7 +242,7 @@ describe("checkIPRateLimit - Production Rate Limiting", () => {
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue([{ hourly: 5, daily: 50 }]),
       }),
-    } as never);
+    });
 
     const result = await checkIPRateLimit("192.168.1.1");
 
@@ -266,12 +267,12 @@ describe("checkIPRateLimit - Production Rate Limiting", () => {
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue([{ hourly: 0, daily: 0 }]),
       }),
-    } as never);
+    });
 
     await checkIPRateLimit("192.168.1.1");
 
     expect(mockDb.$client.begin).toHaveBeenCalledTimes(1);
-    expect(sqlText(mockDb.$client.mock.calls[2])).toContain("INSERT INTO upload_rate_limits");
+    expect(sqlText(mockDb.$client.mock.calls[2]?.[0])).toContain("INSERT INTO upload_rate_limits");
     expect(mockDb.insert).not.toHaveBeenCalled();
     expect(mockDb.$client.mock.calls[2]?.slice(1)).toContain("upload");
   });
@@ -281,12 +282,12 @@ describe("checkIPRateLimit - Production Rate Limiting", () => {
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue([{ hourly: 0, daily: 49 }]),
       }),
-    } as never);
+    });
 
     await checkIPRateLimit("192.168.1.1");
 
-    const guardSql = sqlText(mockDb.$client.mock.calls[1]);
-    const insertSql = sqlText(mockDb.$client.mock.calls[2]);
+    const guardSql = sqlText(mockDb.$client.mock.calls[1]?.[0]);
+    const insertSql = sqlText(mockDb.$client.mock.calls[2]?.[0]);
     expect(guardSql).toContain("created_at >= ?");
     expect(insertSql.match(/created_at >= \?/g)).toHaveLength(1);
     expect(mockDb.$client.mock.calls[1]?.slice(1)).toContain(50);
@@ -297,7 +298,7 @@ describe("checkIPRateLimit - Production Rate Limiting", () => {
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue([{ hourly: 0, daily: 0 }]),
       }),
-    } as never);
+    });
 
     await checkIPRateLimit("192.168.1.1");
 
@@ -309,7 +310,7 @@ describe("checkIPRateLimit - Production Rate Limiting", () => {
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue([{ hourly: 10, daily: 10 }]),
       }),
-    } as never);
+    });
 
     const result = await checkIPRateLimit("unknown");
 
@@ -322,7 +323,7 @@ describe("checkIPRateLimit - Production Rate Limiting", () => {
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue([{ hourly: 0, daily: 0 }]),
       }),
-    } as never);
+    });
 
     const result = await checkIPRateLimit("unknown");
 
@@ -335,7 +336,7 @@ describe("checkIPRateLimit - Production Rate Limiting", () => {
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue([{ hourly: 0, daily: 0 }]),
       }),
-    } as never);
+    });
     mockDb.$client.begin.mockImplementationOnce(() => {
       throw new Error("Insert failed");
     });
@@ -351,7 +352,7 @@ describe("checkIPRateLimit - Production Rate Limiting", () => {
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue([{ hourly: 3, daily: 20 }]),
       }),
-    } as never);
+    });
     mockDb.$client.mockResolvedValue({ count: 0 });
 
     const result = await checkIPRateLimit("192.168.1.1");
@@ -406,6 +407,7 @@ describe("checkHandleRateLimit - Production", () => {
     vi.clearAllMocks();
     vi.stubEnv("NODE_ENV", "production");
     vi.mocked(isLocalEnvironment).mockReturnValue(false);
+    // SAFETY: the mock implements only the query surface these tests exercise; `never` is the widest placeholder the Drizzle `Database` parameter accepts.
     vi.mocked(getDb).mockReturnValue(mockDb as never);
   });
 
@@ -418,7 +420,7 @@ describe("checkHandleRateLimit - Production", () => {
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue([{ count: 50 }]),
       }),
-    } as never);
+    });
 
     const result = await checkHandleRateLimit("192.168.1.1");
 
@@ -431,7 +433,7 @@ describe("checkHandleRateLimit - Production", () => {
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue([{ count: 100 }]),
       }),
-    } as never);
+    });
 
     const result = await checkHandleRateLimit("192.168.1.1");
 
@@ -444,7 +446,7 @@ describe("checkHandleRateLimit - Production", () => {
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue([{ count: 0 }]),
       }),
-    } as never);
+    });
 
     await checkHandleRateLimit("192.168.1.1");
 
@@ -461,6 +463,7 @@ describe("DISABLE_RATE_LIMITS security", () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("DISABLE_RATE_LIMITS", "true");
     vi.mocked(isLocalEnvironment).mockReturnValue(false);
+    // SAFETY: the mock implements only the query surface these tests exercise; `never` is the widest placeholder the Drizzle `Database` parameter accepts.
     vi.mocked(getDb).mockReturnValue(mockDb as never);
   });
 
@@ -474,7 +477,7 @@ describe("DISABLE_RATE_LIMITS security", () => {
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue([{ hourly: 0, daily: 0 }]),
       }),
-    } as never);
+    });
 
     await checkIPRateLimit("192.168.1.1");
 
@@ -490,6 +493,7 @@ describe("Rate limit window expiration", () => {
     vi.clearAllMocks();
     vi.stubEnv("NODE_ENV", "production");
     vi.mocked(isLocalEnvironment).mockReturnValue(false);
+    // SAFETY: the mock implements only the query surface these tests exercise; `never` is the widest placeholder the Drizzle `Database` parameter accepts.
     vi.mocked(getDb).mockReturnValue(mockDb as never);
   });
 
@@ -502,7 +506,7 @@ describe("Rate limit window expiration", () => {
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue([{ hourly: 5, daily: 16 }]),
       }),
-    } as never);
+    });
 
     const result = await checkIPRateLimit("192.168.1.1");
 
@@ -515,7 +519,7 @@ describe("Rate limit window expiration", () => {
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue([{ hourly: 0, daily: 49 }]),
       }),
-    } as never);
+    });
 
     const result = await checkIPRateLimit("192.168.1.1");
 

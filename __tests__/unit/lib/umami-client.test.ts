@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
+// SAFETY: CloudflareEnv declares UMAMI_API_URL, UMAMI_USERNAME, and UMAMI_PASSWORD as string, and the umami client reads only those three bindings, so the unset workerd secrets in this stub are never touched.
 const env = {
   UMAMI_API_URL: "https://umami.example",
   UMAMI_USERNAME: "avery",
@@ -16,7 +17,7 @@ async function loadClient() {
 describe("Umami analytics client", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    delete (process.env as Record<string, string | undefined>).NEXT_PUBLIC_UMAMI_WEBSITE_ID;
+    Reflect.deleteProperty(process.env, "NEXT_PUBLIC_UMAMI_WEBSITE_ID");
   });
 
   it("authenticates once and sends filtered stats, pageview, and metric requests", async () => {
