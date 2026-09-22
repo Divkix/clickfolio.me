@@ -1,40 +1,58 @@
 import { describe, expect, it } from "vite-plus/test";
+import { z } from "zod";
 import { DEMO_RESUME_CONTENT, DEMO_PROFILES } from "@/lib/templates/demo-data";
-import type { UnknownRecord, JsonValue } from "@/lib/types/json";
+import type { JsonValue } from "@/lib/types/json";
 import type { ResumeContent } from "@/lib/types/database";
 
 const URL_FIELDS = ["linkedin", "github", "website", "behance", "dribbble"] as const;
 
-const URL_FIELDS_IN_SECTIONS = ["url", "image_url"] as const;
+// Domain schema for the recursive walk: each JsonValue branch decodes through
+// zod instead of narrowing a representation at runtime.
+const jsonValueSchema: z.ZodType<JsonValue> = z.lazy(() =>
+  z.union([
+    z.string(),
+    z.number(),
+    z.boolean(),
+    z.null(),
+    z.array(jsonValueSchema),
+    z.record(z.string(), jsonValueSchema),
+  ]),
+);
 
 function collectUrls(content: ResumeContent): string[] {
   const urls: string[] = [];
 
   const visit = (value: JsonValue): void => {
-    if (typeof value === "string") {
+    const items = z.array(jsonValueSchema).safeParse(value);
+
+    if (items.success) {
+      for (const item of items.data) visit(item);
+
+      return;
+    }
+
+    const text = z.string().safeParse(value);
+
+    if (text.success) {
+      const candidate = text.data;
+
       if (
-        !value.includes("@") &&
-        !value.includes(" ") &&
-        value.includes(".") &&
-        /[a-zA-Z]/.test(value) &&
-        !/^[A-Za-z0-9]+\.(js|ts|json|md|py)$/.test(value)
+        !candidate.includes("@") &&
+        !candidate.includes(" ") &&
+        candidate.includes(".") &&
+        /[a-zA-Z]/.test(candidate) &&
+        !/^[A-Za-z0-9]+\.(js|ts|json|md|py)$/.test(candidate)
       ) {
-        urls.push(value);
+        urls.push(candidate);
       }
 
       return;
     }
 
-    if (Array.isArray(value)) {
-      for (const item of value) visit(item);
+    const record = z.record(z.string(), jsonValueSchema).safeParse(value);
 
-      return;
-    }
-
-    if (value !== null && typeof value === "object") {
-      for (const key of Object.keys(value as UnknownRecord)) {
-        visit((value as UnknownRecord)[key]);
-      }
+    if (record.success) {
+      for (const item of Object.values(record.data)) visit(item);
     }
   };
 
@@ -52,8 +70,10 @@ describe("DEMO_RESUME_CONTENT URL audit", () => {
 
   it("every contact URL field starts with https://", () => {
     for (const [themeId, content] of Object.entries(DEMO_RESUME_CONTENT)) {
+      const contact = z.record(z.string(), z.string()).safeParse(content.contact);
+
       for (const field of URL_FIELDS) {
-        const value = (content.contact as unknown as Record<string, string | undefined>)?.[field];
+        const value = contact.success ? contact.data[field] : undefined;
 
         if (value) {
           expect(
@@ -69,13 +89,19 @@ describe("DEMO_RESUME_CONTENT URL audit", () => {
     for (const [themeId, content] of Object.entries(DEMO_RESUME_CONTENT)) {
       for (const section of ["projects", "certifications"] as const) {
         for (const entry of content[section] ?? []) {
-          for (const field of URL_FIELDS_IN_SECTIONS) {
-            const value = (entry as UnknownRecord | undefined)?.[field];
+          const urls = [
+            { field: "url", parsed: z.string().safeParse("url" in entry ? entry.url : undefined) },
+            {
+              field: "image_url",
+              parsed: z.string().safeParse("image_url" in entry ? entry.image_url : undefined),
+            },
+          ];
 
-            if (typeof value === "string" && value) {
+          for (const { field, parsed } of urls) {
+            if (parsed.success && parsed.data) {
               expect(
-                value.startsWith("https://"),
-                `${themeId} ${section}.${field} should start with https:// (got "${value}")`,
+                parsed.data.startsWith("https://"),
+                `${themeId} ${section}.${field} should start with https:// (got "${parsed.data}")`,
               ).toBe(true);
             }
           }

@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { JsonValue } from "@/lib/types/json";
+import type { ResumeContent } from "@/lib/types/database";
 
 // Awaited SELECTs (`.limit(1)` or bare) and `.returning()` results are served in
 // call order from queues: user row → createdAt snapshot → site_data, then the ids
@@ -12,15 +13,16 @@ const mockLimit = vi.fn(async () => mockSelectQueue.shift() ?? []);
 
 const mockSelectWhere = vi.fn(() => ({
   limit: mockLimit,
-  then: (onFulfilled: (value: Array<Record<string, JsonValue>>) => unknown) =>
-    Promise.resolve(mockSelectQueue.shift() ?? []).then(onFulfilled),
+  then: <TResult>(
+    onFulfilled: (value: Array<Record<string, JsonValue>>) => TResult | PromiseLike<TResult>,
+  ) => Promise.resolve(mockSelectQueue.shift() ?? []).then(onFulfilled),
 }));
 
 const mockUpdateSets: Array<Record<string, JsonValue>> = [];
 
 const mockUpdateWhere = vi.fn(() => ({
   returning: async () => mockReturningQueue.shift() ?? [],
-  then: (onFulfilled: (value: undefined) => unknown) =>
+  then: <TResult>(onFulfilled: (value: undefined) => TResult | PromiseLike<TResult>) =>
     Promise.resolve(undefined).then(onFulfilled),
 }));
 
@@ -34,7 +36,7 @@ const mockUpdate = vi.fn(() => ({ set: mockUpdateSet }));
 
 const mockTransactions: Array<unknown> = [];
 
-const mockTransaction = vi.fn(async (cb: (tx: typeof mockDb) => unknown) => {
+const mockTransaction = vi.fn(async <R>(cb: (tx: typeof mockDb) => R) => {
   mockTransactions.push(true);
 
   return cb(mockDb);
@@ -45,6 +47,13 @@ const mockDb = {
   update: mockUpdate,
   transaction: mockTransaction,
 };
+
+type DbBinding = { db: never };
+
+// SAFETY: mockDb implements the select/update/transaction surface
+// completeResumes drives; lib reads it only through the never-typed db field
+// at its I/O boundary.
+const dbArg = { db: mockDb } as DbBinding;
 
 vi.mock("drizzle-orm", () => ({
   eq: vi.fn((_col: JsonValue, val: JsonValue) => ({ eq: val })),
@@ -70,16 +79,14 @@ vi.mock("@/lib/db/schema", () => ({
 
 const mockUpsertCalls: Array<{ userId: string; publish: boolean }> = [];
 
-const mockBuildSiteDataUpsert = vi.fn(
-  (..._args: unknown[]) => "mock-upsert-query" as unknown as never,
-);
+const mockBuildSiteDataUpsert = vi.fn((..._args: unknown[]) => "mock-upsert-query");
 
 vi.mock("@/lib/data/site-data-upsert", () => ({
   buildSiteDataUpsert: (
-    _db: unknown,
+    _db: typeof mockDb,
     userId: string,
     _resumeId: string,
-    _content: unknown,
+    _content: ResumeContent,
     opts?: { publish?: boolean },
   ) => {
     mockUpsertCalls.push({ userId, publish: opts?.publish ?? true });
@@ -91,17 +98,25 @@ vi.mock("@/lib/data/site-data-upsert", () => ({
 const mockNotifyBatches: Array<{ ids: string[]; status: string }> = [];
 
 vi.mock("@/lib/queue/notify-status", () => ({
-  notifyStatusChangeBatch: async (ids: string[], status: string, _env: unknown) => {
+  notifyStatusChangeBatch: async (
+    ids: string[],
+    status: string,
+    _env: { CLICKFOLIO_STATUS_DO: CloudflareEnv["CLICKFOLIO_STATUS_DO"] | undefined },
+  ) => {
     mockNotifyBatches.push({ ids, status });
   },
 }));
 
 import { completeResumes, shouldSyncDisplayName } from "@/lib/resume/completion";
 
-const parsedContent = {
+const parsedContent: ResumeContent = {
   full_name: "Test User",
+  headline: "Test headline",
+  summary: "Test summary",
+  contact: { email: "" },
+  experience: [],
   professional_level: "senior",
-} as never;
+};
 
 const resumeCreatedAt = "2024-01-01T00:00:00.000Z";
 
@@ -136,7 +151,7 @@ beforeEach(() => {
 
     return { where: mockUpdateWhere };
   });
-  mockTransaction.mockImplementation(async (cb: (tx: typeof mockDb) => unknown) => {
+  mockTransaction.mockImplementation(async <R>(cb: (tx: typeof mockDb) => R) => {
     mockTransactions.push(true);
 
     return cb(mockDb);
@@ -166,7 +181,7 @@ describe("completeResumes", () => {
     });
 
     await completeResumes({
-      db: mockDb as never,
+      ...dbArg,
       env: { CLICKFOLIO_STATUS_DO: undefined },
       items: [{ resumeId: "resume-1", userId: "user-1" }],
       parsedContent,
@@ -196,7 +211,7 @@ describe("completeResumes", () => {
     seedCompletion({ userRows: [{ handle: "test-handle", name: null }], resumeIds: ["resume-1"] });
 
     await completeResumes({
-      db: mockDb as never,
+      ...dbArg,
       env: { CLICKFOLIO_STATUS_DO: undefined },
       items: [{ resumeId: "resume-1", userId: "user-1" }],
       parsedContent,
@@ -219,7 +234,7 @@ describe("completeResumes", () => {
     });
 
     await completeResumes({
-      db: mockDb as never,
+      ...dbArg,
       env: { CLICKFOLIO_STATUS_DO: undefined },
       items: [{ resumeId: "resume-1", userId: "user-1" }],
       parsedContent,
@@ -241,7 +256,7 @@ describe("completeResumes", () => {
     });
 
     await completeResumes({
-      db: mockDb as never,
+      ...dbArg,
       env: { CLICKFOLIO_STATUS_DO: undefined },
       items: [
         { resumeId: "resume-1", userId: "user-1" },
@@ -273,7 +288,7 @@ describe("completeResumes", () => {
     });
 
     await completeResumes({
-      db: mockDb as never,
+      ...dbArg,
       env: { CLICKFOLIO_STATUS_DO: undefined },
       items: [{ resumeId: "resume-1", userId: "user-1" }],
       parsedContent,
@@ -299,7 +314,7 @@ describe("completeResumes", () => {
     });
 
     await completeResumes({
-      db: mockDb as never,
+      ...dbArg,
       env: { CLICKFOLIO_STATUS_DO: undefined },
       items: [{ resumeId: "resume-1", userId: "user-1" }],
       parsedContent,

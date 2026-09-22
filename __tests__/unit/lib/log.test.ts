@@ -39,18 +39,18 @@ describe("log", () => {
   });
   it("emits a single JSON string containing level, msg, and ts for info", () => {
     log("info", "x", { resumeId: "r1" });
-    const call = consoleLogSpy.mock.calls[0][0] as string;
-    const parsed = JSON.parse(call) as UnknownRecord;
+    const call: string = consoleLogSpy.mock.calls[0][0];
+    const parsed: UnknownRecord = JSON.parse(call);
     expect(parsed["level"]).toBe("info");
     expect(parsed["msg"]).toBe("x");
-    expect(typeof parsed["ts"]).toBe("string");
+    expect(parsed["ts"]).toBeTypeOf("string");
     expect(parsed["resumeId"]).toBe("r1");
   });
 
   it("includes extra fields as top-level JSON keys", () => {
     log("error", "queue failed", { queue: "parse-queue", resumeId: "r2" });
-    const call = consoleErrorSpy.mock.calls[0][0] as string;
-    const parsed = JSON.parse(call) as UnknownRecord;
+    const call: string = consoleErrorSpy.mock.calls[0][0];
+    const parsed: UnknownRecord = JSON.parse(call);
     expect(parsed["level"]).toBe("error");
     expect(parsed["msg"]).toBe("queue failed");
     expect(parsed["queue"]).toBe("parse-queue");
@@ -58,9 +58,9 @@ describe("log", () => {
   });
   it("produces valid JSON when no extra fields are provided", () => {
     log("info", "simple message");
-    const call = consoleLogSpy.mock.calls[0][0] as string;
+    const call: string = consoleLogSpy.mock.calls[0][0];
     expect(() => JSON.parse(call)).not.toThrow();
-    const parsed = JSON.parse(call) as UnknownRecord;
+    const parsed: UnknownRecord = JSON.parse(call);
     expect(parsed["level"]).toBe("info");
     expect(parsed["msg"]).toBe("simple message");
   });
@@ -71,8 +71,8 @@ describe("log", () => {
   });
   it("ts field is an ISO 8601 string", () => {
     log("info", "timestamp check");
-    const call = consoleLogSpy.mock.calls[0][0] as string;
-    const parsed = JSON.parse(call) as UnknownRecord;
-    expect(new Date(parsed["ts"] as string).toISOString()).toBe(parsed["ts"]);
+    const call: string = consoleLogSpy.mock.calls[0][0];
+    const { ts }: { ts: string } = JSON.parse(call);
+    expect(new Date(ts).toISOString()).toBe(ts);
   });
 });

@@ -25,7 +25,7 @@ const {
     mockCaptureExceptionImmediate,
     mockShutdown,
     MockPostHog,
-    mockWaitUntil: vi.fn(),
+    mockWaitUntil: vi.fn<(promise: Promise<void>) => void>(),
     mockLog: vi.fn(),
   };
 });
@@ -52,7 +52,7 @@ function lastWaitUntilPromise(): Promise<void> {
   expect(mockWaitUntil).toHaveBeenCalled();
   const registrations = mockWaitUntil.mock.calls;
 
-  return registrations[registrations.length - 1][0] as Promise<void>;
+  return registrations[registrations.length - 1][0];
 }
 
 describe("captureServerEvent", () => {
@@ -103,10 +103,7 @@ describe("captureServerEvent", () => {
 
     expect(MockPostHog).toHaveBeenCalledTimes(2);
     expect(mockWaitUntil).toHaveBeenCalledTimes(2);
-    await Promise.all([
-      mockWaitUntil.mock.calls[0][0] as Promise<void>,
-      mockWaitUntil.mock.calls[1][0] as Promise<void>,
-    ]);
+    await Promise.all([mockWaitUntil.mock.calls[0][0], mockWaitUntil.mock.calls[1][0]]);
     expect(mockShutdown).toHaveBeenCalledTimes(2);
   });
 

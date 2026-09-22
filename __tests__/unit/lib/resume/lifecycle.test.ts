@@ -16,6 +16,7 @@ import {
   getStatusView,
   buildWaitingForCacheTimeoutUpdate,
 } from "@/lib/resume/lifecycle";
+import type { ResumeRetryRow } from "@/lib/resume/lifecycle";
 
 describe("parseLastAttemptError", () => {
   it("null → null (both overloads)", () => {
@@ -86,11 +87,11 @@ describe("hasExceededMaxAttempts / isPermanentErrorType", () => {
 });
 
 describe("checkRetryEligibility", () => {
-  const base = {
-    status: "failed" as ResumeStatus,
+  const base: ResumeRetryRow = {
+    status: "failed",
     retryCount: 0,
     totalAttempts: 1,
-    lastAttemptError: null as string | null,
+    lastAttemptError: null,
   };
 
   it("totalAttempts 6 → 429", () => {
@@ -157,11 +158,11 @@ describe("checkRetryEligibility", () => {
 });
 
 describe("canRetryResume", () => {
-  const base = {
-    status: "failed" as ResumeStatus,
+  const base: ResumeRetryRow = {
+    status: "failed",
     retryCount: 0,
     totalAttempts: 1,
-    lastAttemptError: null as string | null,
+    lastAttemptError: null,
   };
 
   it("permanent false", () =>

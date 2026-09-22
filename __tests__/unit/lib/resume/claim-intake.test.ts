@@ -21,7 +21,7 @@ const mockUpdateSet = vi.fn((values: Record<string, JsonValue>) => {
 
 const mockUpdate = vi.fn(() => ({ set: mockUpdateSet }));
 
-let lastInsertValues: Record<string, unknown> = {};
+let lastInsertValues: Record<string, JsonValue> = {};
 
 // The arbitration insert reports the row it inserted unless a test forces the
 // conflicting-row shape (a pending_claim claim already in flight).
@@ -31,7 +31,7 @@ const mockInsertReturning = vi.fn(
   async () => mockArbitrationRows ?? [{ id: String(lastInsertValues.id), status: "pending_claim" }],
 );
 
-const mockInsertValues = vi.fn((values: Record<string, unknown>) => {
+const mockInsertValues = vi.fn((values: Record<string, JsonValue>) => {
   lastInsertValues = values;
 
   return {
@@ -50,7 +50,7 @@ const mockWhereChain = {
 
 const mockSelect = vi.fn(() => ({ from: () => ({ where: () => mockWhereChain }) }));
 
-const mockTransaction = vi.fn(async (cb: (tx: typeof mockDb) => unknown) => cb(mockDb));
+const mockTransaction = vi.fn(async <R>(cb: (tx: typeof mockDb) => R) => cb(mockDb));
 
 const mockDb = {
   select: mockSelect,
@@ -135,7 +135,12 @@ function makeBucket(initial: Record<string, ArrayBuffer> = {}): FakeBucket {
   return bucket;
 }
 
-function makeQueue(failSend = false) {
+type FakeQueue = {
+  sent: Array<Record<string, JsonValue>>;
+  send: (msg: Record<string, JsonValue>) => Promise<void>;
+};
+
+function makeQueue(failSend = false): FakeQueue {
   const sent: Array<Record<string, JsonValue>> = [];
 
   return {
@@ -146,6 +151,15 @@ function makeQueue(failSend = false) {
     },
   };
 }
+
+type ClaimBinding = { db: never; r2: never; queue: never };
+
+// SAFETY: mockDb implements exactly the select/insert/update/transaction calls
+// runClaimIntake drives, FakeBucket implements the R2 get/put/delete calls,
+// and makeQueue implements send; lib observes these stand-ins only through
+// never-typed binding fields at its I/O boundary.
+const claimBinding = (r2: FakeBucket, queue: FakeQueue | null) =>
+  ({ db: mockDb, r2, queue }) as ClaimBinding;
 
 function makePdfBuffer(): ArrayBuffer {
   const bytes = new TextEncoder().encode("%PDF-1.4 fake content");
@@ -177,7 +191,7 @@ beforeEach(() => {
     return { where: mockUpdateWhere };
   });
   mockUpdate.mockReturnValue({ set: mockUpdateSet });
-  mockTransaction.mockImplementation(async (cb: (tx: typeof mockDb) => unknown) => cb(mockDb));
+  mockTransaction.mockImplementation(async <R>(cb: (tx: typeof mockDb) => R) => cb(mockDb));
   mockEnforceRateLimit.mockResolvedValue(null);
 });
 
@@ -189,9 +203,7 @@ describe("runClaimIntake", () => {
     mockLimitQueue.push([], []);
 
     const outcome = await runClaimIntake({
-      db: mockDb as never,
-      r2: r2 as never,
-      queue: queue as never,
+      ...claimBinding(r2, queue),
       env: undefined,
       userId: "user-1",
       tempKey: TEMP_KEY,
@@ -220,14 +232,12 @@ describe("runClaimIntake", () => {
     const queue = makeQueue();
     const cachedContent = { full_name: "Cached Name", professional_level: "senior" };
     mockLimitQueue.push(
-      [{ id: "cached-1", parsedContent: cachedContent as JsonValue }],
+      [{ id: "cached-1", parsedContent: cachedContent }],
       [{ handle: "some-handle", name: null }],
     );
 
     const outcome = await runClaimIntake({
-      db: mockDb as never,
-      r2: r2 as never,
-      queue: queue as never,
+      ...claimBinding(r2, queue),
       env: undefined,
       userId: "user-1",
       tempKey: TEMP_KEY,
@@ -259,9 +269,7 @@ describe("runClaimIntake", () => {
     mockLimitQueue.push([], [{ id: "inflight-1" }], [], [{ id: "row-1" }]);
 
     const outcome = await runClaimIntake({
-      db: mockDb as never,
-      r2: r2 as never,
-      queue: queue as never,
+      ...claimBinding(r2, queue),
       env: undefined,
       userId: "user-1",
       tempKey: TEMP_KEY,
@@ -283,9 +291,7 @@ describe("runClaimIntake", () => {
     mockArbitrationRows = [{ id: "pending-1", status: "pending_claim" }];
 
     const outcome = await runClaimIntake({
-      db: mockDb as never,
-      r2: r2 as never,
-      queue: queue as never,
+      ...claimBinding(r2, queue),
       env: undefined,
       userId: "user-1",
       tempKey: TEMP_KEY,
@@ -308,9 +314,7 @@ describe("runClaimIntake", () => {
     mockLimitQueue.push([{ id: "recent-1", status: "queued" }]);
 
     const outcome = await runClaimIntake({
-      db: mockDb as never,
-      r2: r2 as never,
-      queue: queue as never,
+      ...claimBinding(r2, queue),
       env: undefined,
       userId: "user-1",
       tempKey: TEMP_KEY,
@@ -332,9 +336,7 @@ describe("runClaimIntake", () => {
     mockLimitQueue.push([], []);
 
     const outcome = await runClaimIntake({
-      db: mockDb as never,
-      r2: r2 as never,
-      queue: queue as never,
+      ...claimBinding(r2, queue),
       env: undefined,
       userId: "user-1",
       tempKey: TEMP_KEY,
@@ -349,12 +351,10 @@ describe("runClaimIntake", () => {
     const r2 = makeBucket({ [TEMP_KEY]: makePdfBuffer() });
     r2.failPut = true;
     const queue = makeQueue();
-    mockLimitQueue.push([{ id: "cached-1", parsedContent: { full_name: "Cached" } as JsonValue }]);
+    mockLimitQueue.push([{ id: "cached-1", parsedContent: { full_name: "Cached" } }]);
 
     const outcome = await runClaimIntake({
-      db: mockDb as never,
-      r2: r2 as never,
-      queue: queue as never,
+      ...claimBinding(r2, queue),
       env: undefined,
       userId: "user-1",
       tempKey: TEMP_KEY,
@@ -372,9 +372,7 @@ describe("runClaimIntake", () => {
     mockLimitQueue.push([], []);
 
     const outcome = await runClaimIntake({
-      db: mockDb as never,
-      r2: r2 as never,
-      queue: queue as never,
+      ...claimBinding(r2, queue),
       env: undefined,
       userId: "user-1",
       tempKey: TEMP_KEY,
@@ -397,9 +395,7 @@ describe("runClaimIntake", () => {
     mockLimitQueue.push([], []);
 
     const outcome = await runClaimIntake({
-      db: mockDb as never,
-      r2: r2 as never,
-      queue: null,
+      ...claimBinding(r2, null),
       env: undefined,
       userId: "user-1",
       tempKey: TEMP_KEY,

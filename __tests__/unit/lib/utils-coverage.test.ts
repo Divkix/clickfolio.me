@@ -12,11 +12,13 @@ import {
   validateRequestSize,
 } from "@/lib/utils/validation";
 
-const toastError = vi.fn();
+type ToastErrorOptions = { action?: { onClick: () => void }; duration?: number };
+
+const toastError = vi.fn<(message: string, options?: ToastErrorOptions) => void>();
 
 vi.mock("sonner", () => ({
   toast: {
-    error: (...args: unknown[]) => toastError(...args),
+    error: (...args: [message: string, options?: ToastErrorOptions]) => toastError(...args),
   },
 }));
 
@@ -218,8 +220,8 @@ describe("error and environment utilities", () => {
 
   it("shows category-specific toasts and detects local app URLs", () => {
     showErrorToast(401);
-    const authToastOptions = toastError.mock.calls[0]?.[1] as { action?: { onClick: () => void } };
-    authToastOptions.action?.onClick();
+    const authToastOptions = toastError.mock.calls[0]?.[1];
+    authToastOptions?.action?.onClick();
     expect(window.location.href).toBe("http://localhost:3000/");
 
     showErrorToast(429);

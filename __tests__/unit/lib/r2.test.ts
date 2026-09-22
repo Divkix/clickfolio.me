@@ -11,7 +11,7 @@ import { getR2Binding, R2 } from "@/lib/r2";
 
 describe("getR2Binding", () => {
   it("returns R2 bucket when CLICKFOLIO_R2_BUCKET is set", () => {
-    const mockBucket = createMockR2Bucket().bucket as unknown as R2Bucket;
+    const mockBucket = createMockR2Bucket().bucket;
 
     const env: Partial<CloudflareEnv> = {
       CLICKFOLIO_R2_BUCKET: mockBucket,
@@ -48,7 +48,7 @@ describe("R2.getAsArrayBuffer", () => {
     const encoder = new TextEncoder();
     store.set("test-key", { body: encoder.encode(content).buffer });
 
-    const result = await R2.getAsArrayBuffer(bucket as unknown as R2Bucket, "test-key");
+    const result = await R2.getAsArrayBuffer(bucket, "test-key");
 
     expect(result).not.toBeNull();
     expect(result).toBeInstanceOf(ArrayBuffer);
@@ -58,7 +58,7 @@ describe("R2.getAsArrayBuffer", () => {
   it("returns null when object does not exist", async () => {
     const { bucket } = createMockR2Bucket();
 
-    const result = await R2.getAsArrayBuffer(bucket as unknown as R2Bucket, "non-existent");
+    const result = await R2.getAsArrayBuffer(bucket, "non-existent");
 
     expect(result).toBeNull();
   });
@@ -67,7 +67,7 @@ describe("R2.getAsArrayBuffer", () => {
     const { bucket, store } = createMockR2Bucket();
     store.set("empty", { body: new ArrayBuffer(0) });
 
-    const result = await R2.getAsArrayBuffer(bucket as unknown as R2Bucket, "empty");
+    const result = await R2.getAsArrayBuffer(bucket, "empty");
 
     expect(result).not.toBeNull();
     expect(result?.byteLength).toBe(0);
@@ -78,7 +78,7 @@ describe("R2.getAsArrayBuffer", () => {
     const largeBuffer = new ArrayBuffer(1024 * 1024);
     store.set("large-file", { body: largeBuffer });
 
-    const result = await R2.getAsArrayBuffer(bucket as unknown as R2Bucket, "large-file");
+    const result = await R2.getAsArrayBuffer(bucket, "large-file");
 
     expect(result?.byteLength).toBe(1024 * 1024);
   });
@@ -88,7 +88,7 @@ describe("R2.getAsArrayBuffer", () => {
     const binaryData = new Uint8Array([0x00, 0x01, 0x02, 0xff, 0xfe]);
     store.set("binary", { body: binaryData.buffer });
 
-    const result = await R2.getAsArrayBuffer(bucket as unknown as R2Bucket, "binary");
+    const result = await R2.getAsArrayBuffer(bucket, "binary");
 
     expect(result).not.toBeNull();
     const resultArray = new Uint8Array(result!);
@@ -103,7 +103,7 @@ describe("R2.getAsUint8Array", () => {
     const encoder = new TextEncoder();
     store.set("test-key", { body: encoder.encode(content).buffer });
 
-    const result = await R2.getAsUint8Array(bucket as unknown as R2Bucket, "test-key");
+    const result = await R2.getAsUint8Array(bucket, "test-key");
 
     expect(result).not.toBeNull();
     expect(result).toBeInstanceOf(Uint8Array);
@@ -112,7 +112,7 @@ describe("R2.getAsUint8Array", () => {
   it("returns null when object does not exist", async () => {
     const { bucket } = createMockR2Bucket();
 
-    const result = await R2.getAsUint8Array(bucket as unknown as R2Bucket, "non-existent");
+    const result = await R2.getAsUint8Array(bucket, "non-existent");
 
     expect(result).toBeNull();
   });
@@ -124,7 +124,7 @@ describe("R2.getAsUint8Array", () => {
     const originalBytes = encoder.encode(content);
     store.set("text-key", { body: originalBytes.buffer });
 
-    const result = await R2.getAsUint8Array(bucket as unknown as R2Bucket, "text-key");
+    const result = await R2.getAsUint8Array(bucket, "text-key");
 
     expect(result).toEqual(originalBytes);
   });
@@ -135,7 +135,7 @@ describe("R2.put", () => {
     const { bucket, store } = createMockR2Bucket();
     const content = new TextEncoder().encode("test content");
 
-    await R2.put(bucket as unknown as R2Bucket, "test-key", content.buffer);
+    await R2.put(bucket, "test-key", content.buffer);
 
     expect(store.has("test-key")).toBe(true);
     expect(store.get("test-key")?.body.byteLength).toBe(content.length);
@@ -145,7 +145,7 @@ describe("R2.put", () => {
     const { bucket, store } = createMockR2Bucket();
     const content = new TextEncoder().encode("test content");
 
-    await R2.put(bucket as unknown as R2Bucket, "test-key", content);
+    await R2.put(bucket, "test-key", content);
 
     expect(store.has("test-key")).toBe(true);
   });
@@ -154,7 +154,7 @@ describe("R2.put", () => {
     const { bucket, store } = createMockR2Bucket();
     const content = "string content";
 
-    await R2.put(bucket as unknown as R2Bucket, "test-key", content);
+    await R2.put(bucket, "test-key", content);
 
     expect(store.has("test-key")).toBe(true);
     const stored = store.get("test-key")!;
@@ -174,7 +174,7 @@ describe("R2.put", () => {
       },
     });
 
-    await R2.put(bucket as unknown as R2Bucket, "test-key", stream);
+    await R2.put(bucket, "test-key", stream);
 
     expect(store.has("test-key")).toBe(true);
   });
@@ -182,7 +182,7 @@ describe("R2.put", () => {
   it("applies contentType metadata", async () => {
     const { bucket } = createMockR2Bucket();
 
-    await R2.put(bucket as unknown as R2Bucket, "test-key", new ArrayBuffer(10), {
+    await R2.put(bucket, "test-key", new ArrayBuffer(10), {
       contentType: "application/pdf",
     });
 
@@ -199,7 +199,7 @@ describe("R2.put", () => {
     const { bucket } = createMockR2Bucket();
     const customMetadata = { userId: "user-123", source: "upload" };
 
-    await R2.put(bucket as unknown as R2Bucket, "test-key", new ArrayBuffer(10), {
+    await R2.put(bucket, "test-key", new ArrayBuffer(10), {
       customMetadata,
     });
 
@@ -216,7 +216,7 @@ describe("R2.put", () => {
     const { bucket } = createMockR2Bucket();
     const content = new TextEncoder().encode("test");
 
-    const result = await R2.put(bucket as unknown as R2Bucket, "test-key", content.buffer);
+    const result = await R2.put(bucket, "test-key", content.buffer);
 
     expect(result).toHaveProperty("size");
     expect(result).toHaveProperty("etag");
@@ -225,7 +225,7 @@ describe("R2.put", () => {
   it("handles empty content", async () => {
     const { bucket, store } = createMockR2Bucket();
 
-    await R2.put(bucket as unknown as R2Bucket, "empty-key", new ArrayBuffer(0));
+    await R2.put(bucket, "empty-key", new ArrayBuffer(0));
 
     expect(store.has("empty-key")).toBe(true);
     expect(store.get("empty-key")?.body.byteLength).toBe(0);
@@ -237,7 +237,7 @@ describe("R2.delete", () => {
     const { bucket, store } = createMockR2Bucket();
     store.set("delete-me", { body: new ArrayBuffer(10) });
 
-    await R2.delete(bucket as unknown as R2Bucket, "delete-me");
+    await R2.delete(bucket, "delete-me");
 
     expect(store.has("delete-me")).toBe(false);
   });
@@ -245,7 +245,7 @@ describe("R2.delete", () => {
   it("succeeds when object does not exist", async () => {
     const { bucket } = createMockR2Bucket();
 
-    await expect(R2.delete(bucket as unknown as R2Bucket, "non-existent")).resolves.not.toThrow();
+    await expect(R2.delete(bucket, "non-existent")).resolves.not.toThrow();
   });
 
   it("only deletes specified key", async () => {
@@ -253,7 +253,7 @@ describe("R2.delete", () => {
     store.set("keep", { body: new ArrayBuffer(10) });
     store.set("delete", { body: new ArrayBuffer(10) });
 
-    await R2.delete(bucket as unknown as R2Bucket, "delete");
+    await R2.delete(bucket, "delete");
 
     expect(store.has("keep")).toBe(true);
     expect(store.has("delete")).toBe(false);
@@ -265,7 +265,7 @@ describe("R2.head", () => {
     const { bucket, store } = createMockR2Bucket();
     store.set("test-key", { body: new ArrayBuffer(100) });
 
-    const result = await R2.head(bucket as unknown as R2Bucket, "test-key");
+    const result = await R2.head(bucket, "test-key");
 
     expect(result).toEqual({
       exists: true,
@@ -277,7 +277,7 @@ describe("R2.head", () => {
   it("returns exists=false for non-existent object", async () => {
     const { bucket } = createMockR2Bucket();
 
-    const result = await R2.head(bucket as unknown as R2Bucket, "non-existent");
+    const result = await R2.head(bucket, "non-existent");
 
     expect(result).toEqual({ exists: false });
   });
@@ -287,8 +287,8 @@ describe("R2.head", () => {
     store.set("small", { body: new ArrayBuffer(10) });
     store.set("large", { body: new ArrayBuffer(10000) });
 
-    const small = await R2.head(bucket as unknown as R2Bucket, "small");
-    const large = await R2.head(bucket as unknown as R2Bucket, "large");
+    const small = await R2.head(bucket, "small");
+    const large = await R2.head(bucket, "large");
 
     expect(small?.size).toBe(10);
     expect(large?.size).toBe(10000);
@@ -298,9 +298,9 @@ describe("R2.head", () => {
     const { bucket, store } = createMockR2Bucket();
     store.set("test-key", { body: new ArrayBuffer(100) });
 
-    const result = await R2.head(bucket as unknown as R2Bucket, "test-key");
+    const result = await R2.head(bucket, "test-key");
 
     expect(result?.etag).toBeDefined();
-    expect(typeof result?.etag).toBe("string");
+    expect(result?.etag).toBeTypeOf("string");
   });
 });
