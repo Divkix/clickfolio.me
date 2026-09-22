@@ -59,8 +59,11 @@ the runtime import is pinned to the evaluator's version rather than to the newes
 - Reachability: `tools/oxlint/anti-slop/**` is lint-ignored, so the directory being present proves nothing.
   A throwaway probe file was linted instead; every listed rule, including `oxc/no-accumulating-spread`,
   reported on representative violations, and the probe was deleted afterwards.
+- `pnpm exec vp check` → format pass (481 files), lint + type-aware checks pass: **0 errors, 0 warnings
+  in 429 files**. The install run reported 3896 errors in 429 files; `vp lint --fix` cleared the
+  autofixable share (`require-readable-spacing` and part of `no-chained-type-assertions`), leaving 1571
+  errors + 18 warnings, all of which this branch resolves. Every remaining fix was semantic, so there is
+  no whitespace-only commit riding along (the one big spacing pass is the standalone commit before it).
 - `pnpm run type-check` → 0. `pnpm exec knip` → 0. `pnpm run test` → 1410 passed / 98 files.
-- `pnpm exec vp check` → format pass (481 files), lint **fails**: 3896 errors in 429 files from the new
-  rules (plus 18 pre-existing `react/*` + `eslint/no-irregular-whitespace` warnings). Application cleanup
-  is a separate, still-unauthorized pass; the vendored tree itself is clean.
-- Post-run hash comparison confirms `vp check` did not rewrite any vendored file.
+  `pnpm run build` → success.
+- Post-run hash comparison confirms the cleanup left every vendored file byte-identical.
