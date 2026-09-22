@@ -9,10 +9,9 @@ export const revalidate = 86400;
 
 const post = getPostBySlug("ai-resume-parsing-accuracy")!;
 
-// SAFETY: getPostBySlug returns BlogPostMeta | undefined; filter(Boolean) removes undefined, so remaining are BlogPostMeta. Related slugs are static and validated against BLOG_POSTS.
-const relatedPosts = ["pdf-resume-to-website", "resume-writing-tips"]
-  .map((slug) => getPostBySlug(slug))
-  .filter(Boolean) as (typeof post)[];
+const relatedPosts = ["pdf-resume-to-website", "resume-writing-tips"].flatMap(
+  (slug) => getPostBySlug(slug) ?? [],
+);
 
 export function generateMetadata(): Metadata {
   return buildBlogPostMetadata(post);

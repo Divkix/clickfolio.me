@@ -17,7 +17,7 @@ function handleFormatErrorMessage(error: ZodError): string {
   const issues = error.issues;
 
   const failedPatterns = issues.flatMap((issue) =>
-    issue.code === "invalid_format" && typeof issue.pattern === "string"
+    issue.code === "invalid_format" && issue.pattern !== undefined
       ? [issue.pattern.replace(/^\//, "").replace(/\/$/, "")]
       : [],
   );

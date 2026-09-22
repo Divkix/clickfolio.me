@@ -4,7 +4,7 @@ export const revalidate = 86400;
 
 import { AlertTriangle, CheckCircle2, Clock, FileText, Loader2, X } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Fragment, Suspense, useCallback, useEffect, useState } from "react";
+import { Fragment, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Pagination } from "@/components/admin/Pagination";
 import { ResumeStatusBadge } from "@/components/admin/ResumeStatusBadge";
@@ -51,7 +51,6 @@ function AdminResumesContent() {
   const searchParams = useSearchParams();
 
   const [data, setData] = useState<ResumesResponse | null>(null);
-  const [loading, setLoading] = useState(true);
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [dismissingId, setDismissingId] = useState<string | null>(null);
 
@@ -59,25 +58,39 @@ function AdminResumesContent() {
   const statusFilter = (searchParams.get("status") as StatusFilter) || "all";
   const page = safePageParam(searchParams.get("page"));
 
-  const fetchResumes = useCallback(async () => {
-    setLoading(true);
+  const requestKey = `${statusFilter} ${page}`;
+  // Latest requested key: only that request's response may settle `loading`,
+  // so a stale response arriving late cannot clobber a newer request's state.
+  const activeKeyRef = useRef(requestKey);
+  const [loadedKey, setLoadedKey] = useState<string | null>(null);
+  const loading = loadedKey !== requestKey;
 
-    try {
-      const params = new URLSearchParams({
-        status: statusFilter,
-        page: page.toString(),
+  const fetchResumes = useCallback(() => {
+    const key = `${statusFilter} ${page}`;
+    activeKeyRef.current = key;
+
+    const params = new URLSearchParams({
+      status: statusFilter,
+      page: page.toString(),
+    });
+
+    return fetch(`/api/admin/resumes?${params}`)
+      .then(async (res) => {
+        if (!res.ok) throw new Error("Failed to fetch");
+        const json: ResumesResponse = await res.json();
+        setData(json);
+
+        if (activeKeyRef.current === key) {
+          setLoadedKey(key);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to fetch resumes:", err);
+
+        if (activeKeyRef.current === key) {
+          setLoadedKey(key);
+        }
       });
-
-      const res = await fetch(`/api/admin/resumes?${params}`);
-
-      if (!res.ok) throw new Error("Failed to fetch");
-      const json: ResumesResponse = await res.json();
-      setData(json);
-    } catch (err) {
-      console.error("Failed to fetch resumes:", err);
-    } finally {
-      setLoading(false);
-    }
   }, [statusFilter, page]);
 
   useEffect(() => {
