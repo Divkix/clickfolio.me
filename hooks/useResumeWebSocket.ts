@@ -22,7 +22,18 @@ export function useResumeWebSocket({
   onStatusChange,
   disabled = false,
 }: UseResumeWebSocketOptions): UseResumeWebSocketReturn {
-  const [connectionState, setConnectionState] = useState<ConnectionState>("closed");
+  // The socket subsystem is either off (no id or disabled) or starting up for
+  // this key; "closed" while off is derived, never stored.
+  const activeKey = resumeId !== null && !disabled ? resumeId : null;
+  const [socketState, setSocketState] = useState<ConnectionState>("connecting");
+  const [prevActiveKey, setPrevActiveKey] = useState(activeKey);
+
+  if (activeKey !== prevActiveKey) {
+    setPrevActiveKey(activeKey);
+    setSocketState("connecting");
+  }
+
+  const connectionState: ConnectionState = activeKey === null ? "closed" : socketState;
 
   const socketHandleRef = useRef<ResumeStatusSocketHandle | null>(null);
   const onStatusChangeRef = useRef(onStatusChange);
@@ -39,21 +50,18 @@ export function useResumeWebSocket({
 
   const close = useCallback(() => {
     disconnect();
-    setConnectionState("closed");
+    setSocketState("closed");
   }, [disconnect]);
 
   useEffect(() => {
-    if (!resumeId || disabled) {
+    if (activeKey === null) {
       disconnect();
-      setConnectionState("closed");
 
       return;
     }
 
-    setConnectionState("connecting");
-
-    socketHandleRef.current = createResumeStatusSocket(resumeId, {
-      onOpen: () => setConnectionState("connected"),
+    socketHandleRef.current = createResumeStatusSocket(activeKey, {
+      onOpen: () => setSocketState("connected"),
       onMessage: (msg) => {
         if (msg.type !== "status") return;
         lastStatusRef.current = msg.status;
@@ -66,18 +74,18 @@ export function useResumeWebSocket({
           lastStatusRef.current === "completed" || lastStatusRef.current === "failed";
 
         if (!isTerminal) return false;
-        setConnectionState("closed");
+        setSocketState("closed");
 
         return true;
       },
-      onRetry: () => setConnectionState("reconnecting"),
-      onFallback: () => setConnectionState("fallback"),
+      onRetry: () => setSocketState("reconnecting"),
+      onFallback: () => setSocketState("fallback"),
     });
 
     return () => {
       disconnect();
     };
-  }, [resumeId, disabled, disconnect]);
+  }, [activeKey, disconnect]);
 
   return { connectionState, close };
 }

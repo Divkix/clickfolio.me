@@ -7,12 +7,16 @@ const DEFAULT_COLORS = ["#f59e0b", "#8b5cf6", "#ec4899", "#10b981", "#D94E4E"];
 
 export function Confetti() {
   const [show, setShow] = useState(true);
-  const [isMobile, setIsMobile] = useState(false);
-  const [viewport, setViewport] = useState({ width: 400, height: 800 });
+
+  const [viewport] = useState(() =>
+    typeof window === "undefined"
+      ? { width: 400, height: 800 }
+      : { width: window.innerWidth, height: window.innerHeight },
+  );
+
+  const isMobile = viewport.width < 768;
 
   useEffect(() => {
-    setViewport({ width: window.innerWidth, height: window.innerHeight });
-    setIsMobile(window.innerWidth < 768);
     const timer = setTimeout(() => setShow(false), 3500);
 
     return () => clearTimeout(timer);

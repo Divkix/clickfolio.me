@@ -80,30 +80,35 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
 
   const runAutoSave = useEffectEvent(handleSave);
 
-  // react-doctor-disable-next-line effect-needs-cleanup -- timer is created by the watch callback but cleared by the returned cleanup
+  // react-doctor-disable-next-line effect-needs-cleanup -- timer is created by the subscribe callback but cleared by the returned cleanup
   useEffect(() => {
     let autoSaveTimeout: NodeJS.Timeout | undefined;
 
-    const subscription = form.watch(() => {
-      clearTimeout(autoSaveTimeout);
+    // formState.values subscription fires on exactly the same emissions as
+    // form.watch(callback): state payloads carrying a cloned `values` snapshot.
+    const unsubscribe = form.subscribe({
+      formState: { values: true },
+      callback: () => {
+        clearTimeout(autoSaveTimeout);
 
-      autoSaveTimeout = setTimeout(() => {
-        const values = form.getValues();
-        const result = resumeContentSchemaStrict.safeParse(values);
+        autoSaveTimeout = setTimeout(() => {
+          const values = form.getValues();
+          const result = resumeContentSchemaStrict.safeParse(values);
 
-        if (result.success) {
-          void runAutoSave(result.data, true);
-        } else {
-          const fieldErrors = result.error.issues.map((i) => i.path.join(".")).slice(0, 3);
-          toast.warning(`Fix validation errors: ${fieldErrors.join(", ")}`, {
-            duration: 5000,
-          });
-        }
-      }, 3000);
+          if (result.success) {
+            void runAutoSave(result.data, true);
+          } else {
+            const fieldErrors = result.error.issues.map((i) => i.path.join(".")).slice(0, 3);
+            toast.warning(`Fix validation errors: ${fieldErrors.join(", ")}`, {
+              duration: 5000,
+            });
+          }
+        }, 3000);
+      },
     });
 
     return () => {
-      subscription.unsubscribe();
+      unsubscribe();
       clearTimeout(autoSaveTimeout);
     };
   }, [form]);

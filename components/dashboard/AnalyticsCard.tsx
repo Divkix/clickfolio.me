@@ -267,29 +267,33 @@ export function AnalyticsCard() {
   const [error, setError] = useState(false);
   const [period, setPeriod] = useState<Period>("7d");
 
-  const fetchStats = useCallback(async (p: Period) => {
-    setLoading(true);
-    setError(false);
+  const fetchStats = useCallback(async (p: Period): Promise<AnalyticsStats> => {
+    const res = await fetch(`/api/analytics/stats?period=${p}`);
 
-    try {
-      const res = await fetch(`/api/analytics/stats?period=${p}`);
+    if (!res.ok) throw new Error("Failed to fetch");
 
-      if (!res.ok) throw new Error("Failed to fetch");
-      const data: AnalyticsStats = await res.json();
-      setStats(data);
-    } catch {
-      setError(true);
-    } finally {
-      setLoading(false);
-    }
+    return await res.json();
   }, []);
 
   useEffect(() => {
-    void fetchStats(period);
+    fetchStats(period).then(
+      (data) => {
+        setStats(data);
+        setLoading(false);
+      },
+      () => {
+        setError(true);
+        setLoading(false);
+      },
+    );
   }, [period, fetchStats]);
 
   const handlePeriodChange = (p: Period) => {
+    if (p === period) return;
+
     setPeriod(p);
+    setLoading(true);
+    setError(false);
   };
 
   return (

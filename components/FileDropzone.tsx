@@ -2,7 +2,7 @@
 
 import { ShieldCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -58,8 +58,6 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
   const { data: session, isPending: sessionLoading } = useSession();
   const user = session?.user ?? null;
 
-  const [claiming, setClaiming] = useState(false);
-
   const upload = useFileUpload();
 
   const {
@@ -77,11 +75,13 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
 
   const uploading = uploadState === "uploading" || uploadState === "claiming";
 
+  // The claim cycle runs whenever an uploaded key is waiting on a signed-in
+  // user; there is no intermediate "claiming" render state to store.
+  const claiming = uploadedKey !== null && user !== null;
+  const claimedKeyRef = useRef<string | null>(null);
+
   const claimUpload = useCallback(
     async (key: string) => {
-      setClaiming(true);
-      setError(null);
-
       try {
         const claimResponse = await fetch("/api/resume/claim", {
           method: "POST",
@@ -124,30 +124,33 @@ export function FileDropzone({ open, onOpenChange }: FileDropzoneProps = {}) {
         await clearPendingUploadCookie();
         setError(errorMessage);
         toast.error(errorMessage);
-      } finally {
-        setClaiming(false);
       }
     },
     [router, onOpenChange, setError, setUploadedKey],
   );
 
   useEffect(() => {
-    if (sessionLoading) return;
+    if (!uploadedKey) {
+      claimedKeyRef.current = null;
 
-    if (!uploadedKey) return;
+      return;
+    }
+
+    if (sessionLoading) return;
     const currentUser = session?.user;
 
     if (!currentUser) return;
 
-    if (claiming) return;
+    if (claimedKeyRef.current === uploadedKey) return;
+
+    claimedKeyRef.current = uploadedKey;
 
     void claimUpload(uploadedKey);
-  }, [sessionLoading, uploadedKey, session?.user, claiming, claimUpload]);
+  }, [sessionLoading, uploadedKey, session?.user, claimUpload]);
 
   const handleReset = () => {
     setFile(null);
     setUploadedKey(null);
-    setClaiming(false);
     setError(null);
     setUploadProgress(0);
     setUploadState("idle");

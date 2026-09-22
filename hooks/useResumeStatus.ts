@@ -32,11 +32,19 @@ export function useResumeStatus(resumeId: string | null): UseResumeStatusReturn 
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [canRetry, setCanRetry] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(resumeId !== null);
+  const [prevResumeId, setPrevResumeId] = useState(resumeId);
+
+  // A new resume id restarts the loading cycle; derive it during render so the
+  // first commit with the new id never shows stale loading state.
+  if (resumeId !== prevResumeId) {
+    setPrevResumeId(resumeId);
+    setIsLoading(resumeId !== null);
+  }
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
-  const startTimeRef = useRef<number>(Date.now());
+  const startTimeRef = useRef<number | null>(null);
   const hasTimedOutRef = useRef(false);
   const retryCountRef = useRef(0);
   const waitingForCacheSinceRef = useRef<string | null>(null);
@@ -91,8 +99,6 @@ export function useResumeStatus(resumeId: string | null): UseResumeStatusReturn 
 
   const fetchStatus = useCallback(async () => {
     if (!resumeId) {
-      setIsLoading(false);
-
       return;
     }
 
@@ -134,7 +140,8 @@ export function useResumeStatus(resumeId: string | null): UseResumeStatusReturn 
         }
       }
 
-      const elapsed = Date.now() - startTimeRef.current;
+      const startedAt = startTimeRef.current;
+      const elapsed = startedAt === null ? 0 : Date.now() - startedAt;
 
       if (elapsed > 90000 && data.status === "processing" && !hasTimedOutRef.current) {
         hasTimedOutRef.current = true;
@@ -184,8 +191,6 @@ export function useResumeStatus(resumeId: string | null): UseResumeStatusReturn 
     fetchStatusRef.current = fetchStatus;
 
     if (!resumeId) {
-      setIsLoading(false);
-
       return;
     }
 
@@ -193,7 +198,6 @@ export function useResumeStatus(resumeId: string | null): UseResumeStatusReturn 
     hasTimedOutRef.current = false;
     retryCountRef.current = 0;
     waitingForCacheSinceRef.current = null;
-    setIsLoading(true);
 
     void fetchStatus();
 

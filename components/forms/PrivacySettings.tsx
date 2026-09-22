@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import type { LucideIcon } from "lucide-react";
 import { Eye, Globe, Loader2, MapPin, Phone, Search, SearchX, Users } from "lucide-react";
 import { useRef, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import type { PrivacySettings } from "@/lib/db/schema/auth";
@@ -148,16 +148,18 @@ export function PrivacySettingsForm({
   const [savingField, setSavingField] = useState<string | null>(null);
   const updatedAtRef = useRef(initialUpdatedAt);
 
-  const { watch, setValue } = useForm<PrivacySettings>({
+  const { control, setValue } = useForm<PrivacySettings>({
     resolver: zodResolver(privacySettingsSchema),
     defaultValues: initialSettings,
   });
 
+  const watched = useWatch({ control });
+
   const values: PrivacySettings = {
-    show_phone: Boolean(watch("show_phone")),
-    show_address: Boolean(watch("show_address")),
-    hide_from_search: Boolean(watch("hide_from_search")),
-    show_in_directory: Boolean(watch("show_in_directory")),
+    show_phone: Boolean(watched.show_phone),
+    show_address: Boolean(watched.show_address),
+    hide_from_search: Boolean(watched.hide_from_search),
+    show_in_directory: Boolean(watched.show_in_directory),
   };
 
   const onSubmit = async (data: PrivacySettings): Promise<boolean> => {
