@@ -15,9 +15,18 @@ export type SharePopoverVariant = (typeof SHARE_VARIANT_KEYS)[number];
 
 export const DEFAULT_SHARE_VARIANT: SharePopoverVariant = "minimalist-editorial";
 
-export const shareContainerStyles = Object.fromEntries(
-  SHARE_VARIANT_KEYS.map((key) => [key, ""]),
-) as Record<SharePopoverVariant, string>;
+export const shareContainerStyles: Record<SharePopoverVariant, string> = {
+  "minimalist-editorial": "",
+  "neo-brutalist": "",
+  "glass-morphic": "",
+  "bento-grid": "",
+  spotlight: "",
+  midnight: "",
+  "bold-corporate": "",
+  "classic-ats": "",
+  "design-folio": "",
+  "dev-terminal": "",
+};
 
 export const shareButtonStyles = {
   "minimalist-editorial":

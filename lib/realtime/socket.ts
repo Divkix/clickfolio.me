@@ -20,7 +20,9 @@ export interface ResumeStatusPayload {
   error?: string;
 }
 
-export function decodeResumeStatusMessage(data: unknown): ResumeStatusPayload | null {
+type SocketMessageData = string | ArrayBuffer | Blob;
+
+export function decodeResumeStatusMessage(data: SocketMessageData): ResumeStatusPayload | null {
   const parsed = z.string().safeParse(data);
 
   if (!parsed.success || parsed.data === "pong") return null;

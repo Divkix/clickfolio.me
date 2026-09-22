@@ -5,6 +5,12 @@ import type { AnalyticsEventMap } from "@/lib/analytics/events";
 
 export type AnalyticsProperties = Record<string, string | number | boolean | null>;
 
+/**
+ * Arbitrary value accepted by PostHog's exception capture — forwarded verbatim,
+ * never narrowed or decoded here; error-capture paths must not reject inputs.
+ */
+export type AnalyticsErrorValue = Parameters<typeof posthog.captureException>[0];
+
 export function isAnalyticsInitialized(): boolean {
   return posthog.__loaded === true;
 }
@@ -28,7 +34,10 @@ export function resetAnalyticsIdentity(): void {
   posthog.reset();
 }
 
-export function captureAnalyticsError(error: unknown, properties?: AnalyticsProperties): void {
+export function captureAnalyticsError(
+  error: AnalyticsErrorValue,
+  properties?: AnalyticsProperties,
+): void {
   try {
     posthog.captureException(error, properties);
   } catch {}

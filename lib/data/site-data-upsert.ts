@@ -17,6 +17,8 @@ export function buildSiteDataUpsert(
   const previewFields = extractPreviewFields(content);
   const publish = opts?.publish ?? true;
   const onlyIfUpdatedAtLte = opts?.onlyIfUpdatedAtLte;
+  // publish=false must not overwrite lastPublishedAt: an empty set omits the key so onConflictDoUpdate leaves the column untouched.
+  const lastPublishedAtSet = publish ? { lastPublishedAt: now } : {};
 
   const values = {
     id: crypto.randomUUID(),
@@ -42,7 +44,7 @@ export function buildSiteDataUpsert(
           ...previewFields,
           updatedAt: now,
           // publish=false must not overwrite lastPublishedAt to avoid destructive unpublish on stale race
-          ...(publish ? { lastPublishedAt: now } : {}),
+          ...lastPublishedAtSet,
         },
         setWhere: sql`${siteData.updatedAt} <= ${onlyIfUpdatedAtLte}`,
       });
@@ -59,7 +61,7 @@ export function buildSiteDataUpsert(
         ...previewFields,
         updatedAt: now,
         // publish=false must not overwrite lastPublishedAt to avoid destructive unpublish on stale race
-        ...(publish ? { lastPublishedAt: now } : {}),
+        ...lastPublishedAtSet,
       },
     });
 }

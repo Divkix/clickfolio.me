@@ -3,7 +3,7 @@ import { PostHog } from "posthog-node";
 
 import { POSTHOG_API_HOST, POSTHOG_PROJECT_TOKEN } from "@/lib/analytics/config";
 import type { AnalyticsEventMap } from "@/lib/analytics/events";
-import type { AnalyticsProperties } from "@/lib/analytics/client";
+import type { AnalyticsErrorValue, AnalyticsProperties } from "@/lib/analytics/client";
 import { log } from "@/lib/utils/log";
 
 const SHUTDOWN_TIMEOUT_MS = 1000;
@@ -57,7 +57,7 @@ export function captureServerEvent<E extends keyof AnalyticsEventMap>(
 }
 
 export async function captureServerException(
-  error: unknown,
+  error: AnalyticsErrorValue,
   properties?: AnalyticsProperties,
 ): Promise<void> {
   const posthog = createPostHogClient();

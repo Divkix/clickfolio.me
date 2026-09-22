@@ -1,5 +1,5 @@
 import { generateText } from "ai";
-import type { JsonValue, UnknownRecord } from "@/lib/types/json";
+import type { JsonValue } from "@/lib/types/json";
 import { parseJsonWithRepair, transformToSchema } from "./ai-fallback";
 import { normalizeAiKeys } from "./ai-normalize";
 import { createAiProvider, type AiEnvVars } from "./ai-parser";
@@ -18,7 +18,7 @@ const PROVIDER_ROUTING = {
       allow_fallbacks: true,
     },
   },
-} as const;
+};
 
 const VISION_SYSTEM_PROMPT = `You are an expert resume parser. Extract information from the attached resume PDF (scanned image). Read all text visible in the document via OCR/vision and return ONLY valid JSON (no markdown, no code fences, no commentary).
 
@@ -120,21 +120,12 @@ function extractJson(text: string): string {
 }
 
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
-  // SAFETY: globalThis may have Node Buffer in workerd nodejs_compat; narrow via in check
-  const maybeBuffer = (globalThis as unknown as { Buffer?: typeof Buffer }).Buffer;
-
-  if (maybeBuffer && typeof maybeBuffer.from === "function") {
-    // SAFETY: ArrayBuffer is safe to view as Uint8Array for Buffer.from
-    return maybeBuffer.from(buffer as unknown as Uint8Array).toString("base64");
-  }
-
   const bytes = new Uint8Array(buffer);
   const chunkSize = 0x8000;
   let binary = "";
 
   for (let i = 0; i < bytes.length; i += chunkSize) {
-    const chunk = bytes.subarray(i, i + chunkSize);
-    binary += String.fromCharCode(...(chunk as unknown as number[]));
+    binary += String.fromCharCode(...Array.from(bytes.subarray(i, i + chunkSize)));
   }
 
   return btoa(binary);
@@ -170,16 +161,14 @@ export async function parsePdfWithVision(
         temperature: 0,
         maxOutputTokens: MAX_OUTPUT_TOKENS,
         abortSignal: AbortSignal.timeout(VISION_TIMEOUT_MS),
-        // SAFETY: OpenRouter routing shape is validated by provider; cast bypasses readonly vs mutable JSONValue mismatch
-        providerOptions: PROVIDER_ROUTING as unknown as never,
+        providerOptions: PROVIDER_ROUTING,
       });
 
       const jsonStr = extractJson(responseText);
       const { data: parsed, repaired } = await parseJsonWithRepair(jsonStr);
 
       if (parsed) {
-        // SAFETY: parseJsonWithRepair guarantees parsed is a non-null object; UnknownRecord is the safe JSON object type for normalization
-        const normalized = normalizeAiKeys(parsed as UnknownRecord);
+        const normalized = normalizeAiKeys(parsed);
         const transformed = transformToSchema(normalized);
         log("info", "[ai-vision] parse success", {
           modelId,
