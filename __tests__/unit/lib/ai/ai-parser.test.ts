@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { setupMockCleanup, suppressConsole } from "@/__tests__/setup/helpers/test-utils";
-import type { UnknownRecord } from "@/lib/types/json";
 import { type AiEnvVars, createAiProvider, parseWithAi } from "@/lib/ai/ai-parser";
 
 vi.mock("@ai-sdk/openai-compatible", () => ({
@@ -35,14 +34,27 @@ const mockEnv: AiEnvVars = {
   AI_REASONING_EFFORT: "medium",
 };
 
-const mockProvider = vi.fn();
+const mockProvider = Object.assign(vi.fn(), {
+  specificationVersion: "v4" as const,
+  languageModel: vi.fn(),
+  chatModel: vi.fn(),
+  completionModel: vi.fn(),
+  embeddingModel: vi.fn(),
+  textEmbeddingModel: vi.fn(),
+  imageModel: vi.fn(),
+});
+
+type GenerateTextResult = Awaited<ReturnType<typeof generateText>>;
+
+function textResult(text: string): GenerateTextResult {
+  // SAFETY: generateText stubs supply only `text`, the sole field parseWithAi destructures; the omitted result members (usage, finishReason, steps, ...) are never read.
+  return { text } as GenerateTextResult;
+}
 
 describe("createAiProvider", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(createOpenAICompatible).mockReturnValue(
-      mockProvider as unknown as ReturnType<typeof createOpenAICompatible>,
-    );
+    vi.mocked(createOpenAICompatible).mockReturnValue(mockProvider);
   });
 
   it("creates provider with valid env vars", () => {
@@ -81,9 +93,7 @@ describe("createAiProvider", () => {
 describe("parseWithAi - universal text path", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(createOpenAICompatible).mockReturnValue(
-      mockProvider as unknown as ReturnType<typeof createOpenAICompatible>,
-    );
+    vi.mocked(createOpenAICompatible).mockReturnValue(mockProvider);
   });
 
   it("returns text fallback success on successful parse", async () => {
@@ -97,9 +107,7 @@ describe("parseWithAi - universal text path", () => {
       ],
     };
 
-    vi.mocked(generateText).mockResolvedValue({
-      text: JSON.stringify(mockOutput),
-    } as unknown as Awaited<ReturnType<typeof generateText>>);
+    vi.mocked(generateText).mockResolvedValue(textResult(JSON.stringify(mockOutput)));
     vi.mocked(parseJsonWithRepair).mockResolvedValue({ data: mockOutput, repaired: false });
 
     const result = await parseWithAi("Sample resume text", mockEnv);
@@ -120,9 +128,7 @@ describe("parseWithAi - universal text path", () => {
       experience: [],
     };
 
-    vi.mocked(generateText).mockResolvedValue({
-      text: JSON.stringify(mockOutput),
-    } as unknown as Awaited<ReturnType<typeof generateText>>);
+    vi.mocked(generateText).mockResolvedValue(textResult(JSON.stringify(mockOutput)));
     vi.mocked(parseJsonWithRepair).mockResolvedValue({ data: mockOutput, repaired: false });
 
     await parseWithAi("Resume text", env);
@@ -141,9 +147,7 @@ describe("parseWithAi - universal text path", () => {
       experience: [],
     };
 
-    vi.mocked(generateText).mockResolvedValue({
-      text: JSON.stringify(mockOutput),
-    } as unknown as Awaited<ReturnType<typeof generateText>>);
+    vi.mocked(generateText).mockResolvedValue(textResult(JSON.stringify(mockOutput)));
     vi.mocked(parseJsonWithRepair).mockResolvedValue({ data: mockOutput, repaired: false });
 
     await parseWithAi("Resume text", env);
@@ -167,15 +171,17 @@ describe("parseWithAi - universal text path", () => {
 
     vi.mocked(generateText)
       .mockRejectedValueOnce(networkError)
-      .mockResolvedValueOnce({
-        text: JSON.stringify({
-          full_name: "Jane",
-          headline: "Dev",
-          summary: "",
-          contact: { email: "" },
-          experience: [],
-        }),
-      } as unknown as Awaited<ReturnType<typeof generateText>>);
+      .mockResolvedValueOnce(
+        textResult(
+          JSON.stringify({
+            full_name: "Jane",
+            headline: "Dev",
+            summary: "",
+            contact: { email: "" },
+            experience: [],
+          }),
+        ),
+      );
 
     vi.mocked(parseJsonWithRepair).mockResolvedValue({
       data: {
@@ -197,25 +203,23 @@ describe("parseWithAi - universal text path", () => {
 describe("parseWithAi - text fallback path", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(createOpenAICompatible).mockReturnValue(
-      mockProvider as unknown as ReturnType<typeof createOpenAICompatible>,
-    );
+    vi.mocked(createOpenAICompatible).mockReturnValue(mockProvider);
     vi.mocked(generateText).mockReset();
-    vi.mocked(generateText).mockResolvedValue({
-      text: '{"full_name":"Default"}',
-    } as unknown as Awaited<ReturnType<typeof generateText>>);
+    vi.mocked(generateText).mockResolvedValue(textResult('{"full_name":"Default"}'));
     vi.mocked(parseJsonWithRepair).mockReset();
     vi.mocked(parseJsonWithRepair).mockResolvedValue({ data: null, repaired: false });
     vi.mocked(normalizeAiKeys).mockReset();
-    vi.mocked(normalizeAiKeys).mockImplementation((data) => data as UnknownRecord);
+    vi.mocked(normalizeAiKeys).mockImplementation((data) => data);
     vi.mocked(transformToSchema).mockReset();
-    vi.mocked(transformToSchema).mockImplementation((data) => data as UnknownRecord);
+    vi.mocked(transformToSchema).mockImplementation((data) => data);
   });
 
   it("extracts JSON from markdown code blocks", async () => {
-    vi.mocked(generateText).mockResolvedValue({
-      text: '```json\n{"full_name": "Jane", "headline": "Dev", "summary": "", "contact": {"email": ""}, "experience": []}\n```',
-    } as unknown as Awaited<ReturnType<typeof generateText>>);
+    vi.mocked(generateText).mockResolvedValue(
+      textResult(
+        '```json\n{"full_name": "Jane", "headline": "Dev", "summary": "", "contact": {"email": ""}, "experience": []}\n```',
+      ),
+    );
 
     vi.mocked(parseJsonWithRepair).mockResolvedValue({
       data: {
@@ -234,9 +238,11 @@ describe("parseWithAi - text fallback path", () => {
   });
 
   it("extracts JSON from plain text without code blocks", async () => {
-    vi.mocked(generateText).mockResolvedValue({
-      text: '{"full_name": "Jane", "headline": "Dev", "summary": "", "contact": {"email": ""}, "experience": []}',
-    } as unknown as Awaited<ReturnType<typeof generateText>>);
+    vi.mocked(generateText).mockResolvedValue(
+      textResult(
+        '{"full_name": "Jane", "headline": "Dev", "summary": "", "contact": {"email": ""}, "experience": []}',
+      ),
+    );
 
     vi.mocked(parseJsonWithRepair).mockResolvedValue({
       data: {
@@ -258,9 +264,7 @@ describe("parseWithAi - text fallback path", () => {
 describe("parseWithAi - retry with error feedback", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(createOpenAICompatible).mockReturnValue(
-      mockProvider as unknown as ReturnType<typeof createOpenAICompatible>,
-    );
+    vi.mocked(createOpenAICompatible).mockReturnValue(mockProvider);
   });
 
   it("successfully retries with validation errors", async () => {
@@ -269,15 +273,17 @@ describe("parseWithAi - retry with error feedback", () => {
       errors: "headline: Required, summary: Required",
     };
 
-    vi.mocked(generateText).mockResolvedValue({
-      text: JSON.stringify({
-        full_name: "Jane",
-        headline: "Dev",
-        summary: "Experienced",
-        contact: { email: "jane@example.com" },
-        experience: [],
-      }),
-    } as unknown as Awaited<ReturnType<typeof generateText>>);
+    vi.mocked(generateText).mockResolvedValue(
+      textResult(
+        JSON.stringify({
+          full_name: "Jane",
+          headline: "Dev",
+          summary: "Experienced",
+          contact: { email: "jane@example.com" },
+          experience: [],
+        }),
+      ),
+    );
 
     vi.mocked(parseJsonWithRepair).mockResolvedValue({
       data: {
@@ -301,9 +307,7 @@ describe("parseWithAi - retry with error feedback", () => {
       errors: "headline: Required",
     };
 
-    vi.mocked(generateText).mockResolvedValue({
-      text: "Not JSON",
-    } as unknown as Awaited<ReturnType<typeof generateText>>);
+    vi.mocked(generateText).mockResolvedValue(textResult("Not JSON"));
 
     vi.mocked(parseJsonWithRepair).mockResolvedValue({
       data: null,
@@ -336,15 +340,17 @@ describe("parseWithAi - retry with error feedback", () => {
       errors: "headline: Required",
     };
 
-    vi.mocked(generateText).mockResolvedValue({
-      text: JSON.stringify({
-        full_name: "Jane",
-        headline: "Dev",
-        summary: "Experienced",
-        contact: { email: "" },
-        experience: [],
-      }),
-    } as unknown as Awaited<ReturnType<typeof generateText>>);
+    vi.mocked(generateText).mockResolvedValue(
+      textResult(
+        JSON.stringify({
+          full_name: "Jane",
+          headline: "Dev",
+          summary: "Experienced",
+          contact: { email: "" },
+          experience: [],
+        }),
+      ),
+    );
 
     vi.mocked(parseJsonWithRepair).mockResolvedValue({
       data: {
@@ -360,10 +366,7 @@ describe("parseWithAi - retry with error feedback", () => {
     const resumeText = "Resume text with real contact details and work history.";
     await parseWithAi(resumeText, mockEnv, undefined, retryContext);
 
-    const options = vi.mocked(generateText).mock.calls[0][0] as {
-      prompt?: string;
-      system?: string;
-    };
+    const options = vi.mocked(generateText).mock.calls[0][0];
 
     expect(options.prompt).toContain(resumeText);
     expect(options.prompt).toContain('"full_name"');
@@ -386,9 +389,7 @@ describe("parseWithAi - retry with error feedback", () => {
       experience: [],
     });
 
-    vi.mocked(generateText).mockResolvedValue({
-      text: retryJson,
-    } as unknown as Awaited<ReturnType<typeof generateText>>);
+    vi.mocked(generateText).mockResolvedValue(textResult(retryJson));
 
     vi.mocked(parseJsonWithRepair).mockResolvedValue({
       data: { full_name: "Jane" },
@@ -398,7 +399,7 @@ describe("parseWithAi - retry with error feedback", () => {
     const longText = `${"h".repeat(38000)}MIDDLE${"t".repeat(31999)}`;
     await parseWithAi(longText, mockEnv, undefined, retryContext);
 
-    const options = vi.mocked(generateText).mock.calls[0][0] as { prompt?: string };
+    const options = vi.mocked(generateText).mock.calls[0][0];
     expect(options.prompt).toContain("...[truncated]...");
     expect(options.prompt).toContain("h".repeat(38000));
     expect(options.prompt).toContain("t".repeat(18000));
@@ -419,9 +420,7 @@ describe("parseWithAi - retry with error feedback", () => {
       experience: [],
     });
 
-    vi.mocked(generateText).mockResolvedValue({
-      text: retryJson,
-    } as unknown as Awaited<ReturnType<typeof generateText>>);
+    vi.mocked(generateText).mockResolvedValue(textResult(retryJson));
 
     vi.mocked(parseJsonWithRepair).mockResolvedValue({
       data: { full_name: "Jane" },
@@ -430,7 +429,7 @@ describe("parseWithAi - retry with error feedback", () => {
 
     await parseWithAi("Resume text", mockEnv, undefined, retryContext);
 
-    const options = vi.mocked(generateText).mock.calls[0][0] as { system?: string };
+    const options = vi.mocked(generateText).mock.calls[0][0];
     expect(options.system).toContain("Do NOT invent");
     expect(options.system).not.toContain("reasonable default value");
   });
@@ -439,18 +438,18 @@ describe("parseWithAi - retry with error feedback", () => {
 describe("parseWithAi - provider cache key", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(createOpenAICompatible).mockReturnValue(
-      mockProvider as unknown as ReturnType<typeof createOpenAICompatible>,
+    vi.mocked(createOpenAICompatible).mockReturnValue(mockProvider);
+    vi.mocked(generateText).mockResolvedValue(
+      textResult(
+        JSON.stringify({
+          full_name: "Jane",
+          headline: "Dev",
+          summary: "",
+          contact: { email: "" },
+          experience: [],
+        }),
+      ),
     );
-    vi.mocked(generateText).mockResolvedValue({
-      text: JSON.stringify({
-        full_name: "Jane",
-        headline: "Dev",
-        summary: "",
-        contact: { email: "" },
-        experience: [],
-      }),
-    } as unknown as Awaited<ReturnType<typeof generateText>>);
     vi.mocked(parseJsonWithRepair).mockResolvedValue({
       data: {
         full_name: "Jane",
@@ -461,8 +460,8 @@ describe("parseWithAi - provider cache key", () => {
       },
       repaired: false,
     });
-    vi.mocked(normalizeAiKeys).mockImplementation((data) => data as UnknownRecord);
-    vi.mocked(transformToSchema).mockImplementation((data) => data as UnknownRecord);
+    vi.mocked(normalizeAiKeys).mockImplementation((data) => data);
+    vi.mocked(transformToSchema).mockImplementation((data) => data);
   });
 
   it("recreates the provider when CF_AIG_AUTH_TOKEN changes (same account+gateway)", async () => {
@@ -492,9 +491,7 @@ describe("parseWithAi - provider cache key", () => {
 describe("parseWithAi - edge cases", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(createOpenAICompatible).mockReturnValue(
-      mockProvider as unknown as ReturnType<typeof createOpenAICompatible>,
-    );
+    vi.mocked(createOpenAICompatible).mockReturnValue(mockProvider);
   });
 
   it("handles unicode in resume text", async () => {
@@ -508,9 +505,7 @@ describe("parseWithAi - edge cases", () => {
       ],
     };
 
-    vi.mocked(generateText).mockResolvedValue({
-      text: JSON.stringify(mockOutput),
-    } as unknown as Awaited<ReturnType<typeof generateText>>);
+    vi.mocked(generateText).mockResolvedValue(textResult(JSON.stringify(mockOutput)));
     vi.mocked(parseJsonWithRepair).mockResolvedValue({ data: mockOutput, repaired: false });
 
     const result = await parseWithAi("简历内容", mockEnv);
@@ -535,9 +530,7 @@ describe("parseWithAi - edge cases", () => {
       ],
     };
 
-    vi.mocked(generateText).mockResolvedValue({
-      text: JSON.stringify(mockOutput),
-    } as unknown as Awaited<ReturnType<typeof generateText>>);
+    vi.mocked(generateText).mockResolvedValue(textResult(JSON.stringify(mockOutput)));
     vi.mocked(parseJsonWithRepair).mockResolvedValue({ data: mockOutput, repaired: false });
 
     const result = await parseWithAi("Resume with $pecial chars: <>&\"'", mockEnv);
@@ -554,9 +547,7 @@ describe("parseWithAi - edge cases", () => {
       experience: [],
     };
 
-    vi.mocked(generateText).mockResolvedValue({
-      text: JSON.stringify(mockOutput),
-    } as unknown as Awaited<ReturnType<typeof generateText>>);
+    vi.mocked(generateText).mockResolvedValue(textResult(JSON.stringify(mockOutput)));
     vi.mocked(parseJsonWithRepair).mockResolvedValue({ data: mockOutput, repaired: false });
 
     const result = await parseWithAi("", mockEnv);
@@ -577,9 +568,7 @@ describe("parseWithAi - edge cases", () => {
       ],
     };
 
-    vi.mocked(generateText).mockResolvedValue({
-      text: JSON.stringify(mockOutput),
-    } as unknown as Awaited<ReturnType<typeof generateText>>);
+    vi.mocked(generateText).mockResolvedValue(textResult(JSON.stringify(mockOutput)));
     vi.mocked(parseJsonWithRepair).mockResolvedValue({ data: mockOutput, repaired: false });
 
     const result = await parseWithAi(longText, mockEnv);
@@ -588,9 +577,9 @@ describe("parseWithAi - edge cases", () => {
   });
 
   it("handles nested markdown in JSON", async () => {
-    vi.mocked(generateText).mockResolvedValue({
-      text: '```json\n{"full_name": "Jane", "summary": "Uses `code` in text"}\n```',
-    } as unknown as Awaited<ReturnType<typeof generateText>>);
+    vi.mocked(generateText).mockResolvedValue(
+      textResult('```json\n{"full_name": "Jane", "summary": "Uses `code` in text"}\n```'),
+    );
 
     vi.mocked(parseJsonWithRepair).mockResolvedValue({
       data: { full_name: "Jane", summary: "Uses `code` in text" },
@@ -606,9 +595,7 @@ describe("parseWithAi - edge cases", () => {
 describe("parseWithAi - error handling", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(createOpenAICompatible).mockReturnValue(
-      mockProvider as unknown as ReturnType<typeof createOpenAICompatible>,
-    );
+    vi.mocked(createOpenAICompatible).mockReturnValue(mockProvider);
   });
 
   it("returns error for unexpected exceptions", async () => {
@@ -633,15 +620,17 @@ describe("parseWithAi - error handling", () => {
 
     vi.mocked(generateText)
       .mockRejectedValueOnce(rateLimitError)
-      .mockResolvedValueOnce({
-        text: JSON.stringify({
-          full_name: "Jane",
-          headline: "Dev",
-          summary: "",
-          contact: { email: "" },
-          experience: [],
-        }),
-      } as unknown as Awaited<ReturnType<typeof generateText>>);
+      .mockResolvedValueOnce(
+        textResult(
+          JSON.stringify({
+            full_name: "Jane",
+            headline: "Dev",
+            summary: "",
+            contact: { email: "" },
+            experience: [],
+          }),
+        ),
+      );
 
     vi.mocked(parseJsonWithRepair).mockResolvedValue({
       data: {
@@ -664,15 +653,17 @@ describe("parseWithAi - error handling", () => {
 
     vi.mocked(generateText)
       .mockRejectedValueOnce(quotaError)
-      .mockResolvedValueOnce({
-        text: JSON.stringify({
-          full_name: "Jane",
-          headline: "Dev",
-          summary: "",
-          contact: { email: "" },
-          experience: [],
-        }),
-      } as unknown as Awaited<ReturnType<typeof generateText>>);
+      .mockResolvedValueOnce(
+        textResult(
+          JSON.stringify({
+            full_name: "Jane",
+            headline: "Dev",
+            summary: "",
+            contact: { email: "" },
+            experience: [],
+          }),
+        ),
+      );
 
     vi.mocked(parseJsonWithRepair).mockResolvedValue({
       data: {
@@ -705,23 +696,23 @@ describe("parseWithAi - error handling", () => {
 describe("parseWithAi - logging", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(createOpenAICompatible).mockReturnValue(
-      mockProvider as unknown as ReturnType<typeof createOpenAICompatible>,
-    );
+    vi.mocked(createOpenAICompatible).mockReturnValue(mockProvider);
   });
 
   it("logs successful text fallback parse", async () => {
     const spy = suppressConsole("info");
 
-    vi.mocked(generateText).mockResolvedValue({
-      text: JSON.stringify({
-        full_name: "Jane",
-        headline: "Dev",
-        summary: "",
-        contact: { email: "" },
-        experience: [],
-      }),
-    } as unknown as Awaited<ReturnType<typeof generateText>>);
+    vi.mocked(generateText).mockResolvedValue(
+      textResult(
+        JSON.stringify({
+          full_name: "Jane",
+          headline: "Dev",
+          summary: "",
+          contact: { email: "" },
+          experience: [],
+        }),
+      ),
+    );
     vi.mocked(parseJsonWithRepair).mockResolvedValue({
       data: {
         full_name: "Jane",
@@ -745,15 +736,11 @@ describe("parseWithAi - logging", () => {
 describe("parseWithAi - additional coverage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(createOpenAICompatible).mockReturnValue(
-      mockProvider as unknown as ReturnType<typeof createOpenAICompatible>,
-    );
+    vi.mocked(createOpenAICompatible).mockReturnValue(mockProvider);
   });
 
   it("handles null AI response data", async () => {
-    vi.mocked(generateText).mockResolvedValue({
-      text: "not json",
-    } as unknown as Awaited<ReturnType<typeof generateText>>);
+    vi.mocked(generateText).mockResolvedValue(textResult("not json"));
     vi.mocked(parseJsonWithRepair).mockResolvedValue({ data: null, repaired: false });
 
     const result = await parseWithAi("Resume text", mockEnv);
@@ -763,9 +750,7 @@ describe("parseWithAi - additional coverage", () => {
 
   it("handles AI response with unexpected data structure", async () => {
     const unexpected = { unexpected: "data", format: true };
-    vi.mocked(generateText).mockResolvedValue({
-      text: JSON.stringify(unexpected),
-    } as unknown as Awaited<ReturnType<typeof generateText>>);
+    vi.mocked(generateText).mockResolvedValue(textResult(JSON.stringify(unexpected)));
     vi.mocked(parseJsonWithRepair).mockResolvedValue({ data: unexpected, repaired: false });
 
     const result = await parseWithAi("Resume text", mockEnv);
@@ -785,9 +770,7 @@ describe("parseWithAi - additional coverage", () => {
       ],
     };
 
-    vi.mocked(generateText).mockResolvedValue({
-      text: JSON.stringify(mockOutput),
-    } as unknown as Awaited<ReturnType<typeof generateText>>);
+    vi.mocked(generateText).mockResolvedValue(textResult(JSON.stringify(mockOutput)));
     vi.mocked(parseJsonWithRepair).mockResolvedValue({ data: mockOutput, repaired: false });
 
     const result = await parseWithAi("Resume with émojis 🎉 and ñoño", mockEnv);
@@ -806,9 +789,10 @@ describe("parseWithAi - additional coverage", () => {
       experience: [],
     };
 
+    // SAFETY: parseWithAi destructures only `text`, which this stub omits exactly as before, so the failing-parse path and its model-routing assertion are unchanged.
     vi.mocked(generateText).mockResolvedValue({
       output: mockOutput,
-    } as unknown as Awaited<ReturnType<typeof generateText>>);
+    } as Awaited<ReturnType<typeof generateText>>);
 
     await parseWithAi("Resume", customEnv, "param-model");
 
@@ -824,9 +808,7 @@ describe("parseWithAi - additional coverage", () => {
       experience: [],
     };
 
-    vi.mocked(generateText).mockResolvedValue({
-      text: JSON.stringify(mockOutput),
-    } as unknown as Awaited<ReturnType<typeof generateText>>);
+    vi.mocked(generateText).mockResolvedValue(textResult(JSON.stringify(mockOutput)));
     vi.mocked(parseJsonWithRepair).mockResolvedValue({ data: mockOutput, repaired: false });
 
     const result = await parseWithAi("Resume text", mockEnv);

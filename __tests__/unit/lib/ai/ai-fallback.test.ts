@@ -27,7 +27,7 @@ describe("parseJsonWithRepair", () => {
     vi.mocked(parsePartialJson).mockResolvedValue({
       value: repairedData,
       state: "repaired-parse",
-    } as unknown as Awaited<ReturnType<typeof parsePartialJson>>);
+    });
 
     const result = await parseJsonWithRepair(malformedJson);
 
@@ -42,7 +42,7 @@ describe("parseJsonWithRepair", () => {
     vi.mocked(parsePartialJson).mockResolvedValue({
       value: null,
       state: "failed-parse",
-    } as unknown as Awaited<ReturnType<typeof parsePartialJson>>);
+    });
 
     const result = await parseJsonWithRepair(badJson);
 
@@ -56,7 +56,7 @@ describe("parseJsonWithRepair", () => {
     vi.mocked(parsePartialJson).mockResolvedValue({
       value: 123,
       state: "successful-parse",
-    } as unknown as Awaited<ReturnType<typeof parsePartialJson>>);
+    });
 
     const result = await parseJsonWithRepair(json);
 
@@ -70,7 +70,7 @@ describe("parseJsonWithRepair", () => {
     vi.mocked(parsePartialJson).mockResolvedValue({
       value: ["item1", "item2"],
       state: "successful-parse",
-    } as unknown as Awaited<ReturnType<typeof parsePartialJson>>);
+    });
 
     const result = await parseJsonWithRepair(json);
 
@@ -85,7 +85,7 @@ describe("parseJsonWithRepair", () => {
     vi.mocked(parsePartialJson).mockResolvedValue({
       value: repairedData,
       state: "repaired-parse",
-    } as unknown as Awaited<ReturnType<typeof parsePartialJson>>);
+    });
 
     const result = await parseJsonWithRepair(jsonWithTrailingComma);
 
@@ -100,7 +100,7 @@ describe("parseJsonWithRepair", () => {
     vi.mocked(parsePartialJson).mockResolvedValue({
       value: repairedData,
       state: "repaired-parse",
-    } as unknown as Awaited<ReturnType<typeof parsePartialJson>>);
+    });
 
     const result = await parseJsonWithRepair(jsonWithSingleQuotes);
 
@@ -115,7 +115,7 @@ describe("parseJsonWithRepair", () => {
     vi.mocked(parsePartialJson).mockResolvedValue({
       value: repairedData,
       state: "repaired-parse",
-    } as unknown as Awaited<ReturnType<typeof parsePartialJson>>);
+    });
 
     const result = await parseJsonWithRepair(jsonWithUnquotedKeys);
 
@@ -159,19 +159,19 @@ describe("parseJsonWithRepair", () => {
 });
 
 describe("transformToSchema", () => {
-  interface ExperienceEntry {
+  type ExperienceEntry = {
     title: string;
     company?: string;
     description?: string;
     highlights?: string[];
-  }
+  };
 
-  interface ProjectEntry {
+  type ProjectEntry = {
     title: string;
     year?: string;
     date?: string;
     description?: string;
-  }
+  };
 
   it("transforms skills from object to array format", () => {
     const data = {
@@ -215,13 +215,11 @@ describe("transformToSchema", () => {
 
     const result = transformToSchema(data);
 
-    expect((result.experience as unknown as ExperienceEntry[])[0].description).toBe(
-      "Led team Built features",
-    );
-    expect((result.experience as unknown as ExperienceEntry[])[0].highlights).toEqual([
-      "Led team",
-      "Built features",
-    ]);
+    // SAFETY: transformToSchema returns UnknownRecord but only rewrites description/highlights on the fixture fed in, so the entries read back satisfy ExperienceEntry.
+    const experience = result.experience as ExperienceEntry[];
+
+    expect(experience[0].description).toBe("Led team Built features");
+    expect(experience[0].highlights).toEqual(["Led team", "Built features"]);
   });
 
   it("preserves experience with string description", () => {
@@ -236,10 +234,11 @@ describe("transformToSchema", () => {
 
     const result = transformToSchema(data);
 
-    expect((result.experience as unknown as ExperienceEntry[])[0].description).toBe(
-      "Already a string",
-    );
-    expect((result.experience as unknown as ExperienceEntry[])[0].highlights).toBeUndefined();
+    // SAFETY: transformToSchema returns UnknownRecord but passes this string-description fixture through unchanged, so the entries read back satisfy ExperienceEntry.
+    const experience = result.experience as ExperienceEntry[];
+
+    expect(experience[0].description).toBe("Already a string");
+    expect(experience[0].highlights).toBeUndefined();
   });
 
   it("transforms project description from array to string", () => {
@@ -254,9 +253,8 @@ describe("transformToSchema", () => {
 
     const result = transformToSchema(data);
 
-    expect((result.projects as unknown as ProjectEntry[])[0].description).toBe(
-      "Feature 1 Feature 2",
-    );
+    // SAFETY: transformToSchema returns UnknownRecord but only joins this fixture's description array, so the entry read back satisfies ProjectEntry.
+    expect((result.projects as ProjectEntry[])[0].description).toBe("Feature 1 Feature 2");
   });
 
   it("renames project date to year", () => {
@@ -271,8 +269,11 @@ describe("transformToSchema", () => {
 
     const result = transformToSchema(data);
 
-    expect((result.projects as unknown as ProjectEntry[])[0].year).toBe("2023");
-    expect((result.projects as unknown as ProjectEntry[])[0].date).toBeUndefined();
+    // SAFETY: transformToSchema returns UnknownRecord but only renames date to year on this fixture, so the entry read back satisfies ProjectEntry.
+    const projects = result.projects as ProjectEntry[];
+
+    expect(projects[0].year).toBe("2023");
+    expect(projects[0].date).toBeUndefined();
   });
 
   it("preserves existing year when date also present", () => {
@@ -288,7 +289,8 @@ describe("transformToSchema", () => {
 
     const result = transformToSchema(data);
 
-    expect((result.projects as unknown as ProjectEntry[])[0].year).toBe("2024");
+    // SAFETY: transformToSchema returns UnknownRecord but preserves an existing year on this fixture, so the entry read back satisfies ProjectEntry.
+    expect((result.projects as ProjectEntry[])[0].year).toBe("2024");
   });
 
   it("handles empty data gracefully", () => {
@@ -353,18 +355,14 @@ describe("transformToSchema", () => {
 
     const result = transformToSchema(data);
 
-    expect((result.experience as unknown as ExperienceEntry[])[0].description).toBe("Task 1");
-    expect((result.experience as unknown as ExperienceEntry[])[0].highlights).toEqual(["Task 1"]);
-    expect((result.experience as unknown as ExperienceEntry[])[1].description).toBe(
-      "String description",
-    );
-    expect((result.experience as unknown as ExperienceEntry[])[1].highlights).toBeUndefined();
-    expect((result.experience as unknown as ExperienceEntry[])[2].description).toBe(
-      "Task A Task B",
-    );
-    expect((result.experience as unknown as ExperienceEntry[])[2].highlights).toEqual([
-      "Task A",
-      "Task B",
-    ]);
+    // SAFETY: transformToSchema returns UnknownRecord but only rewrites description/highlights on the fixtures fed in, so the entries read back satisfy ExperienceEntry.
+    const experience = result.experience as ExperienceEntry[];
+
+    expect(experience[0].description).toBe("Task 1");
+    expect(experience[0].highlights).toEqual(["Task 1"]);
+    expect(experience[1].description).toBe("String description");
+    expect(experience[1].highlights).toBeUndefined();
+    expect(experience[2].description).toBe("Task A Task B");
+    expect(experience[2].highlights).toEqual(["Task A", "Task B"]);
   });
 });

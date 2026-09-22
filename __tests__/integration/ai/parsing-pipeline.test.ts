@@ -1,4 +1,5 @@
 import type { UnknownRecord, JsonValue } from "@/lib/types/json";
+import type { GenerateTextResult, ToolSet } from "ai";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { parseJsonWithRepair, transformToSchema } from "@/lib/ai/ai-fallback";
 import { normalizeAiKeys } from "@/lib/ai/ai-normalize";
@@ -164,6 +165,16 @@ const VALID_AI_RESPONSE = {
   professional_level: "mid_level",
 };
 
+function textResult(text: string): GenerateTextResult<ToolSet, never, never> {
+  // SAFETY: parseWithAi destructures only `text` from the generateText result (lib/ai/ai-parser.ts:297) and parseResumeWithAi delegates to it, so every other result member (output, usage, finishReason, response, providerMetadata, ...) is never read by the code under test.
+  return { text } as GenerateTextResult<ToolSet, never, never>;
+}
+
+function cast<T>(data: UnknownRecord, key?: string): T {
+  // SAFETY: each call site casts a transformToSchema/normalizeAiKeys result this test just built from its own literal input; T restates the transformed shape the surrounding assertions pin down, which UnknownRecord cannot express member-by-member.
+  return (key === undefined ? data : data[key]) as T;
+}
+
 describe("AI Parsing Pipeline", () => {
   const mockEnv = {
     CF_AI_GATEWAY_ACCOUNT_ID: "test-account",
@@ -179,25 +190,7 @@ describe("AI Parsing Pipeline", () => {
   describe("parseWithAi", () => {
     it("should parse resume text with universal text path", async () => {
       const { generateText } = await import("ai");
-      vi.mocked(generateText).mockResolvedValueOnce({
-        text: JSON.stringify(VALID_AI_RESPONSE),
-        finishReason: "stop",
-        usage: { promptTokens: 1000, completionTokens: 500, totalTokens: 1500 },
-        toolCalls: [],
-        toolResults: [],
-        warnings: [],
-        request: {},
-        response: {
-          id: "test-response-id",
-          timestamp: new Date(),
-          modelId: "openai/gpt-5.6-luna:nitro",
-          headers: {},
-          messages: [],
-          body: {},
-        },
-        experimental_output: undefined,
-        providerMetadata: {},
-      } as never);
+      vi.mocked(generateText).mockResolvedValueOnce(textResult(JSON.stringify(VALID_AI_RESPONSE)));
 
       const result = await parseWithAi(SAMPLE_RESUME_TEXT, mockEnv);
 
@@ -210,44 +203,8 @@ describe("AI Parsing Pipeline", () => {
       const { generateText } = await import("ai");
 
       vi.mocked(generateText)
-        .mockResolvedValueOnce({
-          text: "not json at all",
-          finishReason: "stop",
-          usage: { promptTokens: 1000, completionTokens: 500, totalTokens: 1500 },
-          toolCalls: [],
-          toolResults: [],
-          warnings: [],
-          request: {},
-          response: {
-            id: "test-response-id",
-            timestamp: new Date(),
-            modelId: "openai/gpt-5.6-luna:nitro",
-            headers: {},
-            messages: [],
-            body: {},
-          },
-          experimental_output: undefined,
-          providerMetadata: {},
-        } as never)
-        .mockResolvedValueOnce({
-          text: JSON.stringify(VALID_AI_RESPONSE),
-          finishReason: "stop",
-          usage: { promptTokens: 1000, completionTokens: 500, totalTokens: 1500 },
-          toolCalls: [],
-          toolResults: [],
-          warnings: [],
-          request: {},
-          response: {
-            id: "test-response-id",
-            timestamp: new Date(),
-            modelId: "openai/gpt-5.6-luna:nitro",
-            headers: {},
-            messages: [],
-            body: {},
-          },
-          experimental_output: undefined,
-          providerMetadata: {},
-        } as never);
+        .mockResolvedValueOnce(textResult("not json at all"))
+        .mockResolvedValueOnce(textResult(JSON.stringify(VALID_AI_RESPONSE)));
 
       const result = await parseWithAi(SAMPLE_RESUME_TEXT, mockEnv);
 
@@ -259,25 +216,7 @@ describe("AI Parsing Pipeline", () => {
       const { generateText } = await import("ai");
       vi.mocked(generateText)
         .mockRejectedValueOnce(new Error("Request timeout"))
-        .mockResolvedValueOnce({
-          text: JSON.stringify(VALID_AI_RESPONSE),
-          finishReason: "stop",
-          usage: { promptTokens: 1000, completionTokens: 500, totalTokens: 1500 },
-          toolCalls: [],
-          toolResults: [],
-          warnings: [],
-          request: {},
-          response: {
-            id: "test-response-id",
-            timestamp: new Date(),
-            modelId: "openai/gpt-5.6-luna:nitro",
-            headers: {},
-            messages: [],
-            body: {},
-          },
-          experimental_output: undefined,
-          providerMetadata: {},
-        } as never);
+        .mockResolvedValueOnce(textResult(JSON.stringify(VALID_AI_RESPONSE)));
 
       const result = await parseWithAi(SAMPLE_RESUME_TEXT, mockEnv);
 
@@ -286,25 +225,7 @@ describe("AI Parsing Pipeline", () => {
 
     it("should handle invalid JSON response with fallback", async () => {
       const { generateText } = await import("ai");
-      vi.mocked(generateText).mockResolvedValueOnce({
-        text: "```json\n{invalid json}\n```",
-        finishReason: "stop",
-        usage: { promptTokens: 100, completionTokens: 50, totalTokens: 150 },
-        toolCalls: [],
-        toolResults: [],
-        warnings: [],
-        request: {},
-        response: {
-          id: "test-response-id",
-          timestamp: new Date(),
-          modelId: "openai/gpt-5.6-luna:nitro",
-          headers: {},
-          messages: [],
-          body: {},
-        },
-        experimental_output: undefined,
-        providerMetadata: {},
-      } as never);
+      vi.mocked(generateText).mockResolvedValueOnce(textResult("```json\n{invalid json}\n```"));
 
       const result = await parseWithAi(SAMPLE_RESUME_TEXT, mockEnv);
 
@@ -321,44 +242,8 @@ describe("AI Parsing Pipeline", () => {
       };
 
       vi.mocked(generateText)
-        .mockResolvedValueOnce({
-          text: JSON.stringify(partialResponse),
-          finishReason: "stop",
-          usage: { promptTokens: 500, completionTokens: 200, totalTokens: 700 },
-          toolCalls: [],
-          toolResults: [],
-          warnings: [],
-          request: {},
-          response: {
-            id: "test",
-            timestamp: new Date(),
-            modelId: "openai/gpt-5.6-luna:nitro",
-            headers: {},
-            messages: [],
-            body: {},
-          },
-          experimental_output: undefined,
-          providerMetadata: {},
-        } as never)
-        .mockResolvedValueOnce({
-          text: JSON.stringify(VALID_AI_RESPONSE),
-          finishReason: "stop",
-          usage: { promptTokens: 500, completionTokens: 200, totalTokens: 700 },
-          toolCalls: [],
-          toolResults: [],
-          warnings: [],
-          request: {},
-          response: {
-            id: "test",
-            timestamp: new Date(),
-            modelId: "openai/gpt-5.6-luna:nitro",
-            headers: {},
-            messages: [],
-            body: {},
-          },
-          experimental_output: undefined,
-          providerMetadata: {},
-        } as never);
+        .mockResolvedValueOnce(textResult(JSON.stringify(partialResponse)))
+        .mockResolvedValueOnce(textResult(JSON.stringify(VALID_AI_RESPONSE)));
 
       const result = await parseWithAi(SAMPLE_RESUME_TEXT, mockEnv);
 
@@ -411,11 +296,12 @@ describe("AI Parsing Pipeline", () => {
       };
 
       const result = transformToSchema(input);
+      const skills = cast<UnknownRecord[]>(result, "skills");
 
       expect(Array.isArray(result.skills)).toBe(true);
-      expect((result as { skills: JsonValue[] }).skills).toHaveLength(2);
-      expect((result as { skills: UnknownRecord[] }).skills[0]).toHaveProperty("category");
-      expect((result as { skills: UnknownRecord[] }).skills[0]).toHaveProperty("items");
+      expect(skills).toHaveLength(2);
+      expect(skills[0]).toHaveProperty("category");
+      expect(skills[0]).toHaveProperty("items");
     });
 
     it("should transform experience descriptions from array to string", () => {
@@ -431,15 +317,14 @@ describe("AI Parsing Pipeline", () => {
 
       const result = transformToSchema(input);
 
-      expect(
-        typeof (result as { experience: { description: string }[] }).experience[0].description,
-      ).toBe("string");
-      expect((result as { experience: { description: string }[] }).experience[0].description).toBe(
-        "Built features Fixed bugs",
+      const experience = cast<Array<{ description: string; highlights: string[] }>>(
+        result,
+        "experience",
       );
-      expect(
-        (result as { experience: { highlights: string[] }[] }).experience[0].highlights,
-      ).toEqual(["Built features", "Fixed bugs"]);
+
+      expect(experience[0].description).toBeTypeOf("string");
+      expect(experience[0].description).toBe("Built features Fixed bugs");
+      expect(experience[0].highlights).toEqual(["Built features", "Fixed bugs"]);
     });
 
     it("should transform project date to year", () => {
@@ -454,9 +339,10 @@ describe("AI Parsing Pipeline", () => {
       };
 
       const result = transformToSchema(input);
+      const projects = cast<Array<{ year: string; date?: string }>>(result, "projects");
 
-      expect((result as { projects: { year: string }[] }).projects[0].year).toBe("2023");
-      expect((result as { projects: { date?: string }[] }).projects[0].date).toBeUndefined();
+      expect(projects[0].year).toBe("2023");
+      expect(projects[0].date).toBeUndefined();
     });
   });
 
@@ -482,21 +368,23 @@ describe("AI Parsing Pipeline", () => {
 
       const result = normalizeAiKeys(input);
 
-      expect((result as { full_name: string }).full_name).toBe("John Doe");
-      expect((result as { headline: string }).headline).toBe("Software Engineer");
-      expect((result as { summary: string }).summary).toBe("A developer");
-      expect((result as { contact: { email: string } }).contact.email).toBe("john@example.com");
-      expect((result as { contact: { phone: string } }).contact.phone).toBe("555-1234");
-      expect((result as { experience: { title: string }[] }).experience[0].title).toBe("Developer");
-      expect((result as { experience: { company: string }[] }).experience[0].company).toBe(
-        "TechCorp",
-      );
-      expect((result as { experience: { start_date: string }[] }).experience[0].start_date).toBe(
-        "2020-01",
-      );
-      expect((result as { experience: { end_date: string }[] }).experience[0].end_date).toBe(
-        "2022-12",
-      );
+      const normalized = cast<{
+        full_name: string;
+        headline: string;
+        summary: string;
+        contact: { email: string; phone: string };
+        experience: Array<{ title: string; company: string; start_date: string; end_date: string }>;
+      }>(result);
+
+      expect(normalized.full_name).toBe("John Doe");
+      expect(normalized.headline).toBe("Software Engineer");
+      expect(normalized.summary).toBe("A developer");
+      expect(normalized.contact.email).toBe("john@example.com");
+      expect(normalized.contact.phone).toBe("555-1234");
+      expect(normalized.experience[0].title).toBe("Developer");
+      expect(normalized.experience[0].company).toBe("TechCorp");
+      expect(normalized.experience[0].start_date).toBe("2020-01");
+      expect(normalized.experience[0].end_date).toBe("2022-12");
     });
 
     it("should handle string array skills", () => {
@@ -505,14 +393,11 @@ describe("AI Parsing Pipeline", () => {
       };
 
       const result = normalizeAiKeys(input);
+      const skills = cast<Array<{ category: string; items: string[] }>>(result, "skills");
 
-      expect((result as { skills: JsonValue[] }).skills).toHaveLength(1);
-      expect((result as { skills: { category: string }[] }).skills[0].category).toBe("Skills");
-      expect((result as { skills: { items: string[] }[] }).skills[0].items).toEqual([
-        "TypeScript",
-        "React",
-        "Node.js",
-      ]);
+      expect(skills).toHaveLength(1);
+      expect(skills[0].category).toBe("Skills");
+      expect(skills[0].items).toEqual(["TypeScript", "React", "Node.js"]);
     });
   });
 
@@ -526,26 +411,7 @@ describe("AI Parsing Pipeline", () => {
       });
 
       const { generateText } = await import("ai");
-      vi.mocked(generateText).mockResolvedValue({
-        output: VALID_AI_RESPONSE,
-        text: JSON.stringify(VALID_AI_RESPONSE),
-        finishReason: "stop",
-        usage: { promptTokens: 1000, completionTokens: 500, totalTokens: 1500 },
-        toolCalls: [],
-        toolResults: [],
-        warnings: [],
-        request: {},
-        response: {
-          id: "test-response-id",
-          timestamp: new Date(),
-          modelId: "openai/gpt-5.6-luna:nitro",
-          headers: {},
-          messages: [],
-          body: {},
-        },
-        experimental_output: undefined,
-        providerMetadata: {},
-      } as never);
+      vi.mocked(generateText).mockResolvedValue(textResult(JSON.stringify(VALID_AI_RESPONSE)));
 
       const mockPdfBuffer = new ArrayBuffer(100);
       const result = await parseResumeWithAi(mockPdfBuffer, mockEnv);
@@ -744,26 +610,8 @@ describe("AI Parsing Pipeline", () => {
         projects: [],
       };
 
-      vi.mocked(generateText).mockResolvedValueOnce({
-        output: hallucinatedResponse,
-        text: JSON.stringify(hallucinatedResponse),
-        finishReason: "stop",
-        usage: { promptTokens: 100, completionTokens: 200, totalTokens: 300 },
-        toolCalls: [],
-        toolResults: [],
-        warnings: [],
-        request: {},
-        response: {
-          id: "test-response-id",
-          timestamp: new Date(),
-          modelId: "openai/gpt-5.6-luna:nitro",
-          headers: {},
-          messages: [],
-          body: {},
-        },
-        experimental_output: undefined,
-        providerMetadata: {},
-      } as never);
+      const stub = textResult(JSON.stringify(hallucinatedResponse));
+      vi.mocked(generateText).mockResolvedValueOnce(stub);
 
       const result = await parseWithAi(SAMPLE_RESUME_TEXT, mockEnv);
       expect(result).toBeDefined();
@@ -796,45 +644,8 @@ describe("AI Parsing Pipeline", () => {
       };
 
       vi.mocked(generateText)
-        .mockResolvedValueOnce({
-          output: incompleteResponse,
-          text: JSON.stringify(incompleteResponse),
-          finishReason: "stop",
-          usage: { promptTokens: 500, completionTokens: 200, totalTokens: 700 },
-          toolCalls: [],
-          toolResults: [],
-          warnings: [],
-          request: {},
-          response: {
-            id: "test-response-id",
-            timestamp: new Date(),
-            modelId: "openai/gpt-5.6-luna:nitro",
-            headers: {},
-            messages: [],
-            body: {},
-          },
-          experimental_output: undefined,
-          providerMetadata: {},
-        } as never)
-        .mockResolvedValueOnce({
-          text: JSON.stringify(VALID_AI_RESPONSE),
-          finishReason: "stop",
-          usage: { promptTokens: 1000, completionTokens: 500, totalTokens: 1500 },
-          toolCalls: [],
-          toolResults: [],
-          warnings: [],
-          request: {},
-          response: {
-            id: "test-response-id",
-            timestamp: new Date(),
-            modelId: "openai/gpt-5.6-luna:nitro",
-            headers: {},
-            messages: [],
-            body: {},
-          },
-          experimental_output: undefined,
-          providerMetadata: {},
-        } as never);
+        .mockResolvedValueOnce(textResult(JSON.stringify(incompleteResponse)))
+        .mockResolvedValueOnce(textResult(JSON.stringify(VALID_AI_RESPONSE)));
 
       const result = await parseWithAi(SAMPLE_RESUME_TEXT, mockEnv);
       expect(result).toBeDefined();
