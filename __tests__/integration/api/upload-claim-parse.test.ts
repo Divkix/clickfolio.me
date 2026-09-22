@@ -23,6 +23,16 @@ interface MockDbInsertChain {
   values: ReturnType<typeof vi.fn>;
 }
 
+interface MockDatabase {
+  select: ReturnType<typeof vi.fn>;
+  update: ReturnType<typeof vi.fn>;
+  insert: ReturnType<typeof vi.fn>;
+  transaction: ReturnType<typeof vi.fn>;
+}
+
+// Explicit contract keeps mockDb's inference from circularly depending on this callback (TS7024).
+type MockTransactionOutcome = Promise<void>;
+
 const createMockDbChain = (returnValue: JsonValue = []): MockDbChain => {
   const limit = vi.fn().mockResolvedValue(returnValue);
   const orderBy = vi.fn().mockReturnValue({ limit });
@@ -72,12 +82,20 @@ const mockDb = {
   select: vi.fn(() => ({ from: mockDbSelectChain.from })),
   update: vi.fn(() => ({ set: mockDbUpdateChain.set })),
   insert: vi.fn(() => ({ values: mockDbInsertChain.values })),
-  transaction: vi.fn(async (cb: (tx: unknown) => unknown) => cb(mockDb)),
+  transaction: vi.fn(async (cb: (tx: MockDatabase) => void): MockTransactionOutcome => cb(mockDb)),
 };
 
 const mockR2Store = new Map<string, ArrayBuffer>();
 
-const mockR2Binding = {} as R2Bucket;
+const mockR2Binding: R2Bucket = {
+  head: vi.fn(),
+  get: vi.fn(),
+  put: vi.fn(),
+  createMultipartUpload: vi.fn(),
+  resumeMultipartUpload: vi.fn(),
+  delete: vi.fn(),
+  list: vi.fn(),
+};
 
 const mockR2 = {
   getAsArrayBuffer: vi.fn().mockImplementation(async (_binding: R2Bucket, key: string) => {
@@ -98,17 +116,19 @@ const mockR2 = {
   }),
 };
 
-const mockQueueMessages: Array<{
+type QueuedParseMessage = {
   resumeId: string;
   userId: string;
   r2Key: string;
   fileHash: string;
   attempt: number;
-}> = [];
+};
+
+const mockQueueMessages: QueuedParseMessage[] = [];
 
 const mockQueue = {
-  send: vi.fn().mockImplementation(async (message: JsonValue) => {
-    mockQueueMessages.push(message as (typeof mockQueueMessages)[0]);
+  send: vi.fn().mockImplementation(async (message: QueuedParseMessage) => {
+    mockQueueMessages.push(message);
   }),
 };
 
@@ -335,10 +355,10 @@ describe("POST /api/upload", () => {
 
     const response = await POST(request);
 
-    const body = (await response.json()) as {
+    const body: {
       key: string;
       remaining: { hourly: number; daily: number };
-    };
+    } = await response.json();
 
     expect(response.status).toBe(200);
     expect(body.key).toMatch(/^temp\/.*\.pdf$/);
@@ -353,7 +373,7 @@ describe("POST /api/upload", () => {
     const request = makeUploadRequest(buffer);
 
     const response = await POST(request);
-    const body = (await response.json()) as { error: string };
+    const body: { error: string } = await response.json();
 
     expect(response.status).toBe(400);
     expect(body.error).toContain("PDF");
@@ -516,7 +536,7 @@ describe("POST /api/resume/claim", () => {
     const { POST: uploadPost } = await import("@/app/api/upload/route");
     const buffer = makePdfBuffer();
     const uploadResponse = await uploadPost(makeUploadRequest(buffer));
-    const uploadBody = (await uploadResponse.json()) as { key: string };
+    const uploadBody: { key: string } = await uploadResponse.json();
     const tempKey = uploadBody.key;
 
     expect(mockR2Store.has(tempKey)).toBe(true);
@@ -527,7 +547,7 @@ describe("POST /api/resume/claim", () => {
     setMockAuthUser("user-1");
     const { POST: claimPost } = await import("@/app/api/resume/claim/route");
     const claimResponse = await claimPost(makeClaimRequest(tempKey, pendingCookie!));
-    const claimBody = (await claimResponse.json()) as { resume_id: string; status: string };
+    const claimBody: { resume_id: string; status: string } = await claimResponse.json();
 
     expect(claimResponse.status).toBe(200);
     expect(claimBody.status).toBe("queued");
@@ -549,7 +569,7 @@ describe("POST /api/resume/claim", () => {
     const { POST: uploadPost } = await import("@/app/api/upload/route");
     const buffer = makePdfBuffer();
     const uploadResponse = await uploadPost(makeUploadRequest(buffer));
-    const uploadBody = (await uploadResponse.json()) as { key: string };
+    const uploadBody: { key: string } = await uploadResponse.json();
 
     const pendingCookie = extractPendingUploadCookie(uploadResponse);
     expect(pendingCookie).not.toBeNull();
@@ -557,7 +577,7 @@ describe("POST /api/resume/claim", () => {
     setMockAuthUser("user-1");
     const { POST: claimPost } = await import("@/app/api/resume/claim/route");
     const claimResponse = await claimPost(makeClaimRequest(uploadBody.key, pendingCookie!));
-    const claimBody = (await claimResponse.json()) as { resume_id: string };
+    const claimBody: { resume_id: string } = await claimResponse.json();
 
     expect(mockQueueMessages.length).toBe(1);
     expect(mockQueueMessages[0]).toMatchObject({
@@ -636,6 +656,7 @@ describe("Queue Processing → siteData Creation", () => {
       attempt: 1,
     };
 
+    // SAFETY: env stub declares only HYPERDRIVE and CLICKFOLIO_R2_BUCKET, the two bindings handleQueueMessage reads; CloudflareEnv's remaining properties are never accessed on this path.
     const env = {
       HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" },
       CLICKFOLIO_R2_BUCKET: mockR2Binding,
@@ -679,6 +700,7 @@ describe("Queue Processing → siteData Creation", () => {
       attempt: 1,
     };
 
+    // SAFETY: env stub declares only HYPERDRIVE and CLICKFOLIO_R2_BUCKET, the two bindings handleQueueMessage reads; CloudflareEnv's remaining properties are never accessed on this path.
     const env = {
       HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" },
       CLICKFOLIO_R2_BUCKET: mockR2Binding,
@@ -705,7 +727,7 @@ describe("POST /api/upload/pending - R2 existence check (hardening)", () => {
     const response = await POST(request);
 
     expect(response.status).toBe(404);
-    const body = (await response.json()) as { error: string };
+    const body: { error: string } = await response.json();
     expect(body.error).toContain("Upload not found");
     expect(response.headers.get("set-cookie")).toBeNull();
   });
@@ -722,7 +744,7 @@ describe("POST /api/upload/pending - R2 existence check (hardening)", () => {
     const response = await POST(request);
 
     expect(response.status).toBe(400);
-    const body = (await response.json()) as { error: string };
+    const body: { error: string } = await response.json();
     expect(body.error).toContain("Invalid upload key");
   });
 
@@ -740,7 +762,7 @@ describe("POST /api/upload/pending - R2 existence check (hardening)", () => {
     const response = await POST(request);
 
     expect(response.status).toBe(200);
-    const body = (await response.json()) as { success: boolean };
+    const body: { success: boolean } = await response.json();
     expect(body.success).toBe(true);
   });
 });

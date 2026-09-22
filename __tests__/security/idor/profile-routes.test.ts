@@ -13,7 +13,7 @@ interface MockQueryChain {
   leftJoin: (...args: unknown[]) => MockQueryChain;
   then: (
     resolve: (value: JsonValue[]) => JsonValue,
-    reject?: (reason: unknown) => unknown,
+    reject?: (reason: Error) => void,
   ) => Promise<JsonValue>;
 }
 
@@ -28,10 +28,7 @@ interface MockTxChain {
   onConflictDoNothing: (...args: unknown[]) => MockTxChain;
   onConflictDoUpdate: (...args: unknown[]) => MockTxChain;
   returning: (...args: unknown[]) => MockTxChain;
-  then: (
-    resolve: (value: never) => unknown,
-    reject?: (reason: unknown) => unknown,
-  ) => Promise<unknown>;
+  then: (resolve: (value: JsonValue) => JsonValue) => Promise<JsonValue>;
 }
 
 const createQueryChain = (): MockQueryChain => {
@@ -42,19 +39,17 @@ const createQueryChain = (): MockQueryChain => {
     limit: vi.fn(() => chain),
     innerJoin: vi.fn(() => chain),
     leftJoin: vi.fn(() => chain),
-    then: vi.fn(
-      (resolve: (value: JsonValue[]) => JsonValue, reject?: (reason: unknown) => unknown) => {
-        const next = selectResults.shift();
+    then: vi.fn((resolve: (value: JsonValue[]) => JsonValue, reject?: (reason: Error) => void) => {
+      const next = selectResults.shift();
 
-        if (next === undefined) {
-          const error = new Error("No select result queued");
+      if (next === undefined) {
+        const error = new Error("No select result queued");
 
-          return reject ? Promise.reject(reject(error)) : Promise.reject(error);
-        }
+        return reject ? Promise.reject(reject(error)) : Promise.reject(error);
+      }
 
-        return Promise.resolve(resolve(next));
-      },
-    ),
+      return Promise.resolve(resolve(next));
+    }),
   };
 
   return chain;
@@ -83,20 +78,20 @@ function nextTxReturning(): JsonValue {
 
   if (next === undefined) throw new Error("No tx returning result queued");
 
-  return next as JsonValue;
+  return next;
 }
 
 function makeTxSelectChain(): MockTxChain {
   const chain = makeTxBaseChain();
-  chain.then = vi.fn((resolve: (value: never) => unknown) =>
-    Promise.resolve(resolve(nextTxSelect() as never)),
+  chain.then = vi.fn((resolve: (value: JsonValue) => JsonValue) =>
+    Promise.resolve(resolve(nextTxSelect())),
   );
 
   return chain;
 }
 
 function makeTxBaseChain(): MockTxChain {
-  const chain = {
+  const chain: MockTxChain = {
     select: vi.fn(() => makeTxSelectChain()),
     set: vi.fn(() => chain),
     where: vi.fn(() => chain),
@@ -111,21 +106,19 @@ function makeTxBaseChain(): MockTxChain {
     onConflictDoNothing: vi.fn(() => chain),
     onConflictDoUpdate: vi.fn(() => chain),
     returning: vi.fn(() => makeTxValueChain(nextTxReturning())),
-    then: vi.fn((resolve: (value: undefined) => unknown) => {
+    then: vi.fn((resolve: (value: JsonValue) => JsonValue) => {
       txStatementCount += 1;
 
       return Promise.resolve(resolve(undefined));
     }),
   };
 
-  return chain as unknown as MockTxChain;
+  return chain;
 }
 
 function makeTxValueChain(value: JsonValue): MockTxChain {
   const chain = makeTxBaseChain();
-  chain.then = vi.fn((resolve: (result: never) => unknown) =>
-    Promise.resolve(resolve(value as never)),
-  );
+  chain.then = vi.fn((resolve: (value: JsonValue) => JsonValue) => Promise.resolve(resolve(value)));
 
   return chain;
 }
@@ -138,7 +131,13 @@ const txInsert = vi.fn(() => createTxChain());
 
 const txSelect = vi.fn(() => makeTxSelectChain());
 
-const mockTransaction = vi.fn(async (callback: (tx: unknown) => Promise<unknown>) => {
+interface MockTxClient {
+  select: () => MockTxChain;
+  update: () => MockTxChain;
+  insert: () => MockTxChain;
+}
+
+const mockTransaction = vi.fn(async (callback: (tx: MockTxClient) => Promise<JsonValue>) => {
   txStatementCount = 0;
   txValues.length = 0;
 
@@ -256,6 +255,9 @@ const mockedAuth = vi.mocked(requireAuthWithUserValidation);
 const mockedAuthMessage = vi.mocked(requireAuthWithMessage);
 
 function authedAs(userId: string, _overrides: UnknownRecord = {}) {
+  // SAFETY: the fixture stands in for Database/CloudflareEnv with a vi.fn db double and only
+  // HYPERDRIVE populated; the mocked middleware returns it verbatim to routes that read only
+  // those members, so the narrower shape is the exact contract under test.
   mockedAuth.mockResolvedValue({
     user: {
       id: userId,
@@ -268,13 +270,13 @@ function authedAs(userId: string, _overrides: UnknownRecord = {}) {
       onboardingCompleted: true,
       role: "mid_level",
     },
-    db: mockDb as never,
+    db: mockDb,
     dbUser: { id: userId, handle: "testuser", clerkId: `clerk_${userId}` },
     env: {
       HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" },
-    } as never,
+    },
     error: null,
-  });
+  } as never);
 }
 
 function authedAsMessage(userId: string, _overrides: UnknownRecord = {}) {
@@ -357,7 +359,7 @@ describe("IDOR - Profile Routes Security", () => {
 
     it("blocks privacy update with invalid session", async () => {
       mockedAuth.mockResolvedValue({
-        user: null as never,
+        user: null,
         db: null,
         dbUser: null,
         env: null,
@@ -491,13 +493,13 @@ describe("IDOR - Profile Routes Security", () => {
       const response = await GET();
 
       expect(response.status).toBe(200);
-      const body = (await response.json()) as { id: string };
+      const body: { id: string } = await response.json();
       expect(body.id).toBe("user-a");
     });
 
     it("returns 401 for cross-user data access attempt", async () => {
       mockedAuth.mockResolvedValue({
-        user: null as never,
+        user: null,
         db: null,
         dbUser: null,
         env: null,
@@ -556,7 +558,7 @@ describe("IDOR - Profile Routes Security", () => {
       const response = await GET();
 
       if (response.status === 200) {
-        const body = (await response.json()) as { id?: string };
+        const body: { id?: string } = await response.json();
 
         if (body.id) {
           expect(body.id).toBe("user-a");
@@ -573,7 +575,7 @@ describe("IDOR - Profile Routes Security", () => {
       const response = await GET();
 
       if (response.status === 200) {
-        const body = (await response.json()) as { referral_code?: string };
+        const body: { referral_code?: string } = await response.json();
 
         if (body.referral_code) {
           expect(body.referral_code).toBe("USERA123");
@@ -585,6 +587,9 @@ describe("IDOR - Profile Routes Security", () => {
 
 describe("Deleted User Profile Access", () => {
   it("returns 404 for deleted user's profile", async () => {
+    // SAFETY: this fixture deliberately mixes branches of the auth contract (a user with a 404
+    // error and a null dbUser) to model a deleted account; the mocked middleware returns it
+    // verbatim, and the test asserts only the 404 status the route derives from the error.
     mockedAuth.mockResolvedValue({
       user: {
         id: "deleted-user-id",
@@ -597,11 +602,11 @@ describe("Deleted User Profile Access", () => {
         onboardingCompleted: true,
         role: "mid_level",
       },
-      db: mockDb as never,
-      dbUser: null as never,
+      db: mockDb,
+      dbUser: null,
       env: {
         HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" },
-      } as never,
+      },
       error: new Response(JSON.stringify({ error: "User account not found" }), { status: 404 }),
     } as never);
 

@@ -1,31 +1,40 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { UnknownRecord, JsonValue } from "@/lib/types/json";
+import type { NewPendingR2Deletion } from "@/lib/db/schema";
 
 const mocks = vi.hoisted(() => {
   type MockAuthResult = {
     user: { id: string; email: string };
     dbUser: { id: string; handle: string; clerkId: string };
-    db: JsonValue;
-    env: JsonValue;
+    db: unknown;
+    env: unknown;
     error: JsonValue;
   } | null;
 
-  const state = {
-    selectResults: [] as JsonValue[][],
-    authResult: null as MockAuthResult,
-    insertCalls: [] as JsonValue[],
+  type MockState = {
+    selectResults: JsonValue[][];
+    authResult: MockAuthResult;
+    insertCalls: NewPendingR2Deletion[][];
+  };
+
+  const state: MockState = {
+    selectResults: [],
+    authResult: null,
+    insertCalls: [],
   };
 
   const nextSelectResult = (): JsonValue[] => {
-    if (state.selectResults.length === 0) {
+    const next = state.selectResults.shift();
+
+    if (next === undefined) {
       throw new Error("No select result queued");
     }
 
-    return state.selectResults.shift() as JsonValue[];
+    return next;
   };
 
   const insertChain = {
-    values: vi.fn((rows: JsonValue) => {
+    values: vi.fn((rows: NewPendingR2Deletion[]) => {
       state.insertCalls.push(rows);
 
       return Promise.resolve(undefined);
@@ -45,13 +54,11 @@ const mocks = vi.hoisted(() => {
       onConflictDoUpdate: vi.fn(() => chain),
       returning: vi.fn(() => chain),
       then: vi.fn(
-        (resolve: (value: JsonValue[]) => JsonValue, reject?: (reason: JsonValue) => JsonValue) => {
+        (resolve: (value: JsonValue[]) => JsonValue, reject?: (cause: unknown) => JsonValue) => {
           try {
             return Promise.resolve(resolve(nextSelectResult()));
           } catch (error) {
-            return reject
-              ? Promise.reject(reject(error as JsonValue))
-              : Promise.reject(error as JsonValue);
+            return reject ? Promise.reject(reject(error)) : Promise.reject(error);
           }
         },
       ),
@@ -163,8 +170,8 @@ function authed(overrides: UnknownRecord = {}) {
   mocks.state.authResult = {
     user: { id: "user_1", email: "avery@example.com" },
     dbUser: { id: "user_1", handle: "avery", clerkId: "user_clerk_1" },
-    db: mocks.db as unknown as JsonValue,
-    env: mocks.env as unknown as JsonValue,
+    db: mocks.db,
+    env: mocks.env,
     error: null,
     ...overrides,
   };
@@ -196,16 +203,13 @@ describe("account delete — pending R2 deletion tracking", () => {
     );
 
     expect(response.status).toBe(200);
-    const body = (await response.json()) as { success: boolean; warnings: JsonValue[] };
+    const body: { success: boolean; warnings: JsonValue[] } = await response.json();
     expect(body.success).toBe(true);
     expect(body.warnings).toHaveLength(1);
 
     expect(mocks.db.insert).toHaveBeenCalled();
 
-    const insertedRows = mocks.state.insertCalls[0] as Array<{
-      r2Key: string;
-      attempts: number;
-    }>;
+    const insertedRows = mocks.state.insertCalls[0];
 
     expect(insertedRows).toHaveLength(1);
     expect(insertedRows[0].r2Key).toBe("users/user-1/resume.pdf");
@@ -233,7 +237,7 @@ describe("account delete — pending R2 deletion tracking", () => {
     );
 
     expect(response.status).toBe(200);
-    const body = (await response.json()) as { success: boolean; warnings?: JsonValue[] };
+    const body: { success: boolean; warnings?: JsonValue[] } = await response.json();
     expect(body.success).toBe(true);
     expect(body.warnings).toBeUndefined();
 
@@ -293,10 +297,10 @@ describe("account delete — pending R2 deletion tracking", () => {
     );
 
     expect(response.status).toBe(200);
-    const body = (await response.json()) as { warnings: JsonValue[] };
+    const body: { warnings: JsonValue[] } = await response.json();
     expect(body.warnings).toHaveLength(2);
 
-    const insertedRows = mocks.state.insertCalls[0] as Array<{ r2Key: string }>;
+    const insertedRows = mocks.state.insertCalls[0];
     expect(insertedRows).toHaveLength(2);
     const keys = insertedRows.map((r) => r.r2Key).sort();
     expect(keys).toEqual(["users/user-1/a.pdf", "users/user-1/c.pdf"]);
@@ -317,7 +321,7 @@ describe("account delete — pending R2 deletion tracking", () => {
     );
 
     expect(response.status).toBe(503);
-    const insertedRows = mocks.state.insertCalls[0] as Array<{ r2Key: string }>;
+    const insertedRows = mocks.state.insertCalls[0];
     expect(insertedRows).toHaveLength(1);
     expect(insertedRows[0].r2Key).toBe("users/user-1/resume.pdf");
     // DB-first: the local account row and R2 object are already gone when Clerk fails.

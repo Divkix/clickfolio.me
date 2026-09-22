@@ -77,6 +77,7 @@ import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
 const mockedAuth = vi.mocked(requireAuthWithUserValidation);
 
 function authedAs(userId: string) {
+  // SAFETY: the mocked middleware forwards db/env untouched and these tests only exercise the stub query.resumes.findFirst chain and HYPERDRIVE connection string provided here; the real Database/CloudflareEnv types are never constructed.
   mockedAuth.mockResolvedValue({
     user: {
       id: userId,
@@ -147,13 +148,13 @@ describe("GET /api/resume/status — waiting_for_cache timeout", () => {
 
       expect(response.status).toBe(200);
 
-      const body = (await response.json()) as {
+      const body: {
         status: string;
         progress_pct: number;
         waiting_for_cache: boolean;
         can_retry: boolean;
         error: string | null;
-      };
+      } = await response.json();
 
       expect(body.status).toBe("processing");
       expect(body.waiting_for_cache).toBe(true);
@@ -176,7 +177,7 @@ describe("GET /api/resume/status — waiting_for_cache timeout", () => {
       const response = await GET(makeStatusRequest("resume-001"));
 
       expect(response.status).toBe(200);
-      const body = (await response.json()) as { waiting_for_cache: boolean; status: string };
+      const body: { waiting_for_cache: boolean; status: string } = await response.json();
       expect(body.waiting_for_cache).toBe(true);
       expect(body.status).toBe("processing");
     });
@@ -204,12 +205,12 @@ describe("GET /api/resume/status — waiting_for_cache timeout", () => {
 
       expect(response.status).toBe(200);
 
-      const body = (await response.json()) as {
+      const body: {
         status: string;
         progress_pct: number;
         error: string;
         can_retry: boolean;
-      };
+      } = await response.json();
 
       expect(body.status).toBe("failed");
       expect(body.error).toContain("timed out");
@@ -234,7 +235,7 @@ describe("GET /api/resume/status — waiting_for_cache timeout", () => {
       const response = await GET(makeStatusRequest("resume-001"));
 
       expect(response.status).toBe(200);
-      const body = (await response.json()) as { can_retry: boolean };
+      const body: { can_retry: boolean } = await response.json();
       expect(body.can_retry).toBe(false);
     });
 
@@ -254,7 +255,7 @@ describe("GET /api/resume/status — waiting_for_cache timeout", () => {
       const response = await GET(makeStatusRequest("resume-001"));
 
       expect(response.status).toBe(200);
-      const body = (await response.json()) as { status: string; error: string };
+      const body: { status: string; error: string } = await response.json();
       expect(body.status).toBe("failed");
       expect(mockDbUpdateSet).not.toHaveBeenCalled();
     });
@@ -275,7 +276,7 @@ describe("GET /api/resume/status — waiting_for_cache timeout", () => {
       const response = await GET(makeStatusRequest("resume-001"));
 
       expect(response.status).toBe(200);
-      const body = (await response.json()) as { status: string; waiting_for_cache?: boolean };
+      const body: { status: string; waiting_for_cache?: boolean } = await response.json();
       expect(body.status).toBe("processing");
       expect(body.waiting_for_cache).toBe(true);
     });
@@ -295,7 +296,7 @@ describe("GET /api/resume/status — waiting_for_cache timeout", () => {
       const response = await GET(makeStatusRequest("resume-001"));
 
       expect(response.status).toBe(200);
-      const body = (await response.json()) as { status: string };
+      const body: { status: string } = await response.json();
       expect(body.status).toBe("failed");
     });
 
@@ -313,7 +314,7 @@ describe("GET /api/resume/status — waiting_for_cache timeout", () => {
       const response = await GET(makeStatusRequest("resume-001"));
 
       expect(response.status).toBe(200);
-      const body = (await response.json()) as { status: string; waiting_for_cache?: boolean };
+      const body: { status: string; waiting_for_cache?: boolean } = await response.json();
       expect(body.status).toBe("processing");
       expect(body.waiting_for_cache).toBe(true);
     });
@@ -333,7 +334,7 @@ describe("GET /api/resume/status — waiting_for_cache timeout", () => {
       const response = await GET(makeStatusRequest("resume-001"));
 
       expect(response.status).toBe(200);
-      const body = (await response.json()) as { status: string; queued?: boolean };
+      const body: { status: string; queued?: boolean } = await response.json();
       expect(body.status).toBe("processing");
       expect(body.queued).toBe(true);
     });

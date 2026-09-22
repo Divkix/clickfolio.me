@@ -2,21 +2,32 @@ import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { Webhook } from "svix";
 import type { JsonValue } from "@/lib/types/json";
 
+interface R2KeyRow {
+  r2Key: string;
+  attempts: number;
+}
+
+interface WebhookState {
+  mappedUser: JsonValue;
+  selectResults: JsonValue[][];
+  insertCalls: R2KeyRow[][];
+  deleteWhereCalls: JsonValue[];
+}
+
 const mocks = vi.hoisted(() => {
-  const state = {
-    mappedUser: null as JsonValue,
-    selectResults: [] as JsonValue[][],
-    insertCalls: [] as JsonValue[],
-    deleteWhereCalls: [] as JsonValue[],
+  const state: WebhookState = {
+    mappedUser: null,
+    selectResults: [],
+    insertCalls: [],
+    deleteWhereCalls: [],
   };
 
   const createSelectChain = () => {
     const chain = {
       from: vi.fn(() => chain),
       where: vi.fn(() => chain),
-      then: vi.fn(
-        (resolve: (value: JsonValue[]) => unknown, reject?: (reason: unknown) => unknown) =>
-          Promise.resolve(state.selectResults.shift() ?? []).then(resolve, reject),
+      then: vi.fn((resolve: (value: JsonValue[]) => void, reject?: (reason: Error) => void) =>
+        Promise.resolve(state.selectResults.shift() ?? []).then(resolve, reject),
       ),
     };
 
@@ -25,7 +36,7 @@ const mocks = vi.hoisted(() => {
 
   const createInsertChain = () => {
     const chain = {
-      values: vi.fn((rows: JsonValue) => {
+      values: vi.fn((rows: R2KeyRow[]) => {
         state.insertCalls.push(rows);
 
         return chain;
@@ -110,7 +121,7 @@ describe("POST /api/webhooks/clerk — user.deleted", () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ received: true, action: "deleted" });
     expect(mocks.state.insertCalls).toHaveLength(1);
-    const insertedRows = mocks.state.insertCalls[0] as Array<{ r2Key: string; attempts: number }>;
+    const insertedRows = mocks.state.insertCalls[0];
     expect(insertedRows.map((row) => row.r2Key).sort()).toEqual([
       "users/user_1/1712345678901/cv.pdf",
       "users/user_1/resume-1/cv.pdf",

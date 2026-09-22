@@ -185,10 +185,8 @@ function makeTxSelectChain() {
     where: vi.fn(() => chain),
     limit: vi.fn(() => chain),
     for: mockTxFor,
-    then: (
-      onFulfilled: (rows: JsonValue[]) => unknown,
-      onRejected?: (reason: unknown) => unknown,
-    ) => Promise.resolve(queuedTxSelects.shift() ?? []).then(onFulfilled, onRejected),
+    then: (onFulfilled: (rows: JsonValue[]) => void, onRejected?: (reason: Error) => void) =>
+      Promise.resolve(queuedTxSelects.shift() ?? []).then(onFulfilled, onRejected),
   };
 
   mockTxFor.mockImplementation(() => chain);
@@ -206,7 +204,7 @@ const mockTx = {
   insert: vi.fn(() => ({ values: mockTxInsertValues })),
 };
 
-mockTransaction.mockImplementation(async (cb: (tx: typeof mockTx) => unknown) => cb(mockTx));
+mockTransaction.mockImplementation(async (cb: (tx: typeof mockTx) => void) => cb(mockTx));
 
 const mockDb = {
   query: {
@@ -277,6 +275,7 @@ function authedAs(userId: string, options: Partial<UserProfile> = {}): AuthedAsR
 
   const user = { ...defaultProfile, ...options };
 
+  // SAFETY: mockDb and env expose only the stubbed query/HYPERDRIVE surface these handlers consume; live Database and CloudflareEnv bindings cannot be constructed in a unit test.
   mockedAuth.mockResolvedValue({
     user,
     db: mockDb as never,
@@ -287,6 +286,7 @@ function authedAs(userId: string, options: Partial<UserProfile> = {}): AuthedAsR
     error: null,
   } as never);
 
+  // SAFETY: this stub profile carries only the fields the handlers read; the live session user type cannot be constructed in a unit test.
   mockedAuthMessage.mockResolvedValue({ user: user as never, error: null });
 
   return { user, error: null };
@@ -294,6 +294,7 @@ function authedAs(userId: string, options: Partial<UserProfile> = {}): AuthedAsR
 
 function unauthenticated() {
   const error = new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+  // SAFETY: the unauthenticated session mirrors the middleware's error branch; its live result types cannot be constructed in a unit test.
   mockedAuth.mockResolvedValue({
     user: null,
     db: null,
@@ -357,7 +358,7 @@ describe("Profile API Integration Tests (20 tests)", () => {
       const response = await GET();
 
       expect(response.status).toBe(200);
-      const body = (await response.json()) as { id: string; email: string };
+      const body: { id: string; email: string } = await response.json();
       expect(body.id).toBe("user-123");
       expect(body.email).toBe("user-123@test.com");
     });
@@ -406,7 +407,7 @@ describe("Profile API Integration Tests (20 tests)", () => {
       const response = await GET();
 
       expect(response.status).toBe(200);
-      const body = (await response.json()) as { id: string; role: string };
+      const body: { id: string; role: string } = await response.json();
       expect(body.id).toBe("user-123");
       expect(body.role).toBe("senior");
     });
@@ -436,7 +437,7 @@ describe("Profile API Integration Tests (20 tests)", () => {
       const response = await GET();
 
       expect(response.status).toBe(200);
-      const body = (await response.json()) as { onboardingCompleted: boolean };
+      const body: { onboardingCompleted: boolean } = await response.json();
       expect(body.onboardingCompleted).toBe(false);
     });
   });
@@ -456,11 +457,11 @@ describe("Profile API Integration Tests (20 tests)", () => {
 
       expect(response.status).toBe(200);
 
-      const body = (await response.json()) as {
+      const body: {
         success: boolean;
         handle: string;
         old_handle: string;
-      };
+      } = await response.json();
 
       expect(body.success).toBe(true);
       expect(body.handle).toBe("newhandle");
@@ -484,7 +485,7 @@ describe("Profile API Integration Tests (20 tests)", () => {
       const response = await PUT(request);
 
       expect(response.status).toBe(409);
-      const body = (await response.json()) as { error: string };
+      const body: { error: string } = await response.json();
       expect(body.error).toContain("already taken");
       expect(mockTransaction).not.toHaveBeenCalled();
     });
@@ -554,7 +555,7 @@ describe("Profile API Integration Tests (20 tests)", () => {
 
       expect(mockTransaction).toHaveBeenCalled();
       expect(response.status).toBe(429);
-      const body = (await response.json()) as { error: string };
+      const body: { error: string } = await response.json();
       expect(body.error).toContain("Rate limit");
     });
 
@@ -634,7 +635,7 @@ describe("Profile API Integration Tests (20 tests)", () => {
       const response = await PUT(request);
 
       expect(response.status).toBe(200);
-      const body = (await response.json()) as { success: boolean; privacy_settings: JsonValue };
+      const body: { success: boolean; privacy_settings: JsonValue } = await response.json();
       expect(body.success).toBe(true);
       expect(body.privacy_settings).toEqual({
         show_phone: true,
@@ -730,7 +731,7 @@ describe("Profile API Integration Tests (20 tests)", () => {
       expect([200, 500]).toContain(response.status);
 
       if (response.status === 200) {
-        const body = (await response.json()) as { role: string; roleSource: string };
+        const body: { role: string; roleSource: string } = await response.json();
         expect(body.role).toBe("senior");
         expect(body.roleSource).toBe("user");
       }
@@ -862,7 +863,7 @@ describe("Profile API Integration Tests (20 tests)", () => {
       const response = await GET();
 
       expect(response.status).toBe(200);
-      const body = (await response.json()) as { privacySettings: Record<string, boolean> };
+      const body: { privacySettings: Record<string, boolean> } = await response.json();
       expect(body.privacySettings).toEqual({
         show_phone: false,
         show_address: false,

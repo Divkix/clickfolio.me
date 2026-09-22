@@ -145,8 +145,14 @@ function authedAs(userId: string) {
       onboardingCompleted: true,
       role: "mid_level",
     },
+    // SAFETY: mockDb implements exactly the query/update/insert surface the status and retry
+    // routes call; Database additionally requires the live postgres-js $client, which no test
+    // can construct — the auth context only forwards db through to the handler.
     db: mockDb as never,
     dbUser: { id: userId, handle: "testuser", clerkId: "user_clerk_1" },
+    // SAFETY: the retry route reads only CLICKFOLIO_PARSE_QUEUE and hands it to the mocked
+    // publisher, and the status route reads no binding; the remaining CloudflareEnv members
+    // stay untouched.
     env: { CLICKFOLIO_PARSE_QUEUE: {} } as never,
     error: null,
   });
@@ -175,7 +181,7 @@ describe("GET /api/resume/status — ownership checks", () => {
     const response = await GET(request);
 
     expect(response.status).toBe(403);
-    const body = (await response.json()) as { error: string };
+    const body: { error: string } = await response.json();
     expect(body.error).toContain("permission");
   });
 
@@ -226,7 +232,7 @@ describe("POST /api/resume/retry — ownership checks", () => {
     const response = await POST(request);
 
     expect(response.status).toBe(403);
-    const body = (await response.json()) as { error: string };
+    const body: { error: string } = await response.json();
     expect(body.error).toContain("permission");
   });
 

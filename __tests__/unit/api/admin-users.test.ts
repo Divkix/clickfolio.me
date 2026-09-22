@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { createMockQueryChain } from "@/__tests__/setup/mocks/db.mock";
+import type { UnknownRecord } from "@/lib/types/json";
 
 const mockRequireAdminAuthForApi = vi.fn();
 
@@ -7,16 +8,34 @@ vi.mock("@/lib/auth/admin", () => ({
   requireAdminAuthForApi: (...args: unknown[]) => mockRequireAdminAuthForApi(...args),
 }));
 
-let mockUsersRows: Array<Record<string, unknown>> = [];
+interface UserRow {
+  id: string;
+  name: string;
+  email: string;
+  handle: string | null;
+  createdAt: string;
+}
 
-let mockResumeRows: Array<Record<string, unknown>> = [];
+interface SiteDataRow {
+  userId: string;
+  lastPublishedAt: string;
+  previewName: string;
+}
 
-let mockSiteDataRows: Array<Record<string, unknown>> = [];
+interface AdminUsersBody {
+  users: Array<{ id: string; name: string }>;
+}
+
+let mockUsersRows: UserRow[] = [];
+
+let mockResumeRows: UnknownRecord[] = [];
+
+let mockSiteDataRows: SiteDataRow[] = [];
 
 let mockCountRows: Array<{ count: number }> = [{ count: 0 }];
 
 const mockDb = {
-  select: vi.fn().mockImplementation((fields?: Record<string, unknown>) => {
+  select: vi.fn().mockImplementation((fields?: UnknownRecord) => {
     if (fields && "count" in fields) {
       return createMockQueryChain(mockCountRows);
     }
@@ -80,9 +99,7 @@ describe("GET /api/admin/users", () => {
 
     expect(response.status).toBe(200);
 
-    const body = (await response.json()) as {
-      users: Array<{ id: string; name: string; handle: string }>;
-    };
+    const body: AdminUsersBody = await response.json();
 
     expect(body.users[0]?.name).toBe("Parsed Jane Doe");
   });
@@ -111,9 +128,7 @@ describe("GET /api/admin/users", () => {
 
     expect(response.status).toBe(200);
 
-    const body = (await response.json()) as {
-      users: Array<{ id: string; name: string }>;
-    };
+    const body: AdminUsersBody = await response.json();
 
     expect(body.users[0]?.name).toBe("Resume Extracted Name");
   });
@@ -142,9 +157,7 @@ describe("GET /api/admin/users", () => {
 
     expect(response.status).toBe(200);
 
-    const body = (await response.json()) as {
-      users: Array<{ id: string; name: string }>;
-    };
+    const body: AdminUsersBody = await response.json();
 
     expect(body.users[0]?.name).toBe("Google OAuth User");
   });
@@ -167,9 +180,7 @@ describe("GET /api/admin/users", () => {
 
     expect(response.status).toBe(200);
 
-    const body = (await response.json()) as {
-      users: Array<{ id: string; name: string }>;
-    };
+    const body: AdminUsersBody = await response.json();
 
     expect(body.users[0]?.name).toBe("Unnamed");
   });

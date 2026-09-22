@@ -21,10 +21,7 @@ interface MockTxChain {
   onConflictDoNothing: (...args: unknown[]) => MockTxChain;
   onConflictDoUpdate: (...args: unknown[]) => MockTxChain;
   returning: (...args: unknown[]) => MockTxChain;
-  then: (
-    resolve: (value: never) => unknown,
-    reject?: (reason: unknown) => unknown,
-  ) => Promise<unknown>;
+  then: (resolve: (value: JsonValue) => JsonValue) => Promise<JsonValue>;
 }
 
 function nextTxSelect(): JsonValue[] {
@@ -40,7 +37,7 @@ function nextTxReturning(): JsonValue {
 
   if (next === undefined) throw new Error("No tx returning result queued");
 
-  return next as JsonValue;
+  return next;
 }
 
 function makeTxBaseChain(): MockTxChain {
@@ -59,20 +56,20 @@ function makeTxBaseChain(): MockTxChain {
     onConflictDoNothing: vi.fn(() => chain),
     onConflictDoUpdate: vi.fn(() => chain),
     returning: vi.fn(() => makeTxValueChain(nextTxReturning())),
-    then: vi.fn((resolve: (value: undefined) => unknown) => {
+    then: vi.fn((resolve: (value: JsonValue) => JsonValue) => {
       txStatementCount += 1;
 
       return Promise.resolve(resolve(undefined));
     }),
   };
 
-  return chain as unknown as MockTxChain;
+  return chain;
 }
 
 function makeTxSelectChain(): MockTxChain {
   const chain = makeTxBaseChain();
-  chain.then = vi.fn((resolve: (value: never) => unknown) =>
-    Promise.resolve(resolve(nextTxSelect() as never)),
+  chain.then = vi.fn((resolve: (value: JsonValue) => JsonValue) =>
+    Promise.resolve(resolve(nextTxSelect())),
   );
 
   return chain;
@@ -80,9 +77,7 @@ function makeTxSelectChain(): MockTxChain {
 
 function makeTxValueChain(value: JsonValue): MockTxChain {
   const chain = makeTxBaseChain();
-  chain.then = vi.fn((resolve: (result: never) => unknown) =>
-    Promise.resolve(resolve(value as never)),
-  );
+  chain.then = vi.fn((resolve: (value: JsonValue) => JsonValue) => Promise.resolve(resolve(value)));
 
   return chain;
 }
@@ -95,7 +90,21 @@ const txInsert = vi.fn(() => createTxChain());
 
 const txSelect = vi.fn(() => makeTxSelectChain());
 
-const mockTransaction = vi.fn(async (callback: (tx: unknown) => Promise<unknown>) => {
+interface MockTx {
+  update: typeof txUpdate;
+  insert: typeof txInsert;
+  select: typeof txSelect;
+}
+
+type WizardOutcome =
+  | { kind: "ok"; oldHandle: string | null }
+  | { kind: "missing_user" }
+  | { kind: "stale" }
+  | { kind: "rate_limited" };
+
+type TxCallback = (tx: MockTx) => Promise<WizardOutcome>;
+
+const mockTransaction = vi.fn(async (callback: TxCallback) => {
   txStatementCount = 0;
   txValues.length = 0;
 
@@ -254,8 +263,12 @@ function authed() {
       onboardingCompleted: true,
       role: "mid_level",
     },
+    // SAFETY: getDb is mocked to this select/transaction stub; PostgresJsDatabase cannot
+    // be constructed in a unit test, and the route only runs the stubbed query chain.
     db: mockDb as never,
     dbUser: { id: "user_1", handle: "avery", clerkId: "user_clerk_1" },
+    // SAFETY: these wizard tests never read an env binding — validation, handle checks,
+    // and the database are all mocked above, so the empty env is never dereferenced.
     env: {} as never,
     error: null,
   });
@@ -311,13 +324,13 @@ describe("wizard/complete handle-change rate limit", () => {
 
     expect(txInsert).toHaveBeenNthCalledWith(1, siteData);
     expect(txInsert).toHaveBeenNthCalledWith(2, handleChanges);
-    const auditValues = txValues.at(-1) as UnknownRecord;
+    const auditValues: UnknownRecord = txValues.at(-1) ?? {};
     expect(auditValues).toMatchObject({
       userId: "user_1",
       oldHandle: "old-handle",
       newHandle: "avery",
     });
-    expect(typeof auditValues.createdAt).toBe("string");
+    expect(auditValues.createdAt).toBeTypeOf("string");
     expect(auditValues.oldHandle).not.toBeNull();
   });
 
