@@ -11,10 +11,9 @@ import { extractText, getDocumentProxy } from "unpdf";
 
 setupMockCleanup();
 
-type MockPdf = { numPages: number };
-
-function createMockPdf(numPages: number): MockPdf {
-  return { numPages };
+function createMockPdf(numPages: number) {
+  // SAFETY: extractPdfText reads only numPages from the proxy; the pdfjs members omitted from this stub are never accessed by the code under test.
+  return { numPages } as Awaited<ReturnType<typeof getDocumentProxy>>;
 }
 
 describe("isValidPdf", () => {
@@ -60,7 +59,7 @@ describe("extractPdfText", () => {
 
   it("extracts text successfully from valid PDF", async () => {
     const mockPdf = createMockPdf(2);
-    vi.mocked(getDocumentProxy).mockResolvedValue(mockPdf as never);
+    vi.mocked(getDocumentProxy).mockResolvedValue(mockPdf);
     vi.mocked(extractText).mockResolvedValue({
       text: "Extracted resume text",
       totalPages: 2,
@@ -93,7 +92,7 @@ describe("extractPdfText", () => {
 
   it("rejects PDFs exceeding 50 pages", async () => {
     const mockPdf = createMockPdf(51);
-    vi.mocked(getDocumentProxy).mockResolvedValue(mockPdf as never);
+    vi.mocked(getDocumentProxy).mockResolvedValue(mockPdf);
 
     const buffer = new ArrayBuffer(100);
     const view = new Uint8Array(buffer);
@@ -109,7 +108,7 @@ describe("extractPdfText", () => {
 
   it("accepts PDFs with exactly 50 pages", async () => {
     const mockPdf = createMockPdf(50);
-    vi.mocked(getDocumentProxy).mockResolvedValue(mockPdf as never);
+    vi.mocked(getDocumentProxy).mockResolvedValue(mockPdf);
     vi.mocked(extractText).mockResolvedValue({
       text: "Valid 50-page document",
       totalPages: 50,
@@ -127,7 +126,7 @@ describe("extractPdfText", () => {
 
   it("handles empty PDF with no text", async () => {
     const mockPdf = createMockPdf(1);
-    vi.mocked(getDocumentProxy).mockResolvedValue(mockPdf as never);
+    vi.mocked(getDocumentProxy).mockResolvedValue(mockPdf);
     vi.mocked(extractText).mockResolvedValue({
       text: "",
       totalPages: 1,
@@ -146,7 +145,7 @@ describe("extractPdfText", () => {
 
   it("handles password-protected PDF", async () => {
     const mockPdf = createMockPdf(1);
-    vi.mocked(getDocumentProxy).mockResolvedValue(mockPdf as never);
+    vi.mocked(getDocumentProxy).mockResolvedValue(mockPdf);
     vi.mocked(extractText).mockRejectedValue(new Error("Password required to decrypt this PDF"));
 
     const buffer = new ArrayBuffer(100);
@@ -176,7 +175,7 @@ describe("extractPdfText", () => {
 
   it("handles generic extraction error", async () => {
     const mockPdf = createMockPdf(1);
-    vi.mocked(getDocumentProxy).mockResolvedValue(mockPdf as never);
+    vi.mocked(getDocumentProxy).mockResolvedValue(mockPdf);
     vi.mocked(extractText).mockRejectedValue(new Error("Unknown extraction error"));
 
     const buffer = new ArrayBuffer(100);
@@ -191,7 +190,7 @@ describe("extractPdfText", () => {
 
   it("merges multiple pages by default", async () => {
     const mockPdf = createMockPdf(3);
-    vi.mocked(getDocumentProxy).mockResolvedValue(mockPdf as never);
+    vi.mocked(getDocumentProxy).mockResolvedValue(mockPdf);
     vi.mocked(extractText).mockResolvedValue({
       text: "Page 1 content\n\nPage 2 content\n\nPage 3 content",
       totalPages: 3,
@@ -211,7 +210,7 @@ describe("extractPdfText", () => {
 
   it("handles non-Error rejection values", async () => {
     const mockPdf = createMockPdf(1);
-    vi.mocked(getDocumentProxy).mockResolvedValue(mockPdf as never);
+    vi.mocked(getDocumentProxy).mockResolvedValue(mockPdf);
     vi.mocked(extractText).mockRejectedValue("String error message");
 
     const buffer = new ArrayBuffer(100);
@@ -226,7 +225,7 @@ describe("extractPdfText", () => {
 
   it("handles null rejection value", async () => {
     const mockPdf = createMockPdf(1);
-    vi.mocked(getDocumentProxy).mockResolvedValue(mockPdf as never);
+    vi.mocked(getDocumentProxy).mockResolvedValue(mockPdf);
     vi.mocked(extractText).mockRejectedValue(null);
 
     const buffer = new ArrayBuffer(100);
@@ -241,11 +240,11 @@ describe("extractPdfText", () => {
 
   it("handles undefined text from extractText", async () => {
     const mockPdf = createMockPdf(1);
-    vi.mocked(getDocumentProxy).mockResolvedValue(mockPdf as never);
+    vi.mocked(getDocumentProxy).mockResolvedValue(mockPdf);
+    // SAFETY: extractPdfText's `text ?? ""` fallback needs a missing text here; unpdf types text as string, so the property is omitted and the destructured text is undefined.
     vi.mocked(extractText).mockResolvedValue({
-      text: undefined as unknown as string,
       totalPages: 1,
-    });
+    } as Awaited<ReturnType<typeof extractText>>);
 
     const buffer = new ArrayBuffer(100);
     const view = new Uint8Array(buffer);
@@ -259,7 +258,7 @@ describe("extractPdfText", () => {
 
   it("detects encrypted PDF via error message", async () => {
     const mockPdf = createMockPdf(1);
-    vi.mocked(getDocumentProxy).mockResolvedValue(mockPdf as never);
+    vi.mocked(getDocumentProxy).mockResolvedValue(mockPdf);
     vi.mocked(extractText).mockRejectedValue(
       new Error("This document is encrypted and requires a password"),
     );
@@ -276,7 +275,7 @@ describe("extractPdfText", () => {
 
   it("handles binary PDF data correctly", async () => {
     const mockPdf = createMockPdf(2);
-    vi.mocked(getDocumentProxy).mockResolvedValue(mockPdf as never);
+    vi.mocked(getDocumentProxy).mockResolvedValue(mockPdf);
     vi.mocked(extractText).mockResolvedValue({
       text: "Resume with special chars: café résumé naïve",
       totalPages: 2,
@@ -295,7 +294,7 @@ describe("extractPdfText", () => {
 
   it("passes Uint8Array to getDocumentProxy", async () => {
     const mockPdf = createMockPdf(1);
-    vi.mocked(getDocumentProxy).mockResolvedValue(mockPdf as never);
+    vi.mocked(getDocumentProxy).mockResolvedValue(mockPdf);
     vi.mocked(extractText).mockResolvedValue({
       text: "Test",
       totalPages: 1,
@@ -310,6 +309,7 @@ describe("extractPdfText", () => {
     expect(getDocumentProxy).toHaveBeenCalledWith(expect.any(Uint8Array));
     const passedArg = vi.mocked(getDocumentProxy).mock.calls[0]?.[0];
     expect(passedArg).toBeInstanceOf(Uint8Array);
+    // SAFETY: the toBeInstanceOf check above verified passedArg is a Uint8Array at runtime; expect() does not narrow TypeScript's view of the getDocumentProxy input union.
     expect((passedArg as Uint8Array).length).toBe(100);
   });
 });

@@ -7,7 +7,42 @@ import {
   validateUrl,
 } from "@/lib/ai/transform";
 import { truncateText } from "@/lib/utils/format";
+import type { JsonValue, UnknownRecord } from "@/lib/types/json";
 import type { ResumeContentFormData } from "@/lib/schemas/resume";
+import { z } from "zod";
+
+function asRecord(value: JsonValue): UnknownRecord {
+  if (value === null || Array.isArray(value) || !(value instanceof Object)) {
+    throw new TypeError("expected transformAiResponse to produce an object");
+  }
+
+  return value;
+}
+
+function asRecords(value: JsonValue): UnknownRecord[] {
+  if (!Array.isArray(value)) {
+    throw new TypeError("expected transformAiResponse to produce an array");
+  }
+
+  return value.map(asRecord);
+}
+
+function asString(value: JsonValue): string {
+  return z.string().parse(value);
+}
+
+function asStrings(value: JsonValue): string[] {
+  if (!Array.isArray(value)) {
+    throw new TypeError("expected transformAiResponse to produce an array of strings");
+  }
+
+  return value.map(asString);
+}
+
+function asResumeContent(data: Partial<ResumeContentFormData>): ResumeContentFormData {
+  // SAFETY: transformAiOutput only trims and deletes keys present on its input, so a fixture carrying just the fields a test exercises is safe to pass as full form data.
+  return data as ResumeContentFormData;
+}
 
 describe("validateUrl", () => {
   it("returns empty string for non-string input", () => {
@@ -208,13 +243,13 @@ describe("transformAiResponse", () => {
 
   it("truncates full_name to 100 chars", () => {
     const data = { full_name: "a".repeat(150) };
-    const result = transformAiResponse(data) as any;
+    const result = transformAiResponse(data);
     expect(result.full_name).toBe(`${"a".repeat(97)}...`);
   });
 
   it("truncates headline to 150 chars", () => {
     const data = { headline: "a".repeat(200) };
-    const result = transformAiResponse(data) as any;
+    const result = transformAiResponse(data);
     expect(result.headline).toBe(`${"a".repeat(147)}...`);
   });
 
@@ -224,19 +259,19 @@ describe("transformAiResponse", () => {
       experience: [{ description: "Led the engineering team." }],
     };
 
-    const result = transformAiResponse(data) as any;
+    const result = transformAiResponse(data);
     expect(result.summary).toBe("Led the engineering team.");
   });
 
   it("generates generic summary when no experience description", () => {
     const data = { headline: "Developer" };
-    const result = transformAiResponse(data) as any;
+    const result = transformAiResponse(data);
     expect(result.summary).toBe("Experienced developer with a proven track record.");
   });
 
   it("truncates summary to 2000 chars", () => {
     const data = { summary: "a".repeat(3000) };
-    const result = transformAiResponse(data) as any;
+    const result = transformAiResponse(data);
     expect(result.summary).toBe(`${"a".repeat(1997)}...`);
   });
 
@@ -245,8 +280,8 @@ describe("transformAiResponse", () => {
       contact: { email: "  Test@Example.COM  " },
     };
 
-    const result = transformAiResponse(data) as any;
-    expect(result.contact.email).toBe("test@example.com");
+    const result = transformAiResponse(data);
+    expect(asRecord(result.contact).email).toBe("test@example.com");
   });
 
   it("filters experience missing required fields", () => {
@@ -259,9 +294,9 @@ describe("transformAiResponse", () => {
       ],
     };
 
-    const result = transformAiResponse(data) as any;
+    const result = transformAiResponse(data);
     expect(result.experience).toHaveLength(1);
-    expect(result.experience[0].title).toBe("Engineer");
+    expect(asRecords(result.experience)[0].title).toBe("Engineer");
   });
 
   it("filters experience missing description (schema requires it)", () => {
@@ -278,9 +313,9 @@ describe("transformAiResponse", () => {
       ],
     };
 
-    const result = transformAiResponse(data) as any;
+    const result = transformAiResponse(data);
     expect(result.experience).toHaveLength(1);
-    expect(result.experience[0].description).toBe("Has a description");
+    expect(asRecords(result.experience)[0].description).toBe("Has a description");
   });
 
   it("coerces a plain-string highlights field into a single-element array", () => {
@@ -296,9 +331,10 @@ describe("transformAiResponse", () => {
       ],
     };
 
-    const result = transformAiResponse(data) as any;
-    expect(Array.isArray(result.experience[0].highlights)).toBe(true);
-    expect(result.experience[0].highlights).toEqual(["Shipped the thing"]);
+    const result = transformAiResponse(data);
+    const experience = asRecords(result.experience);
+    expect(Array.isArray(experience[0].highlights)).toBe(true);
+    expect(experience[0].highlights).toEqual(["Shipped the thing"]);
   });
 
   it("truncates a coerced string highlight to 500 chars", () => {
@@ -314,9 +350,10 @@ describe("transformAiResponse", () => {
       ],
     };
 
-    const result = transformAiResponse(data) as any;
-    expect(Array.isArray(result.experience[0].highlights)).toBe(true);
-    expect(result.experience[0].highlights[0].length).toBeLessThanOrEqual(503);
+    const result = transformAiResponse(data);
+    const experience = asRecords(result.experience);
+    expect(Array.isArray(experience[0].highlights)).toBe(true);
+    expect(asStrings(experience[0].highlights)[0].length).toBeLessThanOrEqual(503);
   });
 
   it("truncates experience fields", () => {
@@ -334,15 +371,15 @@ describe("transformAiResponse", () => {
       ],
     };
 
-    const result = transformAiResponse(data) as any;
-    const exp = result.experience[0];
-    expect(exp.title.length).toBeLessThanOrEqual(153);
-    expect(exp.company.length).toBeLessThanOrEqual(153);
-    expect(exp.location.length).toBeLessThanOrEqual(103);
-    expect(exp.start_date.length).toBeLessThanOrEqual(53);
-    expect(exp.end_date.length).toBeLessThanOrEqual(53);
-    expect(exp.description.length).toBeLessThanOrEqual(2003);
-    expect(exp.highlights[0].length).toBeLessThanOrEqual(503);
+    const result = transformAiResponse(data);
+    const exp = asRecords(result.experience)[0];
+    expect(asString(exp.title).length).toBeLessThanOrEqual(153);
+    expect(asString(exp.company).length).toBeLessThanOrEqual(153);
+    expect(asString(exp.location).length).toBeLessThanOrEqual(103);
+    expect(asString(exp.start_date).length).toBeLessThanOrEqual(53);
+    expect(asString(exp.end_date).length).toBeLessThanOrEqual(53);
+    expect(asString(exp.description).length).toBeLessThanOrEqual(2003);
+    expect(asStrings(exp.highlights)[0].length).toBeLessThanOrEqual(503);
   });
 
   it("filters education missing degree or institution", () => {
@@ -354,10 +391,10 @@ describe("transformAiResponse", () => {
       ],
     };
 
-    const result = transformAiResponse(data) as any;
+    const result = transformAiResponse(data);
     expect(result.education).toHaveLength(1);
-    expect(result.education[0].degree).toBe("BS");
-    expect(result.education[0].institution).toBe("Stanford");
+    expect(asRecords(result.education)[0].degree).toBe("BS");
+    expect(asRecords(result.education)[0].institution).toBe("Stanford");
   });
 
   it("filters skills missing category or items", () => {
@@ -369,9 +406,9 @@ describe("transformAiResponse", () => {
       ],
     };
 
-    const result = transformAiResponse(data) as any;
+    const result = transformAiResponse(data);
     expect(result.skills).toHaveLength(1);
-    expect(result.skills[0].category).toBe("Frameworks");
+    expect(asRecords(result.skills)[0].category).toBe("Frameworks");
   });
 
   it("filters skills with empty item strings", () => {
@@ -379,8 +416,8 @@ describe("transformAiResponse", () => {
       skills: [{ category: "Languages", items: ["JS", "", "  ", "Python"] }],
     };
 
-    const result = transformAiResponse(data) as any;
-    expect(result.skills[0].items).toEqual(["JS", "Python"]);
+    const result = transformAiResponse(data);
+    expect(asRecords(result.skills)[0].items).toEqual(["JS", "Python"]);
   });
 
   it("filters certifications missing name or issuer", () => {
@@ -392,9 +429,9 @@ describe("transformAiResponse", () => {
       ],
     };
 
-    const result = transformAiResponse(data) as any;
+    const result = transformAiResponse(data);
     expect(result.certifications).toHaveLength(1);
-    expect(result.certifications[0].name).toBe("Valid Cert");
+    expect(asRecords(result.certifications)[0].name).toBe("Valid Cert");
   });
 
   it("validates certification URLs", () => {
@@ -405,9 +442,9 @@ describe("transformAiResponse", () => {
       ],
     };
 
-    const result = transformAiResponse(data) as any;
-    expect(result.certifications[0].url).toBe("");
-    expect(result.certifications[1].url).toBe("https://example.com");
+    const result = transformAiResponse(data);
+    expect(asRecords(result.certifications)[0].url).toBe("");
+    expect(asRecords(result.certifications)[1].url).toBe("https://example.com");
   });
 
   it("filters projects missing title or description", () => {
@@ -419,9 +456,9 @@ describe("transformAiResponse", () => {
       ],
     };
 
-    const result = transformAiResponse(data) as any;
+    const result = transformAiResponse(data);
     expect(result.projects).toHaveLength(1);
-    expect(result.projects[0].title).toBe("Valid App");
+    expect(asRecords(result.projects)[0].title).toBe("Valid App");
   });
 
   it("validates project URLs", () => {
@@ -432,9 +469,9 @@ describe("transformAiResponse", () => {
       ],
     };
 
-    const result = transformAiResponse(data) as any;
-    expect(result.projects[0].url).toBe("");
-    expect(result.projects[1].url).toBe("https://example.com");
+    const result = transformAiResponse(data);
+    expect(asRecords(result.projects)[0].url).toBe("");
+    expect(asRecords(result.projects)[1].url).toBe("https://example.com");
   });
 
   it("filters empty project technologies", () => {
@@ -448,8 +485,8 @@ describe("transformAiResponse", () => {
       ],
     };
 
-    const result = transformAiResponse(data) as any;
-    expect(result.projects[0].technologies).toEqual(["React", "Node"]);
+    const result = transformAiResponse(data);
+    expect(asRecords(result.projects)[0].technologies).toEqual(["React", "Node"]);
   });
 
   it("validates project image_url", () => {
@@ -457,13 +494,13 @@ describe("transformAiResponse", () => {
       projects: [{ title: "Project", description: "A project", image_url: "javascript:alert(1)" }],
     };
 
-    const result = transformAiResponse(data) as any;
-    expect(result.projects[0].image_url).toBe("");
+    const result = transformAiResponse(data);
+    expect(asRecords(result.projects)[0].image_url).toBe("");
   });
 
   it("returns defaults for missing optional arrays", () => {
     const data = {};
-    const result = transformAiResponse(data) as any;
+    const result = transformAiResponse(data);
     expect(result.experience).toEqual([]);
   });
 });
@@ -479,11 +516,11 @@ describe("transformAiOutput", () => {
       },
     };
 
-    const result = transformAiOutput(data as ResumeContentFormData);
+    const result = transformAiOutput(asResumeContent(data));
     expect(result.full_name).toBe("Jane Doe");
     expect(result.headline).toBe("Developer");
-    expect((result.contact as any)?.email).toBe("jane@example.com");
-    expect((result.contact as any)?.phone).toBe("+1-555-1234");
+    expect(result.contact?.email).toBe("jane@example.com");
+    expect(result.contact?.phone).toBe("+1-555-1234");
   });
 
   it("extracts LinkedIn from website field", () => {
@@ -495,9 +532,9 @@ describe("transformAiOutput", () => {
       },
     };
 
-    const result = transformAiOutput(data as ResumeContentFormData);
-    expect((result.contact as any)?.linkedin).toBe("https://linkedin.com/in/janedoe");
-    expect((result.contact as any)?.website).toBeUndefined();
+    const result = transformAiOutput(asResumeContent(data));
+    expect(result.contact?.linkedin).toBe("https://linkedin.com/in/janedoe");
+    expect(result.contact?.website).toBeUndefined();
   });
 
   it("preserves existing linkedin when extracting from website", () => {
@@ -510,9 +547,9 @@ describe("transformAiOutput", () => {
       },
     };
 
-    const result = transformAiOutput(data as ResumeContentFormData);
-    expect((result.contact as any)?.linkedin).toBe("https://linkedin.com/in/existing");
-    expect((result.contact as any)?.website).toBe("https://linkedin.com/in/janedoe");
+    const result = transformAiOutput(asResumeContent(data));
+    expect(result.contact?.linkedin).toBe("https://linkedin.com/in/existing");
+    expect(result.contact?.website).toBe("https://linkedin.com/in/janedoe");
   });
 
   it("removes empty contact fields", () => {
@@ -525,10 +562,10 @@ describe("transformAiOutput", () => {
       },
     };
 
-    const result = transformAiOutput(data as ResumeContentFormData);
-    expect((result.contact as any)?.email).toBe("jane@example.com");
-    expect((result.contact as any)?.phone).toBeUndefined();
-    expect((result.contact as any)?.location).toBeUndefined();
+    const result = transformAiOutput(asResumeContent(data));
+    expect(result.contact?.email).toBe("jane@example.com");
+    expect(result.contact?.phone).toBeUndefined();
+    expect(result.contact?.location).toBeUndefined();
   });
 
   it("extracts year from project date range", () => {
@@ -541,9 +578,9 @@ describe("transformAiOutput", () => {
       ],
     };
 
-    const result = transformAiOutput(data as ResumeContentFormData);
-    expect((result.projects as any[])[0].year).toBe("2023");
-    expect((result.projects as any[])[1].year).toBe("2022");
+    const result = transformAiOutput(asResumeContent(data));
+    expect(result.projects?.[0]?.year).toBe("2023");
+    expect(result.projects?.[1]?.year).toBe("2022");
   });
 
   it("removes empty experience location fields", () => {
@@ -555,8 +592,8 @@ describe("transformAiOutput", () => {
       ],
     };
 
-    const result = transformAiOutput(data as ResumeContentFormData);
-    expect((result.experience as any[])[0].location).toBeUndefined();
+    const result = transformAiOutput(asResumeContent(data));
+    expect(result.experience[0].location).toBeUndefined();
   });
 
   it("removes empty experience end_date fields", () => {
@@ -568,8 +605,8 @@ describe("transformAiOutput", () => {
       ],
     };
 
-    const result = transformAiOutput(data as ResumeContentFormData);
-    expect((result.experience as any[])[0].end_date).toBeUndefined();
+    const result = transformAiOutput(asResumeContent(data));
+    expect(result.experience[0].end_date).toBeUndefined();
   });
 
   it("removes empty education location and gpa", () => {
@@ -579,9 +616,9 @@ describe("transformAiOutput", () => {
       education: [{ degree: "BS", institution: "MIT", location: "", gpa: "" }],
     };
 
-    const result = transformAiOutput(data as ResumeContentFormData);
-    expect((result.education as any[])[0].location).toBeUndefined();
-    expect((result.education as any[])[0].gpa).toBeUndefined();
+    const result = transformAiOutput(asResumeContent(data));
+    expect(result.education?.[0]?.location).toBeUndefined();
+    expect(result.education?.[0]?.gpa).toBeUndefined();
   });
 
   it("removes empty optional arrays", () => {
@@ -594,7 +631,7 @@ describe("transformAiOutput", () => {
       education: [],
     };
 
-    const result = transformAiOutput(data as ResumeContentFormData);
+    const result = transformAiOutput(asResumeContent(data));
     expect(result.skills).toBeUndefined();
     expect(result.certifications).toBeUndefined();
     expect(result.projects).toBeUndefined();
@@ -608,7 +645,7 @@ describe("transformAiOutput", () => {
       skills: [{ category: "Languages", items: ["JS"] }],
     };
 
-    const result = transformAiOutput(data as ResumeContentFormData);
+    const result = transformAiOutput(asResumeContent(data));
     expect(result.skills).toHaveLength(1);
   });
 
@@ -622,9 +659,9 @@ describe("transformAiOutput", () => {
       },
     };
 
-    const result = transformAiOutput(data as ResumeContentFormData);
-    expect((result.contact as any)?.linkedin).toBe("https://linkedin.com/in/jane");
-    expect((result.contact as any)?.website).toBeUndefined();
+    const result = transformAiOutput(asResumeContent(data));
+    expect(result.contact?.linkedin).toBe("https://linkedin.com/in/jane");
+    expect(result.contact?.website).toBeUndefined();
   });
 
   it("handles deeply nested string trimming", () => {
@@ -642,12 +679,9 @@ describe("transformAiOutput", () => {
       ],
     };
 
-    const result = transformAiOutput(data as ResumeContentFormData);
-    expect((result.experience as any[])[0].title).toBe("Engineer");
-    expect((result.experience as any[])[0].company).toBe("Acme");
-    expect((result.experience as any[])[0].highlights).toEqual([
-      "  Achievement 1  ",
-      "  Achievement 2  ",
-    ]);
+    const result = transformAiOutput(asResumeContent(data));
+    expect(result.experience[0].title).toBe("Engineer");
+    expect(result.experience[0].company).toBe("Acme");
+    expect(result.experience[0].highlights).toEqual(["  Achievement 1  ", "  Achievement 2  "]);
   });
 });
