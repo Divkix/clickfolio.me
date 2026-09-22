@@ -2,14 +2,16 @@ import { render } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { OwnerDetector } from "@/components/analytics/OwnerDetector";
 
-const mocks = vi.hoisted(() => ({
-  sessionState: {
-    current: {
-      data: null as { user: { id: string } | null } | null,
-      isPending: false,
-    },
-  },
-}));
+type OwnerSessionState = {
+  data: { user: { id: string } | null } | null;
+  isPending: boolean;
+};
+
+const mocks = vi.hoisted(() => {
+  const current: OwnerSessionState = { data: null, isPending: false };
+
+  return { sessionState: { current } };
+});
 
 vi.mock("@/lib/auth/client", () => ({
   useSession: () => mocks.sessionState.current,

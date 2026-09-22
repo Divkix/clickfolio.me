@@ -56,12 +56,20 @@ describe("public page rendering", () => {
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({}),
-    }) as unknown as typeof fetch;
+    });
     globalThis.IntersectionObserver = class {
+      readonly root = null;
+      readonly rootMargin = "";
+      readonly scrollMargin = "";
+      readonly thresholds = [];
       observe() {}
+      takeRecords(): IntersectionObserverEntry[] {
+        return [];
+      }
       unobserve() {}
       disconnect() {}
-    } as unknown as typeof IntersectionObserver;
+    };
+
     Object.defineProperty(navigator, "sendBeacon", {
       value: vi.fn(),
       configurable: true,

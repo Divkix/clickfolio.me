@@ -68,25 +68,25 @@ describe("SharePopover", () => {
     if (origClipboard !== undefined) {
       Object.defineProperty(navigator, "clipboard", { value: origClipboard, configurable: true });
     } else {
-      delete (navigator as { clipboard?: typeof navigator.clipboard }).clipboard;
+      Reflect.deleteProperty(navigator, "clipboard");
     }
 
     if (origShare !== undefined) {
       Object.defineProperty(navigator, "share", { value: origShare, configurable: true });
     } else {
-      delete (navigator as { share?: typeof navigator.share }).share;
+      Reflect.deleteProperty(navigator, "share");
     }
 
     if (origCanShare !== undefined) {
       Object.defineProperty(navigator, "canShare", { value: origCanShare, configurable: true });
     } else {
-      delete (navigator as { canShare?: typeof navigator.canShare }).canShare;
+      Reflect.deleteProperty(navigator, "canShare");
     }
 
     if (origWindowOpen !== undefined) {
       window.open = origWindowOpen;
     } else {
-      delete (window as { open?: typeof window.open }).open;
+      Reflect.deleteProperty(window, "open");
     }
   });
 
@@ -220,7 +220,7 @@ describe("SharePopover", () => {
 describe("DeleteAccountCard", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    globalThis.fetch = vi.fn() as unknown as typeof fetch;
+    globalThis.fetch = vi.fn();
   });
 
   it("requires an email match, deletes the account, surfaces warnings, and signs out", async () => {

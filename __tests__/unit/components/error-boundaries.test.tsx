@@ -23,7 +23,7 @@ describe("Error Boundary Tests", () => {
 
   afterEach(() => {
     console.error = originalConsoleError;
-    (process.env as { NODE_ENV: string }).NODE_ENV = originalEnv;
+    Object.assign(process.env, { NODE_ENV: originalEnv });
   });
 
   describe("Root Error Boundary (app/error.tsx)", () => {
@@ -71,9 +71,12 @@ describe("Error Boundary Tests", () => {
 
   describe("Error Boundary environment behavior", () => {
     test("shows digest in development but hides message in production", () => {
-      (process.env as { NODE_ENV: string }).NODE_ENV = "development";
-      const devError = new Error("Dev mode error") as Error & { digest?: string };
-      devError.digest = "error-digest-123";
+      Object.assign(process.env, { NODE_ENV: "development" });
+
+      const devError = Object.assign(new Error("Dev mode error"), {
+        digest: "error-digest-123",
+      });
+
       const reset = vi.fn();
 
       const { unmount } = render(<ProtectedError error={devError} reset={reset} />);
@@ -83,7 +86,7 @@ describe("Error Boundary Tests", () => {
 
       unmount();
 
-      (process.env as { NODE_ENV: string }).NODE_ENV = "production";
+      Object.assign(process.env, { NODE_ENV: "production" });
       const prodError = new Error("Prod mode error");
 
       render(<ProtectedError error={prodError} reset={reset} />);

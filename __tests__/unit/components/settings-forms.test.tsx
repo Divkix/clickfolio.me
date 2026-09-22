@@ -69,9 +69,7 @@ describe("PrivacySettingsForm", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    globalThis.fetch = vi.fn(async () =>
-      Response.json({ success: true }),
-    ) as unknown as typeof fetch;
+    globalThis.fetch = vi.fn(async () => Response.json({ success: true }));
   });
 
   afterEach(() => {
@@ -181,9 +179,7 @@ describe("ThemeSelector", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    globalThis.fetch = vi.fn(async () =>
-      Response.json({ success: true }),
-    ) as unknown as typeof fetch;
+    globalThis.fetch = vi.fn(async () => Response.json({ success: true }));
     Object.defineProperty(HTMLElement.prototype, "offsetWidth", {
       configurable: true,
       get: () => 640,
@@ -197,7 +193,7 @@ describe("ThemeSelector", () => {
     if (originalOffsetWidth !== undefined) {
       Object.defineProperty(HTMLElement.prototype, "offsetWidth", originalOffsetWidth);
     } else {
-      delete (HTMLElement.prototype as { offsetWidth?: number }).offsetWidth;
+      Reflect.deleteProperty(HTMLElement.prototype, "offsetWidth");
     }
   });
 

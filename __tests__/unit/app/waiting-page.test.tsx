@@ -3,22 +3,36 @@ import { act } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import WaitingPage from "@/app/(protected)/waiting/page";
 import { WaitingContent } from "@/app/(protected)/waiting/waiting-content";
+import type { ResumeStatus } from "@/lib/db/schema/resume";
 
-const mocks = vi.hoisted(() => ({
-  router: {
-    push: vi.fn(),
-  },
-  redirect: vi.fn(),
-  searchParams: "resume_id=res_123",
-  resumeStatus: {
-    status: "processing" as "processing" | "completed" | "failed" | null,
+type WaitingStatusState = {
+  status: ResumeStatus | null;
+  progress: number;
+  error: string | null;
+  canRetry: boolean;
+  isLoading: boolean;
+  refetch: () => Promise<void>;
+};
+
+const mocks = vi.hoisted(() => {
+  const resumeStatus: WaitingStatusState = {
+    status: "processing",
     progress: 55,
-    error: null as string | null,
+    error: null,
     canRetry: false,
     isLoading: false,
     refetch: vi.fn(async () => undefined),
-  },
-}));
+  };
+
+  return {
+    router: {
+      push: vi.fn(),
+    },
+    redirect: vi.fn(),
+    searchParams: "resume_id=res_123",
+    resumeStatus,
+  };
+});
 
 vi.mock("next/navigation", () => ({
   useRouter: () => mocks.router,
@@ -42,7 +56,7 @@ describe("WaitingPage", () => {
     mocks.resumeStatus.error = null;
     mocks.resumeStatus.canRetry = false;
     mocks.resumeStatus.isLoading = false;
-    globalThis.fetch = vi.fn() as unknown as typeof fetch;
+    globalThis.fetch = vi.fn();
     globalThis.alert = vi.fn();
   });
 

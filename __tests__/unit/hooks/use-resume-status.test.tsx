@@ -43,9 +43,7 @@ function statusResponse(body: StatusBody) {
 function statusFetchCount() {
   return vi
     .mocked(globalThis.fetch)
-    .mock.calls.filter(
-      (call) => typeof call[0] === "string" && call[0].includes("/api/resume/status"),
-    ).length;
+    .mock.calls.filter((call) => String(call[0]).includes("/api/resume/status")).length;
 }
 
 describe("useResumeStatus WebSocket failed push", () => {
@@ -73,7 +71,7 @@ describe("useResumeStatus WebSocket failed push", () => {
           error: "Parse failed",
           can_retry: false,
         }),
-      ) as unknown as typeof fetch;
+      );
 
     const { result } = renderHook(() => useResumeStatus("res_123"));
 
@@ -102,7 +100,7 @@ describe("useResumeStatus WebSocket failed push", () => {
           error: "Parse failed",
           can_retry: true,
         }),
-      ) as unknown as typeof fetch;
+      );
 
     const { result } = renderHook(() => useResumeStatus("res_456"));
 

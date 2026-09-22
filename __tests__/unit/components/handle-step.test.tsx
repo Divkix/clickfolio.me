@@ -31,7 +31,7 @@ describe("HandleStep", () => {
         new Promise<Response>((resolve) => {
           pendingResolvers.push(resolve);
         }),
-    ) as unknown as typeof fetch;
+    );
 
     render(<HandleStep initialHandle="" onContinue={vi.fn()} />);
     const input = screen.getByLabelText("Your Handle");

@@ -12,7 +12,6 @@ import { CommaArrayInput } from "@/components/ui/comma-array-input";
 import { SaveIndicator } from "@/components/ui/save-indicator";
 import { YouAreLiveModal } from "@/components/YouAreLiveModal";
 import { DEMO_PROFILES } from "@/lib/templates/demo-data";
-import type { ThemeId } from "@/lib/templates/theme-ids";
 import type { ResumeContent } from "@/lib/types/database";
 import type { JsonValue } from "@/lib/types/json";
 
@@ -92,7 +91,7 @@ vi.mock("@/lib/templates/theme-registry.client", () => ({
         </article>
       ),
     ]),
-  ) as Record<ThemeId, React.ComponentType<JsonValue>>,
+  ),
 }));
 
 vi.mock("@/components/forms/EditResumeForm", () => ({
@@ -157,9 +156,7 @@ describe("branch-heavy component interactions", () => {
     vi.useRealTimers();
     localStorage.clear();
     mocks.copyToClipboard.mockResolvedValue(true);
-    global.fetch = vi.fn(async () =>
-      Response.json({ handle: "new-handle" }, { status: 200 }),
-    ) as unknown as typeof fetch;
+    global.fetch = vi.fn(async () => Response.json({ handle: "new-handle" }, { status: 200 }));
     window.open = vi.fn();
     Object.defineProperty(navigator, "canShare", {
       value: vi.fn(() => true),
@@ -200,7 +197,13 @@ describe("branch-heavy component interactions", () => {
       fireEvent.click(screen.getByRole("button", { name: "Copy public URL" }));
       await waitFor(() => expect(mocks.toast.error).toHaveBeenCalledWith("Failed to copy URL"));
 
-      fireEvent.submit(screen.getByLabelText("Change Handle").closest("form") as HTMLFormElement);
+      const form = screen.getByLabelText("Change Handle").closest("form");
+
+      if (form === null) {
+        throw new Error("handle form was not rendered");
+      }
+
+      fireEvent.submit(form);
       await waitFor(() =>
         expect(mocks.toast.info).toHaveBeenCalledWith("Handle is already set to this value"),
       );

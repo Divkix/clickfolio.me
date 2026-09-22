@@ -5,13 +5,19 @@ import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { UnknownRecord, JsonValue } from "@/lib/types/json";
 import type { ResumeContent } from "@/lib/types/database";
 
+type ServerPagesState = {
+  selectResults: JsonValue[][];
+  session: { user: { id: string; email: string; name: string } } | null;
+  dashboardMode: "published" | "empty" | "processing";
+};
+
 const mocks = vi.hoisted(() => {
-  const state = {
-    selectResults: [] as JsonValue[][],
+  const state: ServerPagesState = {
+    selectResults: [],
     session: {
       user: { id: "user_1", email: "avery@example.com", name: "Avery Quinn" },
-    } as { user: { id: string; email: string; name: string } } | null,
-    dashboardMode: "published" as "published" | "empty" | "processing",
+    },
+    dashboardMode: "published",
   };
 
   const nextSelectResult = () => state.selectResults.shift() ?? [];
@@ -41,8 +47,9 @@ const mocks = vi.hoisted(() => {
     },
     select: vi.fn(() => createChain()),
     // Snapshot queries (explore count + page rows) resolve from the same result queue.
-    transaction: vi.fn(async (callback: (tx: { select: () => unknown }) => Promise<JsonValue>) =>
-      callback({ select: () => createChain() }),
+    transaction: vi.fn(
+      async (callback: (tx: { select: typeof createChain }) => Promise<JsonValue>) =>
+        callback({ select: () => createChain() }),
     ),
   };
 
