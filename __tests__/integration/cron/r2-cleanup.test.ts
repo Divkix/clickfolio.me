@@ -22,7 +22,7 @@ describe("R2 Cleanup Cron", () => {
         delimitedPrefixes: [],
       });
 
-      const result = await performR2Cleanup(bucket as unknown as R2Bucket);
+      const result = await performR2Cleanup(bucket);
 
       expect(result.ok).toBe(true);
       expect(result.deleted).toBe(2);
@@ -41,7 +41,7 @@ describe("R2 Cleanup Cron", () => {
         delimitedPrefixes: [],
       });
 
-      const result = await performR2Cleanup(bucket as unknown as R2Bucket);
+      const result = await performR2Cleanup(bucket);
 
       expect(result.ok).toBe(true);
       expect(result.deleted).toBe(0);
@@ -58,7 +58,7 @@ describe("R2 Cleanup Cron", () => {
         delimitedPrefixes: [],
       });
 
-      const result = await performR2Cleanup(bucket as unknown as R2Bucket);
+      const result = await performR2Cleanup(bucket);
 
       expect(result.ok).toBe(true);
       expect(result.deleted).toBe(0);
@@ -85,7 +85,7 @@ describe("R2 Cleanup Cron", () => {
           delimitedPrefixes: [],
         });
 
-      const result = await performR2Cleanup(bucket as unknown as R2Bucket);
+      const result = await performR2Cleanup(bucket);
 
       expect(result.ok).toBe(true);
       expect(result.deleted).toBe(3);
@@ -106,7 +106,7 @@ describe("R2 Cleanup Cron", () => {
         delimitedPrefixes: [],
       });
 
-      const result = await performR2Cleanup(bucket as unknown as R2Bucket);
+      const result = await performR2Cleanup(bucket);
 
       expect(result.deleted).toBe(1);
       expect(bucket.delete).toHaveBeenCalledWith("temp/file.pdf");
@@ -124,7 +124,7 @@ describe("R2 Cleanup Cron", () => {
         delimitedPrefixes: [],
       });
 
-      await performR2Cleanup(bucket as unknown as R2Bucket);
+      await performR2Cleanup(bucket);
 
       bucket.list.mockResolvedValueOnce({
         objects: [],
@@ -133,7 +133,7 @@ describe("R2 Cleanup Cron", () => {
         delimitedPrefixes: [],
       });
 
-      const result2 = await performR2Cleanup(bucket as unknown as R2Bucket);
+      const result2 = await performR2Cleanup(bucket);
 
       expect(result2.ok).toBe(true);
       expect(result2.deleted).toBe(0);
@@ -149,7 +149,7 @@ describe("R2 Cleanup Cron", () => {
         delimitedPrefixes: [],
       });
 
-      const result = await performR2Cleanup(bucket as unknown as R2Bucket);
+      const result = await performR2Cleanup(bucket);
 
       expect(result.timestamp).toBeDefined();
       expect(new Date(result.timestamp)).toBeInstanceOf(Date);
@@ -173,7 +173,7 @@ describe("R2 Cleanup Cron", () => {
         .mockResolvedValueOnce(undefined)
         .mockRejectedValueOnce(new Error("Delete failed"));
 
-      const result = await performR2Cleanup(bucket as unknown as R2Bucket);
+      const result = await performR2Cleanup(bucket);
 
       expect(result.deleted).toBe(1);
       expect(result.failed).toBe(1);
@@ -190,7 +190,7 @@ describe("R2 Cleanup Cron", () => {
         delimitedPrefixes: [],
       });
 
-      await performR2Cleanup(bucket as unknown as R2Bucket);
+      await performR2Cleanup(bucket);
 
       expect(bucket.list).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -205,9 +205,7 @@ describe("R2 Cleanup Cron", () => {
 
       bucket.list.mockRejectedValueOnce(new Error("R2 access denied"));
 
-      await expect(performR2Cleanup(bucket as unknown as R2Bucket)).rejects.toThrow(
-        "R2 access denied",
-      );
+      await expect(performR2Cleanup(bucket)).rejects.toThrow("R2 access denied");
     });
 
     it("should report bytes freed", async () => {
@@ -224,7 +222,7 @@ describe("R2 Cleanup Cron", () => {
         delimitedPrefixes: [],
       });
 
-      const result = await performR2Cleanup(bucket as unknown as R2Bucket);
+      const result = await performR2Cleanup(bucket);
 
       expect(result.bytesFreed).toBe(1024 * 1024 + 1024);
     });
@@ -240,7 +238,7 @@ describe("R2 Cleanup Cron", () => {
         delimitedPrefixes: [],
       });
 
-      const result = await performR2Cleanup(bucket as unknown as R2Bucket);
+      const result = await performR2Cleanup(bucket);
 
       expect(result.deleted).toBe(1);
     });

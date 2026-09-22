@@ -4,6 +4,7 @@ import type { ResumeParseMessage } from "@/lib/queue/types";
 
 describe("Resume Parse Queue", () => {
   const createMockQueue = () => ({
+    metrics: vi.fn(),
     send: vi.fn().mockResolvedValue(undefined),
     sendBatch: vi.fn().mockResolvedValue(undefined),
   });
@@ -19,7 +20,7 @@ describe("Resume Parse Queue", () => {
         fileHash: "sha256-abc123",
       };
 
-      await publishResumeParse(queue as unknown as Queue<ResumeParseMessage>, params);
+      await publishResumeParse(queue, params);
 
       expect(queue.send).toHaveBeenCalledOnce();
       expect(queue.send).toHaveBeenCalledWith(
@@ -43,15 +44,17 @@ describe("Resume Parse Queue", () => {
         fileHash: "sha256-abc123",
       };
 
-      await publishResumeParse(queue as unknown as Queue<ResumeParseMessage>, params);
+      await publishResumeParse(queue, params);
 
-      const message = queue.send.mock.calls[0][0] as ResumeParseMessage;
+      const message: ResumeParseMessage = queue.send.mock.calls[0][0];
       expect(message.attempt).toBe(1);
     });
 
     it("should propagate queue send errors", async () => {
       const queue = {
+        metrics: vi.fn(),
         send: vi.fn().mockRejectedValue(new Error("Queue unavailable")),
+        sendBatch: vi.fn(),
       };
 
       const params = {
@@ -61,14 +64,14 @@ describe("Resume Parse Queue", () => {
         fileHash: "sha256-abc123",
       };
 
-      await expect(
-        publishResumeParse(queue as unknown as Queue<ResumeParseMessage>, params),
-      ).rejects.toThrow("Queue unavailable");
+      await expect(publishResumeParse(queue, params)).rejects.toThrow("Queue unavailable");
     });
 
     it("should propagate queue timeout errors", async () => {
       const queue = {
+        metrics: vi.fn(),
         send: vi.fn().mockRejectedValue(new Error("timeout")),
+        sendBatch: vi.fn(),
       };
 
       const params = {
@@ -78,9 +81,7 @@ describe("Resume Parse Queue", () => {
         fileHash: "sha256-abc123",
       };
 
-      await expect(
-        publishResumeParse(queue as unknown as Queue<ResumeParseMessage>, params),
-      ).rejects.toThrow("timeout");
+      await expect(publishResumeParse(queue, params)).rejects.toThrow("timeout");
     });
 
     it("should construct correct message structure", async () => {
@@ -94,9 +95,9 @@ describe("Resume Parse Queue", () => {
         attempt: 2,
       };
 
-      await publishResumeParse(queue as unknown as Queue<ResumeParseMessage>, params);
+      await publishResumeParse(queue, params);
 
-      const message = queue.send.mock.calls[0][0] as ResumeParseMessage;
+      const message: ResumeParseMessage = queue.send.mock.calls[0][0];
 
       expect(message).toEqual({
         type: "parse",

@@ -12,13 +12,22 @@ vi.mock("@/lib/queue/notify-status", () => ({
   notifyStatusChange: vi.fn().mockResolvedValue(undefined),
 }));
 
-import { createMockDb, createMockDbResume } from "@/__tests__/setup/mocks/db.mock";
-import { getDb } from "@/lib/db";
+import { createMockDb, createMockDbResume, type MockDb } from "@/__tests__/setup/mocks/db.mock";
+import { getDb, type Database } from "@/lib/db";
 import { notifyStatusChange } from "@/lib/queue/notify-status";
+
+function asDatabase(db: MockDb): Database {
+  // SAFETY: Database = PostgresJsDatabase & { $client: postgres.Sql } is only obtainable
+  // from a live postgres-js client; createMockDb() implements just the query surface these
+  // tests exercise, so it can never satisfy the full Database type.
+  return db as never;
+}
 
 describe("DLQ Consumer", () => {
   type MockEnv = { HYPERDRIVE: CloudflareEnv["HYPERDRIVE"]; CLICKFOLIO_STATUS_DO: undefined };
 
+  // SAFETY: handleDLQMessage reads only HYPERDRIVE.connectionString; a live Hyperdrive also
+  // exposes connect/host/ip/port/user/password, which a unit test cannot construct.
   const createMockEnv = (overrides: Record<string, string> = {}): MockEnv => ({
     HYPERDRIVE: {
       connectionString: "postgres://user:pass@localhost:5432/clickfolio",
@@ -82,7 +91,7 @@ describe("DLQ Consumer", () => {
         }),
       });
 
-      vi.mocked(getDb).mockReturnValue(mockDb as never);
+      vi.mocked(getDb).mockReturnValue(asDatabase(mockDb));
 
       const message = createMockDeadLetterMessage();
       const env = createMockEnv();
@@ -115,7 +124,7 @@ describe("DLQ Consumer", () => {
         }),
       });
 
-      vi.mocked(getDb).mockReturnValue(mockDb as never);
+      vi.mocked(getDb).mockReturnValue(asDatabase(mockDb));
 
       const message = createMockQueueMessage();
       const env = createMockEnv();
@@ -148,7 +157,7 @@ describe("DLQ Consumer", () => {
         }),
       });
 
-      vi.mocked(getDb).mockReturnValue(mockDb as never);
+      vi.mocked(getDb).mockReturnValue(asDatabase(mockDb));
 
       const message = createMockDeadLetterMessage({
         failureReason: "AI parsing permanently failed",
@@ -198,7 +207,7 @@ describe("DLQ Consumer", () => {
         }),
       });
 
-      vi.mocked(getDb).mockReturnValue(mockDb as never);
+      vi.mocked(getDb).mockReturnValue(asDatabase(mockDb));
 
       const message = createMockDeadLetterMessage();
       const env = createMockEnv();
@@ -243,7 +252,7 @@ describe("DLQ Consumer", () => {
         }),
       });
 
-      vi.mocked(getDb).mockReturnValue(mockDb as never);
+      vi.mocked(getDb).mockReturnValue(asDatabase(mockDb));
 
       const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
@@ -254,7 +263,9 @@ describe("DLQ Consumer", () => {
 
       const dlqAlert = consoleSpy.mock.calls.find((call) => {
         try {
-          return (JSON.parse(call[0]) as UnknownRecord)["msg"] === "DLQ_ALERT";
+          const parsed: UnknownRecord = JSON.parse(call[0]);
+
+          return parsed["msg"] === "DLQ_ALERT";
         } catch {
           return false;
         }
@@ -288,7 +299,7 @@ describe("DLQ Consumer", () => {
         }),
       });
 
-      vi.mocked(getDb).mockReturnValue(mockDb as never);
+      vi.mocked(getDb).mockReturnValue(asDatabase(mockDb));
 
       const fetchSpy = vi.spyOn(global, "fetch").mockResolvedValue(new Response("OK"));
 
@@ -335,7 +346,7 @@ describe("DLQ Consumer", () => {
         }),
       });
 
-      vi.mocked(getDb).mockReturnValue(mockDb as never);
+      vi.mocked(getDb).mockReturnValue(asDatabase(mockDb));
 
       const fetchSpy = vi.spyOn(global, "fetch").mockRejectedValue(new Error("Network error"));
       const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
@@ -351,7 +362,9 @@ describe("DLQ Consumer", () => {
 
       const webhookFailLog = consoleSpy.mock.calls.find((call) => {
         try {
-          return (JSON.parse(call[0]) as UnknownRecord)["msg"] === "webhook alert failed";
+          const parsed: UnknownRecord = JSON.parse(call[0]);
+
+          return parsed["msg"] === "webhook alert failed";
         } catch {
           return false;
         }
@@ -386,7 +399,7 @@ describe("DLQ Consumer", () => {
         }),
       });
 
-      vi.mocked(getDb).mockReturnValue(mockDb as never);
+      vi.mocked(getDb).mockReturnValue(asDatabase(mockDb));
 
       const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
       const fetchSpy = vi.spyOn(global, "fetch");
@@ -428,7 +441,7 @@ describe("DLQ Consumer", () => {
         }),
       });
 
-      vi.mocked(getDb).mockReturnValue(mockDb as never);
+      vi.mocked(getDb).mockReturnValue(asDatabase(mockDb));
 
       const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
@@ -442,7 +455,9 @@ describe("DLQ Consumer", () => {
 
       const parsedCalls = consoleSpy.mock.calls.map((call) => {
         try {
-          return JSON.parse(call[0]) as UnknownRecord;
+          const parsed: UnknownRecord = JSON.parse(call[0]);
+
+          return parsed;
         } catch {
           return null;
         }
@@ -485,7 +500,7 @@ describe("DLQ Consumer", () => {
         }),
       });
 
-      vi.mocked(getDb).mockReturnValue(mockDb as never);
+      vi.mocked(getDb).mockReturnValue(asDatabase(mockDb));
 
       const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
@@ -496,14 +511,16 @@ describe("DLQ Consumer", () => {
 
       const dlqAlert = consoleSpy.mock.calls.find((call) => {
         try {
-          return (JSON.parse(call[0]) as UnknownRecord)["msg"] === "DLQ_ALERT";
+          const parsed: UnknownRecord = JSON.parse(call[0]);
+
+          return parsed["msg"] === "DLQ_ALERT";
         } catch {
           return false;
         }
       });
 
       expect(dlqAlert).toBeDefined();
-      const payload = JSON.parse(dlqAlert![0]) as UnknownRecord;
+      const payload: UnknownRecord = JSON.parse(dlqAlert![0]);
       expect(payload["errorType"]).toBe(QueueErrorType.AI_PROVIDER_ERROR);
 
       consoleSpy.mockRestore();
@@ -533,7 +550,7 @@ describe("DLQ Consumer", () => {
         }),
       });
 
-      vi.mocked(getDb).mockReturnValue(mockDb as never);
+      vi.mocked(getDb).mockReturnValue(asDatabase(mockDb));
 
       const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
@@ -544,14 +561,16 @@ describe("DLQ Consumer", () => {
 
       const dlqAlert = consoleSpy.mock.calls.find((call) => {
         try {
-          return (JSON.parse(call[0]) as UnknownRecord)["msg"] === "DLQ_ALERT";
+          const parsed: UnknownRecord = JSON.parse(call[0]);
+
+          return parsed["msg"] === "DLQ_ALERT";
         } catch {
           return false;
         }
       });
 
       expect(dlqAlert).toBeDefined();
-      const payload = JSON.parse(dlqAlert![0]) as UnknownRecord;
+      const payload: UnknownRecord = JSON.parse(dlqAlert![0]);
       expect(payload["errorType"]).toBe(QueueErrorType.UNKNOWN);
 
       consoleSpy.mockRestore();
@@ -581,7 +600,7 @@ describe("DLQ Consumer", () => {
         }),
       });
 
-      vi.mocked(getDb).mockReturnValue(mockDb as never);
+      vi.mocked(getDb).mockReturnValue(asDatabase(mockDb));
 
       const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
@@ -592,7 +611,9 @@ describe("DLQ Consumer", () => {
 
       const dlqAlert = consoleSpy.mock.calls.find((call) => {
         try {
-          return (JSON.parse(call[0]) as UnknownRecord)["msg"] === "DLQ_ALERT";
+          const parsed: UnknownRecord = JSON.parse(call[0]);
+
+          return parsed["msg"] === "DLQ_ALERT";
         } catch {
           return false;
         }
@@ -622,7 +643,7 @@ describe("DLQ Consumer", () => {
         }),
       });
 
-      vi.mocked(getDb).mockReturnValue(mockDb as never);
+      vi.mocked(getDb).mockReturnValue(asDatabase(mockDb));
 
       const message = createMockDeadLetterMessage();
       const env = createMockEnv();
@@ -653,7 +674,7 @@ describe("DLQ Consumer", () => {
         }),
       });
 
-      vi.mocked(getDb).mockReturnValue(mockDb as never);
+      vi.mocked(getDb).mockReturnValue(asDatabase(mockDb));
 
       const message = createMockQueueMessage();
       const env = createMockEnv();
@@ -690,7 +711,7 @@ describe("DLQ Consumer", () => {
         }),
       });
 
-      vi.mocked(getDb).mockReturnValue(mockDb as never);
+      vi.mocked(getDb).mockReturnValue(asDatabase(mockDb));
 
       const message = createMockDeadLetterMessage({ attempts: 10 });
       const env = createMockEnv();
@@ -727,7 +748,7 @@ describe("DLQ Consumer", () => {
         }),
       });
 
-      vi.mocked(getDb).mockReturnValue(mockDb as never);
+      vi.mocked(getDb).mockReturnValue(asDatabase(mockDb));
 
       const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 
@@ -738,7 +759,7 @@ describe("DLQ Consumer", () => {
 
       const successLog = consoleSpy.mock.calls.find((call) => {
         try {
-          const parsed = JSON.parse(call[0]) as UnknownRecord;
+          const parsed: UnknownRecord = JSON.parse(call[0]);
 
           return (
             parsed["msg"] === "DLQ: marked resume as permanently failed" &&
@@ -777,7 +798,7 @@ describe("DLQ Consumer", () => {
         }),
       });
 
-      vi.mocked(getDb).mockReturnValue(mockDb as never);
+      vi.mocked(getDb).mockReturnValue(asDatabase(mockDb));
 
       const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
@@ -792,7 +813,9 @@ describe("DLQ Consumer", () => {
 
       const dlqAlert = consoleSpy.mock.calls.find((call) => {
         try {
-          return (JSON.parse(call[0]) as UnknownRecord)["msg"] === "DLQ_ALERT";
+          const parsed: UnknownRecord = JSON.parse(call[0]);
+
+          return parsed["msg"] === "DLQ_ALERT";
         } catch {
           return false;
         }
@@ -800,7 +823,7 @@ describe("DLQ Consumer", () => {
 
       expect(dlqAlert).toBeDefined();
 
-      const payload = JSON.parse(dlqAlert![0]) as UnknownRecord;
+      const payload: UnknownRecord = JSON.parse(dlqAlert![0]);
       expect(payload).toHaveProperty("resumeId", "resume-123");
       expect(payload).toHaveProperty("userId", "user-456");
       expect(payload).toHaveProperty("failureReason", "Specific failure reason");
