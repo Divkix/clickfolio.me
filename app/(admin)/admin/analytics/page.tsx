@@ -55,20 +55,18 @@ export default function AdminAnalyticsPage() {
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<Period>("7d");
 
-  const fetchAnalytics = useCallback(async (p: Period) => {
-    setLoading(true);
-
-    try {
-      const res = await fetch(`/api/admin/analytics?period=${p}`);
-
-      if (!res.ok) throw new Error("Failed to fetch");
-      const json: AnalyticsData = await res.json();
-      setData(json);
-    } catch (err) {
-      console.error("Failed to fetch analytics:", err);
-    } finally {
-      setLoading(false);
-    }
+  const fetchAnalytics = useCallback((p: Period) => {
+    return fetch(`/api/admin/analytics?period=${p}`)
+      .then(async (res) => {
+        if (!res.ok) throw new Error("Failed to fetch");
+        const json: AnalyticsData = await res.json();
+        setData(json);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Failed to fetch analytics:", err);
+        setLoading(false);
+      });
   }, []);
 
   useEffect(() => {
@@ -87,7 +85,10 @@ export default function AdminAnalyticsPage() {
             <button
               key={opt.value}
               type="button"
-              onClick={() => setPeriod(opt.value)}
+              onClick={() => {
+                setPeriod(opt.value);
+                setLoading(true);
+              }}
               className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                 period === opt.value
                   ? "bg-card text-foreground shadow-sm"

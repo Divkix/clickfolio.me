@@ -8,10 +8,9 @@ export const revalidate = 86400;
 
 const post = getPostBySlug("resume-hosting")!;
 
-// SAFETY: getPostBySlug returns BlogPostMeta | undefined; filter(Boolean) removes undefined, so remaining are BlogPostMeta. Related slugs are static and validated against BLOG_POSTS.
-const relatedPosts = ["pdf-resume-to-website", "personal-resume-website"]
-  .map((slug) => getPostBySlug(slug))
-  .filter(Boolean) as (typeof post)[];
+const relatedPosts = ["pdf-resume-to-website", "personal-resume-website"].flatMap(
+  (slug) => getPostBySlug(slug) ?? [],
+);
 
 export function generateMetadata(): Metadata {
   return buildBlogPostMetadata(post);

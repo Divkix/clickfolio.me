@@ -65,6 +65,17 @@ export function WaitingContent() {
   const { status, progress, error, canRetry, isLoading, refetch } = useResumeStatus(resumeId);
 
   const [countdown, setCountdown] = useState(INITIAL_COUNTDOWN);
+  const [prevStatus, setPrevStatus] = useState(status);
+
+  // Reset the countdown when entering "processing" by adjusting state during
+  // render (guarded prev-value compare) instead of a synchronous effect reset.
+  if (prevStatus !== status) {
+    setPrevStatus(status);
+
+    if (status === "processing") {
+      setCountdown(INITIAL_COUNTDOWN);
+    }
+  }
 
   useEffect(() => {
     if (status !== "processing") return;
@@ -74,12 +85,6 @@ export function WaitingContent() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [status]);
-
-  useEffect(() => {
-    if (status === "processing") {
-      setCountdown(INITIAL_COUNTDOWN);
-    }
   }, [status]);
 
   useEffect(() => {

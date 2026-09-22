@@ -4,7 +4,7 @@ export const revalidate = 86400;
 
 import { Search, Users } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Pagination } from "@/components/admin/Pagination";
 import { UserStatusBadge } from "@/components/admin/UserStatusBadge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -34,30 +34,42 @@ export default function AdminUsersPage() {
   const [pageSize, setPageSize] = useState(25);
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
-  const [loading, setLoading] = useState(true);
 
-  const fetchUsers = useCallback(async (p: number, s: string) => {
-    setLoading(true);
+  const requestKey = `${page} ${search}`;
+  // Latest requested key: only that request's response may settle `loading`,
+  // so a stale response arriving late cannot clobber a newer request's state.
+  const activeKeyRef = useRef(requestKey);
+  const [loadedKey, setLoadedKey] = useState<string | null>(null);
+  const loading = loadedKey !== requestKey;
 
-    try {
-      const params = new URLSearchParams({ page: p.toString() });
+  const fetchUsers = useCallback((p: number, s: string) => {
+    const key = `${p} ${s}`;
+    activeKeyRef.current = key;
 
-      if (s) params.set("search", s);
+    const params = new URLSearchParams({ page: p.toString() });
 
-      const res = await fetch(`/api/admin/users?${params}`);
+    if (s) params.set("search", s);
 
-      if (!res.ok) throw new Error("Failed to fetch");
+    return fetch(`/api/admin/users?${params}`)
+      .then(async (res) => {
+        if (!res.ok) throw new Error("Failed to fetch");
+        const data: UsersResponse = await res.json();
+        setUsers(data.users);
+        setTotal(data.total);
+        setPage(data.page);
+        setPageSize(data.pageSize);
 
-      const data: UsersResponse = await res.json();
-      setUsers(data.users);
-      setTotal(data.total);
-      setPage(data.page);
-      setPageSize(data.pageSize);
-    } catch (err) {
-      console.error("Failed to fetch users:", err);
-    } finally {
-      setLoading(false);
-    }
+        if (activeKeyRef.current === key) {
+          setLoadedKey(key);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to fetch users:", err);
+
+        if (activeKeyRef.current === key) {
+          setLoadedKey(key);
+        }
+      });
   }, []);
 
   useEffect(() => {
