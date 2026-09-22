@@ -120,21 +120,27 @@ vi.mock("drizzle-orm", () => ({
 function makeStatusDo() {
   const forward = vi.fn().mockResolvedValue(new Response("WS response"));
 
-  const namespace = {
+  const namespace: CloudflareEnv["CLICKFOLIO_STATUS_DO"] = {
+    newUniqueId: vi.fn(),
     idFromName: vi.fn().mockReturnValue({ toString: () => "test-do-id" }),
+    idFromString: vi.fn(),
     get: vi.fn().mockReturnValue({ fetch: forward }),
-  } as unknown as CloudflareEnv["CLICKFOLIO_STATUS_DO"];
+    getByName: vi.fn(),
+    jurisdiction: vi.fn(),
+  };
 
   return { namespace, forward };
 }
 
 function makeEnv(overrides: Partial<CloudflareEnv> = {}): CloudflareEnv {
+  // SAFETY: makeEnv supplies only the bindings these worker tests exercise; the string
+  // secrets and other CloudflareEnv bindings are absent by design and never read here.
   return {
     HYPERDRIVE: {
       connectionString: "postgres://user:pass@localhost:5432/clickfolio",
     } as CloudflareEnv["HYPERDRIVE"],
     CLICKFOLIO_R2_BUCKET: {} as R2Bucket,
-    CLICKFOLIO_PARSE_QUEUE: { send: vi.fn() } as unknown as Queue,
+    CLICKFOLIO_PARSE_QUEUE: { metrics: vi.fn(), send: vi.fn(), sendBatch: vi.fn() } as Queue,
     CLICKFOLIO_STATUS_DO: makeStatusDo().namespace,
     ...overrides,
   } as CloudflareEnv;
@@ -143,6 +149,8 @@ function makeEnv(overrides: Partial<CloudflareEnv> = {}): CloudflareEnv {
 interface MockQueueMessage {
   id: string;
   body: JsonValue;
+  timestamp: Date;
+  attempts: number;
   ack: () => void;
   retry: () => void;
 }
@@ -154,23 +162,30 @@ function makeMessage(
   return {
     id: crypto.randomUUID(),
     body,
+    timestamp: new Date(),
+    attempts: 0,
     ack: overrides.ack ?? vi.fn(),
     retry: overrides.retry ?? vi.fn(),
   };
 }
 
-function makeBatch(queueName: string, messages: MockQueueMessage[]) {
+function makeBatch(queueName: string, messages: MockQueueMessage[]): MessageBatch<JsonValue> {
   return {
     queue: queueName,
     messages,
-  } as unknown as MessageBatch<JsonValue>;
+    metadata: { metrics: { backlogCount: 0, backlogBytes: 0 } },
+    retryAll: vi.fn(),
+    ackAll: vi.fn(),
+  };
 }
 
 function makeCtx(): ExecutionContext {
+  // SAFETY: the worker only invokes waitUntil/passThroughOnException; exports, props,
+  // tracing, and abort are runtime-only members these tests never read or call.
   return {
-    waitUntil: vi.fn(),
-    passThroughOnException: vi.fn(),
-  } as unknown as ExecutionContext;
+    waitUntil: (_promise: Promise<void>) => {},
+    passThroughOnException: () => {},
+  } as ExecutionContext;
 }
 
 function makeWsRequest(
@@ -331,7 +346,7 @@ describe("Worker fetch handler", () => {
 
   it("returns 503 when STATUS_DO binding is missing", async () => {
     const env = makeEnv({
-      CLICKFOLIO_STATUS_DO: undefined as unknown as CloudflareEnv["CLICKFOLIO_STATUS_DO"],
+      CLICKFOLIO_STATUS_DO: undefined,
     });
 
     mockUserFindFirst.mockResolvedValue({ id: "pg-user-1" });
@@ -363,6 +378,7 @@ describe("Worker fetch handler", () => {
     expect(await response.text()).toBe("WS response");
     expect(statusDo.namespace.idFromName).toHaveBeenCalledWith("res-123");
     expect(statusDo.forward).toHaveBeenCalledTimes(1);
+    // SAFETY: forward is an untyped vi.fn() spy; the worker forwards the upgrade Request it received.
     const forwarded = statusDo.forward.mock.calls[0][0] as Request;
     expect(forwarded.headers.get("x-authenticated-user-id")).toBe("pg-user-1");
     expect(forwarded.headers.get("x-authenticated-user-id")).not.toBe("user_clerk_1");
@@ -474,7 +490,7 @@ describe("Worker scheduled handler", () => {
   });
 
   it("skips R2 cleanup when R2 binding is missing", async () => {
-    const env = makeEnv({ CLICKFOLIO_R2_BUCKET: undefined as unknown as R2Bucket });
+    const env = makeEnv({ CLICKFOLIO_R2_BUCKET: undefined });
 
     await worker.scheduled(makeController("0 2 * * *"), env);
 
@@ -498,7 +514,7 @@ describe("Worker scheduled handler", () => {
   });
 
   it("skips orphan recovery when queue binding is missing", async () => {
-    const env = makeEnv({ CLICKFOLIO_PARSE_QUEUE: undefined as unknown as Queue });
+    const env = makeEnv({ CLICKFOLIO_PARSE_QUEUE: undefined });
 
     await worker.scheduled(makeController("*/15 * * * *"), env);
 

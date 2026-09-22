@@ -223,6 +223,11 @@ function createValidResumeContent() {
   };
 }
 
+interface SiteContentFixture {
+  name: string;
+  contact: { email: string; phone?: string; location?: string };
+}
+
 function authedAs(userId: string) {
   mockedAuth.mockResolvedValue({
     user: {
@@ -236,8 +241,12 @@ function authedAs(userId: string) {
       onboardingCompleted: true,
       role: "mid_level",
     },
+    // SAFETY: getDb is mocked to the select/update chains above; PostgresJsDatabase cannot
+    // be constructed in a unit test, and the routes only run the stubbed query chains.
     db: mockDb as never,
     dbUser: { id: userId, handle: "testuser", clerkId: `clerk_${userId}` },
+    // SAFETY: these routes only read HYPERDRIVE and the parse queue through env; the rest
+    // of CloudflareEnv is intentionally absent and never dereferenced.
     env: {
       HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" },
       CLICKFOLIO_PARSE_QUEUE: {},
@@ -278,6 +287,8 @@ describe("IDOR - Resume Routes Security", () => {
   // SAFETY: update/update-theme read a version snapshot before the guarded write;
   // queue one row per select so the chain mock's .limit() resolves a row, not the chain.
   function queueVersionSnapshot(row: JsonValue = {}) {
+    // SAFETY: mockSelect is a this-returning vi.fn(), so its queued value cannot match the
+    // select().from().where().limit() chain the route awaits without a single cast.
     mockSelect.mockReturnValueOnce({
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockReturnValue({
@@ -377,7 +388,7 @@ describe("IDOR - Resume Routes Security", () => {
 
     it("returns 401 when theme update attempted without authentication", async () => {
       mockedAuth.mockResolvedValue({
-        user: null as never,
+        user: null,
         db: null,
         dbUser: null,
         env: null,
@@ -418,7 +429,7 @@ describe("IDOR - Resume Routes Security", () => {
       const response = await POST(request);
 
       expect(response.status).toBe(403);
-      const body = (await response.json()) as { error: string };
+      const body: { error: string } = await response.json();
       expect(body.error).toContain("Unauthorized upload attempt");
     });
 
@@ -500,7 +511,7 @@ describe("IDOR - Resume Routes Security", () => {
       const response = await GET(request);
 
       expect(response.status).toBe(403);
-      const body = (await response.json()) as { error: string };
+      const body: { error: string } = await response.json();
       expect(body.error).toContain("permission");
     });
 
@@ -762,7 +773,7 @@ describe("IDOR - Resume Routes Security", () => {
     });
 
     it("removes private fields based on privacy settings", async () => {
-      const content = {
+      const content: SiteContentFixture = {
         name: "John Doe",
         contact: {
           email: "john@example.com",
@@ -779,15 +790,15 @@ describe("IDOR - Resume Routes Security", () => {
       const filtered = { ...content };
 
       if (!privacySettings.show_phone && filtered.contact) {
-        delete (filtered.contact as Record<string, string>).phone;
+        delete filtered.contact.phone;
       }
 
       if (!privacySettings.show_address && filtered.contact) {
-        (filtered.contact as Record<string, string>).location = "Secret City";
+        filtered.contact.location = "Secret City";
       }
 
       expect(filtered.contact).not.toHaveProperty("phone");
-      expect((filtered.contact as Record<string, string>).location).toBe("Secret City");
+      expect(filtered.contact.location).toBe("Secret City");
     });
   });
 
@@ -871,7 +882,7 @@ describe("IDOR - Resume Routes Security", () => {
   describe("Expired Session IDOR", () => {
     it("IDOR with expired session returns 401", async () => {
       mockedAuth.mockResolvedValue({
-        user: null as never,
+        user: null,
         db: null,
         dbUser: null,
         env: null,

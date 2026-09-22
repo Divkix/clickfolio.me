@@ -1,11 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
-import type { JsonValue } from "@/lib/types/json";
+
+interface PendingDeletionRow {
+  r2Key: string;
+  attempts: number;
+}
+
+interface ResumeDismissState {
+  deleteResult: Array<{ id: string; r2Key: string }>;
+  selectResult: Array<{ id: string }>;
+  insertCalls: PendingDeletionRow[];
+}
 
 const mocks = vi.hoisted(() => {
-  const state = {
-    deleteResult: [] as JsonValue[],
-    selectResult: [] as JsonValue[],
-    insertCalls: [] as JsonValue[],
+  const state: ResumeDismissState = {
+    deleteResult: [],
+    selectResult: [],
+    insertCalls: [],
   };
 
   const createSelectChain = () => {
@@ -29,7 +39,7 @@ const mocks = vi.hoisted(() => {
 
   const createInsertChain = () => {
     const chain = {
-      values: vi.fn((rows: JsonValue) => {
+      values: vi.fn((rows: PendingDeletionRow) => {
         state.insertCalls.push(rows);
 
         return chain;
@@ -145,7 +155,7 @@ describe("DELETE /api/admin/resumes/[id]", () => {
     const response = await dismiss();
 
     expect(response.status).toBe(200);
-    const insertedRow = mocks.state.insertCalls[0] as { r2Key: string; attempts: number };
+    const insertedRow = mocks.state.insertCalls[0];
     expect(insertedRow.r2Key).toBe("users/user-1/resume-1/cv.pdf");
     expect(insertedRow.attempts).toBe(1);
   });

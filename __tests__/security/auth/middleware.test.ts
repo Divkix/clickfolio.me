@@ -1,9 +1,9 @@
+import type { Mock } from "vite-plus/test";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { verifyToken } from "@clerk/backend";
 import { cookies } from "next/headers";
 import { env } from "cloudflare:workers";
 import { PgDialect } from "drizzle-orm/pg-core";
-import { getDb, type Database } from "@/lib/db";
 import { user as userTable } from "@/lib/db/schema";
 import { CLERK_SESSION_COOKIE } from "@/lib/auth/clerk";
 import { requireAuthWithMessage, requireAuthWithUserValidation } from "@/lib/auth/middleware";
@@ -11,8 +11,6 @@ import { requireAuthWithMessage, requireAuthWithUserValidation } from "@/lib/aut
 const mockVerifyToken = vi.mocked(verifyToken);
 
 const mockCookies = vi.mocked(cookies);
-
-const mockGetDb = vi.mocked(getDb);
 
 vi.mock("@clerk/backend", () => ({
   verifyToken: vi.fn(),
@@ -30,16 +28,16 @@ vi.mock("cloudflare:workers", () => ({
 }));
 
 vi.mock("@/lib/db", () => ({
-  getDb: vi.fn(),
+  getDb: vi.fn(() => mockDb.db),
 }));
 
 interface MockDb {
-  db: Database;
-  setRows(rows: Array<Record<string, unknown>>): void;
+  db: { select: Mock };
+  setRows(rows: PgRow[]): void;
   setQueryError(error: Error): void;
-  select: ReturnType<typeof vi.fn>;
-  from: ReturnType<typeof vi.fn>;
-  where: ReturnType<typeof vi.fn>;
+  select: Mock;
+  from: Mock;
+  where: Mock;
 }
 
 function createMockDb(): MockDb {
@@ -49,8 +47,8 @@ function createMockDb(): MockDb {
   const select = vi.fn(() => ({ from }));
 
   return {
-    db: { select } as unknown as Database,
-    setRows: (rows: Array<Record<string, unknown>>) => limit.mockResolvedValue(rows),
+    db: { select },
+    setRows: (rows: PgRow[]) => limit.mockResolvedValue(rows),
     setQueryError: (error: Error) => limit.mockRejectedValue(error),
     select,
     from,
@@ -66,9 +64,10 @@ beforeEach(() => {
   vi.clearAllMocks();
 
   mockDb = createMockDb();
-  mockGetDb.mockReturnValue(mockDb.db);
 
   sessionCookieValue = undefined;
+  // SAFETY: ReadonlyRequestCookies splices two cookie-adapter classes together; the stub
+  // implements only get(), the single lookup path Clerk verification uses in these tests.
   mockCookies.mockImplementation(
     async () =>
       ({
@@ -87,14 +86,29 @@ beforeEach(() => {
   );
 
   mockVerifyToken.mockResolvedValue({
+    __raw: "test-jwt",
+    iss: "https://clerk.test",
     sub: "user_2clerkAbc",
     sid: "sess_2xyz",
+    nbf: 0,
     exp: Math.floor(Date.now() / 1000) + 3600,
     iat: Math.floor(Date.now() / 1000),
-  } as never);
+  });
 });
 
-function pgRow(overrides: Partial<Record<string, unknown>> = {}) {
+interface PgRow {
+  id: string;
+  email: string;
+  name: string;
+  image: string | null;
+  handle: string;
+  headline: string | null;
+  privacySettings: { showEmail?: boolean; showDirectory?: boolean };
+  onboardingCompleted: boolean;
+  role: string;
+}
+
+function pgRow(overrides: Partial<PgRow> = {}): PgRow {
   return {
     id: "legacy-user-1",
     email: "user@test.com",
@@ -183,6 +197,8 @@ describe("Authentication Middleware Security", () => {
       const result = await requireAuthWithUserValidation("You must be logged in");
 
       expect(result.error?.status).toBe(404);
+      // SAFETY: the error body is only read after a 404 response in this test, and
+      // Response.json() carries no shape, so the assertion supplies the expected shape.
       const body = (await result.error?.json()) as { error?: string };
       expect(body.error).toContain("User account not found");
       expect(result.dbUser).toBeNull();
@@ -246,10 +262,14 @@ describe("Authentication Middleware Security", () => {
     it("accepts a session whose exp claim is still in the future", async () => {
       sessionCookieValue = "valid-unexpired-clerk-jwt";
       mockVerifyToken.mockResolvedValue({
+        __raw: "test-jwt",
+        iss: "https://clerk.test",
         sub: "user_2clerkAbc",
+        sid: "sess_unexpired",
+        nbf: 0,
         exp: Math.floor(Date.now() / 1000) + 60,
         iat: Math.floor(Date.now() / 1000),
-      } as never);
+      });
       mockDb.setRows([pgRow()]);
 
       const result = await requireAuthWithMessage("You must be logged in");
@@ -265,18 +285,26 @@ describe("Authentication Middleware Security", () => {
 
       sessionCookieValue = "jwt-with-session-one";
       mockVerifyToken.mockResolvedValue({
+        __raw: "test-jwt",
+        iss: "https://clerk.test",
         sub: "user_2clerkAbc",
         sid: "sess_old",
+        nbf: 0,
         exp: Math.floor(Date.now() / 1000) + 3600,
-      } as never);
+        iat: Math.floor(Date.now() / 1000),
+      });
       const first = await requireAuthWithMessage("You must be logged in");
 
       sessionCookieValue = "jwt-with-session-two";
       mockVerifyToken.mockResolvedValue({
+        __raw: "test-jwt",
+        iss: "https://clerk.test",
         sub: "user_2clerkAbc",
         sid: "sess_new",
+        nbf: 0,
         exp: Math.floor(Date.now() / 1000) + 3600,
-      } as never);
+        iat: Math.floor(Date.now() / 1000),
+      });
       const second = await requireAuthWithMessage("You must be logged in");
 
       expect(first.error).toBeNull();
@@ -288,10 +316,14 @@ describe("Authentication Middleware Security", () => {
       mockDb.setRows([pgRow()]);
       sessionCookieValue = "jwt-from-device-b";
       mockVerifyToken.mockResolvedValue({
+        __raw: "test-jwt",
+        iss: "https://clerk.test",
         sub: "user_2clerkAbc",
         sid: "sess_device_b",
+        nbf: 0,
         exp: Math.floor(Date.now() / 1000) + 3600,
-      } as never);
+        iat: Math.floor(Date.now() / 1000),
+      });
 
       const result = await requireAuthWithMessage("You must be logged in");
 
@@ -360,6 +392,9 @@ describe("Authentication Middleware Security", () => {
 
     it("rejects verified payloads without a sub claim", async () => {
       sessionCookieValue = "unsigned-subjectless-token";
+      // SAFETY: Clerk's JwtPayload requires a non-optional sub claim, but this
+      // negative-path fixture is by design a verified payload WITHOUT sub, which
+      // verifyClerkToken reads through optional chaining (payload?.sub).
       mockVerifyToken.mockResolvedValue({} as never);
 
       const result = await requireAuthWithMessage("You must be logged in");
@@ -370,7 +405,7 @@ describe("Authentication Middleware Security", () => {
 
   describe("Fail-Closed Behavior", () => {
     it("fails closed with 401 when Clerk credentials are unconfigured (auth service throws)", async () => {
-      delete (env as unknown as Record<string, unknown>).CLERK_SECRET_KEY;
+      Reflect.deleteProperty(env, "CLERK_SECRET_KEY");
 
       try {
         sessionCookieValue = "otherwise-valid-jwt";

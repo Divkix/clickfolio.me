@@ -53,7 +53,8 @@ import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
 
 const mockedAuth = vi.mocked(requireAuthWithUserValidation);
 
-function authedAs(userId: string, db: JsonValue) {
+function authedAs<TDb>(userId: string, db: TDb) {
+  // SAFETY: the mocked middleware forwards db/env untouched and these tests only exercise the stub query chain and HYPERDRIVE connection string provided here; the real Database/CloudflareEnv types are never constructed.
   mockedAuth.mockResolvedValue({
     user: {
       id: userId,
@@ -114,13 +115,13 @@ describe("GET /api/resume/latest-status — status mapping", () => {
     "maps %s to processing so the wizard detects the in-flight parse",
     async (dbStatus) => {
       const db = selectChainResolving(latestResumeRow(dbStatus));
-      authedAs("user-1", db as unknown as JsonValue);
+      authedAs("user-1", db);
 
       const { GET } = await import("@/app/api/resume/latest-status/route");
       const response = await GET();
 
       expect(response.status).toBe(200);
-      const body = (await response.json()) as { status: string; id: string };
+      const body: { status: string; id: string } = await response.json();
       expect(body.status).toBe("processing");
       expect(body.id).toBe("resume-001");
     },
@@ -128,37 +129,37 @@ describe("GET /api/resume/latest-status — status mapping", () => {
 
   it("leaves completed untouched", async () => {
     const db = selectChainResolving(latestResumeRow("completed"));
-    authedAs("user-1", db as unknown as JsonValue);
+    authedAs("user-1", db);
 
     const { GET } = await import("@/app/api/resume/latest-status/route");
     const response = await GET();
 
     expect(response.status).toBe(200);
-    const body = (await response.json()) as { status: string };
+    const body: { status: string } = await response.json();
     expect(body.status).toBe("completed");
   });
 
   it("leaves failed untouched (so /waiting still shows the retry UI)", async () => {
     const db = selectChainResolving(latestResumeRow("failed"));
-    authedAs("user-1", db as unknown as JsonValue);
+    authedAs("user-1", db);
 
     const { GET } = await import("@/app/api/resume/latest-status/route");
     const response = await GET();
 
     expect(response.status).toBe(200);
-    const body = (await response.json()) as { status: string };
+    const body: { status: string } = await response.json();
     expect(body.status).toBe("failed");
   });
 
   it("returns null when the user has no resumes", async () => {
     const db = selectChainResolving([]);
-    authedAs("user-1", db as unknown as JsonValue);
+    authedAs("user-1", db);
 
     const { GET } = await import("@/app/api/resume/latest-status/route");
     const response = await GET();
 
     expect(response.status).toBe(200);
-    const body = (await response.json()) as unknown;
+    const body = await response.json();
     expect(body).toBeNull();
   });
 });
@@ -169,7 +170,7 @@ describe("GET /api/resume/status — pending_claim mapping", () => {
   }
 
   it("maps pending_claim to processing so /waiting keeps polling", async () => {
-    authedAs("user-1", mockDb as unknown as JsonValue);
+    authedAs("user-1", mockDb);
     mockFindFirst.mockResolvedValue({
       id: "resume-001",
       userId: "user-1",
@@ -186,12 +187,12 @@ describe("GET /api/resume/status — pending_claim mapping", () => {
 
     expect(response.status).toBe(200);
 
-    const body = (await response.json()) as {
+    const body: {
       status: string;
       progress_pct: number;
       can_retry: boolean;
       error: string | null;
-    };
+    } = await response.json();
 
     expect(body.status).toBe("processing");
     expect(body.progress_pct).toBe(15);
@@ -200,7 +201,7 @@ describe("GET /api/resume/status — pending_claim mapping", () => {
   });
 
   it("keeps queued surfaced as processing with 25% progress", async () => {
-    authedAs("user-1", mockDb as unknown as JsonValue);
+    authedAs("user-1", mockDb);
     mockFindFirst.mockResolvedValue({
       id: "resume-001",
       userId: "user-1",
@@ -217,11 +218,11 @@ describe("GET /api/resume/status — pending_claim mapping", () => {
 
     expect(response.status).toBe(200);
 
-    const body = (await response.json()) as {
+    const body: {
       status: string;
       progress_pct: number;
       queued: boolean;
-    };
+    } = await response.json();
 
     expect(body.status).toBe("processing");
     expect(body.progress_pct).toBe(25);
@@ -229,7 +230,7 @@ describe("GET /api/resume/status — pending_claim mapping", () => {
   });
 
   it("keeps processing surfaced as processing with 50% progress", async () => {
-    authedAs("user-1", mockDb as unknown as JsonValue);
+    authedAs("user-1", mockDb);
     mockFindFirst.mockResolvedValue({
       id: "resume-001",
       userId: "user-1",
@@ -245,7 +246,7 @@ describe("GET /api/resume/status — pending_claim mapping", () => {
     const response = await GET(makeStatusRequest("resume-001"));
 
     expect(response.status).toBe(200);
-    const body = (await response.json()) as { status: string; progress_pct: number };
+    const body: { status: string; progress_pct: number } = await response.json();
     expect(body.status).toBe("processing");
     expect(body.progress_pct).toBe(50);
   });

@@ -35,7 +35,7 @@ vi.mock("drizzle-orm", () => ({
     })),
     {
       join: vi.fn((values: JsonValue[], _separator?: string) => ({
-        toString: () => (values as string[]).join(", "),
+        toString: () => values.join(", "),
       })),
       literal: vi.fn((val: JsonValue) => ({
         toString: () => JSON.stringify(val),
@@ -285,7 +285,7 @@ describe("Admin API Integration Tests (15 tests)", () => {
       const response = await GET(request);
 
       expect(response.status).toBe(200);
-      const body = (await response.json()) as { totals: { views: number; unique: number } };
+      const body: { totals: { views: number; unique: number } } = await response.json();
       expect(body.totals).toBeDefined();
       expect(body.totals.views).toBe(1000);
       expect(body.totals.unique).toBe(500);
@@ -299,7 +299,7 @@ describe("Admin API Integration Tests (15 tests)", () => {
       const response = await GET(request);
 
       expect(response.status).toBe(400);
-      const body = (await response.json()) as { error: string };
+      const body: { error: string } = await response.json();
       expect(body.error).toContain("Invalid period");
     });
 
@@ -388,10 +388,10 @@ describe("Admin API Integration Tests (15 tests)", () => {
       expect([200, 500]).toContain(response.status);
 
       if (response.status === 200) {
-        const body = (await response.json()) as {
+        const body: {
           stats: { completed: number; processing: number };
           resumes: JsonValue[];
-        };
+        } = await response.json();
 
         expect(body.stats).toBeDefined();
         expect(body.resumes).toBeDefined();
@@ -476,13 +476,13 @@ describe("Admin API Integration Tests (15 tests)", () => {
       expect([200, 500, 503]).toContain(response.status);
 
       if (response.status === 200) {
-        const body = (await response.json()) as {
+        const body: {
           totalUsers: number;
           publishedResumes: number;
           processingResumes: number;
           failedResumes: number;
           dailyViews: JsonValue[];
-        };
+        } = await response.json();
 
         expect(body.totalUsers).toBeDefined();
         expect(body.publishedResumes).toBeDefined();
@@ -504,7 +504,7 @@ describe("Admin API Integration Tests (15 tests)", () => {
       expect([200, 500, 503]).toContain(response.status);
 
       if (response.status === 200) {
-        const body = (await response.json()) as { recentSignups: JsonValue[] };
+        const body: { recentSignups: JsonValue[] } = await response.json();
         expect(body.recentSignups).toBeDefined();
       }
     });
@@ -571,12 +571,12 @@ describe("Admin API Integration Tests (15 tests)", () => {
       expect([200, 500]).toContain(response.status);
 
       if (response.status === 200) {
-        const body = (await response.json()) as {
+        const body: {
           users: JsonValue[];
           total: number;
           page: number;
           pageSize: number;
-        };
+        } = await response.json();
 
         expect(body.users).toBeDefined();
         expect(body.total).toBeDefined();
@@ -606,7 +606,7 @@ describe("Admin API Integration Tests (15 tests)", () => {
       expect([200, 500]).toContain(response.status);
 
       if (response.status === 200) {
-        const body = (await response.json()) as { users: JsonValue[] };
+        const body: { users: JsonValue[] } = await response.json();
         expect(body.users).toBeDefined();
       }
     });
@@ -624,7 +624,7 @@ describe("Admin API Integration Tests (15 tests)", () => {
       expect([200, 500]).toContain(response.status);
 
       if (response.status === 200) {
-        const body = (await response.json()) as { page: number; pageSize: number; total: number };
+        const body: { page: number; pageSize: number; total: number } = await response.json();
         expect(body.page).toBe(2);
         expect(body.pageSize).toBe(25);
         expect(body.total).toBe(50);
@@ -664,7 +664,7 @@ describe("Admin API Integration Tests (15 tests)", () => {
       expect([200, 500]).toContain(response.status);
 
       if (response.status === 200) {
-        const body = (await response.json()) as { users: JsonValue[]; total: number };
+        const body: { users: JsonValue[]; total: number } = await response.json();
         expect(body.users).toEqual([]);
         expect(body.total).toBe(0);
       }

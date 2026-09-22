@@ -1,9 +1,114 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
-import type { JsonValue } from "@/lib/types/json";
+import type { UnknownRecord, JsonValue } from "@/lib/types/json";
+
+interface MockAuthOutcome {
+  user: { id: string; email: string } | null;
+  dbUser: { id: string; handle: string | null; clerkId?: string } | null;
+  db: unknown;
+  env: unknown;
+  error: Response | null;
+}
+
+interface MockQueryChain {
+  from: (...args: unknown[]) => MockQueryChain;
+  where: (...args: unknown[]) => MockQueryChain;
+  innerJoin: (...args: unknown[]) => MockQueryChain;
+  leftJoin: (...args: unknown[]) => MockQueryChain;
+  orderBy: (...args: unknown[]) => MockQueryChain;
+  groupBy: (...args: unknown[]) => MockQueryChain;
+  limit: (...args: unknown[]) => MockQueryChain;
+  offset: (...args: unknown[]) => MockQueryChain;
+  values: (...args: unknown[]) => MockQueryChain;
+  set: (...args: unknown[]) => MockQueryChain;
+  onConflictDoNothing: (...args: unknown[]) => MockQueryChain;
+  onConflictDoUpdate: (...args: unknown[]) => MockQueryChain;
+  returning: (...args: unknown[]) => MockQueryChain;
+  then: (
+    resolve: (value: JsonValue[]) => JsonValue,
+    reject?: (reason: JsonValue) => JsonValue,
+  ) => Promise<JsonValue>;
+}
+
+interface MockInsertChain {
+  values: (...args: unknown[]) => MockInsertChain;
+  set: (...args: unknown[]) => MockInsertChain;
+  onConflictDoNothing: (...args: unknown[]) => MockInsertChain;
+  onConflictDoUpdate: (...args: unknown[]) => MockInsertChain;
+  returning: (...args: unknown[]) => MockInsertChain;
+  where: (...args: unknown[]) => MockInsertChain;
+  then: (
+    resolve: (value: undefined) => JsonValue,
+    reject?: (reason: JsonValue) => JsonValue,
+  ) => Promise<JsonValue>;
+}
+
+interface MockTxChain {
+  from: (...args: unknown[]) => MockTxChain;
+  where: (...args: unknown[]) => MockTxChain;
+  limit: (...args: unknown[]) => MockTxChain;
+  for: (...args: unknown[]) => MockTxChain;
+  set: (...args: unknown[]) => MockTxChain;
+  onConflictDoNothing: (...args: unknown[]) => MockTxChain;
+  onConflictDoUpdate: (...args: unknown[]) => MockTxChain;
+  values: (rows: UnknownRecord) => MockTxChain;
+  returning: (...args: unknown[]) => MockTxChain;
+  then: (
+    resolve: (value: JsonValue) => JsonValue,
+    reject?: (reason: JsonValue) => JsonValue,
+  ) => Promise<JsonValue>;
+}
+
+interface MockTxClient {
+  select: () => MockTxChain;
+  update: () => MockTxChain;
+  insert: () => MockTxChain;
+  delete: () => MockTxChain;
+}
 
 const mocks = vi.hoisted(() => {
-  const cookieStore = {
-    value: null as string | null,
+  interface MockCookieStore {
+    value: string | null;
+    get: () => { value: string } | undefined;
+    set: (name: string, value: string) => void;
+    delete: () => void;
+  }
+
+  interface MockState {
+    selectResults: JsonValue[][];
+    authResult: MockAuthOutcome | null;
+    handleRateLimit: { allowed: boolean; message?: string };
+    uploadRateLimit: {
+      allowed: boolean;
+      message?: string;
+      remaining: { hourly: number; daily: number };
+    };
+    handleTaken: boolean;
+    requestSize: { valid: boolean; error?: string };
+    adminAuthResult: {
+      user: { id: string; email: string; name: string; isAdmin: boolean };
+      error: Response | null;
+    };
+    txValues: UnknownRecord[];
+    txSelectResults: JsonValue[][];
+    txReturningResults: JsonValue[][];
+    serverSession: { user: { id: string } } | null;
+    cookieStore: MockCookieStore;
+  }
+
+  const r2BucketMock = { list: vi.fn(async () => ({ objects: [] })) };
+
+  interface MockEnv {
+    CLICKFOLIO_R2_BUCKET: typeof r2BucketMock | undefined;
+    CLICKFOLIO_PARSE_QUEUE: { send: () => Promise<void> };
+    PENDING_UPLOAD_SECRET: string;
+    CLERK_SECRET_KEY: string;
+    CF_AI_GATEWAY_ACCOUNT_ID: string;
+    CF_AI_GATEWAY_ID: string;
+    CF_AIG_AUTH_TOKEN: string;
+  }
+
+  const cookieStore: MockCookieStore = {
+    value: null,
     get: vi.fn(() => (cookieStore.value ? { value: cookieStore.value } : undefined)),
     set: vi.fn((_name: string, value: string) => {
       cookieStore.value = value;
@@ -13,41 +118,39 @@ const mocks = vi.hoisted(() => {
     }),
   };
 
-  const state = {
-    selectResults: [] as JsonValue[][],
-    authResult: null as unknown,
-    handleRateLimit: { allowed: true } as { allowed: boolean; message?: string },
+  const state: MockState = {
+    selectResults: [],
+    authResult: null,
+    handleRateLimit: { allowed: true },
     uploadRateLimit: {
       allowed: true,
       remaining: { hourly: 9, daily: 49 },
-    } as {
-      allowed: boolean;
-      message?: string;
-      remaining: { hourly: number; daily: number };
     },
     handleTaken: false,
-    requestSize: { valid: true } as { valid: boolean; error?: string },
+    requestSize: { valid: true },
     adminAuthResult: {
       user: { id: "admin_1", email: "admin@example.com", name: "Admin", isAdmin: true },
       error: null,
-    } as unknown,
-    txValues: [] as JsonValue[],
-    txSelectResults: [] as JsonValue[][],
-    txReturningResults: [] as JsonValue[][],
-    serverSession: null as unknown,
+    },
+    txValues: [],
+    txSelectResults: [],
+    txReturningResults: [],
+    serverSession: null,
     cookieStore,
   };
 
   const nextQueued = (queue: JsonValue[][], queueName: string) => {
-    if (queue.length === 0) {
+    const next = queue.shift();
+
+    if (next === undefined) {
       throw new Error(`No ${queueName} queued — push to mocks.state.${queueName} before querying`);
     }
 
-    return queue.shift() as JsonValue[];
+    return next;
   };
 
-  const createChain = (): Record<string, unknown> => {
-    const chain: Record<string, unknown> = {
+  const createChain = (): MockQueryChain => {
+    const chain: MockQueryChain = {
       from: vi.fn(() => chain),
       where: vi.fn(() => chain),
       innerJoin: vi.fn(() => chain),
@@ -66,6 +169,8 @@ const mocks = vi.hoisted(() => {
           try {
             return Promise.resolve(resolve(nextQueued(state.selectResults, "selectResults")));
           } catch (error) {
+            // SAFETY: the mock's rejection channel is typed JsonValue and the caught error is
+            // forwarded verbatim to reject/rejection without being inspected or converted.
             return reject
               ? Promise.reject(reject(error as JsonValue))
               : Promise.reject(error as JsonValue);
@@ -77,8 +182,8 @@ const mocks = vi.hoisted(() => {
     return chain;
   };
 
-  const createInsertChain = (): Record<string, unknown> => {
-    const chain: Record<string, unknown> = {
+  const createInsertChain = (): MockInsertChain => {
+    const chain: MockInsertChain = {
       values: vi.fn(() => chain),
       set: vi.fn(() => chain),
       onConflictDoNothing: vi.fn(() => chain),
@@ -100,8 +205,8 @@ const mocks = vi.hoisted(() => {
   // `update(...).returning(...)` from txReturningResults, inserts to undefined.
   const makeTxChain = (
     read: () => JsonValue = () => nextQueued(state.txSelectResults, "txSelectResults"),
-  ): Record<string, unknown> => {
-    const txChain: Record<string, unknown> = {
+  ): MockTxChain => {
+    const txChain: MockTxChain = {
       from: vi.fn(() => txChain),
       where: vi.fn(() => txChain),
       limit: vi.fn(() => txChain),
@@ -109,7 +214,7 @@ const mocks = vi.hoisted(() => {
       set: vi.fn(() => txChain),
       onConflictDoNothing: vi.fn(() => txChain),
       onConflictDoUpdate: vi.fn(() => txChain),
-      values: vi.fn((rows: JsonValue) => {
+      values: vi.fn((rows: UnknownRecord) => {
         state.txValues.push(rows);
 
         return makeTxChain(() => undefined);
@@ -122,6 +227,8 @@ const mocks = vi.hoisted(() => {
           try {
             return Promise.resolve(resolve(read()));
           } catch (error) {
+            // SAFETY: the mock's rejection channel is typed JsonValue and the caught error is
+            // forwarded verbatim to reject/rejection without being inspected or converted.
             return reject
               ? Promise.reject(reject(error as JsonValue))
               : Promise.reject(error as JsonValue);
@@ -142,9 +249,9 @@ const mocks = vi.hoisted(() => {
     select: vi.fn(() => createChain()),
     insert: vi.fn(() => createInsertChain()),
     update: vi.fn(() => createChain()),
-    delete: vi.fn(() => createInsertChain()),
+    delete: vi.fn((): MockInsertChain | { where: () => Promise<never> } => createInsertChain()),
     execute: vi.fn(async () => undefined),
-    transaction: vi.fn(async (callback: (tx: Record<string, unknown>) => Promise<JsonValue>) =>
+    transaction: vi.fn(async (callback: (tx: MockTxClient) => Promise<JsonValue>) =>
       callback({
         select: () => makeTxChain(),
         update: () => makeTxChain(),
@@ -154,8 +261,8 @@ const mocks = vi.hoisted(() => {
     ),
   };
 
-  const env = {
-    CLICKFOLIO_R2_BUCKET: { list: vi.fn(async () => ({ objects: [] })) },
+  const env: MockEnv = {
+    CLICKFOLIO_R2_BUCKET: r2BucketMock,
     CLICKFOLIO_PARSE_QUEUE: { send: vi.fn(async () => undefined) },
     PENDING_UPLOAD_SECRET: "test-secret-key-for-pending-upload",
     CLERK_SECRET_KEY: "sk_test_coverage",
@@ -335,7 +442,7 @@ function jsonRequest(path: string, body: JsonValue, init: RequestInit = {}) {
   });
 }
 
-function authed(overrides: Record<string, unknown> = {}) {
+function authed(overrides: Partial<MockAuthOutcome> = {}) {
   if ("error" in overrides && overrides.error != null) {
     mocks.state.authResult = {
       user: null,
@@ -358,8 +465,7 @@ function authed(overrides: Record<string, unknown> = {}) {
   };
 }
 
-const isHandleChangeRow = (row: JsonValue) =>
-  typeof row === "object" && row !== null && "newHandle" in row;
+const isHandleChangeRow = (row: UnknownRecord) => "newHandle" in row;
 
 describe("API route coverage", () => {
   let originalCronSecret: string | undefined;
@@ -392,7 +498,7 @@ describe("API route coverage", () => {
     mocks.state.txReturningResults = [];
     mocks.state.serverSession = null;
     mocks.db.transaction.mockImplementation(
-      async (callback: (tx: Record<string, unknown>) => Promise<JsonValue>) =>
+      async (callback: (tx: MockTxClient) => Promise<JsonValue>) =>
         callback({
           select: () => mocks.makeTxChain(),
           update: () => mocks.makeTxChain(),
@@ -400,7 +506,7 @@ describe("API route coverage", () => {
           delete: () => mocks.makeTxChain(),
         }),
     );
-    mocks.env.CLICKFOLIO_R2_BUCKET.list.mockResolvedValue({ objects: [] });
+    mocks.env.CLICKFOLIO_R2_BUCKET?.list.mockResolvedValue({ objects: [] });
     mocks.r2Put.mockResolvedValue(undefined);
     mocks.r2Delete.mockResolvedValue(undefined);
     mocks.r2GetAsUint8Array.mockResolvedValue(new Uint8Array([1, 2, 3]));
@@ -494,7 +600,7 @@ describe("API route coverage", () => {
       [{ oldHandle: "old-one" }, { oldHandle: null }],
     ];
     const response = await GET(new Request("https://clickfolio.me/api/analytics/stats?period=30d"));
-    const body = (await response.json()) as { viewsByDay: JsonValue[] } & Record<string, unknown>;
+    const body: { viewsByDay: JsonValue[] } = await response.json();
     expect(response.status).toBe(200);
     expect(["private, max-age=60, stale-while-revalidate=120", "private, no-store"]).toContain(
       response.headers.get("Cache-Control"),
@@ -585,21 +691,24 @@ describe("API route coverage", () => {
     const pdf = new Uint8Array(120);
     pdf.set([0x25, 0x50, 0x44, 0x46]);
 
-    const uploadRequest = (overrides: { headers?: HeadersInit; body?: BodyInit } = {}) =>
+    const uploadRequest = (
+      overrides: {
+        headers?: HeadersInit;
+        body?: Uint8Array<ArrayBuffer>;
+      } = {},
+    ) =>
       new Request("https://clickfolio.me/api/upload", {
         method: "POST",
         headers: {
           "content-type": "application/pdf",
-          "content-length": String(
-            (overrides.body as Uint8Array | undefined)?.byteLength ?? pdf.byteLength,
-          ),
+          "content-length": String(overrides.body?.byteLength ?? pdf.byteLength),
           "x-filename": "resume.pdf",
           ...(overrides.headers ?? {}),
         },
         body: overrides.body ?? pdf,
       });
 
-    (mocks.env as unknown as { CLICKFOLIO_R2_BUCKET?: JsonValue }).CLICKFOLIO_R2_BUCKET = undefined;
+    mocks.env.CLICKFOLIO_R2_BUCKET = undefined;
     expect((await POST(uploadRequest())).status).toBe(503);
     mocks.env.CLICKFOLIO_R2_BUCKET = originalBucket;
 
@@ -674,7 +783,7 @@ describe("API route coverage", () => {
     ).toBe(401);
 
     authed();
-    (mocks.env as unknown as { CLICKFOLIO_R2_BUCKET?: JsonValue }).CLICKFOLIO_R2_BUCKET = undefined;
+    mocks.env.CLICKFOLIO_R2_BUCKET = undefined;
     expect(
       (await POST(jsonRequest("/api/account/delete", { confirmation: "avery@example.com" })))
         .status,
@@ -858,9 +967,9 @@ describe("API route coverage", () => {
       [{ userId: "live" }],
     ];
 
-    const body = (await (
+    const body: { page: number; users: Array<{ status: string }> } = await (
       await GET(new Request("https://clickfolio.me/api/admin/users?page=2&search=a%25_%5C"))
-    ).json()) as { page: number; users: Array<{ status: string }> };
+    ).json();
 
     expect(body.page).toBe(2);
     expect(body.users.map((entry: { status: string }) => entry.status)).toEqual([
@@ -911,9 +1020,9 @@ describe("API route coverage", () => {
       ],
     ];
 
-    const body = (await (
+    const body: { stats: JsonValue; resumes: JsonValue; page: number } = await (
       await GET(new Request("https://clickfolio.me/api/admin/resumes?status=failed&page=2"))
-    ).json()) as { stats: JsonValue; resumes: JsonValue; page: number };
+    ).json();
 
     expect(body.stats).toEqual({ completed: 3, processing: 3, queued: 9, failed: 6 });
     expect(body.resumes).toEqual([
@@ -958,9 +1067,7 @@ describe("API route coverage", () => {
       sessions: [],
     });
 
-    const body = (await (await GET()).json()) as {
-      dailyViews: Array<{ views: number }>;
-    } & Record<string, unknown>;
+    const body: { dailyViews: Array<{ views: number }> } = await (await GET()).json();
 
     expect(body).toMatchObject({
       totalUsers: 8,

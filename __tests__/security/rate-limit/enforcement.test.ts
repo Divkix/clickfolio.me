@@ -13,11 +13,16 @@ const mockWhere = vi.fn().mockReturnThis();
 
 let rawInsertCount = 1;
 
+interface RawSqlClient {
+  (strings: TemplateStringsArray, ...values: unknown[]): Promise<{ count: number }>;
+  begin(cb: (tx: RawSqlClient) => Promise<boolean>): Promise<boolean>;
+}
+
 const mockRawClient = Object.assign(
   vi.fn((_strings: TemplateStringsArray, ..._values: unknown[]) =>
     Promise.resolve({ count: rawInsertCount }),
   ),
-  { begin: vi.fn(async (cb: (tx: unknown) => unknown) => cb(mockRawClient)) },
+  { begin: vi.fn(async (cb: (tx: RawSqlClient) => Promise<boolean>) => cb(mockRawClient)) },
 );
 
 function lastRawSqlText(): string {

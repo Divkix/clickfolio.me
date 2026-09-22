@@ -1,9 +1,11 @@
 import type * as DrizzleOrm from "drizzle-orm";
-import type { UnknownRecord, JsonValue } from "@/lib/types/json";
+import type { JsonValue } from "@/lib/types/json";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
+const { mockedAuth } = vi.hoisted(() => ({ mockedAuth: vi.fn() }));
+
 vi.mock("@/lib/auth/middleware", () => ({
-  requireAuthWithUserValidation: vi.fn(),
+  requireAuthWithUserValidation: mockedAuth,
   requireAuthWithMessage: vi.fn(),
 }));
 
@@ -171,12 +173,11 @@ vi.mock("@/lib/db/schema", () => ({
   },
 }));
 
-import { requireAuthWithMessage, requireAuthWithUserValidation } from "@/lib/auth/middleware";
+import { requireAuthWithMessage } from "@/lib/auth/middleware";
+import { DEFAULT_PRIVACY_SETTINGS, type PrivacySettings } from "@/lib/utils/privacy";
 import { validateRequestSize } from "@/lib/utils/validation";
 
 type ErrorBody = { error: string; details?: JsonValue };
-
-const mockedAuth = vi.mocked(requireAuthWithUserValidation);
 
 const mockedAuthMessage = vi.mocked(requireAuthWithMessage);
 
@@ -230,7 +231,7 @@ mockUpdateWhere.mockReturnValue({ returning: mockReturning });
 
 mockReturning.mockResolvedValue([{ id: "resume-123" }]);
 
-mockTransaction.mockImplementation(async (cb: (tx: typeof mockDb) => unknown) => cb(mockDb));
+mockTransaction.mockImplementation(async (cb: (tx: typeof mockDb) => void) => cb(mockDb));
 
 const mockDb = {
   query: {
@@ -280,7 +281,7 @@ type AuthedUser = {
   image: null;
   handle: string;
   headline: string;
-  privacySettings: Record<string, boolean>;
+  privacySettings: PrivacySettings;
   onboardingCompleted: boolean;
   role: "student" | "entry_level" | "mid_level" | "senior" | "executive";
   isAdmin: boolean;
@@ -295,6 +296,7 @@ type AuthedAsResult = {
 };
 
 function authedAs(userId: string, isAdmin = false): AuthedAsResult {
+  // SAFETY: env stub declares only HYPERDRIVE, the parse queue, and the upload secret — the bindings these routes read; CloudflareEnv's remaining properties are never accessed on these paths.
   const authResult = {
     user: {
       id: userId,
@@ -303,23 +305,23 @@ function authedAs(userId: string, isAdmin = false): AuthedAsResult {
       image: null,
       handle: "testuser",
       headline: "Software Engineer",
-      privacySettings: {},
+      privacySettings: DEFAULT_PRIVACY_SETTINGS,
       onboardingCompleted: true,
       role: "mid_level" as const,
       isAdmin,
     },
-    db: mockDb as never,
+    db: mockDb,
     dbUser: { id: userId, handle: "testuser", clerkId: "user_clerk_1" },
     env: {
       HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" },
       CLICKFOLIO_PARSE_QUEUE: {},
       PENDING_UPLOAD_SECRET: TEST_COOKIE_SECRET,
-    } as never,
+    } as CloudflareEnv,
     error: null,
   };
 
-  mockedAuth.mockResolvedValue(authResult as never);
-  mockedAuthMessage.mockResolvedValue({ user: authResult.user as never, error: null });
+  mockedAuth.mockResolvedValue(authResult);
+  mockedAuthMessage.mockResolvedValue({ user: authResult.user, error: null });
 
   return authResult;
 }
@@ -332,7 +334,7 @@ function unauthenticated() {
     dbUser: null,
     env: null,
     error,
-  } as never);
+  });
   mockedAuthMessage.mockResolvedValue({ user: null, error });
 
   return error;
@@ -384,7 +386,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
       const response = await GET(request);
 
       expect(response.status).toBe(200);
-      const body = (await response.json()) as { status: string; progress_pct: number };
+      const body: { status: string; progress_pct: number } = await response.json();
       expect(body.status).toBe("processing");
       expect(body.progress_pct).toBe(50);
     });
@@ -418,7 +420,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
       const response = await GET(request);
 
       expect(response.status).toBe(403);
-      const body = (await response.json()) as { error: string };
+      const body: { error: string } = await response.json();
       expect(body.error).toContain("permission");
     });
 
@@ -440,7 +442,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
       const response = await GET(request);
 
       expect(response.status).toBe(200);
-      const body = (await response.json()) as { status: string; waiting_for_cache: boolean };
+      const body: { status: string; waiting_for_cache: boolean } = await response.json();
       expect(body.status).toBe("processing");
       expect(body.waiting_for_cache).toBe(true);
     });
@@ -474,7 +476,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
       const response = await GET(request);
 
       expect(response.status).toBe(200);
-      const body = (await response.json()) as { status: string; parsed_content: JsonValue };
+      const body: { status: string; parsed_content: JsonValue } = await response.json();
       expect(body.status).toBe("completed");
       expect(body.parsed_content).toBeDefined();
     });
@@ -497,7 +499,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
       const response = await GET(request);
 
       expect(response.status).toBe(200);
-      const body = (await response.json()) as { status: string; error: string; can_retry: boolean };
+      const body: { status: string; error: string; can_retry: boolean } = await response.json();
       expect(body.status).toBe("failed");
       expect(body.error).toBe("PDF parsing error");
       expect(body.can_retry).toBe(true);
@@ -542,7 +544,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
       const response = await GET();
 
       expect(response.status).toBe(200);
-      const body = (await response.json()) as { id: string; status: string };
+      const body: { id: string; status: string } = await response.json();
       expect(body.id).toBe("resume-latest");
       expect(body.status).toBe("completed");
     });
@@ -570,7 +572,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
   });
 
   describe("Retry eligibility: status and latest-status agree", () => {
-    async function canRetryFromBothEndpoints(row: UnknownRecord): Promise<{
+    async function canRetryFromBothEndpoints(row: { id: string }): Promise<{
       status: boolean;
       latest: boolean;
     }> {
@@ -580,14 +582,14 @@ describe("Resume API Integration Tests (25 tests)", () => {
       const { GET: statusGET } = await import("@/app/api/resume/status/route");
 
       const statusRes = await statusGET(
-        makeRequest(`http://localhost:3000/api/resume/status?resume_id=${row.id as string}`),
+        makeRequest(`http://localhost:3000/api/resume/status?resume_id=${row.id}`),
       );
 
-      const statusBody = (await statusRes.json()) as { can_retry: boolean };
+      const statusBody: { can_retry: boolean } = await statusRes.json();
 
       const { GET: latestGET } = await import("@/app/api/resume/latest-status/route");
       const latestRes = await latestGET();
-      const latestBody = (await latestRes.json()) as { can_retry: boolean };
+      const latestBody: { can_retry: boolean } = await latestRes.json();
 
       return { status: statusBody.can_retry, latest: latestBody.can_retry };
     }
@@ -782,7 +784,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
       const response = await POST(request);
 
       expect(response.status).toBe(200);
-      const body = (await response.json()) as { already_claimed: boolean; resume_id: string };
+      const body: { already_claimed: boolean; resume_id: string } = await response.json();
       expect(body.already_claimed).toBe(true);
       expect(body.resume_id).toBe("existing-resume");
     });
@@ -829,7 +831,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
       const response = await POST(request);
 
       expect(response.status).toBe(200);
-      const body = (await response.json()) as { status: string; retry_count: number };
+      const body: { status: string; retry_count: number } = await response.json();
       expect(body.status).toBe("queued");
       expect(body.retry_count).toBe(1);
 
@@ -869,7 +871,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
       const response = await POST(request);
 
       expect(response.status).toBe(409);
-      const resBody = (await response.json()) as { error: string };
+      const resBody: { error: string } = await response.json();
       expect(resBody.error).toContain("already retried");
       expect(vi.mocked(publishResumeParse)).not.toHaveBeenCalled();
     });
@@ -1080,7 +1082,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
       const response = await PUT(request);
 
       expect(response.status).toBe(200);
-      const body = (await response.json()) as { success: boolean; data: { id: string } };
+      const body: { success: boolean; data: { id: string } } = await response.json();
       expect(body.success).toBe(true);
       expect(body.data.id).toBe("site-data-123");
     });
@@ -1147,7 +1149,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
       const response = await PUT(request);
 
       expect(response.status).toBe(404);
-      const body = (await response.json()) as { error: string };
+      const body: { error: string } = await response.json();
       expect(body.error).toContain("Resume data not found");
     });
 
@@ -1166,7 +1168,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
       const response = await PUT(request);
 
       expect(response.status).toBe(409);
-      const body = (await response.json()) as { error: string };
+      const body: { error: string } = await response.json();
       expect(body.error).toContain("changed elsewhere");
     });
   });
@@ -1186,7 +1188,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
       const response = await POST(request);
 
       expect(response.status).toBe(200);
-      const body = (await response.json()) as { success: boolean; theme_id: string };
+      const body: { success: boolean; theme_id: string } = await response.json();
       expect(body.success).toBe(true);
       expect(body.theme_id).toBe("bento");
     });
@@ -1219,7 +1221,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
       const response = await POST(request);
 
       expect(response.status).toBe(200);
-      const body = (await response.json()) as { success: boolean; theme_id: string };
+      const body: { success: boolean; theme_id: string } = await response.json();
       expect(body.theme_id).toBe("bold_corporate");
     });
 
@@ -1268,7 +1270,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
       const response = await GET(request);
 
       expect(response.status).toBe(404);
-      const body = (await response.json()) as { error: string };
+      const body: { error: string } = await response.json();
       expect(body.error).toContain("not found");
     });
 
@@ -1289,15 +1291,15 @@ describe("Resume API Integration Tests (25 tests)", () => {
           onboardingCompleted: true,
           role: "mid_level",
         },
-        db: mockDb as never,
+        db: mockDb,
         dbUser: { id: "user-123", handle: "testuser", clerkId: "user_clerk_1" },
         env: {
           HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" },
           CLICKFOLIO_PARSE_QUEUE: undefined,
           PENDING_UPLOAD_SECRET: TEST_COOKIE_SECRET,
-        } as never,
+        },
         error: null,
-      } as never);
+      });
 
       mockLimit.mockResolvedValue([]);
 
@@ -1372,7 +1374,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
       const response = await GET(request);
 
       expect(response.status).toBe(200);
-      const body = (await response.json()) as { status: string };
+      const body: { status: string } = await response.json();
       expect(body.status).toBe("processing");
     });
 
@@ -1394,7 +1396,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
       const response = await GET(request);
 
       expect(response.status).toBe(200);
-      const body = (await response.json()) as { status: string; queued: boolean };
+      const body: { status: string; queued: boolean } = await response.json();
       expect(body.status).toBe("processing");
       expect(body.queued).toBe(true);
     });

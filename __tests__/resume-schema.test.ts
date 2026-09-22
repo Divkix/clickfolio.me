@@ -495,7 +495,7 @@ describe("type inference", () => {
     expect(result.success).toBe(true);
 
     if (result.success) {
-      expect(typeof result.data.full_name).toBe("string");
+      expect(result.data.full_name).toBeTypeOf("string");
       expect(Array.isArray(result.data.experience)).toBe(true);
       expect(result.data.contact.email).toBe("test@test.com");
     }

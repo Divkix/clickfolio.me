@@ -37,13 +37,15 @@ const mockDbUpdateReturning = vi.fn(async () => [{ id: "resume-id" }]);
 
 const mockDbUpdateWhere = vi.fn().mockReturnValue({ returning: mockDbUpdateReturning });
 
-const mockDbTransaction = vi.fn(async (cb: (tx: typeof mockDb) => unknown) => cb(mockDb));
+const mockDbTransaction = vi.fn(async <T>(cb: (tx: typeof mockDb) => Promise<T>) => cb(mockDb));
 
 let mockHandleRows: Array<{ handle: string | null }> = [{ handle: "test-handle" }];
 
-const mockDbSelect = vi.fn().mockImplementation((cols: unknown) => {
-  const isHandleQuery =
-    cols !== null && typeof cols === "object" && "handle" in (cols as Record<string, unknown>);
+/** Column map passed to `db.select(...)`; the mock only needs to spot the handle lookup. */
+type SelectColumns = { handle?: string } | null | undefined;
+
+const mockDbSelect = vi.fn().mockImplementation((cols: SelectColumns) => {
+  const isHandleQuery = cols != null && "handle" in cols;
 
   if (isHandleQuery) {
     return {
@@ -222,8 +224,13 @@ function authedAs(userId: string) {
       onboardingCompleted: true,
       role: "mid_level",
     },
+    // SAFETY: mockDb implements exactly the select/insert/update/transaction surface the
+    // claim route calls; Database additionally requires the live postgres-js $client, which
+    // no test can construct — the auth context only forwards db through to the handler.
     db: mockDb as never,
     dbUser: { id: userId, handle: "testuser", clerkId: "user_clerk_1" },
+    // SAFETY: the route reads only PENDING_UPLOAD_SECRET (cookie HMAC) and passes the queue
+    // binding to the mocked publisher; the other 28 CloudflareEnv bindings stay untouched.
     env: { CLICKFOLIO_PARSE_QUEUE: {}, PENDING_UPLOAD_SECRET: TEST_SECRET } as never,
     error: null,
   });
@@ -274,9 +281,8 @@ beforeEach(() => {
   mockedValidateRequestSize.mockReturnValue({ valid: true });
   mockR2GetAsArrayBuffer.mockResolvedValue(makePdfBuffer());
   mockDbLimit.mockResolvedValue([]);
-  mockDbSelect.mockImplementation((cols: unknown) => {
-    const isHandleQuery =
-      cols !== null && typeof cols === "object" && "handle" in (cols as Record<string, unknown>);
+  mockDbSelect.mockImplementation((cols: SelectColumns) => {
+    const isHandleQuery = cols != null && "handle" in cols;
 
     if (isHandleQuery) {
       return {
@@ -325,7 +331,7 @@ describe("POST /api/resume/claim", () => {
     const response = await POST(makeClaimRequest({}, cookie));
 
     expect(response.status).toBe(400);
-    const body = (await response.json()) as { error: string };
+    const body: { error: string } = await response.json();
     expect(body.error).toContain("Invalid upload key");
   });
 
@@ -337,7 +343,7 @@ describe("POST /api/resume/claim", () => {
     const response = await POST(makeClaimRequest({ key: "users/hack/resume.pdf" }, cookie));
 
     expect(response.status).toBe(400);
-    const body = (await response.json()) as { error: string };
+    const body: { error: string } = await response.json();
     expect(body.error).toContain("temporary upload");
   });
 
@@ -362,7 +368,7 @@ describe("POST /api/resume/claim", () => {
     const response = await POST(makeClaimRequest({ key: "temp/uuid/resume.pdf" }, cookie));
 
     expect(response.status).toBe(404);
-    const body = (await response.json()) as { error: string };
+    const body: { error: string } = await response.json();
     expect(body.error).toContain("not found");
   });
 
@@ -376,7 +382,7 @@ describe("POST /api/resume/claim", () => {
     const response = await POST(makeClaimRequest({ key: "temp/uuid/resume.pdf" }, cookie));
 
     expect(response.status).toBe(200);
-    const body = (await response.json()) as { already_claimed: boolean; resume_id: string };
+    const body: { already_claimed: boolean; resume_id: string } = await response.json();
     expect(body.already_claimed).toBe(true);
     expect(body.resume_id).toBe("existing-resume");
   });
@@ -391,7 +397,7 @@ describe("POST /api/resume/claim", () => {
     const response = await POST(makeClaimRequest({ key: "temp/uuid/resume.pdf" }, cookie));
 
     expect(response.status).toBe(200);
-    const body = (await response.json()) as { already_claimed: boolean; resume_id: string };
+    const body: { already_claimed: boolean; resume_id: string } = await response.json();
     expect(body.already_claimed).toBe(true);
     expect(body.resume_id).toBe("existing-resume");
   });
@@ -416,7 +422,7 @@ describe("POST /api/resume/claim", () => {
     const response = await POST(makeClaimRequest({ key: "temp/uuid/resume.pdf" }, cookie));
 
     expect(response.status).toBe(200);
-    const body = (await response.json()) as { resume_id: string; status: string };
+    const body: { resume_id: string; status: string } = await response.json();
     expect(body.status).toBe("queued");
     expect(body.resume_id).toBeDefined();
 
@@ -452,7 +458,7 @@ describe("POST /api/resume/claim", () => {
     const response = await POST(makeClaimRequest({ key: "temp/uuid/resume.pdf" }, cookie));
 
     expect(response.status).toBe(200);
-    const body = (await response.json()) as { already_claimed: boolean };
+    const body: { already_claimed: boolean } = await response.json();
     expect(body.already_claimed).toBe(true);
     expect(enforceRateLimit).not.toHaveBeenCalled();
   });
@@ -487,7 +493,7 @@ describe("POST /api/resume/claim", () => {
     const response = await POST(makeClaimRequest({ key: "temp/uuid/resume.pdf" }, cookie));
 
     expect(response.status).toBe(200);
-    const body = (await response.json()) as { status: string; cached?: boolean };
+    const body: { status: string; cached?: boolean } = await response.json();
     expect(body.status).toBe("completed");
     expect(body.cached).toBe(true);
 
@@ -513,7 +519,7 @@ describe("POST /api/resume/claim - cookie security", () => {
     const response = await POST(makeClaimRequest({ key: VALID_TEMP_KEY }));
 
     expect(response.status).toBe(403);
-    const body = (await response.json()) as { error: string };
+    const body: { error: string } = await response.json();
     expect(body.error).toContain("Unauthorized upload attempt");
   });
 
@@ -526,7 +532,7 @@ describe("POST /api/resume/claim - cookie security", () => {
     const response = await POST(makeClaimRequest({ key: VALID_TEMP_KEY }, invalidCookie));
 
     expect(response.status).toBe(403);
-    const body = (await response.json()) as { error: string };
+    const body: { error: string } = await response.json();
     expect(body.error).toContain("Unauthorized upload attempt");
   });
 
@@ -543,7 +549,7 @@ describe("POST /api/resume/claim - cookie security", () => {
     const response = await POST(makeClaimRequest({ key: VALID_TEMP_KEY }, expiredCookie));
 
     expect(response.status).toBe(403);
-    const body = (await response.json()) as { error: string };
+    const body: { error: string } = await response.json();
     expect(body.error).toContain("Unauthorized upload attempt");
   });
 
@@ -556,7 +562,7 @@ describe("POST /api/resume/claim - cookie security", () => {
     const response = await POST(makeClaimRequest({ key: VALID_TEMP_KEY }, mismatchedCookie));
 
     expect(response.status).toBe(403);
-    const body = (await response.json()) as { error: string };
+    const body: { error: string } = await response.json();
     expect(body.error).toContain("Unauthorized upload attempt");
   });
 
@@ -570,7 +576,7 @@ describe("POST /api/resume/claim - cookie security", () => {
     );
 
     expect(response.status).toBe(403);
-    const body = (await response.json()) as { error: string };
+    const body: { error: string } = await response.json();
     expect(body.error).toContain("Unauthorized upload attempt");
   });
 });
