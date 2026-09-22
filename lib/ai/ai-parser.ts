@@ -5,7 +5,7 @@ import { parseJsonWithRepair, transformToSchema } from "./ai-fallback";
 import { normalizeAiKeys } from "./ai-normalize";
 import { RESUME_TRUNCATION_MARKER, truncateResumeText } from "./truncate";
 
-const DEFAULT_AI_MODEL = "openai/gpt-5.6-luna:nitro";
+const DEFAULT_AI_MODEL = "openai/gpt-6-luna:nitro";
 
 const PROVIDER_ROUTING = {
   openrouter: {

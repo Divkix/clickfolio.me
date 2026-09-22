@@ -15,7 +15,7 @@ This file is the **single source of truth** — read top-to-bottom before touchi
 | Package mgr | `pnpm@11.10.0` via `packageManager`                                                                            |
 | DB          | PlanetScale Postgres via Hyperdrive `HYPERDRIVE` + Drizzle `drizzle-orm/pg-core` (postgres-js)                 |
 | Auth        | Clerk `@clerk/react` + `@clerk/backend` (NOT `@clerk/nextjs`) — Google OAuth                                   |
-| AI parsing  | Cloudflare AI Gateway → OpenRouter `openai/gpt-5.6-luna:nitro` + `unpdf` + Vercel AI SDK `ai`                  |
+| AI parsing  | Cloudflare AI Gateway → OpenRouter `openai/gpt-6-luna:nitro` + `unpdf` + Vercel AI SDK `ai`                  |
 | Storage     | Cloudflare R2 `CLICKFOLIO_R2_BUCKET`                                                                           |
 | Queue       | Cloudflare Queues `CLICKFOLIO_PARSE_QUEUE` + DLQ                                                               |
 | Realtime    | Durable Object `ClickfolioStatusDO` (hibernation)                                                              |
@@ -185,7 +185,7 @@ Compat `2026-01-22`, flags `nodejs_compat`, `global_fetch_strictly_public`; `wor
 | DB cleanup      | `0 3 * * *`    | `lib/cron/cleanup.ts`          | expired `upload_rate_limits` + `handle_changes>90d` in one transaction                             |
 | Orphan recovery | `*/15 * * * *` | `lib/cron/recover-orphaned.ts` | re-queues `pending_claim` orphans + `waiting_for_cache` timeout; TOCTOU skip if `totalAttempts>=6` |
 
-**Env vars — static `wrangler.jsonc:vars` (5):** `NODE_ENV:production`, `APP_URL:https://clickfolio.me`, `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:pk_live_…`, `AI_MODEL:openai/gpt-5.6-luna:nitro`, `AI_REASONING_EFFORT:medium`.
+**Env vars — static `wrangler.jsonc:vars` (5):** `NODE_ENV:production`, `APP_URL:https://clickfolio.me`, `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:pk_live_…`, `AI_MODEL:openai/gpt-6-luna:nitro`, `AI_REASONING_EFFORT:medium`.
 **Secrets** (`wrangler secret put` / `.dev.vars`): `CLERK_SECRET_KEY`, `CLERK_WEBHOOK_SECRET`, `PENDING_UPLOAD_SECRET`, `CF_AI_GATEWAY_ACCOUNT_ID|ID|CF_AIG_AUTH_TOKEN`, `CRON_SECRET`, `ALERT_CHANNEL|ALERT_WEBHOOK_URL`, Umami vars, `DISABLE_RATE_LIMITS` (ignored in prod). PostHog needs no Worker var (literals in `lib/analytics/config.ts`; source-map creds `POSTHOG_API_KEY|PROJECT_ID` only in local deploy env).
 **Not Worker var:** `DATABASE_URL` (direct PlanetScale URL for drizzle-kit only).
 Local `.dev.vars` auto-loaded by Vite; `.env.example` **6.3KB** (154 lines) is the template. `lib/cloudflare-env.d.ts` (cf-typegen, ~569KB) types a broader env (also `DISABLE_RATE_LIMITS`, `NEXT_PUBLIC_SITE_*`, `CLERK_*`, etc. — injected via secrets/local env, not wrangler vars).

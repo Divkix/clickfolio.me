@@ -30,7 +30,7 @@ const mockEnv: AiEnvVars = {
   CF_AI_GATEWAY_ACCOUNT_ID: "test-account",
   CF_AI_GATEWAY_ID: "test-gateway",
   CF_AIG_AUTH_TOKEN: "test-token",
-  AI_MODEL: "openai/gpt-5.6-luna:nitro",
+  AI_MODEL: "openai/gpt-6-luna:nitro",
   AI_REASONING_EFFORT: "medium",
 };
 
@@ -133,7 +133,7 @@ describe("parseWithAi - universal text path", () => {
 
     await parseWithAi("Resume text", env);
 
-    expect(mockProvider).toHaveBeenCalledWith("openai/gpt-5.6-luna:nitro");
+    expect(mockProvider).toHaveBeenCalledWith("openai/gpt-6-luna:nitro");
   });
 
   it("uses custom model when provided", async () => {

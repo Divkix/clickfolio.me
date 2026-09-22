@@ -180,7 +180,7 @@ describe("AI Parsing Pipeline", () => {
     CF_AI_GATEWAY_ACCOUNT_ID: "test-account",
     CF_AI_GATEWAY_ID: "test-gateway",
     CF_AIG_AUTH_TOKEN: "test-token",
-    AI_MODEL: "openai/gpt-5.6-luna:nitro",
+    AI_MODEL: "openai/gpt-6-luna:nitro",
   };
 
   beforeEach(() => {

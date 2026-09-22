@@ -5,7 +5,7 @@ import { normalizeAiKeys } from "./ai-normalize";
 import { createAiProvider, type AiEnvVars } from "./ai-parser";
 import { log } from "../utils/log";
 
-const DEFAULT_AI_MODEL = "openai/gpt-5.6-luna:nitro";
+const DEFAULT_AI_MODEL = "openai/gpt-6-luna:nitro";
 
 const VISION_TIMEOUT_MS = 90_000;
 
