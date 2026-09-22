@@ -2,6 +2,8 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { AnalyticsCard } from "@/components/dashboard/AnalyticsCard";
 
+type MockCursor = { idx: number | null; left: number; top: number };
+
 const chartEvents = vi.hoisted(() => ({
   destroyed: vi.fn(),
 }));
@@ -16,7 +18,7 @@ vi.mock("uplot", () => {
       }),
     };
     bbox = { height: 160 };
-    cursor = { idx: null as number | null, left: 320, top: 30 };
+    cursor: MockCursor = { idx: null, left: 320, top: 30 };
     data: unknown[];
 
     constructor(
@@ -64,12 +66,23 @@ function installResizeObserver(width = 420) {
     }
 
     observe(target: Element) {
-      this.callback([{ target, contentRect: { width, height: 160 } } as ResizeObserverEntry], this);
+      this.callback(
+        [
+          {
+            target,
+            contentRect: new DOMRectReadOnly(0, 0, width, 160),
+            borderBoxSize: [{ blockSize: 160, inlineSize: width }],
+            contentBoxSize: [{ blockSize: 160, inlineSize: width }],
+            devicePixelContentBoxSize: [{ blockSize: 160, inlineSize: width }],
+          },
+        ],
+        this,
+      );
     }
 
     unobserve() {}
     disconnect() {}
-  } as unknown as typeof ResizeObserver;
+  };
 }
 
 const baseStats = {
@@ -104,13 +117,13 @@ describe("AnalyticsCard", () => {
 
   afterEach(() => {
     if (originalResizeObserver === undefined) {
-      delete (globalThis as { ResizeObserver?: typeof ResizeObserver }).ResizeObserver;
+      Reflect.deleteProperty(globalThis, "ResizeObserver");
     } else {
       globalThis.ResizeObserver = originalResizeObserver;
     }
 
     if (originalFetch === undefined) {
-      delete (globalThis as { fetch?: typeof fetch }).fetch;
+      Reflect.deleteProperty(globalThis, "fetch");
     } else {
       globalThis.fetch = originalFetch;
     }
@@ -120,9 +133,7 @@ describe("AnalyticsCard", () => {
     globalThis.fetch = vi
       .fn()
       .mockResolvedValueOnce(Response.json(baseStats))
-      .mockResolvedValueOnce(
-        Response.json({ ...baseStats, totalViews: 24, period: "30d" }),
-      ) as unknown as typeof fetch;
+      .mockResolvedValueOnce(Response.json({ ...baseStats, totalViews: 24, period: "30d" }));
 
     render(<AnalyticsCard />);
 
@@ -149,7 +160,7 @@ describe("AnalyticsCard", () => {
         new Promise<Response>((resolve) => {
           resolveStats = resolve;
         }),
-    ) as unknown as typeof fetch;
+    );
 
     const { unmount } = render(<AnalyticsCard />);
     expect(document.querySelectorAll(".animate-pulse").length).toBeGreaterThan(0);
@@ -162,7 +173,7 @@ describe("AnalyticsCard", () => {
 
     globalThis.fetch = vi.fn(async () =>
       Response.json({ ...baseStats, totalViews: 0, directVisits: 0, topReferrers: [] }),
-    ) as unknown as typeof fetch;
+    );
     const empty = render(<AnalyticsCard />);
     expect(await screen.findByText("No views yet")).toBeInTheDocument();
     empty.unmount();
@@ -175,7 +186,7 @@ describe("AnalyticsCard", () => {
         topReferrers: [],
         deviceBreakdown: [],
       }),
-    ) as unknown as typeof fetch;
+    );
     render(<AnalyticsCard />);
     expect(await screen.findByText("No traffic sources yet")).toBeInTheDocument();
     expect(screen.getByText("0")).toBeInTheDocument();

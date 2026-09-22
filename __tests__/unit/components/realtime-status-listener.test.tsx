@@ -66,16 +66,16 @@ describe("RealtimeStatusListener", () => {
     );
 
     expect(screen.getByText("Processing Complete!")).toBeInTheDocument();
-    const completedSocketArgs = mocks.socketArgs as { resumeId: string | null } | null;
+    const completedSocketArgs = mocks.socketArgs;
     expect(completedSocketArgs?.resumeId).toBeNull();
 
     unmount();
-    mocks.socketArgs = null;
+    Object.assign(mocks, { socketArgs: null });
     render(<RealtimeStatusListener currentStatus="failed" resumeId="resume_456" />);
 
     expect(screen.getByText("Processing Failed")).toBeInTheDocument();
     expect(screen.getByText("An error occurred while processing your resume.")).toBeInTheDocument();
-    const failedSocketArgs = mocks.socketArgs as { resumeId: string | null } | null;
+    const failedSocketArgs = mocks.socketArgs;
     expect(failedSocketArgs?.resumeId).toBeNull();
   });
 

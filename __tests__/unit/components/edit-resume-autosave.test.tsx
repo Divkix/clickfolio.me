@@ -22,9 +22,12 @@ describe("EditResumeForm autosave debounce", () => {
 
     const { unmount } = render(<EditResumeForm initialData={initialData} onSave={onSave} />);
 
-    const input = document.querySelector<HTMLInputElement>("input[name='full_name']");
-    expect(input, "full_name input rendered").toBeTruthy();
-    const field = input as HTMLInputElement;
+    const field = document.querySelector<HTMLInputElement>("input[name='full_name']");
+    expect(field, "full_name input rendered").toBeTruthy();
+
+    if (field === null) {
+      throw new Error("full_name input rendered");
+    }
 
     await act(async () => {
       field.focus();

@@ -10,22 +10,24 @@ type SessionState = {
   isPending: boolean;
 };
 
-const mocks = vi.hoisted(() => ({
-  router: { push: vi.fn() },
-  toast: { error: vi.fn(), success: vi.fn() },
-  sessionState: {
-    current: {
-      data: { user: { id: "user_1", email: "avery@example.com", name: "Avery" } },
-      isPending: false,
-    } as SessionState,
-  },
-  clearPendingUploadCookie: vi.fn(async () => undefined),
-  waitForResumeCompletion: vi.fn(
-    async (_resumeId: string): Promise<{ status: "completed" | "failed"; error?: string }> => ({
-      status: "completed",
-    }),
-  ),
-}));
+const mocks = vi.hoisted(() => {
+  const current: SessionState = {
+    data: { user: { id: "user_1", email: "avery@example.com", name: "Avery" } },
+    isPending: false,
+  };
+
+  return {
+    router: { push: vi.fn() },
+    toast: { error: vi.fn(), success: vi.fn() },
+    sessionState: { current },
+    clearPendingUploadCookie: vi.fn(async () => undefined),
+    waitForResumeCompletion: vi.fn(
+      async (_resumeId: string): Promise<{ status: "completed" | "failed"; error?: string }> => ({
+        status: "completed",
+      }),
+    ),
+  };
+});
 
 vi.mock("next/navigation", () => ({
   useRouter: () => mocks.router,
@@ -196,7 +198,7 @@ function installFetchScenario(scenario: FetchScenario) {
     }
 
     return Response.json({ ok: true });
-  }) as unknown as typeof fetch;
+  });
 }
 
 describe("wizard page flow", () => {
@@ -307,7 +309,7 @@ describe("wizard page flow", () => {
         }
 
         return Response.json(null);
-      }) as unknown as typeof fetch;
+      });
       mocks.waitForResumeCompletion.mockResolvedValueOnce({
         status: "failed",
         error: "Parser failed",
@@ -325,7 +327,7 @@ describe("wizard page flow", () => {
         }
 
         return Response.json({ key: null, file_hash: null });
-      }) as unknown as typeof fetch;
+      });
       const loader = render(<WizardPage />);
       await waitFor(() =>
         expect(

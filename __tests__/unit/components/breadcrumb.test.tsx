@@ -16,10 +16,10 @@ describe("Breadcrumb", () => {
     const script = container.querySelector('script[type="application/ld+json"]');
     expect(script).not.toBeNull();
 
-    const parsed = JSON.parse(script?.textContent ?? "{}") as {
+    const parsed: {
       "@type": string;
       itemListElement: Array<{ name: string; item: string }>;
-    };
+    } = JSON.parse(script?.textContent ?? "{}");
 
     expect(parsed["@type"]).toBe("BreadcrumbList");
     expect(parsed.itemListElement).toEqual([

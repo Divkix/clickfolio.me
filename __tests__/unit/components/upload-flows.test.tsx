@@ -5,27 +5,36 @@ import { FileDropzone } from "@/components/FileDropzone";
 import { UploadStep } from "@/components/wizard/UploadStep";
 import type { ResumeContent } from "@/lib/types/database";
 
-const mocks = vi.hoisted(() => ({
-  router: {
-    push: vi.fn(),
-    replace: vi.fn(),
-    refresh: vi.fn(),
-  },
-  toast: {
-    error: vi.fn(),
-    success: vi.fn(),
-  },
-  sessionState: {
-    current: {
-      data: null as { user: { id: string; email: string; name: string } } | null,
-      isPending: false,
+type SessionData = { user: { id: string; email: string; name: string } } | null;
+
+type SessionState = { current: { data: SessionData; isPending: boolean } };
+
+type WaitResult = { status: "completed" | "failed"; error: string | undefined };
+
+const mocks = vi.hoisted(() => {
+  const sessionState: SessionState = {
+    current: { data: null, isPending: false },
+  };
+
+  const waitResult: WaitResult = {
+    status: "completed",
+    error: undefined,
+  };
+
+  return {
+    router: {
+      push: vi.fn(),
+      replace: vi.fn(),
+      refresh: vi.fn(),
     },
-  },
-  waitResult: {
-    status: "completed" as "completed" | "failed",
-    error: undefined as string | undefined,
-  },
-}));
+    toast: {
+      error: vi.fn(),
+      success: vi.fn(),
+    },
+    sessionState,
+    waitResult,
+  };
+});
 
 vi.mock("next/navigation", () => ({
   useRouter: () => mocks.router,
@@ -82,7 +91,7 @@ function pdfFile(name = "resume.pdf") {
 function installFetch(handler: (url: string, init?: RequestInit) => Response | Promise<Response>) {
   globalThis.fetch = vi.fn((input: RequestInfo | URL, init?: RequestInit) =>
     Promise.resolve(handler(String(input), init)),
-  ) as unknown as typeof fetch;
+  );
 }
 
 function dropFile(file: File) {
@@ -189,7 +198,12 @@ describe("upload flow components", () => {
 
     fireEvent.dragEnter(dropzone, { dataTransfer: { files: [pdfFile("modal.pdf")] } });
     fireEvent.dragLeave(dropzone, { dataTransfer: { files: [] } });
-    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    const input = document.querySelector<HTMLInputElement>('input[type="file"]');
+
+    if (input === null) {
+      throw new Error("file input was not rendered");
+    }
+
     fireEvent.change(input, { target: { files: [pdfFile("picker.pdf")] } });
 
     await waitFor(() => expect(screen.getByText("Upload Complete!")).toBeInTheDocument());
@@ -216,7 +230,7 @@ describe("upload flow components", () => {
       }
 
       return Response.json({ success: true });
-    }) as unknown as typeof fetch;
+    });
     const tooLarge = render(<FileDropzone />);
     dropFile(pdfFile("large.pdf"));
     expect(await screen.findByText(/File too large/)).toBeInTheDocument();
@@ -228,7 +242,7 @@ describe("upload flow components", () => {
       }
 
       return Response.json({ success: true });
-    }) as unknown as typeof fetch;
+    });
     const expired = render(<FileDropzone />);
     dropFile(pdfFile("expired.pdf"));
     expect(await screen.findByText("Session expired. Please sign in again.")).toBeInTheDocument();
@@ -240,7 +254,7 @@ describe("upload flow components", () => {
       }
 
       return Response.json({ success: true });
-    }) as unknown as typeof fetch;
+    });
     render(<FileDropzone />);
     dropFile(pdfFile("network.pdf"));
     expect(await screen.findByText("Network error. Check your connection.")).toBeInTheDocument();
@@ -329,7 +343,7 @@ describe("upload flow components", () => {
       }
 
       return Response.json({ success: true });
-    }) as unknown as typeof fetch;
+    });
 
     const { unmount } = render(<FileDropzone />);
     dropFile(pdfFile("missing.pdf"));
@@ -350,7 +364,7 @@ describe("upload flow components", () => {
       }
 
       return Response.json({ success: true });
-    }) as unknown as typeof fetch;
+    });
 
     render(<FileDropzone open={true} onOpenChange={onOpenChange} />);
     dropFile(pdfFile("modal-claim.pdf"));
