@@ -1,9 +1,16 @@
 import { vi } from "vite-plus/test";
 import type { UnknownRecord } from "@/lib/types/json";
 
+/** Copy a BufferSource's bytes into a standalone Uint8Array. */
+function toUint8Array(data: BufferSource): Uint8Array {
+  return data instanceof ArrayBuffer
+    ? new Uint8Array(data)
+    : new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
+}
+
 export const mockDigest = vi.fn(
   async (algorithm: string, data: BufferSource): Promise<ArrayBuffer> => {
-    const input = new Uint8Array(data as ArrayBuffer);
+    const input = toUint8Array(data);
 
     if (algorithm === "SHA-1" || algorithm === "SHA-256") {
       const crypto = await import("node:crypto");
@@ -32,23 +39,25 @@ export const mockImportKey = vi.fn(
     _extractable: boolean,
     _keyUsages: string[],
   ): Promise<CryptoKey> => {
-    const secretBytes = new Uint8Array(keyData as ArrayBuffer);
+    const secretBytes = toUint8Array(keyData);
     const secret = new TextDecoder().decode(secretBytes);
 
-    return {
+    const key: CryptoKey & { __secret: string; algorithm: { hash: string } } = {
       type: "secret",
       extractable: false,
       algorithm: { name: "HMAC", hash: "SHA-256" },
       usages: ["sign"],
       __secret: secret,
-    } as CryptoKey & { __secret: string };
+    };
+
+    return key;
   },
 );
 
 export const mockSign = vi.fn(
   async (_algorithm: string, key: CryptoKey, data: BufferSource): Promise<ArrayBuffer> => {
-    const secret = (key as unknown as { __secret: string }).__secret || "default";
-    const dataBytes = new Uint8Array(data as ArrayBuffer);
+    const secret = ("__secret" in key ? String(key.__secret) : "") || "default";
+    const dataBytes = toUint8Array(data);
     const dataStr = new TextDecoder().decode(dataBytes);
     const combined = `${secret}:${dataStr}`;
     const signature = new Uint8Array(32);

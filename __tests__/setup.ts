@@ -79,14 +79,17 @@ if (typeof globalThis.ResizeObserver === "undefined") {
       this.callback = callback;
     }
     observe(target: Element) {
+      // SAFETY: the stub observer fires only with fixed 320x160 dimensions for tests; a real
+      // DOMRect with border/content boxes cannot be constructed outside a browser, so the
+      // { target, contentRect } object is asserted to the entry interface the callback takes.
       this.callback(
-        [{ target, contentRect: { width: 320, height: 160 } } as unknown as ResizeObserverEntry],
-        this as unknown as ResizeObserver,
+        [{ target, contentRect: { width: 320, height: 160 } } as ResizeObserverEntry],
+        this,
       );
     }
     unobserve() {}
     disconnect() {}
-  } as unknown as typeof ResizeObserver;
+  };
 }
 
 beforeEach(() => {

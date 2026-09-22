@@ -1,16 +1,22 @@
 import { vi, type Mock } from "vite-plus/test";
 import type { Resume } from "@/lib/db/schema";
 
-export function createMockQueryChain<T = unknown>(rows: T[] = []) {
+/** Chain a mocked Drizzle query resolves through: every method returns the chain, awaiting it yields the rows. */
+export type MockQueryChain<T> = Record<string, Mock> & Promise<T[]>;
+
+/** Callback shape both `$client.begin` and `transaction` hand their transaction handle to. */
+type MockTransactionCallback<T> = (tx: T) => Promise<void>;
+
+export function createMockQueryChain<T = unknown>(rows: T[] = []): MockQueryChain<T> {
   const chain: Record<string, Mock> = {};
 
-  const handler: ProxyHandler<() => Promise<T[]>> = {
+  const handler: ProxyHandler<{}> = {
     get(_target, prop) {
       const strProp = String(prop);
 
       if (strProp === "then") {
-        return (onFulfilled?: (value: T[]) => unknown, onRejected?: (reason: unknown) => unknown) =>
-          Promise.resolve(rows).then(onFulfilled, onRejected);
+        return <TResult>(onFulfilled?: (value: T[]) => TResult) =>
+          Promise.resolve(rows).then(onFulfilled);
       }
 
       if (strProp === "toJSON") {
@@ -28,9 +34,11 @@ export function createMockQueryChain<T = unknown>(rows: T[] = []) {
     },
   };
 
-  return new Proxy(() => {}, handler) as unknown as {
-    [K in string]: Mock;
-  } & Promise<T[]>;
+  const target: {} = () => {};
+
+  // SAFETY: `target` is a function at runtime and the `get` trap synthesizes every queried method while
+  // `apply` resolves the rows, so no static type describes the synthesized chain shape.
+  return new Proxy(target, handler) as MockQueryChain<T>;
 }
 
 export interface SqlClient extends Mock {
@@ -57,17 +65,22 @@ export function createMockDb(): MockDb {
     begin: vi.fn(),
   });
 
-  raw.begin.mockImplementation(async (cb: (tx: unknown) => unknown) => cb(raw));
+  raw.begin.mockImplementation(async (cb: MockTransactionCallback<SqlClient>): Promise<void> =>
+    cb(raw),
+  );
 
-  const db = {
+  const db: MockDb = {
     select: vi.fn().mockReturnValue(createMockQueryChain()),
     insert: vi.fn().mockReturnValue(createMockQueryChain()),
     update: vi.fn().mockReturnValue(createMockQueryChain()),
     delete: vi.fn().mockReturnValue(createMockQueryChain()),
+    transaction: vi.fn(),
     $client: raw,
-  } as MockDb;
+  };
 
-  db.transaction = vi.fn(async (cb: (tx: MockDb) => unknown) => cb(db));
+  db.transaction.mockImplementation(async (cb: MockTransactionCallback<MockDb>): Promise<void> =>
+    cb(db),
+  );
 
   return db;
 }
