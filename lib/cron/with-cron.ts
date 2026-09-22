@@ -1,12 +1,13 @@
 import { env } from "cloudflare:workers";
 import { requireCronAuth } from "@/lib/auth/middleware";
+import type { UnknownRecord } from "@/lib/types/json";
 import {
   createErrorResponse,
   createSuccessResponse,
   ERROR_CODES,
 } from "@/lib/utils/security-headers";
 
-export function withCron(handler: (env: CloudflareEnv) => Promise<unknown>) {
+export function withCron(handler: (env: CloudflareEnv) => Promise<Response | UnknownRecord>) {
   return async (request: Request): Promise<Response> => {
     // SAFETY: env from cloudflare:workers is CloudflareEnv at runtime; cast bridges stub typing.
     const authError = requireCronAuth(request, env as CloudflareEnv);

@@ -1,6 +1,8 @@
+import { z } from "zod";
 import { type ResumeContentFormData, resumeContentSchema } from "@/lib/schemas/resume";
 import type { JsonValue, UnknownRecord } from "@/lib/types/json";
 import { log } from "@/lib/utils/log";
+import { coerceRecord } from "./ai-normalize";
 import { parseWithAi } from "./ai-parser";
 import { extractPdfText } from "./pdf-extract";
 import { truncateResumeText } from "./truncate";
@@ -19,6 +21,10 @@ function normalizeResumeText(text: string): string {
     .replace(/[ \t]{2,}/g, " ")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
+}
+
+function isString(value: JsonValue): value is string {
+  return z.string().safeParse(value).success;
 }
 
 type ValidateParseResult =
@@ -44,10 +50,10 @@ function validateParseResult(data: JsonValue): ValidateParseResult {
   return { success: false, errors };
 }
 
-function extractProfessionalLevel(data: UnknownRecord): string | undefined {
-  const raw = (data as unknown as Record<string, unknown>)["professional_level"];
-  const level = typeof raw === "string" ? raw : undefined;
-  delete (data as unknown as Record<string, unknown>)["professional_level"];
+function extractProfessionalLevel(data: ResumeContentFormData): string | undefined {
+  const level = data.professional_level;
+
+  delete data.professional_level;
 
   return level;
 }
@@ -90,9 +96,9 @@ export async function parseResumeWithAi(
         const visionResult = await parsePdfWithVision(pdfBuffer, env);
 
         if (visionResult.success && visionResult.data) {
-          const raw = visionResult.data as unknown as UnknownRecord;
-          const fullNameUnknown = raw["full_name"];
-          const hasName = typeof fullNameUnknown === "string" && fullNameUnknown.trim().length > 0;
+          const raw: UnknownRecord = coerceRecord(visionResult.data) ?? {};
+          const fullName = raw["full_name"];
+          const hasName = isString(fullName) && fullName.trim().length > 0;
           const expUnknown = raw["experience"];
           const hasExp = Array.isArray(expUnknown) && expUnknown.length > 0;
 
@@ -135,7 +141,7 @@ export async function parseResumeWithAi(
 
           // SAFETY: validation guarantees ResumeContentFormData shape; cast preserves type for final cleanup
           const finalData = transformAiOutput(validation.data as ResumeContentFormData);
-          const professionalLevel = extractProfessionalLevel(finalData as unknown as UnknownRecord);
+          const professionalLevel = extractProfessionalLevel(finalData);
 
           return {
             success: true,
@@ -219,7 +225,7 @@ export async function parseResumeWithAi(
 
     // SAFETY: resumeContentSchema validation above guarantees validation.data matches ResumeContentFormData; cast preserves type for final cleanup.
     const finalData = transformAiOutput(validation.data as ResumeContentFormData);
-    const professionalLevel2 = extractProfessionalLevel(finalData as unknown as UnknownRecord);
+    const professionalLevel2 = extractProfessionalLevel(finalData);
 
     return {
       success: true,

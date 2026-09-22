@@ -152,12 +152,9 @@ export async function completeResumes(input: ResumeCompletionInput): Promise<voi
       }
 
       if (parsedName && parsedName !== "Pending" && parsedName !== "Unnamed") {
-        const needingName = [...(rowsById?.values() ?? [])]
-          .filter(
-            (row): row is CompletionUserRow & { id: string } =>
-              !!row.id && shouldSyncDisplayName(parsedName, row.name),
-          )
-          .map((row) => row.id);
+        const needingName = [...(rowsById?.values() ?? [])].flatMap((row) =>
+          row.id && shouldSyncDisplayName(parsedName, row.name) ? [row.id] : [],
+        );
 
         if (needingName.length > 0) {
           await tx
