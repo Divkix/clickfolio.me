@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { CheckCircle2, Copy, Link2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,7 +26,7 @@ export function HandleForm({ currentHandle }: HandleFormProps) {
   const {
     register,
     handleSubmit,
-    watch,
+    control,
     formState: { errors, isDirty },
   } = useForm<HandleUpdate>({
     resolver: zodResolver(handleUpdateSchema),
@@ -35,7 +35,7 @@ export function HandleForm({ currentHandle }: HandleFormProps) {
     },
   });
 
-  const newHandle = watch("handle");
+  const newHandle = useWatch({ control, name: "handle" });
   const publicUrl = `${siteConfig.domain}/@${newHandle || currentHandle}`;
 
   const handleCopy = async () => {

@@ -1,33 +1,48 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { FileDropzone } from "@/components/FileDropzone";
 import { Button } from "@/components/ui/button";
 
+// Visibility of the sticky bar is owned by an IntersectionObserver watching
+// #upload-card; the store lives outside React so subscribing syncs without a
+// cascading render. A missing card counts as off screen (show the bar).
+let uploadCardHidden = false;
+
+function subscribeToUploadCard(onStoreChange: () => void): () => void {
+  const target = document.getElementById("upload-card");
+
+  if (!target) return () => {};
+
+  const observer = new IntersectionObserver(
+    ([entry]) => {
+      uploadCardHidden = !entry.isIntersecting;
+      onStoreChange();
+    },
+    { threshold: 0.1 },
+  );
+
+  observer.observe(target);
+
+  return () => observer.disconnect();
+}
+
+function getUploadCardHidden(): boolean {
+  return document.getElementById("upload-card") === null || uploadCardHidden;
+}
+
+function getUploadCardHiddenOnServer(): boolean {
+  return false;
+}
+
 export function MobileStickyUpload() {
-  const [visible, setVisible] = useState(false);
   const [open, setOpen] = useState(false);
 
-  useEffect(() => {
-    const target = document.getElementById("upload-card");
-
-    if (!target) {
-      setVisible(true);
-
-      return;
-    }
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setVisible(!entry.isIntersecting);
-      },
-      { threshold: 0.1 },
-    );
-
-    observer.observe(target);
-
-    return () => observer.disconnect();
-  }, []);
+  const visible = useSyncExternalStore(
+    subscribeToUploadCard,
+    getUploadCardHidden,
+    getUploadCardHiddenOnServer,
+  );
 
   return (
     <>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
 
 interface CommaArrayInputProps {
@@ -12,12 +12,12 @@ interface CommaArrayInputProps {
 
 export function CommaArrayInput({ value, onChange, onBlur, placeholder }: CommaArrayInputProps) {
   const [text, setText] = useState(() => value?.join(", ") || "");
-  const focusedRef = useRef(false);
+  const [focused, setFocused] = useState(false);
 
   const externalText = value?.join(", ") || "";
   const [prevExternal, setPrevExternal] = useState(externalText);
 
-  if (externalText !== prevExternal && !focusedRef.current) {
+  if (externalText !== prevExternal && !focused) {
     setPrevExternal(externalText);
     setText(externalText);
   }
@@ -27,11 +27,11 @@ export function CommaArrayInput({ value, onChange, onBlur, placeholder }: CommaA
       placeholder={placeholder}
       value={text}
       onFocus={() => {
-        focusedRef.current = true;
+        setFocused(true);
       }}
       onChange={(e) => setText(e.target.value)}
       onBlur={() => {
-        focusedRef.current = false;
+        setFocused(false);
 
         const items = text
           .split(",")
