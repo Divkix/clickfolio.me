@@ -1,15 +1,36 @@
-import { vi } from "vite-plus/test";
-import type { JsonValue } from "@/lib/types/json";
+import { vi, type Mock } from "vite-plus/test";
 
+/** A stand-in for `R2Bucket` covering the methods the suite exercises; assignable to `R2Bucket` itself. */
 export interface MockR2Bucket {
-  get: ReturnType<typeof vi.fn>;
-  put: ReturnType<typeof vi.fn>;
-  delete: ReturnType<typeof vi.fn>;
-  head: ReturnType<typeof vi.fn>;
-  list: ReturnType<typeof vi.fn>;
+  get: Mock;
+  put: Mock;
+  delete: Mock;
+  head: Mock;
+  list: Mock;
+  // Multipart is unused by the suite, but `R2Bucket` requires it for assignability.
+  createMultipartUpload: Mock;
+  resumeMultipartUpload: Mock;
 }
 
 export type MockR2Store = Map<string, { body: ArrayBuffer; metadata?: Record<string, string> }>;
+
+/** Body shapes `put` accepts, mirroring what callers hand a real bucket. */
+type MockR2PutValue = ArrayBuffer | Uint8Array | string | ReadableStream | null;
+
+/** The `put` option subset the mock records for `head` to report back. */
+interface MockR2PutOptions {
+  httpMetadata?: { contentType?: string };
+  customMetadata?: Record<string, string>;
+}
+
+/** Copy a view into a buffer the store owns, so a later reader cannot detach it. */
+function toArrayBuffer(view: Uint8Array): ArrayBuffer {
+  const copy = new ArrayBuffer(view.byteLength);
+
+  new Uint8Array(copy).set(view);
+
+  return copy;
+}
 
 export function createMockR2Bucket(initialStore?: MockR2Store) {
   const store: MockR2Store = initialStore ?? new Map();
@@ -36,58 +57,51 @@ export function createMockR2Bucket(initialStore?: MockR2Store) {
       };
     }),
 
-    put: vi.fn().mockImplementation(async (key: string, body: JsonValue, options?: JsonValue) => {
-      let arrayBuffer: ArrayBuffer;
+    put: vi
+      .fn()
+      .mockImplementation(async (key: string, body: MockR2PutValue, options?: MockR2PutOptions) => {
+        let arrayBuffer: ArrayBuffer;
 
-      if (body instanceof ArrayBuffer) {
-        arrayBuffer = body;
-      } else if (body instanceof Uint8Array) {
-        arrayBuffer = new ArrayBuffer(body.byteLength);
-        new Uint8Array(arrayBuffer).set(body);
-      } else if (typeof body === "string") {
-        arrayBuffer = new TextEncoder().encode(body).buffer as ArrayBuffer;
-      } else if (body instanceof ReadableStream) {
-        const reader = body.getReader();
-        const chunks: Uint8Array[] = [];
+        if (body instanceof ArrayBuffer) {
+          arrayBuffer = body;
+        } else if (body instanceof Uint8Array) {
+          arrayBuffer = toArrayBuffer(body);
+        } else if (body instanceof ReadableStream) {
+          const reader = body.getReader();
+          const chunks: Uint8Array[] = [];
 
-        for (;;) {
-          const { done, value } = await reader.read();
+          for (;;) {
+            const { done, value } = await reader.read();
 
-          if (done) break;
-          chunks.push(value);
-        }
-
-        const totalLength = chunks.reduce((sum, c) => sum + c.byteLength, 0);
-        const merged = new Uint8Array(totalLength);
-        let offset = 0;
-
-        for (const chunk of chunks) {
-          merged.set(chunk, offset);
-          offset += chunk.byteLength;
-        }
-
-        arrayBuffer = merged.buffer;
-      } else {
-        arrayBuffer = new ArrayBuffer(0);
-      }
-
-      const opts = options as
-        | {
-            httpMetadata?: { contentType?: string };
-            customMetadata?: Record<string, string>;
+            if (done) break;
+            chunks.push(value);
           }
-        | undefined;
 
-      store.set(key, {
-        body: arrayBuffer,
-        metadata: opts?.customMetadata,
-      });
+          const totalLength = chunks.reduce((sum, c) => sum + c.byteLength, 0);
 
-      return {
-        size: arrayBuffer.byteLength,
-        etag: "mock-etag",
-      } as R2Object;
-    }),
+          arrayBuffer = new ArrayBuffer(totalLength);
+
+          const merged = new Uint8Array(arrayBuffer);
+          let offset = 0;
+
+          for (const chunk of chunks) {
+            merged.set(chunk, offset);
+            offset += chunk.byteLength;
+          }
+        } else {
+          arrayBuffer = toArrayBuffer(new TextEncoder().encode(body ?? ""));
+        }
+
+        store.set(key, {
+          body: arrayBuffer,
+          metadata: options?.customMetadata,
+        });
+
+        return {
+          size: arrayBuffer.byteLength,
+          etag: "mock-etag",
+        };
+      }),
 
     delete: vi.fn().mockImplementation(async (key: string) => {
       store.delete(key);
@@ -106,6 +120,9 @@ export function createMockR2Bucket(initialStore?: MockR2Store) {
         writeHttpMetadata: vi.fn(),
       };
     }),
+
+    createMultipartUpload: vi.fn(),
+    resumeMultipartUpload: vi.fn(),
 
     list: vi.fn().mockImplementation(async () => {
       const keys = [...store.keys()].map((key) => ({
