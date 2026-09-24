@@ -35,11 +35,10 @@ Registration lives in `vite.config.ts`: `lint.jsPlugins` entry `anti-slop` →
 
 ## Dependency pairing
 
-`@oxlint/plugins` is pinned exactly to `1.81.0`. This repository has no direct `oxlint` dependency —
-`vite-plus` 0.3.1 (catalog) hard-pins `oxlint =1.81.0` and provides the binary that loads the plugin — so
-the runtime import is pinned to the evaluator's version rather than to the newest release. A
-`@oxlint/plugins` ahead of the loading binary is unverified. Bump both together when the toolchain moves
-(`vp migrate`, then match the new `oxlint` pin).
+`index.ts` imports `eslintCompatPlugin` from `vite-plus/lint/plugins`. This repository has no direct
+`oxlint` or `@oxlint/plugins` dependency — `vite-plus` depends on both and provides the binary that loads
+the plugin. Do not re-add `@oxlint/plugins`; knip reports the direct package as unused, and a copy ahead
+of the loading binary is unverified. Move the toolchain with `vp migrate`.
 
 ## Known limitations
 
