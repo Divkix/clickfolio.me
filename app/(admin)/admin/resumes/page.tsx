@@ -308,17 +308,16 @@ function AdminResumesContent() {
                         )}
                       </td>
                     </tr>
-                    {expandedRow === resume.id &&
-                      resume.lastAttemptError && (
-                        // eslint-disable-next-line jsx-a11y/control-has-associated-label -- false positive: <tr> is not an interactive control
-                        <tr key={`${resume.id}-error`}>
-                          <td colSpan={6} className="px-4 py-3 bg-destructive/10">
-                            <pre className="text-xs text-destructive font-mono whitespace-pre-wrap wrap-break-word">
-                              {resume.lastAttemptError}
-                            </pre>
-                          </td>
-                        </tr>
-                      )}
+                    {expandedRow === resume.id && resume.lastAttemptError && (
+                      // eslint-disable-next-line jsx-a11y/control-has-associated-label -- false positive: <tr> is not an interactive control
+                      <tr key={`${resume.id}-error`}>
+                        <td colSpan={6} className="px-4 py-3 bg-destructive/10">
+                          <pre className="text-xs text-destructive font-mono whitespace-pre-wrap wrap-break-word">
+                            {resume.lastAttemptError}
+                          </pre>
+                        </td>
+                      </tr>
+                    )}
                   </Fragment>
                 ))
               )}
