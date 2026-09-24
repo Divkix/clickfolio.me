@@ -3,5 +3,7 @@ if [ -n "$CI" ]; then
   exit 0
 fi
 
+set -e
+
 vp staged
-pnpm run type-check
+pnpm run verify

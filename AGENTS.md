@@ -7,24 +7,24 @@ This file is the **single source of truth** — read top-to-bottom before touchi
 
 ## Stack
 
-| Layer       | Technology                                                                                                     |
-| ----------- | -------------------------------------------------------------------------------------------------------------- |
-| Runtime     | Cloudflare Workers                                                                                             |
-| Framework   | [vinext](https://github.com/cloudflare/vinext) `1.0.0-beta.8` on Next `^16.3.4`, React `^19.2.8`               |
-| Toolchain   | Vite+ `vite-plus@^0.3.0`; `vite` alias `npm:@voidzero-dev/vite-plus-core@^0.3.0`                               |
-| Package mgr | `pnpm@11.10.0` via `packageManager`                                                                            |
-| DB          | PlanetScale Postgres via Hyperdrive `HYPERDRIVE` + Drizzle `drizzle-orm/pg-core` (postgres-js)                 |
-| Auth        | Clerk `@clerk/react` + `@clerk/backend` (NOT `@clerk/nextjs`) — Google OAuth                                   |
-| AI parsing  | Cloudflare AI Gateway → OpenRouter `openai/gpt-6-luna:nitro` + `unpdf` + Vercel AI SDK `ai`                    |
-| Storage     | Cloudflare R2 `CLICKFOLIO_R2_BUCKET`                                                                           |
-| Queue       | Cloudflare Queues `CLICKFOLIO_PARSE_QUEUE` + DLQ                                                               |
-| Realtime    | Durable Object `ClickfolioStatusDO` (hibernation)                                                              |
-| Styling     | shadcn/ui `new-york` `rsc:true` + `lucide` + Tailwind CSS 4 (PostCSS-only, no `tailwind.config`)               |
-| Validation  | Zod `^4.5.4`                                                                                                   |
-| Lint/format | Oxlint + Oxfmt via `vp check` (NOT Biome/ESLint/Prettier)                                                      |
-| Testing     | Vitest `4.1.11` via `vite-plus/test` + `jsdom` + `@testing-library/react`; `@vitest/coverage-v8@4.1.11` pinned |
+| Layer       | Technology                                                                                                   |
+| ----------- | ------------------------------------------------------------------------------------------------------------ |
+| Runtime     | Cloudflare Workers                                                                                           |
+| Framework   | [vinext](https://github.com/cloudflare/vinext) `1.0.0-beta.10` on Next `^16.3.5`, React `^19.3.0`            |
+| Toolchain   | Vite+ `vite-plus@1.0.0-rc.0`; `vite` alias `npm:@voidzero-dev/vite-plus-core@1.0.0-rc.0`                     |
+| Package mgr | `pnpm@12.6.0` via `packageManager`                                                                           |
+| DB          | PlanetScale Postgres via Hyperdrive `HYPERDRIVE` + Drizzle `drizzle-orm/pg-core` (postgres-js)               |
+| Auth        | Clerk `@clerk/react` + `@clerk/backend` (NOT `@clerk/nextjs`) — Google OAuth                                 |
+| AI parsing  | Cloudflare AI Gateway → OpenRouter `openai/gpt-6-luna:nitro` + `unpdf` + Vercel AI SDK `ai`                  |
+| Storage     | Cloudflare R2 `CLICKFOLIO_R2_BUCKET`                                                                         |
+| Queue       | Cloudflare Queues `CLICKFOLIO_PARSE_QUEUE` + DLQ                                                             |
+| Realtime    | Durable Object `ClickfolioStatusDO` (hibernation)                                                            |
+| Styling     | shadcn/ui `new-york` `rsc:true` + `lucide` + Tailwind CSS 4 (PostCSS-only, no `tailwind.config`)             |
+| Validation  | Zod `^4.5.4`                                                                                                 |
+| Lint/format | Oxlint + Oxfmt via `vp check` (NOT Biome/ESLint/Prettier)                                                    |
+| Testing     | Vitest `5.0.1` via `vite-plus/test` + `jsdom` + `@testing-library/react`; `@vitest/coverage-v8@5.0.1` pinned |
 
-> Pin: `catalog:vitest` == `vitest` == `@vitest/coverage-v8` == `4.1.11` — mismatch aborts `--coverage` at startup. Keep `pnpm-workspace.yaml` override + `package.json` dep in sync.
+> Pin: `catalog:vitest` == `vitest` == `@vitest/coverage-v8` == `5.0.1` — mismatch aborts `--coverage` at startup. Keep `pnpm-workspace.yaml` override + `package.json` dep in sync.
 
 ## Project Structure
 
@@ -68,8 +68,9 @@ pnpm run clean          # rm -rf .next dist
 pnpm run type-check     # tsc --noEmit
 pnpm run lint           # vp lint (Oxlint)
 pnpm run fix            # vp check --fix
-vp check                # lint + format + type-check (single gate)
-  # Test
+pnpm run check          # vp check: lint + format + type-check (single gate)
+pnpm run knip           # unused exports/dependencies
+pnpm run verify         # full quality gate: vp check + knip
 pnpm run test             # all suites (vitest.config.ts, retry:2/threads)
 pnpm run test:unit        # --config vitest.unit.config.ts
 pnpm run test:integration # --config vitest.integration.config.ts
@@ -81,7 +82,7 @@ pnpm run test:ci          # vp test run --coverage --reporter=json
   # Build
 pnpm run build          # vp build (vinext)
 pnpm run analyze        # ANALYZE=true vp build → dist/stats.html
-pnpm run ci             # install --frozen-lockfile && type-check && vp check && test && build
+pnpm run ci             # install --frozen-lockfile && verify && test && build
 pnpm run deploy         # tsx scripts/deploy.ts — builds then wrangler deploy
   # DB (drizzle-kit — needs DATABASE_URL direct PlanetScale URL; Hyperdrive only inside Worker)
 pnpm run db:generate    # drizzle-kit generate → migrations_pg/ (offline)
@@ -94,10 +95,11 @@ pnpm run generate:favicons  # sharp from public/icon.svg → favicons
 ```
 
 - `prepare` (`vp config`) runs on `pnpm install`.
-- **Pre-push:** `pnpm run type-check && vp check && pnpm run test`
+- **Pre-commit:** `vp staged` then `pnpm run verify` (CI runs the same quality gate independently).
+- **Pre-push:** `pnpm run verify && pnpm run test`
 - **pnpm lockfile:** `catalog:` refs can leave importer storing `specifier:'catalog:'`; clean checkout then fails `ERR_PNPM_OUTDATED_LOCKFILE`. Fix: `pnpm install --no-frozen-lockfile` once, commit regenerated `pnpm-lock.yaml`.
 - **Supply-chain policy:** `pnpm-workspace.yaml` sets `trustPolicy: no-downgrade` (install aborts if a resolved version regresses provenance/signatures) and `minimumReleaseAge: 4320` (3d holdback on freshly published versions). The holdback value is **measured, not chosen**: the newest version in the committed lockfile is ~4 days old, so 6480 (4.5d)+ rejects it with `entries that the active policies reject` while `4320` installs clean — raise it toward the 10080 (7d) recommended default as the pinned versions age. Bumping a dependency inside the window (`pnpm add`, dependabot) needs an entry in `minimumReleaseAgeExclude` (already used for the vite-plus toolchain) or the install aborts.
-- **Coverage pin:** `catalog:vitest == vitest == @vitest/coverage-v8 == 4.1.11` (3 places).
+- **Coverage pin:** `catalog:vitest == vitest == @vitest/coverage-v8 == 5.0.1` (3 places).
 - **`db:push` vs `db:generate+migrate`:** `push` is prototyping only; canonical is `generate` + `migrate`.
 - **Thumbnails:** `public/previews/` holds 10 committed `.webp` (bento, bold_corporate, classic_ats, design_folio, dev_terminal, glass, midnight, minimalist_editorial→`minimalist.webp`, neo_brutalist→`brutalist.webp`, spotlight) shot at 1280×800 @2x via `/preview/[id]`. No generator script in repo (deleted with `playwright` devDep); re-add as doc snippet when re-shooting. Slug shortenings are intentional.
 - **Deploy:** `scripts/deploy.ts` runs `pnpm run build` with `POSTHOG_UPLOAD_SOURCEMAPS=true` (unless `--dry-run` → `false`), then `pnpm exec wrangler deploy`; forwards args/exit codes.
@@ -145,17 +147,17 @@ pnpm run generate:favicons  # sharp from public/icon.svg → favicons
 
 | Job                 | Needs                                          | Command                                | Notes                                    |
 | ------------------- | ---------------------------------------------- | -------------------------------------- | ---------------------------------------- |
-| `quality`           | —                                              | `vp check`                             | lint+format+type via Vite+               |
+| `quality`           | —                                              | `pnpm run verify`                      | `vp check` lint+format+type plus Knip    |
 | `type-check`        | —                                              | `pnpm run type-check`                  | `tsc --noEmit` (strict flags are errors) |
 | `unit-tests`        | —                                              | `pnpm run test:unit --coverage`        | threads, retry 0                         |
 | `integration-tests` | —                                              | `pnpm run test:integration --coverage` | retry 2, 10s                             |
 | `security-tests`    | —                                              | `pnpm run test:security --coverage`    | forks, retry 0, 15s                      |
-| `build`             | `quality+type-check+unit+integration+security` | `pnpm exec knip && pnpm run build`     |                                          |
+| `build`             | `quality+type-check+unit+integration+security` | `pnpm run build`                       |                                          |
 | `ci-success`        | all 6 above (`if: always()`)                   | shell check `needs.*.result==success`  | **required gate**                        |
 
-Workflow `.github/workflows/ci.yml`: triggers push+PR on `main`/`master`; `permissions: {contents:read}`; `concurrency` `${{github.workflow}}-${{github.ref}}` cancel-in-progress; **3 actions SHA-pinned** (`actions/checkout`, `pnpm/action-setup`, `actions/setup-node`) with `cache: pnpm` — no floating Vite+ setup tag.
+Workflow `.github/workflows/ci.yml`: triggers push+PR on `main`/`master`; `permissions: {contents:read}`; `concurrency` `${{github.workflow}}-${{github.ref}}` cancel-in-progress; **3 actions SHA-pinned** (`actions/checkout`, `pnpm/action-setup`, `actions/setup-node`) with `cache: pnpm`; each job pins Node `22.22.1` (minimum for Vite+ staged); no floating Vite+ setup tag.
 
-- **knip** (`knip.jsonc`): `entry ["scripts/**/*.ts"]`; `project ["app/**","components/**","hooks/**","lib/**","worker/**","proxy.ts","instrumentation*.ts","global.d.ts"]`; `ignoreExportsUsedInFile:true`; `ignoreDependencies [cloudflare, postcss, tailwindcss, tw-animate-css, @tailwindcss/typography, oxlint]`.
+- **knip** (`knip.jsonc`): `entry ["scripts/**/*.ts"]`; `project ["app/**/*.{ts,tsx}","app/**/*.css","components/**","hooks/**","lib/**","worker/**"]`; `ignoreExportsUsedInFile:true`; `ignoreDependencies [cloudflare, postcss]`.
 
 ## Runtime & Bindings
 
@@ -386,6 +388,6 @@ Each decision + why is an ADR under `docs/adr/`. `_5 superseded (D1/Better Auth/
 Using Vite+ (`vp`). `vp <name>` is builtin, `vp run <name>` runs `package.json`/`vite.config.ts` script. `vp help`, `vp toolchain`, `vp why <pkg>`. Docs in `node_modules/vite-plus/docs` or https://viteplus.dev/guide/.
 
 - `vp install` after pull; `vp check` + `vp test` to validate; `vp env doctor` if runtime looks wrong; see `vite.config.ts` for tasks.
-- `pnpm-workspace.yaml` catalog `vite: npm:@voidzero-dev/vite-plus-core@^0.3.0` + overrides `@vitest/coverage-v8:4.1.11` / `@voidzero-dev/vite-plus-core:^0.3.0`; `supportedArchitectures` linux+darwin x64/arm64 glibc.
+- `pnpm-workspace.yaml` catalog `vite: npm:@voidzero-dev/vite-plus-core@1.0.0-rc.0` + overrides `@vitest/coverage-v8:5.0.1` / `@voidzero-dev/vite-plus-core:1.0.0-rc.0`; `supportedArchitectures` linux+darwin x64/arm64 glibc.
 - `instrumentation-client.ts` + `next.config.ts` `allowedDevOrigins *.ngrok-free.app` + `serverActions.bodySizeLimit 5mb` (derived from `MAX_UPLOAD_SIZE_MB`).
 - `prepare` = `vp config`; `clean` removes `.next`/`dist`; `preview` uses `wrangler dev` with `HYPERDRIVE` local binding via `.dev.vars`.
