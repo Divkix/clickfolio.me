@@ -1,6 +1,7 @@
 import { and, eq, isNotNull, isNull, lt, or } from "drizzle-orm";
 import type { Database } from "@/lib/db";
 import {
+  buildAttemptCapExceededUpdate,
   buildWaitingForCacheTimeoutUpdate,
   hasExceededMaxAttempts,
   RETRY_LIMITS,
@@ -147,12 +148,14 @@ export async function recoverOrphanedResumes(
     const stillStale = or(lt(resumes.queuedAt, fifteenMinutesAgo), isNull(resumes.queuedAt));
 
     if (hasExceededMaxAttempts(resume.totalAttempts ?? 0)) {
-      // Over-cap orphans are terminal: mark them failed (user-retryable) instead of
-      // skipping them on every sweep, which left them stuck forever.
+      // Over-cap orphans are terminal and not user-retryable: the total cap is
+      // already spent, so the cache-timeout message would be a lie.
+      const capUpdate = buildAttemptCapExceededUpdate();
+
       try {
         const failedResult = await db
           .update(resumes)
-          .set({ status: timeoutUpdate.status, errorMessage: timeoutUpdate.errorMessage })
+          .set({ status: capUpdate.status, errorMessage: capUpdate.errorMessage })
           .where(and(eq(resumes.id, resume.id), eq(resumes.status, resume.status), stillStale));
 
         if (failedResult.count > 0) {

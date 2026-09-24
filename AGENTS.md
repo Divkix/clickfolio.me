@@ -235,7 +235,7 @@ Local `.dev.vars` auto-loaded by Vite; `.env.example` **6.3KB** (154 lines) is t
 
 **Toolkit (universal):** `createSuccessResponse(data, status?)` / `createErrorResponse(error, code, status, details?)` + `ERROR_CODES` spread the **single `SECURITY_HEADERS`** (`lib/utils/security-headers.ts`: HSTS `63072000; includeSubDomains; preload` + `X-Content-Type-Options: nosniff` etc.). Wrap every JSON response.
 
-**Rate-limit:** IP SHA-256 hashed before storage (ADR-0017, GDPR); atomic `INSERT…SELECT` via `db.$client` (Hyperdrive forbids prepared statements). Limits: `HOURLY 10`, `DAILY 50` (upload), `HANDLE 100`, `3/24h` handle-change, `5/24h` `resume_upload` (authed claim). Validations fail open on DB error. See `lib/rate-limit/`.
+**Rate-limit:** IP SHA-256 hashed before storage (ADR-0017, GDPR); atomic `INSERT…SELECT` via `db.$client` (Hyperdrive forbids prepared statements). Limits: `HOURLY 10`, `DAILY 50` (upload), `HANDLE 100`, `3/24h` handle-change, `5/24h` `resume_upload` (authed claim). Rate-limit checks fail closed on a database error (a DB error must not open the quota), matching `lib/rate-limit/ip.ts` and `lib/rate-limit/user.ts`. See `lib/rate-limit/`.
 
 | Route                                             | Method              | Auth                 | Invariant                                                                                                                                                                                                                                                             |
 | ------------------------------------------------- | ------------------- | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -281,13 +281,13 @@ Shared infra: `rewrites /sitemap.xml→/api/sitemap-index`, `redirects /:handle�
 
 **Progress %:** `pending_claim 15`, `queued 25`, `waiting_for_cache 30` (or virtual `failed`), `processing 50`, `completed 100`, `failed 0`.
 
-**Retry caps:** `RETRY_LIMITS`: manual `2`, total `6`; **5 permanent error types** (non-retryable) + **`unknown` non-retryable** (`ack` discarded, never DLQ, ADR-0012); retryable keeps `processing` (ADR-0011). Queue `max_retries 3` for transient.
+**Retry caps:** `RETRY_LIMITS`: manual `2`, total `6`; **5 permanent error types** (non-retryable) + **`unknown` non-retryable** (`ack` discarded, never DLQ, ADR-0012); a retryable error writes `lastAttemptError` and sets status back to `queued` so the next delivery can claim it (ADR-0011); `queued` stays non-failed in the status view. Queue `max_retries 3` for transient.
 
 **Queue contract:** `queueMessageSchema` (`resumeId`, `userId`, `fileHash`, etc.) validated on publish + consume; helper `publishToParseQueue`; consumer `lib/queue/consumer.ts` completes via `completeResumes` (single atomic `db.transaction` batch + site-data upsert + notify inside); malformed→discarded, `isRetryableError→retry()` else `ack`.
 
 **AI seam:** `lib/ai/` lazy-imports; `unpdf` extract (50 pages / 5 MB / 60k truncation) → AI SDK (OpenRouter via `CF_AI_GATEWAY_*`) → `normalizeResumeContent` with Zod; provider routed via gateway; notifications best-effort.
 
-**Failure handling:** consumer writes `lastAttemptError=classifyQueueError().toJSON()` + increments `retryCount`/`totalAttempts`; permanent→`failed` else stays `processing` for retry; `sendAlert` on permanent; DLQ handler (`clickfolio-parse-dlq`) logs structured `DLQ_ALERT`.
+**Failure handling:** consumer writes `lastAttemptError=classifyQueueError().toJSON()` + increments `retryCount`/`totalAttempts`; permanent→`failed`; a retryable error sets status back to `queued` (still shown as in-progress) so the next delivery can claim it; `sendAlert` on permanent; DLQ handler (`clickfolio-parse-dlq`) logs structured `DLQ_ALERT`.
 
 **Orphan recovery (`*/15`):** scans `pending_claim` >5m or `processing` stale >15m; re-queues if `totalAttempts<6` (TOCTOU `WHERE totalAttempts<6` else skip); `waiting_for_cache` timeout persists via `buildWaitingForCacheTimeoutUpdate()`.
 
@@ -331,7 +331,7 @@ Each decision + why is an ADR under `docs/adr/`. `_5 superseded (D1/Better Auth/
 | [0008](docs/adr/0008-resume-complete-single-batch.md)            | Resume complete atomic `db.transaction`                                 |
 | [0009](docs/adr/0009-pending-r2-deletions-before-batch.md)       | `pendingR2Deletions` before delete batch, no user FK                    |
 | [0010](docs/adr/0010-filehash-cache-per-user.md)                 | fileHash dedup per-user (no cross-user leak)                            |
-| [0011](docs/adr/0011-retryable-errors-keep-processing.md)        | Retryable keeps `processing` (no false-negative failed)                 |
+| [0011](docs/adr/0011-retryable-errors-keep-processing.md)        | Retryable error re-queues (`queued`, still non-failed)                  |
 | [0012](docs/adr/0012-unknown-queue-error-non-retryable.md)       | `unknown` queue error non-retryable (acked discarded)                   |
 | [0013](docs/adr/0013-cron-called-directly.md)                    | Cron direct-call in worker (avoid double-billing)                       |
 | [0014](docs/adr/0014-smart-placement.md)                         | Smart placement `mode:"smart"`                                          |

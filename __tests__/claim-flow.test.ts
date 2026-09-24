@@ -485,7 +485,14 @@ describe("POST /api/resume/claim", () => {
     vi.mocked(enforceRateLimit).mockResolvedValue(null);
 
     const cachedContent = { full_name: "Test User" };
-    mockDbLimit.mockResolvedValue([{ id: "cached-resume", parsedContent: cachedContent }]);
+    let limitCallCount = 0;
+    mockDbLimit.mockImplementation(() => {
+      limitCallCount++;
+
+      if (limitCallCount === 1) return Promise.resolve([]);
+
+      return Promise.resolve([{ id: "cached-resume", parsedContent: cachedContent }]);
+    });
     mockHandleRows = [];
 
     const { POST } = await import("@/app/api/resume/claim/route");

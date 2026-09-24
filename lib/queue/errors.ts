@@ -102,19 +102,6 @@ const ERROR_PATTERNS: Array<{ pattern: RegExp; type: QueueErrorType }> = [
   },
 
   {
-    pattern: /timeout|timed?\s*out|deadline.*exceeded|worker.*timeout/i,
-    type: QueueErrorType.SERVICE_BINDING_TIMEOUT,
-  },
-  {
-    pattern: /request.*took.*too.*long|exceeded.*time.*limit/i,
-    type: QueueErrorType.SERVICE_BINDING_TIMEOUT,
-  },
-
-  {
-    pattern: /R2.*throttle|rate.*limit|too.*many.*requests|429/i,
-    type: QueueErrorType.R2_THROTTLE,
-  },
-  {
     pattern: /R2.*temporarily.*unavailable|R2.*service.*unavailable/i,
     type: QueueErrorType.R2_THROTTLE,
   },
@@ -149,6 +136,10 @@ const ERROR_PATTERNS: Array<{ pattern: RegExp; type: QueueErrorType }> = [
     type: QueueErrorType.AI_PROVIDER_ERROR,
   },
   {
+    pattern: /ai parser returned no result/i,
+    type: QueueErrorType.AI_PROVIDER_ERROR,
+  },
+  {
     pattern: /API.*error|api.*request.*failed|provider.*error/i,
     type: QueueErrorType.AI_PROVIDER_ERROR,
   },
@@ -170,6 +161,19 @@ const ERROR_PATTERNS: Array<{ pattern: RegExp; type: QueueErrorType }> = [
     type: QueueErrorType.AI_PROVIDER_ERROR,
   },
 
+  {
+    pattern: /timeout|timed?\s*out|deadline.*exceeded|worker.*timeout/i,
+    type: QueueErrorType.SERVICE_BINDING_TIMEOUT,
+  },
+  {
+    pattern: /request.*took.*too.*long|exceeded.*time.*limit/i,
+    type: QueueErrorType.SERVICE_BINDING_TIMEOUT,
+  },
+
+  {
+    pattern: /R2.*throttle|rate.*limit|too.*many.*requests|429/i,
+    type: QueueErrorType.R2_THROTTLE,
+  },
   {
     pattern: /invalid.*json|json.*parse|unexpected.*token|malformed.*response/i,
     type: QueueErrorType.MALFORMED_RESPONSE,

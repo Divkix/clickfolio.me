@@ -264,6 +264,13 @@ export function buildWaitingForCacheTimeoutUpdate(): WaitingForCacheTimeoutUpdat
   return { status: "failed", errorMessage: WAITING_FOR_CACHE_TIMEOUT_MESSAGE };
 }
 
+export const ATTEMPT_CAP_EXCEEDED_MESSAGE =
+  "This resume reached the maximum number of parse attempts. Please upload it again.";
+
+export function buildAttemptCapExceededUpdate(): WaitingForCacheTimeoutUpdate {
+  return { status: "failed", errorMessage: ATTEMPT_CAP_EXCEEDED_MESSAGE };
+}
+
 export type ResumeRow = StatusRow & ResumeRetryRow;
 
 export function checkRetryEligibilityForRow(row: ResumeRow): RetryEligibility {
