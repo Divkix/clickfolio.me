@@ -14,6 +14,8 @@ import {
   waitingForCacheTimedOut,
   statusPresentation,
   getStatusView,
+  ATTEMPT_CAP_EXCEEDED_MESSAGE,
+  buildAttemptCapExceededUpdate,
   buildWaitingForCacheTimeoutUpdate,
 } from "@/lib/resume/lifecycle";
 import type { ResumeRetryRow } from "@/lib/resume/lifecycle";
@@ -362,5 +364,15 @@ describe("buildWaitingForCacheTimeoutUpdate", () => {
       status: "failed",
       errorMessage: WAITING_FOR_CACHE_TIMEOUT_MESSAGE,
     });
+  });
+});
+
+describe("buildAttemptCapExceededUpdate", () => {
+  it("is a terminal failure distinct from the cache timeout", () => {
+    expect(buildAttemptCapExceededUpdate()).toEqual({
+      status: "failed",
+      errorMessage: ATTEMPT_CAP_EXCEEDED_MESSAGE,
+    });
+    expect(ATTEMPT_CAP_EXCEEDED_MESSAGE).not.toBe(buildWaitingForCacheTimeoutUpdate().errorMessage);
   });
 });

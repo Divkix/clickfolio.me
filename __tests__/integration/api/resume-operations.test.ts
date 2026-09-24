@@ -835,6 +835,12 @@ describe("Resume API Integration Tests (25 tests)", () => {
       expect(body.status).toBe("queued");
       expect(body.retry_count).toBe(1);
 
+      const { publishResumeParse } = await import("@/lib/queue/resume-parse");
+      expect(vi.mocked(publishResumeParse)).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ attempt: 3 }),
+      );
+
       expect(mockUpdateWhere).toHaveBeenCalledWith(
         expect.objectContaining({
           and: [{ eq: "resume-123" }, { eq: "failed" }, { eq: 0 }, { lt: 2 }],

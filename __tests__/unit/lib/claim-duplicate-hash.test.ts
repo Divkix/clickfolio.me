@@ -414,8 +414,7 @@ describe("POST /api/resume/claim — Duplicate file hash detection", () => {
       expect(body.status).toBe("processing");
       expect(body.waiting_for_cache).toBe(true);
 
-      // The waiting clone records its own final key before the bytes move, so a
-      // later completion can never point at the temp object.
+      // The waiting clone records the final key only after the bytes are put.
       expect(mockDbUpdateSet).toHaveBeenCalledWith(
         expect.objectContaining({
           status: "waiting_for_cache",
@@ -431,7 +430,14 @@ describe("POST /api/resume/claim — Duplicate file hash detection", () => {
       authedAs("user-1");
 
       const cachedContent = { full_name: "Test User" };
-      mockDbLimit.mockResolvedValue([{ id: "cached-resume", parsedContent: cachedContent }]);
+      let limitCallCount = 0;
+      mockDbLimit.mockImplementation(() => {
+        limitCallCount++;
+
+        if (limitCallCount === 1) return Promise.resolve([]);
+
+        return Promise.resolve([{ id: "cached-resume", parsedContent: cachedContent }]);
+      });
       mockHandleRows = [{ handle: "test-handle" }];
 
       const { POST } = await import("@/app/api/resume/claim/route");
@@ -459,7 +465,14 @@ describe("POST /api/resume/claim — Duplicate file hash detection", () => {
       authedAs("user-1");
 
       const cachedContent = { full_name: "Test User" };
-      mockDbLimit.mockResolvedValue([{ id: "cached-resume", parsedContent: cachedContent }]);
+      let limitCallCount = 0;
+      mockDbLimit.mockImplementation(() => {
+        limitCallCount++;
+
+        if (limitCallCount === 1) return Promise.resolve([]);
+
+        return Promise.resolve([{ id: "cached-resume", parsedContent: cachedContent }]);
+      });
       mockHandleRows = [];
 
       const { POST } = await import("@/app/api/resume/claim/route");

@@ -232,6 +232,7 @@ describe("runClaimIntake", () => {
     const queue = makeQueue();
     const cachedContent = { full_name: "Cached Name", professional_level: "senior" };
     mockLimitQueue.push(
+      [],
       [{ id: "cached-1", parsedContent: cachedContent }],
       [{ handle: "some-handle", name: null }],
     );
@@ -266,7 +267,7 @@ describe("runClaimIntake", () => {
     const queue = makeQueue();
     // Cached probe, in-flight probe, post-move completed re-check, then the
     // self-row probe that confirms the row still exists.
-    mockLimitQueue.push([], [{ id: "inflight-1" }], [], [{ id: "row-1" }]);
+    mockLimitQueue.push([], [], [{ id: "inflight-1" }], [], [{ id: "row-1" }]);
 
     const outcome = await runClaimIntake({
       ...claimBinding(r2, queue),
@@ -308,7 +309,7 @@ describe("runClaimIntake", () => {
     expect(r2.files.has(TEMP_KEY)).toBe(true);
   });
 
-  it("missing temp file with recent resume → already_claimed before rate-limit", async () => {
+  it("missing temp file whose row still names that key → already_claimed before rate-limit", async () => {
     const r2 = makeBucket();
     const queue = makeQueue();
     mockLimitQueue.push([{ id: "recent-1", status: "queued" }]);
@@ -351,7 +352,7 @@ describe("runClaimIntake", () => {
     const r2 = makeBucket({ [TEMP_KEY]: makePdfBuffer() });
     r2.failPut = true;
     const queue = makeQueue();
-    mockLimitQueue.push([{ id: "cached-1", parsedContent: { full_name: "Cached" } }]);
+    mockLimitQueue.push([], [{ id: "cached-1", parsedContent: { full_name: "Cached" } }]);
 
     const outcome = await runClaimIntake({
       ...claimBinding(r2, queue),
@@ -407,5 +408,62 @@ describe("runClaimIntake", () => {
       httpStatus: 500,
     });
     expect(mockUpdateSets).toContainEqual(expect.objectContaining({ status: "failed" }));
+  });
+
+  it("missing temp file with no row on that key → not already_claimed", async () => {
+    const r2 = makeBucket();
+    const queue = makeQueue();
+
+    const outcome = await runClaimIntake({
+      ...claimBinding(r2, queue),
+      env: undefined,
+      userId: "user-1",
+      tempKey: TEMP_KEY,
+    });
+
+    expect(outcome).toMatchObject({ kind: "error", httpStatus: 404 });
+    expect(mockEnforceRateLimit).not.toHaveBeenCalled();
+  });
+
+  it("pending duplicate is already_claimed before the rate limit", async () => {
+    const r2 = makeBucket({ [TEMP_KEY]: makePdfBuffer() });
+    const queue = makeQueue();
+    mockLimitQueue.push([{ id: "pending-existing", status: "pending_claim" }]);
+
+    const outcome = await runClaimIntake({
+      ...claimBinding(r2, queue),
+      env: undefined,
+      userId: "user-1",
+      tempKey: TEMP_KEY,
+    });
+
+    expect(outcome).toEqual({
+      kind: "already_claimed",
+      resumeId: "pending-existing",
+      status: "pending_claim",
+    });
+    expect(mockEnforceRateLimit).not.toHaveBeenCalled();
+    expect(mockInsert).not.toHaveBeenCalled();
+  });
+
+  it("waiting path put failure does not point the row at the final key", async () => {
+    const r2 = makeBucket({ [TEMP_KEY]: makePdfBuffer() });
+    r2.failPut = true;
+    const queue = makeQueue();
+    mockLimitQueue.push([], [], [{ id: "inflight-1" }]);
+
+    const outcome = await runClaimIntake({
+      ...claimBinding(r2, queue),
+      env: undefined,
+      userId: "user-1",
+      tempKey: TEMP_KEY,
+    });
+
+    expect(outcome).toMatchObject({ kind: "error", httpStatus: 500 });
+    expect(mockUpdateSets).toContainEqual(expect.objectContaining({ status: "failed" }));
+    expect(mockUpdateSets).not.toContainEqual(
+      expect.objectContaining({ status: "waiting_for_cache" }),
+    );
+    expect(r2.files.has(TEMP_KEY)).toBe(true);
   });
 });

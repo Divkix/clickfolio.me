@@ -236,7 +236,7 @@ export async function POST(request: Request) {
           userId,
           r2Key: resume.r2Key as string,
           fileHash,
-          attempt: nextRetryCount,
+          attempt: (resume.totalAttempts as number) + 1,
         });
       } catch (queueError) {
         await rollbackRetryUpdate();

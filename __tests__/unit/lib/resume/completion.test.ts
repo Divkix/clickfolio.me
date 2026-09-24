@@ -280,6 +280,34 @@ describe("completeResumes", () => {
     expect(mockNotifyBatches).toEqual([{ ids: ["resume-1", "resume-2"], status: "completed" }]);
   });
 
+  it("fan-out role and name sync only the rows the update matched", async () => {
+    seedCompletion({
+      userRows: [
+        { id: "user-1", handle: "h1", name: null },
+        { id: "user-2", handle: null, name: "Existing Name" },
+      ],
+      resumeIds: ["resume-1", "resume-2"],
+      updatedIds: ["resume-2"],
+    });
+
+    await completeResumes({
+      ...dbArg,
+      env: { CLICKFOLIO_STATUS_DO: undefined },
+      items: [
+        { resumeId: "resume-1", userId: "user-1" },
+        { resumeId: "resume-2", userId: "user-2" },
+      ],
+      parsedContent,
+      professionalLevel: "senior",
+      fanOut: true,
+    });
+
+    expect(mockUpsertCalls).toEqual([{ userId: "user-2", publish: false }]);
+    const nameUpdates = mockUpdateSets.filter((s) => "name" in s);
+    expect(nameUpdates).toHaveLength(0);
+    expect(mockNotifyBatches).toEqual([{ ids: ["resume-2"], status: "completed" }]);
+  });
+
   it("no rows updated (already completed or deleted) → no user sync, no notify, no writes", async () => {
     seedCompletion({
       userRows: [{ handle: "test-handle", name: "Unnamed" }],

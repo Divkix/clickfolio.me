@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { recoverOrphanedResumes } from "@/lib/cron/recover-orphaned";
-import { WAITING_FOR_CACHE_TIMEOUT_MESSAGE } from "@/lib/resume/lifecycle";
+import { ATTEMPT_CAP_EXCEEDED_MESSAGE } from "@/lib/resume/lifecycle";
 import type { UnknownRecord, JsonValue } from "@/lib/types/json";
 import type { ResumeParseMessage } from "@/lib/queue/types";
 import type { Database } from "@/lib/db";
@@ -208,7 +208,7 @@ describe("recoverOrphanedResumes — queued orphan recovery", () => {
     expect(setCalls).toHaveLength(1);
     expect(setCalls[0]).toMatchObject({
       status: "failed",
-      errorMessage: WAITING_FOR_CACHE_TIMEOUT_MESSAGE,
+      errorMessage: ATTEMPT_CAP_EXCEEDED_MESSAGE,
     });
     // Compare-and-set on the originally-selected row, so a row re-queued since
     // selection is left alone.

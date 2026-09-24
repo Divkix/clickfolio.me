@@ -115,7 +115,14 @@ export async function completeResumes(input: ResumeCompletionInput): Promise<voi
     }
 
     completedIds = updated.map((row) => row.id);
+
     const completedIdSet = new Set(completedIds);
+
+    const completedUserIds = [
+      ...new Set(
+        items.filter((item) => completedIdSet.has(item.resumeId)).map((item) => item.userId),
+      ),
+    ];
 
     const siteRows = await tx
       .select({ userId: siteData.userId, updatedAt: siteData.updatedAt })
@@ -144,16 +151,20 @@ export async function completeResumes(input: ResumeCompletionInput): Promise<voi
     }
 
     if (fanOut) {
-      if (professionalLevel) {
+      if (professionalLevel && completedUserIds.length > 0) {
         await tx
           .update(user)
           .set({ role: professionalLevel, roleSource: "ai", updatedAt: now })
-          .where(inArray(user.id, userIds));
+          .where(inArray(user.id, completedUserIds));
       }
 
       if (parsedName && parsedName !== "Pending" && parsedName !== "Unnamed") {
+        const completedUserIdSet = new Set(completedUserIds);
+
         const needingName = [...(rowsById?.values() ?? [])].flatMap((row) =>
-          row.id && shouldSyncDisplayName(parsedName, row.name) ? [row.id] : [],
+          row.id && completedUserIdSet.has(row.id) && shouldSyncDisplayName(parsedName, row.name)
+            ? [row.id]
+            : [],
         );
 
         if (needingName.length > 0) {

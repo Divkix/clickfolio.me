@@ -151,7 +151,7 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
   const parseResult = await parseResumeWithAi(pdfBuffer, env);
 
   if (!parseResult.success) {
-    const rawError = parseResult.error || "Parsing failed";
+    const rawError = parseResult.error || "AI parser returned no result";
     const userError = getUserFriendlyError(rawError);
     const classifiedError = classifyQueueError(new Error(rawError));
     await db
@@ -186,7 +186,13 @@ async function handleResumeParse(message: ResumeParseMessage, env: CloudflareEnv
   const waitingResumes = await db
     .select({ id: resumes.id, userId: resumes.userId })
     .from(resumes)
-    .where(and(eq(resumes.fileHash, message.fileHash), eq(resumes.status, "waiting_for_cache")));
+    .where(
+      and(
+        eq(resumes.userId, message.userId),
+        eq(resumes.fileHash, message.fileHash),
+        eq(resumes.status, "waiting_for_cache"),
+      ),
+    );
 
   if (waitingResumes.length > 0) {
     await completeResumes({
@@ -243,9 +249,12 @@ export async function handleQueueMessage(message: QueueMessage, env: CloudflareE
     } else {
       // SAFETY: error is unknown from catch; QueueErrorInput covers classification cases.
       const classifiedError = classifyQueueError(error as QueueErrorInput);
+      // Back to queued so the redelivery can claim the row. Leaving it
+      // processing made the next delivery a no-op, and the worker then acked.
       await db
         .update(resumes)
         .set({
+          status: "queued",
           lastAttemptError: JSON.stringify(classifiedError.toJSON()),
         })
         .where(and(ne(resumes.status, "completed"), eq(resumes.id, message.resumeId)));

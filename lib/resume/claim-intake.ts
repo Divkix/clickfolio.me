@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, inArray, isNotNull, ne, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNotNull, ne, sql } from "drizzle-orm";
 import { buildSiteDataUpsert } from "@/lib/data/site-data-upsert";
 import type { Database } from "@/lib/db";
 import { pendingR2Deletions, resumes, user } from "@/lib/db/schema";
@@ -83,9 +83,8 @@ async function moveTempFile(
 export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntakeOutcome> {
   const { db, r2, queue, env, userId, tempKey } = deps;
 
-  // Arbitration rows store r2Key = tempKey until the bytes land on the final key,
-  // so a duplicate claim finds its own row by key; the 2-minute recency heuristic
-  // stays as the fallback for rows whose temp object was already moved.
+  // Only a row that still names this temp key is this claim. A newer resume
+  // created in the same window is a different upload.
   const findExistingClaim = async () => {
     const byTempKey = await db
       .select({ id: resumes.id, status: resumes.status })
@@ -94,18 +93,7 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
       .orderBy(desc(resumes.createdAt))
       .limit(1);
 
-    if (byTempKey[0]) return byTempKey[0];
-
-    const twoMinAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
-
-    const recentResume = await db
-      .select({ id: resumes.id, status: resumes.status })
-      .from(resumes)
-      .where(and(eq(resumes.userId, userId), gte(resumes.createdAt, twoMinAgo)))
-      .orderBy(desc(resumes.createdAt))
-      .limit(1);
-
-    return recentResume[0] ?? null;
+    return byTempKey[0] ?? null;
   };
 
   let fileBuffer: ArrayBuffer;
@@ -198,6 +186,22 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
   // and the caller retries.
   const arbitration = await db.transaction(async (tx) => {
     await tx.select({ id: user.id }).from(user).where(eq(user.id, userId)).for("update");
+
+    const pending = await tx
+      .select({ id: resumes.id, status: resumes.status })
+      .from(resumes)
+      .where(
+        and(
+          eq(resumes.userId, userId),
+          eq(resumes.fileHash, computedFileHash),
+          eq(resumes.status, "pending_claim"),
+        ),
+      )
+      .limit(1);
+
+    if (pending[0]) {
+      return { kind: "duplicate" as const, existing: pending[0] };
+    }
 
     const rateLimitResponse = await enforceRateLimit(userId, "resume_upload", env);
 
@@ -393,11 +397,22 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
     .limit(1);
 
   if (processing[0]) {
-    // Mark waiting (and record the final key) before moving: the producer may
-    // finish while we copy, and the consumer's fan-out scans for
-    // `waiting_for_cache` rows. The row never picks up a key without the copy
-    // being attempted next, and a completed row must point at the real object so
-    // account deletion can find it.
+    // Put the final object first. The row keeps the temp key until that put
+    // succeeds, so a failed copy never points at a key that was not written.
+    try {
+      await R2.put(r2, newKey, fileBuffer, { contentType: "application/pdf" });
+    } catch (error) {
+      console.error("R2 operations failed for waiting resume:", error);
+      await failResume("Failed to store file for processing");
+
+      return {
+        kind: "error",
+        message: "Failed to store file for processing",
+        code: "EXTERNAL_SERVICE_ERROR",
+        httpStatus: 500,
+      };
+    }
+
     try {
       const waiting = await db
         .update(resumes)
@@ -415,28 +430,17 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
           httpStatus: 404,
         };
       }
+
+      await deleteObjectOrQueue(db, r2, tempKey);
     } catch (waitError) {
       console.error("Failed to set waiting_for_cache status:", waitError);
+      await deleteObjectOrQueue(db, r2, newKey);
       await failResume("Failed to prepare resume for processing");
 
       return {
         kind: "error",
         message: "Failed to prepare resume for processing",
         code: "DATABASE_ERROR",
-        httpStatus: 500,
-      };
-    }
-
-    try {
-      await moveTempFile(db, r2, tempKey, newKey, fileBuffer);
-    } catch (error) {
-      console.error("R2 operations failed for waiting resume:", error);
-      await failResume("Failed to store file for processing");
-
-      return {
-        kind: "error",
-        message: "Failed to store file for processing",
-        code: "EXTERNAL_SERVICE_ERROR",
         httpStatus: 500,
       };
     }
