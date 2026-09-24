@@ -20,7 +20,6 @@
     "tailwindcss",
     "tw-animate-css",
     "@tailwindcss/typography",
-    "oxlint",
   ],
   "ignoreExportsUsedInFile": true,
 }
