@@ -18,15 +18,15 @@ supportedArchitectures:
     - current
 
 overrides:
-  # vite-plus 0.3.1 bundles vitest@4.1.11 and refuses to run `--coverage` unless
+  # Vite+ 1.0.0-rc.0 bundles Vitest 5.0.1 and refuses to run `--coverage` unless
   # the installed coverage provider is the exact same version (mixed versions
   # otherwise fails CI at startup).
-  "@vitest/coverage-v8": "4.1.11"
+  "@vitest/coverage-v8": "5.0.1"
   # Force vite-plus's internal hard-pinned @voidzero-dev/vite-plus-core dep to
   # match the top-level `vite` alias. Without this, pnpm installs two copies of
   # core (the alias version + vite-plus's pinned version) and the divergent
   # PluginOption types break `tsc --noEmit` in vite.config.ts.
-  "@voidzero-dev/vite-plus-core": "^0.3.0"
+  "@voidzero-dev/vite-plus-core": "1.0.0-rc.0"
   vite@*: "catalog:"
   vitest@*: "catalog:"
 
@@ -38,10 +38,10 @@ allowBuilds:
   sharp: true
   workerd: true
 catalog:
-  vite: npm:@voidzero-dev/vite-plus-core@0.3.3
-  vitest: 4.1.11
-  vite-plus: 0.3.3
-  "@vitest/coverage-v8": 4.1.11
+  vite: npm:@voidzero-dev/vite-plus-core@1.0.0-rc.0
+  vitest: 5.0.1
+  vite-plus: 1.0.0-rc.0
+  "@vitest/coverage-v8": 5.0.1
 peerDependencyRules:
   allowAny:
     - vite

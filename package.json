@@ -9,6 +9,9 @@
     "start": "vp preview",
     "lint": "vp lint",
     "fix": "vp check --fix",
+    "check": "vp check",
+    "knip": "knip",
+    "verify": "pnpm run check && pnpm run knip",
     "type-check": "tsc --noEmit",
     "clean": "rm -rf .next dist",
     "test": "vp test run",
@@ -19,7 +22,7 @@
     "test:ci": "vp test run --coverage --reporter=json",
     "test:watch": "vp test",
     "test:ui": "vp test --ui",
-    "ci": "pnpm install --frozen-lockfile && pnpm run type-check && vp check && pnpm run test && pnpm run build",
+    "ci": "pnpm install --frozen-lockfile && pnpm run verify && pnpm run test && pnpm run build",
     "preview": "vp build && pnpm exec wrangler dev",
     "deploy": "tsx scripts/deploy.ts",
     "db:generate": "drizzle-kit generate",
@@ -97,5 +100,5 @@
     "vitest": "catalog:",
     "wrangler": "^4.136.0"
   },
-  "packageManager": "pnpm@12.5.1"
+  "packageManager": "pnpm@12.6.0"
 }

@@ -62,3 +62,4 @@ d1-backup-*.sql
 # provenance record that `anti-slop/require-readable-spacing` imports at runtime.
 !tools/oxlint/anti-slop/vendor/
 !tools/oxlint/anti-slop/vendor/**
+.vitest/
