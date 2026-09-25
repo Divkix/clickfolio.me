@@ -438,7 +438,8 @@ export const GlassMorphic: React.FC<TemplateProps> = ({ content, profile, isPrev
         }
         .gl-orb-rose {
           width: clamp(120px, 18vw, 190px); aspect-ratio: 1;
-          bottom: -50px; left: clamp(-30px, 10vw, 180px);
+          bottom: -70px; right: clamp(24px, 14vw, 220px);
+          opacity: 0.6;
           background: radial-gradient(circle at 35% 30%, #FFC2DA, #F28CB8 50%, #8B7CF6);
         }
         .gl-lens {
