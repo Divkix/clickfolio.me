@@ -11,71 +11,66 @@ interface AttributionWidgetProps {
 export function AttributionWidget({ theme }: AttributionWidgetProps) {
   const themeStyles = {
     minimalist_editorial: {
-      container:
-        "bg-amber-50/95 sm:bg-amber-50/80 border border-stone-300/50 text-stone-800 hover:text-stone-900",
-      accent: "text-amber-700",
-      shimmer: "from-transparent via-amber-200/30 to-transparent",
+      container: "bg-white/95 border border-[#E4E4E7] text-[#6B6B73] hover:text-[#1B1B1F]",
+      accent: "text-[#1F5C4A]",
+      shimmer: "from-transparent via-[#1F5C4A]/10 to-transparent",
       shadow: "shadow-sm hover:shadow-md",
     },
     glass: {
       container:
-        "bg-slate-900/80 sm:bg-slate-900/80 backdrop-blur-md border border-white/20 text-white/90 hover:text-white",
-      accent: "text-cyan-400",
+        "bg-[#141A2E]/80 backdrop-blur-md border border-white/15 text-[#D7DCEC] hover:text-white",
+      accent: "text-[#7FE3D4]",
       shimmer: "from-transparent via-white/20 to-transparent",
       shadow: "shadow-lg hover:shadow-xl",
     },
     neo_brutalist: {
-      container: "bg-yellow-300 border-4 border-black text-black font-bold",
-      accent: "text-pink-500",
-      shimmer: "from-transparent via-white/40 to-transparent",
-      shadow: "shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]",
+      container: "bg-white border-[3px] border-black text-black font-bold",
+      accent: "text-[#1F3BFF]",
+      shimmer: "from-transparent via-[#FFD400]/40 to-transparent",
+      shadow: "shadow-[4px_4px_0_0_#000] hover:shadow-[6px_6px_0_0_#000]",
     },
     bento: {
-      container:
-        "bg-white/95 sm:bg-white border border-slate-200/60 text-slate-600 hover:text-slate-900",
-      accent: "text-brand",
-      shimmer: "from-transparent via-brand/30 to-transparent",
+      container: "bg-white/90 border border-[#1A1C20]/10 text-[#1A1C20]/70 hover:text-[#1A1C20]",
+      accent: "text-[#1F4E3D]",
+      shimmer: "from-transparent via-[#F4D35E]/40 to-transparent",
       shadow: "shadow-sm hover:shadow-md",
     },
     spotlight: {
-      container:
-        "bg-stone-50/95 sm:bg-stone-50/80 border border-stone-300/50 text-stone-700 hover:text-stone-900",
-      accent: "text-orange-600",
-      shimmer: "from-transparent via-orange-200/30 to-transparent",
+      container: "bg-[#E9E7F2]/95 border-2 border-[#22163A] text-[#22163A]/80 hover:text-[#22163A]",
+      accent: "text-[#22163A]",
+      shimmer: "from-transparent via-[#FFD95A]/50 to-transparent",
       shadow: "shadow-sm hover:shadow-md",
     },
     midnight: {
       container:
-        "bg-neutral-900/90 sm:bg-neutral-900/80 backdrop-blur-md border border-amber-400/20 text-amber-100/80 hover:text-amber-100",
-      accent: "text-amber-400",
-      shimmer: "from-transparent via-amber-400/20 to-transparent",
+        "bg-[#0F1633]/90 backdrop-blur-md border border-[#D4B26A]/25 text-[#C9CEE4] hover:text-[#EDE6D6]",
+      accent: "text-[#D4B26A]",
+      shimmer: "from-transparent via-[#D4B26A]/20 to-transparent",
       shadow: "shadow-lg hover:shadow-xl",
     },
     bold_corporate: {
-      container:
-        "bg-white/95 sm:bg-white border border-neutral-200 text-neutral-500 hover:text-neutral-800",
-      accent: "text-neutral-900",
-      shimmer: "from-transparent via-neutral-200/30 to-transparent",
+      container: "bg-white/95 border border-[#0E2A47]/20 text-[#1B2430]/70 hover:text-[#0E2A47]",
+      accent: "text-[#0E2A47]",
+      shimmer: "from-transparent via-[#0E2A47]/10 to-transparent",
       shadow: "shadow-sm hover:shadow-md",
     },
     dev_terminal: {
       container:
-        "bg-[#161b22]/95 backdrop-blur-md border border-[#30363d] text-[#c9d1d9] hover:text-white",
-      accent: "text-[#58a6ff]",
-      shimmer: "from-transparent via-[#58a6ff]/20 to-transparent",
+        "bg-[#2d333b]/95 backdrop-blur-md border border-[#444c56] text-[#adbac7] hover:text-white",
+      accent: "text-[#539bf5]",
+      shimmer: "from-transparent via-[#539bf5]/20 to-transparent",
       shadow: "shadow-lg hover:shadow-xl",
     },
     design_folio: {
-      container:
-        "bg-[#1a1a1a]/95 backdrop-blur-md border border-[#333] text-[#888] hover:text-[#e0e0e0]",
-      accent: "text-[#CCFF00]",
-      shimmer: "from-transparent via-[#CCFF00]/20 to-transparent",
-      shadow: "shadow-lg hover:shadow-xl",
+      container: "bg-white/95 border-2 border-black text-black/70 hover:text-black",
+      accent: "text-[#2D3BFF]",
+      shimmer: "from-transparent via-[#2D3BFF]/15 to-transparent",
+      shadow: "shadow-sm hover:shadow-md",
     },
     classic_ats: {
-      container: "bg-white/95 border border-gray-300 text-gray-600 hover:text-gray-900",
-      accent: "text-gray-800",
-      shimmer: "from-transparent via-gray-200/30 to-transparent",
+      container: "bg-white/95 border border-[#B9BCC2] text-[#3F434A] hover:text-[#22385C]",
+      accent: "text-[#22385C]",
+      shimmer: "from-transparent via-[#22385C]/10 to-transparent",
       shadow: "shadow-sm hover:shadow-md",
     },
   } as const satisfies Record<

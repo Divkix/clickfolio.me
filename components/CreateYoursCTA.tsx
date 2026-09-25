@@ -17,17 +17,16 @@ const ctaVariants = cva(
   {
     variants: {
       variant: {
-        minimalist_editorial: "bg-neutral-900 text-white border border-neutral-800",
-        neo_brutalist: "bg-yellow-300 text-black border-2 border-black shadow-[4px_4px_0_0_black]",
-        glass: "bg-white/10 backdrop-blur-md border border-white/20 text-white",
-        bento:
-          "bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white border border-neutral-200 dark:border-neutral-700",
-        spotlight: "bg-linear-to-r from-orange-500 to-amber-500 text-white",
-        midnight: "bg-neutral-900 text-amber-200 border border-amber-700/30",
-        bold_corporate: "bg-white text-neutral-900 border border-neutral-200 shadow-lg",
-        dev_terminal: "bg-[#161b22] text-[#c9d1d9] border border-[#30363d]",
-        classic_ats: "bg-white text-gray-800 border border-gray-300",
-        design_folio: "bg-[#1a1a1a] text-[#e0e0e0] border border-[#333]",
+        minimalist_editorial: "bg-[#1B1B1F] text-white border border-[#1B1B1F]",
+        neo_brutalist: "bg-white text-black border-[3px] border-black shadow-[4px_4px_0_0_#000]",
+        glass: "bg-[#141A2E]/80 backdrop-blur-md border border-white/15 text-white",
+        bento: "bg-[#1F4E3D] text-[#F4F5F1] border border-[#1F4E3D]",
+        spotlight: "bg-[#22163A] text-[#E9E7F2] border border-[#22163A]",
+        midnight: "bg-[#0F1633] text-[#EDE6D6] border border-[#D4B26A]/30",
+        bold_corporate: "bg-[#0E2A47] text-white border border-[#0E2A47]",
+        dev_terminal: "bg-[#2d333b] text-[#adbac7] border border-[#444c56]",
+        classic_ats: "bg-white text-[#1F2328] border border-[#B9BCC2]",
+        design_folio: "bg-[#2D3BFF] text-white border border-[#2D3BFF]",
       },
     },
     defaultVariants: {
@@ -41,16 +40,16 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        minimalist_editorial: "bg-white text-neutral-900 hover:bg-neutral-100",
-        neo_brutalist: "bg-black text-yellow-300 hover:bg-neutral-900 font-bold",
+        minimalist_editorial: "bg-white text-[#1B1B1F] hover:bg-[#F4F4F5]",
+        neo_brutalist: "bg-[#FFD400] text-black hover:bg-[#FFE14D] font-bold",
         glass: "bg-white/20 text-white hover:bg-white/30",
-        bento: "bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 hover:opacity-90",
-        spotlight: "bg-white text-orange-600 hover:bg-orange-50",
-        midnight: "bg-amber-500 text-neutral-900 hover:bg-amber-400",
-        bold_corporate: "bg-neutral-900 text-white hover:bg-neutral-800",
-        dev_terminal: "bg-[#238636] text-white hover:bg-[#2ea043]",
-        classic_ats: "bg-gray-800 text-white hover:bg-gray-700",
-        design_folio: "bg-[#CCFF00] text-black hover:bg-[#b8e600]",
+        bento: "bg-[#F4D35E] text-[#1A1C20] hover:bg-[#F7DD7E]",
+        spotlight: "bg-[#FFD95A] text-[#22163A] hover:bg-[#FFE27F]",
+        midnight: "bg-[#D4B26A] text-[#0B1026] hover:bg-[#E0C487]",
+        bold_corporate: "bg-white text-[#0E2A47] hover:bg-[#EEF2F6]",
+        dev_terminal: "bg-[#347d39] text-white hover:bg-[#46954a]",
+        classic_ats: "bg-[#22385C] text-white hover:bg-[#2D4874]",
+        design_folio: "bg-white text-black hover:bg-[#EDEEF0]",
       },
     },
     defaultVariants: {
@@ -62,16 +61,16 @@ const buttonVariants = cva(
 const closeButtonVariants = cva("p-1 rounded-full transition-colors", {
   variants: {
     variant: {
-      minimalist_editorial: "hover:bg-white/10 text-neutral-400",
+      minimalist_editorial: "hover:bg-white/10 text-white/60",
       neo_brutalist: "hover:bg-black/10 text-black",
       glass: "hover:bg-white/10 text-white/60",
-      bento: "hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-500",
-      spotlight: "hover:bg-white/10 text-white/80",
-      midnight: "hover:bg-amber-900/30 text-amber-400",
-      bold_corporate: "hover:bg-neutral-100 text-neutral-400",
-      dev_terminal: "hover:bg-[#30363d] text-[#8b949e]",
+      bento: "hover:bg-white/10 text-[#F4F5F1]/70",
+      spotlight: "hover:bg-white/10 text-[#E9E7F2]/70",
+      midnight: "hover:bg-[#D4B26A]/15 text-[#D4B26A]",
+      bold_corporate: "hover:bg-white/10 text-white/60",
+      dev_terminal: "hover:bg-[#444c56] text-[#768390]",
       classic_ats: "hover:bg-gray-100 text-gray-500",
-      design_folio: "hover:bg-[#333] text-[#888]",
+      design_folio: "hover:bg-white/10 text-white/70",
     },
   },
   defaultVariants: {
