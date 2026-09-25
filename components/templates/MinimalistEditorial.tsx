@@ -377,7 +377,9 @@ export const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile,
                         <h3 className="font-serif-me text-lg italic mb-1 break-words">
                           {cert.name}
                         </h3>
-                        <p className="text-sm text-neutral-600 font-medium">{cert.issuer}</p>
+                        {cert.issuer && (
+                          <p className="text-sm text-neutral-600 font-medium">{cert.issuer}</p>
+                        )}
                         {cert.date && (
                           <p className="text-xs text-neutral-400 mt-2">
                             {formatShortDate(cert.date)}

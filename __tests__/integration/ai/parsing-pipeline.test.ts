@@ -408,6 +408,7 @@ describe("AI Parsing Pipeline", () => {
         success: true,
         text: SAMPLE_RESUME_TEXT,
         pageCount: 1,
+        source: "generic",
       });
 
       const { generateText } = await import("ai");

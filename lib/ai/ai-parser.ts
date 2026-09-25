@@ -3,6 +3,7 @@ import { generateText } from "ai";
 import type { JsonValue, UnknownRecord } from "@/lib/types/json";
 import { parseJsonWithRepair, transformToSchema } from "./ai-fallback";
 import { normalizeAiKeys } from "./ai-normalize";
+import { LINKEDIN_PROMPT_RULES, type ResumeSource } from "./linkedin";
 import { RESUME_TRUNCATION_MARKER, truncateResumeText } from "./truncate";
 
 const DEFAULT_AI_MODEL = "openai/gpt-6-luna:nitro";
@@ -122,7 +123,7 @@ Rules:
 - Required fields: full_name (string), headline (string), summary (string),
   experience (non-empty array)
 - contact.email is optional. If it is missing or empty, keep it as an empty string.
-- Each experience entry needs: title, company, start_date, description
+- Each experience entry needs: title, company, start_date. description may be an empty string.
 - Skills must be an array of { category: string, items: string[] }, not an object
 - If a required field is missing, extract it from the resume text below.
   Do NOT invent or fabricate values not present in the resume.
@@ -253,6 +254,10 @@ function extractJson(text: string): string {
   return text.trim();
 }
 
+function buildSystemPrompt(source: ResumeSource): string {
+  return source === "linkedin" ? `${SYSTEM_PROMPT}\n\n${LINKEDIN_PROMPT_RULES}` : SYSTEM_PROMPT;
+}
+
 function buildPrompt(text: string): string {
   return `Resume Text:\n"""\n${text}\n"""`;
 }
@@ -282,6 +287,7 @@ export async function parseWithAi(
   env: Partial<AiEnvVars>,
   model?: string,
   retryContext?: { previousOutput: string; errors: string },
+  source: ResumeSource = "generic",
 ): Promise<AiParseResult> {
   try {
     const modelId = model || env.AI_MODEL || DEFAULT_AI_MODEL;
@@ -350,7 +356,7 @@ export async function parseWithAi(
     try {
       const { text: responseText } = await generateText({
         model: provider(modelId),
-        system: SYSTEM_PROMPT,
+        system: buildSystemPrompt(source),
         prompt: buildPrompt(truncateResumeText(text)),
         temperature: 0,
         maxOutputTokens: MAX_OUTPUT_TOKENS,
@@ -407,7 +413,7 @@ export async function parseWithAi(
 
       const { text: responseText } = await generateText({
         model: provider(modelId),
-        system: `${SYSTEM_PROMPT}\n\nIMPORTANT: Output a single valid JSON object only.`,
+        system: `${buildSystemPrompt(source)}\n\nIMPORTANT: Output a single valid JSON object only.`,
         prompt: buildPrompt(retryText),
         temperature: 0,
         maxOutputTokens: MAX_OUTPUT_TOKENS,

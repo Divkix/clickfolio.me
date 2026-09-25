@@ -299,23 +299,39 @@ describe("transformAiResponse", () => {
     expect(asRecords(result.experience)[0].title).toBe("Engineer");
   });
 
-  it("filters experience missing description (schema requires it)", () => {
+  it("keeps experience without a description as an empty string", () => {
     const data = {
       experience: [
         { title: "Engineer", company: "Acme", start_date: "2020", description: "" },
-        { title: "Engineer", company: "Acme", start_date: "2020" },
+        { title: "Analyst", company: "Acme", start_date: "2018" },
         {
-          title: "Engineer",
+          title: "Lead",
           company: "Acme",
-          start_date: "2020",
+          start_date: "2022",
           description: "Has a description",
         },
       ],
     };
 
     const result = transformAiResponse(data);
-    expect(result.experience).toHaveLength(1);
-    expect(asRecords(result.experience)[0].description).toBe("Has a description");
+    const experience = asRecords(result.experience);
+    expect(experience.map((e) => e.description)).toEqual(["", "", "Has a description"]);
+  });
+
+  it("keeps only the 10 most recent experience entries", () => {
+    const data = {
+      experience: Array.from({ length: 14 }, (_, i) => ({
+        title: `Role ${i}`,
+        company: "Acme",
+        start_date: "2020",
+      })),
+    };
+
+    const result = transformAiResponse(data);
+    const experience = asRecords(result.experience);
+    expect(experience).toHaveLength(10);
+    expect(experience[0].title).toBe("Role 0");
+    expect(experience[9].title).toBe("Role 9");
   });
 
   it("coerces a plain-string highlights field into a single-element array", () => {
@@ -420,18 +436,19 @@ describe("transformAiResponse", () => {
     expect(asRecords(result.skills)[0].items).toEqual(["JS", "Python"]);
   });
 
-  it("filters certifications missing name or issuer", () => {
+  it("filters certifications missing a name but keeps ones without an issuer", () => {
     const data = {
       certifications: [
         { name: "", issuer: "AWS" },
-        { name: "Solutions Architect", issuer: "" },
+        { name: "Hackathon Winner 2025" },
         { name: "Valid Cert", issuer: "AWS" },
       ],
     };
 
     const result = transformAiResponse(data);
-    expect(result.certifications).toHaveLength(1);
-    expect(asRecords(result.certifications)[0].name).toBe("Valid Cert");
+    const certifications = asRecords(result.certifications);
+    expect(certifications.map((c) => c.name)).toEqual(["Hackathon Winner 2025", "Valid Cert"]);
+    expect(certifications[0].issuer).toBe("");
   });
 
   it("validates certification URLs", () => {

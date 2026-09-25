@@ -148,10 +148,9 @@ const experienceSchema = z.object({
   description: z
     .string()
     .trim()
-    .min(1, "Description is required")
     .max(5000, "Description is too long (max 5000 characters)")
     .refine(noXssPattern, { message: "Invalid content detected" })
-    .describe("Role description (max 5000 characters)"),
+    .describe("Role description (max 5000 characters). Empty string if the resume has none."),
   highlights: z
     .array(z.string().trim().max(500).refine(noXssPattern, { message: "Invalid content detected" }))
     .optional()
@@ -231,10 +230,11 @@ const certificationSchema = z.object({
   issuer: z
     .string()
     .trim()
-    .min(1, "Issuer is required")
     .max(200, "Issuer is too long")
     .refine(noXssPattern, { message: "Invalid content detected" })
-    .describe("Organization that issued the certification. Always include this field."),
+    .describe(
+      "Organization that issued the certification. Empty string if not stated; never guess.",
+    ),
   date: z
     .string()
     .trim()

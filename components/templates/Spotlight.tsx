@@ -312,7 +312,7 @@ function SpotlightCertifications({
                 </h4>
                 <p className="text-xs text-[#78716C] font-body-sl">
                   {cert.issuer}
-                  {cert.date ? ` · ${formatShortDate(cert.date)}` : ""}
+                  {cert.date ? `${cert.issuer ? " · " : ""}${formatShortDate(cert.date)}` : ""}
                 </p>
               </div>
               {cert.url && (

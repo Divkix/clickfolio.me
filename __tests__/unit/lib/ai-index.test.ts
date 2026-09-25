@@ -76,6 +76,24 @@ describe("parseResumeWithAi", () => {
     });
   });
 
+  it("cleans LinkedIn exports and forwards the source to the parser", async () => {
+    mocks.extractPdfText.mockResolvedValueOnce({
+      success: true,
+      text: "Contact\nwww.linkedin.com/in/avery\n(LinkedIn)\n- First bullet\nPage 1 of 2\n- Second bullet",
+      pageCount: 2,
+      source: "linkedin",
+    });
+
+    await expect(parseResumeWithAi(new ArrayBuffer(1), {})).resolves.toMatchObject({
+      success: true,
+    });
+
+    const [text, , , , source] = mocks.parseWithAi.mock.calls[0];
+    expect(source).toBe("linkedin");
+    expect(text).toContain("LinkedIn: www.linkedin.com/in/avery");
+    expect(text).toContain("- First bullet\n- Second bullet");
+  });
+
   it("normalizes long resume text and validates AI output with safe defaults", async () => {
     mocks.extractPdfText.mockResolvedValueOnce({
       success: true,

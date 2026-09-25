@@ -290,6 +290,8 @@ Shared infra: `rewrites /sitemap.xml→/api/sitemap-index`, `redirects /:handle�
 
 **AI seam:** `lib/ai/` lazy-imports; `unpdf` extract (50 pages / 5 MB / 60k truncation) → AI SDK (OpenRouter via `CF_AI_GATEWAY_*`) → `normalizeResumeContent` with Zod; provider routed via gateway; notifications best-effort.
 
+**LinkedIn "Save to PDF" imports** (`lib/ai/linkedin.ts`): `extractPdfText` returns `source: "linkedin"|"generic"` via `detectResumeSource` (PDF metadata `Author:"LinkedIn"` + `Subject:"…generated from profile"`, else text: `linkedin.com/in/… (LinkedIn)` + `Page N of M`). LinkedIn text goes through `cleanLinkedInText` (strips page footers, turns `url (Label)` into `Label: url`) and `parseWithAi(…, source)` appends `LINKEDIN_PROMPT_RULES` (grouped roles, no issuer, top skills). Upload UI: `components/LinkedInExportHelp.tsx` dialog under the dropzone. Schema: experience `description` and certification `issuer` may be empty (LinkedIn omits them; never AI-invented), templates hide empty values; `transformAiResponse` keeps the 10 most recent roles.
+
 **Failure handling:** `parseResumePdf` writes `lastAttemptError=classifyParseError().toJSON()` + SQL-increments `totalAttempts`; `markResumeParseFailed` sets `failed` (COALESCE keeps a friendlier `errorMessage`), DO notify, `sendAlert` (`PARSE_FAILURE_ALERT` via `log`, or webhook). No DLQ — failed instances are inspectable in the Workflows dashboard.
 
 ## User Flows & Templates

@@ -434,7 +434,9 @@ export const NeoBrutalist: React.FC<TemplateProps> = ({ content, profile }) => {
                         <h3 className="font-heading-nb font-black text-lg uppercase [text-wrap:unset] break-words">
                           {cert.name}
                         </h3>
-                        <p className="font-bold text-sm text-neutral-600">{cert.issuer}</p>
+                        {cert.issuer && (
+                          <p className="font-bold text-sm text-neutral-600">{cert.issuer}</p>
+                        )}
                         {cert.date && (
                           <p className="text-xs font-bold mt-1">{formatShortDate(cert.date)}</p>
                         )}

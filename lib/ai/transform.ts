@@ -4,6 +4,8 @@ import type { JsonValue, UnknownRecord } from "@/lib/types/json";
 import { truncateText } from "@/lib/utils/format";
 import { sanitizeEmail, sanitizeUrl } from "@/lib/utils/sanitization";
 
+const MAX_EXPERIENCE_ENTRIES = 10;
+
 // treated as pathological. A single repeated pair (e.g. `github.com/user/user`)
 const REPEATING_SEGMENT_PATTERN = /\/([^/]+)\/\1\/\1(?:\/|$)/;
 
@@ -127,7 +129,8 @@ export function transformAiResponse(raw: JsonValue): UnknownRecord {
       // SAFETY: null and object guard above ensures exp is a non-null object; UnknownRecord is the safe JSON record type for experience entries.
       const e = exp as UnknownRecord;
 
-      // SAFETY: zod safeParse guarantees e.title/e.company/e.start_date/e.description are strings before cast.
+      // SAFETY: zod safeParse guarantees e.title/e.company/e.start_date are strings before cast.
+      // description is optional: LinkedIn exports and short resumes often list roles without one.
       return (
         e.title &&
         z.string().safeParse(e.title).success &&
@@ -137,12 +140,13 @@ export function transformAiResponse(raw: JsonValue): UnknownRecord {
         (e.company as string).trim().length > 0 &&
         e.start_date &&
         z.string().safeParse(e.start_date).success &&
-        (e.start_date as string).trim().length > 0 &&
-        e.description &&
-        z.string().safeParse(e.description).success &&
-        (e.description as string).trim().length > 0
+        (e.start_date as string).trim().length > 0
       );
     });
+
+    // Schema allows 10 entries; keep the most recent (resumes list reverse-chronologically) instead
+    // of failing validation on long LinkedIn histories.
+    data.experience = data.experience.slice(0, MAX_EXPERIENCE_ENTRIES);
 
     // SAFETY: Array.isArray guard above ensures data.experience is an array; UnknownRecord[] is the safe type for iterating AI experience entries.
     for (const exp of data.experience as UnknownRecord[]) {
@@ -233,15 +237,9 @@ export function transformAiResponse(raw: JsonValue): UnknownRecord {
       // SAFETY: null and object guard above ensures cert is a non-null object; UnknownRecord is the safe JSON record type for certification entries.
       const c = cert as UnknownRecord;
 
-      // SAFETY: zod safeParse guarantees c.name/c.issuer are strings before cast.
-      return (
-        c.name &&
-        z.string().safeParse(c.name).success &&
-        (c.name as string).trim().length > 0 &&
-        c.issuer &&
-        z.string().safeParse(c.issuer).success &&
-        (c.issuer as string).trim().length > 0
-      );
+      // SAFETY: zod safeParse guarantees c.name is a string before cast.
+      // issuer is optional: LinkedIn exports never include it.
+      return c.name && z.string().safeParse(c.name).success && (c.name as string).trim().length > 0;
     });
 
     // SAFETY: Array.isArray guard above ensures data.certifications is an array; UnknownRecord[] is the safe type for iterating AI certification entries.

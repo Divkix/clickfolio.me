@@ -23,6 +23,7 @@ import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { generateText } from "ai";
 import { parseJsonWithRepair, transformToSchema } from "@/lib/ai/ai-fallback";
 import { normalizeAiKeys } from "@/lib/ai/ai-normalize";
+import { LINKEDIN_PROMPT_RULES } from "@/lib/ai/linkedin";
 
 setupMockCleanup();
 
@@ -115,6 +116,19 @@ describe("parseWithAi - universal text path", () => {
     expect(result.success).toBe(true);
     expect(result.data).toEqual(mockOutput);
     expect(result.structuredOutput).toBe(false);
+  });
+
+  it("appends LinkedIn rules to the system prompt only for LinkedIn exports", async () => {
+    const mockOutput = { full_name: "Sam", headline: "Dev", summary: "", experience: [] };
+    vi.mocked(generateText).mockResolvedValue(textResult(JSON.stringify(mockOutput)));
+    vi.mocked(parseJsonWithRepair).mockResolvedValue({ data: mockOutput, repaired: false });
+
+    await parseWithAi("Resume text", mockEnv, undefined, undefined, "linkedin");
+    await parseWithAi("Resume text", mockEnv);
+
+    const [linkedinCall, genericCall] = vi.mocked(generateText).mock.calls;
+    expect(linkedinCall[0].system).toContain(LINKEDIN_PROMPT_RULES);
+    expect(genericCall[0].system).not.toContain(LINKEDIN_PROMPT_RULES);
   });
 
   it("uses default model when AI_MODEL not provided", async () => {
