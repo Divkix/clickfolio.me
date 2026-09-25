@@ -14,6 +14,10 @@ const nextConfig: NextConfig = {
   // Keeps trailing-slash API paths (e.g. `/base/`) distinct from their bare form.
   skipTrailingSlashRedirect: true,
 
+  // Render metadata in <head> for every request. ISR caches one HTML for all user agents, so a
+  // streamed render (title/OG tags in <body>) would otherwise be served to crawlers too.
+  htmlLimitedBots: /.*/,
+
   // Rewrites for sitemap index (vinext generateSitemaps doesn't create sitemap index)
   async rewrites() {
     return [
