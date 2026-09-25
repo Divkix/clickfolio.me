@@ -1,347 +1,438 @@
-import { ArrowUpRight, Award, Briefcase, Code, GraduationCap, Layers, MapPin } from "lucide-react";
+import { MapPin } from "lucide-react";
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
 import { getContactLinks } from "@/lib/templates/contact-links";
-import { flattenSkills, formatDateRange, formatYear, getInitials } from "@/lib/templates/helpers";
+import { formatDateRange, formatYear, getInitials } from "@/lib/templates/helpers";
 import type { TemplateProps } from "@/lib/types/template";
 import { getContactIcon } from "./shared/ContactIcon";
 import { TemplateFontLinks } from "./shared/TemplateFontLinks";
 
-function FeaturedWork({
-  project,
-}: {
-  project: NonNullable<TemplateProps["content"]["projects"]>[number];
-}) {
-  const Wrapper = project.url ? "a" : "article";
+type Content = TemplateProps["content"];
+
+type Area = "id" | "photo" | "about" | "contact" | "exp" | "skills" | "edu" | "proj" | "cert";
+
+// Tile fills. Flat colours, no shadows: hierarchy comes from size and type, not depth.
+const PINE = "#1F4E3D";
+
+const PAPER = "#F4F5F1";
+
+const INK = "#1A1C20";
+
+const TILE = "rounded-[22px] p-6 md:p-7 min-w-0";
+
+const TILE_HEADING = "font-bento text-[15px] font-bold mb-4";
+
+function row(...cells: Array<[Area, number]>): string {
+  return `"${cells.flatMap(([area, span]) => Array<Area>(span).fill(area)).join(" ")}"`;
+}
+
+/**
+ * Builds the grid-template-areas for whichever sections exist, so a missing section never
+ * leaves a hole: the neighbouring tile takes over its columns instead.
+ */
+function buildAreas(has: Record<Area, boolean>) {
+  const rows: string[] = [row(["id", 4], ["photo", 2])];
+
+  if (has.about && has.contact) rows.push(row(["about", 4], ["contact", 2]));
+  else if (has.about) rows.push(row(["about", 6]));
+  else if (has.contact) rows.push(row(["contact", 6]));
+
+  // Experience is usually the tallest tile, so the short tiles stack in a column beside it.
+  const side = (["skills", "edu", "cert"] as const).filter((area) => has[area]);
+
+  if (has.exp) {
+    if (side.length === 0) rows.push(row(["exp", 6]));
+
+    for (const area of side) rows.push(row(["exp", 4], [area, 2]));
+  } else if (side.length > 0) {
+    rows.push(row(...side.map((area): [Area, number] => [area, 6 / side.length])));
+  }
+
+  if (has.proj) rows.push(row(["proj", 6]));
+
+  const order: Area[] = ["id", "about", "contact", "exp", "skills", "edu", "proj", "cert"];
+
+  const mobile = order.flatMap((area) => (has[area] ? [`"${area}"`] : [])).join(" ");
+
+  return { mobile, desktop: rows.join(" ") };
+}
+
+function Portrait({ name, avatarUrl }: { name: string; avatarUrl: string | null }) {
+  if (avatarUrl) {
+    return (
+      <img
+        src={avatarUrl}
+        alt={`Portrait of ${name}`}
+        width={320}
+        height={320}
+        decoding="async"
+        fetchPriority="high"
+        className="h-full w-full object-cover"
+      />
+    );
+  }
 
   return (
-    <Wrapper
-      {...(project.url
-        ? {
-            href: project.url,
-            target: "_blank" as const,
-            rel: "noopener noreferrer",
-          }
-        : {})}
-      className="col-span-1 sm:col-span-2 min-h-[240px] bg-[#2D2926] rounded-[28px] overflow-hidden border border-[#3D3530] group relative shadow-2xl min-w-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+    <span
+      className="font-bento text-[clamp(4rem,9vw,7.5rem)] font-extrabold leading-none tracking-[-0.04em]"
+      style={{ color: PINE }}
+      aria-hidden="true"
     >
-      <div
-        className="absolute inset-0 opacity-30 group-hover:opacity-45 transition-opacity duration-500"
-        style={{
-          background:
-            "radial-gradient(circle at 20% 30%, rgba(196,112,79,0.7) 0%, transparent 50%), radial-gradient(circle at 80% 70%, rgba(236,72,153,0.45) 0%, transparent 50%)",
-        }}
-        aria-hidden="true"
-      />
-      <div className="relative h-full p-7 md:p-8 flex flex-col justify-end text-white z-10">
-        <span className="self-start text-[10px] font-bold uppercase tracking-widest bg-white/10 backdrop-blur-md border border-white/10 px-2 py-1 rounded text-white/90 mb-3">
-          Featured Work
-        </span>
-        <div className="flex justify-between items-end gap-4">
-          <div className="min-w-0">
-            <h3 className="font-heading-bg text-2xl md:text-3xl font-bold mb-2 tracking-tight break-words [text-wrap:unset]">
-              {project.title}
-            </h3>
-            {project.description && (
-              <p className="text-gray-300 text-sm leading-relaxed">{project.description}</p>
-            )}
-            {project.technologies && project.technologies.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-4">
-                {project.technologies.slice(0, 4).map((tech, idx) => (
-                  <span
-                    key={`${tech}-${idx}`}
-                    className="text-[10px] font-medium bg-white/10 border border-white/5 px-2.5 py-1 rounded-full text-gray-200"
-                  >
-                    {tech}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-          {project.url && (
-            <div className="bg-white text-black w-11 h-11 rounded-full flex items-center justify-center shrink-0 shadow-lg">
-              <ArrowUpRight size={18} strokeWidth={2.5} aria-hidden="true" />
-            </div>
-          )}
-        </div>
-      </div>
-    </Wrapper>
+      {getInitials(name)}
+    </span>
   );
 }
 
-function ContactPills({ links }: { links: ReturnType<typeof getContactLinks> }) {
-  const items = links.filter((link) => link.type !== "location");
+function ExperienceTile({ experience }: { experience: NonNullable<Content["experience"]> }) {
+  return (
+    <section aria-labelledby="bento-exp" className={`b-exp bg-white ${TILE}`}>
+      <h2 id="bento-exp" className={TILE_HEADING}>
+        Experience
+      </h2>
+      <ol className="divide-y divide-[#E3E5DF]">
+        {experience.map((job) => (
+          <li
+            key={`${job.title}-${job.company}-${job.start_date}`}
+            className="grid gap-x-6 gap-y-1 py-5 first:pt-0 last:pb-0 sm:grid-cols-[9.5rem_1fr]"
+          >
+            <p className="text-sm text-[#5E6259] tabular-nums sm:pt-1">
+              {formatDateRange(job.start_date, job.end_date)}
+            </p>
+            <div className="min-w-0">
+              <h3 className="font-bento text-xl font-bold leading-snug tracking-[-0.01em] break-words">
+                {job.title}
+              </h3>
+              <p className="text-[15px] text-[#5E6259]">
+                {job.company}
+                {job.location && <span>, {job.location}</span>}
+              </p>
+              {job.description && (
+                <p className="mt-3 text-[15px] leading-relaxed">{job.description}</p>
+              )}
+              {job.highlights && job.highlights.length > 0 && (
+                <ul className="mt-3 space-y-1.5 text-[15px] leading-relaxed">
+                  {job.highlights.map((highlight, i) => (
+                    <li key={`${job.title}-${i}`} className="relative pl-4">
+                      <span
+                        className="absolute left-0 top-[0.7em] h-1.5 w-1.5 rounded-full"
+                        style={{ backgroundColor: PINE }}
+                        aria-hidden="true"
+                      />
+                      {highlight}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
+// Indexed by column count; literal class names so Tailwind picks them up.
+const PROJECT_COLS = ["", "", "lg:grid-cols-2", "lg:grid-cols-3"] as const;
+
+const PROJECT_SPAN = ["", "", "lg:col-span-2", "lg:col-span-3"] as const;
+
+function ProjectTiles({ projects }: { projects: NonNullable<Content["projects"]> }) {
+  const cols = Math.min(projects.length, 3);
+  const remainder = projects.length % cols;
+  // Stretch the last tile across the leftover columns so the row never ends in a gap.
+  const lastSpan = remainder === 0 ? 1 : cols - remainder + 1;
 
   return (
-    <nav aria-label="Contact links" className="flex gap-2 flex-wrap">
-      {items.map((link) => {
-        const isBranded = link.type === "behance" || link.type === "dribbble";
-
-        const brandColor =
-          link.type === "behance" ? "#1769FF" : link.type === "dribbble" ? "#EA4C89" : undefined;
-
-        const brandText = link.type === "behance" ? "Be" : link.type === "dribbble" ? "Dr" : null;
-
-        return (
-          <a
-            key={link.type}
-            href={link.href}
-            target={link.isExternal ? "_blank" : undefined}
-            rel={link.isExternal ? "noopener noreferrer" : undefined}
-            aria-label={link.label}
-            className="p-2.5 bg-gray-50 rounded-full hover:bg-gray-100 border border-gray-100 hover:border-gray-200 transition-[color,background-color,border-color,transform] text-gray-500 hover:text-[#2D2926] hover:scale-105 flex items-center justify-center w-10 h-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D2926]"
-            style={isBranded ? { color: brandColor } : undefined}
+    <section aria-labelledby="bento-proj" className="b-proj min-w-0">
+      <h2 id="bento-proj" className="sr-only">
+        Projects
+      </h2>
+      <div className={`grid h-full gap-3 ${PROJECT_COLS[cols]}`}>
+        {projects.map((project, i) => (
+          <article
+            key={`${project.title}-${project.year ?? ""}-${project.url ?? ""}`}
+            className={`flex flex-col bg-white ${TILE} ${i === projects.length - 1 ? PROJECT_SPAN[lastSpan] : ""}`}
           >
-            {isBranded ? (
-              <span className="text-xs font-bold">{brandText}</span>
-            ) : (
-              getContactIcon(link.type, { size: 18, strokeWidth: 1.5 })
+            {project.image_url && (
+              <img
+                src={project.image_url}
+                alt=""
+                loading="lazy"
+                decoding="async"
+                className="mb-5 aspect-[16/9] w-full rounded-[14px] object-cover"
+              />
             )}
-          </a>
-        );
-      })}
-    </nav>
+            {project.year && <p className="text-sm text-[#5E6259] tabular-nums">{project.year}</p>}
+            <h3 className="font-bento mt-1 text-2xl font-bold leading-tight tracking-[-0.02em] break-words">
+              {project.url ? (
+                <a
+                  href={project.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline decoration-2 underline-offset-4 decoration-[#1F4E3D]/30 hover:decoration-[#1F4E3D] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1F4E3D] rounded-sm"
+                >
+                  {project.title}
+                </a>
+              ) : (
+                project.title
+              )}
+            </h3>
+            {project.description && (
+              <p className="mt-2 text-[15px] leading-relaxed">{project.description}</p>
+            )}
+            {project.technologies && project.technologies.length > 0 && (
+              <ul className="mt-auto flex flex-wrap gap-1.5 pt-4" aria-label="Technologies">
+                {project.technologies.map((tech, idx) => (
+                  <li
+                    key={`${tech}-${idx}`}
+                    className="rounded-full bg-[#EEF0EA] px-2.5 py-1 text-[13px] text-[#3B3E38]"
+                  >
+                    {tech}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </article>
+        ))}
+      </div>
+    </section>
   );
 }
 
 export const BentoGrid: React.FC<TemplateProps> = ({ content, profile }) => {
-  const skills = flattenSkills(content.skills);
-  const contactLinks = getContactLinks(content.contact);
-  const extraProjects = content.projects?.slice(1) ?? [];
+  const contactLinks = getContactLinks(content.contact).filter((link) => link.type !== "location");
+  const skills = content.skills?.filter((group) => group.items.length > 0) ?? [];
+  const experience = content.experience ?? [];
+  const education = content.education ?? [];
+  const projects = content.projects ?? [];
+  const certifications = content.certifications ?? [];
+
+  const has: Record<Area, boolean> = {
+    id: true,
+    photo: true,
+    about: Boolean(content.summary?.trim()),
+    // The contact tile also carries the share buttons, so it always renders.
+    contact: true,
+    exp: experience.length > 0,
+    skills: skills.length > 0,
+    edu: education.length > 0,
+    proj: projects.length > 0,
+    cert: certifications.length > 0,
+  };
+
+  const areas = buildAreas(has);
 
   return (
     <>
-      <TemplateFontLinks href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" />
-      <style>{`.font-heading-bg { font-family: 'Sora', sans-serif; }`}</style>
+      <TemplateFontLinks href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;700;800&display=swap" />
+      <style>{`
+        .font-bento { font-family: 'Schibsted Grotesk', ui-sans-serif, system-ui, sans-serif; }
+        .bento-grid { grid-template-columns: minmax(0, 1fr); grid-template-areas: ${areas.mobile}; }
+        .b-id { grid-area: id; } .b-photo { grid-area: photo; display: none; }
+        .b-about { grid-area: about; } .b-contact { grid-area: contact; }
+        .b-exp { grid-area: exp; } .b-skills { grid-area: skills; } .b-edu { grid-area: edu; }
+        .b-proj { grid-area: proj; } .b-cert { grid-area: cert; }
+        @media (min-width: 1024px) {
+          .bento-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); grid-template-areas: ${areas.desktop}; }
+          .b-photo { display: flex; }
+        }
+      `}</style>
 
-      <main className="min-h-screen bg-[#FAF8F5] text-[#2D2926] font-sans antialiased selection:bg-coral/30 p-4 md:p-8">
-        <div
-          className="fixed inset-0 h-full w-full bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] bg-size-[16px_16px] mask-[radial-gradient(ellipse_50%_50%_at_50%_50%,#000_70%,transparent_100%)] pointer-events-none z-0"
-          aria-hidden="true"
-        />
-
-        <div className="max-w-6xl mx-auto relative z-10">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 auto-rows-auto gap-4">
-            <div className="col-span-1 sm:col-span-2 lg:row-span-2 bg-white rounded-[28px] p-7 md:p-8 shadow-lg border border-gray-200/80 flex flex-col justify-between group hover:shadow-xl hover:shadow-gray-200/50 transition-shadow duration-300 relative overflow-hidden min-w-0">
-              <div
-                className="absolute top-0 right-0 w-56 h-56 bg-linear-to-br from-coral/15 to-amber-100/40 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none opacity-70 group-hover:scale-110 transition-transform duration-700"
-                aria-hidden="true"
-              />
-
-              <div className="relative z-10">
-                <div className="flex items-start justify-between gap-3 mb-6">
-                  <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl bg-[#2D2926] shadow-xl flex items-center justify-center text-white font-medium text-2xl md:text-3xl shrink-0">
-                    {getInitials(content.full_name)}
-                  </div>
-                  <div className="hidden sm:block">
-                    <ContactPills links={contactLinks} />
-                  </div>
-                </div>
-
-                <h1 className="font-heading-bg text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-[#2D2926] mb-2 break-words [text-wrap:unset]">
-                  {content.full_name}
-                </h1>
-                {content.headline && (
-                  <p className="text-base sm:text-lg text-gray-500 font-medium tracking-tight mb-1">
-                    {content.headline}
-                  </p>
-                )}
-                {content.contact?.location && (
-                  <div className="flex items-center gap-1.5 text-gray-400 text-sm font-medium mt-1">
-                    <MapPin size={14} className="shrink-0" aria-hidden="true" />
-                    <span className="truncate">{content.contact.location}</span>
-                  </div>
-                )}
-              </div>
-
-              <div className="relative z-10 mt-6">
-                {content.summary && (
-                  <p className="text-gray-600 leading-relaxed max-w-lg mb-6 text-sm sm:text-base">
-                    {content.summary}
-                  </p>
-                )}
-
-                <div className="sm:hidden mb-4">
-                  <ContactPills links={contactLinks} />
-                </div>
-
-                <div className="w-fit">
-                  <ShareBar
-                    handle={profile.handle}
-                    title={`${content.full_name}'s Portfolio`}
-                    name={content.full_name}
-                    variant="bento-grid"
+      <main
+        className="font-bento min-h-screen px-3 py-3 antialiased sm:px-5 sm:py-5 lg:px-8 lg:py-8"
+        style={{ backgroundColor: "#E4E7E1", color: INK }}
+      >
+        <div className="bento-grid mx-auto grid max-w-6xl gap-3">
+          <header
+            className={`b-id flex min-h-[300px] flex-col justify-between gap-10 lg:justify-end ${TILE} lg:min-h-[380px] lg:p-10`}
+            style={{ backgroundColor: PINE, color: PAPER }}
+          >
+            <div className="flex items-center gap-3 lg:hidden">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[#BFD7EA]">
+                {profile.avatar_url ? (
+                  <img
+                    src={profile.avatar_url}
+                    alt=""
+                    width={56}
+                    height={56}
+                    decoding="async"
+                    className="h-full w-full object-cover"
                   />
-                </div>
-              </div>
-            </div>
-
-            <div className="col-span-1 bg-[#F1F9F3] rounded-[28px] p-6 shadow-sm flex flex-col justify-between border border-[#E2F0E5] min-h-[160px] min-w-0">
-              <div className="flex justify-between items-start">
-                <div className="relative flex h-3 w-3">
-                  <span className="motion-safe:animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500" />
-                </div>
-              </div>
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-green-700/70 mb-1">
-                  Status
-                </p>
-                <p className="font-heading-bg text-lg font-semibold text-green-900 tracking-tight leading-tight">
-                  Open to opportunities
-                </p>
-              </div>
-            </div>
-
-            {skills.length > 0 && (
-              <div className="col-span-1 lg:row-span-2 bg-white rounded-[28px] p-6 shadow-md border border-gray-200/80 flex flex-col min-w-0 min-h-[200px]">
-                <div className="flex items-center gap-2 mb-5 text-gray-400">
-                  <div className="p-1.5 bg-gray-50 rounded-md">
-                    <Layers size={16} strokeWidth={2} aria-hidden="true" />
-                  </div>
-                  <span className="font-heading-bg text-xs font-bold uppercase tracking-wider">
-                    Stack
+                ) : (
+                  <span className="text-lg font-extrabold" style={{ color: PINE }}>
+                    {getInitials(content.full_name)}
                   </span>
-                </div>
-                <div className="flex flex-wrap gap-2 content-start">
-                  {skills.map((skill: string, index: number) => (
-                    <span
-                      key={`${skill}-${index}`}
-                      className="px-3 py-1.5 bg-gray-50 rounded-lg text-xs font-medium text-gray-700 border border-gray-200"
-                    >
-                      {skill}
-                    </span>
-                  ))}
-                </div>
+                )}
               </div>
-            )}
+            </div>
+            <div>
+              <h1 className="text-[clamp(2.75rem,7.5vw,6.25rem)] font-extrabold leading-[0.92] tracking-[-0.045em] break-words">
+                {content.full_name}
+              </h1>
+              {content.headline && (
+                <p className="mt-5 max-w-xl text-lg leading-snug text-[#F4F5F1]/80 sm:text-xl">
+                  {content.headline}
+                </p>
+              )}
+              {content.contact?.location && (
+                <p className="mt-4 flex items-center gap-1.5 text-[15px] text-[#F4F5F1]/70">
+                  <MapPin size={16} aria-hidden="true" className="shrink-0" />
+                  {content.contact.location}
+                </p>
+              )}
+            </div>
+          </header>
 
-            {content.experience?.map((job) => (
-              <article
-                key={`${job.title}-${job.company}-${job.start_date}`}
-                className="col-span-1 sm:col-span-2 bg-white rounded-[28px] p-6 shadow-md flex flex-col border border-gray-200/80 min-w-0"
-              >
-                <div className="flex items-start gap-3 mb-3">
-                  <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center border border-gray-100 shrink-0">
-                    <Briefcase size={18} className="text-gray-600" aria-hidden="true" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <span className="text-xs font-mono text-gray-400 block mb-1">
-                      {formatDateRange(job.start_date, job.end_date)}
-                    </span>
-                    <h3 className="font-heading-bg text-lg font-bold leading-tight text-[#2D2926] break-words [text-wrap:unset]">
-                      {job.title}
-                    </h3>
-                    <p className="text-gray-500 font-medium text-sm">{job.company}</p>
-                  </div>
-                </div>
-                {job.description && (
-                  <p className="text-gray-500 text-sm leading-relaxed mb-3">{job.description}</p>
-                )}
-                {job.highlights && job.highlights.length > 0 && (
-                  <ul className="text-sm text-gray-500 space-y-1.5 list-disc pl-4">
-                    {job.highlights.slice(0, 3).map((highlight, i) => (
-                      <li key={`${job.title}-${i}`}>{highlight}</li>
-                    ))}
-                  </ul>
-                )}
-              </article>
-            ))}
+          <div
+            className="b-photo items-center justify-center overflow-hidden rounded-[22px]"
+            style={{ backgroundColor: "#BFD7EA" }}
+          >
+            <Portrait name={content.full_name} avatarUrl={profile.avatar_url} />
+          </div>
 
-            {content.education?.map((edu) => (
-              <article
-                key={`${edu.institution}-${edu.degree}-${edu.graduation_date ?? ""}`}
-                className="col-span-1 bg-white rounded-[28px] p-6 shadow-sm border border-gray-200/80 flex flex-col justify-between min-h-[150px] min-w-0"
-              >
-                <div className="flex justify-between items-start gap-2">
-                  <GraduationCap size={20} className="text-gray-300 shrink-0" aria-hidden="true" />
-                  {edu.graduation_date && (
-                    <span className="text-[10px] font-bold bg-gray-50 px-2 py-1 rounded-full text-gray-400 shrink-0">
-                      {formatYear(edu.graduation_date)}
-                    </span>
-                  )}
-                </div>
-                <div className="mt-4">
-                  <h3 className="font-heading-bg text-sm font-bold leading-tight mb-1 break-words">
-                    {edu.degree}
-                  </h3>
-                  <p className="text-gray-500 text-xs">{edu.institution}</p>
-                </div>
-              </article>
-            ))}
+          {has.about && (
+            <section aria-labelledby="bento-about" className={`b-about bg-white ${TILE} lg:p-10`}>
+              <h2 id="bento-about" className="sr-only">
+                About
+              </h2>
+              <p className="max-w-[52ch] text-lg leading-relaxed sm:text-xl lg:text-[1.5rem] lg:leading-snug">
+                {content.summary}
+              </p>
+            </section>
+          )}
 
-            {content.projects && content.projects.length > 0 && (
-              <FeaturedWork project={content.projects[0]} />
-            )}
-
-            {extraProjects.map((project) => {
-              const Wrapper = project.url ? "a" : "article";
-
-              return (
-                <Wrapper
-                  key={`${project.title}-${project.year ?? ""}-${project.url ?? ""}`}
-                  {...(project.url
-                    ? {
-                        href: project.url,
-                        target: "_blank" as const,
-                        rel: "noopener noreferrer",
-                      }
-                    : {})}
-                  className="col-span-1 bg-white rounded-[28px] p-6 shadow-md flex flex-col justify-between group border border-gray-200/80 hover:shadow-xl transition-shadow min-w-0 min-h-[180px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D2926]"
-                >
-                  <div className="flex justify-between items-start">
-                    <div className="p-2 bg-gray-50 rounded-xl border border-gray-100">
-                      <Code size={18} className="text-gray-700" aria-hidden="true" />
-                    </div>
-                    {project.url && (
-                      <ArrowUpRight
-                        size={18}
-                        className="text-gray-400 group-hover:text-[#2D2926] transition-colors"
-                        aria-hidden="true"
-                      />
-                    )}
-                  </div>
-                  <div className="mt-6">
-                    {project.year && (
-                      <p className="text-gray-400 font-mono text-xs mb-1">{project.year}</p>
-                    )}
-                    <h3 className="font-heading-bg text-lg font-bold leading-tight mb-2 tracking-tight text-[#2D2926] break-words">
-                      {project.title}
-                    </h3>
-                    {project.description && (
-                      <p className="text-gray-500 text-xs leading-relaxed">{project.description}</p>
-                    )}
-                  </div>
-                </Wrapper>
-              );
-            })}
-
-            {content.certifications && content.certifications.length > 0 && (
-              <div className="col-span-1 sm:col-span-2 bg-white rounded-[28px] p-6 shadow-sm border border-gray-200/80 min-w-0">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="w-9 h-9 bg-amber-50 rounded-full flex items-center justify-center">
-                    <Award size={16} className="text-amber-600" aria-hidden="true" />
-                  </div>
-                  <h3 className="font-heading-bg text-sm font-bold uppercase tracking-wider text-gray-400">
-                    Certifications
-                  </h3>
-                </div>
-                <ul className="space-y-3">
-                  {content.certifications.map((cert) => (
-                    <li key={`${cert.name}-${cert.issuer}-${cert.date ?? ""}`} className="min-w-0">
-                      <p className="font-heading-bg text-sm font-bold text-[#2D2926] break-words">
-                        {cert.name}
-                      </p>
-                      <p className="text-gray-500 text-xs">
-                        {cert.issuer}
-                        {cert.date ? `${cert.issuer ? " · " : ""}${formatYear(cert.date)}` : ""}
-                      </p>
+          <section
+            aria-labelledby="bento-contact"
+            className={`b-contact flex flex-col justify-between gap-6 ${TILE}`}
+            style={{ backgroundColor: "#F4D35E" }}
+          >
+            <div>
+              <h2 id="bento-contact" className={TILE_HEADING}>
+                Get in touch
+              </h2>
+              {contactLinks.length > 0 && (
+                <ul className="space-y-2.5">
+                  {contactLinks.map((link) => (
+                    <li key={link.type} className="min-w-0">
+                      <a
+                        href={link.href}
+                        target={link.isExternal ? "_blank" : undefined}
+                        rel={link.isExternal ? "noopener noreferrer" : undefined}
+                        className="inline-flex max-w-full items-center gap-2.5 text-[15px] font-medium underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1A1C20] rounded-sm"
+                      >
+                        <span className="flex shrink-0">
+                          {getContactIcon(link.type, {
+                            size: 18,
+                            strokeWidth: 1.75,
+                            "aria-hidden": true,
+                          })}
+                        </span>
+                        <span className="truncate">{link.label}</span>
+                      </a>
                     </li>
                   ))}
                 </ul>
+              )}
+            </div>
+            <ShareBar
+              handle={profile.handle}
+              title={`${content.full_name}'s Portfolio`}
+              name={content.full_name}
+              variant="bento-grid"
+            />
+          </section>
+
+          {has.exp && <ExperienceTile experience={experience} />}
+
+          {has.skills && (
+            <section
+              aria-labelledby="bento-skills"
+              className={`b-skills ${TILE}`}
+              style={{ backgroundColor: "#D9D2F2" }}
+            >
+              <h2 id="bento-skills" className={TILE_HEADING}>
+                Skills
+              </h2>
+              <div className="space-y-5">
+                {skills.map((group) => (
+                  <div key={group.category}>
+                    <h3 className="text-sm text-[#4A4560]">{group.category}</h3>
+                    <p className="mt-1 text-[15px] font-medium leading-relaxed">
+                      {group.items.join(", ")}
+                    </p>
+                  </div>
+                ))}
               </div>
-            )}
-          </div>
+            </section>
+          )}
+
+          {has.edu && (
+            <section
+              aria-labelledby="bento-edu"
+              className={`b-edu ${TILE}`}
+              style={{ backgroundColor: "#BFD7EA" }}
+            >
+              <h2 id="bento-edu" className={TILE_HEADING}>
+                Education
+              </h2>
+              <ul className="space-y-5">
+                {education.map((edu) => (
+                  <li key={`${edu.institution}-${edu.degree}-${edu.graduation_date ?? ""}`}>
+                    <h3 className="text-[17px] font-bold leading-snug break-words">{edu.degree}</h3>
+                    <p className="text-[15px] text-[#34495A]">{edu.institution}</p>
+                    {(edu.graduation_date || edu.gpa) && (
+                      <p className="mt-0.5 text-sm text-[#34495A] tabular-nums">
+                        {edu.graduation_date && formatYear(edu.graduation_date)}
+                        {edu.graduation_date && edu.gpa && ", "}
+                        {edu.gpa && `GPA ${edu.gpa}`}
+                      </p>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {has.proj && <ProjectTiles projects={projects} />}
+
+          {has.cert && (
+            <section
+              aria-labelledby="bento-cert"
+              className={`b-cert ${TILE}`}
+              style={{ backgroundColor: "#F4D35E" }}
+            >
+              <h2 id="bento-cert" className={TILE_HEADING}>
+                Certifications
+              </h2>
+              <ul className="space-y-4">
+                {certifications.map((cert) => (
+                  <li key={`${cert.name}-${cert.issuer}-${cert.date ?? ""}`} className="min-w-0">
+                    <h3 className="text-[17px] font-bold leading-snug break-words">
+                      {cert.url ? (
+                        <a
+                          href={cert.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1A1C20] rounded-sm"
+                        >
+                          {cert.name}
+                        </a>
+                      ) : (
+                        cert.name
+                      )}
+                    </h3>
+                    {(cert.issuer || cert.date) && (
+                      <p className="text-[15px] text-[#5A4B12]">
+                        {cert.issuer}
+                        {cert.issuer && cert.date && ", "}
+                        {cert.date && formatYear(cert.date)}
+                      </p>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
         </div>
       </main>
     </>

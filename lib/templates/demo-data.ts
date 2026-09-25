@@ -368,6 +368,20 @@ export const DEMO_RESUME_CONTENT = {
         description: "Published guide on PLG strategies with 50k+ readers",
         year: "2023",
       },
+      {
+        title: "Template Gallery Launch",
+        description:
+          "Community-built template gallery that became Notion's largest organic acquisition channel.",
+        year: "2022",
+        technologies: ["Webflow", "Amplitude", "Customer.io"],
+      },
+      {
+        title: "Lifecycle Email Rebuild",
+        description:
+          "Replaced 40 one-off campaigns with six behaviour-triggered journeys for trial users.",
+        year: "2020",
+        technologies: ["Braze", "Segment", "Looker"],
+      },
     ],
   },
 
@@ -1000,7 +1014,7 @@ export const DEMO_RESUME_CONTENT = {
 } as const satisfies Record<ThemeId, ResumeContent>;
 
 export const TEMPLATE_BACKGROUNDS = {
-  bento: { bg: "bg-[#FAF8F5]", isDark: false },
+  bento: { bg: "bg-[#E4E7E1]", isDark: false },
   bold_corporate: { bg: "bg-white", isDark: false },
   classic_ats: { bg: "bg-[#D9DBDE]", isDark: false },
   design_folio: { bg: "bg-[#0f0f0f]", isDark: true },
