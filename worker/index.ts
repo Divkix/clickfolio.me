@@ -57,7 +57,7 @@ async function markdownPageResponse(response: Response, url: string): Promise<Re
 }
 
 export default {
-  async fetch(request: Request, env: CloudflareEnv, _ctx: ExecutionContext): Promise<Response> {
+  async fetch(request: Request, env: CloudflareEnv, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
 
     if (BLOCKED_PATHS.test(url.pathname)) {
@@ -139,7 +139,7 @@ export default {
 
       const target = new URL(request.url);
       target.pathname = markdownPath;
-      const appResponse = await handler.fetch(new Request(target, request));
+      const appResponse = await handler.fetch(new Request(target, request), env, ctx);
 
       return markdownPageResponse(appResponse, request.url);
     }
@@ -148,10 +148,13 @@ export default {
     // same SSR response. This must stay ahead of the HTML path so no cache or
     // header wrapper can serve HTML to a text/markdown client.
     if (prefersMarkdown(request.headers.get("accept"))) {
-      return markdownPageResponse(await handler.fetch(request), request.url);
+      return markdownPageResponse(await handler.fetch(request, env, ctx), request.url);
     }
 
-    const response = await handler.fetch(request);
+    // env + ctx let vinext run the request inside its execution context, so
+    // onRequestError reports (PostHog server exceptions) and cache writes are
+    // registered with ctx.waitUntil instead of being cut off with the response.
+    const response = await handler.fetch(request, env, ctx);
     const newHeaders = new Headers(response.headers);
 
     for (const [key, value] of Object.entries(SECURITY_HEADERS)) {
