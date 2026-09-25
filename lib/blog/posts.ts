@@ -457,6 +457,180 @@ export const BLOG_POSTS: BlogPostMeta[] = [
       "clickfolio security",
     ],
   },
+  {
+    slug: "creddle-alternatives",
+    title: "Creddle Alternatives After Shutdown (2026)",
+    description:
+      "Creddle shut down on December 1, 2024. Here are the closest free replacements for its web resume and PDF, plus how to move your resume somewhere new.",
+    date: "2026-09-25",
+    readTime: "7 min read",
+    category: "Comparison",
+    keywords: [
+      "creddle alternative",
+      "creddle shut down",
+      "resume builder like creddle",
+      "creddle replacement",
+      "free web resume builder",
+    ],
+    faq: [
+      {
+        q: "Did Creddle shut down?",
+        a: "Yes. According to Creddle's archived shutdown notice, the service closed on December 1, 2024. The notice says data export had closed and that all user data would be deleted in 2025.",
+      },
+      {
+        q: "Can I still export my Creddle resume?",
+        a: "Not as far as we can tell. The archived notice says data export closed, and creddle.io refused connections when we checked in September 2026. If you have an old PDF from Creddle, use that; otherwise rebuild from another resume or a LinkedIn Save to PDF export.",
+      },
+      {
+        q: "What is the best free alternative to Creddle?",
+        a: "For Creddle's free hosted web resume, clickfolio.me is the closest match: upload a resume PDF and get a page at clickfolio.me/@handle in about 30 seconds, free. For a free PDF resume, Reactive Resume is open source and Standard Resume has a free Basic plan.",
+      },
+      {
+        q: "Does clickfolio.me support custom domains or PDF export?",
+        a: "Not yet. Sites live at clickfolio.me/@handle, and custom domains are on the roadmap. clickfolio.me builds your site from a PDF you already have rather than designing a PDF for you, so keep your resume PDF in a separate file or tool.",
+      },
+    ],
+  },
+  {
+    slug: "designfolio-alternatives",
+    title: "Designfolio Alternatives: 8 Options (2026)",
+    description:
+      "Compare 8 Designfolio (designfolio.me) alternatives for designers and PMs, with pricing as of September 2026, plus a free way to turn your resume into a site.",
+    date: "2026-09-25",
+    readTime: "8 min read",
+    category: "Comparison",
+    keywords: [
+      "designfolio alternative",
+      "designfolio",
+      "designfolio pricing",
+      "is designfolio free",
+      "portfolio like designfolio",
+    ],
+    faq: [
+      {
+        q: "Is Designfolio free?",
+        a: "Designfolio (designfolio.me) has a free plan with 2 case studies, 1 project, starter templates, and Designfolio branding, but no analytics or custom domain. As of September 2026, Pro costs $12/month, $29/quarter, or $69 one-time.",
+      },
+      {
+        q: "What is the best alternative to Designfolio?",
+        a: "For long-form UX case studies, UXfolio is the closest match. For full design control, Framer or Webflow. For a free site built from your existing resume, clickfolio.me turns a PDF into a live page in about 30 seconds.",
+      },
+      {
+        q: "Is Designfolio or clickfolio.me better for designers?",
+        a: "Designfolio is better if you need long-form case studies, Figma embeds, password-protected NDA work, or a custom domain. clickfolio.me is better if you want a free site generated from your resume without writing new content. It has no case-study editor and no custom domains yet.",
+      },
+      {
+        q: "Is designfolio.me the same as designfolio.co?",
+        a: 'No. designfolio.me is a portfolio and case-study builder for designers and PMs. designfolio.co is an unrelated design-news site, and "Designfolio" is also the name of some Framer, Webflow, and WordPress templates.',
+      },
+    ],
+  },
+  {
+    slug: "linkfolio-alternatives",
+    title: "Linkfolio Alternatives: Resume Sites (2026)",
+    description:
+      "Comparing linkfolio.net and linkfolio.cv with clickfolio.me, Butternut AI, Fastfolio and others on price, custom domains and resume import, as of Sept 2026.",
+    date: "2026-09-25",
+    readTime: "7 min read",
+    category: "Comparison",
+    keywords: [
+      "linkfolio alternatives",
+      "linkfolio ai alternative",
+      "linkfolio.net alternative",
+      "linkfolio.cv alternative",
+      "ai resume to portfolio website",
+    ],
+    faq: [
+      {
+        q: "Is Linkfolio free?",
+        a: "linkfolio.net has a free plan with a .linkfolio.net subdomain and a watermark; its paid plans cost €4.99 and €9.99 per month as of September 2026. linkfolio.cv says it is free forever.",
+      },
+      {
+        q: "Does Linkfolio support custom domains?",
+        a: "linkfolio.net supports connecting a custom domain on its Basic plan and above. linkfolio.cv's homepage doesn't mention custom domains; its URLs look like linkfolio.cv/yourname.",
+      },
+      {
+        q: "Is Linkfolio AI the same as the LinkFolio Chrome extension?",
+        a: "No. The LinkFolio AI Chrome extension is a new-tab dashboard for bookmarks and AI chatbot shortcuts. linkfolio.net is a separate AI portfolio builder that turns a resume into a website.",
+      },
+      {
+        q: "What is the best free Linkfolio alternative?",
+        a: "If you want a resume website with no watermark and no paid tier, clickfolio.me turns your PDF resume or LinkedIn PDF export into a hosted site in about 30 seconds. It doesn't support custom domains yet.",
+      },
+    ],
+  },
+  {
+    slug: "ai-portfolio-website-builders",
+    title: "Best AI Portfolio Website Builders (2026)",
+    description:
+      "AI tools that turn your resume PDF or LinkedIn into a portfolio website, compared on input, free tier, custom domain, and price as of September 2026.",
+    date: "2026-09-25",
+    readTime: "8 min read",
+    category: "Comparison",
+    keywords: [
+      "ai portfolio website builder",
+      "resume to portfolio ai",
+      "turn resume into website ai",
+      "linkedin to portfolio ai",
+      "free ai portfolio generator",
+    ],
+    faq: [
+      {
+        q: "Is there a free AI tool that turns my resume into a portfolio website?",
+        a: "Yes. As of September 2026, clickfolio.me, Butternut AI, linkfolio.net and Artfolio all let you publish a portfolio built from your resume on a free plan. clickfolio.me is free for everything, including all 10 templates, and publishes at clickfolio.me/@handle in about 30 seconds.",
+      },
+      {
+        q: "Can AI build a portfolio website from my LinkedIn profile?",
+        a: "Some tools accept LinkedIn input directly, including Fastfolio, Kickresume and Standard Resume. The more reliable route is LinkedIn's Save to PDF export: upload that PDF to a resume-to-website tool like clickfolio.me and the AI reads it like any other resume.",
+      },
+      {
+        q: "Which AI portfolio builders support a custom domain?",
+        a: "As of September 2026, linkfolio.net (Basic, €4.99/month), Fastfolio (Pro, $8/month, or the $49 Lifetime plan) and Butternut AI (Pro, $12/month) support custom domains on paid plans. clickfolio.me does not support custom domains yet.",
+      },
+      {
+        q: "How accurate is AI resume parsing in these tools?",
+        a: "It is usually good on simple single-column PDFs and less reliable with multi-column layouts, unusual date formats or scanned images. Always review every section before sharing the link, and rewrite any AI-generated bio in your own words.",
+      },
+    ],
+  },
+  {
+    slug: "consultant-portfolio-website",
+    title: "Consultant Portfolio Website: A 2026 Guide",
+    description:
+      "What a consultant portfolio website should prove, which sections to include, how to write NDA-safe engagement summaries, and how to publish one from a resume.",
+    date: "2026-09-25",
+    readTime: "8 min read",
+    category: "Guide",
+    keywords: [
+      "consultant portfolio website",
+      "consultant resume website",
+      "consulting portfolio examples",
+      "portfolio for consultants",
+      "independent consultant website",
+    ],
+    faq: [
+      {
+        q: "What should a consultant portfolio website include?",
+        a: "A positioning headline, a short summary, three to six engagement summaries (problem, approach, outcome), the industries and functions you serve, an experience timeline, credentials, and a way to contact you. Keep it to one scannable page.",
+      },
+      {
+        q: "How do I show client work that is under an NDA?",
+        a: "Anonymize clients by industry, size, and region, state results as ranges or percentages you can personally verify, make your exact role clear, and check your contract. Only name a client if they have agreed in writing.",
+      },
+      {
+        q: "Does a consultant need a custom domain?",
+        a: "Not for job hunting or contract roles, where a clickfolio.me/@handle link works well. If you invoice clients, your own domain helps with email and credibility. clickfolio.me does not offer custom domains yet, so pair your own domain with a clickfolio.me profile for now.",
+      },
+      {
+        q: "Can I hide my phone number and address on a consultant portfolio?",
+        a: "Yes. clickfolio.me has field-level privacy toggles, so you can hide your phone number and address while keeping your engagements, credentials, and email public.",
+      },
+      {
+        q: "How fast can I build a consultant portfolio from my resume?",
+        a: "Upload your consulting CV or a LinkedIn Save to PDF export to clickfolio.me and the AI builds a live site in about 30 seconds. You can then rewrite engagement summaries, set privacy, and pick one of 10 free templates.",
+      },
+    ],
+  },
 ];
 
 export function getPostBySlug(slug: string): BlogPostMeta | undefined {
