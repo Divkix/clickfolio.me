@@ -1,5 +1,6 @@
 import { waitUntil } from "cloudflare:workers";
 import { PostHog } from "posthog-node";
+import { z } from "zod";
 
 import { POSTHOG_API_HOST, POSTHOG_PROJECT_TOKEN } from "@/lib/analytics/config";
 import type { AnalyticsEventMap } from "@/lib/analytics/events";
@@ -7,6 +8,11 @@ import type { AnalyticsErrorValue, AnalyticsProperties } from "@/lib/analytics/c
 import { log } from "@/lib/utils/log";
 
 const SHUTDOWN_TIMEOUT_MS = 1000;
+
+/** posthog-js default persistence cookie: `ph_<project token>_posthog`. */
+const POSTHOG_COOKIE_NAME = `ph_${POSTHOG_PROJECT_TOKEN}_posthog`;
+
+const posthogCookieSchema = z.object({ distinct_id: z.string().min(1) });
 
 function createPostHogClient(): PostHog | null {
   if (!POSTHOG_PROJECT_TOKEN) return null;
@@ -56,16 +62,49 @@ export function captureServerEvent<E extends keyof AnalyticsEventMap>(
   }
 }
 
+/**
+ * Reads the browser's PostHog distinct id from the posthog-js persistence
+ * cookie, as PostHog's Next.js error-tracking guide does in onRequestError, so
+ * server exceptions attach to the same person as their client events.
+ * Malformed or missing cookies yield undefined (a personless exception).
+ */
+export function distinctIdFromCookieHeader(
+  cookieHeader: string | string[] | undefined,
+): string | undefined {
+  if (!cookieHeader) return undefined;
+
+  const cookies = Array.isArray(cookieHeader) ? cookieHeader.join("; ") : cookieHeader;
+
+  for (const cookie of cookies.split(";")) {
+    const separator = cookie.indexOf("=");
+
+    if (separator === -1 || cookie.slice(0, separator).trim() !== POSTHOG_COOKIE_NAME) continue;
+
+    try {
+      const parsed = posthogCookieSchema.safeParse(
+        JSON.parse(decodeURIComponent(cookie.slice(separator + 1).trim())),
+      );
+
+      return parsed.success ? parsed.data.distinct_id : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  return undefined;
+}
+
 export async function captureServerException(
   error: AnalyticsErrorValue,
   properties?: AnalyticsProperties,
+  distinctId?: string,
 ): Promise<void> {
   const posthog = createPostHogClient();
 
   if (!posthog) return;
 
   try {
-    await posthog.captureExceptionImmediate(error, undefined, properties);
+    await posthog.captureExceptionImmediate(error, distinctId, properties);
   } catch (captureError) {
     logFailure(
       "exception capture",

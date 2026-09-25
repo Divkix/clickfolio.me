@@ -1,11 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
-const { mockCaptureServerException } = vi.hoisted(() => ({
+const { mockCaptureServerException, mockDistinctIdFromCookieHeader } = vi.hoisted(() => ({
   mockCaptureServerException: vi.fn(),
+  mockDistinctIdFromCookieHeader: vi.fn(),
 }));
 
 vi.mock("@/lib/analytics/server", () => ({
   captureServerException: mockCaptureServerException,
+  distinctIdFromCookieHeader: mockDistinctIdFromCookieHeader,
 }));
 
 import { onRequestError } from "@/instrumentation";
@@ -14,6 +16,7 @@ describe("root instrumentation onRequestError", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockCaptureServerException.mockResolvedValue(undefined);
+    mockDistinctIdFromCookieHeader.mockReturnValue(undefined);
   });
 
   const context = {
@@ -34,8 +37,9 @@ describe("root instrumentation onRequestError", () => {
     await onRequestError(error, request, context);
 
     expect(mockCaptureServerException).toHaveBeenCalledTimes(1);
-    const [capturedError, properties] = mockCaptureServerException.mock.calls[0];
+    const [capturedError, properties, distinctId] = mockCaptureServerException.mock.calls[0];
     expect(capturedError).toBe(error);
+    expect(distinctId).toBeUndefined();
     expect(properties).toEqual({
       request_path: "/dashboard",
       request_method: "POST",
@@ -43,6 +47,20 @@ describe("root instrumentation onRequestError", () => {
       route_type: "render",
       router_kind: "App Router",
     });
+  });
+
+  it("attributes the exception to the distinct id recovered from the cookie header", async () => {
+    mockDistinctIdFromCookieHeader.mockReturnValueOnce("anon-123");
+    const cookie = "ph_phc_test_posthog=%7B%7D";
+
+    await onRequestError(
+      new Error("boom"),
+      { path: "/x", method: "GET", headers: { cookie } },
+      context,
+    );
+
+    expect(mockDistinctIdFromCookieHeader).toHaveBeenCalledWith(cookie);
+    expect(mockCaptureServerException.mock.calls[0][2]).toBe("anon-123");
   });
 
   it("returns the capture promise so vinext retains it with the request context", async () => {
