@@ -93,7 +93,7 @@ export default function BestResumeWebsiteBuildersPage() {
                 <td className="border border-border p-3">Open-source resume builder</td>
                 <td className="border border-border p-3">Free / self-hostable</td>
                 <td className="border border-border p-3">Only if self-hosted</td>
-                <td className="border border-border p-3">JSON / LinkedIn</td>
+                <td className="border border-border p-3">JSON, PDF or Word (AI, your own key)</td>
               </tr>
               <tr>
                 <td className="border border-border p-3 font-semibold text-foreground">
@@ -188,11 +188,12 @@ export default function BestResumeWebsiteBuildersPage() {
         <h3>Reactive Resume — free and private, but the output is a resume</h3>
         <p>
           Reactive Resume is a well-regarded open-source resume builder. It is free to use, you can
-          self-host it, and it imports from JSON or LinkedIn. For privacy-minded people who want
-          full control, it is hard to beat on principle. The thing to understand is what it
-          produces: a resume document or a shareable link and PDF, not a full portfolio site. The
-          hosted version has no custom domain, and a custom domain is only possible if you
-          self-host. Pick it if a clean, free resume is the goal rather than a website.
+          self-host it, and it imports JSON, PDF, or Word files (AI parsing with your own API key).
+          For privacy-minded people who want full control, it is hard to beat on principle. The
+          thing to understand is what it produces: a resume document or a shareable link and PDF,
+          not a full portfolio site. The hosted version has no custom domain, and a custom domain is
+          only possible if you self-host. Pick it if a clean, free resume is the goal rather than a
+          website.
         </p>
 
         <h3>JSON Resume — an open standard for developers</h3>
