@@ -1,580 +1,380 @@
-"use client";
-
-import { ArrowUpRight, Briefcase, Globe, GraduationCap } from "lucide-react";
 import type React from "react";
-import { useCallback, useRef, useState } from "react";
 import { ShareBar } from "@/components/ShareBar";
-import { type ContactLinkDescriptor, getContactLinks } from "@/lib/templates/contact-links";
-import {
-  flattenSkills,
-  formatDateRange,
-  formatShortDate,
-  formatYear,
-  getInitials,
-} from "@/lib/templates/helpers";
+import { getContactLinks } from "@/lib/templates/contact-links";
+import { getInitials } from "@/lib/templates/helpers";
 import type { TemplateProps } from "@/lib/types/template";
 import { getContactIcon } from "./shared/ContactIcon";
 import { TemplateFontLinks } from "./shared/TemplateFontLinks";
 
-function SpotlightCard({
+type Content = TemplateProps["content"];
+
+// Palette: a pale lilac stage, one straw-gel pool of light, aubergine ink.
+const STAGE = "#E9E7F2";
+
+const INK = "#22163A";
+
+function formatMonth(date: string): string {
+  const parsed = new Date(date);
+
+  if (Number.isNaN(parsed.getTime())) return date;
+
+  return parsed.toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "UTC" });
+}
+
+function formatYearOnly(date: string): string {
+  const parsed = new Date(date);
+
+  if (Number.isNaN(parsed.getTime())) return date;
+
+  return parsed.toLocaleDateString("en-US", { year: "numeric", timeZone: "UTC" });
+}
+
+function formatRange(start: string, end?: string | null): string {
+  return `${formatMonth(start)} – ${end ? formatMonth(end) : "Present"}`;
+}
+
+const linkClass =
+  "underline decoration-[#E8B400] decoration-[3px] underline-offset-[5px] hover:bg-[#FFD95A] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#22163A] rounded-[2px] transition-colors";
+
+function Section({
+  id,
+  title,
   children,
-  className = "",
 }: {
+  id?: string;
+  title: string;
   children: React.ReactNode;
-  className?: string;
 }) {
-  const cardRef = useRef<HTMLDivElement>(null);
-
-  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    const card = cardRef.current;
-
-    if (!card) return;
-    const rect = card.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    card.style.setProperty("--spot-x", `${x}px`);
-    card.style.setProperty("--spot-y", `${y}px`);
-  }, []);
-
   return (
-    <div
-      ref={cardRef}
-      onMouseMove={handleMouseMove}
-      className={`group relative bg-stone-50/80 border border-stone-200/50 rounded-2xl p-6 md:p-8 transition-shadow duration-300 hover:shadow-lg hover:shadow-orange-500/5 overflow-hidden ${className}`}
-      style={
-        // SAFETY: --spot-x/--spot-y are valid CSS custom properties not in React.CSSProperties type; cast is safe — values are controlled pixel strings for spotlight effect.
-        {
-          "--spot-x": "-999px",
-          "--spot-y": "-999px",
-        } as React.CSSProperties
-      }
+    <section
+      id={id}
+      aria-labelledby={id ? `${id}-title` : undefined}
+      className="grid gap-6 md:grid-cols-[11rem_1fr] md:gap-10 py-10 md:py-14"
     >
-      <div
-        className="pointer-events-none absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-        style={{
-          background:
-            "radial-gradient(circle 300px at var(--spot-x) var(--spot-y), rgba(232,77,14,0.06), transparent 60%)",
-        }}
-      />
-      <div className="relative z-10">{children}</div>
-    </div>
-  );
-}
-
-const AwardIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
-  <svg
-    aria-hidden="true"
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-    {...props}
-  >
-    <circle cx="12" cy="8" r="7" />
-    <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88" />
-  </svg>
-);
-
-function getMarqueeOpacity(index: number): string {
-  if (index % 5 === 0) return "opacity-70";
-
-  if (index % 2 === 0) return "opacity-45";
-
-  return "opacity-30";
-}
-
-function SpotlightBackdrop({ cursorPos }: { cursorPos: { x: number; y: number } }) {
-  return (
-    <>
-      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden" aria-hidden="true">
-        <div
-          className="absolute top-0 left-[15%] w-[400px] max-w-[100vw] h-[600px] overflow-hidden"
-          style={{
-            background:
-              "conic-gradient(from 180deg at 50% 0%, transparent 40%, rgba(232,77,14,0.03) 50%, transparent 60%)",
-          }}
-        />
-        <div
-          className="absolute top-0 left-[55%] w-[500px] max-w-[100vw] h-[700px] overflow-hidden"
-          style={{
-            background:
-              "conic-gradient(from 180deg at 50% 0%, transparent 38%, rgba(232,77,14,0.025) 50%, transparent 62%)",
-          }}
-        />
-        <div
-          className="absolute top-0 right-[10%] w-[350px] max-w-[100vw] h-[500px] overflow-hidden"
-          style={{
-            background:
-              "conic-gradient(from 180deg at 50% 0%, transparent 42%, rgba(232,77,14,0.02) 50%, transparent 58%)",
-          }}
-        />
-      </div>
-
-      <div
-        className="fixed inset-0 z-1 pointer-events-none motion-safe:transition-[background] motion-safe:duration-100"
-        aria-hidden="true"
-        style={{
-          background: `radial-gradient(circle 250px at ${cursorPos.x}px ${cursorPos.y}px, rgba(232,77,14,0.04), transparent)`,
-        }}
-      />
-    </>
-  );
-}
-
-function SpotlightNav({ content }: { content: TemplateProps["content"] }) {
-  const navLinks = [
-    { label: "About", href: "#about" },
-    ...(content.experience?.length > 0 ? [{ label: "Work", href: "#work" }] : []),
-    ...(content.projects && content.projects.length > 0
-      ? [{ label: "Projects", href: "#projects" }]
-      : []),
-    { label: "Contact", href: "#contact" },
-  ];
-
-  return (
-    <>
-      <nav
-        className="fixed top-8 left-8 z-50 hidden md:flex flex-col gap-1.5"
-        aria-label="Main navigation"
+      <h2
+        id={id ? `${id}-title` : undefined}
+        className="sl-display text-2xl md:text-[1.7rem] font-bold leading-tight"
       >
-        {navLinks.map((link) => (
-          <a
-            key={link.href}
-            href={link.href}
-            className="text-sm font-body-sl text-stone-400 hover:text-[#E84D0E] transition-colors focus-visible:outline-none focus-visible:text-[#E84D0E]"
-          >
-            {link.label}
-          </a>
-        ))}
-      </nav>
-
-      <nav
-        className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex md:hidden items-center gap-3 px-4 py-2 bg-[#FFFCF9]/90 backdrop-blur-md border border-stone-200/80 rounded-full shadow-sm max-w-[calc(100%-2rem)] overflow-x-auto no-scrollbar"
-        aria-label="Main navigation"
-      >
-        {navLinks.map((link) => (
-          <a
-            key={link.href}
-            href={link.href}
-            className="text-sm font-body-sl text-stone-500 hover:text-[#E84D0E] transition-colors whitespace-nowrap focus-visible:outline-none focus-visible:text-[#E84D0E]"
-          >
-            {link.label}
-          </a>
-        ))}
-      </nav>
-
-      {content.contact.email && (
-        <a
-          href="#contact"
-          className="hidden md:inline-flex fixed top-8 right-8 z-50 px-5 py-2 text-sm font-display-sl font-semibold bg-[#E84D0E] text-white rounded-full hover:bg-[#d4430c] transition-colors shadow-lg shadow-orange-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E84D0E] focus-visible:ring-offset-2"
-        >
-          Hire Me
-        </a>
-      )}
-    </>
-  );
-}
-
-function SpotlightContactLinks({ links }: { links: ContactLinkDescriptor[] }) {
-  return (
-    <div className="flex gap-3 pt-4">
-      {links.map((link) => {
-        const icon = getContactIcon(link.type, {
-          className: "w-5 h-5",
-          "aria-hidden": true,
-        });
-
-        const isBranded = link.type === "behance" || link.type === "dribbble";
-
-        const brandColor =
-          link.type === "behance" ? "#1769FF" : link.type === "dribbble" ? "#EA4C89" : undefined;
-
-        const brandText = link.type === "behance" ? "Bē" : link.type === "dribbble" ? "Dr" : null;
-
-        if (link.type === "location") {
-          return (
-            <div
-              key={link.type}
-              className="p-2 text-[#78716C] rounded-full flex items-center justify-center"
-            >
-              {icon}
-            </div>
-          );
-        }
-
-        return (
-          <a
-            key={link.type}
-            href={link.href}
-            target={link.isExternal ? "_blank" : undefined}
-            rel={link.isExternal ? "noreferrer" : undefined}
-            aria-label={link.label}
-            className="p-2 text-[#78716C] hover:text-[#E84D0E] hover:bg-orange-50 rounded-full transition-colors flex items-center justify-center"
-            style={isBranded ? { color: brandColor } : undefined}
-          >
-            {isBranded ? <span className="font-bold text-sm">{brandText}</span> : icon}
-          </a>
-        );
-      })}
-    </div>
-  );
-}
-
-function SpotlightHero({
-  content,
-  profile,
-}: {
-  content: TemplateProps["content"];
-  profile: TemplateProps["profile"];
-}) {
-  const firstName = content.full_name.split(" ")[0] || content.full_name;
-  const contactLinks = getContactLinks(content.contact);
-
-  return (
-    <section id="about" className="mb-24 md:mb-32">
-      <div className="flex flex-col-reverse md:flex-row gap-8 items-start md:items-center justify-between">
-        <div className="flex-1 space-y-6">
-          <div className="space-y-3">
-            <span className="inline-block px-3 py-1 rounded-full bg-orange-50 border border-orange-200/60 text-xs font-display-sl font-semibold text-[#E84D0E] tracking-wide">
-              Available for work
-            </span>
-            <h1 className="text-5xl md:text-7xl font-display-sl font-extrabold tracking-tight text-[#1C1917] [text-wrap:unset] break-words">
-              I&apos;m {firstName}.
-            </h1>
-            <h2 className="text-2xl md:text-3xl text-[#78716C] font-display-sl font-semibold tracking-tight [text-wrap:unset] break-words">
-              {content.headline}
-            </h2>
-          </div>
-
-          <p className="text-lg text-stone-600 leading-relaxed max-w-xl font-body-sl">
-            {content.summary}
-          </p>
-
-          <SpotlightContactLinks links={contactLinks} />
-        </div>
-
-        <div className="relative shrink-0">
-          <div
-            className="absolute pointer-events-none"
-            aria-hidden="true"
-            style={{
-              background:
-                "conic-gradient(from 180deg at 50% 0%, transparent 30%, rgba(232,77,14,0.06) 50%, transparent 70%)",
-              top: "-200px",
-              left: "50%",
-              transform: "translateX(-50%)",
-              width: "min(600px, 100vw)",
-              height: "500px",
-            }}
-          />
-          {profile.avatar_url ? (
-            <img
-              src={profile.avatar_url}
-              alt={`Portrait of ${content.full_name}`}
-              width={192}
-              height={192}
-              fetchPriority="high"
-              decoding="async"
-              className="relative w-32 h-32 md:w-48 md:h-48 rounded-full object-cover border-4 border-[#FFFCF9] shadow-xl shadow-orange-500/10"
-            />
-          ) : (
-            <div className="relative w-32 h-32 md:w-48 md:h-48 rounded-full bg-stone-100 flex items-center justify-center text-3xl font-display-sl font-bold text-stone-300 border-4 border-[#FFFCF9] shadow-xl shadow-orange-500/10">
-              {getInitials(content.full_name)}
-            </div>
-          )}
-        </div>
-      </div>
+        {title}
+      </h2>
+      <div className="min-w-0">{children}</div>
     </section>
   );
 }
 
-function SpotlightCertifications({
-  certifications,
-}: {
-  certifications: NonNullable<TemplateProps["content"]["certifications"]>;
-}) {
+function Hero({ content, profile }: { content: Content; profile: TemplateProps["profile"] }) {
+  const name = content.full_name;
+  const links = getContactLinks(content.contact);
+
   return (
-    <div>
-      <h3 className="text-sm font-display-sl font-bold uppercase tracking-widest text-[#78716C] mb-8 flex items-center gap-2">
-        <AwardIcon className="w-4 h-4" aria-hidden="true" /> Certifications
-      </h3>
-      <div className="space-y-4">
-        {certifications.map((cert) => {
-          const body = (
-            <>
-              <div className="min-w-0">
-                <h4 className="font-display-sl font-semibold text-sm text-[#1C1917] group-hover:text-[#E84D0E] transition-colors [text-wrap:unset] break-words">
-                  {cert.name}
-                </h4>
-                <p className="text-xs text-[#78716C] font-body-sl">
-                  {cert.issuer}
-                  {cert.date ? `${cert.issuer ? " · " : ""}${formatShortDate(cert.date)}` : ""}
-                </p>
-              </div>
-              {cert.url && (
-                <ArrowUpRight
-                  className="w-3 h-3 text-stone-300 group-hover:text-[#E84D0E] shrink-0"
-                  aria-hidden="true"
-                />
-              )}
-            </>
-          );
+    <header className="relative isolate">
+      <div
+        aria-hidden="true"
+        className="sl-light pointer-events-none absolute -z-10 -inset-x-[40vw] -top-32 -bottom-10 md:-inset-x-[24rem] md:-top-48 md:-bottom-16"
+        style={{
+          background:
+            "radial-gradient(ellipse 34rem 26rem at 42% 50%, #FFEFA8 0%, #FFD95A 45%, rgba(255,217,90,0.5) 68%, rgba(255,217,90,0) 100%)",
+        }}
+      />
+      <div className="pt-14 md:pt-24 pb-14 md:pb-20">
+        {profile.avatar_url ? (
+          <img
+            src={profile.avatar_url}
+            alt={`Portrait of ${name}`}
+            width={96}
+            height={96}
+            fetchPriority="high"
+            decoding="async"
+            className="w-20 h-20 md:w-24 md:h-24 rounded-full object-cover ring-4 ring-[#FFE995] mb-8"
+          />
+        ) : (
+          <div
+            aria-hidden="true"
+            className="sl-display w-20 h-20 md:w-24 md:h-24 rounded-full bg-[#22163A] text-[#FFD95A] flex items-center justify-center text-2xl md:text-3xl font-bold mb-8"
+          >
+            {getInitials(name)}
+          </div>
+        )}
 
-          const certClass =
-            "flex items-center justify-between gap-3 p-4 bg-[#FFFCF9] border border-stone-200/60 rounded-xl group";
+        <h1 className="sl-display sl-name text-[clamp(3.5rem,15vw,10.5rem)] font-extrabold leading-[0.88] tracking-[-0.012em] break-words [text-wrap:balance]">
+          {name}
+        </h1>
 
-          return cert.url ? (
-            <a
-              key={`${cert.name}-${cert.issuer}-${cert.date ?? ""}`}
-              href={cert.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`${certClass} hover:border-[#E84D0E]/30 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E84D0E]`}
-            >
-              {body}
-            </a>
-          ) : (
-            <article key={`${cert.name}-${cert.issuer}-${cert.date ?? ""}`} className={certClass}>
-              {body}
-            </article>
-          );
-        })}
+        {content.headline && (
+          <p className="sl-display mt-6 md:mt-8 text-2xl md:text-[2.1rem] font-semibold leading-[1.15] max-w-[26ch] break-words">
+            {content.headline}
+          </p>
+        )}
+
+        {content.summary && (
+          <p className="mt-6 text-lg leading-[1.65] max-w-[60ch] text-[#4A4060]">
+            {content.summary}
+          </p>
+        )}
+
+        {links.length > 0 && (
+          <ul className="mt-8 flex flex-wrap gap-x-6 gap-y-3 text-[0.98rem]">
+            {links.map((link) => {
+              const icon = getContactIcon(link.type, {
+                className: "w-4 h-4 shrink-0",
+                size: 16,
+                "aria-hidden": true,
+              });
+
+              return (
+                <li key={link.type} className="flex items-center gap-2 min-w-0">
+                  {icon}
+                  {link.href ? (
+                    <a
+                      href={link.href}
+                      target={link.isExternal ? "_blank" : undefined}
+                      rel={link.isExternal ? "noopener noreferrer" : undefined}
+                      className={`${linkClass} break-all`}
+                    >
+                      {link.label}
+                    </a>
+                  ) : (
+                    <span>{link.label}</span>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </div>
-    </div>
+    </header>
+  );
+}
+
+function Work({ items }: { items: Content["experience"] }) {
+  if (!items?.length) return null;
+
+  return (
+    <Section id="work" title="Work">
+      <ol className="space-y-12">
+        {items.map((job) => (
+          <li key={`${job.title}-${job.company}-${job.start_date}`}>
+            <div className="flex items-baseline gap-3">
+              <h3 className="sl-display text-xl md:text-2xl font-bold leading-snug min-w-0 break-words">
+                {job.title}
+              </h3>
+              <span
+                aria-hidden="true"
+                className="hidden sm:block flex-1 border-b-2 border-dotted border-[#9C93B3] translate-y-[-0.3em]"
+              />
+              <span className="sl-display hidden sm:block text-xl md:text-2xl font-semibold text-right shrink-0 max-w-[45%] break-words">
+                {job.company}
+              </span>
+            </div>
+            <p className="sm:hidden sl-display text-lg font-semibold mt-1">{job.company}</p>
+            <p className="mt-1 text-[0.95rem] text-[#5E5575]">
+              {formatRange(job.start_date, job.end_date)}
+              {job.location ? <span className="ml-4">{job.location}</span> : null}
+            </p>
+
+            {job.description && (
+              <p className="mt-4 leading-[1.65] max-w-[64ch] text-[#3A2F52]">{job.description}</p>
+            )}
+
+            {job.highlights && job.highlights.length > 0 && (
+              <ul className="mt-4 space-y-2 max-w-[64ch]">
+                {job.highlights.map((highlight, i) => (
+                  <li
+                    key={`${job.title}-${i}-${highlight}`}
+                    className="grid grid-cols-[1rem_1fr] leading-[1.6] text-[#3A2F52]"
+                  >
+                    <span
+                      aria-hidden="true"
+                      className="mt-[0.6em] w-2 h-2 rounded-full bg-[#F2C230]"
+                    />
+                    <span>{highlight}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </li>
+        ))}
+      </ol>
+    </Section>
+  );
+}
+
+function Projects({ items }: { items: Content["projects"] }) {
+  if (!items?.length) return null;
+
+  return (
+    <Section id="projects" title="Projects">
+      <ul className="space-y-10">
+        {items.map((project) => (
+          <li key={`${project.title}-${project.year ?? ""}-${project.url ?? ""}`}>
+            <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+              <h3 className="sl-display text-xl md:text-2xl font-bold break-words">
+                {project.url ? (
+                  <a
+                    href={project.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={linkClass}
+                  >
+                    {project.title}
+                  </a>
+                ) : (
+                  project.title
+                )}
+              </h3>
+              {project.year && <span className="text-[#5E5575]">{project.year}</span>}
+            </div>
+            {project.description && (
+              <p className="mt-3 leading-[1.65] max-w-[64ch] text-[#3A2F52]">
+                {project.description}
+              </p>
+            )}
+            {project.technologies && project.technologies.length > 0 && (
+              <p className="mt-3 text-[0.95rem] text-[#5E5575]">
+                Made with {project.technologies.join(", ")}
+              </p>
+            )}
+          </li>
+        ))}
+      </ul>
+    </Section>
+  );
+}
+
+function Skills({ groups }: { groups: Content["skills"] }) {
+  const filled = groups?.filter((group) => group.items.length > 0) ?? [];
+
+  if (filled.length === 0) return null;
+
+  return (
+    <Section id="skills" title="Skills">
+      <dl className="grid gap-x-10 gap-y-6 sm:grid-cols-2">
+        {filled.map((group) => (
+          <div key={group.category}>
+            <dt className="sl-display text-lg font-bold">{group.category}</dt>
+            <dd className="mt-1 leading-[1.65] text-[#3A2F52]">{group.items.join(", ")}</dd>
+          </div>
+        ))}
+      </dl>
+    </Section>
+  );
+}
+
+function Education({ items }: { items: Content["education"] }) {
+  if (!items?.length) return null;
+
+  return (
+    <Section id="education" title="Education">
+      <ul className="space-y-6">
+        {items.map((edu) => (
+          <li key={`${edu.institution}-${edu.degree}-${edu.graduation_date ?? ""}`}>
+            <h3 className="sl-display text-lg md:text-xl font-bold break-words">{edu.degree}</h3>
+            <p className="mt-1 text-[#3A2F52]">
+              {edu.institution}
+              {edu.graduation_date && (
+                <span className="ml-3 text-[#5E5575]">{formatYearOnly(edu.graduation_date)}</span>
+              )}
+            </p>
+            {edu.gpa && <p className="mt-1 text-[0.95rem] text-[#5E5575]">GPA {edu.gpa}</p>}
+          </li>
+        ))}
+      </ul>
+    </Section>
+  );
+}
+
+function Certifications({ items }: { items: Content["certifications"] }) {
+  if (!items?.length) return null;
+
+  return (
+    <Section id="certifications" title="Certifications">
+      <ul className="space-y-6">
+        {items.map((cert) => (
+          <li key={`${cert.name}-${cert.issuer}-${cert.date ?? ""}`}>
+            <h3 className="sl-display text-lg md:text-xl font-bold break-words">
+              {cert.url ? (
+                <a href={cert.url} target="_blank" rel="noopener noreferrer" className={linkClass}>
+                  {cert.name}
+                </a>
+              ) : (
+                cert.name
+              )}
+            </h3>
+            {(cert.issuer || cert.date) && (
+              <p className="mt-1 text-[#3A2F52]">
+                {cert.issuer}
+                {cert.date && (
+                  <span className={cert.issuer ? "ml-3 text-[#5E5575]" : "text-[#5E5575]"}>
+                    {formatMonth(cert.date)}
+                  </span>
+                )}
+              </p>
+            )}
+          </li>
+        ))}
+      </ul>
+    </Section>
   );
 }
 
 export const Spotlight: React.FC<TemplateProps> = ({ content, profile, isPreview }) => {
-  const allSkills = flattenSkills(content.skills);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [cursorPos, setCursorPos] = useState({ x: -9999, y: -9999 });
-  const rafRef = useRef<number | null>(null);
-
-  const handlePageMouseMove = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
-      if (isPreview) return;
-
-      if (rafRef.current !== null) return;
-      const { clientX, clientY } = e;
-      rafRef.current = requestAnimationFrame(() => {
-        rafRef.current = null;
-        setCursorPos({ x: clientX, y: clientY });
-      });
-    },
-    [isPreview],
-  );
+  const name = content.full_name;
+  const firstName = name.split(" ")[0] || name;
 
   return (
     <>
-      <TemplateFontLinks href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;700;800&family=Instrument+Sans:wght@400;500&display=swap" />
+      <TemplateFontLinks href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,300..800&display=swap" />
 
       <div
-        ref={containerRef}
-        onMouseMove={handlePageMouseMove}
-        className="min-h-screen bg-[#FFFCF9] text-[#1C1917] font-body-sl selection:bg-[#E84D0E] selection:text-white relative overflow-x-hidden"
+        className="sl-root min-h-screen overflow-x-hidden selection:bg-[#FFD95A] selection:text-[#22163A]"
+        style={{ backgroundColor: STAGE, color: INK }}
       >
         <style>{`
-          .font-display-sl { font-family: 'Bricolage Grotesque', sans-serif; }
-          .font-body-sl { font-family: 'Instrument Sans', sans-serif; }
-          @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
-          .mask-linear-fade { mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent); }
+          .sl-root { font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-optical-sizing: auto; font-size: 17px; }
+          .sl-display { font-family: 'Bricolage Grotesque', system-ui, sans-serif; }
+          .sl-name { font-stretch: 75%; }
+          @keyframes sl-lights-up {
+            from { opacity: 0; transform: scale(0.82); }
+            to { opacity: 1; transform: scale(1); }
+          }
+          @media (prefers-reduced-motion: no-preference) {
+            .sl-animate .sl-light { animation: sl-lights-up 1.1s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+          }
         `}</style>
 
-        <SpotlightBackdrop cursorPos={cursorPos} />
+        <div className={isPreview ? "" : "sl-animate"}>
+          <main className="max-w-5xl mx-auto px-5 md:px-10">
+            <Hero content={content} profile={profile} />
+            <Work items={content.experience} />
+            <Projects items={content.projects} />
+            <Skills groups={content.skills} />
+            <Education items={content.education} />
+            <Certifications items={content.certifications} />
+          </main>
 
-        {!isPreview && <SpotlightNav content={content} />}
-
-        <main className="relative z-10 max-w-4xl mx-auto px-6 pt-28 md:pt-40 pb-20">
-          <SpotlightHero content={content} profile={profile} />
-
-          {allSkills.length > 0 && (
-            <section className="mb-24 py-10 border-y border-stone-200/60 relative overflow-hidden mask-linear-fade">
-              <div className="flex whitespace-nowrap motion-safe:animate-[marquee_40s_linear_infinite]">
-                {[...allSkills, ...allSkills, ...allSkills].map((skill, i) => (
-                  <span
-                    key={`skill-${skill}-${i}`}
-                    className={`inline-flex items-center text-4xl md:text-6xl font-display-sl font-bold text-[#1C1917] mx-8 uppercase tracking-tighter ${getMarqueeOpacity(i)}`}
-                  >
-                    {skill}
-                    <span className="text-stone-300 ml-8 text-2xl">•</span>
-                  </span>
-                ))}
+          <footer className="max-w-5xl mx-auto px-5 md:px-10 pb-14">
+            <div className="border-t-2 border-[#22163A] pt-12 md:pt-16 grid gap-10 md:grid-cols-[1fr_auto] md:items-end">
+              <div>
+                {content.contact.email ? (
+                  <p className="sl-display text-3xl md:text-5xl font-bold leading-tight">
+                    <a href={`mailto:${content.contact.email}`} className={linkClass}>
+                      Email {firstName}
+                    </a>
+                  </p>
+                ) : null}
+                <p className="mt-6 text-[0.95rem] text-[#5E5575]" suppressHydrationWarning>
+                  © {new Date().getFullYear()} {name}
+                </p>
               </div>
-            </section>
-          )}
-
-          {content.experience?.length > 0 && (
-            <section id="work" className="mb-24" aria-label="Work history">
-              <h3 className="text-sm font-display-sl font-bold uppercase tracking-widest text-[#78716C] mb-10 flex items-center gap-2">
-                <Briefcase className="w-4 h-4" aria-hidden="true" /> Work History
-              </h3>
-
-              <div className="space-y-4">
-                {content.experience.map((job) => (
-                  <SpotlightCard key={`${job.title}-${job.company}-${job.start_date}`}>
-                    <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1 mb-2">
-                      <h4 className="text-xl font-display-sl font-bold text-[#1C1917]">
-                        {job.company}
-                      </h4>
-                      <span className="text-sm font-body-sl text-[#78716C] bg-stone-100 px-2 py-0.5 rounded">
-                        {formatDateRange(job.start_date, job.end_date)}
-                      </span>
-                    </div>
-
-                    <div className="text-[#1C1917] font-body-sl font-medium mb-2">{job.title}</div>
-
-                    {job.description && (
-                      <p className="text-stone-600 leading-relaxed mb-4 text-sm max-w-2xl font-body-sl">
-                        {job.description}
-                      </p>
-                    )}
-
-                    {job.highlights && job.highlights.length > 0 && (
-                      <ul className="space-y-1.5">
-                        {job.highlights.map((highlight, i) => (
-                          <li
-                            key={`${job.title}-${highlight}-${i}`}
-                            className="flex items-start gap-2 text-sm text-stone-600 leading-relaxed font-body-sl"
-                          >
-                            <span
-                              className="mt-2 w-1 h-1 rounded-full bg-[#E84D0E]/70 shrink-0"
-                              aria-hidden="true"
-                            />
-                            <span>{highlight}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </SpotlightCard>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {content.projects && content.projects.length > 0 && (
-            <section id="projects" className="mb-24" aria-label="Selected projects">
-              <h3 className="text-sm font-display-sl font-bold uppercase tracking-widest text-[#78716C] mb-10 flex items-center gap-2">
-                <Globe className="w-4 h-4" aria-hidden="true" /> Selected Projects
-              </h3>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {content.projects.map((project) => (
-                  <SpotlightCard
-                    key={`${project.title}-${project.year ?? ""}-${project.url ?? ""}`}
-                    className="flex flex-col h-full"
-                  >
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="w-10 h-10 rounded-full bg-[#FFFCF9] border border-stone-200 flex items-center justify-center text-[#1C1917] shadow-sm font-display-sl font-bold text-sm">
-                        {getInitials(project.title)}
-                      </div>
-                      {project.url && (
-                        <a
-                          href={project.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          aria-label="View project"
-                          className="text-stone-400 hover:text-[#E84D0E] transition-colors"
-                        >
-                          <ArrowUpRight className="w-5 h-5" aria-hidden="true" />
-                        </a>
-                      )}
-                    </div>
-
-                    <h4 className="text-lg font-display-sl font-bold text-[#1C1917] mb-2 hover:text-[#E84D0E] transition-colors">
-                      {project.title}
-                    </h4>
-
-                    <p className="text-sm text-stone-600 leading-relaxed mb-6 grow font-body-sl">
-                      {project.description}
-                    </p>
-
-                    <div className="flex flex-wrap gap-2 mt-auto">
-                      {project.technologies?.slice(0, 6).map((tech, i) => (
-                        <span
-                          key={`${project.title}-${tech}-${i}`}
-                          className="text-xs font-body-sl font-medium text-[#78716C] px-2 py-1 bg-[#FFFCF9] rounded-md border border-stone-200 shadow-sm"
-                        >
-                          {tech}
-                        </span>
-                      ))}
-                    </div>
-                  </SpotlightCard>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {((content.education && content.education.length > 0) ||
-            (content.certifications && content.certifications.length > 0)) && (
-            <section className="grid grid-cols-1 md:grid-cols-2 gap-12 mb-24">
-              {content.education && content.education.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-display-sl font-bold uppercase tracking-widest text-[#78716C] mb-8 flex items-center gap-2">
-                    <GraduationCap className="w-4 h-4" aria-hidden="true" /> Education
-                  </h3>
-                  <div className="space-y-6">
-                    {content.education.map((edu) => (
-                      <div
-                        key={`${edu.institution}-${edu.degree}-${edu.graduation_date ?? ""}`}
-                        className="pb-2"
-                      >
-                        <h4 className="font-display-sl font-semibold text-[#1C1917]">
-                          {edu.institution}
-                        </h4>
-                        <p className="text-sm text-stone-600 font-body-sl">{edu.degree}</p>
-                        <p className="text-xs text-[#78716C] mt-1 font-body-sl">
-                          {edu.graduation_date ? formatYear(edu.graduation_date) : ""}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {content.certifications && content.certifications.length > 0 && (
-                <SpotlightCertifications certifications={content.certifications} />
-              )}
-            </section>
-          )}
-
-          <footer id="contact" className="py-20 border-t border-stone-200/60">
-            <div className="flex flex-col items-center text-center space-y-6">
-              <h2 className="text-4xl md:text-5xl font-display-sl font-extrabold tracking-tight text-[#1C1917] [text-wrap:unset]">
-                The stage is yours.
-              </h2>
-              <p className="text-[#78716C] max-w-md font-body-sl">
-                Currently open for new opportunities. Whether you have a role, a project, or just
-                want to say hi — let&apos;s connect.
-              </p>
-
-              {content.contact.email && (
-                <a
-                  href={`mailto:${content.contact.email}`}
-                  className="inline-flex h-12 items-center justify-center rounded-full bg-[#E84D0E] px-8 text-sm font-display-sl font-semibold text-white shadow-lg shadow-orange-500/20 transition-colors hover:bg-[#d4430c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E84D0E] focus-visible:ring-offset-2"
-                >
-                  Say Hello
-                </a>
-              )}
-
-              <div className="pt-10 w-full max-w-sm">
-                <ShareBar
-                  handle={profile.handle}
-                  title={`${content.full_name}'s Portfolio`}
-                  name={content.full_name}
-                  variant="spotlight"
-                />
-              </div>
-
-              <div className="pt-8 text-xs text-[#78716C] font-body-sl" suppressHydrationWarning>
-                © {new Date().getFullYear()} {content.full_name}. All rights reserved.
-              </div>
+              <ShareBar
+                handle={profile.handle}
+                title={`${name}'s Portfolio`}
+                name={name}
+                variant="spotlight"
+              />
             </div>
           </footer>
-        </main>
+        </div>
       </div>
     </>
   );
