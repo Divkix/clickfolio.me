@@ -457,6 +457,40 @@ export const BLOG_POSTS: BlogPostMeta[] = [
       "clickfolio security",
     ],
   },
+  {
+    slug: "creddle-alternatives",
+    title: "Creddle Alternatives After Shutdown (2026)",
+    description:
+      "Creddle shut down on December 1, 2024. Here are the closest free replacements for its web resume and PDF, plus how to move your resume somewhere new.",
+    date: "2026-09-25",
+    readTime: "7 min read",
+    category: "Comparison",
+    keywords: [
+      "creddle alternative",
+      "creddle shut down",
+      "resume builder like creddle",
+      "creddle replacement",
+      "free web resume builder",
+    ],
+    faq: [
+      {
+        q: "Did Creddle shut down?",
+        a: "Yes. According to Creddle's archived shutdown notice, the service closed on December 1, 2024. The notice says data export had closed and that all user data would be deleted in 2025.",
+      },
+      {
+        q: "Can I still export my Creddle resume?",
+        a: "Not as far as we can tell. The archived notice says data export closed, and creddle.io refused connections when we checked in September 2026. If you have an old PDF from Creddle, use that; otherwise rebuild from another resume or a LinkedIn Save to PDF export.",
+      },
+      {
+        q: "What is the best free alternative to Creddle?",
+        a: "For Creddle's free hosted web resume, clickfolio.me is the closest match: upload a resume PDF and get a page at clickfolio.me/@handle in about 30 seconds, free. For a free PDF resume, Reactive Resume is open source and Standard Resume has a free Basic plan.",
+      },
+      {
+        q: "Does clickfolio.me support custom domains or PDF export?",
+        a: "Not yet. Sites live at clickfolio.me/@handle, and custom domains are on the roadmap. clickfolio.me builds your site from a PDF you already have rather than designing a PDF for you, so keep your resume PDF in a separate file or tool.",
+      },
+    ],
+  },
 ];
 
 export function getPostBySlug(slug: string): BlogPostMeta | undefined {

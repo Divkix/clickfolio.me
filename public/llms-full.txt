@@ -106,6 +106,7 @@ Absolutely. You get a full editing suite to update your content anytime. Changes
 - Read.cv Alternatives: Where to Move Your Profile After the Shutdown (2026): https://clickfolio.me/blog/read-cv-alternatives
 - How to Build a Product Manager Portfolio Website (2026): https://clickfolio.me/blog/product-manager-portfolio-website
 - How to Make a Student Resume Website With No Experience (2026): https://clickfolio.me/blog/student-resume-website
+- Creddle Alternatives After Shutdown (2026): https://clickfolio.me/blog/creddle-alternatives
 
 ### Dynamic Pages
 - Portfolio URLs: https://clickfolio.me/@{handle}
