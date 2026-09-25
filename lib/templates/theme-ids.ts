@@ -56,7 +56,7 @@ export const THEME_METADATA = {
   },
   glass: {
     name: "Glass Morphic",
-    description: "Dark theme with frosted glass effects",
+    description: "Frosted glass panels over a deep indigo aurora",
     category: "Modern",
     preview: "/previews/glass.webp",
   },
