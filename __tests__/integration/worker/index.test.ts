@@ -1,3 +1,4 @@
+import handler from "vinext/server/app-router-entry";
 import worker from "@/worker/index";
 import { verifyClerkToken } from "@/lib/auth/clerk";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
@@ -172,6 +173,16 @@ describe("Worker fetch handler", () => {
     );
     expect(response.headers.get("X-XSS-Protection")).toBe("0");
     expect(response.headers.get("Referrer-Policy")).toBe("strict-origin-when-cross-origin");
+  });
+
+  it("passes env and ctx to vinext so onRequestError reports run under ctx.waitUntil", async () => {
+    const env = makeEnv();
+    const ctx = makeCtx();
+    const request = new Request("https://clickfolio.me/dashboard");
+
+    await worker.fetch(request, env, ctx);
+
+    expect(vi.mocked(handler.fetch)).toHaveBeenLastCalledWith(request, env, ctx);
   });
 
   it("returns 400 for WebSocket upgrade missing resume_id", async () => {
