@@ -48,7 +48,7 @@ export const shareButtonStyles = {
   "design-folio":
     "bg-[#1a1a1a] text-[#888] hover:text-[#CCFF00] border border-[#333] hover:border-[#CCFF00] rounded-full px-3 py-1.5 font-mono text-xs uppercase tracking-widest",
   "dev-terminal":
-    "bg-[#161b22] text-[#c9d1d9] hover:text-[#58a6ff] border border-[#30363d] rounded px-3 py-1.5",
+    "bg-[#2d333b] text-[#adbac7] hover:text-[#cdd9e5] hover:bg-[#373e47] border border-[#444c56] rounded-md px-3 py-1.5",
 } satisfies Record<SharePopoverVariant, string>;
 
 export const shareTriggerStyles = {
@@ -66,8 +66,7 @@ export const shareTriggerStyles = {
   "classic-ats": "bg-white text-[#22385C] border-[#B9BCC2] shadow-sm hover:border-[#22385C]",
   "design-folio":
     "bg-[#1a1a1a] text-[#CCFF00] border-[#333] shadow-lg font-mono hover:border-[#CCFF00]",
-  "dev-terminal":
-    "bg-[#161b22] text-[#58a6ff] border-[#30363d] shadow-lg font-mono hover:border-[#58a6ff]",
+  "dev-terminal": "bg-[#2d333b] text-[#cdd9e5] border-[#444c56] shadow-lg hover:bg-[#373e47]",
 } satisfies Record<SharePopoverVariant, string>;
 
 export const sharePanelStyles = {
@@ -81,7 +80,7 @@ export const sharePanelStyles = {
   "bold-corporate": "bg-white text-neutral-800 border-neutral-200",
   "classic-ats": "bg-white text-[#16181D] border-[#B9BCC2]",
   "design-folio": "bg-[#1a1a1a] text-[#e0e0e0] border-[#333]",
-  "dev-terminal": "bg-[#161b22] text-[#c9d1d9] border-[#30363d]",
+  "dev-terminal": "bg-[#2d333b] text-[#adbac7] border-[#444c56]",
 } satisfies Record<SharePopoverVariant, string>;
 
 export const shareItemStyles = {
@@ -100,5 +99,5 @@ export const shareItemStyles = {
   "design-folio":
     "bg-[#1a1a1a] text-[#888] hover:text-[#CCFF00] border border-[#333] font-mono hover:border-[#CCFF00]",
   "dev-terminal":
-    "bg-[#161b22] text-[#c9d1d9] hover:text-[#58a6ff] border border-[#30363d] font-mono",
+    "bg-[#22272e] text-[#adbac7] hover:text-[#cdd9e5] hover:bg-[#373e47] border border-[#444c56]",
 } satisfies Record<SharePopoverVariant, string>;
