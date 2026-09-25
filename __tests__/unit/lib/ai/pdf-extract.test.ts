@@ -77,6 +77,37 @@ describe("extractPdfText", () => {
     expect(result.error).toBeUndefined();
   });
 
+  it("reports LinkedIn exports from PDF metadata", async () => {
+    const mockPdf = Object.assign(createMockPdf(1), {
+      getMetadata: async () => ({
+        info: { Author: "LinkedIn", Subject: "Resume generated from profile" },
+      }),
+    });
+
+    vi.mocked(getDocumentProxy).mockResolvedValue(mockPdf);
+    vi.mocked(extractText).mockResolvedValue({ text: "Sam Rivera", totalPages: 1 });
+
+    const buffer = new ArrayBuffer(100);
+    new Uint8Array(buffer).set([0x25, 0x50, 0x44, 0x46, 0x2d]);
+
+    const result = await extractPdfText(buffer);
+
+    expect(result.source).toBe("linkedin");
+  });
+
+  it("falls back to generic when PDF metadata cannot be read", async () => {
+    vi.mocked(getDocumentProxy).mockResolvedValue(createMockPdf(1));
+    vi.mocked(extractText).mockResolvedValue({ text: "Plain resume", totalPages: 1 });
+
+    const buffer = new ArrayBuffer(100);
+    new Uint8Array(buffer).set([0x25, 0x50, 0x44, 0x46, 0x2d]);
+
+    const result = await extractPdfText(buffer);
+
+    expect(result.success).toBe(true);
+    expect(result.source).toBe("generic");
+  });
+
   it("returns error for invalid PDF format", async () => {
     const buffer = new ArrayBuffer(10);
     const view = new Uint8Array(buffer);

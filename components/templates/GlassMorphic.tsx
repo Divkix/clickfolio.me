@@ -513,7 +513,9 @@ const GlassEducation = ({
               <div className="flex justify-between items-start">
                 <div>
                   <h4 className="text-base font-bold text-white mb-1">{cert.name}</h4>
-                  <p className="text-slate-500 text-xs uppercase tracking-wider">{cert.issuer}</p>
+                  {cert.issuer && (
+                    <p className="text-slate-500 text-xs uppercase tracking-wider">{cert.issuer}</p>
+                  )}
                   {cert.date && (
                     <p className="text-slate-500 text-xs mt-1 font-mono-gm">
                       {formatShortDate(cert.date)}

@@ -306,7 +306,7 @@ function EducationCertsSection({
                     cert.name
                   )}
                 </h3>
-                <p className="text-[#8b949e] text-sm">{cert.issuer}</p>
+                {cert.issuer && <p className="text-[#8b949e] text-sm">{cert.issuer}</p>}
                 {cert.date && (
                   <span className="text-xs text-[#8b949e]">{formatShortDate(cert.date)}</span>
                 )}

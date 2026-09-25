@@ -24,6 +24,20 @@ describe("resumeContentSchema (lenient)", () => {
     expect(result.success).toBe(true);
   });
 
+  it("accepts experience without a description and certifications without an issuer", async () => {
+    for (const schema of [resumeContentSchema, resumeContentSchemaStrict]) {
+      const result = await schema.safeParseAsync({
+        ...validMinimalResume,
+        experience: [
+          { title: "Intern", company: "Acme Corp", start_date: "2020-01", description: "" },
+        ],
+        certifications: [{ name: "Hackathon Winner", issuer: "" }],
+      });
+
+      expect(result.success).toBe(true);
+    }
+  });
+
   it("accepts email without TLD (AI-parsed)", async () => {
     const result = await resumeContentSchema.safeParseAsync({
       ...validMinimalResume,

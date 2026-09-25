@@ -296,7 +296,7 @@ function CertificationsSection({
               </h3>
               <p className="text-sm text-neutral-500">
                 {cert.issuer}
-                {cert.date ? ` \u00B7 ${formatYear(cert.date)}` : ""}
+                {cert.date ? `${cert.issuer ? " \u00B7 " : ""}${formatYear(cert.date)}` : ""}
               </p>
             </div>
           </article>

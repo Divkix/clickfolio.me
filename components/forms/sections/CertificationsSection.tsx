@@ -96,7 +96,7 @@ export function CertificationsSection({ form }: CertificationsSectionProps) {
                     name={`certifications.${index}.issuer`}
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Issuer</FormLabel>
+                        <FormLabel>Issuer (Optional)</FormLabel>
                         <FormControl>
                           <Input placeholder="Amazon Web Services" {...field} />
                         </FormControl>
