@@ -1,652 +1,476 @@
-"use client";
-
 import type { LucideIcon } from "lucide-react";
 import {
   ArrowUpRight,
   Briefcase,
-  ExternalLink,
-  Globe,
+  FolderGit2,
   GraduationCap,
-  Layers,
   Mail,
   MapPin,
-  Phone,
-  Sparkles,
+  Wrench,
   User,
-  Zap,
 } from "lucide-react";
 import type React from "react";
-import { useMemo, useRef, useState } from "react";
-import { GitHubIcon, LinkedInIcon } from "@/components/icons/BrandIcons";
 import { ShareBar } from "@/components/ShareBar";
-import {
-  type ContactLinkDescriptor,
-  type ContactLinkType,
-  getContactLinks,
-} from "@/lib/templates/contact-links";
-import {
-  flattenSkills,
-  formatDateRange,
-  formatShortDate,
-  formatYear,
-  getInitials,
-} from "@/lib/templates/helpers";
-import type { Project, ResumeContent } from "@/lib/types/database";
+import { getContactLinks } from "@/lib/templates/contact-links";
+import { formatDateRange, formatShortDate, formatYear, getInitials } from "@/lib/templates/helpers";
+import type { ResumeContent } from "@/lib/types/database";
 import type { TemplateProps } from "@/lib/types/template";
+import { getContactIcon } from "./shared/ContactIcon";
 import { TemplateFontLinks } from "./shared/TemplateFontLinks";
 
 const FONT_URL =
-  "https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700;800&family=JetBrains+Mono:wght@400;500&display=swap";
-
-const GlassGitHubIcon = ({ size, className }: { size: number; className?: string }) => (
-  <GitHubIcon variant="white" size={size} className={className} aria-hidden={true} />
-);
-
-const GlassLinkedInIcon = ({ size, className }: { size: number; className?: string }) => (
-  <LinkedInIcon variant="white" size={size} className={className} aria-hidden={true} />
-);
-
-const glassIconMap = {
-  github: GlassGitHubIcon,
-  linkedin: GlassLinkedInIcon,
-  email: Mail,
-  phone: Phone,
-  website: Globe,
-} as const satisfies Partial<
-  Record<ContactLinkType, React.ComponentType<{ size: number; className?: string }>>
->;
+  "https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap";
 
 const NAV_SECTIONS = [
-  { id: "about", label: "Overview", icon: User },
-  { id: "experience", label: "Career", icon: Briefcase },
-  { id: "projects", label: "Works", icon: Layers },
-  { id: "skills", label: "Stack", icon: Zap },
+  { id: "about", label: "About", icon: User },
+  { id: "experience", label: "Experience", icon: Briefcase },
+  { id: "projects", label: "Projects", icon: FolderGit2 },
+  { id: "skills", label: "Skills", icon: Wrench },
   { id: "education", label: "Education", icon: GraduationCap },
-] as const;
+] as const satisfies ReadonlyArray<{ id: string; label: string; icon: LucideIcon }>;
 
 type NavSection = (typeof NAV_SECTIONS)[number];
 
-const SpotlightCard = ({
-  children,
-  className = "",
-  spotlightColor = "rgba(255, 255, 255, 0.15)",
-}: {
-  children: React.ReactNode;
-  className?: string;
-  spotlightColor?: string;
-}) => {
-  const divRef = useRef<HTMLDivElement>(null);
-  const [position, setPosition] = useState({ x: 0, y: 0 });
-  const [opacity, setOpacity] = useState(0);
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!divRef.current) return;
-    const rect = divRef.current.getBoundingClientRect();
-    setPosition({ x: e.clientX - rect.left, y: e.clientY - rect.top });
-  };
-
-  const handleMouseEnter = () => setOpacity(1);
-  const handleMouseLeave = () => setOpacity(0);
-
+function SectionTitle({ id, children }: { id: string; children: React.ReactNode }) {
   return (
-    <div
-      ref={divRef}
-      onMouseMove={handleMouseMove}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-      className={`relative rounded-3xl overflow-hidden border border-white/8 bg-[#0A0A0A]/40 backdrop-blur-2xl transition-colors duration-300 ${className}`}
+    <h2
+      id={`${id}-title`}
+      className="text-2xl md:text-3xl font-semibold tracking-tight text-[#F4F6FB] mb-6"
     >
-      <div
-        className="pointer-events-none absolute -inset-px opacity-0 transition duration-300"
-        style={{
-          opacity,
-          background: `radial-gradient(600px circle at ${position.x}px ${position.y}px, ${spotlightColor}, transparent 40%)`,
-        }}
-      />
-      <div className="relative h-full">{children}</div>
-    </div>
+      {children}
+    </h2>
   );
-};
+}
 
-const SectionHeading = ({
-  icon: Icon,
-  title,
-  subtitle,
-}: {
-  icon: LucideIcon;
-  title: string;
-  subtitle?: string;
-}) => (
-  <div className="flex items-end gap-4 mb-10 pb-4 border-b border-white/5">
-    <div className="p-3 rounded-2xl bg-white/3 border border-white/8 text-[#D8B4FE]">
-      <Icon size={24} strokeWidth={1.5} aria-hidden="true" />
-    </div>
-    <div>
-      <h2 className="text-3xl md:text-4xl font-display-gm font-bold text-white tracking-tight">
-        {title}
-      </h2>
-      {subtitle && <p className="text-sm font-mono-gm text-white/40 mt-1">{subtitle}</p>}
-    </div>
-  </div>
-);
+function GlassNav({ sections, email }: { sections: NavSection[]; email?: string }) {
+  return (
+    <nav
+      aria-label="Sections"
+      className="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 max-w-[calc(100%-1.5rem)] pb-[env(safe-area-inset-bottom)]"
+    >
+      <div className="gl-pane flex items-center gap-1 p-1.5 rounded-full overflow-x-auto no-scrollbar">
+        {sections.map((section) => {
+          const Icon = section.icon;
 
-const GlassNav = ({ sections, email }: { sections: NavSection[]; email?: string }) => (
-  <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-1.5rem)] max-w-md pb-[env(safe-area-inset-bottom)]">
-    <div className="flex items-center justify-center gap-1 p-1.5 rounded-full bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl shadow-black/50 overflow-x-auto no-scrollbar">
-      {sections.map((section) => {
-        const Icon = section.icon;
-
-        return (
+          return (
+            <a
+              key={section.id}
+              href={`#${section.id}`}
+              aria-label={section.label}
+              className="flex items-center gap-2 h-10 px-3 rounded-full text-sm text-[#B8C0D9] hover:text-white hover:bg-white/10 transition-colors focus-visible:outline-2 focus-visible:outline-[#3DD6C4]"
+            >
+              <Icon size={18} strokeWidth={1.75} aria-hidden="true" />
+              <span className="hidden sm:inline">{section.label}</span>
+            </a>
+          );
+        })}
+        {email && (
           <a
-            key={section.id}
-            href={`#${section.id}`}
-            className="group relative flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-full hover:bg-white/10 transition-colors duration-300"
-            aria-label={section.label}
+            href={`mailto:${email}`}
+            aria-label={`Email ${email}`}
+            className="flex items-center justify-center w-10 h-10 ml-1 rounded-full bg-[#F4F6FB] text-[#0B0F1A] hover:bg-white transition-colors focus-visible:outline-2 focus-visible:outline-[#3DD6C4]"
           >
-            <Icon
-              size={20}
-              className="text-white/50 group-hover:text-white transition-colors"
-              strokeWidth={1.5}
-              aria-hidden="true"
-            />
-            <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-2 py-1 bg-[#1a1a1a] border border-white/10 text-[10px] font-mono-gm text-white rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
-              {section.label}
-            </span>
+            <Mail size={17} strokeWidth={2} aria-hidden="true" />
           </a>
-        );
-      })}
-      {email && (
-        <a
-          href={`mailto:${email}`}
-          className="flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-full bg-white text-black hover:scale-110 transition-transform duration-300 ml-2"
-          aria-label="Contact"
-        >
-          <Mail size={18} strokeWidth={2.5} aria-hidden="true" />
-        </a>
-      )}
-    </div>
-  </nav>
-);
+        )}
+      </div>
+    </nav>
+  );
+}
 
-const GlassAbout = ({
+function GlassHero({
   content,
   profile,
-  contactLinks,
 }: {
   content: ResumeContent;
   profile: TemplateProps["profile"];
-  contactLinks: ContactLinkDescriptor[];
-}) => (
-  <section id="about" className="relative">
-    <div className="flex flex-col gap-8">
-      <div className="inline-flex items-center gap-2 self-start px-3 py-1 rounded-full border border-lavender/30 bg-lavender/5 backdrop-blur-md">
-        <span className="relative flex h-2 w-2">
-          <span className="motion-safe:animate-ping absolute inline-flex h-full w-full rounded-full bg-lavender opacity-75"></span>
-          <span className="relative inline-flex rounded-full h-2 w-2 bg-lavender"></span>
-        </span>
-        <span className="text-xs font-mono-gm text-[#D8B4FE]">Available</span>
-      </div>
+}) {
+  const contactLinks = getContactLinks(content.contact).filter((l) => l.type !== "location");
 
-      <div className="grid md:grid-cols-[1fr_auto] gap-8 items-end">
-        <div className="space-y-2">
-          <h1 className="text-5xl sm:text-6xl md:text-8xl font-extrabold tracking-tighter text-white leading-[0.9] [text-wrap:unset] break-words">
-            <span className="block">{content.full_name.split(" ")[0]}</span>
-            {content.full_name.split(" ").slice(1).join(" ") ? (
-              <span className="block text-white/55">
-                {content.full_name.split(" ").slice(1).join(" ")}
-              </span>
-            ) : null}
-          </h1>
-          <h2 className="text-xl md:text-2xl font-light text-gradient-purple tracking-wide">
-            {content.headline}
-          </h2>
-        </div>
+  return (
+    <div className="relative">
+      <div className="gl-orb gl-orb-teal" aria-hidden="true" />
+      <div className="gl-orb gl-orb-rose" aria-hidden="true" />
+      <section
+        id="about"
+        aria-labelledby="about-title"
+        className="relative gl-pane gl-hero rounded-[32px] p-7 sm:p-10 md:p-14"
+      >
+        <div className="flex flex-col-reverse gap-8 md:flex-row md:items-start md:justify-between">
+          <div className="min-w-0">
+            <h1
+              id="about-title"
+              className="text-[2.75rem] leading-[1.02] sm:text-6xl md:text-7xl font-semibold tracking-[-0.035em] text-white break-words"
+            >
+              {content.full_name}
+            </h1>
+            {content.headline && (
+              <p className="mt-4 text-lg md:text-2xl font-light text-[#D7DCEC] max-w-2xl">
+                {content.headline}
+              </p>
+            )}
+            {content.contact.location && (
+              <p className="mt-4 flex items-center gap-2 text-sm text-[#8C95B3]">
+                <MapPin size={15} aria-hidden="true" />
+                {content.contact.location}
+              </p>
+            )}
+          </div>
 
-        <div className="relative w-32 h-32 md:w-48 md:h-48 rounded-full border-2 border-white/10 p-1">
-          <div className="w-full h-full rounded-full overflow-hidden relative group">
+          <div className="gl-lens shrink-0 w-24 h-24 md:w-36 md:h-36 rounded-full p-1.5">
             {profile.avatar_url ? (
               <img
                 src={profile.avatar_url}
                 alt={`Portrait of ${content.full_name}`}
+                width={144}
+                height={144}
                 fetchPriority="high"
                 decoding="async"
-                className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-[filter] duration-500"
+                className="w-full h-full rounded-full object-cover"
               />
             ) : (
-              <div className="w-full h-full bg-[#111] flex items-center justify-center text-4xl font-bold text-[#333]">
+              <div
+                className="w-full h-full rounded-full bg-[#0B0F1A]/60 flex items-center justify-center text-2xl md:text-4xl font-semibold text-[#F4F6FB]"
+                aria-hidden="true"
+              >
                 {getInitials(content.full_name)}
               </div>
             )}
-            <div className="absolute inset-0 bg-linear-to-b from-transparent via-white/5 to-transparent bg-size-[100%_4px] pointer-events-none" />
-          </div>
-        </div>
-      </div>
-
-      <SpotlightCard className="p-8 md:p-10 mt-8">
-        <div className="grid md:grid-cols-[2fr_1fr] gap-10">
-          <div className="space-y-6">
-            <p className="text-lg md:text-xl font-light leading-relaxed text-slate-300">
-              {content.summary}
-            </p>
-
-            <div className="flex flex-wrap gap-3 pt-2">
-              {contactLinks
-                .filter((l) => l.type !== "location")
-                .map((link) => {
-                  // SAFETY: link.type is ContactLinkType; glassIconMap covers branded icons with ExternalLink fallback.
-                  const Icon = glassIconMap[link.type as keyof typeof glassIconMap] || ExternalLink;
-                  const isBranded = link.type === "behance" || link.type === "dribbble";
-
-                  const brandColor =
-                    link.type === "behance"
-                      ? "#1769FF"
-                      : link.type === "dribbble"
-                        ? "#EA4C89"
-                        : undefined;
-
-                  const brandText =
-                    link.type === "behance" ? "Be" : link.type === "dribbble" ? "Dr" : null;
-
-                  return (
-                    <a
-                      key={link.type}
-                      href={link.href}
-                      target={link.isExternal ? "_blank" : undefined}
-                      rel={link.isExternal ? "noopener noreferrer" : undefined}
-                      aria-label={link.label}
-                      className="group flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 transition-colors"
-                    >
-                      {isBranded ? (
-                        <span
-                          className="text-xs font-bold font-mono-gm"
-                          style={{ color: brandColor }}
-                        >
-                          {brandText}
-                        </span>
-                      ) : (
-                        <Icon
-                          size={14}
-                          className="text-white/60 group-hover:text-white"
-                          aria-hidden="true"
-                        />
-                      )}
-                      <span className="text-sm font-mono-gm text-white/60 group-hover:text-white capitalize">
-                        {link.label}
-                      </span>
-                    </a>
-                  );
-                })}
-            </div>
-          </div>
-
-          <div className="hidden md:block border-l border-white/10 pl-10 space-y-6">
-            <div>
-              <h3 className="text-xs font-mono-gm text-white/30 uppercase tracking-widest mb-2">
-                Location
-              </h3>
-              <div className="flex items-center gap-2 text-slate-300">
-                <MapPin size={14} aria-hidden="true" />
-                <span>{content.contact.location || "Remote"}</span>
-              </div>
-            </div>
-            <div>
-              <h3 className="text-xs font-mono-gm text-white/30 uppercase tracking-widest mb-2">
-                Status
-              </h3>
-              <div className="flex items-center gap-2 text-lavender">
-                <Sparkles size={14} aria-hidden="true" />
-                <span>Available for work</span>
-              </div>
-            </div>
-            <div className="pt-4 opacity-50 hover:opacity-100 transition-opacity">
-              <ShareBar
-                handle={profile.handle}
-                title="Portfolio"
-                name={content.full_name}
-                variant="glass-morphic"
-              />
-            </div>
           </div>
         </div>
 
-        <div className="md:hidden mt-6 flex justify-center opacity-50 hover:opacity-100 transition-opacity">
-          <ShareBar
-            handle={profile.handle}
-            title="Portfolio"
-            name={content.full_name}
-            variant="glass-morphic"
-          />
-        </div>
-      </SpotlightCard>
+        {content.summary && (
+          <p className="mt-10 text-base md:text-lg leading-relaxed text-[#B8C0D9] max-w-[62ch]">
+            {content.summary}
+          </p>
+        )}
+
+        {contactLinks.length > 0 && (
+          <ul className="mt-8 flex flex-wrap gap-2.5">
+            {contactLinks.map((link) => (
+              <li key={link.type}>
+                <a
+                  href={link.href}
+                  target={link.isExternal ? "_blank" : undefined}
+                  rel={link.isExternal ? "noopener noreferrer" : undefined}
+                  className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.06] px-4 py-2 text-sm text-[#D7DCEC] hover:bg-white/[0.12] hover:text-white transition-colors focus-visible:outline-2 focus-visible:outline-[#3DD6C4]"
+                >
+                  {getContactIcon(link.type, {
+                    size: 15,
+                    className: "w-[15px] h-[15px]",
+                    variant: "white",
+                    "aria-hidden": true,
+                  })}
+                  <span className="break-all">{link.label}</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </div>
-  </section>
-);
+  );
+}
 
-const GlassExperience = ({ experience }: { experience: ResumeContent["experience"] }) => {
+function GlassExperience({ experience }: { experience: ResumeContent["experience"] }) {
   if (!experience?.length) return null;
 
   return (
-    <section id="experience">
-      <SectionHeading icon={Briefcase} title="Experience" subtitle="Professional trajectory" />
-
-      <div className="space-y-4">
+    <section id="experience" aria-labelledby="experience-title">
+      <SectionTitle id="experience">Experience</SectionTitle>
+      <ol className="gl-pane rounded-3xl divide-y divide-white/10">
         {experience.map((job) => (
-          <SpotlightCard
-            key={`${job.title}-${job.company}-${job.start_date}`}
-            className="group p-6 md:p-8"
-          >
-            <div className="flex flex-col md:flex-row gap-4 md:items-start justify-between mb-4">
-              <div>
-                <h3 className="text-xl font-bold text-white group-hover:text-lavender transition-colors">
-                  {job.title}
-                </h3>
-                <div className="flex items-center gap-2 text-slate-400 mt-1">
-                  <span className="font-medium">{job.company}</span>
-                  {job.location && (
-                    <>
-                      <span className="w-1 h-1 rounded-full bg-slate-600" />
-                      <span className="text-sm text-slate-500">{job.location}</span>
-                    </>
-                  )}
-                </div>
-              </div>
-              <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/5 self-start shrink-0">
-                <span className="text-xs font-mono-gm text-slate-300">
-                  {formatDateRange(job.start_date, job.end_date)}
-                </span>
-              </div>
-            </div>
-
-            {job.description && (
-              <p className="text-slate-400 font-light leading-relaxed mb-6 max-w-3xl">
-                {job.description}
+          <li key={`${job.title}-${job.company}-${job.start_date}`} className="p-6 md:p-8">
+            <div className="flex flex-col gap-1 md:flex-row md:items-baseline md:justify-between md:gap-6">
+              <h3 className="text-lg md:text-xl font-semibold text-white">{job.title}</h3>
+              <p className="text-sm text-[#8C95B3] shrink-0 tabular-nums">
+                {formatDateRange(job.start_date, job.end_date)}
               </p>
+            </div>
+            <p className="mt-1 flex flex-wrap gap-x-3 text-[#D7DCEC]">
+              <span className="font-medium">{job.company}</span>
+              {job.location && <span className="text-[#8C95B3]">{job.location}</span>}
+            </p>
+            {job.description && (
+              <p className="mt-4 leading-relaxed text-[#B8C0D9] max-w-[68ch]">{job.description}</p>
             )}
-
             {job.highlights && job.highlights.length > 0 && (
-              <ul className="space-y-2">
+              <ul className="mt-4 space-y-2 max-w-[68ch]">
                 {job.highlights.map((item, i) => (
                   <li
                     key={`${job.title}-${item}-${i}`}
-                    className="flex items-start gap-3 text-sm text-slate-400/80"
+                    className="relative pl-5 text-[15px] leading-relaxed text-[#B8C0D9]"
                   >
                     <span
-                      className="mt-1.5 w-1 h-1 rounded-full bg-lavender/50 shrink-0"
+                      className="absolute left-0 top-[0.6em] w-2 h-2 rounded-full bg-linear-to-br from-[#3DD6C4] to-[#8B7CF6]"
                       aria-hidden="true"
                     />
-                    <span>{item}</span>
+                    {item}
                   </li>
                 ))}
               </ul>
             )}
-          </SpotlightCard>
+          </li>
         ))}
-      </div>
+      </ol>
     </section>
   );
-};
+}
 
-const GlassProjects = ({ projects }: { projects: ResumeContent["projects"] }) => {
+function GlassProjects({ projects }: { projects: ResumeContent["projects"] }) {
   if (!projects?.length) return null;
+  const isOdd = projects.length % 2 === 1;
 
   return (
-    <section id="projects">
-      <SectionHeading icon={Layers} title="Projects" subtitle="Selected works & experiments" />
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {projects.map((project: Project) => (
-          <SpotlightCard
+    <section id="projects" aria-labelledby="projects-title">
+      <SectionTitle id="projects">Projects</SectionTitle>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {projects.map((project, i) => (
+          <article
             key={`${project.title}-${project.year ?? ""}-${project.url ?? ""}`}
-            className="group flex flex-col h-full"
+            className={`gl-pane gl-pane-soft rounded-[20px] p-6 flex flex-col ${
+              isOdd && i === projects.length - 1 ? "md:col-span-2" : ""
+            }`}
           >
-            <div className="p-6 md:p-8 flex flex-col h-full">
-              <div className="flex justify-between items-start mb-6">
-                <div className="w-12 h-12 rounded-xl bg-linear-to-br from-white/10 to-transparent border border-white/5 flex items-center justify-center">
-                  <span className="font-display-gm font-bold text-xl text-white">
-                    {project.title.charAt(0)}
-                  </span>
-                </div>
-                {project.url && (
+            <div className="flex items-baseline justify-between gap-4">
+              <h3 className="text-lg font-semibold text-white">
+                {project.url ? (
                   <a
                     href={project.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    aria-label={`View ${project.title}`}
-                    className="p-2 rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-colors"
+                    className="inline-flex items-center gap-1.5 hover:text-[#3DD6C4] transition-colors focus-visible:outline-2 focus-visible:outline-[#3DD6C4]"
                   >
-                    <ArrowUpRight size={20} aria-hidden="true" />
+                    {project.title}
+                    <ArrowUpRight size={17} aria-hidden="true" />
                   </a>
+                ) : (
+                  project.title
                 )}
-              </div>
-
-              <h3 className="text-xl font-bold text-white mb-2 group-hover:text-lavender transition-colors">
-                {project.title}
               </h3>
               {project.year && (
-                <span className="text-xs font-mono-gm text-white/30">{project.year}</span>
+                <span className="text-sm text-[#8C95B3] shrink-0">{project.year}</span>
               )}
-
-              <p className="text-slate-400 font-light text-sm leading-relaxed mb-6 grow">
+            </div>
+            {project.description && (
+              <p className="mt-3 text-[15px] leading-relaxed text-[#B8C0D9]">
                 {project.description}
               </p>
-
-              <div className="pt-6 border-t border-white/5">
-                <div className="flex flex-wrap gap-2">
-                  {project.technologies?.slice(0, 4).map((tech) => (
-                    <span
-                      key={tech}
-                      className="px-2 py-1 text-[10px] font-mono-gm uppercase tracking-wider text-white bg-lavender/10 rounded border border-lavender/30"
-                    >
-                      {tech}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </SpotlightCard>
+            )}
+            {project.technologies && project.technologies.length > 0 && (
+              <ul
+                className="mt-5 pt-4 border-t border-white/10 flex flex-wrap gap-1.5"
+                aria-label="Technologies"
+              >
+                {project.technologies.map((tech) => (
+                  <li
+                    key={tech}
+                    className="rounded-full bg-white/[0.07] px-2.5 py-1 text-xs text-[#D7DCEC]"
+                  >
+                    {tech}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </article>
         ))}
       </div>
     </section>
   );
-};
+}
 
-const GlassSkills = ({ skills }: { skills: string[] }) => {
-  if (skills.length === 0) return null;
+function GlassSkills({ skills }: { skills: ResumeContent["skills"] }) {
+  if (!skills?.length) return null;
 
   return (
-    <section id="skills">
-      <SectionHeading icon={Zap} title="Stack" subtitle="Tools & Technologies" />
-      <SpotlightCard className="p-8 md:p-12">
-        <div className="flex flex-wrap justify-center gap-3">
-          {skills.map((skill, i) => (
-            <span
-              key={`skill-${skill}-${i}`}
-              className="px-4 py-2 rounded-lg bg-white/3 border border-white/15 text-sm text-slate-200 hover:bg-white/8 hover:text-white hover:border-lavender/30 hover:shadow-[0_0_15px_rgba(167,139,250,0.3)] transition-[color,background-color,border-color,box-shadow] duration-300 cursor-default select-none"
-            >
-              {skill}
-            </span>
-          ))}
-        </div>
-      </SpotlightCard>
+    <section id="skills" aria-labelledby="skills-title">
+      <SectionTitle id="skills">Skills</SectionTitle>
+      <dl className="gl-pane rounded-3xl p-6 md:p-8 space-y-5">
+        {skills.map((group) => (
+          <div key={group.category} className="grid gap-2 md:grid-cols-[12rem_1fr] md:gap-6">
+            <dt className="text-sm font-medium text-[#8C95B3] md:pt-1.5">{group.category}</dt>
+            <dd>
+              <ul className="flex flex-wrap gap-2">
+                {group.items.map((item) => (
+                  <li
+                    key={item}
+                    className="rounded-full border border-white/15 bg-white/[0.05] px-3 py-1 text-sm text-[#E6E9F4]"
+                  >
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </dd>
+          </div>
+        ))}
+      </dl>
     </section>
   );
-};
+}
 
-const GlassEducation = ({
+function GlassEducation({
   education,
   certifications,
 }: {
   education: ResumeContent["education"];
   certifications: ResumeContent["certifications"];
-}) => {
-  if (!education?.length && !certifications?.length) return null;
+}) {
+  const hasEducation = Boolean(education?.length);
+  const hasCerts = Boolean(certifications?.length);
+
+  if (!hasEducation && !hasCerts) return null;
 
   return (
-    <section id="education">
-      <SectionHeading icon={GraduationCap} title="Education" subtitle="Academic background" />
-
-      <div className="grid md:grid-cols-2 gap-6 items-start">
-        <div className="space-y-4">
-          {education?.map((edu) => (
-            <SpotlightCard
-              key={`edu-${edu.institution}-${edu.degree}-${edu.graduation_date ?? ""}`}
-              className="p-6"
-            >
-              <div className="text-xs font-mono-gm text-lavender mb-2">
-                {edu.graduation_date ? formatYear(edu.graduation_date) : "Present"}
-              </div>
-              <h4 className="text-lg font-bold text-white mb-1">{edu.institution}</h4>
-              <p className="text-slate-400 text-sm font-medium">{edu.degree}</p>
-              {edu.gpa && (
-                <p className="text-slate-500 text-xs mt-2 font-mono-gm">GPA: {edu.gpa}</p>
-              )}
-            </SpotlightCard>
-          ))}
-        </div>
-
-        <div className="space-y-4">
-          {certifications?.map((cert) => (
-            <SpotlightCard
-              key={`cert-${cert.name}-${cert.issuer}-${cert.date ?? ""}`}
-              className="p-6"
-            >
-              <div className="flex justify-between items-start">
-                <div>
-                  <h4 className="text-base font-bold text-white mb-1">{cert.name}</h4>
-                  {cert.issuer && (
-                    <p className="text-slate-500 text-xs uppercase tracking-wider">{cert.issuer}</p>
-                  )}
-                  {cert.date && (
-                    <p className="text-slate-500 text-xs mt-1 font-mono-gm">
-                      {formatShortDate(cert.date)}
-                    </p>
+    <section id="education" aria-labelledby="education-title">
+      <SectionTitle id="education">{hasEducation ? "Education" : "Certifications"}</SectionTitle>
+      <div
+        className={`gl-pane rounded-3xl p-6 md:p-8 grid gap-8 ${
+          hasEducation && hasCerts ? "md:grid-cols-2 md:gap-12" : ""
+        }`}
+      >
+        {hasEducation && (
+          <ul className="space-y-6">
+            {education?.map((edu) => (
+              <li key={`${edu.institution}-${edu.degree}-${edu.graduation_date ?? ""}`}>
+                <div className="flex items-baseline justify-between gap-4">
+                  <h3 className="font-semibold text-white">{edu.degree}</h3>
+                  {edu.graduation_date && (
+                    <span className="text-sm text-[#8C95B3] shrink-0">
+                      {formatYear(edu.graduation_date)}
+                    </span>
                   )}
                 </div>
-                {cert.url && (
-                  <a
-                    href={cert.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={`View ${cert.name} certificate`}
-                    className="text-white/20 hover:text-white transition-colors"
-                  >
-                    <ExternalLink size={16} aria-hidden="true" />
-                  </a>
+                <p className="mt-0.5 text-[#B8C0D9]">{edu.institution}</p>
+                {(edu.location || edu.gpa) && (
+                  <p className="mt-1 flex flex-wrap gap-x-3 text-sm text-[#8C95B3]">
+                    {edu.location && <span>{edu.location}</span>}
+                    {edu.gpa && <span>GPA {edu.gpa}</span>}
+                  </p>
                 )}
-              </div>
-            </SpotlightCard>
-          ))}
-        </div>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {hasCerts && (
+          <div>
+            {hasEducation && (
+              <h3 className="text-sm font-medium text-[#8C95B3] mb-4">Certifications</h3>
+            )}
+            <ul className="space-y-5">
+              {certifications?.map((cert) => (
+                <li key={`${cert.name}-${cert.issuer}-${cert.date ?? ""}`}>
+                  <p className="font-semibold text-white">
+                    {cert.url ? (
+                      <a
+                        href={cert.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 hover:text-[#3DD6C4] transition-colors focus-visible:outline-2 focus-visible:outline-[#3DD6C4]"
+                      >
+                        {cert.name}
+                        <ArrowUpRight size={15} aria-hidden="true" />
+                      </a>
+                    ) : (
+                      cert.name
+                    )}
+                  </p>
+                  {(cert.issuer || cert.date) && (
+                    <p className="mt-0.5 flex flex-wrap gap-x-3 text-sm text-[#8C95B3]">
+                      {cert.issuer && <span>{cert.issuer}</span>}
+                      {cert.date && <span>{formatShortDate(cert.date)}</span>}
+                    </p>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     </section>
   );
-};
+}
 
 export const GlassMorphic: React.FC<TemplateProps> = ({ content, profile, isPreview }) => {
-  const flatSkills = content.skills ? flattenSkills(content.skills) : [];
-  const contactLinks = getContactLinks(content.contact);
+  const visible = {
+    about: true,
+    experience: Boolean(content.experience?.length),
+    projects: Boolean(content.projects?.length),
+    skills: Boolean(content.skills?.length),
+    education: Boolean(content.education?.length || content.certifications?.length),
+  } satisfies Record<NavSection["id"], boolean>;
 
-  const availableNavSections = useMemo(() => {
-    const visible = {
-      about: true,
-      experience: Boolean(content.experience?.length),
-      projects: Boolean(content.projects?.length),
-      skills: flatSkills.length > 0,
-      education: Boolean(content.education?.length || content.certifications?.length),
-    } satisfies Record<NavSection["id"], boolean>;
-
-    return NAV_SECTIONS.filter((section) => visible[section.id]);
-  }, [
-    content.experience,
-    content.projects,
-    content.education,
-    content.certifications,
-    flatSkills.length,
-  ]);
+  const navSections = NAV_SECTIONS.filter((section) => visible[section.id]);
 
   return (
     <>
       <TemplateFontLinks href={FONT_URL} />
 
       <style>{`
-        .glass-morphic-root {
-          --glass-border: rgba(255, 255, 255, 0.08);
-          --glass-surface: rgba(20, 20, 20, 0.6);
-          --primary-glow: #A78BFA;
-          --secondary-glow: #2DD4BF;
+        .glass-root { font-family: 'Sora', ui-sans-serif, system-ui, sans-serif; }
+        .glass-aurora {
+          background:
+            radial-gradient(60vmax 45vmax at 12% -8%, rgba(61, 214, 196, 0.42), transparent 62%),
+            radial-gradient(55vmax 50vmax at 96% 28%, rgba(139, 124, 246, 0.45), transparent 60%),
+            radial-gradient(50vmax 40vmax at 18% 108%, rgba(242, 140, 184, 0.30), transparent 62%),
+            #0B0F1A;
         }
-
-        .font-display-gm { font-family: 'Outfit', sans-serif; }
-        .font-mono-gm { font-family: 'JetBrains Mono', monospace; }
-
-        .glass-morphic-root ::-webkit-scrollbar { width: 6px; }
-        .glass-morphic-root ::-webkit-scrollbar-track { background: #050505; }
-        .glass-morphic-root ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
-
-        @keyframes glass-blob {
-          0% { transform: translate(0px, 0px) scale(1); }
-          33% { transform: translate(30px, -50px) scale(1.1); }
-          66% { transform: translate(-20px, 20px) scale(0.9); }
-          100% { transform: translate(0px, 0px) scale(1); }
+        .gl-pane {
+          background: linear-gradient(160deg, rgba(255,255,255,0.10), rgba(255,255,255,0.035) 60%);
+          border: 1px solid rgba(255,255,255,0.12);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,0.16), 0 24px 48px -28px rgba(3,5,12,0.7);
+          -webkit-backdrop-filter: blur(22px) saturate(150%);
+          backdrop-filter: blur(22px) saturate(150%);
         }
-        .glass-animate-blob {
-          animation: glass-blob 10s infinite;
+        .gl-pane-soft {
+          background: rgba(255,255,255,0.05);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,0.12);
         }
-        .animation-delay-2000 { animation-delay: 2s; }
-        .animation-delay-4000 { animation-delay: 4s; }
-
-        @media (prefers-reduced-motion: reduce) {
-          .glass-animate-blob { animation: none; }
+        .gl-hero {
+          background: linear-gradient(150deg, rgba(255,255,255,0.16), rgba(255,255,255,0.04) 55%, rgba(139,124,246,0.10));
+          border-color: rgba(255,255,255,0.2);
         }
-
-        .text-gradient-purple {
-          background: linear-gradient(135deg, #E879F9 0%, #A78BFA 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
+        .gl-orb { position: absolute; border-radius: 9999px; pointer-events: none; }
+        .gl-orb-teal {
+          width: clamp(180px, 30vw, 300px); aspect-ratio: 1;
+          top: -60px; right: clamp(-40px, 4vw, 90px);
+          background: radial-gradient(circle at 35% 30%, #7FF0E2, #3DD6C4 45%, #1E7F95);
         }
+        .gl-orb-rose {
+          width: clamp(120px, 18vw, 190px); aspect-ratio: 1;
+          bottom: -50px; left: clamp(-30px, 10vw, 180px);
+          background: radial-gradient(circle at 35% 30%, #FFC2DA, #F28CB8 50%, #8B7CF6);
+        }
+        .gl-lens {
+          background: conic-gradient(from 200deg, #3DD6C4, #8B7CF6, #F28CB8, #3DD6C4);
+        }
+        .glass-root ::selection { background: rgba(61, 214, 196, 0.35); color: #fff; }
       `}</style>
 
-      <div className="glass-morphic-root min-h-screen bg-[#030303] text-slate-300 relative selection:bg-lavender/30 selection:text-white font-display-gm overflow-x-hidden">
-        <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-0 left-1/4 w-[50vw] h-[50vw] max-w-[520px] max-h-[520px] bg-lavender/20 rounded-full mix-blend-screen filter blur-[100px] opacity-20 glass-animate-blob" />
-          <div className="absolute top-0 right-1/4 w-[50vw] h-[50vw] max-w-[520px] max-h-[520px] bg-[#2DD4BF]/10 rounded-full mix-blend-screen filter blur-[100px] opacity-20 glass-animate-blob animation-delay-2000" />
-          <div className="absolute -bottom-32 left-1/3 w-[60vw] h-[60vw] max-w-[640px] max-h-[640px] bg-[#F472B6]/10 rounded-full mix-blend-screen filter blur-[120px] opacity-20 glass-animate-blob animation-delay-4000" />
+      <div className="glass-root relative min-h-screen bg-[#0B0F1A] text-[#B8C0D9] overflow-x-hidden">
+        <div className="glass-aurora fixed inset-0 z-0 pointer-events-none" aria-hidden="true" />
 
-          <div
-            className="absolute inset-0 opacity-[0.04]"
-            style={{
-              backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
-            }}
-          />
-        </div>
+        {!isPreview && <GlassNav sections={navSections} email={content.contact.email} />}
 
-        {!isPreview && <GlassNav sections={availableNavSections} email={content.contact.email} />}
-
-        <div className="relative z-10 max-w-5xl mx-auto px-6 py-20 md:py-32 space-y-32">
-          <GlassAbout content={content} profile={profile} contactLinks={contactLinks} />
-
+        <main className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 pt-10 md:pt-20 pb-32 space-y-16 md:space-y-20">
+          <GlassHero content={content} profile={profile} />
           <GlassExperience experience={content.experience} />
-
           <GlassProjects projects={content.projects} />
-
-          <GlassSkills skills={flatSkills} />
-
+          <GlassSkills skills={content.skills} />
           <GlassEducation education={content.education} certifications={content.certifications} />
 
-          <footer className="pt-20 pb-32 text-center">
-            <div className="inline-flex items-center justify-center p-1 rounded-full border border-white/10 bg-white/5 mb-8">
-              <div className="w-2 h-2 bg-green-500 rounded-full mx-3 motion-safe:animate-pulse" />
-              <span className="text-xs font-mono-gm text-white/50 pr-4 py-1">
-                System Operational
-              </span>
-            </div>
-            <p className="text-slate-500 text-sm font-light" suppressHydrationWarning>
-              &copy; {new Date().getFullYear()} {content.full_name}. <br className="md:hidden" />
-              <span className="hidden md:inline mx-2">&middot;</span>
-              Designed with precision.
+          <footer className="flex flex-col items-center gap-5 pt-6 text-sm text-[#8C95B3]">
+            <ShareBar
+              handle={profile.handle}
+              title={`${content.full_name}'s portfolio`}
+              name={content.full_name}
+              variant="glass-morphic"
+            />
+            <p suppressHydrationWarning>
+              &copy; {new Date().getFullYear()} {content.full_name}
             </p>
           </footer>
-        </div>
+        </main>
       </div>
     </>
   );
