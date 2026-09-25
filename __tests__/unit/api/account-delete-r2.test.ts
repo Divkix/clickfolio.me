@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { UnknownRecord, JsonValue } from "@/lib/types/json";
-import type { NewPendingR2Deletion } from "@/lib/db/schema";
+import type { R2DeleteParams } from "@/lib/workflows/r2-delete";
 
 const mocks = vi.hoisted(() => {
   type MockAuthResult = {
@@ -14,13 +14,13 @@ const mocks = vi.hoisted(() => {
   type MockState = {
     selectResults: JsonValue[][];
     authResult: MockAuthResult;
-    insertCalls: NewPendingR2Deletion[][];
+    scheduled: R2DeleteParams[];
   };
 
   const state: MockState = {
     selectResults: [],
     authResult: null,
-    insertCalls: [],
+    scheduled: [],
   };
 
   const nextSelectResult = (): JsonValue[] => {
@@ -33,11 +33,11 @@ const mocks = vi.hoisted(() => {
     return next;
   };
 
-  const insertChain = {
-    values: vi.fn((rows: NewPendingR2Deletion[]) => {
-      state.insertCalls.push(rows);
+  const r2DeleteWorkflow = {
+    create: vi.fn(async ({ params }: { params: R2DeleteParams }) => {
+      state.scheduled.push(params);
 
-      return Promise.resolve(undefined);
+      return { id: `r2-delete-${state.scheduled.length}` };
     }),
   };
 
@@ -74,7 +74,6 @@ const mocks = vi.hoisted(() => {
       resumes: { findFirst: vi.fn() },
     },
     select: vi.fn(() => createChain()),
-    insert: vi.fn(() => insertChain),
     update: vi.fn(() => createChain()),
     delete: vi.fn(() => ({ where: deleteWhere })),
   };
@@ -86,7 +85,7 @@ const mocks = vi.hoisted(() => {
         truncated: false,
       })),
     },
-    CLICKFOLIO_PARSE_QUEUE: { send: vi.fn(async () => undefined) },
+    CLICKFOLIO_R2_DELETE_WORKFLOW: r2DeleteWorkflow,
     CLERK_SECRET_KEY: "sk_test_account_delete",
     CF_AI_GATEWAY_ACCOUNT_ID: "acct",
     CF_AI_GATEWAY_ID: "gateway",
@@ -95,7 +94,7 @@ const mocks = vi.hoisted(() => {
 
   const r2Delete = vi.fn(async () => undefined);
 
-  return { state, db, env, insertChain, deleteWhere, clerkDeleteUser, r2Delete };
+  return { state, db, env, r2DeleteWorkflow, deleteWhere, clerkDeleteUser, r2Delete };
 });
 
 vi.mock("cloudflare:workers", () => ({
@@ -177,11 +176,11 @@ function authed(overrides: UnknownRecord = {}) {
   };
 }
 
-describe("account delete — pending R2 deletion tracking", () => {
+describe("account delete — R2 deletion retries", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.state.selectResults = [];
-    mocks.state.insertCalls = [];
+    mocks.state.scheduled = [];
     mocks.state.authResult = null;
     mocks.deleteWhere.mockResolvedValue(undefined);
     mocks.r2Delete.mockResolvedValue(undefined);
@@ -191,7 +190,7 @@ describe("account delete — pending R2 deletion tracking", () => {
     expect(mocks.state.selectResults).toEqual([]);
   });
 
-  it("inserts a pending deletion row when an R2 delete fails, and still deletes the account", async () => {
+  it("hands a failed R2 delete to R2DeleteWorkflow, and still deletes the account", async () => {
     const { POST } = await import("@/app/api/account/delete/route");
 
     authed();
@@ -207,13 +206,7 @@ describe("account delete — pending R2 deletion tracking", () => {
     expect(body.success).toBe(true);
     expect(body.warnings).toHaveLength(1);
 
-    expect(mocks.db.insert).toHaveBeenCalled();
-
-    const insertedRows = mocks.state.insertCalls[0];
-
-    expect(insertedRows).toHaveLength(1);
-    expect(insertedRows[0].r2Key).toBe("users/user-1/resume.pdf");
-    expect(insertedRows[0].attempts).toBe(1);
+    expect(mocks.state.scheduled).toEqual([{ keys: ["users/user-1/resume.pdf"] }]);
 
     expect(mocks.clerkDeleteUser).toHaveBeenCalledWith("user_clerk_1");
     expect(mocks.deleteWhere).toHaveBeenCalledTimes(1);
@@ -221,12 +214,12 @@ describe("account delete — pending R2 deletion tracking", () => {
     expect(mocks.deleteWhere.mock.invocationCallOrder[0]).toBeLessThan(
       mocks.r2Delete.mock.invocationCallOrder[0],
     );
-    expect(mocks.db.insert.mock.invocationCallOrder[0]).toBeLessThan(
+    expect(mocks.r2DeleteWorkflow.create.mock.invocationCallOrder[0]).toBeLessThan(
       mocks.clerkDeleteUser.mock.invocationCallOrder[0],
     );
   });
 
-  it("does not insert any pending row when all R2 deletes succeed", async () => {
+  it("schedules no workflow when all R2 deletes succeed", async () => {
     const { POST } = await import("@/app/api/account/delete/route");
 
     authed();
@@ -241,7 +234,7 @@ describe("account delete — pending R2 deletion tracking", () => {
     expect(body.success).toBe(true);
     expect(body.warnings).toBeUndefined();
 
-    expect(mocks.db.insert).not.toHaveBeenCalled();
+    expect(mocks.r2DeleteWorkflow.create).not.toHaveBeenCalled();
     expect(mocks.clerkDeleteUser).toHaveBeenCalledWith("user_clerk_1");
     expect(mocks.deleteWhere).toHaveBeenCalledTimes(1);
   });
@@ -276,7 +269,7 @@ describe("account delete — pending R2 deletion tracking", () => {
     );
   });
 
-  it("records multiple failed keys when more than one R2 delete fails", async () => {
+  it("schedules every failed key when more than one R2 delete fails", async () => {
     const { POST } = await import("@/app/api/account/delete/route");
 
     authed();
@@ -300,10 +293,11 @@ describe("account delete — pending R2 deletion tracking", () => {
     const body: { warnings: JsonValue[] } = await response.json();
     expect(body.warnings).toHaveLength(2);
 
-    const insertedRows = mocks.state.insertCalls[0];
-    expect(insertedRows).toHaveLength(2);
-    const keys = insertedRows.map((r) => r.r2Key).sort();
-    expect(keys).toEqual(["users/user-1/a.pdf", "users/user-1/c.pdf"]);
+    expect(mocks.state.scheduled).toHaveLength(1);
+    expect([...mocks.state.scheduled[0].keys].sort()).toEqual([
+      "users/user-1/a.pdf",
+      "users/user-1/c.pdf",
+    ]);
   });
 
   it("returns 503 when Clerk identity deletion fails with a non-404 error", async () => {
@@ -321,15 +315,28 @@ describe("account delete — pending R2 deletion tracking", () => {
     );
 
     expect(response.status).toBe(503);
-    const insertedRows = mocks.state.insertCalls[0];
-    expect(insertedRows).toHaveLength(1);
-    expect(insertedRows[0].r2Key).toBe("users/user-1/resume.pdf");
+    expect(mocks.state.scheduled).toEqual([{ keys: ["users/user-1/resume.pdf"] }]);
     // DB-first: the local account row and R2 object are already gone when Clerk fails.
     expect(mocks.deleteWhere).toHaveBeenCalledTimes(1);
     expect(mocks.r2Delete).toHaveBeenCalledWith(
       mocks.env.CLICKFOLIO_R2_BUCKET,
       "users/user-1/resume.pdf",
     );
+  });
+
+  it("schedules a prefix sweep when listing the user's R2 prefix fails", async () => {
+    const { POST } = await import("@/app/api/account/delete/route");
+
+    authed();
+    mocks.state.selectResults = [[{ r2Key: null }]];
+    mocks.env.CLICKFOLIO_R2_BUCKET.list.mockRejectedValueOnce(new Error("list failed"));
+
+    const response = await POST(
+      jsonRequest("/api/account/delete", { confirmation: "avery@example.com" }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(mocks.state.scheduled).toEqual([{ keys: [], prefix: "users/user_1/" }]);
   });
 
   it("tolerates a 404 from Clerk (identity already deleted) and finishes locally", async () => {

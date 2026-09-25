@@ -4,8 +4,8 @@ import { z } from "zod";
 import { withUser } from "@/lib/auth/with-auth";
 import { captureServerEvent } from "@/lib/analytics/server";
 
-import { pendingR2Deletions, user } from "@/lib/db/schema";
-import { collectR2KeysForUser, getR2Binding, R2 } from "@/lib/r2";
+import { user } from "@/lib/db/schema";
+import { collectR2KeysForUser, getR2Binding } from "@/lib/r2";
 import { deleteAccountSchema } from "@/lib/schemas/account";
 import {
   createErrorResponse,
@@ -13,6 +13,7 @@ import {
   ERROR_CODES,
 } from "@/lib/utils/security-headers";
 import { readJsonWithLimit, validateRequestSize } from "@/lib/utils/validation";
+import { deleteR2Objects, scheduleR2Deletion } from "@/lib/workflows/r2-delete";
 
 interface DeletionWarning {
   type: "r2";
@@ -136,43 +137,22 @@ export async function POST(request: Request) {
         } while (cursor);
       } catch (listError) {
         console.error(`Failed to list R2 objects for ${userId}:`, listError);
+        // The workflow re-lists the prefix with retries, so unlisted objects still go.
+        await scheduleR2Deletion(env.CLICKFOLIO_R2_DELETE_WORKFLOW, {
+          keys: [],
+          prefix: `users/${userId}/`,
+        }).catch((scheduleError) =>
+          console.error(`Failed to schedule R2 sweep for ${userId}:`, scheduleError),
+        );
       }
 
-      const r2Keys = [...knownKeys];
+      // Failed keys retry in R2DeleteWorkflow; the warning tells the caller they are not gone yet.
+      const failedKeys = await deleteR2Objects(r2Binding, env.CLICKFOLIO_R2_DELETE_WORKFLOW, [
+        ...knownKeys,
+      ]);
 
-      const deletionResults = await Promise.allSettled(
-        r2Keys.map((r2Key) => R2.delete(r2Binding, r2Key)),
-      );
-
-      const failedKeys: string[] = [];
-      deletionResults.forEach((result, index) => {
-        if (result.status === "rejected") {
-          console.error(`Failed to delete R2 file ${r2Keys[index]}:`, result.reason);
-          warnings.push({
-            type: "r2",
-            message: `Failed to delete file: ${r2Keys[index]}`,
-          });
-          failedKeys.push(r2Keys[index]);
-        }
-      });
-
-      if (failedKeys.length > 0) {
-        try {
-          await db
-            .insert(pendingR2Deletions)
-            .values(
-              failedKeys.map((key) => ({
-                id: crypto.randomUUID(),
-                r2Key: key,
-                createdAt: new Date().toISOString(),
-                attempts: 1,
-              })),
-            )
-            .onConflictDoNothing({ target: pendingR2Deletions.r2Key });
-        } catch (insertError) {
-          // Queue bookkeeping is best-effort: the deletion itself already succeeded.
-          console.error("Failed to record pending R2 deletions:", insertError);
-        }
+      for (const key of failedKeys) {
+        warnings.push({ type: "r2", message: `Failed to delete file: ${key}` });
       }
 
       try {

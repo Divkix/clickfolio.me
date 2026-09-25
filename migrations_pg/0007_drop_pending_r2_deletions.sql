@@ -1,0 +1,11 @@
+-- R2 deletion retries moved from the pending_r2_deletions table (swept by the
+-- 2 AM cron) to R2DeleteWorkflow (lib/workflows/r2-delete-workflow.ts), which
+-- retries each batch with backoff. Nothing reads or writes the table any more.
+--
+-- Apply after the Worker that stops writing it is deployed. Rows still here are
+-- R2 keys whose delete never succeeded: export them first
+-- (SELECT r2_key FROM pending_r2_deletions) and delete those objects by hand.
+--
+-- Hand-written (like 0003–0006) because the drizzle-kit snapshot baseline
+-- predates them.
+DROP TABLE IF EXISTS "pending_r2_deletions";

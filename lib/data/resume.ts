@@ -170,7 +170,7 @@ async function fetchResumeMetadataRaw(handle: string): Promise<ResumeMetadata | 
 
   if (userData?.siteData?.content && !hideFromSearch) {
     try {
-      // SAFETY: content is schema-validated JSONB written by the queue consumer and /api/resume/update; cast bridges the column's wide Record type.
+      // SAFETY: content is schema-validated JSONB written by the parse pipeline and /api/resume/update; cast bridges the column's wide Record type.
       const content = userData.siteData.content as ResumeContent;
       const profileUrl = `${siteConfig.url}/@${handle}`;
 

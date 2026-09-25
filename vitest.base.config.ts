@@ -7,6 +7,7 @@ export const sharedSetupFiles = ["./__tests__/setup.ts"];
 export const sharedAlias = {
   "@": resolve(__dirname, "./"),
   "cloudflare:workers": resolve(__dirname, "lib/stubs/cloudflare-workers-client-stub.mjs"),
+  "cloudflare:workflows": resolve(__dirname, "lib/stubs/cloudflare-workflows-test-stub.mjs"),
 };
 
 export const sharedCoverageProvider = "v8" as const;

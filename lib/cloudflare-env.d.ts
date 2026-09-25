@@ -4,7 +4,6 @@
 interface __BaseEnv_CloudflareEnv {
 	CLICKFOLIO_R2_BUCKET: R2Bucket;
 	HYPERDRIVE: Hyperdrive;
-	CLICKFOLIO_PARSE_QUEUE: Queue;
 	ASSETS: Fetcher;
 	NODE_ENV: string;
 	DISABLE_RATE_LIMITS: string;
@@ -32,6 +31,8 @@ interface __BaseEnv_CloudflareEnv {
 	CLERK_SECRET_KEY: string;
 	CLERK_WEBHOOK_SECRET: string;
 	CLICKFOLIO_STATUS_DO: DurableObjectNamespace<import("../worker/index").ClickfolioStatusDO>;
+	CLICKFOLIO_PARSE_WORKFLOW: Workflow<Parameters<import("../worker/index").ResumeParseWorkflow['run']>[0]['payload']>;
+	CLICKFOLIO_R2_DELETE_WORKFLOW: Workflow<Parameters<import("../worker/index").R2DeleteWorkflow['run']>[0]['payload']>;
 }
 declare namespace Cloudflare {
 	interface GlobalProps {

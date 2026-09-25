@@ -58,7 +58,7 @@ We chose Cloudflare Workers over traditional hosting for several reasons:
 
 - **No Container Management**: Just deploy code
 - **Automatic Scaling**: From 0 to millions of requests
-- **Integrated Stack**: Hyperdrive, R2, Queues, and Durable Objects work seamlessly together
+- **Integrated Stack**: Hyperdrive, R2, Workflows, and Durable Objects work seamlessly together
 
 ### Trade-offs
 
@@ -393,10 +393,11 @@ components/
 lib/
 ├── auth/                # Clerk integration (server JWKS verification, session, client seam)
 ├── ai/                  # AI parsing (OpenRouter via CF AI Gateway)
-├── cron/                # Scheduled task implementations
+├── cron/                # Daily DB cleanup cron
 ├── db/                  # Drizzle PG schema + getDb(env.HYPERDRIVE)
 ├── durable-objects/     # WebSocket Durable Object
-├── queue/               # Queue consumer, types, DLQ
+├── parse/               # Parse step bodies, error classification, alerts, DO notify
+├── workflows/           # ResumeParseWorkflow + R2DeleteWorkflow and their triggers
 ├── schemas/             # Zod validation schemas
 ├── templates/           # Theme registry & metadata
 ├── types/               # TypeScript type definitions
@@ -405,7 +406,7 @@ lib/
 └── config/              # Site config, FAQ, retry policies
 
 worker/
-└── index.ts             # Custom worker entry (vinext + Queue + Cron + WebSocket auth)
+└── index.ts             # Custom worker entry (vinext + Workflows + Cron + WebSocket auth)
 
 migrations_pg/
 └── *.sql                # Postgres migrations (drizzle-kit)
@@ -452,28 +453,29 @@ Live status updates during AI parsing:
 - **Authentication**: Clerk session JWT verified against JWKS before upgrade
 - **Use case**: Waiting room shows live parsing progress instead of polling
 
-### Queue System
+### Parse Pipeline (Cloudflare Workflows)
 
-Asynchronous resume parsing pipeline:
+Durable resume parsing with per-step retries:
 
-- **Queue**: `clickfolio-parse-queue` (Cloudflare Queues)
-- **DLQ**: `clickfolio-parse-dlq` for failed messages
-- **Producer**: `/api/resume/claim` enqueues after upload
-- **Consumer**: `worker/index.ts` processes in background
-- **Retry**: 3 automatic retries with exponential backoff
+- **Workflow**: `ResumeParseWorkflow` (`lib/workflows/resume-parse-workflow.ts`) runs `claim → parse → complete`
+- **Trigger**: `/api/resume/claim` and `/api/resume/retry` start an instance keyed by the resume id, so a repeated start is a no-op
+- **Retries**: the parse step retries transient failures 3 times with exponential backoff; permanent errors throw `NonRetryableError`
+- **Failure**: once retries are spent the workflow marks the row `failed`, notifies the Durable Object, and sends an alert
+- **Duplicate uploads**: an `await-cache` instance sleeps 10 minutes, then expires a `waiting_for_cache` row that never resolved
 - **Alerting**: Cloudflare Logpush by default, optional Slack/Discord webhook on permanent failures
+
+### R2 Cleanup
+
+- **Anonymous uploads**: an R2 lifecycle rule (`r2-lifecycle.json`, applied by `pnpm run deploy`) deletes `temp/` objects after 1 day
+- **Deletions**: `R2DeleteWorkflow` retries failed deletes (account deletion, admin dismiss) with backoff
 
 ### Scheduled Tasks (Cron)
 
-Three cron triggers run automatically:
+| Cron        | Time (UTC) | Task                                                   |
+| ----------- | ---------- | ------------------------------------------------------ |
+| `0 3 * * *` | 3:00 AM    | Database cleanup (expired rate limits, handle history) |
 
-| Cron           | Time (UTC)   | Task                                        |
-| -------------- | ------------ | ------------------------------------------- |
-| `0 2 * * *`    | 2:00 AM      | R2 temp file cleanup (old uploads)          |
-| `0 3 * * *`    | 3:00 AM      | Database cleanup (expired rate limits)      |
-| `*/15 * * * *` | Every 15 min | Recover orphaned resumes (stuck in parsing) |
-
-All run via `worker/index.ts` without self-fetch (avoids double billing).
+Runs via `worker/index.ts` without self-fetch (avoids double billing).
 
 ### Referral Program
 

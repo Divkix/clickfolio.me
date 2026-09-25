@@ -1,27 +1,23 @@
 import type { JsonValue, UnknownRecord } from "@/lib/types/json";
 import type { ResumeStatus } from "@/lib/db/schema/resume";
 import { z } from "zod";
-import { QueueErrorType } from "@/lib/queue/errors";
+import { ParseErrorType } from "@/lib/parse/errors";
 
 function isString(value: JsonValue): value is string {
   return z.string().safeParse(value).success;
 }
-
-export const INFRA = {
-  DLQ_NAME: "clickfolio-parse-dlq",
-} as const;
 
 export const RETRY_LIMITS = {
   MANUAL_MAX_RETRIES: 2,
   TOTAL_MAX_ATTEMPTS: 6,
 } as const;
 
-export const PERMANENT_ERROR_TYPES = new Set<QueueErrorType>([
-  QueueErrorType.INVALID_PDF,
-  QueueErrorType.MALFORMED_RESPONSE,
-  QueueErrorType.SERVICE_BINDING_NOT_FOUND,
-  QueueErrorType.FILE_NOT_FOUND,
-  QueueErrorType.PARSE_VALIDATION_ERROR,
+export const PERMANENT_ERROR_TYPES = new Set<ParseErrorType>([
+  ParseErrorType.INVALID_PDF,
+  ParseErrorType.MALFORMED_RESPONSE,
+  ParseErrorType.SERVICE_BINDING_NOT_FOUND,
+  ParseErrorType.FILE_NOT_FOUND,
+  ParseErrorType.PARSE_VALIDATION_ERROR,
 ]);
 
 export const WAITING_FOR_CACHE_TIMEOUT_MS = 10 * 60 * 1000;
@@ -33,9 +29,9 @@ export function hasExceededMaxAttempts(totalAttempts: number): boolean {
   return totalAttempts >= RETRY_LIMITS.TOTAL_MAX_ATTEMPTS;
 }
 
-export function isPermanentErrorType(errorType: string): errorType is QueueErrorType {
-  // SAFETY: PERMANENT_ERROR_TYPES is Set<QueueErrorType>; cast narrows string for Set lookup, has() validates membership before type guard returns
-  return PERMANENT_ERROR_TYPES.has(errorType as QueueErrorType);
+export function isPermanentErrorType(errorType: string): errorType is ParseErrorType {
+  // SAFETY: PERMANENT_ERROR_TYPES is Set<ParseErrorType>; cast narrows string for Set lookup, has() validates membership before type guard returns
+  return PERMANENT_ERROR_TYPES.has(errorType as ParseErrorType);
 }
 
 export type ParsedLastAttemptError = {
@@ -61,7 +57,7 @@ export function parseLastAttemptError(
   if (!raw) return null;
 
   try {
-    // SAFETY: QueueError JSON is from classifyQueueError().toJSON() validated at write; parse failure falls back to unknown.
+    // SAFETY: ParseError JSON is from classifyParseError().toJSON() validated at write; parse failure falls back to unknown.
     const parsed = JSON.parse(raw) as {
       type?: string;
       message?: string;
@@ -70,7 +66,7 @@ export function parseLastAttemptError(
     };
 
     if (parsed != null && parsed instanceof Object) {
-      // SAFETY: parsed is non-null object from JSON.parse validated via instanceof Object; Record<string, JsonValue> is safe for queue error fields.
+      // SAFETY: parsed is non-null object from JSON.parse validated via instanceof Object; Record<string, JsonValue> is safe for parse error fields.
       const record = parsed as Record<string, JsonValue>;
 
       return {
@@ -140,7 +136,7 @@ export function checkRetryEligibility(row: ResumeRetryRow): RetryEligibility {
   // Back-compat: honour explicit `lastAttemptErrorType` if provided.
   // `undefined` = not provided → fall back to parsing lastAttemptError JSON.
   // `null` = explicitly no type → honour as null (do not fall back).
-  // SAFETY: lifecycle.parseLastAttemptError validates QueueError JSON shape before cast.
+  // SAFETY: lifecycle.parseLastAttemptError validates ParseError JSON shape before cast.
   const parsed =
     row.lastAttemptErrorType !== undefined
       ? row.lastAttemptErrorType
@@ -262,13 +258,6 @@ export type WaitingForCacheTimeoutUpdate = {
 
 export function buildWaitingForCacheTimeoutUpdate(): WaitingForCacheTimeoutUpdate {
   return { status: "failed", errorMessage: WAITING_FOR_CACHE_TIMEOUT_MESSAGE };
-}
-
-export const ATTEMPT_CAP_EXCEEDED_MESSAGE =
-  "This resume reached the maximum number of parse attempts. Please upload it again.";
-
-export function buildAttemptCapExceededUpdate(): WaitingForCacheTimeoutUpdate {
-  return { status: "failed", errorMessage: ATTEMPT_CAP_EXCEEDED_MESSAGE };
 }
 
 export type ResumeRow = StatusRow & ResumeRetryRow;

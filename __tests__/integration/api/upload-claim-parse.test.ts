@@ -116,20 +116,26 @@ const mockR2 = {
   }),
 };
 
-type QueuedParseMessage = {
-  resumeId: string;
-  userId: string;
-  r2Key: string;
-  fileHash: string;
-  attempt: number;
+type StartedParseRun = {
+  id: string;
+  params: {
+    kind: string;
+    resumeId: string;
+    userId: string;
+    r2Key: string;
+    fileHash: string;
+  };
 };
 
-const mockQueueMessages: QueuedParseMessage[] = [];
+const mockWorkflowRuns: StartedParseRun[] = [];
 
-const mockQueue = {
-  send: vi.fn().mockImplementation(async (message: QueuedParseMessage) => {
-    mockQueueMessages.push(message);
+const mockWorkflow = {
+  create: vi.fn().mockImplementation(async (run: StartedParseRun) => {
+    mockWorkflowRuns.push(run);
+
+    return { id: run.id };
   }),
+  get: vi.fn().mockRejectedValue(new Error("instance not found")),
 };
 
 const TEST_COOKIE_SECRET = "test-secret-key-for-testing-only";
@@ -165,7 +171,7 @@ const setMockAuthUser = (userId: string | null) => {
 vi.mock("cloudflare:workers", () => ({
   env: {
     CLICKFOLIO_R2_BUCKET: mockR2Binding,
-    CLICKFOLIO_PARSE_QUEUE: mockQueue,
+    CLICKFOLIO_PARSE_WORKFLOW: mockWorkflow,
     PENDING_UPLOAD_SECRET: TEST_COOKIE_SECRET,
   },
 }));
@@ -189,7 +195,7 @@ vi.mock("@/lib/auth/middleware", () => ({
       env: {
         HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" },
         CLICKFOLIO_R2_BUCKET: mockR2Binding,
-        CLICKFOLIO_PARSE_QUEUE: mockQueue,
+        CLICKFOLIO_PARSE_WORKFLOW: mockWorkflow,
         PENDING_UPLOAD_SECRET: TEST_COOKIE_SECRET,
       },
       error: null,
@@ -224,15 +230,6 @@ vi.mock("@/lib/rate-limit/ip", () => ({
 
 vi.mock("@/lib/rate-limit/user", () => ({
   enforceRateLimit: vi.fn().mockResolvedValue(null),
-}));
-
-vi.mock("@/lib/queue/resume-parse", () => ({
-  publishResumeParse: vi.fn().mockImplementation(async (queue, params) => {
-    await queue.send({
-      type: "parse",
-      ...params,
-    });
-  }),
 }));
 
 vi.mock("@/lib/data/site-data-upsert", () => ({
@@ -340,7 +337,7 @@ function extractPendingUploadCookie(uploadResponse: Response): string | null {
 function resetAll() {
   vi.clearAllMocks();
   mockR2Store.clear();
-  mockQueueMessages.length = 0;
+  mockWorkflowRuns.length = 0;
   setMockAuthUser(null);
   resetMockDbChains();
 }
@@ -553,8 +550,8 @@ describe("POST /api/resume/claim", () => {
     expect(claimBody.status).toBe("queued");
     expect(claimBody.resume_id).toBeDefined();
     expect(mockDb.insert).toHaveBeenCalled();
-    expect(mockQueueMessages.length).toBe(1);
-    expect(mockQueueMessages[0].resumeId).toBe(claimBody.resume_id);
+    expect(mockWorkflowRuns.length).toBe(1);
+    expect(mockWorkflowRuns[0].id).toBe(claimBody.resume_id);
   });
 
   it("12. Claim without auth → 401 unauthorized", async () => {
@@ -579,15 +576,13 @@ describe("POST /api/resume/claim", () => {
     const claimResponse = await claimPost(makeClaimRequest(uploadBody.key, pendingCookie!));
     const claimBody: { resume_id: string } = await claimResponse.json();
 
-    expect(mockQueueMessages.length).toBe(1);
-    expect(mockQueueMessages[0]).toMatchObject({
-      type: "parse",
-      resumeId: claimBody.resume_id,
-      userId: "user-1",
-      attempt: 1,
+    expect(mockWorkflowRuns.length).toBe(1);
+    expect(mockWorkflowRuns[0]).toMatchObject({
+      id: claimBody.resume_id,
+      params: { kind: "parse", resumeId: claimBody.resume_id, userId: "user-1" },
     });
-    expect(mockQueueMessages[0].r2Key).toMatch(/^users\/user-1\//);
-    expect(mockQueueMessages[0].fileHash).toMatch(/^[a-f0-9]{64}$/);
+    expect(mockWorkflowRuns[0].params.r2Key).toMatch(/^users\/user-1\//);
+    expect(mockWorkflowRuns[0].params.fileHash).toMatch(/^[a-f0-9]{64}$/);
   });
 
   it("16. Claim with invalid temp key → 404/400 error", async () => {
@@ -617,97 +612,53 @@ describe("POST /api/resume/claim", () => {
   });
 });
 
-describe("Queue Processing → siteData Creation", () => {
+describe("Parse pipeline → siteData Creation", () => {
   beforeEach(resetAll);
 
-  it("22. Parse failure → verify retry mechanism triggered", async () => {
-    const { handleQueueMessage } = await import("@/lib/queue/consumer");
-    const { QueueError, QueueErrorType } = await import("@/lib/queue/errors");
+  // SAFETY: env stub declares only HYPERDRIVE and CLICKFOLIO_R2_BUCKET, the two bindings the pipeline steps read; CloudflareEnv's remaining properties are never accessed on this path.
+  const env = {
+    HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" },
+    CLICKFOLIO_R2_BUCKET: mockR2Binding,
+  } as CloudflareEnv;
 
-    const resumeId = crypto.randomUUID();
+  it("22. Transient parse failure → retryable ParseError for the workflow step", async () => {
+    const { parseResumePdf } = await import("@/lib/parse/pipeline");
+    const { ParseError, ParseErrorType } = await import("@/lib/parse/errors");
+
     const userId = "user-1";
     const r2Key = `users/${userId}/123456/resume.pdf`;
-    const fileHash = "abc123".repeat(8);
 
     mockR2Store.set(r2Key, makePdfBuffer());
-
-    mockDbSelectChain.limit.mockResolvedValueOnce([
-      {
-        status: "queued",
-        parsedContent: null,
-        parsedContentStaged: null,
-        totalAttempts: 0,
-      },
-    ]);
-    mockDbSelectChain.limit.mockResolvedValueOnce([]);
 
     vi.doMock("@/lib/ai", () => ({
       parseResumeWithAi: vi
         .fn()
-        .mockRejectedValue(new QueueError(QueueErrorType.AI_PROVIDER_ERROR, "AI provider timeout")),
+        .mockRejectedValue(new ParseError(ParseErrorType.AI_PROVIDER_ERROR, "AI provider timeout")),
     }));
 
-    const message = {
-      type: "parse" as const,
-      resumeId,
-      userId,
-      r2Key,
-      fileHash,
-      attempt: 1,
-    };
-
-    // SAFETY: env stub declares only HYPERDRIVE and CLICKFOLIO_R2_BUCKET, the two bindings handleQueueMessage reads; CloudflareEnv's remaining properties are never accessed on this path.
-    const env = {
-      HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" },
-      CLICKFOLIO_R2_BUCKET: mockR2Binding,
-    } as CloudflareEnv;
-
-    await expect(handleQueueMessage(message, env)).rejects.toThrow();
+    const job = { resumeId: crypto.randomUUID(), userId, r2Key, fileHash: "abc123".repeat(8) };
+    await expect(parseResumePdf(job, env)).rejects.toSatisfy(
+      (error: InstanceType<typeof ParseError>) =>
+        error instanceof ParseError && error.isRetryable(),
+    );
   });
 
-  it("25. Process with cached fileHash → skip AI, use cached siteData", async () => {
-    const { handleQueueMessage } = await import("@/lib/queue/consumer");
+  it("25. Claim with cached fileHash → skip AI, complete from cache", async () => {
+    const { claimResumeForParse } = await import("@/lib/parse/pipeline");
 
-    const resumeId = crypto.randomUUID();
     const userId = "user-1";
-    const r2Key = `users/${userId}/123456/resume.pdf`;
-    const fileHash = "abc123".repeat(8);
 
-    const cachedContent = { name: "Cached User" };
-
-    mockDbSelectChain.limit.mockResolvedValueOnce([
-      {
-        status: "queued",
-        parsedContent: null,
-        parsedContentStaged: null,
-        totalAttempts: 0,
-      },
-    ]);
-
-    mockDbSelectChain.limit.mockResolvedValueOnce([
-      {
-        id: "cached-resume",
-        parsedContent: cachedContent,
-      },
-    ]);
-
-    const message = {
-      type: "parse" as const,
-      resumeId,
+    const job = {
+      resumeId: crypto.randomUUID(),
       userId,
-      r2Key,
-      fileHash,
-      attempt: 1,
+      r2Key: `users/${userId}/123456/resume.pdf`,
+      fileHash: "abc123".repeat(8),
     };
 
-    // SAFETY: env stub declares only HYPERDRIVE and CLICKFOLIO_R2_BUCKET, the two bindings handleQueueMessage reads; CloudflareEnv's remaining properties are never accessed on this path.
-    const env = {
-      HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" },
-      CLICKFOLIO_R2_BUCKET: mockR2Binding,
-    } as CloudflareEnv;
+    mockDbSelectChain.limit.mockResolvedValueOnce([{ status: "queued" }]);
+    mockDbSelectChain.limit.mockResolvedValueOnce([{ parsedContent: { name: "Cached User" } }]);
 
-    await handleQueueMessage(message, env);
-
+    await expect(claimResumeForParse(job, env)).resolves.toBe("cached");
     expect(mockDb.transaction).toHaveBeenCalled();
   });
 });

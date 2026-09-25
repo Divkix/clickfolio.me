@@ -165,8 +165,9 @@ vi.mock("@/lib/utils/validation", () => ({
   }),
 }));
 
-vi.mock("@/lib/queue/resume-parse", () => ({
-  publishResumeParse: vi.fn().mockResolvedValue(undefined),
+vi.mock("@/lib/workflows/resume-parse", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/workflows/resume-parse")>()),
+  startResumeParse: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("@/lib/data/site-data-upsert", () => ({
@@ -231,7 +232,7 @@ function authedAs(userId: string) {
     dbUser: { id: userId, handle: "testuser", clerkId: "user_clerk_1" },
     // SAFETY: the route reads only PENDING_UPLOAD_SECRET (cookie HMAC) and passes the queue
     // binding to the mocked publisher; the other 28 CloudflareEnv bindings stay untouched.
-    env: { CLICKFOLIO_PARSE_QUEUE: {}, PENDING_UPLOAD_SECRET: TEST_SECRET } as never,
+    env: { CLICKFOLIO_PARSE_WORKFLOW: {}, PENDING_UPLOAD_SECRET: TEST_SECRET } as never,
     error: null,
   });
 }
@@ -430,18 +431,18 @@ describe("POST /api/resume/claim", () => {
     expect(mockDbInsert).toHaveBeenCalled();
   });
 
-  it("leaves resume queued (orphan-cron recoverable) when queue publish fails", async () => {
+  it("fails the resume (manually retryable) when the parse workflow cannot start", async () => {
     authedAs("user-1");
-    const { publishResumeParse } = await import("@/lib/queue/resume-parse");
-    vi.mocked(publishResumeParse).mockRejectedValueOnce(new Error("Queue unavailable"));
+    const { startResumeParse } = await import("@/lib/workflows/resume-parse");
+    vi.mocked(startResumeParse).mockRejectedValueOnce(new Error("Workflow unavailable"));
 
     const { POST } = await import("@/app/api/resume/claim/route");
     const cookie = await createSignedCookieValue("temp/uuid/resume.pdf", TEST_SECRET);
     const response = await POST(makeClaimRequest({ key: "temp/uuid/resume.pdf" }, cookie));
 
     expect(response.status).toBe(500);
-    expect(mockDbUpdateSet).not.toHaveBeenCalledWith(expect.objectContaining({ status: "failed" }));
-    expect(mockDbUpdateSet).toHaveBeenCalledWith(expect.objectContaining({ status: "queued" }));
+    // No instance exists, so nothing would ever pick the queued row up.
+    expect(mockDbUpdateSet).toHaveBeenCalledWith(expect.objectContaining({ status: "failed" }));
   });
 
   it("returns already_claimed BEFORE rate limiting (double-claim does not burn a rate-limit slot)", async () => {

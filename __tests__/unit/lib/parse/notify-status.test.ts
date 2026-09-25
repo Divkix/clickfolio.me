@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vite-plus/test";
 import type { Mock } from "vite-plus/test";
-import { notifyStatusChange, notifyStatusChangeBatch } from "@/lib/queue/notify-status";
+import { notifyStatusChange, notifyStatusChangeBatch } from "@/lib/parse/notify-status";
 
 type StatusEnv = {
   CLICKFOLIO_STATUS_DO: CloudflareEnv["CLICKFOLIO_STATUS_DO"] | undefined;

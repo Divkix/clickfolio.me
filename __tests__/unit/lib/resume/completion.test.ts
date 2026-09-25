@@ -97,7 +97,7 @@ vi.mock("@/lib/data/site-data-upsert", () => ({
 
 const mockNotifyBatches: Array<{ ids: string[]; status: string }> = [];
 
-vi.mock("@/lib/queue/notify-status", () => ({
+vi.mock("@/lib/parse/notify-status", () => ({
   notifyStatusChangeBatch: async (
     ids: string[],
     status: string,

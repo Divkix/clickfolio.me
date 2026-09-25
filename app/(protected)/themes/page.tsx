@@ -43,7 +43,7 @@ export default async function ThemesPage() {
   const currentThemeId: ThemeId =
     rawThemeId && isValidThemeId(rawThemeId) ? rawThemeId : DEFAULT_THEME;
 
-  // SAFETY: content is schema-validated JSONB written by the queue consumer and /api/resume/update; cast bridges the column's wide Record type.
+  // SAFETY: content is schema-validated JSONB written by the parse pipeline and /api/resume/update; cast bridges the column's wide Record type.
   const parsedContent = userSiteData.content as ResumeContent;
 
   const profile = {

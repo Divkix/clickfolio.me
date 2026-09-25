@@ -1,21 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
-
-interface PendingDeletionRow {
-  r2Key: string;
-  attempts: number;
-}
+import type { R2DeleteParams } from "@/lib/workflows/r2-delete";
 
 interface ResumeDismissState {
   deleteResult: Array<{ id: string; r2Key: string }>;
   selectResult: Array<{ id: string }>;
-  insertCalls: PendingDeletionRow[];
+  scheduled: R2DeleteParams[];
 }
 
 const mocks = vi.hoisted(() => {
   const state: ResumeDismissState = {
     deleteResult: [],
     selectResult: [],
-    insertCalls: [],
+    scheduled: [],
   };
 
   const createSelectChain = () => {
@@ -37,30 +33,25 @@ const mocks = vi.hoisted(() => {
     return chain;
   };
 
-  const createInsertChain = () => {
-    const chain = {
-      values: vi.fn((rows: PendingDeletionRow) => {
-        state.insertCalls.push(rows);
-
-        return chain;
-      }),
-      onConflictDoNothing: vi.fn(async () => undefined),
-    };
-
-    return chain;
-  };
-
   const db = {
     select: vi.fn(() => createSelectChain()),
     delete: vi.fn(() => createDeleteChain()),
-    insert: vi.fn(() => createInsertChain()),
   };
 
   const r2Delete = vi.fn(async () => undefined);
   const bucket = { list: vi.fn(async () => ({ objects: [] })) };
-  const env = { CLICKFOLIO_R2_BUCKET: bucket };
 
-  return { state, db, env, bucket, r2Delete };
+  const workflow = {
+    create: vi.fn(async ({ params }: { params: R2DeleteParams }) => {
+      state.scheduled.push(params);
+
+      return { id: "r2-delete-1" };
+    }),
+  };
+
+  const env = { CLICKFOLIO_R2_BUCKET: bucket, CLICKFOLIO_R2_DELETE_WORKFLOW: workflow };
+
+  return { state, db, env, bucket, r2Delete, workflow };
 });
 
 vi.mock("cloudflare:workers", () => ({
@@ -110,7 +101,7 @@ describe("DELETE /api/admin/resumes/[id]", () => {
     vi.clearAllMocks();
     mocks.state.deleteResult = [];
     mocks.state.selectResult = [];
-    mocks.state.insertCalls = [];
+    mocks.state.scheduled = [];
     mocks.r2Delete.mockResolvedValue(undefined);
   });
 
@@ -135,7 +126,7 @@ describe("DELETE /api/admin/resumes/[id]", () => {
 
     expect(response.status).toBe(409);
     expect(mocks.r2Delete).not.toHaveBeenCalled();
-    expect(mocks.db.insert).not.toHaveBeenCalled();
+    expect(mocks.workflow.create).not.toHaveBeenCalled();
   });
 
   it("returns 404 when the resume does not exist", async () => {
@@ -148,15 +139,13 @@ describe("DELETE /api/admin/resumes/[id]", () => {
     expect(mocks.r2Delete).not.toHaveBeenCalled();
   });
 
-  it("enqueues a pending deletion when the R2 delete fails after the row is gone", async () => {
+  it("hands a failed R2 delete to R2DeleteWorkflow after the row is gone", async () => {
     mocks.state.deleteResult = [{ id: "resume-1", r2Key: "users/user-1/resume-1/cv.pdf" }];
     mocks.r2Delete.mockRejectedValueOnce(new Error("R2 unavailable"));
 
     const response = await dismiss();
 
     expect(response.status).toBe(200);
-    const insertedRow = mocks.state.insertCalls[0];
-    expect(insertedRow.r2Key).toBe("users/user-1/resume-1/cv.pdf");
-    expect(insertedRow.attempts).toBe(1);
+    expect(mocks.state.scheduled).toEqual([{ keys: ["users/user-1/resume-1/cv.pdf"] }]);
   });
 });

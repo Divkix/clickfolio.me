@@ -2,8 +2,9 @@ import { env } from "cloudflare:workers";
 import { and, eq } from "drizzle-orm";
 import { withAdmin } from "@/lib/auth/with-auth";
 import { getDb } from "@/lib/db";
-import { pendingR2Deletions, resumes } from "@/lib/db/schema";
-import { getR2Binding, R2 } from "@/lib/r2";
+import { resumes } from "@/lib/db/schema";
+import { getR2Binding } from "@/lib/r2";
+import { deleteR2Objects } from "@/lib/workflows/r2-delete";
 import {
   createErrorResponse,
   createSuccessResponse,
@@ -39,24 +40,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     const r2 = getR2Binding(env);
 
     if (r2 && deleted.r2Key) {
-      try {
-        await R2.delete(r2, deleted.r2Key);
-      } catch (r2Error) {
-        try {
-          await db
-            .insert(pendingR2Deletions)
-            .values({
-              id: crypto.randomUUID(),
-              r2Key: deleted.r2Key,
-              createdAt: new Date().toISOString(),
-              attempts: 1,
-            })
-            .onConflictDoNothing({ target: pendingR2Deletions.r2Key });
-        } catch (insertError) {
-          console.error(`Failed to delete R2 file ${deleted.r2Key}:`, r2Error);
-          console.error(`Failed to record pending R2 deletion for ${deleted.r2Key}:`, insertError);
-        }
-      }
+      await deleteR2Objects(r2, env.CLICKFOLIO_R2_DELETE_WORKFLOW, [deleted.r2Key]);
     }
 
     return createSuccessResponse({ ok: true, id });

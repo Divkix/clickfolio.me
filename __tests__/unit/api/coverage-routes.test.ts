@@ -99,7 +99,10 @@ const mocks = vi.hoisted(() => {
 
   interface MockEnv {
     CLICKFOLIO_R2_BUCKET: typeof r2BucketMock | undefined;
-    CLICKFOLIO_PARSE_QUEUE: { send: () => Promise<void> };
+    CLICKFOLIO_PARSE_WORKFLOW: {
+      create: (options: { id: string }) => Promise<{ id: string }>;
+      get: (id: string) => Promise<{ id: string }>;
+    };
     PENDING_UPLOAD_SECRET: string;
     CLERK_SECRET_KEY: string;
     CF_AI_GATEWAY_ACCOUNT_ID: string;
@@ -263,7 +266,10 @@ const mocks = vi.hoisted(() => {
 
   const env: MockEnv = {
     CLICKFOLIO_R2_BUCKET: r2BucketMock,
-    CLICKFOLIO_PARSE_QUEUE: { send: vi.fn(async () => undefined) },
+    CLICKFOLIO_PARSE_WORKFLOW: {
+      create: vi.fn(async ({ id }: { id: string }) => ({ id })),
+      get: vi.fn(async (id: string) => ({ id })),
+    },
     PENDING_UPLOAD_SECRET: "test-secret-key-for-pending-upload",
     CLERK_SECRET_KEY: "sk_test_coverage",
     CF_AI_GATEWAY_ACCOUNT_ID: "acct",
@@ -290,8 +296,6 @@ const mocks = vi.hoisted(() => {
       return [{ x: "US", y: 5 }];
     }),
     performCleanup: vi.fn(async () => ({ deleted: 1 })),
-    performR2Cleanup: vi.fn(async () => ({ deleted: 2 })),
-    recoverOrphanedResumes: vi.fn(async () => ({ recovered: 4 })),
     r2Put: vi.fn(async () => undefined),
     r2Delete: vi.fn(async () => undefined),
     r2GetAsUint8Array: vi.fn(async () => new Uint8Array([1, 2, 3])),
@@ -384,14 +388,6 @@ vi.mock("@/lib/umami/client", () => ({
 
 vi.mock("@/lib/cron/cleanup", () => ({
   performCleanup: mocks.performCleanup,
-}));
-
-vi.mock("@/lib/cron/cleanup-r2", () => ({
-  performR2Cleanup: mocks.performR2Cleanup,
-}));
-
-vi.mock("@/lib/cron/recover-orphaned", () => ({
-  recoverOrphanedResumes: mocks.recoverOrphanedResumes,
 }));
 
 vi.mock("@/lib/r2", async (importOriginal) => {
@@ -1178,8 +1174,6 @@ describe("API route coverage", () => {
   it("covers health, cron, and auth wrappers", async () => {
     const health = await import("@/app/api/health/route");
     const cleanup = await import("@/app/api/cron/cleanup/route");
-    const cleanupR2 = await import("@/app/api/cron/cleanup-r2/route");
-    const recover = await import("@/app/api/cron/recover-orphaned/route");
 
     expect((await health.GET()).status).toBe(200);
     mocks.db.execute.mockRejectedValueOnce(new Error("db down"));
@@ -1193,7 +1187,5 @@ describe("API route coverage", () => {
       401,
     );
     expect(await (await cleanup.GET(cronRequest)).json()).toEqual({ deleted: 1 });
-    expect(await (await cleanupR2.GET(cronRequest)).json()).toEqual({ deleted: 2 });
-    expect(await (await recover.GET(cronRequest)).json()).toEqual({ recovered: 4 });
   });
 });

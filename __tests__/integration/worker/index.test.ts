@@ -1,5 +1,4 @@
 import worker from "@/worker/index";
-import { QueueError, QueueErrorType } from "@/lib/queue/errors";
 import { verifyClerkToken } from "@/lib/auth/clerk";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { JsonValue } from "@/lib/types/json";
@@ -20,68 +19,47 @@ vi.mock("@/lib/durable-objects/resume-status", () => ({
   },
 }));
 
+// Workflow classes extend `cloudflare:workers` WorkflowEntrypoint, which only exists
+// in the Workers runtime; the worker just re-exports them.
+vi.mock("@/lib/workflows/resume-parse-workflow", () => ({
+  ResumeParseWorkflow: class ResumeParseWorkflow {},
+}));
+
+vi.mock("@/lib/workflows/r2-delete-workflow", () => ({
+  R2DeleteWorkflow: class R2DeleteWorkflow {},
+}));
+
 vi.mock("vinext/server/app-router-entry", () => ({
   default: {
     fetch: vi.fn().mockResolvedValue(new Response("OK from handler", { status: 200 })),
   },
 }));
 
-const {
-  mockVerifyClerkToken,
-  mockHandleQueueMessage,
-  mockHandleDLQMessage,
-  mockPerformCleanup,
-  mockPerformR2Cleanup,
-  mockRetryPendingR2Deletions,
-  mockRecoverOrphanedResumes,
-  mockUserFindFirst,
-  mockResumeFindFirst,
-} = vi.hoisted(() => {
-  const claims = {
-    "jwt.for.clerk-user-1": { sub: "user_clerk_1", sid: "sess_1" },
-    "jwt.for.clerk-other": { sub: "clerk_user_other", sid: "sess_2" },
-  };
+const { mockVerifyClerkToken, mockPerformCleanup, mockUserFindFirst, mockResumeFindFirst } =
+  vi.hoisted(() => {
+    const claims = {
+      "jwt.for.clerk-user-1": { sub: "user_clerk_1", sid: "sess_1" },
+      "jwt.for.clerk-other": { sub: "clerk_user_other", sid: "sess_2" },
+    };
 
-  return {
-    mockVerifyClerkToken: vi.fn(
-      async (token: string) =>
-        Object.entries(claims).find(([known]) => known === token)?.[1] ?? null,
-    ),
-    mockHandleQueueMessage: vi.fn(),
-    mockHandleDLQMessage: vi.fn(),
-    mockPerformCleanup: vi.fn(),
-    mockPerformR2Cleanup: vi.fn(),
-    mockRetryPendingR2Deletions: vi.fn(),
-    mockRecoverOrphanedResumes: vi.fn(),
-    mockUserFindFirst: vi.fn(),
-    mockResumeFindFirst: vi.fn(),
-  };
-});
+    return {
+      mockVerifyClerkToken: vi.fn(
+        async (token: string) =>
+          Object.entries(claims).find(([known]) => known === token)?.[1] ?? null,
+      ),
+      mockPerformCleanup: vi.fn(),
+      mockUserFindFirst: vi.fn(),
+      mockResumeFindFirst: vi.fn(),
+    };
+  });
 
 vi.mock("@/lib/auth/clerk", async (importOriginal) => ({
   ...(await importOriginal<object>()),
   verifyClerkToken: mockVerifyClerkToken,
 }));
 
-vi.mock("@/lib/queue/consumer", () => ({
-  handleQueueMessage: mockHandleQueueMessage,
-}));
-
-vi.mock("@/lib/queue/dlq-consumer", () => ({
-  handleDLQMessage: mockHandleDLQMessage,
-}));
-
 vi.mock("@/lib/cron/cleanup", () => ({
   performCleanup: mockPerformCleanup,
-}));
-
-vi.mock("@/lib/cron/cleanup-r2", () => ({
-  performR2Cleanup: mockPerformR2Cleanup,
-  retryPendingR2Deletions: mockRetryPendingR2Deletions,
-}));
-
-vi.mock("@/lib/cron/recover-orphaned", () => ({
-  recoverOrphanedResumes: mockRecoverOrphanedResumes,
 }));
 
 vi.mock("@/lib/db", () => ({
@@ -140,43 +118,9 @@ function makeEnv(overrides: Partial<CloudflareEnv> = {}): CloudflareEnv {
       connectionString: "postgres://user:pass@localhost:5432/clickfolio",
     } as CloudflareEnv["HYPERDRIVE"],
     CLICKFOLIO_R2_BUCKET: {} as R2Bucket,
-    CLICKFOLIO_PARSE_QUEUE: { metrics: vi.fn(), send: vi.fn(), sendBatch: vi.fn() } as Queue,
     CLICKFOLIO_STATUS_DO: makeStatusDo().namespace,
     ...overrides,
   } as CloudflareEnv;
-}
-
-interface MockQueueMessage {
-  id: string;
-  body: JsonValue;
-  timestamp: Date;
-  attempts: number;
-  ack: () => void;
-  retry: () => void;
-}
-
-function makeMessage(
-  body: JsonValue,
-  overrides: { ack?: () => void; retry?: () => void } = {},
-): MockQueueMessage {
-  return {
-    id: crypto.randomUUID(),
-    body,
-    timestamp: new Date(),
-    attempts: 0,
-    ack: overrides.ack ?? vi.fn(),
-    retry: overrides.retry ?? vi.fn(),
-  };
-}
-
-function makeBatch(queueName: string, messages: MockQueueMessage[]): MessageBatch<JsonValue> {
-  return {
-    queue: queueName,
-    messages,
-    metadata: { metrics: { backlogCount: 0, backlogBytes: 0 } },
-    retryAll: vi.fn(),
-    ackAll: vi.fn(),
-  };
 }
 
 function makeCtx(): ExecutionContext {
@@ -199,8 +143,6 @@ function makeWsRequest(
 
 function resetAll() {
   vi.clearAllMocks();
-  mockHandleQueueMessage.mockResolvedValue(undefined);
-  mockHandleDLQMessage.mockResolvedValue(undefined);
   mockUserFindFirst.mockReset();
   mockResumeFindFirst.mockReset();
   mockUserFindFirst.mockResolvedValue(null);
@@ -210,9 +152,6 @@ function resetAll() {
     deleted: { rateLimits: 1, handleChanges: 0 },
     timestamp: new Date().toISOString(),
   });
-  mockPerformR2Cleanup.mockResolvedValue({ deleted: 2 });
-  mockRetryPendingR2Deletions.mockResolvedValue({ retried: 0 });
-  mockRecoverOrphanedResumes.mockResolvedValue({ recovered: 4 });
 }
 
 describe("Worker fetch handler", () => {
@@ -385,90 +324,6 @@ describe("Worker fetch handler", () => {
   });
 });
 
-describe("Worker queue handler", () => {
-  beforeEach(resetAll);
-
-  const VALID_BODY = {
-    type: "parse",
-    resumeId: "res-1",
-    userId: "user-1",
-    r2Key: "users/user-1/123/resume.pdf",
-    fileHash: "a".repeat(64),
-    attempt: 1,
-  };
-
-  it("acks malformed messages (invalid schema)", async () => {
-    const env = makeEnv();
-    const ack = vi.fn();
-
-    const batch = makeBatch("clickfolio-parse-queue", [
-      makeMessage({ type: "unknown", random: "data" }, { ack }),
-    ]);
-
-    await worker.queue(batch, env);
-
-    expect(ack).toHaveBeenCalled();
-    expect(mockHandleQueueMessage).not.toHaveBeenCalled();
-  });
-
-  it("acks valid main-queue messages after successful processing", async () => {
-    const env = makeEnv();
-    const ack = vi.fn();
-    const batch = makeBatch("clickfolio-parse-queue", [makeMessage(VALID_BODY, { ack })]);
-
-    await worker.queue(batch, env);
-
-    expect(mockHandleQueueMessage).toHaveBeenCalled();
-    expect(ack).toHaveBeenCalled();
-  });
-
-  it("retries message when handleQueueMessage throws a retryable error", async () => {
-    const env = makeEnv();
-    const ack = vi.fn();
-    const retry = vi.fn();
-
-    mockHandleQueueMessage.mockRejectedValueOnce(
-      new QueueError(QueueErrorType.AI_PROVIDER_ERROR, "AI timeout"),
-    );
-
-    const batch = makeBatch("clickfolio-parse-queue", [makeMessage(VALID_BODY, { ack, retry })]);
-
-    await worker.queue(batch, env);
-
-    expect(retry).toHaveBeenCalled();
-    expect(ack).not.toHaveBeenCalled();
-  });
-
-  it("acks (sends to DLQ) on permanent processing error", async () => {
-    const env = makeEnv();
-    const ack = vi.fn();
-    const retry = vi.fn();
-
-    mockHandleQueueMessage.mockRejectedValueOnce(
-      new QueueError(QueueErrorType.INVALID_PDF, "Bad PDF"),
-    );
-
-    const batch = makeBatch("clickfolio-parse-queue", [makeMessage(VALID_BODY, { ack, retry })]);
-
-    await worker.queue(batch, env);
-
-    expect(ack).toHaveBeenCalled();
-    expect(retry).not.toHaveBeenCalled();
-  });
-
-  it("routes to DLQ handler for messages from the DLQ queue", async () => {
-    const env = makeEnv();
-    const ack = vi.fn();
-    const batch = makeBatch("clickfolio-parse-dlq", [makeMessage(VALID_BODY, { ack })]);
-
-    await worker.queue(batch, env);
-
-    expect(mockHandleDLQMessage).toHaveBeenCalled();
-    expect(mockHandleQueueMessage).not.toHaveBeenCalled();
-    expect(ack).toHaveBeenCalled();
-  });
-});
-
 describe("Worker scheduled handler", () => {
   beforeEach(resetAll);
 
@@ -480,23 +335,6 @@ describe("Worker scheduled handler", () => {
     };
   }
 
-  it("dispatches R2 cleanup on '0 2 * * *' cron", async () => {
-    const env = makeEnv();
-
-    await worker.scheduled(makeController("0 2 * * *"), env);
-
-    expect(mockPerformR2Cleanup).toHaveBeenCalled();
-    expect(mockRetryPendingR2Deletions).toHaveBeenCalled();
-  });
-
-  it("skips R2 cleanup when R2 binding is missing", async () => {
-    const env = makeEnv({ CLICKFOLIO_R2_BUCKET: undefined });
-
-    await worker.scheduled(makeController("0 2 * * *"), env);
-
-    expect(mockPerformR2Cleanup).not.toHaveBeenCalled();
-  });
-
   it("dispatches DB cleanup on '0 3 * * *' cron", async () => {
     const env = makeEnv();
 
@@ -505,20 +343,13 @@ describe("Worker scheduled handler", () => {
     expect(mockPerformCleanup).toHaveBeenCalled();
   });
 
-  it("dispatches orphan recovery on '*/15 * * * *' cron", async () => {
+  it("ignores the retired '0 2' and '*/15' crons (now R2 lifecycle + workflows)", async () => {
     const env = makeEnv();
 
+    await worker.scheduled(makeController("0 2 * * *"), env);
     await worker.scheduled(makeController("*/15 * * * *"), env);
 
-    expect(mockRecoverOrphanedResumes).toHaveBeenCalled();
-  });
-
-  it("skips orphan recovery when queue binding is missing", async () => {
-    const env = makeEnv({ CLICKFOLIO_PARSE_QUEUE: undefined });
-
-    await worker.scheduled(makeController("*/15 * * * *"), env);
-
-    expect(mockRecoverOrphanedResumes).not.toHaveBeenCalled();
+    expect(mockPerformCleanup).not.toHaveBeenCalled();
   });
 
   it("does not throw on unknown cron expression", async () => {

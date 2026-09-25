@@ -138,8 +138,8 @@ export default function AiResumeParsingAccuracyPage() {
         <p>
           If the primary AI parser fails or produces low-confidence output, a secondary parser
           attempts extraction using a different model and prompting strategy. This catches most
-          transient failures and improves overall reliability. If both fail, the queue retries with
-          backoff — up to 2 additional attempts.
+          transient failures and improves overall reliability. If both fail, the parse job retries
+          with exponential backoff — up to 3 additional attempts.
         </p>
         <h3>Structured Output Schema</h3>
         <p>

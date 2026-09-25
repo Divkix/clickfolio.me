@@ -4,7 +4,6 @@ import { captureServerEvent } from "@/lib/analytics/server";
 import { checkRetryEligibilityForRow, getStatusView, RETRY_LIMITS } from "@/lib/resume/lifecycle";
 import type { ResumeStatus } from "@/lib/db/schema/resume";
 import { resumes } from "@/lib/db/schema";
-import { publishResumeParse } from "@/lib/queue/resume-parse";
 import { getR2Binding, R2 } from "@/lib/r2";
 import { sha256Hex } from "@/lib/utils/hash";
 import {
@@ -13,6 +12,7 @@ import {
   ERROR_CODES,
 } from "@/lib/utils/security-headers";
 import { readJsonWithLimit, validateRequestSize } from "@/lib/utils/validation";
+import { parseInstanceId, startResumeParse } from "@/lib/workflows/resume-parse";
 
 interface RetryRequestBody {
   resume_id?: string;
@@ -217,32 +217,37 @@ export async function POST(request: Request) {
               ),
             );
         } catch (rollbackError) {
-          console.error("Failed to roll back retry queue state:", rollbackError);
+          console.error("Failed to roll back retry state:", rollbackError);
         }
       };
 
-      const queue = env.CLICKFOLIO_PARSE_QUEUE;
+      const parseWorkflow = env.CLICKFOLIO_PARSE_WORKFLOW;
 
-      if (!queue) {
+      if (!parseWorkflow) {
         await rollbackRetryUpdate();
 
-        return createErrorResponse("Queue service unavailable", ERROR_CODES.INTERNAL_ERROR, 500);
+        return createErrorResponse("Parse service unavailable", ERROR_CODES.INTERNAL_ERROR, 500);
       }
 
       try {
-        // SAFETY: id and r2Key are validated string columns; casts bridge Drizzle type to string for queue payload.
-        await publishResumeParse(queue, {
-          resumeId: resume.id as string,
-          userId,
-          r2Key: resume.r2Key as string,
-          fileHash,
-          attempt: (resume.totalAttempts as number) + 1,
-        });
-      } catch (queueError) {
+        // Each retry is its own instance (the retryCount CAS above makes the id unique).
+        // SAFETY: id and r2Key are validated string columns; casts bridge Drizzle type to string for workflow params.
+        await startResumeParse(
+          parseWorkflow,
+          parseInstanceId(resume.id as string, nextRetryCount),
+          {
+            kind: "parse",
+            resumeId: resume.id as string,
+            userId,
+            r2Key: resume.r2Key as string,
+            fileHash,
+          },
+        );
+      } catch (workflowError) {
         await rollbackRetryUpdate();
-        console.error("Failed to publish retry parse job:", queueError);
+        console.error("Failed to start retry parse workflow:", workflowError);
 
-        return createErrorResponse("Queue service unavailable", ERROR_CODES.INTERNAL_ERROR, 500);
+        return createErrorResponse("Parse service unavailable", ERROR_CODES.INTERNAL_ERROR, 500);
       }
 
       // SAFETY: id is a validated string PK; cast bridges Drizzle type for event payload.

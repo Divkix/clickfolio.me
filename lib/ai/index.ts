@@ -91,7 +91,7 @@ export async function parseResumeWithAi(
       }
 
       try {
-        // Dynamic import avoids bundling `ai` file-part handling into page/queue hot paths (same pattern as consumer.ts lazy AI import).
+        // Dynamic import avoids bundling `ai` file-part handling into page/workflow hot paths (same pattern as lib/parse/pipeline.ts lazy AI import).
         const { parsePdfWithVision } = await import("./ai-vision");
         const visionResult = await parsePdfWithVision(pdfBuffer, env);
 

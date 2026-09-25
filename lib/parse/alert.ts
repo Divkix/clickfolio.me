@@ -3,7 +3,7 @@ import type { UnknownRecord } from "../types/json";
 
 export type AlertChannel = "logpush" | "webhook";
 
-export interface DLQAlertPayload extends UnknownRecord {
+export interface ParseFailureAlert extends UnknownRecord {
   resumeId: string;
   userId: string;
   failureReason: string;
@@ -24,13 +24,13 @@ export function getAlertChannel(channel: string | undefined): AlertChannel {
 }
 
 export async function sendAlert(
-  payload: DLQAlertPayload,
+  payload: ParseFailureAlert,
   channel: AlertChannel,
   env: AlertEnv,
 ): Promise<void> {
   switch (channel) {
     case "logpush":
-      log("error", "DLQ_ALERT", payload);
+      log("error", "PARSE_FAILURE_ALERT", payload);
       break;
 
     case "webhook": {

@@ -5,15 +5,8 @@ import { eq } from "drizzle-orm";
 import handler from "vinext/server/app-router-entry";
 import { extractClerkTokenFromRequest, verifyClerkToken } from "../lib/auth/clerk";
 import { performCleanup } from "../lib/cron/cleanup";
-import { performR2Cleanup, retryPendingR2Deletions } from "../lib/cron/cleanup-r2";
-import { recoverOrphanedResumes } from "../lib/cron/recover-orphaned";
 import { getDb } from "../lib/db";
 import { resumes, user as userTable } from "../lib/db/schema";
-import { INFRA } from "@/lib/resume/lifecycle";
-import { handleQueueMessage } from "../lib/queue/consumer";
-import { handleDLQMessage } from "../lib/queue/dlq-consumer";
-import { isRetryableError, type QueueErrorInput } from "../lib/queue/errors";
-import { queueMessageSchema } from "../lib/queue/types";
 import { log } from "../lib/utils/log";
 // See issue #172 / ADR-0001.
 import { SECURITY_HEADERS } from "../lib/utils/security-headers";
@@ -28,6 +21,10 @@ import {
 } from "../lib/worker/markdown-negotiation";
 
 export { ClickfolioStatusDO } from "../lib/durable-objects/resume-status";
+
+export { R2DeleteWorkflow } from "../lib/workflows/r2-delete-workflow";
+
+export { ResumeParseWorkflow } from "../lib/workflows/resume-parse-workflow";
 
 const BLOCKED_PATHS =
   /(?:\.php$|^\/\.env|^\/\.git\/|^\/\.aws\/|^\/wp-|^\/xmlrpc\.php$|(?:^|\/)adminer(?:\/|$)|^\/config\.json$|application\.ya?ml$)/i;
@@ -176,117 +173,18 @@ export default {
     });
   },
 
-  async queue(batch: MessageBatch<unknown>, env: CloudflareEnv): Promise<void> {
-    const isDLQ = batch.queue === INFRA.DLQ_NAME;
-
-    for (const message of batch.messages) {
-      try {
-        const parsed = queueMessageSchema.safeParse(message.body);
-
-        if (!parsed.success) {
-          log("error", "invalid queue message shape", {
-            queue: batch.queue,
-            error: JSON.stringify(parsed.error.flatten()),
-          });
-          message.ack();
-          continue;
-        }
-
-        if (isDLQ) {
-          await handleDLQMessage(parsed.data, env);
-          message.ack();
-          continue;
-        }
-
-        await handleQueueMessage(parsed.data, env);
-        message.ack();
-      } catch (error) {
-        log("error", "queue message processing failed", {
-          queue: batch.queue,
-          error: String(error),
-        });
-
-        // Use error classification to determine retry strategy
-        // SAFETY: catch error is unknown; QueueErrorInput covers Error|string|object for retry check.
-        if (isRetryableError(error as QueueErrorInput)) {
-          message.retry();
-        } else {
-          // Permanent error — ack discards the message (acked messages never
-          // reach the DLQ). The consumer already marked the resume failed and
-          // sent the alert before rethrowing, so nothing more is needed here.
-          log("error", "permanent error, discarding message", { queue: batch.queue });
-          message.ack();
-        }
-      }
-    }
-  },
-
   async scheduled(controller: ScheduledController, env: CloudflareEnv): Promise<void> {
     const db = getDb(env.HYPERDRIVE);
 
     try {
       switch (controller.cron) {
-        case "0 2 * * *": {
-          const r2Binding = env.CLICKFOLIO_R2_BUCKET;
-
-          if (!r2Binding) {
-            log("error", "CLICKFOLIO_R2_BUCKET not available for R2 cleanup", {
-              cron: controller.cron,
-            });
-
-            return;
-          }
-
-          const [cleanupSettled, pendingSettled] = await Promise.allSettled([
-            performR2Cleanup(r2Binding),
-            retryPendingR2Deletions(db, r2Binding),
-          ]);
-
-          if (cleanupSettled.status === "fulfilled") {
-            log("info", "cron R2 cleanup completed", {
-              cron: controller.cron,
-              result: cleanupSettled.value,
-            });
-          } else {
-            log("error", "cron R2 cleanup failed", {
-              cron: controller.cron,
-              error: String(cleanupSettled.reason),
-            });
-          }
-
-          if (pendingSettled.status === "fulfilled") {
-            log("info", "cron pending deletions sweep completed", {
-              cron: controller.cron,
-              result: pendingSettled.value,
-            });
-          } else {
-            log("error", "cron pending deletions sweep failed", {
-              cron: controller.cron,
-              error: String(pendingSettled.reason),
-            });
-          }
-
-          break;
-        }
-
         case "0 3 * * *": {
-          const result = await performCleanup(db, env.CLICKFOLIO_R2_BUCKET ?? null);
-          log("info", "cron completed", { cron: controller.cron, result });
-          break;
-        }
+          const result = await performCleanup(
+            db,
+            env.CLICKFOLIO_R2_BUCKET ?? null,
+            env.CLICKFOLIO_R2_DELETE_WORKFLOW,
+          );
 
-        case "*/15 * * * *": {
-          const queue = env.CLICKFOLIO_PARSE_QUEUE;
-
-          if (!queue) {
-            log("error", "CLICKFOLIO_PARSE_QUEUE not available for orphan recovery", {
-              cron: controller.cron,
-            });
-
-            return;
-          }
-
-          const result = await recoverOrphanedResumes(db, queue);
           log("info", "cron completed", { cron: controller.cron, result });
           break;
         }

@@ -1,16 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { Webhook } from "svix";
 import type { JsonValue } from "@/lib/types/json";
-
-interface R2KeyRow {
-  r2Key: string;
-  attempts: number;
-}
+import type { R2DeleteParams } from "@/lib/workflows/r2-delete";
 
 interface WebhookState {
   mappedUser: JsonValue;
   selectResults: JsonValue[][];
-  insertCalls: R2KeyRow[][];
+  scheduled: R2DeleteParams[];
   deleteWhereCalls: JsonValue[];
 }
 
@@ -18,7 +14,7 @@ const mocks = vi.hoisted(() => {
   const state: WebhookState = {
     mappedUser: null,
     selectResults: [],
-    insertCalls: [],
+    scheduled: [],
     deleteWhereCalls: [],
   };
 
@@ -34,23 +30,9 @@ const mocks = vi.hoisted(() => {
     return chain;
   };
 
-  const createInsertChain = () => {
-    const chain = {
-      values: vi.fn((rows: R2KeyRow[]) => {
-        state.insertCalls.push(rows);
-
-        return chain;
-      }),
-      onConflictDoNothing: vi.fn(async () => undefined),
-    };
-
-    return chain;
-  };
-
   const db = {
     query: { user: { findFirst: vi.fn(async () => state.mappedUser) } },
     select: vi.fn(() => createSelectChain()),
-    insert: vi.fn(() => createInsertChain()),
     delete: vi.fn(() => ({
       where: vi.fn(async (condition: JsonValue) => {
         state.deleteWhereCalls.push(condition);
@@ -61,6 +43,13 @@ const mocks = vi.hoisted(() => {
   const env = {
     CLERK_WEBHOOK_SECRET: "whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw",
     HYPERDRIVE: { connectionString: "postgres://test" },
+    CLICKFOLIO_R2_DELETE_WORKFLOW: {
+      create: vi.fn(async ({ params }: { params: R2DeleteParams }) => {
+        state.scheduled.push(params);
+
+        return { id: "r2-delete-1" };
+      }),
+    },
   };
 
   return { state, db, env };
@@ -107,11 +96,11 @@ describe("POST /api/webhooks/clerk — user.deleted", () => {
     vi.clearAllMocks();
     mocks.state.mappedUser = { id: "user_1", clerkId: "user_clerk_1" };
     mocks.state.selectResults = [];
-    mocks.state.insertCalls = [];
+    mocks.state.scheduled = [];
     mocks.state.deleteWhereCalls = [];
   });
 
-  it("enqueues the user's R2 keys before cascading the account away", async () => {
+  it("hands the user's R2 keys and prefix to R2DeleteWorkflow before cascading the account away", async () => {
     mocks.state.selectResults = [
       [{ r2Key: "users/user_1/resume-1/cv.pdf" }, { r2Key: "users/user_1/1712345678901/cv.pdf" }],
     ];
@@ -120,26 +109,26 @@ describe("POST /api/webhooks/clerk — user.deleted", () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ received: true, action: "deleted" });
-    expect(mocks.state.insertCalls).toHaveLength(1);
-    const insertedRows = mocks.state.insertCalls[0];
-    expect(insertedRows.map((row) => row.r2Key).sort()).toEqual([
+    expect(mocks.state.scheduled).toHaveLength(1);
+    const [scheduled] = mocks.state.scheduled;
+    expect([...scheduled.keys].sort()).toEqual([
       "users/user_1/1712345678901/cv.pdf",
       "users/user_1/resume-1/cv.pdf",
     ]);
-    expect(insertedRows[0].attempts).toBe(1);
-    expect(mocks.db.insert.mock.invocationCallOrder[0]).toBeLessThan(
+    expect(scheduled.prefix).toBe("users/user_1/");
+    expect(mocks.env.CLICKFOLIO_R2_DELETE_WORKFLOW.create.mock.invocationCallOrder[0]).toBeLessThan(
       mocks.db.delete.mock.invocationCallOrder[0],
     );
     expect(mocks.state.deleteWhereCalls).toHaveLength(1);
   });
 
-  it("deletes the account without inserts when no keys or user row exist", async () => {
+  it("deletes the account without scheduling R2 cleanup when no user row maps", async () => {
     mocks.state.mappedUser = null;
 
     const response = await postWebhook();
 
     expect(response.status).toBe(200);
-    expect(mocks.state.insertCalls).toHaveLength(0);
+    expect(mocks.state.scheduled).toHaveLength(0);
     expect(mocks.state.deleteWhereCalls).toHaveLength(1);
   });
 });

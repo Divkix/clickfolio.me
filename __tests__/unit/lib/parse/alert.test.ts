@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import type { UnknownRecord } from "@/lib/types/json";
-import { sendAlert, getAlertChannel } from "@/lib/queue/alert";
+import { sendAlert, getAlertChannel } from "@/lib/parse/alert";
 
 type MockEnv = {
   HYPERDRIVE: CloudflareEnv["HYPERDRIVE"];
@@ -57,25 +57,25 @@ describe("alert module", () => {
   });
 
   describe("sendAlert — logpush", () => {
-    it("logs a DLQ_ALERT entry via log() for logpush channel", async () => {
+    it("logs a PARSE_FAILURE_ALERT entry via log() for logpush channel", async () => {
       const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
       const env = createMockEnv();
       await sendAlert(defaultPayload, "logpush", env);
 
-      const dlqAlert = consoleSpy.mock.calls.find((call) => {
+      const failureAlert = consoleSpy.mock.calls.find((call) => {
         try {
           const parsed: UnknownRecord = JSON.parse(call[0]);
 
-          return parsed["msg"] === "DLQ_ALERT";
+          return parsed["msg"] === "PARSE_FAILURE_ALERT";
         } catch {
           return false;
         }
       });
 
-      expect(dlqAlert).toBeDefined();
+      expect(failureAlert).toBeDefined();
 
-      const payload: UnknownRecord = JSON.parse(dlqAlert![0]);
+      const payload: UnknownRecord = JSON.parse(failureAlert![0]);
       expect(payload).toMatchObject({
         resumeId: "resume-123",
         userId: "user-456",

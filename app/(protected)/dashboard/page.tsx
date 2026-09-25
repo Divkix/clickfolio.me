@@ -458,7 +458,7 @@ export default async function DashboardPage() {
   let content: ResumeContent | null = null;
 
   if (siteDataResult?.content) {
-    // SAFETY: content is schema-validated JSONB written by the queue consumer and /api/resume/update; cast bridges the column's wide Record type.
+    // SAFETY: content is schema-validated JSONB written by the parse pipeline and /api/resume/update; cast bridges the column's wide Record type.
     content = siteDataResult.content as ResumeContent;
   }
 

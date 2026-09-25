@@ -1,6 +1,6 @@
 # Repository Guidelines — clickfolio.me
 
-> **clickfolio.me** turns a PDF resume into a hosted portfolio (`/@handle`) in <60s: upload → AI parse → shareable link. Cloudflare Workers (Hyperdrive→PlanetScale Postgres, R2, Queues, Durable Objects) + Clerk.
+> **clickfolio.me** turns a PDF resume into a hosted portfolio (`/@handle`) in <60s: upload → AI parse → shareable link. Cloudflare Workers (Hyperdrive→PlanetScale Postgres, R2, Workflows, Durable Objects) + Clerk.
 
 This file is the **single source of truth** — read top-to-bottom before touching unfamiliar code.
 **Mandatory:** when you change anything documented here, update the correct section in the same change — be specific (exact paths/names), consolidate don't append, fix don't stack, keep dense (tables/short bullets). If rationale isn't obvious from code, add an ADR under `docs/adr/` and index it below.
@@ -17,7 +17,7 @@ This file is the **single source of truth** — read top-to-bottom before touchi
 | Auth        | Clerk `@clerk/react` + `@clerk/backend` (NOT `@clerk/nextjs`) — Google OAuth                                 |
 | AI parsing  | Cloudflare AI Gateway → OpenRouter `openai/gpt-6-luna:nitro` + `unpdf` + Vercel AI SDK `ai`                  |
 | Storage     | Cloudflare R2 `CLICKFOLIO_R2_BUCKET`                                                                         |
-| Queue       | Cloudflare Queues `CLICKFOLIO_PARSE_QUEUE` + DLQ                                                             |
+| Workflows   | Cloudflare Workflows `CLICKFOLIO_PARSE_WORKFLOW` + `CLICKFOLIO_R2_DELETE_WORKFLOW` (ADR-0026)                |
 | Realtime    | Durable Object `ClickfolioStatusDO` (hibernation)                                                            |
 | Styling     | shadcn/ui `new-york` `rsc:true` + `lucide` + Tailwind CSS 4 (PostCSS-only, no `tailwind.config`)             |
 | Validation  | Zod `^4.5.4`                                                                                                 |
@@ -46,15 +46,17 @@ app/                          # vinext App Router
                               #   legal/LegalPage.tsx: shared shell + numbered-section renderer for privacy/ and terms/
                               #   blog/PostSection.tsx (PostSection/PostList) + blog/ComparisonTable.tsx: shared blog prose
 lib/
-  auth/  db/  schemas/  ai/  queue/  rate-limit/  seo/  templates/  config/  types/
+  auth/  db/  schemas/  ai/  parse/  workflows/  rate-limit/  seo/  templates/  config/  types/
   utils/  data/  umami/  blog/  durable-objects/  stubs/  r2.ts  cloudflare-env.d.ts (generated)
+                              #   parse/: pipeline.ts (workflow step bodies), errors.ts, alert.ts, notify-status.ts
+                              #   workflows/: resume-parse(-workflow).ts, r2-delete(-workflow).ts (trigger helper + class)
 hooks/                        # useFileUpload, useResumeWebSocket, useResumeStatus, useDismissable, useCopyToClipboard
-lib/db/schema/                # auth.ts, resume.ts, site.ts, rate-limit.ts, maintenance.ts, relations.ts, index.ts
+lib/db/schema/                # auth.ts, resume.ts, site.ts, rate-limit.ts, relations.ts, index.ts
   └─ getDb(env.HYPERDRIVE) per-invocation accessor (lib/db/index.ts)
-worker/index.ts               # real entrypoint: vinext + queue + cron + WS
+worker/index.ts               # real entrypoint: vinext + workflow class exports + cron + WS
 proxy.ts                      # edge auth gate (dual export proxy/default) — replaces middleware.ts
 instrumentation.ts / instrumentation-client.ts  # PostHog server/client hooks
-__tests__/  migrations_pg/  scripts/ (deploy.ts, generate-favicons.ts)
+__tests__/  migrations_pg/  scripts/ (deploy.ts, generate-favicons.ts)  r2-lifecycle.json
 ```
 
 ## Build, Test & Dev Commands
@@ -102,10 +104,10 @@ pnpm run generate:favicons  # sharp from public/icon.svg → favicons
 - **Coverage pin:** `catalog:vitest == vitest == @vitest/coverage-v8 == 5.0.1` (3 places).
 - **`db:push` vs `db:generate+migrate`:** `push` is prototyping only; canonical is `generate` + `migrate`.
 - **Thumbnails:** `public/previews/` holds 10 committed `.webp` (bento, bold_corporate, classic_ats, design_folio, dev_terminal, glass, midnight, minimalist_editorial→`minimalist.webp`, neo_brutalist→`brutalist.webp`, spotlight) shot at 1280×800 @2x via `/preview/[id]`. No generator script in repo (deleted with `playwright` devDep); re-add as doc snippet when re-shooting. Slug shortenings are intentional.
-- **Deploy:** `scripts/deploy.ts` runs `pnpm run build` with `POSTHOG_UPLOAD_SOURCEMAPS=true` (unless `--dry-run` → `false`), then `pnpm exec wrangler deploy`; forwards args/exit codes.
+- **Deploy:** `scripts/deploy.ts` runs `pnpm run build` with `POSTHOG_UPLOAD_SOURCEMAPS=true` (unless `--dry-run` → `false`), then (skipped on `--dry-run`) `wrangler r2 bucket lifecycle set clickfolio-bucket --file r2-lifecycle.json --force`, then `pnpm exec wrangler deploy`; forwards args/exit codes. `lifecycle set` **replaces all rules**, so `r2-lifecycle.json` keeps the default multipart-abort rule next to `expire-temp-uploads` (`temp/`, 1 day).
 - **Config pointer:** CSP/HSTS lives in `next.config.ts:headers()` — allowlist Umami/Clerk/Google OAuth/CF Insights (see file); vendor chunks wrap vinext `manualChunks`; `viteEnvironment rsc/ssr` + `onwarn MISSING_EXPORT middleware` (see `vite.config.ts:15-31,239-254`).
 - **Module aliases:** `resolve.alias` has 2 entries (`next/dist/compiled/@vercel/og/index.edge.js→lib/stubs/og-stub.js`, `zod/v3→zod-v3-stub.mjs`); client `cloudflare:workers` + `node:async_hooks` are `clientModuleStubs()` plugin (`vite.config.ts:15-31`), not alias. Zxcvbn stubs removed.
-- **Local dev:** `.dev.vars` + `wrangler.jsonc` routes `clickfolio.me`/`www.clickfolio.me`; `compatibility_date 2026-01-22` + flags `nodejs_compat`/`global_fetch_strictly_public`; see `wrangler.jsonc:118` crons.
+- **Local dev:** `.dev.vars` + `wrangler.jsonc` routes `clickfolio.me`/`www.clickfolio.me`; `compatibility_date 2026-01-22` + flags `nodejs_compat`/`global_fetch_strictly_public`; see `wrangler.jsonc` `triggers.crons`.
 - **Bundle:** `postcss` + `@tailwindcss/postcss` + `tailwindcss` + `tw-animate-css`; no `tailwind.config.ts`; `optimizeDeps.exclude: ["lucide-react"]`.
 - **Drizzle:** `drizzle.config.ts` `dialect:"postgresql"`, `schema:"./lib/db/schema/index.ts"`, `out:"./migrations_pg"`; `db:*` scripts need `DATABASE_URL`.
 - **Env template:** `.env.example` 6.3KB / 154 lines — copy to `.dev.vars`; `lib/cloudflare-env.d.ts` generated via `cf-typegen`.
@@ -117,7 +119,7 @@ pnpm run generate:favicons  # sharp from public/icon.svg → favicons
 - **DB:** always `getDb(env.HYPERDRIVE)` **per invocation** — never cache across Workers; `POSTGRES_OPTIONS {prepare:false, fetch_types:false, max:5, idle_timeout:20, connect_timeout:10}` (ADR-0025). `db.transaction(async (tx)=>…)` for atomicity; `23505 duplicate key value` → HTTP 409.
 - **Session:** pages/RSC use `getServerSession()` (`lib/auth/session.ts`); APIs use `requireAuthWithMessage` / `requireAuthWithUserValidation` (`lib/auth/middleware.ts`).
 - **API responses:** `createSuccessResponse` / `createErrorResponse` + `ERROR_CODES` from `lib/utils/security-headers.ts`; spreads single `SECURITY_HEADERS` (see Runtime). Never hand-roll `Response.json`.
-- **Logging:** `log(level,msg,fields)` from `lib/utils/log.ts` (JSON line) — not `console.*` in worker/queue/cron/DLQ.
+- **Logging:** `log(level,msg,fields)` from `lib/utils/log.ts` (JSON line) — not `console.*` in worker/workflows/cron.
 - Zod schemas `lib/schemas/`; shadcn `components/ui/`, templates `components/templates/`; `lib/cloudflare-env.d.ts` is generated (`cf-typegen`); use `<img>` not Next `<Image/>`.
 - **TypeScript:** `strict:true` (+ `noUnusedLocals/noUnusedParameters/noImplicitReturns/noFallthroughCasesInSwitch` as errors), `jsxImportSource:react`, `jsx:react-jsx`, `incremental`, `esModuleInterop`, `resolveJsonModule`, `isolatedModules`, `plugins:[{name:"next"}]` (`tsconfig.json:6`).
 - **Shadcn:** `components.json` new-york rsc lucide Tailwind4 PostCSS-only; no `tailwind.config.ts`.
@@ -131,7 +133,7 @@ pnpm run generate:favicons  # sharp from public/icon.svg → favicons
 | Security    | `test:security`    | `vitest.security.config.ts`    | forks   | 0     | —       | 15s     | 20/20/15/15                     |
 | Combined    | `test:coverage`    | `vitest.config.ts`             | threads | 2     | —       | default | report only (no gate)           |
 
-- Shared base `vitest.base.config.ts`: `sharedExclude ["node_modules",".next","dist","__tests__/e2e/**",".worktrees/**"]`, `sharedSetupFiles ["__tests__/setup.ts"]`, `sharedAlias {"@":".", "cloudflare:workers":"lib/stubs/cloudflare-workers-client-stub.mjs"}`, `sharedCoverageProvider "v8"`. Security **has no explicit `exclude`** — relies on narrow `include` glob.
+- Shared base `vitest.base.config.ts`: `sharedExclude ["node_modules",".next","dist","__tests__/e2e/**",".worktrees/**"]`, `sharedSetupFiles ["__tests__/setup.ts"]`, `sharedAlias {"@":".", "cloudflare:workers":"lib/stubs/cloudflare-workers-client-stub.mjs", "cloudflare:workflows":"lib/stubs/cloudflare-workflows-test-stub.mjs"}` (the workers stub exports only `env`, so tests importing a workflow class `vi.mock("cloudflare:workers")` with a `WorkflowEntrypoint` class that stores `env`; drive `run()` with a fake `step.do(name, config, fn)`), `sharedCoverageProvider "v8"`. Security **has no explicit `exclude`** — relies on narrow `include` glob.
 - Suite selection via `--config` in npm scripts; `test`/`test:coverage` pass no `--config` → `vitest.config.ts` `include ["**/__tests__/**/*.test.{ts,tsx}"]`.
 - **File locations:** auto `__tests__/unit|integration|security/**/*.test.*` + root `*.test.ts` must be hard-coded (unit 4 + integration 2 + security 2 = **8**): unit `privacy, profile-schema, resume-schema, sitemap`; integration `claim-flow, share`; security `idor-ownership, sanitization`. `password-strength`/`email-verification` live under `__tests__/security/**` via glob. `__tests__/e2e/**` excluded (no active tests).
 - **All tests import from `vite-plus/test`** (`import {describe,it,expect,vi} from "vite-plus/test"`), not `vitest`.
@@ -164,28 +166,28 @@ Workflow `.github/workflows/ci.yml`: triggers push+PR on `main`/`master`; `permi
 **Worker (`worker/index.ts`) — wraps vinext handler, adds:**
 
 - **Scanner-probe short-circuit** (first in `fetch()`): `BLOCKED_PATHS = /(?:\.php$|^\/\.env|^\/\.git\/|^\/\.aws\/|^\/wp-|^\/xmlrpc\.php$|(?:^|\/)adminer(?:\/|$)|^\/config\.json$|application\.ya?ml$)/i` → bare `404` with `SECURITY_HEADERS` (anchored `xmlrpc`/`adminer` so `@xmlrpc` handle not blocked; also in `RESERVED_HANDLES`).
-- **Queue consumer** (`CLICKFOLIO_PARSE_QUEUE`) + DLQ `clickfolio-parse-dlq`: each message `queueMessageSchema.safeParse`'d; **malformed → `ack()` discarded (never DLQ)**; processing throw → `isRetryableError`→`retry()`, else `ack()` discarded (only retry-exhausted hits DLQ). Parse queue `max_retries:3`; DLQ `max_batch_size:1, max_retries:0`. Consumer marks failed + DO notify + `sendAlert` then rethrows.
-- **3 crons direct-call** (not HTTP self-fetch, ADR-0013) via `scheduled()` dispatching `controller.cron`; each guards missing binding (R2/Queue), whole switch try/catch, unknown `cron` → log. See cron table below.
+- **Workflows** (ADR-0026): `worker/index.ts` re-exports `ResumeParseWorkflow` + `R2DeleteWorkflow`. Parse = steps `claim → parse → complete` (`DB_STEP` 5 retries/5s exp; `PARSE_STEP` 3 retries/30s exp/10min timeout); non-retryable `ParseError` → `NonRetryableError`; any terminal error → `mark failed` step (status `failed` + DO notify + `sendAlert`) then rethrow. `await-cache` variant: `step.sleep(WAITING_FOR_CACHE_TIMEOUT_MS)` → `expireWaitingForCache`. R2 delete = optional `list {prefix}` + `delete batch {n}` (1000/batch, 8 retries/1min exp).
+- **1 cron direct-call** (not HTTP self-fetch, ADR-0013) via `scheduled()` dispatching `controller.cron`; whole switch try/catch, unknown `cron` (incl. retired `0 2`/`*/15`) → log. See cron table below.
 - **WebSocket** `/ws/resume-status?resume_id=`: extracts JWT from `Cookie __session` or `Authorization: Bearer`, **JWKS-verifies** via `verifyClerkToken` (`@clerk/backend`), maps `sub→user.clerkId` row, checks resume ownership, forwards to DO `idFromName(resumeId)` with `X-Authenticated-User-Id` header.
 - **Security headers:** every non-WS response spreads the single `SECURITY_HEADERS` from `lib/utils/security-headers.ts` (HSTS `63072000; includeSubDomains; preload` + `X-Content-Type-Options: nosniff` etc.).
 
 **Bindings (`wrangler.jsonc`)**
 
-| Binding                  | Type       | Name                     | Notes                                                                                |
-| ------------------------ | ---------- | ------------------------ | ------------------------------------------------------------------------------------ |
-| `HYPERDRIVE`             | Hyperdrive | PlanetScale Postgres     | `id 8132893bf32b4e0b8b1b7edc8dad16c1` → DB `clickfolio`; via `getDb(env.HYPERDRIVE)` |
-| `CLICKFOLIO_R2_BUCKET`   | R2         | `clickfolio-bucket`      | via `lib/r2.ts`                                                                      |
-| `CLICKFOLIO_PARSE_QUEUE` | Queue      | `clickfolio-parse-queue` | `max_batch_size:1, max_retries:3`, DLQ `clickfolio-parse-dlq` (`1,0`)                |
-| `CLICKFOLIO_STATUS_DO`   | DO         | `ClickfolioStatusDO`     | hibernation WebSocket status (`ctx.storage`)                                         |
-| `ASSETS`                 | Assets     | `dist/client`            | static assets                                                                        |
+| Binding                         | Type       | Name                      | Notes                                                                                                             |
+| ------------------------------- | ---------- | ------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `HYPERDRIVE`                    | Hyperdrive | PlanetScale Postgres      | `id 8132893bf32b4e0b8b1b7edc8dad16c1` → DB `clickfolio`; via `getDb(env.HYPERDRIVE)`                              |
+| `CLICKFOLIO_R2_BUCKET`          | R2         | `clickfolio-bucket`       | via `lib/r2.ts`                                                                                                   |
+| `CLICKFOLIO_PARSE_WORKFLOW`     | Workflow   | `clickfolio-resume-parse` | class `ResumeParseWorkflow`; instance id = resume id (`{id}-retry-{n}` for manual retries) via `startResumeParse` |
+| `CLICKFOLIO_R2_DELETE_WORKFLOW` | Workflow   | `clickfolio-r2-delete`    | class `R2DeleteWorkflow`; params `{keys, prefix?}` via `scheduleR2Deletion` / `deleteR2Objects`                   |
+| `CLICKFOLIO_STATUS_DO`          | DO         | `ClickfolioStatusDO`      | hibernation WebSocket status (`ctx.storage`)                                                                      |
+| `ASSETS`                        | Assets     | `dist/client`             | static assets                                                                                                     |
 
 Compat `2026-01-22`, flags `nodejs_compat`, `global_fetch_strictly_public`; `workers_dev:true`, `preview_urls:false`; routes `clickfolio.me`/`www.clickfolio.me`; smart placement `mode:"smart"` (ADR-0014); **observability `enabled:true`, `logs:{enabled:true, persist:true, invocation_logs:true}`**, `logpush:false` (default).
 
-| Cron            | Schedule       | Module                         | What it does                                                                                       |
-| --------------- | -------------- | ------------------------------ | -------------------------------------------------------------------------------------------------- |
-| R2 cleanup      | `0 2 * * *`    | `lib/cron/cleanup-r2.ts`       | delete expired temp R2 + retry `pending_r2_deletions`                                              |
-| DB cleanup      | `0 3 * * *`    | `lib/cron/cleanup.ts`          | expired `upload_rate_limits` + `handle_changes>90d` in one transaction                             |
-| Orphan recovery | `*/15 * * * *` | `lib/cron/recover-orphaned.ts` | re-queues `pending_claim` orphans + `waiting_for_cache` timeout; TOCTOU skip if `totalAttempts>=6` |
+| Cron | Schedule | Module | What it does |
+| ---- | -------- | ------ | ------------ |
+
+| DB cleanup | `0 3 * * *` | `lib/cron/cleanup.ts` | expired `upload_rate_limits` + `handle_changes>90d` + stale `failed` resumes (their R2 keys via `deleteR2Objects`) |
 
 **Env vars — static `wrangler.jsonc:vars` (5):** `NODE_ENV:production`, `APP_URL:https://clickfolio.me`, `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:pk_live_…`, `AI_MODEL:openai/gpt-6-luna:nitro`, `AI_REASONING_EFFORT:medium`.
 **Secrets** (`wrangler secret put` / `.dev.vars`): `CLERK_SECRET_KEY`, `CLERK_WEBHOOK_SECRET`, `PENDING_UPLOAD_SECRET`, `CF_AI_GATEWAY_ACCOUNT_ID|ID|CF_AIG_AUTH_TOKEN`, `CRON_SECRET`, `ALERT_CHANNEL|ALERT_WEBHOOK_URL`, Umami vars, `DISABLE_RATE_LIMITS` (ignored in prod). PostHog needs no Worker var (literals in `lib/analytics/config.ts`; source-map creds `POSTHOG_API_KEY|PROJECT_ID` only in local deploy env).
@@ -194,7 +196,7 @@ Local `.dev.vars` auto-loaded by Vite; `.env.example` **6.3KB** (154 lines) is t
 
 ## Data Model
 
-**6 tables** `lib/db/schema/`: `user` (`auth.ts`), `resumes` (`resume.ts`), `site_data` (`site.ts`), `handle_changes`+`upload_rate_limits` (`rate-limit.ts`), `pending_r2_deletions` (`maintenance.ts`) + `relations.ts`.
+**5 tables** `lib/db/schema/`: `user` (`auth.ts`), `resumes` (`resume.ts`), `site_data` (`site.ts`), `handle_changes`+`upload_rate_limits` (`rate-limit.ts`) + `relations.ts`. `pending_r2_deletions` dropped by `migrations_pg/0007` (R2 retries live in `R2DeleteWorkflow`).
 
 **Conventions:** `timestamp(...,{withTimezone:true, mode:"string"})` → timestamptz in PG, ISO string in app; JSON cols `jsonb` (Drizzle auto serializes — no manual `JSON.parse`); `boolean` native; PKs `text` (nanoid/ `user_…`); enum-like `text` + TS union (no PG enum); `lib/types/database.ts` derives blob type from Zod, row types from `$inferSelect`.
 
@@ -204,18 +206,17 @@ Local `.dev.vars` auto-loaded by Vite; `.env.example` **6.3KB** (154 lines) is t
 
 - `site_data.resumeId→resumes.id cascade` + `site_data.userId→user.id unique cascade` → **deleting a `resumes` row CASCADE-deletes the user's `site_data` portfolio**.
 - `resumes.userId`, `handle_changes.userId` cascade.
-- `pending_r2_deletions` has **NO FK** to user (user already deleted when 2am cron retries R2).
 
 **`user`:** `handle` unique, `email` unique, `clerkId` unique, `isAdmin bool default false`, `role` enum `student|entry_level|mid_level|senior|executive` (`roleSource ai|user`), `privacySettings jsonb default {"show_phone":false,"show_address":false,"hide_from_search":false,"show_in_directory":true}` must equal `DEFAULT_PRIVACY_SETTINGS_JSON` (`lib/utils/privacy.ts` — literal to avoid circular import). Denormalized `showInDirectory bool default true` + `user_show_in_directory_idx` — must stay synced with `privacySettings.show_in_directory` (dual-write in wizard/privacy routes).
 
-**`resumes` status enum (6):** `pending_claim → queued → processing → completed | failed | waiting_for_cache` (default `pending_claim`). `parsedContent` (final jsonb) vs `parsedContentStaged` (raw AI, cleared on success); `errorMessage` vs `lastAttemptError` (`classifyQueueError().toJSON()`); `retryCount` (per-cycle) vs `totalAttempts` (monotonic); `fileHash` SHA-256 dedup.
+**`resumes` status enum (6):** `pending_claim → queued → processing → completed | failed | waiting_for_cache` (default `pending_claim`). `parsedContent` (final jsonb) vs `parsedContentStaged` (raw AI, cleared on success); `errorMessage` vs `lastAttemptError` (`classifyParseError().toJSON()`); `retryCount` (manual retries) vs `totalAttempts` (monotonic parse attempts, SQL-incremented); `fileHash` SHA-256 dedup.
 
 **`site_data`:** 6 denormalized preview cols (`previewName/Headline/Location/ExpCount/EduCount/Skills`) written by `buildSiteDataUpsert()` (`lib/data/site-data-upsert.ts`) via `extractPreviewFields(content)` into `onConflictDoUpdate(target:userId)` (also filters `previewLocation` at read via `extractCityState`); `themeId` default `minimalist_editorial` nullable; `updatedAt notNull`, `lastPublishedAt` nullable.
 
 **Access:** `getDb(env.HYPERDRIVE)` per-invocation; `db.transaction` for atomicity; `lib/data/resume.ts` fetchers use React `cache()` + `getDb`; stored content not re-validated with Zod on read (ADR-0022, saves 200–400ms).
 
 - `POSTGRES_OPTIONS` tuned for Hyperdrive: `prepare:false` (no prepared statements), `fetch_types:false`, `max:5`, `idle_timeout:20`, `connect_timeout:10` — see `lib/db/index.ts:22`.
-- `pending_r2_deletions` stores `{key, attempts}`; 2am cron retries `attempts<3` with exponential backoff; success deletes row.
+
 - `handle_changes` indexes `userId` + `createdAt` (90d retention via `0 3` cron); `upload_rate_limits` composite `(identifier, window)`.
 - `site_data` indexes `resume_id`, `updated_at`; `user` indexes `handle`, `clerkId`, `showInDirectory`.
 
@@ -239,41 +240,41 @@ Local `.dev.vars` auto-loaded by Vite; `.env.example` **6.3KB** (154 lines) is t
 
 **Rate-limit:** IP SHA-256 hashed before storage (ADR-0017, GDPR); atomic `INSERT…SELECT` via `db.$client` (Hyperdrive forbids prepared statements). Limits: `HOURLY 10`, `DAILY 50` (upload), `HANDLE 100`, `3/24h` handle-change, `5/24h` `resume_upload` (authed claim). Rate-limit checks fail closed on a database error (a DB error must not open the quota), matching `lib/rate-limit/ip.ts` and `lib/rate-limit/user.ts`. See `lib/rate-limit/`.
 
-| Route                                             | Method              | Auth                 | Invariant                                                                                                                                                                                                                                                             |
-| ------------------------------------------------- | ------------------- | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/api/upload`                                     | POST raw            | anon                 | Requires `X-Filename` (400 if missing) + `Content-Length` (missing→411, mismatch→400); magic `%PDF-`/size check; IP limit with `X-RateLimit-Remaining-*`; sets HMAC `pending_upload` cookie (`PENDING_UPLOAD_SECRET`; missing→cookie omitted) via `SameSite=Strict`   |
-| `/api/upload/pending`                             | GET/POST/DELETE     | anon                 | POST guards `validateRequestSize`+`readJsonWithLimit`; `R2.head` before signing; `sameSite:lax`                                                                                                                                                                       |
-| `/api/resume/claim`                               | POST                | `requireAuth`        | Route verifies pending-upload cookie + maps `runClaimIntake` (`lib/resume/claim-intake.ts`) outcome to HTTP. **Double-claim guard before rate-limit** (`already_claimed` not 429); per-user `fileHash` cache→`completed`(`cached:true`) / in-flight `processing       | queued`→`waiting_for_cache`; R2 `temp/→users/{uid}/{ts}/file`; enqueue parse; queue-publish fail leaves `pending_claim`for`*/15`cron re-queue; authed`5/24h`limit here not in`/upload` |
-| `/api/resume/status`                              | GET                 | authed               | Virtual `waiting_for_cache` timeout `WAITING_FOR_CACHE_TIMEOUT_MS 10m` presented as `failed` (DB persisted only by cron); `pending_claim`→`processing` 15% via `lifecycle.statusPresentation()`; `can_retry` via `lifecycle.canRetryResume()`                         |
-| `/api/resume/retry`                               | POST                | authed               | `lifecycle.checkRetryEligibility` (4 gates: total cap 429, permanent 400, status≠failed 400, manual cap 429; accepts virtual timeout as retryable); TOCTOU `WHERE status='failed' AND retryCount<2` (or `waiting_for_cache`) →409 on 0 rows; rollback on publish fail |
-| `/api/resume/latest-status`                       | GET                 | authed               | Mirrors `/status` invariants (`statusPresentation`/`waitingForCacheTimedOut`/`canRetryResume`)                                                                                                                                                                        |
-| `/api/resume/update` + `/api/resume/update-theme` | PUT/POST            | authed               | `resumeContentSchemaStrict` + `extractPreviewFields`; 404 if no `site_data`; theme validates `THEME_IDS`                                                                                                                                                              |
-| `/api/wizard/complete`                            | POST                | authed               | `buildWizardCompleteSchema([...THEME_IDS])`; re-onboarding enforces `3/24h` handle_changes in same `db.transaction` (audit row); `user.handle+privacy+showInDirectory+onboardingCompleted` + siteData upsert; `23505→409`                                             |
-| `/api/profile/handle`                             | PUT                 | authed               | Counts `handleChanges` 24h (`>=3→429`); atomic `update handle + insert handleChanges`; `23505→409`; `old_handle` snake_case                                                                                                                                           |
-| `/api/profile/privacy`                            | PUT                 | authed               | Dual-writes `privacySettings` jsonb + `showInDirectory`                                                                                                                                                                                                               |
-| `/api/profile/me`                                 | GET                 | authed               | `{id,name,email,image,handle,headline,privacySettings(parsed),onboardingCompleted,role,roleSource,isAdmin,createdAt,updatedAt}`                                                                                                                                       |
-| `/api/webhooks/clerk`                             | POST                | Svix                 | `clerkId→externalId`, no email fallback (see Auth)                                                                                                                                                                                                                    |
-| `/api/account/delete`                             | POST                | authed               | Requires `confirmation===email` (case-insensitive); order `pendingR2Deletions` (failed→record) → Clerk `users.deleteUser(clerkId)` (404 tolerated else 503) → local `DELETE user` (cascade)                                                                           |
-| `/api/handle/check`                               | GET                 | —                    | **Ordering: validate→rate-limit→DB→auth-cost**. Invalid/reserved (`RESERVED_HANDLES`)→`{available:false,reason:'reserved'}` without DB/limiter; valid→IP limit; available→return zero auth cost; only if taken resolve session to distinguish `isCurrentHandle`       |
-| `/api/admin/*`                                    | GET                 | `withAdmin`          | `stats                                                                                                                                                                                                                                                                | users                                                                                                                                                                                  | resumes           | analytics`; not rate-limited; `PAGE_SIZE 25`; `escapeLikePattern`+`LIKE ESCAPE '\'`; `analytics ?period=7d | 30d | 90d`cache`private 30/60` |
-| `/api/analytics/stats`                            | GET                 | authed               | Proxies Umami; aggregates current handle + up to 3 old handles from `handleChanges` (no orderBy → oldest 3; double-counts uniqueVisitors)                                                                                                                             |
-| `/api/cron/*`                                     | GET                 | Bearer `CRON_SECRET` | `cleanup                                                                                                                                                                                                                                                              | cleanup-r2                                                                                                                                                                             | recover-orphaned` |
-| `/api/health`                                     | GET `force-dynamic` | —                    | Checks Postgres `SELECT 1`, R2 `list`, AI gateway config presence; 200 `healthy`/503/`degraded` + `latencyMs`                                                                                                                                                         |
-| `/api/og/home` + `/api/og/[handle]`               | GET                 | —                    | Branded PNG `1200×630` via `@cf-wasm/resvg` (`Resvg.async(svg,{fitTo:{mode:'width',value:1200}}).render().asPng()`); `max-age:604800`; handle OG falls back to lastResort on resvg fail                                                                               |
+| Route                                             | Method              | Auth                 | Invariant                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| ------------------------------------------------- | ------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `/api/upload`                                     | POST raw            | anon                 | Requires `X-Filename` (400 if missing) + `Content-Length` (missing→411, mismatch→400); magic `%PDF-`/size check; IP limit with `X-RateLimit-Remaining-*`; sets HMAC `pending_upload` cookie (`PENDING_UPLOAD_SECRET`; missing→cookie omitted) via `SameSite=Strict`                                                                                                                                                                                                                                          |
+| `/api/upload/pending`                             | GET/POST/DELETE     | anon                 | POST guards `validateRequestSize`+`readJsonWithLimit`; `R2.head` before signing; `sameSite:lax`                                                                                                                                                                                                                                                                                                                                                                                                              |
+| `/api/resume/claim`                               | POST                | `requireAuth`        | Route verifies pending-upload cookie + maps `runClaimIntake` (`lib/resume/claim-intake.ts`) outcome to HTTP. **Double-claim guard before rate-limit** (`already_claimed` not 429); per-user `fileHash` cache→`completed` (`cached:true`) / in-flight `processing`/`queued`→`waiting_for_cache` (+ best-effort `await-cache` workflow); R2 `temp/→users/{uid}/{ts}/file`; `startResumeParse`; start fail (or missing binding) → row `failed` + 500 (user retries); authed `5/24h` limit here not in `/upload` |
+| `/api/resume/status`                              | GET                 | authed               | Virtual `waiting_for_cache` timeout `WAITING_FOR_CACHE_TIMEOUT_MS 10m` presented as `failed` (DB persisted by the `await-cache` workflow); `pending_claim`→`processing` 15% via `lifecycle.statusPresentation()`; `can_retry` via `lifecycle.canRetryResume()`                                                                                                                                                                                                                                               |
+| `/api/resume/retry`                               | POST                | authed               | `lifecycle.checkRetryEligibility` (4 gates: total cap 429, permanent 400, status≠failed 400, manual cap 429; accepts virtual timeout as retryable); TOCTOU `WHERE status='failed' AND retryCount<2` (or `waiting_for_cache`) →409 on 0 rows; starts instance `parseInstanceId(id, retryCount)`; rollback on start fail                                                                                                                                                                                       |
+| `/api/resume/latest-status`                       | GET                 | authed               | Mirrors `/status` invariants (`statusPresentation`/`waitingForCacheTimedOut`/`canRetryResume`)                                                                                                                                                                                                                                                                                                                                                                                                               |
+| `/api/resume/update` + `/api/resume/update-theme` | PUT/POST            | authed               | `resumeContentSchemaStrict` + `extractPreviewFields`; 404 if no `site_data`; theme validates `THEME_IDS`                                                                                                                                                                                                                                                                                                                                                                                                     |
+| `/api/wizard/complete`                            | POST                | authed               | `buildWizardCompleteSchema([...THEME_IDS])`; re-onboarding enforces `3/24h` handle_changes in same `db.transaction` (audit row); `user.handle+privacy+showInDirectory+onboardingCompleted` + siteData upsert; `23505→409`                                                                                                                                                                                                                                                                                    |
+| `/api/profile/handle`                             | PUT                 | authed               | Counts `handleChanges` 24h (`>=3→429`); atomic `update handle + insert handleChanges`; `23505→409`; `old_handle` snake_case                                                                                                                                                                                                                                                                                                                                                                                  |
+| `/api/profile/privacy`                            | PUT                 | authed               | Dual-writes `privacySettings` jsonb + `showInDirectory`                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `/api/profile/me`                                 | GET                 | authed               | `{id,name,email,image,handle,headline,privacySettings(parsed),onboardingCompleted,role,roleSource,isAdmin,createdAt,updatedAt}`                                                                                                                                                                                                                                                                                                                                                                              |
+| `/api/webhooks/clerk`                             | POST                | Svix                 | `clerkId→externalId`, no email fallback (see Auth)                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `/api/account/delete`                             | POST                | authed               | Requires `confirmation===email` (case-insensitive); order collect R2 keys → local `DELETE user` (cascade) → R2 prefix sweep + inline delete (`deleteR2Objects`; failed keys / failed list → `R2DeleteWorkflow`, reported as warnings) → Clerk `users.deleteUser(clerkId)` (404 tolerated else 503)                                                                                                                                                                                                           |
+| `/api/handle/check`                               | GET                 | —                    | **Ordering: validate→rate-limit→DB→auth-cost**. Invalid/reserved (`RESERVED_HANDLES`)→`{available:false,reason:'reserved'}` without DB/limiter; valid→IP limit; available→return zero auth cost; only if taken resolve session to distinguish `isCurrentHandle`                                                                                                                                                                                                                                              |
+| `/api/admin/*`                                    | GET                 | `withAdmin`          | `stats                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | users | resumes | analytics`; not rate-limited; `PAGE_SIZE 25`; `escapeLikePattern`+`LIKE ESCAPE '\'`; `analytics ?period=7d | 30d | 90d`cache`private 30/60` |
+| `/api/analytics/stats`                            | GET                 | authed               | Proxies Umami; aggregates current handle + up to 3 old handles from `handleChanges` (no orderBy → oldest 3; double-counts uniqueVisitors)                                                                                                                                                                                                                                                                                                                                                                    |
+| `/api/cron/cleanup`                               | GET                 | Bearer `CRON_SECRET` | manual trigger of the `0 3` cleanup                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `/api/health`                                     | GET `force-dynamic` | —                    | Checks Postgres `SELECT 1`, R2 `list`, AI gateway config presence; 200 `healthy`/503/`degraded` + `latencyMs`                                                                                                                                                                                                                                                                                                                                                                                                |
+| `/api/og/home` + `/api/og/[handle]`               | GET                 | —                    | Branded PNG `1200×630` via `@cf-wasm/resvg` (`Resvg.async(svg,{fitTo:{mode:'width',value:1200}}).render().asPng()`); `max-age:604800`; handle OG falls back to lastResort on resvg fail                                                                                                                                                                                                                                                                                                                      |
 
 Shared infra: `rewrites /sitemap.xml→/api/sitemap-index`, `redirects /:handle→/@handle 308` (`next.config.ts`); sitemap/cron/og not rate-limited.
 
 ## Request Lifecycle & Realtime
 
 1. **Edge `proxy.ts`:** `__session` presence check → redirect `/` or `NextResponse.next()`.
-2. **Worker `worker/index.ts`:** scanner-probe → WS `/ws/resume-status` (JWKS) → queue/cron → vinext.
+2. **Worker `worker/index.ts`:** scanner-probe → WS `/ws/resume-status` (JWKS) → vinext (cron via `scheduled()`, workflows via exported classes).
 3. **Page/API:** `getServerSession()` / `requireAuth*` → `getDb(env.HYPERDRIVE)` → Drizzle.
 
 **State machine (6 statuses, default `pending_claim`):** `pending_claim → queued → processing → completed | failed` with alt branches `waiting_for_cache` (in-flight dup at claim time) and `completed` (cache hit at claim time). Transitions via `lib/resume/lifecycle.ts`.
 
-**6-step flow:** anon upload (`temp/{uuid}/{file}` + signed cookie) → auth → claim (`pending_claim` + fileHash dedup + R2 move + enqueue) → waiting (`waiting_for_cache`/`queued` 30%/25% or `processing` 50%) via WS/poll → consumer transaction (AI parse → `completed` 100% + siteData upsert or `failed` 0% + DO `failed` notify) → failure: orphan `pending_claim` re-queued by `*/15` cron, timeout virtual→durable via cron.
+**6-step flow:** anon upload (`temp/{uuid}/{file}` + signed cookie) → auth → claim (`pending_claim` + fileHash dedup + R2 move + `startResumeParse`) → waiting (`waiting_for_cache`/`queued` 30%/25% or `processing` 50%) via WS/poll → `ResumeParseWorkflow` (AI parse → `completed` 100% + siteData upsert, or after step retries `failed` 0% + DO `failed` notify) → no orphan sweep: a failed workflow start fails the row at claim; `waiting_for_cache` timeout made durable by the `await-cache` instance.
 
-**Cron table:** see Runtime section (3 crons, all direct-call, binding guards, try/catch).
+**Cron table:** see Runtime section (1 cron, direct-call, try/catch).
 
 **Realtime DO:** `ClickfolioStatusDO` uses **hibernation WebSocket** + `ctx.storage` (not SQL API) + 30s alarm cleanup; shared transport `lib/realtime/socket.ts`; `WS_MAX_RECONNECT 3`; best-effort `notify` + `alert` (`logpush` default / `webhook`); fallback to poll on WS fail. Client hooks: `useResumeWebSocket` / `useResumeStatus`.
 
@@ -283,15 +284,13 @@ Shared infra: `rewrites /sitemap.xml→/api/sitemap-index`, `redirects /:handle�
 
 **Progress %:** `pending_claim 15`, `queued 25`, `waiting_for_cache 30` (or virtual `failed`), `processing 50`, `completed 100`, `failed 0`.
 
-**Retry caps:** `RETRY_LIMITS`: manual `2`, total `6`; **5 permanent error types** (non-retryable) + **`unknown` non-retryable** (`ack` discarded, never DLQ, ADR-0012); a retryable error writes `lastAttemptError` and sets status back to `queued` so the next delivery can claim it (ADR-0011); `queued` stays non-failed in the status view. Queue `max_retries 3` for transient.
+**Retry caps:** `RETRY_LIMITS`: manual `2`, total `6`; **5 permanent error types** + **`unknown`** are non-retryable → `NonRetryableError` (ADR-0012); transient types retry inside the `parse` step (row stays `processing`; ADR-0026 supersedes ADR-0011).
 
-**Queue contract:** `queueMessageSchema` (`resumeId`, `userId`, `fileHash`, etc.) validated on publish + consume; helper `publishToParseQueue`; consumer `lib/queue/consumer.ts` completes via `completeResumes` (single atomic `db.transaction` batch + site-data upsert + notify inside); malformed→discarded, `isRetryableError→retry()` else `ack`.
+**Workflow contract:** `ResumeParseParams` = `{kind:"parse", resumeId, userId, r2Key, fileHash}` | `{kind:"await-cache", resumeId}` (`lib/workflows/resume-parse.ts`); `startResumeParse` treats create-throws-but-instance-exists as success (idempotent id). Step bodies in `lib/parse/pipeline.ts` (`claimResumeForParse` → `parse`/`cached`/`skipped`, `parseResumePdf`, `completeParsedResume` via `completeResumes` + fan-out to `waiting_for_cache` dups, `markResumeParseFailed`, `expireWaitingForCache`) must stay replay-safe: status-guarded `UPDATE … RETURNING`, SQL-side increments.
 
 **AI seam:** `lib/ai/` lazy-imports; `unpdf` extract (50 pages / 5 MB / 60k truncation) → AI SDK (OpenRouter via `CF_AI_GATEWAY_*`) → `normalizeResumeContent` with Zod; provider routed via gateway; notifications best-effort.
 
-**Failure handling:** consumer writes `lastAttemptError=classifyQueueError().toJSON()` + increments `retryCount`/`totalAttempts`; permanent→`failed`; a retryable error sets status back to `queued` (still shown as in-progress) so the next delivery can claim it; `sendAlert` on permanent; DLQ handler (`clickfolio-parse-dlq`) logs structured `DLQ_ALERT`.
-
-**Orphan recovery (`*/15`):** scans `pending_claim` >5m or `processing` stale >15m; re-queues if `totalAttempts<6` (TOCTOU `WHERE totalAttempts<6` else skip); `waiting_for_cache` timeout persists via `buildWaitingForCacheTimeoutUpdate()`.
+**Failure handling:** `parseResumePdf` writes `lastAttemptError=classifyParseError().toJSON()` + SQL-increments `totalAttempts`; `markResumeParseFailed` sets `failed` (COALESCE keeps a friendlier `errorMessage`), DO notify, `sendAlert` (`PARSE_FAILURE_ALERT` via `log`, or webhook). No DLQ — failed instances are inspectable in the Workflows dashboard.
 
 ## User Flows & Templates
 
@@ -324,28 +323,29 @@ Order: `pending_claim→waiting_for_cache/completed` branches; claim → `proces
 
 Each decision + why is an ADR under `docs/adr/`. `_5 superseded (D1/Better Auth/password — 0003,0004,0007,0015,0019) — see git history`._
 
-| ADR                                                              | Decision                                                                |
-| ---------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| [0001](docs/adr/0001-hsts-preload.md)                            | HSTS `preload` site-wide (2yr `63072000` `includeSubDomains` `preload`) |
-| [0002](docs/adr/0002-inner-callback-auth-wrapper.md)             | Auth wrappers use inner-callback form (vinext route detection)          |
-| [0005](docs/adr/0005-proxy-cookie-presence-only.md)              | `proxy.ts` presence-only (no DB on edge)                                |
-| [0006](docs/adr/0006-admin-reads-isadmin-from-db.md)             | Admin re-reads `isAdmin` from DB every request                          |
-| [0008](docs/adr/0008-resume-complete-single-batch.md)            | Resume complete atomic `db.transaction`                                 |
-| [0009](docs/adr/0009-pending-r2-deletions-before-batch.md)       | `pendingR2Deletions` before delete batch, no user FK                    |
-| [0010](docs/adr/0010-filehash-cache-per-user.md)                 | fileHash dedup per-user (no cross-user leak)                            |
-| [0011](docs/adr/0011-retryable-errors-keep-processing.md)        | Retryable error re-queues (`queued`, still non-failed)                  |
-| [0012](docs/adr/0012-unknown-queue-error-non-retryable.md)       | `unknown` queue error non-retryable (acked discarded)                   |
-| [0013](docs/adr/0013-cron-called-directly.md)                    | Cron direct-call in worker (avoid double-billing)                       |
-| [0014](docs/adr/0014-smart-placement.md)                         | Smart placement `mode:"smart"`                                          |
-| [0016](docs/adr/0016-stubs-for-cf-incompatible-packages.md)      | Stubs for CF-incompatible (`@vercel/og`, `zod/v3`)                      |
-| [0017](docs/adr/0017-ip-addresses-sha256-hashed.md)              | IPs SHA-256 hashed (GDPR)                                               |
-| [0018](docs/adr/0018-claim-check-pending-upload-cookie.md)       | Claim-check pending_upload signed cookie                                |
-| [0020](docs/adr/0020-theme-ids-zero-component-import.md)         | `theme-ids.ts` zero component import                                    |
-| [0021](docs/adr/0021-related-profiles-avoids-order-by-random.md) | `getRelatedProfiles` avoids `ORDER BY random()`                         |
-| [0022](docs/adr/0022-public-reads-skip-zod-revalidation.md)      | Public reads skip Zod re-validation (trusted, 200–400ms saved)          |
-| [0023](docs/adr/0023-env-detection-keys-off-app-url.md)          | Env detection keys off `APP_URL` not `NODE_ENV`                         |
-| [0024](docs/adr/0024-planet-scale-postgres-clerk-cutover.md)     | PG via Hyperdrive + Clerk cutover (D1/Better Auth dropped)              |
-| [0025](docs/adr/0025-hyperdrive-client-per-invocation.md)        | Hyperdrive clients per-invocation, never cached                         |
+| ADR                                                                 | Decision                                                                |
+| ------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| [0001](docs/adr/0001-hsts-preload.md)                               | HSTS `preload` site-wide (2yr `63072000` `includeSubDomains` `preload`) |
+| [0002](docs/adr/0002-inner-callback-auth-wrapper.md)                | Auth wrappers use inner-callback form (vinext route detection)          |
+| [0005](docs/adr/0005-proxy-cookie-presence-only.md)                 | `proxy.ts` presence-only (no DB on edge)                                |
+| [0006](docs/adr/0006-admin-reads-isadmin-from-db.md)                | Admin re-reads `isAdmin` from DB every request                          |
+| [0008](docs/adr/0008-resume-complete-single-batch.md)               | Resume complete atomic `db.transaction`                                 |
+| [0009](docs/adr/0009-pending-r2-deletions-before-batch.md)          | ~~`pendingR2Deletions` before delete batch~~ — superseded by 0026       |
+| [0010](docs/adr/0010-filehash-cache-per-user.md)                    | fileHash dedup per-user (no cross-user leak)                            |
+| [0011](docs/adr/0011-retryable-errors-keep-processing.md)           | ~~Retryable error re-queues~~ — superseded by 0026                      |
+| [0012](docs/adr/0012-unknown-queue-error-non-retryable.md)          | `unknown` parse error non-retryable (`NonRetryableError`)               |
+| [0013](docs/adr/0013-cron-called-directly.md)                       | Cron direct-call in worker (avoid double-billing)                       |
+| [0014](docs/adr/0014-smart-placement.md)                            | Smart placement `mode:"smart"`                                          |
+| [0016](docs/adr/0016-stubs-for-cf-incompatible-packages.md)         | Stubs for CF-incompatible (`@vercel/og`, `zod/v3`)                      |
+| [0017](docs/adr/0017-ip-addresses-sha256-hashed.md)                 | IPs SHA-256 hashed (GDPR)                                               |
+| [0018](docs/adr/0018-claim-check-pending-upload-cookie.md)          | Claim-check pending_upload signed cookie                                |
+| [0020](docs/adr/0020-theme-ids-zero-component-import.md)            | `theme-ids.ts` zero component import                                    |
+| [0021](docs/adr/0021-related-profiles-avoids-order-by-random.md)    | `getRelatedProfiles` avoids `ORDER BY random()`                         |
+| [0022](docs/adr/0022-public-reads-skip-zod-revalidation.md)         | Public reads skip Zod re-validation (trusted, 200–400ms saved)          |
+| [0023](docs/adr/0023-env-detection-keys-off-app-url.md)             | Env detection keys off `APP_URL` not `NODE_ENV`                         |
+| [0024](docs/adr/0024-planet-scale-postgres-clerk-cutover.md)        | PG via Hyperdrive + Clerk cutover (D1/Better Auth dropped)              |
+| [0025](docs/adr/0025-hyperdrive-client-per-invocation.md)           | Hyperdrive clients per-invocation, never cached                         |
+| [0026](docs/adr/0026-cloudflare-workflows-parse-and-r2-deletion.md) | Workflows for parse + R2 deletion; R2 lifecycle for `temp/`             |
 
 ## Gotchas
 
@@ -360,7 +360,7 @@ Each decision + why is an ADR under `docs/adr/`. `_5 superseded (D1/Better Auth/
 - **`showInDirectory` ≠ `hide_from_search`:** `/explore` filters `user.showInDirectory`; sitemap filters `privacySettings->>'hide_from_search'`; dual-write required.
 - **`role` ≠ `isAdmin`:** `role` is career enum 5 values; admin is `isAdmin` bool — never gate on `role`.
 - **`waiting_for_cache` not first state:** start is `pending_claim`; `waiting_for_cache`/`completed` are claim-time branches.
-- **`lifecycle.canRetryResume` / `checkRetryEligibility` is sole owner** of retry eligibility — don't re-implement; `QueueError` JSON never parsed outside lifecycle.
+- **`lifecycle.canRetryResume` / `checkRetryEligibility` is sole owner** of retry eligibility — don't re-implement; `ParseError` JSON never parsed outside lifecycle.
 - **`db:push` skips migration files** — canonical is `db:generate` + `db:migrate`; drizzle-kit needs `DATABASE_URL`.
 - **Blog 1:1:** `lib/blog/posts.ts` `BLOG_POSTS` 17 entries ↔ `app/blog/<slug>/page.tsx` 17 folders + `public/llms-full.txt`; `getPostBySlug("<slug>")!` at module scope throws at build if desynced; `seo-assets.test.ts` guards `llms.txt`.
 - **`preview/[id]` is demo-data only:** no auth, no DB; `revalidate 604800` (7d); don't use for real user data.
