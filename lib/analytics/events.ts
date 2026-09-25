@@ -7,6 +7,9 @@ export interface AnalyticsEventMap {
   theme_changed: { theme_id: string };
   handle_changed: { new_handle: string };
   account_deleted: { had_r2_warnings: boolean };
+  landing_viewed: { landing_variant: string };
+  landing_cta_clicked: { landing_variant: string; location: string };
+  landing_handle_checked: { landing_variant: string; status: string };
   onboarding_completed: {
     handle: string;
     theme_id: string;
