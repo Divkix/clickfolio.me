@@ -11,6 +11,37 @@ export const HOME_OG_IMAGE = {
   type: "image/png",
 } as const;
 
+const HOME_TITLE = `Free Resume Website Builder — ${siteConfig.fullName}`;
+
+const HOME_DESCRIPTION =
+  "Free resume website builder. Turn your PDF resume or LinkedIn into a personal portfolio website in 30 seconds — 10 templates, custom @handle URL, privacy controls. No signup to start.";
+
+/**
+ * Shared by `/` and every landing A/B variant route (ADR-0027) — variants are
+ * served at `/` via proxy rewrite, so they all canonicalize to the home URL.
+ */
+export const HOME_METADATA: Metadata = {
+  title: {
+    absolute: `Free Resume Website Builder — Turn Your PDF Into a Site | ${siteConfig.fullName}`,
+  },
+  description: HOME_DESCRIPTION,
+  alternates: { canonical: siteConfig.url },
+  openGraph: {
+    title: HOME_TITLE,
+    description: HOME_DESCRIPTION,
+    type: "website",
+    url: siteConfig.url,
+    siteName: siteConfig.fullName,
+    images: [HOME_OG_IMAGE],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: HOME_TITLE,
+    description: HOME_DESCRIPTION,
+    images: [HOME_OG_IMAGE.url],
+  },
+};
+
 function canonicalUrl(path: string): string {
   if (path === "/" || path === "") {
     return siteConfig.url;

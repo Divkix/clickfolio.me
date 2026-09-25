@@ -30,7 +30,8 @@ This file is the **single source of truth** — read top-to-bottom before touchi
 
 ```
 app/                          # vinext App Router
-  page.tsx                    # Home — ISR 3600
+  page.tsx                    # Home = landing variant `drop_first` — ISR 3600
+  lp/claim-handle/            # landing variant `claim_handle`, served at `/` via proxy rewrite (ADR-0027) — ISR 3600
   [handle]/                   # /@handle public viewer — ISR 3600, dynamicParams true
   (protected)/                # dashboard, edit, settings, waiting, wizard — each page self-gates via getServerSession
                               #   layout sets robots: noindex,nofollow
@@ -48,13 +49,14 @@ app/                          # vinext App Router
 lib/
   auth/  db/  schemas/  ai/  parse/  workflows/  rate-limit/  seo/  templates/  config/  types/
   utils/  data/  umami/  blog/  durable-objects/  stubs/  r2.ts  cloudflare-env.d.ts (generated)
+                              #   experiments/: landing.ts (A/B bucketing), desired-handle.ts (landing→wizard handle)
                               #   parse/: pipeline.ts (workflow step bodies), errors.ts, alert.ts, notify-status.ts
                               #   workflows/: resume-parse(-workflow).ts, r2-delete(-workflow).ts (trigger helper + class)
 hooks/                        # useFileUpload, useResumeWebSocket, useResumeStatus, useDismissable, useCopyToClipboard
 lib/db/schema/                # auth.ts, resume.ts, site.ts, rate-limit.ts, relations.ts, index.ts
   └─ getDb(env.HYPERDRIVE) per-invocation accessor (lib/db/index.ts)
 worker/index.ts               # real entrypoint: vinext + workflow class exports + cron + WS
-proxy.ts                      # edge auth gate (dual export proxy/default) — replaces middleware.ts
+proxy.ts                      # edge auth gate + `/` landing A/B cookie split (dual export proxy/default) — replaces middleware.ts
 instrumentation.ts / instrumentation-client.ts  # PostHog server/client hooks
 __tests__/  migrations_pg/  scripts/ (deploy.ts, generate-favicons.ts)  r2-lifecycle.json
 ```
@@ -266,7 +268,7 @@ Shared infra: `rewrites /sitemap.xml→/api/sitemap-index`, `redirects /:handle�
 
 ## Request Lifecycle & Realtime
 
-1. **Edge `proxy.ts`:** `__session` presence check → redirect `/` or `NextResponse.next()`.
+1. **Edge `proxy.ts`:** `/` only → landing A/B (`landing_variant` cookie 90d, `?landing_variant=` override; `claim_handle` → rewrite `/lp/claim-handle`, ADR-0027); protected routes → `__session` presence check → redirect `/` or `NextResponse.next()`.
 2. **Worker `worker/index.ts`:** scanner-probe → WS `/ws/resume-status` (JWKS) → vinext (cron via `scheduled()`, workflows via exported classes).
 3. **Page/API:** `getServerSession()` / `requireAuth*` → `getDb(env.HYPERDRIVE)` → Drizzle.
 
@@ -304,9 +306,11 @@ Order: `pending_claim→waiting_for_cache/completed` branches; claim → `proces
 
 **Edit (`/edit`):** autosave 3000ms debounce via `resumeContentSchemaStrict` + `extractPreviewFields` denorm; `beforeunload` guard; optimistic local state.
 
-**Render modes:** `force-dynamic` (dashboard, edit, settings, waiting, wizard) vs ISR `3600` (home, `[handle]`), `86400` (blog, `for/`), `300` (`/explore`), `604800` (`/api/og/home`).
+**Render modes:** `force-dynamic` (dashboard, edit, settings, waiting, wizard) vs ISR `3600` (home + `lp/claim-handle`, `[handle]`), `86400` (blog, `for/`), `300` (`/explore`), `604800` (`/api/og/home`).
 
 **Error levels (4):** `error.tsx` boundaries per segment + `captureAnalyticsError` (`lib/analytics/error.ts`) for client/server; `not-found.tsx` for 404.
+
+**Landing A/B (ADR-0027):** `drop_first` (`components/home/landing/DropFirstLanding.tsx`) vs `claim_handle` (`ClaimHandleLanding.tsx` + `HandleClaim.tsx`, checks `/api/handle/check`, saves handle → wizard `HandleStep` prefill); events `landing_viewed`/`landing_cta_clicked`/`landing_handle_checked` + super property `landing_variant`; judge on PostHog funnel to `onboarding_completed` by `landing_variant`.
 
 **Profile (`/@handle`):** `decode` + `formatHandle` + `hide_from_search` → `robots noindex` (not 404) via `notHiddenFromSearch` filter.
 
@@ -348,6 +352,7 @@ Each decision + why is an ADR under `docs/adr/`. `_5 superseded (D1/Better Auth/
 | [0024](docs/adr/0024-planet-scale-postgres-clerk-cutover.md)        | PG via Hyperdrive + Clerk cutover (D1/Better Auth dropped)              |
 | [0025](docs/adr/0025-hyperdrive-client-per-invocation.md)           | Hyperdrive clients per-invocation, never cached                         |
 | [0026](docs/adr/0026-cloudflare-workflows-parse-and-r2-deletion.md) | Workflows for parse + R2 deletion; R2 lifecycle for `temp/`             |
+| [0027](docs/adr/0027-landing-ab-test-proxy-cookie-split.md)         | Landing A/B via `proxy.ts` cookie split + rewrite; PostHog funnel       |
 
 ## Gotchas
 
