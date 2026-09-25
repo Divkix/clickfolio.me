@@ -236,6 +236,17 @@ export default function BestResumeWebsiteBuildersPage() {
             Resume, both free and open source.
           </li>
           <li>
+            <strong>You want a role-specific layout:</strong> see how clickfolio.me works as a{" "}
+            <Link href="/for/software-engineer" className="text-brand font-semibold">
+              resume website for software engineers
+            </Link>{" "}
+            or as a{" "}
+            <Link href="/for/designer" className="text-brand font-semibold">
+              portfolio website for designers
+            </Link>
+            .
+          </li>
+          <li>
             <strong>You want help writing the resume itself:</strong> Kickresume leans into AI
             writing and ATS checks.
           </li>

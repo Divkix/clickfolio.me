@@ -45,7 +45,11 @@ export default function HowToMakeAResumeWebsitePage() {
           <li>
             <strong>Export your resume as a PDF.</strong> Use the resume you already send to
             employers. If you only have a LinkedIn profile, open it, click "More," and choose "Save
-            to PDF."
+            to PDF." Our guide to{" "}
+            <Link href="/blog/linkedin-to-portfolio">
+              turning LinkedIn into a portfolio website
+            </Link>{" "}
+            walks through that path.
           </li>
           <li>
             <strong>Upload the PDF.</strong> Drop it into clickfolio.me. The AI reads your work
@@ -108,7 +112,9 @@ export default function HowToMakeAResumeWebsitePage() {
         />
         <p>
           If you want to see how this looks in practice, browse the{" "}
-          <Link href="/explore">live examples on Explore</Link> before you build your own.
+          <Link href="/explore">live examples on Explore</Link> or our roundup of{" "}
+          <Link href="/blog/resume-website-examples">resume website examples</Link> before you build
+          your own.
         </p>
       </section>
 
@@ -166,7 +172,8 @@ export default function HowToMakeAResumeWebsitePage() {
         <p>
           If you're an engineer and want role-specific guidance, our{" "}
           <Link href="/for/software-engineer">guide for software engineers</Link> covers what to
-          highlight.
+          highlight, and the <Link href="/for/designer">resume website guide for designers</Link>{" "}
+          does the same for creative roles.
         </p>
       </section>
 

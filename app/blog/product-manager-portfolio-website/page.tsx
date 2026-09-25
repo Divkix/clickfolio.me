@@ -194,8 +194,9 @@ export default function ProductManagerPortfolioWebsitePage() {
           your portfolio, so you can tell which applications actually got read. Custom domains
           aren't available yet; your site lives at your clickfolio.me handle for now. If you want to
           see how others structure theirs, browse{" "}
-          <Link href="/blog/resume-website-examples">resume website examples</Link> or read the role
-          guide for <Link href="/for/product-manager">product managers</Link> before you start.
+          <Link href="/blog/resume-website-examples">resume website examples</Link> or read our{" "}
+          <Link href="/for/product-manager">portfolio website guide for product managers</Link>{" "}
+          before you start.
         </p>
       </PostSection>
 

@@ -157,6 +157,8 @@ export default function CvWebsiteBuilderPage() {
           is a solid, affordable pick. If you want a professional CV site without the work, upload
           your PDF to clickfolio.me and you're done in under a minute. The fact that it's free and
           open source (MIT, hosted on Cloudflare) means there's little downside to trying it first.
+          If you send a CV with every client proposal, see how it works as a{" "}
+          <Link href="/for/consultant">portfolio website for consultants</Link>.
         </p>
         <p>
           <Link href="/" className="text-brand font-semibold">

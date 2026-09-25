@@ -112,7 +112,8 @@ export default function ReadCvAlternativesPage() {
           <Link href="/">clickfolio.me</Link>, you upload your resume PDF and the AI reads your
           experience, education, and skills, then rebuilds them as an editable page on one of 10
           templates. You get a real URL, built-in view analytics, and privacy controls — and it's
-          free forever.
+          free forever. Read.cv was especially popular with designers, so if that's you, see how it
+          works as a <Link href="/for/designer">portfolio website for designers</Link>.
         </p>
         <p>
           The honest limit: every site lives at clickfolio.me/@yourname. Custom domains aren't
@@ -157,7 +158,8 @@ export default function ReadCvAlternativesPage() {
           Workfolio survey reported by Forbes in 2013, 56% of hiring managers were more impressed by
           a personal website than any other branding tool — yet only 7% of job seekers had one.
           Rebuilding takes minutes, and you come out the other side owning your page instead of
-          renting it.
+          renting it — the core argument for a{" "}
+          <Link href="/blog/personal-resume-website">personal resume website</Link>.
         </p>
       </section>
 

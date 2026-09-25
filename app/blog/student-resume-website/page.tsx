@@ -123,7 +123,9 @@ export default function StudentResumeWebsitePage() {
           </li>
           <li>
             <strong>Pick a template.</strong> Choose from 10 designs to match the field you're
-            applying into.
+            applying into. These{" "}
+            <Link href="/blog/resume-website-examples">resume website examples</Link> show what each
+            style looks like.
           </li>
           <li>
             <strong>Review and publish.</strong> Tidy up the wording in the editor and go live at{" "}
@@ -136,7 +138,7 @@ export default function StudentResumeWebsitePage() {
           internship hunt. Custom domains aren't available yet, so your site lives at your
           clickfolio.me handle for now. If you'd like a step-by-step walkthrough, read{" "}
           <Link href="/blog/how-to-make-a-resume-website">how to make a resume website</Link>, or
-          check the guide built for <Link href="/for/student">students</Link>.
+          check our <Link href="/for/student">resume website builder for students</Link>.
         </p>
       </section>
 

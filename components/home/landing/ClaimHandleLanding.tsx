@@ -5,6 +5,7 @@ import { ArrowRight, BarChart3, Eye, EyeOff, Link2, Smartphone } from "lucide-re
 import Link from "next/link";
 import { Footer } from "@/components/Footer";
 import { FAQSection } from "@/components/home/FAQSection";
+import { PopularGuides } from "@/components/home/PopularGuides";
 import { LinkedInExportHelp } from "@/components/LinkedInExportHelp";
 import { SiteHeader } from "@/components/SiteHeader";
 import { PROFESSIONS } from "@/lib/config/professions";
@@ -194,6 +195,7 @@ export function ClaimHandleLanding() {
 
           <div className="mx-auto max-w-4xl">
             <FAQSection />
+            <PopularGuides />
           </div>
         </section>
 

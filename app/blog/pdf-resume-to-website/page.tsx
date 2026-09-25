@@ -99,7 +99,10 @@ export default function PdfResumeToWebsitePage() {
         <p>
           The best resume websites don't just replicate your PDF — they enhance it. They add
           analytics so you know who's viewing. They let you switch designs instantly. And they give
-          you a link you can share anywhere in one click.
+          you a link you can share anywhere in one click. You'll still want the PDF for ATS portals,
+          though — our guide to{" "}
+          <Link href="/blog/pdf-resume-vs-portfolio">PDF resume vs portfolio website</Link> explains
+          when to use each.
         </p>
       </PostSection>
 
@@ -231,7 +234,8 @@ export default function PdfResumeToWebsitePage() {
         <p>
           In 2026, a PDF resume is the minimum. A live portfolio website is the standard. The
           barrier to entry has never been lower — no coding, no hosting setup, no design skills
-          needed. Just your existing resume and 30 seconds of your time.
+          needed. Just your existing resume and 30 seconds of your time. Want ideas first? Browse
+          these <Link href="/blog/resume-website-examples">resume website examples</Link>.
         </p>
         <p>
           <Link href="/" className="text-brand font-semibold">

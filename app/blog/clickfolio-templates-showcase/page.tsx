@@ -161,12 +161,16 @@ export default function TemplatesShowcasePage() {
             </h3>
             <p className="text-muted-foreground">
               DevTerminal or Bento Grid — both speak to technical audiences in their own language.
+              See the{" "}
+              <Link href="/for/software-engineer">resume website guide for software engineers</Link>
+              .
             </p>
           </div>
           <div className="rounded-lg border border-border bg-card p-4">
             <h3 className="text-lg font-semibold text-foreground mb-1">Designer / Creative</h3>
             <p className="text-muted-foreground">
-              DesignFolio or NeoBrutalist — your portfolio should demonstrate design taste.
+              DesignFolio or NeoBrutalist — your portfolio should demonstrate design taste. See the{" "}
+              <Link href="/for/designer">portfolio website guide for designers</Link>.
             </p>
           </div>
           <div className="rounded-lg border border-border bg-card p-4">
@@ -204,7 +208,9 @@ export default function TemplatesShowcasePage() {
         <h2>Start Building</h2>
         <p>
           All 10 templates are free and available on your dashboard after uploading your resume. The
-          default is Minimalist Editorial, but you can switch at any time.
+          default is Minimalist Editorial, but you can switch at any time. For finished sites in
+          each style, browse these{" "}
+          <Link href="/blog/resume-website-examples">resume website examples</Link>.
         </p>
         <p>
           <Link href="/" className="text-brand font-semibold">

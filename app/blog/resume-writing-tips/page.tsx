@@ -222,6 +222,9 @@ export default function ResumeWritingTipsPage() {
           deploy it across multiple formats based on context. A PDF for ATS applications. A
           portfolio website for networking and social sharing. A scannable one-pager for career
           fairs. All powered by the same data, updated in one place, instantly reflected everywhere.
+          Our guide to{" "}
+          <Link href="/blog/pdf-resume-vs-portfolio">PDF resume vs portfolio website</Link> covers
+          which format to send when.
         </p>
         <p>
           clickfolio.me makes this possible. Upload your resume once, and you have both a

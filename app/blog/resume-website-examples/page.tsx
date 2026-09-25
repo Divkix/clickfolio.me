@@ -88,7 +88,9 @@ export default function ResumeWebsiteExamplesPage() {
         </p>
         <p>
           A useful rule: if a recruiter can't tell what you do within five seconds, the design is
-          working against you. Personality should frame your work, not hide it.
+          working against you. Personality should frame your work, not hide it. Our{" "}
+          <Link href="/for/designer">portfolio website guide for designers</Link> covers which
+          templates keep that balance.
         </p>
       </section>
 
@@ -170,7 +172,9 @@ export default function ResumeWebsiteExamplesPage() {
           professional template so your site comes out looking like the examples above in about 30
           seconds. Pick the style that fits your field, adjust a few lines, and publish at
           clickfolio.me/@yourname. If you'd rather follow each step, read{" "}
-          <Link href="/blog/how-to-make-a-resume-website">how to make a resume website</Link>.
+          <Link href="/blog/how-to-make-a-resume-website">how to make a resume website</Link>, or
+          compare tools in our roundup of the{" "}
+          <Link href="/blog/best-resume-website-builders">best resume website builders</Link>.
         </p>
       </section>
 

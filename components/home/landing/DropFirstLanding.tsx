@@ -6,6 +6,7 @@ import Link from "next/link";
 import { FileDropzone } from "@/components/FileDropzone";
 import { Footer } from "@/components/Footer";
 import { FAQSection } from "@/components/home/FAQSection";
+import { PopularGuides } from "@/components/home/PopularGuides";
 import { MobileStickyUpload } from "@/components/home/MobileStickyUpload";
 import { SiteHeader } from "@/components/SiteHeader";
 import { PROFESSIONS } from "@/lib/config/professions";
@@ -253,6 +254,7 @@ export function DropFirstLanding() {
 
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
           <FAQSection />
+          <PopularGuides />
         </div>
 
         <section className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
