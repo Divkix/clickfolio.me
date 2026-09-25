@@ -491,6 +491,40 @@ export const BLOG_POSTS: BlogPostMeta[] = [
       },
     ],
   },
+  {
+    slug: "designfolio-alternatives",
+    title: "Designfolio Alternatives: 8 Options (2026)",
+    description:
+      "Compare 8 Designfolio (designfolio.me) alternatives for designers and PMs, with pricing as of September 2026, plus a free way to turn your resume into a site.",
+    date: "2026-09-25",
+    readTime: "8 min read",
+    category: "Comparison",
+    keywords: [
+      "designfolio alternative",
+      "designfolio",
+      "designfolio pricing",
+      "is designfolio free",
+      "portfolio like designfolio",
+    ],
+    faq: [
+      {
+        q: "Is Designfolio free?",
+        a: "Designfolio (designfolio.me) has a free plan with 2 case studies, 1 project, starter templates, and Designfolio branding, but no analytics or custom domain. As of September 2026, Pro costs $12/month, $29/quarter, or $69 one-time.",
+      },
+      {
+        q: "What is the best alternative to Designfolio?",
+        a: "For long-form UX case studies, UXfolio is the closest match. For full design control, Framer or Webflow. For a free site built from your existing resume, clickfolio.me turns a PDF into a live page in about 30 seconds.",
+      },
+      {
+        q: "Is Designfolio or clickfolio.me better for designers?",
+        a: "Designfolio is better if you need long-form case studies, Figma embeds, password-protected NDA work, or a custom domain. clickfolio.me is better if you want a free site generated from your resume without writing new content. It has no case-study editor and no custom domains yet.",
+      },
+      {
+        q: "Is designfolio.me the same as designfolio.co?",
+        a: 'No. designfolio.me is a portfolio and case-study builder for designers and PMs. designfolio.co is an unrelated design-news site, and "Designfolio" is also the name of some Framer, Webflow, and WordPress templates.',
+      },
+    ],
+  },
 ];
 
 export function getPostBySlug(slug: string): BlogPostMeta | undefined {
