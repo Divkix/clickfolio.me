@@ -140,10 +140,9 @@ export default function BestResumeWebsiteBuildersPage() {
           the project is open source under the MIT license.
         </p>
         <p>
-          The honest weaknesses: there is no custom-domain support yet, so every site lives on a
-          clickfolio.me/@handle URL for now. And the nicest four templates require you to refer
-          other people before they unlock. If a personal domain is a hard requirement today, one of
-          the paid tools below will serve you better. If free hosting and a thirty-second setup
+          The honest weakness: there is no custom-domain support yet, so every site lives on a
+          clickfolio.me/@handle URL for now. If a personal domain is a hard requirement today, one
+          of the paid tools below will serve you better. If free hosting and a thirty-second setup
           matter more, start with{" "}
           <Link href="/" className="text-brand font-semibold">
             the builder
