@@ -9,6 +9,12 @@ vi.mock("@/lib/auth/admin", () => ({
   requireAdminAuthForApi: vi.fn(),
 }));
 
+vi.mock("@/lib/analytics/server", () => ({
+  captureServerException: vi.fn(async () => {}),
+  distinctIdFromCookieHeader: vi.fn(() => "ph-distinct-1"),
+}));
+
+import { captureServerException } from "@/lib/analytics/server";
 import { requireAdminAuthForApi } from "@/lib/auth/admin";
 import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
 import { withAdmin, withUser } from "@/lib/auth/with-auth";
@@ -125,6 +131,28 @@ describe("withUser", () => {
     const loggedArgs = consoleSpy.mock.calls.flat();
 
     expect(loggedArgs).toContainEqual(expect.stringContaining("/api/resume/update"));
+
+    consoleSpy.mockRestore();
+  });
+
+  it("reports a thrown error to PostHog Error Tracking with the request path", async () => {
+    mockedAuth.mockResolvedValue(successResult());
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const error = new Error("claim blew up");
+
+    const response = await withUser(
+      new Request("http://localhost/api/resume/claim", { method: "POST" }),
+      async () => {
+        throw error;
+      },
+    );
+
+    expect(response.status).toBe(500);
+    expect(vi.mocked(captureServerException)).toHaveBeenCalledWith(
+      error,
+      { request_path: "/api/resume/claim", request_method: "POST" },
+      "ph-distinct-1",
+    );
 
     consoleSpy.mockRestore();
   });

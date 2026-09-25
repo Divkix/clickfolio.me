@@ -260,6 +260,48 @@ describe("upload flow components", () => {
     expect(await screen.findByText("Network error. Check your connection.")).toBeInTheDocument();
   });
 
+  it("percent-encodes a non-ASCII filename so fetch accepts the X-Filename header", async () => {
+    let sentFilename: string | null = null;
+    installFetch((url, init) => {
+      if (url === "/api/upload") {
+        // Browsers reject header values outside ISO-8859-1 before sending the request.
+        sentFilename = new Headers(init?.headers).get("X-Filename");
+
+        return Response.json({ key: "temp/anon/resume.pdf", remaining: { hourly: 9, daily: 49 } });
+      }
+
+      return Response.json({ success: true });
+    });
+    render(<FileDropzone />);
+    dropFile(pdfFile("简历 – Zoë.pdf"));
+
+    await waitFor(() =>
+      expect(mocks.toast.success).toHaveBeenCalledWith("File uploaded successfully!"),
+    );
+    expect(sentFilename).toBe(encodeURIComponent("简历 – Zoë.pdf"));
+  });
+
+  it("maps browser fetch and file-read failures to actionable messages", async () => {
+    globalThis.fetch = vi.fn(async () => {
+      throw new TypeError("Failed to fetch");
+    });
+    const offline = render(<FileDropzone />);
+    dropFile(pdfFile("offline.pdf"));
+    expect(await screen.findByText("Network error. Check your connection.")).toBeInTheDocument();
+    offline.unmount();
+
+    const unreadable = pdfFile("cloud.pdf");
+    unreadable.arrayBuffer = () =>
+      Promise.reject(new DOMException("The file could not be read.", "NotReadableError"));
+    render(<FileDropzone />);
+    dropFile(unreadable);
+    expect(
+      await screen.findByText(
+        "Could not read this file. Save a copy on your device and try again.",
+      ),
+    ).toBeInTheDocument();
+  });
+
   it("auto-claims authenticated public uploads and navigates to the dashboard", async () => {
     mocks.sessionState.current = {
       data: { user: { id: "user_1", email: "avery@example.com", name: "Avery" } },

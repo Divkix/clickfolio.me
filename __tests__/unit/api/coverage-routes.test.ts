@@ -766,6 +766,26 @@ describe("API route coverage", () => {
     );
     expect(success.headers.get("X-RateLimit-Remaining-Hourly")).toBe("9");
     expect(success.headers.get("Set-Cookie")).toContain("pending_upload=");
+
+    await POST(uploadRequest({ headers: { "x-filename": encodeURIComponent("简历 Zoë.pdf") } }));
+    expect(mocks.r2Put).toHaveBeenLastCalledWith(
+      originalBucket,
+      expect.stringMatching(/^temp\/[^/]+\/_+Zo_\.pdf$/),
+      expect.any(ArrayBuffer),
+      expect.objectContaining({
+        customMetadata: expect.objectContaining({ originalFilename: "简历 Zoë.pdf" }),
+      }),
+    );
+
+    await POST(uploadRequest({ headers: { "x-filename": "100%.pdf" } }));
+    expect(mocks.r2Put).toHaveBeenLastCalledWith(
+      originalBucket,
+      expect.any(String),
+      expect.any(ArrayBuffer),
+      expect.objectContaining({
+        customMetadata: expect.objectContaining({ originalFilename: "100%.pdf" }),
+      }),
+    );
   });
 
   it("deletes account data via Clerk identity deletion and reports partial storage warnings", async () => {

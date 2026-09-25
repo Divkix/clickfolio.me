@@ -13,6 +13,17 @@ import { generateTempKey, MAX_FILE_SIZE, validatePDFBuffer } from "@/lib/utils/v
 
 const MIN_PDF_SIZE = 100;
 
+// The client percent-encodes X-Filename; an older client sends it raw.
+function decodeFilenameHeader(value: string | null): string | null {
+  if (value === null) return null;
+
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
 export async function POST(request: Request) {
   try {
     // SAFETY: env is untyped Cloudflare Workers binding; cast bridges to typed CloudflareEnv. X-Filename header is validated for length and sanitized before use.
@@ -66,7 +77,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const filename = request.headers.get("x-filename");
+    const filename = decodeFilenameHeader(request.headers.get("x-filename"));
 
     if (!filename || !z.string().safeParse(filename).success || filename.trim().length === 0) {
       return createErrorResponse("X-Filename header is required", ERROR_CODES.BAD_REQUEST, 400);
