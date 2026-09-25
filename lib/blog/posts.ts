@@ -84,9 +84,9 @@ export const BLOG_POSTS: BlogPostMeta[] = [
   },
   {
     slug: "personal-resume-website",
-    title: "What Is a Personal Resume Website? (And Why You Need One in 2026)",
+    title: "Personal Resume Website: What It Is (2026)",
     description:
-      "A personal resume website is a site you own that presents your career better than a PDF or LinkedIn. Here's what it is, why it helps, and how to make one free.",
+      "A personal resume website shows your experience, skills, and projects at one link you own. See what to put on it and how to make one free in about 30 seconds.",
     date: "2026-05-26",
     dateModified: "2026-06-19",
     readTime: "7 min read",
@@ -317,9 +317,9 @@ export const BLOG_POSTS: BlogPostMeta[] = [
   },
   {
     slug: "best-resume-website-builders",
-    title: "Best Free Resume Website Builders Compared (2026)",
+    title: "7 Best Free Resume Website Builders (2026)",
     description:
-      "We compared the top resume website builders — clickfolio.me, Standard Resume, Carrd, Reactive Resume, and more — on templates, pricing, custom domains, and hosting.",
+      "We compared 7 resume website builders (clickfolio.me, Standard Resume, Carrd, Super.so, Reactive Resume, JSON Resume, Kickresume) on price, domains, and import.",
     date: "2026-04-25",
     dateModified: "2026-06-19",
     readTime: "11 min read",
@@ -380,9 +380,9 @@ export const BLOG_POSTS: BlogPostMeta[] = [
   },
   {
     slug: "linkedin-to-portfolio",
-    title: "LinkedIn to Portfolio Website: The Complete Guide (2026)",
+    title: "LinkedIn to Portfolio Website in 30 Seconds",
     description:
-      "LinkedIn is borrowed land. Learn how to turn your LinkedIn profile into a portfolio website you own, control, and can rank on Google — in about 30 seconds.",
+      "Turn your LinkedIn profile into a free portfolio website you own: save it as a PDF, upload it, and go live at clickfolio.me/@you in about 30 seconds.",
     date: "2026-04-19",
     dateModified: "2026-06-19",
     readTime: "7 min read",
@@ -411,9 +411,9 @@ export const BLOG_POSTS: BlogPostMeta[] = [
   },
   {
     slug: "pdf-resume-vs-portfolio",
-    title: "PDF Resume vs Portfolio Website: Why You Need Both",
+    title: "PDF Resume vs Portfolio Website: Which to Use?",
     description:
-      "They serve different purposes. Learn when to send a PDF, when to share your portfolio URL, and how to use both together for maximum impact.",
+      "Use a PDF resume for ATS portals, email, and formal applications, and a portfolio website for LinkedIn, social links, and Google. Here's how to pair them.",
     date: "2026-04-17",
     readTime: "6 min read",
     category: "Guide",
