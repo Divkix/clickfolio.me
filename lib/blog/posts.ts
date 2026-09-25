@@ -593,6 +593,44 @@ export const BLOG_POSTS: BlogPostMeta[] = [
       },
     ],
   },
+  {
+    slug: "consultant-portfolio-website",
+    title: "Consultant Portfolio Website: A 2026 Guide",
+    description:
+      "What a consultant portfolio website should prove, which sections to include, how to write NDA-safe engagement summaries, and how to publish one from a resume.",
+    date: "2026-09-25",
+    readTime: "8 min read",
+    category: "Guide",
+    keywords: [
+      "consultant portfolio website",
+      "consultant resume website",
+      "consulting portfolio examples",
+      "portfolio for consultants",
+      "independent consultant website",
+    ],
+    faq: [
+      {
+        q: "What should a consultant portfolio website include?",
+        a: "A positioning headline, a short summary, three to six engagement summaries (problem, approach, outcome), the industries and functions you serve, an experience timeline, credentials, and a way to contact you. Keep it to one scannable page.",
+      },
+      {
+        q: "How do I show client work that is under an NDA?",
+        a: "Anonymize clients by industry, size, and region, state results as ranges or percentages you can personally verify, make your exact role clear, and check your contract. Only name a client if they have agreed in writing.",
+      },
+      {
+        q: "Does a consultant need a custom domain?",
+        a: "Not for job hunting or contract roles, where a clickfolio.me/@handle link works well. If you invoice clients, your own domain helps with email and credibility. clickfolio.me does not offer custom domains yet, so pair your own domain with a clickfolio.me profile for now.",
+      },
+      {
+        q: "Can I hide my phone number and address on a consultant portfolio?",
+        a: "Yes. clickfolio.me has field-level privacy toggles, so you can hide your phone number and address while keeping your engagements, credentials, and email public.",
+      },
+      {
+        q: "How fast can I build a consultant portfolio from my resume?",
+        a: "Upload your consulting CV or a LinkedIn Save to PDF export to clickfolio.me and the AI builds a live site in about 30 seconds. You can then rewrite engagement summaries, set privacy, and pick one of 10 free templates.",
+      },
+    ],
+  },
 ];
 
 export function getPostBySlug(slug: string): BlogPostMeta | undefined {
