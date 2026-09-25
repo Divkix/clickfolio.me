@@ -44,7 +44,7 @@ export const THEME_METADATA = {
   },
   design_folio: {
     name: "DesignFolio",
-    description: "Dark Swiss editorial with acid lime accents and a frosted nav.",
+    description: "Swiss grid on cool grey with a cobalt name block. Project images lead the page.",
     category: "Creative",
     preview: "/previews/design-folio.webp",
   },

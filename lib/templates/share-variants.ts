@@ -46,7 +46,7 @@ export const shareButtonStyles = {
   "classic-ats":
     "bg-white text-[#3F434A] hover:text-[#22385C] border border-[#B9BCC2] rounded-[3px] px-3 py-1.5 text-sm hover:border-[#22385C]",
   "design-folio":
-    "bg-[#1a1a1a] text-[#888] hover:text-[#CCFF00] border border-[#333] hover:border-[#CCFF00] rounded-full px-3 py-1.5 font-mono text-xs uppercase tracking-widest",
+    "bg-white text-black border-2 border-white hover:bg-black hover:text-white hover:border-black px-3 py-1.5 font-semibold",
   "dev-terminal":
     "bg-[#2d333b] text-[#adbac7] hover:text-[#cdd9e5] hover:bg-[#373e47] border border-[#444c56] rounded-md px-3 py-1.5",
 } satisfies Record<SharePopoverVariant, string>;
@@ -77,7 +77,7 @@ export const sharePanelStyles = {
   midnight: "bg-[#0F1633]/95 text-[#EDE6D6] border-[#D4B26A]/30",
   "bold-corporate": "bg-white text-[#1B2430] border-[#0E2A47]/25",
   "classic-ats": "bg-white text-[#16181D] border-[#B9BCC2]",
-  "design-folio": "bg-[#1a1a1a] text-[#e0e0e0] border-[#333]",
+  "design-folio": "bg-white text-black border-2 border-black",
   "dev-terminal": "bg-[#2d333b] text-[#adbac7] border-[#444c56]",
 } satisfies Record<SharePopoverVariant, string>;
 
@@ -94,8 +94,7 @@ export const shareItemStyles = {
     "bg-[#131B3D] text-[#C9CEE4] hover:text-[#D4B26A] border border-[#D4B26A]/25 hover:border-[#D4B26A]/60",
   "bold-corporate": "bg-white text-[#0E2A47] hover:bg-[#EEF2F6] border-[#0E2A47]/25",
   "classic-ats": "bg-white text-[#3F434A] hover:text-[#22385C] border-[#B9BCC2]",
-  "design-folio":
-    "bg-[#1a1a1a] text-[#888] hover:text-[#CCFF00] border border-[#333] font-mono hover:border-[#CCFF00]",
+  "design-folio": "bg-white text-black hover:bg-[#2D3BFF] hover:text-white border-2 border-black",
   "dev-terminal":
     "bg-[#22272e] text-[#adbac7] hover:text-[#cdd9e5] hover:bg-[#373e47] border border-[#444c56]",
 } satisfies Record<SharePopoverVariant, string>;
