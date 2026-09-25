@@ -525,6 +525,40 @@ export const BLOG_POSTS: BlogPostMeta[] = [
       },
     ],
   },
+  {
+    slug: "linkfolio-alternatives",
+    title: "Linkfolio Alternatives: Resume Sites (2026)",
+    description:
+      "Comparing linkfolio.net and linkfolio.cv with clickfolio.me, Butternut AI, Fastfolio and others on price, custom domains and resume import, as of Sept 2026.",
+    date: "2026-09-25",
+    readTime: "7 min read",
+    category: "Comparison",
+    keywords: [
+      "linkfolio alternatives",
+      "linkfolio ai alternative",
+      "linkfolio.net alternative",
+      "linkfolio.cv alternative",
+      "ai resume to portfolio website",
+    ],
+    faq: [
+      {
+        q: "Is Linkfolio free?",
+        a: "linkfolio.net has a free plan with a .linkfolio.net subdomain and a watermark; its paid plans cost €4.99 and €9.99 per month as of September 2026. linkfolio.cv says it is free forever.",
+      },
+      {
+        q: "Does Linkfolio support custom domains?",
+        a: "linkfolio.net supports connecting a custom domain on its Basic plan and above. linkfolio.cv's homepage doesn't mention custom domains; its URLs look like linkfolio.cv/yourname.",
+      },
+      {
+        q: "Is Linkfolio AI the same as the LinkFolio Chrome extension?",
+        a: "No. The LinkFolio AI Chrome extension is a new-tab dashboard for bookmarks and AI chatbot shortcuts. linkfolio.net is a separate AI portfolio builder that turns a resume into a website.",
+      },
+      {
+        q: "What is the best free Linkfolio alternative?",
+        a: "If you want a resume website with no watermark and no paid tier, clickfolio.me turns your PDF resume or LinkedIn PDF export into a hosted site in about 30 seconds. It doesn't support custom domains yet.",
+      },
+    ],
+  },
 ];
 
 export function getPostBySlug(slug: string): BlogPostMeta | undefined {
