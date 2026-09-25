@@ -8,9 +8,13 @@ describe("getContactIcon", () => {
     expect(node).not.toBeNull();
   });
 
-  it("returns null for types with no standard icon", () => {
-    expect(getContactIcon("behance")).toBeNull();
-    expect(getContactIcon("dribbble")).toBeNull();
+  it("renders currentColor glyphs for Behance and Dribbble", () => {
+    for (const type of ["behance", "dribbble"] as const) {
+      const { container } = render(<>{getContactIcon(type, { className: "w-4 h-4" })}</>);
+      const svg = container.querySelector("svg");
+      expect(svg?.getAttribute("fill")).toBe("currentColor");
+      expect(svg?.getAttribute("class")).toContain("w-4");
+    }
   });
 
   it("forwards className to the icon", () => {

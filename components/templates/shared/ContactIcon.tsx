@@ -1,6 +1,12 @@
 import { Globe, Mail, MapPin, Phone } from "lucide-react";
 import type React from "react";
-import { type BrandIconVariant, GitHubIcon, LinkedInIcon } from "@/components/icons/BrandIcons";
+import {
+  BehanceIcon,
+  type BrandIconVariant,
+  DribbbleIcon,
+  GitHubIcon,
+  LinkedInIcon,
+} from "@/components/icons/BrandIcons";
 import type { ContactLinkType } from "@/lib/templates/contact-links";
 
 export interface ContactIconOptions {
@@ -14,7 +20,7 @@ export interface ContactIconOptions {
 export function getContactIcon(
   type: ContactLinkType,
   options: ContactIconOptions = {},
-): React.ReactNode | null {
+): React.ReactNode {
   const { className, size, variant = "black", strokeWidth, "aria-hidden": ariaHidden } = options;
 
   const lucideProps = {
@@ -31,6 +37,12 @@ export function getContactIcon(
     variant,
   };
 
+  const glyphProps = {
+    ...(className !== undefined && { className }),
+    ...(size !== undefined && { size }),
+    ...(ariaHidden !== undefined && { "aria-hidden": ariaHidden }),
+  };
+
   switch (type) {
     case "email":
       return <Mail {...lucideProps} />;
@@ -45,7 +57,8 @@ export function getContactIcon(
     case "linkedin":
       return <LinkedInIcon {...brandProps} />;
     case "behance":
+      return <BehanceIcon {...glyphProps} />;
     case "dribbble":
-      return null;
+      return <DribbbleIcon {...glyphProps} />;
   }
 }
