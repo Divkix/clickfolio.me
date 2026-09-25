@@ -32,7 +32,7 @@ export const shareButtonStyles = {
   "minimalist-editorial":
     "text-[#6B6B73] hover:text-[#1F5C4A] border border-[#E4E4E7] rounded-full px-3 py-1.5 text-sm hover:border-[#1F5C4A]/40",
   "neo-brutalist":
-    "bg-white text-black border-2 border-black px-3 py-1.5 font-bold hover:bg-yellow-300 hover:translate-x-0.5 hover:-translate-y-0.5 shadow-[2px_2px_0_0_black] hover:shadow-[4px_4px_0_0_black]",
+    "bg-white text-black border-[3px] border-black px-3 py-1.5 font-bold shadow-[3px_3px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none",
   "glass-morphic":
     "bg-white/[0.07] backdrop-blur-md border border-white/15 text-[#D7DCEC] hover:text-white hover:bg-white/[0.14] rounded-full px-3.5 py-1.5",
   "bento-grid":
@@ -55,7 +55,7 @@ export const shareTriggerStyles = {
   "minimalist-editorial":
     "bg-white text-[#1B1B1F] border-[#E4E4E7] hover:text-[#1F5C4A] hover:border-[#1F5C4A]/40",
   "neo-brutalist":
-    "bg-yellow-300 text-black border-2 border-black font-bold shadow-[4px_4px_0_0_black] hover:translate-x-0.5 hover:-translate-y-0.5",
+    "bg-white text-black border-[3px] border-black font-bold shadow-[4px_4px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0_0_#000]",
   "glass-morphic":
     "bg-white/[0.08] text-[#F4F6FB] border-white/20 backdrop-blur-md hover:bg-white/[0.16] rounded-full",
   "bento-grid":
@@ -71,7 +71,7 @@ export const shareTriggerStyles = {
 
 export const sharePanelStyles = {
   "minimalist-editorial": "bg-white text-[#1B1B1F] border-[#E4E4E7]",
-  "neo-brutalist": "bg-yellow-300 text-black border-2 border-black shadow-[4px_4px_0_0_black]",
+  "neo-brutalist": "bg-white text-black border-[3px] border-black shadow-[6px_6px_0_0_#000]",
   "glass-morphic": "bg-[#141A2E]/80 text-[#F4F6FB] border-white/15 backdrop-blur-xl",
   "bento-grid":
     "bg-white/95 text-neutral-800 border-neutral-200 dark:bg-neutral-900/95 dark:text-neutral-100 dark:border-neutral-700",
@@ -86,7 +86,7 @@ export const sharePanelStyles = {
 export const shareItemStyles = {
   "minimalist-editorial":
     "bg-white text-[#6B6B73] hover:text-[#1F5C4A] border border-[#E4E4E7] hover:border-[#1F5C4A]/40",
-  "neo-brutalist": "bg-white text-black border-2 border-black font-bold hover:bg-yellow-300",
+  "neo-brutalist": "bg-white text-black border-2 border-black font-bold hover:bg-[#FFD400]",
   "glass-morphic":
     "bg-white/[0.06] text-[#D7DCEC] hover:text-white hover:bg-white/[0.14] border border-white/15",
   "bento-grid":

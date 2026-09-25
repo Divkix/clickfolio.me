@@ -74,7 +74,7 @@ export const THEME_METADATA = {
   },
   neo_brutalist: {
     name: "Neo Brutalist",
-    description: "Loud poster layout with thick borders and high-contrast type",
+    description: "Loud yellow poster with a giant name, hard shadows and a skills ticker",
     category: "Creative",
     preview: "/previews/brutalist.webp",
   },

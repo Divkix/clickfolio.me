@@ -240,6 +240,10 @@ export const DEMO_RESUME_CONTENT = {
         start_date: "2017-03",
         end_date: "2019-05",
         description: "Built CI/CD pipeline features for GitHub Actions.",
+        highlights: [
+          "Shipped matrix builds, used by most public workflows within a year of launch",
+          "Cut queue wait for hosted runners by rewriting the job scheduler",
+        ],
       },
     ],
     education: [
@@ -254,6 +258,7 @@ export const DEMO_RESUME_CONTENT = {
     skills: [
       { category: "Languages", items: ["TypeScript", "Rust", "Go", "Python"] },
       { category: "Infrastructure", items: ["Kubernetes", "AWS", "Cloudflare", "Docker"] },
+      { category: "Practices", items: ["Distributed tracing", "Load testing", "Incident review"] },
     ],
     certifications: [
       {
@@ -275,6 +280,13 @@ export const DEMO_RESUME_CONTENT = {
         description: "Developer productivity CLI with 10k+ GitHub stars",
         year: "2022",
         technologies: ["Go", "Cobra"],
+      },
+      {
+        title: "Isolate Bench",
+        description: "Benchmark suite comparing cold-start times across edge runtimes",
+        year: "2021",
+        technologies: ["TypeScript", "V8", "Cloudflare Workers"],
+        url: "https://github.com/johnsmith/isolate-bench",
       },
     ],
   },
@@ -996,6 +1008,6 @@ export const TEMPLATE_BACKGROUNDS = {
   glass: { bg: "bg-[#0B0F1A]", isDark: true },
   midnight: { bg: "bg-[#0B1026]", isDark: true },
   minimalist_editorial: { bg: "bg-white", isDark: false },
-  neo_brutalist: { bg: "bg-[#FFFDF5]", isDark: false },
+  neo_brutalist: { bg: "bg-[#FFD400]", isDark: false },
   spotlight: { bg: "bg-[#FFFCF9]", isDark: false },
 } as const satisfies Record<ThemeId, { bg: string; isDark: boolean }>;
