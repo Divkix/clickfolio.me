@@ -25,7 +25,7 @@ export function isValidThemeId(id: string): id is ThemeId {
 export const THEME_METADATA = {
   bento: {
     name: "Bento Grid",
-    description: "Modern mosaic layout with colorful cards",
+    description: "Flat colour tiles that fit together around your photo",
     category: "Modern",
     preview: "/previews/bento.webp",
   },
