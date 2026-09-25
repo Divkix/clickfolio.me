@@ -732,6 +732,10 @@ export const DEMO_RESUME_CONTENT = {
         start_date: "2023-09",
         end_date: undefined,
         description: "Researching distributed consensus algorithms under Prof. Smith.",
+        highlights: [
+          "Built a Raft simulator used in the undergraduate distributed systems course",
+          "Co-authored a workshop paper on leader election under network partitions",
+        ],
       },
     ],
     education: [
@@ -769,6 +773,12 @@ export const DEMO_RESUME_CONTENT = {
         year: "2023",
         technologies: ["Go", "ANSI"],
         url: "https://github.com/jordanlee/terminalui",
+      },
+      {
+        title: "Mongo Lens",
+        description: "Query profiler that flags slow MongoDB aggregations in CI",
+        year: "2023",
+        technologies: ["TypeScript", "MongoDB", "Node.js"],
       },
     ],
   },
@@ -982,7 +992,7 @@ export const TEMPLATE_BACKGROUNDS = {
   bold_corporate: { bg: "bg-white", isDark: false },
   classic_ats: { bg: "bg-[#D9DBDE]", isDark: false },
   design_folio: { bg: "bg-[#0f0f0f]", isDark: true },
-  dev_terminal: { bg: "bg-[#0d1117]", isDark: true },
+  dev_terminal: { bg: "bg-[#22272e]", isDark: true },
   glass: { bg: "bg-[#0B0F1A]", isDark: true },
   midnight: { bg: "bg-[#0B1026]", isDark: true },
   minimalist_editorial: { bg: "bg-white", isDark: false },

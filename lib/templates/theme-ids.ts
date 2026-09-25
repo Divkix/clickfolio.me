@@ -50,7 +50,7 @@ export const THEME_METADATA = {
   },
   dev_terminal: {
     name: "DevTerminal",
-    description: "GitHub-inspired dark terminal aesthetic for developers",
+    description: "GitHub-style profile with pinned projects and a commit timeline",
     category: "Developer",
     preview: "/previews/dev-terminal.webp",
   },

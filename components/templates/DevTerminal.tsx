@@ -1,500 +1,474 @@
-import { Folder, GitBranch, Mail, MapPin, Phone } from "lucide-react";
+import { Award, BookMarked, GitCommitHorizontal, GraduationCap, MapPin } from "lucide-react";
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
 import { getContactLinks } from "@/lib/templates/contact-links";
-import { formatDateRange, formatShortDate, formatYear } from "@/lib/templates/helpers";
+import { formatDateRange, formatShortDate, formatYear, getInitials } from "@/lib/templates/helpers";
+import { techDotColor } from "@/lib/templates/tech-colors";
 import type { TemplateProps } from "@/lib/types/template";
+import { getContactIcon } from "./shared/ContactIcon";
 import { TemplateFontLinks } from "./shared/TemplateFontLinks";
 
-function techDotColor(tech: string): string {
-  const key = tech.toLowerCase();
+type Content = TemplateProps["content"];
 
-  if (key.includes("typescript") || key === "ts") return "#3178c6";
-
-  if (key.includes("javascript") || key === "js") return "#f1e05a";
-
-  if (key.includes("python")) return "#3572A5";
-
-  if (key.includes("go")) return "#00ADD8";
-
-  if (key.includes("rust")) return "#dea584";
-
-  if (key.includes("react")) return "#61dafb";
-
-  if (key.includes("node")) return "#339933";
-
-  if (key.includes("next")) return "#ffffff";
-
-  if (key.includes("redis")) return "#dc382d";
-
-  if (key.includes("vite")) return "#646cff";
-
-  if (key.includes("cloudflare") || key.includes("worker")) return "#f38020";
-
-  if (key.includes("websocket")) return "#8b949e";
-
-  if (key.includes("timescale") || key.includes("postgres") || key.includes("sql")) {
-    return "#336791";
-  }
-
-  return "#238636";
+interface Tab {
+  id: string;
+  label: string;
+  count?: number;
 }
 
-function buildTabs(content: TemplateProps["content"]): { id: string; label: string }[] {
+function buildTabs(content: Content): Tab[] {
   const { skills, experience, projects, education, certifications } = content;
+  const hasEducation = (education?.length ?? 0) > 0;
+  const hasCerts = (certifications?.length ?? 0) > 0;
 
   return [
-    { id: "readme", label: "README.md" },
-    ...(skills && skills.length > 0 ? [{ id: "skills", label: "config.yml" }] : []),
-    ...(experience && experience.length > 0 ? [{ id: "experience", label: "experience.log" }] : []),
-    ...(projects && projects.length > 0 ? [{ id: "projects", label: "repos/" }] : []),
-    ...(education && education.length > 0 ? [{ id: "education", label: "education/" }] : []),
-    ...(certifications && certifications.length > 0
-      ? [{ id: "certifications", label: "certs/" }]
+    { id: "readme", label: "Overview" },
+    ...(experience.length > 0
+      ? [{ id: "experience", label: "Experience", count: experience.length }]
       : []),
-    { id: "contact", label: "contact.txt" },
+    ...(projects && projects.length > 0
+      ? [{ id: "projects", label: "Projects", count: projects.length }]
+      : []),
+    ...(skills && skills.length > 0 ? [{ id: "skills", label: "Skills" }] : []),
+    ...(hasEducation || hasCerts
+      ? [{ id: "education", label: hasEducation ? "Education" : "Certifications" }]
+      : []),
   ];
 }
 
-function TerminalTabNav({ tabs }: { tabs: { id: string; label: string }[] }) {
+const ACTIVE_TAB_CSS = [
+  ".term-root:not(:has(:target)) a[href='#readme']",
+  ...["readme", "experience", "projects", "skills", "education"].map(
+    (id) => `.term-root:has(#${id}:target) a[href='#${id}']`,
+  ),
+].join(",\n");
+
+function TabNav({ tabs }: { tabs: Tab[] }) {
   return (
     <nav
-      aria-label="Main navigation"
-      className="sticky top-0 z-50 bg-[#161b22] border-b border-[#30363d]"
+      aria-label="Sections"
+      className="sticky top-0 z-40 border-b border-[#444c56] bg-[#22272e]/95 backdrop-blur"
     >
-      <div className="max-w-5xl mx-auto flex items-center min-w-0">
-        <div className="flex items-center overflow-x-auto no-scrollbar touch-pan-x min-w-0">
-          {tabs.map((tab) => (
-            <a
-              key={tab.id}
-              href={`#${tab.id}`}
-              className="px-4 py-3 font-mono-term text-xs whitespace-nowrap border-t-2 border-transparent text-[#8b949e] hover:text-[#c9d1d9] hover:bg-[#0d1117]/50 hover:border-[#58a6ff] transition-colors focus-visible:outline-none focus-visible:text-white"
-            >
-              {tab.label}
-            </a>
-          ))}
-        </div>
-        <div className="ml-auto px-4 py-3 flex items-center gap-2 text-xs font-mono-term shrink-0">
-          <span className="px-2 py-1 bg-[#238636] text-white rounded-md flex items-center gap-1">
-            <GitBranch className="size-3" aria-hidden="true" />
-            main
-          </span>
-        </div>
+      <div className="mx-auto flex max-w-[1280px] overflow-x-auto px-4 md:px-8 no-scrollbar">
+        {tabs.map((tab) => (
+          <a
+            key={tab.id}
+            href={`#${tab.id}`}
+            className="term-tab flex shrink-0 items-center gap-2 border-b-2 border-transparent px-3 py-3 text-sm text-[#adbac7] hover:border-[#636e7b] focus-visible:outline-2 focus-visible:outline-[#539bf5] focus-visible:-outline-offset-2"
+          >
+            {tab.label}
+            {tab.count !== undefined && (
+              <span className="rounded-full bg-[#444c56]/70 px-2 text-xs font-medium tabular-nums text-[#cdd9e5]">
+                {tab.count}
+              </span>
+            )}
+          </a>
+        ))}
       </div>
     </nav>
   );
 }
 
-function SkillsSection({ skills }: { skills: NonNullable<TemplateProps["content"]["skills"]> }) {
-  return (
-    <section id="skills" className="mb-8 scroll-mt-14">
-      <div className="bg-[#161b22] border border-[#30363d] rounded-md overflow-hidden">
-        <div className="px-4 py-3 bg-[#0d1117] border-b border-[#30363d]">
-          <h2 className="font-mono-term text-sm text-[#c9d1d9] flex items-center gap-2">
-            <span className="text-[#238636]">#</span> System_Configuration
-          </h2>
-        </div>
-        <div className="p-4 font-mono-term text-xs md:text-sm">
-          {skills.map((skillGroup, index) => {
-            const echoText = `$ echo ${skillGroup.category.toUpperCase().replace(/\s+/g, "_")}`;
+function Avatar({ name, avatarUrl }: { name: string; avatarUrl: string | null }) {
+  const sizing = "size-20 md:size-full md:max-w-[296px] md:aspect-square";
 
-            return (
-              <div key={skillGroup.category} className="mb-4 last:mb-0">
-                <div className="text-[#7ee787] mb-2 flex items-start">
-                  <span className="text-[#484f58] select-none mr-4 text-right inline-block w-8 shrink-0">
-                    {index + 1}
-                  </span>
-                  <span>{echoText}</span>
-                </div>
-                <div className="pl-12 flex flex-wrap gap-2">
-                  {skillGroup.items.map((item) => (
-                    <span
-                      key={`${skillGroup.category}-${item}`}
-                      className="px-2 py-1 bg-[#21262d] border border-[#30363d] rounded text-[#c9d1d9] hover:border-[#58a6ff] transition-colors"
-                    >
-                      {item}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </section>
+  if (avatarUrl) {
+    return (
+      <img
+        src={avatarUrl}
+        alt={`Portrait of ${name}`}
+        width={296}
+        height={296}
+        fetchPriority="high"
+        decoding="async"
+        className={`${sizing} shrink-0 rounded-full border border-[#444c56] object-cover`}
+      />
+    );
+  }
+
+  return (
+    <div
+      className={`${sizing} flex shrink-0 items-center justify-center rounded-full border border-[#444c56] bg-[#2d333b] text-2xl font-semibold text-[#cdd9e5] md:text-7xl`}
+      aria-hidden="true"
+    >
+      {getInitials(name)}
+    </div>
   );
 }
 
-function ExperienceSection({ experience }: { experience: TemplateProps["content"]["experience"] }) {
+function ProfileSidebar({ content, avatarUrl }: { content: Content; avatarUrl: string | null }) {
+  const links = getContactLinks(content.contact);
+
   return (
-    <section id="experience" className="mb-8 scroll-mt-14">
-      <div className="bg-[#161b22] border border-[#30363d] rounded-md overflow-hidden">
-        <div className="px-4 py-3 bg-[#0d1117] border-b border-[#30363d]">
-          <h2 className="font-mono-term text-sm text-[#c9d1d9] flex items-center gap-2">
-            <span className="text-[#238636]">#</span> Log_History
-          </h2>
+    <aside className="md:sticky md:top-20 md:self-start">
+      <div className="flex items-center gap-4 md:block">
+        <Avatar name={content.full_name} avatarUrl={avatarUrl} />
+        <div className="min-w-0 md:mt-4">
+          <h1 className="text-2xl font-semibold leading-tight text-[#cdd9e5] break-words md:text-[26px]">
+            {content.full_name}
+          </h1>
+          {content.headline && (
+            <p className="mt-1 hidden text-base text-[#adbac7] md:block">{content.headline}</p>
+          )}
         </div>
-        <div className="divide-y divide-[#21262d]">
-          {experience.map((job) => (
-            <article
-              key={`${job.title}-${job.company}-${job.start_date}`}
-              className="p-4 hover:bg-[#0d1117] transition-colors"
-            >
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
-                <div className="min-w-0">
-                  <h3 className="font-sans-term font-semibold text-white">{job.title}</h3>
-                  <p className="text-[#58a6ff] text-sm">@ {job.company}</p>
-                </div>
-                <span className="font-mono-term text-xs text-[#8b949e] bg-[#21262d] px-2 py-1 rounded self-start">
-                  {formatDateRange(job.start_date, job.end_date)}
+      </div>
+      {content.headline && (
+        <p className="mt-3 text-base text-[#adbac7] md:hidden">{content.headline}</p>
+      )}
+
+      {links.length > 0 && (
+        <ul className="mt-4 space-y-2 text-sm">
+          {links.map((link) => {
+            const icon =
+              link.type === "location" ? (
+                <MapPin className="size-4" aria-hidden="true" />
+              ) : (
+                getContactIcon(link.type, {
+                  size: 16,
+                  className: "size-4",
+                  variant: "white",
+                  "aria-hidden": true,
+                })
+              );
+
+            return (
+              <li key={link.type} className="flex min-w-0 items-center gap-2">
+                <span className="flex size-4 shrink-0 items-center justify-center text-[#768390] opacity-80">
+                  {icon}
                 </span>
-              </div>
-              {job.description && <p className="text-[#8b949e] text-sm mb-2">{job.description}</p>}
-              {job.highlights && job.highlights.length > 0 && (
-                <ul className="space-y-1">
-                  {job.highlights.map((highlight) => (
-                    <li
-                      key={`${job.title}-${highlight}`}
-                      className="font-mono-term text-xs text-[#7ee787] flex items-start gap-2"
-                    >
-                      <span className="text-[#7ee787] font-bold shrink-0" aria-hidden="true">
-                        +
-                      </span>
-                      <span className="min-w-0">{highlight}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </article>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function ProjectsSection({
-  projects,
-}: {
-  projects: NonNullable<TemplateProps["content"]["projects"]>;
-}) {
-  return (
-    <section id="projects" className="mb-8 scroll-mt-14">
-      <div className="bg-[#161b22] border border-[#30363d] rounded-md overflow-hidden">
-        <div className="px-4 py-3 bg-[#0d1117] border-b border-[#30363d]">
-          <h2 className="font-mono-term text-sm text-[#c9d1d9] flex items-center gap-2">
-            <span className="text-[#238636]">#</span> Public_Repositories
-          </h2>
-        </div>
-        <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-          {projects.map((project) => {
-            const href = project.url
-              ? project.url.startsWith("http")
-                ? project.url
-                : `https://${project.url}`
-              : undefined;
-
-            const Wrapper = href ? "a" : "article";
-
-            return (
-              <Wrapper
-                key={`${project.title}-${project.year ?? ""}-${project.url ?? ""}`}
-                {...(href
-                  ? {
-                      href,
-                      target: "_blank" as const,
-                      rel: "noopener noreferrer",
-                    }
-                  : {})}
-                className="block p-4 bg-[#0d1117] border border-[#30363d] rounded-md hover:border-[#58a6ff] transition-colors group min-w-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#58a6ff]"
-              >
-                <div className="flex items-start justify-between mb-2 gap-2">
-                  <h3 className="font-sans-term font-semibold text-[#58a6ff] group-hover:underline [text-wrap:unset] break-words">
-                    {project.title}
-                  </h3>
-                  {project.year && (
-                    <span className="font-mono-term text-xs text-[#8b949e] shrink-0">
-                      {project.year}
-                    </span>
-                  )}
-                </div>
-                <p className="text-[#8b949e] text-sm mb-3">{project.description}</p>
-                {project.technologies && project.technologies.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {project.technologies.map((tech) => (
-                      <span
-                        key={`${project.title}-${tech}`}
-                        className="flex items-center gap-1 text-xs text-[#8b949e]"
-                      >
-                        <span
-                          className="size-3 rounded-full"
-                          style={{ backgroundColor: techDotColor(tech) }}
-                          aria-hidden="true"
-                        />
-                        {tech}
-                      </span>
-                    ))}
-                  </div>
+                {link.type === "location" ? (
+                  <span className="min-w-0 break-words text-[#adbac7]">{link.label}</span>
+                ) : (
+                  <a
+                    href={link.href}
+                    target={link.isExternal ? "_blank" : undefined}
+                    rel={link.isExternal ? "noopener noreferrer" : undefined}
+                    className="min-w-0 break-all text-[#adbac7] hover:text-[#539bf5] hover:underline"
+                  >
+                    {link.label}
+                  </a>
                 )}
-              </Wrapper>
+              </li>
             );
           })}
+        </ul>
+      )}
+    </aside>
+  );
+}
+
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return <h2 className="mb-3 text-base font-semibold text-[#cdd9e5]">{children}</h2>;
+}
+
+function Readme({ handle, summary }: { handle: string; summary: string }) {
+  return (
+    <section
+      id="readme"
+      aria-label="About"
+      className="scroll-mt-16 overflow-hidden rounded-md border border-[#444c56]"
+    >
+      <div className="border-b border-[#444c56] bg-[#2d333b] px-4 py-2.5 text-sm text-[#adbac7]">
+        <span className="text-[#768390]">{handle} /</span> README.md
+      </div>
+      <div className="p-5 md:p-6">
+        <div className="font-mono-term rounded-md bg-[#1c2128] px-4 py-3 text-[13px] leading-6 md:px-5 md:py-4 md:text-[15px] md:leading-7">
+          <p>
+            <span className="select-none text-[#768390]">$ </span>
+            <span className="text-[#cdd9e5]">whoami</span>
+          </p>
+          <p className="text-[#8ddb8c]">
+            {handle}
+            <span className="term-caret" aria-hidden="true" />
+          </p>
         </div>
+        {summary && (
+          <p className="mt-5 max-w-[68ch] text-[15px] leading-7 text-[#adbac7]">{summary}</p>
+        )}
       </div>
     </section>
   );
 }
 
-function EducationCertsSection({
+function ProjectsSection({ projects }: { projects: NonNullable<Content["projects"]> }) {
+  return (
+    <section id="projects" aria-labelledby="projects-title" className="scroll-mt-16">
+      <SectionTitle>
+        <span id="projects-title">Projects</span>
+      </SectionTitle>
+      <ul className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        {projects.map((project) => (
+          <li
+            key={`${project.title}-${project.year ?? ""}-${project.url ?? ""}`}
+            className="flex min-w-0 flex-col rounded-md border border-[#444c56] p-4"
+          >
+            <div className="flex items-start gap-2">
+              <BookMarked className="mt-0.5 size-4 shrink-0 text-[#768390]" aria-hidden="true" />
+              <h3 className="min-w-0 flex-1 break-words text-sm font-semibold">
+                {project.url ? (
+                  <a
+                    href={project.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[#539bf5] hover:underline"
+                  >
+                    {project.title}
+                  </a>
+                ) : (
+                  <span className="text-[#cdd9e5]">{project.title}</span>
+                )}
+              </h3>
+              {project.year && (
+                <span className="shrink-0 rounded-full border border-[#444c56] px-2 text-xs leading-5 text-[#768390]">
+                  {project.year}
+                </span>
+              )}
+            </div>
+            <p className="mt-2 flex-1 text-sm leading-6 text-[#adbac7]">{project.description}</p>
+            {project.technologies && project.technologies.length > 0 && (
+              <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[#768390]">
+                {project.technologies.map((tech) => (
+                  <li key={`${project.title}-${tech}`} className="flex items-center gap-1.5">
+                    <span
+                      className="size-3 rounded-full"
+                      style={{ backgroundColor: techDotColor(tech) }}
+                      aria-hidden="true"
+                    />
+                    {tech}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function ExperienceSection({ experience }: { experience: Content["experience"] }) {
+  return (
+    <section id="experience" aria-labelledby="experience-title" className="scroll-mt-16">
+      <SectionTitle>
+        <span id="experience-title">Experience</span>
+      </SectionTitle>
+      <ol>
+        {experience.map((job, index) => (
+          <li
+            key={`${job.title}-${job.company}-${job.start_date}`}
+            className="relative pb-8 pl-12 last:pb-0"
+          >
+            {index < experience.length - 1 && (
+              <span
+                className="absolute top-8 bottom-0 left-[15px] w-0.5 bg-[#444c56]"
+                aria-hidden="true"
+              />
+            )}
+            <span
+              className="absolute top-0 left-0 flex size-8 items-center justify-center rounded-full border border-[#444c56] bg-[#2d333b] text-[#768390]"
+              aria-hidden="true"
+            >
+              <GitCommitHorizontal className="size-4" />
+            </span>
+            <div className="flex flex-col gap-1 pt-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
+              <h3 className="min-w-0 break-words text-[15px] font-semibold text-[#cdd9e5]">
+                {job.title} <span className="font-normal text-[#768390]">at</span> {job.company}
+              </h3>
+              <p className="shrink-0 text-sm tabular-nums text-[#768390]">
+                {formatDateRange(job.start_date, job.end_date)}
+              </p>
+            </div>
+            {job.location && <p className="mt-0.5 text-sm text-[#768390]">{job.location}</p>}
+            {job.description && (
+              <p className="mt-2 max-w-[68ch] text-sm leading-6 text-[#adbac7]">
+                {job.description}
+              </p>
+            )}
+            {job.highlights && job.highlights.length > 0 && (
+              <ul className="mt-2 max-w-[68ch] list-disc space-y-1 pl-5 text-sm leading-6 text-[#adbac7] marker:text-[#636e7b]">
+                {job.highlights.map((highlight) => (
+                  <li key={`${job.title}-${highlight}`}>{highlight}</li>
+                ))}
+              </ul>
+            )}
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
+function SkillsSection({ skills }: { skills: NonNullable<Content["skills"]> }) {
+  return (
+    <section id="skills" aria-labelledby="skills-title" className="scroll-mt-16">
+      <SectionTitle>
+        <span id="skills-title">Skills</span>
+      </SectionTitle>
+      <dl className="divide-y divide-[#444c56] rounded-md border border-[#444c56]">
+        {skills.map((group) => (
+          <div
+            key={group.category}
+            className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-baseline sm:gap-6"
+          >
+            <dt className="shrink-0 text-sm font-medium text-[#cdd9e5] sm:w-40">
+              {group.category}
+            </dt>
+            <dd className="flex flex-wrap gap-1.5">
+              {group.items.map((item) => (
+                <span
+                  key={`${group.category}-${item}`}
+                  className="rounded-full bg-[#4184e4]/15 px-2.5 py-0.5 text-xs font-medium leading-5 text-[#6cb6ff]"
+                >
+                  {item}
+                </span>
+              ))}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  );
+}
+
+function EducationSection({
   education,
   certifications,
 }: {
-  education: TemplateProps["content"]["education"];
-  certifications: TemplateProps["content"]["certifications"];
+  education: NonNullable<Content["education"]>;
+  certifications: NonNullable<Content["certifications"]>;
 }) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-      {education && education.length > 0 && (
-        <section
-          id="education"
-          className="scroll-mt-14 bg-[#161b22] border border-[#30363d] rounded-md overflow-hidden"
-        >
-          <div className="px-4 py-3 bg-[#0d1117] border-b border-[#30363d]">
-            <h2 className="font-mono-term text-sm text-[#c9d1d9] flex items-center gap-2">
-              <span className="text-[#238636]">#</span> Education
-            </h2>
-          </div>
-          <div className="p-4 space-y-4">
+    <div id="education" className="grid scroll-mt-16 grid-cols-1 gap-8 lg:grid-cols-2">
+      {education.length > 0 && (
+        <section aria-labelledby="education-title">
+          <SectionTitle>
+            <span id="education-title">Education</span>
+          </SectionTitle>
+          <ul className="space-y-4">
             {education.map((edu) => (
-              <div key={`${edu.institution}-${edu.degree}-${edu.graduation_date ?? ""}`}>
-                <h3 className="font-sans-term font-semibold text-white text-sm">{edu.degree}</h3>
-                <p className="text-[#58a6ff] text-sm">{edu.institution}</p>
-                <div className="flex items-center gap-2 text-xs text-[#8b949e] mt-1">
-                  {edu.graduation_date && <span>{formatYear(edu.graduation_date)}</span>}
-                  {edu.gpa && <span>• GPA: {edu.gpa}</span>}
+              <li
+                key={`${edu.institution}-${edu.degree}-${edu.graduation_date ?? ""}`}
+                className="flex gap-3"
+              >
+                <GraduationCap
+                  className="mt-0.5 size-4 shrink-0 text-[#768390]"
+                  aria-hidden="true"
+                />
+                <div className="min-w-0 text-sm leading-6">
+                  <h3 className="font-semibold text-[#cdd9e5]">{edu.degree}</h3>
+                  <p className="text-[#adbac7]">{edu.institution}</p>
+                  {(edu.graduation_date || edu.gpa) && (
+                    <p className="text-[#768390]">
+                      {edu.graduation_date && <span>{formatYear(edu.graduation_date)}</span>}
+                      {edu.graduation_date && edu.gpa && ", "}
+                      {edu.gpa && <span>GPA {edu.gpa}</span>}
+                    </p>
+                  )}
                 </div>
-              </div>
+              </li>
             ))}
-          </div>
+          </ul>
         </section>
       )}
 
-      {certifications && certifications.length > 0 && (
-        <section
-          id="certifications"
-          className="scroll-mt-14 bg-[#161b22] border border-[#30363d] rounded-md overflow-hidden"
-        >
-          <div className="px-4 py-3 bg-[#0d1117] border-b border-[#30363d]">
-            <h2 className="font-mono-term text-sm text-[#c9d1d9] flex items-center gap-2">
-              <span className="text-[#238636]">#</span> Certifications
-            </h2>
-          </div>
-          <div className="p-4 space-y-4">
+      {certifications.length > 0 && (
+        <section aria-labelledby="certifications-title">
+          <SectionTitle>
+            <span id="certifications-title">Certifications</span>
+          </SectionTitle>
+          <ul className="space-y-4">
             {certifications.map((cert) => (
-              <div key={`${cert.name}-${cert.issuer}-${cert.date ?? ""}`}>
-                <h3 className="font-sans-term font-semibold text-[#F97583] text-sm">
-                  {cert.url ? (
-                    <a
-                      href={cert.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hover:underline"
-                    >
-                      {cert.name}
-                    </a>
-                  ) : (
-                    cert.name
-                  )}
-                </h3>
-                {cert.issuer && <p className="text-[#8b949e] text-sm">{cert.issuer}</p>}
-                {cert.date && (
-                  <span className="text-xs text-[#8b949e]">{formatShortDate(cert.date)}</span>
-                )}
-              </div>
+              <li key={`${cert.name}-${cert.issuer}-${cert.date ?? ""}`} className="flex gap-3">
+                <Award className="mt-0.5 size-4 shrink-0 text-[#768390]" aria-hidden="true" />
+                <div className="min-w-0 text-sm leading-6">
+                  <h3 className="font-semibold">
+                    {cert.url ? (
+                      <a
+                        href={cert.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[#539bf5] hover:underline"
+                      >
+                        {cert.name}
+                      </a>
+                    ) : (
+                      <span className="text-[#cdd9e5]">{cert.name}</span>
+                    )}
+                  </h3>
+                  {cert.issuer && <p className="text-[#adbac7]">{cert.issuer}</p>}
+                  {cert.date && <p className="text-[#768390]">{formatShortDate(cert.date)}</p>}
+                </div>
+              </li>
             ))}
-          </div>
+          </ul>
         </section>
       )}
     </div>
   );
 }
 
-function ContactFooter({
-  links,
-  fullName,
-  handle,
-}: {
-  links: ReturnType<typeof getContactLinks>;
-  fullName: string;
-  handle: string;
-}) {
-  return (
-    <footer
-      id="contact"
-      className="scroll-mt-14 bg-[#161b22] border border-[#30363d] rounded-md overflow-hidden"
-    >
-      <div className="px-4 py-3 bg-[#0d1117] border-b border-[#30363d]">
-        <h2 className="font-mono-term text-sm text-[#c9d1d9] flex items-center gap-2">
-          <span className="text-[#238636]">#</span> Contact
-        </h2>
-      </div>
-      <div className="p-4">
-        <div className="font-mono-term text-sm mb-4">
-          <span className="text-[#7ee787]">$ </span>
-          <span className="text-[#c9d1d9]">cat ./contact.txt</span>
-        </div>
-        <div className="flex flex-wrap gap-4 text-sm mb-6">
-          {links
-            .filter((link) => link.type !== "location")
-            .map((link) => (
-              <a
-                key={link.type}
-                href={link.href}
-                target={link.isExternal ? "_blank" : undefined}
-                rel={link.isExternal ? "noreferrer" : undefined}
-                className="text-[#58a6ff] hover:underline"
-              >
-                {link.label}
-              </a>
-            ))}
-        </div>
-
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-4 border-t border-[#30363d]">
-          <span className="text-xs text-[#8b949e] font-mono-term" suppressHydrationWarning>
-            &copy; {new Date().getFullYear()} {fullName}
-          </span>
-          <ShareBar
-            handle={handle}
-            title={`${fullName}'s Portfolio`}
-            name={fullName}
-            variant="dev-terminal"
-          />
-        </div>
-      </div>
-    </footer>
-  );
-}
-
 export const DevTerminal: React.FC<TemplateProps> = ({ content, profile }) => {
-  const {
-    full_name,
-    headline,
-    summary,
-    contact,
-    experience,
-    education,
-    skills,
-    projects,
-    certifications,
-  } = content;
-
-  const contactLinks = getContactLinks(contact);
-
+  const { full_name, summary, experience, education, skills, projects, certifications } = content;
   const tabs = buildTabs(content);
 
   return (
     <>
-      <TemplateFontLinks href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" />
+      <TemplateFontLinks href="https://fonts.googleapis.com/css2?family=Mona+Sans:wght@400;500;600;700&family=Martian+Mono:wght@400&display=swap" />
 
-      <div className="term-root min-h-screen bg-[#0d1117] text-[#c9d1d9] selection:bg-[#388bfd] selection:text-white w-full overflow-x-hidden">
+      <div className="term-root font-sans-term min-h-screen w-full overflow-x-hidden bg-[#22272e] text-[#adbac7] selection:bg-[#316dca] selection:text-white">
         <style>{`
-          .font-mono-term { font-family: 'JetBrains Mono', monospace; }
-          .font-sans-term { font-family: 'Inter', sans-serif; }
-          .term-root:not(:has(:target)) a[href="#readme"],
-          .term-root:has(#readme:target) a[href="#readme"],
-          .term-root:has(#skills:target) a[href="#skills"],
-          .term-root:has(#experience:target) a[href="#experience"],
-          .term-root:has(#projects:target) a[href="#projects"],
-          .term-root:has(#education:target) a[href="#education"],
-          .term-root:has(#certifications:target) a[href="#certifications"],
-          .term-root:has(#contact:target) a[href="#contact"] {
-            color: #c9d1d9;
-            background: #0d1117;
-            border-top-color: #f78166;
+          .font-sans-term { font-family: 'Mona Sans', -apple-system, 'Segoe UI', sans-serif; }
+          .font-mono-term { font-family: 'Martian Mono', ui-monospace, monospace; }
+          ${ACTIVE_TAB_CSS} {
+            color: #cdd9e5;
+            font-weight: 600;
+            border-bottom-color: #ec775c;
           }
+          .term-caret {
+            display: inline-block;
+            width: 0.55em;
+            height: 1.1em;
+            margin-left: 0.35em;
+            vertical-align: -0.2em;
+            background: #8ddb8c;
+          }
+          @media (prefers-reduced-motion: no-preference) {
+            .term-caret { animation: term-blink 1.1s steps(1) infinite; }
+          }
+          @keyframes term-blink { 50% { opacity: 0; } }
         `}</style>
 
-        <TerminalTabNav tabs={tabs} />
+        <TabNav tabs={tabs} />
 
-        <main className="max-w-5xl mx-auto px-4 py-8">
-          <header
-            id="readme"
-            className="mb-12 scroll-mt-14 bg-[#161b22] border border-[#30363d] rounded-md overflow-hidden"
-          >
-            <div className="px-4 py-3 bg-[#0d1117] border-b border-[#30363d] flex items-center gap-2">
-              <Folder className="size-4 text-[#8b949e]" aria-hidden="true" />
-              <span className="font-mono-term text-sm text-[#c9d1d9]">README.md</span>
-            </div>
-            <div className="p-6">
-              <h1 className="font-sans-term text-3xl md:text-4xl font-bold text-white mb-2 [text-wrap:unset] break-words">
-                {full_name}
-              </h1>
-              {headline && <p className="text-[#58a6ff] font-mono-term text-lg mb-4">{headline}</p>}
-              {summary && <p className="text-[#8b949e] leading-relaxed max-w-3xl">{summary}</p>}
+        <div className="mx-auto grid max-w-[1280px] grid-cols-1 gap-8 px-4 py-8 md:grid-cols-[minmax(0,240px)_minmax(0,1fr)] md:px-8 lg:grid-cols-[296px_minmax(0,1fr)]">
+          <ProfileSidebar content={content} avatarUrl={profile.avatar_url} />
 
-              <div className="mt-6 flex flex-wrap gap-4 text-sm">
-                {contactLinks.map((link) => {
-                  if (link.type === "location") {
-                    return (
-                      <span key={link.type} className="flex items-center gap-1.5 text-[#8b949e]">
-                        <MapPin className="size-4" aria-hidden="true" />
-                        {link.label}
-                      </span>
-                    );
-                  }
+          <main className="min-w-0 space-y-10">
+            <Readme handle={profile.handle} summary={summary} />
 
-                  if (link.type === "email") {
-                    return (
-                      <a
-                        key={link.type}
-                        href={link.href}
-                        className="flex items-center gap-1.5 text-[#58a6ff] hover:underline"
-                      >
-                        <Mail className="size-4" aria-hidden="true" />
-                        {link.label}
-                      </a>
-                    );
-                  }
+            {projects && projects.length > 0 && <ProjectsSection projects={projects} />}
 
-                  if (link.type === "phone") {
-                    return (
-                      <a
-                        key={link.type}
-                        href={link.href}
-                        className="flex items-center gap-1.5 text-[#58a6ff] hover:underline"
-                      >
-                        <Phone className="size-4" aria-hidden="true" />
-                        {link.label}
-                      </a>
-                    );
-                  }
+            {experience.length > 0 && <ExperienceSection experience={experience} />}
 
-                  return (
-                    <a
-                      key={link.type}
-                      href={link.href}
-                      target={link.isExternal ? "_blank" : undefined}
-                      rel={link.isExternal ? "noreferrer" : undefined}
-                      className="flex items-center gap-1.5 text-[#58a6ff] hover:underline"
-                    >
-                      {link.label}
-                    </a>
-                  );
-                })}
-              </div>
-            </div>
-          </header>
+            {skills && skills.length > 0 && <SkillsSection skills={skills} />}
 
-          {skills && skills.length > 0 && <SkillsSection skills={skills} />}
+            {((education?.length ?? 0) > 0 || (certifications?.length ?? 0) > 0) && (
+              <EducationSection education={education ?? []} certifications={certifications ?? []} />
+            )}
 
-          {experience && experience.length > 0 && <ExperienceSection experience={experience} />}
-
-          {projects && projects.length > 0 && <ProjectsSection projects={projects} />}
-
-          <EducationCertsSection education={education} certifications={certifications} />
-
-          <ContactFooter links={contactLinks} fullName={full_name} handle={profile.handle} />
-        </main>
+            <footer className="flex flex-col gap-4 border-t border-[#444c56] pt-6 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-xs text-[#768390]" suppressHydrationWarning>
+                &copy; {new Date().getFullYear()} {full_name}
+              </p>
+              <ShareBar
+                handle={profile.handle}
+                title={`${full_name}'s Portfolio`}
+                name={full_name}
+                variant="dev-terminal"
+              />
+            </footer>
+          </main>
+        </div>
       </div>
     </>
   );
