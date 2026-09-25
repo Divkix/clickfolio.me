@@ -233,7 +233,7 @@ function EducationCertifications({
                     cert.name
                   )}
                 </div>
-                <div className="text-[#888]">{cert.issuer}</div>
+                {cert.issuer && <div className="text-[#888]">{cert.issuer}</div>}
               </li>
             ))}
           </ul>

@@ -176,7 +176,9 @@ export function ExperienceSection({ form }: ExperienceSectionProps) {
                           />
                         </FormControl>
                         <FormDescription>
-                          {field.value?.length || 0}/2000 characters
+                          {field.value?.trim()
+                            ? `${field.value.length}/2000 characters`
+                            : "Optional, but a sentence or two about what you did makes this role stand out."}
                         </FormDescription>
                         <FormMessage />
                       </FormItem>

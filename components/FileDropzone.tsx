@@ -4,6 +4,7 @@ import { ShieldCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef } from "react";
 import { toast } from "sonner";
+import { LinkedInExportHelp } from "@/components/LinkedInExportHelp";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useFileUpload } from "@/hooks/useFileUpload";
@@ -374,6 +375,8 @@ function FileDropzonePrompt({
           </div>
         </div>
       </button>
+
+      {!uploading && !error && !file && <LinkedInExportHelp />}
 
       {uploading && <UploadProgress uploadProgress={uploadProgress} />}
 

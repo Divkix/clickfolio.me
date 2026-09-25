@@ -104,13 +104,14 @@ export default function LinkedInToPortfolioPage() {
             of your entire profile.
           </li>
           <li>
-            <strong>Upload the PDF to clickfolio.me.</strong> The AI parser reads your LinkedIn PDF
-            and extracts your experience, education, skills, and contact information — same as any
-            resume PDF.
+            <strong>Upload the PDF to clickfolio.me.</strong> The parser recognizes LinkedIn exports
+            and handles their layout — sidebar contact links, several roles under one company, and
+            page footers — to extract your experience, education, certifications, and contact info.
           </li>
           <li>
-            <strong>Review and edit.</strong> LinkedIn's PDF format is unconventional, so the parser
-            may need slightly more cleanup than a standard resume. The editor makes this fast.
+            <strong>Review and edit.</strong> LinkedIn only exports your top skills and leaves out
+            projects, so add those in the editor. Roles without a LinkedIn description import as-is;
+            a sentence or two about each one makes your portfolio stronger.
           </li>
           <li>
             <strong>Publish.</strong> Your portfolio is live at <code>clickfolio.me/@yourname</code>
@@ -122,9 +123,8 @@ export default function LinkedInToPortfolioPage() {
         <h3>Method 2: Use Your Resume PDF</h3>
         <p>
           If you have a resume PDF that mirrors your LinkedIn profile (as most professionals do),
-          upload that instead. Resume PDFs are formatted for the AI parser and typically produce
-          more accurate results than LinkedIn's exported PDF. Either method works — use whichever is
-          more up-to-date.
+          upload that instead. A resume usually carries more detail than LinkedIn's export — a full
+          skills list and projects. Either method works — use whichever is more up-to-date.
         </p>
       </section>
 
