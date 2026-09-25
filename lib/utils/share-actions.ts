@@ -27,7 +27,6 @@ export function getLinkedInIconVariant(
   switch (themeId) {
     case "glass-morphic":
     case "midnight":
-    case "design-folio":
     case "dev-terminal":
       return "white";
     default:

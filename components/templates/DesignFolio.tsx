@@ -1,380 +1,415 @@
-import { MapPin, Phone } from "lucide-react";
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
-import { type ContactLinkType, getContactLinks } from "@/lib/templates/contact-links";
-import { formatDateRange, formatShortDate, formatYear } from "@/lib/templates/helpers";
+import { getContactLinks } from "@/lib/templates/contact-links";
+import { getInitials } from "@/lib/templates/helpers";
 import type { TemplateProps } from "@/lib/types/template";
+import { getContactIcon } from "./shared/ContactIcon";
 import { TemplateFontLinks } from "./shared/TemplateFontLinks";
 
-const dfIconMap = {
-  phone: <Phone size={18} aria-hidden="true" />,
-  location: <MapPin size={18} aria-hidden="true" />,
-} as const satisfies Partial<Record<ContactLinkType, React.ReactNode>>;
+type Content = TemplateProps["content"];
 
-const dfSpanPattern = [
-  "md:col-span-8",
-  "md:col-span-4",
-  "md:col-span-4",
-  "md:col-span-8",
-  "md:col-span-6",
-  "md:col-span-6",
-];
+type Project = NonNullable<Content["projects"]>[number];
 
-const getSpanClass = (index: number) => dfSpanPattern[index % dfSpanPattern.length];
+// Palette: cool paper grey, true black ink, one cobalt block.
+const PAPER = "#EDEEF0";
 
-function ExperienceSection({ items }: { items: TemplateProps["content"]["experience"] }) {
-  if (items.length === 0) return null;
+const COBALT = "#2D3BFF";
 
+function formatMonth(date: string): string {
+  const parsed = new Date(date);
+
+  if (Number.isNaN(parsed.getTime())) return date;
+
+  return parsed.toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "UTC" });
+}
+
+function formatYearOnly(date: string): string {
+  const parsed = new Date(date);
+
+  if (Number.isNaN(parsed.getTime())) return date;
+
+  return parsed.toLocaleDateString("en-US", { year: "numeric", timeZone: "UTC" });
+}
+
+const inkLink =
+  "underline decoration-2 underline-offset-4 hover:text-[#2D3BFF] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2D3BFF]";
+
+function SectionHeading({ id, children }: { id: string; children: React.ReactNode }) {
   return (
-    <section className="mb-32">
-      <div className="flex items-end gap-4 mb-12 border-b border-[#333] pb-4">
-        <h2 className="font-serif-df text-4xl md:text-5xl">Experience</h2>
-        <span className="font-mono-df text-[#888] mb-2">/ Chronology</span>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-        {items.map((job, index) => (
-          <article
-            key={`${job.title}-${job.company}-${job.start_date}`}
-            className={`bg-[#1a1a1a] border border-[#333] p-8 flex flex-col justify-between transition-[border-color] duration-300 hover:border-[#CCFF00] min-w-0 ${getSpanClass(index)}`}
-          >
-            <div className="mb-6">
-              <span className="text-[#CCFF00] text-xs font-bold tracking-widest uppercase border border-[#CCFF00]/30 px-2 py-1 rounded inline-block mb-4">
-                {formatDateRange(job.start_date, job.end_date)}
-              </span>
-              <h3 className="font-serif-df text-2xl md:text-3xl text-white mb-2 leading-tight [text-wrap:unset] break-words">
-                {job.title}
-              </h3>
-              <div className="font-mono-df text-[#888] uppercase tracking-wide text-sm">
-                @ {job.company}
-              </div>
-            </div>
-
-            {job.description && (
-              <p className="font-mono-df text-[#ccc] text-sm leading-relaxed mb-4">
-                {job.description}
-              </p>
-            )}
-            {job.highlights && job.highlights.length > 0 && (
-              <ul className="font-mono-df text-[#aaa] text-sm space-y-2 list-disc pl-4">
-                {job.highlights.slice(0, 3).map((highlight) => (
-                  <li key={`${job.title}-${highlight}`}>{highlight}</li>
-                ))}
-              </ul>
-            )}
-          </article>
-        ))}
-      </div>
-    </section>
+    <h2
+      id={id}
+      className="border-t-[3px] border-black pt-4 mb-10 md:mb-14 text-2xl md:text-3xl font-bold tracking-[-0.01em]"
+    >
+      {children}
+    </h2>
   );
 }
 
-function SkillsSection({ groups }: { groups: TemplateProps["content"]["skills"] }) {
-  if (!groups?.length) return null;
+function Hero({ content, profile }: { content: Content; profile: TemplateProps["profile"] }) {
+  const links = getContactLinks(content.contact);
 
   return (
-    <section className="mb-32 border-t border-[#333] pt-20">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-start">
-        <div>
-          <span className="text-[#CCFF00] block mb-4 font-mono-df">Capabilities</span>
-          <h2 className="font-serif-df text-5xl md:text-6xl mb-6">
-            Technical <br /> <span className="italic text-[#888]">Arsenal</span>
-          </h2>
-        </div>
-
-        <div className="space-y-8">
-          {groups.map((skillGroup) => (
-            <div key={skillGroup.category} className="border-b border-[#333] pb-6">
-              <h4 className="font-mono-df text-[#888] text-xs uppercase mb-3 tracking-widest">
-                {skillGroup.category}
-              </h4>
-              <div className="flex flex-wrap gap-x-4 gap-y-2">
-                {skillGroup.items.map((item) => (
-                  <span
-                    key={`${skillGroup.category}-${item}`}
-                    className="text-lg md:text-xl text-[#e0e0e0] hover:text-[#CCFF00] transition-colors cursor-default"
-                  >
-                    {item}
-                  </span>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function ProjectsSection({ items }: { items: TemplateProps["content"]["projects"] }) {
-  if (!items?.length) return null;
-
-  return (
-    <section className="mb-32">
-      <div className="flex items-end gap-4 mb-12 border-b border-[#333] pb-4">
-        <h2 className="font-serif-df text-4xl md:text-5xl">Projects</h2>
-        <span className="font-mono-df text-[#888] mb-2">/ Selected Works</span>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {items.map((project) => {
-          const Wrapper = project.url ? "a" : "article";
-
-          return (
-            <Wrapper
-              key={`${project.title}-${project.year ?? ""}-${project.url ?? ""}`}
-              {...(project.url
-                ? {
-                    href: project.url,
-                    target: "_blank" as const,
-                    rel: "noopener noreferrer",
-                  }
-                : {})}
-              className="group block bg-[#1a1a1a] border border-[#333] overflow-hidden hover:border-[#CCFF00] transition-colors duration-300 min-w-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#CCFF00]"
+    <header className="grid gap-8 md:grid-cols-12 md:gap-6 pt-5 md:pt-6 pb-20 md:pb-28">
+      <div
+        className="md:col-span-7 md:order-2 flex flex-col justify-between gap-16 min-h-[22rem] md:min-h-[34rem] p-6 md:p-10 text-white"
+        style={{ backgroundColor: COBALT }}
+      >
+        <div className="flex justify-end">
+          {profile.avatar_url ? (
+            <img
+              src={profile.avatar_url}
+              alt={`Portrait of ${content.full_name}`}
+              width={112}
+              height={112}
+              fetchPriority="high"
+              decoding="async"
+              className="w-20 h-20 md:w-28 md:h-28 object-cover grayscale contrast-125"
+            />
+          ) : (
+            <div
+              aria-hidden="true"
+              className="w-20 h-20 md:w-28 md:h-28 border-2 border-white flex items-center justify-center text-2xl md:text-4xl font-bold"
             >
-              {project.image_url && (
-                <div className="relative overflow-hidden">
-                  <img
-                    src={project.image_url}
-                    alt={project.title}
-                    width={800}
-                    height={450}
-                    loading="lazy"
-                    decoding="async"
-                    className="w-full aspect-video object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-linear-to-t from-[#1a1a1a] to-transparent opacity-60" />
-                </div>
-              )}
-              <div className="p-8 md:p-10">
-                <div className="flex flex-wrap gap-2 mb-6">
-                  {project.technologies?.map((tech) => (
-                    <span
-                      key={tech}
-                      className="text-[10px] uppercase border border-[#555] text-[#a0a0a0] px-2 py-1 rounded-full group-hover:border-[#CCFF00] group-hover:text-[#CCFF00] transition-colors"
-                    >
-                      {tech}
-                    </span>
-                  ))}
-                </div>
-                <h3 className="font-serif-df text-3xl text-white mb-4 group-hover:text-[#CCFF00] transition-colors flex items-center gap-2 [text-wrap:unset] break-words">
-                  {project.title}
-                  {project.url && (
-                    <span
-                      className="text-sm opacity-0 group-hover:opacity-100 transition-opacity"
-                      aria-hidden="true"
-                    >
-                      ↗
-                    </span>
-                  )}
-                </h3>
-                <p className="font-mono-df text-[#888] text-sm leading-relaxed">
-                  {project.description}
-                </p>
-              </div>
-            </Wrapper>
-          );
-        })}
+              {getInitials(content.full_name)}
+            </div>
+          )}
+        </div>
+        <h1 className="text-[clamp(3rem,9vw,7.5rem)] font-extrabold leading-[0.9] tracking-[-0.04em] break-words [text-wrap:balance]">
+          {content.full_name}
+        </h1>
       </div>
-    </section>
-  );
-}
 
-function EducationCertifications({
-  education,
-  certifications,
-}: {
-  education: TemplateProps["content"]["education"];
-  certifications: TemplateProps["content"]["certifications"];
-}) {
-  if (!education?.length && !certifications?.length) return null;
-
-  return (
-    <section className="grid grid-cols-1 md:grid-cols-2 gap-12 mb-32">
-      {education && education.length > 0 && (
-        <div>
-          <h3 className="font-serif-df text-2xl mb-8 border-b border-[#333] pb-4">Education</h3>
-          <ul className="space-y-6">
-            {education.map((edu) => (
-              <li key={`${edu.institution}-${edu.degree}-${edu.graduation_date ?? ""}`}>
-                <span className="block text-[#CCFF00] text-xs mb-1 font-mono-df">
-                  {edu.graduation_date ? formatYear(edu.graduation_date) : ""}
-                </span>
-                <div className="text-xl text-white">{edu.degree}</div>
-                <div className="text-[#888]">{edu.institution}</div>
+      <div className="md:col-span-5 md:order-1 flex flex-col justify-end gap-8 min-w-0">
+        {content.headline && (
+          <p className="text-3xl md:text-[2.5rem] font-semibold leading-[1.08] tracking-[-0.02em] break-words">
+            {content.headline}
+          </p>
+        )}
+        {content.summary && (
+          <p className="text-lg leading-[1.6] text-[#43464D] max-w-[46ch]">{content.summary}</p>
+        )}
+        {links.length > 0 && (
+          <ul className="grid gap-2 text-[0.98rem]">
+            {links.map((link) => (
+              <li key={link.type} className="flex items-center gap-3 min-w-0">
+                {getContactIcon(link.type, {
+                  className: "w-4 h-4 shrink-0",
+                  size: 16,
+                  "aria-hidden": true,
+                })}
+                {link.href ? (
+                  <a
+                    href={link.href}
+                    target={link.isExternal ? "_blank" : undefined}
+                    rel={link.isExternal ? "noopener noreferrer" : undefined}
+                    className={`${inkLink} break-all`}
+                  >
+                    {link.label}
+                  </a>
+                ) : (
+                  <span>{link.label}</span>
+                )}
               </li>
             ))}
           </ul>
-        </div>
+        )}
+      </div>
+    </header>
+  );
+}
+
+function ProjectCover({ project, featured }: { project: Project; featured: boolean }) {
+  if (project.image_url) {
+    const aspect = featured ? "aspect-[4/3] md:aspect-[21/9]" : "aspect-[4/3]";
+
+    return (
+      <div className={`${aspect} overflow-hidden bg-white`}>
+        <img
+          src={project.image_url}
+          alt=""
+          width={featured ? 1600 : 800}
+          height={featured ? 686 : 600}
+          loading="lazy"
+          decoding="async"
+          className="w-full h-full object-cover transition-transform duration-500 motion-safe:group-hover:scale-[1.03]"
+        />
+      </div>
+    );
+  }
+
+  // No image: the title itself becomes the cover, so the grid keeps its rhythm.
+  return (
+    <div
+      className={`${
+        featured ? "min-h-56 md:min-h-80" : "min-h-56 md:min-h-72"
+      } bg-white flex flex-col justify-between gap-8 p-6 md:p-8 overflow-hidden transition-colors group-hover:bg-[#2D3BFF] group-hover:text-white text-[#2D3BFF]`}
+    >
+      <span className="text-[0.95rem] font-semibold">{project.year}</span>
+      <h3
+        className={`font-extrabold leading-[0.92] tracking-[-0.035em] break-words ${
+          featured ? "text-[clamp(2.5rem,7vw,6rem)]" : "text-[clamp(2.25rem,4.5vw,3.75rem)]"
+        }`}
+      >
+        {project.title}
+      </h3>
+    </div>
+  );
+}
+
+function Projects({ items }: { items: Content["projects"] }) {
+  if (!items?.length) return null;
+
+  // An odd count features the first project across both columns, so no card is left alone.
+  const featureFirst = items.length % 2 === 1;
+
+  return (
+    <section aria-labelledby="df-work" className="pb-24 md:pb-32">
+      <SectionHeading id="df-work">Selected work</SectionHeading>
+      <ul className="grid gap-x-6 gap-y-14 md:grid-cols-2">
+        {items.map((project, index) => {
+          const featured = featureFirst && index === 0;
+
+          const body = (
+            <>
+              <ProjectCover project={project} featured={featured} />
+              {project.image_url && (
+                <div className="mt-5 flex items-baseline justify-between gap-4">
+                  <h3 className="text-xl md:text-2xl font-bold tracking-[-0.01em] break-words group-hover:underline decoration-2 underline-offset-4">
+                    {project.title}
+                  </h3>
+                  {project.year && <span className="shrink-0 text-[#5B5F68]">{project.year}</span>}
+                </div>
+              )}
+              {project.description && (
+                <p
+                  className={`${project.image_url ? "mt-2" : "mt-5"} leading-[1.6] text-[#43464D] max-w-[60ch]`}
+                >
+                  {project.description}
+                </p>
+              )}
+              {project.technologies && project.technologies.length > 0 && (
+                <p className="mt-2 text-[0.95rem] text-[#5B5F68]">
+                  {project.technologies.join(", ")}
+                </p>
+              )}
+            </>
+          );
+
+          return (
+            <li
+              key={`${project.title}-${project.year ?? ""}-${project.url ?? ""}`}
+              className={`min-w-0 ${featured ? "md:col-span-2" : ""}`}
+            >
+              {project.url ? (
+                <a
+                  href={project.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group block focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[#2D3BFF]"
+                >
+                  {body}
+                </a>
+              ) : (
+                <div className="group">{body}</div>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
+function Experience({ items }: { items: Content["experience"] }) {
+  if (!items?.length) return null;
+
+  return (
+    <section aria-labelledby="df-experience" className="pb-24 md:pb-32">
+      <SectionHeading id="df-experience">Experience</SectionHeading>
+      <ol className="grid gap-12">
+        {items.map((job) => (
+          <li
+            key={`${job.title}-${job.company}-${job.start_date}`}
+            className="grid gap-3 md:grid-cols-12 md:gap-6"
+          >
+            <p className="md:col-span-3 text-[#5B5F68] tabular-nums">
+              {formatMonth(job.start_date)} – {job.end_date ? formatMonth(job.end_date) : "Present"}
+            </p>
+            <div className="md:col-span-4 min-w-0">
+              <h3 className="text-xl font-bold leading-snug break-words">{job.title}</h3>
+              <p className="mt-1 text-lg">{job.company}</p>
+              {job.location && <p className="mt-1 text-[#5B5F68]">{job.location}</p>}
+            </div>
+            <div className="md:col-span-5 min-w-0 text-[#43464D] leading-[1.6]">
+              {job.description && <p>{job.description}</p>}
+              {job.highlights && job.highlights.length > 0 && (
+                <ul className={`grid gap-2 ${job.description ? "mt-4" : ""}`}>
+                  {job.highlights.map((highlight, i) => (
+                    <li
+                      key={`${job.title}-${i}-${highlight}`}
+                      className="grid grid-cols-[1.25rem_1fr]"
+                    >
+                      <span
+                        aria-hidden="true"
+                        className="mt-[0.55em] w-2 h-2"
+                        style={{ backgroundColor: COBALT }}
+                      />
+                      <span>{highlight}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
+function Skills({ groups }: { groups: Content["skills"] }) {
+  const filled = groups?.filter((group) => group.items.length > 0) ?? [];
+
+  if (filled.length === 0) return null;
+
+  return (
+    <section aria-labelledby="df-skills" className="pb-24 md:pb-32">
+      <SectionHeading id="df-skills">Skills</SectionHeading>
+      <dl className="grid gap-10 sm:grid-cols-2 lg:grid-cols-3">
+        {filled.map((group) => (
+          <div key={group.category}>
+            <dt className="text-lg font-bold">{group.category}</dt>
+            <dd className="mt-3">
+              <ul className="grid gap-1 text-[#43464D]">
+                {group.items.map((item) => (
+                  <li key={`${group.category}-${item}`}>{item}</li>
+                ))}
+              </ul>
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  );
+}
+
+function Credentials({
+  education,
+  certifications,
+}: {
+  education: Content["education"];
+  certifications: Content["certifications"];
+}) {
+  const hasEducation = Boolean(education?.length);
+  const hasCertifications = Boolean(certifications?.length);
+
+  if (!hasEducation && !hasCertifications) return null;
+
+  return (
+    <div className="grid gap-y-0 gap-x-6 md:grid-cols-2 pb-24 md:pb-32">
+      {education && education.length > 0 && (
+        <section aria-labelledby="df-education" className="pb-16 md:pb-0">
+          <SectionHeading id="df-education">Education</SectionHeading>
+          <ul className="grid gap-8">
+            {education.map((edu) => (
+              <li key={`${edu.institution}-${edu.degree}-${edu.graduation_date ?? ""}`}>
+                <h3 className="text-lg font-bold break-words">{edu.degree}</h3>
+                <p className="mt-1">{edu.institution}</p>
+                {(edu.graduation_date || edu.gpa) && (
+                  <p className="mt-1 text-[#5B5F68]">
+                    {edu.graduation_date && formatYearOnly(edu.graduation_date)}
+                    {edu.graduation_date && edu.gpa ? ", " : ""}
+                    {edu.gpa && `GPA ${edu.gpa}`}
+                  </p>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
 
       {certifications && certifications.length > 0 && (
-        <div>
-          <h3 className="font-serif-df text-2xl mb-8 border-b border-[#333] pb-4">
-            Certifications
-          </h3>
-          <ul className="space-y-6">
+        <section aria-labelledby="df-certifications">
+          <SectionHeading id="df-certifications">Certifications</SectionHeading>
+          <ul className="grid gap-8">
             {certifications.map((cert) => (
               <li key={`${cert.name}-${cert.issuer}-${cert.date ?? ""}`}>
-                <span className="block text-[#CCFF00] text-xs mb-1 font-mono-df">
-                  {cert.date ? formatShortDate(cert.date) : ""}
-                </span>
-                <div className="text-xl text-white">
+                <h3 className="text-lg font-bold break-words">
                   {cert.url ? (
                     <a
                       href={cert.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="hover:text-[#CCFF00] transition-colors"
+                      className={inkLink}
                     >
                       {cert.name}
                     </a>
                   ) : (
                     cert.name
                   )}
-                </div>
-                {cert.issuer && <div className="text-[#888]">{cert.issuer}</div>}
+                </h3>
+                {cert.issuer && <p className="mt-1">{cert.issuer}</p>}
+                {cert.date && <p className="mt-1 text-[#5B5F68]">{formatMonth(cert.date)}</p>}
               </li>
             ))}
           </ul>
-        </div>
+        </section>
       )}
-    </section>
+    </div>
   );
 }
 
-export const DesignFolio: React.FC<TemplateProps> = ({ content, profile, isPreview }) => {
-  const {
-    full_name,
-    headline,
-    summary,
-    contact,
-    experience,
-    education,
-    skills,
-    projects,
-    certifications,
-  } = content;
-
-  const contactLinks = getContactLinks(contact);
-
-  const nameParts = (full_name || "Unknown").split(" ");
-  const firstName = nameParts[0] || "Unknown";
-  const lastName = nameParts.slice(1).join(" ");
-  const initials = nameParts.map((n) => n[0]).join("");
+export const DesignFolio: React.FC<TemplateProps> = ({ content, profile }) => {
+  const { full_name, contact } = content;
+  const links = getContactLinks(contact).filter((link) => link.href);
 
   return (
     <>
-      <TemplateFontLinks href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" />
+      <TemplateFontLinks href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400..900&display=swap" />
 
-      <div className="min-h-screen bg-[#0f0f0f] text-[#e0e0e0] selection:bg-[#CCFF00] selection:text-black w-full overflow-x-hidden relative">
+      <div
+        className="df-root min-h-screen w-full overflow-x-hidden text-black selection:bg-[#2D3BFF] selection:text-white"
+        style={{ backgroundColor: PAPER }}
+      >
         <style>{`
-          .font-serif-df { font-family: 'Playfair Display', serif; }
-          .font-mono-df { font-family: 'Space Mono', monospace; }
+          .df-root { font-family: 'Schibsted Grotesk', system-ui, sans-serif; font-size: 17px; }
         `}</style>
 
-        {!isPreview && (
-          <nav
-            aria-label="Main navigation"
-            className="flex justify-between items-center p-6 md:p-8 fixed top-0 w-full z-50 bg-[#0f0f0f]/85 backdrop-blur-md border-b border-[#2a2a2a]"
-          >
-            <div className="text-xl font-bold tracking-tighter font-mono-df text-white">
-              {initials}.
-            </div>
-            <div className="text-xs border border-[#CCFF00] px-4 py-1 rounded-full text-[#CCFF00] uppercase tracking-widest">
-              <span aria-hidden="true">● </span>
-              Available
-            </div>
-          </nav>
-        )}
+        <main className="max-w-[88rem] mx-auto px-5 md:px-10">
+          <Hero content={content} profile={profile} />
+          <Projects items={content.projects} />
+          <Experience items={content.experience} />
+          <Skills groups={content.skills} />
+          <Credentials education={content.education} certifications={content.certifications} />
+        </main>
 
-        <main
-          className={isPreview ? "pt-12 px-5 md:px-12 pb-20" : "pt-28 md:pt-32 px-5 md:px-12 pb-20"}
-        >
-          <header className="min-h-[62vh] flex flex-col justify-center relative mb-20 md:mb-28">
-            <h1 className="font-serif-df text-[clamp(3rem,8vw,7rem)] leading-[0.9] mb-8 [text-wrap:unset]">
-              <span className="text-[#555] block">Hello, I&apos;m</span>
-              <span className="text-white block break-words">{firstName}</span>
-              {lastName && (
-                <span className="italic text-[#CCFF00] block break-words">{lastName}</span>
-              )}
-            </h1>
-
-            <div className="max-w-2xl mt-8 border-l-2 border-[#333] pl-6 ml-2">
-              <p className="font-mono-df text-[#888] text-lg md:text-xl leading-relaxed">
-                {headline}
-                {headline && summary ? ". " : ""}
-                {summary}
-              </p>
-            </div>
-
-            <p className="mt-16 font-mono-df text-xs uppercase tracking-[0.3em] text-[#555] hidden md:block">
-              Scroll to explore ↓
-            </p>
-          </header>
-
-          <ExperienceSection items={experience} />
-
-          <SkillsSection groups={skills} />
-
-          <ProjectsSection items={projects} />
-
-          <EducationCertifications education={education} certifications={certifications} />
-
-          <footer className="border-t border-[#333] pt-20 pb-12">
-            <h2 className="font-serif-df text-[clamp(2rem,5vw,4rem)] mb-12 leading-tight">
-              Let&apos;s build something <br />
-              <span className="text-[#CCFF00] italic">remarkable.</span>
-            </h2>
-
-            <div className="flex flex-col md:flex-row flex-wrap gap-8 md:gap-16 font-mono-df text-lg">
-              {contactLinks.map((link) => {
-                // SAFETY: link.type is a ContactLinkType; dfIconMap covers phone/location
-                const icon = dfIconMap[link.type as keyof typeof dfIconMap];
-                const isBranded = link.type === "behance" || link.type === "dribbble";
-
-                const brandColor =
-                  link.type === "behance"
-                    ? "#1769FF"
-                    : link.type === "dribbble"
-                      ? "#EA4C89"
-                      : undefined;
-
-                const brandText =
-                  link.type === "behance" ? "Bē" : link.type === "dribbble" ? "Dr" : null;
-
-                if (link.type === "location") {
-                  return (
-                    <div key={link.type} className="text-[#888] flex items-center gap-2">
-                      {icon}
+        <footer className="text-white" style={{ backgroundColor: COBALT }}>
+          <div className="max-w-[88rem] mx-auto px-5 md:px-10 pt-16 md:pt-24 pb-10 grid gap-14">
+            {links.length > 0 && (
+              <ul className="grid gap-3 md:gap-4">
+                {links.map((link) => (
+                  <li key={link.type} className="min-w-0">
+                    <a
+                      href={link.href}
+                      target={link.isExternal ? "_blank" : undefined}
+                      rel={link.isExternal ? "noopener noreferrer" : undefined}
+                      className="inline-flex items-center gap-4 text-2xl md:text-5xl font-bold tracking-[-0.02em] break-all hover:underline decoration-[3px] underline-offset-[6px] focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-white"
+                    >
+                      {getContactIcon(link.type, {
+                        className: "w-5 h-5 md:w-8 md:h-8 shrink-0",
+                        size: 32,
+                        variant: "white",
+                        "aria-hidden": true,
+                      })}
                       {link.label}
-                    </div>
-                  );
-                }
-
-                return (
-                  <a
-                    key={link.type}
-                    href={link.href}
-                    target={link.isExternal ? "_blank" : undefined}
-                    rel={link.isExternal ? "noreferrer" : undefined}
-                    className={
-                      isBranded
-                        ? "transition-colors flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#CCFF00]"
-                        : "text-[#888] hover:text-[#CCFF00] transition-colors flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#CCFF00]"
-                    }
-                    style={isBranded ? { color: brandColor } : undefined}
-                  >
-                    {icon}
-                    {isBranded ? <span className="font-bold">{brandText}</span> : link.label}
-                  </a>
-                );
-              })}
-            </div>
-
-            <div className="mt-20 text-[#666] text-xs font-mono-df flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-              <span suppressHydrationWarning>
-                © {new Date().getFullYear()} {full_name}.
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <div className="flex flex-col-reverse md:flex-row md:items-end md:justify-between gap-6">
+              <span className="text-white/80" suppressHydrationWarning>
+                © {new Date().getFullYear()} {full_name}
               </span>
               <ShareBar
                 handle={profile.handle}
@@ -383,8 +418,8 @@ export const DesignFolio: React.FC<TemplateProps> = ({ content, profile, isPrevi
                 variant="design-folio"
               />
             </div>
-          </footer>
-        </main>
+          </div>
+        </footer>
       </div>
     </>
   );
