@@ -471,6 +471,13 @@ export const DEMO_RESUME_CONTENT = {
         technologies: ["Go", "Kubernetes", "Terraform"],
         url: "https://github.com/dianawalsh/platform-blueprint",
       },
+      {
+        title: "Incident Review Program",
+        description:
+          "Blameless postmortem process and review cadence adopted across 14 engineering teams.",
+        year: "2022",
+        technologies: ["PagerDuty", "Datadog", "Notion"],
+      },
     ],
   },
 

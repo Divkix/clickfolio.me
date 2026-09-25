@@ -42,7 +42,7 @@ export const shareButtonStyles = {
   midnight:
     "bg-transparent text-[#C9CEE4] hover:text-[#D4B26A] border border-[#D4B26A]/30 hover:border-[#D4B26A]/70 rounded-full px-3.5 py-1.5",
   "bold-corporate":
-    "bg-white text-neutral-700 hover:bg-neutral-50 border border-neutral-200 rounded-md px-3 py-1.5 shadow-sm",
+    "bg-white text-[#0E2A47] hover:bg-[#EEF2F6] border border-[#0E2A47]/25 rounded-sm px-3 py-1.5 text-sm font-medium",
   "classic-ats":
     "bg-white text-[#3F434A] hover:text-[#22385C] border border-[#B9BCC2] rounded-[3px] px-3 py-1.5 text-sm hover:border-[#22385C]",
   "design-folio":
@@ -61,7 +61,7 @@ export const shareTriggerStyles = {
   "bento-grid": "bg-[#1F4E3D] text-[#F4F5F1] border-[#1F4E3D] hover:bg-[#173D30]",
   spotlight: "bg-orange-500 text-white border-orange-400 shadow-md",
   midnight: "bg-[#131B3D] text-[#EDE6D6] border-[#D4B26A]/40 shadow-lg hover:border-[#D4B26A]",
-  "bold-corporate": "bg-white text-neutral-800 border-neutral-200 shadow-sm hover:bg-neutral-50",
+  "bold-corporate": "bg-[#0E2A47] text-white border-[#0E2A47] hover:bg-[#0A2038]",
   "classic-ats": "bg-white text-[#22385C] border-[#B9BCC2] shadow-sm hover:border-[#22385C]",
   "design-folio":
     "bg-[#1a1a1a] text-[#CCFF00] border-[#333] shadow-lg font-mono hover:border-[#CCFF00]",
@@ -75,7 +75,7 @@ export const sharePanelStyles = {
   "bento-grid": "bg-[#F4D35E] text-[#1A1C20] border-[#1A1C20]/15",
   spotlight: "bg-orange-50 text-orange-900 border-orange-200",
   midnight: "bg-[#0F1633]/95 text-[#EDE6D6] border-[#D4B26A]/30",
-  "bold-corporate": "bg-white text-neutral-800 border-neutral-200",
+  "bold-corporate": "bg-white text-[#1B2430] border-[#0E2A47]/25",
   "classic-ats": "bg-white text-[#16181D] border-[#B9BCC2]",
   "design-folio": "bg-[#1a1a1a] text-[#e0e0e0] border-[#333]",
   "dev-terminal": "bg-[#2d333b] text-[#adbac7] border-[#444c56]",
@@ -91,7 +91,7 @@ export const shareItemStyles = {
   spotlight: "bg-orange-50 text-orange-700 hover:bg-orange-100 border border-orange-200",
   midnight:
     "bg-[#131B3D] text-[#C9CEE4] hover:text-[#D4B26A] border border-[#D4B26A]/25 hover:border-[#D4B26A]/60",
-  "bold-corporate": "bg-white text-neutral-700 hover:bg-neutral-50 border-neutral-200",
+  "bold-corporate": "bg-white text-[#0E2A47] hover:bg-[#EEF2F6] border-[#0E2A47]/25",
   "classic-ats": "bg-white text-[#3F434A] hover:text-[#22385C] border-[#B9BCC2]",
   "design-folio":
     "bg-[#1a1a1a] text-[#888] hover:text-[#CCFF00] border border-[#333] font-mono hover:border-[#CCFF00]",

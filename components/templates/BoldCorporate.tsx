@@ -1,331 +1,194 @@
-"use client";
-
 import { MapPin } from "lucide-react";
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
-import { type ContactLinkDescriptor, getContactLinks } from "@/lib/templates/contact-links";
-import { flattenSkills, formatDateRange, formatYear, getInitials } from "@/lib/templates/helpers";
+import { getContactLinks } from "@/lib/templates/contact-links";
+import { formatDateRange, formatYear, getInitials } from "@/lib/templates/helpers";
 import type { TemplateProps } from "@/lib/types/template";
 import { getContactIcon } from "./shared/ContactIcon";
 import { TemplateFontLinks } from "./shared/TemplateFontLinks";
 
+type Content = TemplateProps["content"];
+
+// Annual-report palette: one navy carries all emphasis, everything else is ink and slate.
+const NAVY = "#0E2A47";
+
+const SLATE = "#5B6776";
+
+const LINK =
+  "underline decoration-[#0E2A47]/25 underline-offset-4 hover:decoration-[#0E2A47] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0E2A47] rounded-sm";
+
 function Section({
+  id,
   title,
-  ariaLabel,
-  headingClassName = "mb-12",
   children,
 }: {
+  id: string;
   title: string;
-  ariaLabel?: string;
-  headingClassName?: string;
   children: React.ReactNode;
 }) {
   return (
-    <section className="mb-20 md:mb-28" aria-label={ariaLabel}>
-      <div className={`flex items-center gap-4 ${headingClassName}`}>
-        <h2 className="font-heading-bc text-xs font-black uppercase tracking-widest text-neutral-900 shrink-0">
-          {title}
-        </h2>
-        <div className="h-px bg-neutral-200 flex-1" />
-      </div>
+    <section aria-labelledby={id} className="border-t-[6px] pt-5" style={{ borderColor: NAVY }}>
+      <h2
+        id={id}
+        className="bc-display mb-8 text-[1.75rem] font-bold leading-none tracking-[-0.01em]"
+        style={{ color: NAVY, fontStretch: "87.5%" }}
+      >
+        {title}
+      </h2>
       {children}
     </section>
   );
 }
 
-function Header({
-  fullName,
-  headline,
-  avatarUrl,
-}: {
-  fullName: TemplateProps["content"]["full_name"];
-  headline: TemplateProps["content"]["headline"];
-  avatarUrl: TemplateProps["profile"]["avatar_url"];
-}) {
-  const nameParts = fullName.split(" ");
-  const firstName = nameParts[0] ?? "";
-  const lastName = nameParts.slice(1).join(" ") || "";
-  const safeHeadline = headline && headline.trim() !== "" ? headline : "Professional";
+function Sidebar({ content, avatarUrl }: { content: Content; avatarUrl: string | null }) {
+  const contactLinks = getContactLinks(content.contact).filter((link) => link.type !== "location");
+  const skills = content.skills?.filter((group) => group.items.length > 0) ?? [];
 
   return (
-    <header className="grid grid-cols-1 md:grid-cols-12 gap-8 items-end mb-16 md:mb-24">
-      <div className="md:col-span-8 min-w-0">
-        <h1 className="font-heading-bc text-5xl sm:text-7xl md:text-8xl font-black tracking-tighter leading-[0.9] break-words [text-wrap:unset]">
-          {firstName}
-          {lastName && (
-            <>
-              <br />
-              {lastName}
-            </>
-          )}
-        </h1>
-        <p className="text-xl text-neutral-500 mt-6 max-w-md">{safeHeadline}</p>
+    <aside
+      className="px-6 pb-10 pt-10 text-white sm:px-10 lg:px-10 lg:pb-16 lg:pt-14"
+      style={{ backgroundColor: NAVY }}
+    >
+      <div className="flex h-24 w-24 items-center justify-center overflow-hidden bg-white/10 lg:h-28 lg:w-28">
+        {avatarUrl ? (
+          <img
+            src={avatarUrl}
+            alt={`Portrait of ${content.full_name}`}
+            width={112}
+            height={112}
+            fetchPriority="high"
+            decoding="async"
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <span className="bc-display text-4xl font-extrabold" aria-hidden="true">
+            {getInitials(content.full_name)}
+          </span>
+        )}
       </div>
-      <div className="md:col-span-4 flex justify-start md:justify-end">
-        <div className="w-20 h-20 md:w-32 md:h-32 rounded-full bg-neutral-100 overflow-hidden flex items-center justify-center">
-          {avatarUrl ? (
-            <img
-              src={avatarUrl}
-              alt={`Portrait of ${fullName}`}
-              width={128}
-              height={128}
-              fetchPriority="high"
-              decoding="async"
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <span className="text-4xl font-black text-neutral-400">{getInitials(fullName)}</span>
-          )}
-        </div>
-      </div>
-    </header>
-  );
-}
 
-function SummarySection({
-  summary,
-  fullName,
-  contactLinks,
-  handle,
-}: {
-  summary: TemplateProps["content"]["summary"];
-  fullName: TemplateProps["content"]["full_name"];
-  contactLinks: ContactLinkDescriptor[];
-  handle: TemplateProps["profile"]["handle"];
-}) {
-  return (
-    <section className="mb-20 md:mb-28 bg-neutral-50 rounded-2xl p-8 md:p-12">
-      {summary && (
-        <p className="text-neutral-600 leading-relaxed mb-8 max-w-2xl text-lg">{summary}</p>
+      <h1
+        className="bc-display mt-8 text-[clamp(3.25rem,6.5vw,5.25rem)] font-extrabold leading-[0.88] tracking-[-0.015em] break-words hyphens-auto"
+        style={{ fontStretch: "75%" }}
+      >
+        {content.full_name}
+      </h1>
+      {content.headline && (
+        <p className="mt-5 text-lg leading-snug text-white/80">{content.headline}</p>
       )}
-      <nav aria-label="Contact information" className="flex flex-wrap items-center gap-4">
-        {contactLinks.map((link) => {
-          const isLocation = link.type === "location";
-          const isBehance = link.type === "behance";
-          const isDribbble = link.type === "dribbble";
+      {content.contact?.location && (
+        <p className="mt-4 flex items-center gap-2 text-[15px] text-white/70">
+          <MapPin className="h-4 w-4 shrink-0" aria-hidden="true" />
+          {content.contact.location}
+        </p>
+      )}
 
-          if (isLocation) {
-            return (
-              <span
-                key={link.type}
-                className="inline-flex items-center gap-1.5 text-sm text-neutral-500"
-              >
-                <MapPin className="w-4 h-4" aria-hidden="true" />
-                {link.label}
-              </span>
-            );
-          }
-
-          return (
-            <a
-              key={link.type}
-              href={link.href}
-              target={link.isExternal ? "_blank" : undefined}
-              rel={link.isExternal ? "noopener noreferrer" : undefined}
-              className="inline-flex items-center gap-1.5 text-sm text-neutral-500 hover:text-[#0055FF] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0055FF] rounded-sm"
-            >
-              {isBehance ? (
-                <span className="text-xs font-bold">Be</span>
-              ) : isDribbble ? (
-                <span className="text-xs font-bold">Dr</span>
-              ) : (
-                getContactIcon(link.type, { className: "w-4 h-4", "aria-hidden": true })
-              )}
-              {link.label}
-            </a>
-          );
-        })}
-      </nav>
-      <div className="mt-6">
-        <ShareBar
-          handle={handle}
-          title={`${fullName}'s Portfolio`}
-          name={fullName}
-          variant="bold-corporate"
-        />
-      </div>
-    </section>
-  );
-}
-
-function ExperienceSection({
-  experience,
-}: {
-  experience: NonNullable<TemplateProps["content"]["experience"]>;
-}) {
-  if (!experience?.length) return null;
-
-  return (
-    <Section title="Experience">
-      <div className="space-y-14">
-        {experience.map((job, idx) => {
-          const number = String(idx + 1).padStart(2, "0");
-          const limitedHighlights = job.highlights?.slice(0, 4) ?? [];
-
-          return (
-            <article
-              key={`${job.title}-${job.company}-${job.start_date}`}
-              className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6"
-            >
-              <div className="md:col-span-2">
-                <span className="font-heading-bc text-sm font-black tracking-widest text-[#0055FF]">
-                  {number}
-                </span>
-              </div>
-              <div className="md:col-span-10 min-w-0">
-                <div className="flex flex-col sm:flex-row sm:items-start gap-4 mb-3">
-                  <div className="w-10 h-10 rounded-full bg-neutral-100 flex items-center justify-center shrink-0">
-                    <span className="text-xs font-bold text-neutral-500">
-                      {getInitials(job.company)}
-                    </span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-heading-bc text-2xl font-bold [text-wrap:unset] break-words">
-                      {job.title}
-                    </h3>
-                    <p className="text-neutral-500 text-sm">
-                      {job.company}
-                      {job.location ? ` \u00B7 ${job.location}` : ""}
-                    </p>
-                  </div>
-                  <span className="text-xs text-neutral-400 font-medium shrink-0 sm:mt-1">
-                    {formatDateRange(job.start_date, job.end_date)}
+      {contactLinks.length > 0 && (
+        <nav aria-label="Contact" className="mt-10 border-t border-white/20 pt-6">
+          <ul className="space-y-3">
+            {contactLinks.map((link) => (
+              <li key={link.type} className="min-w-0">
+                <a
+                  href={link.href}
+                  target={link.isExternal ? "_blank" : undefined}
+                  rel={link.isExternal ? "noopener noreferrer" : undefined}
+                  className="inline-flex max-w-full items-center gap-3 text-[15px] text-white hover:underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white rounded-sm"
+                >
+                  <span className="flex shrink-0 text-white/70">
+                    {getContactIcon(link.type, {
+                      className: "h-4 w-4",
+                      variant: "white",
+                      "aria-hidden": true,
+                    })}
                   </span>
-                </div>
-                {job.description && job.description.trim() !== "" && (
-                  <p className="text-neutral-600 text-sm leading-relaxed mb-4 max-w-xl">
-                    {job.description}
-                  </p>
-                )}
-                {limitedHighlights.length > 0 && (
-                  <ul className="space-y-2 text-sm text-neutral-600 list-disc pl-5 max-w-2xl">
-                    {limitedHighlights.map((highlight, i) => (
-                      <li key={`${job.title}-${highlight}-${i}`}>{highlight}</li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            </article>
-          );
-        })}
-      </div>
-    </Section>
-  );
-}
+                  <span className="truncate">{link.label}</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      )}
 
-function EducationSection({ education }: { education: TemplateProps["content"]["education"] }) {
-  if (!education?.length) return null;
-
-  return (
-    <Section title="Education">
-      <div className="space-y-10">
-        {education.map((edu, idx) => {
-          const number = String(idx + 1).padStart(2, "0");
-
-          return (
-            <article
-              key={`${edu.institution}-${edu.degree}-${edu.graduation_date ?? ""}`}
-              className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6"
-            >
-              <div className="md:col-span-2">
-                <span className="font-heading-bc text-sm font-black tracking-widest text-[#0055FF]">
-                  {number}
-                </span>
-              </div>
-              <div className="md:col-span-10 min-w-0">
-                <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-full bg-neutral-100 flex items-center justify-center shrink-0">
-                    <span className="text-xs font-bold text-neutral-500">
-                      {getInitials(edu.institution)}
-                    </span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-heading-bc text-xl font-bold [text-wrap:unset] break-words">
-                      {edu.degree}
-                    </h3>
-                    <p className="text-neutral-500 text-sm">{edu.institution}</p>
-                    <div className="flex items-center gap-3 mt-1">
-                      {edu.graduation_date && (
-                        <span className="text-xs text-neutral-400">
-                          {formatYear(edu.graduation_date)}
-                        </span>
-                      )}
-                      {edu.gpa && <span className="text-xs text-neutral-400">GPA: {edu.gpa}</span>}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </article>
-          );
-        })}
-      </div>
-    </Section>
-  );
-}
-
-function CertificationsSection({
-  certifications,
-}: {
-  certifications: TemplateProps["content"]["certifications"];
-}) {
-  if (!certifications?.length) return null;
-
-  return (
-    <Section title="Awards">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {certifications.map((cert) => (
-          <article
-            key={`${cert.name}-${cert.issuer}-${cert.date ?? ""}`}
-            className="flex items-start gap-4 min-w-0"
+      {skills.length > 0 && (
+        <section aria-labelledby="bc-skills" className="mt-10 border-t border-white/20 pt-6">
+          <h2
+            id="bc-skills"
+            className="bc-display text-xl font-bold"
+            style={{ fontStretch: "87.5%" }}
           >
-            <div className="w-2 h-2 rounded-full bg-neutral-900 mt-2 shrink-0" />
+            Skills
+          </h2>
+          <dl className="mt-5 space-y-5">
+            {skills.map((group) => (
+              <div key={group.category}>
+                <dt className="text-sm font-semibold text-white/60">{group.category}</dt>
+                <dd className="mt-1 text-[15px] leading-relaxed">{group.items.join(", ")}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      )}
+    </aside>
+  );
+}
+
+function ExperienceSection({ experience }: { experience: NonNullable<Content["experience"]> }) {
+  return (
+    <Section id="bc-experience" title="Experience">
+      <ol className="space-y-10">
+        {experience.map((job) => (
+          <li
+            key={`${job.title}-${job.company}-${job.start_date}`}
+            className="grid gap-x-8 gap-y-2 md:grid-cols-[10.5rem_1fr]"
+          >
+            <p className="text-sm font-medium tabular-nums md:pt-1.5" style={{ color: SLATE }}>
+              {formatDateRange(job.start_date, job.end_date)}
+            </p>
             <div className="min-w-0">
-              <h3 className="font-heading-bc font-bold text-lg [text-wrap:unset] break-words">
-                {cert.url ? (
-                  <a
-                    href={cert.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:underline hover:text-[#0055FF] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0055FF]"
-                  >
-                    {cert.name}
-                  </a>
-                ) : (
-                  cert.name
-                )}
-              </h3>
-              <p className="text-sm text-neutral-500">
-                {cert.issuer}
-                {cert.date ? `${cert.issuer ? " \u00B7 " : ""}${formatYear(cert.date)}` : ""}
+              <h3 className="text-xl font-bold leading-snug break-words">{job.title}</h3>
+              <p className="text-[15px]" style={{ color: SLATE }}>
+                {job.company}
+                {job.location && `, ${job.location}`}
               </p>
+              {job.description && (
+                <p className="mt-3 max-w-[68ch] leading-relaxed">{job.description}</p>
+              )}
+              {job.highlights && job.highlights.length > 0 && (
+                <ul className="mt-3 max-w-[68ch] space-y-2 leading-relaxed">
+                  {job.highlights.map((highlight, i) => (
+                    <li key={`${job.title}-${i}`} className="relative pl-5">
+                      <span
+                        className="absolute left-0 top-[0.6em] h-1.5 w-1.5"
+                        style={{ backgroundColor: NAVY }}
+                        aria-hidden="true"
+                      />
+                      {highlight}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
-          </article>
+          </li>
         ))}
-      </div>
+      </ol>
     </Section>
   );
 }
 
-function ProjectsSection({ projects }: { projects: TemplateProps["content"]["projects"] }) {
-  if (!projects?.length) return null;
-
+function ProjectsSection({ projects }: { projects: NonNullable<Content["projects"]> }) {
   return (
-    <Section title="Projects">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+    <Section id="bc-projects" title="Projects">
+      <div className="grid gap-x-10 gap-y-10 md:grid-cols-2">
         {projects.map((project) => (
           <article
             key={`${project.title}-${project.year ?? ""}-${project.url ?? ""}`}
-            className="min-w-0"
+            className="min-w-0 border-t-2 pt-4"
+            style={{ borderColor: NAVY }}
           >
-            <div className="flex items-start justify-between gap-3 mb-2">
-              <h3 className="font-heading-bc text-xl font-bold [text-wrap:unset] break-words">
+            <div className="flex items-baseline justify-between gap-4">
+              <h3 className="text-lg font-bold leading-snug break-words">
                 {project.url ? (
-                  <a
-                    href={project.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:underline hover:text-[#0055FF] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0055FF]"
-                  >
+                  <a href={project.url} target="_blank" rel="noopener noreferrer" className={LINK}>
                     {project.title}
                   </a>
                 ) : (
@@ -333,21 +196,16 @@ function ProjectsSection({ projects }: { projects: TemplateProps["content"]["pro
                 )}
               </h3>
               {project.year && (
-                <span className="text-xs text-neutral-400 mt-1 shrink-0">{project.year}</span>
+                <span className="shrink-0 text-sm tabular-nums" style={{ color: SLATE }}>
+                  {project.year}
+                </span>
               )}
             </div>
-            <p className="text-sm text-neutral-600 mb-3">{project.description}</p>
+            {project.description && <p className="mt-2 leading-relaxed">{project.description}</p>}
             {project.technologies && project.technologies.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
-                {project.technologies.map((tech, i) => (
-                  <span
-                    key={`${project.title}-${tech}-${i}`}
-                    className="border border-neutral-200 rounded-full px-3 py-1 text-xs text-neutral-500"
-                  >
-                    {tech}
-                  </span>
-                ))}
-              </div>
+              <p className="mt-3 text-sm" style={{ color: SLATE }}>
+                Built with {project.technologies.join(", ")}
+              </p>
             )}
           </article>
         ))}
@@ -356,150 +214,111 @@ function ProjectsSection({ projects }: { projects: TemplateProps["content"]["pro
   );
 }
 
-function SkillsSection({ skills }: { skills: TemplateProps["content"]["skills"] }) {
-  const flatSkills = flattenSkills(skills);
-
-  if (flatSkills.length === 0) return null;
-
+function EducationSection({ education }: { education: NonNullable<Content["education"]> }) {
   return (
-    <Section title="Skills" ariaLabel="Skills" headingClassName="mb-8">
-      <div className="flex flex-wrap gap-2">
-        {flatSkills.map((skill, i) => (
-          <span
-            key={`${skill}-${i}`}
-            className="inline-block border border-neutral-200 rounded-full px-4 py-2 text-sm font-medium text-neutral-700"
+    <Section id="bc-education" title="Education">
+      <ul className="space-y-6">
+        {education.map((edu) => (
+          <li
+            key={`${edu.institution}-${edu.degree}-${edu.graduation_date ?? ""}`}
+            className="grid gap-x-8 gap-y-1 md:grid-cols-[10.5rem_1fr]"
           >
-            {skill}
-          </span>
+            <p className="text-sm font-medium tabular-nums md:pt-1" style={{ color: SLATE }}>
+              {edu.graduation_date ? formatYear(edu.graduation_date) : ""}
+            </p>
+            <div className="min-w-0">
+              <h3 className="text-lg font-bold leading-snug break-words">{edu.degree}</h3>
+              <p className="text-[15px]" style={{ color: SLATE }}>
+                {edu.institution}
+                {edu.gpa && `, GPA ${edu.gpa}`}
+              </p>
+            </div>
+          </li>
         ))}
-      </div>
+      </ul>
     </Section>
   );
 }
 
-function Footer({
-  contact,
-  fullName,
-  contactLinks,
+function CertificationsSection({
+  certifications,
 }: {
-  contact: TemplateProps["content"]["contact"];
-  fullName: string;
-  contactLinks: ContactLinkDescriptor[];
+  certifications: NonNullable<Content["certifications"]>;
 }) {
   return (
-    <footer className="border-t border-neutral-200 pt-16 pb-12">
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 mb-16">
-        <div>
-          <h3 className="font-heading-bc text-xs font-black uppercase tracking-widest mb-4">
-            Contact
-          </h3>
-          <div className="space-y-2">
-            {contact.email && (
-              <a
-                href={`mailto:${contact.email}`}
-                className="block text-sm text-neutral-500 hover:text-[#0055FF] transition-colors break-all"
-              >
-                {contact.email}
-              </a>
-            )}
-            {contact.phone && <p className="text-sm text-neutral-500">{contact.phone}</p>}
-          </div>
-        </div>
-        <div>
-          <h3 className="font-heading-bc text-xs font-black uppercase tracking-widest mb-4">
-            Location
-          </h3>
-          {contact.location && <p className="text-sm text-neutral-500">{contact.location}</p>}
-        </div>
-        <div>
-          <h3 className="font-heading-bc text-xs font-black uppercase tracking-widest mb-4">
-            Social
-          </h3>
-          <div className="space-y-2">
-            {contactLinks
-              .filter((link) => link.isExternal)
-              .map((link) => (
-                <a
-                  key={link.type}
-                  href={link.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block text-sm text-neutral-500 hover:text-[#0055FF] transition-colors"
-                >
-                  {link.label}
-                </a>
-              ))}
-          </div>
-        </div>
-        <nav aria-label="Page navigation">
-          <h3 className="font-heading-bc text-xs font-black uppercase tracking-widest mb-4">
-            Navigate
-          </h3>
-          <button
-            type="button"
-            className="block text-sm text-neutral-500 hover:text-[#0055FF] transition-colors cursor-pointer"
-            onClick={() => {
-              window.scrollTo({ top: 0, behavior: "smooth" });
-            }}
+    <Section id="bc-certifications" title="Certifications">
+      <ul className="space-y-6">
+        {certifications.map((cert) => (
+          <li
+            key={`${cert.name}-${cert.issuer}-${cert.date ?? ""}`}
+            className="grid gap-x-8 gap-y-1 md:grid-cols-[10.5rem_1fr]"
           >
-            Back to Top
-          </button>
-        </nav>
-      </div>
-
-      <p
-        className="font-heading-bc text-[clamp(2.5rem,8vw,6rem)] font-black text-neutral-100 leading-none tracking-tighter select-none uppercase truncate mb-8"
-        aria-hidden="true"
-      >
-        {fullName}
-      </p>
-
-      <div className="pt-4 border-t border-neutral-100">
-        <p className="text-xs text-neutral-400" suppressHydrationWarning>
-          &copy; {new Date().getFullYear()} {fullName}. All rights reserved.
-        </p>
-      </div>
-    </footer>
+            <p className="text-sm font-medium tabular-nums md:pt-1" style={{ color: SLATE }}>
+              {cert.date ? formatYear(cert.date) : ""}
+            </p>
+            <div className="min-w-0">
+              <h3 className="text-lg font-bold leading-snug break-words">
+                {cert.url ? (
+                  <a href={cert.url} target="_blank" rel="noopener noreferrer" className={LINK}>
+                    {cert.name}
+                  </a>
+                ) : (
+                  cert.name
+                )}
+              </h3>
+              {cert.issuer && (
+                <p className="text-[15px]" style={{ color: SLATE }}>
+                  {cert.issuer}
+                </p>
+              )}
+            </div>
+          </li>
+        ))}
+      </ul>
+    </Section>
   );
 }
 
 export const BoldCorporate: React.FC<TemplateProps> = ({ content, profile }) => {
-  const contactLinks = getContactLinks(content.contact);
+  const experience = content.experience ?? [];
+  const projects = content.projects ?? [];
+  const education = content.education ?? [];
+  const certifications = content.certifications ?? [];
 
   return (
     <>
-      <TemplateFontLinks href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&display=swap" />
+      <TemplateFontLinks href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,400..800&display=swap" />
+      <style>{`.bc-root, .bc-display { font-family: 'Archivo', ui-sans-serif, system-ui, sans-serif; }`}</style>
 
-      <main className="min-h-screen bg-white text-neutral-900 font-sans selection:bg-[#0055FF] selection:text-white overflow-x-hidden scroll-smooth">
-        <style>{`
-          .font-heading-bc { font-family: 'Plus Jakarta Sans', sans-serif; }
-        `}</style>
+      <main className="bc-root min-h-screen bg-white text-[#1B2430] antialiased selection:bg-[#0E2A47] selection:text-white lg:grid lg:grid-cols-[minmax(320px,400px)_1fr]">
+        <Sidebar content={content} avatarUrl={profile.avatar_url} />
 
-        <div className="max-w-6xl mx-auto px-6 md:px-12 pt-16 pb-0">
-          <Header
-            fullName={content.full_name}
-            headline={content.headline}
-            avatarUrl={profile.avatar_url}
-          />
+        <div className="min-w-0 px-6 py-12 sm:px-10 lg:px-16 lg:py-16 xl:px-20">
+          <div className="max-w-3xl space-y-16">
+            <div>
+              {content.summary && (
+                <p
+                  className="max-w-[40ch] text-[1.5rem] leading-[1.35] font-medium tracking-[-0.01em] sm:text-[1.75rem]"
+                  style={{ color: NAVY }}
+                >
+                  {content.summary}
+                </p>
+              )}
+              <div className={content.summary ? "mt-8" : ""}>
+                <ShareBar
+                  handle={profile.handle}
+                  title={`${content.full_name}'s Portfolio`}
+                  name={content.full_name}
+                  variant="bold-corporate"
+                />
+              </div>
+            </div>
 
-          <SummarySection
-            summary={content.summary}
-            fullName={content.full_name}
-            contactLinks={contactLinks}
-            handle={profile.handle}
-          />
-
-          <ExperienceSection experience={content.experience} />
-          <EducationSection education={content.education} />
-          <CertificationsSection certifications={content.certifications} />
-          <ProjectsSection projects={content.projects} />
-          <SkillsSection skills={content.skills} />
-
-          <Footer
-            contact={content.contact}
-            fullName={content.full_name}
-            contactLinks={contactLinks}
-          />
+            {experience.length > 0 && <ExperienceSection experience={experience} />}
+            {projects.length > 0 && <ProjectsSection projects={projects} />}
+            {education.length > 0 && <EducationSection education={education} />}
+            {certifications.length > 0 && <CertificationsSection certifications={certifications} />}
+          </div>
         </div>
       </main>
     </>
