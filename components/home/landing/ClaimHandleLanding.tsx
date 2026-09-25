@@ -5,6 +5,7 @@ import { ArrowRight, BarChart3, Eye, EyeOff, Link2, Smartphone } from "lucide-re
 import Link from "next/link";
 import { Footer } from "@/components/Footer";
 import { FAQSection } from "@/components/home/FAQSection";
+import { LinkedInExportHelp } from "@/components/LinkedInExportHelp";
 import { SiteHeader } from "@/components/SiteHeader";
 import { PROFESSIONS } from "@/lib/config/professions";
 import { DEMO_PROFILES } from "@/lib/templates/demo-data";
@@ -73,6 +74,8 @@ export function ClaimHandleLanding() {
             <div className="animate-fade-in-up mt-10 flex w-full justify-center">
               <HandleClaim variant={VARIANT} />
             </div>
+            {/* Same LinkedIn entry point drop_first shows in its hero dropzone (ADR-0027 parity). */}
+            <LinkedInExportHelp />
           </div>
 
           <div className="relative mx-auto -mb-24 h-64 max-w-6xl px-4 sm:h-80" aria-hidden="true">
