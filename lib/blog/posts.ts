@@ -559,6 +559,40 @@ export const BLOG_POSTS: BlogPostMeta[] = [
       },
     ],
   },
+  {
+    slug: "ai-portfolio-website-builders",
+    title: "Best AI Portfolio Website Builders (2026)",
+    description:
+      "AI tools that turn your resume PDF or LinkedIn into a portfolio website, compared on input, free tier, custom domain, and price as of September 2026.",
+    date: "2026-09-25",
+    readTime: "8 min read",
+    category: "Comparison",
+    keywords: [
+      "ai portfolio website builder",
+      "resume to portfolio ai",
+      "turn resume into website ai",
+      "linkedin to portfolio ai",
+      "free ai portfolio generator",
+    ],
+    faq: [
+      {
+        q: "Is there a free AI tool that turns my resume into a portfolio website?",
+        a: "Yes. As of September 2026, clickfolio.me, Butternut AI, linkfolio.net and Artfolio all let you publish a portfolio built from your resume on a free plan. clickfolio.me is free for everything, including all 10 templates, and publishes at clickfolio.me/@handle in about 30 seconds.",
+      },
+      {
+        q: "Can AI build a portfolio website from my LinkedIn profile?",
+        a: "Some tools accept LinkedIn input directly, including Fastfolio, Kickresume and Standard Resume. The more reliable route is LinkedIn's Save to PDF export: upload that PDF to a resume-to-website tool like clickfolio.me and the AI reads it like any other resume.",
+      },
+      {
+        q: "Which AI portfolio builders support a custom domain?",
+        a: "As of September 2026, linkfolio.net (Basic, €4.99/month), Fastfolio (Pro, $8/month, or the $49 Lifetime plan) and Butternut AI (Pro, $12/month) support custom domains on paid plans. clickfolio.me does not support custom domains yet.",
+      },
+      {
+        q: "How accurate is AI resume parsing in these tools?",
+        a: "It is usually good on simple single-column PDFs and less reliable with multi-column layouts, unusual date formats or scanned images. Always review every section before sharing the link, and rewrite any AI-generated bio in your own words.",
+      },
+    ],
+  },
 ];
 
 export function getPostBySlug(slug: string): BlogPostMeta | undefined {
