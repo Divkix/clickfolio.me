@@ -1030,5 +1030,5 @@ export const TEMPLATE_BACKGROUNDS = {
   midnight: { bg: "bg-[#0B1026]", isDark: true },
   minimalist_editorial: { bg: "bg-white", isDark: false },
   neo_brutalist: { bg: "bg-[#FFD400]", isDark: false },
-  spotlight: { bg: "bg-[#FFFCF9]", isDark: false },
+  spotlight: { bg: "bg-[#E9E7F2]", isDark: false },
 } as const satisfies Record<ThemeId, { bg: string; isDark: boolean }>;

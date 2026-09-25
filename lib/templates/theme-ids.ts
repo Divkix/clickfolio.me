@@ -80,7 +80,7 @@ export const THEME_METADATA = {
   },
   spotlight: {
     name: "Spotlight",
-    description: "Warm creative portfolio with animated sections",
+    description: "Your name under a single pool of stage light, with work set out like a playbill.",
     category: "Creative",
     preview: "/previews/spotlight.webp",
   },
