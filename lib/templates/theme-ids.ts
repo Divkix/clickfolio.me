@@ -62,7 +62,7 @@ export const THEME_METADATA = {
   },
   midnight: {
     name: "Midnight",
-    description: "Dark minimal with serif headings and gold accents",
+    description: "Midnight blue night sky, Garamond headings and a gold star timeline",
     category: "Modern",
     preview: "/previews/midnight.webp",
   },
