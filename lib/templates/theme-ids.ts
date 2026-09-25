@@ -31,7 +31,7 @@ export const THEME_METADATA = {
   },
   bold_corporate: {
     name: "Bold Corporate",
-    description: "Executive typography with bold numbered sections",
+    description: "Annual-report layout with a navy sidebar and condensed headings",
     category: "Professional",
     preview: "/previews/bold-corporate.webp",
   },
