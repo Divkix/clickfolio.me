@@ -29,6 +29,10 @@ interface ClaimResponse {
 }
 
 function getFriendlyError(cause: unknown): string {
+  if (cause instanceof DOMException && cause.name === "NotReadableError") {
+    return "Could not read this file. Save a copy on your device and try again.";
+  }
+
   if (cause instanceof Error && cause.message) {
     const msg = cause.message;
     const lower = msg.toLowerCase();
@@ -47,7 +51,11 @@ function getFriendlyError(cause: unknown): string {
       return "Session expired. Please sign in again.";
     }
 
-    if (lower.includes("network")) {
+    if (
+      lower.includes("network") ||
+      lower.includes("failed to fetch") ||
+      lower.includes("load failed")
+    ) {
       return "Network error. Check your connection.";
     }
 
@@ -95,14 +103,19 @@ export function useFileUpload({ onClaim }: UseFileUploadOptions = {}) {
       try {
         setUploadProgress(10);
 
+        // Send a snapshot of the bytes: a File that changes on disk after the
+        // user picks it (for example a cloud-synced file) makes fetch fail.
+        const fileBytes = await fileToUpload.arrayBuffer();
+
         const uploadResponse = await fetch("/api/upload", {
           method: "POST",
           headers: {
             "Content-Type": "application/pdf",
             "Content-Length": String(fileToUpload.size),
-            "X-Filename": fileToUpload.name,
+            // Header values must be ISO-8859-1, so non-ASCII names are percent-encoded.
+            "X-Filename": encodeURIComponent(fileToUpload.name),
           },
-          body: fileToUpload,
+          body: fileBytes,
         });
 
         if (!uploadResponse.ok) {
