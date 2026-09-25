@@ -44,7 +44,7 @@ export const shareButtonStyles = {
   "bold-corporate":
     "bg-white text-neutral-700 hover:bg-neutral-50 border border-neutral-200 rounded-md px-3 py-1.5 shadow-sm",
   "classic-ats":
-    "text-gray-500 hover:text-gray-900 border border-gray-300 rounded px-3 py-1.5 text-xs uppercase tracking-wider hover:bg-gray-100",
+    "bg-white text-[#3F434A] hover:text-[#22385C] border border-[#B9BCC2] rounded-[3px] px-3 py-1.5 text-sm hover:border-[#22385C]",
   "design-folio":
     "bg-[#1a1a1a] text-[#888] hover:text-[#CCFF00] border border-[#333] hover:border-[#CCFF00] rounded-full px-3 py-1.5 font-mono text-xs uppercase tracking-widest",
   "dev-terminal":
@@ -62,7 +62,7 @@ export const shareTriggerStyles = {
   spotlight: "bg-orange-500 text-white border-orange-400 shadow-md",
   midnight: "bg-neutral-900 text-amber-200 border-amber-700/40 shadow-lg",
   "bold-corporate": "bg-white text-neutral-800 border-neutral-200 shadow-sm hover:bg-neutral-50",
-  "classic-ats": "bg-white text-gray-700 border-gray-300 shadow-sm hover:bg-gray-50",
+  "classic-ats": "bg-white text-[#22385C] border-[#B9BCC2] shadow-sm hover:border-[#22385C]",
   "design-folio":
     "bg-[#1a1a1a] text-[#CCFF00] border-[#333] shadow-lg font-mono hover:border-[#CCFF00]",
   "dev-terminal":
@@ -78,7 +78,7 @@ export const sharePanelStyles = {
   spotlight: "bg-orange-50 text-orange-900 border-orange-200",
   midnight: "bg-neutral-900/95 text-amber-100 border-amber-700/30",
   "bold-corporate": "bg-white text-neutral-800 border-neutral-200",
-  "classic-ats": "bg-white text-gray-700 border-gray-300",
+  "classic-ats": "bg-white text-[#16181D] border-[#B9BCC2]",
   "design-folio": "bg-[#1a1a1a] text-[#e0e0e0] border-[#333]",
   "dev-terminal": "bg-[#161b22] text-[#c9d1d9] border-[#30363d]",
 } satisfies Record<SharePopoverVariant, string>;
@@ -94,7 +94,7 @@ export const shareItemStyles = {
   spotlight: "bg-orange-50 text-orange-700 hover:bg-orange-100 border border-orange-200",
   midnight: "bg-amber-900/20 text-amber-200 hover:bg-amber-900/40 border border-amber-700/30",
   "bold-corporate": "bg-white text-neutral-700 hover:bg-neutral-50 border-neutral-200",
-  "classic-ats": "bg-white text-gray-600 hover:text-gray-900 border-gray-300",
+  "classic-ats": "bg-white text-[#3F434A] hover:text-[#22385C] border-[#B9BCC2]",
   "design-folio":
     "bg-[#1a1a1a] text-[#888] hover:text-[#CCFF00] border border-[#333] font-mono hover:border-[#CCFF00]",
   "dev-terminal":

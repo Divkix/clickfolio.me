@@ -37,7 +37,8 @@ export const THEME_METADATA = {
   },
   classic_ats: {
     name: "Classic ATS",
-    description: "Legal brief typography, single-column ATS-optimized layout",
+    description:
+      "A printable one-column resume sheet that applicant tracking systems parse cleanly",
     category: "Professional",
     preview: "/previews/classic-ats.webp",
   },

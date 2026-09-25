@@ -1,136 +1,173 @@
-"use client";
-
-import { Printer } from "lucide-react";
 import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
 import { getContactLinks } from "@/lib/templates/contact-links";
-import { flattenSkills, formatDateRange, formatYear } from "@/lib/templates/helpers";
+import { formatShortDate, formatYear } from "@/lib/templates/helpers";
 import type { TemplateProps } from "@/lib/types/template";
-import { getContactIcon } from "./shared/ContactIcon";
+import { PrintButton } from "./shared/PrintButton";
 import { TemplateFontLinks } from "./shared/TemplateFontLinks";
 
+// A letter-size resume sheet. Plain structure (one column, text headings, no icons or
+// tables) keeps it parseable by applicant tracking systems and clean when printed.
+
+function dateSpan(start?: string, end?: string | null): string | null {
+  if (!start) return end ? formatShortDate(end) : null;
+
+  return `${formatShortDate(start)} – ${end ? formatShortDate(end) : "Present"}`;
+}
+
+function printableUrl(href: string): string {
+  return href.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "");
+}
+
+function SheetSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}): React.ReactElement {
+  return (
+    <section className="mt-7 print:mt-[14pt]">
+      <h2 className="text-[1.0625rem] print:text-[11.5pt] font-semibold text-[#22385C] border-b border-[#22385C] pb-0.5 mb-3 print:mb-[6pt] break-after-avoid [text-wrap:unset]">
+        {title}
+      </h2>
+      {children}
+    </section>
+  );
+}
+
+function Row({
+  left,
+  right,
+  className = "",
+}: {
+  left: React.ReactNode;
+  right?: string | null;
+  className?: string;
+}): React.ReactElement {
+  return (
+    <div className={`flex flex-wrap items-baseline justify-between gap-x-4 ${className}`}>
+      <div className="min-w-0">{left}</div>
+      {right && <span className="shrink-0 tabular-nums text-[#3F434A]">{right}</span>}
+    </div>
+  );
+}
+
 export const ClassicATS: React.FC<TemplateProps> = ({ content, profile, isPreview }) => {
-  const flatSkills = content.skills ? flattenSkills(content.skills) : [];
-  const contactLinks = getContactLinks(content.contact);
+  const {
+    full_name,
+    headline,
+    summary,
+    contact,
+    experience,
+    education,
+    skills,
+    certifications,
+    projects,
+  } = content;
+
+  const contactLinks = getContactLinks(contact);
+  const skillGroups = skills?.filter((group) => group.items.length > 0) ?? [];
 
   return (
     <>
-      <TemplateFontLinks href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,700;1,400&display=swap" />
+      <TemplateFontLinks href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap" />
       <style>{`
-        .font-serif-ats { font-family: 'Lora', serif; }
+        .font-ats, .font-ats :is(h1, h2, h3, p, li, a, span, dt, dd) { font-family: 'EB Garamond', Garamond, 'Times New Roman', serif; }
+        @media print {
+          @page { size: letter; margin: 0.55in 0.6in; }
+          html, body { background: #fff !important; }
+          .font-ats { font-size: 10.5pt; line-height: 1.32; }
+          .font-ats a { color: inherit; text-decoration: none; }
+          .ats-entry { break-inside: avoid; }
+        }
       `}</style>
-      <main className="min-h-screen bg-stone-200 print:bg-white text-gray-900 font-serif-ats selection:bg-gray-200 overflow-x-hidden print:overflow-visible py-8 print:py-0">
-        <article className="max-w-[8.5in] mx-auto px-8 py-12 print:px-[0.75in] print:py-[0.5in] bg-[#FAFAF8] shadow-[0_1px_3px_rgba(0,0,0,0.08),0_12px_32px_rgba(0,0,0,0.08)] print:shadow-none print:bg-white">
-          <header className="border-y-4 border-double border-gray-900 py-6 mb-8 text-center print:break-inside-avoid">
-            <h1 className="text-3xl font-bold tracking-wide uppercase mb-2 [text-wrap:unset] break-words">
-              {content.full_name}
+      <main className="font-ats min-h-screen bg-[#D9DBDE] print:bg-white text-[#16181D] text-[1.0625rem] leading-[1.45] selection:bg-[#22385C] selection:text-white overflow-x-hidden print:overflow-visible px-3 py-6 sm:px-6 sm:py-10 print:p-0">
+        <div className="mx-auto max-w-[8.5in] mb-4 flex flex-wrap items-center justify-between gap-3 print:hidden">
+          <ShareBar
+            handle={profile.handle}
+            title={`${full_name}'s Resume`}
+            name={full_name}
+            variant="classic-ats"
+          />
+          {!isPreview && (
+            <PrintButton className="inline-flex items-center gap-2 rounded-[3px] bg-[#22385C] px-3.5 py-2 text-[0.9375rem] text-white hover:bg-[#1A2B47] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#22385C]" />
+          )}
+        </div>
+
+        <article className="mx-auto max-w-[8.5in] min-h-[11in] print:min-h-0 bg-white px-6 py-8 sm:px-[0.75in] sm:py-[0.7in] print:p-0 shadow-[0_1px_2px_rgba(22,24,29,0.12),0_8px_24px_-8px_rgba(22,24,29,0.25)] print:shadow-none">
+          <header className="break-inside-avoid">
+            <h1 className="text-[2rem] sm:text-[2.375rem] print:text-[22pt] font-medium leading-tight tracking-[-0.01em] text-[#22385C] break-words [text-wrap:unset]">
+              {full_name}
             </h1>
-            {content.headline && (
-              <p className="text-sm text-gray-600 italic mb-4">{content.headline}</p>
+            {headline && (
+              <p className="mt-0.5 text-[1.125rem] print:text-[11.5pt] italic text-[#3F434A]">
+                {headline}
+              </p>
             )}
-
-            <nav
-              aria-label="Contact information"
-              className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-sm text-gray-700"
-            >
-              {contactLinks.map((link) => {
-                const isNonClickable = link.type === "location" || link.type === "phone";
-                const showPrintUrl = link.isExternal;
-                const isBranded = link.type === "behance" || link.type === "dribbble";
-
-                const brandText =
-                  link.type === "behance" ? "Be" : link.type === "dribbble" ? "Dr" : null;
-
-                if (isNonClickable) {
-                  return (
-                    <span key={link.type} className="inline-flex items-center gap-1">
-                      {getContactIcon(link.type, {
-                        className: "w-3.5 h-3.5 print:hidden",
-                        "aria-hidden": true,
-                      })}
-                      {link.label}
-                    </span>
-                  );
-                }
-
-                return (
-                  <a
-                    key={link.type}
-                    href={link.href}
-                    target={link.isExternal ? "_blank" : undefined}
-                    rel={link.isExternal ? "noopener noreferrer" : undefined}
-                    className="inline-flex items-center gap-1 hover:text-gray-900 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-900"
-                  >
-                    {getContactIcon(link.type, {
-                      className: "w-3.5 h-3.5 print:hidden",
-                      "aria-hidden": true,
-                    })}
-                    {isBranded ? (
-                      <>
-                        <span className="print:hidden">{brandText}</span>
-                        <span className="hidden print:inline">{link.href}</span>
-                      </>
-                    ) : showPrintUrl ? (
-                      <>
-                        <span className="print:hidden">{link.label}</span>
-                        <span className="hidden print:inline">{link.href}</span>
-                      </>
-                    ) : (
-                      link.label
+            {contactLinks.length > 0 && (
+              <ul
+                aria-label="Contact"
+                className="mt-2 flex flex-col sm:flex-row sm:flex-wrap gap-y-0.5 text-[0.9375rem] print:text-[10pt] text-[#16181D]"
+              >
+                {contactLinks.map((link, index) => (
+                  <li key={link.type} className="min-w-0 break-words">
+                    {index > 0 && (
+                      <span
+                        aria-hidden="true"
+                        className="hidden sm:inline print:inline px-2 text-[#9A9EA6]"
+                      >
+                        |
+                      </span>
                     )}
-                  </a>
-                );
-              })}
-            </nav>
+                    {link.type === "location" ? (
+                      link.label
+                    ) : (
+                      <a
+                        href={link.href}
+                        target={link.isExternal ? "_blank" : undefined}
+                        rel={link.isExternal ? "noopener noreferrer" : undefined}
+                        className="underline decoration-[#9A9EA6] underline-offset-2 hover:decoration-[#22385C] focus-visible:outline-2 focus-visible:outline-[#22385C]"
+                      >
+                        {link.isExternal ? printableUrl(link.href) : link.label}
+                      </a>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
           </header>
 
-          {content.summary && (
-            <section className="mb-8 print:break-inside-avoid">
-              <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-gray-900 mb-3 flex items-center gap-2">
-                <span aria-hidden="true">&#9632;</span> Professional Summary
-              </h2>
-              <p className="text-sm leading-relaxed text-left md:text-justify text-gray-700">
-                {content.summary}
-              </p>
-            </section>
+          {summary && (
+            <SheetSection title="Summary">
+              <p>{summary}</p>
+            </SheetSection>
           )}
 
-          {content.experience && content.experience.length > 0 && (
-            <section className="mb-8">
-              <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-gray-900 mb-4 flex items-center gap-2 border-b border-gray-300 pb-1">
-                <span aria-hidden="true">&#9632;</span> Professional Experience
-              </h2>
-              <div className="space-y-6">
-                {content.experience.map((job) => (
+          {experience && experience.length > 0 && (
+            <SheetSection title="Experience">
+              <div className="space-y-4 print:space-y-[9pt]">
+                {experience.map((job) => (
                   <article
                     key={`${job.title}-${job.company}-${job.start_date}`}
-                    className="print:break-inside-avoid"
+                    className="ats-entry"
                   >
-                    <div className="flex flex-wrap justify-between items-baseline gap-x-4 mb-1">
-                      <h3 className="font-bold text-base">{job.title}</h3>
-                      <span className="text-xs text-gray-600 shrink-0">
-                        {formatDateRange(job.start_date, job.end_date)}
-                      </span>
-                    </div>
-                    <div className="flex flex-wrap justify-between items-baseline gap-x-4 mb-2">
-                      <p className="text-sm text-gray-700 italic">
-                        {job.company}
-                        {job.location && `, ${job.location}`}
-                      </p>
-                    </div>
-                    {job.description && (
-                      <p className="text-sm text-gray-700 mb-2 text-left md:text-justify">
-                        {job.description}
-                      </p>
-                    )}
+                    <Row
+                      left={
+                        <h3 className="font-semibold [text-wrap:unset]">
+                          {job.title}
+                          {job.company && <span className="font-normal">, {job.company}</span>}
+                        </h3>
+                      }
+                      right={dateSpan(job.start_date, job.end_date)}
+                    />
+                    {job.location && <p className="italic text-[#3F434A]">{job.location}</p>}
+                    {job.description && <p className="mt-1">{job.description}</p>}
                     {job.highlights && job.highlights.length > 0 && (
-                      <ul className="text-sm text-gray-700 space-y-1">
+                      <ul className="mt-1 list-disc pl-5 space-y-0.5 marker:text-[#3F434A]">
                         {job.highlights.map((highlight) => (
-                          <li key={`${job.title}-${highlight}`} className="flex gap-2 items-start">
-                            <span className="text-gray-400 shrink-0 mt-px" aria-hidden="true">
-                              &mdash;
-                            </span>
-                            <span className="min-w-0">{highlight}</span>
+                          <li key={`${job.title}-${highlight}`} className="pl-0.5">
+                            {highlight}
                           </li>
                         ))}
                       </ul>
@@ -138,158 +175,123 @@ export const ClassicATS: React.FC<TemplateProps> = ({ content, profile, isPrevie
                   </article>
                 ))}
               </div>
-            </section>
+            </SheetSection>
           )}
 
-          {content.education && content.education.length > 0 && (
-            <section className="mb-8">
-              <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-gray-900 mb-4 flex items-center gap-2 border-b border-gray-300 pb-1">
-                <span aria-hidden="true">&#9632;</span> Education
-              </h2>
-              <div className="space-y-4">
-                {content.education.map((edu) => (
+          {education && education.length > 0 && (
+            <SheetSection title="Education">
+              <div className="space-y-2.5">
+                {education.map((edu) => (
                   <article
                     key={`${edu.institution}-${edu.degree}-${edu.graduation_date ?? ""}`}
-                    className="print:break-inside-avoid"
+                    className="ats-entry"
                   >
-                    <div className="flex flex-wrap justify-between items-baseline gap-x-4 mb-1">
-                      <h3 className="font-bold text-base">{edu.degree}</h3>
-                      {edu.graduation_date && (
-                        <span className="text-xs text-gray-600 shrink-0">
-                          {formatYear(edu.graduation_date)}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-sm text-gray-700 italic">
-                      {edu.institution}
-                      {edu.location && `, ${edu.location}`}
-                      {edu.gpa && ` | GPA: ${edu.gpa}`}
-                    </p>
+                    <Row
+                      left={
+                        <h3 className="font-semibold [text-wrap:unset]">
+                          {edu.degree}
+                          {edu.institution && (
+                            <span className="font-normal">, {edu.institution}</span>
+                          )}
+                        </h3>
+                      }
+                      right={edu.graduation_date ? formatYear(edu.graduation_date) : null}
+                    />
+                    {(edu.location || edu.gpa) && (
+                      <p className="italic text-[#3F434A]">
+                        {[edu.location, edu.gpa && `GPA ${edu.gpa}`].filter(Boolean).join(", ")}
+                      </p>
+                    )}
                   </article>
                 ))}
               </div>
-            </section>
+            </SheetSection>
           )}
 
-          {flatSkills.length > 0 && (
-            <section className="mb-8 print:break-inside-avoid">
-              <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-gray-900 mb-3 flex items-center gap-2 border-b border-gray-300 pb-1">
-                <span aria-hidden="true">&#9632;</span> Skills
-              </h2>
-              <p className="text-sm text-gray-700 leading-relaxed">{flatSkills.join(" | ")}</p>
-            </section>
-          )}
-
-          {content.certifications && content.certifications.length > 0 && (
-            <section className="mb-8">
-              <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-gray-900 mb-3 flex items-center gap-2 border-b border-gray-300 pb-1">
-                <span aria-hidden="true">&#9632;</span> Certifications & Licenses
-              </h2>
-              <div className="space-y-2">
-                {content.certifications.map((cert) => (
-                  <div
-                    key={`${cert.name}-${cert.issuer}-${cert.date ?? ""}`}
-                    className="flex flex-wrap justify-between items-baseline gap-x-4 text-sm print:break-inside-avoid"
-                  >
-                    <p className="text-gray-700 min-w-0">
-                      <span className="font-medium">
-                        {cert.url ? (
-                          <a
-                            href={cert.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="hover:underline"
-                          >
-                            {cert.name}
-                          </a>
-                        ) : (
-                          cert.name
-                        )}
-                      </span>
-                      {cert.issuer && <span className="text-gray-500"> — {cert.issuer}</span>}
-                    </p>
-                    {cert.date && (
-                      <span className="text-xs text-gray-600 shrink-0">
-                        {formatYear(cert.date)}
-                      </span>
-                    )}
-                  </div>
+          {skillGroups.length > 0 && (
+            <SheetSection title="Skills">
+              <ul className="space-y-0.5">
+                {skillGroups.map((group) => (
+                  <li key={group.category}>
+                    <span className="font-semibold">{group.category}:</span>{" "}
+                    {group.items.join(", ")}
+                  </li>
                 ))}
-              </div>
-            </section>
+              </ul>
+            </SheetSection>
           )}
 
-          {content.projects && content.projects.length > 0 && (
-            <section className="mb-8">
-              <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-gray-900 mb-4 flex items-center gap-2 border-b border-gray-300 pb-1">
-                <span aria-hidden="true">&#9632;</span> Projects
-              </h2>
-              <div className="space-y-4">
-                {content.projects.map((proj) => (
+          {certifications && certifications.length > 0 && (
+            <SheetSection title="Certifications">
+              <ul className="space-y-0.5">
+                {certifications.map((cert) => (
+                  <li key={`${cert.name}-${cert.issuer ?? ""}-${cert.date ?? ""}`}>
+                    <Row
+                      left={
+                        <>
+                          <span className="font-semibold">
+                            {cert.url ? (
+                              <a
+                                href={cert.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="underline decoration-[#9A9EA6] underline-offset-2 hover:decoration-[#22385C]"
+                              >
+                                {cert.name}
+                              </a>
+                            ) : (
+                              cert.name
+                            )}
+                          </span>
+                          {cert.issuer && <span>, {cert.issuer}</span>}
+                        </>
+                      }
+                      right={cert.date ? formatYear(cert.date) : null}
+                    />
+                  </li>
+                ))}
+              </ul>
+            </SheetSection>
+          )}
+
+          {projects && projects.length > 0 && (
+            <SheetSection title="Projects">
+              <div className="space-y-2.5">
+                {projects.map((project) => (
                   <article
-                    key={`${proj.title}-${proj.year ?? ""}-${proj.url ?? ""}`}
-                    className="print:break-inside-avoid"
+                    key={`${project.title}-${project.year ?? ""}-${project.url ?? ""}`}
+                    className="ats-entry"
                   >
-                    <div className="flex flex-wrap justify-between items-baseline gap-x-4 mb-1">
-                      <h3 className="font-bold text-base">
-                        {proj.url ? (
-                          <a
-                            href={proj.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="hover:underline"
-                          >
-                            {proj.title}
-                          </a>
-                        ) : (
-                          proj.title
-                        )}
-                      </h3>
-                      {proj.year && (
-                        <span className="text-xs text-gray-600 shrink-0">{proj.year}</span>
-                      )}
-                    </div>
-                    {proj.description && (
-                      <p className="text-sm text-gray-700 mb-1 text-left md:text-justify">
-                        {proj.description}
-                      </p>
-                    )}
-                    {proj.technologies && proj.technologies.length > 0 && (
-                      <p className="text-xs text-gray-500 italic">
-                        Technologies: {proj.technologies.join(", ")}
+                    <Row
+                      left={
+                        <h3 className="font-semibold [text-wrap:unset]">
+                          {project.title}
+                          {project.url && (
+                            <a
+                              href={project.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="ml-2 font-normal underline decoration-[#9A9EA6] underline-offset-2 hover:decoration-[#22385C]"
+                            >
+                              {printableUrl(project.url)}
+                            </a>
+                          )}
+                        </h3>
+                      }
+                      right={project.year}
+                    />
+                    {project.description && <p>{project.description}</p>}
+                    {project.technologies && project.technologies.length > 0 && (
+                      <p className="italic text-[#3F434A]">
+                        Tools: {project.technologies.join(", ")}
                       </p>
                     )}
                   </article>
                 ))}
               </div>
-            </section>
+            </SheetSection>
           )}
-
-          <footer className="mt-12 pt-6 border-t border-gray-200 print:hidden">
-            <div className="flex items-center justify-between gap-4">
-              <p className="text-xs text-gray-400" suppressHydrationWarning>
-                &copy; {new Date().getFullYear()} {content.full_name}
-              </p>
-              <ShareBar
-                handle={profile.handle}
-                title={`${content.full_name}'s Resume`}
-                name={content.full_name}
-                variant="classic-ats"
-              />
-            </div>
-          </footer>
         </article>
-        {!isPreview && (
-          <button
-            type="button"
-            onClick={() => window.print()}
-            className="fixed bottom-8 right-8 z-50 print:hidden bg-gray-900 text-white rounded-full px-4 py-3 shadow-lg hover:bg-gray-800 transition-colors inline-flex items-center gap-2 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2"
-            aria-label="Print resume"
-          >
-            <Printer className="w-4 h-4" />
-            Print
-          </button>
-        )}
       </main>
     </>
   );

@@ -980,7 +980,7 @@ export const DEMO_RESUME_CONTENT = {
 export const TEMPLATE_BACKGROUNDS = {
   bento: { bg: "bg-[#FAF8F5]", isDark: false },
   bold_corporate: { bg: "bg-white", isDark: false },
-  classic_ats: { bg: "bg-stone-100", isDark: false },
+  classic_ats: { bg: "bg-[#D9DBDE]", isDark: false },
   design_folio: { bg: "bg-[#0f0f0f]", isDark: true },
   dev_terminal: { bg: "bg-[#0d1117]", isDark: true },
   glass: { bg: "bg-[#030303]", isDark: true },
