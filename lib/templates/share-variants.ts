@@ -30,7 +30,7 @@ export const shareContainerStyles: Record<SharePopoverVariant, string> = {
 
 export const shareButtonStyles = {
   "minimalist-editorial":
-    "text-neutral-500 hover:text-neutral-900 border border-neutral-200 rounded-full px-3 py-1.5 text-xs uppercase tracking-widest hover:bg-neutral-100",
+    "text-[#6B6B73] hover:text-[#1F5C4A] border border-[#E4E4E7] rounded-full px-3 py-1.5 text-sm hover:border-[#1F5C4A]/40",
   "neo-brutalist":
     "bg-white text-black border-2 border-black px-3 py-1.5 font-bold hover:bg-yellow-300 hover:translate-x-0.5 hover:-translate-y-0.5 shadow-[2px_2px_0_0_black] hover:shadow-[4px_4px_0_0_black]",
   "glass-morphic":
@@ -53,7 +53,7 @@ export const shareButtonStyles = {
 
 export const shareTriggerStyles = {
   "minimalist-editorial":
-    "bg-white text-neutral-700 border-neutral-200 hover:bg-neutral-50 hover:text-neutral-900",
+    "bg-white text-[#1B1B1F] border-[#E4E4E7] hover:text-[#1F5C4A] hover:border-[#1F5C4A]/40",
   "neo-brutalist":
     "bg-yellow-300 text-black border-2 border-black font-bold shadow-[4px_4px_0_0_black] hover:translate-x-0.5 hover:-translate-y-0.5",
   "glass-morphic": "bg-white/10 text-white/90 border-white/20 backdrop-blur-md hover:bg-white/20",
@@ -70,7 +70,7 @@ export const shareTriggerStyles = {
 } satisfies Record<SharePopoverVariant, string>;
 
 export const sharePanelStyles = {
-  "minimalist-editorial": "bg-white/95 text-neutral-800 border-neutral-200",
+  "minimalist-editorial": "bg-white text-[#1B1B1F] border-[#E4E4E7]",
   "neo-brutalist": "bg-yellow-300 text-black border-2 border-black shadow-[4px_4px_0_0_black]",
   "glass-morphic": "bg-white/10 text-white border-white/20 backdrop-blur-xl",
   "bento-grid":
@@ -85,7 +85,7 @@ export const sharePanelStyles = {
 
 export const shareItemStyles = {
   "minimalist-editorial":
-    "bg-white text-neutral-600 hover:text-neutral-900 border border-neutral-200 hover:bg-neutral-100",
+    "bg-white text-[#6B6B73] hover:text-[#1F5C4A] border border-[#E4E4E7] hover:border-[#1F5C4A]/40",
   "neo-brutalist": "bg-white text-black border-2 border-black font-bold hover:bg-yellow-300",
   "glass-morphic":
     "bg-white/10 text-white/80 hover:text-white hover:bg-white/20 border border-white/20",

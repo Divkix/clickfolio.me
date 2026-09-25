@@ -67,7 +67,7 @@ export const THEME_METADATA = {
   },
   minimalist_editorial: {
     name: "Minimalist Editorial",
-    description: "Clean magazine-style layout with serif typography",
+    description: "Quiet single serif column with dates set in the margin",
     category: "Professional",
     preview: "/previews/minimalist.webp",
   },

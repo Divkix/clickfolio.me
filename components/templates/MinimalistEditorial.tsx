@@ -1,182 +1,59 @@
-import { ArrowUpRight, Award, Globe, Mail, MapPin, Phone } from "lucide-react";
 import type React from "react";
-import { Github } from "@/components/icons/BrandIcons";
 import { ShareBar } from "@/components/ShareBar";
-import {
-  type ContactLinkDescriptor,
-  type ContactLinkType,
-  getContactLinks,
-} from "@/lib/templates/contact-links";
-import { formatDateRange, formatShortDate } from "@/lib/templates/helpers";
+import { getContactLinks } from "@/lib/templates/contact-links";
+import { formatShortDate, getInitials } from "@/lib/templates/helpers";
 import type { TemplateProps } from "@/lib/types/template";
 import { TemplateFontLinks } from "./shared/TemplateFontLinks";
 
-const navIconMap = {
-  email: <Mail className="w-4 h-4 text-neutral-600 group-hover:text-black" aria-hidden="true" />,
-  phone: <Phone className="w-4 h-4 text-neutral-600 group-hover:text-black" aria-hidden="true" />,
-  linkedin: (
-    <ArrowUpRight className="w-4 h-4 text-neutral-600 group-hover:text-black" aria-hidden="true" />
-  ),
-  github: <Github className="w-4 h-4 text-neutral-600 group-hover:text-black" aria-hidden={true} />,
-  website: <Globe className="w-4 h-4 text-neutral-600 group-hover:text-black" aria-hidden="true" />,
-  location: (
-    <MapPin className="w-4 h-4 text-neutral-600 group-hover:text-black" aria-hidden="true" />
-  ),
-  behance: (
-    <span className="text-xs font-bold text-neutral-600 group-hover:text-black" aria-hidden="true">
-      Be
-    </span>
-  ),
-  dribbble: (
-    <span className="text-xs font-bold text-neutral-600 group-hover:text-black" aria-hidden="true">
-      Dr
-    </span>
-  ),
-} as const satisfies Record<ContactLinkType, React.ReactNode>;
+// Quiet single column. Dates hang in the left margin on wide screens, like marginal notes
+// in a book; on narrow screens they stack above the entry they belong to.
 
-const noiseBg = {
-  backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E")`,
-};
+const LINK =
+  "text-[#1F5C4A] underline decoration-[#1F5C4A]/35 underline-offset-[3px] hover:decoration-[#1F5C4A] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1F5C4A] rounded-[1px]";
 
-const SectionTitle = ({ title, count }: { title: string; count?: number }) => (
-  <div className="flex items-center gap-3 mb-10 md:mb-14">
-    <div className="flex-1 h-px bg-black/10" />
-    <span className="text-xs text-neutral-300" aria-hidden="true">
-      ✦
-    </span>
-    <h2 className="font-serif-me text-sm font-normal uppercase tracking-[0.22em] text-black [text-wrap:unset]">
-      {title}
-    </h2>
-    {count !== undefined && (
-      <span className="text-xs font-mono text-neutral-400">
-        ({count.toString().padStart(2, "0")})
-      </span>
-    )}
-    <div className="flex-1 h-px bg-black/10" />
-  </div>
-);
+function dateSpan(start?: string, end?: string | null): string | null {
+  if (!start) return end ? formatShortDate(end) : null;
 
-function ContactNav({ links, handle }: { links: ContactLinkDescriptor[]; handle: string }) {
-  return (
-    <nav
-      className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 w-[calc(100%-2rem)] max-w-xl pb-[env(safe-area-inset-bottom)]"
-      aria-label="Contact navigation"
-    >
-      <div className="flex items-center justify-center gap-1 sm:gap-2 px-3 sm:px-5 py-2 bg-white/90 backdrop-blur-md border border-black/8 rounded-full shadow-xl shadow-black/8 overflow-x-auto no-scrollbar">
-        <span className="hidden sm:inline text-[11px] font-bold tracking-widest uppercase text-neutral-400 shrink-0 px-2">
-          {handle}
-        </span>
-        {links
-          .filter((link) => link.type !== "location")
-          .map((link) => (
-            <a
-              key={link.type}
-              href={link.href}
-              target={link.isExternal ? "_blank" : undefined}
-              rel={link.isExternal ? "noreferrer" : undefined}
-              className="group relative p-2.5 rounded-full hover:bg-neutral-100 transition-colors shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
-              aria-label={link.label}
-            >
-              {navIconMap[link.type]}
-              <span className="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 px-2 py-1 bg-black text-white text-[10px] tracking-wide rounded opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity whitespace-nowrap">
-                {link.label}
-              </span>
-            </a>
-          ))}
-      </div>
-    </nav>
-  );
+  return `${formatShortDate(start)} – ${end ? formatShortDate(end) : "Present"}`;
 }
 
-function EditorialFooter({ links, handle }: { links: ContactLinkDescriptor[]; handle: string }) {
-  const emailLink = links.find((link) => link.type === "email");
-
-  return (
-    <footer className="flex flex-col items-center justify-center pt-16 md:pt-20 border-t border-black/10 text-center">
-      <p className="font-serif-me italic text-2xl md:text-3xl mb-4 text-neutral-800">
-        Let&apos;s make something lasting.
-      </p>
-      {emailLink && (
-        <a
-          href={emailLink.href}
-          className="mb-8 text-sm font-medium tracking-wide underline decoration-neutral-300 underline-offset-4 hover:decoration-[#C4704F] hover:text-[#C4704F] transition-colors"
-        >
-          {emailLink.label}
-        </a>
-      )}
-      <div className="text-[11px] font-bold uppercase tracking-[0.2em] flex gap-4 text-neutral-400">
-        <span suppressHydrationWarning>{new Date().getFullYear()}</span>
-        <span aria-hidden="true">•</span>
-        <span>{handle}</span>
-      </div>
-    </footer>
-  );
-}
-
-function EducationAndSkills({
-  education,
-  skills,
+function Section({
+  title,
+  children,
 }: {
-  education: TemplateProps["content"]["education"];
-  skills: TemplateProps["content"]["skills"];
-}) {
-  if (!education?.length && !skills?.length) return null;
-
+  title: string;
+  children: React.ReactNode;
+}): React.ReactElement {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-20 mb-24 md:mb-32">
-      {education && education.length > 0 && (
-        <section aria-label="Education" className="min-w-0">
-          <SectionTitle title="Education" />
-          <div className="space-y-8">
-            {education.map((edu) => (
-              <div
-                key={`${edu.institution}-${edu.degree}-${edu.graduation_date ?? ""}`}
-                className="border-l-2 border-neutral-200 pl-6 py-1 hover:border-black transition-colors duration-300"
-              >
-                <div className="flex justify-between items-baseline gap-4 mb-1">
-                  <h3 className="font-semibold text-lg break-words [text-wrap:unset]">
-                    {edu.institution}
-                  </h3>
-                  {edu.graduation_date && (
-                    <span className="text-xs font-mono text-neutral-400 shrink-0">
-                      {formatShortDate(edu.graduation_date)}
-                    </span>
-                  )}
-                </div>
-                <p className="font-serif-me italic text-neutral-600 mb-2">{edu.degree}</p>
-                {edu.gpa && (
-                  <p className="text-xs bg-neutral-100 inline-block px-2 py-1 rounded">
-                    GPA {edu.gpa}
-                  </p>
-                )}
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {skills && skills.length > 0 && (
-        <section aria-label="Technical skills" className="min-w-0">
-          <SectionTitle title="Technical Skills" />
-          <div className="flex flex-wrap content-start gap-2">
-            {skills
-              .flatMap((s) => s.items)
-              .map((skill) => (
-                <span
-                  key={`skill-${skill}`}
-                  className="px-3.5 py-1.5 bg-white border border-black/10 text-sm hover:bg-[#C4704F] hover:text-white hover:border-[#C4704F] transition-colors duration-200"
-                >
-                  {skill}
-                </span>
-              ))}
-          </div>
-        </section>
-      )}
-    </div>
+    <section className="max-w-[40rem] lg:ml-[14rem] mt-16 md:mt-24">
+      <h2 className="text-[1.625rem] md:text-[1.875rem] font-normal leading-tight tracking-[-0.01em] text-[#1B1B1F] mb-8 [text-wrap:unset]">
+        {title}
+      </h2>
+      <div className="min-w-0 space-y-10">{children}</div>
+    </section>
   );
 }
 
-export const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile, isPreview }) => {
+function Entry({
+  aside,
+  children,
+}: {
+  aside?: string | null;
+  children: React.ReactNode;
+}): React.ReactElement {
+  return (
+    <article className="relative min-w-0">
+      {aside && (
+        <p className="text-[0.9375rem] italic text-[#6B6B73] mb-1 tabular-nums lg:absolute lg:right-full lg:mr-12 lg:mb-0 lg:w-[11rem] lg:top-[0.3rem] lg:leading-snug">
+          {aside}
+        </p>
+      )}
+      {children}
+    </article>
+  );
+}
+
+export const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile }) => {
   const {
     full_name,
     summary,
@@ -189,221 +66,219 @@ export const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile,
     certifications,
   } = content;
 
-  const [firstName, ...rest] = full_name.split(" ");
-  const lastName = rest.join(" ");
-  const contactLinks = getContactLinks(contact);
+  const contactLinks = getContactLinks(contact).filter((link) => link.type !== "location");
+  const emailLink = contactLinks.find((link) => link.type === "email");
+  const skillGroups = skills?.filter((group) => group.items.length > 0) ?? [];
 
   return (
     <>
-      <TemplateFontLinks href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap" />
+      <TemplateFontLinks href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" />
       <style>{`
-        .font-serif-me { font-family: 'Instrument Serif', serif; }
+        .font-serif-me, .font-serif-me :is(h1, h2, h3, p, li, dt, dd, a) { font-family: 'Source Serif 4', Georgia, serif; font-optical-sizing: auto; }
       `}</style>
-      <div className="relative min-h-screen bg-[#FDFCF8] text-[#1a1a1a] font-sans selection:bg-[#C4704F] selection:text-white overflow-x-hidden">
-        <div
-          className="fixed inset-0 pointer-events-none z-0 opacity-40 mix-blend-overlay"
-          style={noiseBg}
-          aria-hidden="true"
-        />
-
-        {!isPreview && <ContactNav links={contactLinks} handle={profile.handle} />}
-
-        <main className="relative z-10 max-w-6xl mx-auto px-6 md:px-12 pt-20 md:pt-28 pb-36">
-          <header className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 mb-24 lg:mb-36 border-b border-black/10 pb-16 md:pb-24">
-            <div className="lg:col-span-7 min-w-0">
-              <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-neutral-400 mb-6">
-                Portfolio
-              </p>
-              <h1 className="flex flex-col font-serif-me text-[clamp(3.25rem,9vw,7.5rem)] leading-[0.88] tracking-tight text-black [text-wrap:unset] break-words">
-                <span className="block">{firstName}</span>
-                {lastName ? (
-                  <span className="block italic font-normal text-neutral-400 mt-1">{lastName}</span>
-                ) : null}
-              </h1>
+      <div className="font-serif-me min-h-screen bg-white text-[#1B1B1F] text-[1.0625rem] md:text-lg leading-[1.7] selection:bg-[#1F5C4A] selection:text-white overflow-x-hidden">
+        <main className="mx-auto max-w-[40rem] lg:max-w-[54rem] px-5 sm:px-8 pt-16 md:pt-28 pb-24">
+          <header className="grid grid-cols-1 lg:grid-cols-[11rem_minmax(0,40rem)] lg:gap-x-12">
+            <div className="mb-8 lg:mb-0">
+              {profile.avatar_url ? (
+                <img
+                  src={profile.avatar_url}
+                  alt=""
+                  width={88}
+                  height={88}
+                  className="w-[4.5rem] h-[4.5rem] lg:w-[5.5rem] lg:h-[5.5rem] rounded-full object-cover grayscale-[15%]"
+                />
+              ) : (
+                <div
+                  aria-hidden="true"
+                  className="w-[4.5rem] h-[4.5rem] lg:w-[5.5rem] lg:h-[5.5rem] rounded-full bg-[#F1F1F2] text-[#6B6B73] flex items-center justify-center text-xl italic"
+                >
+                  {getInitials(full_name)}
+                </div>
+              )}
             </div>
 
-            <div className="lg:col-span-5 flex flex-col justify-end min-w-0 space-y-6">
+            <div className="min-w-0">
+              <h1 className="text-[clamp(2.5rem,7vw,4.25rem)] font-normal leading-[1.02] tracking-[-0.02em] break-words [text-wrap:balance]">
+                {full_name}
+              </h1>
               {headline && (
-                <p className="text-xl md:text-2xl font-serif-me italic text-neutral-800 leading-snug">
+                <p className="mt-4 text-xl md:text-[1.375rem] leading-snug italic text-[#6B6B73]">
                   {headline}
                 </p>
               )}
-              {summary && (
-                <p className="text-base leading-relaxed text-neutral-600 max-w-md">{summary}</p>
+              {contact.location && (
+                <p className="mt-2 text-[0.9375rem] text-[#6B6B73]">{contact.location}</p>
               )}
-              <div className="flex flex-wrap gap-2">
-                {contact.location && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-black/10 rounded-full text-[11px] font-medium uppercase tracking-widest text-neutral-500">
-                    <MapPin className="w-3 h-3 shrink-0" aria-hidden="true" />
-                    <span className="truncate max-w-[220px]">{contact.location}</span>
-                  </span>
-                )}
-              </div>
-              <div className="pt-6 border-t border-black/5">
-                <ShareBar
-                  handle={profile.handle}
-                  title={`${full_name}'s Portfolio`}
-                  name={full_name}
-                  variant="minimalist-editorial"
-                />
-              </div>
+
+              {summary && (
+                <p className="mt-10 text-[1.1875rem] md:text-xl leading-[1.65] text-[#1B1B1F]">
+                  {summary}
+                </p>
+              )}
+
+              {contactLinks.length > 0 && (
+                <ul
+                  aria-label="Contact"
+                  className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-[0.9375rem]"
+                >
+                  {contactLinks.map((link) => (
+                    <li key={link.type} className="min-w-0 break-all sm:break-normal">
+                      {link.type === "phone" ? (
+                        <a href={link.href} className={LINK}>
+                          {link.label}
+                        </a>
+                      ) : (
+                        <a
+                          href={link.href}
+                          target={link.isExternal ? "_blank" : undefined}
+                          rel={link.isExternal ? "noopener noreferrer" : undefined}
+                          className={LINK}
+                        >
+                          {link.label}
+                        </a>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           </header>
 
           {experience && experience.length > 0 && (
-            <section className="mb-24 md:mb-32" aria-label="Experience">
-              <SectionTitle title="Experience" count={experience.length} />
-              <div>
-                {experience.map((job) => (
-                  <article
-                    key={`${job.company}-${job.title}-${job.start_date}`}
-                    className="grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-8 py-8 border-b border-black/8 last:border-b-0"
-                  >
-                    <div className="md:col-span-3 min-w-0">
-                      <span className="font-mono text-[11px] text-neutral-400 block mb-1">
-                        {formatDateRange(job.start_date, job.end_date)}
-                      </span>
-                      <span className="text-sm font-semibold tracking-wide text-neutral-900 break-words">
-                        {job.company}
-                      </span>
-                      {job.location && (
-                        <p className="text-xs text-neutral-400 mt-1">{job.location}</p>
-                      )}
-                    </div>
-
-                    <div className="md:col-span-9 min-w-0">
-                      <h3 className="text-2xl md:text-3xl font-serif-me italic text-neutral-900 mb-3 [text-wrap:unset] break-words">
-                        {job.title}
-                      </h3>
-                      {job.description && (
-                        <p className="text-sm text-neutral-600 leading-relaxed mb-3 max-w-2xl">
-                          {job.description}
-                        </p>
-                      )}
-                      {job.highlights && job.highlights.length > 0 && (
-                        <ul className="space-y-1.5">
-                          {job.highlights.slice(0, 4).map((highlight) => (
-                            <li
-                              key={`${job.title}-${highlight}`}
-                              className="text-sm text-neutral-500 leading-relaxed pl-4 relative before:absolute before:left-0 before:top-[0.55em] before:w-1.5 before:h-px before:bg-neutral-300"
-                            >
-                              {highlight}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-                  </article>
-                ))}
-              </div>
-            </section>
+            <Section title="Experience">
+              {experience.map((job) => (
+                <Entry
+                  key={`${job.company}-${job.title}-${job.start_date}`}
+                  aside={dateSpan(job.start_date, job.end_date)}
+                >
+                  <h3 className="text-[1.1875rem] md:text-xl font-semibold leading-snug break-words [text-wrap:unset]">
+                    {job.title}
+                  </h3>
+                  <p className="text-[#6B6B73]">
+                    {job.company}
+                    {job.location && <span>, {job.location}</span>}
+                  </p>
+                  {job.description && <p className="mt-3">{job.description}</p>}
+                  {job.highlights && job.highlights.length > 0 && (
+                    <ul className="mt-3 space-y-1.5 list-disc pl-5 marker:text-[#B4B4BA]">
+                      {job.highlights.map((highlight) => (
+                        <li key={`${job.title}-${highlight}`} className="pl-1">
+                          {highlight}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </Entry>
+              ))}
+            </Section>
           )}
 
           {projects && projects.length > 0 && (
-            <section className="mb-24 md:mb-32" aria-label="Selected works">
-              <SectionTitle title="Selected Works" count={projects.length} />
-              <div className="flex flex-col border-t border-black/10">
-                {projects.map((project) => {
-                  const Wrapper = project.url ? "a" : "article";
-
-                  return (
-                    <Wrapper
-                      key={`${project.title}-${project.year ?? ""}-${project.url ?? ""}`}
-                      {...(project.url
-                        ? {
-                            href: project.url,
-                            target: "_blank" as const,
-                            rel: "noopener noreferrer",
-                          }
-                        : {})}
-                      className="group relative flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-black/10 py-8 md:py-10 px-1 md:px-3 -mx-1 md:mx-0 rounded-none hover:bg-[#C4704F] hover:text-white hover:border-transparent transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C4704F]"
-                    >
-                      <div className="md:w-[42%] min-w-0">
-                        <h3 className="text-3xl md:text-4xl font-serif-me font-light tracking-tight mb-2 group-hover:italic break-words [text-wrap:unset]">
-                          {project.title}
-                        </h3>
-                        {project.technologies && project.technologies.length > 0 && (
-                          <div className="flex flex-wrap gap-x-3 gap-y-1 opacity-60 group-hover:opacity-90">
-                            {project.technologies.slice(0, 4).map((tech) => (
-                              <span
-                                key={`${project.title}-${tech}`}
-                                className="text-[11px] uppercase tracking-widest"
-                              >
-                                {tech}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      {project.description && (
-                        <p className="md:w-[42%] opacity-70 group-hover:opacity-95 font-light leading-relaxed text-sm min-w-0">
-                          {project.description}
-                        </p>
-                      )}
-
-                      <div className="hidden md:flex w-10 shrink-0 justify-end">
-                        {project.url && (
-                          <ArrowUpRight
-                            className="w-7 h-7 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-[transform,opacity] duration-300"
-                            aria-hidden="true"
-                          />
-                        )}
-                      </div>
-                    </Wrapper>
-                  );
-                })}
-              </div>
-            </section>
+            <Section title="Projects">
+              {projects.map((project) => (
+                <Entry
+                  key={`${project.title}-${project.year ?? ""}-${project.url ?? ""}`}
+                  aside={project.year}
+                >
+                  <h3 className="text-[1.1875rem] md:text-xl font-semibold leading-snug break-words [text-wrap:unset]">
+                    {project.url ? (
+                      <a
+                        href={project.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={LINK}
+                      >
+                        {project.title}
+                      </a>
+                    ) : (
+                      project.title
+                    )}
+                  </h3>
+                  {project.description && <p className="mt-2">{project.description}</p>}
+                  {project.technologies && project.technologies.length > 0 && (
+                    <p className="mt-2 text-[0.9375rem] italic text-[#6B6B73]">
+                      {project.technologies.join(", ")}
+                    </p>
+                  )}
+                </Entry>
+              ))}
+            </Section>
           )}
 
-          <EducationAndSkills education={education} skills={skills} />
+          {education && education.length > 0 && (
+            <Section title="Education">
+              {education.map((edu) => (
+                <Entry
+                  key={`${edu.institution}-${edu.degree}-${edu.graduation_date ?? ""}`}
+                  aside={edu.graduation_date ? formatShortDate(edu.graduation_date) : null}
+                >
+                  <h3 className="text-[1.1875rem] md:text-xl font-semibold leading-snug break-words [text-wrap:unset]">
+                    {edu.degree}
+                  </h3>
+                  <p className="text-[#6B6B73]">
+                    {edu.institution}
+                    {edu.location && <span>, {edu.location}</span>}
+                  </p>
+                  {edu.gpa && <p className="mt-1 text-[0.9375rem]">GPA {edu.gpa}</p>}
+                </Entry>
+              ))}
+            </Section>
+          )}
 
-          {certifications && certifications.length > 0 && (
-            <section className="mb-24 md:mb-32" aria-label="Certifications">
-              <SectionTitle title="Certifications" count={certifications.length} />
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {certifications.map((cert) => (
-                  <div
-                    key={`${cert.name}-${cert.issuer}-${cert.date ?? ""}`}
-                    className="border border-black/10 p-6 hover:border-black/25 transition-colors duration-300 min-w-0"
-                  >
-                    <div className="flex items-start gap-3">
-                      <Award
-                        className="w-5 h-5 text-neutral-400 mt-1 shrink-0"
-                        aria-hidden="true"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-serif-me text-lg italic mb-1 break-words">
-                          {cert.name}
-                        </h3>
-                        {cert.issuer && (
-                          <p className="text-sm text-neutral-600 font-medium">{cert.issuer}</p>
-                        )}
-                        {cert.date && (
-                          <p className="text-xs text-neutral-400 mt-2">
-                            {formatShortDate(cert.date)}
-                          </p>
-                        )}
-                        {cert.url && (
-                          <a
-                            href={cert.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-xs text-neutral-500 hover:text-black mt-2 transition-colors focus-visible:outline-none focus-visible:underline"
-                          >
-                            View credential <ArrowUpRight className="w-3 h-3" aria-hidden="true" />
-                          </a>
-                        )}
-                      </div>
-                    </div>
+          {skillGroups.length > 0 && (
+            <Section title="Skills">
+              <dl className="space-y-4">
+                {skillGroups.map((group) => (
+                  <div key={group.category} className="min-w-0">
+                    <dt className="italic text-[#6B6B73]">{group.category}</dt>
+                    <dd>{group.items.join(", ")}</dd>
                   </div>
                 ))}
-              </div>
-            </section>
+              </dl>
+            </Section>
           )}
 
-          <EditorialFooter links={contactLinks} handle={profile.handle} />
+          {certifications && certifications.length > 0 && (
+            <Section title="Certifications">
+              {certifications.map((cert) => (
+                <Entry
+                  key={`${cert.name}-${cert.issuer ?? ""}-${cert.date ?? ""}`}
+                  aside={cert.date ? formatShortDate(cert.date) : null}
+                >
+                  <h3 className="text-[1.0625rem] md:text-lg font-semibold leading-snug break-words [text-wrap:unset]">
+                    {cert.url ? (
+                      <a href={cert.url} target="_blank" rel="noopener noreferrer" className={LINK}>
+                        {cert.name}
+                      </a>
+                    ) : (
+                      cert.name
+                    )}
+                  </h3>
+                  {cert.issuer && <p className="text-[#6B6B73]">{cert.issuer}</p>}
+                </Entry>
+              ))}
+            </Section>
+          )}
+
+          <footer className="mt-24 pt-8 border-t border-[#E4E4E7] grid grid-cols-1 lg:grid-cols-[11rem_minmax(0,40rem)] lg:gap-x-12">
+            <p className="text-[0.9375rem] text-[#6B6B73] mb-4 lg:mb-0">@{profile.handle}</p>
+            <div className="min-w-0 flex flex-wrap items-center justify-between gap-4">
+              {emailLink ? (
+                <a href={emailLink.href} className={`${LINK} text-[0.9375rem] break-all`}>
+                  {emailLink.label}
+                </a>
+              ) : (
+                <span />
+              )}
+              <ShareBar
+                handle={profile.handle}
+                title={`${full_name}'s Portfolio`}
+                name={full_name}
+                variant="minimalist-editorial"
+              />
+            </div>
+          </footer>
         </main>
       </div>
     </>

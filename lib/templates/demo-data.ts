@@ -169,8 +169,9 @@ export const DEMO_RESUME_CONTENT = {
       },
     ],
     skills: [
-      { category: "Design", items: ["Figma", "Sketch", "Adobe XD", "Framer"] },
+      { category: "Design", items: ["Figma", "Sketch", "Adobe XD", "Design Systems"] },
       { category: "Research", items: ["User Interviews", "A/B Testing", "Analytics"] },
+      { category: "Prototyping", items: ["Framer", "ProtoPie", "HTML/CSS"] },
     ],
     certifications: [
       {
@@ -186,6 +187,13 @@ export const DEMO_RESUME_CONTENT = {
         year: "2023",
         technologies: ["Figma", "React", "Storybook"],
         url: "https://github.com/sarahchen/design-toolkit",
+      },
+      {
+        title: "Onboarding Diary Study",
+        description:
+          "Six-week diary study with 40 small-business owners that reset the onboarding roadmap",
+        year: "2022",
+        technologies: ["Dovetail", "Maze"],
       },
     ],
   },
@@ -977,7 +985,7 @@ export const TEMPLATE_BACKGROUNDS = {
   dev_terminal: { bg: "bg-[#0d1117]", isDark: true },
   glass: { bg: "bg-[#030303]", isDark: true },
   midnight: { bg: "bg-[#0a0a0a]", isDark: true },
-  minimalist_editorial: { bg: "bg-[#FDFCF8]", isDark: false },
+  minimalist_editorial: { bg: "bg-white", isDark: false },
   neo_brutalist: { bg: "bg-[#FFFDF5]", isDark: false },
   spotlight: { bg: "bg-[#FFFCF9]", isDark: false },
 } as const satisfies Record<ThemeId, { bg: string; isDark: boolean }>;
