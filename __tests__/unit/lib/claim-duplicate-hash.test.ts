@@ -126,12 +126,6 @@ vi.mock("@/lib/db/schema", () => ({
     parsedAt: "parsedAt",
     updatedAt: "updatedAt",
   },
-  pendingR2Deletions: {
-    id: "id",
-    r2Key: "r2Key",
-    createdAt: "createdAt",
-    attempts: "attempts",
-  },
   siteData: {
     id: "id",
     userId: "userId",
@@ -179,8 +173,9 @@ vi.mock("@/lib/utils/validation", () => ({
   }),
 }));
 
-vi.mock("@/lib/queue/resume-parse", () => ({
-  publishResumeParse: vi.fn().mockResolvedValue(undefined),
+vi.mock("@/lib/workflows/resume-parse", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/workflows/resume-parse")>()),
+  startResumeParse: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("@/lib/data/site-data-upsert", () => ({
@@ -270,7 +265,7 @@ function authedAs(userId: string) {
     dbUser: { id: userId, handle: "testuser", clerkId: "user_clerk_1" },
     // SAFETY: the route reads only PENDING_UPLOAD_SECRET (cookie HMAC) and passes the queue
     // binding to the mocked publisher; the other 28 CloudflareEnv bindings stay untouched.
-    env: { CLICKFOLIO_PARSE_QUEUE: {}, PENDING_UPLOAD_SECRET: TEST_SECRET } as never,
+    env: { CLICKFOLIO_PARSE_WORKFLOW: {}, PENDING_UPLOAD_SECRET: TEST_SECRET } as never,
     error: null,
   });
 }
@@ -383,8 +378,12 @@ describe("POST /api/resume/claim — Duplicate file hash detection", () => {
       const body: { waiting_for_cache?: boolean } = await response.json();
       expect(body.waiting_for_cache).toBe(true);
 
-      const { publishResumeParse } = await import("@/lib/queue/resume-parse");
-      expect(publishResumeParse).not.toHaveBeenCalled();
+      const { startResumeParse } = await import("@/lib/workflows/resume-parse");
+      expect(startResumeParse).not.toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        expect.objectContaining({ kind: "parse" }),
+      );
     });
 
     it("dedupes against a same-hash resume that is queued (not yet processing) — Batch A item 10", async () => {
@@ -422,8 +421,12 @@ describe("POST /api/resume/claim — Duplicate file hash detection", () => {
         }),
       );
 
-      const { publishResumeParse } = await import("@/lib/queue/resume-parse");
-      expect(publishResumeParse).not.toHaveBeenCalled();
+      const { startResumeParse } = await import("@/lib/workflows/resume-parse");
+      expect(startResumeParse).not.toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        expect.objectContaining({ kind: "parse" }),
+      );
     });
 
     it("uses cached result when same user uploads same file that was already completed", async () => {
@@ -449,8 +452,12 @@ describe("POST /api/resume/claim — Duplicate file hash detection", () => {
       expect(body.status).toBe("completed");
       expect(body.cached).toBe(true);
 
-      const { publishResumeParse } = await import("@/lib/queue/resume-parse");
-      expect(publishResumeParse).not.toHaveBeenCalled();
+      const { startResumeParse } = await import("@/lib/workflows/resume-parse");
+      expect(startResumeParse).not.toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        expect.objectContaining({ kind: "parse" }),
+      );
       const { buildSiteDataUpsert } = await import("@/lib/data/site-data-upsert");
       expect(vi.mocked(buildSiteDataUpsert)).toHaveBeenCalledWith(
         expect.anything(),
@@ -484,8 +491,12 @@ describe("POST /api/resume/claim — Duplicate file hash detection", () => {
       expect(body.status).toBe("completed");
       expect(body.cached).toBe(true);
 
-      const { publishResumeParse } = await import("@/lib/queue/resume-parse");
-      expect(publishResumeParse).not.toHaveBeenCalled();
+      const { startResumeParse } = await import("@/lib/workflows/resume-parse");
+      expect(startResumeParse).not.toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        expect.objectContaining({ kind: "parse" }),
+      );
       const { buildSiteDataUpsert } = await import("@/lib/data/site-data-upsert");
       expect(vi.mocked(buildSiteDataUpsert)).toHaveBeenCalledWith(
         expect.anything(),
@@ -512,8 +523,8 @@ describe("POST /api/resume/claim — Duplicate file hash detection", () => {
       const body: { status: string } = await response.json();
       expect(body.status).toBe("queued");
 
-      const { publishResumeParse } = await import("@/lib/queue/resume-parse");
-      expect(publishResumeParse).toHaveBeenCalled();
+      const { startResumeParse } = await import("@/lib/workflows/resume-parse");
+      expect(startResumeParse).toHaveBeenCalled();
     });
 
     it("does not apply user-1's cache to user-2 even with same file hash", async () => {

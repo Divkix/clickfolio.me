@@ -247,13 +247,13 @@ function useWizardInit() {
         const siteDataResponse = await fetch("/api/site-data", { signal: controller.signal });
 
         if (siteDataResponse.ok) {
-          // SAFETY: SiteDataResponse is from our /api/site-data endpoint; content is schema-validated JSON written only by queue consumer.
+          // SAFETY: SiteDataResponse is from our /api/site-data endpoint; content is schema-validated JSON written only by the parse workflow.
           const siteData = (await siteDataResponse.json()) as SiteDataResponse | null;
 
           if (siteData?.content) {
             if (!active) return;
 
-            // SAFETY: content is schema-validated JSON written only by our queue consumer.
+            // SAFETY: content is schema-validated JSON written only by the parse pipeline.
             const content = siteData.content as ResumeContent;
 
             setState((prev) => ({

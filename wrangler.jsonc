@@ -36,27 +36,18 @@
       "bucket_name": "clickfolio-bucket",
     },
   ],
-  "queues": {
-    "producers": [
-      {
-        "binding": "CLICKFOLIO_PARSE_QUEUE",
-        "queue": "clickfolio-parse-queue",
-      },
-    ],
-    "consumers": [
-      {
-        "queue": "clickfolio-parse-queue",
-        "max_batch_size": 1,
-        "max_retries": 3,
-        "dead_letter_queue": "clickfolio-parse-dlq",
-      },
-      {
-        "queue": "clickfolio-parse-dlq",
-        "max_batch_size": 1,
-        "max_retries": 0,
-      },
-    ],
-  },
+  "workflows": [
+    {
+      "name": "clickfolio-resume-parse",
+      "binding": "CLICKFOLIO_PARSE_WORKFLOW",
+      "class_name": "ResumeParseWorkflow",
+    },
+    {
+      "name": "clickfolio-r2-delete",
+      "binding": "CLICKFOLIO_R2_DELETE_WORKFLOW",
+      "class_name": "R2DeleteWorkflow",
+    },
+  ],
   "durable_objects": {
     "bindings": [
       {
@@ -95,7 +86,7 @@
     },
   },
   "triggers": {
-    "crons": ["0 2 * * *", "0 3 * * *", "*/15 * * * *"],
+    "crons": ["0 3 * * *"],
   },
   "vars": {
     // Environment variables are set via 'wrangler secret put' for production
@@ -110,7 +101,7 @@
     //   APP_URL                            # canonical site URL (e.g. https://clickfolio.me)
     //   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY  # public Clerk key — set in CF Workers dashboard/build env
     //
-    // ===== OPTIONAL: DLQ alerting (defaults to Cloudflare Logpush) =====
+    // ===== OPTIONAL: parse-failure alerting (defaults to Cloudflare Logpush) =====
     //   wrangler secret put ALERT_CHANNEL       # logpush | webhook
     //   wrangler secret put ALERT_WEBHOOK_URL   # Slack/Discord webhook URL
     //

@@ -79,8 +79,9 @@ vi.mock("@/lib/db/schema", async (importOriginal) => {
   };
 });
 
-vi.mock("@/lib/queue/resume-parse", () => ({
-  publishResumeParse: vi.fn().mockResolvedValue(undefined),
+vi.mock("@/lib/workflows/resume-parse", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/workflows/resume-parse")>()),
+  startResumeParse: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("@/lib/r2", () => ({
@@ -150,10 +151,10 @@ function authedAs(userId: string) {
     // can construct — the auth context only forwards db through to the handler.
     db: mockDb as never,
     dbUser: { id: userId, handle: "testuser", clerkId: "user_clerk_1" },
-    // SAFETY: the retry route reads only CLICKFOLIO_PARSE_QUEUE and hands it to the mocked
+    // SAFETY: the retry route reads only CLICKFOLIO_PARSE_WORKFLOW and hands it to the mocked
     // publisher, and the status route reads no binding; the remaining CloudflareEnv members
     // stay untouched.
-    env: { CLICKFOLIO_PARSE_QUEUE: {} } as never,
+    env: { CLICKFOLIO_PARSE_WORKFLOW: {} } as never,
     error: null,
   });
 }

@@ -176,6 +176,10 @@ function createObject() {
         vi.fn(() => fetcherStub),
         fetcherStub,
       ),
+      // SAFETY: workflow entrypoints have no loopback stub (ctx.exports types them as never); the DO never reads them.
+      R2DeleteWorkflow: undefined as never,
+      // SAFETY: as above — no loopback stub for a workflow entrypoint.
+      ResumeParseWorkflow: undefined as never,
     },
     props: {},
     id: {
@@ -210,7 +214,7 @@ function createObject() {
   };
 
   // SAFETY: the DO never reads a binding, and env's live service bindings (R2Bucket,
-  // Hyperdrive, Queue, Fetcher, DurableObjectNamespace) cannot be honestly built in a unit test.
+  // Hyperdrive, Workflow, Fetcher, DurableObjectNamespace) cannot be honestly built in a unit test.
   return import("@/lib/durable-objects/resume-status").then(({ ClickfolioStatusDO }) => ({
     instance: new ClickfolioStatusDO(ctx, {} as never),
     ctx,

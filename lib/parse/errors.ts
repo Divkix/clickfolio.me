@@ -1,15 +1,15 @@
 import { z } from "zod";
 import type { JsonValue } from "@/lib/types/json";
 
-export type QueueErrorInput =
+export type ParseErrorInput =
   | Error
-  | QueueError
+  | ParseError
   | string
   | { message?: string; error?: string; status?: number; cause?: JsonValue }
   | null
   | undefined;
 
-export enum QueueErrorType {
+export enum ParseErrorType {
   DB_CONNECTION_ERROR = "db_connection_error",
   SERVICE_BINDING_TIMEOUT = "service_binding_timeout",
   R2_THROTTLE = "r2_throttle",
@@ -23,25 +23,25 @@ export enum QueueErrorType {
   UNKNOWN = "unknown",
 }
 
-const TRANSIENT_ERROR_TYPES = new Set<QueueErrorType>([
-  QueueErrorType.DB_CONNECTION_ERROR,
-  QueueErrorType.SERVICE_BINDING_TIMEOUT,
-  QueueErrorType.R2_THROTTLE,
-  QueueErrorType.AI_PROVIDER_ERROR,
+const TRANSIENT_ERROR_TYPES = new Set<ParseErrorType>([
+  ParseErrorType.DB_CONNECTION_ERROR,
+  ParseErrorType.SERVICE_BINDING_TIMEOUT,
+  ParseErrorType.R2_THROTTLE,
+  ParseErrorType.AI_PROVIDER_ERROR,
 ]);
 
-export class QueueError extends Error {
-  readonly type: QueueErrorType;
-  readonly originalError?: QueueErrorInput;
+export class ParseError extends Error {
+  readonly type: ParseErrorType;
+  readonly originalError?: ParseErrorInput;
 
-  constructor(type: QueueErrorType, message: string, originalError?: QueueErrorInput) {
+  constructor(type: ParseErrorType, message: string, originalError?: ParseErrorInput) {
     super(message);
-    this.name = "QueueError";
+    this.name = "ParseError";
     this.type = type;
     this.originalError = originalError;
 
     if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, QueueError);
+      Error.captureStackTrace(this, ParseError);
     }
   }
 
@@ -49,7 +49,7 @@ export class QueueError extends Error {
     return TRANSIENT_ERROR_TYPES.has(this.type);
   }
 
-  toJSON(): QueueErrorJson {
+  toJSON(): ParseErrorJson {
     return {
       name: this.name,
       type: this.type,
@@ -66,176 +66,176 @@ export class QueueError extends Error {
   }
 }
 
-export type QueueErrorJson = {
+export type ParseErrorJson = {
   name: string;
-  type: QueueErrorType;
+  type: ParseErrorType;
   message: string;
   isRetryable: boolean;
   originalError: unknown;
 };
 
-const ERROR_PATTERNS: Array<{ pattern: RegExp; type: QueueErrorType }> = [
+const ERROR_PATTERNS: Array<{ pattern: RegExp; type: ParseErrorType }> = [
   {
     pattern:
       /duplicate key value violates unique constraint|violates foreign key constraint|violates not-null constraint|violates check constraint|violates exclusion constraint/i,
-    type: QueueErrorType.PARSE_VALIDATION_ERROR,
+    type: ParseErrorType.PARSE_VALIDATION_ERROR,
   },
   {
     pattern: /\[pg_code=(?:23000|23001|23502|23503|23505|23514)\]/,
-    type: QueueErrorType.PARSE_VALIDATION_ERROR,
+    type: ParseErrorType.PARSE_VALIDATION_ERROR,
   },
 
   {
     pattern:
       /\[pg_code=(?:08000|08001|08003|08004|08006|53300|53400|57P01|57P02|57P03|40001|40P01|55P03)\]/,
-    type: QueueErrorType.DB_CONNECTION_ERROR,
+    type: ParseErrorType.DB_CONNECTION_ERROR,
   },
   {
     pattern:
       /database.*connection|connection.*(?:refused|reset|terminated|closed|aborted|timed?\s*out)|server closed the connection|terminating connection|too many clients|too many connections|ECONNREFUSED|ECONNRESET|ECONNABORTED|EPIPE|ETIMEDOUT|ENOTFOUND|getaddrinfo|failed to connect/i,
-    type: QueueErrorType.DB_CONNECTION_ERROR,
+    type: ParseErrorType.DB_CONNECTION_ERROR,
   },
   {
     pattern:
       /database.*unavailable|db.*timeout|transaction.*failed|deadlock detected|serialization failure|could not serialize|statement timeout|lock wait timeout/i,
-    type: QueueErrorType.DB_CONNECTION_ERROR,
+    type: ParseErrorType.DB_CONNECTION_ERROR,
   },
 
   {
     pattern: /R2.*temporarily.*unavailable|R2.*service.*unavailable/i,
-    type: QueueErrorType.R2_THROTTLE,
+    type: ParseErrorType.R2_THROTTLE,
   },
 
   {
     pattern: /invalid.*pdf|corrupt.*pdf|pdf.*corrupt|pdf.*invalid|malformed.*pdf/i,
-    type: QueueErrorType.INVALID_PDF,
+    type: ParseErrorType.INVALID_PDF,
   },
   {
     pattern: /not.*a.*pdf|pdf.*extraction.*failed|cannot.*parse.*pdf/i,
-    type: QueueErrorType.INVALID_PDF,
+    type: ParseErrorType.INVALID_PDF,
   },
   {
     pattern: /encrypted.*pdf|password.*protected|pdf.*encrypted/i,
-    type: QueueErrorType.INVALID_PDF,
+    type: ParseErrorType.INVALID_PDF,
   },
   {
     pattern: /extracted.*resume.*text.*is.*empty/i,
-    type: QueueErrorType.INVALID_PDF,
+    type: ParseErrorType.INVALID_PDF,
   },
   {
     pattern: /scanned.*pdf|clearer.*photo|export.*as.*text.*pdf/i,
-    type: QueueErrorType.INVALID_PDF,
+    type: ParseErrorType.INVALID_PDF,
   },
   {
     pattern: /pdf.*has.*\d+.*pages|too.*many.*pages/i,
-    type: QueueErrorType.INVALID_PDF,
+    type: ParseErrorType.INVALID_PDF,
   },
 
   {
     pattern: /NoObjectGeneratedError|no.*object.*generated/i,
-    type: QueueErrorType.AI_PROVIDER_ERROR,
+    type: ParseErrorType.AI_PROVIDER_ERROR,
   },
   {
     pattern: /ai parser returned no result/i,
-    type: QueueErrorType.AI_PROVIDER_ERROR,
+    type: ParseErrorType.AI_PROVIDER_ERROR,
   },
   {
     pattern: /API.*error|api.*request.*failed|provider.*error/i,
-    type: QueueErrorType.AI_PROVIDER_ERROR,
+    type: ParseErrorType.AI_PROVIDER_ERROR,
   },
   {
     pattern: /model.*not.*found|model.*unavailable|insufficient.*credits/i,
-    type: QueueErrorType.AI_PROVIDER_ERROR,
+    type: ParseErrorType.AI_PROVIDER_ERROR,
   },
   {
     pattern:
       /HTTP\s*5\d{2}|status.*5\d{2}|internal.*server.*error|bad.*gateway|service.*unavailable/i,
-    type: QueueErrorType.AI_PROVIDER_ERROR,
+    type: ParseErrorType.AI_PROVIDER_ERROR,
   },
   {
     pattern: /AI_APICallError|ai_apicall_error|cannot connect to api/i,
-    type: QueueErrorType.AI_PROVIDER_ERROR,
+    type: ParseErrorType.AI_PROVIDER_ERROR,
   },
   {
     pattern: /failed to process (error|successful) response/i,
-    type: QueueErrorType.AI_PROVIDER_ERROR,
+    type: ParseErrorType.AI_PROVIDER_ERROR,
   },
 
   {
     pattern: /timeout|timed?\s*out|deadline.*exceeded|worker.*timeout/i,
-    type: QueueErrorType.SERVICE_BINDING_TIMEOUT,
+    type: ParseErrorType.SERVICE_BINDING_TIMEOUT,
   },
   {
     pattern: /request.*took.*too.*long|exceeded.*time.*limit/i,
-    type: QueueErrorType.SERVICE_BINDING_TIMEOUT,
+    type: ParseErrorType.SERVICE_BINDING_TIMEOUT,
   },
 
   {
     pattern: /R2.*throttle|rate.*limit|too.*many.*requests|429/i,
-    type: QueueErrorType.R2_THROTTLE,
+    type: ParseErrorType.R2_THROTTLE,
   },
   {
     pattern: /invalid.*json|json.*parse|unexpected.*token|malformed.*response/i,
-    type: QueueErrorType.MALFORMED_RESPONSE,
+    type: ParseErrorType.MALFORMED_RESPONSE,
   },
   {
     pattern: /invalid.*json.*response.*from.*ai/i,
-    type: QueueErrorType.MALFORMED_RESPONSE,
+    type: ParseErrorType.MALFORMED_RESPONSE,
   },
   {
     pattern: /ai.*parsing.*failed|parsing.*failed/i,
-    type: QueueErrorType.MALFORMED_RESPONSE,
+    type: ParseErrorType.MALFORMED_RESPONSE,
   },
 
   {
     pattern: /worker.*not.*available|binding.*not.*available|service.*not.*found/i,
-    type: QueueErrorType.SERVICE_BINDING_NOT_FOUND,
+    type: ParseErrorType.SERVICE_BINDING_NOT_FOUND,
   },
   {
     pattern: /pdf.*worker.*not.*available|ai.*parser.*not.*available/i,
-    type: QueueErrorType.SERVICE_BINDING_NOT_FOUND,
+    type: ParseErrorType.SERVICE_BINDING_NOT_FOUND,
   },
   {
     pattern: /R2.*binding.*not.*available/i,
-    type: QueueErrorType.SERVICE_BINDING_NOT_FOUND,
+    type: ParseErrorType.SERVICE_BINDING_NOT_FOUND,
   },
 
   {
     pattern: /file.*not.*found|object.*not.*found|key.*not.*found|\b404\b/i,
-    type: QueueErrorType.FILE_NOT_FOUND,
+    type: ParseErrorType.FILE_NOT_FOUND,
   },
   {
     pattern: /failed.*to.*fetch.*pdf.*from.*r2/i,
-    type: QueueErrorType.FILE_NOT_FOUND,
+    type: ParseErrorType.FILE_NOT_FOUND,
   },
   {
     pattern: /r2.*object.*does.*not.*exist|no.*such.*key/i,
-    type: QueueErrorType.FILE_NOT_FOUND,
+    type: ParseErrorType.FILE_NOT_FOUND,
   },
 
   {
     pattern: /validation.*error|schema.*validation|zod.*error/i,
-    type: QueueErrorType.PARSE_VALIDATION_ERROR,
+    type: ParseErrorType.PARSE_VALIDATION_ERROR,
   },
   {
     pattern: /required.*field.*missing|invalid.*field|type.*mismatch/i,
-    type: QueueErrorType.PARSE_VALIDATION_ERROR,
+    type: ParseErrorType.PARSE_VALIDATION_ERROR,
   },
 ];
 
-export function classifyQueueError(error: QueueErrorInput): QueueError {
+export function classifyParseError(error: ParseErrorInput): ParseError {
   const errorMessage = extractErrorMessage(error);
 
   for (const { pattern, type } of ERROR_PATTERNS) {
     if (pattern.test(errorMessage)) {
-      return new QueueError(type, errorMessage, error);
+      return new ParseError(type, errorMessage, error);
     }
   }
 
-  return new QueueError(QueueErrorType.UNKNOWN, errorMessage, error);
+  return new ParseError(ParseErrorType.UNKNOWN, errorMessage, error);
 }
 
-function extractErrorMessage(error: QueueErrorInput): string {
+function extractErrorMessage(error: ParseErrorInput): string {
   if (error instanceof Error) {
     const pgCode = z
       .string()
@@ -244,9 +244,9 @@ function extractErrorMessage(error: QueueErrorInput): string {
 
     const codeTag = pgCode.success ? ` [pg_code=${pgCode.data}]` : "";
 
-    // SAFETY: error.cause is from Error instance, narrowed via instanceof Error branch; QueueErrorInput is safe union for recursion.
+    // SAFETY: error.cause is from Error instance, narrowed via instanceof Error branch; ParseErrorInput is safe union for recursion.
     const cause =
-      error.cause != null ? ` (cause: ${extractErrorMessage(error.cause as QueueErrorInput)})` : "";
+      error.cause != null ? ` (cause: ${extractErrorMessage(error.cause as ParseErrorInput)})` : "";
 
     return `${error.message}${codeTag}${cause}`;
   }
@@ -277,16 +277,4 @@ function extractErrorMessage(error: QueueErrorInput): string {
   }
 
   return "Unknown error";
-}
-
-function isQueueError(error: QueueErrorInput): error is QueueError {
-  return error instanceof QueueError;
-}
-
-export function isRetryableError(error: QueueErrorInput): boolean {
-  if (isQueueError(error)) {
-    return error.isRetryable();
-  }
-
-  return classifyQueueError(error).isRetryable();
 }

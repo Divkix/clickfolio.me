@@ -4,5 +4,5 @@ import { withCron } from "@/lib/cron/with-cron";
 import { getR2Binding } from "@/lib/r2";
 
 export const GET = withCron(async (env) =>
-  performCleanup(getDb(env.HYPERDRIVE), getR2Binding(env)),
+  performCleanup(getDb(env.HYPERDRIVE), getR2Binding(env), env.CLICKFOLIO_R2_DELETE_WORKFLOW),
 );

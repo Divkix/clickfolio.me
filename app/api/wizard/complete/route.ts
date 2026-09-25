@@ -166,7 +166,7 @@ export async function POST(request: Request) {
           };
 
           if (siteDataSnapshot) {
-            // Skip when the row moved past the snapshot read at request start (e.g. queue completion published).
+            // Skip when the row moved past the snapshot read at request start (e.g. parse completion published).
             await tx
               .insert(siteData)
               .values({

@@ -49,8 +49,8 @@ export async function GET(request: Request) {
         );
       }
 
-      // The DB row stays `waiting_for_cache` until the orphan cron persists the
-      // timeout (lib/cron/recover-orphaned). No `db.update` here.
+      // The DB row stays `waiting_for_cache` until the await-cache workflow persists
+      // the timeout (lib/workflows/resume-parse-workflow). No `db.update` here.
       // SAFETY: drizzle row fields are string/number but getStatusView expects exact types; casts narrow Drizzle-inferred types for lifecycle helper
       const view = getStatusView({
         status: resume.status as ResumeStatus,
@@ -77,7 +77,7 @@ export async function GET(request: Request) {
           },
         });
 
-        // SAFETY: parsedContent is schema-validated JSONB written by our queue consumer; cast bridges the column's wide Record type.
+        // SAFETY: parsedContent is schema-validated JSONB written by the parse pipeline; cast bridges the column's wide Record type.
         const parsedJson = (resumeContent?.parsedContent as UnknownRecord | null) ?? null;
 
         return createSuccessResponse({

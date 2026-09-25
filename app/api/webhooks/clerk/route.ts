@@ -8,8 +8,9 @@ import { Webhook } from "svix";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { getDb, type Database } from "@/lib/db";
-import { pendingR2Deletions, user as users } from "@/lib/db/schema";
+import { user as users } from "@/lib/db/schema";
 import { collectR2KeysForUser } from "@/lib/r2";
+import { scheduleR2Deletion } from "@/lib/workflows/r2-delete";
 
 export const dynamic = "force-dynamic";
 
@@ -225,25 +226,16 @@ export async function POST(request: Request): Promise<Response> {
 
   try {
     if (event.type === "user.deleted") {
-      // Queue R2 cleanup before the cascade removes the resume rows the keys come from.
+      // Start the R2 cleanup before the cascade removes the resume rows the keys
+      // come from. A failed start returns 500 before the delete, so the Svix retry
+      // collects the same keys again.
       const mapped = await findMappedUser(db, payload);
 
       if (mapped) {
-        const r2Keys = await collectR2KeysForUser(db, mapped.id);
-
-        if (r2Keys.length > 0) {
-          await db
-            .insert(pendingR2Deletions)
-            .values(
-              r2Keys.map((r2Key) => ({
-                id: crypto.randomUUID(),
-                r2Key,
-                createdAt: new Date().toISOString(),
-                attempts: 1,
-              })),
-            )
-            .onConflictDoNothing({ target: pendingR2Deletions.r2Key });
-        }
+        await scheduleR2Deletion(env.CLICKFOLIO_R2_DELETE_WORKFLOW, {
+          keys: await collectR2KeysForUser(db, mapped.id),
+          prefix: `users/${mapped.id}/`,
+        });
       }
 
       await db.delete(users).where(eq(users.clerkId, payload.id));

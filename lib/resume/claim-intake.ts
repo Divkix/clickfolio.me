@@ -1,16 +1,21 @@
 import { and, desc, eq, inArray, isNotNull, ne, sql } from "drizzle-orm";
 import { buildSiteDataUpsert } from "@/lib/data/site-data-upsert";
 import type { Database } from "@/lib/db";
-import { pendingR2Deletions, resumes, user } from "@/lib/db/schema";
-import { publishResumeParse } from "@/lib/queue/resume-parse";
-import type { ResumeParseMessage } from "@/lib/queue/types";
+import { resumes, user } from "@/lib/db/schema";
 import { R2 } from "@/lib/r2";
 import { enforceRateLimit } from "@/lib/rate-limit/user";
 import { shouldSyncDisplayName } from "@/lib/resume/completion";
 import type { ResumeContent } from "@/lib/types/database";
 import { sha256Hex } from "@/lib/utils/hash";
 import { ERROR_CODES } from "@/lib/utils/security-headers";
+import { log } from "@/lib/utils/log";
 import { MAX_FILE_SIZE, MAX_FILE_SIZE_LABEL } from "@/lib/utils/validation";
+import { deleteR2Objects, type R2DeleteWorkflowBinding } from "@/lib/workflows/r2-delete";
+import {
+  parseInstanceId,
+  startResumeParse,
+  type ResumeParseWorkflowBinding,
+} from "@/lib/workflows/resume-parse";
 
 // One in-flight claim per (user, file hash) is arbitrated by the narrow unique
 // index resumes_user_hash_pending_uidx (migrations_pg/0006): only a pending_claim
@@ -33,7 +38,8 @@ export type ClaimIntakeOutcome =
 export type ClaimIntakeDeps = {
   db: Database;
   r2: R2Bucket;
-  queue: Queue<ResumeParseMessage> | null | undefined;
+  parseWorkflow: ResumeParseWorkflowBinding | null | undefined;
+  r2DeleteWorkflow?: R2DeleteWorkflowBinding;
   env?: Pick<CloudflareEnv, "HYPERDRIVE">;
   userId: string;
   tempKey: string;
@@ -45,43 +51,31 @@ function isLikelyMissingObjectError(cause: unknown): boolean {
   return /not\s*found|no\s*such\s*key|does\s*not\s*exist|404/i.test(cause.message);
 }
 
-// An object nobody references must still go away; a failed delete is queued for
-// the 2 AM sweep instead of being dropped.
-async function deleteObjectOrQueue(db: Database, r2: R2Bucket, key: string): Promise<void> {
-  await R2.delete(r2, key).catch(async (err) => {
-    console.warn("R2 delete failed:", key, err);
-
-    try {
-      await db
-        .insert(pendingR2Deletions)
-        .values({
-          id: crypto.randomUUID(),
-          r2Key: key,
-          createdAt: new Date().toISOString(),
-          attempts: 1,
-        })
-        .onConflictDoNothing({ target: pendingR2Deletions.r2Key });
-    } catch (queueError) {
-      console.error("Failed to record pending R2 deletion:", queueError);
-    }
+// A failed temp/ delete needs no follow-up: the bucket's temp/ lifecycle rule
+// (r2-lifecycle.json) expires it.
+async function deleteTempObject(r2: R2Bucket, key: string): Promise<void> {
+  await R2.delete(r2, key).catch((error) => {
+    log("warn", "temp R2 delete failed; lifecycle rule will expire it", {
+      key,
+      error: String(error),
+    });
   });
 }
 
 // Unified R2 failure policy: the object write must succeed or the intake fails;
-// temp-cleanup failure is queued for the 2 AM sweep and the intake proceeds.
+// temp-cleanup failure is left to the lifecycle rule and the intake proceeds.
 async function moveTempFile(
-  db: Database,
   r2: R2Bucket,
   tempKey: string,
   newKey: string,
   fileBuffer: ArrayBuffer,
 ): Promise<void> {
   await R2.put(r2, newKey, fileBuffer, { contentType: "application/pdf" });
-  await deleteObjectOrQueue(db, r2, tempKey);
+  await deleteTempObject(r2, tempKey);
 }
 
 export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntakeOutcome> {
-  const { db, r2, queue, env, userId, tempKey } = deps;
+  const { db, r2, parseWorkflow, r2DeleteWorkflow, env, userId, tempKey } = deps;
 
   // Only a row that still names this temp key is this claim. A newer resume
   // created in the same window is a different upload.
@@ -177,7 +171,7 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
   const now = new Date().toISOString();
 
   // Arbitration row first: it claims the pending_claim slot with r2Key still
-  // pointing at the temp object, so a requeue can never target a key whose bytes
+  // pointing at the temp object, so a parse run can never target a key whose bytes
   // were never written. The per-user row lock serializes the dedup insert with
   // the rate-limit count. A conflicting pending row comes back from the same
   // statement (no-op DO UPDATE) instead of a follow-up SELECT that could miss a
@@ -270,8 +264,8 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
 
     if (self[0]) return false;
 
-    await deleteObjectOrQueue(db, r2, newKey);
-    await deleteObjectOrQueue(db, r2, tempKey);
+    await deleteR2Objects(r2, r2DeleteWorkflow, [newKey]);
+    await deleteTempObject(r2, tempKey);
 
     return true;
   };
@@ -360,12 +354,12 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
     )
     .limit(1);
 
-  // SAFETY: parsedContent is schema-validated JSONB written only by our queue consumer; cast bridges the column's wide Record type to ResumeContent.
+  // SAFETY: parsedContent is schema-validated JSONB written only by the parse pipeline; cast bridges the column's wide Record type to ResumeContent.
   const cachedContent = (cached[0]?.parsedContent as ResumeContent | null) ?? null;
 
   if (cachedContent) {
     try {
-      await moveTempFile(db, r2, tempKey, newKey, fileBuffer);
+      await moveTempFile(r2, tempKey, newKey, fileBuffer);
     } catch (r2Error) {
       console.error("R2 operations failed for cached resume:", r2Error);
       await failResume("Failed to store file for processing");
@@ -431,10 +425,10 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
         };
       }
 
-      await deleteObjectOrQueue(db, r2, tempKey);
+      await deleteTempObject(r2, tempKey);
     } catch (waitError) {
       console.error("Failed to set waiting_for_cache status:", waitError);
-      await deleteObjectOrQueue(db, r2, newKey);
+      await deleteR2Objects(r2, r2DeleteWorkflow, [newKey]);
       await failResume("Failed to prepare resume for processing");
 
       return {
@@ -461,7 +455,7 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
       )
       .limit(1);
 
-    // SAFETY: parsedContent is schema-validated JSONB written only by our queue consumer; cast bridges the column's wide Record type to ResumeContent.
+    // SAFETY: parsedContent is schema-validated JSONB written only by the parse pipeline; cast bridges the column's wide Record type to ResumeContent.
     const completedContent = (completed[0]?.parsedContent as ResumeContent | null) ?? null;
 
     if (completedContent && (await completeFromCachedContent(completedContent))) {
@@ -479,11 +473,25 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
       };
     }
 
+    // Durable timer: fails the row if no identical parse completes it in time.
+    // Best-effort — the status view already presents the timeout virtually.
+    if (parseWorkflow) {
+      await startResumeParse(parseWorkflow, parseInstanceId(resumeId), {
+        kind: "await-cache",
+        resumeId,
+      }).catch((error) => {
+        log("error", "failed to start waiting_for_cache timer", {
+          resumeId,
+          error: String(error),
+        });
+      });
+    }
+
     return { kind: "waiting_for_cache", resumeId };
   }
 
   try {
-    await moveTempFile(db, r2, tempKey, newKey, fileBuffer);
+    await moveTempFile(r2, tempKey, newKey, fileBuffer);
   } catch (error) {
     console.error("R2 put error:", error);
     await failResume("Failed to store file for processing");
@@ -528,37 +536,36 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
     };
   }
 
-  if (!queue) {
-    await failResume("Queue service unavailable");
+  const failUnstarted = async (): Promise<ClaimIntakeOutcome> => {
+    // `failed` with no lastAttemptError stays manually retryable.
+    await failResume("Failed to start processing. Please try again.");
 
     return {
       kind: "error",
-      message: "Queue service unavailable",
-      code: "INTERNAL_ERROR",
+      message: "Failed to start resume processing",
+      code: "EXTERNAL_SERVICE_ERROR",
       httpStatus: 500,
     };
+  };
+
+  if (!parseWorkflow) {
+    console.error("CLICKFOLIO_PARSE_WORKFLOW binding not available");
+
+    return failUnstarted();
   }
 
   try {
-    await publishResumeParse(queue, {
+    await startResumeParse(parseWorkflow, parseInstanceId(resumeId), {
+      kind: "parse",
       resumeId,
       userId,
       r2Key: newKey,
       fileHash: computedFileHash,
-      attempt: 1,
     });
-  } catch (queueError) {
-    // Deliberately leave the row `queued`: the send error may mean the message
-    // landed anyway, so rolling back could double-publish. The 15-minute
-    // queued-orphan sweep re-drives rows stuck in `queued`.
-    console.error("Failed to publish resume parse job:", queueError);
+  } catch (workflowError) {
+    console.error("Failed to start resume parse workflow:", workflowError);
 
-    return {
-      kind: "error",
-      message: "Failed to queue resume for processing",
-      code: "EXTERNAL_SERVICE_ERROR",
-      httpStatus: 500,
-    };
+    return failUnstarted();
   }
 
   return { kind: "queued", resumeId };

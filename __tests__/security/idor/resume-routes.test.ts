@@ -100,8 +100,9 @@ vi.mock("@/lib/db/schema", async (importOriginal) => {
   };
 });
 
-vi.mock("@/lib/queue/resume-parse", () => ({
-  publishResumeParse: vi.fn().mockResolvedValue(undefined),
+vi.mock("@/lib/workflows/resume-parse", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/workflows/resume-parse")>()),
+  startResumeParse: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("@/lib/r2", () => ({
@@ -249,7 +250,7 @@ function authedAs(userId: string) {
     // of CloudflareEnv is intentionally absent and never dereferenced.
     env: {
       HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" },
-      CLICKFOLIO_PARSE_QUEUE: {},
+      CLICKFOLIO_PARSE_WORKFLOW: {},
     } as never,
     error: null,
   });

@@ -20,7 +20,7 @@ vi.mock("@/lib/auth/session", () => ({
 vi.mock("cloudflare:workers", () => ({
   env: {
     HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" },
-    CLICKFOLIO_PARSE_QUEUE: {},
+    CLICKFOLIO_PARSE_WORKFLOW: {},
   },
 }));
 
@@ -64,8 +64,9 @@ vi.mock("@/lib/r2", () => ({
   },
 }));
 
-vi.mock("@/lib/queue/resume-parse", () => ({
-  publishResumeParse: vi.fn().mockResolvedValue(undefined),
+vi.mock("@/lib/workflows/resume-parse", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/workflows/resume-parse")>()),
+  startResumeParse: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("@/lib/resume/lifecycle", async (importOriginal) => {
@@ -314,7 +315,7 @@ function authedAs(userId: string, isAdmin = false): AuthedAsResult {
     dbUser: { id: userId, handle: "testuser", clerkId: "user_clerk_1" },
     env: {
       HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" },
-      CLICKFOLIO_PARSE_QUEUE: {},
+      CLICKFOLIO_PARSE_WORKFLOW: {},
       PENDING_UPLOAD_SECRET: TEST_COOKIE_SECRET,
     } as CloudflareEnv,
     error: null,
@@ -661,8 +662,8 @@ describe("Resume API Integration Tests (25 tests)", () => {
       const mockedR2 = vi.mocked(R2.getAsArrayBuffer);
       mockedR2.mockResolvedValue(new ArrayBuffer(8));
 
-      const { publishResumeParse } = await import("@/lib/queue/resume-parse");
-      vi.mocked(publishResumeParse).mockResolvedValue(undefined);
+      const { startResumeParse } = await import("@/lib/workflows/resume-parse");
+      vi.mocked(startResumeParse).mockResolvedValue(undefined);
 
       authedAs("user-123");
 
@@ -835,10 +836,11 @@ describe("Resume API Integration Tests (25 tests)", () => {
       expect(body.status).toBe("queued");
       expect(body.retry_count).toBe(1);
 
-      const { publishResumeParse } = await import("@/lib/queue/resume-parse");
-      expect(vi.mocked(publishResumeParse)).toHaveBeenCalledWith(
+      const { startResumeParse } = await import("@/lib/workflows/resume-parse");
+      expect(vi.mocked(startResumeParse)).toHaveBeenCalledWith(
         expect.anything(),
-        expect.objectContaining({ attempt: 3 }),
+        "resume-123-retry-1",
+        expect.objectContaining({ kind: "parse", resumeId: "resume-123" }),
       );
 
       expect(mockUpdateWhere).toHaveBeenCalledWith(
@@ -851,7 +853,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
     it("returns 409 (not 500) when the retry UPDATE affects 0 rows (concurrent retry/status change)", async () => {
       const { hasExceededMaxAttempts } = await import("@/lib/resume/lifecycle");
       vi.mocked(hasExceededMaxAttempts).mockReturnValue(false);
-      const { publishResumeParse } = await import("@/lib/queue/resume-parse");
+      const { startResumeParse } = await import("@/lib/workflows/resume-parse");
 
       authedAs("user-123");
 
@@ -879,14 +881,14 @@ describe("Resume API Integration Tests (25 tests)", () => {
       expect(response.status).toBe(409);
       const resBody: { error: string } = await response.json();
       expect(resBody.error).toContain("already retried");
-      expect(vi.mocked(publishResumeParse)).not.toHaveBeenCalled();
+      expect(vi.mocked(startResumeParse)).not.toHaveBeenCalled();
     });
 
     it("rolls back retry state when queue publish fails", async () => {
       const { hasExceededMaxAttempts } = await import("@/lib/resume/lifecycle");
       vi.mocked(hasExceededMaxAttempts).mockReturnValue(false);
-      const { publishResumeParse } = await import("@/lib/queue/resume-parse");
-      vi.mocked(publishResumeParse).mockRejectedValueOnce(new Error("Queue unavailable"));
+      const { startResumeParse } = await import("@/lib/workflows/resume-parse");
+      vi.mocked(startResumeParse).mockRejectedValueOnce(new Error("Workflow unavailable"));
 
       authedAs("user-123");
 
@@ -1301,7 +1303,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
         dbUser: { id: "user-123", handle: "testuser", clerkId: "user_clerk_1" },
         env: {
           HYPERDRIVE: { connectionString: "postgres://user:pass@localhost:5432/clickfolio" },
-          CLICKFOLIO_PARSE_QUEUE: undefined,
+          CLICKFOLIO_PARSE_WORKFLOW: undefined,
           PENDING_UPLOAD_SECRET: TEST_COOKIE_SECRET,
         },
         error: null,

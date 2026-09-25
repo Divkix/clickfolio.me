@@ -31,7 +31,7 @@ export function buildSiteDataUpsert(
     updatedAt: now,
   };
 
-  // Stale writers (queue completion) skip the update when a newer row already landed after their snapshot.
+  // Stale writers (parse completion) skip the update when a newer row already landed after their snapshot.
   if (onlyIfUpdatedAtLte) {
     return db
       .insert(siteData)

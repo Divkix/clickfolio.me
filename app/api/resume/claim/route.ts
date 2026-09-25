@@ -112,7 +112,8 @@ export async function POST(request: Request) {
       const outcome = await runClaimIntake({
         db,
         r2: r2Binding,
-        queue: env.CLICKFOLIO_PARSE_QUEUE,
+        parseWorkflow: env.CLICKFOLIO_PARSE_WORKFLOW,
+        r2DeleteWorkflow: env.CLICKFOLIO_R2_DELETE_WORKFLOW,
         env,
         userId,
         tempKey: key,
