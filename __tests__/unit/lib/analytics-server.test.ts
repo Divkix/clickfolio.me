@@ -191,6 +191,63 @@ describe("captureServerException", () => {
   });
 });
 
+describe("captureServerException distinct id", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockCaptureExceptionImmediate.mockResolvedValue(undefined);
+    mockShutdown.mockResolvedValue(undefined);
+  });
+
+  it("forwards the distinct id in posthog-node's distinct-id slot", async () => {
+    const { captureServerException } = await import("@/lib/analytics/server");
+
+    await captureServerException(new Error("boom"), { request_path: "/x" }, "anon-123");
+
+    const [, distinctId, properties] = mockCaptureExceptionImmediate.mock.calls[0];
+    expect(distinctId).toBe("anon-123");
+    expect(properties).toEqual({ request_path: "/x" });
+  });
+});
+
+describe("distinctIdFromCookieHeader", () => {
+  type PostHogCookieValue = { distinct_id?: string; $sesid?: number[] };
+
+  const phCookie = (value: PostHogCookieValue) =>
+    `ph_phc_test_posthog=${encodeURIComponent(JSON.stringify(value))}`;
+
+  it("reads distinct_id from this project's posthog-js cookie", async () => {
+    const { distinctIdFromCookieHeader } = await import("@/lib/analytics/server");
+
+    expect(
+      distinctIdFromCookieHeader(`__session=abc; ${phCookie({ distinct_id: "anon-123" })}; x=1`),
+    ).toBe("anon-123");
+  });
+
+  it("accepts the array form of the cookie header", async () => {
+    const { distinctIdFromCookieHeader } = await import("@/lib/analytics/server");
+
+    expect(distinctIdFromCookieHeader(["a=1", phCookie({ distinct_id: "user_9" })])).toBe("user_9");
+  });
+
+  it("ignores another project's PostHog cookie", async () => {
+    const { distinctIdFromCookieHeader } = await import("@/lib/analytics/server");
+
+    expect(
+      distinctIdFromCookieHeader(
+        `ph_phc_other_posthog=${encodeURIComponent(JSON.stringify({ distinct_id: "x" }))}`,
+      ),
+    ).toBeUndefined();
+  });
+
+  it("returns undefined for missing, malformed, or id-less cookies", async () => {
+    const { distinctIdFromCookieHeader } = await import("@/lib/analytics/server");
+
+    expect(distinctIdFromCookieHeader(undefined)).toBeUndefined();
+    expect(distinctIdFromCookieHeader("ph_phc_test_posthog=%7Bnot-json")).toBeUndefined();
+    expect(distinctIdFromCookieHeader(phCookie({ $sesid: [1] }))).toBeUndefined();
+  });
+});
+
 describe("captureServerEvent without token", () => {
   it("no-ops when project token is empty", async () => {
     vi.resetModules();
