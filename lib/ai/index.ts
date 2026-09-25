@@ -4,6 +4,7 @@ import type { JsonValue, UnknownRecord } from "@/lib/types/json";
 import { log } from "@/lib/utils/log";
 import { coerceRecord } from "./ai-normalize";
 import { parseWithAi } from "./ai-parser";
+import { cleanLinkedInText } from "./linkedin";
 import { extractPdfText } from "./pdf-extract";
 import { truncateResumeText } from "./truncate";
 import { transformAiOutput, transformAiResponse } from "./transform";
@@ -174,7 +175,12 @@ export async function parseResumeWithAi(
       };
     }
 
-    const normalizedText = normalizeResumeText(extractResult.text);
+    const { source } = extractResult;
+
+    const sourceText =
+      source === "linkedin" ? cleanLinkedInText(extractResult.text) : extractResult.text;
+
+    const normalizedText = normalizeResumeText(sourceText);
     const resumeText = truncateResumeText(normalizedText);
 
     if (!resumeText.trim()) {
@@ -185,7 +191,9 @@ export async function parseResumeWithAi(
       };
     }
 
-    const parseResult = await parseWithAi(resumeText, env);
+    if (source === "linkedin") log("info", "LinkedIn profile export detected");
+
+    const parseResult = await parseWithAi(resumeText, env, undefined, undefined, source);
 
     if (!parseResult.success || !parseResult.data) {
       return {

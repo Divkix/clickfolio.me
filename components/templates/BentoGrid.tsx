@@ -334,7 +334,7 @@ export const BentoGrid: React.FC<TemplateProps> = ({ content, profile }) => {
                       </p>
                       <p className="text-gray-500 text-xs">
                         {cert.issuer}
-                        {cert.date ? ` · ${formatYear(cert.date)}` : ""}
+                        {cert.date ? `${cert.issuer ? " · " : ""}${formatYear(cert.date)}` : ""}
                       </p>
                     </li>
                   ))}
