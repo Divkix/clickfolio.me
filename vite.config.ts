@@ -5,6 +5,7 @@ import posthogRollupPlugin from "@posthog/rollup-plugin";
 import { visualizer } from "rollup-plugin-visualizer";
 import vinext from "vinext";
 import { defineConfig, loadEnv, type Plugin } from "vite-plus";
+import { failOpenSourcemapUpload } from "./lib/analytics/sourcemap-upload";
 
 /**
  * Vite plugin that stubs server-only modules for client environments.
@@ -98,7 +99,8 @@ function ensureClientDir(): Plugin {
  * only here; they must never be inlined into client output.
  * Missing credentials warn and skip the upload (Cloudflare Builds has no
  * access to the gitignored local deploy env) — add them to the build env to
- * re-enable it. Upload is observability, never a deploy blocker.
+ * re-enable it. Upload is observability, never a deploy blocker: PostHog API
+ * failures during the build are caught by failOpenSourcemapUpload.
  */
 function sourceMapUploadPlugin(mode: string): Plugin | null {
   if (process.env.POSTHOG_UPLOAD_SOURCEMAPS !== "true") return null;
@@ -125,7 +127,8 @@ function sourceMapUploadPlugin(mode: string): Plugin | null {
   });
 
   // SAFETY: The PostHog plugin uses standard Rollup hooks supported by Vite+'s
-  return plugin as Plugin;
+  // Rolldown compatibility layer; only the package contexts differ.
+  return failOpenSourcemapUpload(plugin as Plugin);
 }
 
 const SHARED_IGNORE_PATTERNS = [
@@ -222,6 +225,9 @@ export default defineConfig(({ mode }) => {
       }),
       clientModuleStubs(),
       clientVendorSplit(),
+      // Top-level Vite plugin, per PostHog's Vite source-map docs; inside
+      // build.rollupOptions.plugins its Vite `config` hook is ignored.
+      ...(sourcemapPlugin ? [sourcemapPlugin] : []),
     ],
     resolve: {
       alias: {
@@ -235,7 +241,6 @@ export default defineConfig(({ mode }) => {
     build: {
       rollupOptions: {
         plugins: [
-          ...(sourcemapPlugin ? [sourcemapPlugin] : []),
           ...(process.env.ANALYZE === "true"
             ? [visualizer({ open: true, gzipSize: true, filename: "dist/stats.html" })]
             : []),
