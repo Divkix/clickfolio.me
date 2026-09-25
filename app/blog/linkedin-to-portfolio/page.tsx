@@ -87,7 +87,11 @@ export default function LinkedInToPortfolioPage() {
             your portfolio closes the deal.
           </li>
         </ul>
-        <p>LinkedIn is the handshake. Your portfolio is the conversation.</p>
+        <p>
+          LinkedIn is the handshake. Your portfolio is the conversation. If the idea is new to you,
+          start with{" "}
+          <Link href="/blog/personal-resume-website">what a personal resume website is</Link>.
+        </p>
       </section>
 
       <section>
@@ -124,7 +128,10 @@ export default function LinkedInToPortfolioPage() {
         <p>
           If you have a resume PDF that mirrors your LinkedIn profile (as most professionals do),
           upload that instead. A resume usually carries more detail than LinkedIn's export — a full
-          skills list and projects. Either method works — use whichever is more up-to-date.
+          skills list and projects. Either method works — use whichever is more up-to-date. If you
+          want to weigh other tools first, see our{" "}
+          <Link href="/blog/best-resume-website-builders">best resume website builders</Link>{" "}
+          comparison.
         </p>
       </section>
 
@@ -154,6 +161,11 @@ export default function LinkedInToPortfolioPage() {
         <p>
           Add your portfolio link to your email signature. Every email you send becomes a potential
           portfolio view. A simple line like "View my portfolio: [your URL]" works.
+        </p>
+        <p>
+          This matters most for people who network constantly — see how it works as a{" "}
+          <Link href="/for/marketer">portfolio website for marketers</Link> or a{" "}
+          <Link href="/for/consultant">portfolio website for consultants</Link>.
         </p>
       </section>
 

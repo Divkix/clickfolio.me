@@ -153,7 +153,10 @@ export default function ResumeWebsiteVsLinkedinPage() {
         <p>
           You can't control LinkedIn, but you can control your own site — and the professionals who
           stand out are the ones who own both ends of their presence. Keep LinkedIn for reach, and
-          build the page that's entirely yours.
+          build the page that's entirely yours. The same both-not-either logic applies to your
+          resume file — see{" "}
+          <Link href="/blog/pdf-resume-vs-portfolio">PDF resume vs portfolio website</Link> for when
+          to send which.
         </p>
         <p>
           <Link href="/" className="text-brand font-semibold">

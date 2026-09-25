@@ -124,7 +124,14 @@ export default function PersonalResumeWebsitePage() {
             },
           ]}
         />
-        <p>Keep it scannable. Recruiters skim before they read, so make the important parts pop.</p>
+        <p>
+          Keep it scannable. Recruiters skim before they read, so make the important parts pop. For
+          layouts you can borrow, see these{" "}
+          <Link href="/blog/resume-website-examples">resume website examples</Link>. What goes first
+          also depends on your field — compare the advice for a{" "}
+          <Link href="/for/software-engineer">resume website for software engineers</Link> with a{" "}
+          <Link href="/for/product-manager">product manager portfolio website</Link>.
+        </p>
       </PostSection>
 
       <section>
@@ -141,7 +148,9 @@ export default function PersonalResumeWebsitePage() {
         <p>
           One honest note: every site lives at clickfolio.me/@yourname. Custom domains aren't
           available yet — they're on the roadmap — but a clean handle URL is plenty professional for
-          applications and your LinkedIn.
+          applications and your LinkedIn. If a custom domain is a must, our comparison of the{" "}
+          <Link href="/blog/best-resume-website-builders">best resume website builders</Link> covers
+          the paid options.
         </p>
       </section>
 

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { RoleFaqSection } from "@/components/Faq";
-import { RoleSection } from "@/components/role/RoleSection";
+import { RoleGuides, RoleSection } from "@/components/role/RoleSection";
 import { Button } from "@/components/ui/button";
 import {
   buildRolePageMetadata,
@@ -148,6 +148,8 @@ export default function ConsultantPage() {
           />
 
           <RoleFaqSection items={faqs} />
+
+          <RoleGuides slugs={["linkedin-to-portfolio", "best-resume-website-builders"]} />
 
           <Button asChild size="lg">
             <Link href="/">Create Your Consulting Portfolio</Link>

@@ -90,6 +90,13 @@ export default function PdfResumeVsPortfolioPage() {
             },
           ]}
         />
+        <p>
+          Some fields lean on the portfolio harder than others. Visual work is hard to judge from a
+          PDF, which is why a <Link href="/for/designer">portfolio website for designers</Link>{" "}
+          matters so much, and students with thin work histories can use a{" "}
+          <Link href="/for/student">student resume website</Link> to show projects a one-page PDF
+          can't fit.
+        </p>
       </PostSection>
 
       <PostSection
@@ -170,7 +177,10 @@ export default function PdfResumeVsPortfolioPage() {
           A PDF resume is essential. A portfolio website is transformational. Together, they're the
           complete professional presence — covering every channel from ATS applications to social
           media sharing to Google search. The best part: with AI-powered tools, you can maintain
-          both from a single source of truth, with zero duplication of effort.
+          both from a single source of truth, with zero duplication of effort. For more on the web
+          half, read{" "}
+          <Link href="/blog/personal-resume-website">what a personal resume website is</Link> or
+          browse these <Link href="/blog/resume-website-examples">resume website examples</Link>.
         </p>
         <p>
           <Link href="/" className="text-brand font-semibold">

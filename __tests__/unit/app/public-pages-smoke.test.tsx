@@ -88,6 +88,8 @@ describe("public page rendering", () => {
     expect(getByRole("link", { name: "Browse real portfolios" }).className).toMatch(/min-h-11/);
     expect(getByRole("link", { name: "Read our guides" }).className).toMatch(/min-h-11/);
     expect(container.textContent).toContain("or click to browse");
+    expect(container.querySelector('a[href="/blog/linkedin-to-portfolio"]')).not.toBeNull();
+    expect(container.querySelector('a[href="/blog/best-resume-website-builders"]')).not.toBeNull();
   });
 
   it("renders the claim-handle landing variant with the handle picker", () => {
@@ -98,6 +100,7 @@ describe("public page rendering", () => {
     expect(h1?.textContent).toContain("Start linking.");
     expect(getByLabelText("Choose your handle")).toBeInTheDocument();
     expect(getByRole("link", { name: "Read our guides" }).className).toMatch(/min-h-11/);
+    expect(container.querySelector('a[href="/blog/resume-website-examples"]')).not.toBeNull();
   });
 
   it("renders a specific blog listing H1, not a generic Blog label", () => {
