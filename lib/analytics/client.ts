@@ -30,6 +30,16 @@ export function identifyAnalyticsUser(
   posthog.identify(userId, traits);
 }
 
+/** Super properties: attached to every later client event from this browser. */
+export function registerAnalyticsProperties(properties: AnalyticsProperties): void {
+  posthog.register(properties);
+}
+
+/** Person properties written only if unset — first-touch attribution survives identify(). */
+export function setAnalyticsPersonPropertiesOnce(properties: AnalyticsProperties): void {
+  posthog.setPersonProperties(undefined, properties);
+}
+
 export function resetAnalyticsIdentity(): void {
   posthog.reset();
 }

@@ -211,6 +211,66 @@
   }
 }
 
+/* Landing page (ADR-0027 A/B variants) */
+@property --landing-glow-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes landing-glow-spin {
+  to {
+    --landing-glow-angle: 360deg;
+  }
+}
+
+@keyframes landing-marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes landing-flow {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(200%);
+  }
+}
+
+.landing-glow {
+  background: conic-gradient(
+    from var(--landing-glow-angle),
+    transparent 0 60%,
+    var(--brand) 75%,
+    var(--chart-2) 85%,
+    transparent 100%
+  );
+  animation: landing-glow-spin 4s linear infinite;
+}
+
+.animate-landing-marquee {
+  animation: landing-marquee 60s linear infinite;
+}
+
+.animate-landing-marquee-reverse {
+  animation: landing-marquee 60s linear infinite reverse;
+}
+
+.animate-landing-flow {
+  animation: landing-flow 1.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-glow,
+  .animate-landing-marquee,
+  .animate-landing-marquee-reverse,
+  .animate-landing-flow {
+    animation: none;
+  }
+}
+
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;

@@ -15,6 +15,7 @@ import { ThemeStep } from "@/components/wizard/ThemeStep";
 import { UploadStep } from "@/components/wizard/UploadStep";
 import { YouAreLiveModal } from "@/components/YouAreLiveModal";
 import { useSession } from "@/lib/auth/client";
+import { clearDesiredHandle, readDesiredHandle } from "@/lib/experiments/desired-handle";
 import { DEFAULT_THEME, type ThemeId } from "@/lib/templates/theme-ids";
 import type { ClaimResponse } from "@/lib/types/api";
 import type { ResumeContent } from "@/lib/types/database";
@@ -168,6 +169,13 @@ function useWizardInit() {
       }
 
       initializingRef.current = true;
+
+      // Prefill the handle picked on the claim-handle landing variant (ADR-0027).
+      const desiredHandle = readDesiredHandle();
+
+      if (desiredHandle) {
+        setState((prev) => (prev.handle ? prev : { ...prev, handle: desiredHandle }));
+      }
 
       try {
         setLoading(true);
@@ -362,6 +370,8 @@ export default function WizardPage() {
   };
 
   const handleHandleContinue = (handle: string) => {
+    clearDesiredHandle();
+
     setState((prev) => ({
       ...prev,
       handle,

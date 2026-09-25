@@ -101,3 +101,46 @@ describe("Edge cases", () => {
     expectPassThrough(response);
   });
 });
+
+describe("Landing A/B test on /", () => {
+  const rewriteOf = (response: Response) => response.headers.get("x-middleware-rewrite");
+
+  it("keeps a drop_first cookie on / without re-stamping", () => {
+    const response = proxy(makeRequest("/", "landing_variant=drop_first"));
+
+    expect(rewriteOf(response)).toBeNull();
+    expect(response.headers.get("set-cookie")).toBeNull();
+  });
+
+  it("rewrites a claim_handle cookie to /lp/claim-handle", () => {
+    const response = proxy(makeRequest("/", "landing_variant=claim_handle"));
+
+    expect(rewriteOf(response)).toBe("https://clickfolio.me/lp/claim-handle");
+    expect(response.headers.get("set-cookie")).toBeNull();
+  });
+
+  it("buckets a new visitor and stamps a sticky cookie", () => {
+    const response = proxy(makeRequest("/"));
+
+    expect(response.headers.get("set-cookie")).toMatch(
+      /landing_variant=(drop_first|claim_handle);.*Max-Age=7776000/i,
+    );
+  });
+
+  it("lets the query override win and preserves the query on rewrite", () => {
+    const response = proxy(
+      makeRequest("/?landing_variant=claim_handle&utm_source=x", "landing_variant=drop_first"),
+    );
+
+    expect(rewriteOf(response)).toBe(
+      "https://clickfolio.me/lp/claim-handle?landing_variant=claim_handle&utm_source=x",
+    );
+    expect(response.headers.get("set-cookie")).toMatch(/landing_variant=claim_handle/);
+  });
+
+  it("does not bucket other public paths", () => {
+    const response = proxy(makeRequest("/explore"));
+
+    expect(response.headers.get("set-cookie")).toBeNull();
+  });
+});
