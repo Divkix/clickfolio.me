@@ -1,99 +1,59 @@
-"use client";
-
-import { Mail, MapPin } from "lucide-react";
-import { useState } from "react";
+import { ArrowUpRight, MapPin } from "lucide-react";
+import type React from "react";
 import { ShareBar } from "@/components/ShareBar";
-import { getContactLinks, type ContactLinkDescriptor } from "@/lib/templates/contact-links";
-import {
-  flattenSkills,
-  formatDateRange,
-  formatShortDate,
-  formatYear,
-  getInitials,
-} from "@/lib/templates/helpers";
+import { getContactLinks } from "@/lib/templates/contact-links";
+import { formatDateRange, formatShortDate, formatYear, getInitials } from "@/lib/templates/helpers";
+import type { ResumeContent } from "@/lib/types/database";
 import type { TemplateProps } from "@/lib/types/template";
 import { getContactIcon } from "./shared/ContactIcon";
 import { TemplateFontLinks } from "./shared/TemplateFontLinks";
 
-const STAR_POSITIONS = [
-  { x: 5, y: 8, size: 1, bright: false },
-  { x: 12, y: 3, size: 1.5, bright: true },
-  { x: 22, y: 15, size: 1, bright: false },
-  { x: 35, y: 6, size: 1, bright: false },
-  { x: 42, y: 22, size: 1.5, bright: true },
-  { x: 55, y: 4, size: 1, bright: false },
-  { x: 63, y: 18, size: 1, bright: false },
-  { x: 70, y: 9, size: 1, bright: false },
-  { x: 78, y: 25, size: 1.5, bright: true },
-  { x: 85, y: 12, size: 1, bright: false },
-  { x: 91, y: 5, size: 1, bright: false },
-  { x: 96, y: 20, size: 1, bright: false },
-  { x: 8, y: 35, size: 1, bright: false },
-  { x: 18, y: 42, size: 1, bright: false },
-  { x: 28, y: 38, size: 1.5, bright: true },
-  { x: 38, y: 45, size: 1, bright: false },
-  { x: 48, y: 33, size: 1, bright: false },
-  { x: 58, y: 48, size: 1, bright: false },
-  { x: 68, y: 40, size: 1.5, bright: true },
-  { x: 80, y: 37, size: 1, bright: false },
-  { x: 88, y: 44, size: 1, bright: false },
-  { x: 95, y: 32, size: 1, bright: false },
-  { x: 3, y: 55, size: 1, bright: false },
-  { x: 15, y: 60, size: 1, bright: false },
-  { x: 25, y: 52, size: 1.5, bright: true },
-  { x: 33, y: 65, size: 1, bright: false },
-  { x: 45, y: 58, size: 1, bright: false },
-  { x: 52, y: 70, size: 1, bright: false },
-  { x: 65, y: 55, size: 1, bright: false },
-  { x: 75, y: 62, size: 1.5, bright: true },
-  { x: 82, y: 72, size: 1, bright: false },
-  { x: 93, y: 58, size: 1, bright: false },
-  { x: 10, y: 78, size: 1, bright: false },
-  { x: 20, y: 85, size: 1.5, bright: true },
-  { x: 30, y: 75, size: 1, bright: false },
-  { x: 40, y: 82, size: 1, bright: false },
-  { x: 50, y: 90, size: 1, bright: false },
-  { x: 60, y: 80, size: 1, bright: false },
-  { x: 72, y: 88, size: 1.5, bright: true },
-  { x: 85, y: 82, size: 1, bright: false },
-  { x: 92, y: 92, size: 1, bright: false },
-  { x: 97, y: 75, size: 1, bright: false },
-];
+const FONT_URL =
+  "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Albert+Sans:wght@400;500;600&display=swap";
 
-function SectionHeader({ label }: { label: string }) {
-  return (
-    <div className="flex items-center gap-4 mb-12">
-      <div className="flex-1 h-px bg-white/10" aria-hidden="true" />
-      <span className="text-[#C9A96E] text-sm tracking-[0.3em] uppercase font-body-mn">
-        ◆ {label}
-      </span>
-      <div className="flex-1 h-px bg-white/10" aria-hidden="true" />
-    </div>
-  );
-}
+// Fixed coordinates (percent of the sky band) keep server and client output identical.
+const STARS = [
+  [4, 12, 1.2],
+  [9, 58, 0.8],
+  [13, 30, 1.6],
+  [18, 78, 0.9],
+  [22, 8, 0.8],
+  [27, 46, 1.1],
+  [31, 88, 0.7],
+  [36, 20, 0.9],
+  [41, 66, 1.4],
+  [45, 4, 0.8],
+  [52, 38, 0.8],
+  [57, 84, 1.1],
+  [61, 14, 1.7],
+  [66, 54, 0.8],
+  [70, 92, 0.9],
+  [74, 28, 1],
+  [79, 70, 0.8],
+  [83, 6, 1.2],
+  [87, 44, 0.9],
+  [91, 80, 1.5],
+  [95, 22, 0.8],
+  [98, 60, 1],
+  [7, 94, 0.8],
+  [48, 74, 0.7],
+] as const;
 
-function Starfield() {
+function Sky() {
   return (
-    <div className="fixed inset-0 z-0 pointer-events-none" aria-hidden="true">
-      <div
-        className="absolute inset-0"
-        style={{
-          backgroundImage:
-            "linear-gradient(to right, #80808008 1px, transparent 1px), linear-gradient(to bottom, #80808008 1px, transparent 1px)",
-          backgroundSize: "24px 24px",
-        }}
-      />
-      {STAR_POSITIONS.map((star, i) => (
-        <div
-          key={`star-${star.x}-${star.y}-${i}`}
-          className={`absolute rounded-full bg-white${star.bright ? " midnight-star-twinkle" : ""}`}
+    <div className="mn-sky absolute inset-x-0 top-0 h-[34rem]" aria-hidden="true">
+      {STARS.map(([x, y, r]) => (
+        <span
+          key={`${x}-${y}`}
+          className="absolute rounded-full"
           style={{
-            left: `${star.x}%`,
-            top: `${star.y}%`,
-            width: `${star.size}px`,
-            height: `${star.size}px`,
-            opacity: star.bright ? 0.6 : 0.2,
-            animation: star.bright ? `twinkle ${3 + (i % 4)}s ease-in-out infinite` : "none",
+            left: `${x}%`,
+            top: `${y}%`,
+            width: `${r * 2}px`,
+            height: `${r * 2}px`,
+            background: r > 1.3 ? "#F3E3B8" : "#DCE2FF",
+            opacity: r > 1.3 ? 0.95 : 0.55,
+            boxShadow: r > 1.3 ? "0 0 6px rgba(243, 227, 184, 0.7)" : undefined,
           }}
         />
       ))}
@@ -101,462 +61,353 @@ function Starfield() {
   );
 }
 
-const jobKey = (job: TemplateProps["content"]["experience"][number]) =>
-  `${job.title}@${job.company}@${job.start_date}`;
-
-function ExperienceSection({ experience }: { experience: TemplateProps["content"]["experience"] }) {
-  const [expandedJobs, setExpandedJobs] = useState<string[]>(() =>
-    experience[0] ? [jobKey(experience[0])] : [],
-  );
-
-  const toggleJob = (key: string) => {
-    setExpandedJobs((prev) =>
-      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
-    );
-  };
-
+// Four-point star used as the marker on the experience line.
+function StarMark({ className }: { className?: string }) {
   return (
-    <section>
-      <SectionHeader label="Experience" />
-      <div className="space-y-3">
-        {experience.map((job) => {
-          const key = jobKey(job);
-          const isExpanded = expandedJobs.includes(key);
-          const limitedHighlights = job.highlights?.slice(0, 4) ?? [];
-
-          return (
-            <div
-              key={key}
-              className={`bg-white/2 border transition-colors duration-300 rounded-lg overflow-hidden ${
-                isExpanded
-                  ? "border-l-2 border-l-[#C9A96E] border-t-white/5 border-r-white/5 border-b-white/5"
-                  : "border-white/5 hover:border-white/10"
-              }`}
-            >
-              <button
-                type="button"
-                onClick={() => toggleJob(key)}
-                className="w-full flex items-center justify-between gap-4 px-6 py-4 text-left cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A96E]/50"
-                aria-expanded={isExpanded}
-              >
-                <span className="font-body-mn text-sm text-neutral-200 group-hover:text-white transition-colors min-w-0">
-                  <span className="font-medium">{job.title}</span>
-                  <span className="text-neutral-500 mx-2">·</span>
-                  <span className="text-[#C9A96E]/80">{job.company}</span>
-                </span>
-                <span className="text-xs font-body-mn text-neutral-500 shrink-0 ml-4">
-                  {formatDateRange(job.start_date, job.end_date)}
-                </span>
-              </button>
-
-              <div
-                className="grid transition-[grid-template-rows] duration-300 ease-in-out"
-                style={{
-                  gridTemplateRows: isExpanded ? "1fr" : "0fr",
-                }}
-              >
-                <div className="overflow-hidden">
-                  <div className="px-6 pb-5 pt-1">
-                    {job.location && (
-                      <p className="text-neutral-500 text-xs font-body-mn mb-3 flex items-center gap-1.5">
-                        <MapPin className="w-3 h-3" aria-hidden="true" />
-                        {job.location}
-                      </p>
-                    )}
-
-                    {job.description && (
-                      <p className="text-neutral-400 text-sm leading-relaxed font-body-mn mb-4 max-w-prose">
-                        {job.description}
-                      </p>
-                    )}
-
-                    {limitedHighlights.length > 0 && (
-                      <ul className="space-y-2">
-                        {limitedHighlights.map((highlight, i) => (
-                          <li
-                            key={`${job.title}-${highlight}-${i}`}
-                            className="text-neutral-500 text-sm flex items-start gap-2.5 font-body-mn"
-                          >
-                            <span
-                              className="mt-1.5 w-1 h-1 rounded-full bg-[#C9A96E]/50 shrink-0"
-                              aria-hidden="true"
-                            />
-                            <span className="leading-relaxed">{highlight}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </section>
+    <svg viewBox="0 0 16 16" className={className} aria-hidden="true">
+      <path d="M8 0 9.6 6.4 16 8 9.6 9.6 8 16 6.4 9.6 0 8 6.4 6.4Z" fill="currentColor" />
+    </svg>
   );
 }
 
-function EducationSection({
-  education,
-}: {
-  education: NonNullable<TemplateProps["content"]["education"]>;
-}) {
+function SectionTitle({ id, children }: { id: string; children: React.ReactNode }) {
   return (
-    <section>
-      <SectionHeader label="Education" />
-      <div className="space-y-6">
-        {education.map((edu) => (
+    <h2
+      id={`${id}-title`}
+      className="font-display-mn text-4xl md:text-[2.75rem] font-medium text-[#EDE6D6] mb-10"
+    >
+      {children}
+    </h2>
+  );
+}
+
+function Header({ content, profile }: TemplateProps) {
+  const links = getContactLinks(content.contact).filter((l) => l.type !== "location");
+
+  return (
+    <header className="relative flex flex-col items-center text-center pt-20 md:pt-28 pb-20">
+      <div className="w-24 h-24 md:w-28 md:h-28 rounded-full p-[3px] bg-linear-to-b from-[#D4B26A] to-[#D4B26A]/10 mb-8">
+        {profile.avatar_url ? (
+          <img
+            src={profile.avatar_url}
+            alt={`Portrait of ${content.full_name}`}
+            width={112}
+            height={112}
+            fetchPriority="high"
+            decoding="async"
+            className="w-full h-full rounded-full object-cover"
+          />
+        ) : (
           <div
-            key={`${edu.institution}-${edu.degree}-${edu.graduation_date ?? ""}`}
-            className="border-l border-[#C9A96E]/20 pl-4"
+            className="w-full h-full rounded-full bg-[#0B1026] flex items-center justify-center font-display-mn text-4xl text-[#D4B26A]"
+            aria-hidden="true"
           >
-            <div className="text-white font-display-mn font-medium text-sm">{edu.institution}</div>
-            <div className="text-neutral-400 text-xs font-body-mn mt-0.5 mb-1">{edu.degree}</div>
-            <div className="flex justify-between items-center gap-2 text-[10px] text-neutral-600 uppercase tracking-wider font-body-mn">
-              <span className="shrink-0">
-                {edu.graduation_date ? formatYear(edu.graduation_date) : "Present"}
-              </span>
-              {edu.gpa && (
-                <span className="whitespace-nowrap shrink-0 ml-auto pl-2">GPA: {edu.gpa}</span>
-              )}
-            </div>
+            {getInitials(content.full_name)}
           </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function CertificationsSection({
-  certifications,
-}: {
-  certifications: NonNullable<TemplateProps["content"]["certifications"]>;
-}) {
-  return (
-    <section>
-      <SectionHeader label="Certifications" />
-      <div className="space-y-5">
-        {certifications.map((cert) => (
-          <div
-            key={`${cert.name}-${cert.issuer}-${cert.date ?? ""}`}
-            className="group border-l border-[#C9A96E]/20 pl-4"
-          >
-            <h3 className="text-neutral-200 text-sm font-body-mn font-medium group-hover:text-[#DFC08A] transition-colors">
-              {cert.name}
-            </h3>
-            <div className="flex justify-between items-end mt-1">
-              <p className="text-neutral-500 text-xs font-body-mn">{cert.issuer}</p>
-              {cert.date && (
-                <p className="text-neutral-600 text-[10px] font-body-mn">
-                  {formatShortDate(cert.date)}
-                </p>
-              )}
-            </div>
-            {cert.url && (
-              <a
-                href={cert.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block mt-2 text-[10px] text-[#C9A96E]/50 hover:text-[#C9A96E] transition-colors font-body-mn"
-              >
-                View Credential →
-              </a>
-            )}
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function MidnightFooter({
-  emailHref,
-  handle,
-  fullName,
-}: {
-  emailHref?: string;
-  handle: string;
-  fullName: string;
-}) {
-  return (
-    <footer className="mt-32 pt-16 border-t border-white/5 text-center">
-      <h2 className="font-display-mn text-3xl md:text-4xl text-white mb-8 font-medium">
-        Let&apos;s discuss what&apos;s next.
-      </h2>
-
-      {emailHref && (
-        <a
-          href={emailHref}
-          className="inline-flex items-center gap-2 px-8 py-3 rounded-full border-2 border-[#C9A96E] text-[#C9A96E] font-display-mn font-medium text-lg hover:bg-[#C9A96E]/10 hover:text-[#DFC08A] hover:border-[#DFC08A] transition-colors duration-300"
-        >
-          <Mail className="w-5 h-5" aria-hidden="true" />
-          <span>Get in touch</span>
-        </a>
-      )}
-
-      <div className="flex justify-center mt-12 opacity-60">
-        <ShareBar
-          handle={handle}
-          title={`${fullName}'s Portfolio`}
-          name={fullName}
-          variant="midnight"
-        />
-      </div>
-      <p className="text-neutral-600 text-xs mt-8 font-body-mn" suppressHydrationWarning>
-        © {new Date().getFullYear()} {fullName}
-      </p>
-    </footer>
-  );
-}
-
-function MidnightHeader({ content, profile }: TemplateProps) {
-  return (
-    <header className="flex flex-col items-center text-center mb-32 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4 duration-700">
-      <div className="relative mb-8 group">
-        <div className="absolute -inset-1 bg-[#C9A96E]/20 rounded-full blur opacity-40 group-hover:opacity-60 transition-opacity duration-500" />
-        <div className="relative w-20 h-20 md:w-28 md:h-28 rounded-full border border-[#C9A96E]/30 overflow-hidden bg-neutral-900 shadow-2xl">
-          {profile.avatar_url ? (
-            <img
-              src={profile.avatar_url}
-              alt={`Portrait of ${content.full_name}`}
-              width={112}
-              height={112}
-              fetchPriority="high"
-              decoding="async"
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center bg-neutral-900 text-3xl font-display-mn text-[#C9A96E]">
-              {getInitials(content.full_name)}
-            </div>
-          )}
-        </div>
+        )}
       </div>
 
-      <h1 className="text-5xl md:text-6xl font-display-mn font-semibold tracking-tight mb-4 text-white [text-wrap:unset] break-words">
+      <h1 className="font-display-mn font-medium text-6xl md:text-8xl leading-[0.95] tracking-[-0.01em] text-[#F5EFE1] break-words max-w-full">
         {content.full_name}
       </h1>
 
-      <p className="text-lg md:text-xl text-neutral-400 font-body-mn max-w-xl mx-auto mb-6 leading-relaxed">
-        {content.headline}
-      </p>
+      {content.headline && (
+        <p className="font-display-mn italic text-2xl md:text-3xl text-[#C9CEE4] mt-5 max-w-2xl">
+          {content.headline}
+        </p>
+      )}
 
-      <div className="flex items-center gap-4 text-sm text-neutral-500 font-body-mn border border-white/5 bg-white/5 px-4 py-1.5 rounded-full">
-        {content.contact.location && (
-          <div className="flex items-center gap-1.5">
-            <MapPin className="w-3.5 h-3.5 text-[#C9A96E]/80" aria-hidden="true" />
-            <span>{content.contact.location}</span>
-          </div>
-        )}
-        {content.contact.location && (
-          <div className="w-1 h-1 rounded-full bg-neutral-700" aria-hidden="true" />
-        )}
-        <div className="flex items-center gap-1.5 text-green-500/80">
-          <span className="relative flex h-2 w-2">
-            <span className="motion-safe:animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
-          </span>
-          <span>Available</span>
-        </div>
-      </div>
+      {content.contact.location && (
+        <p className="mt-5 flex items-center gap-2 text-sm text-[#9AA0BE]">
+          <MapPin className="w-4 h-4 text-[#D4B26A]" aria-hidden="true" />
+          {content.contact.location}
+        </p>
+      )}
+
+      {links.length > 0 && (
+        <ul className="mt-8 flex flex-wrap justify-center gap-x-6 gap-y-3">
+          {links.map((link) => (
+            <li key={link.type}>
+              <a
+                href={link.href}
+                target={link.isExternal ? "_blank" : undefined}
+                rel={link.isExternal ? "noopener noreferrer" : undefined}
+                className="inline-flex items-center gap-2 text-sm text-[#C9CEE4] hover:text-[#D4B26A] underline decoration-[#D4B26A]/30 underline-offset-4 hover:decoration-[#D4B26A] transition-colors focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D4B26A]"
+              >
+                {getContactIcon(link.type, {
+                  className: "w-4 h-4",
+                  size: 16,
+                  variant: "white",
+                  "aria-hidden": true,
+                })}
+                <span className="break-all">{link.label}</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
     </header>
   );
 }
 
-function ProjectsSection({ projects }: { projects: TemplateProps["content"]["projects"] }) {
-  if (!projects || projects.length === 0) return null;
+function Experience({ experience }: { experience: ResumeContent["experience"] }) {
+  if (!experience?.length) return null;
 
   return (
-    <section>
-      <SectionHeader label="Projects" />
-      <div className="grid grid-cols-1 gap-6">
-        {projects.map((project) => (
-          <div
-            key={`${project.title}-${project.year ?? ""}-${project.url ?? ""}`}
-            className="group relative bg-white/2 border border-white/5 hover:border-[#C9A96E]/30 rounded-lg p-6 transition-[border-color,box-shadow] duration-300 hover:shadow-[0_0_20px_rgba(201,169,110,0.05)] overflow-hidden min-w-0"
+    <section aria-labelledby="experience-title">
+      <SectionTitle id="experience">Experience</SectionTitle>
+      <ol className="relative">
+        {experience.map((job, i) => (
+          <li
+            key={`${job.title}-${job.company}-${job.start_date}`}
+            className="relative grid md:grid-cols-[9rem_1fr] gap-x-10 pl-8 md:pl-0 pb-12 last:pb-0"
           >
-            <div className="flex flex-col md:flex-row gap-4 md:items-start justify-between">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-3 mb-2">
-                  <h3 className="text-base font-display-mn font-semibold text-white group-hover:text-[#DFC08A] transition-colors break-words">
-                    {project.title}
-                  </h3>
-                </div>
-                <p className="text-neutral-400 text-sm leading-relaxed font-body-mn mb-4">
-                  {project.description}
-                </p>
-                {project.technologies && (
-                  <div className="flex flex-wrap gap-2">
-                    {project.technologies.slice(0, 5).map((tech, i) => (
+            <p className="text-sm text-[#9AA0BE] md:text-right md:pt-1.5 mb-1 md:mb-0 tabular-nums">
+              {formatDateRange(job.start_date, job.end_date)}
+            </p>
+            <div className="relative md:pl-10">
+              {i < experience.length - 1 && (
+                <span
+                  className="absolute -left-[1.6rem] md:left-0 top-5 -bottom-12 w-px bg-linear-to-b from-[#D4B26A]/50 to-[#D4B26A]/10"
+                  aria-hidden="true"
+                />
+              )}
+              <StarMark
+                className={`absolute -left-[2.1rem] md:-left-[0.55rem] top-0.5 w-[1.1rem] h-[1.1rem] ${
+                  i === 0 ? "text-[#F3D88E]" : "text-[#D4B26A]"
+                }`}
+              />
+              <h3 className="font-display-mn text-2xl md:text-[1.7rem] font-semibold leading-tight text-[#EDE6D6]">
+                {job.title}
+              </h3>
+              <p className="mt-1 flex flex-wrap gap-x-3 text-[#C9CEE4]">
+                <span className="font-medium">{job.company}</span>
+                {job.location && <span className="text-[#9AA0BE]">{job.location}</span>}
+              </p>
+              {job.description && (
+                <p className="mt-4 leading-[1.75] text-[#B7BCD4] max-w-[64ch]">{job.description}</p>
+              )}
+              {job.highlights && job.highlights.length > 0 && (
+                <ul className="mt-4 space-y-2.5 max-w-[64ch]">
+                  {job.highlights.map((item, j) => (
+                    <li
+                      key={`${job.title}-${item}-${j}`}
+                      className="relative pl-5 leading-[1.7] text-[#B7BCD4]"
+                    >
                       <span
-                        key={`${project.title}-${tech}-${i}`}
-                        className="text-[10px] uppercase tracking-wider text-neutral-400 bg-white/5 border border-white/5 px-2.5 py-1 rounded-md font-body-mn"
-                      >
-                        {tech}
-                      </span>
-                    ))}
-                  </div>
-                )}
-                {project.url && (
+                        className="absolute left-0 top-[0.72em] w-1.5 h-1.5 rotate-45 bg-[#D4B26A]/70"
+                        aria-hidden="true"
+                      />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
+function Projects({ projects }: { projects: ResumeContent["projects"] }) {
+  if (!projects?.length) return null;
+
+  return (
+    <section aria-labelledby="projects-title">
+      <SectionTitle id="projects">Projects</SectionTitle>
+      <ul className="divide-y divide-[#D4B26A]/15 border-y border-[#D4B26A]/15">
+        {projects.map((project) => (
+          <li
+            key={`${project.title}-${project.year ?? ""}-${project.url ?? ""}`}
+            className="py-7 grid md:grid-cols-[9rem_1fr] gap-x-10"
+          >
+            <p className="text-sm text-[#9AA0BE] md:text-right md:pt-1.5 mb-1 md:mb-0">
+              {project.year}
+            </p>
+            <div className="md:pl-10">
+              <h3 className="font-display-mn text-2xl font-semibold text-[#EDE6D6]">
+                {project.url ? (
                   <a
                     href={project.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex mt-4 text-xs text-[#C9A96E] hover:text-[#DFC08A] font-body-mn focus-visible:outline-none focus-visible:underline"
+                    className="inline-flex items-center gap-1.5 hover:text-[#D4B26A] transition-colors focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D4B26A]"
                   >
-                    View project →
+                    {project.title}
+                    <ArrowUpRight className="w-5 h-5 text-[#D4B26A]" aria-hidden="true" />
                   </a>
+                ) : (
+                  project.title
                 )}
-              </div>
-
-              {project.year && (
-                <div className="shrink-0 text-xs font-body-mn text-neutral-600 pt-1">
-                  {project.year}
-                </div>
+              </h3>
+              {project.description && (
+                <p className="mt-2 leading-[1.75] text-[#B7BCD4] max-w-[64ch]">
+                  {project.description}
+                </p>
+              )}
+              {project.technologies && project.technologies.length > 0 && (
+                <p className="mt-3 text-sm text-[#9AA0BE]">{project.technologies.join(", ")}</p>
               )}
             </div>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function Skills({ skills }: { skills: ResumeContent["skills"] }) {
+  if (!skills?.length) return null;
+
+  return (
+    <section aria-labelledby="skills-title">
+      <SectionTitle id="skills">Skills</SectionTitle>
+      <dl className="grid sm:grid-cols-2 gap-x-12 gap-y-7">
+        {skills.map((group) => (
+          <div key={group.category}>
+            <dt className="font-display-mn italic text-xl text-[#D4B26A]">{group.category}</dt>
+            <dd className="mt-1.5 leading-[1.75] text-[#C9CEE4]">{group.items.join(", ")}</dd>
           </div>
         ))}
-      </div>
+      </dl>
     </section>
   );
 }
 
-function SkillsSection({ skills }: { skills: string[] }) {
-  if (skills.length === 0) return null;
+function Credentials({
+  education,
+  certifications,
+}: {
+  education: ResumeContent["education"];
+  certifications: ResumeContent["certifications"];
+}) {
+  const hasEducation = Boolean(education?.length);
+  const hasCerts = Boolean(certifications?.length);
+
+  if (!hasEducation && !hasCerts) return null;
 
   return (
-    <section>
-      <SectionHeader label="Skills" />
-      <div className="flex flex-wrap gap-2">
-        {skills.map((skill, i) => (
-          <span
-            key={`${skill}-${i}`}
-            className="px-3 py-1 bg-stone-900/50 border border-[#C9A96E]/35 text-stone-200 text-sm hover:border-[#C9A96E]/50 hover:text-[#C9A96E] hover:shadow-[0_0_12px_rgba(201,169,110,0.3)] transition-[color,border-color,box-shadow] duration-300 cursor-default rounded-full inline-flex items-center gap-2"
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-[#C9A96E]/50" aria-hidden="true" />
-            {skill}
-          </span>
-        ))}
-      </div>
-    </section>
-  );
-}
+    <div className={`grid gap-16 ${hasEducation && hasCerts ? "md:grid-cols-2 md:gap-12" : ""}`}>
+      {hasEducation && (
+        <section aria-labelledby="education-title">
+          <SectionTitle id="education">Education</SectionTitle>
+          <ul className="space-y-7">
+            {education?.map((edu) => (
+              <li key={`${edu.institution}-${edu.degree}-${edu.graduation_date ?? ""}`}>
+                <h3 className="font-display-mn text-xl font-semibold text-[#EDE6D6]">
+                  {edu.degree}
+                </h3>
+                <p className="mt-0.5 text-[#C9CEE4]">{edu.institution}</p>
+                {(edu.graduation_date || edu.location || edu.gpa) && (
+                  <p className="mt-1 flex flex-wrap gap-x-3 text-sm text-[#9AA0BE]">
+                    {edu.graduation_date && <span>{formatYear(edu.graduation_date)}</span>}
+                    {edu.location && <span>{edu.location}</span>}
+                    {edu.gpa && <span>GPA {edu.gpa}</span>}
+                  </p>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
-function ConnectSection({ contactLinks }: { contactLinks: ContactLinkDescriptor[] }) {
-  const externalLinks = contactLinks.filter((l) => l.type !== "email" && l.type !== "location");
-
-  if (externalLinks.length === 0) return null;
-
-  return (
-    <section>
-      <SectionHeader label="Connect" />
-      <div className="flex flex-wrap gap-2">
-        {externalLinks.map((link) => {
-          const icon = getContactIcon(link.type, {
-            className: "w-4 h-4",
-            variant: "white",
-            "aria-hidden": true,
-          });
-
-          const isBranded = link.type === "behance" || link.type === "dribbble";
-
-          const brandColor =
-            link.type === "behance" ? "#1769FF" : link.type === "dribbble" ? "#EA4C89" : undefined;
-
-          const brandText = link.type === "behance" ? "Bē" : link.type === "dribbble" ? "Dr" : null;
-
-          return (
-            <a
-              key={link.type}
-              href={link.href}
-              target={link.isExternal ? "_blank" : undefined}
-              rel={link.isExternal ? "noopener noreferrer" : undefined}
-              aria-label={link.label}
-              className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center text-neutral-400 hover:text-[#DFC08A] hover:border-[#C9A96E]/40 hover:shadow-[0_0_12px_rgba(201,169,110,0.3)] transition-colors duration-300"
-              style={isBranded ? { color: brandColor } : undefined}
-            >
-              {isBranded ? (
-                <span className="text-xs font-bold" aria-hidden="true">
-                  {brandText}
-                </span>
-              ) : (
-                icon
-              )}
-            </a>
-          );
-        })}
-      </div>
-    </section>
+      {hasCerts && (
+        <section aria-labelledby="certifications-title">
+          <SectionTitle id="certifications">Certifications</SectionTitle>
+          <ul className="space-y-7">
+            {certifications?.map((cert) => (
+              <li key={`${cert.name}-${cert.issuer}-${cert.date ?? ""}`}>
+                <h3 className="font-display-mn text-xl font-semibold text-[#EDE6D6]">
+                  {cert.url ? (
+                    <a
+                      href={cert.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 hover:text-[#D4B26A] transition-colors focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D4B26A]"
+                    >
+                      {cert.name}
+                      <ArrowUpRight className="w-4 h-4 text-[#D4B26A]" aria-hidden="true" />
+                    </a>
+                  ) : (
+                    cert.name
+                  )}
+                </h3>
+                {(cert.issuer || cert.date) && (
+                  <p className="mt-1 flex flex-wrap gap-x-3 text-sm text-[#9AA0BE]">
+                    {cert.issuer && <span>{cert.issuer}</span>}
+                    {cert.date && <span>{formatShortDate(cert.date)}</span>}
+                  </p>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </div>
   );
 }
 
 export const Midnight: React.FC<TemplateProps> = ({ content, profile }) => {
-  const flatSkills = content.skills ? flattenSkills(content.skills) : [];
-  const contactLinks = getContactLinks(content.contact);
-  const emailLink = contactLinks.find((l) => l.type === "email");
-
   return (
     <>
-      <TemplateFontLinks href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=DM+Sans:wght@400;500&display=swap" />
+      <TemplateFontLinks href={FONT_URL} />
 
-      <div className="min-h-screen bg-[#0a0a0a] text-neutral-200 selection:bg-[#C9A96E]/30 selection:text-[#C9A96E] relative overflow-x-hidden">
-        <style>{`
-          .font-display-mn { font-family: 'Cormorant Garamond', serif; }
-          .font-body-mn { font-family: 'DM Sans', sans-serif; }
-          @keyframes twinkle {
-            0%, 100% { opacity: 0.3; }
-            50% { opacity: 0.8; }
-          }
-          @media (prefers-reduced-motion: reduce) {
-            .midnight-star-twinkle { animation: none !important; }
-          }
-        `}</style>
+      <style>{`
+        .midnight-root { font-family: 'Albert Sans', ui-sans-serif, system-ui, sans-serif; }
+        .font-display-mn { font-family: 'Cormorant Garamond', ui-serif, Georgia, serif; }
+        .midnight-root ::selection { background: rgba(212, 178, 106, 0.35); color: #F5EFE1; }
+        @keyframes mn-sky-in { from { opacity: 0; } to { opacity: 1; } }
+        @media (prefers-reduced-motion: no-preference) {
+          .mn-sky { animation: mn-sky-in 2.4s ease-out both; }
+        }
+      `}</style>
 
-        <Starfield />
+      <div className="midnight-root relative min-h-screen overflow-x-hidden bg-[#0B1026] bg-linear-to-b from-[#070B1E] via-[#0B1026] to-[#131B3D] text-[#B7BCD4]">
+        <Sky />
+        <div
+          className="pointer-events-none absolute inset-x-0 top-0 h-[34rem] bg-[radial-gradient(60%_70%_at_50%_0%,rgba(92,110,200,0.16),transparent_70%)]"
+          aria-hidden="true"
+        />
 
-        <div className="relative z-10 max-w-4xl mx-auto px-6 py-20 md:py-28">
+        <div className="relative max-w-4xl mx-auto px-4 sm:px-6">
           <main>
-            <MidnightHeader content={content} profile={profile} />
+            <Header content={content} profile={profile} />
 
             {content.summary && (
-              <section className="mb-32 max-w-2xl mx-auto text-center">
-                <SectionHeader label="About" />
-                <p className="text-neutral-400 leading-8 text-lg font-body-mn">{content.summary}</p>
-              </section>
+              <p className="font-display-mn text-2xl md:text-[1.75rem] leading-[1.5] text-[#DDD8CC] max-w-[40ch] mx-auto text-center mb-24">
+                {content.summary}
+              </p>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-16">
-              <div className="md:col-span-8 space-y-32">
-                {content.experience && content.experience.length > 0 && (
-                  <ExperienceSection experience={content.experience} />
-                )}
-
-                <ProjectsSection projects={content.projects} />
-              </div>
-
-              <div className="md:col-span-4 space-y-16">
-                <SkillsSection skills={flatSkills} />
-
-                {content.education && content.education.length > 0 && (
-                  <EducationSection education={content.education} />
-                )}
-
-                {content.certifications && content.certifications.length > 0 && (
-                  <CertificationsSection certifications={content.certifications} />
-                )}
-
-                <ConnectSection contactLinks={contactLinks} />
-              </div>
+            <div className="space-y-24">
+              <Experience experience={content.experience} />
+              <Projects projects={content.projects} />
+              <Skills skills={content.skills} />
+              <Credentials education={content.education} certifications={content.certifications} />
             </div>
           </main>
 
-          <MidnightFooter
-            emailHref={emailLink?.href}
-            handle={profile.handle}
-            fullName={content.full_name}
-          />
+          <footer className="mt-28 py-14 border-t border-[#D4B26A]/15 flex flex-col items-center gap-6 text-sm text-[#9AA0BE]">
+            {content.contact.email && (
+              <a
+                href={`mailto:${content.contact.email}`}
+                className="font-display-mn text-3xl md:text-4xl text-[#EDE6D6] hover:text-[#D4B26A] underline decoration-[#D4B26A]/40 underline-offset-8 transition-colors break-all text-center focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D4B26A]"
+              >
+                {content.contact.email}
+              </a>
+            )}
+            <ShareBar
+              handle={profile.handle}
+              title={`${content.full_name}'s portfolio`}
+              name={content.full_name}
+              variant="midnight"
+            />
+            <p suppressHydrationWarning>
+              &copy; {new Date().getFullYear()} {content.full_name}
+            </p>
+          </footer>
         </div>
       </div>
     </>

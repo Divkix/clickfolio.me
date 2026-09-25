@@ -40,7 +40,7 @@ export const shareButtonStyles = {
   spotlight:
     "bg-orange-50 text-orange-700 hover:bg-orange-100 border border-orange-200 rounded-lg px-3 py-1.5",
   midnight:
-    "bg-amber-900/20 text-amber-200 hover:bg-amber-900/40 border border-amber-700/30 rounded-lg px-3 py-1.5",
+    "bg-transparent text-[#C9CEE4] hover:text-[#D4B26A] border border-[#D4B26A]/30 hover:border-[#D4B26A]/70 rounded-full px-3.5 py-1.5",
   "bold-corporate":
     "bg-white text-neutral-700 hover:bg-neutral-50 border border-neutral-200 rounded-md px-3 py-1.5 shadow-sm",
   "classic-ats":
@@ -61,7 +61,7 @@ export const shareTriggerStyles = {
   "bento-grid":
     "bg-white text-neutral-700 border-neutral-200 shadow-sm dark:bg-neutral-900 dark:text-white dark:border-neutral-700",
   spotlight: "bg-orange-500 text-white border-orange-400 shadow-md",
-  midnight: "bg-neutral-900 text-amber-200 border-amber-700/40 shadow-lg",
+  midnight: "bg-[#131B3D] text-[#EDE6D6] border-[#D4B26A]/40 shadow-lg hover:border-[#D4B26A]",
   "bold-corporate": "bg-white text-neutral-800 border-neutral-200 shadow-sm hover:bg-neutral-50",
   "classic-ats": "bg-white text-[#22385C] border-[#B9BCC2] shadow-sm hover:border-[#22385C]",
   "design-folio":
@@ -77,7 +77,7 @@ export const sharePanelStyles = {
   "bento-grid":
     "bg-white/95 text-neutral-800 border-neutral-200 dark:bg-neutral-900/95 dark:text-neutral-100 dark:border-neutral-700",
   spotlight: "bg-orange-50 text-orange-900 border-orange-200",
-  midnight: "bg-neutral-900/95 text-amber-100 border-amber-700/30",
+  midnight: "bg-[#0F1633]/95 text-[#EDE6D6] border-[#D4B26A]/30",
   "bold-corporate": "bg-white text-neutral-800 border-neutral-200",
   "classic-ats": "bg-white text-[#16181D] border-[#B9BCC2]",
   "design-folio": "bg-[#1a1a1a] text-[#e0e0e0] border-[#333]",
@@ -93,7 +93,8 @@ export const shareItemStyles = {
   "bento-grid":
     "bg-neutral-100 text-neutral-700 hover:bg-neutral-200 border border-neutral-200 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-700 dark:border-neutral-700",
   spotlight: "bg-orange-50 text-orange-700 hover:bg-orange-100 border border-orange-200",
-  midnight: "bg-amber-900/20 text-amber-200 hover:bg-amber-900/40 border border-amber-700/30",
+  midnight:
+    "bg-[#131B3D] text-[#C9CEE4] hover:text-[#D4B26A] border border-[#D4B26A]/25 hover:border-[#D4B26A]/60",
   "bold-corporate": "bg-white text-neutral-700 hover:bg-neutral-50 border-neutral-200",
   "classic-ats": "bg-white text-[#3F434A] hover:text-[#22385C] border-[#B9BCC2]",
   "design-folio":

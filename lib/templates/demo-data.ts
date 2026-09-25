@@ -984,7 +984,7 @@ export const TEMPLATE_BACKGROUNDS = {
   design_folio: { bg: "bg-[#0f0f0f]", isDark: true },
   dev_terminal: { bg: "bg-[#0d1117]", isDark: true },
   glass: { bg: "bg-[#0B0F1A]", isDark: true },
-  midnight: { bg: "bg-[#0a0a0a]", isDark: true },
+  midnight: { bg: "bg-[#0B1026]", isDark: true },
   minimalist_editorial: { bg: "bg-white", isDark: false },
   neo_brutalist: { bg: "bg-[#FFFDF5]", isDark: false },
   spotlight: { bg: "bg-[#FFFCF9]", isDark: false },
