@@ -1,6 +1,7 @@
+// module.no-external is an IIFE bundle; its default export carries the same
+// PostHogInterface as "posthog-js" minus external-dependency loaders.
 import posthog from "posthog-js/dist/module.no-external";
 
-// SAFETY: module.no-external is an IIFE bundle; its default export carries the
 import type { AnalyticsEventMap } from "@/lib/analytics/events";
 
 export type AnalyticsProperties = Record<string, string | number | boolean | null>;
@@ -20,6 +21,7 @@ export function trackAnalyticsEvent<E extends keyof AnalyticsEventMap>(
   properties: AnalyticsEventMap[E],
 ): void {
   // SAFETY: payload shape is guaranteed by AnalyticsEventMap; cast bridges the
+  // wider Properties type posthog-js accepts.
   posthog.capture(event, properties as AnalyticsProperties);
 }
 
