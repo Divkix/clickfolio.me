@@ -1,5 +1,5 @@
 import { and, eq, inArray, isNotNull, ne, sql } from "drizzle-orm";
-import type { UserRole } from "../db/schema";
+import type { CareerProfile } from "../ai/career";
 import { resumes } from "../db/schema";
 import { getDb } from "../db";
 import { getR2Binding, R2 } from "../r2";
@@ -27,7 +27,7 @@ export type ParseClaimOutcome = "parse" | "cached" | "skipped";
 
 export type ParsedResume = {
   parsedContent: ResumeContent;
-  professionalLevel: UserRole | null;
+  career: CareerProfile | null;
 };
 
 function getUserFriendlyError(rawError: string): string {
@@ -125,13 +125,12 @@ export async function claimResumeForParse(
 
   if (cached[0]?.parsedContent) {
     // SAFETY: cached parsedContent is schema-validated ResumeContent written by a prior completion; cast bridges the column's wide Record type.
-    const cachedContent = cached[0].parsedContent as ResumeContent;
+    // Same user + same file: career was already classified on the original parse.
     await completeResumes({
       db,
       env,
       items: [{ resumeId: job.resumeId, userId: job.userId }],
-      parsedContent: cachedContent,
-      professionalLevel: cachedContent.professional_level ?? undefined,
+      parsedContent: cached[0].parsedContent as ResumeContent,
     });
 
     return "cached";
@@ -200,11 +199,9 @@ export async function parseResumePdf(
       throw new Error(`Invalid JSON response from AI parser for resume ${job.resumeId}`);
     }
 
-    return {
-      parsedContent,
-      // SAFETY: AI returns professionalLevel as validated string from resumeContentSchema; UserRole cast narrows to enum with null fallback if missing.
-      professionalLevel: (parseResult.professionalLevel as UserRole | undefined) ?? null,
-    };
+    const { classifyCareer } = await import("../ai/career");
+
+    return { parsedContent, career: await classifyCareer(parsedContent, env) };
   } catch (error) {
     // SAFETY: catch error is unknown; ParseErrorInput covers Error|string|object for classification.
     const classified = classifyParseError(error as ParseErrorInput);
@@ -223,14 +220,15 @@ export async function completeParsedResume(
   env: CloudflareEnv,
 ): Promise<void> {
   const db = getDb(env.HYPERDRIVE);
-  const professionalLevel = parsed.professionalLevel ?? undefined;
+  // `?? null`: results persisted by a workflow step from before `career` existed.
+  const career = parsed.career ?? null;
 
   await completeResumes({
     db,
     env,
     items: [{ resumeId: job.resumeId, userId: job.userId }],
     parsedContent: parsed.parsedContent,
-    professionalLevel,
+    career,
   });
 
   const waitingResumes = await db
@@ -250,7 +248,7 @@ export async function completeParsedResume(
       env,
       items: waitingResumes.map((w) => ({ resumeId: w.id, userId: w.userId })),
       parsedContent: parsed.parsedContent,
-      professionalLevel,
+      career,
       fanOut: true,
     });
   }

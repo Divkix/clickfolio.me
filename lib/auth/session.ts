@@ -2,7 +2,8 @@ import { env } from "cloudflare:workers";
 import { cache } from "react";
 import { eq } from "drizzle-orm";
 import { getAuthClerk } from "@/lib/auth/clerk";
-import type { UserRole, User as SchemaUser } from "@/lib/db/schema";
+import type { UserRole } from "@/lib/config/roles";
+import type { User as SchemaUser } from "@/lib/db/schema";
 import { getDb } from "@/lib/db";
 import { user as users } from "@/lib/db/schema";
 

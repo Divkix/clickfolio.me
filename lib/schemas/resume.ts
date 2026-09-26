@@ -362,15 +362,6 @@ const createResumeContentSchema = (contactSchema: ReturnType<typeof createContac
       .max(10, "Maximum 10 projects allowed")
       .optional()
       .describe("Personal projects, side work, portfolio pieces. Return empty array [] if absent."),
-    professional_level: z
-      .enum(["student", "entry_level", "mid_level", "senior", "executive"])
-      .optional()
-      .describe(
-        "Classify career level from experience/titles/education. " +
-          "student: enrolled or only internships. entry_level: 0-2 years. " +
-          "mid_level: 3-6 years. senior: 7+ years or senior/staff/lead/principal titles. " +
-          "executive: director/VP/C-suite/founder. Omit if uncertain.",
-      ),
   });
 
 export const resumeContentSchema = createResumeContentSchema(contactSchemaLenient);

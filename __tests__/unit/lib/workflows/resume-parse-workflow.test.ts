@@ -86,7 +86,7 @@ async function run(payload: ResumeParseParams) {
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.claimResumeForParse.mockResolvedValue("parse");
-  mocks.parseResumePdf.mockResolvedValue({ parsedContent: {}, professionalLevel: null });
+  mocks.parseResumePdf.mockResolvedValue({ parsedContent: {}, career: null });
   mocks.completeParsedResume.mockResolvedValue(undefined);
   mocks.markResumeParseFailed.mockResolvedValue(undefined);
   mocks.expireWaitingForCache.mockResolvedValue(true);
@@ -100,7 +100,7 @@ describe("ResumeParseWorkflow — parse", () => {
     expect(calls.map((c) => c.name)).toEqual(["claim", "parse", "complete"]);
     expect(mocks.completeParsedResume).toHaveBeenCalledWith(
       JOB,
-      { parsedContent: {}, professionalLevel: null },
+      { parsedContent: {}, career: null },
       ENV,
     );
   });

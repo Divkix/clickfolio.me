@@ -44,5 +44,4 @@ export const LINKEDIN_PROMPT_RULES = `This resume is a LinkedIn "Save to PDF" pr
 - Education lines look like "Degree, Field · (Start - End)". Use the end date as graduation_date.
 - Put "Top Skills" into a skills category named "Top Skills". If the summary explicitly lists the person's stack or skills (e.g. "My stack: ..."), also add those items as their own category. Do not infer skills that are not written down.
 - Some roles have no description. Leave description as an empty string rather than inventing one.
-- Languages and Honors-Awards have no field in the schema; skip them.
-- LinkedIn lists every internship, tutoring, teaching-assistant and student role. For professional_level, count only full-time roles after graduation; someone with only internships or a degree finished within the last year is student or entry_level.`;
+- Languages and Honors-Awards have no field in the schema; skip them.`;

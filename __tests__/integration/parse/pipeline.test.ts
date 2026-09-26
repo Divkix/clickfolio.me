@@ -52,6 +52,7 @@ const mocks = vi.hoisted(() => {
     notifyStatusChange: vi.fn(async (_input: UnknownRecord) => undefined),
     sendAlert: vi.fn(async (_payload: UnknownRecord) => undefined),
     parseResumeWithAi: vi.fn(),
+    classifyCareer: vi.fn(),
   };
 });
 
@@ -74,6 +75,8 @@ vi.mock("@/lib/parse/alert", () => ({
 }));
 
 vi.mock("@/lib/ai", () => ({ parseResumeWithAi: mocks.parseResumeWithAi }));
+
+vi.mock("@/lib/ai/career", () => ({ classifyCareer: mocks.classifyCareer }));
 
 const VALID_CONTENT = {
   full_name: "Test User",
@@ -113,8 +116,8 @@ beforeEach(() => {
   mocks.parseResumeWithAi.mockResolvedValue({
     success: true,
     parsedContent: JSON.stringify(VALID_CONTENT),
-    professionalLevel: "mid_level",
   });
+  mocks.classifyCareer.mockResolvedValue({ role: "mid_level", isFreelance: false });
 });
 
 describe("claimResumeForParse", () => {
@@ -152,7 +155,7 @@ describe("claimResumeForParse", () => {
 
   it("completes from an identical earlier parse without calling the AI", async () => {
     const { claimResumeForParse } = await import("@/lib/parse/pipeline");
-    const cached = { ...VALID_CONTENT, professional_level: "senior" };
+    const cached = { ...VALID_CONTENT };
     mocks.state.selectResults.push([{ status: "queued" }], [{ parsedContent: cached }]);
 
     await expect(claimResumeForParse(JOB, ENV)).resolves.toBe("cached");
@@ -161,9 +164,10 @@ describe("claimResumeForParse", () => {
       expect.objectContaining({
         items: [{ resumeId: JOB.resumeId, userId: JOB.userId }],
         parsedContent: cached,
-        professionalLevel: "senior",
       }),
     );
+    expect(mocks.completeResumes.mock.calls[0][0]).not.toHaveProperty("career");
+    expect(mocks.completeResumes.mock.calls[0][0]).not.toHaveProperty("professionalLevel");
     expect(mocks.parseResumeWithAi).not.toHaveBeenCalled();
   });
 });
@@ -176,7 +180,8 @@ describe("parseResumePdf", () => {
     const parsed = await parseResumePdf(JOB, ENV);
 
     expect(parsed?.parsedContent.full_name).toBe("Test User");
-    expect(parsed?.professionalLevel).toBe("mid_level");
+    expect(parsed?.career).toEqual({ role: "mid_level", isFreelance: false });
+    expect(mocks.classifyCareer).toHaveBeenCalledWith(parsed?.parsedContent, ENV);
     // Evaluated by the database so a replayed step cannot lose an attempt.
     expect(mocks.state.updateSets[0].totalAttempts).toHaveProperty("queryChunks");
   });
@@ -228,7 +233,10 @@ describe("parseResumePdf", () => {
 });
 
 describe("completeParsedResume", () => {
-  const parsed = { parsedContent: VALID_CONTENT, professionalLevel: null };
+  const parsed = {
+    parsedContent: VALID_CONTENT,
+    career: { role: "senior" as const, isFreelance: true },
+  };
 
   it("completes the row and fans out to identical uploads waiting on it", async () => {
     const { completeParsedResume } = await import("@/lib/parse/pipeline");
@@ -237,9 +245,14 @@ describe("completeParsedResume", () => {
     await completeParsedResume(JOB, parsed, ENV);
 
     expect(mocks.completeResumes).toHaveBeenCalledTimes(2);
+    expect(mocks.completeResumes).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ career: parsed.career }),
+    );
     expect(mocks.completeResumes).toHaveBeenLastCalledWith(
       expect.objectContaining({
         items: [{ resumeId: "waiting-1", userId: JOB.userId }],
+        career: parsed.career,
         fanOut: true,
       }),
     );
@@ -248,9 +261,10 @@ describe("completeParsedResume", () => {
   it("completes only the row itself when nothing is waiting", async () => {
     const { completeParsedResume } = await import("@/lib/parse/pipeline");
 
-    await completeParsedResume(JOB, parsed, ENV);
+    await completeParsedResume(JOB, { ...parsed, career: null }, ENV);
 
     expect(mocks.completeResumes).toHaveBeenCalledTimes(1);
+    expect(mocks.completeResumes).toHaveBeenCalledWith(expect.objectContaining({ career: null }));
   });
 });
 

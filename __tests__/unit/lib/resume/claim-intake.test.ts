@@ -242,10 +242,10 @@ describe("runClaimIntake", () => {
     expect(mockBuildSiteDataUpsert).not.toHaveBeenCalled();
   });
 
-  it("cache-hit → completed without a parse run, syncing name and career level", async () => {
+  it("cache-hit → completed without a parse run, syncing the display name only", async () => {
     const r2 = makeBucket({ [TEMP_KEY]: makePdfBuffer() });
     const workflow = makeWorkflow();
-    const cachedContent = { full_name: "Cached Name", professional_level: "senior" };
+    const cachedContent = { full_name: "Cached Name" };
     mockLimitQueue.push(
       [],
       [{ id: "cached-1", parsedContent: cachedContent }],
@@ -272,9 +272,8 @@ describe("runClaimIntake", () => {
       expect.objectContaining({ publish: true }),
     );
     expect(mockUpdateSets).toContainEqual(expect.objectContaining({ status: "completed" }));
-    expect(mockUpdateSets).toContainEqual(
-      expect.objectContaining({ name: "Cached Name", role: "senior", roleSource: "ai" }),
-    );
+    expect(mockUpdateSets).toContainEqual(expect.objectContaining({ name: "Cached Name" }));
+    expect(mockUpdateSets.filter((update) => "role" in update)).toHaveLength(0);
   });
 
   it("in-flight duplicate → waiting_for_cache with a timeout run, no parse", async () => {

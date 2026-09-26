@@ -33,7 +33,6 @@ const validAiData = {
       description: "Built systems.",
     },
   ],
-  professional_level: "senior",
 };
 
 describe("parseResumeWithAi", () => {
@@ -103,10 +102,8 @@ describe("parseResumeWithAi", () => {
     const result = await parseResumeWithAi(new ArrayBuffer(1), { CF_AI_GATEWAY_ID: "gateway" });
 
     expect(result.success).toBe(true);
-    expect(result.professionalLevel).toBe("senior");
     expect(mocks.parseWithAi.mock.calls[0][0]).toContain("...[truncated]...");
     const parsed = JSON.parse(result.parsedContent);
-    expect(parsed.professional_level).toBeUndefined();
     expect(parsed.contact.email).toBe("avery@example.com");
     expect(parsed.contact.linkedin).toBeUndefined();
     expect(parsed.experience[0].end_date).toBeUndefined();

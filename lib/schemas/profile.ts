@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { USER_ROLES } from "@/lib/config/roles";
 import { noXssPattern } from "@/lib/utils/sanitization";
 
 export const privacySettingsSchema = z.object({
@@ -50,17 +51,14 @@ export const handleUpdateSchema = z.object({
 
 export type HandleUpdate = z.infer<typeof handleUpdateSchema>;
 
-export const ROLE_OPTIONS = [
-  { value: "student", label: "Student" },
-  { value: "entry_level", label: "Entry Level" },
-  { value: "mid_level", label: "Mid Level" },
-  { value: "senior", label: "Senior" },
-  { value: "executive", label: "Executive" },
-] as const;
-
-export const roleUpdateSchema = z.object({
-  role: z.enum(["student", "entry_level", "mid_level", "senior", "executive"]),
-});
+export const roleUpdateSchema = z
+  .object({
+    role: z.enum(USER_ROLES).optional(),
+    isFreelance: z.boolean().optional(),
+  })
+  .refine((data) => data.role !== undefined || data.isFreelance !== undefined, {
+    message: "Provide role or isFreelance",
+  });
 
 export function buildWizardCompleteSchema(themeIds: readonly [string, ...string[]]) {
   return z.object({

@@ -162,7 +162,6 @@ const VALID_AI_RESPONSE = {
   ],
   certifications: [],
   projects: [],
-  professional_level: "mid_level",
 };
 
 function textResult(text: string): GenerateTextResult<ToolSet, never, never> {
@@ -419,7 +418,6 @@ describe("AI Parsing Pipeline", () => {
 
       expect(result.success).toBe(true);
       expect(result.parsedContent).toBeDefined();
-      expect(result.professionalLevel).toBeDefined();
     });
 
     it("should handle PDF extraction failure gracefully", async () => {

@@ -115,7 +115,6 @@ const parsedContent: ResumeContent = {
   summary: "Test summary",
   contact: { email: "" },
   experience: [],
-  professional_level: "senior",
 };
 
 const resumeCreatedAt = "2024-01-01T00:00:00.000Z";
@@ -174,7 +173,7 @@ describe("shouldSyncDisplayName", () => {
 });
 
 describe("completeResumes", () => {
-  it("fresh single → atomic batch, combined name+role update, notify", async () => {
+  it("fresh single → atomic batch, combined name+career profile update, notify", async () => {
     seedCompletion({
       userRows: [{ handle: "test-handle", name: "Unnamed" }],
       resumeIds: ["resume-1"],
@@ -185,7 +184,7 @@ describe("completeResumes", () => {
       env: { CLICKFOLIO_STATUS_DO: undefined },
       items: [{ resumeId: "resume-1", userId: "user-1" }],
       parsedContent,
-      professionalLevel: "senior",
+      career: { role: "senior", isFreelance: true },
     });
 
     expect(mockTransactions).toHaveLength(1);
@@ -203,11 +202,12 @@ describe("completeResumes", () => {
       name: "Test User",
       role: "senior",
       roleSource: "ai",
+      isFreelance: true,
     });
     expect(mockNotifyBatches).toEqual([{ ids: ["resume-1"], status: "completed" }]);
   });
 
-  it("cached single → sets totalAttempts and gains career-level sync", async () => {
+  it("cached single → sets totalAttempts and syncs the career profile", async () => {
     seedCompletion({ userRows: [{ handle: "test-handle", name: null }], resumeIds: ["resume-1"] });
 
     await completeResumes({
@@ -215,7 +215,7 @@ describe("completeResumes", () => {
       env: { CLICKFOLIO_STATUS_DO: undefined },
       items: [{ resumeId: "resume-1", userId: "user-1" }],
       parsedContent,
-      professionalLevel: "senior",
+      career: { role: "senior", isFreelance: true },
       totalAttempts: 2,
     });
 
@@ -223,11 +223,11 @@ describe("completeResumes", () => {
       expect.objectContaining({ status: "completed", totalAttempts: 2 }),
     );
     expect(mockUpdateSets).toContainEqual(
-      expect.objectContaining({ role: "senior", name: "Test User" }),
+      expect.objectContaining({ role: "senior", isFreelance: true, name: "Test User" }),
     );
   });
 
-  it("single with existing name and no level → no user update, still completes", async () => {
+  it("single with existing name and no career profile → no user update, still completes", async () => {
     seedCompletion({
       userRows: [{ handle: null, name: "Existing Name" }],
       resumeIds: ["resume-1"],
@@ -263,7 +263,7 @@ describe("completeResumes", () => {
         { resumeId: "resume-2", userId: "user-2" },
       ],
       parsedContent,
-      professionalLevel: "senior",
+      career: { role: "senior", isFreelance: true },
       fanOut: true,
     });
 
@@ -273,7 +273,7 @@ describe("completeResumes", () => {
       { userId: "user-2", publish: false },
     ]);
     expect(mockUpdateSets).toContainEqual(
-      expect.objectContaining({ role: "senior", roleSource: "ai" }),
+      expect.objectContaining({ role: "senior", roleSource: "ai", isFreelance: true }),
     );
     const nameUpdates = mockUpdateSets.filter((s) => "name" in s);
     expect(nameUpdates).toHaveLength(1);
@@ -298,7 +298,7 @@ describe("completeResumes", () => {
         { resumeId: "resume-2", userId: "user-2" },
       ],
       parsedContent,
-      professionalLevel: "senior",
+      career: { role: "senior", isFreelance: true },
       fanOut: true,
     });
 
@@ -320,7 +320,7 @@ describe("completeResumes", () => {
       env: { CLICKFOLIO_STATUS_DO: undefined },
       items: [{ resumeId: "resume-1", userId: "user-1" }],
       parsedContent,
-      professionalLevel: "senior",
+      career: { role: "senior", isFreelance: true },
     });
 
     expect(mockTransactions).toHaveLength(1);
@@ -346,7 +346,7 @@ describe("completeResumes", () => {
       env: { CLICKFOLIO_STATUS_DO: undefined },
       items: [{ resumeId: "resume-1", userId: "user-1" }],
       parsedContent,
-      professionalLevel: "senior",
+      career: { role: "senior", isFreelance: true },
     });
 
     expect(mockUpsertCalls).toEqual([]);

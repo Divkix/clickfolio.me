@@ -351,41 +351,8 @@ describe("resumeContentSchemaStrict", () => {
   });
 });
 
-describe("professional_level", () => {
-  it("accepts all professional_level values", async () => {
-    const levels = ["student", "entry_level", "mid_level", "senior", "executive"] as const;
-
-    for (const level of levels) {
-      const result = await resumeContentSchema.safeParseAsync({
-        ...validMinimalResume,
-        professional_level: level,
-      });
-
-      expect(result.success).toBe(true);
-    }
-  });
-
-  it("accepts missing professional_level", async () => {
-    const result = await resumeContentSchema.safeParseAsync(validMinimalResume);
-    expect(result.success).toBe(true);
-
-    if (result.success) {
-      expect(result.data.professional_level).toBeUndefined();
-    }
-  });
-
-  it("rejects invalid professional_level", async () => {
-    const result = await resumeContentSchema.safeParseAsync({
-      ...validMinimalResume,
-      professional_level: "invalid",
-    });
-
-    expect(result.success).toBe(false);
-  });
-});
-
 describe("complete resume", () => {
-  it("accepts a complete resume with all sections including professional_level", async () => {
+  it("accepts a complete resume with all sections", async () => {
     const completeResume = {
       full_name: "Jane Doe",
       headline: "Senior Software Engineer",
@@ -423,7 +390,6 @@ describe("complete resume", () => {
       ],
       certifications: [{ name: "AWS SA", issuer: "AWS", date: "2023" }],
       projects: [{ title: "CLI Tool", description: "Dev tool", year: "2024" }],
-      professional_level: "senior" as const,
     };
 
     const result = await resumeContentSchema.safeParseAsync(completeResume);
@@ -502,7 +468,6 @@ describe("type inference", () => {
       skills: [{ category: "Lang", items: ["JS"] }],
       certifications: [{ name: "Cert", issuer: "Org" }],
       projects: [{ title: "Proj", description: "Desc" }],
-      professional_level: "mid_level" as const,
     };
 
     const result = await resumeContentSchema.safeParseAsync(validData);

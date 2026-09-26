@@ -335,17 +335,5 @@ export function normalizeAiKeys(data: UnknownRecord): UnknownRecord {
     result.projects = projectsArray.map((item) => normalizeProjectItem(item));
   }
 
-  const professionalLevel = pickFirstValue(result, [
-    "professional_level",
-    "professionalLevel",
-    "seniority",
-    "seniority_level",
-    "seniorityLevel",
-    "career_level",
-    "careerLevel",
-  ]);
-
-  if (professionalLevel !== undefined) result.professional_level = professionalLevel;
-
   return result;
 }

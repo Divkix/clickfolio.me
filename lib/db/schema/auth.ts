@@ -1,4 +1,5 @@
 import { boolean, index, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { USER_ROLES } from "../../config/roles";
 
 export const user = pgTable(
   "user",
@@ -20,9 +21,8 @@ export const user = pgTable(
       show_in_directory: true,
     }),
     onboardingCompleted: boolean("onboarding_completed").notNull().default(false),
-    role: text("role", {
-      enum: ["student", "entry_level", "mid_level", "senior", "executive"],
-    }),
+    role: text("role", { enum: USER_ROLES }),
+    isFreelance: boolean("is_freelance").notNull().default(false),
     roleSource: text("role_source", { enum: ["ai", "user"] }),
     isAdmin: boolean("is_admin").notNull().default(false),
     showInDirectory: boolean("show_in_directory").notNull().default(true),
@@ -33,8 +33,6 @@ export const user = pgTable(
 export type User = typeof user.$inferSelect;
 
 export type NewUser = typeof user.$inferInsert;
-
-export type UserRole = "student" | "entry_level" | "mid_level" | "senior" | "executive";
 
 export type UserRoleSource = "ai" | "user";
 

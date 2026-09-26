@@ -283,9 +283,8 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
       const hasHandle = !!userRow[0]?.handle;
       const currentName = userRow[0]?.name;
       const cachedName = content.full_name?.trim();
-      // Same rule as fresh parses (single owner: shouldSyncDisplayName):
-      // career level iff AI-provided, display name iff currently missing.
-      const cachedLevel = content.professional_level ?? undefined;
+      // Same name rule as fresh parses (single owner: shouldSyncDisplayName). Career is
+      // classified once per fresh parse, so a cache hit leaves it untouched.
       const shouldUpdateName = shouldSyncDisplayName(cachedName, currentName);
 
       let completed = false;
@@ -314,21 +313,11 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
           onlyIfUpdatedAtLte: now,
         });
 
-        if (shouldUpdateName || cachedLevel) {
-          type IntakeUserUpdate = Partial<typeof user.$inferInsert>;
-
-          const intakeUserUpdate: IntakeUserUpdate = { updatedAt: now };
-
-          if (shouldSyncDisplayName(cachedName, currentName)) {
-            intakeUserUpdate.name = cachedName;
-          }
-
-          if (cachedLevel) {
-            intakeUserUpdate.role = cachedLevel;
-            intakeUserUpdate.roleSource = "ai";
-          }
-
-          await tx.update(user).set(intakeUserUpdate).where(eq(user.id, userId));
+        if (shouldUpdateName) {
+          await tx
+            .update(user)
+            .set({ name: cachedName, updatedAt: now })
+            .where(eq(user.id, userId));
         }
       });
 

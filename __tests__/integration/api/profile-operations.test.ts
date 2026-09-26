@@ -234,7 +234,7 @@ interface UserProfile {
     show_in_directory: boolean;
   };
   onboardingCompleted: boolean;
-  role: "student" | "entry_level" | "mid_level" | "senior" | "executive";
+  role: "student" | "entry_level" | "mid_level" | "senior" | "manager" | "executive";
   roleSource: "ai" | "user";
   isAdmin: boolean;
   isPro: boolean;
@@ -320,6 +320,7 @@ function makeRequest(url: string, method = "GET", body?: JsonValue): Request {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockDb.update = mockUpdate;
   mockFindFirst.mockReset();
   mockLimit.mockReset().mockResolvedValue([]);
   queuedTxSelects.length = 0;
@@ -728,13 +729,11 @@ describe("Profile API Integration Tests (20 tests)", () => {
 
       const response = await PUT(request);
 
-      expect([200, 500]).toContain(response.status);
-
-      if (response.status === 200) {
-        const body: { role: string; roleSource: string } = await response.json();
-        expect(body.role).toBe("senior");
-        expect(body.roleSource).toBe("user");
-      }
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toEqual({ role: "senior" });
+      expect(mockUpdateSet).toHaveBeenCalledWith(
+        expect.objectContaining({ role: "senior", roleSource: "user" }),
+      );
     });
 
     it("returns 400 for invalid role value (test 4 validation)", async () => {
@@ -751,26 +750,32 @@ describe("Profile API Integration Tests (20 tests)", () => {
       expect(response.status).toBe(400);
     });
 
-    it("tracks role source as user (test 15)", async () => {
-      authedAs("user-123", { roleSource: "ai" });
+    it("requires at least a role or freelance value", async () => {
+      authedAs("user-123");
 
-      const updateSpy = vi.fn().mockReturnValue({
-        set: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue(undefined),
-        }),
-      });
+      const { PUT } = await import("@/app/api/profile/role/route");
+      const request = makeRequest("http://localhost:3000/api/profile/role", "PUT", {});
+      const response = await PUT(request);
 
-      mockDb.update = updateSpy;
+      expect(response.status).toBe(400);
+    });
+
+    it("updates freelance status without changing role or its source", async () => {
+      authedAs("user-123", { role: "senior", roleSource: "ai" });
 
       const { PUT } = await import("@/app/api/profile/role/route");
 
       const request = makeRequest("http://localhost:3000/api/profile/role", "PUT", {
-        role: "executive",
+        isFreelance: true,
       });
 
-      await PUT(request);
+      const response = await PUT(request);
 
-      expect(updateSpy).toHaveBeenCalled();
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toEqual({ isFreelance: true });
+      expect(mockUpdateSet.mock.calls[0]?.[0]).toMatchObject({ isFreelance: true });
+      expect(mockUpdateSet.mock.calls[0]?.[0]).not.toHaveProperty("role");
+      expect(mockUpdateSet.mock.calls[0]?.[0]).not.toHaveProperty("roleSource");
     });
 
     it("returns 401 when not authenticated (test 8)", async () => {
