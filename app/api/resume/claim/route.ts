@@ -65,11 +65,18 @@ export async function POST(request: Request) {
       // SECURITY: Prevents unauthorized claims of leaked temp keys (Issue #89)
       const cookieHeader = request.headers.get("cookie");
 
-      const pendingUploadCookie = cookieHeader
+      const rawPendingUploadCookie = cookieHeader
         ?.split(";")
         .map((c) => c.trim())
         .find((c) => c.startsWith(`${COOKIE_NAME}=`))
         ?.slice(`${COOKIE_NAME}=`.length);
+
+      // cookies().set() in /api/upload/pending percent-encodes the value (`|` → `%7C`).
+      let pendingUploadCookie = rawPendingUploadCookie;
+
+      try {
+        pendingUploadCookie = rawPendingUploadCookie && decodeURIComponent(rawPendingUploadCookie);
+      } catch {}
 
       if (!pendingUploadCookie) {
         return createErrorResponse(

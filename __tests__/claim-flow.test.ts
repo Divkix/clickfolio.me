@@ -431,6 +431,20 @@ describe("POST /api/resume/claim", () => {
     expect(mockDbInsert).toHaveBeenCalled();
   });
 
+  it("accepts a percent-encoded cookie as set by cookies().set() in /api/upload/pending", async () => {
+    authedAs("user-1");
+
+    const { POST } = await import("@/app/api/resume/claim/route");
+
+    const cookie = encodeURIComponent(
+      await createSignedCookieValue("temp/uuid/resume.pdf", TEST_SECRET),
+    );
+
+    const response = await POST(makeClaimRequest({ key: "temp/uuid/resume.pdf" }, cookie));
+
+    expect(response.status).toBe(200);
+  });
+
   it("fails the resume (manually retryable) when the parse workflow cannot start", async () => {
     authedAs("user-1");
     const { startResumeParse } = await import("@/lib/workflows/resume-parse");
