@@ -435,10 +435,12 @@ describe("POST /api/resume/claim", () => {
     authedAs("user-1");
 
     const { POST } = await import("@/app/api/resume/claim/route");
-    const cookie = await createSignedCookieValue("temp/uuid/resume.pdf", TEST_SECRET);
-    const response = await POST(
-      makeClaimRequest({ key: "temp/uuid/resume.pdf" }, encodeURIComponent(cookie)),
+
+    const cookie = encodeURIComponent(
+      await createSignedCookieValue("temp/uuid/resume.pdf", TEST_SECRET),
     );
+
+    const response = await POST(makeClaimRequest({ key: "temp/uuid/resume.pdf" }, cookie));
 
     expect(response.status).toBe(200);
   });
