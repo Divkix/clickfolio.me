@@ -6,22 +6,22 @@ Turn your PDF resume into a hosted web portfolio website in seconds. Upload your
 
 clickfolio.me is an AI-powered resume-to-website platform. Users upload a PDF resume, and within ~30 seconds the system extracts work experience, education, skills, projects, and contact information using advanced language models. The result is a live, shareable portfolio website at `clickfolio.me/@handle`.
 
-The platform is free for all features with no time limits. All 10 templates are free for every user — no paywall, no referrals, no premium locks.
+The platform is free for all features with no time limits. All 12 templates are free for every user — no paywall, no referrals, no premium locks.
 
 ### Key Differentiators
 
 - **No signup to upload**: Users drop their PDF first, authenticate later
 - **Instant publishing**: ~30 seconds from upload to live portfolio
-- **10 professionally designed templates**: all free for every user
+- **12 professionally designed templates**: all free for every user
 - **Full editing suite**: Inline content editing with auto-save
 - **Privacy controls**: Per-field visibility toggles (phone, address, search indexing)
 - **Custom @handle URLs**: Permanent, memorable URLs
 - **Open source**: MIT licensed, source available on GitHub
 - **AI parsing**: extracts experience, education, skills, and projects from your PDF, with an editor to review and correct anything before publishing
 
-## All 10 Templates
+## All 12 Templates
 
-All 10 templates are free for every user — no referrals, no payment, no premium locks.
+All 12 templates are free for every user — no referrals, no payment, no premium locks.
 
 1. **Minimalist Editorial** (default) — Clean magazine-style layout with serif typography. Professional and timeless.
    - Category: Professional
@@ -53,6 +53,12 @@ All 10 templates are free for every user — no referrals, no payment, no premiu
 10. **Bold Corporate** — Executive typography with bold numbered sections. Premium professional look.
     - Category: Professional
 
+11. **Case File** — A typed dossier in a manila folder, with each section filed as a lettered exhibit. Suits researchers, lawyers, and consultants.
+    - Category: Professional
+
+12. **Retro OS** — A late-90s desktop where every section opens in its own bevelled window. Playful, for game developers and creative technologists.
+    - Category: Creative
+
 ## FAQ
 
 ### What is clickfolio.me?
@@ -65,11 +71,11 @@ We use advanced language models to extract your work experience, education, skil
 
 ### Is clickfolio.me really free?
 
-Yes. All 10 templates are completely free with no time limits, no referrals, and no payment required.
+Yes. All 12 templates are completely free with no time limits, no referrals, and no payment required.
 
 ### Can I customize my portfolio after publishing?
 
-Absolutely. You get a full editing suite to update your content anytime. Changes auto-save and publish instantly. You can also switch between 10 templates, control what's visible via privacy settings, and update your @handle.
+Absolutely. You get a full editing suite to update your content anytime. Changes auto-save and publish instantly. You can also switch between 12 templates, control what's visible via privacy settings, and update your @handle.
 
 ## All Public URLs
 

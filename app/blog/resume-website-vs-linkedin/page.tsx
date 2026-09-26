@@ -98,7 +98,7 @@ export default function ResumeWebsiteVsLinkedinPage() {
             or removes a feature you relied on. What you build stays yours.
           </li>
           <li>
-            <strong>You design it.</strong> Pick from 10 templates and shape the layout. On LinkedIn
+            <strong>You design it.</strong> Pick from 12 templates and shape the layout. On LinkedIn
             your profile looks like everyone else's.
           </li>
           <li>

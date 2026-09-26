@@ -6,6 +6,7 @@ type TemplateLoader = () => Promise<React.FC<TemplateProps>>;
 const TEMPLATE_LOADERS = {
   bento: () => import("@/components/templates/BentoGrid").then((m) => m.BentoGrid),
   bold_corporate: () => import("@/components/templates/BoldCorporate").then((m) => m.BoldCorporate),
+  case_file: () => import("@/components/templates/CaseFile").then((m) => m.CaseFile),
   classic_ats: () => import("@/components/templates/ClassicATS").then((m) => m.ClassicATS),
   design_folio: () => import("@/components/templates/DesignFolio").then((m) => m.DesignFolio),
   dev_terminal: () => import("@/components/templates/DevTerminal").then((m) => m.DevTerminal),
@@ -14,6 +15,7 @@ const TEMPLATE_LOADERS = {
   minimalist_editorial: () =>
     import("@/components/templates/MinimalistEditorial").then((m) => m.MinimalistEditorial),
   neo_brutalist: () => import("@/components/templates/NeoBrutalist").then((m) => m.NeoBrutalist),
+  retro_os: () => import("@/components/templates/RetroOS").then((m) => m.RetroOS),
   spotlight: () => import("@/components/templates/Spotlight").then((m) => m.Spotlight),
 } satisfies Record<ThemeId, TemplateLoader>;
 

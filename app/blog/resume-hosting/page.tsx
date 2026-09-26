@@ -76,7 +76,7 @@ export default function ResumeHostingPage() {
             and builds the page.
           </li>
           <li>
-            <strong>Choose a template.</strong> Pick from 10 designs and adjust anything that needs
+            <strong>Choose a template.</strong> Pick from 12 designs and adjust anything that needs
             a fix.
           </li>
           <li>

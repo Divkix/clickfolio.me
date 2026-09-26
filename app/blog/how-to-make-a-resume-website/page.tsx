@@ -56,7 +56,7 @@ export default function HowToMakeAResumeWebsitePage() {
             history, education, skills, and contact details and maps them onto the page for you.
           </li>
           <li>
-            <strong>Pick a template.</strong> Choose from 10 designs — clean and minimal for
+            <strong>Pick a template.</strong> Choose from 12 designs — clean and minimal for
             corporate roles, bolder layouts for creative ones. You can switch any time without
             losing content.
           </li>

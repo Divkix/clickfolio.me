@@ -15,7 +15,7 @@ export const revalidate = 86400;
 const title = "Portfolio Website for Product Managers";
 
 const description =
-  "Showcase your product launches, roadmaps, and impact with a free portfolio website. 10 templates, AI-powered parsing from PDF, custom @handle URL.";
+  "Showcase your product launches, roadmaps, and impact with a free portfolio website. 12 templates, AI-powered parsing from PDF, custom @handle URL.";
 
 const path = "/for/product-manager";
 
@@ -32,7 +32,7 @@ const faqs = [
   },
   {
     q: "Is it free?",
-    a: "Yes. All 10 templates are free with no credit card and no trial. There is no paid tier and no premium lock. The project is open source under the MIT license, so there is nothing to buy and no upsell waiting later.",
+    a: "Yes. All 12 templates are free with no credit card and no trial. There is no paid tier and no premium lock. The project is open source under the MIT license, so there is nothing to buy and no upsell waiting later.",
   },
   {
     q: "What link do I put on my resume and LinkedIn?",
@@ -89,7 +89,7 @@ export default function ProductManagerPage() {
           <RoleSection
             heading="Your Portfolio Is a Product"
             intro="As a PM, you know presentation matters. Your product manager portfolio website is the product that sells you: fast-loading, well-structured, and built to turn recruiters and hiring managers into interview requests."
-            outro="Switch between 10 templates to find the one that fits your style. Each is mobile-responsive and tuned for rich link previews on LinkedIn, Slack, and email."
+            outro="Switch between 12 templates to find the one that fits your style. Each is mobile-responsive and tuned for rich link previews on LinkedIn, Slack, and email."
           />
 
           <RoleSection

@@ -9,6 +9,8 @@ export const SHARE_VARIANT_KEYS = [
   "classic-ats",
   "design-folio",
   "dev-terminal",
+  "case-file",
+  "retro-os",
 ] as const;
 
 export type SharePopoverVariant = (typeof SHARE_VARIANT_KEYS)[number];
@@ -26,6 +28,8 @@ export const shareContainerStyles: Record<SharePopoverVariant, string> = {
   "classic-ats": "",
   "design-folio": "",
   "dev-terminal": "",
+  "case-file": "",
+  "retro-os": "",
 };
 
 export const shareButtonStyles = {
@@ -49,6 +53,10 @@ export const shareButtonStyles = {
     "bg-white text-black border-2 border-white hover:bg-black hover:text-white hover:border-black px-3 py-1.5 font-semibold",
   "dev-terminal":
     "bg-[#2d333b] text-[#adbac7] hover:text-[#cdd9e5] hover:bg-[#373e47] border border-[#444c56] rounded-md px-3 py-1.5",
+  "case-file":
+    "bg-transparent text-[#1F1D1A] hover:text-[#B3261E] border border-[#1F1D1A]/40 hover:border-[#B3261E] rounded-sm px-3 py-1.5 text-sm",
+  "retro-os":
+    "bg-[#C0C0C0] text-black px-3 py-1 text-sm shadow-[inset_-1px_-1px_#0a0a0a,inset_1px_1px_#fff,inset_-2px_-2px_#808080,inset_2px_2px_#dfdfdf] active:shadow-[inset_1px_1px_#0a0a0a,inset_-1px_-1px_#fff]",
 } satisfies Record<SharePopoverVariant, string>;
 
 export const shareTriggerStyles = {
@@ -66,6 +74,9 @@ export const shareTriggerStyles = {
   "design-folio":
     "bg-[#1a1a1a] text-[#CCFF00] border-[#333] shadow-lg font-mono hover:border-[#CCFF00]",
   "dev-terminal": "bg-[#2d333b] text-[#cdd9e5] border-[#444c56] shadow-lg hover:bg-[#373e47]",
+  "case-file": "bg-[#FBF7EE] text-[#1F1D1A] border-[#1F1D1A]/40 rounded-sm hover:border-[#B3261E]",
+  "retro-os":
+    "bg-[#C0C0C0] text-black border-0 rounded-none shadow-[inset_-1px_-1px_#0a0a0a,inset_1px_1px_#fff,inset_-2px_-2px_#808080,inset_2px_2px_#dfdfdf]",
 } satisfies Record<SharePopoverVariant, string>;
 
 export const sharePanelStyles = {
@@ -79,6 +90,9 @@ export const sharePanelStyles = {
   "classic-ats": "bg-white text-[#16181D] border-[#B9BCC2]",
   "design-folio": "bg-white text-black border-2 border-black",
   "dev-terminal": "bg-[#2d333b] text-[#adbac7] border-[#444c56]",
+  "case-file": "bg-[#FBF7EE] text-[#1F1D1A] border-[#1F1D1A]/30 rounded-sm",
+  "retro-os":
+    "bg-[#C0C0C0] text-black border-2 border-t-white border-l-white border-r-[#0a0a0a] border-b-[#0a0a0a] rounded-none",
 } satisfies Record<SharePopoverVariant, string>;
 
 export const shareItemStyles = {
@@ -97,4 +111,8 @@ export const shareItemStyles = {
   "design-folio": "bg-white text-black hover:bg-[#2D3BFF] hover:text-white border-2 border-black",
   "dev-terminal":
     "bg-[#22272e] text-[#adbac7] hover:text-[#cdd9e5] hover:bg-[#373e47] border border-[#444c56]",
+  "case-file":
+    "bg-[#FBF7EE] text-[#1F1D1A] hover:text-[#B3261E] border border-[#1F1D1A]/25 hover:border-[#B3261E]",
+  "retro-os":
+    "bg-white text-black hover:bg-[#000080] hover:text-white border border-[#808080] rounded-none",
 } satisfies Record<SharePopoverVariant, string>;

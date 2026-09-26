@@ -15,7 +15,7 @@ export const revalidate = 86400;
 const title = "Resume Website for Marketers";
 
 const description =
-  "Create a standout marketing portfolio website from your PDF resume. Highlight campaign metrics, brands you've worked with, and results — free, with 10 templates.";
+  "Create a standout marketing portfolio website from your PDF resume. Highlight campaign metrics, brands you've worked with, and results — free, with 12 templates.";
 
 const path = "/for/marketer";
 
@@ -32,7 +32,7 @@ const faqs = [
   },
   {
     q: "Is clickfolio.me free?",
-    a: "Yes. All 10 templates are free forever with no credit card and no trial. There is no paid tier and no premium lock. The project is open source under the MIT license, so you can even see how it works.",
+    a: "Yes. All 12 templates are free forever with no credit card and no trial. There is no paid tier and no premium lock. The project is open source under the MIT license, so you can even see how it works.",
   },
   {
     q: "Will my portfolio look good when I share the link?",

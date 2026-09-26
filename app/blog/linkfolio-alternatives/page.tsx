@@ -149,7 +149,7 @@ export default function LinkfolioAlternativesPage() {
             [
               "clickfolio.me",
               "PDF resume or LinkedIn PDF export",
-              "Yes, everything free, 10 templates",
+              "Yes, everything free, 12 templates",
               "None",
               "Not yet (on the roadmap)",
             ],
@@ -223,7 +223,7 @@ export default function LinkfolioAlternativesPage() {
         <h3>clickfolio.me: free resume-to-website in about 30 seconds</h3>
         <p>
           Upload a PDF resume and our AI reads your experience, education, and skills, then builds
-          an editable site on one of 10 templates. If your resume is out of date, export your
+          an editable site on one of 12 templates. If your resume is out of date, export your
           LinkedIn profile with "Save to PDF" and upload that instead; our{" "}
           <Link href="/blog/linkedin-to-portfolio">LinkedIn to portfolio guide</Link> walks through
           it. Every feature is free, including field-level privacy toggles (hide your phone number
@@ -319,7 +319,7 @@ export default function LinkfolioAlternativesPage() {
           </li>
           <li>
             <strong>Check, pick a template, publish.</strong> Fix anything the parser missed, choose
-            one of the 10 templates, set which fields are private, and publish.
+            one of the 12 templates, set which fields are private, and publish.
           </li>
           <li>
             <strong>Update your links.</strong> Replace your old Linkfolio URL on LinkedIn, in your

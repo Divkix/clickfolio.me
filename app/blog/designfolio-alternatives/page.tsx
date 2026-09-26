@@ -263,7 +263,7 @@ export default function DesignfolioAlternativesPage() {
         <p>
           clickfolio.me takes a different route from everything above. Upload your resume PDF, or
           your LinkedIn "Save to PDF" export, and the AI parses it into a live site at
-          clickfolio.me/@yourname in about 30 seconds. You can edit everything afterwards. All 10
+          clickfolio.me/@yourname in about 30 seconds. You can edit everything afterwards. All 12
           templates are free, view analytics are built in, and privacy toggles let you hide fields
           like your phone number. There's no paid tier, and the code is open source under the MIT
           license.

@@ -134,10 +134,10 @@ export default function BestResumeWebsiteBuildersPage() {
         <p>
           If you already have a PDF resume, clickfolio.me is the fastest way to get a hosted site
           out of it. You upload the PDF, the AI reads it into structured sections, and about thirty
-          seconds later you have a live page at clickfolio.me/@yourhandle. There are ten templates
-          (all 10 free, no referrals or payment required), field-level privacy toggles so you can
-          hide a phone number or address, and built-in analytics. Hosting runs on Cloudflare, and
-          the project is open source under the MIT license.
+          seconds later you have a live page at clickfolio.me/@yourhandle. There are twelve
+          templates (all 12 free, no referrals or payment required), field-level privacy toggles so
+          you can hide a phone number or address, and built-in analytics. Hosting runs on
+          Cloudflare, and the project is open source under the MIT license.
         </p>
         <p>
           The honest weakness: there is no custom-domain support yet, so every site lives on a

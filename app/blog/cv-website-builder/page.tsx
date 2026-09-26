@@ -117,7 +117,7 @@ export default function CvWebsiteBuilderPage() {
             },
             {
               lead: "Choose a template and edit.",
-              body: " Pick from 10 designs and fix anything the parser missed.",
+              body: " Pick from 12 designs and fix anything the parser missed.",
             },
             {
               lead: "Publish and share.",

@@ -3,6 +3,7 @@ import { render } from "@testing-library/react";
 import { describe, expect, test } from "vite-plus/test";
 import { BentoGrid } from "@/components/templates/BentoGrid";
 import { BoldCorporate } from "@/components/templates/BoldCorporate";
+import { CaseFile } from "@/components/templates/CaseFile";
 import { ClassicATS } from "@/components/templates/ClassicATS";
 import { DesignFolio } from "@/components/templates/DesignFolio";
 import { DevTerminal } from "@/components/templates/DevTerminal";
@@ -10,6 +11,7 @@ import { GlassMorphic } from "@/components/templates/GlassMorphic";
 import { Midnight } from "@/components/templates/Midnight";
 import { MinimalistEditorial } from "@/components/templates/MinimalistEditorial";
 import { NeoBrutalist } from "@/components/templates/NeoBrutalist";
+import { RetroOS } from "@/components/templates/RetroOS";
 import { Spotlight } from "@/components/templates/Spotlight";
 import type { ResumeContent } from "@/lib/types/database";
 import type { TemplateProps } from "@/lib/types/template";
@@ -25,6 +27,8 @@ const ALL_TEMPLATES: { name: string; Component: React.ComponentType<TemplateProp
   { name: "Spotlight", Component: Spotlight },
   { name: "Midnight", Component: Midnight },
   { name: "BoldCorporate", Component: BoldCorporate },
+  { name: "CaseFile", Component: CaseFile },
+  { name: "RetroOS", Component: RetroOS },
 ];
 
 const defaultProfile: TemplateProps["profile"] = {

@@ -2,6 +2,7 @@ import { render } from "@testing-library/react";
 import { describe, expect, test } from "vite-plus/test";
 import { BentoGrid } from "@/components/templates/BentoGrid";
 import { BoldCorporate } from "@/components/templates/BoldCorporate";
+import { CaseFile } from "@/components/templates/CaseFile";
 import { ClassicATS } from "@/components/templates/ClassicATS";
 import { DesignFolio } from "@/components/templates/DesignFolio";
 import { DevTerminal } from "@/components/templates/DevTerminal";
@@ -9,6 +10,7 @@ import { GlassMorphic } from "@/components/templates/GlassMorphic";
 import { Midnight } from "@/components/templates/Midnight";
 import { MinimalistEditorial } from "@/components/templates/MinimalistEditorial";
 import { NeoBrutalist } from "@/components/templates/NeoBrutalist";
+import { RetroOS } from "@/components/templates/RetroOS";
 import { Spotlight } from "@/components/templates/Spotlight";
 import type { ResumeContent } from "@/lib/types/database";
 import type { TemplateProps } from "@/lib/types/template";
@@ -257,6 +259,64 @@ describe("Template Component Tests", () => {
 
     test("handles missing sections gracefully", () => {
       const { container } = testTemplate("BoldCorporate", BoldCorporate, minimalResumeContent);
+      expect(container.textContent).toContain(minimalResumeContent.full_name);
+    });
+  });
+
+  describe("CaseFile Template", () => {
+    test("renders without error with mock resume data", () => {
+      const { container } = testTemplate("CaseFile", CaseFile, fullResumeContent);
+      expect(container.querySelector(".font-body-cf")).toBeInTheDocument();
+      expect(container.textContent).toContain("John Alexander Doe");
+    });
+
+    test("letters exhibits only for sections that exist", () => {
+      const { container } = testTemplate("CaseFile", CaseFile, fullResumeContent);
+
+      const labels = [...container.querySelectorAll("section[id] header span")].map(
+        (node) => node.textContent,
+      );
+
+      expect(labels).toEqual(["Exhibit A", "Exhibit B", "Exhibit C", "Exhibit D", "Exhibit E"]);
+
+      const { container: sparse } = testTemplate("CaseFile", CaseFile, {
+        ...minimalResumeContent,
+        skills: [{ category: "Languages", items: ["TypeScript"] }],
+      });
+
+      expect(sparse.querySelector("#skills")?.textContent).toContain("Exhibit A");
+    });
+
+    test("handles missing sections gracefully", () => {
+      const { container } = testTemplate("CaseFile", CaseFile, minimalResumeContent);
+      expect(container.textContent).toContain(minimalResumeContent.full_name);
+      expect(container.querySelector("#experience")).toBeNull();
+    });
+  });
+
+  describe("RetroOS Template", () => {
+    test("renders without error with mock resume data", () => {
+      const { container } = testTemplate("RetroOS", RetroOS, fullResumeContent);
+      expect(container.querySelector(".ros-desktop")).toBeInTheDocument();
+      expect(container.textContent).toContain("John Alexander Doe");
+    });
+
+    test("desktop icons only link to windows that render", () => {
+      const { container } = testTemplate("RetroOS", RetroOS, minimalResumeContent);
+
+      const targets = [...container.querySelectorAll("nav[aria-label='Desktop'] a")].map((a) =>
+        a.getAttribute("href"),
+      );
+
+      expect(targets).toEqual(["#about"]);
+
+      for (const href of targets) {
+        expect(container.querySelector(href ?? "")).toBeInTheDocument();
+      }
+    });
+
+    test("handles missing sections gracefully", () => {
+      const { container } = testTemplate("RetroOS", RetroOS, minimalResumeContent);
       expect(container.textContent).toContain(minimalResumeContent.full_name);
     });
   });

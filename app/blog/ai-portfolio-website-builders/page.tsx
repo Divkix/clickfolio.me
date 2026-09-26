@@ -48,7 +48,7 @@ export default function AiPortfolioWebsiteBuildersPage() {
             [
               "clickfolio.me",
               "PDF resume or LinkedIn PDF export",
-              "Yes, everything (10 templates)",
+              "Yes, everything (12 templates)",
               "Not yet",
               "Free, open source (MIT)",
             ],
@@ -131,7 +131,7 @@ export default function AiPortfolioWebsiteBuildersPage() {
         <p>
           You upload a PDF resume, or the PDF LinkedIn gives you from &quot;Save to PDF&quot;, and
           the AI reads it into sections. About thirty seconds later there is a live site at
-          clickfolio.me/@yourhandle. Every field stays editable, all 10 templates are free, you can
+          clickfolio.me/@yourhandle. Every field stays editable, all 12 templates are free, you can
           hide your phone number or address with privacy toggles, and view analytics are built in.
           The code is MIT-licensed on GitHub, so you could self-host it if we ever disappeared. The
           gaps: no custom domain, no password protection, and no long-form case-study editor. Our{" "}

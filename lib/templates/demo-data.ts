@@ -113,6 +113,26 @@ export const DEMO_PROFILES: DemoProfile[] = [
     badgeBgColor: "bg-stone-50",
     badgeTextColor: "text-stone-600",
   },
+  {
+    id: "case_file",
+    name: "Amara Okafor",
+    role: "Environmental Scientist",
+    initials: "AO",
+    avatarGradient: "from-amber-300 to-yellow-700",
+    badgeLabel: "Case File",
+    badgeBgColor: "bg-amber-50",
+    badgeTextColor: "text-amber-800",
+  },
+  {
+    id: "retro_os",
+    name: "Milo Hartmann",
+    role: "Indie Game Developer",
+    initials: "MH",
+    avatarGradient: "from-teal-500 to-blue-800",
+    badgeLabel: "Retro OS",
+    badgeBgColor: "bg-teal-50",
+    badgeTextColor: "text-teal-700",
+  },
 ];
 
 export const DEMO_RESUME_CONTENT = {
@@ -1024,11 +1044,182 @@ export const DEMO_RESUME_CONTENT = {
       },
     ],
   },
+
+  case_file: {
+    full_name: "Amara Okafor",
+    headline: "Environmental Scientist — Water Quality & Climate Adaptation",
+    summary:
+      "Field scientist with nine years of watershed monitoring, contaminant modelling and policy advisory work across West Africa and the US Gulf Coast. I turn sampling data into evidence that regulators and city planners can act on.",
+    contact: {
+      email: "amara.okafor@example.com",
+      location: "New Orleans, LA",
+      linkedin: "https://linkedin.com/in/amaraokafor",
+      website: "https://amaraokafor.science",
+    },
+    experience: [
+      {
+        title: "Senior Research Scientist",
+        company: "Gulf Coast Water Institute",
+        location: "New Orleans, LA",
+        start_date: "2021-08",
+        end_date: undefined,
+        description:
+          "Leads a six-person team studying saltwater intrusion into municipal drinking water supplies.",
+        highlights: [
+          "Designed a 42-site sensor network that now feeds the parish's public water dashboard",
+          "Lead author on three peer-reviewed papers cited in the 2024 Louisiana Coastal Master Plan",
+          "Secured $2.4M in federal and foundation grants",
+        ],
+      },
+      {
+        title: "Environmental Consultant",
+        company: "Tetra Basin Advisory",
+        location: "Houston, TX",
+        start_date: "2018-01",
+        end_date: "2021-07",
+        description:
+          "Ran contamination assessments for industrial sites under state and EPA oversight.",
+        highlights: [
+          "Delivered 30+ site assessments with zero findings overturned on regulatory review",
+          "Built the firm's groundwater modelling practice from one analyst to five",
+        ],
+      },
+      {
+        title: "Research Fellow",
+        company: "University of Lagos",
+        location: "Lagos, Nigeria",
+        start_date: "2016-09",
+        end_date: "2017-12",
+        description: "Mapped heavy-metal contamination along the Lagos Lagoon shoreline.",
+      },
+    ],
+    education: [
+      {
+        degree: "PhD in Environmental Engineering",
+        institution: "Rice University",
+        location: "Houston, TX",
+        graduation_date: "2016-05",
+      },
+      {
+        degree: "BSc in Chemistry",
+        institution: "University of Ibadan",
+        location: "Ibadan, Nigeria",
+        graduation_date: "2011-07",
+      },
+    ],
+    skills: [
+      { category: "Field methods", items: ["Water sampling", "Sensor networks", "GIS survey"] },
+      { category: "Analysis", items: ["R", "Python", "MODFLOW", "ArcGIS Pro"] },
+      { category: "Policy", items: ["Regulatory review", "Grant writing", "Public testimony"] },
+    ],
+    certifications: [
+      {
+        name: "Professional Hydrologist",
+        issuer: "American Institute of Hydrology",
+        date: "2019-03",
+      },
+    ],
+    projects: [
+      {
+        title: "Saltline Atlas",
+        description:
+          "Open dataset and map of saltwater intrusion readings across 12 coastal parishes, updated hourly",
+        year: "2024",
+        technologies: ["Sensor telemetry", "R", "Mapbox"],
+        url: "https://github.com/amaraokafor/saltline-atlas",
+      },
+      {
+        title: "Lagoon Metals Survey",
+        description:
+          "Two-season sediment study whose findings led to a dredging moratorium in three districts",
+        year: "2017",
+        technologies: ["ICP-MS", "Spatial statistics"],
+      },
+    ],
+  },
+
+  retro_os: {
+    full_name: "Milo Hartmann",
+    headline: "Indie Game Developer & Creative Technologist",
+    summary:
+      "I make small, strange games and the tools behind them. Seven years shipping on Steam, Switch and the web, from pixel-art roguelikes to a rhythm game played with a MIDI keyboard.",
+    contact: {
+      email: "milo@example.com",
+      location: "Berlin, Germany",
+      github: "https://github.com/milohartmann",
+      website: "https://milohartmann.games",
+    },
+    experience: [
+      {
+        title: "Founder & Lead Developer",
+        company: "Floppy Moon Studio",
+        location: "Berlin, Germany",
+        start_date: "2021-02",
+        end_date: undefined,
+        description: "Two-person studio making story-driven pixel-art games.",
+        highlights: [
+          "Shipped Night Shift Arcade to 180k players with a 94% positive Steam rating",
+          "Ported the engine to Nintendo Switch in eight weeks",
+          "Grew the studio Discord to 12k members",
+        ],
+      },
+      {
+        title: "Gameplay Programmer",
+        company: "Kraken Interactive",
+        location: "Hamburg, Germany",
+        start_date: "2018-05",
+        end_date: "2021-01",
+        description: "Combat and AI programming for a mid-size action RPG.",
+        highlights: [
+          "Rewrote enemy pathfinding and cut frame spikes by 60%",
+          "Built the level-scripting tools used by a team of 15 designers",
+        ],
+      },
+    ],
+    education: [
+      {
+        degree: "BSc in Media Informatics",
+        institution: "HTW Berlin",
+        location: "Berlin, Germany",
+        graduation_date: "2018-03",
+      },
+    ],
+    skills: [
+      { category: "Engines", items: ["Godot", "Unity", "Custom C++"] },
+      { category: "Languages", items: ["C#", "C++", "GDScript", "TypeScript"] },
+      { category: "Craft", items: ["Pixel art", "Shader programming", "Chiptune audio"] },
+    ],
+    certifications: [],
+    projects: [
+      {
+        title: "Night Shift Arcade",
+        description: "Narrative roguelike set in a haunted 1998 video arcade",
+        year: "2023",
+        technologies: ["Godot", "GDScript", "Aseprite"],
+        url: "https://milohartmann.games/night-shift-arcade",
+      },
+      {
+        title: "Keytar Hero",
+        description: "Rhythm game played on any MIDI keyboard, built in 48 hours for Ludum Dare",
+        year: "2022",
+        technologies: ["Web MIDI", "TypeScript"],
+        url: "https://github.com/milohartmann/keytar-hero",
+      },
+      {
+        title: "Dither Kit",
+        description: "Open-source shader pack for retro dithering effects in Godot",
+        year: "2021",
+        technologies: ["GLSL", "Godot"],
+        url: "https://github.com/milohartmann/dither-kit",
+      },
+    ],
+  },
 } as const satisfies Record<ThemeId, ResumeContent>;
 
 export const TEMPLATE_BACKGROUNDS = {
   bento: { bg: "bg-[#E4E7E1]", isDark: false },
   bold_corporate: { bg: "bg-white", isDark: false },
+  case_file: { bg: "bg-[#2F2A26]", isDark: true },
   classic_ats: { bg: "bg-[#D9DBDE]", isDark: false },
   design_folio: { bg: "bg-[#EDEEF0]", isDark: false },
   dev_terminal: { bg: "bg-[#22272e]", isDark: true },
@@ -1036,5 +1227,6 @@ export const TEMPLATE_BACKGROUNDS = {
   midnight: { bg: "bg-[#0B1026]", isDark: true },
   minimalist_editorial: { bg: "bg-white", isDark: false },
   neo_brutalist: { bg: "bg-[#FFD400]", isDark: false },
+  retro_os: { bg: "bg-[#008080]", isDark: true },
   spotlight: { bg: "bg-[#E9E7F2]", isDark: false },
 } as const satisfies Record<ThemeId, { bg: string; isDark: boolean }>;

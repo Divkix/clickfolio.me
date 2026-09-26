@@ -3,6 +3,7 @@ import type { SharePopoverVariant } from "@/lib/templates/share-variants";
 export const THEME_IDS = [
   "bento",
   "bold_corporate",
+  "case_file",
   "classic_ats",
   "design_folio",
   "dev_terminal",
@@ -10,6 +11,7 @@ export const THEME_IDS = [
   "midnight",
   "minimalist_editorial",
   "neo_brutalist",
+  "retro_os",
   "spotlight",
 ] as const;
 
@@ -34,6 +36,13 @@ export const THEME_METADATA = {
     description: "Annual-report layout with a navy sidebar and condensed headings",
     category: "Professional",
     preview: "/previews/bold-corporate.webp",
+  },
+  case_file: {
+    name: "Case File",
+    description:
+      "A typed dossier in a manila folder, with each section filed as a lettered exhibit",
+    category: "Professional",
+    preview: "/previews/case-file.webp",
   },
   classic_ats: {
     name: "Classic ATS",
@@ -78,6 +87,12 @@ export const THEME_METADATA = {
     category: "Creative",
     preview: "/previews/brutalist.webp",
   },
+  retro_os: {
+    name: "Retro OS",
+    description: "A late-90s desktop where every section opens in its own bevelled window",
+    category: "Creative",
+    preview: "/previews/retro-os.webp",
+  },
   spotlight: {
     name: "Spotlight",
     description: "Your name under a single pool of stage light, with work set out like a playbill.",
@@ -105,4 +120,6 @@ export const themeToShareVariant = {
   classic_ats: "classic-ats",
   design_folio: "design-folio",
   dev_terminal: "dev-terminal",
+  case_file: "case-file",
+  retro_os: "retro-os",
 } as const satisfies Record<ThemeId, SharePopoverVariant>;

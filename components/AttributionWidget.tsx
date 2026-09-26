@@ -73,6 +73,19 @@ export function AttributionWidget({ theme }: AttributionWidgetProps) {
       shimmer: "from-transparent via-[#22385C]/10 to-transparent",
       shadow: "shadow-sm hover:shadow-md",
     },
+    case_file: {
+      container: "bg-[#FBF7EE]/95 border border-[#1F1D1A]/25 text-[#6A6358] hover:text-[#1F1D1A]",
+      accent: "text-[#B3261E]",
+      shimmer: "from-transparent via-[#D9BF83]/40 to-transparent",
+      shadow: "shadow-md hover:shadow-lg",
+    },
+    retro_os: {
+      container:
+        "bg-[#C0C0C0] text-black border-2 border-t-white border-l-white border-r-[#0a0a0a] border-b-[#0a0a0a]",
+      accent: "text-[#000080]",
+      shimmer: "from-transparent via-white/40 to-transparent",
+      shadow: "shadow-none",
+    },
   } as const satisfies Record<
     ThemeId,
     { container: string; accent: string; shimmer: string; shadow: string }

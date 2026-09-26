@@ -27,6 +27,9 @@ const ctaVariants = cva(
         dev_terminal: "bg-[#2d333b] text-[#adbac7] border border-[#444c56]",
         classic_ats: "bg-white text-[#1F2328] border border-[#B9BCC2]",
         design_folio: "bg-[#2D3BFF] text-white border border-[#2D3BFF]",
+        case_file: "bg-[#2F2A26] text-[#FBF7EE] border border-[#D9BF83]/40",
+        retro_os:
+          "bg-[#C0C0C0] text-black rounded-none shadow-[inset_-1px_-1px_#0a0a0a,inset_1px_1px_#fff,inset_-2px_-2px_#808080,inset_2px_2px_#dfdfdf]",
       },
     },
     defaultVariants: {
@@ -50,6 +53,8 @@ const buttonVariants = cva(
         dev_terminal: "bg-[#347d39] text-white hover:bg-[#46954a]",
         classic_ats: "bg-[#22385C] text-white hover:bg-[#2D4874]",
         design_folio: "bg-white text-black hover:bg-[#EDEEF0]",
+        case_file: "bg-[#D9BF83] text-[#2F2A26] hover:bg-[#E4CD97]",
+        retro_os: "bg-[#000080] text-white rounded-none hover:bg-[#1084D0]",
       },
     },
     defaultVariants: {
@@ -71,6 +76,8 @@ const closeButtonVariants = cva("p-1 rounded-full transition-colors", {
       dev_terminal: "hover:bg-[#444c56] text-[#768390]",
       classic_ats: "hover:bg-gray-100 text-gray-500",
       design_folio: "hover:bg-white/10 text-white/70",
+      case_file: "hover:bg-white/10 text-[#FBF7EE]/70",
+      retro_os: "hover:bg-black/10 text-black rounded-none",
     },
   },
   defaultVariants: {

@@ -159,7 +159,7 @@ export default function PdfResumeToWebsitePage() {
             },
             {
               lead: "clickfolio.me",
-              body: " — Upload a PDF, get a website in 30 seconds. 10 templates (6 free, 4 premium), full editing, privacy controls, analytics, and real web hosting on Cloudflare's global network. Free forever with no paywalls on core features.",
+              body: " — Upload a PDF, get a website in 30 seconds. 12 templates (all free), full editing, privacy controls, analytics, and real web hosting on Cloudflare's global network. Free forever with no paywalls on core features.",
             },
           ]}
         />

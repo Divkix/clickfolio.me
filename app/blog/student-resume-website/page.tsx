@@ -122,7 +122,7 @@ export default function StudentResumeWebsitePage() {
             The AI reads your PDF and builds a structured site automatically.
           </li>
           <li>
-            <strong>Pick a template.</strong> Choose from 10 designs to match the field you're
+            <strong>Pick a template.</strong> Choose from 12 designs to match the field you're
             applying into. These{" "}
             <Link href="/blog/resume-website-examples">resume website examples</Link> show what each
             style looks like.
