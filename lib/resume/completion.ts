@@ -1,7 +1,8 @@
 import { and, eq, inArray, ne } from "drizzle-orm";
 import { buildSiteDataUpsert } from "@/lib/data/site-data-upsert";
 import type { Database } from "@/lib/db";
-import { resumes, siteData, user, type NewResume, type UserRole } from "@/lib/db/schema";
+import type { UserRole } from "@/lib/config/roles";
+import { resumes, siteData, user, type NewResume } from "@/lib/db/schema";
 import { notifyStatusChangeBatch } from "@/lib/parse/notify-status";
 import type { ResumeContent } from "@/lib/types/database";
 import { log } from "@/lib/utils/log";

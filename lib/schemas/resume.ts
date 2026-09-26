@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { USER_ROLES } from "@/lib/config/roles";
 import {
   noXssPattern,
   sanitizeEmail,
@@ -363,7 +364,7 @@ const createResumeContentSchema = (contactSchema: ReturnType<typeof createContac
       .optional()
       .describe("Personal projects, side work, portfolio pieces. Return empty array [] if absent."),
     professional_level: z
-      .enum(["student", "entry_level", "mid_level", "senior", "executive"])
+      .enum(USER_ROLES)
       .optional()
       .describe(
         "Classify career level from experience/titles/education. " +

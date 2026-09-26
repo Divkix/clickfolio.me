@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { UserRole } from "@/lib/config/roles";
 import { type ResumeContentFormData, resumeContentSchema } from "@/lib/schemas/resume";
 import type { JsonValue, UnknownRecord } from "@/lib/types/json";
 import { log } from "@/lib/utils/log";
@@ -13,7 +14,7 @@ export interface ParseResumeResult {
   success: boolean;
   parsedContent: string;
   error?: string;
-  professionalLevel?: string;
+  professionalLevel?: UserRole;
 }
 
 function normalizeResumeText(text: string): string {
@@ -51,7 +52,7 @@ function validateParseResult(data: JsonValue): ValidateParseResult {
   return { success: false, errors };
 }
 
-function extractProfessionalLevel(data: ResumeContentFormData): string | undefined {
+function extractProfessionalLevel(data: ResumeContentFormData): UserRole | undefined {
   const level = data.professional_level;
 
   delete data.professional_level;

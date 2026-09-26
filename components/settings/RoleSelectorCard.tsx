@@ -3,7 +3,7 @@
 import { Loader2, Sparkles, UserCheck } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { ROLE_OPTIONS } from "@/lib/schemas/profile";
+import { ROLE_OPTIONS } from "@/lib/config/roles";
 
 interface RoleSelectorCardProps {
   currentRole: string | null;

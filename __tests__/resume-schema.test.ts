@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
+import { USER_ROLES } from "@/lib/config/roles";
 import { resumeContentSchema, resumeContentSchemaStrict } from "@/lib/schemas/resume";
 
 const validMinimalResume = {
@@ -353,9 +354,7 @@ describe("resumeContentSchemaStrict", () => {
 
 describe("professional_level", () => {
   it("accepts all professional_level values", async () => {
-    const levels = ["student", "entry_level", "mid_level", "senior", "executive"] as const;
-
-    for (const level of levels) {
+    for (const level of USER_ROLES) {
       const result = await resumeContentSchema.safeParseAsync({
         ...validMinimalResume,
         professional_level: level,

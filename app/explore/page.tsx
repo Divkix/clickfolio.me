@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { siteConfig } from "@/lib/config/site";
 import { getDb } from "@/lib/db";
 import { siteData, user } from "@/lib/db/schema";
-import { ROLE_OPTIONS } from "@/lib/schemas/profile";
+import { isUserRole, ROLE_OPTIONS } from "@/lib/config/roles";
 import { generateExploreJsonLd, serializeJsonLd } from "@/lib/seo/json-ld";
 import { buildPublicPageMetadata } from "@/lib/seo/page-metadata";
 import { normalizePreviewSkills } from "@/lib/utils/preview-skills";
@@ -44,7 +44,7 @@ export default async function ExplorePage({
 }) {
   const params = await searchParams;
   const currentPage = safePageParam(params.page);
-  const roleFilter = params.role || "";
+  const roleFilter = isUserRole(params.role) ? params.role : "";
 
   const db = getDb(env.HYPERDRIVE);
 
@@ -55,8 +55,7 @@ export default async function ExplorePage({
   ];
 
   if (roleFilter) {
-    // SAFETY: searchParams are validated via Zod schema before use; roleFilter is from allowed ROLE_OPTIONS.
-    whereConditions.push(eq(user.role, roleFilter as (typeof user.role.enumValues)[number]));
+    whereConditions.push(eq(user.role, roleFilter));
   }
 
   // One repeatable-read snapshot: the total count and the page rows are issued together so they

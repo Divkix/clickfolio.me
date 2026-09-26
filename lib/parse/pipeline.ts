@@ -1,5 +1,5 @@
 import { and, eq, inArray, isNotNull, ne, sql } from "drizzle-orm";
-import type { UserRole } from "../db/schema";
+import type { UserRole } from "../config/roles";
 import { resumes } from "../db/schema";
 import { getDb } from "../db";
 import { getR2Binding, R2 } from "../r2";
@@ -202,8 +202,7 @@ export async function parseResumePdf(
 
     return {
       parsedContent,
-      // SAFETY: AI returns professionalLevel as validated string from resumeContentSchema; UserRole cast narrows to enum with null fallback if missing.
-      professionalLevel: (parseResult.professionalLevel as UserRole | undefined) ?? null,
+      professionalLevel: parseResult.professionalLevel ?? null,
     };
   } catch (error) {
     // SAFETY: catch error is unknown; ParseErrorInput covers Error|string|object for classification.
