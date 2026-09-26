@@ -8,28 +8,27 @@ import { ROLE_OPTIONS } from "@/lib/config/roles";
 interface RoleSelectorCardProps {
   currentRole: string | null;
   roleSource: string | null;
+  isFreelance: boolean;
 }
 
-export function RoleSelectorCard({ currentRole, roleSource }: RoleSelectorCardProps) {
+export function RoleSelectorCard({
+  currentRole,
+  roleSource,
+  isFreelance: initialFreelance,
+}: RoleSelectorCardProps) {
   const [role, setRole] = useState(currentRole || "");
   const [source, setSource] = useState(roleSource);
+  const [isFreelance, setIsFreelance] = useState(initialFreelance);
   const [isSaving, setIsSaving] = useState(false);
 
-  const handleChange = async (newRole: string) => {
-    if (!newRole || newRole === role) return;
-
-    const previousRole = role;
-    const previousSource = source;
-
-    setRole(newRole);
-    setSource("user");
+  const save = async (body: { role: string } | { isFreelance: boolean }, revert: () => void) => {
     setIsSaving(true);
 
     try {
       const response = await fetch("/api/profile/role", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role: newRole }),
+        body: JSON.stringify(body),
       });
 
       if (!response.ok) {
@@ -38,12 +37,30 @@ export function RoleSelectorCard({ currentRole, roleSource }: RoleSelectorCardPr
 
       toast.success("Professional level updated");
     } catch {
-      setRole(previousRole);
-      setSource(previousSource);
+      revert();
       toast.error("Failed to update professional level");
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleChange = (newRole: string) => {
+    if (!newRole || newRole === role) return;
+
+    const previousRole = role;
+    const previousSource = source;
+
+    setRole(newRole);
+    setSource("user");
+    void save({ role: newRole }, () => {
+      setRole(previousRole);
+      setSource(previousSource);
+    });
+  };
+
+  const handleFreelanceChange = (checked: boolean) => {
+    setIsFreelance(checked);
+    void save({ isFreelance: checked }, () => setIsFreelance(!checked));
   };
 
   return (
@@ -77,6 +94,17 @@ export function RoleSelectorCard({ currentRole, roleSource }: RoleSelectorCardPr
           </option>
         ))}
       </select>
+
+      <label className="mt-3 flex items-center gap-2 text-sm text-foreground">
+        <input
+          type="checkbox"
+          checked={isFreelance}
+          onChange={(e) => handleFreelanceChange(e.target.checked)}
+          disabled={isSaving}
+          className="h-4 w-4 accent-brand"
+        />
+        I work freelance, contract, or self-employed
+      </label>
 
       {source && (
         <p className="mt-2 text-xs text-muted-foreground flex items-center gap-1">

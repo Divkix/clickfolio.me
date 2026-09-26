@@ -209,7 +209,7 @@ Local `.dev.vars` auto-loaded by Vite; `.env.example` **6.3KB** (154 lines) is t
 - `site_data.resumeId→resumes.id cascade` + `site_data.userId→user.id unique cascade` → **deleting a `resumes` row CASCADE-deletes the user's `site_data` portfolio**.
 - `resumes.userId`, `handle_changes.userId` cascade.
 
-**`user`:** `handle` unique, `email` unique, `clerkId` unique, `isAdmin bool default false`, `role` text enum from `ROLE_LABELS` in `lib/config/roles.ts` (sole source: drizzle enum, Zod, AI schema, `ROLE_OPTIONS`, `isUserRole`; text column so adding a level needs no migration) (`roleSource ai|user`), `privacySettings jsonb default {"show_phone":false,"show_address":false,"hide_from_search":false,"show_in_directory":true}` must equal `DEFAULT_PRIVACY_SETTINGS_JSON` (`lib/utils/privacy.ts` — literal to avoid circular import). Denormalized `showInDirectory bool default true` + `user_show_in_directory_idx` — must stay synced with `privacySettings.show_in_directory` (dual-write in wizard/privacy routes).
+**`user`:** `handle` unique, `email` unique, `clerkId` unique, `isAdmin bool default false`, `role` text enum from `ROLES` in `lib/config/roles.ts` (6 levels `student|entry_level|mid_level|senior|manager|executive`, each with label + Jev `criteria`; sole source for drizzle enum, Zod, `ROLE_OPTIONS`, `isUserRole`; text column so adding a level needs no migration) (`roleSource ai|user`), `isFreelance bool default false` (separate from level; settings toggle, `/explore?role=freelance`), `privacySettings jsonb default {"show_phone":false,"show_address":false,"hide_from_search":false,"show_in_directory":true}` must equal `DEFAULT_PRIVACY_SETTINGS_JSON` (`lib/utils/privacy.ts` — literal to avoid circular import). Denormalized `showInDirectory bool default true` + `user_show_in_directory_idx` — must stay synced with `privacySettings.show_in_directory` (dual-write in wizard/privacy routes).
 
 **`resumes` status enum (6):** `pending_claim → queued → processing → completed | failed | waiting_for_cache` (default `pending_claim`). `parsedContent` (final jsonb) vs `parsedContentStaged` (raw AI, cleared on success); `errorMessage` vs `lastAttemptError` (`classifyParseError().toJSON()`); `retryCount` (manual retries) vs `totalAttempts` (monotonic parse attempts, SQL-incremented); `fileHash` SHA-256 dedup.
 
@@ -233,7 +233,7 @@ Local `.dev.vars` auto-loaded by Vite; `.env.example` **6.3KB** (154 lines) is t
 
 - **Webhook** `POST /api/webhooks/clerk` (Svix `CLERK_WEBHOOK_SECRET`): resolves user by `clerkId` then `externalId`; **no email fallback**. App-owned columns never written from webhook.
 - **Wrappers** `withUser`/`withAdmin` (`lib/auth/with-auth.ts`) use inner-callback form (ADR-0002); a thrown error → generic 500 + `captureServerException` (caught errors never reach `onRequestError`). **Admin** `requireAdminAuth()` re-reads `isAdmin` from DB every request (ADR-0006, immediate revoke).
-- **Role vs admin:** `role` (career level 5 values) ≠ `isAdmin` boolean — never gate on `role`; AI overwrites `role` on re-parse.
+- **Role vs admin:** `role` (career level, 6 values) ≠ `isAdmin` boolean — never gate on `role`; AI overwrites `role` + `isFreelance` on every fresh parse (not cache hits).
 - **Client:** `lib/auth/client.tsx` adapter `user.id = externalId ?? clerkId`; `<SignInButton mode="modal">` etc.
 
 ## API Contracts
@@ -293,6 +293,8 @@ Shared infra: `rewrites /sitemap.xml→/api/sitemap-index`, `redirects /:handle�
 **AI seam:** `lib/ai/` lazy-imports; `unpdf` extract (50 pages / 5 MB / 60k truncation) → AI SDK (OpenRouter via `CF_AI_GATEWAY_*`) → `normalizeResumeContent` with Zod; provider routed via gateway; notifications best-effort.
 
 **LinkedIn "Save to PDF" imports** (`lib/ai/linkedin.ts`): `extractPdfText` returns `source: "linkedin"|"generic"` via `detectResumeSource` (PDF metadata `Author:"LinkedIn"` + `Subject:"…generated from profile"`, else text: `linkedin.com/in/… (LinkedIn)` + `Page N of M`). LinkedIn text goes through `cleanLinkedInText` (strips page footers, turns `url (Label)` into `Label: url`) and `parseWithAi(…, source)` appends `LINKEDIN_PROMPT_RULES` (grouped roles, no issuer, top skills). Upload UI: `components/LinkedInExportHelp.tsx` dialog under the dropzone. Schema: experience `description` and certification `issuer` may be empty (LinkedIn omits them; never AI-invented), templates hide empty values; `transformAiResponse` keeps the 10 most recent roles.
+
+**Career classification** (`lib/ai/career.ts` `classifyCareer`): after a successful parse, `parseResumePdf` asks Jev (`~typesafe/jev-latest`, TypeSafe System One model) via the same AI Gateway at `/openrouter/systemone` (OpenRouter BYOK, no extra secret) three typed questions: `is_resume` noul, `level` choice over `ROLES` criteria, `freelance` noul. Returns `{role,isFreelance}` or `null` (not a resume, no experience+education, gateway missing, any error) — `null` leaves the user row untouched; never fails the parse. The parse LLM no longer emits `professional_level`.
 
 **Failure handling:** `parseResumePdf` writes `lastAttemptError=classifyParseError().toJSON()` + SQL-increments `totalAttempts`; `markResumeParseFailed` sets `failed` (COALESCE keeps a friendlier `errorMessage`), DO notify, `sendAlert` (`PARSE_FAILURE_ALERT` via `log`, or webhook). No DLQ — failed instances are inspectable in the Workflows dashboard.
 
@@ -365,7 +367,7 @@ Each decision + why is an ADR under `docs/adr/`. `_5 superseded (D1/Better Auth/
 - **Webhook no email fallback:** resolves `clerkId` → `externalId` only; app-owned cols never written from webhook.
 - **`getEnvValue()` throws** if required var missing (e.g. `PENDING_UPLOAD_SECRET`) — check `.dev.vars` / `wrangler secret put`.
 - **`showInDirectory` ≠ `hide_from_search`:** `/explore` filters `user.showInDirectory`; sitemap filters `privacySettings->>'hide_from_search'`; dual-write required.
-- **`role` ≠ `isAdmin`:** `role` is career enum 5 values; admin is `isAdmin` bool — never gate on `role`.
+- **`role` ≠ `isAdmin`:** `role` is career enum 6 values; admin is `isAdmin` bool — never gate on `role`.
 - **`waiting_for_cache` not first state:** start is `pending_claim`; `waiting_for_cache`/`completed` are claim-time branches.
 - **`lifecycle.canRetryResume` / `checkRetryEligibility` is sole owner** of retry eligibility — don't re-implement; `ParseError` JSON never parsed outside lifecycle.
 - **`db:push` skips migration files** — canonical is `db:generate` + `db:migrate`; drizzle-kit needs `DATABASE_URL`.

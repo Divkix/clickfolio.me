@@ -1,5 +1,4 @@
 import { z } from "zod";
-import type { UserRole } from "@/lib/config/roles";
 import { type ResumeContentFormData, resumeContentSchema } from "@/lib/schemas/resume";
 import type { JsonValue, UnknownRecord } from "@/lib/types/json";
 import { log } from "@/lib/utils/log";
@@ -14,7 +13,6 @@ export interface ParseResumeResult {
   success: boolean;
   parsedContent: string;
   error?: string;
-  professionalLevel?: UserRole;
 }
 
 function normalizeResumeText(text: string): string {
@@ -50,14 +48,6 @@ function validateParseResult(data: JsonValue): ValidateParseResult {
   const errors = result.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("\n");
 
   return { success: false, errors };
-}
-
-function extractProfessionalLevel(data: ResumeContentFormData): UserRole | undefined {
-  const level = data.professional_level;
-
-  delete data.professional_level;
-
-  return level;
 }
 
 export async function parseResumeWithAi(
@@ -143,12 +133,10 @@ export async function parseResumeWithAi(
 
           // SAFETY: validation guarantees ResumeContentFormData shape; cast preserves type for final cleanup
           const finalData = transformAiOutput(validation.data as ResumeContentFormData);
-          const professionalLevel = extractProfessionalLevel(finalData);
 
           return {
             success: true,
             parsedContent: JSON.stringify(finalData),
-            professionalLevel,
           };
         }
 
@@ -234,12 +222,10 @@ export async function parseResumeWithAi(
 
     // SAFETY: resumeContentSchema validation above guarantees validation.data matches ResumeContentFormData; cast preserves type for final cleanup.
     const finalData = transformAiOutput(validation.data as ResumeContentFormData);
-    const professionalLevel2 = extractProfessionalLevel(finalData);
 
     return {
       success: true,
       parsedContent: JSON.stringify(finalData),
-      professionalLevel: professionalLevel2,
     };
   } catch (error) {
     return {

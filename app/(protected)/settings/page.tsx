@@ -92,6 +92,7 @@ export default async function SettingsPage() {
         privacySettings: true,
         role: true,
         roleSource: true,
+        isFreelance: true,
         updatedAt: true,
       },
     }),
@@ -160,6 +161,7 @@ export default async function SettingsPage() {
         <RoleSelectorCard
           currentRole={profile.role ?? null}
           roleSource={profile.roleSource ?? null}
+          isFreelance={profile.isFreelance}
         />
 
         <PrivacySettingsForm

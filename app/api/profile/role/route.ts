@@ -44,16 +44,18 @@ export async function PUT(request: Request) {
         );
       }
 
+      const { role, isFreelance } = validation.data;
+
       await db
         .update(user)
         .set({
-          role: validation.data.role,
-          roleSource: "user",
+          ...(role && { role, roleSource: "user" as const }),
+          ...(isFreelance !== undefined && { isFreelance }),
           updatedAt: new Date().toISOString(),
         })
         .where(eq(user.id, authUser.id));
 
-      return createSuccessResponse({ role: validation.data.role, roleSource: "user" });
+      return createSuccessResponse(validation.data);
     },
     "You must be logged in to update your role",
   );

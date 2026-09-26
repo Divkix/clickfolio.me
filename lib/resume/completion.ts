@@ -1,7 +1,7 @@
 import { and, eq, inArray, ne } from "drizzle-orm";
 import { buildSiteDataUpsert } from "@/lib/data/site-data-upsert";
 import type { Database } from "@/lib/db";
-import type { UserRole } from "@/lib/config/roles";
+import type { CareerProfile } from "@/lib/ai/career";
 import { resumes, siteData, user, type NewResume } from "@/lib/db/schema";
 import { notifyStatusChangeBatch } from "@/lib/parse/notify-status";
 import type { ResumeContent } from "@/lib/types/database";
@@ -14,7 +14,7 @@ export type ResumeCompletionInput = {
   env: { CLICKFOLIO_STATUS_DO?: CloudflareEnv["CLICKFOLIO_STATUS_DO"] };
   items: ResumeCompletionItem[];
   parsedContent: ResumeContent;
-  professionalLevel?: UserRole | null;
+  career?: CareerProfile | null;
   totalAttempts?: number;
   fanOut?: boolean;
 };
@@ -44,7 +44,7 @@ type CompletionUserRow = {
 // name iff missing), per-user publish-flag resolution, and the completed
 // notification after the transaction so no caller can forget it.
 export async function completeResumes(input: ResumeCompletionInput): Promise<void> {
-  const { db, env, items, parsedContent, professionalLevel, totalAttempts, fanOut } = input;
+  const { db, env, items, parsedContent, career, totalAttempts, fanOut } = input;
   const now = new Date().toISOString();
   const resumeIds = items.map((item) => item.resumeId);
   const userIds = [...new Set(items.map((item) => item.userId))];
@@ -152,10 +152,15 @@ export async function completeResumes(input: ResumeCompletionInput): Promise<voi
     }
 
     if (fanOut) {
-      if (professionalLevel && completedUserIds.length > 0) {
+      if (career && completedUserIds.length > 0) {
         await tx
           .update(user)
-          .set({ role: professionalLevel, roleSource: "ai", updatedAt: now })
+          .set({
+            role: career.role,
+            roleSource: "ai",
+            isFreelance: career.isFreelance,
+            updatedAt: now,
+          })
           .where(inArray(user.id, completedUserIds));
       }
 
@@ -175,16 +180,17 @@ export async function completeResumes(input: ResumeCompletionInput): Promise<voi
             .where(inArray(user.id, needingName));
         }
       }
-    } else if (professionalLevel || shouldSyncDisplayName(parsedName, singleRow?.name)) {
+    } else if (career || shouldSyncDisplayName(parsedName, singleRow?.name)) {
       type UserUpdatePayload = Partial<typeof user.$inferInsert>;
 
       const userUpdate: UserUpdatePayload = {
         updatedAt: now,
       };
 
-      if (professionalLevel) {
-        userUpdate.role = professionalLevel;
+      if (career) {
+        userUpdate.role = career.role;
         userUpdate.roleSource = "ai";
+        userUpdate.isFreelance = career.isFreelance;
       }
 
       if (shouldSyncDisplayName(parsedName, singleRow?.name)) {

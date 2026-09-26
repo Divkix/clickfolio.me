@@ -44,7 +44,8 @@ export default async function ExplorePage({
 }) {
   const params = await searchParams;
   const currentPage = safePageParam(params.page);
-  const roleFilter = isUserRole(params.role) ? params.role : "";
+  // "freelance" rides the same dropdown/param but filters the separate isFreelance flag.
+  const roleFilter = isUserRole(params.role) || params.role === "freelance" ? params.role : "";
 
   const db = getDb(env.HYPERDRIVE);
 
@@ -54,7 +55,9 @@ export default async function ExplorePage({
     eq(user.onboardingCompleted, true),
   ];
 
-  if (roleFilter) {
+  if (roleFilter === "freelance") {
+    whereConditions.push(eq(user.isFreelance, true));
+  } else if (roleFilter) {
     whereConditions.push(eq(user.role, roleFilter));
   }
 
@@ -128,7 +131,11 @@ export default async function ExplorePage({
     })),
   );
 
-  const roleOptions = [{ value: "", label: "All Roles" }, ...ROLE_OPTIONS];
+  const roleOptions = [
+    { value: "", label: "All Roles" },
+    ...ROLE_OPTIONS,
+    { value: "freelance", label: "Freelance / Contract" },
+  ];
 
   return (
     <div className="min-h-screen bg-background flex flex-col">

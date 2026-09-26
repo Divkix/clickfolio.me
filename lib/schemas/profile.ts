@@ -51,9 +51,14 @@ export const handleUpdateSchema = z.object({
 
 export type HandleUpdate = z.infer<typeof handleUpdateSchema>;
 
-export const roleUpdateSchema = z.object({
-  role: z.enum(USER_ROLES),
-});
+export const roleUpdateSchema = z
+  .object({
+    role: z.enum(USER_ROLES).optional(),
+    isFreelance: z.boolean().optional(),
+  })
+  .refine((data) => data.role !== undefined || data.isFreelance !== undefined, {
+    message: "Provide role or isFreelance",
+  });
 
 export function buildWizardCompleteSchema(themeIds: readonly [string, ...string[]]) {
   return z.object({

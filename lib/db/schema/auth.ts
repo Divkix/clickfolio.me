@@ -22,6 +22,7 @@ export const user = pgTable(
     }),
     onboardingCompleted: boolean("onboarding_completed").notNull().default(false),
     role: text("role", { enum: USER_ROLES }),
+    isFreelance: boolean("is_freelance").notNull().default(false),
     roleSource: text("role_source", { enum: ["ai", "user"] }),
     isAdmin: boolean("is_admin").notNull().default(false),
     showInDirectory: boolean("show_in_directory").notNull().default(true),

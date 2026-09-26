@@ -689,32 +689,6 @@ describe("normalizeAiKeys - projects", () => {
   });
 });
 
-describe("normalizeAiKeys - professional level", () => {
-  it("normalizes professionalLevel to professional_level", () => {
-    const data = { professionalLevel: "senior" };
-    const result = normalizeAiKeys(data);
-    expect(result.professional_level).toBe("senior");
-  });
-
-  it("normalizes seniority to professional_level", () => {
-    const data = { seniority: "mid_level" };
-    const result = normalizeAiKeys(data);
-    expect(result.professional_level).toBe("mid_level");
-  });
-
-  it("normalizes seniority_level to professional_level", () => {
-    const data = { seniority_level: "entry_level" };
-    const result = normalizeAiKeys(data);
-    expect(result.professional_level).toBe("entry_level");
-  });
-
-  it("normalizes career_level to professional_level", () => {
-    const data = { career_level: "executive" };
-    const result = normalizeAiKeys(data);
-    expect(result.professional_level).toBe("executive");
-  });
-});
-
 describe("normalizeAiKeys - complete integration", () => {
   it("handles complex nested data structure", () => {
     const data = {
@@ -751,7 +725,6 @@ describe("normalizeAiKeys - complete integration", () => {
           tech_stack: ["React"],
         },
       ],
-      seniority: "senior",
     };
 
     const result = normalizeAiKeys(data);
@@ -770,7 +743,6 @@ describe("normalizeAiKeys - complete integration", () => {
     expect(result.certifications).toEqual([{ name: "AWS Cert", issuer: "" }]);
     expect(coerceRecord(coerceArray(result.projects)?.[0])?.title).toBe("Cool App");
     expect(coerceRecord(coerceArray(result.projects)?.[0])?.technologies).toEqual(["React"]);
-    expect(result.professional_level).toBe("senior");
   });
 
   it("preserves fields that don't need normalization", () => {

@@ -82,8 +82,7 @@ The JSON MUST use these exact snake_case keys and structure:
       "url": "",
       "image_url": ""
     }
-  ],
-  "professional_level": "mid_level"
+  ]
 }
 
 Rules:
@@ -96,7 +95,6 @@ Rules:
 - Skills MUST be an array of { category, items } (not an object).
 - ALWAYS extract education, skills, certifications, and projects when present.
 - Return empty arrays [] only for sections truly absent.
-- Classify professional_level based on experience years and title seniority. Omit if uncertain.
 - Do not add fields not in the schema.`;
 
 interface VisionParseResult {
