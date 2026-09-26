@@ -15,7 +15,7 @@ export const revalidate = 86400;
 const title = "Resume Website for Consultants";
 
 const description =
-  "Launch a professional consulting portfolio website from your PDF resume. Privacy controls, custom URL, 10 templates — free forever with no time limits.";
+  "Launch a professional consulting portfolio website from your PDF resume. Privacy controls, custom URL, 12 templates — free forever with no time limits.";
 
 const path = "/for/consultant";
 
@@ -32,7 +32,7 @@ const faqs = [
   },
   {
     q: "Is clickfolio.me free?",
-    a: "Yes. All 10 templates are free with no time limit and no credit card. There is no paid tier and no premium lock. The project is open source under the MIT license, so independent consultants can rely on it long term.",
+    a: "Yes. All 12 templates are free with no time limit and no credit card. There is no paid tier and no premium lock. The project is open source under the MIT license, so independent consultants can rely on it long term.",
   },
   {
     q: "What do I share with prospective clients?",

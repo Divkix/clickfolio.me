@@ -9,7 +9,7 @@ clickfolio.me is a free resume-to-website builder. There is one plan and it cost
 - Who it's for: job seekers, students, and professionals who want a portfolio website from a resume they already have
 - Includes:
   - AI parsing of an uploaded PDF resume (up to 5 MB) into an editable portfolio site
-  - All 10 templates, with no premium locks, no referrals, and no unlocking
+  - All 12 templates, with no premium locks, no referrals, and no unlocking
   - A shareable public page at `clickfolio.me/@handle`
   - Custom @handle selection (up to 3 handle changes per 24 hours)
   - Full editing suite with auto-save

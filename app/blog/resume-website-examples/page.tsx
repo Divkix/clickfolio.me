@@ -134,7 +134,7 @@ export default function ResumeWebsiteExamplesPage() {
           Want to see live layouts instead of descriptions? Browse the{" "}
           <Link href="/explore">explore page</Link> for real published sites, and the{" "}
           <Link href="/blog/clickfolio-templates-showcase">full template showcase</Link> to see all
-          10 designs side by side.
+          12 designs side by side.
         </p>
       </section>
 

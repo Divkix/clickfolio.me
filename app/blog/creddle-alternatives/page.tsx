@@ -172,7 +172,7 @@ export default function CreddleAlternativesPage() {
           The web half of Creddle is the one most lists skip, and it is what we built clickfolio.me
           for. You upload a PDF resume, the AI reads your experience, education, and skills, and
           about 30 seconds later you have a live page at clickfolio.me/@yourname. Everything stays
-          editable afterwards. You get 10 templates (all free), privacy toggles to hide your phone
+          editable afterwards. You get 12 templates (all free), privacy toggles to hide your phone
           number or address, and built-in view analytics. There is no paid tier.
         </p>
         <p>
@@ -238,7 +238,7 @@ export default function CreddleAlternativesPage() {
           </li>
           <li>
             <strong>Check the details and pick a template.</strong> Fix anything the parser missed,
-            hide fields you don&apos;t want public, and choose one of the 10 templates.
+            hide fields you don&apos;t want public, and choose one of the 12 templates.
           </li>
           <li>
             <strong>Replace every old Creddle link.</strong> Old creddle.io URLs now lead nowhere.

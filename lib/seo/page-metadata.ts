@@ -14,7 +14,7 @@ export const HOME_OG_IMAGE = {
 const HOME_TITLE = `Free Resume Website Builder — ${siteConfig.fullName}`;
 
 const HOME_DESCRIPTION =
-  "Free resume website builder. Turn your PDF resume or LinkedIn into a personal portfolio website in 30 seconds — 10 templates, custom @handle URL, privacy controls. No signup to start.";
+  "Free resume website builder. Turn your PDF resume or LinkedIn into a personal portfolio website in 30 seconds — 12 templates, custom @handle URL, privacy controls. No signup to start.";
 
 /**
  * Shared by `/` and every landing A/B variant route (ADR-0027) — variants are

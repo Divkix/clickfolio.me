@@ -43,7 +43,7 @@ app/                          # vinext App Router
   explore/                    # /explore directory (showInDirectory=true) — ISR 300
   preview/[id]/               # demo-data preview for thumbnails — ISR 7d, noindex
   privacy/  terms/  about/  faq/  manifest.webmanifest (theme #d94e4e, background #fdf8f3 — coral)
-  ui/  templates/ (10)  wizard/  home/  blog/  explore/  role/  legal/  analytics/  Faq.tsx  BrandIcons.tsx
+  ui/  templates/ (12)  wizard/  home/  blog/  explore/  role/  legal/  analytics/  Faq.tsx  BrandIcons.tsx
                               #   legal/LegalPage.tsx: shared shell + numbered-section renderer for privacy/ and terms/
                               #   blog/PostSection.tsx (PostSection/PostList) + blog/ComparisonTable.tsx: shared blog prose
 lib/
@@ -105,7 +105,7 @@ pnpm run generate:favicons  # sharp from public/icon.svg → favicons
 - **Supply-chain policy:** `pnpm-workspace.yaml` sets `trustPolicy: no-downgrade` (install aborts if a resolved version regresses provenance/signatures) and `minimumReleaseAge: 4320` (3d holdback on freshly published versions). The holdback value is **measured, not chosen**: the newest version in the committed lockfile is ~4 days old, so 6480 (4.5d)+ rejects it with `entries that the active policies reject` while `4320` installs clean — raise it toward the 10080 (7d) recommended default as the pinned versions age. Bumping a dependency inside the window (`pnpm add`, dependabot) needs an entry in `minimumReleaseAgeExclude` (already used for the vite-plus toolchain) or the install aborts.
 - **Coverage pin:** `catalog:vitest == vitest == @vitest/coverage-v8 == 5.0.1` (3 places).
 - **`db:push` vs `db:generate+migrate`:** `push` is prototyping only; canonical is `generate` + `migrate`.
-- **Thumbnails:** `public/previews/` holds 10 committed `.webp` (bento, bold_corporate, classic_ats, design_folio, dev_terminal, glass, midnight, minimalist_editorial→`minimalist.webp`, neo_brutalist→`brutalist.webp`, spotlight) shot at 1280×800 @2x via `/preview/[id]`. No generator script in repo; re-shoot with headless Chrome (`--window-size=1280,800 --force-device-scale-factor=2 --screenshot`) against `/preview/<id>` then encode with the repo's `sharp` (`.webp({quality:82})`). Slug shortenings are intentional.
+- **Thumbnails:** `public/previews/` holds 12 committed `.webp` (bento, bold_corporate, case_file, classic_ats, design_folio, dev_terminal, glass, midnight, minimalist_editorial→`minimalist.webp`, neo_brutalist→`brutalist.webp`, retro_os, spotlight) shot at 1280×800 @2x via `/preview/[id]`; files use kebab-case (`case-file.webp`). No generator script in repo; re-shoot with headless Chrome (`--window-size=1280,800 --force-device-scale-factor=2 --screenshot`) against `/preview/<id>` then encode with the repo's `sharp` (`.webp({quality:82})`). Slug shortenings are intentional. Wait for the template's Google Fonts to finish loading before the shot (in a proxied sandbox, fetch fonts outside the browser and serve them via request interception) or the thumbnail captures fallback fonts.
 - **Deploy:** `scripts/deploy.ts` runs `pnpm run build` with `POSTHOG_UPLOAD_SOURCEMAPS=true` (unless `--dry-run` → `false`), then (skipped on `--dry-run`) `wrangler r2 bucket lifecycle set clickfolio-bucket --file r2-lifecycle.json --force`, then `pnpm exec wrangler deploy`; forwards args/exit codes. `lifecycle set` **replaces all rules**, so `r2-lifecycle.json` keeps the default multipart-abort rule next to `expire-temp-uploads` (`temp/`, 1 day).
 - **Config pointer:** CSP/HSTS lives in `next.config.ts:headers()` — allowlist Umami/Clerk/Google OAuth/CF Insights + Google Fonts (`fonts.googleapis.com` style, `fonts.gstatic.com` font — template fonts) (see file); vendor chunks wrap vinext `manualChunks`; `viteEnvironment rsc/ssr` + `onwarn MISSING_EXPORT middleware` (see `vite.config.ts:15-31,239-254`).
 - **Module aliases:** `resolve.alias` has 2 entries (`next/dist/compiled/@vercel/og/index.edge.js→lib/stubs/og-stub.js`, `zod/v3→zod-v3-stub.mjs`); client `cloudflare:workers` + `node:async_hooks` are `clientModuleStubs()` plugin (`vite.config.ts:15-31`), not alias. Zxcvbn stubs removed.
@@ -314,13 +314,13 @@ Order: `pending_claim→waiting_for_cache/completed` branches; claim → `proces
 
 **Profile (`/@handle`):** `decode` + `formatHandle` + `hide_from_search` → `robots noindex` (not 404) via `notHiddenFromSearch` filter.
 
-**Templates — 10 free themes:**
+**Templates — 12 free themes:**
 
-`THEME_IDS = [bento, bold_corporate, classic_ats, design_folio, dev_terminal, glass, midnight, minimalist_editorial, neo_brutalist, spotlight]`; `THEME_METADATA` (`preview /previews/*.webp` — note `minimalist_editorial→minimalist.webp`, `neo_brutalist→brutalist.webp` intentional shortenings); `DEFAULT_THEME minimalist_editorial`; `themeToShareVariant` maps underscore→kebab; `DYNAMIC_TEMPLATES` + `TEMPLATE_LOADERS` + `DEMO_RESUME` + 4 `cva` Maps.
+`THEME_IDS = [bento, bold_corporate, case_file, classic_ats, design_folio, dev_terminal, glass, midnight, minimalist_editorial, neo_brutalist, retro_os, spotlight]`; `THEME_METADATA` (`preview /previews/*.webp` — note `minimalist_editorial→minimalist.webp`, `neo_brutalist→brutalist.webp` intentional shortenings); `DEFAULT_THEME minimalist_editorial`; `themeToShareVariant` maps underscore→kebab; `DYNAMIC_TEMPLATES` + `TEMPLATE_LOADERS` + `DEMO_RESUME` + 4 `cva` Maps.
 
 **8-step update checklist** (compressed): `THEME_IDS` → `THEME_METADATA` (+ preview) → `themeToShareVariant` → `TEMPLATE_LOADERS`/`DYNAMIC_TEMPLATES` → `DEMO_RESUME_DATA` → 4 variant Maps + `CreateYoursCTA`/`AttributionWidget` theme maps + `public/previews/*.webp` (headless Chrome + sharp) → `Record<ThemeId,…>` guard ensures compile fail if out of sync → `registry-sync.test.ts` asserts file ↔ metadata ↔ loader sync; live preview `1280px` at `/preview/[id]`.
 
-- **Public assets:** `public/brand/` icons used by `BrandIcons.tsx`; `public/previews/` holds 10 `.webp` thumbnails; source `public/icon.svg` drives `generate:favicons`.
+- **Public assets:** `public/brand/` icons used by `BrandIcons.tsx`; `public/previews/` holds 12 `.webp` thumbnails; source `public/icon.svg` drives `generate:favicons`.
 - **Drizzle config:** `drizzle.config.ts` dialect `postgresql`, schema `lib/db/schema/index.ts`, out `migrations_pg`; `global.d.ts` declares `Window.__clickfolioOwner` + `vite-plus/test` jest-dom augmentation.
 - **Hooks:** `hooks/useFileUpload.ts` (upload state), `useResumeWebSocket.ts` (WS with reconnect), `useResumeStatus.ts` (poll fallback), `useDismissable.ts`, `useCopyToClipboard.ts`.
 - **Instrumentation:** `instrumentation.ts` (server) + `instrumentation-client.ts` (PostHog `init` + autocapture) — see `lib/analytics/`.
@@ -370,6 +370,7 @@ Each decision + why is an ADR under `docs/adr/`. `_5 superseded (D1/Better Auth/
 - **`lifecycle.canRetryResume` / `checkRetryEligibility` is sole owner** of retry eligibility — don't re-implement; `ParseError` JSON never parsed outside lifecycle.
 - **`db:push` skips migration files** — canonical is `db:generate` + `db:migrate`; drizzle-kit needs `DATABASE_URL`.
 - **Blog 1:1:** `lib/blog/posts.ts` `BLOG_POSTS` 17 entries ↔ `app/blog/<slug>/page.tsx` 17 folders + `public/llms-full.txt`; `getPostBySlug("<slug>")!` at module scope throws at build if desynced; `seo-assets.test.ts` guards `llms.txt`.
+- **Template fonts vs `app/globals.css`:** base layer sets `h1,h2,h3,h4 { font-family: var(--font-display) }`, so a template's root font class does NOT reach headings by inheritance — give each heading its own font class or scope a rule (`.font-body-x h3 {…}`, see `CaseFile.tsx`/`RetroOS.tsx`/`MinimalistEditorial.tsx`).
 - **`preview/[id]` is demo-data only:** no auth, no DB; `revalidate 604800` (7d); don't use for real user data.
 - **`__tests__/setup.ts` crypto is deterministic:** `randomUUID` sequential, `sign` pseudo-HMAC — don't assert exact signature values as crypto-valid.
 - **`vite.config.ts` `lint` + `fmt` share 14 ignores:** see `vite.config.ts:131-146`; staged hook auto-fixes `*.{ts,tsx,js,jsx,json,css}` via `vp check --fix`.

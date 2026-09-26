@@ -198,6 +198,8 @@ describe("SharePopover", () => {
       "classic-ats",
       "design-folio",
       "dev-terminal",
+      "case-file",
+      "retro-os",
     ];
 
     for (const variant of variants) {

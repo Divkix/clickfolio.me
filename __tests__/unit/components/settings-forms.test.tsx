@@ -28,6 +28,7 @@ vi.mock("@/lib/templates/theme-registry.client", () => {
   const themeIds = [
     "bento",
     "bold_corporate",
+    "case_file",
     "classic_ats",
     "design_folio",
     "dev_terminal",
@@ -35,6 +36,7 @@ vi.mock("@/lib/templates/theme-registry.client", () => {
     "midnight",
     "minimalist_editorial",
     "neo_brutalist",
+    "retro_os",
     "spotlight",
   ];
 

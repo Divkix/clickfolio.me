@@ -15,7 +15,7 @@ export const revalidate = 86400;
 const title = "Resume Website for Software Engineers";
 
 const description =
-  "Showcase your code, projects, and experience with a free resume website. 10 templates including DevTerminal, GitHub & LinkedIn integration, and AI-powered PDF parsing.";
+  "Showcase your code, projects, and experience with a free resume website. 12 templates including DevTerminal, GitHub & LinkedIn integration, and AI-powered PDF parsing.";
 
 const path = "/for/software-engineer";
 
@@ -24,7 +24,7 @@ export const metadata: Metadata = buildRolePageMetadata({ title, description, pa
 const faqs = [
   {
     q: "Is clickfolio.me really free for software engineers?",
-    a: "Yes. You can upload your resume, get a hosted developer portfolio, and use all 10 templates with no payment ever. There is no paid tier, no premium lock, and no credit card. The project is open source under the MIT license.",
+    a: "Yes. You can upload your resume, get a hosted developer portfolio, and use all 12 templates with no payment ever. There is no paid tier, no premium lock, and no credit card. The project is open source under the MIT license.",
   },
   {
     q: "Can I link my GitHub and LinkedIn?",

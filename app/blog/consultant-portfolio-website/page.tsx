@@ -305,7 +305,7 @@ export default function ConsultantPortfolioWebsitePage() {
             },
             {
               lead: "Set privacy and pick a template.",
-              body: " Hide your phone and address if you want, and choose one of the 10 free templates.",
+              body: " Hide your phone and address if you want, and choose one of the 12 free templates.",
             },
             {
               lead: "Publish and share.",

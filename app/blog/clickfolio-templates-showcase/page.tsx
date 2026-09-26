@@ -92,7 +92,7 @@ export default function TemplatesShowcasePage() {
         <h2>More Free Templates</h2>
 
         <p>
-          All 10 templates are free for every user — no referrals, no payment, and no premium locks
+          All 12 templates are free for every user — no referrals, no payment, and no premium locks
           required.
         </p>
 
@@ -129,6 +129,23 @@ export default function TemplatesShowcasePage() {
           that says "executive." It's the most structured template available — every element is
           deliberate and authoritative. Best for C-suite executives, board members, and senior
           leaders who want their portfolio to match their position.
+        </p>
+
+        <h3>{THEME_METADATA.case_file.name}</h3>
+        <p>
+          {THEME_METADATA.case_file.description}. Your header reads like an intake form (occupation,
+          location, reference) and every section after it is filed as Exhibit A, B, C and so on, set
+          in a typewriter face on ruled paper. It reads as rigorous without being stiff. Best for
+          researchers, scientists, lawyers, analysts, and consultants whose work is about evidence.
+        </p>
+
+        <h3>{THEME_METADATA.retro_os.name}</h3>
+        <p>
+          {THEME_METADATA.retro_os.description}. Desktop icons down the side jump to each window,
+          your experience sits in a file explorer, skills live in a System Properties dialog, and
+          the page ends with a Start-button taskbar. It is the most playful template in the
+          collection and still fully readable on a phone. Best for game developers, creative
+          technologists, and anyone whose portfolio should start a conversation.
         </p>
       </section>
 
@@ -207,14 +224,14 @@ export default function TemplatesShowcasePage() {
       <section>
         <h2>Start Building</h2>
         <p>
-          All 10 templates are free and available on your dashboard after uploading your resume. The
+          All 12 templates are free and available on your dashboard after uploading your resume. The
           default is Minimalist Editorial, but you can switch at any time. For finished sites in
           each style, browse these{" "}
           <Link href="/blog/resume-website-examples">resume website examples</Link>.
         </p>
         <p>
           <Link href="/" className="text-brand font-semibold">
-            Upload your resume and try all 10 templates →
+            Upload your resume and try all 12 templates →
           </Link>
         </p>
       </section>

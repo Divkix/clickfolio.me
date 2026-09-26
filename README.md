@@ -479,13 +479,13 @@ Runs via `worker/index.ts` without self-fetch (avoids double billing).
 
 ### Referral Program
 
-Removed — all 10 templates are now free for every user. No referral gating.
+Removed — all 12 templates are now free for every user. No referral gating.
 
 ---
 
 ## Resume Templates
 
-10 built-in templates in `components/templates/`:
+12 built-in templates in `components/templates/`:
 
 | Template                 | Category     | Description                                                     | Unlock Requirement |
 | ------------------------ | ------------ | --------------------------------------------------------------- | ------------------ |
@@ -499,6 +499,8 @@ Removed — all 10 templates are now free for every user. No referral gating.
 | **Spotlight**            | Creative     | Warm creative portfolio with animated sections                  | Free               |
 | **Midnight**             | Modern       | Dark minimal with serif headings and gold accents               | Free               |
 | **Bold Corporate**       | Professional | Executive typography with bold numbered sections                | Free               |
+| **Case File**            | Professional | Typed dossier in a manila folder, sections filed as exhibits    | Free               |
+| **Retro OS**             | Creative     | Late-90s desktop, every section in its own bevelled window      | Free               |
 
 All templates receive `content` (ResumeContent) and `profile` props, respect privacy settings, and are mobile-responsive.
 

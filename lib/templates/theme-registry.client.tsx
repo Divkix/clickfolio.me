@@ -26,6 +26,12 @@ export const DYNAMIC_TEMPLATES = {
       loading: TemplateLoadingFallback,
     },
   ),
+  case_file: dynamic(
+    () => import("@/components/templates/CaseFile").then((m) => ({ default: m.CaseFile })),
+    {
+      loading: TemplateLoadingFallback,
+    },
+  ),
   classic_ats: dynamic(
     () => import("@/components/templates/ClassicATS").then((m) => ({ default: m.ClassicATS })),
     {
@@ -67,6 +73,12 @@ export const DYNAMIC_TEMPLATES = {
   ),
   neo_brutalist: dynamic(
     () => import("@/components/templates/NeoBrutalist").then((m) => ({ default: m.NeoBrutalist })),
+    {
+      loading: TemplateLoadingFallback,
+    },
+  ),
+  retro_os: dynamic(
+    () => import("@/components/templates/RetroOS").then((m) => ({ default: m.RetroOS })),
     {
       loading: TemplateLoadingFallback,
     },
