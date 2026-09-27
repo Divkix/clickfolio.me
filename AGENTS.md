@@ -264,7 +264,7 @@ Local `.dev.vars` auto-loaded by Vite; `.env.example` **6.3KB** (154 lines) is t
 | `/api/health`                                     | GET `force-dynamic` | —                    | Checks Postgres `SELECT 1`, R2 `list`, AI gateway config presence; 200 `healthy`/503/`degraded` + `latencyMs`                                                                                                                                                                                                                                                                                                                                                                                                |
 | `/api/og/home` + `/api/og/[handle]`               | GET                 | —                    | Branded PNG `1200×630` via `@cf-wasm/resvg` (`Resvg.async(svg,{fitTo:{mode:'width',value:1200}}).render().asPng()`); `max-age:604800`; handle OG falls back to lastResort on resvg fail                                                                                                                                                                                                                                                                                                                      |
 
-Shared infra: `rewrites /sitemap.xml→/api/sitemap-index`, `redirects /:handle→/@handle 308` (`next.config.ts`); sitemap/cron/og not rate-limited.
+Shared infra: `rewrites /sitemap.xml→/api/sitemap-index`, `/:handle→/@handle 308` via `permanentRedirect` in `app/[handle]/page.tsx` (not `next.config.ts` `redirects()`: vinext drops lookahead regexes as ReDoS risks); sitemap/cron/og not rate-limited.
 
 ## Request Lifecycle & Realtime
 
