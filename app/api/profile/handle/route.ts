@@ -8,6 +8,7 @@ import { isHandleTaken, isValidHandleFormat } from "@/lib/rate-limit/handle-vali
 import { countHandleChangesInWindow } from "@/lib/rate-limit/user";
 import { handleUpdateSchema } from "@/lib/schemas/profile";
 import { revalidatePublicProfilePages } from "@/lib/utils/revalidate";
+import { notifyIndexNowForProfiles } from "@/lib/seo/indexnow-runtime";
 import {
   createErrorResponse,
   createSuccessResponse,
@@ -142,6 +143,7 @@ export async function PUT(request: Request) {
         }
 
         revalidatePublicProfilePages([outcome.oldHandle, newHandle]);
+        notifyIndexNowForProfiles([outcome.oldHandle, newHandle]);
 
         captureServerEvent(authUser.id, "handle_changed", {
           new_handle: newHandle,

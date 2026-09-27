@@ -11,6 +11,7 @@ import { buildWizardCompleteSchema } from "@/lib/schemas/profile";
 import { THEME_IDS, type ThemeId } from "@/lib/templates/theme-ids";
 import type { ResumeContent } from "@/lib/types/database";
 import { revalidatePublicProfilePages } from "@/lib/utils/revalidate";
+import { notifyIndexNowForProfiles } from "@/lib/seo/indexnow-runtime";
 import {
   createErrorResponse,
   createSuccessResponse,
@@ -230,6 +231,7 @@ export async function POST(request: Request) {
         }
 
         revalidatePublicProfilePages([outcome.oldHandle, body.handle]);
+        notifyIndexNowForProfiles([outcome.oldHandle, body.handle]);
 
         captureServerEvent(authUser.id, "onboarding_completed", {
           handle: body.handle,

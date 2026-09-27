@@ -3,6 +3,7 @@ import { withUser } from "@/lib/auth/with-auth";
 
 import { user } from "@/lib/db/schema";
 import { privacySettingsSchema } from "@/lib/schemas/profile";
+import { notifyIndexNowForProfiles } from "@/lib/seo/indexnow-runtime";
 import { revalidatePublicProfilePages } from "@/lib/utils/revalidate";
 import {
   createErrorResponse,
@@ -79,6 +80,7 @@ export async function PUT(request: Request) {
       }
 
       revalidatePublicProfilePages([dbUser.handle]);
+      notifyIndexNowForProfiles([dbUser.handle]);
 
       return createSuccessResponse({
         success: true,
