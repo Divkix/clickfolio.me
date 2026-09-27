@@ -2,6 +2,8 @@ const DEFAULT_MAX_FILE_SIZE_MB = 5;
 
 const effectiveMaxFileSizeMb = Number(process.env.MAX_UPLOAD_SIZE_MB) || DEFAULT_MAX_FILE_SIZE_MB;
 
+export const MAX_FILE_SIZE_MB = effectiveMaxFileSizeMb;
+
 export const MAX_FILE_SIZE = effectiveMaxFileSizeMb * 1024 * 1024;
 
 export const MAX_FILE_SIZE_LABEL = `${effectiveMaxFileSizeMb}MB`;
