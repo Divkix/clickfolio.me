@@ -10,6 +10,8 @@ let mockLimitValues: JsonValue[] = [];
 
 let mockOffsetValues: JsonValue[] = [];
 
+let mockJoins: string[] = [];
+
 interface MockQueryChain {
   innerJoin: () => MockQueryChain;
   leftJoin: () => MockQueryChain;
@@ -26,8 +28,16 @@ function buildQueryChain(rows: JsonValue[]): MockQueryChain {
   const chain = () => buildQueryChain(rows);
 
   return {
-    innerJoin: vi.fn(() => chain()),
-    leftJoin: vi.fn(() => chain()),
+    innerJoin: vi.fn(() => {
+      mockJoins.push("inner");
+
+      return chain();
+    }),
+    leftJoin: vi.fn(() => {
+      mockJoins.push("left");
+
+      return chain();
+    }),
     select: vi.fn(() => chain()),
     from: vi.fn(() => chain()),
     where: vi.fn(() => chain()),
@@ -86,6 +96,15 @@ describe("generateSitemapEntries", () => {
     mockCountRows = [{ count: 100000 }];
     mockLimitValues = [];
     mockOffsetValues = [];
+    mockJoins = [];
+  });
+
+  it("inner-joins site_data so handles without a portfolio are never listed", async () => {
+    await generateSitemapEntries(0);
+    await getTotalIndexableUserCount();
+
+    // count + page query in the shard transaction, plus the index count
+    expect(mockJoins).toEqual(["inner", "inner", "inner"]);
   });
 
   it("returns empty array for invalid id (negative)", async () => {

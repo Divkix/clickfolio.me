@@ -118,7 +118,7 @@ const SECTIONS: { title: string; body: ReactNode }[] = [
 
         <div className="space-y-4">
           <div className="rounded-lg border border-border bg-card p-4">
-            <h4 className="font-semibold text-foreground mb-1">Google OAuth</h4>
+            <h3 className="font-semibold text-foreground mb-1">Google OAuth</h3>
             <p className="text-muted-foreground text-sm mb-2">
               Used for authentication and account creation
             </p>
@@ -133,7 +133,7 @@ const SECTIONS: { title: string; body: ReactNode }[] = [
           </div>
 
           <div className="rounded-lg border border-border bg-card p-4">
-            <h4 className="font-semibold text-foreground mb-1">OpenAI (via OpenRouter)</h4>
+            <h3 className="font-semibold text-foreground mb-1">OpenAI (via OpenRouter)</h3>
             <p className="text-muted-foreground text-sm mb-2">
               Used for AI-powered PDF parsing and data extraction
             </p>
@@ -157,7 +157,7 @@ const SECTIONS: { title: string; body: ReactNode }[] = [
           </div>
 
           <div className="rounded-lg border border-border bg-card p-4">
-            <h4 className="font-semibold text-foreground mb-1">Cloudflare</h4>
+            <h3 className="font-semibold text-foreground mb-1">Cloudflare</h3>
             <p className="text-muted-foreground text-sm mb-2">
               Used for hosting, storage (R2), and content delivery. Database hosting is provided by
               PlanetScale
@@ -240,7 +240,7 @@ const SECTIONS: { title: string; body: ReactNode }[] = [
               </svg>
             </div>
             <div>
-              <h4 className="font-semibold text-foreground">Right to Access</h4>
+              <h3 className="font-semibold text-foreground">Right to Access</h3>
               <p className="text-muted-foreground text-sm">
                 View your data anytime in the Settings page of your dashboard
               </p>
@@ -265,7 +265,7 @@ const SECTIONS: { title: string; body: ReactNode }[] = [
               </svg>
             </div>
             <div>
-              <h4 className="font-semibold text-foreground">Right to Deletion</h4>
+              <h3 className="font-semibold text-foreground">Right to Deletion</h3>
               <p className="text-muted-foreground text-sm">
                 Delete your account and all associated data through the Settings page
               </p>
@@ -290,7 +290,7 @@ const SECTIONS: { title: string; body: ReactNode }[] = [
               </svg>
             </div>
             <div>
-              <h4 className="font-semibold text-foreground">Right to Correction</h4>
+              <h3 className="font-semibold text-foreground">Right to Correction</h3>
               <p className="text-muted-foreground text-sm">
                 Edit your resume content at any time through the Edit page
               </p>
@@ -315,7 +315,7 @@ const SECTIONS: { title: string; body: ReactNode }[] = [
               </svg>
             </div>
             <div>
-              <h4 className="font-semibold text-foreground">Right to Portability</h4>
+              <h3 className="font-semibold text-foreground">Right to Portability</h3>
               <p className="text-muted-foreground text-sm">Export your resume data (coming soon)</p>
             </div>
           </div>

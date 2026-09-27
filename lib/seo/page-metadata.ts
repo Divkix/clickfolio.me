@@ -14,7 +14,7 @@ export const HOME_OG_IMAGE = {
 const HOME_TITLE = `Free Resume Website Builder — ${siteConfig.fullName}`;
 
 const HOME_DESCRIPTION =
-  "Free resume website builder. Turn your PDF resume or LinkedIn into a personal portfolio website in 30 seconds — 12 templates, custom @handle URL, privacy controls. No signup to start.";
+  "Turn your PDF resume or LinkedIn into a portfolio website in 30 seconds — 12 free templates, a custom @handle URL, and privacy controls. No signup to start.";
 
 /**
  * Shared by `/` and every landing A/B variant route (ADR-0027) — variants are
@@ -22,7 +22,7 @@ const HOME_DESCRIPTION =
  */
 export const HOME_METADATA: Metadata = {
   title: {
-    absolute: `Free Resume Website Builder — Turn Your PDF Into a Site | ${siteConfig.fullName}`,
+    absolute: `Free Resume Website Builder — PDF to Website | ${siteConfig.fullName}`,
   },
   description: HOME_DESCRIPTION,
   alternates: { canonical: siteConfig.url },
@@ -41,6 +41,47 @@ export const HOME_METADATA: Metadata = {
     images: [HOME_OG_IMAGE.url],
   },
 };
+
+/** Search results truncate titles past ~60 chars; see `fitTitle`. */
+export const MAX_TITLE_LENGTH = 60;
+
+const TITLE_SUFFIX = ` | ${siteConfig.fullName}`;
+
+/**
+ * The `<title>` text for `title`: the root layout template appends ` | clickfolio.me`, kept only
+ * when the result still fits in `MAX_TITLE_LENGTH` so the page's own words aren't cut off.
+ */
+export function titleTag(title: string): string {
+  const branded = `${title}${TITLE_SUFFIX}`;
+
+  return branded.length <= MAX_TITLE_LENGTH ? branded : title;
+}
+
+/** Metadata `title` that renders as `titleTag(title)`. */
+export function fitTitle(title: string): NonNullable<Metadata["title"]> {
+  return titleTag(title) === title ? { absolute: title } : title;
+}
+
+/**
+ * `/@handle` title: `Name — headline`, keeping only the headline's first `|`/`·`/`•` segment
+ * (headlines are often keyword lists) and cutting on a word boundary past `MAX_TITLE_LENGTH`.
+ */
+export function buildProfileTitle(fullName: string, headline?: string | null): string {
+  const lead = headline?.split(/\s+[|·•]\s+/)[0]?.trim();
+  const title = lead ? `${fullName} — ${lead}` : fullName;
+
+  if (title.length <= MAX_TITLE_LENGTH) return title;
+
+  if (fullName.length >= MAX_TITLE_LENGTH) return `${fullName.slice(0, MAX_TITLE_LENGTH - 1)}…`;
+
+  const cut = title.slice(0, MAX_TITLE_LENGTH - 1);
+  const wordEnd = cut.lastIndexOf(" ");
+
+  // No whole headline word fits after "Name — ".
+  if (wordEnd <= fullName.length + 3) return fullName;
+
+  return `${cut.slice(0, wordEnd).replace(/[\s,;:&|·•—-]+$/, "")}…`;
+}
 
 function canonicalUrl(path: string): string {
   if (path === "/" || path === "") {
@@ -63,7 +104,7 @@ export function buildPublicPageMetadata(params: {
   const ogType = params.ogType ?? "website";
 
   return {
-    title,
+    title: fitTitle(title),
     description,
     alternates: { canonical: url },
     openGraph: {

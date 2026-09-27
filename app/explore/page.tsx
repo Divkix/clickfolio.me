@@ -167,6 +167,9 @@ export default async function ExplorePage({
 
         <ExploreFilters roleFilter={roleFilter} roleOptions={roleOptions} totalCount={totalCount} />
 
+        {/* Cards are h3; this keeps the outline h1 → h2 → h3. */}
+        <h2 className="sr-only">Professionals</h2>
+
         {directoryUsers.length === 0 ? (
           <NoResults roleFilter={roleFilter} />
         ) : (

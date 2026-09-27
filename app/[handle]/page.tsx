@@ -9,6 +9,7 @@ import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { siteConfig } from "@/lib/config/site";
 import { getRelatedProfiles, getResumeData, getResumeMetadata } from "@/lib/data/resume";
 import { isValidHandleFormat } from "@/lib/rate-limit/handle-validation";
+import { buildProfileTitle, fitTitle } from "@/lib/seo/page-metadata";
 import { flattenSkills } from "@/lib/templates/helpers";
 import { DEFAULT_THEME, type ThemeId, themeToShareVariant } from "@/lib/templates/theme-ids";
 import { getTemplate } from "@/lib/templates/theme-registry";
@@ -65,13 +66,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const assembled = descParts.join(" ");
   const description = assembled.length > 157 ? `${assembled.slice(0, 157)}...` : assembled;
 
+  const pageTitle = buildProfileTitle(full_name, headline);
   const profileUrl = `${siteConfig.url}/@${handle}`;
   const nameParts = full_name.split(" ");
   const firstName = nameParts[0] ?? full_name;
   const lastName = nameParts.slice(1).join(" ") || undefined;
 
   return {
-    title: `${full_name}${headline ? ` — ${headline}` : ""}`,
+    title: fitTitle(pageTitle),
     description,
     alternates: {
       canonical: profileUrl,
@@ -83,7 +85,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       },
     }),
     openGraph: {
-      title: `${full_name}${headline ? ` — ${headline}` : ""}`,
+      title: pageTitle,
       description,
       type: "profile",
       url: profileUrl,
@@ -107,7 +109,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     },
     twitter: {
       card: "summary_large_image",
-      title: `${full_name}${headline ? ` — ${headline}` : ""}`,
+      title: pageTitle,
       description,
       images: [`${siteConfig.url}/api/og/${handle}`],
     },

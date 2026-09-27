@@ -20,7 +20,7 @@ const blogHeading = "Writing about resume websites";
 const blogTitle = `Resume Website & Portfolio Guides | ${siteConfig.fullName}`;
 
 const blogDescription =
-  "Guides, comparisons, and tips on building a resume website and online portfolio. Compare builders, see examples, and learn how to turn your PDF resume into a site.";
+  "Guides and comparisons for building a resume website and online portfolio. Compare builders, see examples, and turn your PDF resume into a site.";
 
 export const metadata: Metadata = buildPublicPageMetadata({
   title: "Resume Website & Portfolio Guides",

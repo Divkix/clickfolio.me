@@ -15,7 +15,7 @@ export const revalidate = 86400;
 const title = "Resume Website for Marketers";
 
 const description =
-  "Create a standout marketing portfolio website from your PDF resume. Highlight campaign metrics, brands you've worked with, and results — free, with 12 templates.";
+  "Create a marketing portfolio website from your PDF resume. Highlight campaign metrics, brands you've worked with, and results — free, with 12 templates.";
 
 const path = "/for/marketer";
 

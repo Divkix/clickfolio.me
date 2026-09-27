@@ -139,6 +139,7 @@ export async function generateSitemapEntries(id: number): Promise<MetadataRoute.
         const countRows = await tx
           .select({ count: sql<number>`count(*)` })
           .from(user)
+          .innerJoin(siteData, sql`${siteData.userId} = ${user.id}`)
           .where(and(isNotNull(user.handle), notHiddenFromSearch));
 
         if (id >= getSitemapShardCount(countRows[0]?.count ?? 0)) return null;
@@ -152,7 +153,8 @@ export async function generateSitemapEntries(id: number): Promise<MetadataRoute.
               lastPublishedAt: siteData.lastPublishedAt,
             })
             .from(user)
-            .leftJoin(siteData, sql`${siteData.userId} = ${user.id}`)
+            // Inner join: a handle without site_data has no portfolio, so /@handle 404s.
+            .innerJoin(siteData, sql`${siteData.userId} = ${user.id}`)
             .where(and(isNotNull(user.handle), notHiddenFromSearch))
             // id breaks handle ties so shard boundaries stay stable.
             .orderBy(user.handle, user.id)
@@ -193,6 +195,7 @@ export async function getTotalIndexableUserCount(): Promise<number> {
   const result = await db
     .select({ count: sql<number>`count(*)` })
     .from(user)
+    .innerJoin(siteData, sql`${siteData.userId} = ${user.id}`)
     .where(and(isNotNull(user.handle), notHiddenFromSearch));
 
   return result[0]?.count ?? 0;
