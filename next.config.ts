@@ -31,17 +31,6 @@ const nextConfig: NextConfig = {
       },
     ];
   },
-  async redirects() {
-    return [
-      {
-        source:
-          "/:handle((?!@|(?:api|_next|admin|about|blog|contact|dashboard|edit|explore|faq|settings|themes|waiting|wizard|privacy|terms|preview|sitemap|for|ws|robots\\.txt|manifest\\.webmanifest|favicon\\.ico)(?![a-z0-9-]))[a-z0-9][a-z0-9-]*[a-z0-9]|[a-z0-9])",
-        destination: "/@:handle",
-        permanent: true,
-      },
-    ];
-  },
-
   async headers() {
     return [
       {

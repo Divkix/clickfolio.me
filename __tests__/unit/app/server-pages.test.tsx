@@ -62,6 +62,9 @@ const mocks = vi.hoisted(() => {
     redirect: vi.fn((url: string) => {
       throw new Error(`redirect:${url}`);
     }),
+    permanentRedirect: vi.fn((url: string) => {
+      throw new Error(`permanentRedirect:${url}`);
+    }),
     notFound: vi.fn(() => {
       throw new Error("notFound");
     }),
@@ -80,6 +83,7 @@ vi.mock("cloudflare:workers", () => ({ env: mocks.env }));
 vi.mock("next/navigation", () => ({
   redirect: mocks.redirect,
   notFound: mocks.notFound,
+  permanentRedirect: mocks.permanentRedirect,
   usePathname: () => "/dashboard",
   useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn() }),
 }));
@@ -514,6 +518,9 @@ describe("server rendered app pages", () => {
 
     await expect(
       handlePage.default({ params: Promise.resolve({ handle: "avery" }) }),
+    ).rejects.toThrow("permanentRedirect:/@avery");
+    await expect(
+      handlePage.default({ params: Promise.resolve({ handle: "api" }) }),
     ).rejects.toThrow("notFound");
 
     const { default: PreviewPage } = await import("@/app/preview/[id]/page");

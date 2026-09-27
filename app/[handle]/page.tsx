@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { AttributionWidget } from "@/components/AttributionWidget";
 import { OwnerDetector } from "@/components/analytics/OwnerDetector";
 import { CreateYoursCTA } from "@/components/CreateYoursCTA";
@@ -119,7 +119,11 @@ export default async function HandlePage({ params }: PageProps) {
 
   const rawHandle = decodeURIComponent(rawHandleEncoded);
 
+  // `/handle` → `/@handle` (308). Lives here, not in next.config redirects(): vinext rejects that
+  // lookahead regex as a ReDoS risk and silently drops the rule. Static routes (/blog, /about…)
+  // match before this dynamic segment, and isValidHandleFormat rejects reserved words and dots.
   if (!rawHandle.startsWith("@")) {
+    if (isValidHandleFormat(rawHandle)) permanentRedirect(`/@${rawHandle}`);
     notFound();
   }
 
