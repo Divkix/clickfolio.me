@@ -6,6 +6,7 @@ import { BLOG_POSTS } from "@/lib/blog/posts";
 import { PROFESSIONS } from "@/lib/config/professions";
 import { getDb } from "@/lib/db";
 import { siteData, user } from "@/lib/db/schema";
+import { getStaticLastmod } from "@/lib/seo/lastmod";
 import { getPublicSiteUrl } from "@/lib/utils/site-url";
 import { escapeXml } from "@/lib/utils/xml";
 
@@ -67,8 +68,9 @@ function parseTimestamp(value: string | Date | null | undefined): Date | null {
 }
 
 /**
- * Static entries with deterministic lastmods. `/explore` lists portfolios, so it moves with the
- * newest publish when the DB supplied one; otherwise it falls back to the newest blog date.
+ * Static entries with deterministic lastmods: page dates come from lastmod.json (bumped by the
+ * pre-commit hook). `/explore` lists portfolios, so it moves with the newest publish when the DB
+ * supplied one; otherwise it falls back to the newest blog date.
  */
 function buildStaticSitemapEntries(
   baseUrl: string,
@@ -79,19 +81,19 @@ function buildStaticSitemapEntries(
   const entries: MetadataRoute.Sitemap = [
     {
       url: baseUrl,
-      lastModified: new Date("2026-09-25"),
+      lastModified: getStaticLastmod("/"),
       changeFrequency: "daily",
       priority: 1.0,
     },
     {
       url: `${baseUrl}/privacy`,
-      lastModified: new Date("2026-02-01"),
+      lastModified: getStaticLastmod("/privacy"),
       changeFrequency: "yearly",
       priority: 0.3,
     },
     {
       url: `${baseUrl}/terms`,
-      lastModified: new Date("2025-12-01"),
+      lastModified: getStaticLastmod("/terms"),
       changeFrequency: "yearly",
       priority: 0.3,
     },
@@ -109,19 +111,19 @@ function buildStaticSitemapEntries(
     },
     {
       url: `${baseUrl}/about`,
-      lastModified: new Date("2026-04-01"),
+      lastModified: getStaticLastmod("/about"),
       changeFrequency: "monthly",
       priority: 0.5,
     },
     {
       url: `${baseUrl}/faq`,
-      lastModified: new Date("2026-04-01"),
+      lastModified: getStaticLastmod("/faq"),
       changeFrequency: "monthly",
       priority: 0.6,
     },
     {
       url: `${baseUrl}/contact`,
-      lastModified: new Date("2026-09-19"),
+      lastModified: getStaticLastmod("/contact"),
       changeFrequency: "yearly",
       priority: 0.5,
     },
@@ -130,7 +132,7 @@ function buildStaticSitemapEntries(
   for (const profession of PROFESSIONS) {
     entries.push({
       url: `${baseUrl}/for/${profession.slug}`,
-      lastModified: new Date("2026-04-01"),
+      lastModified: getStaticLastmod(`/for/${profession.slug}`),
       changeFrequency: "monthly",
       priority: 0.7,
     });
