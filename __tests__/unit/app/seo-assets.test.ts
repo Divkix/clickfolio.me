@@ -107,6 +107,22 @@ describe("production SEO and AI discovery assets", () => {
     expect(await response.text()).toBe(buildLlmsFullTxt());
   });
 
+  it("keeps the hand-written pricing.md facts in sync with their constants", () => {
+    // No /pricing page exists (it would redirect to /@pricing), so the static file is the only
+    // pricing representation and cannot be replaced by an auto-generated .md twin.
+    const pricing = readFileSync(join(root, "public", "pricing.md"), "utf8");
+
+    expect(pricing).toContain(`(up to ${MAX_FILE_SIZE_MB} MB)`);
+    expect(pricing).toContain(`All ${THEME_IDS.length} templates`);
+    expect(pricing).toContain(
+      `up to ${RATE_LIMITS.handle_change.limit} handle changes per ${RATE_LIMITS.handle_change.windowHours} hours`,
+    );
+    expect(pricing).toContain(
+      `${RATE_LIMITS.resume_upload.limit} resume uploads per ${RATE_LIMITS.resume_upload.windowHours} hours`,
+    );
+    expect(existsSync(join(root, "app", "pricing"))).toBe(false);
+  });
+
   it("uses an existing public logo asset in homepage Organization JSON-LD", () => {
     const jsonLdSource = readFileSync(join(root, "lib", "seo", "json-ld.ts"), "utf8");
     const logoMatch = jsonLdSource.match(/logo:\s*`\$\{siteConfig\.url\}\/([^`]+)`/);
