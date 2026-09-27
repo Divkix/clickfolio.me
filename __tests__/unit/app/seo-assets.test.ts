@@ -2,6 +2,10 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vite-plus/test";
 import { BLOG_POSTS } from "@/lib/blog/posts";
+import { PROFESSIONS } from "@/lib/config/professions";
+import { buildLlmsFullTxt } from "@/lib/seo/llms";
+import { STATIC_PAGES } from "@/lib/seo/static-pages";
+import { THEME_IDS, THEME_METADATA } from "@/lib/templates/theme-ids";
 
 const root = process.cwd();
 
@@ -33,24 +37,41 @@ describe("production SEO and AI discovery assets", () => {
     }
   });
 
-  it("keeps llms-full.txt complete for blog and profession landing pages", () => {
-    const full = readPublicFile("llms-full.txt");
+  it("generates llms-full.txt with every blog post, profession, static page, and template", () => {
+    const full = buildLlmsFullTxt();
 
     for (const post of BLOG_POSTS) {
       expect(full).toContain(`https://clickfolio.me/blog/${post.slug}`);
       expect(full).toContain(post.title);
     }
 
-    for (const path of [
-      "/for/software-engineer",
-      "/for/designer",
-      "/for/marketer",
-      "/for/student",
-      "/for/consultant",
-      "/for/product-manager",
-    ]) {
-      expect(full).toContain(`https://clickfolio.me${path}`);
+    for (const profession of PROFESSIONS) {
+      expect(full).toContain(`https://clickfolio.me/for/${profession.slug}`);
     }
+
+    for (const page of STATIC_PAGES) {
+      expect(full).toContain(
+        `${page.label}: https://clickfolio.me${page.path === "/" ? "" : page.path}`,
+      );
+    }
+
+    for (const id of THEME_IDS) {
+      expect(full).toContain(`**${THEME_METADATA[id].name}**`);
+    }
+
+    expect(full).toContain(`## All ${THEME_IDS.length} Templates`);
+    expect(full).not.toMatch(/Cloudflare Queues|Email Service/);
+  });
+
+  it("serves llms-full.txt from a route handler, not a shadowing static file", async () => {
+    expect(existsSync(join(root, "public", "llms-full.txt"))).toBe(false);
+
+    const { GET } = await import("@/app/llms-full.txt/route");
+    const response = GET();
+
+    expect(response.headers.get("content-type")).toBe("text/plain; charset=utf-8");
+    expect(response.headers.get("cache-control")).toContain("max-age=3600");
+    expect(await response.text()).toBe(buildLlmsFullTxt());
   });
 
   it("uses an existing public logo asset in homepage Organization JSON-LD", () => {
