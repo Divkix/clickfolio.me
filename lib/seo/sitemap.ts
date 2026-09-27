@@ -7,6 +7,7 @@ import { PROFESSIONS } from "@/lib/config/professions";
 import { getDb } from "@/lib/db";
 import { siteData, user } from "@/lib/db/schema";
 import { getStaticLastmod } from "@/lib/seo/lastmod";
+import { STATIC_PAGES } from "@/lib/seo/static-pages";
 import { getPublicSiteUrl } from "@/lib/utils/site-url";
 import { escapeXml } from "@/lib/utils/xml";
 
@@ -19,10 +20,8 @@ const notHiddenFromSearch = or(
 
 export const URLS_PER_SITEMAP = 50000;
 
-const BASE_STATIC_SITEMAP_ENTRY_COUNT = 8;
-
 export const STATIC_SITEMAP_ENTRY_COUNT =
-  BASE_STATIC_SITEMAP_ENTRY_COUNT + PROFESSIONS.length + BLOG_POSTS.length;
+  STATIC_PAGES.length + PROFESSIONS.length + BLOG_POSTS.length;
 
 export function getSitemapShardCount(indexableUserCount: number): number {
   const safeUserCount = Math.max(0, indexableUserCount);
@@ -78,56 +77,17 @@ function buildStaticSitemapEntries(
 ): MetadataRoute.Sitemap {
   const newestBlogPost = getNewestBlogPostDate();
 
-  const entries: MetadataRoute.Sitemap = [
-    {
-      url: baseUrl,
-      lastModified: getStaticLastmod("/"),
-      changeFrequency: "daily",
-      priority: 1.0,
-    },
-    {
-      url: `${baseUrl}/privacy`,
-      lastModified: getStaticLastmod("/privacy"),
-      changeFrequency: "yearly",
-      priority: 0.3,
-    },
-    {
-      url: `${baseUrl}/terms`,
-      lastModified: getStaticLastmod("/terms"),
-      changeFrequency: "yearly",
-      priority: 0.3,
-    },
-    {
-      url: `${baseUrl}/explore`,
-      lastModified: newestPortfolioPublish ?? newestBlogPost,
-      changeFrequency: "daily",
-      priority: 0.9,
-    },
-    {
-      url: `${baseUrl}/blog`,
-      lastModified: newestBlogPost,
-      changeFrequency: "weekly",
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/about`,
-      lastModified: getStaticLastmod("/about"),
-      changeFrequency: "monthly",
-      priority: 0.5,
-    },
-    {
-      url: `${baseUrl}/faq`,
-      lastModified: getStaticLastmod("/faq"),
-      changeFrequency: "monthly",
-      priority: 0.6,
-    },
-    {
-      url: `${baseUrl}/contact`,
-      lastModified: getStaticLastmod("/contact"),
-      changeFrequency: "yearly",
-      priority: 0.5,
-    },
-  ];
+  const entries: MetadataRoute.Sitemap = STATIC_PAGES.map((page) => ({
+    url: page.path === "/" ? baseUrl : `${baseUrl}${page.path}`,
+    lastModified:
+      page.path === "/explore"
+        ? (newestPortfolioPublish ?? newestBlogPost)
+        : page.path === "/blog"
+          ? newestBlogPost
+          : getStaticLastmod(page.path),
+    changeFrequency: page.changeFrequency,
+    priority: page.priority,
+  }));
 
   for (const profession of PROFESSIONS) {
     entries.push({
