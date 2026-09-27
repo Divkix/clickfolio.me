@@ -44,11 +44,42 @@ function getUserShardWindow(id: number): UserShardWindow {
   };
 }
 
-function buildStaticSitemapEntries(baseUrl: string): MetadataRoute.Sitemap {
+/** Newest `dateModified ?? date` across BLOG_POSTS: the /blog index changes when a post does. */
+export function getNewestBlogPostDate(): Date {
+  const newest = BLOG_POSTS.reduce(
+    (latest, post) => {
+      const postDate = post.dateModified ?? post.date;
+
+      return postDate > latest ? postDate : latest;
+    },
+    BLOG_POSTS[0]?.dateModified ?? BLOG_POSTS[0]?.date ?? "1970-01-01",
+  );
+
+  return new Date(newest);
+}
+
+function parseTimestamp(value: string | Date | null | undefined): Date | null {
+  if (!value) return null;
+
+  const date = new Date(value);
+
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+/**
+ * Static entries with deterministic lastmods. `/explore` lists portfolios, so it moves with the
+ * newest publish when the DB supplied one; otherwise it falls back to the newest blog date.
+ */
+function buildStaticSitemapEntries(
+  baseUrl: string,
+  newestPortfolioPublish: Date | null,
+): MetadataRoute.Sitemap {
+  const newestBlogPost = getNewestBlogPostDate();
+
   const entries: MetadataRoute.Sitemap = [
     {
       url: baseUrl,
-      lastModified: new Date(),
+      lastModified: new Date("2026-09-25"),
       changeFrequency: "daily",
       priority: 1.0,
     },
@@ -66,13 +97,13 @@ function buildStaticSitemapEntries(baseUrl: string): MetadataRoute.Sitemap {
     },
     {
       url: `${baseUrl}/explore`,
-      lastModified: new Date(),
+      lastModified: newestPortfolioPublish ?? newestBlogPost,
       changeFrequency: "daily",
       priority: 0.9,
     },
     {
       url: `${baseUrl}/blog`,
-      lastModified: new Date(),
+      lastModified: newestBlogPost,
       changeFrequency: "weekly",
       priority: 0.8,
     },
@@ -123,11 +154,8 @@ export async function generateSitemapEntries(id: number): Promise<MetadataRoute.
   }
 
   const baseUrl = getPublicSiteUrl();
-  const entries: MetadataRoute.Sitemap = [];
-
-  if (id === 0) {
-    entries.push(...buildStaticSitemapEntries(baseUrl));
-  }
+  const userEntries: MetadataRoute.Sitemap = [];
+  let newestPortfolioPublish: Date | null = null;
 
   try {
     const db = getDb(env.HYPERDRIVE);
@@ -136,11 +164,17 @@ export async function generateSitemapEntries(id: number): Promise<MetadataRoute.
     const users = await db.transaction(
       async (tx) => {
         // Shard range and shard rows come from one snapshot so a shard never serves another state's rows.
+        // max() rides the count scan so /explore's lastmod costs no extra query.
         const countRows = await tx
-          .select({ count: sql<number>`count(*)` })
+          .select({
+            count: sql<number>`count(*)`,
+            newestPublishedAt: sql<string | null>`max(${siteData.lastPublishedAt})`,
+          })
           .from(user)
           .innerJoin(siteData, sql`${siteData.userId} = ${user.id}`)
           .where(and(isNotNull(user.handle), notHiddenFromSearch));
+
+        newestPortfolioPublish = parseTimestamp(countRows[0]?.newestPublishedAt);
 
         if (id >= getSitemapShardCount(countRows[0]?.count ?? 0)) return null;
 
@@ -175,7 +209,7 @@ export async function generateSitemapEntries(id: number): Promise<MetadataRoute.
       const publishDate = entry.lastPublishedAt ? new Date(entry.lastPublishedAt) : null;
       const isRecent = publishDate && Date.now() - publishDate.getTime() < 7 * 24 * 60 * 60 * 1000;
 
-      entries.push({
+      userEntries.push({
         url: `${baseUrl}/@${entry.handle}`,
         lastModified: lastModified ? new Date(lastModified) : new Date(),
         changeFrequency: isRecent ? "daily" : "weekly",
@@ -186,7 +220,9 @@ export async function generateSitemapEntries(id: number): Promise<MetadataRoute.
     console.error(`Failed to generate sitemap ${id}:`, error);
   }
 
-  return entries;
+  if (id !== 0) return userEntries;
+
+  return [...buildStaticSitemapEntries(baseUrl, newestPortfolioPublish), ...userEntries];
 }
 
 export async function getTotalIndexableUserCount(): Promise<number> {

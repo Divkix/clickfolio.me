@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import { BLOG_POSTS } from "@/lib/blog/posts";
 import type { JsonValue } from "@/lib/types/json";
 
 let mockSelectRows: JsonValue[] = [];
@@ -83,6 +84,7 @@ vi.mock("cloudflare:workers", () => ({
 
 import {
   generateSitemapEntries,
+  getNewestBlogPostDate,
   getSitemapShardCount,
   getTotalIndexableUserCount,
   STATIC_SITEMAP_ENTRY_COUNT,
@@ -160,6 +162,36 @@ describe("generateSitemapEntries", () => {
     );
 
     expect(exploreEntry?.priority).toBe(0.9);
+  });
+
+  it("gives static pages deterministic lastmods, never the request time", async () => {
+    const first = (await generateSitemapEntries(0)) ?? [];
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    const second = (await generateSitemapEntries(0)) ?? [];
+
+    const lastmods = (entries: MetadataRoute.Sitemap) =>
+      entries.map((e) => [e.url, new Date(e.lastModified ?? 0).toISOString()]);
+
+    expect(lastmods(second)).toEqual(lastmods(first));
+  });
+
+  it("dates /blog by its newest post and /explore by the newest portfolio publish", async () => {
+    mockCountRows = [{ count: 3, newestPublishedAt: "2026-09-20 08:30:00+00" }];
+
+    const entries = (await generateSitemapEntries(0)) ?? [];
+    const byUrl = (url: string) => entries.find((e) => e.url === url)?.lastModified;
+
+    expect(byUrl("https://example.com/blog")).toEqual(getNewestBlogPostDate());
+    expect(byUrl("https://example.com/explore")).toEqual(new Date("2026-09-20T08:30:00Z"));
+  });
+
+  it("falls back to the newest blog date for /explore when no portfolio is published", async () => {
+    mockCountRows = [{ count: 0, newestPublishedAt: null }];
+
+    const entries = (await generateSitemapEntries(0)) ?? [];
+    const explore = entries.find((e) => e.url === "https://example.com/explore");
+
+    expect(explore?.lastModified).toEqual(getNewestBlogPostDate());
   });
 
   it("maps DB user rows to sitemap entries with /@handle URLs", async () => {
@@ -349,6 +381,16 @@ describe("generateSitemapEntries", () => {
     mockSelectRows = [{ count: 5 }];
     const count = await getTotalIndexableUserCount();
     expect(count).toBe(5);
+  });
+});
+
+describe("getNewestBlogPostDate", () => {
+  it("returns the newest dateModified ?? date across BLOG_POSTS", () => {
+    const newest = BLOG_POSTS.map((post) => post.dateModified ?? post.date)
+      .sort()
+      .at(-1);
+
+    expect(getNewestBlogPostDate()).toEqual(new Date(newest ?? ""));
   });
 });
 
