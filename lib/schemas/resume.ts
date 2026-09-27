@@ -1,11 +1,5 @@
 import { z } from "zod";
-import {
-  noXssPattern,
-  sanitizeEmail,
-  sanitizePhone,
-  sanitizeText,
-  sanitizeUrl,
-} from "@/lib/utils/sanitization";
+import { noXssPattern, sanitizeEmail, sanitizePhone, sanitizeUrl } from "@/lib/utils/sanitization";
 
 const LENIENT_EMAIL_REGEX = /^[^\s@]+@[^\s@]+$/;
 
@@ -50,7 +44,6 @@ const createContactSchema = (emailField: "lenient" | "strict") =>
       .trim()
       .max(255, "Location is too long")
       .refine(noXssPattern, { message: "Invalid content detected" })
-      .transform(sanitizeText)
       .optional()
       .or(z.literal(""))
       .describe("City, State format preferred"),
