@@ -15,7 +15,7 @@ export const revalidate = 86400;
 const title = "Resume Website for Software Engineers";
 
 const description =
-  "Showcase your code, projects, and experience with a free resume website. 12 templates including DevTerminal, GitHub & LinkedIn integration, and AI-powered PDF parsing.";
+  "Showcase your code, projects, and experience with a free resume website. 12 templates including DevTerminal, GitHub & LinkedIn links, and AI PDF parsing.";
 
 const path = "/for/software-engineer";
 

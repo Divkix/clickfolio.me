@@ -10,6 +10,8 @@ export interface BlogPostFaq {
 export interface BlogPostMeta {
   slug: string;
   title: string;
+  /** Shorter `<title>` when `title` (the H1) exceeds `MAX_TITLE_LENGTH`. */
+  metaTitle?: string;
   description: string;
   date: string;
   dateModified?: string;
@@ -23,6 +25,7 @@ export const BLOG_POSTS: BlogPostMeta[] = [
   {
     slug: "read-cv-alternatives",
     title: "Read.cv Alternatives: Where to Move Your Profile After the Shutdown (2026)",
+    metaTitle: "Read.cv Alternatives After the Shutdown (2026)",
     description:
       "Read.cv was acquired by Perplexity and wound down in 2025. Here's where to move your professional profile and resume website now — with free options.",
     date: "2026-06-09",
@@ -178,6 +181,7 @@ export const BLOG_POSTS: BlogPostMeta[] = [
   {
     slug: "resume-hosting",
     title: "Resume Hosting: How to Put Your Resume Online With a Shareable Link (2026)",
+    metaTitle: "Resume Hosting: Put Your Resume Online (2026)",
     description:
       "Stop emailing PDF attachments. Learn how to host your resume online, get one shareable link, track views, and control privacy — free.",
     date: "2026-05-05",
@@ -240,6 +244,7 @@ export const BLOG_POSTS: BlogPostMeta[] = [
   {
     slug: "student-resume-website",
     title: "How to Make a Student Resume Website With No Experience (2026)",
+    metaTitle: "Student Resume Website With No Experience (2026)",
     description:
       "No job history? No problem. Learn how students can build a free resume website using projects, coursework, and activities — and stand out for internships.",
     date: "2026-04-22",
@@ -640,7 +645,7 @@ export function getPostBySlug(slug: string): BlogPostMeta | undefined {
 export function buildBlogPostMetadata(post: BlogPostMeta): Metadata {
   return {
     ...buildPublicPageMetadata({
-      title: post.title,
+      title: post.metaTitle ?? post.title,
       ogTitle: `${post.title} | ${siteConfig.fullName}`,
       description: post.description,
       path: `/blog/${post.slug}`,

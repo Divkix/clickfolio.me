@@ -23,7 +23,7 @@ const contactTitle = "Contact & support";
 /** OG/Twitter skip the HTML title template, so they keep the brand. */
 const contactOgTitle = `Contact ${siteConfig.fullName} — support, bug reports, and page removal`;
 
-const contactDescription = `Reach the ${siteConfig.fullName} team: email ${siteConfig.supportEmail}, file a bug report on GitHub, learn what to include in a report, and request removal of a portfolio page.`;
+const contactDescription = `Reach the ${siteConfig.fullName} team: email ${siteConfig.supportEmail}, file a bug report on GitHub, or request removal of a portfolio page.`;
 
 export const metadata: Metadata = buildPublicPageMetadata({
   title: contactTitle,
