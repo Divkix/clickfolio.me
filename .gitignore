@@ -63,3 +63,11 @@ d1-backup-*.sql
 !tools/oxlint/anti-slop/vendor/
 !tools/oxlint/anti-slop/vendor/**
 .vitest/
+
+# design-sync (claude.ai/design) - staged converter, build output, machine state
+.ds-sync/
+ds-bundle/
+.design-sync/.cache/
+.design-sync/learnings/
+.design-sync/node_modules
+.design-sync/pkg/dist/

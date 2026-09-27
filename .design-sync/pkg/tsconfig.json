@@ -1,0 +1,16 @@
+{
+  // Design-sync bundle resolution. Exact shims first (framework/auth seams the
+  // components import but that can't run outside the Next/Clerk app), then the
+  // repo's own "@/*" alias.
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "next/link": ["./shims/next-link.tsx"],
+      "next/navigation": ["./shims/next-navigation.ts"],
+      "@/lib/auth/client": ["./shims/auth-client.tsx"],
+      "@/lib/analytics/client": ["./shims/analytics-client.ts"],
+      "@/components/icons/BrandIcons": ["./shims/brand-icons.tsx"],
+      "@/*": ["../../*"]
+    }
+  }
+}

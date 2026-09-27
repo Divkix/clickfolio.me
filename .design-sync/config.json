@@ -1,0 +1,131 @@
+{
+  "projectId": "49fe7e77-1fea-43fa-8991-4ac1a04f8259",
+  "shape": "package",
+  "pkg": "@clickfolio/ui",
+  "globalName": "Clickfolio",
+  "entry": ".design-sync/pkg/index.ts",
+  "buildCmd": "node .design-sync/build-css.mjs",
+  "srcDir": "../../components",
+  "tsconfig": "tsconfig.json",
+  "cssEntry": "dist/ds.css",
+  "extraFonts": [
+    "../../node_modules/@fontsource-variable/hanken-grotesk/index.css",
+    "../../node_modules/@fontsource-variable/bricolage-grotesque/index.css",
+    "../../node_modules/@fontsource-variable/jetbrains-mono/index.css"
+  ],
+  "provider": {
+    "component": "ThemeProvider",
+    "props": {
+      "attribute": "class",
+      "defaultTheme": "light",
+      "enableSystem": false
+    }
+  },
+  "overrides": {
+    "Dialog": {
+      "cardMode": "single",
+      "viewport": "640x420"
+    },
+    "Icons": {
+      "cardMode": "column"
+    },
+    "DialogContent": {
+      "cardMode": "single",
+      "viewport": "640x420"
+    },
+    "DialogHeader": {
+      "cardMode": "single",
+      "viewport": "640x420"
+    },
+    "DialogTitle": {
+      "cardMode": "single",
+      "viewport": "640x420"
+    },
+    "DialogDescription": {
+      "cardMode": "single",
+      "viewport": "640x420"
+    },
+    "DialogTrigger": {
+      "cardMode": "single",
+      "viewport": "640x420"
+    },
+    "YouAreLiveModal": {
+      "cardMode": "single",
+      "viewport": "720x640"
+    },
+    "SharePopover": {
+      "cardMode": "single",
+      "viewport": "520x480"
+    },
+    "AttributionWidget": {
+      "cardMode": "single",
+      "viewport": "720x360"
+    },
+    "Toaster": {
+      "cardMode": "single",
+      "viewport": "640x320"
+    },
+    "LinkedInExportHelp": {
+      "cardMode": "single",
+      "viewport": "720x640"
+    },
+    "SiteHeader": {
+      "cardMode": "column"
+    },
+    "Footer": {
+      "cardMode": "column"
+    },
+    "ComparisonTable": {
+      "cardMode": "column"
+    },
+    "ExploreHeader": {
+      "cardMode": "column"
+    },
+    "ShareBar": {
+      "cardMode": "column"
+    },
+    "HorizontalBarChart": {
+      "cardMode": "column"
+    },
+    "ResumeStatusBadge": {
+      "cardMode": "column"
+    },
+    "StatCard": {
+      "cardMode": "column"
+    },
+    "UserStatusBadge": {
+      "cardMode": "column"
+    },
+    "CopyLinkButton": {
+      "cardMode": "column"
+    },
+    "NoResults": {
+      "cardMode": "column"
+    },
+    "PersonCard": {
+      "cardMode": "column"
+    },
+    "FormSectionCard": {
+      "cardMode": "column"
+    },
+    "WizardProgress": {
+      "cardMode": "column"
+    }
+  },
+  "readmeHeader": ".design-sync/conventions.md",
+  "dtsPropsFor": {
+    "CommaArrayInput": "  value: string[] | undefined;\n  onChange: (value: string[]) => void;\n  onBlur?: () => void;\n  placeholder?: string;",
+    "FileDropzone": "  /** Controlled modal mode: renders the dropzone inside a Dialog. Omit for the inline dropzone. */\n  open?: boolean;\n  onOpenChange?: (open: boolean) => void;",
+    "SharePopover": "  url?: string;\n  handle?: string;\n  title: string;\n  name: string;\n  className?: string;\n  /** Trigger styling matched to the portfolio template (kebab-case theme id). */\n  variant?: \"minimalist-editorial\" | \"neo-brutalist\" | \"glass-morphic\" | \"bento-grid\" | \"spotlight\" | \"midnight\" | \"bold-corporate\" | \"classic-ats\" | \"design-folio\" | \"dev-terminal\" | \"case-file\" | \"retro-os\";",
+    "YouAreLiveModal": "  open: boolean;\n  onOpenChange: (open: boolean) => void;\n  handle: string;\n  url?: string;",
+    "Pagination": "  currentPage: number;\n  totalPages: number;\n  onPageChange: (page: number) => void;",
+    "HorizontalBarChart": "  items: { label: string; value: number; /** 0-100 bar width */ percent: number }[];\n  /** Bar fill utility, e.g. \"bg-chart-1\" */\n  colorClass?: string;",
+    "StatCard": "  title: string;\n  value: string | number;\n  /** A lucide icon component, e.g. Icons.Users */\n  icon: React.ComponentType<{ className?: string }>;\n  iconColorClass: string;\n  iconBgClass: string;\n  /** Percent change; positive renders green, negative red */\n  change?: number;\n  href?: string;",
+    "FormSectionCard": "  /** A lucide icon component, e.g. Icons.Briefcase */\n  icon: React.ComponentType<{ className?: string }>;\n  title: string;\n  description?: string;\n  children: React.ReactNode;",
+    "StatsGrid": "  stats: { value: string; label: string; /** 0-100, renders a progress bar */ percentage?: number }[];\n  columns?: 1 | 2;",
+    "PersonCard": "  person: {\n    handle: string;\n    role: string | null;\n    previewName: string | null;\n    previewHeadline: string | null;\n    previewLocation: string | null;\n    previewExpCount: number | null;\n    previewEduCount: number | null;\n    previewSkills: string[] | null;\n  };",
+    "Breadcrumb": "  items: { label: string; href: string }[];\n  /** Emit BreadcrumbList JSON-LD (default true) */\n  includeJsonLd?: boolean;",
+    "FaqAccordion": "  items: { q: string; a: string }[];\n  className?: string;",
+    "PostList": "  items: { lead: string; body: React.ReactNode }[];\n  ordered?: boolean;\n  className?: string;"
+  }
+}

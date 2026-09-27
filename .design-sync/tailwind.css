@@ -1,0 +1,41 @@
+/* Design-sync stylesheet: the app's real Tailwind 4 theme (app/globals.css) compiled
+   for Claude Design. Utilities come from (1) every class the synced components use,
+   (2) the authored previews, and (3) a safelist of token-backed families so the
+   design agent's own layout classes resolve without a Tailwind build step. */
+@import "../app/globals.css";
+
+@source "../components";
+@source "./previews";
+@source "./pkg";
+
+/* Semantic colour utilities (+ hover) */
+@source inline("{,hover:}{bg,text,border}-{background,foreground,card,card-foreground,popover,popover-foreground,primary,primary-foreground,secondary,secondary-foreground,muted,muted-foreground,accent,accent-foreground,destructive,destructive-foreground,success,success-foreground,warning,warning-foreground,info,info-foreground,border,border-strong,input,ring,surface-2,brand,brand-hover,brand-active,brand-subtle,brand-foreground,chart-1,chart-2,chart-3,chart-4,chart-5,sidebar,sidebar-foreground,sidebar-accent,sidebar-border,transparent,white,black}");
+@source inline("{bg,text,border}-{primary,brand,destructive,success,warning,info,foreground,muted-foreground,chart-1,chart-2,chart-3,chart-4,chart-5}/{5,10,15,20,30,40,50,60,70,80,90}");
+@source inline("{fill,stroke}-{foreground,brand,primary,muted-foreground,chart-1,chart-2,chart-3,chart-4,chart-5,current,none}");
+@source inline("{,focus-visible:}ring-{0,1,2,4} ring-offset-{0,1,2} {,focus-visible:}ring-{ring,brand,primary} ring-offset-background outline-none");
+@source inline("bg-gradient-to-{t,b,l,r,tr,tl,br,bl} {from,via,to}-{background,card,muted,brand,brand-subtle,primary,accent,surface-2,chart-1,chart-2,chart-3,chart-4,chart-5,transparent}");
+
+/* Layout */
+@source inline("{,sm:,md:,lg:,xl:}{block,inline-block,inline,flex,inline-flex,grid,hidden,contents}");
+@source inline("{,sm:,md:,lg:,xl:}flex-{row,col,wrap,row-reverse,col-reverse,1,none,auto} {,sm:,md:,lg:}{grow,shrink-0}");
+@source inline("{,sm:,md:,lg:,xl:}grid-cols-{1..12} {,sm:,md:,lg:}{col,row}-span-{1..12} col-span-full grid-rows-{1..6}");
+@source inline("{,sm:,md:,lg:}{items,self}-{start,center,end,stretch,baseline} {,sm:,md:,lg:}justify-{start,center,end,between,around,evenly} place-items-center content-center");
+@source inline("{,sm:,md:,lg:}{gap,gap-x,gap-y,space-x,space-y}-{0,0.5,1,1.5,2,2.5,3,4,5,6,8,10,12,16,20,24}");
+@source inline("{,sm:,md:,lg:}{p,px,py,pt,pb,pl,pr}-{0,0.5,1,1.5,2,2.5,3,4,5,6,8,10,12,16,20,24,32}");
+@source inline("{,sm:,md:,lg:}{m,mx,my,mt,mb,ml,mr}-{0,0.5,1,1.5,2,2.5,3,4,5,6,8,10,12,16,20,24,auto} -mt-{1,2,4,8}");
+@source inline("{,sm:,md:,lg:}{w,h,size}-{0,1,2,3,4,5,6,8,10,12,14,16,20,24,32,40,48,56,64,72,80,96,full,auto,fit,screen,px} min-h-{0,screen,full,dvh} min-w-0 max-h-{64,80,96,screen} h-dvh");
+@source inline("{,sm:,md:,lg:}{w}-{1/2,1/3,2/3,1/4,3/4,1/5,2/5,3/5,4/5}");
+@source inline("{,sm:,md:,lg:}max-w-{xs,sm,md,lg,xl,2xl,3xl,4xl,5xl,6xl,7xl,full,prose,none} mx-auto container");
+@source inline("{static,relative,absolute,fixed,sticky} {inset,top,right,bottom,left}-{0,1,2,4,6,8,1/2,full} inset-x-0 inset-y-0 -translate-{x,y}-1/2 z-{0,10,20,30,40,50} isolate");
+@source inline("overflow-{hidden,auto,visible,x-auto,y-auto} {truncate,text-ellipsis,whitespace-nowrap,break-words,line-clamp-1,line-clamp-2,line-clamp-3} aspect-{square,video}");
+
+/* Type */
+@source inline("{,sm:,md:,lg:,xl:}text-{xs,sm,base,lg,xl,2xl,3xl,4xl,5xl,6xl,7xl}");
+@source inline("font-{sans,display,mono} font-{light,normal,medium,semibold,bold,extrabold} {italic,not-italic,uppercase,lowercase,capitalize,normal-case,underline,no-underline,tabular-nums}");
+@source inline("{,sm:,md:}text-{left,center,right} leading-{none,tight,snug,normal,relaxed,loose} tracking-{tighter,tight,normal,wide,wider,widest} text-balance text-pretty");
+
+/* Surfaces */
+@source inline("rounded{,-none,-sm,-md,-lg,-xl,-2xl,-3xl,-full} rounded-{t,b,l,r}-{lg,xl,2xl} border{,-0,-2,-4,-t,-b,-l,-r,-x,-y} border-{solid,dashed,dotted} divide-{x,y} divide-border");
+@source inline("{,hover:}shadow-{none,2xs,xs,sm,md,lg,xl} {,hover:}opacity-{0,50,60,70,80,90,100} backdrop-blur{,-sm,-md,-lg,-xl}");
+@source inline("transition{,-all,-colors,-opacity,-transform,-shadow} duration-{150,200,300,500} ease-{in,out,in-out} {,hover:}{-translate-y-0.5,scale-105} cursor-{pointer,default,not-allowed} select-none pointer-events-none sr-only");
+@source inline("animate-{spin,pulse,bounce,fade-in-up} object-{cover,contain} list-{disc,decimal,none} list-inside");

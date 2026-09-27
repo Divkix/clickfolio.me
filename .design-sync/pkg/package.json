@@ -1,0 +1,9 @@
+{
+  "name": "@clickfolio/ui",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Design-sync barrel: the clickfolio.me UI kit (components/ui + shared app components), bundled for Claude Design.",
+  "type": "module",
+  "module": "index.ts",
+  "types": "index.ts"
+}
