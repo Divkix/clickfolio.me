@@ -1,8 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import {
+  extractSitemapLocs,
   filterSiteUrls,
   INDEXNOW_ENDPOINT,
   INDEXNOW_KEY,
+  isStaticSiteUrl,
   profileUrls,
   submitToIndexNow,
 } from "@/lib/seo/indexnow";
@@ -102,6 +104,27 @@ describe("filterSiteUrls / profileUrls", () => {
       "https://clickfolio.me/@jane",
       "https://clickfolio.me/@bob",
     ]);
+  });
+});
+
+describe("post-deploy sitemap helpers", () => {
+  it("extracts <loc> values from a sitemap index and a urlset", () => {
+    const index = `<sitemapindex><sitemap><loc>https://clickfolio.me/sitemap/0.xml</loc></sitemap></sitemapindex>`;
+    const urlset = `<urlset><url><loc> https://clickfolio.me/about </loc></url><url><loc>https://clickfolio.me/a?x=1&amp;y=2</loc></url></urlset>`;
+
+    expect(extractSitemapLocs(index)).toEqual(["https://clickfolio.me/sitemap/0.xml"]);
+    expect(extractSitemapLocs(urlset)).toEqual([
+      "https://clickfolio.me/about",
+      "https://clickfolio.me/a?x=1&y=2",
+    ]);
+  });
+
+  it("keeps static, /for and /blog pages and drops portfolios", () => {
+    expect(isStaticSiteUrl("https://clickfolio.me")).toBe(true);
+    expect(isStaticSiteUrl("https://clickfolio.me/for/designer")).toBe(true);
+    expect(isStaticSiteUrl("https://clickfolio.me/blog/resume-hosting")).toBe(true);
+    expect(isStaticSiteUrl("https://clickfolio.me/@jane")).toBe(false);
+    expect(isStaticSiteUrl("not a url")).toBe(false);
   });
 });
 

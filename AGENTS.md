@@ -58,7 +58,7 @@ lib/db/schema/                # auth.ts, resume.ts, site.ts, rate-limit.ts, rela
 worker/index.ts               # real entrypoint: vinext + workflow class exports + cron + WS
 proxy.ts                      # edge auth gate + `/` landing A/B cookie split (dual export proxy/default) — replaces middleware.ts
 instrumentation.ts / instrumentation-client.ts  # PostHog server/client hooks
-__tests__/  migrations_pg/  scripts/ (deploy.ts, bump-lastmod.ts, generate-favicons.ts)  r2-lifecycle.json
+__tests__/  migrations_pg/  scripts/ (deploy.ts, submit-indexnow.ts, bump-lastmod.ts, generate-favicons.ts)  r2-lifecycle.json
 ```
 
 ## Build, Test & Dev Commands
@@ -87,7 +87,7 @@ pnpm run test:ci          # vp test run --coverage --reporter=json
 pnpm run build          # vp build (vinext)
 pnpm run analyze        # ANALYZE=true vp build → dist/stats.html
 pnpm run ci             # install --frozen-lockfile && verify && test && build
-pnpm run deploy         # tsx scripts/deploy.ts — builds then wrangler deploy
+pnpm run deploy         # tsx scripts/deploy.ts — builds, wrangler deploy, IndexNow ping
   # DB (drizzle-kit — needs DATABASE_URL direct PlanetScale URL; Hyperdrive only inside Worker)
 pnpm run db:generate    # drizzle-kit generate → migrations_pg/ (offline)
 pnpm run db:migrate     # drizzle-kit migrate (apply)
@@ -106,7 +106,7 @@ pnpm run generate:favicons  # sharp from public/icon.svg → favicons
 - **Coverage pin:** `catalog:vitest == vitest == @vitest/coverage-v8 == 5.0.1` (3 places).
 - **`db:push` vs `db:generate+migrate`:** `push` is prototyping only; canonical is `generate` + `migrate`.
 - **Thumbnails:** `public/previews/` holds 12 committed `.webp` (bento, bold_corporate, case_file, classic_ats, design_folio, dev_terminal, glass, midnight, minimalist_editorial→`minimalist.webp`, neo_brutalist→`brutalist.webp`, retro_os, spotlight) shot at 1280×800 @2x via `/preview/[id]`; files use kebab-case (`case-file.webp`). No generator script in repo; re-shoot with headless Chrome (`--window-size=1280,800 --force-device-scale-factor=2 --screenshot`) against `/preview/<id>` then encode with the repo's `sharp` (`.webp({quality:82})`). Slug shortenings are intentional. Wait for the template's Google Fonts to finish loading before the shot (in a proxied sandbox, fetch fonts outside the browser and serve them via request interception) or the thumbnail captures fallback fonts.
-- **Deploy:** `scripts/deploy.ts` runs `pnpm run build` with `POSTHOG_UPLOAD_SOURCEMAPS=true` (unless `--dry-run` → `false`), then (skipped on `--dry-run`) `wrangler r2 bucket lifecycle set clickfolio-bucket --file r2-lifecycle.json --force`, then `pnpm exec wrangler deploy`; forwards args/exit codes. `lifecycle set` **replaces all rules**, so `r2-lifecycle.json` keeps the default multipart-abort rule next to `expire-temp-uploads` (`temp/`, 1 day).
+- **Deploy:** `scripts/deploy.ts` runs `pnpm run build` with `POSTHOG_UPLOAD_SOURCEMAPS=true` (unless `--dry-run` → `false`), then (skipped on `--dry-run`) `wrangler r2 bucket lifecycle set clickfolio-bucket --file r2-lifecycle.json --force`, then `pnpm exec wrangler deploy`, then (skipped on `--dry-run`) `tsx scripts/submit-indexnow.ts` (status ignored); forwards args/exit codes. Workers Builds: deploy command `pnpm run deploy`, build command empty (deploy.ts builds; a build command would build twice); its API token needs R2 edit for `lifecycle set`. `lifecycle set` **replaces all rules**, so `r2-lifecycle.json` keeps the default multipart-abort rule next to `expire-temp-uploads` (`temp/`, 1 day).
 - **Config pointer:** CSP/HSTS lives in `next.config.ts:headers()` — allowlist Umami/Clerk/Google OAuth/CF Insights + Google Fonts (`fonts.googleapis.com` style, `fonts.gstatic.com` font — template fonts) (see file); vendor chunks wrap vinext `manualChunks`; `viteEnvironment rsc/ssr` + `onwarn MISSING_EXPORT middleware` (see `vite.config.ts:15-31,239-254`).
 - **Module aliases:** `resolve.alias` has 2 entries (`next/dist/compiled/@vercel/og/index.edge.js→lib/stubs/og-stub.js`, `zod/v3→zod-v3-stub.mjs`); client `cloudflare:workers` + `node:async_hooks` are `clientModuleStubs()` plugin (`vite.config.ts:15-31`), not alias. Zxcvbn stubs removed.
 - **Local dev:** `.dev.vars` + `wrangler.jsonc` routes `clickfolio.me`/`www.clickfolio.me`; `compatibility_date 2026-01-22` + flags `nodejs_compat`/`global_fetch_strictly_public`; see `wrangler.jsonc` `triggers.crons`.
@@ -389,7 +389,8 @@ Each decision + why is an ADR under `docs/adr/`. _5 superseded (D1/Better Auth/p
 - **Roles `app/for/<slug>` (6):** `revalidate 86400`; slugs must match `lib/config/professions.ts` `PROFESSIONS` (homepage grid + sitemap). Note `PROFESSIONS` ↔ `sitemap` ↔ `for/` sync.
 - **Robots** (`app/robots.ts`, `MetadataRoute.Robots`): base `getPublicSiteUrl()` (`APP_URL||https://clickfolio.me`); `*` `Allow /` + `/api/og/` and `Disallow /admin /dashboard /edit /preview /settings /waiting /wizard` (not `/api/`). Per-AI-crawler groups (`GPTBot`, `ChatGPT-User`, `ClaudeBot`, `PerplexityBot`, `Google-Extended`, `GoogleOther`) Allow `/, /explore, /blog` + copy Disallow list (named groups don't inherit `*`). `/for/` + `/blog/*` indexable.
 - **URL divergence:** sitemap/robots/manifest derive from `getPublicSiteUrl()` (`APP_URL`); JSON-LD/canonical use hardcoded `siteConfig.url` (`https://clickfolio.me`) — intentional for SEO stability across preview deploys.
-- **Guard tests:** `seo-assets.test.ts`, `registry-sync.test.ts`.
+- **IndexNow** (`lib/seo/indexnow.ts`, key `INDEXNOW_KEY` ↔ `public/<key>.txt`, both public by design; rotate both together): post-deploy `scripts/submit-indexnow.ts` polls the LIVE key file + `/sitemap.xml` (8×15s), submits every non-`/@` sitemap URL, always exits 0 (`INDEXNOW_DRY_RUN=1` lists URLs only). Portfolios: `notifyIndexNowForProfiles(handles)` (`lib/seo/indexnow-runtime.ts`) runs via `waitUntil` next to `revalidatePublicProfilePages` (wizard complete, handle change, privacy) and after account delete / Clerk `user.deleted`; production only (`APP_URL === siteConfig.url`), 10-min per-colo Cache API debounce, never throws. Not wired to resume autosave (fires every few seconds).
+- **Guard tests:** `seo-assets.test.ts`, `registry-sync.test.ts`, `indexnow.test.ts`.
 - **Sitemap guards:** `seo-assets.test.ts` asserts generated `llms.txt` keywords/facts/featured slugs (a slug removed from `BLOG_POSTS` fails) + generated `llms-full.txt` contains every `BLOG_POSTS` slug+title, `PROFESSIONS` path, `STATIC_PAGES` page, and template.
 - **`/llms.txt` + `/llms-full.txt`** = route handlers `app/llms.txt/route.ts` / `app/llms-full.txt/route.ts` → `buildLlmsTxt()` / `buildLlmsFullTxt()` (`lib/seo/llms.ts`: prose inline as template strings, facts from `THEME_IDS`/`THEME_METADATA`, `MAX_FILE_SIZE_MB`, `RATE_LIMITS.resume_upload`, `PROFESSIONS`, `STATIC_PAGES`, `BLOG_POSTS`, `FAQ_ITEMS`, `siteConfig`); `text/plain; charset=utf-8`, `max-age=3600, swr=86400`. Never add either file back under `public/` — Workers static assets are served before the Worker and would shadow the route.
 - **Manifest:** `app/manifest.webmanifest` coral `theme_color #d94e4e` + `background_color #fdf8f3`; matches `app/layout.tsx` viewport `#fbfaf9`/`#121211`. No stale blue.

@@ -52,6 +52,11 @@ export async function main(): Promise<void> {
   if (deploy.status !== 0) {
     process.exit(deploy.status ?? 1);
   }
+
+  if (!dryRun) {
+    // Best-effort search-engine ping; the script always exits 0, and its status is ignored anyway.
+    spawnSync("pnpm", ["exec", "tsx", "scripts/submit-indexnow.ts"], { stdio: "inherit" });
+  }
 }
 
 await main();

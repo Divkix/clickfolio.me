@@ -90,3 +90,19 @@ export function profileUrls(
 ): string[] {
   return handles.flatMap((handle) => (handle ? [`${siteUrl}/@${handle}`] : []));
 }
+
+/** `<loc>` values from a sitemap or sitemap index document. */
+export function extractSitemapLocs(xml: string): string[] {
+  return [...xml.matchAll(/<loc>\s*([^<\s]+)\s*<\/loc>/g)].flatMap((match) =>
+    match[1] ? [match[1].replaceAll("&amp;", "&")] : [],
+  );
+}
+
+/** Portfolio URLs (`/@handle`) are pinged at runtime on publish; deploys only ping static pages. */
+export function isStaticSiteUrl(url: string): boolean {
+  try {
+    return !new URL(url).pathname.startsWith("/@");
+  } catch {
+    return false;
+  }
+}
