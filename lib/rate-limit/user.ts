@@ -5,7 +5,7 @@ import { handleChanges, resumes } from "@/lib/db/schema";
 import { isLocalEnvironment } from "@/lib/utils/environment";
 import { SECURITY_HEADERS } from "@/lib/utils/security-headers";
 
-const RATE_LIMITS = {
+export const RATE_LIMITS = {
   handle_change: { limit: 3, windowHours: 24 },
   resume_upload: {
     limit: Number(process.env.RATE_LIMIT_UPLOADS_PER_DAY) || 5,
