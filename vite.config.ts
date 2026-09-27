@@ -146,6 +146,7 @@ const SHARED_IGNORE_PATTERNS = [
   ".roo/**",
   ".windsurf/**",
   "tools/oxlint/anti-slop/**",
+  ".design-sync/**",
 ];
 
 export default defineConfig(({ mode }) => {
