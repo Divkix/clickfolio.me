@@ -4,7 +4,6 @@ import {
   noXssPattern,
   sanitizeEmail,
   sanitizePhone,
-  sanitizeText,
   sanitizeUrl,
 } from "@/lib/utils/sanitization";
 
@@ -76,33 +75,6 @@ describe("noXssPattern", () => {
 
   it("returns false for XSS strings", () => {
     expect(noXssPattern("<script>alert(1)</script>")).toBe(false);
-  });
-});
-
-describe("sanitizeText", () => {
-  it("returns empty string for empty input", () => {
-    expect(sanitizeText("")).toBe("");
-  });
-
-  it("encodes ampersands", () => {
-    expect(sanitizeText("Tom & Jerry")).toBe("Tom &amp; Jerry");
-  });
-
-  it("encodes angle brackets", () => {
-    expect(sanitizeText("<b>bold</b>")).toBe("&lt;b&gt;bold&lt;&#x2F;b&gt;");
-  });
-
-  it("encodes quotes", () => {
-    expect(sanitizeText('He said "hello"')).toBe("He said &quot;hello&quot;");
-    expect(sanitizeText("It's fine")).toBe("It&#x27;s fine");
-  });
-
-  it("encodes forward slashes", () => {
-    expect(sanitizeText("path/to/file")).toBe("path&#x2F;to&#x2F;file");
-  });
-
-  it("leaves safe text unchanged", () => {
-    expect(sanitizeText("Hello World 123")).toBe("Hello World 123");
   });
 });
 

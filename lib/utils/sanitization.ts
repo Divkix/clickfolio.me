@@ -1,24 +1,3 @@
-const HTML_ENTITIES = {
-  "&": "&amp;",
-  "<": "&lt;",
-  ">": "&gt;",
-  '"': "&quot;",
-  "'": "&#x27;",
-  "/": "&#x2F;",
-} as const satisfies Record<string, string>;
-
-const HTML_ESCAPE_REGEX = /[&<>"'/]/g;
-
-export function sanitizeText(input: string): string {
-  if (!input) return "";
-
-  // SAFETY: char is matched by HTML_ESCAPE_REGEX, which only matches keys of HTML_ENTITIES.
-  return input.replace(
-    HTML_ESCAPE_REGEX,
-    (char) => HTML_ENTITIES[char as keyof typeof HTML_ENTITIES],
-  );
-}
-
 export function sanitizeUrl(input: string): string {
   if (!input) return "";
 

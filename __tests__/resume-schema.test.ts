@@ -19,6 +19,17 @@ const validMinimalResume = {
 };
 
 describe("resumeContentSchema (lenient)", () => {
+  it("stores contact location as plain text (React escapes at render)", async () => {
+    for (const schema of [resumeContentSchema, resumeContentSchemaStrict]) {
+      const result = await schema.safeParseAsync({
+        ...validMinimalResume,
+        contact: { email: "jane@example.com", location: "Egypt — Remote / On-site & Hybrid" },
+      });
+
+      expect(result.data?.contact.location).toBe("Egypt — Remote / On-site & Hybrid");
+    }
+  });
+
   it("accepts a valid minimal resume", async () => {
     const result = await resumeContentSchema.safeParseAsync(validMinimalResume);
     expect(result.success).toBe(true);
