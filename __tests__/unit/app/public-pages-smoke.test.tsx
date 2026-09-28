@@ -86,6 +86,7 @@ describe("public page rendering", () => {
     expect(h1?.textContent).toMatch(/resume website builder/i);
     expect(h1?.textContent).toContain("live on the web in 30 seconds");
     expect(container.textContent).toContain("Drop your PDF");
+    expect(container.querySelector("#upload-card")).not.toBeNull();
     expect(container.textContent).toContain("Open source");
     expect(getByRole("link", { name: "Browse real portfolios" }).className).toMatch(/min-h-11/);
     expect(getByRole("link", { name: "Read our guides" }).className).toMatch(/min-h-11/);
@@ -101,6 +102,7 @@ describe("public page rendering", () => {
     expect(h1?.textContent).toMatch(/resume website builder/i);
     expect(h1?.textContent).toContain("Start linking.");
     expect(getByLabelText("Choose your handle")).toBeInTheDocument();
+    expect(container.querySelector("#upload-card")).not.toBeNull();
     expect(getByRole("link", { name: "Read our guides" }).className).toMatch(/min-h-11/);
     expect(container.querySelector('a[href="/blog/resume-website-examples"]')).not.toBeNull();
   });
