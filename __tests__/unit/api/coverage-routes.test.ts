@@ -284,6 +284,8 @@ const mocks = vi.hoisted(() => {
     makeTxChain,
     clerkDeleteUser: vi.fn(async () => undefined),
     captureServerEvent: vi.fn(),
+    captureServerException: vi.fn(),
+    distinctIdFromCookieHeader: vi.fn(),
     getStats: vi.fn(async () => ({ pageviews: 10, visitors: 4 })),
     getPageviews: vi.fn(async () => ({
       pageviews: [{ x: "2026-05-20T00:00:00Z", y: 6 }],
@@ -311,6 +313,8 @@ const mocks = vi.hoisted(() => {
 
 vi.mock("@/lib/analytics/server", () => ({
   captureServerEvent: mocks.captureServerEvent,
+  captureServerException: mocks.captureServerException,
+  distinctIdFromCookieHeader: mocks.distinctIdFromCookieHeader,
 }));
 
 vi.mock("cloudflare:workers", () => ({
