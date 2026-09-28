@@ -22,9 +22,9 @@ export default function TemplatesShowcasePage() {
       <section>
         <p>
           Your resume content deserves more than a plain text document. It deserves a design that
-          matches your profession, personality, and ambition. clickfolio.me offers 10 distinct
-          templates — each with its own typography, color scheme, and layout philosophy — and all of
-          them are completely free.
+          matches your profession, personality, and ambition. clickfolio.me offers{" "}
+          {Object.keys(THEME_METADATA).length} distinct templates — each with its own typography,
+          color scheme, and layout philosophy — and all of them are completely free.
         </p>
         <p>Here's every template, what makes it unique, and who it's best for.</p>
       </section>
