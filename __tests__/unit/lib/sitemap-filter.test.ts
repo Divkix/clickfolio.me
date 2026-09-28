@@ -50,7 +50,16 @@ const indexableContent: ResumeContent = {
   headline: "Mathematician",
   summary: "x".repeat(200),
   contact: { email: "ada@example.com" },
-  experience: [],
+  experience: [
+    {
+      title: "Mathematician",
+      company: "Analytical Engines",
+      location: "London",
+      start_date: "1842",
+      end_date: "1852",
+      description: "Developed analytical methods.",
+    },
+  ],
   education: [],
   skills: [],
   certifications: [],
@@ -115,6 +124,8 @@ describe("generateSitemapEntries", () => {
           headline: "Engineer",
           summary: "x".repeat(200),
           contact: { email: "" },
+          experience: [],
+          education: [],
         },
       }),
     ];

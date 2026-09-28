@@ -28,9 +28,7 @@ export function isIndexableProfile(
     !privacySettings.hide_from_search &&
     isRealLabel(content.full_name) &&
     isRealLabel(content.headline) &&
-    (content.experience.length > 0 ||
-      (content.education?.length ?? 0) > 0 ||
-      (content.summary?.trim().length ?? 0) >= 200) &&
+    (content.experience.length > 0 || (content.education?.length ?? 0) > 0) &&
     calculateCompleteness(content) >= 40
   );
 }

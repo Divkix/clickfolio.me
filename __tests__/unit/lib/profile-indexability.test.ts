@@ -93,7 +93,7 @@ describe("isIndexableProfile", () => {
     ).toBe(false);
   });
 
-  it("requires a substantive section: experience, education, or a 200-character summary", () => {
+  it("requires experience or education; summary alone is insufficient", () => {
     expect(
       isIndexableProfile(makeContent({ summary: "x".repeat(199) }), { hide_from_search: false }),
     ).toBe(false);
@@ -101,7 +101,7 @@ describe("isIndexableProfile", () => {
       isIndexableProfile(makeContent({ summary: ` ${"x".repeat(200)} ` }), {
         hide_from_search: false,
       }),
-    ).toBe(true);
+    ).toBe(false);
     expect(
       isIndexableProfile(makeContent({ experience: [experience] }), { hide_from_search: false }),
     ).toBe(true);
