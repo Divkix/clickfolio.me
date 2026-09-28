@@ -6,12 +6,15 @@ import "posthog-js/dist/exception-autocapture";
 import posthog from "posthog-js/dist/module.no-external";
 // Relative import: instrumentation-client runs as a root entry; keep deps local.
 import { POSTHOG_API_HOST, POSTHOG_PROJECT_TOKEN, POSTHOG_UI_HOST } from "./lib/analytics/config";
+import { installStaleChunkReload } from "./lib/utils/chunk-reload";
 
 declare global {
   interface Window {
     __clickfolioOwner?: boolean;
   }
 }
+
+installStaleChunkReload();
 
 if (POSTHOG_PROJECT_TOKEN) {
   posthog.init(POSTHOG_PROJECT_TOKEN, {
