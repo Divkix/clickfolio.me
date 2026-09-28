@@ -54,17 +54,22 @@ export function BlogPostLayout({ post, children, relatedPosts }: BlogPostLayoutP
             </h1>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-muted-foreground text-sm">
               <span className="font-medium text-foreground">{authorPersona.name}</span>
-              <span aria-hidden="true">·</span>
-              <time dateTime={updatedDate} suppressHydrationWarning>
-                {wasUpdated ? "Updated " : ""}
-                {new Date(updatedDate).toLocaleDateString("en-US", {
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                })}
-              </time>
-              <span aria-hidden="true">·</span>
-              <span>{post.readTime}</span>
+              <span className="flex items-center gap-x-4 whitespace-nowrap">
+                <span aria-hidden="true">·</span>
+                <time dateTime={updatedDate}>
+                  {wasUpdated ? "Updated " : ""}
+                  {new Date(updatedDate).toLocaleDateString("en-US", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                    timeZone: "UTC",
+                  })}
+                </time>
+              </span>
+              <span className="flex items-center gap-x-4 whitespace-nowrap">
+                <span aria-hidden="true">·</span>
+                <span>{post.readTime}</span>
+              </span>
             </div>
           </header>
 

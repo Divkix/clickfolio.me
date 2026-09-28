@@ -72,7 +72,7 @@ export function ClaimHandleLanding() {
               Your resume becomes a portfolio website at a URL that’s yours. Pick the handle now —
               we’ll build the site from your PDF.
             </p>
-            <div className="animate-fade-in-up mt-10 flex w-full justify-center">
+            <div id="upload-card" className="animate-fade-in-up mt-10 flex w-full justify-center">
               <HandleClaim variant={VARIANT} />
             </div>
             {/* Same LinkedIn entry point drop_first shows in its hero dropzone (ADR-0027 parity). */}

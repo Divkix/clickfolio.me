@@ -17,14 +17,16 @@ export function generateMetadata(): Metadata {
 }
 
 export default function TemplatesShowcasePage() {
+  const templateCount = Object.keys(THEME_METADATA).length;
+
   return (
     <BlogPostLayout post={post} relatedPosts={relatedPosts}>
       <section>
         <p>
           Your resume content deserves more than a plain text document. It deserves a design that
-          matches your profession, personality, and ambition. clickfolio.me offers 10 distinct
-          templates — each with its own typography, color scheme, and layout philosophy — and all of
-          them are completely free.
+          matches your profession, personality, and ambition. clickfolio.me offers {templateCount}{" "}
+          distinct templates — each with its own typography, color scheme, and layout philosophy —
+          and all of them are completely free.
         </p>
         <p>Here's every template, what makes it unique, and who it's best for.</p>
       </section>
@@ -92,8 +94,8 @@ export default function TemplatesShowcasePage() {
         <h2>More Free Templates</h2>
 
         <p>
-          All 12 templates are free for every user — no referrals, no payment, and no premium locks
-          required.
+          All {templateCount} templates are free for every user — no referrals, no payment, and no
+          premium locks required.
         </p>
 
         <h3>{THEME_METADATA.design_folio.name}</h3>
@@ -224,14 +226,14 @@ export default function TemplatesShowcasePage() {
       <section>
         <h2>Start Building</h2>
         <p>
-          All 12 templates are free and available on your dashboard after uploading your resume. The
-          default is Minimalist Editorial, but you can switch at any time. For finished sites in
-          each style, browse these{" "}
+          All {templateCount} templates are free and available on your dashboard after uploading
+          your resume. The default is Minimalist Editorial, but you can switch at any time. For
+          finished sites in each style, browse these{" "}
           <Link href="/blog/resume-website-examples">resume website examples</Link>.
         </p>
         <p>
           <Link href="/" className="text-brand font-semibold">
-            Upload your resume and try all 12 templates →
+            Upload your resume and try all {templateCount} templates →
           </Link>
         </p>
       </section>

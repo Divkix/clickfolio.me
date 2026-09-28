@@ -69,7 +69,10 @@ describe("JSON-LD generators", () => {
       dateCreated: "2026-01-02",
       dateModified: "2026-01-03",
       includeEmail: true,
+      privacySettings: { hide_from_search: false },
     });
+
+    if (!jsonLd) throw new Error("expected indexable profile JSON-LD");
 
     expect(jsonLd).toMatchObject({
       "@context": "https://schema.org",
@@ -123,8 +126,11 @@ describe("JSON-LD generators", () => {
       },
       {
         profileUrl: "https://clickfolio.me/@avery",
+        privacySettings: { hide_from_search: false },
       },
     );
+
+    if (!jsonLd) throw new Error("expected indexable profile JSON-LD");
 
     expect(jsonLd.mainEntity).not.toHaveProperty("image");
     expect(jsonLd.mainEntity).not.toHaveProperty("worksFor");
@@ -134,6 +140,15 @@ describe("JSON-LD generators", () => {
     expect(jsonLd.mainEntity).not.toHaveProperty("knowsAbout");
     expect(jsonLd.mainEntity).not.toHaveProperty("email");
     expect(jsonLd.mainEntity).not.toHaveProperty("description");
+  });
+
+  it("omits profile JSON-LD for non-indexable resume content", () => {
+    const jsonLd = generateResumeJsonLd(
+      { ...fullContent, summary: "Short summary.", experience: [], education: [] },
+      { profileUrl: "https://clickfolio.me/@avery", privacySettings: { hide_from_search: false } },
+    );
+
+    expect(jsonLd).toBeNull();
   });
 
   it("escapes JSON-LD script-breakout characters during serialization", () => {

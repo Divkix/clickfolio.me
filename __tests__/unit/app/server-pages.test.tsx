@@ -291,6 +291,26 @@ function siteDataRow(overrides: UnknownRecord = {}) {
   };
 }
 
+function directoryRow(handle: string) {
+  return {
+    handle,
+    role: "senior",
+    previewName: handle === "avery" ? "Avery Quinn" : `Professional ${handle}`,
+    previewHeadline: "Engineer",
+    previewLocation: "Phoenix, AZ",
+    previewExpCount: 1,
+    previewEduCount: 1,
+    previewSkills: ["TypeScript", "SQL", "React", "Workers", "D1"],
+    privacySettings: {
+      show_phone: false,
+      show_address: false,
+      hide_from_search: false,
+      show_in_directory: true,
+    },
+    content: resumeContent,
+  };
+}
+
 function installDbDefaults() {
   mocks.db.query.user.findFirst.mockImplementation(
     async (args: { with?: UnknownRecord; columns?: Record<string, boolean> } = {}) => {
@@ -438,21 +458,17 @@ describe("server rendered app pages", () => {
 
   it("renders explore directory with filters and pagination", async () => {
     const { default: ExplorePage } = await import("@/app/explore/page");
-    mocks.state.selectResults = [
-      [{ count: 13 }],
-      [
-        {
-          handle: "avery",
-          role: "senior",
-          previewName: "Avery Quinn",
-          previewHeadline: "Engineer",
-          previewLocation: "Phoenix, AZ",
-          previewExpCount: 1,
-          previewEduCount: 1,
-          previewSkills: ["TypeScript", "SQL", "React", "Workers", "D1"],
-        },
-      ],
-    ];
+
+    const blockedProfile = {
+      ...directoryRow("blocked"),
+      content: { ...resumeContent, full_name: "Unknown" },
+    };
+
+    const eligibleProfiles = Array.from({ length: 13 }, (_, index) =>
+      directoryRow(index === 12 ? "avery" : `candidate-${index}`),
+    );
+
+    mocks.state.selectResults = [[blockedProfile, ...eligibleProfiles]];
 
     render(await ExplorePage({ searchParams: Promise.resolve({ page: "2", role: "senior" }) }));
     expect(screen.getByText("Explore Professionals")).toBeInTheDocument();
@@ -461,23 +477,40 @@ describe("server rendered app pages", () => {
     expect(screen.getByText("Previous")).toBeInTheDocument();
     const skillChip = screen.getByText("TypeScript");
     expect(skillChip.className).toMatch(/truncate/);
+    expect(document.querySelectorAll('a[href^="/@"]')).toHaveLength(1);
     expect(skillChip.parentElement?.className).toMatch(/min-w-0/);
+    mocks.state.selectResults = [[]];
+    await expect(ExplorePage({ searchParams: Promise.resolve({ page: "2" }) })).rejects.toThrow(
+      "notFound",
+    );
   });
-  it("renders explore with a NaN ?page= as page 1 (no NaN offset/links)", async () => {
+  it("self-canonicalizes Explore pagination and noindexes filtered listings", async () => {
+    const { generateMetadata } = await import("@/app/explore/page");
+
+    const pageTwo = await generateMetadata({ searchParams: Promise.resolve({ page: "2" }) });
+    const pageOne = await generateMetadata({ searchParams: Promise.resolve({ page: "1" }) });
+    const filtered = await generateMetadata({ searchParams: Promise.resolve({ role: "senior" }) });
+    const malformed = await generateMetadata({ searchParams: Promise.resolve({ page: "2.5" }) });
+
+    const duplicate = await generateMetadata({
+      searchParams: Promise.resolve({ page: ["2", "3"] }),
+    });
+
+    expect(pageTwo.alternates?.canonical).toBe("https://clickfolio.me/explore?page=2");
+    expect(pageOne.alternates?.canonical).toBe("https://clickfolio.me/explore");
+    expect(filtered.alternates?.canonical).toBe("https://clickfolio.me/explore?role=senior");
+    expect(filtered.robots).toEqual({ index: false, follow: true });
+    expect(malformed.alternates?.canonical).toBe("https://clickfolio.me/explore");
+    expect(malformed.robots).toEqual({ index: false, follow: true });
+    expect(duplicate.alternates?.canonical).toBe("https://clickfolio.me/explore");
+    expect(duplicate.robots).toEqual({ index: false, follow: true });
+  });
+  it("renders a malformed Explore page query as page 1 (no NaN offset/links)", async () => {
     const { default: ExplorePage } = await import("@/app/explore/page");
     mocks.state.selectResults = [
-      [{ count: 13 }],
       [
-        {
-          handle: "avery",
-          role: "senior",
-          previewName: "Avery Quinn",
-          previewHeadline: "Engineer",
-          previewLocation: "Phoenix, AZ",
-          previewExpCount: 1,
-          previewEduCount: 1,
-          previewSkills: ["TypeScript", "SQL"],
-        },
+        directoryRow("avery"),
+        { ...directoryRow("blocked"), content: { ...resumeContent, headline: "CV" } },
       ],
     ];
     render(await ExplorePage({ searchParams: Promise.resolve({ page: "abc" }) }));
@@ -503,7 +536,7 @@ describe("server rendered app pages", () => {
       siteData: siteDataRow(),
     });
     const handlePage = await import("@/app/[handle]/page");
-    mocks.state.selectResults = [[{ handle: "casey", name: "Casey", headline: "Designer" }]];
+    mocks.state.selectResults = [[directoryRow("casey")]];
 
     const metadata = await handlePage.generateMetadata({
       params: Promise.resolve({ handle: "%40avery" }),
@@ -526,6 +559,41 @@ describe("server rendered app pages", () => {
     const { default: PreviewPage } = await import("@/app/preview/[id]/page");
     render(await PreviewPage({ params: Promise.resolve({ id: "classic_ats" }) }));
     expect(screen.getAllByText(/template/).length).toBeGreaterThan(1);
+  });
+
+  it("noindexes public profiles that fail the quality gate", async () => {
+    const { generateMetadata } = await import("@/app/[handle]/page");
+    mocks.db.query.user.findFirst.mockResolvedValueOnce({
+      id: "user_1",
+      name: "Avery Quinn",
+      email: "avery@example.com",
+      handle: "lowquality",
+      headline: "Staff Product Engineer",
+      image: null,
+      privacySettings: {
+        show_phone: false,
+        show_address: false,
+        hide_from_search: false,
+        show_in_directory: true,
+      },
+      siteData: siteDataRow({
+        content: {
+          ...resumeContent,
+          summary: "Short summary",
+          contact: { email: "" },
+          experience: [],
+          education: [],
+          skills: [],
+          certifications: [],
+        },
+      }),
+    });
+
+    const metadata = await generateMetadata({
+      params: Promise.resolve({ handle: "%40lowquality" }),
+    });
+
+    expect(metadata.robots).toEqual({ index: false, follow: false });
   });
 
   it("renders admin overview and admin layout", async () => {

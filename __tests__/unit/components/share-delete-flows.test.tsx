@@ -212,7 +212,7 @@ describe("SharePopover", () => {
         />,
       );
 
-      fireEvent.click(screen.getByRole("button", { name: /share/i }));
+      fireEvent.click(screen.getByRole("button", { name: "Share this portfolio" }));
       expect(screen.getByRole("button", { name: "Share on LinkedIn" })).toBeInTheDocument();
       unmount();
     }

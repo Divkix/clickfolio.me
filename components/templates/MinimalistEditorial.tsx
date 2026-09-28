@@ -132,7 +132,7 @@ export const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile 
                         <a
                           href={link.href}
                           target={link.isExternal ? "_blank" : undefined}
-                          rel={link.isExternal ? "noopener noreferrer" : undefined}
+                          rel={link.isExternal ? "ugc nofollow noopener noreferrer" : undefined}
                           className={LINK}
                         >
                           {link.label}
@@ -186,7 +186,7 @@ export const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile 
                       <a
                         href={project.url}
                         target="_blank"
-                        rel="noopener noreferrer"
+                        rel="ugc nofollow noopener noreferrer"
                         className={LINK}
                       >
                         {project.title}
@@ -248,7 +248,12 @@ export const MinimalistEditorial: React.FC<TemplateProps> = ({ content, profile 
                 >
                   <h3 className="text-[1.0625rem] md:text-lg font-semibold leading-snug break-words [text-wrap:unset]">
                     {cert.url ? (
-                      <a href={cert.url} target="_blank" rel="noopener noreferrer" className={LINK}>
+                      <a
+                        href={cert.url}
+                        target="_blank"
+                        rel="ugc nofollow noopener noreferrer"
+                        className={LINK}
+                      >
                         {cert.name}
                       </a>
                     ) : (

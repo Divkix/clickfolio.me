@@ -77,6 +77,27 @@ describe("captureServerEvent", () => {
     });
   });
 
+  it("includes a supplied PostHog session id on the server event", async () => {
+    const { captureServerEvent } = await import("@/lib/analytics/server");
+
+    captureServerEvent(
+      "user_1",
+      "onboarding_completed",
+      { handle: "avery", theme_id: "bento", show_in_directory: true },
+      "session_123",
+    );
+
+    expect(mockCaptureImmediate).toHaveBeenCalledWith({
+      distinctId: "user_1",
+      event: "onboarding_completed",
+      properties: {
+        handle: "avery",
+        theme_id: "bento",
+        show_in_directory: true,
+        $session_id: "session_123",
+      },
+    });
+  });
   it("captures immediately and registers ONE waitUntil promise ending in shutdown(1000)", async () => {
     const { captureServerEvent } = await import("@/lib/analytics/server");
 

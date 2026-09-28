@@ -126,7 +126,7 @@ export const ClassicATS: React.FC<TemplateProps> = ({ content, profile, isPrevie
                       <a
                         href={link.href}
                         target={link.isExternal ? "_blank" : undefined}
-                        rel={link.isExternal ? "noopener noreferrer" : undefined}
+                        rel={link.isExternal ? "ugc nofollow noopener noreferrer" : undefined}
                         className="underline decoration-[#9A9EA6] underline-offset-2 hover:decoration-[#22385C] focus-visible:outline-2 focus-visible:outline-[#22385C]"
                       >
                         {link.isExternal ? printableUrl(link.href) : link.label}
@@ -234,7 +234,7 @@ export const ClassicATS: React.FC<TemplateProps> = ({ content, profile, isPrevie
                               <a
                                 href={cert.url}
                                 target="_blank"
-                                rel="noopener noreferrer"
+                                rel="ugc nofollow noopener noreferrer"
                                 className="underline decoration-[#9A9EA6] underline-offset-2 hover:decoration-[#22385C]"
                               >
                                 {cert.name}
@@ -270,7 +270,7 @@ export const ClassicATS: React.FC<TemplateProps> = ({ content, profile, isPrevie
                             <a
                               href={project.url}
                               target="_blank"
-                              rel="noopener noreferrer"
+                              rel="ugc nofollow noopener noreferrer"
                               className="ml-2 font-normal underline decoration-[#9A9EA6] underline-offset-2 hover:decoration-[#22385C]"
                             >
                               {printableUrl(project.url)}
