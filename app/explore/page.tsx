@@ -2,6 +2,7 @@ import { env } from "cloudflare:workers";
 import { and, desc, eq, isNotNull } from "drizzle-orm";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { ExploreFilters } from "@/components/explore/explore-filters";
 import { ExploreHeader } from "@/components/explore/explore-header";
 import { ExplorePagination } from "@/components/explore/explore-pagination";
@@ -20,7 +21,7 @@ import { isIndexableProfile } from "@/lib/seo/profile-indexability";
 import { buildPublicPageMetadata } from "@/lib/seo/page-metadata";
 import { normalizePreviewSkills } from "@/lib/utils/preview-skills";
 import { extractCityState, normalizePrivacySettings } from "@/lib/utils/privacy";
-import { safePageParam } from "@/lib/utils/pagination";
+import { parsePageParam } from "@/lib/utils/pagination";
 
 export const revalidate = 300;
 
@@ -36,16 +37,18 @@ function getRoleFilter(role: string | undefined): UserRole | "freelance" | "" {
 export async function generateMetadata({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; role?: string }>;
+  searchParams: Promise<{ page?: string | string[]; role?: string }>;
 }): Promise<Metadata> {
   const params = await searchParams;
   const roleFilter = getRoleFilter(params.role);
-  const page = safePageParam(params.page);
+  const page = parsePageParam(params.page);
   const canonical = new URL("/explore", siteConfig.url);
 
-  if (roleFilter) canonical.searchParams.set("role", roleFilter);
+  if (page !== null) {
+    if (roleFilter) canonical.searchParams.set("role", roleFilter);
 
-  if (page > 1) canonical.searchParams.set("page", String(page));
+    if (page > 1) canonical.searchParams.set("page", String(page));
+  }
 
   return {
     ...buildPublicPageMetadata({
@@ -55,7 +58,7 @@ export async function generateMetadata({
       path: "/explore",
     }),
     alternates: { canonical: canonical.toString() },
-    ...(roleFilter && { robots: { index: false, follow: true } }),
+    ...((roleFilter || page === null) && { robots: { index: false, follow: true } }),
   };
 }
 
@@ -64,10 +67,10 @@ const ITEMS_PER_PAGE = 12;
 export default async function ExplorePage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; role?: string }>;
+  searchParams: Promise<{ page?: string | string[]; role?: string }>;
 }) {
   const params = await searchParams;
-  const currentPage = safePageParam(params.page);
+  const currentPage = parsePageParam(params.page) ?? 1;
   // "freelance" rides the same dropdown/param but filters the separate isFreelance flag.
   const roleFilter = getRoleFilter(params.role);
 
@@ -116,6 +119,8 @@ export default async function ExplorePage({
 
   const totalCount = indexableUsers.length;
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
+
+  if (currentPage > 1 && currentPage > totalPages) notFound();
 
   const pageUsers = indexableUsers.slice(
     (currentPage - 1) * ITEMS_PER_PAGE,

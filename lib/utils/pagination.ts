@@ -1,5 +1,13 @@
-export function safePageParam(value: string | null | undefined, fallback = 1): number {
-  const n = Number.parseInt(value ?? String(fallback), 10);
+export function parsePageParam(value: string | string[] | null | undefined): number | null {
+  if (value == null) return 1;
 
-  return Number.isNaN(n) || n < 1 ? fallback : Math.floor(n);
+  if (Array.isArray(value) || !/^[1-9]\d*$/.test(value)) return null;
+
+  const page = Number(value);
+
+  return Number.isSafeInteger(page) ? page : null;
+}
+
+export function safePageParam(value: string | null | undefined, fallback = 1): number {
+  return parsePageParam(value) ?? fallback;
 }

@@ -479,6 +479,10 @@ describe("server rendered app pages", () => {
     expect(skillChip.className).toMatch(/truncate/);
     expect(document.querySelectorAll('a[href^="/@"]')).toHaveLength(1);
     expect(skillChip.parentElement?.className).toMatch(/min-w-0/);
+    mocks.state.selectResults = [[]];
+    await expect(ExplorePage({ searchParams: Promise.resolve({ page: "2" }) })).rejects.toThrow(
+      "notFound",
+    );
   });
   it("self-canonicalizes Explore pagination and noindexes filtered listings", async () => {
     const { generateMetadata } = await import("@/app/explore/page");
@@ -486,13 +490,22 @@ describe("server rendered app pages", () => {
     const pageTwo = await generateMetadata({ searchParams: Promise.resolve({ page: "2" }) });
     const pageOne = await generateMetadata({ searchParams: Promise.resolve({ page: "1" }) });
     const filtered = await generateMetadata({ searchParams: Promise.resolve({ role: "senior" }) });
+    const malformed = await generateMetadata({ searchParams: Promise.resolve({ page: "2.5" }) });
+
+    const duplicate = await generateMetadata({
+      searchParams: Promise.resolve({ page: ["2", "3"] }),
+    });
 
     expect(pageTwo.alternates?.canonical).toBe("https://clickfolio.me/explore?page=2");
     expect(pageOne.alternates?.canonical).toBe("https://clickfolio.me/explore");
     expect(filtered.alternates?.canonical).toBe("https://clickfolio.me/explore?role=senior");
     expect(filtered.robots).toEqual({ index: false, follow: true });
+    expect(malformed.alternates?.canonical).toBe("https://clickfolio.me/explore");
+    expect(malformed.robots).toEqual({ index: false, follow: true });
+    expect(duplicate.alternates?.canonical).toBe("https://clickfolio.me/explore");
+    expect(duplicate.robots).toEqual({ index: false, follow: true });
   });
-  it("renders explore with a NaN ?page= as page 1 (no NaN offset/links)", async () => {
+  it("renders a malformed Explore page query as page 1 (no NaN offset/links)", async () => {
     const { default: ExplorePage } = await import("@/app/explore/page");
     mocks.state.selectResults = [
       [
