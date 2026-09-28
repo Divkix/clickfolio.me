@@ -4,7 +4,10 @@ import { installStaleChunkReload } from "@/lib/utils/chunk-reload";
 const reload = vi.fn();
 
 function firePreloadError() {
-  globalThis.dispatchEvent(new Event("vite:preloadError", { cancelable: true }));
+  const event = new Event("vite:preloadError", { cancelable: true });
+  globalThis.dispatchEvent(event);
+
+  return event;
 }
 
 describe("installStaleChunkReload", () => {
@@ -52,9 +55,6 @@ describe("installStaleChunkReload", () => {
   });
 
   it("does not cancel the error, so it still reaches error tracking", () => {
-    const event = new Event("vite:preloadError", { cancelable: true });
-    globalThis.dispatchEvent(event);
-
-    expect(event.defaultPrevented).toBe(false);
+    expect(firePreloadError().defaultPrevented).toBe(false);
   });
 });
