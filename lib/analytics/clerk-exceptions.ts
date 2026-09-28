@@ -18,11 +18,12 @@ function isClerkNetworkError(value: string): boolean {
 export function groupClerkNetworkException(event: CaptureResult): CaptureResult {
   const exceptionList: { value?: string }[] | undefined = event.properties.$exception_list;
 
-  if (event.event !== "$exception" || !Array.isArray(exceptionList)) {
-    return event;
-  }
+  const isClerkNetworkException =
+    event.event === "$exception" &&
+    Array.isArray(exceptionList) &&
+    exceptionList.some((exception) => isClerkNetworkError(exception?.value ?? ""));
 
-  if (!exceptionList.some((exception) => isClerkNetworkError(exception?.value ?? ""))) {
+  if (!isClerkNetworkException) {
     return event;
   }
 
