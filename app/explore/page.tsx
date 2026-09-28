@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { siteConfig } from "@/lib/config/site";
 import { getDb } from "@/lib/db";
 import { siteData, user } from "@/lib/db/schema";
-import { isUserRole, ROLE_OPTIONS } from "@/lib/config/roles";
+import { isUserRole, ROLE_OPTIONS, type UserRole } from "@/lib/config/roles";
 import { generateExploreJsonLd, serializeJsonLd } from "@/lib/seo/json-ld";
 import { buildPublicPageMetadata } from "@/lib/seo/page-metadata";
 import { normalizePreviewSkills } from "@/lib/utils/preview-skills";
@@ -28,12 +28,35 @@ const exploreTitle = `Browse Professional Portfolios | ${siteConfig.fullName}`;
 const exploreDescription =
   "Discover professionals in our community. Browse portfolios and connect with talented individuals.";
 
-export const metadata: Metadata = buildPublicPageMetadata({
-  title: "Browse Professional Portfolios",
-  ogTitle: exploreTitle,
-  description: exploreDescription,
-  path: "/explore",
-});
+function getRoleFilter(role: string | undefined): UserRole | "freelance" | "" {
+  return isUserRole(role) || role === "freelance" ? role : "";
+}
+
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string; role?: string }>;
+}): Promise<Metadata> {
+  const params = await searchParams;
+  const roleFilter = getRoleFilter(params.role);
+  const page = safePageParam(params.page);
+  const canonical = new URL("/explore", siteConfig.url);
+
+  if (roleFilter) canonical.searchParams.set("role", roleFilter);
+
+  if (page > 1) canonical.searchParams.set("page", String(page));
+
+  return {
+    ...buildPublicPageMetadata({
+      title: "Browse Professional Portfolios",
+      ogTitle: exploreTitle,
+      description: exploreDescription,
+      path: "/explore",
+    }),
+    alternates: { canonical: canonical.toString() },
+    ...(roleFilter && { robots: { index: false, follow: true } }),
+  };
+}
 
 const ITEMS_PER_PAGE = 12;
 
@@ -45,7 +68,7 @@ export default async function ExplorePage({
   const params = await searchParams;
   const currentPage = safePageParam(params.page);
   // "freelance" rides the same dropdown/param but filters the separate isFreelance flag.
-  const roleFilter = isUserRole(params.role) || params.role === "freelance" ? params.role : "";
+  const roleFilter = getRoleFilter(params.role);
 
   const db = getDb(env.HYPERDRIVE);
 

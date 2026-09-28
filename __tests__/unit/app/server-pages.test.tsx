@@ -463,6 +463,18 @@ describe("server rendered app pages", () => {
     expect(skillChip.className).toMatch(/truncate/);
     expect(skillChip.parentElement?.className).toMatch(/min-w-0/);
   });
+  it("self-canonicalizes Explore pagination and noindexes filtered listings", async () => {
+    const { generateMetadata } = await import("@/app/explore/page");
+
+    const pageTwo = await generateMetadata({ searchParams: Promise.resolve({ page: "2" }) });
+    const pageOne = await generateMetadata({ searchParams: Promise.resolve({ page: "1" }) });
+    const filtered = await generateMetadata({ searchParams: Promise.resolve({ role: "senior" }) });
+
+    expect(pageTwo.alternates?.canonical).toBe("https://clickfolio.me/explore?page=2");
+    expect(pageOne.alternates?.canonical).toBe("https://clickfolio.me/explore");
+    expect(filtered.alternates?.canonical).toBe("https://clickfolio.me/explore?role=senior");
+    expect(filtered.robots).toEqual({ index: false, follow: true });
+  });
   it("renders explore with a NaN ?page= as page 1 (no NaN offset/links)", async () => {
     const { default: ExplorePage } = await import("@/app/explore/page");
     mocks.state.selectResults = [
