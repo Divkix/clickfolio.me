@@ -248,7 +248,7 @@ export const getRelatedProfiles = cache(
 
     if (!totalCount) return [];
 
-    const offset = Math.floor(Math.random() * totalCount);
+    const offset = Math.floor(Math.random() * (Math.max(0, totalCount - 12) + 1));
 
     const rows = await db
       .select({

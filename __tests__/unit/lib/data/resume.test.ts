@@ -288,7 +288,16 @@ const indexableContent: ResumeContent = {
   headline: "Mathematician",
   summary: "A".repeat(200),
   contact: { email: "ada@example.com" },
-  experience: [],
+  experience: [
+    {
+      title: "Software Engineer",
+      company: "Example Co",
+      location: "Remote",
+      start_date: "2020-01",
+      end_date: "Present",
+      description: "Built example software.",
+    },
+  ],
   education: [],
   skills: [],
 };
@@ -329,6 +338,8 @@ describe("getRelatedProfiles", () => {
       ...indexableContent,
       summary: "Brief",
       contact: { email: "" },
+      experience: [],
+      education: [],
     };
 
     mockSelectResults.push(
@@ -369,4 +380,22 @@ describe("getRelatedProfiles", () => {
     expect(result).toHaveLength(3);
     expect(result.every((profile) => profile.handle.startsWith("candidate-"))).toBe(true);
   });
+  it.each([
+    { totalCount: 5, expectedOffset: 0 },
+    { totalCount: 30, expectedOffset: 18 },
+  ])(
+    "bounds the related-profile offset for $totalCount profiles",
+    async ({ totalCount, expectedOffset }) => {
+      const { getRelatedProfiles } = await import("@/lib/data/resume");
+      const random = vi.spyOn(Math, "random").mockReturnValue(0.99);
+
+      try {
+        mockSelectResults.push([{ n: totalCount }], []);
+        await getRelatedProfiles("janedoe");
+        expect(mockSelectChain.offset).toHaveBeenCalledWith(expectedOffset);
+      } finally {
+        random.mockRestore();
+      }
+    },
+  );
 });
