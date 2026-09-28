@@ -1154,7 +1154,7 @@ describe("API route coverage", () => {
 
     const firstTime = await POST(
       jsonRequest("/api/wizard/complete", validBody, {
-        headers: { "X-PostHog-Session-Id": "session_123" },
+        headers: { "X-PostHog-Session-Id": "550e8400-e29b-41d4-a716-446655440000" },
       }),
     );
 
@@ -1164,7 +1164,26 @@ describe("API route coverage", () => {
       "user_1",
       "onboarding_completed",
       { handle: "avery", theme_id: "minimalist_editorial", show_in_directory: true },
-      "session_123",
+      "550e8400-e29b-41d4-a716-446655440000",
+    );
+
+    mocks.state.txValues = [];
+    mocks.state.selectResults = [[{ handle: null }], [{ updatedAt: null }]];
+    mocks.state.txSelectResults = [[{ handle: null }], [{ count: 0 }]];
+    mocks.state.txReturningResults = [[{ id: "user_1" }]];
+
+    const invalidSession = await POST(
+      jsonRequest("/api/wizard/complete", validBody, {
+        headers: { "X-PostHog-Session-Id": "session_123" },
+      }),
+    );
+
+    expect(invalidSession.status).toBe(200);
+    expect(mocks.captureServerEvent).toHaveBeenLastCalledWith(
+      "user_1",
+      "onboarding_completed",
+      { handle: "avery", theme_id: "minimalist_editorial", show_in_directory: true },
+      undefined,
     );
     expect(mocks.state.txValues.filter(isHandleChangeRow)).toMatchObject([
       { userId: "user_1", oldHandle: null, newHandle: "avery" },
