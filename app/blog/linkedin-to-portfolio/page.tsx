@@ -129,7 +129,7 @@ export default function LinkedInToPortfolioPage() {
           <p className="font-semibold text-foreground">Have your LinkedIn PDF export ready?</p>
           <p className="mt-1 text-muted-foreground">
             Upload it and the parser turns your LinkedIn export — sidebar links, stacked roles, page
-            footers — into a live portfolio at clickfolio.me/@yourname in about 30 seconds.
+            footers — into a live portfolio at clickfolio.me/@yourname.
           </p>
           <Button asChild size="lg" className="mt-4">
             <Link href="/?utm_source=blog&utm_medium=organic&utm_campaign=linkedin-to-portfolio#upload-card">
