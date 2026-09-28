@@ -1,4 +1,5 @@
 import type React from "react";
+import { cn } from "@/lib/utils/cn";
 import { ShareBar } from "@/components/ShareBar";
 import { getContactLinks } from "@/lib/templates/contact-links";
 import { formatShortDate, getInitials } from "@/lib/templates/helpers";
@@ -22,9 +23,17 @@ function dateSpan(start?: string, end?: string | null): string | null {
   return `${formatShortDate(start)} – ${end?.trim() ? formatShortDate(end) : "Present"}`;
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  children,
+  className,
+}: {
+  label: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
   return (
-    <div className="min-w-0 border-b border-[#CFC5B1] pb-1.5">
+    <div className={cn("min-w-0 border-b border-[#CFC5B1] pb-1.5", className)}>
       <dt className="font-label-cf text-[10.5px] tracking-[0.18em] text-[#6A6358] uppercase">
         {label}
       </dt>
@@ -333,7 +342,8 @@ export const CaseFile: React.FC<TemplateProps> = ({ content, profile }) => {
           .cf-no-print { display: none !important; }
         }
       `}</style>
-      <div
+      <main
+        id="main-content"
         className="cf-desk font-body-cf min-h-screen w-full overflow-x-hidden px-2 py-6 sm:px-6 md:py-14"
         style={{ color: INK }}
       >
@@ -364,9 +374,9 @@ export const CaseFile: React.FC<TemplateProps> = ({ content, profile }) => {
                   </h1>
                   <dl className="mt-6 grid grid-cols-1 gap-x-8 gap-y-3 sm:grid-cols-2">
                     {headline && (
-                      <div className="sm:col-span-2">
-                        <Field label="Occupation">{headline}</Field>
-                      </div>
+                      <Field label="Occupation" className="sm:col-span-2">
+                        {headline}
+                      </Field>
                     )}
                     {contact.location && (
                       <Field label="Last known location">{contact.location}</Field>
@@ -429,7 +439,7 @@ export const CaseFile: React.FC<TemplateProps> = ({ content, profile }) => {
             </article>
           </div>
         </div>
-      </div>
+      </main>
     </>
   );
 };

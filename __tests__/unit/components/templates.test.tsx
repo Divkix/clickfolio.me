@@ -270,6 +270,19 @@ describe("Template Component Tests", () => {
       expect(container.textContent).toContain("John Alexander Doe");
     });
 
+    test("exposes one skip-link main landmark and a single occupation field group", () => {
+      const { container } = testTemplate("CaseFile", CaseFile, fullResumeContent);
+      const main = container.querySelector("main#main-content");
+
+      const occupation = [...container.querySelectorAll("dt")].find(
+        (field) => field.textContent === "Occupation",
+      );
+
+      expect(container.querySelectorAll("main")).toHaveLength(1);
+      expect(main).toBeInTheDocument();
+      expect(occupation?.parentElement?.parentElement).toBe(container.querySelector("dl"));
+    });
+
     test("letters exhibits only for sections that exist", () => {
       const { container } = testTemplate("CaseFile", CaseFile, fullResumeContent);
 
