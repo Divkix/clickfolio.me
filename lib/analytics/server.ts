@@ -36,14 +36,16 @@ export function captureServerEvent<E extends keyof AnalyticsEventMap>(
   distinctId: string,
   event: E,
   properties: AnalyticsEventMap[E],
+  sessionId?: string,
 ): void {
   const posthog = createPostHogClient();
 
   if (!posthog) return;
+  const eventProperties = sessionId ? { ...properties, $session_id: sessionId } : properties;
 
   const send = (async () => {
     try {
-      await posthog.captureImmediate({ distinctId, event, properties });
+      await posthog.captureImmediate({ distinctId, event, properties: eventProperties });
     } catch (error) {
       logFailure("capture", error instanceof Error ? error : String(error));
     } finally {

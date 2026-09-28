@@ -233,11 +233,16 @@ export async function POST(request: Request) {
         revalidatePublicProfilePages([outcome.oldHandle, body.handle]);
         notifyIndexNowForProfiles([outcome.oldHandle, body.handle]);
 
-        captureServerEvent(authUser.id, "onboarding_completed", {
-          handle: body.handle,
-          theme_id: body.theme_id,
-          show_in_directory: body.privacy_settings.show_in_directory,
-        });
+        captureServerEvent(
+          authUser.id,
+          "onboarding_completed",
+          {
+            handle: body.handle,
+            theme_id: body.theme_id,
+            show_in_directory: body.privacy_settings.show_in_directory,
+          },
+          request.headers.get("x-posthog-session-id") ?? undefined,
+        );
 
         return createSuccessResponse({
           success: true,

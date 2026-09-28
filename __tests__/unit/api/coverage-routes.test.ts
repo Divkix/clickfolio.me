@@ -283,6 +283,7 @@ const mocks = vi.hoisted(() => {
     env,
     makeTxChain,
     clerkDeleteUser: vi.fn(async () => undefined),
+    captureServerEvent: vi.fn(),
     getStats: vi.fn(async () => ({ pageviews: 10, visitors: 4 })),
     getPageviews: vi.fn(async () => ({
       pageviews: [{ x: "2026-05-20T00:00:00Z", y: 6 }],
@@ -307,6 +308,10 @@ const mocks = vi.hoisted(() => {
     })),
   };
 });
+
+vi.mock("@/lib/analytics/server", () => ({
+  captureServerEvent: mocks.captureServerEvent,
+}));
 
 vi.mock("cloudflare:workers", () => ({
   env: mocks.env,
@@ -1142,11 +1147,20 @@ describe("API route coverage", () => {
     mocks.state.selectResults = [[{ handle: null }], [{ updatedAt: null }]];
     mocks.state.txSelectResults = [[{ handle: null }], [{ count: 0 }]];
     mocks.state.txReturningResults = [[{ id: "user_1" }]];
-    expect(await (await POST(jsonRequest("/api/wizard/complete", validBody))).json()).toMatchObject(
-      {
-        success: true,
-        handle: "avery",
-      },
+
+    const firstTime = await POST(
+      jsonRequest("/api/wizard/complete", validBody, {
+        headers: { "X-PostHog-Session-Id": "session_123" },
+      }),
+    );
+
+    expect(await firstTime.json()).toMatchObject({ success: true, handle: "avery" });
+
+    expect(mocks.captureServerEvent).toHaveBeenCalledWith(
+      "user_1",
+      "onboarding_completed",
+      { handle: "avery", theme_id: "minimalist_editorial", show_in_directory: true },
+      "session_123",
     );
     expect(mocks.state.txValues.filter(isHandleChangeRow)).toMatchObject([
       { userId: "user_1", oldHandle: null, newHandle: "avery" },
