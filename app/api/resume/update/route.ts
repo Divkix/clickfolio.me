@@ -4,7 +4,9 @@ import { withUser } from "@/lib/auth/with-auth";
 import { siteData, user } from "@/lib/db/schema";
 import { resumeContentSchemaStrict } from "@/lib/schemas/resume";
 import type { ResumeContent } from "@/lib/types/database";
+import { notifyIndexNowForProfiles } from "@/lib/seo/indexnow-runtime";
 import { extractPreviewFields } from "@/lib/utils/preview-fields";
+import { revalidatePublicProfilePages } from "@/lib/utils/revalidate";
 import {
   createErrorResponse,
   createSuccessResponse,
@@ -29,7 +31,7 @@ export async function PUT(request: Request) {
 
   return withUser(
     request,
-    async ({ user: authUser, db }) => {
+    async ({ user: authUser, db, dbUser }) => {
       const userId = authUser.id;
 
       const rawBodyResult = await readJsonWithLimit(request);
@@ -131,6 +133,9 @@ export async function PUT(request: Request) {
             );
         }
       }
+
+      revalidatePublicProfilePages([dbUser.handle]);
+      notifyIndexNowForProfiles([dbUser.handle]);
 
       return createSuccessResponse({
         success: true,

@@ -2,7 +2,8 @@ import { z } from "zod";
 import { and, eq, lte } from "drizzle-orm";
 import { withUser } from "@/lib/auth/with-auth";
 import { captureServerEvent } from "@/lib/analytics/server";
-
+import { notifyIndexNowForProfiles } from "@/lib/seo/indexnow-runtime";
+import { revalidatePublicProfilePages } from "@/lib/utils/revalidate";
 import { siteData } from "@/lib/db/schema";
 import { isValidThemeId, THEME_IDS } from "@/lib/templates/theme-ids";
 import {
@@ -19,7 +20,7 @@ interface ThemeUpdateRequestBody {
 export async function POST(request: Request) {
   return withUser(
     request,
-    async ({ user: authUser, db }) => {
+    async ({ user: authUser, db, dbUser }) => {
       const userId = authUser.id;
 
       const sizeCheck = validateRequestSize(request);
@@ -106,6 +107,9 @@ export async function POST(request: Request) {
       captureServerEvent(userId, "theme_changed", {
         theme_id,
       });
+
+      revalidatePublicProfilePages([dbUser.handle]);
+      notifyIndexNowForProfiles([dbUser.handle]);
 
       return createSuccessResponse({
         success: true,

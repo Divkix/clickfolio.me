@@ -2,7 +2,11 @@ import type * as DrizzleOrm from "drizzle-orm";
 import type { JsonValue } from "@/lib/types/json";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
-const { mockedAuth } = vi.hoisted(() => ({ mockedAuth: vi.fn() }));
+const { mockedAuth, mockedRevalidate, mockedIndexNow } = vi.hoisted(() => ({
+  mockedAuth: vi.fn(),
+  mockedRevalidate: vi.fn(),
+  mockedIndexNow: vi.fn(),
+}));
 
 vi.mock("@/lib/auth/middleware", () => ({
   requireAuthWithUserValidation: mockedAuth,
@@ -15,6 +19,14 @@ vi.mock("@/lib/auth/admin", () => ({
 
 vi.mock("@/lib/auth/session", () => ({
   getServerSession: vi.fn(),
+}));
+
+vi.mock("@/lib/utils/revalidate", () => ({
+  revalidatePublicProfilePages: mockedRevalidate,
+}));
+
+vi.mock("@/lib/seo/indexnow-runtime", () => ({
+  notifyIndexNowForProfiles: mockedIndexNow,
 }));
 
 vi.mock("cloudflare:workers", () => ({
@@ -1093,6 +1105,8 @@ describe("Resume API Integration Tests (25 tests)", () => {
       const body: { success: boolean; data: { id: string } } = await response.json();
       expect(body.success).toBe(true);
       expect(body.data.id).toBe("site-data-123");
+      expect(mockedRevalidate).toHaveBeenCalledWith(["testuser"]);
+      expect(mockedIndexNow).toHaveBeenCalledWith(["testuser"]);
     });
 
     it("returns 401 when not authenticated (test 12)", async () => {
@@ -1199,6 +1213,8 @@ describe("Resume API Integration Tests (25 tests)", () => {
       const body: { success: boolean; theme_id: string } = await response.json();
       expect(body.success).toBe(true);
       expect(body.theme_id).toBe("bento");
+      expect(mockedRevalidate).toHaveBeenCalledWith(["testuser"]);
+      expect(mockedIndexNow).toHaveBeenCalledWith(["testuser"]);
     });
 
     it("returns 400 for invalid theme ID (test 14)", async () => {
