@@ -1,11 +1,13 @@
 import { render } from "@testing-library/react";
 import type React from "react";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import TemplatesShowcasePage from "@/app/blog/clickfolio-templates-showcase/page";
 import LinkedInToPortfolioPage from "@/app/blog/linkedin-to-portfolio/page";
 import BlogPage from "@/app/blog/page";
 import ClaimHandleLandingPage from "@/app/lp/claim-handle/page";
 import Home from "@/app/page";
 import { getPostBySlug } from "@/lib/blog/posts";
+import { THEME_METADATA } from "@/lib/templates/theme-ids";
 
 const router = {
   push: vi.fn(),
@@ -131,6 +133,14 @@ describe("public page rendering", () => {
     );
     expect(cta.compareDocumentPosition(method1) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
     expect(cta.compareDocumentPosition(method2) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+  it("uses the registry count for every template quantity in the showcase", () => {
+    const count = Object.keys(THEME_METADATA).length;
+    const { container } = render(<TemplatesShowcasePage />);
+
+    expect(container.textContent).toContain(count + " distinct templates");
+    expect(container.textContent).toContain("All " + count + " templates are free");
+    expect(container.textContent).toContain("try all " + count + " templates");
   });
 
   it("glues byline separators to their labels and preserves the datetime", () => {
