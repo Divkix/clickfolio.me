@@ -5,8 +5,10 @@ import { siteData, user } from "@/lib/db/schema";
 import { resumeContentSchemaStrict } from "@/lib/schemas/resume";
 import type { ResumeContent } from "@/lib/types/database";
 import { notifyIndexNowForProfiles } from "@/lib/seo/indexnow-runtime";
+import { isIndexableProfile } from "@/lib/seo/profile-indexability";
 import { extractPreviewFields } from "@/lib/utils/preview-fields";
 import { revalidatePublicProfilePages } from "@/lib/utils/revalidate";
+import { normalizePrivacySettings } from "@/lib/utils/privacy";
 import {
   createErrorResponse,
   createSuccessResponse,
@@ -89,6 +91,7 @@ export async function PUT(request: Request) {
         .returning({
           id: siteData.id,
           lastPublishedAt: siteData.lastPublishedAt,
+          content: siteData.content,
         });
 
       if (updateResult.length === 0) {
@@ -135,7 +138,10 @@ export async function PUT(request: Request) {
       }
 
       revalidatePublicProfilePages([dbUser.handle]);
-      notifyIndexNowForProfiles([dbUser.handle]);
+
+      if (isIndexableProfile(data.content, normalizePrivacySettings(authUser.privacySettings))) {
+        notifyIndexNowForProfiles([dbUser.handle]);
+      }
 
       return createSuccessResponse({
         success: true,

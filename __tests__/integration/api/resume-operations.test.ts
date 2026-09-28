@@ -1052,37 +1052,37 @@ describe("Resume API Integration Tests (25 tests)", () => {
     });
   });
 
-  describe("PUT /api/resume/update", () => {
-    const validResumeContent = {
-      full_name: "Test User",
-      headline: "Software Engineer",
-      summary: "Experienced developer",
-      contact: {
-        email: "test@example.com",
-        phone: "+1-555-0123",
-        location: "San Francisco, CA",
+  const validResumeContent = {
+    full_name: "Test User",
+    headline: "Software Engineer",
+    summary: "Experienced developer",
+    contact: {
+      email: "test@example.com",
+      phone: "+1-555-0123",
+      location: "San Francisco, CA",
+    },
+    experience: [
+      {
+        title: "Senior Developer",
+        company: "Tech Corp",
+        location: "Remote",
+        start_date: "2020-01",
+        end_date: "Present",
+        description: "Led development team",
       },
-      experience: [
-        {
-          title: "Senior Developer",
-          company: "Tech Corp",
-          location: "Remote",
-          start_date: "2020-01",
-          end_date: "Present",
-          description: "Led development team",
-        },
-      ],
-      education: [
-        {
-          degree: "BS Computer Science",
-          institution: "University",
-          location: "City",
-          graduation_date: "2015",
-        },
-      ],
-      skills: [{ category: "Languages", items: ["TypeScript", "Python"] }],
-    };
+    ],
+    education: [
+      {
+        degree: "BS Computer Science",
+        institution: "University",
+        location: "City",
+        graduation_date: "2015",
+      },
+    ],
+    skills: [{ category: "Languages", items: ["TypeScript", "Python"] }],
+  };
 
+  describe("PUT /api/resume/update", () => {
     it("updates resume content successfully (test 5)", async () => {
       authedAs("user-123");
 
@@ -1090,6 +1090,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
         {
           id: "site-data-123",
           lastPublishedAt: new Date().toISOString(),
+          content: validResumeContent,
         },
       ]);
 
@@ -1107,6 +1108,52 @@ describe("Resume API Integration Tests (25 tests)", () => {
       expect(body.data.id).toBe("site-data-123");
       expect(mockedRevalidate).toHaveBeenCalledWith(["testuser"]);
       expect(mockedIndexNow).toHaveBeenCalledWith(["testuser"]);
+    });
+    it("does not notify IndexNow when saved content is not indexable", async () => {
+      authedAs("user-123");
+      mockReturning.mockResolvedValue([
+        {
+          id: "site-data-123",
+          lastPublishedAt: new Date().toISOString(),
+          content: { ...validResumeContent, headline: "Your headline" },
+        },
+      ]);
+
+      const { PUT } = await import("@/app/api/resume/update/route");
+
+      const response = await PUT(
+        makeRequest("http://localhost:3000/api/resume/update", "PUT", {
+          content: validResumeContent,
+        }),
+      );
+
+      expect(response.status).toBe(200);
+      expect(mockedIndexNow).not.toHaveBeenCalled();
+      expect(mockedRevalidate).toHaveBeenCalledWith(["testuser"]);
+    });
+
+    it("does not notify IndexNow for a hidden profile", async () => {
+      const auth = authedAs("user-123");
+      auth.user.privacySettings = { ...DEFAULT_PRIVACY_SETTINGS, hide_from_search: true };
+      mockReturning.mockResolvedValue([
+        {
+          id: "site-data-123",
+          lastPublishedAt: new Date().toISOString(),
+          content: validResumeContent,
+        },
+      ]);
+
+      const { PUT } = await import("@/app/api/resume/update/route");
+
+      const response = await PUT(
+        makeRequest("http://localhost:3000/api/resume/update", "PUT", {
+          content: validResumeContent,
+        }),
+      );
+
+      expect(response.status).toBe(200);
+      expect(mockedIndexNow).not.toHaveBeenCalled();
+      expect(mockedRevalidate).toHaveBeenCalledWith(["testuser"]);
     });
 
     it("returns 401 when not authenticated (test 12)", async () => {
@@ -1199,7 +1246,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
     it("updates theme successfully (test 6)", async () => {
       authedAs("user-123");
 
-      mockReturning.mockResolvedValue([{ themeId: "bento" }]);
+      mockReturning.mockResolvedValue([{ themeId: "bento", content: validResumeContent }]);
 
       const { POST } = await import("@/app/api/resume/update-theme/route");
 
@@ -1215,6 +1262,42 @@ describe("Resume API Integration Tests (25 tests)", () => {
       expect(body.theme_id).toBe("bento");
       expect(mockedRevalidate).toHaveBeenCalledWith(["testuser"]);
       expect(mockedIndexNow).toHaveBeenCalledWith(["testuser"]);
+    });
+    it("does not notify IndexNow when saved content is not indexable", async () => {
+      authedAs("user-123");
+      mockReturning.mockResolvedValue([
+        { themeId: "bento", content: { ...validResumeContent, headline: "Your headline" } },
+      ]);
+
+      const { POST } = await import("@/app/api/resume/update-theme/route");
+
+      const response = await POST(
+        makeRequest("http://localhost:3000/api/resume/update-theme", "POST", {
+          theme_id: "bento",
+        }),
+      );
+
+      expect(response.status).toBe(200);
+      expect(mockedIndexNow).not.toHaveBeenCalled();
+      expect(mockedRevalidate).toHaveBeenCalledWith(["testuser"]);
+    });
+
+    it("does not notify IndexNow for a hidden profile", async () => {
+      const auth = authedAs("user-123");
+      auth.user.privacySettings = { ...DEFAULT_PRIVACY_SETTINGS, hide_from_search: true };
+      mockReturning.mockResolvedValue([{ themeId: "bento", content: validResumeContent }]);
+
+      const { POST } = await import("@/app/api/resume/update-theme/route");
+
+      const response = await POST(
+        makeRequest("http://localhost:3000/api/resume/update-theme", "POST", {
+          theme_id: "bento",
+        }),
+      );
+
+      expect(response.status).toBe(200);
+      expect(mockedIndexNow).not.toHaveBeenCalled();
+      expect(mockedRevalidate).toHaveBeenCalledWith(["testuser"]);
     });
 
     it("returns 400 for invalid theme ID (test 14)", async () => {
@@ -1234,7 +1317,7 @@ describe("Resume API Integration Tests (25 tests)", () => {
     it("updates previously-premium theme now that all themes are free", async () => {
       authedAs("user-123");
 
-      mockReturning.mockResolvedValue([{ themeId: "bold_corporate" }]);
+      mockReturning.mockResolvedValue([{ themeId: "bold_corporate", content: validResumeContent }]);
 
       const { POST } = await import("@/app/api/resume/update-theme/route");
 
@@ -1428,13 +1511,6 @@ describe("Resume API Integration Tests (25 tests)", () => {
     it("handles privacy-sensitive fields in content update (test 19)", async () => {
       authedAs("user-123");
 
-      mockReturning.mockResolvedValue([
-        {
-          id: "site-data-123",
-          lastPublishedAt: new Date().toISOString(),
-        },
-      ]);
-
       const privacyContent = {
         full_name: "Test User",
         headline: "Developer",
@@ -1448,6 +1524,14 @@ describe("Resume API Integration Tests (25 tests)", () => {
         education: [],
         skills: [],
       };
+
+      mockReturning.mockResolvedValue([
+        {
+          id: "site-data-123",
+          lastPublishedAt: new Date().toISOString(),
+          content: privacyContent,
+        },
+      ]);
 
       const { PUT } = await import("@/app/api/resume/update/route");
 
