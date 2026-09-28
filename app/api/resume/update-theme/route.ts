@@ -2,7 +2,10 @@ import { z } from "zod";
 import { and, eq, lte } from "drizzle-orm";
 import { withUser } from "@/lib/auth/with-auth";
 import { captureServerEvent } from "@/lib/analytics/server";
-
+import { notifyIndexNowForProfiles } from "@/lib/seo/indexnow-runtime";
+import { isIndexableProfile } from "@/lib/seo/profile-indexability";
+import { revalidatePublicProfilePages } from "@/lib/utils/revalidate";
+import { normalizePrivacySettings } from "@/lib/utils/privacy";
 import { siteData } from "@/lib/db/schema";
 import { isValidThemeId, THEME_IDS } from "@/lib/templates/theme-ids";
 import {
@@ -19,7 +22,7 @@ interface ThemeUpdateRequestBody {
 export async function POST(request: Request) {
   return withUser(
     request,
-    async ({ user: authUser, db }) => {
+    async ({ user: authUser, db, dbUser }) => {
       const userId = authUser.id;
 
       const sizeCheck = validateRequestSize(request);
@@ -83,7 +86,7 @@ export async function POST(request: Request) {
             expectedUpdatedAt ? lte(siteData.updatedAt, expectedUpdatedAt) : undefined,
           ),
         )
-        .returning({ themeId: siteData.themeId });
+        .returning({ themeId: siteData.themeId, content: siteData.content });
 
       if (updateResult.length === 0) {
         if (!expectedUpdatedAt) {
@@ -103,9 +106,15 @@ export async function POST(request: Request) {
 
       const data = updateResult[0];
 
+      if (isIndexableProfile(data.content, normalizePrivacySettings(authUser.privacySettings))) {
+        notifyIndexNowForProfiles([dbUser.handle]);
+      }
+
       captureServerEvent(userId, "theme_changed", {
         theme_id,
       });
+
+      revalidatePublicProfilePages([dbUser.handle]);
 
       return createSuccessResponse({
         success: true,

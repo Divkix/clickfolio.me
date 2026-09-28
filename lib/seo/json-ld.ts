@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import type { BlogPostMeta } from "@/lib/blog/posts";
 import { authorPersona } from "@/lib/config/author";
+import type { PrivacySettings } from "@/lib/db/schema/auth";
 import { FAQ_ITEMS } from "@/lib/config/faq";
 import { siteConfig } from "@/lib/config/site";
 import { buildPublicPageMetadata } from "@/lib/seo/page-metadata";
+import { isIndexableProfile } from "@/lib/seo/profile-indexability";
 import type { ResumeContent } from "@/lib/types/database";
 import type { UnknownRecord } from "@/lib/types/json";
 
@@ -57,6 +59,7 @@ interface JsonLdOptions {
   dateCreated?: string;
   dateModified?: string;
   includeEmail?: boolean;
+  privacySettings: Pick<PrivacySettings, "hide_from_search">;
 }
 
 const URL_PATTERNS = {
@@ -168,8 +171,17 @@ function buildAlumniOf(
 export function generateResumeJsonLd(
   content: ResumeContent,
   options: JsonLdOptions,
-): JsonLdProfilePage {
-  const { profileUrl, avatarUrl, dateCreated, dateModified, includeEmail = false } = options;
+): JsonLdProfilePage | null {
+  const {
+    profileUrl,
+    avatarUrl,
+    dateCreated,
+    dateModified,
+    includeEmail = false,
+    privacySettings,
+  } = options;
+
+  if (!isIndexableProfile(content, privacySettings)) return null;
 
   const person: JsonLdPerson = {
     "@type": "Person",

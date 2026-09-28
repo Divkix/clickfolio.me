@@ -115,7 +115,7 @@ function Hero({ content, profile }: TemplateProps) {
                 <a
                   href={link.href}
                   target={link.isExternal ? "_blank" : undefined}
-                  rel={link.isExternal ? "noopener noreferrer" : undefined}
+                  rel={link.isExternal ? "ugc nofollow noopener noreferrer" : undefined}
                   className={`${SLAB} ${PRESS} flex min-w-0 items-center gap-3 px-4 py-3 font-bold`}
                 >
                   <span className="flex size-5 shrink-0 items-center justify-center">
@@ -260,7 +260,7 @@ function Work({ projects }: { projects: NonNullable<Content["projects"]> }) {
               <a
                 href={project.url}
                 target="_blank"
-                rel="noopener noreferrer"
+                rel="ugc nofollow noopener noreferrer"
                 className={`mt-6 inline-flex items-center gap-2 self-start border-[3px] border-black bg-black px-4 py-2 font-bold text-white shadow-[4px_4px_0_0_#1F3BFF] ${PRESS} hover:shadow-[1px_1px_0_0_#1F3BFF]`}
               >
                 Visit {project.title}
@@ -352,7 +352,7 @@ function EducationAndCerts({
                     <a
                       href={cert.url}
                       target="_blank"
-                      rel="noopener noreferrer"
+                      rel="ugc nofollow noopener noreferrer"
                       className="underline decoration-[#1F3BFF] decoration-4 underline-offset-4 hover:bg-[#FFD400]"
                     >
                       {cert.name}

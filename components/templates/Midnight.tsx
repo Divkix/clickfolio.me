@@ -131,7 +131,7 @@ function Header({ content, profile }: TemplateProps) {
               <a
                 href={link.href}
                 target={link.isExternal ? "_blank" : undefined}
-                rel={link.isExternal ? "noopener noreferrer" : undefined}
+                rel={link.isExternal ? "ugc nofollow noopener noreferrer" : undefined}
                 className="inline-flex items-center gap-2 text-sm text-[#C9CEE4] hover:text-[#D4B26A] underline decoration-[#D4B26A]/30 underline-offset-4 hover:decoration-[#D4B26A] transition-colors focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D4B26A]"
               >
                 {getContactIcon(link.type, {
@@ -232,7 +232,7 @@ function Projects({ projects }: { projects: ResumeContent["projects"] }) {
                   <a
                     href={project.url}
                     target="_blank"
-                    rel="noopener noreferrer"
+                    rel="ugc nofollow noopener noreferrer"
                     className="inline-flex items-center gap-1.5 hover:text-[#D4B26A] transition-colors focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D4B26A]"
                   >
                     {project.title}
@@ -324,7 +324,7 @@ function Credentials({
                     <a
                       href={cert.url}
                       target="_blank"
-                      rel="noopener noreferrer"
+                      rel="ugc nofollow noopener noreferrer"
                       className="inline-flex items-center gap-1.5 hover:text-[#D4B26A] transition-colors focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D4B26A]"
                     >
                       {cert.name}

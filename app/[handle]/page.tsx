@@ -54,7 +54,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     };
   }
 
-  const { full_name, headline, hide_from_search, location, skills, created_at, updated_at } = data;
+  const { full_name, headline, indexable, location, skills, created_at, updated_at } = data;
 
   const descParts: string[] = [full_name];
 
@@ -78,7 +78,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     alternates: {
       canonical: profileUrl,
     },
-    ...(hide_from_search && {
+    ...(!indexable && {
       robots: {
         index: false,
         follow: false,

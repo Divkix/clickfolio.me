@@ -26,8 +26,13 @@ const mocks = vi.hoisted(() => {
         status: "completed",
       }),
     ),
+    getAnalyticsSessionId: vi.fn(() => "session_123"),
   };
 });
+
+vi.mock("@/lib/analytics/client", () => ({
+  getAnalyticsSessionId: () => mocks.getAnalyticsSessionId(),
+}));
 
 vi.mock("next/navigation", () => ({
   useRouter: () => mocks.router,
@@ -241,6 +246,15 @@ describe("wizard page flow", () => {
     await userEvent.click(screen.getByText(/review-step/));
     await userEvent.click(screen.getByText("privacy-step"));
     await userEvent.click(screen.getByText(/theme-step/));
+    await waitFor(() => {
+      const completionRequest = vi
+        .mocked(fetch)
+        .mock.calls.find(([input]) => String(input) === "/api/wizard/complete");
+
+      expect(new Headers(completionRequest?.[1]?.headers).get("X-PostHog-Session-Id")).toBe(
+        "session_123",
+      );
+    });
 
     expect(screen.getByText("live avery")).toBeInTheDocument();
     await userEvent.click(screen.getByText("live avery"));

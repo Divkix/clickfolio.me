@@ -152,7 +152,7 @@ function GlassHero({
                 <a
                   href={link.href}
                   target={link.isExternal ? "_blank" : undefined}
-                  rel={link.isExternal ? "noopener noreferrer" : undefined}
+                  rel={link.isExternal ? "ugc nofollow noopener noreferrer" : undefined}
                   className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.06] px-4 py-2 text-sm text-[#D7DCEC] hover:bg-white/[0.12] hover:text-white transition-colors focus-visible:outline-2 focus-visible:outline-[#3DD6C4]"
                 >
                   {getContactIcon(link.type, {
@@ -238,7 +238,7 @@ function GlassProjects({ projects }: { projects: ResumeContent["projects"] }) {
                   <a
                     href={project.url}
                     target="_blank"
-                    rel="noopener noreferrer"
+                    rel="ugc nofollow noopener noreferrer"
                     className="inline-flex items-center gap-1.5 hover:text-[#3DD6C4] transition-colors focus-visible:outline-2 focus-visible:outline-[#3DD6C4]"
                   >
                     {project.title}
@@ -365,7 +365,7 @@ function GlassEducation({
                       <a
                         href={cert.url}
                         target="_blank"
-                        rel="noopener noreferrer"
+                        rel="ugc nofollow noopener noreferrer"
                         className="inline-flex items-center gap-1.5 hover:text-[#3DD6C4] transition-colors focus-visible:outline-2 focus-visible:outline-[#3DD6C4]"
                       >
                         {cert.name}

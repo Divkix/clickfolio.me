@@ -155,7 +155,7 @@ function AboutWindow({ content, avatarUrl }: { content: Content; avatarUrl: stri
                   <a
                     href={link.href}
                     target={link.isExternal ? "_blank" : undefined}
-                    rel={link.isExternal ? "noopener noreferrer" : undefined}
+                    rel={link.isExternal ? "ugc nofollow noopener noreferrer" : undefined}
                     className={`ros-raised inline-flex max-w-full items-center gap-1.5 bg-[#C0C0C0] px-2.5 py-1 text-sm text-black active:[box-shadow:inset_1px_1px_#0a0a0a,inset_-1px_-1px_#fff] ${FOCUS}`}
                   >
                     {getContactIcon(link.type, {
@@ -289,7 +289,7 @@ function ProjectsWindow({ projects }: { projects: NonNullable<Content["projects"
                   <a
                     href={project.url}
                     target="_blank"
-                    rel="noopener noreferrer"
+                    rel="ugc nofollow noopener noreferrer"
                     className={`text-[#0000EE] underline visited:text-[#551A8B] ${FOCUS}`}
                   >
                     {project.title}
@@ -382,7 +382,7 @@ function CredentialsWindow({
                         <a
                           href={cert.url}
                           target="_blank"
-                          rel="noopener noreferrer"
+                          rel="ugc nofollow noopener noreferrer"
                           className={`text-[#0000EE] underline ${FOCUS}`}
                         >
                           {cert.name}
