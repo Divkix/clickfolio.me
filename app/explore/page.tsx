@@ -1,5 +1,5 @@
 import { env } from "cloudflare:workers";
-import { and, desc, eq, isNotNull, sql } from "drizzle-orm";
+import { and, desc, eq, isNotNull } from "drizzle-orm";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ExploreFilters } from "@/components/explore/explore-filters";
@@ -16,6 +16,7 @@ import { getDb } from "@/lib/db";
 import { siteData, user } from "@/lib/db/schema";
 import { isUserRole, ROLE_OPTIONS, type UserRole } from "@/lib/config/roles";
 import { generateExploreJsonLd, serializeJsonLd } from "@/lib/seo/json-ld";
+import { isIndexableProfile } from "@/lib/seo/profile-indexability";
 import { buildPublicPageMetadata } from "@/lib/seo/page-metadata";
 import { normalizePreviewSkills } from "@/lib/utils/preview-skills";
 import { extractCityState, normalizePrivacySettings } from "@/lib/utils/privacy";
@@ -84,67 +85,61 @@ export default async function ExplorePage({
     whereConditions.push(eq(user.role, roleFilter));
   }
 
-  // One repeatable-read snapshot: the total count and the page rows are issued together so they
-  // describe the same directory state.
-  const [countResult, usersWithData] = await db.transaction(
-    async (tx) => {
-      const [countRows, pageRows] = await Promise.all([
-        tx
-          .select({ count: sql<number>`count(*)` })
-          .from(user)
-          .innerJoin(siteData, eq(user.id, siteData.userId))
-          .where(and(...whereConditions)),
-
-        tx
-          .select({
-            handle: user.handle,
-            role: user.role,
-            previewName: siteData.previewName,
-            previewHeadline: siteData.previewHeadline,
-            previewLocation: siteData.previewLocation,
-            previewExpCount: siteData.previewExpCount,
-            previewEduCount: siteData.previewEduCount,
-            previewSkills: siteData.previewSkills,
-            privacySettings: user.privacySettings,
-          })
-          .from(user)
-          .innerJoin(siteData, eq(user.id, siteData.userId))
-          .where(and(...whereConditions))
-          // user_id breaks updated_at ties so a row never shifts between pages.
-          .orderBy(desc(siteData.updatedAt), desc(siteData.userId))
-          .limit(ITEMS_PER_PAGE)
-          .offset((currentPage - 1) * ITEMS_PER_PAGE),
-      ]);
-
-      return [countRows, pageRows] as const;
-    },
+  // One repeatable-read snapshot keeps profile filtering and directory pagination consistent.
+  const usersWithData = await db.transaction(
+    async (tx) =>
+      tx
+        .select({
+          handle: user.handle,
+          role: user.role,
+          previewName: siteData.previewName,
+          previewHeadline: siteData.previewHeadline,
+          previewLocation: siteData.previewLocation,
+          previewExpCount: siteData.previewExpCount,
+          previewEduCount: siteData.previewEduCount,
+          previewSkills: siteData.previewSkills,
+          privacySettings: user.privacySettings,
+          content: siteData.content,
+        })
+        .from(user)
+        .innerJoin(siteData, eq(user.id, siteData.userId))
+        .where(and(...whereConditions))
+        .orderBy(desc(siteData.updatedAt), desc(siteData.userId)),
     { isolationLevel: "repeatable read" },
   );
 
-  const totalCount = countResult[0]?.count ?? 0;
+  const indexableUsers = usersWithData.filter(
+    (u): u is typeof u & { handle: string } =>
+      u.handle !== null &&
+      isIndexableProfile(u.content, normalizePrivacySettings(u.privacySettings)),
+  );
+
+  const totalCount = indexableUsers.length;
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
-  const directoryUsers: DirectoryUser[] = usersWithData
-    .filter((u) => u.handle !== null)
-    .map((u) => {
-      const previewSkills = normalizePreviewSkills(u.previewSkills);
-      const showAddress = normalizePrivacySettings(u.privacySettings).show_address;
+  const pageUsers = indexableUsers.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE,
+  );
 
-      const previewLocation =
-        u.previewLocation && !showAddress ? extractCityState(u.previewLocation) : u.previewLocation;
+  const directoryUsers: DirectoryUser[] = pageUsers.map((u) => {
+    const previewSkills = normalizePreviewSkills(u.previewSkills);
+    const showAddress = normalizePrivacySettings(u.privacySettings).show_address;
 
-      // SAFETY: handle is filtered for non-null above; cast bridges nullable to string.
-      return {
-        handle: u.handle as string,
-        role: u.role,
-        previewName: u.previewName,
-        previewHeadline: u.previewHeadline,
-        previewLocation,
-        previewExpCount: u.previewExpCount,
-        previewEduCount: u.previewEduCount,
-        previewSkills: previewSkills.length > 0 ? previewSkills : null,
-      };
-    });
+    const previewLocation =
+      u.previewLocation && !showAddress ? extractCityState(u.previewLocation) : u.previewLocation;
+
+    return {
+      handle: u.handle,
+      role: u.role,
+      previewName: u.previewName,
+      previewHeadline: u.previewHeadline,
+      previewLocation,
+      previewExpCount: u.previewExpCount,
+      previewEduCount: u.previewEduCount,
+      previewSkills: previewSkills.length > 0 ? previewSkills : null,
+    };
+  });
 
   const exploreJsonLd = generateExploreJsonLd(
     directoryUsers.map((u) => ({

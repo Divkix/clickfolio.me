@@ -270,6 +270,13 @@ describe("Template Component Tests", () => {
       expect(container.textContent).toContain("John Alexander Doe");
     });
 
+    test("marks project links as user-submitted external URLs", () => {
+      const { container } = testTemplate("CaseFile", CaseFile, fullResumeContent);
+      const projectLink = container.querySelector('a[href="https://github.com/johndoe/cf-tool"]');
+
+      expect(projectLink?.getAttribute("rel")).toBe("ugc nofollow noopener noreferrer");
+    });
+
     test("exposes one skip-link main landmark and a single occupation field group", () => {
       const { container } = testTemplate("CaseFile", CaseFile, fullResumeContent);
       const main = container.querySelector("main#main-content");
