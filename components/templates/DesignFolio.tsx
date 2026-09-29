@@ -101,7 +101,7 @@ function Hero({ content, profile }: { content: Content; profile: TemplateProps["
                   <a
                     href={link.href}
                     target={link.isExternal ? "_blank" : undefined}
-                    rel={link.isExternal ? "noopener noreferrer" : undefined}
+                    rel={link.isExternal ? "ugc nofollow noopener noreferrer" : undefined}
                     className={`${inkLink} break-all`}
                   >
                     {link.label}
@@ -204,7 +204,7 @@ function Projects({ items }: { items: Content["projects"] }) {
                 <a
                   href={project.url}
                   target="_blank"
-                  rel="noopener noreferrer"
+                  rel="ugc nofollow noopener noreferrer"
                   className="group block focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-[#2D3BFF]"
                 >
                   {body}
@@ -339,7 +339,7 @@ function Credentials({
                     <a
                       href={cert.url}
                       target="_blank"
-                      rel="noopener noreferrer"
+                      rel="ugc nofollow noopener noreferrer"
                       className={inkLink}
                     >
                       {cert.name}
@@ -392,7 +392,7 @@ export const DesignFolio: React.FC<TemplateProps> = ({ content, profile }) => {
                     <a
                       href={link.href}
                       target={link.isExternal ? "_blank" : undefined}
-                      rel={link.isExternal ? "noopener noreferrer" : undefined}
+                      rel={link.isExternal ? "ugc nofollow noopener noreferrer" : undefined}
                       className="inline-flex items-center gap-4 text-2xl md:text-5xl font-bold tracking-[-0.02em] break-all hover:underline decoration-[3px] underline-offset-[6px] focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-white"
                     >
                       {getContactIcon(link.type, {

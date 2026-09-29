@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BlogPostLayout } from "@/components/blog/BlogPostLayout";
+import { Button } from "@/components/ui/button";
 import { buildBlogPostMetadata, getPostBySlug } from "@/lib/blog/posts";
 
 export const revalidate = 86400;
@@ -123,6 +124,19 @@ export default function LinkedInToPortfolioPage() {
             About section.
           </li>
         </ol>
+
+        <div className="not-prose my-8 rounded-xl border border-border bg-card p-6 shadow-sm">
+          <p className="font-semibold text-foreground">Have your LinkedIn PDF export ready?</p>
+          <p className="mt-1 text-muted-foreground">
+            Upload it and the parser turns your LinkedIn export — sidebar links, stacked roles, page
+            footers — into a live portfolio at clickfolio.me/@yourname.
+          </p>
+          <Button asChild size="lg" className="mt-4">
+            <Link href="/?utm_source=blog&utm_medium=organic&utm_campaign=linkedin-to-portfolio#upload-card">
+              Upload my LinkedIn PDF export
+            </Link>
+          </Button>
+        </div>
 
         <h3>Method 2: Use Your Resume PDF</h3>
         <p>

@@ -142,7 +142,7 @@ function ProfileSidebar({ content, avatarUrl }: { content: Content; avatarUrl: s
                   <a
                     href={link.href}
                     target={link.isExternal ? "_blank" : undefined}
-                    rel={link.isExternal ? "noopener noreferrer" : undefined}
+                    rel={link.isExternal ? "ugc nofollow noopener noreferrer" : undefined}
                     className="min-w-0 break-all text-[#adbac7] hover:text-[#539bf5] hover:underline"
                   >
                     {link.label}
@@ -209,7 +209,7 @@ function ProjectsSection({ projects }: { projects: NonNullable<Content["projects
                   <a
                     href={project.url}
                     target="_blank"
-                    rel="noopener noreferrer"
+                    rel="ugc nofollow noopener noreferrer"
                     className="text-[#539bf5] hover:underline"
                   >
                     {project.title}
@@ -386,7 +386,7 @@ function EducationSection({
                       <a
                         href={cert.url}
                         target="_blank"
-                        rel="noopener noreferrer"
+                        rel="ugc nofollow noopener noreferrer"
                         className="text-[#539bf5] hover:underline"
                       >
                         {cert.name}

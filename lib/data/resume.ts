@@ -1,5 +1,5 @@
 import { env } from "cloudflare:workers";
-import { and, eq, isNotNull, ne, or, sql } from "drizzle-orm";
+import { and, count, eq, isNotNull, ne, or, sql } from "drizzle-orm";
 
 import { cache } from "react";
 import { siteConfig } from "@/lib/config/site";
@@ -7,6 +7,7 @@ import { getDb } from "@/lib/db";
 import { siteData, user } from "@/lib/db/schema";
 import type { PrivacySettings } from "@/lib/db/schema/auth";
 import { generateBreadcrumbJsonLd, generateResumeJsonLd, serializeJsonLd } from "@/lib/seo/json-ld";
+import { isIndexableProfile } from "@/lib/seo/profile-indexability";
 import { DEFAULT_THEME, isValidThemeId, type ThemeId } from "@/lib/templates/theme-ids";
 import type { ResumeContent } from "@/lib/types/database";
 import { normalizePreviewSkills } from "@/lib/utils/preview-skills";
@@ -33,6 +34,7 @@ interface ResumeMetadata {
   summary?: string | null;
   avatar_url: string | null;
   hide_from_search: boolean;
+  indexable: boolean;
   location?: string | null;
   skills?: string[] | null;
   created_at: string;
@@ -165,24 +167,32 @@ async function fetchResumeMetadataRaw(handle: string): Promise<ResumeMetadata | 
     previewLocation = extractCityState(previewLocation) || null;
   }
 
+  let indexable = false;
   let jsonLdResumeScript: string | null = null;
   let jsonLdBreadcrumbScript: string | null = null;
 
-  if (userData?.siteData?.content && !hideFromSearch) {
+  if (userData.siteData.content) {
     try {
       // SAFETY: content is schema-validated JSONB written by the parse pipeline and /api/resume/update; cast bridges the column's wide Record type.
       const content = userData.siteData.content as ResumeContent;
-      const profileUrl = `${siteConfig.url}/@${handle}`;
+      indexable = isIndexableProfile(content, parsedSettings);
 
-      const jsonLd = generateResumeJsonLd(content, {
-        profileUrl,
-        avatarUrl: userData.image,
-        dateCreated: userData.siteData.createdAt,
-        dateModified: userData.siteData.updatedAt,
-      });
+      if (indexable) {
+        const profileUrl = `${siteConfig.url}/@${handle}`;
 
-      jsonLdResumeScript = serializeJsonLd(jsonLd);
-      jsonLdBreadcrumbScript = serializeJsonLd(generateBreadcrumbJsonLd(handle, fullName));
+        const jsonLd = generateResumeJsonLd(content, {
+          profileUrl,
+          avatarUrl: userData.image,
+          dateCreated: userData.siteData.createdAt,
+          dateModified: userData.siteData.updatedAt,
+          privacySettings: parsedSettings,
+        });
+
+        if (jsonLd) {
+          jsonLdResumeScript = serializeJsonLd(jsonLd);
+          jsonLdBreadcrumbScript = serializeJsonLd(generateBreadcrumbJsonLd(handle, fullName));
+        }
+      }
     } catch (error) {
       console.error("Failed to generate JSON-LD for handle:", handle, error);
     }
@@ -196,6 +206,7 @@ async function fetchResumeMetadataRaw(handle: string): Promise<ResumeMetadata | 
     hide_from_search: hideFromSearch,
     location: previewLocation,
     skills: parsedSkills.length > 0 ? parsedSkills : null,
+    indexable,
     created_at: userData.siteData.createdAt,
     updated_at: userData.siteData.updatedAt,
     jsonLdResumeScript,
@@ -223,39 +234,44 @@ export const getRelatedProfiles = cache(
     const whereClause = and(
       isNotNull(user.handle),
       ne(user.handle, currentHandle),
-      notHiddenFromSearch,
       isNotNull(siteData.userId),
+      notHiddenFromSearch,
     );
 
-    const WINDOW = 12;
-
     const countRows = await db
-      .select({ n: sql<number>`count(*)` })
+      .select({ n: count() })
       .from(user)
       .leftJoin(siteData, sql`${siteData.userId} = ${user.id}`)
       .where(whereClause);
 
-    const total = Number(countRows[0]?.n ?? 0);
+    const totalCount = countRows[0]?.n ?? 0;
 
-    if (total === 0) return [];
+    if (!totalCount) return [];
 
-    const maxOffset = Math.max(0, total - WINDOW);
-    const offset = maxOffset > 0 ? Math.floor(Math.random() * (maxOffset + 1)) : 0;
+    const offset = Math.floor(Math.random() * (Math.max(0, totalCount - 12) + 1));
 
     const rows = await db
       .select({
         handle: user.handle,
         name: siteData.previewName,
         headline: siteData.previewHeadline,
+        content: siteData.content,
+        privacySettings: user.privacySettings,
       })
       .from(user)
       .leftJoin(siteData, sql`${siteData.userId} = ${user.id}`)
       .where(whereClause)
       .orderBy(user.handle)
-      .limit(WINDOW)
+      .limit(12)
       .offset(offset);
 
-    const pool = rows.filter((r) => r.handle);
+    const pool = rows.filter(
+      (r): r is typeof r & { handle: string } =>
+        r.handle !== null &&
+        r.handle !== currentHandle &&
+        r.content != null &&
+        isIndexableProfile(r.content, normalizePrivacySettings(r.privacySettings)),
+    );
 
     for (let i = pool.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -263,8 +279,8 @@ export const getRelatedProfiles = cache(
     }
 
     return pool.slice(0, 3).map((r) => ({
-      handle: r.handle!,
-      name: r.name?.trim() || r.handle!,
+      handle: r.handle,
+      name: r.name?.trim() || r.handle,
       headline: r.headline?.trim() || null,
     }));
   },

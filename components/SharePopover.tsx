@@ -120,6 +120,7 @@ export function SharePopover({ url, handle, title, name, variant, className }: S
         type="button"
         onClick={handleToggle}
         className={cn(triggerVariants({ variant }))}
+        aria-label="Share this portfolio"
         aria-expanded={open}
         aria-controls={popoverId}
         aria-haspopup="dialog"
