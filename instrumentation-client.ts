@@ -5,6 +5,7 @@
 import "posthog-js/dist/exception-autocapture";
 import posthog from "posthog-js/dist/module.no-external";
 // Relative import: instrumentation-client runs as a root entry; keep deps local.
+import { groupClerkNetworkException } from "./lib/analytics/clerk-exceptions";
 import { POSTHOG_API_HOST, POSTHOG_PROJECT_TOKEN, POSTHOG_UI_HOST } from "./lib/analytics/config";
 import { installStaleChunkReload } from "./lib/utils/chunk-reload";
 
@@ -33,7 +34,7 @@ if (POSTHOG_PROJECT_TOKEN) {
         return null;
       }
 
-      return event;
+      return event ? groupClerkNetworkException(event) : event;
     },
   });
 }
