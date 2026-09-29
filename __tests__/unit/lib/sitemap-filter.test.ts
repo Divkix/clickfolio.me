@@ -1,81 +1,35 @@
 import type { MetadataRoute } from "next";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { BLOG_POSTS } from "@/lib/blog/posts";
+import type { ResumeContent } from "@/lib/types/database";
 import type { JsonValue } from "@/lib/types/json";
 
 let mockSelectRows: JsonValue[] = [];
 
-let mockCountRows: JsonValue[] = [{ count: 100000 }];
-
-let mockLimitValues: JsonValue[] = [];
-
-let mockOffsetValues: JsonValue[] = [];
-
-let mockJoins: string[] = [];
-
 interface MockQueryChain {
   innerJoin: () => MockQueryChain;
-  leftJoin: () => MockQueryChain;
   select: () => MockQueryChain;
   from: () => MockQueryChain;
   where: () => MockQueryChain;
   orderBy: () => MockQueryChain;
-  limit: (value: JsonValue) => MockQueryChain;
-  offset: (value: JsonValue) => MockQueryChain;
-  then: (resolve: (value: JsonValue) => JsonValue) => JsonValue;
+  then: (resolve: (value: JsonValue[]) => JsonValue) => JsonValue;
 }
 
 function buildQueryChain(rows: JsonValue[]): MockQueryChain {
   const chain = () => buildQueryChain(rows);
 
   return {
-    innerJoin: vi.fn(() => {
-      mockJoins.push("inner");
-
-      return chain();
-    }),
-    leftJoin: vi.fn(() => {
-      mockJoins.push("left");
-
-      return chain();
-    }),
+    innerJoin: vi.fn(() => chain()),
     select: vi.fn(() => chain()),
     from: vi.fn(() => chain()),
     where: vi.fn(() => chain()),
     orderBy: vi.fn(() => chain()),
-    limit: vi.fn((value: JsonValue) => {
-      mockLimitValues.push(value);
-
-      return chain();
-    }),
-    offset: vi.fn((value: JsonValue) => {
-      mockOffsetValues.push(value);
-
-      return chain();
-    }),
-    then: vi.fn((resolve: (v: JsonValue) => JsonValue) => resolve(rows)),
+    then: vi.fn((resolve: (value: JsonValue[]) => JsonValue) => resolve(rows)),
   };
 }
 
-type SitemapTx = Pick<MockQueryChain, "select">;
-
 vi.mock("@/lib/db", () => ({
-  getDb: vi.fn(() => ({
-    select: vi.fn(() => buildQueryChain(mockSelectRows)),
-    // SAFETY: the repeatable-read transaction runs a count query first, then the
-    // page query; each gets its own rows so shard-range checks see a count.
-    transaction: vi.fn(async (fn: (tx: SitemapTx) => Promise<JsonValue[] | null>) => {
-      let selects = 0;
-
-      return fn({
-        select: vi.fn(() => {
-          selects += 1;
-
-          return buildQueryChain(selects === 1 ? mockCountRows : mockSelectRows);
-        }),
-      });
-    }),
-  })),
+  getDb: vi.fn(() => ({ select: vi.fn(() => buildQueryChain(mockSelectRows)) })),
 }));
 
 vi.mock("cloudflare:workers", () => ({
@@ -91,296 +45,157 @@ import {
   URLS_PER_SITEMAP,
 } from "@/lib/seo/sitemap";
 
+const indexableContent: ResumeContent = {
+  full_name: "Ada Lovelace",
+  headline: "Mathematician",
+  summary: "x".repeat(200),
+  contact: { email: "ada@example.com" },
+  experience: [
+    {
+      title: "Mathematician",
+      company: "Analytical Engines",
+      location: "London",
+      start_date: "1842",
+      end_date: "1852",
+      description: "Developed analytical methods.",
+    },
+  ],
+  education: [],
+  skills: [],
+  certifications: [],
+  projects: [],
+};
+
+function profile(
+  overrides: {
+    handle?: string | null;
+    userUpdatedAt?: string | null;
+    siteUpdatedAt?: string | null;
+    lastPublishedAt?: string | null;
+    privacySettings?: { hide_from_search: boolean };
+    content?: ResumeContent;
+  } = {},
+) {
+  return {
+    handle: "ada",
+    userUpdatedAt: "2026-03-01T00:00:00Z",
+    siteUpdatedAt: null,
+    lastPublishedAt: null,
+    privacySettings: { hide_from_search: false },
+    content: indexableContent,
+    ...overrides,
+  };
+}
+
 describe("generateSitemapEntries", () => {
   beforeEach(() => {
     vi.stubEnv("APP_URL", "https://example.com");
     mockSelectRows = [];
-    mockCountRows = [{ count: 100000 }];
-    mockLimitValues = [];
-    mockOffsetValues = [];
-    mockJoins = [];
   });
 
-  it("inner-joins site_data so handles without a portfolio are never listed", async () => {
-    await generateSitemapEntries(0);
-    await getTotalIndexableUserCount();
-
-    // count + page query in the shard transaction, plus the index count
-    expect(mockJoins).toEqual(["inner", "inner", "inner"]);
+  it("returns an empty array for invalid IDs", async () => {
+    expect(await generateSitemapEntries(-1)).toEqual([]);
+    expect(await generateSitemapEntries(1.5)).toEqual([]);
   });
 
-  it("returns empty array for invalid id (negative)", async () => {
-    const entries = (await generateSitemapEntries(-1)) ?? [];
-    expect(entries).toEqual([]);
-  });
-
-  it("returns empty array for non-integer id", async () => {
-    const entries = (await generateSitemapEntries(1.5)) ?? [];
-    expect(entries).toEqual([]);
-  });
-
-  it("returns static pages for id=0 even when DB returns no users", async () => {
+  it("includes static and profession URLs on the first shard", async () => {
     const entries = (await generateSitemapEntries(0)) ?? [];
+    const urls = entries.map((entry: MetadataRoute.Sitemap[number]) => entry.url);
 
-    const urls = entries.map((e: MetadataRoute.Sitemap[number]) => e.url);
     expect(urls).toContain("https://example.com");
     expect(urls).toContain("https://example.com/privacy");
     expect(urls).toContain("https://example.com/terms");
     expect(urls).toContain("https://example.com/explore");
     expect(urls).toContain("https://example.com/blog");
-  });
-
-  it("includes profession pages for id=0", async () => {
-    const entries = (await generateSitemapEntries(0)) ?? [];
-
-    const urls = entries.map((e: MetadataRoute.Sitemap[number]) => e.url);
     expect(urls).toContain("https://example.com/for/software-engineer");
     expect(urls).toContain("https://example.com/for/designer");
-    expect(urls).toContain("https://example.com/for/marketer");
-    expect(urls).toContain("https://example.com/for/student");
-    expect(urls).toContain("https://example.com/for/consultant");
-    expect(urls).toContain("https://example.com/for/product-manager");
   });
 
-  it("has correct priority values for static pages", async () => {
-    const entries = (await generateSitemapEntries(0)) ?? [];
-
-    const homeEntry = entries.find(
-      (e: MetadataRoute.Sitemap[number]) => e.url === "https://example.com",
-    );
-
-    expect(homeEntry?.priority).toBe(1.0);
-
-    const privacyEntry = entries.find(
-      (e: MetadataRoute.Sitemap[number]) => e.url === "https://example.com/privacy",
-    );
-
-    expect(privacyEntry?.priority).toBe(0.3);
-
-    const exploreEntry = entries.find(
-      (e: MetadataRoute.Sitemap[number]) => e.url === "https://example.com/explore",
-    );
-
-    expect(exploreEntry?.priority).toBe(0.9);
-  });
-
-  it("gives static pages deterministic lastmods, never the request time", async () => {
-    const first = (await generateSitemapEntries(0)) ?? [];
-    await new Promise((resolve) => setTimeout(resolve, 5));
-    const second = (await generateSitemapEntries(0)) ?? [];
-
-    const lastmods = (entries: MetadataRoute.Sitemap) =>
-      entries.map((e) => [e.url, new Date(e.lastModified ?? 0).toISOString()]);
-
-    expect(lastmods(second)).toEqual(lastmods(first));
-  });
-
-  it("dates /blog by its newest post and /explore by the newest portfolio publish", async () => {
-    mockCountRows = [{ count: 3, newestPublishedAt: "2026-09-20 08:30:00+00" }];
+  it("emits only profiles accepted by the shared indexability gate", async () => {
+    mockSelectRows = [
+      profile({ handle: "visible" }),
+      profile({ handle: "hidden", privacySettings: { hide_from_search: true } }),
+      profile({ handle: "placeholder", content: { ...indexableContent, full_name: " Unknown " } }),
+      profile({
+        handle: "incomplete",
+        content: {
+          ...indexableContent,
+          full_name: "Ada",
+          headline: "Engineer",
+          summary: "x".repeat(200),
+          contact: { email: "" },
+          experience: [],
+          education: [],
+        },
+      }),
+    ];
 
     const entries = (await generateSitemapEntries(0)) ?? [];
-    const byUrl = (url: string) => entries.find((e) => e.url === url)?.lastModified;
+    const profileUrls = entries.map((entry) => entry.url).filter((url) => url.includes("/@"));
 
-    expect(byUrl("https://example.com/blog")).toEqual(getNewestBlogPostDate());
-    expect(byUrl("https://example.com/explore")).toEqual(new Date("2026-09-20T08:30:00Z"));
+    expect(profileUrls).toEqual(["https://example.com/@visible"]);
   });
 
-  it("falls back to the newest blog date for /explore when no portfolio is published", async () => {
-    mockCountRows = [{ count: 0, newestPublishedAt: null }];
+  it("uses the indexable profile set for shard bounds and total counts", async () => {
+    mockSelectRows = [
+      profile({ handle: "visible" }),
+      profile({ handle: "hidden", privacySettings: { hide_from_search: true } }),
+      profile({ handle: "placeholder", content: { ...indexableContent, headline: "CV" } }),
+    ];
+
+    expect(await getTotalIndexableUserCount()).toBe(1);
+    expect(await generateSitemapEntries(1)).toBeNull();
+  });
+
+  it("maps eligible profile rows to URLs and uses the preferred modified date", async () => {
+    mockSelectRows = [
+      profile({
+        handle: "ada",
+        userUpdatedAt: "2026-03-01T00:00:00Z",
+        siteUpdatedAt: "2026-04-01T00:00:00Z",
+      }),
+    ];
 
     const entries = (await generateSitemapEntries(0)) ?? [];
-    const explore = entries.find((e) => e.url === "https://example.com/explore");
+    const profileEntry = entries.find((entry) => entry.url === "https://example.com/@ada");
+
+    expect(profileEntry?.lastModified).toEqual(new Date("2026-04-01T00:00:00Z"));
+    expect(profileEntry?.priority).toBe(0.8);
+  });
+
+  it("dates /explore from the newest indexable profile publish", async () => {
+    mockSelectRows = [
+      profile({ lastPublishedAt: "2026-09-20T08:30:00Z" }),
+      profile({
+        handle: "hidden",
+        lastPublishedAt: "2026-09-28T08:30:00Z",
+        privacySettings: { hide_from_search: true },
+      }),
+    ];
+
+    const entries = (await generateSitemapEntries(0)) ?? [];
+    const explore = entries.find((entry) => entry.url === "https://example.com/explore");
+
+    expect(explore?.lastModified).toEqual(new Date("2026-09-20T08:30:00Z"));
+  });
+
+  it("falls back to the newest blog date if no indexable profile is published", async () => {
+    mockSelectRows = [profile({ lastPublishedAt: null })];
+
+    const entries = (await generateSitemapEntries(0)) ?? [];
+    const explore = entries.find((entry) => entry.url === "https://example.com/explore");
 
     expect(explore?.lastModified).toEqual(getNewestBlogPostDate());
   });
 
-  it("maps DB user rows to sitemap entries with /@handle URLs", async () => {
-    mockSelectRows = [
-      { handle: "alice", userUpdatedAt: "2026-03-01T00:00:00Z", siteUpdatedAt: null },
-      {
-        handle: "bob",
-        userUpdatedAt: "2026-03-15T00:00:00Z",
-        siteUpdatedAt: "2026-04-01T00:00:00Z",
-      },
-    ];
+  it("uses deterministic static lastmods", async () => {
+    const first = (await generateSitemapEntries(0)) ?? [];
+    const second = (await generateSitemapEntries(0)) ?? [];
 
-    const entries = (await generateSitemapEntries(0)) ?? [];
+    const lastmods = (entries: MetadataRoute.Sitemap) =>
+      entries.map((entry) => [entry.url, new Date(entry.lastModified ?? 0).toISOString()]);
 
-    const userUrls = entries
-      .map((e: MetadataRoute.Sitemap[number]) => e.url)
-      .filter((u: string) => u.includes("/@"));
-
-    expect(userUrls).toHaveLength(2);
-    expect(userUrls).toContain("https://example.com/@alice");
-    expect(userUrls).toContain("https://example.com/@bob");
-  });
-
-  it("uses siteUpdatedAt for lastModified when available", async () => {
-    mockSelectRows = [
-      {
-        handle: "testuser",
-        userUpdatedAt: "2026-01-01T00:00:00Z",
-        siteUpdatedAt: "2026-02-01T00:00:00Z",
-      },
-    ];
-
-    const entries = (await generateSitemapEntries(0)) ?? [];
-
-    const userEntry = entries.find((e: MetadataRoute.Sitemap[number]) =>
-      e.url.endsWith("/@testuser"),
-    );
-
-    expect(userEntry?.lastModified).toEqual(new Date("2026-02-01T00:00:00Z"));
-  });
-
-  it("falls back to userUpdatedAt when siteUpdatedAt is null", async () => {
-    mockSelectRows = [
-      { handle: "testuser", userUpdatedAt: "2026-03-15T00:00:00Z", siteUpdatedAt: null },
-    ];
-
-    const entries = (await generateSitemapEntries(0)) ?? [];
-
-    const userEntry = entries.find((e: MetadataRoute.Sitemap[number]) =>
-      e.url.endsWith("/@testuser"),
-    );
-
-    expect(userEntry?.lastModified).toEqual(new Date("2026-03-15T00:00:00Z"));
-  });
-
-  it("uses current date when both dates are null", async () => {
-    mockSelectRows = [{ handle: "testuser", userUpdatedAt: null, siteUpdatedAt: null }];
-
-    const before = new Date();
-    const entries = (await generateSitemapEntries(0)) ?? [];
-    const after = new Date();
-
-    const userEntry = entries.find((e: MetadataRoute.Sitemap[number]) =>
-      e.url.endsWith("/@testuser"),
-    );
-
-    const lastMod = userEntry?.lastModified;
-
-    if (!(lastMod instanceof Date)) {
-      throw new Error("expected the sitemap entry lastModified to be a Date");
-    }
-
-    expect(lastMod.getTime()).toBeGreaterThanOrEqual(before.getTime() - 1000);
-    expect(lastMod.getTime()).toBeLessThanOrEqual(after.getTime() + 1000);
-  });
-
-  it("skips DB rows with null handle (belt-and-suspenders)", async () => {
-    mockCountRows = [{ count: 500000 }];
-    mockSelectRows = [
-      { handle: "valid", userUpdatedAt: "2026-01-01T00:00:00Z", siteUpdatedAt: null },
-      { handle: null, userUpdatedAt: "2026-01-01T00:00:00Z", siteUpdatedAt: null },
-      { handle: "another", userUpdatedAt: "2026-01-01T00:00:00Z", siteUpdatedAt: null },
-    ];
-
-    const entries = (await generateSitemapEntries(10)) ?? [];
-
-    const userUrls = entries.map((e: MetadataRoute.Sitemap[number]) => e.url);
-    expect(userUrls).toHaveLength(2);
-    expect(userUrls).toContain("https://example.com/@valid");
-    expect(userUrls).toContain("https://example.com/@another");
-    expect(userUrls.some((u: string) => u.endsWith("/@null"))).toBe(false);
-  });
-
-  it("returns only static pages for id=0 when DB returns empty", async () => {
-    const entries = (await generateSitemapEntries(0)) ?? [];
-
-    const userUrls = entries
-      .map((e: MetadataRoute.Sitemap[number]) => e.url)
-      .filter((u: string) => u.includes("/@"));
-
-    expect(userUrls).toHaveLength(0);
-
-    const staticUrls = entries.map((e: MetadataRoute.Sitemap[number]) => e.url);
-    expect(staticUrls).toContain("https://example.com");
-  });
-  it("returns only static pages for id=0 — no user entries from DB", async () => {
-    const entries = (await generateSitemapEntries(0)) ?? [];
-    expect(entries.length).toBeGreaterThan(0);
-    const userEntries = entries.filter((e: MetadataRoute.Sitemap[number]) => e.url.includes("/@"));
-    expect(userEntries).toHaveLength(0);
-  });
-
-  it("reserves first shard capacity for static URLs", async () => {
-    await generateSitemapEntries(0);
-
-    expect(mockLimitValues.at(-1)).toBe(URLS_PER_SITEMAP - STATIC_SITEMAP_ENTRY_COUNT);
-    expect(mockOffsetValues.at(-1)).toBe(0);
-  });
-  it("offsets later shards after the reduced first-shard user capacity", async () => {
-    await generateSitemapEntries(1);
-
-    expect(mockLimitValues.at(-1)).toBe(URLS_PER_SITEMAP);
-    expect(mockOffsetValues.at(-1)).toBe(URLS_PER_SITEMAP - STATIC_SITEMAP_ENTRY_COUNT);
-  });
-
-  it("user entries have weekly changeFrequency and 0.8 priority", async () => {
-    mockSelectRows = [
-      { handle: "testuser", userUpdatedAt: "2026-01-01T00:00:00Z", siteUpdatedAt: null },
-    ];
-
-    const entries = (await generateSitemapEntries(0)) ?? [];
-
-    const userEntry = entries.find((e: MetadataRoute.Sitemap[number]) =>
-      e.url.endsWith("/@testuser"),
-    );
-
-    expect(userEntry?.changeFrequency).toBe("weekly");
-    expect(userEntry?.priority).toBe(0.8);
-  });
-
-  it("returns static pages when DB select throws (id=0)", async () => {
-    mockSelectRows = [];
-
-    const entries = (await generateSitemapEntries(0)) ?? [];
-
-    const urls = entries.map((e: MetadataRoute.Sitemap[number]) => e.url);
-    expect(urls).toContain("https://example.com");
-    expect(urls).toContain("https://example.com/privacy");
-  });
-  it("returns null for id>0 when the shard is out of range", async () => {
-    mockSelectRows = [];
-    mockCountRows = [];
-    const entries = await generateSitemapEntries(5);
-    expect(entries).toBeNull();
-  });
-  it("returns 0 when no users match", async () => {
-    mockSelectRows = [];
-    const count = await getTotalIndexableUserCount();
-    expect(count).toBe(0);
-  });
-
-  it("returns the count value from the DB", async () => {
-    mockSelectRows = [{ count: 42 }];
-    const count = await getTotalIndexableUserCount();
-    expect(count).toBe(42);
-  });
-
-  it("returns 0 when result[0] is undefined", async () => {
-    mockSelectRows = [undefined];
-    const count = await getTotalIndexableUserCount();
-    expect(count).toBe(0);
-  });
-
-  it("returns 0 when count field is missing", async () => {
-    mockSelectRows = [{}];
-    const count = await getTotalIndexableUserCount();
-    expect(count).toBe(0);
-  });
-
-  it("handles large count values", async () => {
-    mockSelectRows = [{ count: 150000 }];
-    const count = await getTotalIndexableUserCount();
-    expect(count).toBe(150000);
-  });
-
-  it("queries count from user table with the same filter", async () => {
-    mockSelectRows = [{ count: 5 }];
-    const count = await getTotalIndexableUserCount();
-    expect(count).toBe(5);
+    expect(lastmods(second)).toEqual(lastmods(first));
   });
 });
 

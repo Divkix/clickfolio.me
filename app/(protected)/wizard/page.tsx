@@ -14,6 +14,7 @@ import { ReviewStep } from "@/components/wizard/ReviewStep";
 import { ThemeStep } from "@/components/wizard/ThemeStep";
 import { UploadStep } from "@/components/wizard/UploadStep";
 import { YouAreLiveModal } from "@/components/YouAreLiveModal";
+import { getAnalyticsSessionId } from "@/lib/analytics/client";
 import { useSession } from "@/lib/auth/client";
 import { clearDesiredHandle, readDesiredHandle } from "@/lib/experiments/desired-handle";
 import { DEFAULT_THEME, type ThemeId } from "@/lib/templates/theme-ids";
@@ -403,9 +404,17 @@ export default function WizardPage() {
         themeId,
       }));
 
+      const sessionId = getAnalyticsSessionId();
+
+      const headers = new Headers({ "Content-Type": "application/json" });
+
+      if (sessionId) {
+        headers.set("X-PostHog-Session-Id", sessionId);
+      }
+
       const response = await fetch("/api/wizard/complete", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({
           handle: state.handle,
           privacy_settings: state.privacySettings,

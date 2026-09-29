@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import type { ResumeContent } from "@/lib/types/database";
 import type { JsonValue } from "@/lib/types/json";
 
 vi.mock("react", async (importOriginal) => {
@@ -16,7 +17,24 @@ vi.mock("cloudflare:workers", () => ({
   },
 }));
 
+type RelatedProfileRow = {
+  handle: string | null;
+  name: string | null;
+  headline: string | null;
+  content: ResumeContent;
+  privacySettings: {
+    show_phone: boolean;
+    show_address: boolean;
+    hide_from_search: boolean;
+    show_in_directory: boolean;
+  };
+};
+
+type MockSelectRow = RelatedProfileRow | { n: number };
+
 const mockUserFindFirst = vi.fn();
+
+const mockSelectResults: MockSelectRow[][] = [];
 
 const mockSelectChain = {
   from: vi.fn(),
@@ -25,6 +43,9 @@ const mockSelectChain = {
   orderBy: vi.fn(),
   limit: vi.fn(),
   offset: vi.fn(),
+  then: vi.fn((resolve: (rows: MockSelectRow[]) => MockSelectRow[]) =>
+    resolve(mockSelectResults.shift() ?? []),
+  ),
 };
 
 mockSelectChain.from.mockReturnValue(mockSelectChain);
@@ -37,7 +58,7 @@ mockSelectChain.orderBy.mockReturnValue(mockSelectChain);
 
 mockSelectChain.limit.mockReturnValue(mockSelectChain);
 
-mockSelectChain.offset.mockResolvedValue([]);
+mockSelectChain.offset.mockReturnValue(mockSelectChain);
 
 const mockDb = {
   query: {
@@ -141,8 +162,6 @@ describe("getResumeData - phone/address privacy filtering", () => {
     mockSelectChain.where.mockReturnValue(mockSelectChain);
     mockSelectChain.leftJoin.mockReturnValue(mockSelectChain);
     mockSelectChain.orderBy.mockReturnValue(mockSelectChain);
-    mockSelectChain.limit.mockReturnValue(mockSelectChain);
-    mockSelectChain.offset.mockResolvedValue([]);
     mockDb.select.mockReturnValue(mockSelectChain);
   });
 
@@ -232,8 +251,6 @@ describe("getResumeData - theme resolution", () => {
     mockSelectChain.where.mockReturnValue(mockSelectChain);
     mockSelectChain.leftJoin.mockReturnValue(mockSelectChain);
     mockSelectChain.orderBy.mockReturnValue(mockSelectChain);
-    mockSelectChain.limit.mockReturnValue(mockSelectChain);
-    mockSelectChain.offset.mockResolvedValue([]);
     mockDb.select.mockReturnValue(mockSelectChain);
   });
 
@@ -266,78 +283,119 @@ describe("getResumeData - theme resolution", () => {
   });
 });
 
-describe("getRelatedProfiles - bounded random window", () => {
+const indexableContent: ResumeContent = {
+  full_name: "Ada Lovelace",
+  headline: "Mathematician",
+  summary: "A".repeat(200),
+  contact: { email: "ada@example.com" },
+  experience: [
+    {
+      title: "Software Engineer",
+      company: "Example Co",
+      location: "Remote",
+      start_date: "2020-01",
+      end_date: "Present",
+      description: "Built example software.",
+    },
+  ],
+  education: [],
+  skills: [],
+};
+
+function relatedRow(
+  handle: string,
+  options: { hideFromSearch?: boolean; content?: ResumeContent } = {},
+): RelatedProfileRow {
+  return {
+    handle,
+    name: handle,
+    headline: "Engineer",
+    content: options.content ?? indexableContent,
+    privacySettings: {
+      show_phone: false,
+      show_address: false,
+      hide_from_search: options.hideFromSearch ?? false,
+      show_in_directory: true,
+    },
+  };
+}
+
+describe("getRelatedProfiles", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockSelectResults.length = 0;
     mockSelectChain.from.mockReturnValue(mockSelectChain);
     mockSelectChain.where.mockReturnValue(mockSelectChain);
     mockSelectChain.leftJoin.mockReturnValue(mockSelectChain);
     mockSelectChain.orderBy.mockReturnValue(mockSelectChain);
-    mockSelectChain.limit.mockReturnValue(mockSelectChain);
-    mockSelectChain.offset.mockResolvedValue([]);
     mockDb.select.mockReturnValue(mockSelectChain);
   });
 
-  it("returns at most 3 entries from a larger pool", async () => {
+  it("returns only indexable profiles and excludes the current profile", async () => {
     const { getRelatedProfiles } = await import("@/lib/data/resume");
 
-    mockSelectChain.where.mockResolvedValueOnce([{ n: 20 }]);
-    mockSelectChain.offset.mockResolvedValueOnce([
-      { handle: "alice", name: "Alice", headline: "Designer" },
-      { handle: "bob", name: "Bob", headline: null },
-      { handle: "carol", name: "Carol", headline: "PM" },
-      { handle: "dave", name: "Dave", headline: "Engineer" },
-      { handle: "eve", name: "Eve", headline: "Data" },
-    ]);
+    const lowQualityContent: ResumeContent = {
+      ...indexableContent,
+      summary: "Brief",
+      contact: { email: "" },
+      experience: [],
+      education: [],
+    };
+
+    mockSelectResults.push(
+      [{ n: 7 }],
+      [
+        relatedRow("janedoe"),
+        relatedRow("hidden", { hideFromSearch: true }),
+        relatedRow("placeholder", {
+          content: { ...indexableContent, full_name: "Jane Doe" },
+        }),
+        relatedRow("incomplete", { content: lowQualityContent }),
+        relatedRow("alice"),
+        relatedRow("bob"),
+        relatedRow("carol"),
+      ],
+    );
 
     const result = await getRelatedProfiles("janedoe");
 
-    expect(result.length).toBeLessThanOrEqual(3);
-    const validHandles = new Set(["alice", "bob", "carol", "dave", "eve"]);
-
-    for (const r of result) {
-      expect(validHandles.has(r.handle)).toBe(true);
-    }
+    expect(result.map((profile) => profile.handle).sort()).toEqual(["alice", "bob", "carol"]);
   });
 
-  it("excludes currentHandle — filters applied via drizzle-orm helpers", async () => {
+  it("limits related cards to three eligible profiles", async () => {
     const { getRelatedProfiles } = await import("@/lib/data/resume");
-    const { and, ne, isNotNull } = await import("drizzle-orm");
-
-    mockSelectChain.where.mockResolvedValueOnce([{ n: 5 }]);
-    mockSelectChain.offset.mockResolvedValueOnce([
-      { handle: "alice", name: "Alice", headline: "Designer" },
-    ]);
-
-    await getRelatedProfiles("janedoe");
-
-    expect(ne).toHaveBeenCalled();
-    expect(isNotNull).toHaveBeenCalled();
-    expect(and).toHaveBeenCalled();
-  });
-
-  it("returns [] when count is 0", async () => {
-    const { getRelatedProfiles } = await import("@/lib/data/resume");
-
-    mockSelectChain.where.mockResolvedValueOnce([{ n: 0 }]);
+    mockSelectResults.push(
+      [{ n: 5 }],
+      [
+        relatedRow("candidate-one"),
+        relatedRow("candidate-two"),
+        relatedRow("candidate-three"),
+        relatedRow("candidate-four"),
+        relatedRow("candidate-five"),
+      ],
+    );
 
     const result = await getRelatedProfiles("janedoe");
 
-    expect(result).toHaveLength(0);
+    expect(result).toHaveLength(3);
+    expect(result.every((profile) => profile.handle.startsWith("candidate-"))).toBe(true);
   });
+  it.each([
+    { totalCount: 5, expectedOffset: 0 },
+    { totalCount: 30, expectedOffset: 18 },
+  ])(
+    "bounds the related-profile offset for $totalCount profiles",
+    async ({ totalCount, expectedOffset }) => {
+      const { getRelatedProfiles } = await import("@/lib/data/resume");
+      const random = vi.spyOn(Math, "random").mockReturnValue(0.99);
 
-  it("filters out rows with null handle from the window", async () => {
-    const { getRelatedProfiles } = await import("@/lib/data/resume");
-
-    mockSelectChain.where.mockResolvedValueOnce([{ n: 3 }]);
-    mockSelectChain.offset.mockResolvedValueOnce([
-      { handle: null, name: "Ghost", headline: null },
-      { handle: "visible", name: "Visible User", headline: "Engineer" },
-    ]);
-
-    const result = await getRelatedProfiles("janedoe");
-
-    expect(result).toHaveLength(1);
-    expect(result[0].handle).toBe("visible");
-  });
+      try {
+        mockSelectResults.push([{ n: totalCount }], []);
+        await getRelatedProfiles("janedoe");
+        expect(mockSelectChain.offset).toHaveBeenCalledWith(expectedOffset);
+      } finally {
+        random.mockRestore();
+      }
+    },
+  );
 });

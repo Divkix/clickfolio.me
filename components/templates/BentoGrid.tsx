@@ -168,7 +168,7 @@ function ProjectTiles({ projects }: { projects: NonNullable<Content["projects"]>
                 <a
                   href={project.url}
                   target="_blank"
-                  rel="noopener noreferrer"
+                  rel="ugc nofollow noopener noreferrer"
                   className="underline decoration-2 underline-offset-4 decoration-[#1F4E3D]/30 hover:decoration-[#1F4E3D] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1F4E3D] rounded-sm"
                 >
                   {project.title}
@@ -317,7 +317,7 @@ export const BentoGrid: React.FC<TemplateProps> = ({ content, profile }) => {
                       <a
                         href={link.href}
                         target={link.isExternal ? "_blank" : undefined}
-                        rel={link.isExternal ? "noopener noreferrer" : undefined}
+                        rel={link.isExternal ? "ugc nofollow noopener noreferrer" : undefined}
                         className="inline-flex max-w-full items-center gap-2.5 text-[15px] font-medium underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1A1C20] rounded-sm"
                       >
                         <span className="flex shrink-0">
@@ -412,7 +412,7 @@ export const BentoGrid: React.FC<TemplateProps> = ({ content, profile }) => {
                         <a
                           href={cert.url}
                           target="_blank"
-                          rel="noopener noreferrer"
+                          rel="ugc nofollow noopener noreferrer"
                           className="underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1A1C20] rounded-sm"
                         >
                           {cert.name}

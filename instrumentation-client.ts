@@ -7,6 +7,7 @@ import posthog from "posthog-js/dist/module.no-external";
 // Relative import: instrumentation-client runs as a root entry; keep deps local.
 import { groupClerkNetworkException } from "./lib/analytics/clerk-exceptions";
 import { POSTHOG_API_HOST, POSTHOG_PROJECT_TOKEN, POSTHOG_UI_HOST } from "./lib/analytics/config";
+import { installStaleChunkReload } from "./lib/utils/chunk-reload";
 
 declare global {
   interface Window {
@@ -14,12 +15,15 @@ declare global {
   }
 }
 
+installStaleChunkReload();
+
 if (POSTHOG_PROJECT_TOKEN) {
   posthog.init(POSTHOG_PROJECT_TOKEN, {
     api_host: POSTHOG_API_HOST,
     ui_host: POSTHOG_UI_HOST,
     defaults: "2026-08-30",
     capture_exceptions: true,
+    capture_performance: true,
     debug: process.env.NODE_ENV === "development",
     before_send: (event) => {
       if (

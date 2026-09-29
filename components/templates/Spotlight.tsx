@@ -128,7 +128,7 @@ function Hero({ content, profile }: { content: Content; profile: TemplateProps["
                     <a
                       href={link.href}
                       target={link.isExternal ? "_blank" : undefined}
-                      rel={link.isExternal ? "noopener noreferrer" : undefined}
+                      rel={link.isExternal ? "ugc nofollow noopener noreferrer" : undefined}
                       className={`${linkClass} break-all`}
                     >
                       {link.label}
@@ -213,7 +213,7 @@ function Projects({ items }: { items: Content["projects"] }) {
                   <a
                     href={project.url}
                     target="_blank"
-                    rel="noopener noreferrer"
+                    rel="ugc nofollow noopener noreferrer"
                     className={linkClass}
                   >
                     {project.title}
@@ -293,7 +293,12 @@ function Certifications({ items }: { items: Content["certifications"] }) {
           <li key={`${cert.name}-${cert.issuer}-${cert.date ?? ""}`}>
             <h3 className="sl-display text-lg md:text-xl font-bold break-words">
               {cert.url ? (
-                <a href={cert.url} target="_blank" rel="noopener noreferrer" className={linkClass}>
+                <a
+                  href={cert.url}
+                  target="_blank"
+                  rel="ugc nofollow noopener noreferrer"
+                  className={linkClass}
+                >
                   {cert.name}
                 </a>
               ) : (

@@ -16,6 +16,10 @@ export function isAnalyticsInitialized(): boolean {
   return posthog.__loaded === true;
 }
 
+export function getAnalyticsSessionId(): string | undefined {
+  return posthog.get_session_id();
+}
+
 export function trackAnalyticsEvent<E extends keyof AnalyticsEventMap>(
   event: E,
   properties: AnalyticsEventMap[E],
