@@ -27,6 +27,6 @@
       "@/*": ["./*"]
     }
   },
-  "include": ["global.d.ts", "lib/cloudflare-env.d.ts", "**/*.ts", "**/*.tsx"],
+  "include": ["**/*.ts", "**/*.tsx", "**/*.mts"],
   "exclude": ["node_modules", "tools"]
 }
