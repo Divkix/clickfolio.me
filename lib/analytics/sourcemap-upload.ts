@@ -1,3 +1,4 @@
+import { log } from "../utils/log";
 import { rm } from "node:fs/promises";
 import { resolve } from "node:path";
 import type { Plugin } from "vite-plus";
@@ -31,8 +32,10 @@ export function failOpenSourcemapUpload(plugin: Plugin): Plugin {
   function reportFailure(stage: string, error: Error | string): void {
     // Chunks await one shared release lookup, so warn once per build, not per chunk.
     if (!failed) {
-      console.warn(
-        `[posthog] source-map ${stage} failed — continuing without uploaded source maps: ${describeError(error)}`,
+      log(
+        "warn",
+        `[posthog] source-map ${stage} failed — continuing without uploaded source maps`,
+        { error: describeError(error) },
       );
     }
 

@@ -1,3 +1,4 @@
+import { log } from "@/lib/utils/log";
 import { requireAuthClerk, type AuthUser, type DbUser } from "@/lib/auth/clerk";
 import type { Database } from "@/lib/db";
 import { createErrorResponse, ERROR_CODES } from "@/lib/utils/security-headers";
@@ -43,7 +44,7 @@ export function requireCronAuth(request: Request, env: CloudflareEnv): Response 
   const cronSecret = (env as CronEnv).CRON_SECRET;
 
   if (!cronSecret) {
-    console.error("CRON_SECRET environment variable is not configured");
+    log("error", "CRON_SECRET environment variable is not configured");
 
     return createErrorResponse(
       "Server misconfiguration: CRON_SECRET not set",

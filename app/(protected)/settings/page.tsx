@@ -1,3 +1,4 @@
+import { log } from "@/lib/utils/log";
 import { env } from "cloudflare:workers";
 import { count, desc, eq } from "drizzle-orm";
 import { User } from "lucide-react";
@@ -115,7 +116,7 @@ export default async function SettingsPage() {
   ]);
 
   if (!profile) {
-    console.error("Failed to fetch profile for user:", session.user.id);
+    log("error", "Failed to fetch profile for user:", { userId: session.user.id });
     redirect("/dashboard");
   }
 

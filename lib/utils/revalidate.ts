@@ -1,3 +1,4 @@
+import { log } from "@/lib/utils/log";
 import { revalidatePath } from "next/cache";
 
 /**
@@ -18,6 +19,6 @@ export function revalidatePublicProfilePages(handles: Array<string | null>): voi
 
     revalidatePath("/sitemap.xml");
   } catch (error) {
-    console.error("Failed to revalidate public profile pages:", error);
+    log("error", "Failed to revalidate public profile pages", { error: String(error) });
   }
 }

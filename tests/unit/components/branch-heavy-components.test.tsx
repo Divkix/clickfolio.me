@@ -427,7 +427,7 @@ describe("branch-heavy component interactions", () => {
 
       expect(await screen.findByRole("button", { name: "Share this page" })).toBeInTheDocument();
       await user.click(screen.getByRole("button", { name: "Share this page" }));
-      expect(consoleError).toHaveBeenCalledWith("Share failed:", expect.any(Error));
+      expect(consoleError).toHaveBeenCalledWith(expect.stringContaining("Share failed"));
     });
   });
 

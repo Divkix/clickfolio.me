@@ -1,3 +1,5 @@
+import { log } from "@/lib/utils/log";
+
 export async function setPendingUploadCookie(key: string): Promise<void> {
   const response = await fetch("/api/upload/pending", {
     method: "POST",
@@ -14,6 +16,6 @@ export async function clearPendingUploadCookie(): Promise<void> {
   try {
     await fetch("/api/upload/pending", { method: "DELETE" });
   } catch (error) {
-    console.warn("Failed to clear pending upload cookie:", error);
+    log("warn", "Failed to clear pending upload cookie", { error: String(error) });
   }
 }

@@ -2,6 +2,7 @@
 
 export const revalidate = 86400;
 
+import { log } from "@/lib/utils/log";
 import { BarChart3, Eye, TrendingUp, Users } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -64,7 +65,7 @@ export default function AdminAnalyticsPage() {
         setLoading(false);
       })
       .catch((err) => {
-        console.error("Failed to fetch analytics:", err);
+        log("error", "Failed to fetch analytics:", { error: String(err) });
         setLoading(false);
       });
   }, []);

@@ -3,6 +3,7 @@
  * Clerk Dashboard webhook at https://clickfolio.me/api/webhooks/clerk.
  */
 
+import { log } from "@/lib/utils/log";
 import { env } from "cloudflare:workers";
 import { Webhook } from "svix";
 import { eq } from "drizzle-orm";
@@ -164,7 +165,7 @@ export async function POST(request: Request): Promise<Response> {
   const secret = env.CLERK_WEBHOOK_SECRET;
 
   if (!secret) {
-    console.error("[clerk-webhook] CLERK_WEBHOOK_SECRET is not configured");
+    log("error", "[clerk-webhook] CLERK_WEBHOOK_SECRET is not configured");
 
     return Response.json({ error: "Server misconfiguration" }, { status: 500 });
   }
@@ -197,7 +198,7 @@ export async function POST(request: Request): Promise<Response> {
 
     event = parsedEvent.data;
   } catch (error) {
-    console.warn("[clerk-webhook] signature verification failed:", error);
+    log("warn", "[clerk-webhook] signature verification failed:", { error: String(error) });
 
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -251,7 +252,7 @@ export async function POST(request: Request): Promise<Response> {
 
     return Response.json(outcome);
   } catch (error) {
-    console.error(`[clerk-webhook] ${event.type} handling failed:`, error);
+    log("error", `[clerk-webhook] ${event.type} handling failed:`, { error: String(error) });
 
     return Response.json({ error: "Internal error" }, { status: 500 });
   }

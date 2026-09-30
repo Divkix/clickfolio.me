@@ -2,6 +2,7 @@
 
 export const revalidate = 86400;
 
+import { log } from "@/lib/utils/log";
 import { Search, Users } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -64,7 +65,7 @@ export default function AdminUsersPage() {
         }
       })
       .catch((err) => {
-        console.error("Failed to fetch users:", err);
+        log("error", "Failed to fetch users:", { error: String(err) });
 
         if (activeKeyRef.current === key) {
           setLoadedKey(key);

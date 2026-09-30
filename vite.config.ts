@@ -6,6 +6,7 @@ import { visualizer } from "rollup-plugin-visualizer";
 import vinext from "vinext";
 import { defineConfig, loadEnv, type Plugin } from "vite-plus";
 import { failOpenSourcemapUpload } from "./lib/analytics/sourcemap-upload";
+import { log } from "./lib/utils/log";
 
 /**
  * Vite plugin that stubs server-only modules for client environments.
@@ -108,7 +109,8 @@ function sourceMapUploadPlugin(mode: string): Plugin | null {
   const env = loadEnv(mode, process.cwd(), "");
 
   if (!env.POSTHOG_API_KEY || !env.POSTHOG_PROJECT_ID) {
-    console.warn(
+    log(
+      "warn",
       "[posthog] POSTHOG_UPLOAD_SOURCEMAPS=true but POSTHOG_API_KEY/POSTHOG_PROJECT_ID are missing — skipping source-map upload",
     );
 
@@ -214,7 +216,7 @@ export default defineConfig(({ mode }) => {
         "typescript/no-explicit-any": "warn",
         "typescript/no-unused-vars": "error",
         "oxc/no-accumulating-spread": "error",
-        "no-console": ["error", { allow: ["error", "warn"] }],
+        "no-console": "error",
         "anti-slop/no-array-filter-map": "error",
         "anti-slop/no-reduce-accumulator-copy": "error",
         "anti-slop/no-chained-type-assertions": "error",

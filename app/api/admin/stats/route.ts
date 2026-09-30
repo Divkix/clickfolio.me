@@ -1,3 +1,4 @@
+import { log } from "@/lib/utils/log";
 import { env } from "cloudflare:workers";
 import { count, sql } from "drizzle-orm";
 import { withAdmin } from "@/lib/auth/with-auth";
@@ -90,7 +91,7 @@ export async function GET() {
         dailyViews: filledDailyViews,
       });
     } catch (err) {
-      console.error("[admin/stats] Error:", err);
+      log("error", "[admin/stats] Error:", { error: String(err) });
 
       return createErrorResponse("Stats temporarily unavailable", ERROR_CODES.INTERNAL_ERROR, 503);
     }

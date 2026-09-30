@@ -1,5 +1,6 @@
 "use client";
 
+import { log } from "@/lib/utils/log";
 import Link from "next/link";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -14,7 +15,7 @@ export default function ProtectedError({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error("Protected route error:", error);
+    log("error", "Protected route error:", { error: String(error) });
     captureAnalyticsError(error);
   }, [error]);
 

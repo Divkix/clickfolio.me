@@ -1,3 +1,4 @@
+import { log } from "@/lib/utils/log";
 import { buildSitemapXml, generateSitemapEntries } from "@/lib/seo/sitemap";
 
 function parseSitemapId(rawId: string): number | null {
@@ -37,7 +38,7 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error(`[sitemap] Error generating sitemap shard:`, error);
+    log("error", `[sitemap] Error generating sitemap shard:`, { error: String(error) });
 
     return new Response("Internal Server Error", { status: 500 });
   }
