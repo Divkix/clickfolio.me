@@ -21,6 +21,7 @@ import { handleSchema } from "@/lib/schemas/profile";
 import { DEMO_PROFILES } from "@/lib/templates/demo-data";
 import { THEME_METADATA } from "@/lib/templates/theme-ids";
 import { ProtoUploadButton } from "./ProtoUploadButton";
+import { THEME_COUNT, ThemeMarquee } from "./ThemeMarquee";
 
 const THEME_CSS = `
 .proto-b {
@@ -270,6 +271,18 @@ export function StudioLanding() {
               </p>
             </div>
           </div>
+        </section>
+
+        <section className="pt-20 lg:pt-28">
+          <div className="mx-auto mb-10 max-w-7xl px-4 sm:px-6 lg:px-8">
+            <h2 className="text-4xl font-semibold sm:text-5xl">
+              {THEME_COUNT} designs. Switch in one click, any time.
+            </h2>
+            <p className="mt-3 text-lg text-muted-foreground">
+              Same résumé, {THEME_COUNT} personalities. All of them work on phones.
+            </p>
+          </div>
+          <ThemeMarquee />
         </section>
 
         <section className="mx-auto mt-20 max-w-7xl px-4 sm:px-6 lg:px-8">

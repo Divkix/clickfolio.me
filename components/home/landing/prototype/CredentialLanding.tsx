@@ -11,8 +11,7 @@ import { MobileStickyUpload } from "@/components/home/MobileStickyUpload";
 import { SiteHeader } from "@/components/SiteHeader";
 import { TemplateFontLinks } from "@/components/templates/shared/TemplateFontLinks";
 import { PROFESSIONS } from "@/lib/config/professions";
-import { DEMO_PROFILES } from "@/lib/templates/demo-data";
-import { THEME_METADATA } from "@/lib/templates/theme-ids";
+import { THEME_COUNT, ThemeMarquee } from "./ThemeMarquee";
 import { PdfToSite } from "./PdfToSite";
 import { ProtoUploadButton } from "./ProtoUploadButton";
 
@@ -36,12 +35,6 @@ const THEME_CSS = `
 
 // Deterministic guilloche: rotated ellipses, like the fine-line pattern on banknotes.
 const GUILLOCHE = Array.from({ length: 36 }, (_, i) => i * 5);
-
-const previews = DEMO_PROFILES.map((profile) => ({
-  src: THEME_METADATA[profile.id].preview,
-  theme: THEME_METADATA[profile.id].name,
-  name: profile.name,
-}));
 
 const steps = [
   {
@@ -69,38 +62,6 @@ const defaults = [
   { field: "Search engine indexing", visibility: "On, one switch turns it off" },
   { field: "Listing in the Explore directory", visibility: "On, one switch turns it off" },
 ];
-
-function MarqueeRow({ reverse = false }: { reverse?: boolean }) {
-  return (
-    <div className="group flex overflow-hidden [mask-image:linear-gradient(to_right,transparent,#000_8%,#000_92%,transparent)]">
-      {[false, true].map((duplicate) => (
-        <ul
-          key={String(duplicate)}
-          aria-hidden={duplicate || undefined}
-          className={`flex shrink-0 gap-6 pr-6 group-hover:[animation-play-state:paused] ${
-            reverse ? "animate-landing-marquee-reverse" : "animate-landing-marquee"
-          }`}
-        >
-          {previews.map((item) => (
-            <li key={item.src} className="w-64 shrink-0 sm:w-80">
-              <img
-                src={item.src}
-                alt={duplicate ? "" : `${item.theme} design`}
-                loading="lazy"
-                decoding="async"
-                className="aspect-16/10 w-full rounded-md border border-border object-cover object-top shadow-sm"
-              />
-              <p className="mt-2 flex justify-between text-xs">
-                <span className="font-semibold">{item.theme}</span>
-                <span className="text-muted-foreground">{item.name}</span>
-              </p>
-            </li>
-          ))}
-        </ul>
-      ))}
-    </div>
-  );
-}
 
 export function CredentialLanding() {
   return (
@@ -229,15 +190,12 @@ export function CredentialLanding() {
 
         <section className="py-20 lg:py-28">
           <div className="mx-auto mb-10 max-w-6xl px-4 sm:px-6 lg:px-8">
-            <h2 className="text-4xl">{previews.length} designs. Switch in one click, any time.</h2>
+            <h2 className="text-4xl">{THEME_COUNT} designs. Switch in one click, any time.</h2>
             <p className="mt-3 text-muted-foreground">
-              Same résumé, {previews.length} personalities. All of them work on phones.
+              Same résumé, {THEME_COUNT} personalities. All of them work on phones.
             </p>
           </div>
-          <div className="space-y-6">
-            <MarqueeRow />
-            <MarqueeRow reverse />
-          </div>
+          <ThemeMarquee />
           <div className="mx-auto mt-12 flex max-w-6xl flex-wrap items-center gap-2 px-4 text-sm sm:px-6 lg:px-8">
             <span className="mr-2 text-muted-foreground">Built for</span>
             {PROFESSIONS.map((role) => (
