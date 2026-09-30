@@ -1,14 +1,20 @@
 // PROTOTYPE (throwaway) — variant A "Credential". Security-print / official-document
-// language: navy ink band with a guilloche pattern, split hero with the real
-// dropzone, then the upload lifecycle and privacy defaults stated as plain facts.
+// language (navy ink, guilloche) carrying drop_first's conversion mechanics:
+// dropzone as the hero with the spinning glow ring, PDF→site proof, theme
+// marquee, repeat CTA band and the mobile sticky upload bar.
 
+import { ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { FileDropzone } from "@/components/FileDropzone";
 import { Footer } from "@/components/Footer";
+import { MobileStickyUpload } from "@/components/home/MobileStickyUpload";
 import { SiteHeader } from "@/components/SiteHeader";
 import { TemplateFontLinks } from "@/components/templates/shared/TemplateFontLinks";
+import { PROFESSIONS } from "@/lib/config/professions";
 import { DEMO_PROFILES } from "@/lib/templates/demo-data";
 import { THEME_METADATA } from "@/lib/templates/theme-ids";
+import { PdfToSite } from "./PdfToSite";
+import { ProtoUploadButton } from "./ProtoUploadButton";
 
 const THEME_CSS = `
 .proto-a {
@@ -18,20 +24,23 @@ const THEME_CSS = `
   --brand: #1d3a5f; --brand-hover: #173150; --brand-active: #122741; --brand-subtle: #e3eaf2; --brand-foreground: #ffffff;
   --primary: #1d3a5f; --primary-foreground: #ffffff; --accent: #e3eaf2; --accent-foreground: #1d3a5f;
   --success: #1f6a5e; --border: #d7dee6; --border-strong: #b9c4d0; --input: #b9c4d0; --ring: #1f6a5e;
+  --chart-2: #c9a55a;
   --radius: 0.375rem;
   font-family: 'Public Sans', ui-sans-serif, system-ui, sans-serif;
   color: var(--foreground); background: var(--background);
 }
 .proto-a :is(h1, h2, h3) { font-family: 'Newsreader', Georgia, serif; font-optical-sizing: auto; font-weight: 500; letter-spacing: -0.01em; }
+/* Glow ring in foil colours: teal into gold, like the strip on a banknote. */
+.proto-a .landing-glow { background: conic-gradient(from var(--landing-glow-angle), transparent 0 55%, #5fb3a3 70%, #c9a55a 85%, transparent 100%); }
 `;
 
 // Deterministic guilloche: rotated ellipses, like the fine-line pattern on banknotes.
 const GUILLOCHE = Array.from({ length: 36 }, (_, i) => i * 5);
 
-const themes = DEMO_PROFILES.slice(0, 6).map((profile) => ({
-  ...THEME_METADATA[profile.id],
-  person: profile.name,
-  role: profile.role,
+const previews = DEMO_PROFILES.map((profile) => ({
+  src: THEME_METADATA[profile.id].preview,
+  theme: THEME_METADATA[profile.id].name,
+  name: profile.name,
 }));
 
 const steps = [
@@ -61,6 +70,38 @@ const defaults = [
   { field: "Listing in the Explore directory", visibility: "On, one switch turns it off" },
 ];
 
+function MarqueeRow({ reverse = false }: { reverse?: boolean }) {
+  return (
+    <div className="group flex overflow-hidden [mask-image:linear-gradient(to_right,transparent,#000_8%,#000_92%,transparent)]">
+      {[false, true].map((duplicate) => (
+        <ul
+          key={String(duplicate)}
+          aria-hidden={duplicate || undefined}
+          className={`flex shrink-0 gap-6 pr-6 group-hover:[animation-play-state:paused] ${
+            reverse ? "animate-landing-marquee-reverse" : "animate-landing-marquee"
+          }`}
+        >
+          {previews.map((item) => (
+            <li key={item.src} className="w-64 shrink-0 sm:w-80">
+              <img
+                src={item.src}
+                alt={duplicate ? "" : `${item.theme} design`}
+                loading="lazy"
+                decoding="async"
+                className="aspect-16/10 w-full rounded-md border border-border object-cover object-top shadow-sm"
+              />
+              <p className="mt-2 flex justify-between text-xs">
+                <span className="font-semibold">{item.theme}</span>
+                <span className="text-muted-foreground">{item.name}</span>
+              </p>
+            </li>
+          ))}
+        </ul>
+      ))}
+    </div>
+  );
+}
+
 export function CredentialLanding() {
   return (
     <div className="proto-a flex min-h-screen flex-col">
@@ -68,12 +109,12 @@ export function CredentialLanding() {
       <style>{THEME_CSS}</style>
       <SiteHeader />
 
-      <main id="main-content" className="flex-1">
+      <main id="main-content" className="flex-1 pb-20 lg:pb-0">
         <section className="relative overflow-hidden bg-[#13233a] text-white">
           <svg
             aria-hidden="true"
             viewBox="0 0 800 800"
-            className="pointer-events-none absolute top-1/2 -right-40 size-[900px] -translate-y-1/2 opacity-[0.12]"
+            className="pointer-events-none absolute top-1/2 -right-40 size-[900px] -translate-y-1/2 opacity-[0.14]"
           >
             {GUILLOCHE.map((angle) => (
               <ellipse
@@ -90,14 +131,21 @@ export function CredentialLanding() {
             ))}
           </svg>
 
-          <div className="relative mx-auto grid max-w-6xl gap-12 px-4 py-16 sm:px-6 lg:grid-cols-[1.1fr_1fr] lg:items-center lg:px-8 lg:py-24">
+          <div className="relative mx-auto grid max-w-6xl gap-12 px-4 py-14 sm:px-6 lg:grid-cols-[1.05fr_1fr] lg:items-center lg:px-8 lg:py-20">
             <div>
-              <h1 className="text-5xl leading-[1.05] sm:text-6xl">
-                Your résumé, published as a website you control.
+              <p className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/5 px-3 py-1 text-xs font-medium">
+                <span className="relative flex size-2">
+                  <span className="absolute inline-flex size-full animate-ping rounded-full bg-[#5fb3a3] opacity-70 motion-reduce:animate-none" />
+                  <span className="relative inline-flex size-2 rounded-full bg-[#5fb3a3]" />
+                </span>
+                Free forever, no sign-up to start
+              </p>
+              <h1 className="mt-6 text-5xl leading-[1.02] sm:text-6xl lg:text-7xl">
+                Your résumé, live as a website in 30 seconds.
               </h1>
               <p className="mt-6 max-w-lg text-lg leading-relaxed text-white/75">
-                Upload the PDF you already have. We turn it into a clean personal site at
-                clickfolio.me/@yourname. Free, open source, and private by default.
+                Drop the PDF you already have. You get clickfolio.me/@yourname to put on every
+                application, and you decide exactly what is public.
               </p>
               <dl className="mt-10 grid max-w-lg grid-cols-3 gap-6 border-t border-white/15 pt-6 text-sm">
                 <div>
@@ -115,11 +163,22 @@ export function CredentialLanding() {
               </dl>
             </div>
 
-            <div id="upload" className="rounded-lg bg-card p-5 text-foreground shadow-2xl sm:p-7">
-              <p className="mb-4 text-sm text-muted-foreground">
-                PDF only. No account needed to upload.
-              </p>
-              <FileDropzone />
+            <div id="upload-card" className="relative rounded-lg p-[2px]">
+              <div aria-hidden="true" className="landing-glow absolute inset-0 rounded-lg" />
+              <div className="relative rounded-[calc(0.5rem-2px)] bg-card p-5 text-foreground shadow-2xl sm:p-7">
+                <FileDropzone />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="border-b border-border bg-card py-16 lg:py-24">
+          <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+            <h2 className="mx-auto max-w-2xl text-center text-4xl sm:text-5xl">
+              From a PDF nobody opens to a link everybody clicks.
+            </h2>
+            <div className="mt-14">
+              <PdfToSite />
             </div>
           </div>
         </section>
@@ -145,6 +204,9 @@ export function CredentialLanding() {
                 These are the settings every new site starts with. Change any of them from your
                 dashboard.
               </p>
+              <p className="mt-6 flex items-center gap-2 text-sm font-medium text-success">
+                <ShieldCheck className="size-4" /> Your résumé is never sold or shared.
+              </p>
             </div>
             <table className="w-full text-left text-sm">
               <thead>
@@ -165,56 +227,73 @@ export function CredentialLanding() {
           </div>
         </section>
 
-        <section className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <h2 className="text-4xl">Pick a design after you upload</h2>
-            <Link
-              href="/explore"
-              className="text-sm font-semibold text-brand underline-offset-4 hover:underline"
-            >
-              See published sites
-            </Link>
+        <section className="py-20 lg:py-28">
+          <div className="mx-auto mb-10 max-w-6xl px-4 sm:px-6 lg:px-8">
+            <h2 className="text-4xl">{previews.length} designs. Switch in one click, any time.</h2>
+            <p className="mt-3 text-muted-foreground">
+              Same résumé, {previews.length} personalities. All of them work on phones.
+            </p>
           </div>
-          <ul className="mt-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-            {themes.map((theme) => (
-              <li key={theme.name}>
-                <img
-                  src={theme.preview}
-                  alt={`${theme.name} design`}
-                  loading="lazy"
-                  decoding="async"
-                  className="aspect-16/10 w-full rounded-md border border-border object-cover object-top"
-                />
-                <p className="mt-3 font-semibold">{theme.name}</p>
-                <p className="text-sm text-muted-foreground">{theme.description}</p>
-              </li>
+          <div className="space-y-6">
+            <MarqueeRow />
+            <MarqueeRow reverse />
+          </div>
+          <div className="mx-auto mt-12 flex max-w-6xl flex-wrap items-center gap-2 px-4 text-sm sm:px-6 lg:px-8">
+            <span className="mr-2 text-muted-foreground">Built for</span>
+            {PROFESSIONS.map((role) => (
+              <Link
+                key={role.slug}
+                href={`/for/${role.slug}`}
+                className="rounded-full border border-border-strong px-3 py-1.5 font-medium transition-colors hover:border-brand hover:bg-brand hover:text-brand-foreground"
+              >
+                {role.label}
+              </Link>
             ))}
-          </ul>
+          </div>
         </section>
 
-        <section className="bg-[#13233a] text-white">
-          <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-16 sm:px-6 md:flex-row md:items-center md:justify-between lg:px-8">
-            <div className="max-w-xl">
-              <h2 className="text-3xl">Read the code that handles your résumé</h2>
-              <p className="mt-3 text-white/70">
-                clickfolio.me is open source. Upload handling, parsing and privacy settings are all
-                in the public repository.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-3">
+        <section className="relative overflow-hidden bg-[#13233a] text-white">
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 800 800"
+            className="pointer-events-none absolute -bottom-96 -left-40 size-[800px] opacity-[0.1]"
+          >
+            {GUILLOCHE.map((angle) => (
+              <ellipse
+                key={angle}
+                cx="400"
+                cy="400"
+                rx="380"
+                ry="140"
+                fill="none"
+                stroke="#c9a55a"
+                strokeWidth="0.8"
+                transform={`rotate(${angle} 400 400)`}
+              />
+            ))}
+          </svg>
+          <div className="relative mx-auto max-w-3xl px-4 py-20 text-center sm:px-6 lg:py-28">
+            <h2 className="text-4xl sm:text-6xl">Still reading? You could be live by now.</h2>
+            <p className="mx-auto mt-4 max-w-md text-white/70">
+              One PDF. Thirty seconds. A link you will use for years.
+            </p>
+            <ProtoUploadButton className="mt-10 inline-flex h-13 items-center rounded-md bg-white px-8 text-lg font-semibold text-[#13233a] shadow-lg transition hover:scale-[1.03] motion-reduce:hover:scale-100">
+              Upload my résumé
+            </ProtoUploadButton>
+            <div className="mt-5 flex justify-center gap-2 text-sm">
+              <Link
+                href="/explore"
+                className="inline-flex min-h-11 items-center px-3 text-white/75 underline underline-offset-4 hover:text-white"
+              >
+                Browse published sites
+              </Link>
               <a
                 href="https://github.com/divkix/clickfolio.me"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex h-11 items-center gap-2 rounded-md border border-white/30 px-5 font-semibold hover:bg-white/10"
+                className="inline-flex min-h-11 items-center px-3 text-white/75 underline underline-offset-4 hover:text-white"
               >
-                View on GitHub
-              </a>
-              <a
-                href="#upload"
-                className="inline-flex h-11 items-center rounded-md bg-white px-5 font-semibold text-[#13233a] hover:bg-white/90"
-              >
-                Upload your résumé
+                Read the code on GitHub
               </a>
             </div>
           </div>
@@ -222,6 +301,7 @@ export function CredentialLanding() {
       </main>
 
       <Footer />
+      <MobileStickyUpload />
     </div>
   );
 }

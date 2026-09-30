@@ -1,15 +1,20 @@
 // PROTOTYPE (throwaway) — variant C "Curriculum". The page is typeset like a
-// well-made CV: a narrow label column and a content column, section by section.
-// Neutral grey paper, oxblood accent, Literata headings over Instrument Sans.
+// well-made CV (label column + content column) but keeps drop_first's
+// conversion mechanics: glowing dropzone first, PDF→site proof, profession
+// chips, a loud closing CTA and the mobile sticky upload bar.
 
 import Link from "next/link";
 import { FileDropzone } from "@/components/FileDropzone";
 import { Footer } from "@/components/Footer";
+import { MobileStickyUpload } from "@/components/home/MobileStickyUpload";
 import { SiteHeader } from "@/components/SiteHeader";
 import { TemplateFontLinks } from "@/components/templates/shared/TemplateFontLinks";
 import { FAQ_ITEMS } from "@/lib/config/faq";
+import { PROFESSIONS } from "@/lib/config/professions";
 import { DEMO_PROFILES } from "@/lib/templates/demo-data";
 import { THEME_METADATA } from "@/lib/templates/theme-ids";
+import { PdfToSite } from "./PdfToSite";
+import { ProtoUploadButton } from "./ProtoUploadButton";
 
 const THEME_CSS = `
 .proto-c {
@@ -19,6 +24,7 @@ const THEME_CSS = `
   --brand: #7a1f2b; --brand-hover: #661a24; --brand-active: #52151d; --brand-subtle: #f4e8e9; --brand-foreground: #ffffff;
   --primary: #7a1f2b; --primary-foreground: #ffffff; --accent: #f4e8e9; --accent-foreground: #7a1f2b;
   --success: #2f6b4f; --border: #dadad6; --border-strong: #c4c4bf; --input: #c4c4bf; --ring: #7a1f2b;
+  --chart-2: #d9a441;
   --radius: 0.25rem;
   font-family: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
   color: var(--foreground); background: var(--background);
@@ -44,58 +50,57 @@ export function CurriculumLanding() {
       <style>{THEME_CSS}</style>
       <SiteHeader />
 
-      <main id="main-content" className="mx-auto w-full max-w-5xl flex-1 px-4 sm:px-6 lg:px-8">
-        <header className="grid gap-4 pt-16 pb-12 md:grid-cols-[11rem_1fr] md:gap-10 lg:pt-24">
-          <span aria-hidden="true" />
+      <main
+        id="main-content"
+        className="mx-auto w-full max-w-5xl flex-1 px-4 pb-20 sm:px-6 lg:px-8 lg:pb-0"
+      >
+        <header className="grid gap-8 pt-14 pb-12 md:grid-cols-[1fr_1fr] md:items-center md:gap-12 lg:pt-20">
           <div>
-            <h1 className="text-5xl leading-[1.08] sm:text-6xl">
-              A personal website, made from your résumé.
-            </h1>
-            <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground">
-              Upload the PDF you send to employers. clickfolio.me lays it out as a site you can link
-              from applications, email signatures and LinkedIn.
+            <p className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+              <span className="relative flex size-2">
+                <span className="absolute inline-flex size-full animate-ping rounded-full bg-success opacity-60 motion-reduce:animate-none" />
+                <span className="relative inline-flex size-2 rounded-full bg-success" />
+              </span>
+              Free forever, no sign-up to start
             </p>
-            <dl className="mt-8 flex flex-wrap gap-x-10 gap-y-3 text-sm">
-              <div>
-                <dt className="text-muted-foreground">Address</dt>
-                <dd className="font-semibold">clickfolio.me/@yourname</dd>
+            <h1 className="mt-5 text-5xl leading-[1.05] sm:text-6xl">
+              Your résumé, made into a website in 30 seconds.
+            </h1>
+            <p className="mt-6 max-w-md text-lg leading-relaxed text-muted-foreground">
+              Upload the PDF you send to employers. Get clickfolio.me/@yourname to link from
+              applications, email signatures and LinkedIn.
+            </p>
+            <div className="mt-8 flex items-center gap-3">
+              <div className="flex -space-x-2" aria-hidden="true">
+                {DEMO_PROFILES.slice(0, 5).map((profile) => (
+                  <span
+                    key={profile.id}
+                    className="flex size-8 items-center justify-center rounded-full bg-brand-subtle text-[10px] font-bold text-brand ring-2 ring-background"
+                  >
+                    {profile.initials}
+                  </span>
+                ))}
               </div>
-              <div>
-                <dt className="text-muted-foreground">Price</dt>
-                <dd className="font-semibold">Free</dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground">Licence</dt>
-                <dd className="font-semibold">Open source</dd>
-              </div>
-            </dl>
+              <p className="text-sm text-muted-foreground">
+                For engineers, designers, PMs, marketers and students.
+              </p>
+            </div>
+          </div>
+
+          <div id="upload-card" className="relative rounded p-[2px]">
+            <div aria-hidden="true" className="landing-glow absolute inset-0 rounded" />
+            <div className="relative rounded-[2px] bg-card p-5 shadow-[0_1px_0_rgba(0,0,0,0.04),0_18px_40px_-18px_rgba(0,0,0,0.25)] sm:p-6">
+              <FileDropzone />
+            </div>
           </div>
         </header>
 
-        <Entry label="Begin">
-          <div
-            id="upload"
-            className="max-w-xl rounded border border-border-strong bg-card p-5 shadow-[0_1px_0_rgba(0,0,0,0.04),0_12px_32px_-16px_rgba(0,0,0,0.18)] sm:p-7"
-          >
-            <FileDropzone />
+        <section className="border-t border-border-strong py-12">
+          <h2 className="text-lg text-brand italic">Result</h2>
+          <div className="mt-8">
+            <PdfToSite />
           </div>
-        </Entry>
-
-        <Entry label="Result">
-          <figure>
-            <img
-              src="/previews/minimalist.webp"
-              alt="Sarah Chen's résumé published in the Minimalist Editorial design"
-              loading="lazy"
-              decoding="async"
-              className="aspect-16/10 w-full rounded border border-border-strong object-cover object-top"
-            />
-            <figcaption className="mt-3 text-sm text-muted-foreground">
-              Sarah Chen, Product Designer. Published at clickfolio.me/@sarahchen in the Minimalist
-              Editorial design.
-            </figcaption>
-          </figure>
-        </Entry>
+        </section>
 
         <Entry label="Process">
           <ol className="space-y-6">
@@ -125,21 +130,22 @@ export function CurriculumLanding() {
         <Entry label="Privacy">
           <p className="max-w-xl text-lg leading-relaxed">
             Your phone number and street address are hidden on every new site. You choose whether
-            search engines index your page and whether it appears in the public directory. You can
-            delete your account, and every file with it, from Settings.
+            search engines index your page and whether it appears in the public directory. Your
+            résumé is never sold or shared, and you can delete your account, and every file with it,
+            from Settings.
           </p>
         </Entry>
 
         <Entry label="Designs">
           <ul className="grid gap-x-8 gap-y-6 sm:grid-cols-2">
             {themes.map((theme) => (
-              <li key={theme.id} className="flex gap-4">
+              <li key={theme.id} className="group flex gap-4">
                 <img
                   src={theme.preview}
                   alt=""
                   loading="lazy"
                   decoding="async"
-                  className="h-16 w-24 shrink-0 rounded-sm border border-border object-cover object-top"
+                  className="h-16 w-24 shrink-0 rounded-sm border border-border object-cover object-top transition-transform duration-300 group-hover:scale-[1.6] group-hover:shadow-xl motion-reduce:group-hover:scale-100"
                 />
                 <div>
                   <h3 className="text-base font-semibold">{theme.name}</h3>
@@ -148,6 +154,20 @@ export function CurriculumLanding() {
               </li>
             ))}
           </ul>
+        </Entry>
+
+        <Entry label="For">
+          <div className="flex flex-wrap gap-2 text-sm">
+            {PROFESSIONS.map((role) => (
+              <Link
+                key={role.slug}
+                href={`/for/${role.slug}`}
+                className="rounded-full border border-border-strong px-3 py-1.5 font-medium transition-colors hover:border-brand hover:bg-brand hover:text-brand-foreground"
+              >
+                {role.label}
+              </Link>
+            ))}
+          </div>
         </Entry>
 
         <Entry label="Questions">
@@ -167,23 +187,32 @@ export function CurriculumLanding() {
           </Link>
         </Entry>
 
-        <Entry label="Source">
-          <p className="max-w-xl leading-relaxed">
-            The code that stores, reads and publishes your résumé is public.{" "}
-            <a
-              href="https://github.com/divkix/clickfolio.me"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-semibold text-brand underline underline-offset-4"
-            >
-              Read it on GitHub
-            </a>
-            .
-          </p>
-        </Entry>
+        <section className="my-16 rounded bg-brand px-6 py-14 text-brand-foreground sm:px-12 lg:my-24">
+          <div className="md:grid md:grid-cols-[1fr_auto] md:items-end md:gap-10">
+            <div>
+              <h2 className="text-4xl sm:text-5xl">Still reading? You could be live by now.</h2>
+              <p className="mt-4 max-w-md text-brand-foreground/80">
+                One PDF. Thirty seconds. A link you will use for years. The code is{" "}
+                <a
+                  href="https://github.com/divkix/clickfolio.me"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline underline-offset-4"
+                >
+                  open on GitHub
+                </a>
+                .
+              </p>
+            </div>
+            <ProtoUploadButton className="mt-8 inline-flex h-13 items-center rounded bg-white px-8 text-lg font-semibold text-brand shadow-lg transition hover:scale-[1.03] motion-reduce:hover:scale-100 md:mt-0">
+              Upload my résumé
+            </ProtoUploadButton>
+          </div>
+        </section>
       </main>
 
       <Footer />
+      <MobileStickyUpload />
     </div>
   );
 }
