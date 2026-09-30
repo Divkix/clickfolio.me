@@ -1,6 +1,6 @@
 # Landing-page A/B test via a `proxy.ts` cookie split + PostHog funnel
 
-Status: accepted.
+Status: superseded by ADR-0028.
 
 ## Context
 

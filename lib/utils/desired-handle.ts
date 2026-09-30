@@ -1,6 +1,6 @@
 import { handleSchema } from "@/lib/schemas/profile";
 
-// Handle typed on the claim-handle landing variant, carried across the
+// Handle typed in the home page's address-bar input, carried across the
 // upload → Google sign-in redirect → wizard hop. localStorage (not session)
 // so a sign-in completed in another tab still finds it.
 const DESIRED_HANDLE_KEY = "clickfolio:desired_handle";

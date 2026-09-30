@@ -23,7 +23,6 @@ const ALL_PROFESSION_ROUTES = PROFESSIONS.map((profession) => `/for/${profession
  */
 const CONTENT_SOURCES: ReadonlyArray<{ prefix: string; routes: readonly string[] }> = [
   { prefix: "components/home/", routes: ["/"] },
-  { prefix: "app/lp/claim-handle/", routes: ["/"] },
   { prefix: "lib/config/faq.ts", routes: ["/", "/faq"] },
   { prefix: "components/legal/", routes: ["/privacy", "/terms"] },
   { prefix: "components/role/", routes: ALL_PROFESSION_ROUTES },
