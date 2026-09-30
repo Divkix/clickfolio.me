@@ -60,17 +60,9 @@ peerDependencyRules:
 # age; bump a dependency sooner by adding it to `minimumReleaseAgeExclude`.
 trustPolicy: no-downgrade
 minimumReleaseAge: 4320
+# pnpm >= 11.22 prunes exact-version excludes no longer resolved by the lockfile.
+minimumReleaseAgeExcludePrune: true
 minimumReleaseAgeExclude:
-  - "@ai-sdk/gateway@4.0.51"
-  - "@cloudflare/vite-plugin@1.52.1"
-  - "@posthog/browser-common@0.6.0"
-  - "@posthog/core@1.48.11"
-  - "@posthog/types@1.406.1"
-  - ai@7.0.64
-  - miniflare@5.20260811.1-alpha
-  - posthog-js@1.419.4
-  - posthog-node@5.51.2
-  - wrangler@4.123.0
   - vite-plus
   - "@voidzero-dev/*"
   - oxlint
