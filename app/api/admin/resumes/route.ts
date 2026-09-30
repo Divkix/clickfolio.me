@@ -85,7 +85,8 @@ export async function GET(request: Request) {
         .from(resumes)
         .leftJoin(user, eq(resumes.userId, user.id))
         .where(statusCondition)
-        .orderBy(sql`${resumes.updatedAt} DESC NULLS LAST, ${resumes.createdAt} DESC`)
+        // updated_at is NULL for rows that completed without a later write; fall back to created_at.
+        .orderBy(sql`COALESCE(${resumes.updatedAt}, ${resumes.createdAt}) DESC`)
         .limit(PAGE_SIZE)
         .offset(offset),
     ]);
