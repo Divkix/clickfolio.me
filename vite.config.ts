@@ -149,15 +149,55 @@ const SHARED_IGNORE_PATTERNS = [
 ];
 
 export default defineConfig(({ mode }) => {
-  const sourcemapPlugin = sourceMapUploadPlugin(mode);
+  const isTest = Boolean(process.env.VITEST);
+  const sourcemapPlugin = isTest ? null : sourceMapUploadPlugin(mode);
 
   return {
     test: {
-      // Vitest v4 compatibility: preserve mock call history.
-      // Remove after tests no longer rely on calls from setup or earlier tests.
-      // https://viteplus.dev/guide/vitest-v5#remove-unneeded-compatibility-settings
-      // https://vitest.dev/guide/migration/#clearmocks-is-enabled-by-default
-      clearMocks: false,
+      environment: "jsdom",
+      globals: true,
+      setupFiles: ["./tests/setup.ts"],
+      exclude: ["node_modules", ".next", "dist", "tests/e2e/**", ".worktrees/**"],
+      alias: {
+        "@": resolve(__dirname, "./"),
+        "cloudflare:workers": resolve(__dirname, "lib/stubs/cloudflare-workers-client-stub.mjs"),
+        "cloudflare:workflows": resolve(__dirname, "lib/stubs/cloudflare-workflows-test-stub.mjs"),
+      },
+      pool: "threads",
+      projects: [
+        { test: { name: "unit", include: ["tests/unit/**/*.test.{ts,tsx}"] } },
+        {
+          test: {
+            name: "integration",
+            include: ["tests/integration/**/*.test.{ts,tsx}"],
+            testTimeout: 10000,
+          },
+        },
+        {
+          test: {
+            name: "security",
+            include: ["tests/security/**/*.test.{ts,tsx}"],
+            pool: "forks",
+            testTimeout: 15000,
+          },
+        },
+      ],
+      coverage: {
+        provider: "v8",
+        reporter: ["text", "json", "html", "json-summary"],
+        reportsDirectory: "./coverage",
+        include: ["lib/**/*.{ts,tsx}", "app/**/*.{ts,tsx}", "components/**/*.{ts,tsx}"],
+        exclude: [
+          "**/*.d.ts",
+          "**/*.test.{ts,tsx}",
+          "**/node_modules/**",
+          "tests/**",
+          "worker/**/*",
+          "lib/stubs/**",
+          "lib/db/migrations/**",
+        ],
+        thresholds: { statements: 75, branches: 70, functions: 70, lines: 75 },
+      },
     },
     fmt: {
       ignorePatterns: SHARED_IGNORE_PATTERNS,
@@ -174,6 +214,7 @@ export default defineConfig(({ mode }) => {
         "typescript/no-explicit-any": "warn",
         "typescript/no-unused-vars": "error",
         "oxc/no-accumulating-spread": "error",
+        "no-console": ["error", { allow: ["error", "warn"] }],
         "anti-slop/no-array-filter-map": "error",
         "anti-slop/no-reduce-accumulator-copy": "error",
         "anti-slop/no-chained-type-assertions": "error",
@@ -199,64 +240,72 @@ export default defineConfig(({ mode }) => {
       ],
       overrides: [
         {
-          files: ["__tests__/**"],
+          files: ["tests/**"],
           rules: {
             "typescript/unbound-method": "off",
             "typescript/no-base-to-string": "off",
             "typescript/no-misused-spread": "off",
             "typescript/no-this-alias": "off",
             "typescript/no-explicit-any": "off",
-            "@typescript-eslint/no-explicit-any": "off",
             "unicorn/no-thenable": "off",
             "jsx-a11y/control-has-associated-label": "off",
             "no-control-regex": "off",
+            "no-console": "off",
           },
         },
+        { files: ["scripts/**", "lib/utils/log.ts"], rules: { "no-console": "off" } },
       ],
     },
     staged: {
-      "*.{ts,tsx,js,jsx,json,css}": ["vp check --fix"],
+      "*.{js,jsx,ts,tsx,json,css}": ["vp check --fix"],
+      "package.json": ["bash -c 'pnpm install'", "git add pnpm-lock.yaml"],
     },
-    plugins: [
-      ensureClientDir(),
-      vinext(),
-      cloudflare({
-        viteEnvironment: { name: "rsc", childEnvironments: ["ssr"] },
-      }),
-      clientModuleStubs(),
-      clientVendorSplit(),
-      // Top-level Vite plugin, per PostHog's Vite source-map docs; inside
-      // build.rollupOptions.plugins its Vite `config` hook is ignored.
-      ...(sourcemapPlugin ? [sourcemapPlugin] : []),
-    ],
-    resolve: {
-      alias: {
-        "next/dist/compiled/@vercel/og/index.edge.js": resolve("lib/stubs/og-stub.js"),
-        "zod/v3": resolve("lib/stubs/zod-v3-stub.mjs"),
-      },
-    },
+    plugins: isTest
+      ? []
+      : [
+          ensureClientDir(),
+          vinext(),
+          cloudflare({
+            viteEnvironment: { name: "rsc", childEnvironments: ["ssr"] },
+          }),
+          clientModuleStubs(),
+          clientVendorSplit(),
+          // Top-level Vite plugin, per PostHog's Vite source-map docs; inside
+          // build.rollupOptions.plugins its Vite `config` hook is ignored.
+          ...(sourcemapPlugin ? [sourcemapPlugin] : []),
+        ],
+    resolve: isTest
+      ? undefined
+      : {
+          alias: {
+            "next/dist/compiled/@vercel/og/index.edge.js": resolve("lib/stubs/og-stub.js"),
+            "zod/v3": resolve("lib/stubs/zod-v3-stub.mjs"),
+          },
+        },
     optimizeDeps: {
       exclude: ["lucide-react"],
     },
-    build: {
-      rollupOptions: {
-        plugins: [
-          ...(process.env.ANALYZE === "true"
-            ? [visualizer({ open: true, gzipSize: true, filename: "dist/stats.html" })]
-            : []),
-        ],
-        onwarn(warning, warn) {
-          if (
-            warning.code === "MISSING_EXPORT" &&
-            warning.message?.includes('"middleware"') &&
-            warning.message?.includes("proxy.ts")
-          ) {
-            return;
-          }
+    build: isTest
+      ? undefined
+      : {
+          rollupOptions: {
+            plugins: [
+              ...(process.env.ANALYZE === "true"
+                ? [visualizer({ open: true, gzipSize: true, filename: "dist/stats.html" })]
+                : []),
+            ],
+            onwarn(warning, warn) {
+              if (
+                warning.code === "MISSING_EXPORT" &&
+                warning.message?.includes('"middleware"') &&
+                warning.message?.includes("proxy.ts")
+              ) {
+                return;
+              }
 
-          warn(warning);
+              warn(warning);
+            },
+          },
         },
-      },
-    },
   };
 });

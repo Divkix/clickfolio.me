@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
-import { createMockQueryChain } from "@/__tests__/setup/mocks/db.mock";
+import { createMockQueryChain } from "@/tests/setup/mocks/db.mock";
 import type { UnknownRecord } from "@/lib/types/json";
 
 const mockRequireAdminAuthForApi = vi.fn();

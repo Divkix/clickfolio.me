@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vite-plus/test";
-import { setupMockCleanup } from "@/__tests__/setup/helpers/test-utils";
+import { setupMockCleanup } from "@/tests/setup/helpers/test-utils";
 import { parseJsonWithRepair, transformToSchema } from "@/lib/ai/ai-fallback";
 
 vi.mock("ai", () => ({

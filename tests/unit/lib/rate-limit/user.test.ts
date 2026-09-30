@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
-import { createMockDb } from "@/__tests__/setup/mocks/db.mock";
+import { createMockDb } from "@/tests/setup/mocks/db.mock";
 import { checkRateLimit, enforceRateLimit } from "@/lib/rate-limit/user";
 
 vi.mock("cloudflare:workers", () => ({

@@ -6,7 +6,7 @@
  */
 
 import { describe, expect, it } from "vite-plus/test";
-import { createMockR2Bucket } from "@/__tests__/setup/mocks/r2.mock";
+import { createMockR2Bucket } from "@/tests/setup/mocks/r2.mock";
 import { getR2Binding, R2 } from "@/lib/r2";
 
 describe("getR2Binding", () => {

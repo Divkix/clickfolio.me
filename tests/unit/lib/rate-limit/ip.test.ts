@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
-import { createMockDb } from "@/__tests__/setup/mocks/db.mock";
+import { createMockDb } from "@/tests/setup/mocks/db.mock";
 import type { JsonValue } from "@/lib/types/json";
 import { checkHandleRateLimit, checkIPRateLimit, getClientIP } from "@/lib/rate-limit/ip";
 
