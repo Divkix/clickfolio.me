@@ -4,7 +4,6 @@ import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import TemplatesShowcasePage from "@/app/blog/clickfolio-templates-showcase/page";
 import LinkedInToPortfolioPage from "@/app/blog/linkedin-to-portfolio/page";
 import BlogPage from "@/app/blog/page";
-import ClaimHandleLandingPage from "@/app/lp/claim-handle/page";
 import Home from "@/app/page";
 import { getPostBySlug } from "@/lib/blog/posts";
 import { THEME_METADATA } from "@/lib/templates/theme-ids";
@@ -79,34 +78,23 @@ describe("public page rendering", () => {
       value: vi.fn(),
       configurable: true,
     });
+    Object.defineProperty(window, "matchMedia", {
+      value: vi.fn(() => ({ matches: false })),
+      configurable: true,
+    });
   });
 
   it("renders the homepage with its upload CTA and discovery content", () => {
-    const { container, getByRole } = render(<Home />);
+    const { container, getByRole, getByLabelText } = render(<Home />);
     const h1 = container.querySelector("h1");
 
-    expect(h1?.textContent).toMatch(/resume website builder/i);
-    expect(h1?.textContent).toContain("live on the web in 30 seconds");
-    expect(container.textContent).toContain("Drop your PDF");
+    expect(h1?.textContent).toBe("Your résumé, live on the web in 30 seconds.");
+    expect(getByRole("button", { name: "Upload your résumé" })).toBeInTheDocument();
+    expect(getByLabelText("Try your handle")).toBeInTheDocument();
     expect(container.querySelector("#upload-card")).not.toBeNull();
     expect(container.textContent).toContain("Open source");
-    expect(getByRole("link", { name: "Browse real portfolios" }).className).toMatch(/min-h-11/);
-    expect(getByRole("link", { name: "Read our guides" }).className).toMatch(/min-h-11/);
-    expect(container.textContent).toContain("or click to browse");
-    expect(container.querySelector('a[href="/blog/linkedin-to-portfolio"]')).not.toBeNull();
-    expect(container.querySelector('a[href="/blog/best-resume-website-builders"]')).not.toBeNull();
-  });
-
-  it("renders the claim-handle landing variant with the handle picker", () => {
-    const { container, getByRole, getByLabelText } = render(<ClaimHandleLandingPage />);
-    const h1 = container.querySelector("h1");
-
-    expect(h1?.textContent).toMatch(/resume website builder/i);
-    expect(h1?.textContent).toContain("Start linking.");
-    expect(getByLabelText("Choose your handle")).toBeInTheDocument();
-    expect(container.querySelector("#upload-card")).not.toBeNull();
-    expect(getByRole("link", { name: "Read our guides" }).className).toMatch(/min-h-11/);
-    expect(container.querySelector('a[href="/blog/resume-website-examples"]')).not.toBeNull();
+    expect(getByRole("link", { name: "Browse real portfolios" })).toBeInTheDocument();
+    expect(getByRole("link", { name: "Read our guides" })).toBeInTheDocument();
   });
 
   it("renders a specific blog listing H1, not a generic Blog label", () => {

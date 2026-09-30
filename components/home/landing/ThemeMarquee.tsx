@@ -1,4 +1,4 @@
-// PROTOTYPE (throwaway): drop_first's two-row design marquee on theme tokens.
+// Two-row design marquee on theme tokens.
 // Hover pauses a row; reduced motion stops it (globals.css).
 
 import { DEMO_PROFILES } from "@/lib/templates/demo-data";

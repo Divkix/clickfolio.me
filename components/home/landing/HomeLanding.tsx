@@ -1,10 +1,7 @@
 "use client";
 
-// PROTOTYPE (throwaway) — variant B "Studio". White + ultramarine, one grotesk.
-// Merges both A/B arms: drop_first's glowing dropzone sits in the first
-// viewport (it won uploads, 36% vs 22%), next to a live browser frame whose URL
-// bar is claim_handle's handle input (37% of viewers engaged with it). The
-// frame auto-cycles designs until the visitor touches it.
+// Home page: upload a résumé or try a handle in a live portfolio preview.
+// The browser frame cycles through designs until the visitor touches it.
 
 import { Check, Loader2, X } from "lucide-react";
 import Link from "next/link";
@@ -12,40 +9,15 @@ import { useEffect, useState } from "react";
 import { Footer } from "@/components/Footer";
 import { MobileStickyUpload } from "@/components/home/MobileStickyUpload";
 import { SiteHeader } from "@/components/SiteHeader";
-import { TemplateFontLinks } from "@/components/templates/shared/TemplateFontLinks";
+import { isAnalyticsInitialized, trackAnalyticsEvent } from "@/lib/analytics/client";
 import { FAQ_ITEMS } from "@/lib/config/faq";
 import { PROFESSIONS } from "@/lib/config/professions";
-import { saveDesiredHandle } from "@/lib/experiments/desired-handle";
+import { saveDesiredHandle } from "@/lib/utils/desired-handle";
 import { handleSchema } from "@/lib/schemas/profile";
 import { DEMO_PROFILES } from "@/lib/templates/demo-data";
 import { THEME_METADATA } from "@/lib/templates/theme-ids";
-import { ProtoUploadButton } from "./ProtoUploadButton";
+import { UploadCTA } from "./UploadCTA";
 import { THEME_COUNT, ThemeMarquee } from "./ThemeMarquee";
-
-const THEME_CSS = `
-.proto-b {
-  --background: #ffffff; --foreground: #15171a; --surface-2: #f3f4f6;
-  --card: #ffffff; --card-foreground: #15171a; --popover: #ffffff; --popover-foreground: #15171a;
-  --muted: #f3f4f6; --muted-foreground: #5f646d; --secondary: #f3f4f6; --secondary-foreground: #15171a;
-  --brand: #2a3fd1; --brand-hover: #2234b5; --brand-active: #1b2a93; --brand-subtle: #eceffd; --brand-foreground: #ffffff;
-  --primary: #2a3fd1; --primary-foreground: #ffffff; --accent: #eceffd; --accent-foreground: #2a3fd1;
-  --success: #1b7f5a; --border: #e5e7eb; --border-strong: #d1d5db; --input: #d1d5db; --ring: #2a3fd1;
-  --chart-2: #7c8cff;
-  --radius: 0.75rem;
-  font-family: 'Onest', ui-sans-serif, system-ui, sans-serif;
-  color: var(--foreground); background: var(--background);
-}
-.proto-b :is(h1, h2, h3) { font-family: 'Onest', ui-sans-serif, system-ui, sans-serif; letter-spacing: -0.035em; }
-.dark .proto-b {
-  --background: #0e0f14; --foreground: #eceef3; --surface-2: #181a22;
-  --card: #14161d; --card-foreground: #eceef3; --popover: #14161d; --popover-foreground: #eceef3;
-  --muted: #181a22; --muted-foreground: #9aa0ac; --secondary: #181a22; --secondary-foreground: #eceef3;
-  --brand: #7c8cff; --brand-hover: #93a0ff; --brand-active: #6a7af0; --brand-subtle: #1b1f3d; --brand-foreground: #0e0f14;
-  --primary: #7c8cff; --primary-foreground: #0e0f14; --accent: #1b1f3d; --accent-foreground: #7c8cff;
-  --success: #4cc38a; --border: #262935; --border-strong: #343846; --input: #343846; --ring: #7c8cff;
-  --chart-2: #b3bcff;
-}
-`;
 
 const CYCLE_MS = 3200;
 
@@ -95,7 +67,13 @@ function useHandleStatus(handle: string): HandleStatus {
         if (controller.signal.aborted) return;
       }
 
+      if (controller.signal.aborted) return;
+
       setChecked({ handle, status });
+
+      if (isAnalyticsInitialized()) {
+        trackAnalyticsEvent("landing_handle_checked", { status });
+      }
     }, 350);
 
     return () => {
@@ -111,7 +89,7 @@ function useHandleStatus(handle: string): HandleStatus {
   return checked?.handle === handle ? checked.status : "checking";
 }
 
-export function StudioLanding() {
+export function HomeLanding() {
   const [index, setIndex] = useState(0);
   const [touched, setTouched] = useState(false);
   const [handle, setHandle] = useState("");
@@ -130,9 +108,7 @@ export function StudioLanding() {
   }, [touched]);
 
   return (
-    <div className="proto-b flex min-h-screen flex-col">
-      <TemplateFontLinks href="https://fonts.googleapis.com/css2?family=Onest:wght@400..800&display=swap" />
-      <style>{THEME_CSS}</style>
+    <div className="flex min-h-screen flex-col bg-background text-foreground">
       <SiteHeader />
 
       <main id="main-content" className="flex-1 pb-20 lg:pb-0">
@@ -148,9 +124,12 @@ export function StudioLanding() {
               </h1>
               <div id="upload-card" className="relative mt-10 inline-flex rounded-full p-[2px]">
                 <div aria-hidden="true" className="landing-glow absolute inset-0 rounded-full" />
-                <ProtoUploadButton className="relative inline-flex h-14 items-center rounded-full bg-brand px-8 text-lg font-semibold text-brand-foreground transition hover:bg-brand-hover">
+                <UploadCTA
+                  location="hero"
+                  className="relative inline-flex h-14 items-center rounded-full bg-brand px-8 text-lg font-semibold text-brand-foreground transition hover:bg-brand-hover"
+                >
                   Upload your résumé
-                </ProtoUploadButton>
+                </UploadCTA>
               </div>
               <p className="mt-4 text-sm text-muted-foreground">Free. No account needed.</p>
             </div>
@@ -206,12 +185,13 @@ export function StudioLanding() {
                   {status === "available" && (
                     <span className="font-medium text-success">
                       @{handle} is free.{" "}
-                      <ProtoUploadButton
+                      <UploadCTA
+                        location="hero_claim"
                         onBeforeOpen={() => saveDesiredHandle(handle)}
                         className="font-semibold text-brand underline underline-offset-4"
                       >
                         Claim it
-                      </ProtoUploadButton>
+                      </UploadCTA>
                     </span>
                   )}
                   {status === "taken" && (
@@ -333,9 +313,12 @@ export function StudioLanding() {
             <p className="relative mx-auto mt-4 max-w-md text-brand-foreground/80">
               One PDF. Thirty seconds. A link you will use for years.
             </p>
-            <ProtoUploadButton className="relative mt-8 inline-flex h-13 items-center rounded-full bg-white px-8 text-lg font-semibold text-[#15171a] shadow-lg transition hover:scale-[1.03] motion-reduce:hover:scale-100">
+            <UploadCTA
+              location="footer_cta"
+              className="relative mt-8 inline-flex h-13 items-center rounded-full bg-white px-8 text-lg font-semibold text-[#15171a] shadow-lg transition hover:scale-[1.03] motion-reduce:hover:scale-100"
+            >
               Upload my résumé
-            </ProtoUploadButton>
+            </UploadCTA>
             <div className="relative mt-4 flex justify-center gap-2 text-sm">
               <Link
                 href="/explore"

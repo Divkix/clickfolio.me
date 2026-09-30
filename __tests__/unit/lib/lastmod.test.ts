@@ -51,7 +51,7 @@ describe("routesForChangedFiles", () => {
   });
 
   it("maps content sources outside app/ to every route they feed", () => {
-    expect(routesForChangedFiles(["components/home/landing/DropFirstLanding.tsx"])).toEqual(["/"]);
+    expect(routesForChangedFiles(["components/home/landing/HomeLanding.tsx"])).toEqual(["/"]);
     expect(routesForChangedFiles(["components/legal/LegalPage.tsx"])).toEqual([
       "/privacy",
       "/terms",

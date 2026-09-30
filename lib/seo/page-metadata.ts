@@ -17,8 +17,7 @@ const HOME_DESCRIPTION =
   "Turn your PDF resume or LinkedIn into a portfolio website in 30 seconds — 12 free templates, a custom @handle URL, and privacy controls. No signup to start.";
 
 /**
- * Shared by `/` and every landing A/B variant route (ADR-0027) — variants are
- * served at `/` via proxy rewrite, so they all canonicalize to the home URL.
+ * Metadata for the homepage, with its canonical URL set to `/`.
  */
 export const HOME_METADATA: Metadata = {
   title: {

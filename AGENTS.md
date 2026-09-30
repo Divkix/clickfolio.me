@@ -31,7 +31,7 @@ All verified 2026-09-27 (Node 26, pnpm 12.6.0; CI pins Node 22.22.1).
 ```
 worker/index.ts        real Worker entry: scanner-probe 404s → WS /ws/resume-status → vinext;
                        also scheduled() cron + re-exports Workflow classes
-proxy.ts               edge gate (replaces middleware.ts): `/` landing A/B split + __session presence check
+proxy.ts               edge gate (replaces middleware.ts): __session presence check
 lib/resume/            single owners: lifecycle.ts (status/retry rules), claim-intake.ts, completion.ts
 lib/parse/pipeline.ts  Workflow step bodies (must be replay-safe)
 lib/workflows/         Workflow classes + start/trigger helpers (parse, R2 delete)

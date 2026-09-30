@@ -16,10 +16,10 @@ import { UploadStep } from "@/components/wizard/UploadStep";
 import { YouAreLiveModal } from "@/components/YouAreLiveModal";
 import { getAnalyticsSessionId } from "@/lib/analytics/client";
 import { useSession } from "@/lib/auth/client";
-import { clearDesiredHandle, readDesiredHandle } from "@/lib/experiments/desired-handle";
 import { DEFAULT_THEME, type ThemeId } from "@/lib/templates/theme-ids";
 import type { ClaimResponse } from "@/lib/types/api";
 import type { ResumeContent } from "@/lib/types/database";
+import { clearDesiredHandle, readDesiredHandle } from "@/lib/utils/desired-handle";
 import { clearPendingUploadCookie } from "@/lib/utils/pending-upload-client";
 import { waitForResumeCompletion } from "@/lib/utils/wait-for-completion";
 
@@ -171,7 +171,7 @@ function useWizardInit() {
 
       initializingRef.current = true;
 
-      // Prefill the handle picked on the claim-handle landing variant (ADR-0027).
+      // Prefill the handle typed on the home page.
       const desiredHandle = readDesiredHandle();
 
       if (desiredHandle) {

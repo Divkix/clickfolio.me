@@ -3,10 +3,8 @@
 import { useState, type ReactNode } from "react";
 import { FileDropzone } from "@/components/FileDropzone";
 import { isAnalyticsInitialized, trackAnalyticsEvent } from "@/lib/analytics/client";
-import type { LandingVariant } from "@/lib/experiments/landing";
 
 interface UploadCTAProps {
-  variant: LandingVariant;
   /** Where on the page the button sits, e.g. "hero" or "footer_cta". */
   location: string;
   className?: string;
@@ -15,13 +13,7 @@ interface UploadCTAProps {
   onBeforeOpen?: () => void;
 }
 
-export function UploadCTA({
-  variant,
-  location,
-  className,
-  children,
-  onBeforeOpen,
-}: UploadCTAProps) {
+export function UploadCTA({ location, className, children, onBeforeOpen }: UploadCTAProps) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -33,7 +25,7 @@ export function UploadCTA({
           onBeforeOpen?.();
 
           if (isAnalyticsInitialized()) {
-            trackAnalyticsEvent("landing_cta_clicked", { landing_variant: variant, location });
+            trackAnalyticsEvent("landing_cta_clicked", { location });
           }
 
           setOpen(true);
