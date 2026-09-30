@@ -30,6 +30,14 @@ const THEME_CSS = `
   color: var(--foreground); background: var(--background);
 }
 .proto-c :is(h1, h2, h3) { font-family: 'Literata', Georgia, serif; font-optical-sizing: auto; font-weight: 500; }
+.dark .proto-c {
+  --background: #1a1a1d; --foreground: #ecebe8; --surface-2: #232326;
+  --card: #222225; --card-foreground: #ecebe8; --popover: #222225; --popover-foreground: #ecebe8;
+  --muted: #232326; --muted-foreground: #a3a2a8; --secondary: #232326; --secondary-foreground: #ecebe8;
+  --brand: #e0909a; --brand-hover: #e8a7af; --brand-active: #d27a85; --brand-subtle: #3a2226; --brand-foreground: #1a1a1d;
+  --primary: #e0909a; --primary-foreground: #1a1a1d; --accent: #3a2226; --accent-foreground: #e0909a;
+  --success: #6fbf94; --border: #333337; --border-strong: #444449; --input: #444449; --ring: #e0909a;
+}
 `;
 
 const themes = DEMO_PROFILES.map((profile) => ({ id: profile.id, ...THEME_METADATA[profile.id] }));
@@ -204,7 +212,7 @@ export function CurriculumLanding() {
                 .
               </p>
             </div>
-            <ProtoUploadButton className="mt-8 inline-flex h-13 items-center rounded bg-white px-8 text-lg font-semibold text-brand shadow-lg transition hover:scale-[1.03] motion-reduce:hover:scale-100 md:mt-0">
+            <ProtoUploadButton className="mt-8 inline-flex h-13 items-center rounded bg-white px-8 text-lg font-semibold text-[#7a1f2b] shadow-lg transition hover:scale-[1.03] motion-reduce:hover:scale-100 md:mt-0">
               Upload my résumé
             </ProtoUploadButton>
           </div>

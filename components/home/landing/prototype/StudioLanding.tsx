@@ -37,6 +37,15 @@ const THEME_CSS = `
   color: var(--foreground); background: var(--background);
 }
 .proto-b :is(h1, h2, h3) { font-family: 'Onest', ui-sans-serif, system-ui, sans-serif; letter-spacing: -0.035em; }
+.dark .proto-b {
+  --background: #0e0f14; --foreground: #eceef3; --surface-2: #181a22;
+  --card: #14161d; --card-foreground: #eceef3; --popover: #14161d; --popover-foreground: #eceef3;
+  --muted: #181a22; --muted-foreground: #9aa0ac; --secondary: #181a22; --secondary-foreground: #eceef3;
+  --brand: #7c8cff; --brand-hover: #93a0ff; --brand-active: #6a7af0; --brand-subtle: #1b1f3d; --brand-foreground: #0e0f14;
+  --primary: #7c8cff; --primary-foreground: #0e0f14; --accent: #1b1f3d; --accent-foreground: #7c8cff;
+  --success: #4cc38a; --border: #262935; --border-strong: #343846; --input: #343846; --ring: #7c8cff;
+  --chart-2: #b3bcff;
+}
 `;
 
 const CYCLE_MS = 3200;
@@ -257,14 +266,14 @@ export function StudioLanding() {
           </div>
         </section>
 
-        <section className="bg-foreground text-background">
+        <section className="border-y border-border bg-[#15171a] text-white">
           <div className="mx-auto grid max-w-7xl gap-8 px-4 py-16 sm:px-6 md:grid-cols-[auto_1fr] md:items-center md:gap-16 lg:px-8">
             <p className="text-8xl font-semibold tracking-tighter text-[#9aa6ff]">~7s</p>
             <div>
               <h2 className="text-3xl font-semibold sm:text-4xl">
                 A PDF gets seven seconds. A link gets clicked, bookmarked and forwarded.
               </h2>
-              <p className="mt-3 text-background/60">
+              <p className="mt-3 text-white/60">
                 Average first-pass résumé skim, from the Ladders eye-tracking study. Put your link
                 in your email signature, LinkedIn and every application; it is always your latest
                 version.
@@ -340,7 +349,7 @@ export function StudioLanding() {
             <p className="relative mx-auto mt-4 max-w-md text-brand-foreground/80">
               One PDF. Thirty seconds. A link you will use for years.
             </p>
-            <ProtoUploadButton className="relative mt-8 inline-flex h-13 items-center rounded-full bg-white px-8 text-lg font-semibold text-foreground shadow-lg transition hover:scale-[1.03] motion-reduce:hover:scale-100">
+            <ProtoUploadButton className="relative mt-8 inline-flex h-13 items-center rounded-full bg-white px-8 text-lg font-semibold text-[#15171a] shadow-lg transition hover:scale-[1.03] motion-reduce:hover:scale-100">
               Upload my résumé
             </ProtoUploadButton>
             <div className="relative mt-4 flex justify-center gap-2 text-sm">

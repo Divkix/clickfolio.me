@@ -29,6 +29,14 @@ const THEME_CSS = `
   color: var(--foreground); background: var(--background);
 }
 .proto-a :is(h1, h2, h3) { font-family: 'Newsreader', Georgia, serif; font-optical-sizing: auto; font-weight: 500; letter-spacing: -0.01em; }
+.dark .proto-a {
+  --background: #0d1826; --foreground: #e6ecf3; --surface-2: #152336;
+  --card: #122033; --card-foreground: #e6ecf3; --popover: #122033; --popover-foreground: #e6ecf3;
+  --muted: #152336; --muted-foreground: #93a3b8; --secondary: #152336; --secondary-foreground: #e6ecf3;
+  --brand: #8dbbe6; --brand-hover: #a6cbee; --brand-active: #74a7d8; --brand-subtle: #1a2c44; --brand-foreground: #0d1826;
+  --primary: #8dbbe6; --primary-foreground: #0d1826; --accent: #1a2c44; --accent-foreground: #8dbbe6;
+  --success: #5fb3a3; --border: #23344a; --border-strong: #324862; --input: #324862; --ring: #5fb3a3;
+}
 /* Glow ring in foil colours: teal into gold, like the strip on a banknote. */
 .proto-a .landing-glow { background: conic-gradient(from var(--landing-glow-angle), transparent 0 55%, #5fb3a3 70%, #c9a55a 85%, transparent 100%); }
 `;
