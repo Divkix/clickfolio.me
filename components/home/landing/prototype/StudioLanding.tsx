@@ -9,7 +9,6 @@
 import { Check, Loader2, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { FileDropzone } from "@/components/FileDropzone";
 import { Footer } from "@/components/Footer";
 import { MobileStickyUpload } from "@/components/home/MobileStickyUpload";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -142,23 +141,18 @@ export function StudioLanding() {
             aria-hidden="true"
             className="pointer-events-none absolute -top-40 right-0 h-[560px] w-[760px] rounded-full bg-brand/10 blur-3xl"
           />
-          <div className="relative mx-auto grid max-w-7xl gap-x-12 gap-y-8 px-4 pt-12 pb-16 sm:px-6 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:px-8 lg:pt-14">
-            <div className="flex flex-col gap-4 lg:col-span-2 lg:flex-row lg:items-end lg:justify-between">
-              <h1 className="max-w-3xl text-5xl leading-[0.98] font-semibold sm:text-6xl xl:text-7xl">
+          <div className="relative mx-auto grid min-h-[calc(100svh-4rem)] max-w-7xl items-center gap-x-16 gap-y-12 px-4 py-12 sm:px-6 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:px-8">
+            <div>
+              <h1 className="text-5xl leading-[0.98] font-semibold sm:text-6xl xl:text-7xl">
                 Your résumé, live on the web in 30 seconds.
               </h1>
-              <p className="max-w-sm text-lg text-muted-foreground lg:pb-2">
-                Drop your PDF, pick one of {themes.length} designs, share one link. Free, and no
-                account until you publish.
-              </p>
-            </div>
-            <div>
-              <div id="upload-card" className="relative rounded-2xl p-[2px]">
-                <div aria-hidden="true" className="landing-glow absolute inset-0 rounded-2xl" />
-                <div className="relative rounded-[calc(1rem-2px)] bg-card p-4 shadow-xl sm:p-5">
-                  <FileDropzone />
-                </div>
+              <div id="upload-card" className="relative mt-10 inline-flex rounded-full p-[2px]">
+                <div aria-hidden="true" className="landing-glow absolute inset-0 rounded-full" />
+                <ProtoUploadButton className="relative inline-flex h-14 items-center rounded-full bg-brand px-8 text-lg font-semibold text-brand-foreground transition hover:bg-brand-hover">
+                  Upload your résumé
+                </ProtoUploadButton>
               </div>
+              <p className="mt-4 text-sm text-muted-foreground">Free. No account needed.</p>
             </div>
 
             <div onPointerEnter={() => setTouched(true)} onFocusCapture={() => setTouched(true)}>
@@ -204,13 +198,8 @@ export function StudioLanding() {
                 />
               </figure>
 
-              <div className="mt-3 flex min-h-6 flex-wrap items-center justify-between gap-2 text-sm">
+              <div className="mt-4 flex min-h-6 items-center justify-between gap-4 text-sm">
                 <p id="studio-handle-status" aria-live="polite">
-                  {status === "idle" && (
-                    <span className="text-muted-foreground">
-                      Type your name in the address bar.
-                    </span>
-                  )}
                   {status === "checking" && (
                     <span className="text-muted-foreground">Checking…</span>
                   )}
@@ -221,7 +210,7 @@ export function StudioLanding() {
                         onBeforeOpen={() => saveDesiredHandle(handle)}
                         className="font-semibold text-brand underline underline-offset-4"
                       >
-                        Upload your résumé to claim it
+                        Claim it
                       </ProtoUploadButton>
                     </span>
                   )}
@@ -237,30 +226,25 @@ export function StudioLanding() {
                     <span className="text-muted-foreground">You’ll confirm it after upload.</span>
                   )}
                 </p>
-                <p className="text-muted-foreground">
-                  {selected.name}, {selected.role}
-                </p>
-              </div>
-
-              <div className="mt-4 flex gap-1.5 overflow-x-auto pb-1 no-scrollbar">
-                {themes.map((theme, i) => (
-                  <button
-                    key={theme.id}
-                    type="button"
-                    aria-pressed={i === index}
-                    onClick={() => {
-                      setTouched(true);
-                      setIndex(i);
-                    }}
-                    className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-                      i === index
-                        ? "bg-foreground text-background"
-                        : "bg-surface-2 text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    {theme.name}
-                  </button>
-                ))}
+                <div className="flex shrink-0 gap-1.5">
+                  {themes.map((theme, i) => (
+                    <button
+                      key={theme.id}
+                      type="button"
+                      aria-label={`Show the ${theme.name} design`}
+                      aria-pressed={i === index}
+                      onClick={() => {
+                        setTouched(true);
+                        setIndex(i);
+                      }}
+                      className={`h-1.5 rounded-full transition-all ${
+                        i === index
+                          ? "w-5 bg-foreground"
+                          : "w-1.5 bg-border-strong hover:bg-muted-foreground"
+                      }`}
+                    />
+                  ))}
+                </div>
               </div>
             </div>
           </div>
