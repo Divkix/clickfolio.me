@@ -133,7 +133,7 @@ function sourceMapUploadPlugin(mode: string): Plugin | null {
   return failOpenSourcemapUpload(plugin as Plugin);
 }
 
-const SHARED_IGNORE_PATTERNS = [
+const IGNORE_PATTERNS = [
   "dist/**",
   "lib/cloudflare-env.d.ts",
   ".agent/**",
@@ -155,16 +155,83 @@ export default defineConfig(({ mode }) => {
   const sourcemapPlugin = isTest ? null : sourceMapUploadPlugin(mode);
 
   return {
+    fmt: {
+      ignorePatterns: IGNORE_PATTERNS,
+    },
+    lint: {
+      plugins: ["react", "typescript", "jsx-a11y", "oxc"],
+      options: { typeAware: true, typeCheck: true },
+      jsPlugins: [
+        { name: "vite-plus", specifier: "vite-plus/oxlint-plugin" },
+        { name: "anti-slop", specifier: "./tools/oxlint/anti-slop/index.ts" },
+      ],
+      rules: {
+        "vite-plus/prefer-vite-plus-imports": "error",
+        "no-console": "error",
+        "oxc/no-accumulating-spread": "error",
+        "typescript/no-explicit-any": "warn",
+        "typescript/no-unused-vars": "error",
+        "anti-slop/no-array-filter-map": "error",
+        "anti-slop/no-reduce-accumulator-copy": "error",
+        "anti-slop/no-chained-type-assertions": "error",
+        "anti-slop/no-conditional-empty-object-spread": "error",
+        "anti-slop/no-known-value-widening": "error",
+        "anti-slop/no-module-mocking": "error",
+        "anti-slop/no-object-parameters": "error",
+        "anti-slop/no-reflect-apply": "error",
+        "anti-slop/no-reflect-get": "error",
+        "anti-slop/no-runtime-typeof": "error",
+        "anti-slop/no-shape-in-symbol-names": "error",
+        "anti-slop/no-unknown-parameters": "error",
+        "anti-slop/no-unknown-returns": "error",
+        "anti-slop/no-unknown-type-aliases": "error",
+        "anti-slop/no-unsafe-dictionary-type": "error",
+        "anti-slop/no-widen-then-assert": "error",
+        "anti-slop/require-readable-spacing": "error",
+        "anti-slop/require-safety-comment-for-type-assertion": "error",
+      },
+      overrides: [
+        {
+          files: ["tests/**"],
+          rules: {
+            "typescript/unbound-method": "off",
+            "typescript/no-base-to-string": "off",
+            "typescript/no-misused-spread": "off",
+            "typescript/no-this-alias": "off",
+            "typescript/no-explicit-any": "off",
+            "unicorn/no-thenable": "off",
+            "jsx-a11y/control-has-associated-label": "off",
+            "no-control-regex": "off",
+            "no-console": "off",
+          },
+        },
+        {
+          files: ["scripts/**", "lib/utils/log.ts"],
+          rules: { "no-console": "off" },
+        },
+      ],
+      ignorePatterns: IGNORE_PATTERNS,
+    },
+    staged: {
+      "*.{js,jsx,ts,tsx,json,css}": ["vp check --fix"],
+      "package.json": ["bash -c 'pnpm install'", "git add pnpm-lock.yaml"],
+    },
     test: {
       environment: "jsdom",
       globals: true,
       setupFiles: ["./tests/setup.ts"],
-      exclude: ["node_modules", ".next", "dist", "tests/e2e/**", ".worktrees/**"],
       alias: {
-        "@": resolve(__dirname, "./"),
-        "cloudflare:workers": resolve(__dirname, "lib/stubs/cloudflare-workers-client-stub.mjs"),
-        "cloudflare:workflows": resolve(__dirname, "lib/stubs/cloudflare-workflows-test-stub.mjs"),
+        "@": resolve(import.meta.dirname, "./"),
+        "cloudflare:workers": resolve(
+          import.meta.dirname,
+          "lib/stubs/cloudflare-workers-client-stub.mjs",
+        ),
+        "cloudflare:workflows": resolve(
+          import.meta.dirname,
+          "lib/stubs/cloudflare-workflows-test-stub.mjs",
+        ),
       },
+      exclude: ["node_modules", ".next", "dist", "tests/e2e/**", ".worktrees/**"],
       pool: "threads",
       projects: [
         { test: { name: "unit", include: ["tests/unit/**/*.test.{ts,tsx}"] } },
@@ -198,69 +265,8 @@ export default defineConfig(({ mode }) => {
           "lib/stubs/**",
           "lib/db/migrations/**",
         ],
-        thresholds: { statements: 75, branches: 70, functions: 70, lines: 75 },
+        thresholds: { branches: 70, functions: 70, lines: 75, statements: 75 },
       },
-    },
-    fmt: {
-      ignorePatterns: SHARED_IGNORE_PATTERNS,
-    },
-    lint: {
-      ignorePatterns: SHARED_IGNORE_PATTERNS,
-      plugins: ["react", "typescript", "jsx-a11y", "oxc"],
-      options: {
-        typeAware: true,
-        typeCheck: true,
-      },
-      rules: {
-        "vite-plus/prefer-vite-plus-imports": "error",
-        "typescript/no-explicit-any": "warn",
-        "typescript/no-unused-vars": "error",
-        "oxc/no-accumulating-spread": "error",
-        "no-console": "error",
-        "anti-slop/no-array-filter-map": "error",
-        "anti-slop/no-reduce-accumulator-copy": "error",
-        "anti-slop/no-chained-type-assertions": "error",
-        "anti-slop/no-conditional-empty-object-spread": "error",
-        "anti-slop/no-known-value-widening": "error",
-        "anti-slop/no-module-mocking": "error",
-        "anti-slop/no-object-parameters": "error",
-        "anti-slop/no-reflect-apply": "error",
-        "anti-slop/no-reflect-get": "error",
-        "anti-slop/no-runtime-typeof": "error",
-        "anti-slop/no-shape-in-symbol-names": "error",
-        "anti-slop/no-unknown-parameters": "error",
-        "anti-slop/no-unknown-returns": "error",
-        "anti-slop/no-unknown-type-aliases": "error",
-        "anti-slop/no-unsafe-dictionary-type": "error",
-        "anti-slop/no-widen-then-assert": "error",
-        "anti-slop/require-readable-spacing": "error",
-        "anti-slop/require-safety-comment-for-type-assertion": "error",
-      },
-      jsPlugins: [
-        { name: "vite-plus", specifier: "vite-plus/oxlint-plugin" },
-        { name: "anti-slop", specifier: "./tools/oxlint/anti-slop/index.ts" },
-      ],
-      overrides: [
-        {
-          files: ["tests/**"],
-          rules: {
-            "typescript/unbound-method": "off",
-            "typescript/no-base-to-string": "off",
-            "typescript/no-misused-spread": "off",
-            "typescript/no-this-alias": "off",
-            "typescript/no-explicit-any": "off",
-            "unicorn/no-thenable": "off",
-            "jsx-a11y/control-has-associated-label": "off",
-            "no-control-regex": "off",
-            "no-console": "off",
-          },
-        },
-        { files: ["scripts/**", "lib/utils/log.ts"], rules: { "no-console": "off" } },
-      ],
-    },
-    staged: {
-      "*.{js,jsx,ts,tsx,json,css}": ["vp check --fix"],
-      "package.json": ["bash -c 'pnpm install'", "git add pnpm-lock.yaml"],
     },
     plugins: isTest
       ? []

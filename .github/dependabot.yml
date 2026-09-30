@@ -10,7 +10,10 @@ updates:
     labels:
       - "dependencies"
     ignore:
-      # vite-plus toolchain moves in lockstep via `vp migrate` only — solo bumps desync it and break CI (vite-plus→TS2321/TS2769 in vite.config.ts, vitest→coverage startup abort).
+      # vite-plus toolchain moves in lockstep via `vp migrate` only.
+      # Dependabot only sees vite-plus by name and can't track/group the
+      # aliases, so any solo bump (vite-plus, vite, vitest, coverage, core)
+      # desyncs the set and breaks CI (TS2321/TS2769 or coverage abort).
       - dependency-name: "vite-plus"
       - dependency-name: "vite"
       - dependency-name: "vitest"

@@ -21,7 +21,7 @@ overrides:
   # Vite+ 1.0.0-rc.0 bundles Vitest 5.0.1 and refuses to run `--coverage` unless
   # the installed coverage provider is the exact same version (mixed versions
   # otherwise fails CI at startup).
-  "@vitest/coverage-v8": "5.0.1"
+  "@vitest/coverage-v8": 5.0.1
   # Force vite-plus's internal hard-pinned @voidzero-dev/vite-plus-core dep to
   # match the top-level `vite` alias. Without this, pnpm installs two copies of
   # core (the alias version + vite-plus's pinned version) and the divergent
