@@ -4,8 +4,8 @@
   "description": "Turn a PDF resume into a hosted web portfolio. Upload → AI Parse → Publish.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#fdf8f3",
-  "theme_color": "#d94e4e",
+  "background_color": "#ffffff",
+  "theme_color": "#2a3fd1",
   "icons": [
     {
       "src": "/icon-192.png",

@@ -5,8 +5,7 @@ import { PostHogIdentifier } from "@/components/PostHogIdentifier";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Toaster } from "@/components/ui/sonner";
 import { siteConfig } from "@/lib/config/site";
-import "@fontsource-variable/hanken-grotesk/index.css";
-import "@fontsource-variable/bricolage-grotesque/index.css";
+import "@fontsource-variable/onest/index.css";
 import "@fontsource-variable/jetbrains-mono/index.css";
 import "./globals.css";
 
@@ -16,8 +15,8 @@ export const viewport: Viewport = {
   maximumScale: 5,
   userScalable: true,
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#fbfaf9" },
-    { media: "(prefers-color-scheme: dark)", color: "#121211" },
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0e0f14" },
   ],
 };
 
