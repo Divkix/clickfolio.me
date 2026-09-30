@@ -1,5 +1,6 @@
 "use client";
 
+import { log } from "@/lib/utils/log";
 import {
   AlertCircle,
   Briefcase,
@@ -116,7 +117,7 @@ export function WaitingContent() {
       setCountdown(INITIAL_COUNTDOWN);
       await refetch();
     } catch (err) {
-      console.error("Retry failed:", err);
+      log("error", "Retry failed:", { error: String(err) });
       alert(err instanceof Error ? err.message : "Failed to retry parsing");
     }
   }, [resumeId, refetch]);

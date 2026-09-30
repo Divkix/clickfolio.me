@@ -40,5 +40,5 @@ stale-connection and request-context I/O errors:
   intentional; Hyperdrive avoids a new origin database handshake.
 - `db.transaction()` and raw `$client` SQL retain their existing semantics but
   are valid only during the current invocation.
-- `__tests__/unit/lib/db/accessor.test.ts` guards against reintroducing shared
+- `tests/unit/lib/db/accessor.test.ts` guards against reintroducing shared
   client state by requiring consecutive calls to return distinct clients.

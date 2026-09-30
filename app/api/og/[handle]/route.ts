@@ -1,3 +1,4 @@
+import { log } from "@/lib/utils/log";
 import { env } from "cloudflare:workers";
 import { Resvg } from "@cf-wasm/resvg/workerd";
 import { eq } from "drizzle-orm";
@@ -166,7 +167,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ han
       },
     });
   } catch (error) {
-    console.error("OG image generation error:", error);
+    log("error", "OG image generation error:", { error: String(error) });
 
     return renderLastResort();
   }

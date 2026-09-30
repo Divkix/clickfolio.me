@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
-import { setupMockCleanup, suppressConsole } from "@/__tests__/setup/helpers/test-utils";
+import { setupMockCleanup, suppressConsole } from "@/tests/setup/helpers/test-utils";
 import { type AiEnvVars, createAiProvider, parseWithAi } from "@/lib/ai/ai-parser";
 
 vi.mock("@ai-sdk/openai-compatible", () => ({

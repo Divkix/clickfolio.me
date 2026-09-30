@@ -1,5 +1,6 @@
 "use client";
 
+import { log } from "@/lib/utils/log";
 import { useCallback, useMemo } from "react";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { siteConfig } from "@/lib/config/site";
@@ -80,7 +81,7 @@ export function useShareActions(options: {
       onSuccess?.();
     } catch (err) {
       if (err instanceof Error && err.name !== "AbortError") {
-        console.error("Share failed:", err);
+        log("error", "Share failed", { error: String(err) });
       }
     }
   }, [title, shareText, shareUrl, onSuccess]);

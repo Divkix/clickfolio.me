@@ -348,6 +348,9 @@ pnpm run test:ci          # CI mode (JSON reporter)
 pnpm run test:ui          # Interactive UI mode
 
 # Quality
+pnpm run verify           # check + type-check + knip
+pnpm run format           # Format with Oxfmt
+pnpm run seo:lastmod      # Update SEO last-modified timestamps
 pnpm run ci               # type-check + lint + test + build
 ```
 
@@ -411,7 +414,7 @@ worker/
 migrations_pg/
 └── *.sql                # Postgres migrations (drizzle-kit)
 
-__tests__/
+tests/
 ├── unit/                # Unit tests
 ├── integration/         # Integration tests
 ├── security/            # Security tests (IDOR, rate limits)

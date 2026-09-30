@@ -1,3 +1,4 @@
+import { log } from "@/lib/utils/log";
 import {
   buildSitemapIndexXml,
   getSitemapShardCount,
@@ -18,7 +19,7 @@ export async function GET(): Promise<Response> {
       },
     });
   } catch (error) {
-    console.error("[sitemap-index] Error generating sitemap index:", error);
+    log("error", "[sitemap-index] Error generating sitemap index:", { error: String(error) });
 
     return new Response("Internal Server Error", { status: 500 });
   }

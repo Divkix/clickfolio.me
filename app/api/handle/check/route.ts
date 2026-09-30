@@ -1,3 +1,4 @@
+import { log } from "@/lib/utils/log";
 import { env } from "cloudflare:workers";
 import { eq } from "drizzle-orm";
 import type { ZodError } from "zod";
@@ -102,7 +103,7 @@ export async function GET(request: Request) {
 
     return createSuccessResponse({ available: false });
   } catch (err) {
-    console.error("Error checking handle availability:", err);
+    log("error", "Error checking handle availability:", { error: String(err) });
 
     return createErrorResponse(
       "An unexpected error occurred. Please try again.",

@@ -1,3 +1,4 @@
+import { log } from "@/lib/utils/log";
 import { env } from "cloudflare:workers";
 import { z } from "zod";
 import { getR2Binding, R2 } from "@/lib/r2";
@@ -175,7 +176,7 @@ export async function POST(request: Request) {
         },
       });
     } catch (r2Error) {
-      console.error("R2 upload error:", r2Error);
+      log("error", "R2 upload error:", { error: String(r2Error) });
 
       return createErrorResponse("Failed to store file", ERROR_CODES.EXTERNAL_SERVICE_ERROR, 500);
     }
@@ -192,7 +193,7 @@ export async function POST(request: Request) {
         setCookieHeader += "; Secure";
       }
     } else {
-      console.warn("PENDING_UPLOAD_SECRET not configured - upload will not be claimable");
+      log("warn", "PENDING_UPLOAD_SECRET not configured - upload will not be claimable");
     }
 
     const response = createSuccessResponse({ key, remaining: rateLimit.remaining });
@@ -205,7 +206,7 @@ export async function POST(request: Request) {
 
     return response;
   } catch (error) {
-    console.error("Error uploading file:", error);
+    log("error", "Error uploading file:", { error: String(error) });
 
     return createErrorResponse("Failed to upload file", ERROR_CODES.INTERNAL_ERROR, 500);
   }

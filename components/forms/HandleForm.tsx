@@ -13,6 +13,7 @@ import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { siteConfig } from "@/lib/config/site";
 import { type HandleUpdate, handleUpdateSchema } from "@/lib/schemas/profile";
 import type { ApiErrorBody } from "@/lib/types/api";
+import { log } from "@/lib/utils/log";
 
 interface HandleFormProps {
   currentHandle: string;
@@ -74,7 +75,7 @@ export function HandleForm({ currentHandle }: HandleFormProps) {
       toast.success("Handle updated successfully!");
       router.refresh();
     } catch (err) {
-      console.error("Handle update error:", err);
+      log("error", "Handle update error", { error: String(err) });
       toast.error(err instanceof Error ? err.message : "Failed to update handle");
     } finally {
       setIsSaving(false);

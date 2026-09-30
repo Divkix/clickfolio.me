@@ -1,3 +1,4 @@
+import { log } from "@/lib/utils/log";
 import { env } from "cloudflare:workers";
 import { and, eq, gte, sql } from "drizzle-orm";
 import { type Database, getDb } from "@/lib/db";
@@ -118,7 +119,7 @@ export async function checkRateLimit(
         : `Rate limit exceeded. Maximum ${config.limit} ${action.replace("_", " ")} per ${config.windowHours} hour(s). Try again later.`,
     };
   } catch (error) {
-    console.error(`Rate limit check failed for ${action}:`, error);
+    log("error", `Rate limit check failed for ${action}`, { error: String(error) });
 
     return {
       allowed: false,
@@ -139,7 +140,7 @@ export async function enforceRateLimit(
   }
 
   if (process.env.DISABLE_RATE_LIMITS === "true") {
-    console.warn("[SECURITY] DISABLE_RATE_LIMITS ignored in production environment");
+    log("warn", "[SECURITY] DISABLE_RATE_LIMITS ignored in production environment");
   }
 
   if (isLocalEnvironment()) {

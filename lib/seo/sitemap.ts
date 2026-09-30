@@ -1,3 +1,4 @@
+import { log } from "@/lib/utils/log";
 import { env } from "cloudflare:workers";
 import { isNotNull, sql } from "drizzle-orm";
 import type { MetadataRoute } from "next";
@@ -162,7 +163,7 @@ export async function generateSitemapEntries(id: number): Promise<MetadataRoute.
       });
     }
   } catch (error) {
-    console.error(`Failed to generate sitemap ${id}:`, error);
+    log("error", `Failed to generate sitemap ${id}`, { error: String(error) });
   }
 
   if (id !== 0) return userEntries;

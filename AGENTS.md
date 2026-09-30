@@ -6,25 +6,25 @@ When you change something this file describes, update it in the same commit.
 
 ## Commands
 
-All verified 2026-09-27 (Node 26, pnpm 12.6.0; CI pins Node 22.22.1).
+Use the Node version in `.node-version` and pnpm 12.6.0.
 
-| Task                  | Command                                                                    |
-| --------------------- | -------------------------------------------------------------------------- |
-| Install               | `pnpm install` (runs `vp config` → installs git hooks)                     |
-| Dev (:3000)           | `pnpm run dev` — needs Hyperdrive env var, see Gotchas                     |
-| Build                 | `pnpm run build` → `dist/`                                                 |
-| Worker preview        | `pnpm run preview` (build + `wrangler dev`)                                |
-| Lint + format + types | `pnpm run check` (`vp check`); autofix `pnpm run fix`                      |
-| Typecheck only        | `pnpm run type-check`                                                      |
-| Full gate             | `pnpm run verify` (`check` + `knip` unused exports/deps)                   |
-| All tests             | `pnpm run test` (~10s, 104 files)                                          |
-| One suite             | `pnpm run test:unit` / `test:integration` / `test:security`                |
-| One file              | `pnpm run test __tests__/unit/proxy.test.ts`                               |
-| One test by name      | `pnpm run test -t "reserved"`                                              |
-| Suites with coverage  | `pnpm run test:unit --coverage` (what CI runs; thresholds live per config) |
-| DB migration          | `pnpm run db:generate` then `db:migrate` (needs `DATABASE_URL`)            |
-| Regenerate env types  | `pnpm run cf-typegen` → `lib/cloudflare-env.d.ts`                          |
-| Deploy                | `pnpm run deploy` (`scripts/deploy.ts`; `--dry-run` skips side effects)    |
+| Task                  | Command                                                                 |
+| --------------------- | ----------------------------------------------------------------------- |
+| Install               | `pnpm install` (runs `vp config` → installs git hooks)                  |
+| Dev (:3000)           | `pnpm run dev` — needs Hyperdrive env var, see Gotchas                  |
+| Build                 | `pnpm run build` → `dist/`                                              |
+| Worker preview        | `pnpm run preview` (build + `wrangler dev`)                             |
+| Lint + format + types | `pnpm run check` (`vp check`); autofix `pnpm run fix`                   |
+| Typecheck only        | `pnpm run type-check`                                                   |
+| Full gate             | `pnpm run verify` (`check` + `type-check` + `knip` unused exports/deps) |
+| All tests             | `pnpm run test` (unit, integration, and security projects)              |
+| One suite             | `pnpm run test:unit` / `test:integration` / `test:security`             |
+| One file              | `pnpm run test tests/unit/proxy.test.ts`                                |
+| One test by name      | `pnpm run test -t "reserved"`                                           |
+| Suites with coverage  | `pnpm run test:coverage` (CI; combined thresholds in `vite.config.ts`)  |
+| DB migration          | `pnpm run db:generate` then `db:migrate` (needs `DATABASE_URL`)         |
+| Regenerate env types  | `pnpm run cf-typegen` → `lib/cloudflare-env.d.ts`                       |
+| Deploy                | `pnpm run deploy` (`scripts/deploy.ts`; `--dry-run` skips side effects) |
 
 ## Repo map (non-obvious parts only)
 
@@ -36,7 +36,7 @@ lib/resume/            single owners: lifecycle.ts (status/retry rules), claim-i
 lib/parse/pipeline.ts  Workflow step bodies (must be replay-safe)
 lib/workflows/         Workflow classes + start/trigger helpers (parse, R2 delete)
 lib/durable-objects/   ClickfolioStatusDO (hibernation WebSocket status push)
-lib/stubs/             stubs for CF-incompatible modules (aliased in vite.config.ts + vitest.base.config.ts)
+lib/stubs/             stubs for CF-incompatible modules (test aliases in vite.config.ts)
 lib/seo/               sitemap, llms.txt generators, IndexNow, lastmod.json
 components/templates/  12 portfolio themes; registry in lib/templates/
 app/(protected)/       user pages — each page gates itself (layout does NOT)
@@ -57,7 +57,7 @@ tools/oxlint/anti-slop vendored lint plugin (see UPSTREAM.md); excluded from tsc
 - **Logging** in worker/workflows/cron: `log(level, msg, fields)` from `lib/utils/log.ts` (JSON lines).
 - **Type assertions** need a `// SAFETY:` comment on the line above (lint rule `require-safety-comment-for-type-assertion`); the 18 `anti-slop/*` rules in `vite.config.ts` all run at error — read the rule file in `tools/oxlint/anti-slop/rules/` when one fires.
 - **Images:** plain `<img>`, not `next/image`.
-- **Tests:** import from `vite-plus/test`, not `vitest`. Pattern: hoisted `vi.mock(...)` at top, then `const { POST } = await import("@/app/api/…/route")` inside the test. Shared typed mocks live in `__tests__/setup/mocks/` (`createMockDb`, `createMockQueryChain`, `createMockR2Bucket`) — pass them directly, no `as unknown as`. Workflow tests `vi.mock("cloudflare:workers")` with a `WorkflowEntrypoint` class and drive `run()` with a fake `step.do`.
+- **Tests:** import from `vite-plus/test`, not `vitest`. Pattern: hoisted `vi.mock(...)` at top, then `const { POST } = await import("@/app/api/…/route")` inside the test. Shared typed mocks live in `tests/setup/mocks/` (`createMockDb`, `createMockQueryChain`, `createMockR2Bucket`) — pass them directly, no `as unknown as`. Workflow tests `vi.mock("cloudflare:workers")` with a `WorkflowEntrypoint` class and drive `run()` with a fake `step.do`. Projects `unit`, `integration`, and `security` live in `vite.config.ts`; select with `--project name`.
 - **Commits:** Conventional Commits `type(scope): summary` (see `git log`).
 
 ## Gotchas

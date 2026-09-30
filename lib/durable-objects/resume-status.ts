@@ -1,3 +1,4 @@
+import { log } from "@/lib/utils/log";
 import { DurableObject } from "cloudflare:workers";
 import type { ResumeStatus } from "@/lib/db/schema/resume";
 import { isValidResumeStatus } from "@/lib/realtime/constants";
@@ -170,7 +171,9 @@ export class ClickfolioStatusDO extends DurableObject {
   ): Promise<void> {}
 
   async webSocketError(ws: WebSocket, error: JsonValue | Error): Promise<void> {
-    console.error("ClickfolioStatusDO WebSocket error:", error);
+    log("error", "ClickfolioStatusDO WebSocket error", {
+      error: error instanceof Error ? error.message : error,
+    });
 
     try {
       ws.close(1011, "WebSocket error");

@@ -1,3 +1,4 @@
+import { log } from "@/lib/utils/log";
 import { desc, eq } from "drizzle-orm";
 import { withUser } from "@/lib/auth/with-auth";
 import { handleChanges } from "@/lib/db/schema";
@@ -225,7 +226,7 @@ export async function GET(request: Request) {
 
         return response;
       } catch (err) {
-        console.error("[analytics/stats] Umami API error:", err);
+        log("error", "[analytics/stats] Umami API error:", { error: String(err) });
 
         return createErrorResponse(
           "Analytics temporarily unavailable",

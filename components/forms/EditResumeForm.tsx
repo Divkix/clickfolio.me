@@ -10,6 +10,7 @@ import { Form } from "@/components/ui/form";
 import { SaveIndicator, type SaveStatus } from "@/components/ui/save-indicator";
 import { type ResumeContentFormData, resumeContentSchemaStrict } from "@/lib/schemas/resume";
 import type { ResumeContent } from "@/lib/types/database";
+import { log } from "@/lib/utils/log";
 import { BasicInfoSection } from "./sections/BasicInfoSection";
 import { CertificationsSection } from "./sections/CertificationsSection";
 import { ContactSection } from "./sections/ContactSection";
@@ -65,7 +66,7 @@ export function EditResumeForm({ initialData, onSave }: EditResumeFormProps) {
           toast.success("Resume updated successfully!");
         }
       } catch (error) {
-        console.error("Failed to save resume:", error);
+        log("error", "Failed to save resume", { error: String(error) });
         setSaveStatus("error");
 
         if (!isAutoSave) {

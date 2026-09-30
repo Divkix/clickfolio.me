@@ -10,6 +10,7 @@ import { DYNAMIC_TEMPLATES } from "@/lib/templates/theme-registry.client";
 import type { ApiErrorBody } from "@/lib/types/api";
 import type { ResumeContent } from "@/lib/types/database";
 import { cn } from "@/lib/utils/cn";
+import { log } from "@/lib/utils/log";
 
 interface ThemeSelectorProps {
   initialThemeId: ThemeId;
@@ -88,7 +89,7 @@ export function ThemeSelector({ initialThemeId, initialContent, profile }: Theme
         setSuccessMessage(null);
       }, 3000);
     } catch (error) {
-      console.error("Failed to update theme:", error);
+      log("error", "Failed to update theme", { error: String(error) });
       setErrorMessage(error instanceof Error ? error.message : "Failed to update theme");
     } finally {
       setIsUpdating(false);

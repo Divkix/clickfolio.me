@@ -10,6 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import type { PrivacySettings } from "@/lib/db/schema/auth";
 import { privacySettingsSchema } from "@/lib/schemas/profile";
 import type { ApiErrorBody } from "@/lib/types/api";
+import { log } from "@/lib/utils/log";
 
 interface PrivacySettingsFormProps {
   initialSettings: PrivacySettings;
@@ -190,7 +191,7 @@ export function PrivacySettingsForm({
 
       return true;
     } catch (err) {
-      console.error("Privacy update error:", err);
+      log("error", "Privacy update error", { error: String(err) });
       toast.error(err instanceof Error ? err.message : "Failed to update privacy settings");
 
       return false;

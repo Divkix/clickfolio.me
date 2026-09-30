@@ -1,3 +1,4 @@
+import { log } from "@/lib/utils/log";
 import { eq } from "drizzle-orm";
 import { createClerkClient } from "@clerk/backend";
 import { z } from "zod";
@@ -99,7 +100,7 @@ export async function POST(request: Request) {
       }
 
       if (!env.CLERK_SECRET_KEY) {
-        console.error("CLERK_SECRET_KEY is not configured");
+        log("error", "CLERK_SECRET_KEY is not configured");
 
         return createErrorResponse(
           "Account deletion is unavailable due to server misconfiguration",
@@ -115,7 +116,7 @@ export async function POST(request: Request) {
       try {
         await db.delete(user).where(eq(user.id, userId));
       } catch (dbError) {
-        console.error("Account deletion error:", dbError);
+        log("error", "Account deletion error:", { error: String(dbError) });
 
         return createErrorResponse("Failed to delete account", ERROR_CODES.DATABASE_ERROR, 500);
       }
@@ -139,13 +140,15 @@ export async function POST(request: Request) {
           cursor = page.truncated ? (page as R2Objects & { truncated: true }).cursor : undefined;
         } while (cursor);
       } catch (listError) {
-        console.error(`Failed to list R2 objects for ${userId}:`, listError);
+        log("error", `Failed to list R2 objects for ${userId}:`, { error: String(listError) });
         // The workflow re-lists the prefix with retries, so unlisted objects still go.
         await scheduleR2Deletion(env.CLICKFOLIO_R2_DELETE_WORKFLOW, {
           keys: [],
           prefix: `users/${userId}/`,
         }).catch((scheduleError) =>
-          console.error(`Failed to schedule R2 sweep for ${userId}:`, scheduleError),
+          log("error", `Failed to schedule R2 sweep for ${userId}:`, {
+            error: String(scheduleError),
+          }),
         );
       }
 
@@ -164,7 +167,7 @@ export async function POST(request: Request) {
         const parsedError = clerkErrorSchema.safeParse(clerkError);
 
         if (!parsedError.success || parsedError.data.status !== 404) {
-          console.error("Clerk user deletion error:", clerkError);
+          log("error", "Clerk user deletion error:", { error: String(clerkError) });
 
           return createErrorResponse(
             "Failed to delete account. Please try again.",

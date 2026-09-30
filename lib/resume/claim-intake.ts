@@ -139,7 +139,7 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
       };
     }
   } catch (error) {
-    console.error("Error fetching file from R2:", error);
+    log("error", "Error fetching file from R2", { error: String(error) });
 
     if (isLikelyMissingObjectError(error)) {
       try {
@@ -153,7 +153,9 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
           };
         }
       } catch (recentResumeError) {
-        console.error("Error checking recent resumes after R2 fetch failure:", recentResumeError);
+        log("error", "Error checking recent resumes after R2 fetch failure", {
+          error: String(recentResumeError),
+        });
       }
     }
 
@@ -323,7 +325,7 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
 
       return completed;
     } catch (updateError) {
-      console.error("Failed to update resume with cached content:", updateError);
+      log("error", "Failed to update resume with cached content", { error: String(updateError) });
 
       return false;
     }
@@ -350,7 +352,7 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
     try {
       await moveTempFile(r2, tempKey, newKey, fileBuffer);
     } catch (r2Error) {
-      console.error("R2 operations failed for cached resume:", r2Error);
+      log("error", "R2 operations failed for cached resume", { error: String(r2Error) });
       await failResume("Failed to store file for processing");
 
       return {
@@ -385,7 +387,7 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
     try {
       await R2.put(r2, newKey, fileBuffer, { contentType: "application/pdf" });
     } catch (error) {
-      console.error("R2 operations failed for waiting resume:", error);
+      log("error", "R2 operations failed for waiting resume", { error: String(error) });
       await failResume("Failed to store file for processing");
 
       return {
@@ -416,7 +418,7 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
 
       await deleteTempObject(r2, tempKey);
     } catch (waitError) {
-      console.error("Failed to set waiting_for_cache status:", waitError);
+      log("error", "Failed to set waiting_for_cache status", { error: String(waitError) });
       await deleteR2Objects(r2, r2DeleteWorkflow, [newKey]);
       await failResume("Failed to prepare resume for processing");
 
@@ -482,7 +484,7 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
   try {
     await moveTempFile(r2, tempKey, newKey, fileBuffer);
   } catch (error) {
-    console.error("R2 put error:", error);
+    log("error", "R2 put error", { error: String(error) });
     await failResume("Failed to store file for processing");
 
     return {
@@ -514,7 +516,7 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
       };
     }
   } catch (updateError) {
-    console.error("Failed to update resume with queued status:", updateError);
+    log("error", "Failed to update resume with queued status", { error: String(updateError) });
     await failResume("Failed to update resume status");
 
     return {
@@ -538,7 +540,7 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
   };
 
   if (!parseWorkflow) {
-    console.error("CLICKFOLIO_PARSE_WORKFLOW binding not available");
+    log("error", "CLICKFOLIO_PARSE_WORKFLOW binding not available");
 
     return failUnstarted();
   }
@@ -552,7 +554,7 @@ export async function runClaimIntake(deps: ClaimIntakeDeps): Promise<ClaimIntake
       fileHash: computedFileHash,
     });
   } catch (workflowError) {
-    console.error("Failed to start resume parse workflow:", workflowError);
+    log("error", "Failed to start resume parse workflow", { error: String(workflowError) });
 
     return failUnstarted();
   }

@@ -1,3 +1,4 @@
+import { log } from "@/lib/utils/log";
 import { env } from "cloudflare:workers";
 import { withAdmin } from "@/lib/auth/with-auth";
 import { getMetrics, getPageviews, getStats } from "@/lib/umami/client";
@@ -143,7 +144,7 @@ export async function GET(request: Request) {
 
       return response;
     } catch (err) {
-      console.error("[admin/analytics] Umami API error:", err);
+      log("error", "[admin/analytics] Umami API error:", { error: String(err) });
 
       return createErrorResponse(
         "Analytics temporarily unavailable",

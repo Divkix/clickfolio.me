@@ -9,6 +9,7 @@ import {
 } from "@/lib/realtime/constants";
 import { statusPresentation, WAITING_FOR_CACHE_TIMEOUT_MESSAGE } from "@/lib/resume/lifecycle";
 import { classifyError, getErrorMessage, showErrorToast } from "@/lib/utils/errors";
+import { log } from "@/lib/utils/log";
 import { useResumeWebSocket } from "./useResumeWebSocket";
 
 interface ResumeStatusResponse {
@@ -158,7 +159,7 @@ export function useResumeStatus(resumeId: string | null): UseResumeStatusReturn 
 
       const category = classifyError(httpStatus);
 
-      console.error("Error fetching resume status:", err);
+      log("error", "Error fetching resume status", { error: String(err) });
 
       if (category === "fatal" || category === "auth") {
         if (intervalRef.current) {

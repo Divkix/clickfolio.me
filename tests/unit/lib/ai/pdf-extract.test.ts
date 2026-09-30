@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
-import { setupMockCleanup } from "@/__tests__/setup/helpers/test-utils";
+import { setupMockCleanup } from "@/tests/setup/helpers/test-utils";
 import { extractPdfText, isValidPdf } from "@/lib/ai/pdf-extract";
 
 vi.mock("unpdf", () => ({

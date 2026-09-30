@@ -1,3 +1,4 @@
+import { log } from "@/lib/utils/log";
 import { and, eq, lt, sql } from "drizzle-orm";
 import { withUser } from "@/lib/auth/with-auth";
 import { captureServerEvent } from "@/lib/analytics/server";
@@ -137,7 +138,7 @@ export async function POST(request: Request) {
 
           pdfBuffer = fileBuffer;
         } catch (error) {
-          console.error("R2 download error:", error);
+          log("error", "R2 download error:", { error: String(error) });
 
           return createErrorResponse(
             "Failed to download file for processing",
@@ -217,7 +218,7 @@ export async function POST(request: Request) {
               ),
             );
         } catch (rollbackError) {
-          console.error("Failed to roll back retry state:", rollbackError);
+          log("error", "Failed to roll back retry state:", { error: String(rollbackError) });
         }
       };
 
@@ -245,7 +246,7 @@ export async function POST(request: Request) {
         );
       } catch (workflowError) {
         await rollbackRetryUpdate();
-        console.error("Failed to start retry parse workflow:", workflowError);
+        log("error", "Failed to start retry parse workflow:", { error: String(workflowError) });
 
         return createErrorResponse("Parse service unavailable", ERROR_CODES.INTERNAL_ERROR, 500);
       }

@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Logo } from "@/components/Logo";
 import { useClerk, useSession } from "@/lib/auth/client";
+import { log } from "@/lib/utils/log";
 
 interface SidebarProps {
   isOpen?: boolean;
@@ -64,7 +65,7 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
           lastFetchedRef.current = Date.now();
         }
       } catch (error) {
-        console.error("Error loading profile:", error);
+        log("error", "Error loading profile", { error: String(error) });
       } finally {
         if (!cancelled) setProfileLoading(false);
       }

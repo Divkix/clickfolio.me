@@ -1,3 +1,4 @@
+import { log } from "@/lib/utils/log";
 import { env } from "cloudflare:workers";
 import { and, count, eq, isNotNull, ne, or, sql } from "drizzle-orm";
 
@@ -194,7 +195,7 @@ async function fetchResumeMetadataRaw(handle: string): Promise<ResumeMetadata | 
         }
       }
     } catch (error) {
-      console.error("Failed to generate JSON-LD for handle:", handle, error);
+      log("error", "Failed to generate JSON-LD for handle", { handle, error: String(error) });
     }
   }
 

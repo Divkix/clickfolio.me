@@ -4,6 +4,7 @@
  * Next.js) has unproven route detection for const-exported handlers.
  */
 
+import { log } from "@/lib/utils/log";
 import { captureServerException, distinctIdFromCookieHeader } from "@/lib/analytics/server";
 import { requireAdminAuthForApi } from "@/lib/auth/admin";
 import { requireAuthWithUserValidation } from "@/lib/auth/middleware";
@@ -37,7 +38,7 @@ function pathnameOf(request: Request | undefined): string {
 // 500 diagnosable in PostHog Error Tracking.
 async function reportUnhandledError(request: Request | undefined, error: Error): Promise<void> {
   const path = pathnameOf(request);
-  console.error(`Unhandled error in ${path}:`, error);
+  log("error", `Unhandled error in ${path}`, { error: String(error) });
 
   await captureServerException(
     error,

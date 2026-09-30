@@ -1,3 +1,4 @@
+import { log } from "@/lib/utils/log";
 import { env } from "cloudflare:workers";
 import { and, eq, gte, sql } from "drizzle-orm";
 import { getDb, type Database } from "@/lib/db";
@@ -83,7 +84,7 @@ export async function checkIPRateLimit(ip: string): Promise<IPRateLimitResult> {
   }
 
   if (process.env.DISABLE_RATE_LIMITS === "true") {
-    console.warn("[SECURITY] DISABLE_RATE_LIMITS ignored in production environment");
+    log("warn", "[SECURITY] DISABLE_RATE_LIMITS ignored in production environment");
   }
 
   if (LOCAL_IPS.has(ip) || isLocalEnvironment()) {
@@ -160,7 +161,7 @@ export async function checkIPRateLimit(ip: string): Promise<IPRateLimitResult> {
     } catch (insertError) {
       // Fail closed: dropping the increment would let every request in a
       // DB-error window through unmetered.
-      console.error("Failed to record rate limit:", insertError);
+      log("error", "Failed to record rate limit", { error: String(insertError) });
 
       return {
         allowed: false,
@@ -177,7 +178,7 @@ export async function checkIPRateLimit(ip: string): Promise<IPRateLimitResult> {
       },
     };
   } catch (error) {
-    console.error("Rate limit check failed:", error);
+    log("error", "Rate limit check failed", { error: String(error) });
 
     return {
       allowed: false,
@@ -215,7 +216,7 @@ async function checkHourlyActionLimit(
   }
 
   if (process.env.DISABLE_RATE_LIMITS === "true") {
-    console.warn("[SECURITY] DISABLE_RATE_LIMITS ignored in production environment");
+    log("warn", "[SECURITY] DISABLE_RATE_LIMITS ignored in production environment");
   }
 
   if (LOCAL_IPS.has(ip) || isLocalEnvironment()) {
@@ -272,7 +273,7 @@ async function checkHourlyActionLimit(
         };
       }
     } catch (insertError) {
-      console.error(`Failed to record rate limit: ${actionType}`, insertError);
+      log("error", `Failed to record rate limit: ${actionType}`, { error: String(insertError) });
     }
 
     return {
@@ -283,7 +284,7 @@ async function checkHourlyActionLimit(
       },
     };
   } catch (error) {
-    console.error(checkErrorLabel, error);
+    log("error", checkErrorLabel, { error: String(error) });
 
     return {
       allowed: true,
