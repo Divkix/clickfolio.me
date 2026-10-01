@@ -1,8 +1,14 @@
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
+import { EXAMPLE_GALLERIES } from "@/lib/examples/galleries";
 
 const FOOTER_LINKS = [
   { href: "/explore", label: "Explore" },
+  { href: "/templates", label: "Templates" },
+  ...EXAMPLE_GALLERIES.map((gallery) => ({
+    href: `/examples/${gallery.slug}`,
+    label: gallery.title,
+  })),
   { href: "/blog", label: "Blog" },
   { href: "/faq", label: "FAQ" },
   { href: "/contact", label: "Contact" },

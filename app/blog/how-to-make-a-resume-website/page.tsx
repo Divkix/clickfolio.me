@@ -186,6 +186,11 @@ export default function HowToMakeAResumeWebsitePage() {
           field, claim a clean handle, and share the link.
         </p>
         <p>
+          Not sure which look to choose? Compare the{" "}
+          <Link href="/templates">12 free portfolio templates</Link> before turning your resume into
+          a hosted page.
+        </p>
+        <p>
           <Link href="/" className="text-brand font-semibold">
             Upload your resume and build your site in 30 seconds →
           </Link>

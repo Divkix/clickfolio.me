@@ -125,6 +125,11 @@ export default function LinkedInToPortfolioPage() {
           </li>
         </ol>
 
+        <p>
+          Choose a look from the <Link href="/templates">12 free portfolio templates</Link>, and
+          browse <Link href="/examples/marketing">marketing portfolio examples</Link> for ideas on
+          presenting campaigns and results beyond a LinkedIn headline.
+        </p>
         <div className="not-prose my-8 rounded-xl border border-border bg-card p-6 shadow-sm">
           <p className="font-semibold text-foreground">Have your LinkedIn PDF export ready?</p>
           <p className="mt-1 text-muted-foreground">
