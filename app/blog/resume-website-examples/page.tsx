@@ -136,6 +136,13 @@ export default function ResumeWebsiteExamplesPage() {
           <Link href="/blog/clickfolio-templates-showcase">full template showcase</Link> to see all
           12 designs side by side.
         </p>
+        <p>
+          Compare the <Link href="/templates">12 free portfolio templates</Link>, then see how
+          people present their work in our{" "}
+          <Link href="/examples/marketing">marketing portfolio examples</Link>,{" "}
+          <Link href="/examples/engineering">engineering portfolio examples</Link>, and{" "}
+          <Link href="/examples/student">student portfolio examples</Link>.
+        </p>
       </section>
 
       <section>

@@ -146,6 +146,11 @@ export default function PersonalResumeWebsitePage() {
           how the conversion works.
         </p>
         <p>
+          Before choosing a layout, browse the{" "}
+          <Link href="/templates">12 free resume website templates</Link> to find a style that fits
+          your experience and the roles you want.
+        </p>
+        <p>
           One honest note: every site lives at clickfolio.me/@yourname. Custom domains aren't
           available yet — they're on the roadmap — but a clean handle URL is plenty professional for
           applications and your LinkedIn. If a custom domain is a must, our comparison of the{" "}

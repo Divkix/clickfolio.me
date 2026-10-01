@@ -42,6 +42,7 @@ export async function generateMetadata({
   const params = await searchParams;
   const roleFilter = getRoleFilter(params.role);
   const page = parsePageParam(params.page);
+  const pageSuffix = page !== null && page > 1 ? ` – Page ${page}` : "";
   const canonical = new URL("/explore", siteConfig.url);
 
   if (page !== null) {
@@ -52,9 +53,9 @@ export async function generateMetadata({
 
   return {
     ...buildPublicPageMetadata({
-      title: "Browse Professional Portfolios",
-      ogTitle: exploreTitle,
-      description: exploreDescription,
+      title: `Browse Professional Portfolios${pageSuffix}`,
+      ogTitle: pageSuffix ? `Browse Professional Portfolios${pageSuffix}` : exploreTitle,
+      description: pageSuffix ? `${exploreDescription} Page ${page}.` : exploreDescription,
       path: "/explore",
     }),
     alternates: { canonical: canonical.toString() },

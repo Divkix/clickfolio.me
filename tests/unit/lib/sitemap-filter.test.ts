@@ -1,6 +1,9 @@
 import type { MetadataRoute } from "next";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { BLOG_POSTS } from "@/lib/blog/posts";
+import { EXAMPLE_GALLERIES } from "@/lib/examples/galleries";
+import { getStaticLastmod } from "@/lib/seo/lastmod";
+import { THEME_IDS, themeSlug } from "@/lib/templates/theme-ids";
 import type { ResumeContent } from "@/lib/types/database";
 import type { JsonValue } from "@/lib/types/json";
 
@@ -48,7 +51,8 @@ import {
 const indexableContent: ResumeContent = {
   full_name: "Ada Lovelace",
   headline: "Mathematician",
-  summary: "x".repeat(200),
+  summary:
+    "Develops analytical methods for solving complex mathematical problems and communicating results to technical collaborators. Studies the capabilities of calculating machines and translates theoretical ideas into detailed procedures that others can review and reproduce. Works with engineers to clarify assumptions, check intermediate results, and document the practical limitations of proposed designs. Prepares explanatory notes that connect symbolic reasoning with applications in science and industry. Reviews published research, compares alternative approaches, and presents findings through clear examples. Recent work explores repeated operations, numerical sequences, and the organization of instructions for programmable machines, with an emphasis on accuracy, useful notation, and careful verification of every calculation.",
   contact: { email: "ada@example.com" },
   experience: [
     {
@@ -109,6 +113,25 @@ describe("generateSitemapEntries", () => {
     expect(urls).toContain("https://example.com/blog");
     expect(urls).toContain("https://example.com/for/software-engineer");
     expect(urls).toContain("https://example.com/for/designer");
+  });
+
+  it("includes every template and gallery on shard zero with committed lastmods", async () => {
+    const entries = (await generateSitemapEntries(0)) ?? [];
+
+    const routes = [
+      "/templates",
+      ...THEME_IDS.map((id) => `/templates/${themeSlug(id)}`),
+      ...EXAMPLE_GALLERIES.map((gallery) => `/examples/${gallery.slug}`),
+    ];
+
+    for (const route of routes) {
+      expect(entries.find((entry) => entry.url === `https://example.com${route}`)).toEqual({
+        url: `https://example.com${route}`,
+        lastModified: getStaticLastmod(route),
+        changeFrequency: "monthly",
+        priority: route === "/templates" ? 0.8 : 0.7,
+      });
+    }
   });
 
   it("emits only profiles accepted by the shared indexability gate", async () => {

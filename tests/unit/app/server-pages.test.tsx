@@ -249,7 +249,8 @@ vi.mock("@/lib/templates/theme-registry", () => ({
 const resumeContent: ResumeContent = {
   full_name: "Avery Quinn",
   headline: "Staff Product Engineer",
-  summary: "Builds reliable products with TypeScript and Cloudflare.",
+  summary:
+    "Builds reliable products with TypeScript and Cloudflare. Leads collaborative teams through research, technical planning, implementation, and production support. Partners with designers and customer support specialists to understand practical needs and turn complex workflows into accessible interfaces. Develops maintainable services, reviews architecture decisions, and documents operational procedures for colleagues. Improves database performance, strengthens automated coverage, and monitors releases to identify issues before they affect customers. Mentors engineers through pairing sessions and constructive code reviews while encouraging clear communication across departments. Recent work includes modernizing payment processing, simplifying account onboarding, and reducing incident recovery time through better observability and carefully tested deployment processes.",
   contact: {
     email: "avery@example.com",
     phone: "555-0100",

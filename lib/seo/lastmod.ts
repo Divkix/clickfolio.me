@@ -1,5 +1,7 @@
 import { PROFESSIONS } from "@/lib/config/professions";
+import { EXAMPLE_GALLERIES } from "@/lib/examples/galleries";
 import lastmod from "@/lib/seo/lastmod.json";
+import { THEME_IDS, themeSlug } from "@/lib/templates/theme-ids";
 
 /**
  * Committed lastmod dates (YYYY-MM-DD) for static sitemap routes. `scripts/bump-lastmod.ts`
@@ -16,12 +18,23 @@ export function getStaticLastmod(route: string): Date | undefined {
 
 const ALL_PROFESSION_ROUTES = PROFESSIONS.map((profession) => `/for/${profession.slug}`);
 
+const ALL_TEMPLATE_ROUTES = THEME_IDS.map((id) => `/templates/${themeSlug(id)}`);
+
+const ALL_EXAMPLE_ROUTES = EXAMPLE_GALLERIES.map((gallery) => `/examples/${gallery.slug}`);
+
 /**
  * Source files outside a route's own `app/<route>/` folder that change what the route renders.
  * Shared chrome (header, footer, ui/) is deliberately absent: it touches every page equally and
  * says nothing about the page's content.
  */
 const CONTENT_SOURCES: ReadonlyArray<{ prefix: string; routes: readonly string[] }> = [
+  { prefix: "app/templates/[theme]/", routes: ALL_TEMPLATE_ROUTES },
+  { prefix: "app/examples/[slug]/", routes: ALL_EXAMPLE_ROUTES },
+  { prefix: "lib/examples/galleries.ts", routes: ALL_EXAMPLE_ROUTES },
+  {
+    prefix: "lib/templates/theme-ids.ts",
+    routes: ["/templates", ...ALL_TEMPLATE_ROUTES, ...ALL_EXAMPLE_ROUTES],
+  },
   { prefix: "components/home/", routes: ["/"] },
   { prefix: "lib/config/faq.ts", routes: ["/", "/faq"] },
   { prefix: "components/legal/", routes: ["/privacy", "/terms"] },

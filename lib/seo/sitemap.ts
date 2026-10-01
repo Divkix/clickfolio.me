@@ -7,9 +7,11 @@ import { BLOG_POSTS } from "@/lib/blog/posts";
 import { PROFESSIONS } from "@/lib/config/professions";
 import { getDb } from "@/lib/db";
 import { siteData, user } from "@/lib/db/schema";
+import { EXAMPLE_GALLERIES } from "@/lib/examples/galleries";
 import { getStaticLastmod } from "@/lib/seo/lastmod";
 import { STATIC_PAGES } from "@/lib/seo/static-pages";
 import { isIndexableProfile } from "@/lib/seo/profile-indexability";
+import { THEME_IDS, themeSlug } from "@/lib/templates/theme-ids";
 import { getPublicSiteUrl } from "@/lib/utils/site-url";
 import { escapeXml } from "@/lib/utils/xml";
 
@@ -18,7 +20,11 @@ const SITEMAP_XMLNS = "http://www.sitemaps.org/schemas/sitemap/0.9";
 export const URLS_PER_SITEMAP = 50000;
 
 export const STATIC_SITEMAP_ENTRY_COUNT =
-  STATIC_PAGES.length + PROFESSIONS.length + BLOG_POSTS.length;
+  STATIC_PAGES.length +
+  PROFESSIONS.length +
+  THEME_IDS.length +
+  EXAMPLE_GALLERIES.length +
+  BLOG_POSTS.length;
 
 export function getSitemapShardCount(indexableUserCount: number): number {
   const safeUserCount = Math.max(0, indexableUserCount);
@@ -90,6 +96,26 @@ function buildStaticSitemapEntries(
     entries.push({
       url: `${baseUrl}/for/${profession.slug}`,
       lastModified: getStaticLastmod(`/for/${profession.slug}`),
+      changeFrequency: "monthly",
+      priority: 0.7,
+    });
+  }
+
+  for (const id of THEME_IDS) {
+    const path = `/templates/${themeSlug(id)}`;
+    entries.push({
+      url: `${baseUrl}${path}`,
+      lastModified: getStaticLastmod(path),
+      changeFrequency: "monthly",
+      priority: 0.7,
+    });
+  }
+
+  for (const gallery of EXAMPLE_GALLERIES) {
+    const path = `/examples/${gallery.slug}`;
+    entries.push({
+      url: `${baseUrl}${path}`,
+      lastModified: getStaticLastmod(path),
       changeFrequency: "monthly",
       priority: 0.7,
     });

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { RoleFaqSection } from "@/components/Faq";
-import { RoleGuides, RoleSection } from "@/components/role/RoleSection";
+import { RoleGuides, RoleSection, RoleTemplates } from "@/components/role/RoleSection";
 import { Button } from "@/components/ui/button";
 import {
   buildRolePageMetadata,
@@ -147,6 +147,8 @@ export default function SoftwareEngineerPage() {
               </>
             }
           />
+
+          <RoleTemplates slug="software-engineer" />
 
           <RoleFaqSection items={faqs} />
 
