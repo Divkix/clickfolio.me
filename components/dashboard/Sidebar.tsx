@@ -166,41 +166,13 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
           </button>
         )}
 
-        <div className="p-4 border-b border-border">
+        <div className="px-5 h-16 flex items-center">
           <Link href="/" aria-label="clickfolio.me home">
             <Logo size="xs" />
           </Link>
         </div>
 
-        <div className="p-4 border-b border-border">
-          {loading ? (
-            <div className="animate-pulse">
-              <div className="w-10 h-10 bg-muted rounded-full mb-3" />
-              <div className="h-4 bg-muted rounded w-24" />
-            </div>
-          ) : user ? (
-            <div className="flex items-center gap-3">
-              {user.image ? (
-                <img
-                  src={user.image}
-                  alt={user.name || "User avatar"}
-                  className="w-10 h-10 rounded-full object-cover ring-1 ring-border"
-                />
-              ) : (
-                <div className="w-10 h-10 rounded-full bg-brand flex items-center justify-center text-brand-foreground font-semibold text-sm">
-                  {getInitials()}
-                </div>
-              )}
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-foreground truncate">
-                  {user.name || "User"}
-                </p>
-              </div>
-            </div>
-          ) : null}
-        </div>
-
-        <nav className="flex-1 p-4 space-y-1">
+        <nav className="flex-1 px-3 py-2 space-y-0.5">
           {navItems.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.href, item.exact);
@@ -212,30 +184,32 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
                 onClick={() => onClose?.()}
                 aria-current={active ? "page" : undefined}
                 className={`
-                  w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium
+                  w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium
                   transition-colors
                   ${
                     active
-                      ? "bg-brand-subtle text-brand-active"
+                      ? "bg-brand-subtle text-brand"
                       : "text-muted-foreground hover:bg-surface-2 hover:text-foreground"
                   }
                 `}
               >
-                <Icon size={20} aria-hidden="true" />
+                <Icon size={18} aria-hidden="true" />
                 <span>{item.name}</span>
               </Link>
             );
           })}
+
+          {(profile?.handle || profile?.isAdmin) && <div className="h-px bg-border mx-3 my-3" />}
 
           {profile?.handle && (
             <a
               href={`/@${profile.handle}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-muted-foreground hover:bg-surface-2 hover:text-foreground transition-colors"
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-surface-2 hover:text-foreground transition-colors"
               onClick={onClose}
             >
-              <ExternalLink size={20} aria-hidden="true" />
+              <ExternalLink size={18} aria-hidden="true" />
               <span>View Site</span>
             </a>
           )}
@@ -244,23 +218,47 @@ export function Sidebar({ isOpen = true, onClose }: SidebarProps) {
             <Link
               href="/admin"
               onClick={() => onClose?.()}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-muted-foreground hover:bg-surface-2 hover:text-foreground transition-colors"
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-surface-2 hover:text-foreground transition-colors"
             >
-              <Shield size={20} aria-hidden="true" />
+              <Shield size={18} aria-hidden="true" />
               <span>Admin</span>
             </Link>
           )}
         </nav>
 
-        <div className="p-4 border-t border-border mt-auto">
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-          >
-            <LogOut size={20} aria-hidden="true" />
-            <span>Logout</span>
-          </button>
+        <div className="p-3 border-t border-border">
+          {loading ? (
+            <div className="flex items-center gap-3 px-2 py-1.5 animate-pulse">
+              <div className="w-8 h-8 bg-muted rounded-full" />
+              <div className="h-3.5 bg-muted rounded w-24" />
+            </div>
+          ) : user ? (
+            <div className="flex items-center gap-3 px-2 py-1.5">
+              {user.image ? (
+                <img
+                  src={user.image}
+                  alt=""
+                  className="w-8 h-8 rounded-full object-cover ring-1 ring-border"
+                />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-brand flex items-center justify-center text-brand-foreground font-semibold text-xs">
+                  {getInitials()}
+                </div>
+              )}
+              <p className="flex-1 min-w-0 text-sm font-medium text-foreground truncate">
+                {user.name || "User"}
+              </p>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="p-2 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                aria-label="Log out"
+                title="Log out"
+              >
+                <LogOut size={16} aria-hidden="true" />
+              </button>
+            </div>
+          ) : null}
         </div>
       </aside>
     </>
