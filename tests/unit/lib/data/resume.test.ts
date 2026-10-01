@@ -286,7 +286,8 @@ describe("getResumeData - theme resolution", () => {
 const indexableContent: ResumeContent = {
   full_name: "Ada Lovelace",
   headline: "Mathematician",
-  summary: "A".repeat(200),
+  summary:
+    "Develops analytical methods for solving complex mathematical problems and communicating results to technical collaborators. Studies the capabilities of calculating machines and translates theoretical ideas into detailed procedures that others can review and reproduce. Works with engineers to clarify assumptions, check intermediate results, and document the practical limitations of proposed designs. Prepares explanatory notes that connect symbolic reasoning with applications in science and industry. Reviews published research, compares alternative approaches, and presents findings through clear examples. Recent work explores repeated operations, numerical sequences, and the organization of instructions for programmable machines, with an emphasis on accuracy, useful notation, and careful verification of every calculation.",
   contact: { email: "ada@example.com" },
   experience: [
     {

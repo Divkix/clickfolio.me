@@ -10,7 +10,7 @@ vi.mock("@/lib/utils/profile-completeness", () => ({
 const makeContent = (overrides: Partial<ResumeContent> = {}): ResumeContent => ({
   full_name: "Ada Lovelace",
   headline: "Mathematician",
-  summary: "A mathematician and writer.",
+  summary: "A mathematician and writer. ".repeat(25).trim(),
   contact: { email: "ada@example.com" },
   experience: [],
   education: [],
@@ -30,6 +30,32 @@ const experience = {
 describe("isIndexableProfile", () => {
   beforeEach(() => {
     vi.mocked(calculateCompleteness).mockReturnValue(40);
+  });
+
+  // SAFETY: Literal tuples preserve each word count and its expected boolean result.
+  it.each([
+    [99, false],
+    [100, true],
+  ] as const)("requires at least 100 visible words (%i words → %s)", (words, expected) => {
+    const content = makeContent({
+      contact: { email: undefined },
+      summary: ` ${"writer\t\n".repeat(words - 6)} `,
+      education: [{ degree: "Mathematics", institution: "London University" }],
+    });
+
+    expect(isIndexableProfile(content, { hide_from_search: false })).toBe(expected);
+  });
+
+  it("counts words in experience descriptions", () => {
+    const content = makeContent({
+      contact: { email: undefined },
+      summary: "",
+      experience: [{ ...experience, description: "writer ".repeat(92) }],
+    });
+
+    expect(isIndexableProfile(content, { hide_from_search: false })).toBe(true);
+    content.experience[0].description = "writer ".repeat(91);
+    expect(isIndexableProfile(content, { hide_from_search: false })).toBe(false);
   });
 
   it("uses 40 as the completeness boundary", () => {
@@ -94,11 +120,9 @@ describe("isIndexableProfile", () => {
   });
 
   it("requires experience or education; summary alone is insufficient", () => {
+    expect(isIndexableProfile(makeContent(), { hide_from_search: false })).toBe(false);
     expect(
-      isIndexableProfile(makeContent({ summary: "x".repeat(199) }), { hide_from_search: false }),
-    ).toBe(false);
-    expect(
-      isIndexableProfile(makeContent({ summary: ` ${"x".repeat(200)} ` }), {
+      isIndexableProfile(makeContent({ summary: "writer ".repeat(100) }), {
         hide_from_search: false,
       }),
     ).toBe(false);
