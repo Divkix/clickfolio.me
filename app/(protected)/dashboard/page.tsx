@@ -4,13 +4,11 @@ import {
   AlertCircle,
   Award,
   Briefcase,
-  Calendar,
-  CheckCircle2,
   Edit3,
+  ExternalLink,
   GraduationCap,
-  Link as LinkIcon,
   Loader2,
-  Mail,
+  Palette,
   Upload,
   Wrench,
 } from "lucide-react";
@@ -21,15 +19,14 @@ import { AnalyticsCard } from "@/components/dashboard/AnalyticsCard";
 import { CopyLinkButton } from "@/components/dashboard/CopyLinkButton";
 import { DashboardUploadSection } from "@/components/dashboard/DashboardUploadSection";
 import { RealtimeStatusListener } from "@/components/dashboard/RealtimeStatusListener";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { getServerSession } from "@/lib/auth/session";
 import { siteConfig } from "@/lib/config/site";
 import { getDb } from "@/lib/db";
 import { type Resume, resumes, type siteData, user } from "@/lib/db/schema";
+import { DEFAULT_THEME, isValidThemeId, THEME_METADATA } from "@/lib/templates/theme-ids";
 import type { ResumeContent } from "@/lib/types/database";
-import { formatRelativeTime, truncateText } from "@/lib/utils/format";
+import { formatRelativeTime } from "@/lib/utils/format";
 import { calculateCompleteness, getProfileSuggestions } from "@/lib/utils/profile-completeness";
 
 export const dynamic = "force-dynamic";
@@ -60,82 +57,45 @@ function NoResumeState() {
   );
 }
 
-interface ProfileCompletenessAlertProps {
+interface ProfileCompletenessProps {
   completeness: number;
   suggestions: string[];
 }
 
-function ProfileCompletenessAlert({ completeness, suggestions }: ProfileCompletenessAlertProps) {
-  if (completeness === 100) {
-    return (
-      <div className="col-span-full">
-        <Alert className="border-success/30 bg-success/10 rounded-xl shadow-sm">
-          <div className="flex items-center gap-3">
-            <CheckCircle2 className="h-5 w-5 text-success" aria-hidden="true" />
-            <AlertDescription className="text-foreground font-medium">
-              Your profile is complete! Your resume looks professional and ready to share.
-            </AlertDescription>
-          </div>
-        </Alert>
+function ProfileCompleteness({ completeness, suggestions }: ProfileCompletenessProps) {
+  if (completeness === 100 || suggestions.length === 0) return null;
+
+  return (
+    <div className="rounded-lg bg-surface-2 p-4">
+      <div className="flex items-baseline justify-between gap-3 mb-2">
+        <p className="text-sm font-medium text-foreground">Profile {completeness}% complete</p>
+        <Link href="/edit" className="text-xs font-medium text-brand hover:underline">
+          Finish it
+        </Link>
       </div>
-    );
-  }
-
-  if (completeness < 100 && suggestions.length > 0) {
-    return (
-      <div className="col-span-full">
-        <Alert className="border-border bg-card rounded-xl shadow-sm">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-3">
-                <CheckCircle2 className="h-5 w-5 text-foreground" aria-hidden="true" />
-                <h3 className="font-semibold text-foreground">Complete Your Profile</h3>
-              </div>
-
-              <div
-                // eslint-disable-next-line jsx-a11y/prefer-tag-over-role -- custom progressbar with aria attributes; <progress> element lacks styling flexibility
-                role="progressbar"
-                aria-valuenow={completeness}
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-label={`Profile completeness: ${completeness}%`}
-                className="w-full bg-muted rounded-full h-2 mb-4"
-              >
-                <div
-                  className="h-2 rounded-full bg-brand transition-[width] duration-500"
-                  style={{ width: `${completeness}%` }}
-                />
-              </div>
-
-              <AlertDescription className="text-muted-foreground">
-                <p className="text-sm font-medium mb-2">
-                  Your profile is {completeness}% complete. Add these to reach 100%:
-                </p>
-                <ul className="space-y-1.5">
-                  {suggestions.map((suggestion) => (
-                    <li key={suggestion} className="text-sm flex items-start gap-2">
-                      <span className="text-muted-foreground/70 mt-0.5" aria-hidden="true">
-                        •
-                      </span>
-                      <span>{suggestion}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Button asChild size="sm" variant="outline" className="mt-4">
-                  <Link href="/edit">
-                    <Edit3 className="h-3 w-3 mr-2" aria-hidden="true" />
-                    Complete Now
-                  </Link>
-                </Button>
-              </AlertDescription>
-            </div>
-          </div>
-        </Alert>
+      <div
+        // eslint-disable-next-line jsx-a11y/prefer-tag-over-role -- custom progressbar with aria attributes; <progress> element lacks styling flexibility
+        role="progressbar"
+        aria-valuenow={completeness}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label={`Profile completeness: ${completeness}%`}
+        className="w-full bg-border rounded-full h-1.5 mb-3"
+      >
+        <div
+          className="h-1.5 rounded-full bg-brand transition-[width] duration-500"
+          style={{ width: `${completeness}%` }}
+        />
       </div>
-    );
-  }
-
-  return null;
+      <ul className="space-y-1">
+        {suggestions.map((suggestion) => (
+          <li key={suggestion} className="text-xs text-muted-foreground">
+            {suggestion}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
 }
 
 interface ResumeStatusAlertsProps {
@@ -181,169 +141,126 @@ function ResumeStatusAlerts({ resumeId, status, error }: ResumeStatusAlertsProps
   );
 }
 
-interface ResumeSummaryCardProps {
-  content: ResumeContent;
+interface SiteHeroProps {
+  handle: string;
+  themeId: string | null;
+  updatedAt: string | null;
 }
 
-function ResumeSummaryCard({ content }: ResumeSummaryCardProps) {
+function SiteHero({ handle, themeId, updatedAt }: SiteHeroProps) {
+  const theme = THEME_METADATA[themeId && isValidThemeId(themeId) ? themeId : DEFAULT_THEME];
+
   return (
-    <div className="bg-card rounded-xl shadow-sm border border-border p-4 md:p-6 lg:p-8 transition-colors hover:border-border-strong">
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-foreground">{content.full_name}</h2>
-        <p className="text-base text-muted-foreground mt-1">{content.headline}</p>
-      </div>
-
-      <Separator className="mb-6" />
-
-      {content.summary && (
-        <div className="mb-6">
-          <h3 className="text-sm font-semibold text-foreground/80 mb-2">Summary</h3>
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            {truncateText(content.summary, 200)}
-            {content.summary.length > 200 && (
-              <Link href="/edit" className="text-brand hover:underline ml-1 font-medium">
-                Read more
-              </Link>
-            )}
-          </p>
-        </div>
-      )}
-
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-        <div className="flex items-center gap-3">
-          <div className="shrink-0 bg-surface-2 p-2 rounded-lg">
-            <Briefcase className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-          </div>
-          <div>
-            <p className="text-lg font-semibold text-foreground">
-              {content.experience?.length || 0}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Position{content.experience?.length !== 1 ? "s" : ""}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <div className="shrink-0 bg-surface-2 p-2 rounded-lg">
-            <GraduationCap className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-          </div>
-          <div>
-            <p className="text-lg font-semibold text-foreground">
-              {content.education?.length || 0}
-            </p>
-            <p className="text-xs text-muted-foreground">Education</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <div className="shrink-0 bg-surface-2 p-2 rounded-lg">
-            <Wrench className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-          </div>
-          <div>
-            <p className="text-lg font-semibold text-foreground">{content.skills?.length || 0}</p>
-            <p className="text-xs text-muted-foreground">
-              Skill{content.skills?.length !== 1 ? "s" : ""}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <div className="shrink-0 bg-surface-2 p-2 rounded-lg">
-            <Award className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-          </div>
-          <div>
-            <p className="text-lg font-semibold text-foreground">
-              {content.certifications?.length || 0}
-            </p>
-            {content.certifications?.length === 0 ? (
-              <Link href="/edit" className="text-xs text-brand hover:underline font-medium">
-                Add certs
-              </Link>
-            ) : (
-              <p className="text-xs text-muted-foreground">Certs</p>
-            )}
-          </div>
+    <section
+      aria-label="Your site"
+      className="col-span-full bg-card rounded-xl border border-border p-5 md:p-8 flex flex-col sm:flex-row sm:items-center gap-6 md:gap-10"
+    >
+      <div className="flex-1 min-w-0">
+        <p className="flex items-center gap-2 text-sm text-muted-foreground">
+          <span className="size-2 rounded-full bg-success" aria-hidden="true" />
+          {updatedAt ? `Live, updated ${formatRelativeTime(updatedAt)}` : "Live"}
+        </p>
+        <a
+          href={`/@${handle}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-3 block text-2xl md:text-4xl font-semibold tracking-tight break-all hover:underline decoration-brand decoration-2 underline-offset-8"
+        >
+          <span className="text-muted-foreground">{siteConfig.domain}/</span>
+          <span className="text-foreground">@{handle}</span>
+        </a>
+        <div className="mt-6 flex flex-wrap gap-2">
+          <CopyLinkButton handle={handle} />
+          <Button asChild size="sm" variant="outline">
+            <a href={`/@${handle}`} target="_blank" rel="noopener noreferrer">
+              <ExternalLink className="h-4 w-4" aria-hidden="true" />
+              Open site
+            </a>
+          </Button>
+          <Button asChild size="sm" variant="outline">
+            <Link href="/themes">
+              <Palette className="h-4 w-4" aria-hidden="true" />
+              Change theme
+            </Link>
+          </Button>
         </div>
       </div>
 
-      <Separator className="mb-6" />
-
-      <div className="flex flex-col sm:flex-row gap-3">
-        <Button asChild className="flex-1">
-          <Link href="/edit">
-            <Edit3 className="h-4 w-4 mr-2" aria-hidden="true" />
-            Edit Content
-          </Link>
-        </Button>
-        <DashboardUploadSection />
-      </div>
-    </div>
+      <Link
+        href="/themes"
+        className="group block w-full sm:w-64 md:w-80 shrink-0 rounded-lg border border-border overflow-hidden bg-surface-2 transition-colors hover:border-border-strong focus-visible:outline-2 focus-visible:outline-ring"
+      >
+        <img
+          src={theme.preview}
+          alt={`${theme.name} theme preview`}
+          className="aspect-[16/10] w-full object-cover object-top"
+        />
+        <span className="flex items-center justify-between px-3 py-2 text-xs border-t border-border">
+          <span className="font-medium text-foreground">{theme.name}</span>
+          <span className="text-muted-foreground group-hover:text-foreground">Current theme</span>
+        </span>
+      </Link>
+    </section>
   );
 }
 
-interface AccountCardProps {
-  email: string;
-  handle?: string | null;
-  memberSince?: string | null;
+interface ResumeCardProps {
+  content: ResumeContent;
+  completeness: number;
+  suggestions: string[];
 }
 
-function AccountCard({ email, handle, memberSince }: AccountCardProps) {
+function ResumeCard({ content, completeness, suggestions }: ResumeCardProps) {
+  const sections = [
+    { icon: Briefcase, count: content.experience?.length ?? 0, one: "position", many: "positions" },
+    { icon: GraduationCap, count: content.education?.length ?? 0, one: "school", many: "schools" },
+    {
+      icon: Wrench,
+      count: content.skills?.reduce((n, group) => n + group.items.length, 0) ?? 0,
+      one: "skill",
+      many: "skills",
+    },
+    { icon: Award, count: content.certifications?.length ?? 0, one: "cert", many: "certs" },
+  ];
+
   return (
-    <div className="bg-card rounded-xl shadow-sm border border-border p-6 transition-colors hover:border-border-strong">
-      <h3 className="text-lg font-semibold text-foreground mb-4">Account</h3>
-      <div className="space-y-4">
-        <div className="flex items-start gap-3">
-          <div className="shrink-0 mt-0.5 bg-surface-2 p-2 rounded-lg">
-            <Mail className="w-4 h-4 text-muted-foreground" aria-hidden="true" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium text-muted-foreground mb-1">Email</p>
-            <p className="text-sm text-foreground truncate">{email}</p>
-          </div>
-        </div>
-
-        {handle && (
-          <>
-            <Separator />
-            <div className="flex items-start gap-3">
-              <div className="shrink-0 mt-0.5 bg-surface-2 p-2 rounded-lg">
-                <LinkIcon className="w-4 h-4 text-muted-foreground" aria-hidden="true" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-muted-foreground mb-1">Handle</p>
-                <div className="flex items-center gap-2">
-                  <Link
-                    href={`/@${handle}`}
-                    className="text-sm font-mono text-brand hover:underline truncate block"
-                  >
-                    {siteConfig.domain}/@{handle}
-                  </Link>
-                </div>
-                <div className="mt-2">
-                  <CopyLinkButton handle={handle} />
-                </div>
-              </div>
-            </div>
-          </>
-        )}
-
-        {memberSince && (
-          <>
-            <Separator />
-            <div className="flex items-start gap-3">
-              <div className="shrink-0 mt-0.5 bg-surface-2 p-2 rounded-lg">
-                <Calendar className="w-4 h-4 text-muted-foreground" aria-hidden="true" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-muted-foreground mb-1">Member since</p>
-                <p className="text-sm text-foreground">{formatRelativeTime(memberSince)}</p>
-              </div>
-            </div>
-          </>
-        )}
+    <section
+      aria-label="Resume"
+      className="bg-card rounded-xl border border-border p-5 md:p-6 flex flex-col gap-5"
+    >
+      <div>
+        <h2 className="text-lg font-semibold text-foreground">{content.full_name}</h2>
+        <p className="text-sm text-muted-foreground">{content.headline}</p>
       </div>
-    </div>
+
+      {content.summary && (
+        <p className="text-sm text-muted-foreground leading-relaxed line-clamp-4">
+          {content.summary}
+        </p>
+      )}
+
+      <ul className="grid grid-cols-2 gap-x-4 gap-y-3">
+        {sections.map(({ icon: Icon, count, one, many }) => (
+          <li key={one} className="flex items-center gap-2 text-sm">
+            <Icon className="h-4 w-4 text-muted-foreground shrink-0" aria-hidden="true" />
+            <span className="font-semibold text-foreground tabular-nums">{count}</span>
+            <span className="text-muted-foreground">{count === 1 ? one : many}</span>
+          </li>
+        ))}
+      </ul>
+
+      <ProfileCompleteness completeness={completeness} suggestions={suggestions} />
+
+      <div className="flex flex-col gap-2 mt-auto">
+        <Button asChild>
+          <Link href="/edit">
+            <Edit3 className="h-4 w-4" aria-hidden="true" />
+            Edit content
+          </Link>
+        </Button>
+        <DashboardUploadSection className="w-full" />
+      </div>
+    </section>
   );
 }
 
@@ -468,7 +385,7 @@ export default async function DashboardPage() {
   return (
     <div className="min-h-screen bg-background">
       <main className="max-w-[1400px] mx-auto px-4 lg:px-6 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch">
           {hasPublishedSite && content ? (
             <>
               <ResumeStatusAlerts
@@ -477,20 +394,19 @@ export default async function DashboardPage() {
                 error={resume.errorMessage}
               />
 
-              <ProfileCompletenessAlert completeness={completeness} suggestions={suggestions} />
-
-              <div className="lg:col-span-2 space-y-4">
-                <ResumeSummaryCard content={content} />
-              </div>
-
-              <div className="space-y-4">
-                <AccountCard
-                  email={session.user.email}
-                  handle={profile?.handle}
-                  memberSince={profile?.createdAt}
+              {profile?.handle && (
+                <SiteHero
+                  handle={profile.handle}
+                  themeId={siteDataResult?.themeId ?? null}
+                  updatedAt={siteDataResult?.lastPublishedAt ?? siteDataResult?.updatedAt ?? null}
                 />
+              )}
+
+              <div className="lg:col-span-2">
                 <AnalyticsCard />
               </div>
+
+              <ResumeCard content={content} completeness={completeness} suggestions={suggestions} />
             </>
           ) : (
             <ResumeProcessingCard
