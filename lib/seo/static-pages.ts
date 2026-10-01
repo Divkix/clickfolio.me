@@ -18,6 +18,12 @@ export const STATIC_PAGES: readonly StaticPage[] = [
   { path: "/", label: "Homepage", changeFrequency: "daily", priority: 1.0 },
   { path: "/explore", label: "Browse Portfolios", changeFrequency: "daily", priority: 0.9 },
   { path: "/blog", label: "Blog", changeFrequency: "weekly", priority: 0.8 },
+  {
+    path: "/templates",
+    label: "Resume Website Templates",
+    changeFrequency: "monthly",
+    priority: 0.8,
+  },
   { path: "/about", label: "About", changeFrequency: "monthly", priority: 0.5 },
   { path: "/faq", label: "FAQ", changeFrequency: "monthly", priority: 0.6 },
   { path: "/contact", label: "Contact and Support", changeFrequency: "yearly", priority: 0.5 },

@@ -3,10 +3,11 @@ import { join } from "node:path";
 import { describe, expect, it } from "vite-plus/test";
 import { BLOG_POSTS } from "@/lib/blog/posts";
 import { PROFESSIONS } from "@/lib/config/professions";
+import { EXAMPLE_GALLERIES } from "@/lib/examples/galleries";
 import { RATE_LIMITS } from "@/lib/rate-limit/user";
 import { buildLlmsFullTxt, buildLlmsTxt, LLMS_TXT_FEATURED_POSTS } from "@/lib/seo/llms";
 import { STATIC_PAGES } from "@/lib/seo/static-pages";
-import { THEME_IDS, THEME_METADATA } from "@/lib/templates/theme-ids";
+import { THEME_IDS, THEME_METADATA, themeSlug } from "@/lib/templates/theme-ids";
 import { MAX_FILE_SIZE_MB } from "@/lib/utils/validation";
 
 const root = process.cwd();
@@ -55,6 +56,16 @@ describe("production SEO and AI discovery assets", () => {
       expect(llms).toContain(`https://clickfolio.me/for/${profession.slug}`);
     }
 
+    for (const id of THEME_IDS) {
+      expect(llms).toContain(
+        `[${THEME_METADATA[id].name}](https://clickfolio.me/templates/${themeSlug(id)})`,
+      );
+    }
+
+    for (const gallery of EXAMPLE_GALLERIES) {
+      expect(llms).toContain(`[${gallery.title}](https://clickfolio.me/examples/${gallery.slug})`);
+    }
+
     for (const page of STATIC_PAGES) {
       expect(llms).toContain(`(https://clickfolio.me${page.path === "/" ? "" : page.path})`);
     }
@@ -90,6 +101,13 @@ describe("production SEO and AI discovery assets", () => {
 
     for (const id of THEME_IDS) {
       expect(full).toContain(`**${THEME_METADATA[id].name}**`);
+      expect(full).toContain(
+        `${THEME_METADATA[id].name}: https://clickfolio.me/templates/${themeSlug(id)}`,
+      );
+    }
+
+    for (const gallery of EXAMPLE_GALLERIES) {
+      expect(full).toContain(`${gallery.title}: https://clickfolio.me/examples/${gallery.slug}`);
     }
 
     expect(full).toContain(`## All ${THEME_IDS.length} Templates`);

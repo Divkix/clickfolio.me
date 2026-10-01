@@ -38,6 +38,7 @@ lib/workflows/         Workflow classes + start/trigger helpers (parse, R2 delet
 lib/durable-objects/   ClickfolioStatusDO (hibernation WebSocket status push)
 lib/stubs/             stubs for CF-incompatible modules (test aliases in vite.config.ts)
 lib/seo/               sitemap, llms.txt generators, IndexNow, lastmod.json
+lib/examples/          EXAMPLE_GALLERIES: hand-picked directory handles for /examples/<slug>
 components/templates/  12 portfolio themes; registry in lib/templates/
 app/(protected)/       user pages — each page gates itself (layout does NOT)
 app/(admin)/admin/     admin pages; layout gates via requireAdminAuth
@@ -70,7 +71,8 @@ tools/oxlint/anti-slop vendored lint plugin (see UPSTREAM.md); excluded from tsc
 - **Resume text is stored raw**; React escapes on render. Never HTML-escape before storage (`migrations_pg/0009` had to undo that).
 - **Generated files:** `lib/cloudflare-env.d.ts` (`cf-typegen`), `migrations_pg/*`, `lib/seo/lastmod.json` (pre-commit stamps it; `SKIP_LASTMOD=1` for non-content commits).
 - **`/llms.txt` and `/llms-full.txt` are route handlers** built from `BLOG_POSTS`, `THEME_METADATA` etc. — a file in `public/` would shadow them.
-- **Adding a theme:** follow the chain `THEME_IDS` → `THEME_METADATA` → `themeToShareVariant` → `TEMPLATE_LOADERS`/`DYNAMIC_TEMPLATES` → demo data → theme maps in `CreateYoursCTA`/`AttributionWidget` → `public/previews/<kebab>.webp` (shot at 1280×800@2x from `/preview/<id>` after Google Fonts load, encoded with `sharp` webp q82). `Record<ThemeId,…>` types + `registry-sync.test.ts` fail when one is missed.
+- **Adding a theme:** follow the chain `THEME_IDS` → `THEME_METADATA` → `themeToShareVariant` → `TEMPLATE_LOADERS`/`DYNAMIC_TEMPLATES` → demo data → theme maps in `CreateYoursCTA`/`AttributionWidget` → landing-page copy in `lib/templates/theme-pages.ts` (`/templates/<kebab>`) → `public/previews/<kebab>.webp` (shot at 1280×800@2x from `/preview/<id>` after Google Fonts load, encoded with `sharp` webp q82). `Record<ThemeId,…>` types + `registry-sync.test.ts` fail when one is missed. Recommend it for roles via `PROFESSIONS[].themes`.
+- **Profile indexability** (`isIndexableProfile`) also needs ≥ 100 words of resume text; it gates the sitemap, `/explore`, `/examples`, JSON-LD and IndexNow, so test fixtures for indexable profiles need realistic content.
 - **Template headings:** `app/globals.css` forces `h1–h4` to `var(--font-display)`, so a template's root font class doesn't reach headings — scope a rule (see `CaseFile.tsx`).
 - **Adding a blog post** needs both a `BLOG_POSTS` entry (`lib/blog/posts.ts`) and `app/blog/<slug>/page.tsx` using `getPostBySlug("<slug>")!` at module scope (build throws if they diverge). Titles ≤ 60 chars / descriptions ≤ 160 (`seo-title-length.test.ts`); set `metaTitle` when the H1 is longer.
 - **New static route** needs a key in `lib/seo/lastmod.json` (`lastmod.test.ts`) and, if public, an entry in `lib/seo/static-pages.ts`.

@@ -2,11 +2,17 @@ import { describe, expect, it } from "vite-plus/test";
 import { PROFESSIONS } from "@/lib/config/professions";
 import { getStaticLastmod, routesForChangedFiles } from "@/lib/seo/lastmod";
 import lastmod from "@/lib/seo/lastmod.json";
+import { EXAMPLE_GALLERIES } from "@/lib/examples/galleries";
+import { THEME_IDS, themeSlug } from "@/lib/templates/theme-ids";
 
 const PROFESSION_ROUTES = PROFESSIONS.map((profession) => `/for/${profession.slug}`).sort();
 
+const TEMPLATE_ROUTES = THEME_IDS.map((id) => `/templates/${themeSlug(id)}`).sort();
+
+const EXAMPLE_ROUTES = EXAMPLE_GALLERIES.map((gallery) => `/examples/${gallery.slug}`).sort();
+
 describe("lastmod.json", () => {
-  it("dates every static sitemap page and profession route", () => {
+  it("dates every static sitemap page, profession, template, and gallery route", () => {
     for (const route of [
       "/",
       "/privacy",
@@ -15,6 +21,9 @@ describe("lastmod.json", () => {
       "/faq",
       "/contact",
       ...PROFESSION_ROUTES,
+      "/templates",
+      ...TEMPLATE_ROUTES,
+      ...EXAMPLE_ROUTES,
     ]) {
       expect(getStaticLastmod(route), route).toBeInstanceOf(Date);
     }
@@ -36,6 +45,22 @@ describe("routesForChangedFiles", () => {
   it("maps a route folder's files to that route", () => {
     expect(routesForChangedFiles(["app/about/page.tsx"])).toEqual(["/about"]);
     expect(routesForChangedFiles(["app/for/designer/page.tsx"])).toEqual(["/for/designer"]);
+  });
+
+  it("maps template and gallery route files and shared gallery content", () => {
+    expect(routesForChangedFiles(["app/templates/page.tsx"])).toEqual(["/templates"]);
+    expect(routesForChangedFiles(["app/templates/[theme]/page.tsx"])).toEqual([
+      "/templates",
+      ...TEMPLATE_ROUTES,
+    ]);
+    expect(routesForChangedFiles(["app/examples/[slug]/page.tsx"])).toEqual(EXAMPLE_ROUTES);
+    expect(routesForChangedFiles(["lib/examples/galleries.ts"])).toEqual(EXAMPLE_ROUTES);
+    expect(routesForChangedFiles(["app/examples/marketing/_parts/list.tsx"])).toEqual([
+      "/examples/marketing",
+    ]);
+    expect(routesForChangedFiles(["app/templates/classic-ats/page.tsx"])).toEqual([
+      "/templates/classic-ats",
+    ]);
   });
 
   it("maps nested files and route groups to the owning tracked route", () => {

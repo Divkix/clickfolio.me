@@ -24,6 +24,17 @@ export function isValidThemeId(id: string): id is ThemeId {
   return (THEME_IDS as readonly string[]).includes(id);
 }
 
+/** URL slug for /templates/<slug>: the theme id in kebab case. */
+export function themeSlug(id: ThemeId): string {
+  return id.replaceAll("_", "-");
+}
+
+export function themeIdFromSlug(slug: string): ThemeId | null {
+  const id = slug.replaceAll("-", "_");
+
+  return isValidThemeId(id) ? id : null;
+}
+
 export const THEME_METADATA = {
   bento: {
     name: "Bento Grid",

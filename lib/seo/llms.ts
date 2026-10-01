@@ -2,9 +2,10 @@ import { BLOG_POSTS } from "@/lib/blog/posts";
 import { FAQ_ITEMS } from "@/lib/config/faq";
 import { PROFESSIONS } from "@/lib/config/professions";
 import { siteConfig } from "@/lib/config/site";
+import { EXAMPLE_GALLERIES } from "@/lib/examples/galleries";
 import { RATE_LIMITS } from "@/lib/rate-limit/user";
 import { STATIC_PAGES } from "@/lib/seo/static-pages";
-import { DEFAULT_THEME, THEME_IDS, THEME_METADATA } from "@/lib/templates/theme-ids";
+import { DEFAULT_THEME, THEME_IDS, THEME_METADATA, themeSlug } from "@/lib/templates/theme-ids";
 import { MAX_FILE_SIZE_MB } from "@/lib/utils/validation";
 
 /**
@@ -56,6 +57,14 @@ function publicUrlSection(): string {
     (profession) => `- ${profession.label}: ${SITE}/for/${profession.slug}`,
   );
 
+  const templatePages = THEME_IDS.map(
+    (id) => `- ${THEME_METADATA[id].name}: ${SITE}/templates/${themeSlug(id)}`,
+  );
+
+  const examplePages = EXAMPLE_GALLERIES.map(
+    (gallery) => `- ${gallery.title}: ${SITE}/examples/${gallery.slug}`,
+  );
+
   const blogGuides = BLOG_POSTS.map((post) => `- ${post.title}: ${SITE}/blog/${post.slug}`);
 
   return `### Core Pages
@@ -63,6 +72,12 @@ ${corePages.join("\n")}
 
 ### Profession Landing Pages
 ${professionPages.join("\n")}
+
+### Resume Website Templates
+${templatePages.join("\n")}
+
+### Portfolio Example Galleries
+${examplePages.join("\n")}
 
 ### Blog Guides
 ${blogGuides.join("\n")}
@@ -209,6 +224,8 @@ function keyPages(): string {
     ...PROFESSIONS.map((profession) =>
       link(`Portfolio builder for ${profession.label.toLowerCase()}`, `/for/${profession.slug}`),
     ),
+    ...THEME_IDS.map((id) => link(THEME_METADATA[id].name, `/templates/${themeSlug(id)}`)),
+    ...EXAMPLE_GALLERIES.map((gallery) => link(gallery.title, `/examples/${gallery.slug}`)),
     ...STATIC_PAGES.filter((page) => !FRONT_PAGE_PATHS.has(page.path)).map((page) =>
       link(page.label, page.path),
     ),
