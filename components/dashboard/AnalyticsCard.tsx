@@ -1,6 +1,6 @@
 "use client";
 
-import { Eye, Globe, Monitor, Smartphone, Tablet, Users } from "lucide-react";
+import { Eye, Users } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import uPlot from "uplot";
 import "uplot/dist/uPlot.min.css";
@@ -25,11 +25,12 @@ const PERIOD_OPTIONS: Array<{ value: Period; label: string }> = [
   { value: "90d", label: "90d" },
 ];
 
-const DEVICE_ICONS = {
-  desktop: Monitor,
-  mobile: Smartphone,
-  tablet: Tablet,
-} as const satisfies Record<string, typeof Monitor>;
+// Canvas can't read CSS variables; indigo that sits between the light and dark --brand values.
+const CHART_COLOR = "#7c7ff2";
+
+const CHART_GRID = "rgba(148,163,184,0.15)";
+
+const CHART_HEIGHT = 200;
 
 const SHORT_MONTHS = [
   "Jan",
@@ -62,7 +63,7 @@ function buildChartOpts(width: number, height: number): uPlot.Options {
   return {
     width,
     height,
-    padding: [12, 8, 0, 0],
+    padding: [12, 16, 0, 0],
     legend: { show: false },
     cursor: {
       x: true,
@@ -72,13 +73,13 @@ function buildChartOpts(width: number, height: number): uPlot.Options {
     series: [
       {},
       {
-        stroke: "#D94E4E",
+        stroke: CHART_COLOR,
         width: 2,
         fill: (self: uPlot) => {
           const ctx = self.ctx;
           const gradient = ctx.createLinearGradient(0, 0, 0, self.bbox.height / devicePixelRatio);
-          gradient.addColorStop(0, "#D94E4E80");
-          gradient.addColorStop(1, "#D94E4E00");
+          gradient.addColorStop(0, `${CHART_COLOR}59`);
+          gradient.addColorStop(1, `${CHART_COLOR}00`);
 
           return gradient;
         },
@@ -90,11 +91,13 @@ function buildChartOpts(width: number, height: number): uPlot.Options {
         stroke: "#94a3b8",
         font: "10px system-ui, sans-serif",
         grid: {
-          stroke: "rgba(255,255,255,0.06)",
+          stroke: CHART_GRID,
           dash: [2, 4],
           width: 1,
         },
         ticks: { show: false },
+        // Whole-day steps only; otherwise wide charts repeat the same date label.
+        incrs: [1, 2, 7, 14, 30].map((days) => days * 86_400),
         values: (_self: uPlot, ticks: number[]) =>
           ticks.map((t) => {
             const d = new Date(t * 1000);
@@ -106,7 +109,7 @@ function buildChartOpts(width: number, height: number): uPlot.Options {
         stroke: "#94a3b8",
         font: "10px system-ui, sans-serif",
         grid: {
-          stroke: "rgba(255,255,255,0.06)",
+          stroke: CHART_GRID,
           dash: [2, 4],
           width: 1,
         },
@@ -129,8 +132,9 @@ function tooltipPlugin(): uPlot.Plugin {
       "display:none",
       "position:absolute",
       "pointer-events:none",
-      "background:#0f172a",
-      "color:#fff",
+      "background:var(--popover)",
+      "color:var(--popover-foreground)",
+      "border:1px solid var(--border)",
       "font-size:12px",
       "border-radius:8px",
       "padding:6px 10px",
@@ -144,7 +148,7 @@ function tooltipPlugin(): uPlot.Plugin {
     tooltip.appendChild(dateLine);
 
     viewsLine = document.createElement("div");
-    viewsLine.style.color = "#cbd5e1";
+    viewsLine.style.color = "var(--muted-foreground)";
     tooltip.appendChild(viewsLine);
 
     u.over.appendChild(tooltip);
@@ -242,7 +246,7 @@ function UPlotChart({ viewsByDay }: { viewsByDay: Array<{ date: string; views: n
     }
 
     const opts: uPlot.Options = {
-      ...buildChartOpts(width, 160),
+      ...buildChartOpts(width, CHART_HEIGHT),
       plugins: [tooltipPlugin()],
     };
 
@@ -258,7 +262,7 @@ function UPlotChart({ viewsByDay }: { viewsByDay: Array<{ date: string; views: n
     };
   }, [width, viewsByDay]);
 
-  return <div ref={containerRef} className="w-full" style={{ height: 160 }} />;
+  return <div ref={containerRef} className="w-full" style={{ height: CHART_HEIGHT }} />;
 }
 
 export function AnalyticsCard() {
@@ -297,15 +301,19 @@ export function AnalyticsCard() {
   };
 
   return (
-    <div className="bg-card rounded-xl shadow-sm border border-border p-6 transition-colors hover:border-border-strong">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-foreground">Analytics</h3>
+    <section
+      aria-label="Analytics"
+      className="h-full bg-card rounded-xl border border-border p-5 md:p-6"
+    >
+      <div className="flex items-center justify-between mb-5">
+        <h2 className="text-lg font-semibold text-foreground">Analytics</h2>
         <div className="flex gap-1 bg-muted rounded-lg p-0.5">
           {PERIOD_OPTIONS.map((opt) => (
             <button
               key={opt.value}
               type="button"
               onClick={() => handlePeriodChange(opt.value)}
+              aria-pressed={period === opt.value}
               className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
                 period === opt.value
                   ? "bg-card text-foreground shadow-sm"
@@ -332,86 +340,90 @@ export function AnalyticsCard() {
           <StatsContent stats={stats} />
         </>
       ) : null}
-    </div>
+    </section>
+  );
+}
+
+function BreakdownRows({
+  rows,
+  className = "",
+}: {
+  rows: Array<{ label: string; count: number }>;
+  className?: string;
+}) {
+  const max = Math.max(...rows.map((r) => r.count), 1);
+
+  return (
+    <ul className={`space-y-2.5 ${className}`}>
+      {rows.map((r) => (
+        <li key={r.label} className="text-sm">
+          <div className="flex items-center justify-between gap-3 mb-1">
+            <span className="text-muted-foreground truncate">{r.label}</span>
+            <span className="font-medium text-foreground tabular-nums">{r.count}</span>
+          </div>
+          <div className="h-1 rounded-full bg-muted overflow-hidden">
+            <div
+              className="h-full rounded-full bg-brand"
+              style={{ width: `${(r.count / max) * 100}%` }}
+            />
+          </div>
+        </li>
+      ))}
+    </ul>
   );
 }
 
 function StatsContent({ stats }: { stats: AnalyticsStats }) {
-  const topReferrers = stats.topReferrers.slice(0, 3);
+  const sources = [
+    ...(stats.directVisits > 0 ? [{ label: "Direct", count: stats.directVisits }] : []),
+    ...stats.topReferrers.slice(0, 3).map((r) => ({ label: r.referrer, count: r.count })),
+  ];
+
+  const devices = stats.deviceBreakdown.map((d) => ({ label: d.device, count: d.count }));
 
   return (
-    <div className="space-y-5">
-      <div className="grid grid-cols-2 gap-3">
-        <div className="flex items-center gap-2.5">
-          <div className="shrink-0 bg-brand-subtle p-2 rounded-lg">
-            <Eye className="w-4 h-4 text-brand" aria-hidden="true" />
-          </div>
-          <div>
-            <p className="text-xs font-medium text-muted-foreground">Views</p>
-            <p className="text-lg font-bold text-foreground">{formatNumber(stats.totalViews)}</p>
-          </div>
+    <div className="space-y-6">
+      <dl className="flex gap-10">
+        <div>
+          <dt className="flex items-center gap-1.5 text-sm text-muted-foreground">
+            <Eye className="w-3.5 h-3.5" aria-hidden="true" />
+            Views
+          </dt>
+          <dd className="text-3xl font-semibold tracking-tight text-foreground tabular-nums">
+            {formatNumber(stats.totalViews)}
+          </dd>
         </div>
-        <div className="flex items-center gap-2.5">
-          <div className="shrink-0 bg-surface-2 p-2 rounded-lg">
-            <Users className="w-4 h-4 text-muted-foreground" aria-hidden="true" />
-          </div>
-          <div>
-            <p className="text-xs font-medium text-muted-foreground">Visitors</p>
-            <p className="text-lg font-bold text-foreground">
-              {formatNumber(stats.uniqueVisitors)}
-            </p>
-          </div>
+        <div>
+          <dt className="flex items-center gap-1.5 text-sm text-muted-foreground">
+            <Users className="w-3.5 h-3.5" aria-hidden="true" />
+            Visitors
+          </dt>
+          <dd className="text-3xl font-semibold tracking-tight text-foreground tabular-nums">
+            {formatNumber(stats.uniqueVisitors)}
+          </dd>
         </div>
-      </div>
+      </dl>
 
-      <div className="h-[160px] -mx-2">
+      <div className="-mx-2" style={{ height: CHART_HEIGHT }}>
         <UPlotChart viewsByDay={stats.viewsByDay} />
       </div>
 
-      <div>
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-          Traffic Sources
-        </p>
-        <div className="space-y-1.5">
-          {stats.directVisits > 0 && (
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Direct</span>
-              <span className="font-medium text-foreground">{stats.directVisits}</span>
-            </div>
-          )}
-          {topReferrers.map((r) => (
-            <div key={r.referrer} className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground truncate max-w-[140px]">{r.referrer}</span>
-              <span className="font-medium text-foreground">{r.count}</span>
-            </div>
-          ))}
-          {stats.directVisits === 0 && topReferrers.length === 0 && (
+      <div className="grid sm:grid-cols-2 gap-6 pt-5 border-t border-border">
+        <div>
+          <h3 className="text-sm font-medium text-foreground mb-3">Traffic sources</h3>
+          {sources.length > 0 ? (
+            <BreakdownRows rows={sources} />
+          ) : (
             <p className="text-xs text-muted-foreground/70">No traffic sources yet</p>
           )}
         </div>
-      </div>
-
-      {stats.deviceBreakdown.length > 0 && (
-        <div>
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-            Devices
-          </p>
-          <div className="flex gap-3">
-            {stats.deviceBreakdown.map((d) => {
-              // SAFETY: d.device is a device type string; DEVICE_ICONS covers known devices with Globe fallback.
-              const Icon = DEVICE_ICONS[d.device as keyof typeof DEVICE_ICONS] || Globe;
-
-              return (
-                <div key={d.device} className="flex items-center gap-1.5 text-sm">
-                  <Icon className="w-3.5 h-3.5 text-muted-foreground/70" aria-hidden="true" />
-                  <span className="text-muted-foreground capitalize">{d.device}</span>
-                  <span className="font-medium text-foreground">{d.count}</span>
-                </div>
-              );
-            })}
+        {devices.length > 0 && (
+          <div>
+            <h3 className="text-sm font-medium text-foreground mb-3">Devices</h3>
+            <BreakdownRows rows={devices} className="capitalize" />
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
@@ -437,7 +449,7 @@ function LoadingSkeleton() {
         <Skeleton className="h-14 rounded-lg" />
         <Skeleton className="h-14 rounded-lg" />
       </div>
-      <Skeleton className="h-[160px] rounded-lg" />
+      <Skeleton className="rounded-lg" style={{ height: CHART_HEIGHT }} />
       <div className="space-y-2">
         <Skeleton className="h-4 w-24" />
         <Skeleton className="h-5 w-full" />
