@@ -8,23 +8,23 @@ When you change something this file describes, update it in the same commit.
 
 Use the Node version in `.node-version` and pnpm 12.6.0.
 
-| Task                  | Command                                                                 |
-| --------------------- | ----------------------------------------------------------------------- |
-| Install               | `pnpm install` (runs `vp config` → installs git hooks)                  |
-| Dev (:3000)           | `pnpm run dev` — needs Hyperdrive env var, see Gotchas                  |
-| Build                 | `pnpm run build` → `dist/`                                              |
-| Worker preview        | `pnpm run preview` (build + `wrangler dev`)                             |
-| Lint + format + types | `pnpm run check` (`vp check`); autofix `pnpm run fix`                   |
-| Typecheck only        | `pnpm run type-check`                                                   |
-| Full gate             | `pnpm run verify` (`check` + `type-check` + `knip` unused exports/deps) |
-| All tests             | `pnpm run test` (unit, integration, and security projects)              |
-| One suite             | `pnpm run test:unit` / `test:integration` / `test:security`             |
-| One file              | `pnpm run test tests/unit/proxy.test.ts`                                |
-| One test by name      | `pnpm run test -t "reserved"`                                           |
-| Suites with coverage  | `pnpm run test:coverage` (CI; combined thresholds in `vite.config.ts`)  |
-| DB migration          | `pnpm run db:generate` then `db:migrate` (needs `DATABASE_URL`)         |
-| Regenerate env types  | `pnpm run cf-typegen` → `lib/cloudflare-env.d.ts`                       |
-| Deploy                | `pnpm run deploy` (`scripts/deploy.ts`; `--dry-run` skips side effects) |
+| Task                  | Command                                                                                                                                                |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Install               | `pnpm install` (runs `vp config` → installs git hooks)                                                                                                 |
+| Dev (:3000)           | `pnpm run dev` — needs Hyperdrive env var, see Gotchas                                                                                                 |
+| Build                 | `pnpm run build` → `dist/`                                                                                                                             |
+| Worker preview        | `pnpm run preview` (build + `wrangler dev`)                                                                                                            |
+| Lint + format + types | `pnpm run check` (`vp check`); autofix `pnpm run fix`                                                                                                  |
+| Typecheck only        | `pnpm run type-check`                                                                                                                                  |
+| Full gate             | `pnpm run verify` (`check` + `type-check` + `knip` unused exports/deps)                                                                                |
+| All tests             | `pnpm run test` (unit, integration, and security projects)                                                                                             |
+| One suite             | `pnpm run test:unit` / `test:integration` / `test:security`                                                                                            |
+| One file              | `pnpm run test tests/unit/proxy.test.ts`                                                                                                               |
+| One test by name      | `pnpm run test -t "reserved"`                                                                                                                          |
+| Suites with coverage  | `pnpm run test:coverage` (CI; combined thresholds in `vite.config.ts`)                                                                                 |
+| DB migration          | `pnpm run db:generate` then `db:migrate` (needs `DATABASE_URL`)                                                                                        |
+| Regenerate env types  | `pnpm run cf-typegen` → `lib/cloudflare-env.d.ts`                                                                                                      |
+| Deploy                | `pnpm run deploy` (`scripts/deploy.ts`: build → `db:migrate` → R2 lifecycle → `wrangler deploy`; needs `DATABASE_URL`; `--dry-run` skips side effects) |
 
 ## Repo map (non-obvious parts only)
 

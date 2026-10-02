@@ -196,8 +196,7 @@ pnpm exec wrangler secret put CF_AIG_AUTH_TOKEN
 **Step 8: Deploy**
 
 ```bash
-DATABASE_URL="postgres://…" pnpm run db:migrate   # apply migrations_pg/ to production
-pnpm run deploy
+DATABASE_URL="postgres://…" pnpm run deploy   # build → db:migrate → R2 lifecycle → wrangler deploy
 ```
 
 **Step 9: Add your domain**
@@ -330,7 +329,7 @@ pnpm run type-check       # TypeScript check
 # Build & Deploy
 pnpm run build            # Vite production build (vinext)
 pnpm run preview          # Local Cloudflare preview
-pnpm run deploy           # Thin wrapper around `wrangler deploy` (no build step)
+pnpm run deploy           # scripts/deploy.ts: build, db:migrate, R2 lifecycle, wrangler deploy, IndexNow (needs DATABASE_URL)
 
 # Database (PlanetScale Postgres via drizzle-kit; needs DATABASE_URL except generate)
 pnpm run db:generate      # Generate migration files into migrations_pg/
