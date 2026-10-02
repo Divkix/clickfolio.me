@@ -44,22 +44,22 @@ async function recordRateLimitAction(
 
   // Serialize same-IP check+insert: the advisory xact lock is held until commit,
   // so concurrent requests cannot both read a below-limit count and insert.
-  return db.$client.begin(async (tx) => {
-    await tx`SELECT pg_advisory_xact_lock(hashtext(${`${ipHash}||${actionType}`}))`;
+  return db.transaction(async (tx) => {
+    await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${`${ipHash}||${actionType}`}))`);
 
     const dailyGuard =
       dailyCutoff !== undefined && dailyLimit !== undefined
-        ? tx` AND (SELECT COUNT(*) FROM upload_rate_limits
+        ? sql` AND (SELECT COUNT(*) FROM upload_rate_limits
          WHERE ip_hash = ${ipHash} AND action_type = ${actionType} AND created_at >= ${dailyCutoff}) < ${dailyLimit}`
-        : tx``;
+        : sql``;
 
-    const result = await tx`
+    const result = await tx.execute(sql`
       INSERT INTO upload_rate_limits (id, ip_hash, action_type, created_at, expires_at)
       SELECT ${crypto.randomUUID()}, ${ipHash}, ${actionType}, ${now.toISOString()}, ${expiresAt}
       WHERE (SELECT COUNT(*) FROM upload_rate_limits
-             WHERE ip_hash = ${ipHash} AND action_type = ${actionType} AND created_at >= ${oneHourAgo}) < ${limit}${dailyGuard}`;
+             WHERE ip_hash = ${ipHash} AND action_type = ${actionType} AND created_at >= ${oneHourAgo}) < ${limit}${dailyGuard}`);
 
-    return result.count === 1;
+    return result.rowCount === 1;
   });
 }
 

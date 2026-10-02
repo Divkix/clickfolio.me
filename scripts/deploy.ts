@@ -23,6 +23,13 @@ export async function main(): Promise<void> {
   }
 
   if (!dryRun) {
+    // Before `wrangler deploy`, so new code never runs against an old schema. Needs DATABASE_URL.
+    const migrate = spawnSync("pnpm", ["run", "db:migrate"], { stdio: "inherit" });
+
+    if (migrate.status !== 0) {
+      process.exit(migrate.status ?? 1);
+    }
+
     const lifecycle = spawnSync(
       "pnpm",
       [

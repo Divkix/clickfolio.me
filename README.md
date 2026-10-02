@@ -25,15 +25,15 @@ Upload a PDF. AI parses it. Get a shareable link.
 
 ## Tech Stack
 
-| Layer          | Technology                                                                                                                                                           |
-| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Framework**  | [vinext](https://github.com/cloudflare/vinext) (Vite-based Next.js)                                                                                                  |
-| **Runtime**    | [Cloudflare Workers](https://workers.cloudflare.com)                                                                                                                 |
-| **Database**   | [PlanetScale Postgres](https://planetscale.com) via [Cloudflare Hyperdrive](https://developers.cloudflare.com/hyperdrive/) + [Drizzle ORM](https://orm.drizzle.team) |
-| **Auth**       | [Clerk](https://clerk.com) (Google OAuth + credentials; prebuilt `<SignIn>/<SignUp>` UI, JWKS-verified session JWTs)                                                 |
-| **Storage**    | [Cloudflare R2](https://developers.cloudflare.com/r2/) (S3-compatible)                                                                                               |
-| **AI Parsing** | [OpenRouter](https://openrouter.ai) via [Cloudflare AI Gateway](https://developers.cloudflare.com/ai-gateway/) (openai/gpt-oss models)                               |
-| **Styling**    | [shadcn/ui](https://ui.shadcn.com) + [Tailwind CSS 4](https://tailwindcss.com)                                                                                       |
+| Layer          | Technology                                                                                                                                                                                          |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Framework**  | [vinext](https://github.com/cloudflare/vinext) (Vite-based Next.js)                                                                                                                                 |
+| **Runtime**    | [Cloudflare Workers](https://workers.cloudflare.com)                                                                                                                                                |
+| **Database**   | [PlanetScale Postgres](https://planetscale.com) via [Cloudflare Hyperdrive](https://developers.cloudflare.com/hyperdrive/) + [Drizzle ORM](https://orm.drizzle.team) (node-postgres `pg` >= 8.16.3) |
+| **Auth**       | [Clerk](https://clerk.com) (Google OAuth + credentials; prebuilt `<SignIn>/<SignUp>` UI, JWKS-verified session JWTs)                                                                                |
+| **Storage**    | [Cloudflare R2](https://developers.cloudflare.com/r2/) (S3-compatible)                                                                                                                              |
+| **AI Parsing** | [OpenRouter](https://openrouter.ai) via [Cloudflare AI Gateway](https://developers.cloudflare.com/ai-gateway/) (openai/gpt-oss models)                                                              |
+| **Styling**    | [shadcn/ui](https://ui.shadcn.com) + [Tailwind CSS 4](https://tailwindcss.com)                                                                                                                      |
 
 ---
 
@@ -196,8 +196,7 @@ pnpm exec wrangler secret put CF_AIG_AUTH_TOKEN
 **Step 8: Deploy**
 
 ```bash
-DATABASE_URL="postgres://…" pnpm run db:migrate   # apply migrations_pg/ to production
-pnpm run deploy
+DATABASE_URL="postgres://…" pnpm run deploy   # build → db:migrate → R2 lifecycle → wrangler deploy
 ```
 
 **Step 9: Add your domain**
@@ -330,7 +329,7 @@ pnpm run type-check       # TypeScript check
 # Build & Deploy
 pnpm run build            # Vite production build (vinext)
 pnpm run preview          # Local Cloudflare preview
-pnpm run deploy           # Thin wrapper around `wrangler deploy` (no build step)
+pnpm run deploy           # scripts/deploy.ts: build, db:migrate, R2 lifecycle, wrangler deploy, IndexNow (needs DATABASE_URL)
 
 # Database (PlanetScale Postgres via drizzle-kit; needs DATABASE_URL except generate)
 pnpm run db:generate      # Generate migration files into migrations_pg/

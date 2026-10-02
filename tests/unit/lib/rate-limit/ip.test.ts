@@ -1,4 +1,5 @@
-import { eq } from "drizzle-orm";
+import { eq, type SQL } from "drizzle-orm";
+import { PgDialect } from "drizzle-orm/pg-core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { createMockDb } from "@/tests/setup/mocks/db.mock";
 import type { JsonValue } from "@/lib/types/json";
@@ -24,19 +25,14 @@ vi.mock("drizzle-orm", async (importOriginal) => {
     and: vi.fn((...conditions: JsonValue[]) => ({ conditions, type: "and" })),
     eq: vi.fn((column: JsonValue, value: JsonValue) => ({ column, type: "eq", value })),
     gte: vi.fn((column: JsonValue, value: JsonValue) => ({ column, type: "gte", value })),
-    sql: vi.fn((strings: TemplateStringsArray, ...values: JsonValue[]) => ({
-      strings,
-      type: "sql",
-      values,
-    })),
   };
 });
 
 import { getDb } from "@/lib/db";
 import { isLocalEnvironment } from "@/lib/utils/environment";
 
-function sqlText(strings: TemplateStringsArray | undefined): string {
-  return (strings ?? []).join("?");
+function query(statement: SQL) {
+  return new PgDialect().sqlToQuery(statement);
 }
 
 describe("getClientIP", () => {
@@ -271,10 +267,12 @@ describe("checkIPRateLimit - Production Rate Limiting", () => {
 
     await checkIPRateLimit("192.168.1.1");
 
-    expect(mockDb.$client.begin).toHaveBeenCalledTimes(1);
-    expect(sqlText(mockDb.$client.mock.calls[2]?.[0])).toContain("INSERT INTO upload_rate_limits");
+    expect(mockDb.transaction).toHaveBeenCalledTimes(1);
+    expect(query(mockDb.execute.mock.calls[1]?.[0]).sql).toContain(
+      "INSERT INTO upload_rate_limits",
+    );
     expect(mockDb.insert).not.toHaveBeenCalled();
-    expect(mockDb.$client.mock.calls[2]?.slice(1)).toContain("upload");
+    expect(query(mockDb.execute.mock.calls[1]?.[0]).params).toContain("upload");
   });
 
   it("enforces the daily limit in the atomic upload insert", async () => {
@@ -286,11 +284,9 @@ describe("checkIPRateLimit - Production Rate Limiting", () => {
 
     await checkIPRateLimit("192.168.1.1");
 
-    const guardSql = sqlText(mockDb.$client.mock.calls[1]?.[0]);
-    const insertSql = sqlText(mockDb.$client.mock.calls[2]?.[0]);
-    expect(guardSql).toContain("created_at >= ?");
-    expect(insertSql.match(/created_at >= \?/g)).toHaveLength(1);
-    expect(mockDb.$client.mock.calls[1]?.slice(1)).toContain(50);
+    const insert = query(mockDb.execute.mock.calls[1]?.[0]);
+    expect(insert.sql.match(/created_at >= /g)).toHaveLength(2);
+    expect(insert.params).toContain(50);
   });
 
   it("counts only upload actions toward anonymous upload limits", async () => {
@@ -328,7 +324,7 @@ describe("checkIPRateLimit - Production Rate Limiting", () => {
     const result = await checkIPRateLimit("unknown");
 
     expect(result.allowed).toBe(true);
-    expect(mockDb.$client).toHaveBeenCalled();
+    expect(mockDb.execute).toHaveBeenCalled();
   });
 
   it("denies request when record fails (fail closed)", async () => {
@@ -337,7 +333,7 @@ describe("checkIPRateLimit - Production Rate Limiting", () => {
         where: vi.fn().mockResolvedValue([{ hourly: 0, daily: 0 }]),
       }),
     });
-    mockDb.$client.begin.mockImplementationOnce(() => {
+    mockDb.transaction.mockImplementationOnce(() => {
       throw new Error("Insert failed");
     });
 
@@ -353,14 +349,14 @@ describe("checkIPRateLimit - Production Rate Limiting", () => {
         where: vi.fn().mockResolvedValue([{ hourly: 3, daily: 20 }]),
       }),
     });
-    mockDb.$client.mockResolvedValue({ count: 0 });
+    mockDb.execute.mockResolvedValue({ rows: [], rowCount: 0 });
 
     const result = await checkIPRateLimit("192.168.1.1");
 
     expect(result.allowed).toBe(false);
     expect(result.message).toContain("Try again in an hour");
 
-    mockDb.$client.mockResolvedValue({ count: 1 });
+    mockDb.execute.mockResolvedValue({ rows: [], rowCount: 1 });
   });
 
   it("generates consistent IP hash for same IP", async () => {
@@ -450,8 +446,8 @@ describe("checkHandleRateLimit - Production", () => {
 
     await checkHandleRateLimit("192.168.1.1");
 
-    expect(mockDb.$client.begin).toHaveBeenCalledTimes(1);
-    expect(mockDb.$client.mock.calls[2]?.slice(1)).toContain("handle_check");
+    expect(mockDb.transaction).toHaveBeenCalledTimes(1);
+    expect(query(mockDb.execute.mock.calls[1]?.[0]).params).toContain("handle_check");
   });
 });
 

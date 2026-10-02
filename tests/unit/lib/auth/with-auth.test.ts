@@ -45,7 +45,7 @@ function successResult(): AuthSuccess {
       role: "mid_level",
     },
     // SAFETY: withUser forwards db by identity — the handler asserts ctx.db === result.db
-    // and never queries it, and Database also requires the live postgres-js $client that
+    // and never queries it, and Database also requires the live node-postgres $client that
     // no test can construct — so a marker object stands in for the instance.
     db: { marker: "db" } as never,
     dbUser: { id: "user-1", handle: "testuser", clerkId: "user_2clerkAbc" },

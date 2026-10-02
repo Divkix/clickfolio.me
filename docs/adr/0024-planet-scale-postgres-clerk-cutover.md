@@ -65,3 +65,14 @@ app entirely.
 - **Operational:** the remote D1 database is kept dormant as a cold backup (no
   binding, no code path); `DATABASE_URL` (direct PlanetScale URL) is required by
   drizzle-kit locally but never used by the deployed Worker.
+
+## Driver update (2026-10)
+
+The Worker now uses `drizzle-orm/node-postgres` with `pg` >= 8.16.3. Cloudflare
+states: "Pairing Drizzle ORM with the Postgres.js driver over Hyperdrive is not
+currently supported. Switch your driver to node-postgres (pg)"
+([guide](https://developers.cloudflare.com/hyperdrive/examples/connect-to-postgres/postgres-drivers-and-libraries/drizzle-orm/)).
+`getDb` remains synchronous and creates a fresh request-scoped `Pool` per call,
+with `max: 5`, `connectionTimeoutMillis: 10_000`, and `idleTimeoutMillis: 20_000`.
+Raw SQL uses Drizzle `execute` (`rows`/`rowCount`); IP rate-limit locking and
+conditional inserts remain in one advisory-lock transaction.

@@ -4,7 +4,7 @@ import type { Resume } from "@/lib/db/schema";
 /** Chain a mocked Drizzle query resolves through: every method returns the chain, awaiting it yields the rows. */
 export type MockQueryChain<T> = Record<string, Mock> & Promise<T[]>;
 
-/** Callback shape both `$client.begin` and `transaction` hand their transaction handle to. */
+/** Callback shape for the mocked Drizzle transaction handle. */
 type MockTransactionCallback<T> = (tx: T) => Promise<void>;
 
 export function createMockQueryChain<T = unknown>(rows: T[] = []): MockQueryChain<T> {
@@ -41,11 +41,10 @@ export function createMockQueryChain<T = unknown>(rows: T[] = []): MockQueryChai
   return new Proxy(target, handler) as MockQueryChain<T>;
 }
 
-export interface SqlClient extends Mock {
-  prepare: Mock;
-  sql: Mock;
-  un: Mock;
-  begin: Mock;
+export interface SqlClient {
+  query: Mock;
+  connect: Mock;
+  end: Mock;
 }
 
 export interface MockDb {
@@ -53,27 +52,29 @@ export interface MockDb {
   insert: Mock;
   update: Mock;
   delete: Mock;
+  execute: Mock;
   transaction: Mock;
   $client: SqlClient;
 }
 
 export function createMockDb(): MockDb {
-  const raw = Object.assign(vi.fn().mockResolvedValue({ count: 1 }), {
-    prepare: vi.fn(),
-    sql: vi.fn(),
-    un: vi.fn(),
-    begin: vi.fn(),
-  });
+  const connection = {
+    query: vi.fn().mockResolvedValue({ rows: [], rowCount: 1 }),
+    release: vi.fn(),
+  };
 
-  raw.begin.mockImplementation(async (cb: MockTransactionCallback<SqlClient>): Promise<void> =>
-    cb(raw),
-  );
+  const raw = {
+    query: connection.query,
+    connect: vi.fn().mockResolvedValue(connection),
+    end: vi.fn().mockResolvedValue(undefined),
+  };
 
   const db: MockDb = {
     select: vi.fn().mockReturnValue(createMockQueryChain()),
     insert: vi.fn().mockReturnValue(createMockQueryChain()),
     update: vi.fn().mockReturnValue(createMockQueryChain()),
     delete: vi.fn().mockReturnValue(createMockQueryChain()),
+    execute: vi.fn().mockResolvedValue({ rows: [], rowCount: 1 }),
     transaction: vi.fn(),
     $client: raw,
   };

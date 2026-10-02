@@ -28,13 +28,13 @@ export async function performCleanup(
   const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
 
   const deleted = await db.transaction(async (tx) => {
-    const rateLimitsCount = (
-      await tx.delete(uploadRateLimits).where(lt(uploadRateLimits.expiresAt, nowIso))
-    ).count;
+    const rateLimitsCount =
+      (await tx.delete(uploadRateLimits).where(lt(uploadRateLimits.expiresAt, nowIso))).rowCount ??
+      0;
 
-    const handleChangesCount = (
-      await tx.delete(handleChanges).where(lt(handleChanges.createdAt, ninetyDaysAgo))
-    ).count;
+    const handleChangesCount =
+      (await tx.delete(handleChanges).where(lt(handleChanges.createdAt, ninetyDaysAgo))).rowCount ??
+      0;
 
     return { rateLimits: rateLimitsCount, handleChanges: handleChangesCount };
   });

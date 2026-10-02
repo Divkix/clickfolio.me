@@ -13,26 +13,23 @@ const mockWhere = vi.fn().mockReturnThis();
 
 let rawInsertCount = 1;
 
-interface RawSqlClient {
-  (strings: TemplateStringsArray, ...values: unknown[]): Promise<{ count: number }>;
-  begin(cb: (tx: RawSqlClient) => Promise<boolean>): Promise<boolean>;
-}
+const mockExecute = vi.fn((_statement: { strings: TemplateStringsArray }) =>
+  Promise.resolve({ rows: [], rowCount: rawInsertCount }),
+);
 
-const mockRawClient = Object.assign(
-  vi.fn((_strings: TemplateStringsArray, ..._values: unknown[]) =>
-    Promise.resolve({ count: rawInsertCount }),
-  ),
-  { begin: vi.fn(async (cb: (tx: RawSqlClient) => Promise<boolean>) => cb(mockRawClient)) },
+const mockTransaction = vi.fn(
+  async (cb: (tx: { execute: typeof mockExecute }) => Promise<boolean>) =>
+    cb({ execute: mockExecute }),
 );
 
 function lastRawSqlText(): string {
-  const lastCall = mockRawClient.mock.calls.at(-1);
+  const lastCall = mockExecute.mock.calls.at(-1);
 
   if (!lastCall) {
-    throw new Error("Expected mockRawClient to have recorded a tagged-template call");
+    throw new Error("Expected an executed SQL statement");
   }
 
-  return lastCall[0].join("?");
+  return lastCall[0].strings.join("?");
 }
 
 const mockDb = {
@@ -40,7 +37,8 @@ const mockDb = {
   select: mockSelect,
   from: mockFrom,
   where: mockWhere,
-  $client: mockRawClient,
+  transaction: mockTransaction,
+  execute: mockExecute,
 };
 
 vi.mock("cloudflare:workers", () => ({
@@ -280,7 +278,7 @@ describe("Rate Limit Security Enforcement", () => {
 
       expect(result.allowed).toBe(true);
       expect(mockSelect).toHaveBeenCalled();
-      expect(mockRawClient).toHaveBeenCalled();
+      expect(mockExecute).toHaveBeenCalled();
       const sqlText = lastRawSqlText();
       expect(sqlText).toContain("INSERT INTO upload_rate_limits");
     });
@@ -328,7 +326,7 @@ describe("Rate Limit Security Enforcement", () => {
       const result = await checkIPRateLimit("192.168.1.1");
 
       expect(result.allowed).toBe(true);
-      expect(mockRawClient).toHaveBeenCalled();
+      expect(mockExecute).toHaveBeenCalled();
       const sqlText = lastRawSqlText();
       expect(sqlText).toContain("INSERT INTO upload_rate_limits");
       expect(mockInsert).not.toHaveBeenCalled();
@@ -340,7 +338,7 @@ describe("Rate Limit Security Enforcement", () => {
           where: vi.fn().mockResolvedValue([{ hourly: 0, daily: 0 }]),
         }),
       });
-      mockRawClient.begin.mockImplementationOnce(() => {
+      mockTransaction.mockImplementationOnce(() => {
         throw new Error("Insert failed");
       });
 
