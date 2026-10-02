@@ -226,7 +226,7 @@ function authedAs(userId: string) {
       role: "mid_level",
     },
     // SAFETY: mockDb implements exactly the select/insert/update/transaction surface the
-    // claim route calls; Database additionally requires the live postgres-js $client, which
+    // claim route calls; Database additionally requires the live node-postgres $client, which
     // no test can construct — the auth context only forwards db through to the handler.
     db: mockDb as never,
     dbUser: { id: userId, handle: "testuser", clerkId: "user_clerk_1" },

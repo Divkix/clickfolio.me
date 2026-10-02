@@ -12,7 +12,7 @@ import { defineConfig } from "drizzle-kit";
  *     PlanetScale connection string (PlanetScale console → clickfolio →
  *     Connect → Postgres URL).
  *   - The deployed Worker connects via `env.HYPERDRIVE.connectionString` with
- *     the postgres-js driver (drizzle-orm/postgres-js) — see lib/db/index.ts.
+ *     the node-postgres driver (drizzle-orm/node-postgres) — see lib/db/index.ts.
  *
  * Usage:
  *   DATABASE_URL="postgres://..." pnpm exec drizzle-kit generate

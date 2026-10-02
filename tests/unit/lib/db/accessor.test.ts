@@ -2,13 +2,13 @@ import { describe, expect, it } from "vite-plus/test";
 import { getDb } from "@/lib/db";
 
 // SAFETY: getDb reads only hyperdrive.connectionString when it constructs the
-// postgres client; the fake binding supplies exactly that field.
+// node-postgres pool; the fake binding supplies exactly that field.
 const hyperdrive = {
   connectionString: "postgres://user:password@example.com:5432/clickfolio",
 } as Hyperdrive;
 
 describe("getDb", () => {
-  it("creates a new postgres client for each invocation", () => {
+  it("creates a new node-postgres pool for each invocation", () => {
     const first = getDb(hyperdrive);
     const second = getDb(hyperdrive);
 

@@ -9,5 +9,8 @@ export function isUniqueViolation(error: Error): boolean {
 
   if (sqlState.success && sqlState.data.code === PG_UNIQUE_VIOLATION) return true;
 
-  return error.message.includes("duplicate key value");
+  return (
+    error.message.includes("duplicate key value") ||
+    (error.cause instanceof Error && isUniqueViolation(error.cause))
+  );
 }

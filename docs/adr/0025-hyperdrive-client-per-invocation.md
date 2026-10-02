@@ -42,3 +42,14 @@ stale-connection and request-context I/O errors:
   are valid only during the current invocation.
 - `tests/unit/lib/db/accessor.test.ts` guards against reintroducing shared
   client state by requiring consecutive calls to return distinct clients.
+
+## Driver update (2026-10)
+
+The Worker now uses `drizzle-orm/node-postgres` with `pg` >= 8.16.3. Cloudflare
+states: "Pairing Drizzle ORM with the Postgres.js driver over Hyperdrive is not
+currently supported. Switch your driver to node-postgres (pg)"
+([guide](https://developers.cloudflare.com/hyperdrive/examples/connect-to-postgres/postgres-drivers-and-libraries/drizzle-orm/)).
+`getDb` remains synchronous and creates a fresh request-scoped `Pool` per call,
+with `max: 5`, `connectionTimeoutMillis: 10_000`, and `idleTimeoutMillis: 20_000`.
+Raw SQL uses Drizzle `execute` (`rows`/`rowCount`); IP rate-limit locking and
+conditional inserts remain in one advisory-lock transaction.

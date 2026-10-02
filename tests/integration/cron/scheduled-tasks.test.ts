@@ -39,17 +39,17 @@ function selectChain(rows: SelectedRow[]) {
   };
 }
 
-// DELETE ... RETURNING: `where(...)` stays awaitable (RowList.count) while exposing
+// DELETE ... RETURNING: `where(...)` stays awaitable (pg rowCount) while exposing
 // `returning(...)`, which yields the rows the delete actually removed.
 function deleteChain(count: number, returned: Array<{ id: string; r2Key: string | null }> = []) {
   return {
     where: vi.fn(() => ({
-      count,
+      rowCount: count,
       returning: vi.fn(async () => returned),
       then: (
-        onFulfilled?: ((value: { count: number }) => { count: number }) | null,
-        onRejected?: ((reason: Error) => { count: number }) | null,
-      ) => Promise.resolve({ count }).then(onFulfilled, onRejected),
+        onFulfilled?: ((value: { rowCount: number }) => { rowCount: number }) | null,
+        onRejected?: ((reason: Error) => { rowCount: number }) | null,
+      ) => Promise.resolve({ rowCount: count }).then(onFulfilled, onRejected),
     })),
   };
 }
@@ -70,7 +70,7 @@ function createMockR2DeleteWorkflow(): MockR2DeleteWorkflow {
 
 function asDb(db: MockCronDb): never {
   // SAFETY: MockCronDb stubs only the Drizzle methods the cleanup cron calls; the real drizzle
-  // `Database` type also requires a live postgres-js `$client` no unit test can construct.
+  // `Database` type also requires a live node-postgres `$client` no unit test can construct.
   return db as never;
 }
 
@@ -94,13 +94,13 @@ describe("Cron Scheduled Tasks", () => {
   });
 
   describe("performCleanup", () => {
-    it("deletes rate limits and handle changes in ONE transaction using RowList.count", async () => {
+    it("deletes rate limits and handle changes in ONE transaction using pg rowCount", async () => {
       mockDb.delete
         .mockReturnValueOnce({
-          where: vi.fn().mockResolvedValue({ count: 5 }),
+          where: vi.fn().mockResolvedValue({ rowCount: 5 }),
         })
         .mockReturnValueOnce({
-          where: vi.fn().mockResolvedValue({ count: 10 }),
+          where: vi.fn().mockResolvedValue({ rowCount: 10 }),
         });
 
       const result = await performCleanup(asDb(mockDb));
