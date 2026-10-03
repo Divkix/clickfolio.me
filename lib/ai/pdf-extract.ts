@@ -49,7 +49,8 @@ export async function extractPdfText(buffer: ArrayBuffer): Promise<PdfExtractRes
   }
 
   try {
-    const pdf = await getDocumentProxy(new Uint8Array(buffer));
+    // pdf.js transfers the bytes it is given, detaching the underlying ArrayBuffer; hand it a copy so the caller can still use `buffer` (scanned-PDF vision fallback).
+    const pdf = await getDocumentProxy(new Uint8Array(buffer.slice(0)));
 
     if (pdf.numPages > 50) {
       return {
