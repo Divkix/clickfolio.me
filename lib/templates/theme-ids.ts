@@ -4,6 +4,7 @@ export const THEME_IDS = [
   "bento",
   "boardroom",
   "bold_corporate",
+  "broadsheet",
   "case_file",
   "classic_ats",
   "design_folio",
@@ -54,6 +55,13 @@ export const THEME_METADATA = {
     description: "Annual-report layout with a navy sidebar and condensed headings",
     category: "Professional",
     preview: "/previews/bold-corporate.webp",
+  },
+  broadsheet: {
+    name: "Broadsheet",
+    description:
+      "A newspaper front page: ruled columns, a masthead name and each role set as a story",
+    category: "Professional",
+    preview: "/previews/broadsheet.webp",
   },
   case_file: {
     name: "Case File",
@@ -139,6 +147,7 @@ export const themeToShareVariant = {
   classic_ats: "classic-ats",
   design_folio: "design-folio",
   dev_terminal: "dev-terminal",
+  broadsheet: "broadsheet",
   case_file: "case-file",
   retro_os: "retro-os",
 } as const satisfies Record<ThemeId, SharePopoverVariant>;

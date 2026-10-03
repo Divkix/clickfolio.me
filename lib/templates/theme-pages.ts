@@ -28,6 +28,14 @@ export const THEME_PAGE_COPY: Record<
       "Condensed display headings and thick navy section rules make the page easy to navigate without turning every entry into a card. White and slate supporting colors keep the attention on job titles, descriptions, and achievements rather than decorative effects.",
     ],
   },
+  broadsheet: {
+    description:
+      "Use Broadsheet for a free resume website styled as a newspaper front page, with a masthead name, ruled columns, and roles set as short stories.",
+    paragraphs: [
+      "Broadsheet suits economists, analysts, consultants, and finance professionals who want an editorial page with weight. Your name is set as the masthead, your headline becomes the lead, and each role reads like a short story with a company kicker and a dated byline.",
+      "Experience runs in ruled columns beside a narrow index of education, skills, and contact details. On phones the columns collapse into one, and the paper-toned background gives way to plain white when printed. Oxblood kickers and warm ink keep it formal without feeling dated.",
+    ],
+  },
   case_file: {
     description:
       "Present your experience in Case File, a free resume website template with a manila-folder dossier, typed headings, and lettered exhibits.",

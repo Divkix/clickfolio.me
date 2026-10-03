@@ -4,6 +4,7 @@ import { describe, expect, test } from "vite-plus/test";
 import { BentoGrid } from "@/components/templates/BentoGrid";
 import { Boardroom } from "@/components/templates/Boardroom";
 import { BoldCorporate } from "@/components/templates/BoldCorporate";
+import { Broadsheet } from "@/components/templates/Broadsheet";
 import { CaseFile } from "@/components/templates/CaseFile";
 import { ClassicATS } from "@/components/templates/ClassicATS";
 import { DesignFolio } from "@/components/templates/DesignFolio";
@@ -31,6 +32,7 @@ const ALL_TEMPLATES: { name: string; Component: React.ComponentType<TemplateProp
   { name: "CaseFile", Component: CaseFile },
   { name: "RetroOS", Component: RetroOS },
   { name: "Boardroom", Component: Boardroom },
+  { name: "Broadsheet", Component: Broadsheet },
 ];
 
 const defaultProfile: TemplateProps["profile"] = {

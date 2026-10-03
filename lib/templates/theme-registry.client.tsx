@@ -32,6 +32,12 @@ export const DYNAMIC_TEMPLATES = {
       loading: TemplateLoadingFallback,
     },
   ),
+  broadsheet: dynamic(
+    () => import("@/components/templates/Broadsheet").then((m) => ({ default: m.Broadsheet })),
+    {
+      loading: TemplateLoadingFallback,
+    },
+  ),
   case_file: dynamic(
     () => import("@/components/templates/CaseFile").then((m) => ({ default: m.CaseFile })),
     {

@@ -143,6 +143,16 @@ export const DEMO_PROFILES: DemoProfile[] = [
     badgeBgColor: "bg-slate-100",
     badgeTextColor: "text-slate-700",
   },
+  {
+    id: "broadsheet",
+    name: "Helen Marsh",
+    role: "Senior Economist",
+    initials: "HM",
+    avatarGradient: "from-rose-300 to-stone-700",
+    badgeLabel: "Broadsheet",
+    badgeBgColor: "bg-rose-50",
+    badgeTextColor: "text-rose-800",
+  },
 ];
 
 export const DEMO_RESUME_CONTENT = {
@@ -1306,12 +1316,92 @@ export const DEMO_RESUME_CONTENT = {
       },
     ],
   },
+
+  broadsheet: {
+    full_name: "Helen Marsh",
+    headline: "Senior Economist, public finance and labor policy",
+    summary:
+      "Economist with eleven years advising finance ministries and central banks on tax design, fiscal risk and labor-market reform. I build models that policymakers can read, and write the briefing notes that explain what they say. Most recently led the costing of a national childcare subsidy now covering 1.2 million families.",
+    contact: {
+      email: "helen.marsh@example.com",
+      location: "Washington, DC",
+      linkedin: "https://linkedin.com/in/helenmarsh",
+      website: "https://helenmarsh.org",
+    },
+    experience: [
+      {
+        title: "Senior Economist",
+        company: "Brookhaven Policy Institute",
+        location: "Washington, DC",
+        start_date: "2020-09",
+        end_date: undefined,
+        description:
+          "Leads a team of five on fiscal policy research for governments and development banks.",
+        highlights: [
+          "Costed a national childcare subsidy now covering 1.2 million families, within 3% of realised spend",
+          "Built a tax-microsimulation model adopted by two finance ministries",
+          "Writes the Institute's monthly fiscal risk briefing, read by 4,000 officials",
+        ],
+      },
+      {
+        title: "Economist",
+        company: "International Monetary Research Office",
+        location: "Geneva, Switzerland",
+        start_date: "2016-02",
+        end_date: "2020-08",
+        description: "Advised on fiscal consolidation programmes for middle-income countries.",
+        highlights: [
+          "Authored country reports for nine programmes, three of which shaped final loan terms",
+          "Designed the office's debt sustainability dashboard",
+        ],
+      },
+      {
+        title: "Research Analyst",
+        company: "Aldgate Economics",
+        location: "London, UK",
+        start_date: "2014-09",
+        end_date: "2016-01",
+        description: "Supported labor-market studies for UK government departments.",
+      },
+    ],
+    education: [
+      {
+        degree: "MSc in Economics",
+        institution: "London School of Economics",
+        location: "London, UK",
+        graduation_date: "2014-07",
+      },
+      {
+        degree: "BA in Economics and Mathematics",
+        institution: "University of Warwick",
+        location: "Coventry, UK",
+        graduation_date: "2013-07",
+      },
+    ],
+    skills: [
+      { category: "Modelling", items: ["Microsimulation", "DSGE", "Fiscal risk", "Econometrics"] },
+      { category: "Tools", items: ["R", "Stata", "Python", "SQL"] },
+      { category: "Writing", items: ["Briefing notes", "Cabinet papers", "Public testimony"] },
+    ],
+    certifications: [{ name: "CFA Level II Candidate", issuer: "CFA Institute", date: "2024" }],
+    projects: [
+      {
+        title: "Open Tax Microsim",
+        description:
+          "Open-source tax and benefit microsimulation library used by researchers in six countries",
+        year: "2022",
+        technologies: ["Python", "R"],
+        url: "https://github.com/helenmarsh/open-tax-microsim",
+      },
+    ],
+  },
 } as const satisfies Record<ThemeId, ResumeContent>;
 
 export const TEMPLATE_BACKGROUNDS = {
   bento: { bg: "bg-[#E4E7E1]", isDark: false },
   boardroom: { bg: "bg-[#0F1318]", isDark: true },
   bold_corporate: { bg: "bg-white", isDark: false },
+  broadsheet: { bg: "bg-[#F3E5D9]", isDark: false },
   case_file: { bg: "bg-[#2F2A26]", isDark: true },
   classic_ats: { bg: "bg-[#D9DBDE]", isDark: false },
   design_folio: { bg: "bg-[#EDEEF0]", isDark: false },

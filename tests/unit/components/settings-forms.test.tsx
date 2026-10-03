@@ -29,6 +29,7 @@ vi.mock("@/lib/templates/theme-registry.client", () => {
     "bento",
     "boardroom",
     "bold_corporate",
+    "broadsheet",
     "case_file",
     "classic_ats",
     "design_folio",

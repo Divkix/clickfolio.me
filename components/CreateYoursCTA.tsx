@@ -29,6 +29,7 @@ const ctaVariants = cva(
         design_folio: "bg-[#2D3BFF] text-white border border-[#2D3BFF]",
         case_file: "bg-[#2F2A26] text-[#FBF7EE] border border-[#D9BF83]/40",
         boardroom: "bg-[#161B22] text-[#ECE6D8] border border-[#C4A971]/40",
+        broadsheet: "bg-[#1B1613] text-[#F3E5D9] border border-[#1B1613]",
         retro_os:
           "bg-[#C0C0C0] text-black rounded-none shadow-[inset_-1px_-1px_#0a0a0a,inset_1px_1px_#fff,inset_-2px_-2px_#808080,inset_2px_2px_#dfdfdf]",
       },
@@ -56,6 +57,7 @@ const buttonVariants = cva(
         design_folio: "bg-white text-black hover:bg-[#EDEEF0]",
         case_file: "bg-[#D9BF83] text-[#2F2A26] hover:bg-[#E4CD97]",
         boardroom: "bg-[#C4A971] text-[#0F1318] hover:bg-[#D3BC8A]",
+        broadsheet: "bg-[#F3E5D9] text-[#1B1613] hover:bg-white",
         retro_os: "bg-[#000080] text-white rounded-none hover:bg-[#1084D0]",
       },
     },
@@ -80,6 +82,7 @@ const closeButtonVariants = cva("p-1 rounded-full transition-colors", {
       design_folio: "hover:bg-white/10 text-white/70",
       case_file: "hover:bg-white/10 text-[#FBF7EE]/70",
       boardroom: "hover:bg-white/10 text-[#ECE6D8]/70",
+      broadsheet: "hover:bg-white/10 text-[#F3E5D9]/70",
       retro_os: "hover:bg-black/10 text-black rounded-none",
     },
   },

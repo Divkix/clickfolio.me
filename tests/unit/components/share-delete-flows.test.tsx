@@ -196,6 +196,7 @@ describe("SharePopover", () => {
       "midnight",
       "boardroom",
       "bold-corporate",
+      "broadsheet",
       "classic-ats",
       "design-folio",
       "dev-terminal",

@@ -79,6 +79,12 @@ export function AttributionWidget({ theme }: AttributionWidgetProps) {
       shimmer: "from-transparent via-[#D9BF83]/40 to-transparent",
       shadow: "shadow-md hover:shadow-lg",
     },
+    broadsheet: {
+      container: "bg-[#F8EEE5]/95 border border-[#1B1613]/30 text-[#66584F] hover:text-[#1B1613]",
+      accent: "text-[#8A2C27]",
+      shimmer: "from-transparent via-[#8A2C27]/10 to-transparent",
+      shadow: "shadow-sm hover:shadow-md",
+    },
     boardroom: {
       container:
         "bg-[#161B22]/95 backdrop-blur-md border border-[#262D37] text-[#98A0AB] hover:text-[#ECE6D8]",
