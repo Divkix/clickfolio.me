@@ -116,7 +116,7 @@ export const Broadsheet: React.FC<TemplateProps> = ({ content, profile }) => {
         .bs-story .bs-kicker { margin-bottom: 0.45rem; }
         .bs-root .bs-story h3 { margin: 0; font-size: 1.6rem; line-height: 1.12; font-variation-settings: "opsz" 36; letter-spacing: -0.01em; overflow-wrap: anywhere; }
         .bs-by { margin: 0.5rem 0 0.8rem; padding-bottom: 0.6rem; border-bottom: 1px solid #D9C5B5; font: 600 0.72rem/1.3 'Archivo Narrow', 'Arial Narrow', Arial, sans-serif; letter-spacing: 0.12em; text-transform: uppercase; color: #66584F; font-variant-numeric: tabular-nums; }
-        .bs-story p:not(.bs-kicker):not(.bs-by) { margin: 0 0 0.65rem; font-size: 1rem; line-height: 1.58; hyphens: auto; overflow-wrap: anywhere; }
+        .bs-story p:not(.bs-kicker):not(.bs-by) { margin: 0 0 0.65rem; font-size: 1rem; line-height: 1.58; hyphens: manual; overflow-wrap: break-word; }
         .bs-rail { border-left: 1px solid #1B1613; padding: 1.75rem 0 0 1.5rem; display: flex; flex-direction: column; gap: 2rem; min-width: 0; }
         .bs-rail-solo { border-left: 0; padding-left: 0; }
         .bs-root .bs-box h2 { margin: 0 0 0.75rem; padding-bottom: 0.4rem; border-bottom: 3px double #1B1613; font: 600 0.78rem/1 'Archivo Narrow', 'Arial Narrow', Arial, sans-serif; letter-spacing: 0.16em; text-transform: uppercase; }
