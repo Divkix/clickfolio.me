@@ -147,7 +147,7 @@ export default function PersonalResumeWebsitePage() {
         </p>
         <p>
           Before choosing a layout, browse the{" "}
-          <Link href="/templates">12 free resume website templates</Link> to find a style that fits
+          <Link href="/templates">14 free resume website templates</Link> to find a style that fits
           your experience and the roles you want.
         </p>
         <p>
